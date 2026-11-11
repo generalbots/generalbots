@@ -207,6 +207,7 @@
     apply();
     patchRender();
     g.render();
+    if (g.renderHeaders) g.renderHeaders();
     if (window.SheetSort && window.SheetSort.refreshHandles) window.SheetSort.refreshHandles();
     if (window.SheetFilter && window.SheetFilter.renderHeads) window.SheetFilter.renderHeads();
     wireDragResize();
@@ -234,6 +235,7 @@
     if (g.bodyInner) g.bodyInner.style.width = totalColWidth() + "px";
     g.lastRenderedRange = null;
     if (g.render) g.render();
+    if (g.renderHeaders) g.renderHeaders();
   }
 
   function setRowHeight(idx, h) {

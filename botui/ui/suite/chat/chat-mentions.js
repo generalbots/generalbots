@@ -206,7 +206,7 @@ function selectMentionItem(index) {
       project_id: item.type === "project" && item.id ? String(item.id) : null,
     });
   }
-  input.focus();
+  input.focus({ preventScroll: true });
 }
 
 function updateMentionSelection(direction) {

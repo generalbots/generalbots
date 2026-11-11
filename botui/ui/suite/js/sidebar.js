@@ -80,7 +80,9 @@
     for (var i = 0; i < registry.length; i++) {
       if (registry[i].id === seg) return true;
     }
-    return false;
+    // #2153 — the registry is assigned by 07_* modules on some shells; the
+    // static fallback still knows the principal app ids at boot.
+    return !!FALLBACK_APPS[seg];
   }
 
   function botFromPath() {
@@ -89,6 +91,12 @@
       if (!seg || /\.(js|css|html|json|svg|png)$/.test(seg)) return "";
       if (ROUTE_SEGMENTS.indexOf(seg) !== -1) return "";
       if (isKnownAppRoute(seg)) return "";
+      // The server injects the bot it resolved for this URL (#2153). App
+      // routes (/slides, /drive, /docs) inject the default bot, so a segment
+      // that differs from it is an app route, not a bot name — this holds
+      // even when the app registry has not finished loading.
+      var serverBot = window.__INITIAL_BOT_NAME__ || "";
+      if (serverBot && seg !== serverBot) return "";
       return seg;
     } catch (e) {
       return "";
@@ -99,9 +107,10 @@
     try {
       var name = localStorage.getItem("gb_selected_bot") || "";
       // A route segment can be persisted as a bot by an older build (for
-      // example /wizard/index.html). Never open a socket for it: the server
-      // answers 404 and the chat stays on "Connecting…" forever.
-      if (name && ROUTE_SEGMENTS.indexOf(name) !== -1) {
+      // example /wizard/index.html) or by a boot that resolved /slides before
+      // the app registry was assigned (#2153). Never open a socket for it: the
+      // server closes the upgrade and the chat stays on "Connecting…" forever.
+      if (name && (ROUTE_SEGMENTS.indexOf(name) !== -1 || isKnownAppRoute(name))) {
         localStorage.removeItem("gb_selected_bot");
         return "";
       }
@@ -121,7 +130,11 @@
   function GBResolveActiveBot() {
     var pathBot = botFromPath();
     var active = pathBot || storedBot() || window.__INITIAL_BOT_NAME__ || "default";
-    if (pathBot && pathBot !== storedBot()) saveStoredBot(pathBot);
+    // Persist a path bot only once the app registry exists: before that an
+    // app route (/slides) is indistinguishable from a bot and would be stored
+    // as the selection for every other tab (#2153).
+    var registryReady = !!(window.APPS_REGISTRY && window.APPS_REGISTRY.length);
+    if (pathBot && registryReady && pathBot !== storedBot()) saveStoredBot(pathBot);
     window.__SELECTED_BOT_NAME__ = active;
     return active;
   }

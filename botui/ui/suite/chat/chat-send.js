@@ -85,8 +85,16 @@ function sendMessage(messageContent, extra) {
     hideMentionDropdown();
     input.value = "";
     if (input.tagName === "TEXTAREA") input.style.height = "auto";
-    input.focus();
+    // #2163 — a plain focus() scrolls every scrollable ancestor to reveal the
+    // composer, which was visible as the whole window jumping after Enter.
+    input.focus({ preventScroll: true });
   }
+
+  // #2163 — read the reader's position BEFORE the new bubble changes the
+  // scroll height, so sending never yanks someone who scrolled up to read.
+  var wasAtBottom = true;
+  var pane = document.getElementById("messages");
+  if (pane) wasAtBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 80;
 
   var display = content || ("📎 " + fileNames);
   if (content && fileNames) display += "\n\n📎 " + fileNames;
@@ -96,10 +104,12 @@ function sendMessage(messageContent, extra) {
   // turn state machine keeps this element until the final answer (#2098).
   if (window.GBTurn) GBTurn.start(content || fileNames);
   else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
-  // Sending always returns the view to the live edge.
-  ChatState.isUserScrolling = false;
-  ChatState.isUserAtBottom = true;
-  scrollToBottom(false);
+  // Sending returns to the live edge only when the reader was already there.
+  if (wasAtBottom) {
+    ChatState.isUserScrolling = false;
+    ChatState.isUserAtBottom = true;
+    scrollToBottom(false);
+  }
 
   var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];
   ChatState.selectedMentions = [];

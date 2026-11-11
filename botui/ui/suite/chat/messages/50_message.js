@@ -265,7 +265,12 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
     }
   }
 
-  if (sender === "user" || ChatState.isUserAtBottom) {
+  // #2163 — adding a *user* message used to force the viewport to the bottom
+  // even when the reader had scrolled up, which is what made Enter feel like a
+  // jump. Follow the live edge only when the reader is already there; otherwise
+  // leave the scroll alone and let the jump-to-bottom button advertise the new
+  // message. `undefined` (first message of a session) counts as at-bottom.
+  if (ChatState.isUserAtBottom !== false) {
     scrollToBottom(sender !== "user");
     stickToBottom(sender === "user" ? 300 : 1400);
   } else {

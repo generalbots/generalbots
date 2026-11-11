@@ -107,7 +107,8 @@
     MC.connectTab(t);
     MC.installSendRouter();
     var input = MC.q("messageInput");
-    if (input) input.focus();
+    // #2163 — never let focusing the composer scroll an ancestor container.
+    if (input) input.focus({ preventScroll: true });
     return true;
   };
 

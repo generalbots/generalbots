@@ -42,23 +42,28 @@
         return r.blob();
       })
       .then(function (blob) {
-        download(blob, slug(currentName()) + "." + ext);
+        var filename = slug(currentName()) + "." + ext;
+        download(blob, filename);
+        // The download anchor is removed immediately, so this toast is the only
+        // confirmation the user (and the UI automation) gets that it worked.
+        showToast("Exported " + filename, true);
       })
       .catch(function () {
         showToast("Export failed");
       });
   }
 
-  function showToast(msg) {
+  function showToast(msg, ok) {
     const id = "ss-export-toast";
     let toast = document.getElementById(id);
     if (!toast) {
       toast = document.createElement("div");
       toast.id = id;
-      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);";
       document.body.appendChild(toast);
     }
     toast.textContent = msg;
+    toast.style.background = ok ? "#16a34a" : "#dc2626";
     toast.style.display = "block";
     clearTimeout(toast.__timer);
     toast.__timer = setTimeout(function () { toast.style.display = "none"; }, 2600);
@@ -75,6 +80,9 @@
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = label;
+      // Screen readers and the UI orchestrator both need a label that says what
+      // the item exports (the plain "CSV" is ambiguous once the menu closes).
+      b.setAttribute("aria-label", "Export " + label);
       b.style.cssText =
         "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, #f8fafc);" +
         "text-align:left;font-size:13px;cursor:pointer;";
@@ -121,10 +129,14 @@
     btn.className = "btn-icon";
     btn.id = "exportSheetBtn";
     btn.title = "Export";
+    btn.setAttribute("aria-label", "Export");
     btn.style.cssText = "display:inline-flex;align-items:center;gap:4px;";
+    // A trailing `+` used to concatenate this call's `undefined` return into
+    // the markup, so the toolbar button rendered the word "undefined" and the
+    // label lookup in the UI orchestrator could never match "Export".
     btn.innerHTML =
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>' +
-      '<span style="font-size:12px;margin-left:4px;">Export</span>';
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+
     btn.addEventListener("click", function (e) {
       e.preventDefault();
       openMenu(btn);

@@ -51,6 +51,11 @@ var GBTurnIndicator = (function () {
     return el;
   }
 
+  /* A provider that is slow (or queued behind a 429) leaves the turn on
+   * "Thinking…" with only a rising counter, which reads like a frozen UI.
+   * Past this many seconds the indicator says so and points at Stop. */
+  var SLOW_AFTER_S = 30;
+
   function build() {
     var wrap = document.createElement("div");
     wrap.id = "thinking-indicator";
@@ -80,9 +85,17 @@ var GBTurnIndicator = (function () {
         var owner = wrap.__gbTurn;
         if (owner && typeof owner.onRetry === "function") owner.onRetry();
       });
+    var hint = document.createElement("span");
+    hint.className = "thinking-hint";
+    hint.style.display = "none";
+    hint.textContent = label(
+      "chat-slow-hint",
+      "The model is slow to answer — you can Stop and try again."
+    );
     box.appendChild(spinner);
     box.appendChild(text);
     box.appendChild(elapsed);
+    box.appendChild(hint);
     box.appendChild(stop);
     box.appendChild(retry);
     content.appendChild(box);
@@ -121,6 +134,15 @@ var GBTurnIndicator = (function () {
     var seconds = Math.max(0, Math.floor((Date.now() - turn.startedAt) / 1000));
     if (el) el.textContent = seconds + "s";
     turn.el.setAttribute("data-turn-elapsed", String(seconds));
+    var ended = turn.state === "done" || turn.state === "error" || turn.state === "cancelled";
+    var slow = !ended && seconds >= SLOW_AFTER_S;
+    var hint = turn.el.querySelector(".thinking-hint");
+    if (hint) hint.style.display = slow ? "" : "none";
+    var box = turn.el.querySelector(".thinking-indicator");
+    if (box) {
+      if (slow) box.classList.add("thinking-slow");
+      else box.classList.remove("thinking-slow");
+    }
   }
 
   function paint(turn, text, extraClass) {
@@ -170,7 +192,13 @@ var GBTurnIndicator = (function () {
 
   function scroll() {
     try {
-      if (typeof window.scrollToBottom === "function") window.scrollToBottom(true);
+      // #2163 — the send path already pinned the view and a reader who scrolled
+      // up must keep their place, so this only follows the live edge when the
+      // reader is already there. Instant, never smooth: a second animation on
+      // top of the send pin read as the chat jumping.
+      var cs = window.ChatState || {};
+      if (cs.isUserAtBottom === false || cs.isUserScrolling) return;
+      if (typeof window.scrollToBottom === "function") window.scrollToBottom(false);
       if (typeof window.scheduleScrollbarMarkers === "function") window.scheduleScrollbarMarkers();
     } catch (e) { /* transcript not mounted */ }
   }

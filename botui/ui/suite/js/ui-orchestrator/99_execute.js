@@ -89,10 +89,17 @@
     return chain
       .then(function (lastOk) {
         var failed = S.ACTIVE.failed || (lastOk === false ? 1 : 0);
+        // Steps that reported success may already have changed the app, so the
+        // failure summary must not claim otherwise — the earlier wording
+        // ("nothing was changed") was false whenever a later step failed.
+        var applied = Math.max(0, (S.ACTIVE.completed || 0) - failed);
         S.ACTIVE = null;
         if (S.focusRing) S.focusRing.style.display = "none";
         if (failed > 0) {
-          reportStep("Automation FAILED — " + failed + " of " + plan.steps.length + " steps did not complete (nothing was changed)", "warn");
+          var tail = applied > 0
+            ? "; " + applied + " earlier step(s) already ran, so the app may be partly changed"
+            : " (nothing was changed)";
+          reportStep("Automation FAILED — " + failed + " of " + plan.steps.length + " steps did not complete" + tail, "warn");
           return false;
         }
         reportStep("Automation complete: " + plan.steps.length + "/" + plan.steps.length + " steps", "done");

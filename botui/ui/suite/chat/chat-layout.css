@@ -152,7 +152,10 @@
     gap: 16px;
     scrollbar-width: thin;
     scrollbar-color: var(--accent, #2563eb) var(--surface, #1a1a24);
-    scroll-behavior: smooth;
+    /* #2163 — a live tail must not animate: smooth scrolling made every
+     * streamed chunk travel, which reads as the chat jumping on send. */
+    scroll-behavior: auto;
+    overscroll-behavior: contain;
     justify-content: flex-start;
     align-items: stretch;
 }

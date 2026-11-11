@@ -110,6 +110,23 @@ function proceedWithChatInit() {
       ChatState.currentSessionId = auth.session_id;
       ChatState.currentBotId = auth.bot_id || "default";
       ChatState.currentBotName = botName;
+      // #2153 — /api/auth resolves an unknown bot to the nil UUID. Dialling
+      // the socket for it left the window "Connecting…" forever, so say that
+      // the bot is missing. A stale selection heals itself once by dropping
+      // the poisoned value and reopening the server-default bot.
+      if (auth.bot_id === "00000000-0000-0000-0000-000000000000") {
+        var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
+        try { localStorage.removeItem("gb_selected_bot"); } catch (e) {}
+        if (!window.__gbBotFallbackDone && botName !== fallbackBot) {
+          window.__gbBotFallbackDone = true;
+          notify('Bot "' + botName + '" was not found — opening ' + fallbackBot, "error");
+          ChatState.currentBotName = fallbackBot;
+          setTimeout(proceedWithChatInit, 0);
+          return;
+        }
+        showBotUnavailable(botName);
+        return;
+      }
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
         localStorage.setItem("gb.chat.session." + botName, auth.session_id);
@@ -164,7 +181,7 @@ function applyDeepLinkMessage() {
     var input = document.getElementById("messageInput");
     if (input) {
       input.value = msg;
-      input.focus();
+      input.focus({ preventScroll: true });
     }
   } catch (e) { /* non-fatal */ }
 }
@@ -191,7 +208,7 @@ function applyDeepLinkMessage() {
     } catch (e) { msg = ""; }
     if (!msg) { applied = true; return; }
     input.value = msg;
-    input.focus();
+    input.focus({ preventScroll: true });
     if (window.__gbAppParams__) delete window.__gbAppParams__.message;
     applied = true;
   }
@@ -213,7 +230,8 @@ function applyDeepLinkMessage() {
 function autoFocusInput() {
   setTimeout(function() {
     var input = document.getElementById("messageInput");
-    if (input) input.focus();
+    // #2163 — focusing the composer must not scroll any ancestor.
+    if (input) input.focus({ preventScroll: true });
     applyDeepLinkMessage();
   }, 500);
 }

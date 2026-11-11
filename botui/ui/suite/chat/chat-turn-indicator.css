@@ -31,6 +31,13 @@
     color: var(--warning, #d08a2c);
 }
 
+/* Shown once a turn has been silent long enough to look frozen. */
+.thinking-hint {
+    margin-left: 4px;
+    font-size: 11px;
+    color: var(--text-secondary, #9aa0aa);
+}
+
 .thinking-indicator.thinking-error {
     border-color: var(--danger, #d9534f);
 }

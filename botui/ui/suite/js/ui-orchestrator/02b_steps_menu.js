@@ -67,7 +67,30 @@
   function stepDownload(step) {
     var label = step.label || "Download";
     var before = document.querySelectorAll('a[download], a[href^="blob:"]').length;
+    // Exporters create the download anchor, click it and remove it in the same
+    // tick, so a count taken after the click always reads zero. Watch the tree
+    // for the transient node instead.
+    var sawAnchor = false;
+    var observer = null;
+    if (window.MutationObserver && document.body) {
+      // Read the mutation records, not the live DOM: append+click+remove happen
+      // in one task, so the callback only ever sees the anchor already gone.
+      observer = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes || [];
+          for (var j = 0; j < added.length; j++) {
+            var node = added[j];
+            if (node && node.nodeType === 1 && node.matches &&
+                node.matches('a[download], a[href^="blob:"]')) {
+              sawAnchor = true;
+            }
+          }
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
     var el = findClickable(label);
+    if (!el && observer) observer.disconnect();
     if (!el) {
       reportStep("Download '" + label + "' — control not found", "warn");
       return Promise.resolve(false);
@@ -85,8 +108,9 @@
         waitFor(function () {
           var anchors = document.querySelectorAll('a[download], a[href^="blob:"]').length;
           var toast = document.querySelector('.gb-toast, .toast, [role="status"].toast');
-          return anchors > before || !!toast;
+          return anchors > before || sawAnchor || !!toast;
         }, 4000).then(function (ok) {
+          if (observer) observer.disconnect();
           reportStep(
             ok
               ? "Download started for '" + label + "'"

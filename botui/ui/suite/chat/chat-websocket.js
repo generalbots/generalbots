@@ -117,6 +117,41 @@ function showAuthRequired(botName) {
   console.warn("[WS] bot '" + botName + "' is private; WebSocket not attempted");
 }
 
+// #2153 — a route segment or a stale selection can name a bot that does not
+// exist. The server refuses the upgrade and the page used to sit on
+// "Connecting…" forever while a generic "Reconnecting…" toast blamed the
+// network. Say what is wrong and offer the one action that fixes it.
+function showBotUnavailable(botName) {
+  ChatState.botUnavailable = true;
+  var message = 'Bot "' + botName + '" was not found';
+  var statusEl = document.getElementById("connectionStatus");
+  if (statusEl) {
+    statusEl.className = "connection-status disconnected";
+    statusEl.style.display = "flex";
+    statusEl.style.cursor = "pointer";
+    statusEl.title = "Open the default bot";
+    statusEl.onclick = function () { window.location.href = "/default"; };
+    var statusText = statusEl.querySelector(".connection-text");
+    if (statusText) statusText.textContent = message + " — open the default bot";
+  }
+  var messages = document.getElementById("messages");
+  var loading = messages && messages.querySelector(".gb-state-loading");
+  if (loading) {
+    loading.className = "gb-state gb-state-error";
+    var stateMsg = loading.querySelector(".gb-state-msg");
+    if (stateMsg) {
+      stateMsg.textContent = message + ". ";
+      var link = document.createElement("a");
+      link.href = "/default";
+      link.textContent = "Open the default bot →";
+      stateMsg.appendChild(link);
+    }
+  }
+  if (window.GBAppLifecycle) GBAppLifecycle.setState("error", message);
+  notify(message + " — open the default bot", "error");
+  console.warn("[WS] bot '" + botName + "' does not exist; no socket dialled");
+}
+
 // One dial at a time: several boot modules call connectWebSocket() while the
 // first probe is still in flight, and each late callback used to dial another
 // socket. The loser stayed open as an orphan while ChatState.ws pointed at a
@@ -124,6 +159,12 @@ function showAuthRequired(botName) {
 var chatDialSeq = 0;
 
 function connectWebSocket() {
+  // A bot that does not exist never gains a socket: redialling only replaced
+  // the explicit error with an endless "Connecting…" (#2153).
+  if (ChatState.botUnavailable) {
+    showBotUnavailable(ChatState.currentBotName);
+    return;
+  }
   var seq = ++chatDialSeq;
   if (ChatState.ws) {
     // Detach lifecycles first: the superseded socket must not schedule dials.
