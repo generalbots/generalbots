@@ -251,13 +251,13 @@ jobs:
         env:
           GB_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.GB_OAUTH_GOOGLE_CLIENT_ID }}
           GB_OAUTH_MICROSOFT_CLIENT_ID: ${{ vars.GB_OAUTH_MICROSOFT_CLIENT_ID }}
-        run: cargo build -p botserver --no-default-features --features desktop-local
+        run: cargo build -p botserver --release --no-default-features --features desktop-local
 
       - name: Build botui
-        run: cargo build -p botui
+        run: cargo build -p botui --release
 
       - name: Build desktop shell
-        run: cargo build -p botapp --features desktop-local,custom-protocol
+        run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
       - name: Fetch vendored drive binaries
         run: |
@@ -620,13 +620,13 @@ jobs:
         env:
           GB_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.GB_OAUTH_GOOGLE_CLIENT_ID }}
           GB_OAUTH_MICROSOFT_CLIENT_ID: ${{ vars.GB_OAUTH_MICROSOFT_CLIENT_ID }}
-        run: cargo build -p botserver --no-default-features --features desktop-local
+        run: cargo build -p botserver --release --no-default-features --features desktop-local
 
       - name: Build botui
-        run: cargo build -p botui
+        run: cargo build -p botui --release
 
       - name: Build desktop shell
-        run: cargo build -p botapp --features desktop-local,custom-protocol
+        run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
       # #1793 — the payload must carry the services that have a Windows build,
       # not just the executables. `drive-bin-v3` only publishes the Linux MinIO
