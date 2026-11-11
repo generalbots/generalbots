@@ -83,61 +83,56 @@ jobs:
 
       - name: Smoke boot the desktop-local botserver
         shell: pwsh
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}\gbstack
+          DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+          CACHE_URL: redis://127.0.0.1:6379
+          VAULT_ADDR: https://vault.a11y.invalid:8200
+          BOTSERVER_DISABLE_TLS: "1"
+          BOT_TEMPLATES_REPO: https://example.invalid/templates.git
         run: |
-          $stage = 'dist\testbuild'
-          # Stage the product + a dead-Zitadel directory_config the way the
-          # Lighthouse desktop-local job does on Ubuntu, so bootstrap can
-          # complete without Vault/MinIO/installers.
-          $stack = Join-Path (Get-Location) 'stack'
+          # mirror the Lighthouse desktop-local job
+          $stack = $env:BOTSERVER_STACK_PATH
           New-Item -ItemType Directory -Force "$stack\conf\system" | Out-Null
-          (Get-Content "$stage\.product.desktop-local") -replace 'no_security=false','no_security=true' |
-            Set-Content "$stage\.product.desktop-local"
-          # botserver reads .product.desktop-local from its working dir
-          Copy-Item "$stage\.product.desktop-local" "$stage\.product" -Force
+          Copy-Item 'botserver\.product.desktop-local' '.product.desktop-local' -Force
+          (Get-Content '.product.desktop-local') -replace 'no_security=false','no_security=true' |
+            Set-Content '.product.desktop-local'
           @"
           {"issuer_url":"http://127.0.0.1:1","issuer":"http://127.0.0.1:1","client_id":"a11y","client_secret":"a11y","redirect_uri":"/callback","project_id":"default","api_url":"http://127.0.0.1:1","allow_insecure_http":true}
           "@ | Set-Content "$stack\conf\system\directory_config.json"
-          # choco postgresql16 ships a server; create the botserver DB the
-          # default connection string expects.
+          # postgres on 5432 (choco) — create gb user/db
           $pgBin = (Get-ChildItem "C:\Program Files\PostgreSQL" -Directory | Sort-Object Name | Select-Object -Last 1).FullName + '\bin'
           $env:PATH = "$pgBin;$env:PATH"
-          & "$pgBin\pg_ctl.exe" initdb -D (Join-Path $stack 'pgdata') 2>$null
-          & "$pgBin\pg_ctl.exe" -D (Join-Path $stack 'pgdata') -l (Join-Path $stack 'pg.log') -o "-p 5432" start
-          Start-Sleep -Seconds 3
-          & "$pgBin\psql.exe" -U postgres -c "CREATE USER gb WITH PASSWORD 'gb';" 2>$null
-          & "$pgBin\psql.exe" -U postgres -c "CREATE DATABASE botserver OWNER gb;" 2>$null
-          & "$pgBin\psql.exe" -U postgres -d botserver -c "GRANT ALL PRIVILEGES ON DATABASE botserver TO gb;" 2>$null
-          $env:BOTSERVER_STACK_PATH = $stack
-          $env:BOTSERVER_INSTALLERS_PATH = Join-Path (Get-Location) 'botserver-installers'
-          $env:BOTSERVER_DISABLE_TLS = '1'
-          $env:DATABASE_URL = 'postgres://gb:gb@127.0.0.1:5432/botserver'
-          $env:DIRECTORY_URL = 'http://127.0.0.1:1'
+          # start the choco postgres service if not running
+          $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
+          & "$pgBin\psql.exe" -U postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='gb') THEN CREATE ROLE gb LOGIN PASSWORD 'gb'; END IF; END \$\$;" 2>$null
+          & "$pgBin\psql.exe" -U postgres -c "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec" 2>$null
           $log = Join-Path (Get-Location) 'botserver-testbuild.log'
-          Push-Location $stage
-          try {
-            $proc = Start-Process -FilePath '.\botserver.exe' -ArgumentList '--noconsole' `
-              -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
-            $ready = $false
-            foreach ($i in 1..120) {
-              Start-Sleep -Seconds 2
-              try {
-                $r = Invoke-WebRequest -Uri 'http://localhost:8080/api/product' -UseBasicParsing -TimeoutSec 5
-                if ($r.StatusCode -eq 200) {
-                  $payload = $r.Content | ConvertFrom-Json
-                  Write-Host "api/product: $($r.Content)"
-                  if ($payload.suite_default_app -eq 'chat') { $ready = $true }
-                  break
-                }
-              } catch { if ($i % 10 -eq 0) { Write-Host "attempt $i not ready: $($_.Exception.Message)" } }
-            }
-            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-            if (-not $ready) {
-              Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 60
-              throw "botserver did not become ready on /api/product"
-            }
-          } finally {
-            Pop-Location
+          $proc = Start-Process -FilePath 'target\debug\botserver.exe' -ArgumentList '--noconsole' `
+            -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
+          $ready = $false
+          for ($i = 0; $i -lt 120; $i++) {
+            Start-Sleep -Seconds 2
+            try {
+              $r = Invoke-WebRequest -Uri 'http://localhost:8080/api/product' -UseBasicParsing -TimeoutSec 5
+              if ($r.StatusCode -eq 200) {
+                $payload = $r.Content | ConvertFrom-Json
+                Write-Host "api/product: $($r.Content)"
+                if ($payload.suite_default_app -eq 'chat') { $ready = $true }
+                break
+              }
+            } catch { if ($i % 10 -eq 0) { Write-Host "attempt $i not ready: $($_.Exception.Message)" } }
           }
+          if (-not $ready) {
+            Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 40 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 40 -ErrorAction SilentlyContinue
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            throw "botserver did not become ready on /api/product"
+          }
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          Write-Host "Smoke boot OK"
+
 
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
