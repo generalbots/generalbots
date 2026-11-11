@@ -1,6 +1,7 @@
 mod auth_flow;
 mod chat;
 mod dashboard;
+mod desktop_local_chat;
 mod platform_flow;
 mod vibe_workbench;
 

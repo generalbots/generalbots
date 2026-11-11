@@ -32,5 +32,14 @@
   }
   window.GBDeltaRecords = { applyToContainer: applyToContainer, registerSimple: registerSimple };
   var apps = ["goals","plan","project","tasks","crm","people","tickets","hr","billing","products","tax","calendar","campaigns","social","mail","templates","automations","workspace","vibe"];
-  apps.forEach(function(id){ registerSimple(id, "#"+id+"-list, ."+id+"-list, [data-"+id+"-records]"); });
+  function registerAll(){
+    if(!window.GBDocDelta){
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", registerAll, { once: true });
+      }
+      return;
+    }
+    apps.forEach(function(id){ registerSimple(id, "#"+id+"-list, ."+id+"-list, [data-"+id+"-records]"); });
+  }
+  registerAll();
 })();

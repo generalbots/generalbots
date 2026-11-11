@@ -94,9 +94,16 @@
   // Shared by the "+" button and the sidebar's New Conversation action: a
   // fresh tab owns its own socket and session, so the new conversation does
   // not write into the previous one.
+  var lastNewChatAt = 0;
   MC.newChatTab = function () {
     if (MC.blocked) return false;
     if (!window.GBTabs) return false;
+    // #2235 F8 — rapid clicks/double-invocation stacked duplicate fresh tabs
+    // before the first session was minted. A short re-entry guard keeps one
+    // tab per intentional action while still allowing a new tab once ready.
+    var now = Date.now();
+    if (now - lastNewChatAt < 400) return false;
+    lastNewChatAt = now;
     var tab = GBTabs.createTab({
       kind: "chat",
       title: "Chat " + ++MC.seq,

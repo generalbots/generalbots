@@ -43,10 +43,14 @@ from product_matrix import (
     parse_product,
 )
 
-# The product profile requested in #1811. Both shipped files use this list.
+# The product profile requested in #1811, extended by #2234 so core
+# office/business apps are always available in normal (non-preview) sessions.
+# Core apps (about/settings) are implicit and must not appear in apps=.
 EXPECTED_ALWAYS = {
     "chat", "drive", "browser", "clock-widget", "jukebox", "player",
     "calculator", "notes", "photos", "timer", "weather", "integrations",
+    "docs", "sheet", "slides", "paper", "crm", "billing",
+    "products", "tasks", "calendar", "mail",
 }
 
 

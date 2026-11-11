@@ -146,6 +146,9 @@ window.ChatSwitchBot = function (botName) {
 
       // Swap the conversation view in place (not a reload).
       hideThinkingIndicator();
+      if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
+        try { window.GBChatVirtual.clear(); } catch (e) {}
+      }
       var pane = document.getElementById("messages");
       if (pane) pane.innerHTML = "";
       var sugg = document.getElementById("suggestions");
@@ -203,6 +206,9 @@ window.ChatSwitchBot = function (botName) {
     if (typeof loadLocalHistory !== "function") return;
     var local = loadLocalHistory();
     if (!local || local.length === 0) return;
+    if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
+      try { window.GBChatVirtual.clear(); } catch (e) {}
+    }
     var pane = document.getElementById("messages");
     if (pane) pane.innerHTML = "";
     ChatState.suppressPersist = true;
@@ -210,6 +216,9 @@ window.ChatSwitchBot = function (botName) {
       addMessage(m.sender, m.content, null, null, m.ts);
     });
     ChatState.suppressPersist = false;
+    if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
+      try { window.GBChatVirtual.afterHistoryRender(); } catch (e) {}
+    }
     scrollToBottom(false);
     if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
     if (typeof stickToBottom === "function") stickToBottom(2500);
@@ -233,19 +242,36 @@ window.ChatSwitchBot = function (botName) {
   function renderHistoryMessages(messages, pane) {
     var previousRole = "";
     var previousContent = "";
-    (messages || []).forEach(function (m) {
-      var role = m.role === "user" ? "user" : "bot";
-      // The pipeline can persist the same assistant turn twice; do not
-      // replay both bubbles into the conversation.
-      if (role === "bot" && previousRole === "bot" && previousContent === m.content) {
-        return;
-      }
-      previousRole = role;
-      previousContent = m.content;
-      // Server history does not expose timestamps yet; pass one through when
-      // a future payload includes it, otherwise the bubble omits the label.
-      addMessage(role, m.content, null, null, m.ts || m.timestamp || m.created_at || m.time);
-    });
+    var targetPane = pane || document.getElementById("messages");
+    var fragment = null;
+    var previousTarget = ChatState.appendTarget;
+    // #2229 — batch-append history turns into a DocumentFragment so the browser
+    // performs one insertion/reflow per page instead of one per message. The
+    // live transcript path is unchanged (appendTarget stays null there).
+    if (targetPane && typeof document.createDocumentFragment === "function") {
+      fragment = document.createDocumentFragment();
+      ChatState.appendTarget = fragment;
+    }
+    try {
+      (messages || []).forEach(function (m) {
+        var role = m.role === "user" ? "user" : "bot";
+        // The pipeline can persist the same assistant turn twice; do not
+        // replay both bubbles into the conversation.
+        if (role === "bot" && previousRole === "bot" && previousContent === m.content) {
+          return;
+        }
+        previousRole = role;
+        previousContent = m.content;
+        // Server history does not expose timestamps yet; pass one through when
+        // a future payload includes it, otherwise the bubble omits the label.
+        addMessage(role, m.content, null, null, m.ts || m.timestamp || m.created_at || m.time);
+      });
+    } finally {
+      ChatState.appendTarget = previousTarget;
+    }
+    if (fragment && targetPane) {
+      targetPane.appendChild(fragment);
+    }
   }
 
   function removeShowMoreControl() {
@@ -308,6 +334,14 @@ window.ChatSwitchBot = function (botName) {
         if (pane) {
           pane.scrollTop = pane.scrollHeight - prevHeight + prevTop;
         }
+        // #2229 — older messages were prepended; rebuild virtualizer order/heights.
+        if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
+          try {
+            window.GBChatVirtual.clear();
+            window.GBChatVirtual.registerAll(document.getElementById("messages"));
+            if (typeof window.GBChatVirtual.afterHistoryRender === "function") window.GBChatVirtual.afterHistoryRender();
+          } catch (e) {}
+        }
         ChatState.historyOffsetTurns = (ChatState.historyOffsetTurns || 0) + HISTORY_PAGE_TURNS;
         ChatState.historyHasMore = (data.has_more === true) ||
           (data.has_more === undefined && data.messages.length >= HISTORY_PAGE_TURNS * 2);
@@ -344,10 +378,16 @@ window.ChatSwitchBot = function (botName) {
         // A reply can land while the history request is in flight; never wipe
         // turns the reader already sees unless this is an explicit open.
         if (!replace && pane && pane.childElementCount > 0) return;
+        if (replace && window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
+          try { window.GBChatVirtual.clear(); } catch (e) {}
+        }
         if (pane) pane.innerHTML = "";
         ChatState.suppressPersist = true;
         renderHistoryMessages(data.messages, pane);
         ChatState.suppressPersist = false;
+        if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
+          try { window.GBChatVirtual.afterHistoryRender(); } catch (e) {}
+        }
         ChatState.historyOffsetTurns = HISTORY_PAGE_TURNS;
         ChatState.historyHasMore = (data.has_more === true) ||
           (data.has_more === undefined && data.messages.length >= HISTORY_PAGE_TURNS * 2);

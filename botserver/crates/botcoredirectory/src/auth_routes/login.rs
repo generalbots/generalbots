@@ -42,6 +42,7 @@ fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
         // working until the desktop wizard scrubs them after the first login.
         let file_salt = json.get("password_salt").and_then(|v| v.as_str()).unwrap_or("");
         let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
+        let mut legacy_plaintext_match = false;
         let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
             use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
@@ -50,9 +51,34 @@ fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
             format!("{:x}", hasher.finalize()) == file_hash
         } else {
             let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
-            !file_password.is_empty() && file_password == password
+            legacy_plaintext_match = !file_password.is_empty() && file_password == password;
+            legacy_plaintext_match
         };
         if matched {
+            // #2235 F10 — legacy installs stored the password in plaintext.
+            // Upgrade the file to a salted digest on first successful use so
+            // credentials stop living on disk in cleartext (best effort).
+            if legacy_plaintext_match {
+                use sha2::{Digest, Sha256};
+                let salt = uuid::Uuid::new_v4().to_string();
+                let mut hasher = Sha256::new();
+                hasher.update(salt.as_bytes());
+                hasher.update(password.as_bytes());
+                let hash = format!("{:x}", hasher.finalize());
+                let mut upgraded = json.clone();
+                if let Some(obj) = upgraded.as_object_mut() {
+                    obj.insert("password_salt".to_string(), serde_json::Value::String(salt));
+                    obj.insert("password_hash".to_string(), serde_json::Value::String(hash));
+                    obj.remove("password");
+                    if let Ok(serialized) = serde_json::to_string_pretty(&upgraded) {
+                        if let Err(e) = std::fs::write(&candidate, serialized) {
+                            warn!("Local admin: could not scrub legacy plaintext password in {:?}: {e}", candidate);
+                        } else {
+                            info!("Local admin: upgraded legacy plaintext credentials to hashed form in {:?}", candidate);
+                        }
+                    }
+                }
+            }
             let user_id = json
                 .get("user_id")
                 .and_then(|v| v.as_str())

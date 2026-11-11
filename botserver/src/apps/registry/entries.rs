@@ -118,7 +118,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "learning courses education",
             icon: "<path d=\"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z\"/><path d=\"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "mail",
             title: "Mail",
             category: "office",
@@ -128,7 +128,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "email inbox message",
             icon: "<path d=\"M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z\"/><polyline points=\"22,6 12,13 2,6\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "calendar",
             title: "Calendar",
             category: "office",
@@ -148,7 +148,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "video call meeting conference",
             icon: "<polygon points=\"23 7 16 12 23 17 23 7\"/><rect x=\"1\" y=\"5\" width=\"15\" height=\"14\" rx=\"2\" ry=\"2\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "docs",
             title: "Docs",
             category: "office",
@@ -158,7 +158,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "document editor write",
             icon: "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><line x1=\"16\" y1=\"13\" x2=\"8\" y2=\"13\"/><line x1=\"16\" y1=\"17\" x2=\"8\" y2=\"17\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "sheet",
             title: "Sheets",
             category: "office",
@@ -168,7 +168,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "spreadsheet table grid formula chart filter sort merge freeze validation",
             icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"3\" y1=\"9\" x2=\"21\" y2=\"9\"/><line x1=\"9\" y1=\"21\" x2=\"9\" y2=\"9\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "slides",
             title: "Slides",
             category: "office",
@@ -178,7 +178,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "presentation slides deck",
             icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M8 3v18M16 3v18\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "paper",
             title: "Paper",
             category: "office",
@@ -191,7 +191,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
         // #1505 — Tasks hosts the AutoTask items list; it is a primary
         // surface, so it must appear in every launcher by default (the
         // default `launcher_default: false` hid it from start menu and rail).
-        with_launcher_default(app(AppSpec {
+        with_launcher_default(app_always(AppSpec {
             id: "tasks",
             title: "Tasks",
             category: "office",
@@ -275,7 +275,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "design lowcode builder",
             icon: "<path d=\"M12 19l7-7 3 3-7 7-3-3z\"/><path d=\"M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z\"/><path d=\"M2 2l7.586 7.586\"/><circle cx=\"11\" cy=\"11\" r=\"2\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "crm",
             title: "CRM",
             category: "business",
@@ -315,7 +315,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "lists data collection",
             icon: "<line x1=\"8\" y1=\"6\" x2=\"21\" y2=\"6\"/><line x1=\"8\" y1=\"12\" x2=\"21\" y2=\"12\"/><line x1=\"8\" y1=\"18\" x2=\"21\" y2=\"18\"/><line x1=\"3\" y1=\"6\" x2=\"3.01\" y2=\"6\"/><line x1=\"3\" y1=\"12\" x2=\"3.01\" y2=\"12\"/><line x1=\"3\" y1=\"18\" x2=\"3.01\" y2=\"18\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "billing",
             title: "Billing",
             category: "business",
@@ -325,7 +325,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             keywords: "billing invoices payments",
             icon: "<rect x=\"1\" y=\"4\" width=\"22\" height=\"16\" rx=\"2\" ry=\"2\"/><line x1=\"1\" y1=\"10\" x2=\"23\" y2=\"10\"/>",
         }),
-        app(AppSpec {
+        app_always(AppSpec {
             id: "products",
             title: "Products",
             category: "business",

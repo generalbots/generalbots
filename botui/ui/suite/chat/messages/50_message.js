@@ -39,8 +39,9 @@ function collapseUserMessageIfNeeded(div, text) {
 }
 
 function addMessage(sender, content, msgId, reasoning, timestamp) {
-  var messages = document.getElementById("messages");
+  var messages = ChatState.appendTarget || document.getElementById("messages");
   if (!messages) return;
+  var liveMessages = document.getElementById("messages");
   if (sender === "bot") {
     // #2098 — an empty bot frame (thinking/status, tool boundary) must not
     // hide the progress element. Only visible content advances the turn; the
@@ -57,7 +58,8 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   // Capture the user's position BEFORE the new bubble changes scrollHeight.
   // Measuring after the append made a long reply look like "user scrolled up"
   // and it never followed the newest message.
-  var wasNearBottom = (messages.scrollHeight - messages.scrollTop - messages.clientHeight) < 140;
+  var wasNearBottom = liveMessages &&
+    (liveMessages.scrollHeight - liveMessages.scrollTop - liveMessages.clientHeight) < 140;
   // Do not re-persist messages that are being replayed from history: it
   // doubled the stored transcript on every reload (three identical greetings).
   // Streaming chunks are a live preview; the final answer is persisted once.
@@ -203,6 +205,9 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   }
 
   messages.appendChild(div);
+  if (window.GBChatVirtual && typeof window.GBChatVirtual.onAfterAppend === "function") {
+    try { window.GBChatVirtual.onAfterAppend(div); } catch (e) { /* virtualization best-effort */ }
+  }
   if (sender === "bot" && window.GBLiveArtifact) {
     window.GBLiveArtifact.render(div, content);
   }

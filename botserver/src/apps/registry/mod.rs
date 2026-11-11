@@ -212,8 +212,9 @@ mod launcher_split_guard_tests {
     use super::{all_apps, LauncherVisibility};
     use std::collections::HashSet;
 
-    /// #2097 — "Always visible" list of the 7.0 launcher, verbatim from the
-    /// issue. It is the specification the registry entries must match.
+    /// #2097/#2234 — "Always visible" list of the 7.0 launcher, extended by
+    /// #2234 so core office/business apps are supported and always available in
+    /// normal (non-preview) sessions. The registry entries must match this.
     const ALWAYS_VISIBLE_7_0: &[&str] = &[
         "chat",
         "drive",
@@ -227,25 +228,30 @@ mod launcher_split_guard_tests {
         "timer",
         "weather",
         "integrations",
+        "settings",
+        "docs",
+        "sheet",
+        "slides",
+        "paper",
+        "crm",
+        "billing",
+        "products",
+        "tasks",
+        "calendar",
+        "mail",
     ];
 
     /// #2097 — apps the launcher lists only while Preview mode is on.
     const PREVIEW_7_0: &[&str] = &[
-        "docs",
-        "sheet",
-        "slides",
         "canvas",
         "goals",
         "analytics",
         "attendant",
         "automations",
         "banking",
-        "billing",
-        "calendar",
         "campaigns",
         "compliance",
         "concierge",
-        "crm",
         "designer",
         "fraud",
         "handoff",
@@ -253,24 +259,20 @@ mod launcher_split_guard_tests {
         "kyc",
         "learn",
         "lists",
-        "mail",
         "meet",
         "memory",
         "minutes",
         "monitoring",
         "o365",
-        "paper",
         "people",
         "plan",
         "plugins",
         "pos",
-        "products",
         "project",
         "recycle",
         "retail",
         "social",
         "store",
-        "tasks",
         "tax",
         "templates",
         "tickets",
@@ -293,7 +295,6 @@ mod launcher_split_guard_tests {
         "desktop",
         "editor",
         "research",
-        "settings",
         "terminal",
     ];
 
@@ -375,6 +376,8 @@ mod launcher_split_guard_tests {
     /// entry without a `.product` update fails here.
     #[test]
     fn product_apps_line_matches_the_registry_flag() {
+        // Core surfaces are always available and must not be listed in apps=.
+        const CORE_APPS: &[&str] = &["about", "settings", "auth"];
         for (label, raw) in [
             (".product", include_str!("../../../.product")),
             (
@@ -392,7 +395,11 @@ mod launcher_split_guard_tests {
                 .map(str::trim)
                 .filter(|id| !id.is_empty())
                 .collect();
-            let expected: HashSet<&str> = ALWAYS_VISIBLE_7_0.iter().copied().collect();
+            let expected: HashSet<&str> = ALWAYS_VISIBLE_7_0
+                .iter()
+                .copied()
+                .filter(|id| !CORE_APPS.contains(id))
+                .collect();
             let mut only_product: Vec<&&str> = declared.difference(&expected).collect();
             let mut only_registry: Vec<&&str> = expected.difference(&declared).collect();
             only_product.sort();

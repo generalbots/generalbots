@@ -176,6 +176,44 @@ function gbRefreshScrollbarMarkers() {
   overlay.innerHTML = "";
   var total = Math.max(messages.scrollHeight, 1);
   var height = Math.max(messages.clientHeight, 1);
+
+  // #2229 — when virtualized, user turns may be detached; read from the
+  // virtualizer's item list so markers remain accurate and jump can rematerialize.
+  var V = window.GBChatVirtual;
+  if (V && V.isEnabled && V.isEnabled() && V._items) {
+    var items = V._items();
+    var gap = (function(){ try { var cs=getComputedStyle(messages); var g=parseFloat(cs.rowGap||cs.gap||"16"); return isNaN(g)?16:g; } catch(e){return 16;} })();
+    var acc = 0;
+    for (var vi = 0; vi < items.length; vi++) {
+      var it = items[vi];
+      var h = ((it.h && it.h > 0) ? it.h : (it.el ? it.el.offsetHeight : 48)) + gap;
+      if (it.el && it.el.classList && it.el.classList.contains("user")) {
+        var ratio = acc / total;
+        var top = Math.max(0, Math.min(height - 4, ratio * height));
+        var marker = document.createElement("button");
+        marker.type = "button";
+        marker.className = "scrollbar-marker user-marker";
+        marker.style.top = top + "px";
+        var label = (typeof gbMarkerLabel === "function") ? gbMarkerLabel(it.el) : "Message";
+        marker.setAttribute("aria-label", "Jump to message: " + label);
+        marker.title = label;
+        var tooltip = document.createElement("span");
+        tooltip.className = "scrollbar-marker-tooltip";
+        tooltip.textContent = label;
+        marker.appendChild(tooltip);
+        (function (target, targetAcc, tick) {
+          tick.addEventListener("click", function () {
+            if (V.ensureVisible) V.ensureVisible(target);
+            messages.scrollTo({ top: Math.max(0, targetAcc - 8), behavior: "smooth" });
+          });
+        })(it.el, acc, marker);
+        overlay.appendChild(marker);
+      }
+      acc += h;
+    }
+    return;
+  }
+
   var turns = messages.querySelectorAll(".message.user");
   for (var i = 0; i < turns.length; i++) {
     var message = turns[i];

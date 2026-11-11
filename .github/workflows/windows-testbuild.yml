@@ -81,7 +81,7 @@ jobs:
           }
           Get-ChildItem $stage | Format-Table Name, Length -AutoSize | Out-String
 
-      - name: Smoke boot the desktop-local botserver
+      - name: Smoke boot and chat e2e smoke (desktop-local, mock LLM)
         shell: pwsh
         env:
           BOTSERVER_STACK_PATH: ${{ runner.temp }}\gbstack
@@ -90,6 +90,15 @@ jobs:
           VAULT_ADDR: https://vault.a11y.invalid:8200
           BOTSERVER_DISABLE_TLS: "1"
           BOT_TEMPLATES_REPO: https://example.invalid/templates.git
+          # #2166 — point the desktop-local server at a local OpenAI-compatible
+          # mock so the chat smoke can exercise an LLM-backed reply path when the
+          # provider is wired from env; the /api/chat endpoint also has a safe
+          # fallback, so the smoke still validates the HTTP chat flow.
+          LLM_URL: http://127.0.0.1:18080/v1/chat/completions
+          LLM_API_URL: http://127.0.0.1:18080/v1
+          OPENAI_API_BASE: http://127.0.0.1:18080/v1
+          OPENAI_API_KEY: test-mock-key
+          LLM_MODEL: mock-gpt
         run: |
           # mirror the Lighthouse desktop-local job
           $stack = $env:BOTSERVER_STACK_PATH
@@ -116,6 +125,45 @@ jobs:
           if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
           & "$pgBin\psql.exe" -U postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='gb') THEN CREATE ROLE gb LOGIN PASSWORD 'gb'; END IF; END \$\$;" 2>$null
           & "$pgBin\psql.exe" -U postgres -c "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec" 2>$null
+
+          # #2166 — minimal OpenAI-compatible mock LLM for chat e2e smoke.
+          $mockPy = Join-Path $env:RUNNER_TEMP 'mock_llm.py'
+          @'
+          import json
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+
+          class H(BaseHTTPRequestHandler):
+              def _send(self, code, obj):
+                  body = json.dumps(obj).encode('utf-8')
+                  self.send_response(code)
+                  self.send_header('Content-Type', 'application/json')
+                  self.send_header('Content-Length', str(len(body)))
+                  self.end_headers()
+                  self.wfile.write(body)
+              def do_GET(self):
+                  if self.path.startswith('/v1/models'):
+                      self._send(200, {'object':'list','data':[{'id':'mock-gpt','object':'model'}]})
+                  else:
+                      self._send(200, {'status':'ok'})
+              def do_POST(self):
+                  length = int(self.headers.get('Content-Length', '0') or 0)
+                  if length:
+                      self.rfile.read(length)
+                  self._send(200, {
+                      'id':'chatcmpl-mock','object':'chat.completion','created':0,'model':'mock-gpt',
+                      'choices':[{'index':0,'message':{'role':'assistant','content':'Hello from mock LLM.'},'finish_reason':'stop'}],
+                      'usage':{'prompt_tokens':1,'completion_tokens':4,'total_tokens':5}
+                  })
+              def log_message(self, fmt, *args):
+                  pass
+
+          HTTPServer(('127.0.0.1', 18080), H).serve_forever()
+          '@ | Set-Content -Encoding UTF8 $mockPy
+          $mockLog = Join-Path (Get-Location) 'mock-llm.log'
+          $mockProc = Start-Process -FilePath 'python' -ArgumentList $mockPy -PassThru -RedirectStandardOutput $mockLog -RedirectStandardError "$mockLog.err" -WindowStyle Hidden
+          Start-Sleep -Seconds 1
+          Write-Host "Mock LLM started (pid=$($mockProc.Id)) on 127.0.0.1:18080"
+
           $log = Join-Path (Get-Location) 'botserver-testbuild.log'
           $proc = Start-Process -FilePath 'target\debug\botserver.exe' -ArgumentList '--noconsole' `
             -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
@@ -136,10 +184,33 @@ jobs:
             Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 40 -ErrorAction SilentlyContinue
             Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 40 -ErrorAction SilentlyContinue
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
             throw "botserver did not become ready on /api/product"
           }
+
+          # #2166 — HTTP chat e2e smoke against /api/chat with mock LLM configured.
+          # A 200 response with a non-empty reply proves the chat handler + reply
+          # path (mock-backed or safe fallback) is functional in desktop-local mode.
+          $chatOk = $false
+          try {
+            $body = @{ message = "hi" } | ConvertTo-Json
+            $resp = Invoke-WebRequest -Uri 'http://localhost:8080/api/chat' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing -TimeoutSec 30
+            Write-Host "chat status: $($resp.StatusCode)"
+            Write-Host "chat body: $($resp.Content)"
+            if ($resp.StatusCode -eq 200 -and $resp.Content -match 'reply|message') { $chatOk = $true }
+          } catch {
+            Write-Host "chat smoke request failed: $($_.Exception.Message)"
+          }
+          if (-not $chatOk) {
+            Write-Host "=== botserver log (tail, chat) ==="; Get-Content $log -Tail 60 -ErrorAction SilentlyContinue
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
+            throw "desktop-local chat e2e smoke failed"
+          }
+
           Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-          Write-Host "Smoke boot OK"
+          Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
+          Write-Host "Smoke boot + chat e2e smoke OK"
 
 
       - name: Upload artifacts
@@ -155,6 +226,8 @@ jobs:
         with:
           name: windows-testbuild-log-${{ github.sha }}
           path: |
-            dist/testbuild/botserver-testbuild.log
-            dist/testbuild/botserver-testbuild.log.err
+            botserver-testbuild.log
+            botserver-testbuild.log.err
+            mock-llm.log
+            mock-llm.log.err
           if-no-files-found: ignore
