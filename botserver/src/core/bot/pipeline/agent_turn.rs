@@ -62,3 +62,36 @@ impl Drop for TurnGuard {
 
 pub const DISABLED_MESSAGE: &str =
     "Agent/VM is disabled for this conversation.";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn defaults_to_enabled_when_absent() {
+        let id = Uuid::new_v4();
+        clear(id);
+        assert!(is_enabled(id));
+    }
+
+    #[test]
+    fn records_and_clears_turn_flag() {
+        let id = Uuid::new_v4();
+        set(id, false);
+        assert!(!is_enabled(id));
+        clear(id);
+        assert!(is_enabled(id));
+    }
+
+    #[test]
+    fn guard_restores_default_on_drop() {
+        let id = Uuid::new_v4();
+        clear(id);
+        {
+            let _guard = TurnGuard::new(id, false);
+            assert!(!is_enabled(id));
+        }
+        assert!(is_enabled(id));
+    }
+}

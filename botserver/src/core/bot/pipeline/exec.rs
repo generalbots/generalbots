@@ -344,14 +344,19 @@ pub async fn process_message_internal(
     // #1946 — the selected mode is an instruction for this turn, not a
     // session-wide switch: it tells the model whether to plan execution or to
     // answer/patch through the catalog, while the guards stay in place.
+    // #2239 — when Agent/VM is disabled, never offer or encourage workspace tools.
     messages.push(serde_json::json!({
         "role": "system",
-        "content": match route.route {
-            crate::core::bot::ws::stream::routing::Route::Agentic => {
-                "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
-            }
-            crate::core::bot::ws::stream::routing::Route::NonAgentic => {
-                "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
+        "content": if !agent_enabled {
+            "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec or terminal_run, and do not assume a workspace/VM is available. Answer directly or use non-VM capabilities only."
+        } else {
+            match route.route {
+                crate::core::bot::ws::stream::routing::Route::Agentic => {
+                    "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
+                }
+                crate::core::bot::ws::stream::routing::Route::NonAgentic => {
+                    "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
+                }
             }
         }
     }));

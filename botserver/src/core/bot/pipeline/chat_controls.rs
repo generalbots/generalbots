@@ -88,3 +88,15 @@ pub async fn resolve_agent_enabled(
         .await
         .unwrap_or(DEFAULT_AGENT_ENABLED)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn controls_key_is_session_scoped() {
+        let user = Uuid::nil();
+        let session = Uuid::nil();
+        assert_eq!(controls_key(user, session), "chat_controls:00000000-0000-0000-0000-000000000000:00000000-0000-0000-0000-000000000000");
+    }
+}
