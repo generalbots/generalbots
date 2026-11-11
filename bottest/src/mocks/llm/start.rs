@@ -405,6 +405,11 @@ impl MockLLM {
     /// Deterministic, zero-cost chat wiring for the desktop-local suite chat
     /// harness: mounts a default completion reply so any prompt gets a stable
     /// response without a real provider.
+    ///
+    /// `set_default_response` is mounted last so it acts as a catch-all for any
+    /// `/v1/chat/completions` request shape (system prompts, conversation history,
+    /// or prompts other than the exact "hi" body matcher), keeping the reply
+    /// stable for offline/e2e smoke runs.
     pub async fn configure_desktop_local_chat(&self, reply: &str) {
         self.expect_completion("hi", reply).await;
         self.set_default_response(reply).await;

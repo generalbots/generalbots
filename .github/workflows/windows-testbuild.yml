@@ -271,10 +271,12 @@ jobs:
             throw "required HTTP smoke assertions failed"
           }
 
-          # Headless chat e2e smoke (#2166): POST /api/chat must return 200 with a
-          # reply/message payload. The server may answer via the local mock LLM or its
-          # safe fallback; either path proves the HTTP chat flow is functional and no
-          # paid external LLM is contacted (LLM_* env points to 127.0.0.1 mock only).
+          # Headless chat e2e smoke (#2166/#2173): POST /api/chat must return 200
+          # with a usable response payload. The server may answer via the local mock
+          # LLM (OpenAI-compatible) or a safe fallback; either path proves the HTTP
+          # chat flow is functional and no paid external LLM is contacted (LLM_* env
+          # points to 127.0.0.1 mock only). Accept common response shapes for evidence
+          # resilience: reply/message/content/text or OpenAI-style choices.
           $chatOk = $false
           try {
             $body = @{ message = "hi" } | ConvertTo-Json
@@ -282,7 +284,19 @@ jobs:
             Write-Host "chat status: $($resp.StatusCode)"
             Write-Host "chat body: $($resp.Content)"
             $resp.Content | Set-Content "smoke-artifacts/chat.json"
-            if ($resp.StatusCode -eq 200 -and $resp.Content -match '"reply"|"message"') { $chatOk = $true }
+            $json = $null
+            try { $json = $resp.Content | ConvertFrom-Json } catch { $json = $null }
+            $hasPayload = $false
+            if ($json) {
+              $hasPayload = [bool]($json.reply -or $json.message -or $json.content -or $json.text -or $json.choices)
+              @{ status = $resp.StatusCode; hasPayload = $hasPayload; keys = @($json.PSObject.Properties.Name) } |
+                ConvertTo-Json -Compress | Set-Content "smoke-artifacts/chat-meta.json"
+            } else {
+              $hasPayload = ($resp.Content -match '"reply"|"message"|"content"|"text"|"choices"')
+              @{ status = $resp.StatusCode; hasPayload = $hasPayload; raw = $true } |
+                ConvertTo-Json -Compress | Set-Content "smoke-artifacts/chat-meta.json"
+            }
+            if ($resp.StatusCode -eq 200 -and $hasPayload) { $chatOk = $true }
           } catch {
             Write-Host "chat smoke request failed: $($_.Exception.Message)"
             $_.Exception.Message | Set-Content "smoke-artifacts/chat-error.txt"

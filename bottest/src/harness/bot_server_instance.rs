@@ -367,6 +367,57 @@ impl Default for DesktopLocalStartOptions {
     }
 }
 
+impl DesktopLocalStartOptions {
+    #[must_use]
+    pub fn for_stack(stack_path: impl Into<PathBuf>) -> Self {
+        Self {
+            stack_path: stack_path.into(),
+            ..Self::default()
+        }
+    }
+
+    #[must_use]
+    pub fn with_port(mut self, port: u16) -> Self {
+        self.port = port;
+        self
+    }
+
+    #[must_use]
+    pub fn with_mock_llm_urls(
+        mut self,
+        chat_completions_url: impl Into<String>,
+        openai_base_url: impl Into<String>,
+    ) -> Self {
+        self.llm_chat_completions_url = Some(chat_completions_url.into());
+        self.llm_openai_base_url = Some(openai_base_url.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_installers_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.installers_path = Some(path.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_product_source(mut self, path: impl Into<PathBuf>) -> Self {
+        self.product_source = Some(path.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_botserver_bin(mut self, path: impl Into<PathBuf>) -> Self {
+        self.botserver_bin = Some(path.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_extra_env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.extra_env.push((key.into(), value.into()));
+        self
+    }
+}
+
 impl BotServerInstance {
     /// Start a desktop-local botserver in an isolated stack with optional mock
     /// LLM wiring. Intended for harness/e2e use; the binary must be a
