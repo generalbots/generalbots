@@ -25,20 +25,25 @@ function snapToBottom() {
 // the bottom edge, and any deliberate scroll (wheel, keys, scrollbar drag) ends
 // it for good. The 250 ms run-timeline heartbeat would otherwise re-arm this on
 // every tick during a VM cold start and drag the viewport down each second.
+// Only one stick-to-bottom timer may run at a time: during history replay
+// (hundreds of messages) the old code armed a new 1.4 s interval per message,
+// which fought the reader and made the transcript "dance". Re-arming now
+// extends the existing window instead of stacking intervals.
+var gbStickTimer = null;
 function stickToBottom(duration) {
   var messages = document.getElementById("messages");
   if (!messages) return;
   if (ChatState.isUserAtBottom === false) return;
+  if (gbStickTimer) { clearInterval(gbStickTimer); gbStickTimer = null; }
   var intentAt = gbPinCancelAt;
   var end = Date.now() + (duration || 1200);
-  var timer = setInterval(function () {
-    if (!messages.isConnected) { clearInterval(timer); return; }
+  gbStickTimer = setInterval(function () {
+    if (!messages.isConnected) { clearInterval(gbStickTimer); gbStickTimer = null; return; }
     if (gbPinCancelAt > intentAt || ChatState.isUserAtBottom === false) {
-      clearInterval(timer);
-      return;
+      clearInterval(gbStickTimer); gbStickTimer = null; return;
     }
     messages.scrollTop = messages.scrollHeight;
-    if (Date.now() > end) clearInterval(timer);
+    if (Date.now() > end) { clearInterval(gbStickTimer); gbStickTimer = null; }
   }, 120);
 }
 
@@ -72,7 +77,7 @@ function followLiveEdge(maxMs) {
   if (!messages) return;
   gbAttachReaderIntent(messages);
   var intentAt = gbPinCancelAt;
-  var end = Date.now() + (maxMs || 12000);
+  var end = Date.now() + (maxMs || 3000);
   var cancelled = false;
   function cancel() { cancelled = true; cleanup(); }
   function cleanup() {
@@ -155,6 +160,16 @@ function gbRefreshScrollbarMarkers() {
   var messages = document.getElementById("messages");
   if (!messages) return;
   var overlay = gbMarkerOverlay(messages);
+  // #222x — during heavy history replay scrollHeight keeps growing, so the
+  // ratios stored on the first pass drift and the green ticks land in the
+  // wrong place. Drop the cached ratios whenever the transcript grew.
+  var lastH = parseInt(overlay.getAttribute("data-gb-last-h") || "0", 10);
+  if (lastH && lastH !== messages.scrollHeight) {
+    messages.querySelectorAll(".message.user").forEach(function (m) {
+      m.removeAttribute("data-gb-marker-ratio");
+    });
+  }
+  overlay.setAttribute("data-gb-last-h", String(messages.scrollHeight));
   gbSyncMarkerOverlay();
   overlay.innerHTML = "";
   var total = Math.max(messages.scrollHeight, 1);

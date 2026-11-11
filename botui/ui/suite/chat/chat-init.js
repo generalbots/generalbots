@@ -343,6 +343,8 @@ if (window.ResizeObserver) {
     var box = document.getElementById("messages");
     if (!box) return;
     if (!ChatState.isUserAtBottom) return;
+    // Throttle: during heavy history replay the observer fires on every
+    // appended message; only pin when we are actually off the live edge.
     if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) {
       box.scrollTop = box.scrollHeight;
     }
