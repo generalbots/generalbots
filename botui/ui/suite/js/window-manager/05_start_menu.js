@@ -147,7 +147,7 @@
         // APPS_REGISTRY is the rebuilt catalog view (#1811); allow apps it
         // surfaces (including preview apps when preview mode is on).
         var inRegistry = (window.APPS_REGISTRY || APPS_REGISTRY).some(function (a) { return a.id === app.id; });
-        if (!enabledApps || enabledApps.has(app.id) || inRegistry || app.preview || app.launcher_visibility === "always") {
+        if (!enabledApps || enabledApps.has(app.id) || inRegistry || (app.launcher_visibility === "always")) {
           html += this._appTileHTML(app);
         }
       }.bind(this));
@@ -173,6 +173,8 @@
           // the rebuilt registry are allowed when preview mode is on.
           if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isCoreAppId(a.id)) return true;
           if (a.launcher_visibility === "always") return true;
+          // Preview apps only survive when Preview mode is on (#2097).
+          if (a.preview && !(window.GBPreviewMode && window.GBPreviewMode.isOn())) return false;
           if (a.preview) return true;
           return enabledApps.has(a.id);
         });

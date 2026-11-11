@@ -105,13 +105,17 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     nav.appendChild(wrap);
 
     function fill() {
+      var previewOn = !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
       var reg = (window.APPS_REGISTRY || [])
         // #1386c — the rail lists apps the user can open by hand. Every other
         // native surface is a Vibe workbench pane (opened from the Vibe
         // toolbar), so it never shows up as a standalone app here.
-        // #2097 — `launcher_visibility: "always"` pins an app regardless.
+        // #2097 — `launcher_visibility: "always"` pins an app regardless;
+        // preview apps stay out of the rail unless Preview mode is on.
         .filter(function (a) {
-          return a.launcher_default !== false || a.launcher_visibility === "always";
+          if (a.launcher_visibility === "always") return true;
+          if ((a.preview || a.launcher_visibility === "preview") && !previewOn) return false;
+          return a.launcher_default !== false;
         })
         .slice()
         .sort(function (a, b) {

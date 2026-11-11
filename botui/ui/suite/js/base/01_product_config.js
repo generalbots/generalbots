@@ -220,7 +220,10 @@ function filterAppsByConfig(enabledApps) {
     );
     if (appMatch) {
       const appName = appMatch[1].toLowerCase();
-      if (!enabledSet.has(appName) || isAppHidden(appName)) {
+      const previewOn = !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
+      const isPreview =
+        typeof window.isPreviewId === "function" && window.isPreviewId(appName);
+      if (!enabledSet.has(appName) || isAppHidden(appName) || (isPreview && !previewOn)) {
         el.style.display = "none";
       }
     }

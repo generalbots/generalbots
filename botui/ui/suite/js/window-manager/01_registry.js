@@ -322,6 +322,9 @@ function rebuildAppsRegistry() {
     // catalog entries the backend marked enabled. The old core-only filter
     // hid product-enabled apps such as Weather until Preview mode was on.
     merged = merged.filter(function (app) {
+      // Preview apps never survive the preview-off pass via `enabled`
+      // (#2097); only core surfaces and explicitly product-enabled apps do.
+      if (typeof window.isPreviewId === "function" && window.isPreviewId(app.id)) return false;
       return isCoreAppId(app.id) ||
         productAppIds[app.id] === true ||
         app.enabled === true;
