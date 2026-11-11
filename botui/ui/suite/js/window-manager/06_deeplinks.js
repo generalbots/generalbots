@@ -282,3 +282,18 @@
   },
   });
 })(window);
+
+// #2172 — plumbing for VM streaming deltas. The WS layer translates a
+// `gb-doc-delta` server event into this CustomEvent; here we forward it to
+// the target app window so its renderer can apply ops live. Apps opt in by
+// listening for `gb:deep-link` with a `delta` param (existing contract).
+(function () {
+  document.addEventListener("gb-doc-delta", function (e) {
+    var d = (e && e.detail) || {};
+    if (!d.app) return;
+    if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+      // Reuse the open window; params carry the delta batch.
+      window.WindowManager.openDeepLink(d.app, { delta: JSON.stringify(d), file: d.file, bucket: d.bucket }, { new: false });
+    }
+  });
+})();

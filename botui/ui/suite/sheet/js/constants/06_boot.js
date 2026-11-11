@@ -38,6 +38,20 @@
         VirtualGrid.formatSelectedCell({ text_decoration: "line-through" });
       });
     }
+    var fillBtn = document.getElementById("fillColorBtn");
+    if (fillBtn) {
+      fillBtn.addEventListener("change", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ background: fillBtn.value });
+      });
+    }
+    var textBtn = document.getElementById("textColorBtn");
+    if (textBtn) {
+      textBtn.addEventListener("change", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ color: textBtn.value });
+      });
+    }
     var formulaInput = document.getElementById("formulaInput");
     if (formulaInput) {
       var commitFormula = function () {

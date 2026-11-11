@@ -364,7 +364,15 @@ function openArtifactPanel(content, sourceEl) {
       .then(function (res) {
         if (!res.ok) return driveWriteFailure(res);
         if (window.GBToasts) {
-          GBToasts.show("Saved", "File saved to Drive as " + path, "success");
+          // #2160 — every saved artifact toast must deep-link into the app
+          // that can open it, not just be text.
+          var ext = String(path || "").split(".").pop().toLowerCase();
+          var appId = ext === "docx" ? "docs" : ext === "xlsx" ? "sheet" : ext === "pptx" ? "slides" : ext === "csv" ? "sheet" : "preview";
+          GBToasts.show("Saved", "File saved to Drive as " + path, "success", {
+            appId: appId,
+            params: { path: path, file: path },
+            label: "Open",
+          });
         }
         // #1636 — keep a link/timestamp back to the conversation on the message
         // that produced the document, so the saved file is not orphaned.

@@ -42,6 +42,8 @@
                 <button class="btn-icon" id="italicBtn" title="Italic" data-i18n-title="sheet-italic" type="button"><em>I</em></button>
                 <button class="btn-icon" id="underlineBtn" title="Underline" data-i18n-title="sheet-underline" type="button"><u>U</u></button>
                 <button class="btn-icon" id="strikeBtn" title="Strikethrough" data-i18n-title="sheet-strikethrough" type="button"><s>S</s></button>
+                <input type="color" id="fillColorBtn" title="Fill color" aria-label="Fill color" value="#ffffff" style="width:28px;height:28px;border:1px solid var(--sheet-border,#334155);border-radius:4px;padding:0;background:none;cursor:pointer;" />
+                <input type="color" id="textColorBtn" title="Text color" aria-label="Text color" value="#000000" style="width:28px;height:28px;border:1px solid var(--sheet-border,#334155);border-radius:4px;padding:0;background:none;cursor:pointer;" />
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
@@ -86,9 +88,8 @@
         <div class="toolbar-right">
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <span id="gb-auth-button"></span>
-            <button class="btn-primary" id="shareBtn" hx-post="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" data-i18n-title="action-share">
+            <button class="btn-icon" id="shareBtn" title="Share" aria-label="Share" hx-post="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" data-i18n-title="action-share">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                <span data-i18n="action-share">Share</span>
             </button>
         </div>
     </div>
