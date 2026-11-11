@@ -53,6 +53,7 @@ pub fn validate_ui_plan(raw: &UiPlan) -> Result<UiPlan, String> {
 
     Ok(UiPlan {
         app: raw.app.as_deref().map(sanitize_value),
+        window_id: raw.window_id.as_deref().map(sanitize_value),
         steps: sanitized_steps,
     })
 }
@@ -60,6 +61,7 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
     let mut out = UiStep {
         op: step.op.clone(),
         app: None,
+        window_id: None,
         label: None,
         field: None,
         value: None,
@@ -69,6 +71,9 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
     };
     if let Some(app) = &step.app {
         out.app = Some(sanitize_value(app));
+    }
+    if let Some(window_id) = &step.window_id {
+        out.window_id = Some(sanitize_value(window_id));
     }
     if let Some(label) = &step.label {
         out.label = Some(sanitize_value(label));

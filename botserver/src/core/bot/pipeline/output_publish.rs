@@ -382,7 +382,7 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     // canonical Drive file instead of reloading a conversion.
     for item in &report.published {
         let app = doc_delta::app_for_filename(&item.name);
-        let env = doc_delta::DocDeltaEnvelope::finalize(item.path.clone(), app, 0);
+        let env = doc_delta::DocDeltaEnvelope::finalize(item.name.clone(), app, 0);
         doc_delta::emit(state, session_id, &env).await;
     }
     if sink.channel_type() != "web" {
