@@ -53,18 +53,22 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
     if super::surface_tools::try_run(identity, name, args).await {
         return true;
     }
-    if name == "terminal_run" {
-        #[cfg(feature = "agent-vm")]
-        terminal::run_terminal_run(identity, args).await;
-        #[cfg(not(feature = "agent-vm"))]
-        send(
-            identity,
-            "Live terminal runs are not available in this build.",
-        )
-        .await;
-        return true;
-    }
-    if name == "vm_exec" {
+    if name == "terminal_run" || name == "vm_exec" {
+        if !identity.agent_vm_enabled {
+            send(identity, super::agent_turn::DISABLED_MESSAGE).await;
+            return true;
+        }
+        if name == "terminal_run" {
+            #[cfg(feature = "agent-vm")]
+            terminal::run_terminal_run(identity, args).await;
+            #[cfg(not(feature = "agent-vm"))]
+            send(
+                identity,
+                "Live terminal runs are not available in this build.",
+            )
+            .await;
+            return true;
+        }
         #[cfg(feature = "agent-vm")]
         vm_exec::run_vm_exec(identity, args).await;
         #[cfg(not(feature = "agent-vm"))]

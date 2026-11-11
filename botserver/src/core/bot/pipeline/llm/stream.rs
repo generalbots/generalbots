@@ -43,6 +43,7 @@ async fn stream_llm_response_inner(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     let bot_llm_provider = match super::super::enriched_llm::resolve_bot_llm_provider(
         state,

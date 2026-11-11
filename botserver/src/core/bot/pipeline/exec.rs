@@ -17,6 +17,7 @@ pub async fn process_message_internal(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
 
@@ -258,12 +259,19 @@ pub async fn process_message_internal(
         route.reason
     );
 
-    // #2238 — unified chat controls: agent/VM, app automation (UI hints),
-    // web search and desired media type are explicit per-turn flags.
-    let agent_enabled = parsed
-        .get("agent_enabled")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+    // #2238/#2239 — unified chat controls. agent_enabled is session-scoped
+    // state: when the payload carries it we persist it, otherwise we read the
+    // stored session value so the toggle is the single source of truth.
+    let agent_enabled = super::chat_controls::resolve_agent_enabled(
+        state,
+        session_id,
+        user_id,
+        parsed.get("agent_enabled").and_then(|v| v.as_bool()),
+    )
+    .await;
+    // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
+    // path in this turn (native tools, provider resolution, workspace bridges).
+    let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);
     let ui_automation_enabled = parsed
         .get("ui_automation")
         .and_then(|v| v.as_bool())
@@ -273,6 +281,12 @@ pub async fn process_message_internal(
         .and_then(|v| v.as_str())
         .unwrap_or("auto")
         .to_string();
+    // Turn-scoped identity: downstream tool dispatch and provisioning must see
+    // the resolved per-turn Agent/VM toggle.
+    let identity = &SessionIdentity {
+        agent_vm_enabled: agent_enabled,
+        ..*identity
+    };
     let client_caps_value = {
         let mut caps = parsed
             .get("client_capabilities")
@@ -382,15 +396,17 @@ pub async fn process_message_internal(
     // #1584: files named in the message are copied from Drive into data/
     // before the model writes the program that reads them.
     #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    super::native_drive::fetch_referenced(
-        state,
-        bot_uuid,
-        user_id,
-        session_id,
-        &user_text,
-        &mut messages,
-    )
-    .await;
+    if agent_enabled {
+        super::native_drive::fetch_referenced(
+            state,
+            bot_uuid,
+            user_id,
+            session_id,
+            &user_text,
+            &mut messages,
+        )
+        .await;
+    }
 
     super::history::append_conversation_history(
         state,
@@ -481,8 +497,11 @@ pub async fn process_message_internal(
     }
 
     // #2143 gap D — publish this turn's artifacts; a Drive outage never fails it.
+    // #2239 — skip workspace artifact publish when Agent/VM is off for this turn.
     #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    super::output_publish::publish_and_attach(identity).await;
+    if agent_enabled {
+        super::output_publish::publish_and_attach(identity).await;
+    }
 
     Ok(())
 }

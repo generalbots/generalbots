@@ -171,6 +171,11 @@ pub async fn build(
 ) -> Result<Arc<dyn botlib::traits::LLMProvider>, String> {
     match resolved.provider.as_str() {
         crate::core::ai_accounts::CLAUDE_CODE => {
+            // #2239 — never provision/wake the agent workspace when Agent/VM is
+            // disabled for this conversation turn.
+            if !crate::core::bot::pipeline::agent_turn::is_enabled(session_id) {
+                return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
+            }
             let service = crate::core::bot::agent_vm_hook::service()
                 .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
             let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(

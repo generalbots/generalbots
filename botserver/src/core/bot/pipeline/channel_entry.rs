@@ -85,6 +85,7 @@ pub async fn run_pipeline_for_channel(
         session_id,
         user_id,
         bot_name: &bot_name,
+        agent_vm_enabled: true,
     };
     let result =
         process_message_internal(&identity, &mut rx_internal, &mut start_bas_ran, &json_msg).await;

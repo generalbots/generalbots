@@ -30,6 +30,7 @@ pub(super) async fn gate_turn(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
 
     let runtime: Arc<dyn botbasic_types::BasicRuntime> =

@@ -22,6 +22,7 @@ pub async fn run_llm_tool_call(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;

@@ -1,8 +1,10 @@
+pub mod agent_turn;
 pub mod agent_vm_context;
 pub mod api_call;
 pub mod attachment_text;
 pub mod attachments;
 pub mod channel_entry;
+pub mod chat_controls;
 #[cfg(feature = "drive")]
 pub mod doc_delta;
 #[cfg(feature = "drive")]

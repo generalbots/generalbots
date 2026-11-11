@@ -23,6 +23,7 @@ pub(crate) async fn handle_api_call(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     let LlmTarget {
         provider: llm,

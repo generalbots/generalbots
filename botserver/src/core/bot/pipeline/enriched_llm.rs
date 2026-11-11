@@ -279,6 +279,13 @@ pub(crate) async fn resolve_bot_llm_provider(
         let Some(resolved) = resolved else {
             return Ok(None);
         };
+        // #2239 — Claude Code runs inside the user's agent VM; refuse to wake
+        // or provision it when Agent/VM is disabled for this conversation.
+        if resolved.provider == crate::core::ai_accounts::CLAUDE_CODE
+            && !super::agent_turn::is_enabled(session_id)
+        {
+            return Err(super::agent_turn::DISABLED_MESSAGE.to_string());
+        }
         let provider =
             crate::llm::subscription::build(state, user_id, session_id, bot_uuid, &resolved)
                 .await?;

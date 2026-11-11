@@ -121,6 +121,10 @@ async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
         send(identity, "Tell me which Drive file to fetch (`path`).").await;
         return;
     }
+    if !identity.agent_vm_enabled {
+        send(identity, "Agent/VM is disabled for this conversation").await;
+        return;
+    }
     agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid).await;
 
     let scope = match drive_bridge::scope(state, &bot_uuid, user_id) {
@@ -246,6 +250,11 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
         bot_uuid,
         ..
     } = *identity;
+    // #2239 — workspace output access must be refused when Agent/VM is off.
+    if !identity.agent_vm_enabled {
+        send(identity, "Agent/VM is disabled for this conversation").await;
+        return;
+    }
     let requested: Vec<String> = parsed
         .get("files")
         .and_then(|v| v.as_array())
@@ -367,6 +376,10 @@ pub async fn fetch_referenced(
     text: &str,
     messages: &mut Vec<serde_json::Value>,
 ) {
+    // #2239 — never provision/invoke the workspace when Agent/VM is off.
+    if !super::agent_turn::is_enabled(session_id) {
+        return;
+    }
     let names = referenced_names(text);
     log::info!("drive bridge: referenced names {:?}", names);
     if names.is_empty() {

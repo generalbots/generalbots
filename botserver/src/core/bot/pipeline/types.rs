@@ -19,6 +19,9 @@ pub struct SessionIdentity<'a> {
     pub session_id: Uuid,
     pub user_id: Uuid,
     pub bot_name: &'a str,
+    /// Per-turn agent/workspace toggle. When false, Agent/VM features must not
+    /// be offered or provisioned for this conversation turn.
+    pub agent_vm_enabled: bool,
 }
 
 /// The LLM a caller resolved for the current turn.

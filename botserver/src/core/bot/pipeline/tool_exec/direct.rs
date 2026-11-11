@@ -13,6 +13,7 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     let channel = sink.channel_type();
     let work_path = botcore::shared::utils::get_work_path();

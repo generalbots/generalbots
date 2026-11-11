@@ -353,27 +353,42 @@ const PUBLISH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 /// The bytes are read back from the conversation's `output/` folder (the same
 /// file the publisher just uploaded); a read failure is not fatal, the turn
 /// still finalizes so the Drive link is never delayed by a delta.
+///
+/// Ops are emitted as separate envelopes with increasing revisions so the
+/// client can render blocks incrementally (streaming) instead of receiving the
+/// whole document in one frame. Returns the last emitted revision, or `0` when
+/// nothing was emitted (caller should fall back to a finalize-only envelope).
 async fn emit_text_content(
     state: &Arc<AppState>,
     session_id: Uuid,
     user_id: Uuid,
     name: &str,
     app: &str,
-) {
+) -> u64 {
     let relative = format!("output/{name}");
     let bytes = match agent_vm_hook::read_session_file(user_id, session_id, &relative).await {
         Ok(bytes) => bytes,
         Err(error) => {
             botlog::safe_warn!("doc delta: cannot read {relative} for {session_id}: {error}");
-            return;
+            return 0;
         }
     };
     let ops = doc_delta::text_block_ops(&bytes);
     if ops.is_empty() {
-        return;
+        return 0;
     }
-    let envelope = doc_delta::DocDeltaEnvelope::new(name, app, 1, ops);
-    doc_delta::emit(state, session_id, &envelope).await;
+    let total = ops.len();
+    let mut rev: u64 = 1;
+    for op in ops {
+        let envelope = doc_delta::DocDeltaEnvelope::new(name, app, rev, vec![op]);
+        doc_delta::emit(state, session_id, &envelope).await;
+        rev += 1;
+    }
+    let last_rev = rev.saturating_sub(1);
+    botlog::safe_debug!(
+        "doc delta: streamed {total} op envelope(s) for {name} (app={app}, last_rev={last_rev})"
+    );
+    last_rev
 }
 
 /// Publishes the turn's artifacts and attaches their links to the chat.
@@ -413,10 +428,14 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     // document instead of opening empty on a bare finalize.
     for item in &report.published {
         let app = doc_delta::app_for_filename(&item.name);
+        let mut finalize_rev: u64 = 2;
         if doc_delta::is_text_artifact(&item.name) {
-            emit_text_content(state, session_id, user_id, &item.name, app).await;
+            let last_rev = emit_text_content(state, session_id, user_id, &item.name, app).await;
+            if last_rev > 0 {
+                finalize_rev = last_rev.saturating_add(1);
+            }
         }
-        let env = doc_delta::DocDeltaEnvelope::finalize(item.name.clone(), app, 2);
+        let env = doc_delta::DocDeltaEnvelope::finalize(item.name.clone(), app, finalize_rev);
         doc_delta::emit(state, session_id, &env).await;
     }
     if sink.channel_type() != "web" {

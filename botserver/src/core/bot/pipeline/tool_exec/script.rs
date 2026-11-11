@@ -22,6 +22,7 @@ pub(super) async fn run_script_tool(
         session_id,
         user_id,
         bot_name,
+        ..
     } = *identity;
     let mut tool_output = String::new();
 

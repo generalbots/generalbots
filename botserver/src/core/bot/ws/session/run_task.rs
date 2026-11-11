@@ -40,6 +40,7 @@ pub(super) fn spawn(spec: RunSpec) {
             session_id,
             user_id,
             bot_name: &bot_name,
+            agent_vm_enabled: true,
         };
         let mut next_text = Some(text);
         let mut first_turn = true;

@@ -64,6 +64,11 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
         user_id,
         ..
     } = *identity;
+    // #2239 — reads artifacts from the conversation workspace (output/).
+    if !identity.agent_vm_enabled {
+        send(identity, "Agent/VM is disabled for this conversation").await;
+        return;
+    }
 
     let provider = match parsed
         .get("provider")
