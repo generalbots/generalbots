@@ -122,12 +122,12 @@ async function loadSettings(){
     var badgeEl=document.getElementById('settings-status');
     var syncEl=document.getElementById('settings-sync');
     if(data&&data.connected){
-        if(accountEl)accountEl.textContent=data.account||'Connected to o365';
-        if(badgeEl){badgeEl.textContent='Connected';badgeEl.className='o365-badge connected'}
+        if(accountEl)accountEl.textContent=data.account||'o365';
+        if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
         if(syncEl)syncEl.textContent=(data.last_sync?new Date(data.last_sync).toLocaleString():new Date().toLocaleString());
     }else{
-        if(accountEl)accountEl.textContent='Not connected';
-        if(badgeEl){badgeEl.textContent='Disconnected';badgeEl.className='o365-badge disconnected'}
+        if(accountEl)accountEl.textContent='o365';
+        if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
     }
 }
 
