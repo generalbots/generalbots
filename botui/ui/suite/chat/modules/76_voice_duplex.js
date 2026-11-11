@@ -31,6 +31,8 @@
     speechEndTimer: null,
     lastTranscript: "",
     lastTranscriptAt: 0,
+    lastSpoken: "",
+    lastSpokenAt: 0,
     sayToken: 0,
     // #1893 — a live session that never receives a single microphone sample
     // used to look connected while capturing nothing. Count the frames and
@@ -408,6 +410,15 @@
   function speakReply(text) {
     var content = String(text || "").trim();
     if (!content) { setPhase("listening"); return; }
+    // #2230 — never play the same reply twice (duplicate completions or a
+    // re-rendered transcript) within a short window.
+    var now = Date.now();
+    if (content === d.lastSpoken && now - d.lastSpokenAt < 5000) {
+      setPhase("listening");
+      return;
+    }
+    d.lastSpoken = content;
+    d.lastSpokenAt = now;
     d.speaking = true;
     d.bargeHits = 0;
     setPhase("speaking");

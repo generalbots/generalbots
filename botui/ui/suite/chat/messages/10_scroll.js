@@ -39,6 +39,7 @@ function stickToBottom(duration) {
   var end = Date.now() + (duration || 1200);
   gbStickTimer = setInterval(function () {
     if (!messages.isConnected) { clearInterval(gbStickTimer); gbStickTimer = null; return; }
+    if (ChatState.suppressPersist) { clearInterval(gbStickTimer); gbStickTimer = null; return; }
     if (gbPinCancelAt > intentAt || ChatState.isUserAtBottom === false) {
       clearInterval(gbStickTimer); gbStickTimer = null; return;
     }
@@ -94,6 +95,7 @@ function followLiveEdge(maxMs) {
   messages.addEventListener("keydown", cancel);
   function step() {
     if (cancelled) return;
+    if (ChatState.suppressPersist) { cancelled = true; cleanup(); return; }
     if (gbPinCancelAt > intentAt || ChatState.isUserAtBottom === false) {
       cancelled = true;
       cleanup();
@@ -223,6 +225,7 @@ function initScrollbarMarkers() {
   window.addEventListener("resize", scheduleScrollbarMarkers);
   if (window.MutationObserver) {
     new MutationObserver(function (entries) {
+      if (ChatState.suppressPersist) return;
       // Ignore the marker overlay's own churn; only real message boundaries
       // (new turns, history pages) need a rebuild.
       var changed = entries.some(function (entry) {
@@ -249,7 +252,10 @@ function updateScrollButton() {
   var messages = document.getElementById("messages");
   var scrollBtn = document.getElementById("scrollToBottom");
   if (!messages || !scrollBtn) return;
-  var isNearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 100;
+  var dist = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
+  // Button appears only when not near bottom yet. Use a slightly larger
+  // threshold than "at bottom" tracking so the button doesn't flicker.
+  var isNearBottom = dist < 100;
   if (isNearBottom) {
     scrollBtn.classList.remove("visible");
   } else {

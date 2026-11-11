@@ -37,7 +37,7 @@ pub static ALL_COMMANDS_EXTRA: &[AppCommand] = &[
     cmd("desktop", "desktop.windows.list", "List windows", "List the open windows on the desktop.", &[], Some("app://desktop"), false),
     cmd("memory", "memory.search", "Search memory", "Search the assistant's long-term memory for a topic.", &[("query", "what to look for")], Some("app://memory"), false),
     cmd("memory", "memory.add", "Remember", "Store a fact in long-term memory.", &[("text", "the fact to remember")], Some("app://memory"), false),
-    cmd("notes", "notes.create", "Create note", "Create a note with a title and body.", &[("title", "note title"), ("body", "note body")], Some("app://notes"), false),
+    cmd("notes", "notes.create", "Create note", "Create a sticky note with text content.", &[("text", "note text")], Some("app://notes"), false),
     cmd("notes", "notes.list", "List notes", "List notes, newest first.", &[], Some("app://notes"), false),
     cmd("notes", "notes.update", "Edit note", "Update a note's title or body.", &[("note_id", "note id"), ("title", "optional new title"), ("body", "optional new body")], Some("app://notes?note_id={note_id}"), false),
     cmd("o365", "o365.files.list", "List Microsoft 365 files", "List files in OneDrive/SharePoint.", &[("folder", "optional folder")], Some("app://o365"), false),

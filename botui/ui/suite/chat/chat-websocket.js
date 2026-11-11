@@ -327,8 +327,31 @@ function dialChatSocket(seq) {
       var parallelActive = window.GBMultiChat && GBMultiChat.activeId &&
         GBMultiChat.activeId !== "tab-default";
       if (parallelActive &&
-          (data.message_type === MessageType.BOT_RESPONSE ||
+          (data.message_type === MessageType.USER ||
+           data.message_type === MessageType.BOT_RESPONSE ||
            data.message_type === MessageType.UI_ACTION)) {
+        return;
+      }
+
+      // #cross-browser-sync — a user message broadcast from another subscriber
+      // (another browser/tab on the same session). Render it as a user bubble
+      // unless we are the sender (we already added it locally).
+      if (data.message_type === MessageType.USER || data.message_type === 1) {
+        // Dedup: skip rendering if this is our own message (we already added
+        // it locally). Use client_id, not user_id, because the same user can
+        // be connected from multiple browsers.
+        if (data.sender_client_id && data.sender_client_id === ChatState.clientId) {
+          return;
+        }
+        if (!data.sender_client_id && data.sender_id && data.sender_id === ChatState.currentUserId) {
+          // Fallback for frames without client_id (old server).
+          return;
+        }
+        if (data.content && typeof data.content === "string" && data.content.trim() !== "") {
+          if (typeof addMessage === "function") {
+            addMessage("user", data.content, null, null, data.timestamp);
+          }
+        }
         return;
       }
 

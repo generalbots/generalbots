@@ -1,6 +1,7 @@
 var ChatState = {
   ws: null,
   currentSessionId: null,
+  clientId: (function() { try { return (localStorage.getItem("gb.client.id") || ""); } catch(e) { return ""; } })() || (function() { var id = "c" + Math.random().toString(36).substring(2) + Date.now().toString(36); try { localStorage.setItem("gb.client.id", id); } catch(e) {} return id; })(),
   currentUserId: null,
   currentBotId: "default",
   currentBotName: "default",

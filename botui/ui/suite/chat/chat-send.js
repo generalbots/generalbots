@@ -140,6 +140,7 @@ function sendMessage(messageContent, extra) {
     channel: "web",
     content: content,
     message_type: MessageType.USER,
+    client_id: ChatState.clientId,
     active_switchers: outgoingSwitchers,
     drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? { source: "user_drive", untrusted: true, files: driveFiles.slice(0, 20) } : undefined,
     // #1545: Drive is part of the prompt context by default; the setting is

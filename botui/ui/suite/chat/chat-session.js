@@ -211,6 +211,7 @@ window.ChatSwitchBot = function (botName) {
     });
     ChatState.suppressPersist = false;
     scrollToBottom(false);
+    if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
     if (typeof stickToBottom === "function") stickToBottom(2500);
   }
 
@@ -352,7 +353,8 @@ window.ChatSwitchBot = function (botName) {
           (data.has_more === undefined && data.messages.length >= HISTORY_PAGE_TURNS * 2);
         scrollToBottom(false);
         setTimeout(snapToBottom, 250);
-        if (typeof followLiveEdge === "function") followLiveEdge(12000);
+        if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
+        if (typeof followLiveEdge === "function") followLiveEdge(3000);
         else if (typeof stickToBottom === "function") stickToBottom(2500);
         insertShowMoreControl(sessionId);
       })

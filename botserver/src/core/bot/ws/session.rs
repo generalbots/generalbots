@@ -192,6 +192,30 @@ pub async fn handle_ws(
                                 .await;
                             continue;
                         }
+                        // #cross-browser-sync — broadcast the user's input to every
+                        // subscriber of this session so other browsers see the
+                        // turn in real time, not just the bot's reply.
+                        let parsed_msg = serde_json::from_str::<serde_json::Value>(&text).ok();
+                        let msg_text = parsed_msg
+                            .as_ref()
+                            .and_then(|v| v.get("content").and_then(|c| c.as_str()).map(String::from))
+                            .unwrap_or_else(|| text.clone());
+                        let client_id = parsed_msg
+                            .as_ref()
+                            .and_then(|v| v.get("client_id").and_then(|c| c.as_str()).map(String::from))
+                            .unwrap_or_default();
+                        let user_frame = serde_json::json!({
+                            "content": msg_text,
+                            "message_type": 1,
+                            "is_complete": true,
+                            "session_id": session_id.to_string(),
+                            "user_id": user_id.to_string(),
+                            "sender_id": user_id.to_string(),
+                            "sender_client_id": client_id,
+                        });
+                        let delivered = bus::bus().publish(&thread_id, user_frame);
+                        botlog::safe_info!("Published user message to bus: thread={} delivered={}", thread_id, delivered);
+
                         inbound::handle(inbound::Inbound {
                             ws_sender: &ws_sender,
                             state: &state,

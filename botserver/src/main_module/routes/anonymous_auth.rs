@@ -11,7 +11,12 @@ pub async fn anonymous_auth_handler(
 ) -> impl IntoResponse {
     let bot_name = params.get("bot_name").cloned().unwrap_or_default();
     let existing_session_id = params.get("session_id").cloned();
+    let had_session_id = existing_session_id.is_some();
     let existing_user_id = params.get("user_id").cloned();
+    // Phase 1 cross-browser sync: when authenticated and no explicit session
+    // is provided, reuse the user's most recent session for this bot if it
+    // was active within the last 2 hours. `?new=1` forces a fresh session.
+    let force_new = params.get("new").map(|v| v == "1").unwrap_or(false);
 
     // Resolve the real user from the suite session token (gb-access-token)
     // when present as `Authorization: Bearer <token>`.
@@ -62,10 +67,37 @@ pub async fn anonymous_auth_handler(
         crate::security::user_role::resolve_user_role(&state.conn, user_uuid)
     };
 
-    let mut final_session_id = session_id.clone();
+    // Phase 1: resolve to an existing recent session for authenticated users
+    // so two browsers land on the same conversation and sync via the bus.
+    let resolved_session_id = if is_authenticated && !had_session_id && !force_new && found_bot_id != uuid::Uuid::nil() {
+        let mut sm = state.session_manager.lock().await;
+        let sessions = sm.get_user_sessions(user_uuid).ok().unwrap_or_default();
+        // Filter to this bot and find the most recent one updated within 2 hours.
+        let two_hours_ago = chrono::Utc::now() - chrono::Duration::hours(2);
+        let recent = sessions
+            .into_iter()
+            .filter(|s| s.bot_id == found_bot_id)
+            .filter(|s| s.updated_at > two_hours_ago)
+            .max_by_key(|s| s.updated_at);
+        if let Some(sess) = recent {
+            Some(sess.id.to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let mut final_session_id = if let Some(sid) = resolved_session_id {
+        sid
+    } else {
+        session_id.clone()
+    };
+
     {
         let mut sm = state.session_manager.lock().await;
         sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
+        let session_uuid = uuid::Uuid::parse_str(&final_session_id).unwrap_or(session_uuid);
         let session =
             sm.get_or_create_session_by_id(session_uuid, user_uuid, found_bot_id, "Anonymous Chat");
         if let Ok(sess) = session {

@@ -192,7 +192,7 @@ function hydrateVmAttachments(container) {
           !ChatState.isUserScrolling &&
           typeof scrollToBottom === "function"
         ) {
-          scrollToBottom(true);
+          scrollToBottom(false);
         }
       });
     })

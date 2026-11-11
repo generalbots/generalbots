@@ -166,8 +166,8 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       );
       messages.appendChild(div);
       stampMessage();
-      if (ChatState.isUserAtBottom) scrollToBottom(true);
-      stickToBottom(1400);
+      if (ChatState.isUserAtBottom && !ChatState.suppressPersist) scrollToBottom(false);
+      if (!ChatState.suppressPersist) stickToBottom(1400);
       return;
     }
     // #1693 — a fenced/complex drawing must not take the document path: it
@@ -179,7 +179,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       messages.appendChild(div);
       stampMessage();
       if (content && content.trim() !== "") div.appendChild(createCopyButton(content));
-      if (ChatState.isUserAtBottom) scrollToBottom(true);
+      if (ChatState.isUserAtBottom && !ChatState.suppressPersist) scrollToBottom(false);
       return;
     }
     var parsed;
@@ -275,15 +275,15 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   // jump. Follow the live edge only when the reader is already there; otherwise
   // leave the scroll alone and let the jump-to-bottom button advertise the new
   // message. `undefined` (first message of a session) counts as at-bottom.
-  if (ChatState.isUserAtBottom !== false) {
-    scrollToBottom(sender !== "user");
+  if (ChatState.isUserAtBottom !== false && !ChatState.suppressPersist) {
+    scrollToBottom(false);
     stickToBottom(sender === "user" ? 300 : 1400);
   } else {
     updateScrollButton();
   }
 
   setupMentionClickHandlers(div);
-  if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
+  if (!ChatState.suppressPersist && typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
 }
 
 function isTagBalanced(html) {

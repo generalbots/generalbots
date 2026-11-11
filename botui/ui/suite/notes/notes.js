@@ -35,7 +35,7 @@
       .map(function (n, i) {
         return (
           '<div class="note-card" style="background:' + n.color + '" data-i="' + i + '">' +
-          '<textarea data-i="' + i + '" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
+          '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + new Date(n.ts).toLocaleString() + "</span>" +
           '<button class="note-del" data-del="' + i + '" title="Delete">✕</button>' +
@@ -61,10 +61,10 @@
     });
   }
 
-  function add() {
+  function add(text) {
     const list = read();
     list.unshift({
-      text: "",
+      text: (text == null ? "" : String(text)),
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       ts: Date.now(),
     });

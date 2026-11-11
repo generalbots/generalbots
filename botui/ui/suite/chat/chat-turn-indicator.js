@@ -197,7 +197,7 @@ var GBTurnIndicator = (function () {
       // reader is already there. Instant, never smooth: a second animation on
       // top of the send pin read as the chat jumping.
       var cs = window.ChatState || {};
-      if (cs.isUserAtBottom === false || cs.isUserScrolling) return;
+      if (cs.isUserAtBottom === false) return;
       if (typeof window.scrollToBottom === "function") window.scrollToBottom(false);
       if (typeof window.scheduleScrollbarMarkers === "function") window.scheduleScrollbarMarkers();
     } catch (e) { /* transcript not mounted */ }

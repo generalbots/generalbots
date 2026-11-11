@@ -198,6 +198,10 @@ function renderDeepLinks(html) {
     if (!hrefMatch) return m;
     var target = hrefMatch[1];
     var appId = target.split("?")[0];
+    // #2226 — vision has no declared deep link (vision.analyze is chat-native),
+    // so any app://vision?... link the model hallucinates must not become a
+    // clickable button. Leave it as plain text instead.
+    if (appId === "vision") return m;
     var qs = target.indexOf("?") !== -1 ? target.split("?")[1] : "";
     var params = {};
     if (qs) {
@@ -222,6 +226,8 @@ function renderDeepLinks(html) {
   html = html.replace(barePattern, function (m, pre, target) {
     var stripped = target.replace(/^app:\/\//i, "");
     var appId = stripped.split("?")[0];
+    // #2226 — drop hallucinated vision deep links (no declared deep link).
+    if (appId === "vision") return m;
     var qs = stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "";
     var params = {};
     if (qs) {

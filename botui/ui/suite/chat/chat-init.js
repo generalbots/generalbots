@@ -342,12 +342,12 @@ if (window.ResizeObserver) {
   var liveEdgeObserver = new ResizeObserver(function () {
     var box = document.getElementById("messages");
     if (!box) return;
+    if (ChatState.suppressPersist) return;
     if (!ChatState.isUserAtBottom) return;
-    // Throttle: during heavy history replay the observer fires on every
-    // appended message; only pin when we are actually off the live edge.
-    if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) {
-      box.scrollTop = box.scrollHeight;
-    }
+    // Pin to live edge when content grows or layout shifts while the reader is
+    // at the bottom. Do not run during history replay (suppressPersist) to
+    // avoid fighting the bulk-load scroll restoration.
+    box.scrollTop = box.scrollHeight;
   });
   liveEdgeObserver.observe(messagesEl);
 }
@@ -356,10 +356,9 @@ if (window.MutationObserver) {
     requestAnimationFrame(function () {
       var box = document.getElementById("messages");
       if (!box) return;
+      if (ChatState.suppressPersist) return;
       if (!ChatState.isUserAtBottom) return;
-      if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) {
-        box.scrollTop = box.scrollHeight;
-      }
+      box.scrollTop = box.scrollHeight;
     });
   });
   liveEdgeMutations.observe(messagesEl, { childList: true, subtree: true });
@@ -367,7 +366,11 @@ if (window.MutationObserver) {
 messagesEl.addEventListener("scroll", function () {
   var box = document.getElementById("messages");
   var dist = box ? (box.scrollHeight - box.scrollTop - box.clientHeight) : 0;
-  ChatState.isUserAtBottom = dist < 40;
+  // Sticky bottom: once we're following the live edge, small layout shifts
+  // (streaming/indicator growth, reflow) must not flip us to "scrolled up".
+  // A real user scroll away produces a larger distance.
+  var threshold = ChatState.isUserAtBottom ? 120 : 40;
+  ChatState.isUserAtBottom = dist < threshold;
   ChatState.isUserScrolling = true;
   updateScrollButton();
   clearTimeout(messagesEl.scrollTimeout);
@@ -412,6 +415,29 @@ function initChat() {
 proceedWithChatInit();
 autoFocusInput();
 installComposerFocusAfterLayoutChange();
+  // #2228 — after a period of inactivity, return focus to the composer.
+  (function installIdleRefocus() {
+    if (window.__gbIdleRefocusBound) return;
+    window.__gbIdleRefocusBound = true;
+    var idleTimer = null;
+    function schedule() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () {
+        var input = document.getElementById("messageInput");
+        if (!input || !input.isConnected) return;
+        var active = document.activeElement;
+        var typingElsewhere = active && active !== document.body && active !== input &&
+          (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+        if (typingElsewhere) return;
+        if (String(input.value || "").trim() !== "") return;
+        try { input.focus({ preventScroll: true }); } catch (e) {}
+      }, 15000);
+    }
+    ["mousemove","keydown","click","scroll","touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, schedule, { passive: true });
+    });
+    schedule();
+  })();
 }
 
 function showChatApp() {

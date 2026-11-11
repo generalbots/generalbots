@@ -50,11 +50,7 @@
   },
 
   _glassHeader(id, title, opts) {
-    const maximize = opts && opts.noMaximize !== true
-      ? `<div class="window-dot window-dot-maximize" role="button" tabindex="0" title="Maximize" data-i18n-title="window-maximize" aria-label="Maximize" data-i18n-aria-label="window-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>`
-      : "";
-    // #2104 — fullscreen sits next to maximize; the label flips to
-    // "Exit fullscreen" from _syncFullscreenChrome (08_fullscreen.js).
+    // #2223 — Maximize removed; Fullscreen is the single "fill the screen" action.
     const fullscreen = opts && opts.noMaximize !== true
       ? `<div class="window-dot window-dot-fullscreen" role="button" tabindex="0" title="Fullscreen" data-i18n-title="window-fullscreen" aria-label="Fullscreen" data-i18n-aria-label="window-fullscreen" aria-pressed="false" onclick="window.WindowManager.toggleFullscreen('${id}')"></div>`
       : "";
@@ -62,7 +58,6 @@
       <div class="window-title">${title}</div>
       <div class="window-dot-controls">
         <div class="window-dot window-dot-minimize" role="button" tabindex="0" title="Minimize" data-i18n-title="window-minimize" aria-label="Minimize" data-i18n-aria-label="window-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
-        ${maximize}
         ${fullscreen}
         <div class="window-dot window-dot-close" role="button" tabindex="0" title="Close" data-i18n-title="window-close" aria-label="Close" data-i18n-aria-label="window-close" onclick="window.WindowManager.close('${id}')"></div>
       </div>
@@ -74,15 +69,11 @@
   },
 
   _legacyHeader(id, title, opts) {
-    const maximize = opts && opts.noMaximize !== true
-      ? `<button class="btn-maximize hover:text-gray-600" onclick="window.WindowManager.toggleMaximize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>`
-      : "";
-    // #2104 — expand-to-corners / contract, swapped by CSS from the
-    // .window-fullscreen-active class on the window element.
+    // #2223 — Maximize removed; Fullscreen is the single "fill the screen" action.
     const fullscreen = opts && opts.noMaximize !== true
       ? `<button class="btn-fullscreen hover:text-gray-600" title="Fullscreen" data-i18n-title="window-fullscreen" aria-label="Fullscreen" data-i18n-aria-label="window-fullscreen" aria-pressed="false" onclick="window.WindowManager.toggleFullscreen('${id}')"><svg class="icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><svg class="icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>`
       : "";
-    return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400"><button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>${maximize}${fullscreen}<button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
+    return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400"><button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>${fullscreen}<button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
   },
 
   _legacyBody(id) {
