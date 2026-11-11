@@ -159,9 +159,11 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
             let cred_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
             if cred_email.eq_ignore_ascii_case(email) {
-                let file_pw = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                // #2231 — never trust a plaintext password read from disk. The
+                // wizard scrubs it after the first login; only the documented
+                // dev bootstrap (admin@localhost / "dev") is accepted here.
                 let dev_pw_ok = email.eq_ignore_ascii_case("admin@localhost") && password == "dev";
-                if (password == file_pw) || dev_pw_ok {
+                if dev_pw_ok {
                     if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
                         return Some(user_id.to_string());
                     }

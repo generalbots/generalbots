@@ -112,6 +112,10 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      Add \\\"background\\\": true for long jobs (renders, downloads, training): \
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \
+                      Browser automation: to capture screenshots or scrape a website, use \
+                      selenium, playwright or puppeteer inside the VM (declare the package in \
+                      packages) and write the captured image to output/. Prefer the browser app \
+                      for interactive browsing; use the VM for batch capture. \
                      Save generated artifacts into output/ so the user can preview them. \
                      Every new or changed file left in output/ is published to the user's \
                      Drive automatically when the turn ends and its vmfile link is attached \
