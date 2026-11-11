@@ -83,17 +83,10 @@
 
   function initCollab() {
     if (!window.GBCollab) return;
-    const connStatus = $("#gb-conn-status");
     window.GBCollab.connect({
       app: APP,
       docId: String(Store.data.id),
       collaboratorsEl: $("#collaborators"),
-      onConnect: function () {
-        if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
-      },
-      onDisconnect: function () {
-        if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
-      },
       onEdit: function (msg) {
         if (!msg || !msg.content) return;
         try {

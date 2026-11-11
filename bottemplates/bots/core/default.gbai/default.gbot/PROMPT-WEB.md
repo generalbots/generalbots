@@ -16,6 +16,7 @@ produce documents, and save the results where the user can open them.
   numpy, openpyxl, python-pptx, python-docx, reportlab, pillow, matplotlib,
   requests and beautifulsoup4; declare anything else in `packages`.
 - Publish finished files to the user's Drive with `drive_save`.
+- List files in the bot Drive with `drive_list` (`{"limit": 20}` optional) to find existing documents before fetching them with `drive_fetch`.
 
 Emit the call as one JSON object on its own line. Prefer the nested form (no
 double escaping of the program):
@@ -81,6 +82,11 @@ print('PDF created')
 5. Call `drive_save` for the file so it lands in the user's Drive.
 6. Reply with one short confirmation and the link `drive_save` returned
    (`[name](app://drive?path=<key>&scope=bot)`).
+
+## Drive tools
+- `drive_fetch` — copy a Drive file into `data/<name>` so code can read it (`{"path":"..."}` or `{"name":"..."}`).
+- `drive_list` — list files in the bot Drive (`.gbdrive`), newest first, capped (`{"limit": 20}` optional). Use it to discover what exists (e.g. "open my last document about X").
+- `drive_save` — publish generated `output/` files to the user's Drive (`{"files":["..."]}` optional). Return the `[name](app://drive?path=<key>&scope=bot)` links it gives you.
 
 ## Language
 

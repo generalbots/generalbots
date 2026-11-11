@@ -208,6 +208,21 @@ function vmOpenInOfficeApp(path, savedPath) {
     throw new Error("desktop shell unavailable");
   }
   window.WindowManager.openDeepLink(app, { file: target.key, bucket: target.bucket });
+  // #2169/#2171 — side-by-side: chat on the left, document on the right.
+  // Snap after a short tick so the deep-linked window has been created.
+  setTimeout(function () {
+    try {
+      if (window.WindowManager && typeof window.WindowManager.snapWindow === "function") {
+        if (window.WindowManager.getWindow && window.WindowManager.getWindow("chat")) {
+          window.WindowManager.snapWindow("chat", "left");
+        }
+        window.WindowManager.snapWindow(app, "right");
+      }
+      // #2171 — return focus to the chat composer.
+      var input = document.querySelector("#chat-app textarea, .chat-input textarea, #messageInput");
+      if (input && typeof input.focus === "function") input.focus({ preventScroll: true });
+    } catch (e) {}
+  }, 120);
 }
 
 /* The Save-to-Drive actions call /api/agent/drive/save, which botserver only

@@ -259,3 +259,42 @@
   align-items: center;
   gap: 6px;
 }
+
+/* #2158 — office toolbars must read as a distinct bar, not blend into the
+   window chrome. Lift them with a solid surface, a clear separator and a
+   subtle elevation so icon buttons are easy to find. */
+.docs-toolbar, .sheet-toolbar, .slides-toolbar, .editor-toolbar, .paper-toolbar {
+  background: var(--surface-raised, #1e293b) !important;
+  border-bottom: 1px solid var(--border-color, #334155) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.12);
+  min-height: 48px;
+}
+.docs-toolbar .btn-icon, .sheet-toolbar .btn-icon, .slides-toolbar .btn-icon,
+.editor-toolbar .btn-icon, .paper-toolbar .btn-icon {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.docs-toolbar .btn-icon:hover, .sheet-toolbar .btn-icon:hover,
+.slides-toolbar .btn-icon:hover, .editor-toolbar .btn-icon:hover,
+.paper-toolbar .btn-icon:hover {
+  background: var(--surface-hover, rgba(255,255,255,.08));
+  border-color: var(--border-color, #334155);
+}
+
+/* #2159 — Docs: visible A4 page separation while editing. The editor area
+   paints a repeating page sheet (A4 aspect ratio) with a gap/shadow between
+   pages so pagination is visible without printing. */
+#docs-app #doc-content, #docs-app .docs-editor {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.06) 0, rgba(0,0,0,.06) 1px, transparent 1px) 0 0 / 100% 1056px,
+    #f1f5f9;
+  background-color: #cbd5e1;
+}
+#docs-app .docs-doc-view, #docs-app article.docs-doc-view {
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08);
+  margin: 24px auto;
+  width: 816px;
+  min-height: 1056px;
+}

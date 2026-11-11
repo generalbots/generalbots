@@ -73,6 +73,55 @@ pub fn scope(state: &Arc<AppState>, bot_uuid: &Uuid, user_id: Uuid) -> Option<Dr
     })
 }
 
+/// Item returned by [`list_bot_drive_objects`].
+#[derive(Clone, Debug)]
+pub struct DriveListItem {
+    /// Full object key inside the bucket.
+    pub key: String,
+    /// Path relative to the bot `.gbdrive/` prefix.
+    pub relative: String,
+    pub size: u64,
+}
+
+/// Lists objects under the bot's `.gbdrive` scope only (never the caller's
+/// personal `users/{email}/` tree), newest first by key (best proxy without
+/// per-object mtime), capped to `limit`. Returns `None` when Drive is
+/// unavailable or listing fails.
+pub async fn list_bot_drive_objects(
+    state: &Arc<AppState>,
+    scope: &DriveScope,
+    limit: usize,
+) -> Option<Vec<DriveListItem>> {
+    let drive = state.drive.clone()?;
+    let mut objects = match drive
+        .list_objects_with_metadata(&scope.bucket, Some(&scope.bot_prefix))
+        .await
+    {
+        Ok(objects) => objects,
+        Err(e) => {
+            log::warn!("drive bridge: list {} failed: {e}", scope.bot_prefix);
+            return None;
+        }
+    };
+    // Newest first: DriveObjectInfo has no mtime; key-desc is a stable proxy
+    // (paths/timestamps in names sort late) and avoids per-object HEAD calls.
+    objects.sort_by(|a, b| b.key.cmp(&a.key));
+    let mut out = Vec::new();
+    for object in objects.into_iter().take(limit) {
+        let relative = object
+            .key
+            .strip_prefix(&scope.bot_prefix)
+            .unwrap_or(&object.key)
+            .to_string();
+        out.push(DriveListItem {
+            key: object.key,
+            relative,
+            size: object.size,
+        });
+    }
+    Some(out)
+}
+
 /// Finds the object a user meant by `reference` (a file name, a relative path
 /// such as `documents/report.csv`, or a full Drive key).
 pub async fn find_object(
@@ -80,6 +129,7 @@ pub async fn find_object(
     scope: &DriveScope,
     reference: &str,
 ) -> Option<(String, String)> {
+
     let drive = state.drive.clone()?;
     let wanted = reference.trim().trim_start_matches('/').to_lowercase();
     if wanted.is_empty() {
