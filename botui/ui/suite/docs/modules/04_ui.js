@@ -29,6 +29,38 @@ function injectEditorStyles() {
     "article.docs-doc-view .docs-footer-zone{min-height:32px;padding:6px 0;border-top:1px dotted #e2e8f0;margin-top:18px;color:#64748b;font-size:12px;font-style:italic;}",
     "@media print{article.docs-doc-view{box-shadow:none;border:none;margin:0;}.docs-page-break{break-after:page;page-break-after:always;}}",
     ".docs-content{background:repeating-linear-gradient(to bottom,#0f172a 0px,#0f172a 32px,#0b1220 32px,#0b1220 48px);}",
+    // Appearance pass: the header and status bar used the light default while
+    // the app body is dark, so Docs looked like two apps stacked together, and
+    // the save status was a flex item that wrapped one word per line.
+    ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;align-items:center;gap:8px;padding:6px 10px;min-height:48px;}",
+    ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;}",
+    // Wrapping made the header 250px tall, and a scrolled strip hid actions.
+    // Compact the icons so the whole set fits a normal desktop window on one row.
+    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
+    ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar .btn-icon{padding:4px;}",
+    ".docs-toolbar .btn-icon svg{width:14px;height:14px;}",
+    ".docs-toolbar .toolbar-left .docs-title-input{max-width:200px;}",
+    "#docs-app .docs-content{overflow:auto;}",
+    "#docs-app article.docs-doc-view{margin:24px auto;}",
+    ".docs-toolbar .toolbar-group{display:flex;align-items:center;gap:2px;}",
+    ".docs-toolbar .toolbar-divider{width:1px;height:20px;background:#1f2937;margin:0 4px;flex:0 0 auto;}",
+    ".docs-toolbar .btn-icon{color:#cbd5e1;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px;cursor:pointer;display:inline-flex;align-items:center;}",
+    ".docs-toolbar .btn-icon:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-title-input{background:transparent;border:1px solid transparent;color:#f8fafc;font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
+    ".docs-title-input:focus{border-color:#3b82f6;outline:none;background:#0f172a;}",
+    ".save-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:320px;}",
+    ".docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
+    ".docs-pages{display:flex;flex-direction:column;align-items:center;padding:24px 0;}",
+    ".dc-file-row:hover{background:#1f2937;}",
+    // The suite theme exposes light surface tokens, and a later rule painted the
+    // header from --sentient-bg-secondary (rgb(252,251,248)) on top of the dark
+    // app body. Re-pin the tokens inside the app so every part agrees.
+    "#docs-app{--sentient-bg-secondary:#111827;--sentient-bg-primary:#0f172a;--sentient-bg:#0f172a;--sentient-bg-elevated:#1e293b;--sentient-text-primary:#e5e7eb;--sentient-text-secondary:#94a3b8;--sentient-border:#1f2937;background:#0f172a;color:#e5e7eb;}",
+    "#docs-app .docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;}",
+    "#docs-app .docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
+    "#docs-app .docs-sidebar{background:#0b1220;border-right:1px solid #1f2937;color:#cbd5e1;}",
+    "#docs-app .docs-title-input{color:#f8fafc;}",
     "@media screen{body{background:#0f172a;}}"
   ].join("");
   document.head.appendChild(style);
@@ -82,6 +114,25 @@ function renderPageGuides(article) {
 }
 window.renderPageGuides = renderPageGuides;
 
+/* The page keeps its real A4 width, so a narrow window used to clip it and the
+ * reader had to scroll sideways. Scale the whole page down (never up) until it
+ * fits the content area, the way a word processor's "fit to width" does. */
+function fitPageToWidth(article) {
+  if (!article) return;
+  var host = article.parentElement;
+  if (!host) return;
+  article.style.zoom = "1";
+  var available = host.clientWidth - 48;
+  var natural = article.offsetWidth;
+  if (!natural || available <= 0) return;
+  var scale = Math.min(1, available / natural);
+  if (scale < 0.999) {
+    article.style.zoom = String(Math.round(scale * 1000) / 1000);
+  }
+  renderPageGuides(article);
+}
+window.fitPageToWidth = fitPageToWidth;
+
 function watchPageGuides() {
   if (window.__docsPageGuideBound) return;
   window.__docsPageGuideBound = true;
@@ -90,7 +141,10 @@ function watchPageGuides() {
     clearTimeout(timer);
     timer = setTimeout(function () {
       var article = typeof getActiveArticle === "function" ? getActiveArticle() : null;
-      if (article) renderPageGuides(article);
+      if (article) {
+        fitPageToWidth(article);
+        renderPageGuides(article);
+      }
     }, 150);
   };
   document.addEventListener("input", schedule, true);

@@ -32,8 +32,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 200px;
+  flex: 0 0 auto;
+}
+.slides-toolbar .toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 0;
   min-width: 0;
-  flex: 0 1 auto;
+  overflow-x: auto;
+}
+.slides-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .slides-title-input {

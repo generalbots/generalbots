@@ -1,0 +1,59 @@
+/* 99_THEME — dark surface tokens for the Sheet app.
+ *
+ * The sheet CSS files default --sentient-* to light values, but the app runs
+ * inside the dark desktop shell, so the header and grid looked like a light
+ * spreadsheet pasted onto a dark desktop. Re-pin the tokens (scoped to
+ * .sheet-app, doubled class for specificity) so every rule that reads them
+ * agrees with the formula bar, which already used the dark --sheet-* tokens.
+ */
+.sheet-app.sheet-app {
+    /* Force the dark palette inside the app so it agrees with the desktop
+     * shell even when <html data-color-scheme="light"> is published. */
+    --sheet-bg: #0f172a;
+    --sheet-bg-elevated: #1e293b;
+    --sheet-fg: #f8fafc;
+    --sheet-muted: #94a3b8;
+    --sheet-border: #334155;
+    --sheet-selection: #3b82f6;
+    --sheet-selection-wash: rgba(59, 130, 246, 0.08);
+    --sentient-bg-primary: #0f172a;
+    --sentient-bg-secondary: #111827;
+    --sentient-bg-tertiary: #1e293b;
+    --sentient-bg-elevated: #1e293b;
+    --sentient-text-primary: #e5e7eb;
+    --sentient-text-secondary: #94a3b8;
+    --sentient-text-muted: #64748b;
+    --sentient-border: #1f2937;
+    --sentient-accent: #3b82f6;
+    --sentient-accent-hover: #2563eb;
+    --sentient-accent-light: #1e3a8a;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+.sheet-app.sheet-app .sheet-toolbar {
+    background: #111827;
+    border-bottom: 1px solid #1f2937;
+    box-shadow: none;
+}
+.sheet-app.sheet-app .sheet-name-input {
+    color: #f8fafc;
+}
+.sheet-app.sheet-app .btn-icon {
+    color: #94a3b8;
+}
+.sheet-app.sheet-app .btn-icon:hover {
+    background: #1f2937;
+    color: #f8fafc;
+}
+.sheet-app.sheet-app .toolbar-select {
+    background: #1e293b;
+    color: #e5e7eb;
+    border-color: #334155;
+}
+.sheet-app.sheet-app .btn-secondary {
+    color: #e5e7eb;
+    border-color: #334155;
+}
+.sheet-app.sheet-app .btn-secondary:hover {
+    background: #1f2937;
+}
