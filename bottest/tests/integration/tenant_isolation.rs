@@ -19,7 +19,7 @@ use bottest::prelude::*;
 use diesel::prelude::*;
 use reqwest::Client;
 use std::time::Duration;
-use tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
+use crate::tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
 use uuid::Uuid;
 
 pub(super) fn test_client() -> Client {

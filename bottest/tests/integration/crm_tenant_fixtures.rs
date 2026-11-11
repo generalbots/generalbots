@@ -7,7 +7,7 @@
 
 use reqwest::Client;
 use super::tenant_isolation::{org_id_of, seed_tenant, SeededTenant};
-use tenant_tokens::mint_admin_jwt;
+use crate::tenant_tokens::mint_admin_jwt;
 use uuid::Uuid;
 
 /// A bearer token for the seeded admin of `tenant`.

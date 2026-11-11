@@ -301,8 +301,44 @@ def main() -> int:
     if not args.suite_base or not args.static_base:
         parser.error("--suite-base and --static-base are required (or use --contracts)")
 
-    suite = suite_paths()
+    suite_all = suite_paths()
     static = static_pages()
+
+    catalog = args.catalog or f"{args.suite_base.rstrip('/')}/api/apps/catalog"
+    # The shipping profile may compile only a subset of the registry
+    # (e.g. desktop-local). Probe the catalog first so we only assert the
+    # surfaces the profile actually ships, while still validating that every
+    # shipped (compiled) registry app is present and answers.
+    status, _, body = fetch(catalog)
+    if status != 200:
+        raise SystemExit(f"FAIL catalog: GET {catalog} -> {status} (expected 200)")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"FAIL catalog: GET {catalog} is not JSON ({error})") from error
+    catalog_entries = {item.get("id"): item for item in payload.get("apps", [])}
+    registry_ids = {app_id for app_id, _ in suite_all}
+    missing = sorted(app_id for app_id in registry_ids if app_id not in catalog_entries)
+    if missing:
+        raise SystemExit(
+            "FAIL catalog: GET /api/apps/catalog does not list "
+            f"{', '.join(missing)}; the launcher cannot open them"
+        )
+    compiled_ids = {
+        app_id for app_id in registry_ids
+        if catalog_entries.get(app_id, {}).get("compiled") is True
+    }
+    uncompiled = sorted(registry_ids - compiled_ids)
+    if uncompiled:
+        print(
+            "smoke_app_surfaces: skipping non-compiled registry apps in this profile: "
+            + ", ".join(uncompiled)
+        )
+    suite = [
+        (label, path) for label, path in suite_all
+        if label == "desktop-shell" or label in compiled_ids
+    ]
+
     verify_files(suite)
     verify_files(static)
 
@@ -312,11 +348,13 @@ def main() -> int:
     for label, path in static:
         check_surface(args.static_base, label, path)
 
-    catalog = args.catalog or f"{args.suite_base.rstrip('/')}/api/apps/catalog"
-    check_catalog(catalog, {app_id for app_id, _ in suite})
+    check_catalog(catalog, compiled_ids)
     # #2100 — an app can answer its page and still render empty because the
     # API behind it is missing from the profile.
-    check_integrations_api(args.suite_base)
+    if "integrations" in compiled_ids:
+        check_integrations_api(args.suite_base)
+    else:
+        print("smoke_app_surfaces: integrations not compiled in this profile, skipping API check")
 
     print("smoke_app_surfaces: every shipped app surface answered")
     return 0

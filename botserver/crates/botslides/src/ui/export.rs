@@ -182,9 +182,9 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                     }
                     "line" => {
                         svg.push_str(&format!(
-                            r#" <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>
+                            r#" <line x1="{}" y1="{}" x2="{}" y2="{}" fill="{}" stroke="{}" stroke-width="{}"/>
 "#,
-                            element.x, element.y, element.x + element.width, element.y + element.height, stroke, stroke_width
+                            element.x, element.y, element.x + element.width, element.y + element.height, fill, stroke, stroke_width
                         ));
                     }
                     "triangle" => {
@@ -317,7 +317,9 @@ pub fn export_to_markdown(presentation: &Presentation) -> String {
                 }
             } else if element.element_type == "image" {
                 if let Some(ref src) = element.content.src {
-                    md.push_str(&format!("![Image]({})\n\n", src));
+                    if !src.is_empty() {
+                        md.push_str(&format!("![Image]({})\n\n", src));
+                    }
                 }
             }
         }

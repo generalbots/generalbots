@@ -258,7 +258,7 @@ mod tests {
         let docx = Docx::new()
             .add_paragraph(Paragraph::new().add_run(Run::new().add_text("first page")))
             .add_paragraph(
-                Paragraph::new().add_run(Run::new().add_break(Break::new(BreakType::Page))),
+                Paragraph::new().add_run(Run::new().add_break(BreakType::Page)),
             )
             .add_paragraph(Paragraph::new().add_run(Run::new().add_text("second page")));
         let mut buffer = Cursor::new(Vec::new());
