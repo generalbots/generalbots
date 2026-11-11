@@ -190,6 +190,10 @@
   window.GBFocusChatWindow = focusChatWindow;
 
   function newConversation() {
+    // #2222 — mirror the capture-phase guard in multichat/06_events.js: do
+    // not create a parallel tab until the chat surfaces are ready, otherwise
+    // the stock surface is not parked and two conversations stack.
+    if (window.GBMultiChat && window.GBMultiChat.blocked) return;
     // #1876 — a new conversation is a chat action: the chat window must be
     // restored when minimized and raised above the other windows first.
     focusChatWindow();
