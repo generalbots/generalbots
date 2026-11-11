@@ -35,6 +35,38 @@ fn docx_flow_html(xml: &str) -> String {
     let mut table_row = 0usize;
     loop {
         match reader.read_event() {
+            // OOXML uses self-closing tags (`<w:pStyle .../>`, `<w:tab/>`,
+            // `<w:br/>`); quick-xml delivers those as `Event::Empty`, so the
+            // Start arm never fires for them. Handle them here so heading
+            // styles, tabs and breaks are recognised (#2150).
+            Ok(Event::Empty(event)) => match event.name().as_ref() {
+                "w:pStyle" => {
+                    for attribute in event.attributes().flatten() {
+                        if attribute.key.as_ref() == "w:val" {
+                            if let Ok(value) = attribute
+                                .normalized_value(quick_xml::XmlVersion::Implicit1_0)
+                            {
+                                paragraph_style = Some(value.to_string());
+                            }
+                        }
+                    }
+                }
+                "w:tab" => {
+                    if in_cell {
+                        cell.push(' ');
+                    } else if in_paragraph {
+                        paragraph.push(' ');
+                    }
+                }
+                "w:br" => {
+                    if in_cell {
+                        cell.push(' ');
+                    } else if in_paragraph {
+                        paragraph.push(' ');
+                    }
+                }
+                _ => {}
+            },
             Ok(Event::Start(event)) => match event.name().as_ref() {
                 "w:tbl" => {
                     if in_table == 0 {
