@@ -16,6 +16,9 @@ function gbChatStatusText(key, fallback) {
 }
 function updateStreaming(content) {
   var el = document.getElementById(ChatState.streamingMessageId);
+  if (!el && window.GBChatVirtual && typeof window.GBChatVirtual.ensureById === "function") {
+    el = window.GBChatVirtual.ensureById(ChatState.streamingMessageId);
+  }
   if (!el) return;
   var streamBox = document.getElementById("messages");
   var wasNearBottom = streamBox &&
@@ -57,9 +60,27 @@ function updateStreaming(content) {
 }
 
 function finalizeStreaming() {
-  var el = document.getElementById(ChatState.streamingMessageId);
+  var sid = ChatState.streamingMessageId;
+  var el = sid ? document.getElementById(sid) : null;
+  if (!el && sid && window.GBChatVirtual && typeof window.GBChatVirtual.ensureById === "function") {
+    el = window.GBChatVirtual.ensureById(sid);
+  }
   if (el) {
+    if (window.GBChatVirtual && typeof window.GBChatVirtual.remove === "function") {
+      try { window.GBChatVirtual.remove(el); } catch (e) {}
+    }
     el.remove();
+  } else if (sid && window.GBChatVirtual && typeof window.GBChatVirtual.remove === "function") {
+    // Defensive cleanup: tracked-but-detached streaming node.
+    try {
+      var items = window.GBChatVirtual._items ? window.GBChatVirtual._items() : [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i] && items[i].el && items[i].el.id === sid) {
+          window.GBChatVirtual.remove(items[i].el);
+          break;
+        }
+      }
+    } catch (e) {}
   }
   ChatState.streamingMessageId = null;
   ChatState.currentStreamingContent = "";

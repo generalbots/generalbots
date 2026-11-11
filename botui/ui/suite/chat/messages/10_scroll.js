@@ -203,8 +203,15 @@ function gbRefreshScrollbarMarkers() {
         marker.appendChild(tooltip);
         (function (target, targetAcc, tick) {
           tick.addEventListener("click", function () {
-            if (V.ensureVisible) V.ensureVisible(target);
-            messages.scrollTo({ top: Math.max(0, targetAcc - 8), behavior: "smooth" });
+            if (V && V.ensureVisible) V.ensureVisible(target);
+            var top = targetAcc;
+            if (target && target.isConnected) {
+              // Prefer live geometry after materialization to avoid drift from estimated heights.
+              var crect = messages.getBoundingClientRect();
+              var trect = target.getBoundingClientRect();
+              top = messages.scrollTop + (trect.top - crect.top);
+            }
+            messages.scrollTo({ top: Math.max(0, top - 8), behavior: "smooth" });
           });
         })(it.el, acc, marker);
         overlay.appendChild(marker);
