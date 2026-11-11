@@ -158,13 +158,13 @@ jobs:
             ${{ runner.os }}-cargo-desktop-
 
       - name: Build botserver (desktop-local)
-        run: cargo build -p botserver --release --no-default-features --features desktop-local
+        run: cargo build -p botserver --no-default-features --features desktop-local
 
       - name: Build botui
-        run: cargo build -p botui --release
+        run: cargo build -p botui
 
       - name: Build desktop shell
-        run: cargo build -p botapp --release --features desktop-local,custom-protocol
+        run: cargo build -p botapp --features desktop-local,custom-protocol
 
       - name: Stage the darwin sidecar
         run: |
