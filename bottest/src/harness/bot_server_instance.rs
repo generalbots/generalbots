@@ -327,3 +327,194 @@ impl Drop for BotUIInstance {
         }
     }
 }
+
+/// Options for starting a desktop-local botserver profile from the e2e harness.
+///
+/// Mirrors the botapp sidecar contract as closely as practical: isolated stack,
+/// `.product.desktop-local`, deterministic/mock LLM env wiring, and minimal
+/// external coupling (no Vault/DB env leakage from the developer shell).
+#[derive(Debug, Clone)]
+pub struct DesktopLocalStartOptions {
+    pub stack_path: PathBuf,
+    pub port: u16,
+    /// Full OpenAI-compatible chat completions endpoint (e.g. mock LLM).
+    pub llm_chat_completions_url: Option<String>,
+    /// OpenAI-compatible base URL (e.g. `http://127.0.0.1:PORT/v1`).
+    pub llm_openai_base_url: Option<String>,
+    pub installers_path: Option<PathBuf>,
+    /// Source `.product.desktop-local` copied into `stack_path` when missing.
+    pub product_source: Option<PathBuf>,
+    pub botserver_bin: Option<PathBuf>,
+    /// When `false` (recommended for harness/offline), sets
+    /// `GB_DESKTOP_ALLOW_DOWNLOAD=0`.
+    pub allow_downloads: bool,
+    pub extra_env: Vec<(String, String)>,
+}
+
+impl Default for DesktopLocalStartOptions {
+    fn default() -> Self {
+        Self {
+            stack_path: PathBuf::from("/tmp/bottest-desktop-stack"),
+            port: 8080,
+            llm_chat_completions_url: None,
+            llm_openai_base_url: None,
+            installers_path: None,
+            product_source: None,
+            botserver_bin: None,
+            allow_downloads: false,
+            extra_env: Vec::new(),
+        }
+    }
+}
+
+impl BotServerInstance {
+    /// Start a desktop-local botserver in an isolated stack with optional mock
+    /// LLM wiring. Intended for harness/e2e use; the binary must be a
+    /// desktop-local-capable build when desktop-local product behavior is needed.
+    ///
+    /// Note: starting the server may bootstrap stack components (heavy). Callers
+    /// that only need wiring/env/profile layout should use the pure helpers in
+    /// `tests/e2e/desktop_local_chat.rs` instead.
+    pub async fn start_desktop_local(opts: DesktopLocalStartOptions) -> Result<Self> {
+        let DesktopLocalStartOptions {
+            stack_path,
+            port,
+            llm_chat_completions_url,
+            llm_openai_base_url,
+            installers_path,
+            product_source,
+            botserver_bin,
+            allow_downloads,
+            extra_env,
+        } = opts;
+
+        std::fs::create_dir_all(&stack_path)?;
+        let stack_path = stack_path.canonicalize().unwrap_or(stack_path);
+
+        let product_dst = stack_path.join(".product.desktop-local");
+        if !product_dst.exists() {
+            let src = product_source.unwrap_or_else(|| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("..")
+                    .join("botserver")
+                    .join(".product.desktop-local")
+            });
+            if src.exists() {
+                let _ = std::fs::copy(&src, &product_dst);
+            }
+        }
+
+        let botserver_bin = botserver_bin
+            .map(|p| p.display().to_string())
+            .or_else(|| std::env::var("BOTSERVER_DESKTOP_LOCAL_BIN").ok())
+            .or_else(|| std::env::var("BOTSERVER_BIN").ok())
+            .unwrap_or_else(|| super::default_botserver_bin());
+
+        if !PathBuf::from(&botserver_bin).exists() {
+            anyhow::bail!(
+                "Botserver binary not found at: {botserver_bin}. Build a desktop-local-capable botserver first."
+            );
+        }
+
+        let botserver_bin_path =
+            std::fs::canonicalize(&botserver_bin).unwrap_or_else(|_| PathBuf::from(&botserver_bin));
+        let botserver_dir = botserver_bin_path
+            .parent()
+            .and_then(|p| p.parent())
+            .and_then(|p| p.parent())
+            .map(std::path::Path::to_path_buf)
+            .unwrap_or_else(|| stack_path.clone());
+
+        let installers_path = installers_path.unwrap_or_else(|| stack_path.join("installers"));
+        let url = format!("http://127.0.0.1:{port}");
+
+        let mut cmd = std::process::Command::new(&botserver_bin_path);
+        cmd.current_dir(&botserver_dir)
+            .arg("--noconsole")
+            .arg("--stack-path")
+            .arg(&stack_path)
+            .arg("--port")
+            .arg(port.to_string())
+            .env_remove("RUST_LOG")
+            .env("GBO_NO_DOTENV", "1")
+            .env_remove("VAULT_ADDR")
+            .env_remove("VAULT_TOKEN")
+            .env_remove("VAULT_CACERT")
+            .env_remove("VAULT_SKIP_VERIFY")
+            .env_remove("VAULT_CLIENT_CERT")
+            .env_remove("VAULT_CLIENT_KEY")
+            .env_remove("DATABASE_URL")
+            .env_remove("PG_URL")
+            .env("BOTSERVER_STACK_PATH", &stack_path)
+            .env("BOTSERVER_INSTALLERS_PATH", &installers_path)
+            .env(
+                "GB_DESKTOP_ALLOW_DOWNLOAD",
+                if allow_downloads { "1" } else { "0" },
+            )
+            .env("AGENT_ALLOW_UNREGISTERED_IDENTITIES", "1")
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit());
+
+        if let Some(ref completions) = llm_chat_completions_url {
+            cmd.env("LLM_URL", completions);
+            cmd.env("LLM_API_URL", completions);
+        }
+        if let Some(ref base) = llm_openai_base_url {
+            cmd.env("OPENAI_API_BASE", base);
+        }
+        if llm_chat_completions_url.is_some() || llm_openai_base_url.is_some() {
+            cmd.env("OPENAI_API_KEY", "mock-key");
+            cmd.env("LLM_API_KEY", "mock-key");
+        }
+        for (k, v) in extra_env {
+            cmd.env(k, v);
+        }
+
+        let process = cmd.spawn().ok();
+        if process.is_some() {
+            let max_wait = 300;
+            log::info!("Waiting for desktop-local botserver to become ready (max {max_wait}s)...");
+            let client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(5))
+                .build()
+                .unwrap_or_default();
+            for i in 0..max_wait {
+                if let Ok(resp) = client.get(format!("{url}/health")).send().await {
+                    if resp.status().is_success() {
+                        log::info!("Desktop-local botserver ready at {url}");
+                        return Ok(Self {
+                            url,
+                            port,
+                            stack_path,
+                            process,
+                        });
+                    }
+                }
+                // Desktop-local may expose /api/product before full health in some modes.
+                if let Ok(resp) = client.get(format!("{url}/api/product")).send().await {
+                    if resp.status().is_success() && i >= 5 {
+                        log::info!("Desktop-local botserver responding at {url} (/api/product)");
+                        return Ok(Self {
+                            url,
+                            port,
+                            stack_path,
+                            process,
+                        });
+                    }
+                }
+                if i % 15 == 0 && i > 0 {
+                    log::info!("Still waiting for desktop-local botserver... ({i}s)");
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+            log::warn!("Desktop-local botserver did not respond in time");
+        }
+
+        Ok(Self {
+            url,
+            port,
+            stack_path,
+            process: None,
+        })
+    }
+}

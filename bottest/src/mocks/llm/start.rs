@@ -388,6 +388,28 @@ impl MockLLM {
         format!("http://127.0.0.1:{}", self.port)
     }
 
+    /// OpenAI-compatible base URL (ends with `/v1`) for clients that expect an
+    /// API base rather than a full completions endpoint.
+    #[must_use]
+    pub fn openai_base_url(&self) -> String {
+        format!("{}/v1", self.url())
+    }
+
+    /// Full chat-completions endpoint, useful for wiring botserver env vars such
+    /// as `LLM_URL` / `LLM_API_URL` in desktop-local harness runs.
+    #[must_use]
+    pub fn chat_completions_url(&self) -> String {
+        format!("{}/v1/chat/completions", self.url())
+    }
+
+    /// Deterministic, zero-cost chat wiring for the desktop-local suite chat
+    /// harness: mounts a default completion reply so any prompt gets a stable
+    /// response without a real provider.
+    pub async fn configure_desktop_local_chat(&self, reply: &str) {
+        self.expect_completion("hi", reply).await;
+        self.set_default_response(reply).await;
+    }
+
     #[must_use]
     pub const fn port(&self) -> u16 {
         self.port

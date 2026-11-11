@@ -90,16 +90,14 @@ jobs:
           VAULT_ADDR: https://vault.a11y.invalid:8200
           BOTSERVER_DISABLE_TLS: "1"
           BOT_TEMPLATES_REPO: https://example.invalid/templates.git
-          # #2166 — point the desktop-local server at a local OpenAI-compatible
-          # mock so the chat smoke can exercise an LLM-backed reply path when the
-          # provider is wired from env; the /api/chat endpoint also has a safe
-          # fallback, so the smoke still validates the HTTP chat flow.
+          # #2166 — local OpenAI-compatible mock only; never route to paid providers.
           LLM_URL: http://127.0.0.1:18080/v1/chat/completions
           LLM_API_URL: http://127.0.0.1:18080/v1
           OPENAI_API_BASE: http://127.0.0.1:18080/v1
           OPENAI_API_KEY: test-mock-key
           LLM_MODEL: mock-gpt
         run: |
+          $ErrorActionPreference = 'Stop'
           # mirror the Lighthouse desktop-local job
           $stack = $env:BOTSERVER_STACK_PATH
           New-Item -ItemType Directory -Force "$stack\conf\system" | Out-Null
@@ -120,13 +118,20 @@ jobs:
           # postgres on 5432 (choco) — create gb user/db
           $pgBin = (Get-ChildItem "C:\Program Files\PostgreSQL" -Directory | Sort-Object Name | Select-Object -Last 1).FullName + '\bin'
           $env:PATH = "$pgBin;$env:PATH"
-          # start the choco postgres service if not running
           $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
-          & "$pgBin\psql.exe" -U postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='gb') THEN CREATE ROLE gb LOGIN PASSWORD 'gb'; END IF; END \$\$;" 2>$null
-          & "$pgBin\psql.exe" -U postgres -c "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec" 2>$null
+          & "$pgBin\psql.exe" -U postgres -c 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''gb'') THEN CREATE ROLE gb LOGIN PASSWORD ''gb''; END IF; END $$;' 2>&1 | Out-Null
+          & "$pgBin\psql.exe" -U postgres -c "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec" 2>&1 | Out-Null
 
-          # #2166 — minimal OpenAI-compatible mock LLM for chat e2e smoke.
+          # Best-effort Redis for CACHE_URL. Missing cache must not be a hard blocker
+          # for the desktop-local HTTP smoke, but we try to provide it when available.
+          try {
+            choco install redis-64 --no-progress -y 2>&1 | Out-Null
+            $redisSvc = Get-Service -Name "redis*" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($redisSvc -and $redisSvc.Status -ne 'Running') { Start-Service $redisSvc.Name -ErrorAction SilentlyContinue }
+          } catch { Write-Host "::warning::Redis unavailable, continuing: $($_.Exception.Message)" }
+
+          # #2166 — minimal OpenAI-compatible mock LLM (deterministic, local only).
           $mockPy = Join-Path $env:RUNNER_TEMP 'mock_llm.py'
           @'
           import json
@@ -167,6 +172,14 @@ jobs:
           $log = Join-Path (Get-Location) 'botserver-testbuild.log'
           $proc = Start-Process -FilePath 'target\debug\botserver.exe' -ArgumentList '--noconsole' `
             -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
+
+          $dumpLogs = {
+            Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 80 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 80 -ErrorAction SilentlyContinue
+            Write-Host "=== mock llm log (tail) ==="; Get-Content $mockLog -Tail 40 -ErrorAction SilentlyContinue
+            Write-Host "=== mock llm err (tail) ==="; Get-Content "$mockLog.err" -Tail 40 -ErrorAction SilentlyContinue
+          }
+
           $ready = $false
           for ($i = 0; $i -lt 120; $i++) {
             Start-Sleep -Seconds 2
@@ -181,28 +194,51 @@ jobs:
             } catch { if ($i % 10 -eq 0) { Write-Host "attempt $i not ready: $($_.Exception.Message)" } }
           }
           if (-not $ready) {
-            Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 40 -ErrorAction SilentlyContinue
-            Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 40 -ErrorAction SilentlyContinue
+            & $dumpLogs
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
             Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
             throw "botserver did not become ready on /api/product"
           }
 
-          # #2166 — HTTP chat e2e smoke against /api/chat with mock LLM configured.
-          # A 200 response with a non-empty reply proves the chat handler + reply
-          # path (mock-backed or safe fallback) is functional in desktop-local mode.
+          # Required HTTP assertions (#2166): /health, /api/product, /suite/desktop.html
+          try {
+            $h = Invoke-WebRequest -Uri 'http://localhost:8080/health' -UseBasicParsing -TimeoutSec 10
+            if ($h.StatusCode -ne 200) { throw "expected 200, got $($h.StatusCode)" }
+            Write-Host "/health OK (200)"
+
+            $p = Invoke-WebRequest -Uri 'http://localhost:8080/api/product' -UseBasicParsing -TimeoutSec 10
+            if ($p.StatusCode -ne 200) { throw "expected 200, got $($p.StatusCode)" }
+            Write-Host "/api/product OK (200)"
+
+            $d = Invoke-WebRequest -Uri 'http://localhost:8080/suite/desktop.html' -UseBasicParsing -TimeoutSec 10
+            if ($d.StatusCode -ne 200) { throw "expected 200, got $($d.StatusCode)" }
+            if (-not $d.Content -or $d.Content.Length -lt 32) { throw "desktop shell body is unexpectedly small" }
+            Write-Host "/suite/desktop.html OK (200, $($d.Content.Length) bytes)"
+          } catch {
+            Write-Host "HTTP assertion failed: $($_.Exception.Message)"
+            & $dumpLogs
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
+            throw "required HTTP smoke assertions failed"
+          }
+
+          # Headless chat e2e smoke (#2166): POST /api/chat must return 200 with a
+          # reply payload. The server may answer via the local mock LLM or its safe
+          # fallback; either path proves the HTTP chat flow is functional and no
+          # paid external LLM is contacted (LLM_* env points to 127.0.0.1 mock).
           $chatOk = $false
           try {
             $body = @{ message = "hi" } | ConvertTo-Json
             $resp = Invoke-WebRequest -Uri 'http://localhost:8080/api/chat' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing -TimeoutSec 30
             Write-Host "chat status: $($resp.StatusCode)"
             Write-Host "chat body: $($resp.Content)"
-            if ($resp.StatusCode -eq 200 -and $resp.Content -match 'reply|message') { $chatOk = $true }
+            if ($resp.StatusCode -eq 200 -and $resp.Content -match '"reply"|"message"') { $chatOk = $true }
           } catch {
             Write-Host "chat smoke request failed: $($_.Exception.Message)"
           }
           if (-not $chatOk) {
-            Write-Host "=== botserver log (tail, chat) ==="; Get-Content $log -Tail 60 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver log (tail, chat) ==="; Get-Content $log -Tail 100 -ErrorAction SilentlyContinue
+            & $dumpLogs
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
             Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
             throw "desktop-local chat e2e smoke failed"
@@ -210,7 +246,7 @@ jobs:
 
           Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue
-          Write-Host "Smoke boot + chat e2e smoke OK"
+          Write-Host "Smoke boot + HTTP assertions + chat e2e smoke OK"
 
 
       - name: Upload artifacts
