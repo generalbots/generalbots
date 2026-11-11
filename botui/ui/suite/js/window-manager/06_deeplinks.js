@@ -85,6 +85,11 @@
     fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
       const body = document.getElementById(`window-body-${targetId}`);
       if (body) this._injectBodyContent(targetId, html);
+      // #2181 — a freshly opened window also needs the deep-link event so
+      // delta-renderers apply the first batch instead of dropping it.
+      document.dispatchEvent(new CustomEvent("gb:deep-link", {
+        detail: { appId: targetId, params: params || {} },
+      }));
       // Content can push the workspace layout; re-clamp so an auto-opened
       // app never sits off-screen after its body settles.
       this._clampWindowIntoView(targetId);
