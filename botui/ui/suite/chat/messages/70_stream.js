@@ -156,6 +156,9 @@ function processMessage(data) {
       if (lastBot && typeof hydrateVmAttachments === "function") {
         hydrateVmAttachments(lastBot);
       }
+      if (lastBot && typeof enforceNoVmFileLinks === "function") {
+        enforceNoVmFileLinks(lastBot);
+      }
     } catch (e) { /* hydration is best-effort */ }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";

@@ -77,6 +77,33 @@ function renderVmFileLinks(html) {
   });
 }
 
+// Hard invariant (#2167): a `vmfile:` anchor must never be visible as a link.
+// Every renderer is supposed to convert them before inserting, so anything
+// caught here is a renderer that skipped its pass — the console warning names
+// it so the gap gets fixed upstream instead of silently patched downstream.
+function enforceNoVmFileLinks(root) {
+  if (!root || !root.querySelectorAll) return 0;
+  var anchors = root.querySelectorAll('a[href^="vmfile:"]');
+  var fixed = 0;
+  for (var i = 0; i < anchors.length; i++) {
+    var anchor = anchors[i];
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = renderVmFileLinks(anchor.outerHTML);
+    if (wrapper.firstElementChild) {
+      anchor.replaceWith(wrapper.firstElementChild);
+      fixed++;
+    }
+  }
+  if (fixed && window.console && console.warn) {
+    console.warn(
+      "[vmfile] converted " + fixed + " raw vmfile anchor(s) at DOM insertion;" +
+        " the renderer should have called renderVmFileLinks",
+    );
+  }
+  return fixed;
+}
+window.enforceNoVmFileLinks = enforceNoVmFileLinks;
+
 // A real, browser-consumable URL. The endpoint also accepts the suite token
 // as a query parameter, so a plain anchor/iframe can fetch the file without
 // the blob dance (which made the name look like a dead link).
