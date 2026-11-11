@@ -3,7 +3,6 @@
 
 function initCollab() {
   if (!window.GBCollab) return;
-  var connStatus = document.getElementById("gb-conn-status");
   var docId = (document.getElementById("docTitle") && document.getElementById("docTitle").value) || "current";
   var typingEl = document.getElementById("typing-indicator");
   window.GBCollab.connect({
@@ -11,11 +10,8 @@ function initCollab() {
     docId: docId,
     collaboratorsEl: document.getElementById("collaborators"),
     typingEl: typingEl,
-    onConnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = docsT("docs-status-online", "online"); }
-    },
+    onConnect: function () {},
     onDisconnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = docsT("docs-status-offline", "offline"); }
       if (window.DocsPresence) window.DocsPresence.clearAll();
     },
     onMessage: function (msg) {

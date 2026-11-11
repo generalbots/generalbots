@@ -11,6 +11,7 @@
     var ls = sheetData.loadedSheet;
     window.__LOADED_SHEET = ls;
     window.__SHEET_INITIAL_ID = ls.id;
+    if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
     window.__SHEET_BOOT = Promise.resolve();
     var nameInput = document.querySelector('.sheet-name-input');
     if (nameInput && ls.name) nameInput.value = ls.name;
@@ -46,6 +47,7 @@
     }).then(function (sheet) {
       window.__LOADED_SHEET = sheet;
       if (sheet && sheet.id) window.__SHEET_INITIAL_ID = sheet.id;
+      if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
       var refNameInput = document.querySelector('.sheet-name-input');
       if (refNameInput && sheet && sheet.name) refNameInput.value = sheet.name;
     }).catch(function (err) {
@@ -80,6 +82,7 @@
   }).then(function(r){ return r.json(); }).then(function(sheet){
     window.__LOADED_SHEET = sheet;
     window.__SHEET_INITIAL_ID = sheet.id;
+    if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
     if (nameInput) nameInput.value = sheet.name || fileName;
   }).catch(function(err){
     console.error('Sheet load error:', err);

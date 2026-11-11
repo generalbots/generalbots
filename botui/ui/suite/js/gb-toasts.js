@@ -27,22 +27,42 @@ const GBToasts = (() => {
     } catch (e) {}
   }
 
-  function show(title, message, kind) {
+  function show(title, message, kind, options) {
     kind = kind || "info";
+    options = (options && typeof options === "object") ? options : {};
+    const appId = options.appId || options.app || null;
+    const params = options.params || {};
+    const label = options.label || tr("toast-open", "Open");
     const id = "gb-toast-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
     const toast = document.createElement("div");
     toast.id = id;
     toast.className = "gb-toast gb-toast-" + kind;
+    var actionHtml = "";
+    if (appId) {
+      actionHtml = '<button class="gb-toast-action" data-app="' + esc(appId) + '">' + esc(label) + "</button>";
+    }
     toast.innerHTML =
       '<div class="gb-toast-icon">' + iconFor(kind) + "</div>" +
       '<div class="gb-toast-body"><div class="gb-toast-title">' + esc(title) + '</div><div class="gb-toast-msg">' + esc(message) + "</div></div>" +
+      actionHtml +
       '<button class="gb-toast-close" title="' + esc(tr("toast-dismiss", "Dismiss")) + '">✕</button>';
     document.body.appendChild(toast);
     const closeBtn = toast.querySelector(".gb-toast-close");
     if (closeBtn) closeBtn.addEventListener("click", () => dismiss(toast));
+    const actionBtn = toast.querySelector(".gb-toast-action");
+    if (actionBtn && appId) {
+      actionBtn.addEventListener("click", function () {
+        if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+          window.WindowManager.openDeepLink(appId, params);
+        } else if (typeof window.openDeepLink === "function") {
+          window.openDeepLink(appId, params);
+        }
+        dismiss(toast);
+      });
+    }
     setTimeout(() => dismiss(toast), 6000);
 
-    notifications.unshift({ id: id, title: title, message: message, kind: kind, ts: Date.now() });
+    notifications.unshift({ id: id, title: title, message: message, kind: kind, ts: Date.now(), appId: appId, params: params, label: label });
     persist();
     updateBadge();
   }
@@ -95,6 +115,7 @@ const GBToasts = (() => {
               '<div class="gb-nc-item gb-nc-' + n.kind + '">' +
               '<div class="gb-nc-title">' + esc(n.title) + "</div>" +
               '<div class="gb-nc-msg">' + esc(n.message) + "</div>" +
+              (n.appId ? '<button class="gb-nc-open" data-app="' + esc(n.appId) + '" data-params="' + esc(JSON.stringify(n.params || {})) + '">' + esc(n.label || tr("toast-open", "Open")) + "</button>" : "") +
               '<div class="gb-nc-time">' + new Date(n.ts).toLocaleTimeString() + "</div>" +
               "</div>"
             )
@@ -111,6 +132,17 @@ const GBToasts = (() => {
         updateBadge();
       });
     }
+    center.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest(".gb-nc-open") : null;
+      if (!btn) return;
+      e.stopPropagation();
+      var appId = btn.getAttribute("data-app");
+      var params = {};
+      try { params = JSON.parse(btn.getAttribute("data-params") || "{}"); } catch (_) {}
+      if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+        window.WindowManager.openDeepLink(appId, params);
+      }
+    });
     const dismiss = (e) => {
       if (!center.contains(e.target)) center.remove();
     };

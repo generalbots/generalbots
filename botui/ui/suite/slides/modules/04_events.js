@@ -310,16 +310,12 @@ document.addEventListener("htmx:configRequest", function (event) {
 
 function initCollab() {
   if (!window.GBCollab) return;
-  var connStatus = document.getElementById("gb-conn-status");
   window.GBCollab.connect({
     app: "slides",
     docId: getSlidesPresentationId(),
     collaboratorsEl: document.getElementById("collaborators"),
-    onConnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
-    },
+    onConnect: function () {},
     onDisconnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
       if (window.SlidesPresence) window.SlidesPresence.clearAll();
     },
     onMessage: function (msg) {

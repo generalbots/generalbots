@@ -73,7 +73,6 @@
 
   function initCollab() {
     if (!window.GBCollab) return;
-    const connStatus = document.getElementById("gb-conn-status");
     window.GBCollab.connect({
       app: "sheet",
       docId: D.currentSheetId(),
@@ -82,11 +81,8 @@
         return "/api/sheet/" + encodeURIComponent(docId) + "/ops?since=" + since;
       },
       opSeqOf: function (op) { return op.seq; },
-      onConnect: function () {
-        if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
-      },
+      onConnect: function () {},
       onDisconnect: function () {
-        if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
         if (window.SheetPresence) window.SheetPresence.clearAll();
       },
       onMessage: function (msg) {

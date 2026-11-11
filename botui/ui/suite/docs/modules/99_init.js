@@ -84,6 +84,8 @@ function docsInit() {
     AI: DocumentAIDriver,
     insertPageBreak: insertPageBreak,
     openHeaderFooterModal: openHeaderFooterModal,
+    openPageLayoutModal: openPageLayoutModal,
+    applyPageLayout: applyPageLayout,
     insertHeaderFooterZone: insertHeaderFooterZone,
     updatePageCount: updatePageCount
   };

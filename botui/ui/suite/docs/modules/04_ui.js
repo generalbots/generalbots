@@ -28,11 +28,44 @@ function injectEditorStyles() {
     "article.docs-doc-view .docs-header-zone{min-height:32px;padding:6px 0;border-bottom:1px dotted #e2e8f0;margin-bottom:18px;color:#64748b;font-size:12px;font-style:italic;}",
     "article.docs-doc-view .docs-footer-zone{min-height:32px;padding:6px 0;border-top:1px dotted #e2e8f0;margin-top:18px;color:#64748b;font-size:12px;font-style:italic;}",
     "@media print{article.docs-doc-view{box-shadow:none;border:none;margin:0;}.docs-page-break{break-after:page;page-break-after:always;}}",
+    ".docs-content{background:repeating-linear-gradient(to bottom,#0f172a 0px,#0f172a 32px,#0b1220 32px,#0b1220 48px);}",
     "@media screen{body{background:#0f172a;}}"
   ].join("");
   document.head.appendChild(style);
 }
 
+function openPageLayoutModal() {
+  var host = document.getElementById("docs-modal-container");
+  if (!host) return;
+  host.innerHTML = [
+    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;\">",
+    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
+    "<h3 style=\"margin:0;font-size:16px;\">Page layout</h3>",
+    "<label style=\"font-size:13px;\">Paper size<select id=\"pl-size\" style=\"margin-left:8px;padding:4px;\"><option value=\"a4\">A4</option><option value=\"letter\">Letter</option></select></label>",
+    "<label style=\"font-size:13px;\">Orientation<select id=\"pl-orient\" style=\"margin-left:8px;padding:4px;\"><option value=\"portrait\">Portrait</option><option value=\"landscape\">Landscape</option></select></label>",
+    "<label style=\"font-size:13px;\">Margins<input id=\"pl-margins\" type=\"number\" value=\"96\" style=\"margin-left:8px;padding:4px;width:70px;\"> px</label>",
+    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button onclick=\"document.getElementById('docs-modal-container').innerHTML='';\" style=\"padding:6px 12px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;cursor:pointer;\">Close</button><button onclick=\"window.DocsEditor.applyPageLayout();\" style=\"padding:6px 12px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;\">Apply</button></div>",
+    "</div></div>"
+  ].join("");
+}
+function applyPageLayout() {
+  var size = document.getElementById("pl-size");
+  var orient = document.getElementById("pl-orient");
+  var margins = document.getElementById("pl-margins");
+  var article = getActiveArticle();
+  if (!article) return;
+  var w = 816, h = 1056;
+  if (size && size.value === "letter") { w = 816; h = 1056; }
+  if (orient && orient.value === "landscape") { var t = w; w = h; h = t; }
+  var m = margins ? parseInt(margins.value, 10) || 96 : 96;
+  article.style.width = w + "px";
+  article.style.minHeight = h + "px";
+  article.style.padding = m + "px";
+  var host = document.getElementById("docs-modal-container");
+  if (host) host.innerHTML = "";
+  scheduleSave(article.dataset.docId, article.innerHTML);
+}
+window.applyPageLayout = applyPageLayout;
 function insertPageBreak() {
   var article = getActiveArticle();
   if (!article) return;

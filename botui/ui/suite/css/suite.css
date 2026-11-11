@@ -13,9 +13,10 @@
     justify-content: space-between;
     padding: 8px 16px;
     background: var(--sentient-bg-secondary, #1e293b);
-    border-bottom: 1px solid var(--sentient-border, #334155);
+    border-bottom: 2px solid var(--sentient-border, #475569);
     gap: 12px;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
 .toolbar-left,

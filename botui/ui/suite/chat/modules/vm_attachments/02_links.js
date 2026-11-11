@@ -25,7 +25,7 @@ function vmAttachmentButtons(path) {
   var app = vmOfficeAppFor(path);
   var open =
     app && vmOfficeAppAvailable(app)
-      ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
+      ? '<button type="button" class="gb-attachment-btn gb-attachment-open" title="Open in app">Open in app</button>'
       : "";
   return (
     '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +

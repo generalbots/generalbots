@@ -28,6 +28,7 @@ function newSheet() {
             VG.headerColPool = [];
             VG.init(host);
             if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
+            if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
         }
     });
 }
@@ -109,6 +110,7 @@ function loadSheet(id) {
             VG.headerColPool = [];
             VG.init(host);
             if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
+            if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
             if (window.__LOADED_SHEET && window.__LOADED_SHEET.worksheets && window.__LOADED_SHEET.worksheets.length > 0) {
                 var ws = window.__LOADED_SHEET.worksheets[0];
                 if (ws.data) {

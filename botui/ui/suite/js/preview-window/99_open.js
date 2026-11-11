@@ -120,7 +120,7 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         status("Saved to Drive", "ok");
         if (window.GBToasts) {
-          GBToasts.show("Saved", "File saved to Drive", "success");
+          GBToasts.show("Saved", "File saved to Drive", "success", { appId: "preview", params: { conversation: state.conversation, path: state.path }, label: "Open" });
         }
       })
       .catch(function (err) {

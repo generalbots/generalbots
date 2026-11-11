@@ -17,6 +17,7 @@
     var sheetRef = params.file_id || params.id || '';
     if (!bucket && !path && sheetRef) {
       if (typeof loadSheet === 'function') loadSheet(sheetRef);
+      if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
       return;
     }
     if (!bucket || !path) return;
@@ -35,6 +36,7 @@
       if (!sheet || !sheet.id) throw new Error('no sheet in response');
       window.__LOADED_SHEET = sheet;
       window.__SHEET_INITIAL_ID = sheet.id;
+      if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
       if (typeof loadSheet === 'function') loadSheet(sheet.id);
       var nameInput = document.getElementById('sheetName');
       if (nameInput && sheet.name) nameInput.value = sheet.name;

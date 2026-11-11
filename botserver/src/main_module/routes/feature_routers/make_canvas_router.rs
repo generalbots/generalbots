@@ -15,8 +15,30 @@ fn canvas_branch_pool(
         Ok(connection) => connection,
         Err(_) => return (uuid::Uuid::nil(), uuid::Uuid::nil()),
     };
-    let branch = resolve_default_branch(&mut conn);
-    (branch, branch)
+    // The canvas `org_id` column is a foreign key into `organizations`, so it
+    // must be the real organization id — not the branch id, which is a
+    // different namespace and would violate `fk_canvases_org_id` (#2150).
+    use diesel::prelude::*;
+    let row = diesel::sql_query(
+        "SELECT org_id, branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1",
+    )
+    .get_result::<CanvasBotRow>(&mut conn)
+    .optional()
+    .ok()
+    .flatten();
+    match row {
+        Some(row) => (row.org_id, row.branch_id),
+        None => (uuid::Uuid::nil(), uuid::Uuid::nil()),
+    }
+}
+
+#[cfg(feature = "canvas")]
+#[derive(diesel::QueryableByName)]
+struct CanvasBotRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: uuid::Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: uuid::Uuid,
 }
 
 #[cfg(feature = "canvas")]

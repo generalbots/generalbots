@@ -218,18 +218,7 @@ function updateLastSaved() {
 }
 
 function updateSyncStatus(status) {
-    syncStatus.className = 'sync-status';
-    const statusText = syncStatus.querySelector('.status-text');
-
-    if (status === 'syncing') {
-        syncStatus.classList.add('syncing');
-        statusText.textContent = (window.gbT ? window.gbT("paper-saving", "Saving...") : "Saving...");
-    } else if (status === 'synced') {
-        statusText.textContent = (window.gbT ? window.gbT("paper-synced", "Synced") : "Synced");
-    } else if (status === 'error') {
-        syncStatus.classList.add('error');
-        statusText.textContent = (window.gbT ? window.gbT("paper-error", "Error") : "Error");
-    }
+    if (!syncStatus) return;
 }
 
 function clearNote() {

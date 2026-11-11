@@ -94,14 +94,12 @@
             <button class="btn-icon" id="qaBtn" title="Questions &amp; answers" aria-label="Questions and answers" onclick="event.stopPropagation(); window.SlidesPresenter && window.SlidesPresenter.toggleQa()" style="font-size:14px;padding:4px 6px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
             <button class="btn-icon" id="presentBtn" title="Present / stop presenting" aria-label="Present" onclick="event.stopPropagation(); window.SlidesPresenter && window.SlidesPresenter.togglePresenter()" style="font-size:14px;padding:4px 6px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><line x1="12" y1="17.5" x2="12" y2="21"/></svg></button>
             <span class="sl-presenter-badge" id="presenterBadge">presenting</span>
-            <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
             <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments" aria-label="Comments">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             </button>
-            <button class="btn-primary" id="shareBtn" onclick="openSlidesShare()">
+            <button class="btn-icon" id="shareBtn" title="Share" aria-label="Share" onclick="openSlidesShare()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                <span>Share</span>
             </button>
         </div>
     </div>

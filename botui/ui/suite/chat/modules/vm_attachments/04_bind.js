@@ -37,7 +37,15 @@ function vmReportSaved(data) {
   var message =
     "Saved " + saved.length + " file" + (saved.length === 1 ? "" : "s") +
     " to Drive (" + ((data && data.folder) || "conversations") + ")";
-  if (window.GBToasts && GBToasts.show) GBToasts.show("Saved", message, "success");
+  var opts = null;
+  if (saved.length) {
+    var target = vmSplitDrivePath(saved[0].path);
+    var app = vmOfficeAppFor(saved[0].path || "");
+    if (target && app && vmOfficeAppAvailable(app)) {
+      opts = { appId: app, params: { file: target.key, bucket: target.bucket }, label: "Open" };
+    }
+  }
+  if (window.GBToasts && GBToasts.show) GBToasts.show("Saved", message, "success", opts);
   else if (window.showToast) window.showToast(message, "success");
   return message;
 }
