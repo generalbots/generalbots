@@ -115,7 +115,8 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         .filter(function (a) {
           if (a.launcher_visibility === "always") return true;
           if ((a.preview || a.launcher_visibility === "preview") && !previewOn) return false;
-          return a.launcher_default !== false;
+          // Preview apps are openable (not auto-pinned) when preview mode is on.
+          return true;
         })
         .slice()
         .sort(function (a, b) {

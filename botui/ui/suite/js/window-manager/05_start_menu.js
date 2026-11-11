@@ -159,7 +159,7 @@
         // #1312 — Vibe toolwindows open from the Vibe toolbar only.
         // #1386c — only apps pinned for the launcher are listed.
         return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0 &&
-          a.launcher_default !== false && a.category === cat;
+          (a.launcher_default !== false || a.preview) && a.category === cat;
       });
       if (enabledApps) {
         apps = apps.filter(function (a) {
