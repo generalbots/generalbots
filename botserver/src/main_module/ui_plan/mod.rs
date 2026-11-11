@@ -37,6 +37,10 @@ pub enum UiOp {
 pub struct UiStep {
     pub op: UiOp,
     pub app: Option<String>,
+    /// #2170 — optional window binding so plans target the correct open window
+    /// (side-by-side chat↔doc) and multichat sessions can't cross-steer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_id: Option<String>,
     pub label: Option<String>,
     pub field: Option<String>,
     pub value: Option<String>,
@@ -50,6 +54,9 @@ pub struct UiStep {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiPlan {
     pub app: Option<String>,
+    /// #2170 — optional window binding for the whole plan.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_id: Option<String>,
     pub steps: Vec<UiStep>,
 }
 
