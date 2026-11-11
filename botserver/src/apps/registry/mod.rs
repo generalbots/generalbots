@@ -219,7 +219,6 @@ mod launcher_split_guard_tests {
         "drive",
         "clock-widget",
         "jukebox",
-        "sheet",
         "player",
         "calculator",
         "notes",
@@ -232,6 +231,7 @@ mod launcher_split_guard_tests {
     /// #2097 — apps the launcher lists only while Preview mode is on.
     const PREVIEW_7_0: &[&str] = &[
         "docs",
+        "sheet",
         "slides",
         "canvas",
         "goals",

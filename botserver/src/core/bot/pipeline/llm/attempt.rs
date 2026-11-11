@@ -184,6 +184,28 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                         }
                         full_response.push_str(&chunk);
                         content_buffer.push_str(&chunk);
+                        // #2227 — stream partial content to the client so drawings
+                        // (and text) render incrementally in the live preview
+                        // instead of appearing only at completion.
+                        {
+                            let partial = botlib::models::BotResponse {
+                                bot_id: bot_uuid_s.to_string(),
+                                user_id: user_id.to_string(),
+                                session_id: session_id_s.to_string(),
+                                channel: "web".to_string(),
+                                content: chunk.clone(),
+                                message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+                                stream_token: None,
+                                is_complete: false,
+                                suggestions: Vec::new(),
+                                switchers: Vec::new(),
+                                context_name: None,
+                                context_length: 0,
+                                context_max_length: 0,
+                                reasoning: String::new(),
+                            };
+                            let _ = sink.send_bot_response(&partial).await;
+                        }
                         budget.observe_chars(full_response.chars().count());
                         if let Some(breach) = budget.check() {
                             let notice = format!(

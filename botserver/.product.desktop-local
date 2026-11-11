@@ -11,12 +11,12 @@ name=General Bots
 
 # Always visible: the desktop essentials. Core surfaces (about, admin,
 # settings, auth) are always available without being listed here.
-apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
+apps=chat,drive,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations
 
 # Preview applications: revealed only while Preview mode is on. Every registry
 # app not in `apps=` is preview-only, so this list documents the 7.0 split;
 # `hidden_apps` wins over both lists.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,sheet,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
 
 # Hidden: compiled and routed, but never advertised and refused by the suite
 # shell. Research stays out of the desktop product (#1626); `sources` is the

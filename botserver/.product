@@ -17,7 +17,7 @@ name=General Bots
 # Active apps (comma-separated list): always visible in every launcher.
 # Core surfaces (about, admin, settings, auth) are always available without
 # being listed here.
-apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
+apps=chat,drive,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
@@ -28,7 +28,7 @@ apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,
 # `hidden_apps` wins over both lists.
 # The Vibe sub-surfaces (db/graph/metrics/members/deploy/metering) are NOT
 # listed here: they are toolwindow views inside the single Vibe app (#1429).
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,sheet,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
 
 # Hidden applications: compiled and routed, but never advertised and refused
 # by the suite shell. #1626 keeps Research out of the default product; the
