@@ -15,7 +15,7 @@ window.APP_CAPABILITIES = {
   canvas: { ops:["add_shape","update_shape","delete_shape","add_text","add_image","set_layer","set_style","group","bring_to_front","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"partial" },
   designer:{ ops:["add_shape","update_shape","delete_shape","add_text","add_image","add_layer_group","apply_effect","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"partial" },
   database:{ ops:["open_query","set_schema","set_rows","set_query_stats","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:["database.query"], fidelity:"partial" },
-  notepad:{ ops:["append_text","patch_text","finalize","error","ack","clear"], steps:["open","click","fill"], api:["notepad.save"], fidelity:"full" },
+  notepad:{ ops:["append_text","patch_text","finalize","error","ack","clear"], steps:["open","click","fill"], api:[], fidelity:"full" },
   notes:  { ops:["add_note","patch_note","delete_note","finalize","error","ack","clear"], steps:["open","click","fill"], api:[], fidelity:"full" },
   lists:  { ops:["add_item","patch_item","reorder","check","finalize","error","ack","clear"], steps:["open","click","fill"], api:[], fidelity:"full" },
   minutes:{ ops:["append_section","set_action_item","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"full" },

@@ -3,7 +3,7 @@
 # (link and codegen overlap, which is where most wall time goes) and matches
 # the CI runners. Override per invocation with CARGO_BUILD_JOBS when the box is
 # shared — e.g. CARGO_BUILD_JOBS=2 while another job needs the cores.
-jobs = 8
+jobs = 6
 
 [target.x86_64-unknown-linux-gnu]
 # mold links the ~280 MB dev binary in a fraction of the time GNU ld needs.
