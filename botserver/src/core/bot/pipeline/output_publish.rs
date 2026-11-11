@@ -32,6 +32,7 @@ use async_trait::async_trait;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
 
+use super::doc_delta;
 use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
@@ -377,6 +378,13 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     }
     let count = report.published.len();
     botlog::safe_info!("output publish: {count} file(s) for {session_id}");
+    // #2172 — signal finalize so a live-streaming app can reconcile to the
+    // canonical Drive file instead of reloading a conversion.
+    for item in &report.published {
+        let app = doc_delta::app_for_filename(&item.name);
+        let env = doc_delta::DocDeltaEnvelope::finalize(item.path.clone(), app, 0);
+        doc_delta::emit(state, session_id, &env).await;
+    }
     if sink.channel_type() != "web" {
         return;
     }
