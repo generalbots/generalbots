@@ -71,7 +71,7 @@ loc = 3093
 [apps."chat"]
 routes = 30
 js_modules = 74
-loc = 21993
+loc = 22019
 
 [apps."clock"]
 routes = 0
