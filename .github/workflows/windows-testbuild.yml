@@ -1,0 +1,131 @@
+name: Windows test build
+
+# Temporary workflow (#2166) — builds the desktop-local artifacts in DEBUG on
+# `windows-latest` and uploads them as artifacts, so desktop first-run/chat
+# testing does not wait for a tagged release.yml run (which builds --release
+# and takes ~45 min just for the binaries).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/windows-testbuild.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-testbuild-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows debug desktop-local
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install PostgreSQL client libraries (libpq)
+        shell: pwsh
+        run: |
+          choco install postgresql16 --no-progress -y
+          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Sort-Object Name | Select-Object -Last 1
+          if (-not $pg) { throw "PostgreSQL install directory not found" }
+          "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
+          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+          # pq-sys links libpq at build time; the runtime DLLs are staged next
+          # to the artifacts so the uploaded bundle is self-contained.
+          $stage = 'dist\testbuild'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          $runtimeDlls = @(
+            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
+            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
+            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
+          )
+          foreach ($name in $runtimeDlls) {
+            $dll = Join-Path "$($pg.FullName)\bin" $name
+            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
+            Copy-Item $dll $stage -Force
+          }
+
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: testbuild-windows
+
+      - name: Build botserver (desktop-local, debug)
+        env:
+          GB_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.GB_OAUTH_GOOGLE_CLIENT_ID }}
+          GB_OAUTH_MICROSOFT_CLIENT_ID: ${{ vars.GB_OAUTH_MICROSOFT_CLIENT_ID }}
+        run: cargo build -p botserver --no-default-features --features desktop-local
+
+      - name: Build botui (debug)
+        run: cargo build -p botui
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          $stage = 'dist\testbuild'
+          Copy-Item 'target\debug\botserver.exe' $stage -Force
+          Copy-Item 'target\debug\botui.exe' $stage -Force
+          # Product + static UI: a desktop-local run reads .product.desktop-local
+          # from the working directory and serves botui/ui from disk.
+          Copy-Item 'botserver\.product.desktop-local' $stage -Force
+          Copy-Item 'botui\ui' "$stage\ui" -Recurse -Force
+          # botserver-installers may be required by the desktop-local bootstrap
+          # (BOTSERVER_INSTALLERS_PATH); ship the repo copy when it exists.
+          if (Test-Path 'botserver\botserver-installers') {
+            Copy-Item 'botserver\botserver-installers' "$stage\botserver-installers" -Recurse -Force
+          }
+          Get-ChildItem $stage | Format-Table Name, Length -AutoSize | Out-String
+
+      - name: Smoke boot the desktop-local botserver
+        shell: pwsh
+        run: |
+          $stage = 'dist\testbuild'
+          Push-Location $stage
+          try {
+            Copy-Item .product.desktop-local .product -Force
+            $env:BOTSERVER_STACK_PATH = Join-Path (Get-Location) 'stack'
+            $env:BOTSERVER_INSTALLERS_PATH = Join-Path (Get-Location) 'botserver-installers'
+            $env:BOTSERVER_DISABLE_TLS = '1'
+            $log = Join-Path (Get-Location) 'botserver-testbuild.log'
+            $proc = Start-Process -FilePath '.\botserver.exe' -ArgumentList '--noconsole' `
+              -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
+            $ready = $false
+            foreach ($i in 1..60) {
+              Start-Sleep -Seconds 2
+              try {
+                $r = Invoke-WebRequest -Uri 'http://localhost:8080/api/product' -UseBasicParsing -TimeoutSec 5
+                if ($r.StatusCode -eq 200) {
+                  $payload = $r.Content | ConvertFrom-Json
+                  Write-Host "api/product: $($r.Content)"
+                  if ($payload.suite_default_app -eq 'chat') { $ready = $true }
+                  break
+                }
+              } catch { Write-Host "attempt $i not ready: $($_.Exception.Message)" }
+            }
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            if (-not $ready) { throw "botserver did not become ready on /api/product" }
+          } finally {
+            Pop-Location
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-testbuild-${{ github.sha }}
+          path: dist/testbuild/*
+          if-no-files-found: error
+
+      - name: Upload boot log on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-testbuild-log-${{ github.sha }}
+          path: |
+            dist/testbuild/botserver-testbuild.log
+            dist/testbuild/botserver-testbuild.log.err
+          if-no-files-found: ignore
