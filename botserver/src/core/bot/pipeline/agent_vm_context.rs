@@ -131,9 +131,9 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      (install, generate, build, test, write). The markers are stripped from \
                      the visible output: they only feed the table. \
                      Files the user names may already be in data/ (fetched from their Drive); \
-                     read them from there. Use `drive_fetch` to pull a Drive file into data/ \
-                     and `drive_save` to publish output/ files to the user's Drive under the \
-                     conversation folder when the user asks for that explicitly. When the \
+                     read them from there. Use `drive_list` to discover files in the bot Drive (newest first). \
+                     Use `drive_fetch` to pull a named Drive file into data/ and `drive_save` to publish \
+                     output/ files to the user's Drive under the conversation folder when asked. When the \
                      user asks to save to Google Drive or \
                      OneDrive, call `save_to_external_drive` with \"provider\": \"gdrive\" \
                      or \"onedrive\" (plus optional \"files\" and \"folder\"); it writes \

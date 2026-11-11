@@ -12,11 +12,12 @@
 /// characters inside string literals and retries.
 /// Native tools every bot with an agent VM can call; used to recover a tool
 /// name the model left out of its JSON call.
-const RECOVERABLE_TOOL_NAMES: [&str; 11] = [
+const RECOVERABLE_TOOL_NAMES: [&str; 12] = [
     "vm_exec",
     "drive_save",
     "save_to_external_drive",
     "drive_fetch",
+    "drive_list",
     "vm_file",
     "vm_files",
     "classify_media",

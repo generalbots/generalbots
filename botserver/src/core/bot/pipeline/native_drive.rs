@@ -34,6 +34,10 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
             run_drive_save(identity, args).await;
             true
         }
+        "drive_list" => {
+            run_drive_list(identity, args).await;
+            true
+        }
         // #2047 — same capability the UI button uses, reachable from chat.
         "save_to_external_drive" => {
             super::native_external_save::run(identity, args).await;
@@ -178,6 +182,57 @@ async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
         }
         Err(e) => format!("Could not copy `{relative}` into the workspace: {e}"),
     };
+    send(identity, &message).await;
+    persist(state, session_id, user_id, &message).await;
+}
+
+const DRIVE_LIST_DEFAULT_LIMIT: usize = 20;
+const DRIVE_LIST_MAX_LIMIT: usize = 100;
+
+/// #2164 — lists files in the bot's `.gbdrive` so the model can answer
+/// "open my last document about X" without the user naming a file.
+async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
+    let parsed = parse(args);
+    let limit = parsed
+        .get("limit")
+        .and_then(|v| v.as_u64())
+        .map(|n| n as usize)
+        .unwrap_or(DRIVE_LIST_DEFAULT_LIMIT)
+        .clamp(1, DRIVE_LIST_MAX_LIMIT);
+
+    let SessionIdentity {
+        state,
+        session_id,
+        user_id,
+        bot_uuid,
+        ..
+    } = *identity;
+    let Some(scope) = drive_bridge::scope(state, &bot_uuid, user_id) else {
+        send(identity, "Drive is not available for this workspace.").await;
+        return;
+    };
+    let Some(items) = drive_bridge::list_bot_drive_objects(state, &scope, limit).await else {
+        send(identity, "Could not list files in your bot Drive.").await;
+        return;
+    };
+    if items.is_empty() {
+        let message = "No files found in the bot Drive (`.gbdrive`).".to_string();
+        send(identity, &message).await;
+        persist(state, session_id, user_id, &message).await;
+        return;
+    }
+    let mut lines = vec![format!(
+        "Bot Drive files (newest first, up to {limit}):"
+    )];
+    for item in &items {
+        let name = sanitize_name(&item.relative);
+        lines.push(format!(
+            "- {} ({})",
+            drive_link(&name, &item.key),
+            human_size(item.size)
+        ));
+    }
+    let message = lines.join("\n");
     send(identity, &message).await;
     persist(state, session_id, user_id, &message).await;
 }
