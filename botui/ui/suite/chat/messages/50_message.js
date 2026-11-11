@@ -222,6 +222,10 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   ) {
     hydrateVmAttachments(div);
   }
+  // #2167 hard invariant: never leave a clickable vmfile: anchor on screen.
+  if (sender === "bot" && typeof enforceNoVmFileLinks === "function") {
+    enforceNoVmFileLinks(div);
+  }
   if (sender === "bot" && window.ChatCodeUX) {
     ChatCodeUX.enhance(div);
     var toolCards = ChatCodeUX.extractToolCards(content);

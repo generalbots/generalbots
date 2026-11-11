@@ -236,6 +236,41 @@ function autoFocusInput() {
   }, 500);
 }
 
+// #2171 — when chat opens a document ("Open as document", snapshot, plan
+// `open` step) the layout goes side by side and the newly opened window used
+// to take the caret, so the next keystroke went nowhere. Refocus the composer
+// briefly after a chat-originated layout change, and never while the user is
+// typing inside the document.
+function refocusComposerAfterLayoutChange() {
+  setTimeout(function () {
+    var input = document.getElementById("messageInput");
+    if (!input || !input.isConnected) return;
+    var active = document.activeElement;
+    var typingElsewhere = active && active !== document.body && active !== input &&
+      (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+    if (typingElsewhere) return;
+    input.focus({ preventScroll: true });
+  }, 120);
+}
+
+function installComposerFocusAfterLayoutChange() {
+  if (window.__gbComposerFocusBound) return;
+  window.__gbComposerFocusBound = true;
+  var lastChatClickAt = 0;
+  document.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target || !target.closest) return;
+    if (target.closest('[id^="window-chat"], .gb-chat-pane, #chat-form, #chatForm')) {
+      lastChatClickAt = Date.now();
+    }
+  }, true);
+  document.addEventListener("gb-window-changed", function () {
+    if (!lastChatClickAt || Date.now() - lastChatClickAt > 1500) return;
+    lastChatClickAt = 0;
+    refocusComposerAfterLayoutChange();
+  });
+}
+
 function setupEventHandlers() {
 var form = document.getElementById("chatForm");
 var input = document.getElementById("messageInput");
@@ -374,6 +409,7 @@ function initChat() {
   }
 proceedWithChatInit();
 autoFocusInput();
+installComposerFocusAfterLayoutChange();
 }
 
 function showChatApp() {
