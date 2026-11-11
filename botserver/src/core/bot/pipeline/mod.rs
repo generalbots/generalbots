@@ -4,6 +4,8 @@ pub mod attachment_text;
 pub mod attachments;
 pub mod channel_entry;
 #[cfg(feature = "drive")]
+pub mod doc_delta;
+#[cfg(feature = "drive")]
 pub mod drive_context;
 pub mod enriched_llm;
 pub mod event_sink;
