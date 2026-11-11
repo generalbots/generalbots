@@ -94,12 +94,20 @@ jobs:
           # mirror the Lighthouse desktop-local job
           $stack = $env:BOTSERVER_STACK_PATH
           New-Item -ItemType Directory -Force "$stack\conf\system" | Out-Null
+          New-Item -ItemType Directory -Force "$stack\conf\vault" | Out-Null
+          # Mark bootstrap as already completed so botserver skips the full
+          # installer (Vault/Postgres/MinIO/...) which needs bundled installers
+          # we don't ship in this debug test build. stack/.env + init.json make
+          # bootstrap_completed=true; VAULT_ADDR remote makes start_all() a no-op.
+          "" | Set-Content "$stack\.env"
+          "{}" | Set-Content "$stack\conf\vault\init.json"
           Copy-Item 'botserver\.product.desktop-local' '.product.desktop-local' -Force
           (Get-Content '.product.desktop-local') -replace 'no_security=false','no_security=true' |
             Set-Content '.product.desktop-local'
           @"
           {"issuer_url":"http://127.0.0.1:1","issuer":"http://127.0.0.1:1","client_id":"a11y","client_secret":"a11y","redirect_uri":"/callback","project_id":"default","api_url":"http://127.0.0.1:1","allow_insecure_http":true}
           "@ | Set-Content "$stack\conf\system\directory_config.json"
+          Write-Host "VAULT_ADDR=$env:VAULT_ADDR"
           # postgres on 5432 (choco) — create gb user/db
           $pgBin = (Get-ChildItem "C:\Program Files\PostgreSQL" -Directory | Sort-Object Name | Select-Object -Last 1).FullName + '\bin'
           $env:PATH = "$pgBin;$env:PATH"
