@@ -251,6 +251,10 @@ pub struct SearchQueryParams {
     /// #1638 — also match text extracted from the file body. Defaults to on
     /// for toolbox search; the scan is bounded (size + file count).
     pub content: Option<bool>,
+    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    pub backend: Option<String>,
+    /// #1801 — allowlisted local root for `backend=local`.
+    pub root: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

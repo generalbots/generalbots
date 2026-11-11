@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use diesel::{OptionalExtension, RunQueryDsl};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -64,25 +63,11 @@ fn keywords(question: &str) -> Vec<String> {
 }
 
 /// The caller's Drive folder (`users/{email}/…`) when the account exists.
-fn user_prefix(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
-    use diesel::sql_types::{Text, Uuid as SqlUuid};
-    #[derive(diesel::QueryableByName)]
-    struct EmailRow {
-        #[diesel(sql_type = Text)]
-        email: String,
-    }
-    let mut conn = state.conn.get().ok()?;
-    let row: Option<EmailRow> = diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
-        .bind::<SqlUuid, _>(user_id)
-        .get_result(&mut conn)
-        .optional()
-        .ok()
-        .flatten();
-    let email = row?.email;
-    if email.trim().is_empty() {
-        return None;
-    }
-    Some(format!("users/{}/", email.trim()))
+fn user_prefix(_state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
+    // #1801/#2137 — canonical owner identity is the user id (UUID), matching
+    // office apps and Drive's own get_user_id. Using the email here split the
+    // per-user tree across two prefixes and hid files from Drive search.
+    Some(format!("users/{}/", user_id))
 }
 
 async fn indexed_docs(state: &Arc<AppState>, bucket: &str, prefix: &str) -> Vec<IndexedDoc> {

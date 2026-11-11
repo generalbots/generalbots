@@ -236,6 +236,91 @@ pub async fn list_local_files(
     Ok(items)
 }
 
+/// Recursively searches a local root for files whose name contains `query`
+/// (case-insensitive). Returns the same file model as the MinIO search so the
+/// Drive UI can render the hits unchanged.
+pub async fn search_local_files(
+    root_name: Option<&str>,
+    _path: Option<&str>,
+    query: &str,
+) -> Result<Vec<FileListItem>, String> {
+    ensure_enabled()?;
+    let (root_key, root) = resolve_root(root_name)?;
+    let query_lower = query.trim().to_lowercase();
+    if query_lower.is_empty() {
+        return Ok(Vec::new());
+    }
+    let bucket = local_bucket(&root_key);
+    let mut results: Vec<FileListItem> = Vec::new();
+    walk_for_search(&root, &root, &bucket, &query_lower, &mut results).await;
+    // Keep results bounded and deterministic.
+    results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    if results.len() > 500 {
+        results.truncate(500);
+    }
+    Ok(results)
+}
+
+fn walk_for_search<'a>(
+    root: &'a Path,
+    dir: &'a Path,
+    bucket: &'a str,
+    query_lower: &'a str,
+    results: &'a mut Vec<FileListItem>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+    Box::pin(async move {
+        if results.len() >= 500 {
+            return;
+        }
+        let mut entries = match tokio::fs::read_dir(dir).await {
+            Ok(e) => e,
+            Err(_) => return,
+        };
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            if results.len() >= 500 {
+                return;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !is_visible(&name) {
+                continue;
+            }
+            let entry_path = entry.path();
+            let canonical = match entry_path.canonicalize() {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+            if !canonical.starts_with(root) {
+                continue;
+            }
+            let meta = match tokio::fs::metadata(&entry_path).await {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if meta.is_dir() {
+                walk_for_search(root, &entry_path, bucket, query_lower, results).await;
+            } else if meta.is_file() {
+                if name.to_lowercase().contains(query_lower) {
+                    let relative = canonical
+                        .strip_prefix(root)
+                        .unwrap_or(canonical.as_path())
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    results.push(FileListItem {
+                        name: name.clone(),
+                        path: relative,
+                        is_dir: false,
+                        size: meta.len(),
+                        modified: modified_rfc3339(&meta),
+                        is_kb: false,
+                        is_public: false,
+                        bucket: Some(bucket.to_string()),
+                    });
+                }
+            }
+        }
+    })
+}
+
 /// Reads one local file for download/preview handlers.
 pub async fn read_local_file(root_name: Option<&str>, path: &str) -> Result<Vec<u8>, String> {
     ensure_enabled()?;

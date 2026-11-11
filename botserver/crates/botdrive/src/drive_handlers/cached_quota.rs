@@ -256,11 +256,11 @@ pub(super) fn build_file_list_items(
     items
 }
 pub(super) fn get_user_id(user: &AuthenticatedUser) -> String {
-    if let Some(ref email) = user.email {
-        if !email.is_empty() && email != "session-user" {
-            return email.clone();
-        }
-    }
+    // #1801/#2137 — the canonical Drive owner identity is the verified user
+    // id (UUID), the same value office apps use for `users/{owner}/...`.
+    // Preferring the email here split files across two prefixes
+    // (`users/{email}/` vs `users/{uuid}/`), so files written by office apps
+    // or artifact publishers were invisible to Drive listing and search.
     if user.user_id.is_nil() {
         "default".to_string()
     } else {

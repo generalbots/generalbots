@@ -7,6 +7,18 @@ pub async fn search_files(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<SearchQueryParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
+    // #1801 — local backend search: walk the allowlisted root on the server's
+    // filesystem instead of MinIO. Without this, the toolbar search in the
+    // Home tab (and any local root) returned no matches / an error even
+    // though the files were visible in the listing.
+    if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {
+        let root = crate::local_fs::requested_root(params.root.as_deref(), params.bucket.as_deref());
+        let query = params.query.clone().unwrap_or_default();
+        let items = crate::local_fs::search_local_files(root, None, &query)
+            .await
+            .map_err(|e| err(StatusCode::BAD_REQUEST, &e))?;
+        return Ok(Json(items));
+    }
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());

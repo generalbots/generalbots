@@ -36,28 +36,6 @@ impl DriveScope {
     }
 }
 
-/// The caller's account email, used for the `users/{email}/` Drive scope.
-fn user_email(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
-    use diesel::sql_types::{Text, Uuid as SqlUuid};
-    use diesel::{OptionalExtension, RunQueryDsl};
-    #[derive(diesel::QueryableByName)]
-    struct EmailRow {
-        #[diesel(sql_type = Text)]
-        email: String,
-    }
-    let mut conn = state.conn.get().ok()?;
-    let row: Option<EmailRow> = diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
-        .bind::<SqlUuid, _>(user_id)
-        .get_result(&mut conn)
-        .optional()
-        .ok()
-        .flatten();
-    let email = row?.email;
-    if email.trim().is_empty() {
-        return None;
-    }
-    Some(email.trim().to_string())
-}
 
 pub fn scope(state: &Arc<AppState>, bot_uuid: &Uuid, user_id: Uuid) -> Option<DriveScope> {
     let mut conn = state.conn.get().ok()?;
@@ -69,7 +47,7 @@ pub fn scope(state: &Arc<AppState>, bot_uuid: &Uuid, user_id: Uuid) -> Option<Dr
     Some(DriveScope {
         bucket: location.bucket,
         bot_prefix: location.key_prefix,
-        user_prefix: user_email(state, user_id).map(|email| format!("users/{email}/")),
+        user_prefix: Some(format!("users/{}/", user_id)),
     })
 }
 
