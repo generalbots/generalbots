@@ -31,3 +31,7 @@ mod owner_isolation_tests;
 #[cfg(test)]
 #[path = "create_tests.rs"]
 mod create_tests;
+
+#[cfg(test)]
+#[path = "insert_slide_tests.rs"]
+mod insert_slide_tests;

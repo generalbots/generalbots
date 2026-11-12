@@ -48,6 +48,35 @@ pub fn err_fragment(msg: &str) -> String {
     botuifragments::ui_fragments::error_box("sl-error", "Erro:", msg)
 }
 
+/// Deck id carried by a toolbar/modals payload. The shell buttons post
+/// `presentation_id`; the GET bridge supplies `id`. Accept both, and fall back
+/// to the blank deck the app addresses as `current` — an empty id used to
+/// reach the handler and come back as "Presentation ID is required".
+pub(crate) fn deck_id(payload: &serde_json::Value) -> String {
+    ["presentation_id", "id"]
+        .iter()
+        .filter_map(|key| payload.get(*key).and_then(|value| value.as_str()))
+        .map(str::trim)
+        .find(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| "current".to_string())
+}
+
+/// 0-based index of the slide the action was started from. The shell sends
+/// `slide_index`/`current_slide`; both may still be the literal `current` when
+/// the htmx configRequest rewrite has not run (no JavaScript), and then the
+/// caller has to fall back to a safe default instead of guessing slide 1.
+pub(crate) fn slide_index(payload: &serde_json::Value) -> Option<usize> {
+    ["slide_index", "current_slide", "slide"]
+        .iter()
+        .filter_map(|key| payload.get(*key))
+        .find_map(|value| match value {
+            serde_json::Value::Number(number) => number.as_u64().map(|index| index as usize),
+            serde_json::Value::String(text) => text.trim().parse::<usize>().ok(),
+            _ => None,
+        })
+}
+
 pub fn empty_fragment(text: &str) -> String {
     botuifragments::ui_fragments::empty_state("sl-empty", text)
 }

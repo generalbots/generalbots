@@ -301,29 +301,29 @@ Returns a single slide from a presentation.
 
 **`POST /api/slides/slide/add`**
 
-Adds a new slide to an existing presentation.
+Appends a slide, or inserts it at `position`, into an existing presentation.
+This is the endpoint behind the Slides toolbar `+` dialog, the
+`slides.slide.add` chat verb ("insert a new slide after slide 3") and the
+`add_slide` delta op.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `presentation_id` | string | Yes | Parent presentation ID |
-| `slide` | object | Yes | Slide definition |
-| `position` | integer | No | Insert position (default: end) |
+| `presentation_id` | string | Yes | Parent presentation ID (`current` addresses the unsaved deck) |
+| `layout` | string | Yes | `title`, `content`, `two_column`, `section`, `image` or `blank` |
+| `position` | integer | No | 0-based insert index. Omit it to append at the end; `n` inserts after slide `n` |
 
 **Request Body:**
 ```json
 {
   "presentation_id": "uuid-string",
-  "slide": {
-    "type": "content",
-    "content": {
-      "title": "Market Analysis",
-      "body": "Key findings from Q4 market research...",
-      "layout": "full-width"
-    }
-  },
+  "layout": "two_column",
   "position": 3
 }
 ```
+
+The dialog defaults `position` to the slide on screen (`current_slide + 1`) so
+`+` never inserts in front of the deck, and it leaves the field empty when the
+current slide is unknown — an empty value appends.
 
 **Response:**
 ```json

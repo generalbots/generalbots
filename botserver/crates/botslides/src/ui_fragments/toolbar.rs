@@ -39,7 +39,16 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
 }
 
 pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = html_escape(&super::deck_id(&payload));
+    // The position box used to ship `value="0"`, so "+ → Adicionar Slide" on
+    // slide 5 inserted a slide before slide 1 and the canvas kept showing the
+    // same slide: the deck looked unchanged (UAT SLIDE-02). A known current
+    // slide defaults to "right after it"; without one the field is empty and
+    // the handler appends, never inserting in front of the deck.
+    let position = match super::slide_index(&payload) {
+        Some(index) => (index + 1).to_string(),
+        None => String::new(),
+    };
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/slide/add" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Layout
@@ -53,11 +62,12 @@ pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Ht
 </select>
 </label>
 <label style="color:#f8fafc;font-size:13px;">Posição (índice)
-<input type="number" name="position" value="0" min="0" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<input type="number" name="position" value="{position}" min="0" placeholder="final" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Adicionar Slide</button>
 </form>"##,
-        id = html_escape(id)
+        id = id,
+        position = position
     ))
 }
 

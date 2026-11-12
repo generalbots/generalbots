@@ -46,16 +46,20 @@ pub async fn handle_ai_modal(Json(payload): Json<serde_json::Value>) -> Html<Str
 }
 
 pub async fn handle_new_slide_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = html_escape(
-        payload
-            .get("presentation_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or(""),
-    );
+    let id = html_escape(&super::deck_id(&payload));
+    // The dialog's position box defaults to "right after the slide on screen"
+    // (UAT SLIDE-02). The request already carries that index, so the modal
+    // forwards it to the form instead of relying on a JavaScript rewrite that
+    // never runs when the app is opened without the slides modules.
+    let mut values = serde_json::json!({ "presentation_id": id });
+    if let Some(index) = super::slide_index(&payload) {
+        values["slide_index"] = serde_json::json!(index);
+    }
+    let values = html_escape(&values.to_string());
     let body = modal_body(
         "sl",
         &format!(
-            r#" hx-post="/suite/slides/forms/new-slide" hx-vals='{{"presentation_id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+            r#" hx-post="/suite/slides/forms/new-slide" hx-vals='{values}' hx-trigger="load" hx-swap="innerHTML""#
         ),
         "",
     );
