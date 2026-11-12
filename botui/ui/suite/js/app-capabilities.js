@@ -13,7 +13,10 @@ window.APP_CAPABILITIES = {
   slides: { ops:["add_slide","update_slide","delete_slide","set_text","add_shape","add_image","set_style","finalize","error","ack","clear"], steps:["open","click","fill","menu","download"], api:["slides.save","slides.export"], fidelity:"full" },
   paper:  { ops:["append_block","update_block","delete_block","format_runs","set_table_rows","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"full" },
   canvas: { ops:["add_shape","update_shape","delete_shape","add_text","add_image","set_layer","set_style","group","bring_to_front","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"partial" },
-  designer:{ ops:["add_shape","update_shape","delete_shape","add_text","add_image","add_layer_group","apply_effect","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:[], fidelity:"partial" },
+  // #2182 — the designer edits BASIC dialog flows (node graph), not shapes:
+  // its canvas-derived op list had no renderer, so ops stay empty until a
+  // node-graph stream renderer exists. steps/api still let a plan drive it.
+  designer:{ ops:[], steps:["open","click","fill","menu"], api:[], fidelity:"partial" },
   database:{ ops:["open_query","set_schema","set_rows","set_query_stats","finalize","error","ack","clear"], steps:["open","click","fill","menu"], api:["database.query"], fidelity:"partial" },
   notepad:{ ops:["append_text","patch_text","finalize","error","ack","clear"], steps:["open","click","fill"], api:[], fidelity:"full" },
   notes:  { ops:["add_note","patch_note","delete_note","finalize","error","ack","clear"], steps:["open","click","fill"], api:[], fidelity:"full" },
