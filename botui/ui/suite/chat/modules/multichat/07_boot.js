@@ -67,6 +67,7 @@
     var currentSession = (window.ChatState && ChatState.currentSessionId) || null;
     GBTabs.state.tabs.forEach(function (tab) {
       if (tab.id === "tab-default") { keep.unshift(tab); return; }
+      if (tab.id === GBTabs.state.activeTabId) { keep.push(tab); return; }
       if (tab.fresh && tab.fresh > BOOT_AT + 1500) { keep.push(tab); return; }
       if (tab.sessionId && !seen[tab.sessionId]) {
         seen[tab.sessionId] = true;

@@ -146,6 +146,12 @@
         kept.unshift(st);
         return;
       }
+      // Never prune the currently active tab — it is the surface the user
+      // is looking at (e.g. a freshly created "New chat" tab).
+      if (st.id === GBTabs.state.activeTabId) {
+        kept.push(st);
+        return;
+      }
       // A tab created seconds ago earns a grace period: its socket mints the
       // session asynchronously, and the strip render triggered right after
       // createTab used to wipe the tile before that session ever existed.
