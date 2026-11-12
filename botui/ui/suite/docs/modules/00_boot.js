@@ -87,6 +87,9 @@
           processHtmx(host);
         }
         if (typeof attachEditorHandlers === "function") attachEditorHandlers(host);
+        // Tag the rendered article with the semantic fill target so a UI-hint
+        // plan can write into an already-open document too (#2184).
+        if (typeof ensureDocArticle === "function") ensureDocArticle();
         setTitle(doc.title || "Untitled Document");
         var stats = document.getElementById("doc-stats");
         if (stats) {
@@ -208,6 +211,15 @@
       });
   }
 
+  /* #2184 — empty editor surface used when a plan drives this window. */
+  function startBlank() {
+    var host = document.getElementById("docs-content");
+    if (!host) return;
+    host.innerHTML = "";
+    if (typeof ensureDocArticle === "function") ensureDocArticle();
+    setTitle(window.docsT ? docsT("docs-untitled", "Untitled Document") : "Untitled Document");
+  }
+
   function start() {
     if (!document.getElementById("docs-content")) return;
     // A deep link has no query string of its own (the shell URL stays
@@ -217,6 +229,13 @@
     // Docs (#1711).
     var deepLink = window.__gbAppParams__ || {};
     var params = new URLSearchParams(window.location.search);
+    // #2184 — a UI-hint plan opens Docs expecting an EMPTY surface to draw in
+    // (blank: true). Loading the most recent document here would fill the
+    // wrong one and the plan's fill would land on a stale doc.
+    if (params.get("blank") === "true" || deepLink.blank === true) {
+      startBlank();
+      return;
+    }
     if (params.get("file") || deepLink.file) return;
     // #2184 — the same race applies to a VM/agent-workspace file
     // (?vmConvId=&vmPath=): 99_init renders it, then this start() loaded the
@@ -250,6 +269,13 @@
     },
     true
   );
+
+  // A window that is already open (re-targeted by a plan) must also clear
+  // itself when the caller asks for a blank surface.
+  document.addEventListener("gb:deep-link", function (event) {
+    var params = (event && event.detail && event.detail.params) || {};
+    if (params.blank === true) startBlank();
+  });
 
   document.addEventListener("htmx:afterSwap", function (event) {
     if (event.target && event.target.id === "docs-content") {

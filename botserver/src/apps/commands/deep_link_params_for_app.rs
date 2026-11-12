@@ -197,7 +197,10 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("calendar", "open → events load → click a day/event to open it"),
     ("meet", "open → join a room or list recordings"),
     ("minutes", "open → meetings/transcripts list → select one to view action items"),
-    ("docs", "open → document list → open a doc into the editor"),
+    (
+        "docs",
+        "open → the editor shows a blank document, draw it in ONE step: {\"op\":\"fill\",\"field\":\"document body\",\"value\":\"<markdown>\"} — value is markdown-lite: '# ' / '## ' headings, '- ' bullets, '1. ' numbered items, blank line between paragraphs, **bold**; never emit one fill per line and never wrap the value in HTML tags",
+    ),
     ("sheet", "open → spreadsheet loads from drive params → write cells via formula bar"),
     ("drive", "open → tab bar (Bots/My Files/Shared/Public/Root) → navigate folders → open/select files"),
     (

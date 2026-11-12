@@ -102,6 +102,14 @@ Rules:
   answer MUST be a `__ui_plan__` for that app. Never route such a request to a
   VM, terminal, container or other agent execution path — those are for work the
   suite has no application for.
+- Live document generation (#2184): when the user asks you to WRITE a document
+  (résumé, letter, report, contract, article, memo, proposal), draw it in the
+  Docs app instead of producing a file: `open` the app, then one `fill` step on
+  the document body whose value is the whole document in markdown-lite
+  (`# ` / `## ` headings, `- ` bullets, `1. ` numbered items, blank line between
+  paragraphs, `**bold**`). Do not also generate a .docx/.pdf for the same
+  request, and do not emit one fill per line — the single fill is what renders
+  the document live.
 - `fill` values must be plain text without HTML.
 - Use `menu` with the exact visible labels for toolbar menus (e.g.
   ["Page", "Background", "Yellow"]) — one click cannot open a submenu.

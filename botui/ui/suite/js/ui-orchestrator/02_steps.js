@@ -75,6 +75,24 @@
 
   function stepOpen(step, plan) {
     var appId = step.app || plan.app || "chat";
+    // #2184 — when the plan is going to write into this app, ask for an EMPTY
+    // surface (params.blank) instead of the app's default landing state (Docs
+    // otherwise reopens the most recent document and the fill lands on the
+    // wrong one). The app reads it from __gbAppParams__.
+    var willWrite = !!(plan && Array.isArray(plan.steps) && plan.steps.some(function (s) {
+      return s && (s.op === "fill" || s.op === "cell");
+    }));
+    if (willWrite && step.blank !== false &&
+        window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+      var params = Object.assign({}, step.params || {}, { blank: true });
+      window.WindowManager.openDeepLink(appId, params, { ownerId: "chat" });
+      S.currentApp = appId;
+      reportStep("Opened " + appId + " (blank)", "done");
+      return waitFor(function () {
+        var win = document.getElementById("window-body-" + appId);
+        return win && win.querySelector("article[contenteditable], input, select, textarea, button");
+      }, STEP_TIMEOUT_MS).then(function () { return waitMs(600).then(function () { return true; }); });
+    }
     return openApp(appId).then(function (ok) {
       S.currentApp = appId;
       reportStep("Opened " + appId, ok ? "done" : "warn");
@@ -132,6 +150,20 @@
     return new Promise(function (resolve) {
       moveCursorTo(rect, function () {
         try { el.focus(); } catch (e) {}
+        // #2184 — document apps expose a structured fill hook: a single hint
+        // step draws a whole document (headings, bullets, paragraphs) instead
+        // of dumping the value as one blob of text.
+        if (typeof el.__gbFill === "function") {
+          try {
+            el.__gbFill(value);
+            reportStep("Filled '" + (step.field || "?") + "'", "done");
+            setTimeout(function () {
+              S.focusRing.style.display = "none";
+              resolve(true);
+            }, 300);
+            return;
+          } catch (e) {}
+        }
         if (isEditable) {
           el.textContent = value;
           el.dispatchEvent(new Event("input", { bubbles: true }));

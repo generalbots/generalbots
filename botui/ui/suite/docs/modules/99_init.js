@@ -19,6 +19,7 @@ function loadDriveFileIntoEditor() {
   // preview HTML and load it into the article.
   if (vmConvId && vmPath) {
     var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
+    if (typeof ensureDocArticle === 'function') ensureDocArticle();
     var url = '/api/agent/vm/file?conversation_id=' + encodeURIComponent(vmConvId) +
       '&path=' + encodeURIComponent(vmPath) + '&preview=1' +
       (token ? '&access_token=' + encodeURIComponent(token) : '');
@@ -137,6 +138,13 @@ function docsInit() {
   // #2159 — draw the A4 page separations as soon as the editor exists and
   // keep them in sync while the document grows.
   watchPageGuides();
+  // #2184 — Ctrl+Enter starts a new page in the editor.
+  if (typeof bindPageBreakShortcut === "function") {
+    bindPageBreakShortcut(document.getElementById('window-body-docs') || null);
+  }
+  // #2184 — a blank Docs window must be writable even before any document is
+  // loaded: Live generation opens the app and then fills `document body`.
+  if (typeof ensureDocArticle === "function") ensureDocArticle();
   var activeDoc = typeof getActiveArticle === "function" ? getActiveArticle() : null;
   if (activeDoc) renderPageGuides(activeDoc);
   loadDriveFileIntoEditor();

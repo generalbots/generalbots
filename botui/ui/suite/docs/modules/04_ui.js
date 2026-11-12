@@ -175,28 +175,83 @@ function applyPageLayout() {
   scheduleSave(article.dataset.docId, article.innerHTML);
 }
 window.applyPageLayout = applyPageLayout;
+/* Caret position measured from the top of the article. Both rects are
+   viewport-relative, so the difference is unaffected by the scroll pane or
+   the window position. */
+function caretOffsetInArticle(article, range) {
+  if (!range) return article.scrollHeight;
+  try {
+    var caret = range.getBoundingClientRect();
+    var box = article.getBoundingClientRect();
+    var offset = caret.top - box.top;
+    if (caret.height === 0 && caret.top === 0) return article.scrollHeight;
+    return offset > 0 ? offset : 0;
+  } catch (e) {
+    return article.scrollHeight;
+  }
+}
+
 function insertPageBreak() {
   var article = getActiveArticle();
   if (!article) return;
   article.focus();
+  var pageH = parseInt(article.dataset.pageH, 10) || 1123;
+  var sel = window.getSelection();
+  var range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
   var br = document.createElement("div");
   br.className = "docs-page-break";
   br.contentEditable = "false";
-  var sel = window.getSelection();
-  if (sel && sel.rangeCount > 0) {
-    var range = sel.getRangeAt(0);
+  // Inline styles survive the innerHTML save, and the spacer height pushes the
+  // following content onto the next page guide instead of leaving an invisible
+  // zero-height div (the button appeared to do nothing). #2184
+  var remaining = pageH - (caretOffsetInArticle(article, range) % pageH);
+  br.style.cssText =
+    "display:block;height:" + Math.max(32, Math.round(remaining)) + "px;" +
+    "border-top:1px dashed #94a3b8;margin:0 0 8px;";
+  // Typing after a break needs an editable line: a non-editable spacer alone
+  // leaves the caret with nowhere to go.
+  var next = document.createElement("p");
+  next.innerHTML = "<br>";
+  if (range) {
     range.collapse(false);
-    range.insertNode(br);
-    range.setStartAfter(br);
-    range.collapse(true);
+    range.insertNode(next);
+    next.parentNode.insertBefore(br, next);
+    var after = document.createRange();
+    after.setStart(next, 0);
+    after.collapse(true);
     sel.removeAllRanges();
-    sel.addRange(range);
+    sel.addRange(after);
   } else {
     article.appendChild(br);
+    article.appendChild(next);
   }
   scheduleSave(article.dataset.docId, article.innerHTML);
   updatePageCount();
 }
+window.insertPageBreak = insertPageBreak;
+
+/* #2184 — Ctrl+Enter (Cmd+Enter on macOS) starts a new page at the caret.
+   Scoped to the Docs window so the chat composer keeps its own Enter keys. */
+function bindPageBreakShortcut(host) {
+  var scope = host || document;
+  if (scope.__gbPageBreakBound) return;
+  scope.__gbPageBreakBound = true;
+  scope.addEventListener(
+    "keydown",
+    function (e) {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
+      var target = e.target || {};
+      var inDocs = target.isContentEditable === true ||
+        (target.closest && target.closest("#docs-content, .docs-app"));
+      if (!inDocs) return;
+      e.preventDefault();
+      e.stopPropagation();
+      insertPageBreak();
+    },
+    true,
+  );
+}
+window.bindPageBreakShortcut = bindPageBreakShortcut;
 
 function insertHeaderFooterZone(kind) {
   var article = getActiveArticle();

@@ -57,7 +57,12 @@
       ownerId: opts.ownerId || null,
     });
     const appId_for_body = targetId;
-    window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
+    // A FRESH window must not inherit the previous open's params: a stale
+    // vmConvId/vmPath from an earlier "Open in app" made the next blank Docs
+    // open re-fetch the old file instead of starting empty (#2184).
+    window.__gbAppParams__ = existed
+      ? Object.assign({}, window.__gbAppParams__ || {}, params || {})
+      : Object.assign({}, params || {});
     if (existed) {
       // #1288 — a re-targeted window must adopt the caller's ownership
       // (e.g. the Vibe toolbar opening the shared Terminal/Browser/Chat):
