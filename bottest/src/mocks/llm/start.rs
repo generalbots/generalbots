@@ -413,6 +413,16 @@ impl MockLLM {
     pub async fn configure_desktop_local_chat(&self, reply: &str) {
         self.expect_completion("hi", reply).await;
         self.set_default_response(reply).await;
+        // Provide a generic embedding response for offline/self-contained stacks
+        // where KB/vector code paths may request embeddings.
+        self.expect_embedding(1536).await;
+    }
+
+    /// Configure broadly compatible offline defaults: deterministic chat reply,
+    /// catch-all completions, embeddings, and models endpoint (already mounted
+    /// at start). Safe to call repeatedly in isolated harnesses.
+    pub async fn configure_offline_defaults(&self, reply: &str) {
+        self.configure_desktop_local_chat(reply).await;
     }
 
     #[must_use]

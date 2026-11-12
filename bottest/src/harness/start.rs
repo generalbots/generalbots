@@ -47,8 +47,8 @@ impl BotServerInstance {
         let installers_path = installers_path.canonicalize().unwrap_or(installers_path);
         log::info!("Using installers from: {}", installers_path.display());
 
-        let process = std::process::Command::new(&botserver_bin_path)
-            .current_dir(&botserver_dir)
+        let mut cmd = std::process::Command::new(&botserver_bin_path);
+        cmd.current_dir(&botserver_dir)
             .arg("--stack-path")
             .arg(&stack_path)
             .arg("--port")
@@ -73,11 +73,29 @@ impl BotServerInstance {
             .env("ZITADEL_CLIENT_ID", "test-client-id")
             .env("ZITADEL_CLIENT_SECRET", "test-client-secret")
             .env("DRIVE_ACCESSKEY", "minioadmin")
-            .env("DRIVE_SECRET", "minioadmin")
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .ok();
+            .env("DRIVE_SECRET", "minioadmin");
+
+        // Self-contained offline wiring: when the harness provides a mock LLM,
+        // point the spawned botserver at it (OpenAI-compatible) so chat/KR flows
+        // do not contact external providers.
+        if let Some(mock_llm) = ctx.mock_llm() {
+            cmd.env("LLM_URL", mock_llm.chat_completions_url());
+            cmd.env("LLM_API_URL", mock_llm.openai_base_url());
+            cmd.env("OPENAI_API_BASE", mock_llm.openai_base_url());
+            cmd.env("OPENAI_API_KEY", "mock-key");
+            cmd.env("LLM_API_KEY", "mock-key");
+            cmd.env("LLM_MODEL", "mock-gpt");
+            cmd.env("LLM_PROVIDER", "openai");
+            log::info!(
+                "Wired botserver to mock LLM at {}",
+                mock_llm.chat_completions_url()
+            );
+        }
+
+        cmd.stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit());
+
+        let process = cmd.spawn().ok();
 
         if process.is_some() {
             let max_wait = 600;
