@@ -2,8 +2,8 @@
 """Deterministic OpenAI-compatible mock for local chat tests (#1756, #2166, #2173).
 
 Hardened for CI reliability (including windows-latest):
-- Threaded server, explicit timeouts, unbuffered/log-safe behavior
-- OpenAI-compatible endpoints: /health, /v1/models, /v1/chat/completions, /v1/embeddings
+- Threaded server, reusable address, explicit timeouts, unbuffered/log-safe behavior
+- OpenAI-compatible endpoints: /, /health, /ready, /v1/models, /v1/chat/completions, /v1/embeddings
 - Supports streaming (SSE) and non-streaming chat completions
 - Deterministic default reply aligned with desktop-local smoke/e2e harness
 - Request counters exposed via /health for smoke assertions/artifacts
@@ -43,7 +43,7 @@ DEFAULT_REPLY = os.environ.get("MOCK_REPLY", "Hello from mock LLM.")
 LOG_PATH = os.environ.get("MOCK_LOG", "").strip()
 
 _STATE_LOCK = threading.Lock()
-_STATE = {
+_STATE: dict[str, Any] = {
     "requests": 0,
     "chat_requests": 0,
     "embedding_requests": 0,
@@ -62,6 +62,10 @@ def _inc(key: str, amount: int = 1) -> None:
 def _snapshot() -> dict[str, Any]:
     with _STATE_LOCK:
         return dict(_STATE)
+
+
+def _now() -> int:
+    return int(time.time())
 
 
 def _write_log(line: str) -> None:
