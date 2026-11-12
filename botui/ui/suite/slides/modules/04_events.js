@@ -35,10 +35,15 @@ document.addEventListener("htmx:afterSwap", function (event) {
   // The insert dialog ships `position` defaulting to 0, so "+ → Adicionar
   // Slide" put the new slide before slide 1: the canvas kept showing the
   // slide on screen and the deck looked unchanged (UAT SLIDE-02). Default to
-  // "right after the slide being viewed".
+  // "right after the slide being viewed". The form may load into a child of
+  // the modal container (e.g. modal body), so accept swaps inside it too.
   var target = event.detail && event.detail.target;
-  if (!target || target.id !== "slides-modal-container") return;
-  var position = target.querySelector('input[name="position"]');
+  if (!target) return;
+  var container = (target.id === "slides-modal-container")
+    ? target
+    : (target.closest ? target.closest("#slides-modal-container") : null);
+  if (!container) return;
+  var position = container.querySelector('input[name="position"]');
   if (!position) return;
   var canvas = document.getElementById("slide-canvas");
   var current = canvas && canvas.dataset.slideId ? parseInt(canvas.dataset.slideId, 10) : 0;
