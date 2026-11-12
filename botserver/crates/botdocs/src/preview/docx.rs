@@ -22,8 +22,15 @@ pub(super) fn render_docx(bytes: &[u8]) -> Result<String, String> {
             body = body
         ));
     }
+    // #2184 — the converter now keeps every `<w:drawing>` in place, so the
+    // trailing gallery is only needed for images that were not referenced by
+    // the document flow (and must not duplicate the inline ones).
+    let gallery = if html.contains("gb-doc-image") {
+        String::new()
+    } else {
+        media_gallery(bytes, "word/media/")
+    };
     Ok(format!(
-        r#"<div class="gb-office-doc"><div class="gb-doc-pages">{pages}</div>{gallery}</div>"#,
-        gallery = media_gallery(bytes, "word/media/")
+        r#"<div class="gb-office-doc"><div class="gb-doc-pages">{pages}</div>{gallery}</div>"#
     ))
 }

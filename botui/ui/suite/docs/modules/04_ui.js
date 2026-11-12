@@ -32,21 +32,42 @@ function injectEditorStyles() {
     // Appearance pass: the header and status bar used the light default while
     // the app body is dark, so Docs looked like two apps stacked together, and
     // the save status was a flex item that wrapped one word per line.
-    ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;align-items:center;gap:8px;padding:6px 10px;min-height:48px;}",
-    ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;}",
-    // Wrapping made the header 250px tall, and a scrolled strip hid actions.
-    // Compact the icons so the whole set fits a normal desktop window on one row.
-    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
+    // #2184 — classic two-row, document-oriented toolbar (title/menus on the
+    // first row, character and paragraph formatting on the second), the layout
+    // people know from 90s word processors.
+    ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;flex-direction:column;padding:0;min-height:0;overflow:hidden;}",
+    ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:none;}",
+    ".docs-toolbar-row::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar-row-main{border-bottom:1px solid #1f2937;}",
+    ".docs-toolbar-row-format{background:#0f172a;flex-wrap:wrap;row-gap:2px;overflow-x:visible;}",
+    ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0;}",
+    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
     ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar .toolbar-format{display:flex;align-items:center;gap:1px;flex-wrap:wrap;row-gap:2px;}",
+    ".docs-toolbar .toolbar-right{display:flex;align-items:center;gap:4px;margin-left:auto;flex:0 0 auto;}",
     ".docs-toolbar .btn-icon{padding:4px;}",
     ".docs-toolbar .btn-icon svg{width:14px;height:14px;}",
-    ".docs-toolbar .toolbar-left .docs-title-input{max-width:200px;}",
+    ".docs-toolbar .toolbar-left .docs-title-input{max-width:220px;}",
     "#docs-app .docs-content{overflow:auto;}",
     "#docs-app article.docs-doc-view{margin:24px auto;}",
     ".docs-toolbar .toolbar-group{display:flex;align-items:center;gap:2px;}",
-    ".docs-toolbar .toolbar-divider{width:1px;height:20px;background:#1f2937;margin:0 4px;flex:0 0 auto;}",
-    ".docs-toolbar .btn-icon{color:#cbd5e1;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px;cursor:pointer;display:inline-flex;align-items:center;}",
+    ".docs-toolbar .toolbar-divider{width:1px;height:18px;background:#1f2937;margin:0 4px;flex:0 0 auto;}",
+    ".docs-toolbar .btn-icon{color:#cbd5e1;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}",
     ".docs-toolbar .btn-icon:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-toolbar .btn-icon[aria-pressed=\"true\"]{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}",
+    ".docs-toolbar .btn-fmt{min-width:26px;height:24px;font:600 13px/1 system-ui,sans-serif;}",
+    ".docs-toolbar .docs-select{background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:6px;padding:3px 6px;font-size:12px;height:26px;}",
+    ".docs-toolbar .docs-select-size{width:82px;}",
+    // The formatting row packs every character/paragraph control, so its
+    // buttons are one step tighter than the command row (#2184).
+    ".docs-toolbar-row-format .btn-icon{padding:1px;width:22px;min-width:22px;height:22px;}",
+    ".docs-toolbar-row-format .btn-icon svg{width:13px;height:13px;}",
+    ".docs-toolbar-row-format .toolbar-group{gap:0;}",
+    ".docs-toolbar-row-format .toolbar-divider{height:16px;margin:0 2px;}",
+    ".docs-toolbar-row-format .docs-color{padding:0 2px;height:22px;}",
+    ".docs-toolbar .docs-color{position:relative;display:inline-flex;align-items:center;gap:3px;height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;cursor:pointer;font-size:13px;}",
+    ".docs-toolbar .docs-color:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-toolbar .docs-color input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;border:0;padding:0;}",
     ".docs-title-input{background:transparent;border:1px solid transparent;color:#f8fafc;font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
     ".docs-title-input:focus{border-color:#3b82f6;outline:none;background:#0f172a;}",
     ".save-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:320px;}",
@@ -104,11 +125,14 @@ function renderPageGuides(article) {
   var left = rect.left - hostRect.left + (host.scrollLeft || 0);
   var top = rect.top - hostRect.top + (host.scrollTop || 0);
   var pages = Math.max(1, Math.ceil((article.scrollHeight || rect.height) / pageH));
+  var width = Math.round(rect.width);
   var html = "";
   for (var i = 1; i < pages; i++) {
     var y = Math.round(top + i * pageH);
-    html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + Math.round(rect.width) + 'px;top:' + y + 'px;border-top:1px dashed #94a3b8;"></div>';
-    html += '<span class="docs-page-num" style="position:absolute;left:' + Math.round(left + rect.width - 54) + 'px;top:' + (y + 4) + 'px;font-size:11px;color:#64748b;background:#f8fafc;padding:0 6px;border-radius:8px;border:1px solid #e2e8f0;">Page ' + (i + 1) + "</span>";
+    // A dashed rule alone was easy to miss on a dark shell; the band plus the
+    // zebra gap makes the boundary read as a real page edge (#2184).
+    html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + width + 'px;top:' + y + 'px;height:0;border-top:2px dashed #94a3b8;box-shadow:0 6px 12px -8px rgba(15,23,42,.45);"></div>';
+    html += '<span class="docs-page-num" style="position:absolute;left:' + Math.round(left + width / 2 - 34) + 'px;top:' + (y - 9) + 'px;font:11px/1.5 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#475569;background:#f8fafc;padding:0 8px;border-radius:9px;border:1px solid #cbd5e1;box-shadow:0 1px 2px rgba(15,23,42,.08);">Page ' + (i + 1) + " of " + pages + "</span>";
   }
   guide.innerHTML = html;
 }
@@ -150,6 +174,30 @@ function watchPageGuides() {
   document.addEventListener("input", schedule, true);
   window.addEventListener("resize", schedule);
 }
+
+/* #2184 — content loaded programmatically (VM file, Drive file, ui-hint fill)
+   never fires `input`, so the page separators were never drawn: an opened
+   .docx looked like a single endless sheet. Re-fit the sheet and repaint the
+   guides after every load, and again when its lazy images finish loading
+   (their height changes the page count). */
+function docsAfterContentLoad(article) {
+  if (!article) return;
+  if (!article.dataset.pageH) article.dataset.pageH = "1123";
+  var refresh = function () {
+    if (typeof fitPageToWidth === "function") fitPageToWidth(article);
+    if (typeof renderPageGuides === "function") renderPageGuides(article);
+    if (typeof updatePageCount === "function") updatePageCount();
+  };
+  refresh();
+  var images = article.querySelectorAll("img");
+  for (var i = 0; i < images.length; i++) {
+    if (images[i].complete) continue;
+    images[i].addEventListener("load", refresh);
+    images[i].addEventListener("error", refresh);
+  }
+  setTimeout(refresh, 400);
+}
+window.docsAfterContentLoad = docsAfterContentLoad;
 
 function applyPageLayout() {
   var size = document.getElementById("pl-size");
@@ -227,6 +275,7 @@ function insertPageBreak() {
   }
   scheduleSave(article.dataset.docId, article.innerHTML);
   updatePageCount();
+  if (typeof docsAfterContentLoad === "function") docsAfterContentLoad(article);
 }
 window.insertPageBreak = insertPageBreak;
 
@@ -252,6 +301,86 @@ function bindPageBreakShortcut(host) {
   );
 }
 window.bindPageBreakShortcut = bindPageBreakShortcut;
+
+/* #2184 — classic two-row toolbar. Every button in the formatting row carries
+   `data-cmd` and drives the editor through execCommand, so the controls act on
+   the document exactly like a 90s word processor's toolbar. */
+function docsFormat(command, value) {
+  var article = getActiveArticle();
+  if (!article) return;
+  article.focus();
+  try {
+    document.execCommand("styleWithCSS", false, true);
+    document.execCommand(command, false, value === undefined ? null : value);
+  } catch (e) {
+    return;
+  }
+  article.dispatchEvent(new Event("input", { bubbles: true }));
+  docsSyncFormatState();
+}
+
+function docsApplyBlockStyle(tag) {
+  if (!tag) return;
+  docsFormat("formatBlock", "<" + tag + ">");
+}
+
+function docsApplyFontSize(value) {
+  if (!value) return;
+  docsFormat("fontSize", String(value));
+}
+
+/* Highlights the controls that match the current selection (bold button lit
+   while the caret is inside bold text, and so on). */
+function docsSyncFormatState() {
+  var host = document.getElementById("window-body-docs") || document;
+  var buttons = host.querySelectorAll("[data-cmd]");
+  for (var i = 0; i < buttons.length; i++) {
+    var command = buttons[i].getAttribute("data-cmd");
+    var active = false;
+    try {
+      active = document.queryCommandState(command);
+    } catch (e) {
+      active = false;
+    }
+    buttons[i].setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
+function bindFormatToolbar(host) {
+  var scope = host || document;
+  if (!scope.__gbFormatBound) {
+    scope.__gbFormatBound = true;
+    scope.addEventListener("click", function (event) {
+      var button = event.target.closest ? event.target.closest("[data-cmd]") : null;
+      if (!button || !scope.contains(button)) return;
+      event.preventDefault();
+      docsFormat(button.getAttribute("data-cmd"));
+    });
+    var color = scope.querySelector("#fmtColor");
+    if (color) color.addEventListener("input", function () { docsFormat("foreColor", color.value); });
+    var highlight = scope.querySelector("#fmtHighlight");
+    if (highlight) {
+      highlight.addEventListener("input", function () {
+        docsFormat("hiliteColor", highlight.value);
+      });
+    }
+    scope.addEventListener("keyup", docsSyncFormatState);
+    scope.addEventListener("mouseup", docsSyncFormatState);
+  }
+  document.addEventListener("selectionchange", function () {
+    var article = getActiveArticle();
+    if (!article) return;
+    var selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && article.contains(selection.anchorNode)) {
+      docsSyncFormatState();
+    }
+  });
+}
+window.bindFormatToolbar = bindFormatToolbar;
+window.docsFormat = docsFormat;
+window.docsSyncFormatState = docsSyncFormatState;
+window.docsApplyBlockStyle = docsApplyBlockStyle;
+window.docsApplyFontSize = docsApplyFontSize;
 
 function insertHeaderFooterZone(kind) {
   var article = getActiveArticle();

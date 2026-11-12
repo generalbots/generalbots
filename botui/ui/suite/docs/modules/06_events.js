@@ -27,11 +27,20 @@ function initSidebar() {
 }
 
 function initAuth() {
-  if (window.GBAuthGuard) GBAuthGuard.injectLoginButton(document.getElementById("gb-auth-button"));
+  // #2184 — the Docs toolbar is document-oriented: the account/session button
+  // ("Conectado") was removed from it. Only inject when a slot still exists.
+  var slot = document.getElementById("gb-auth-button");
+  if (slot && window.GBAuthGuard) GBAuthGuard.injectLoginButton(slot);
 }
 
 document.addEventListener("htmx:afterSwap", function (e) {
   if (e.target.id === "docs-content") {
     attachEditorHandlers(e.target);
   }
+  // #2184 — the window body can land before the editor fragment: give the
+  // blank surface a writable body as soon as the Docs shell exists, so a
+  // UI-plan fill never races the boot.
+  var node = e.target;
+  var inDocs = node && node.closest && node.closest('[id^="window-body-docs"]');
+  if (inDocs && typeof ensureDocArticle === "function") ensureDocArticle();
 });

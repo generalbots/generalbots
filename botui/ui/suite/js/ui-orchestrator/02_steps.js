@@ -88,10 +88,21 @@
       window.WindowManager.openDeepLink(appId, params, { ownerId: "chat" });
       S.currentApp = appId;
       reportStep("Opened " + appId + " (blank)", "done");
+      // Wait for the WRITE TARGET, not just any control: toolbar selects and
+      // buttons appear with the window shell, before the app's editor (and its
+      // [data-gb-field] surface) exists, so a fill could race the boot and
+      // report "field not found" (#2184).
       return waitFor(function () {
         var win = document.getElementById("window-body-" + appId);
-        return win && win.querySelector("article[contenteditable], input, select, textarea, button");
-      }, STEP_TIMEOUT_MS).then(function () { return waitMs(600).then(function () { return true; }); });
+        return win && win.querySelector("[data-gb-field], article[contenteditable], textarea[contenteditable]");
+      }, STEP_TIMEOUT_MS)
+        .then(function (found) {
+          if (found) return waitMs(300).then(function () { return true; });
+          return waitFor(function () {
+            var win = document.getElementById("window-body-" + appId);
+            return win && win.querySelector("input, select, textarea, button");
+          }, STEP_TIMEOUT_MS).then(function () { return waitMs(600).then(function () { return true; }); });
+        });
     }
     return openApp(appId).then(function (ok) {
       S.currentApp = appId;

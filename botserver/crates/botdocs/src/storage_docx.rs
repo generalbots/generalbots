@@ -1,8 +1,52 @@
+use std::collections::HashMap;
 use std::io::Cursor;
 
+use base64::Engine as _;
 use docx_rs::*;
 
 use crate::storage_core::{escape_html, parse_html_to_paragraphs};
+
+/// Largest image inlined into the editor HTML. Bigger payloads would make the
+/// converted document several megabytes and the editor sluggish.
+const MAX_INLINE_IMAGE_BYTES: usize = 2 * 1024 * 1024;
+
+fn image_mime(name: &str) -> Option<&'static str> {
+    match name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "gif" => Some("image/gif"),
+        "webp" => Some("image/webp"),
+        "bmp" => Some("image/bmp"),
+        "svg" => Some("image/svg+xml"),
+        _ => None,
+    }
+}
+
+/// Relationship id → data URI for the images embedded in the package.
+///
+/// The converter used to drop `<w:drawing>` runs entirely, so a generated
+/// .docx opened in Docs showed the text but none of its pictures (#2184).
+fn document_images(docx: &Docx) -> HashMap<String, String> {
+    let mut images = HashMap::new();
+    for (id, path, image, _preview) in &docx.images {
+        let Some(mime) = image_mime(path) else {
+            continue;
+        };
+        let bytes = &image.0;
+        if bytes.is_empty() || bytes.len() > MAX_INLINE_IMAGE_BYTES {
+            continue;
+        }
+        let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
+        images.insert(id.clone(), format!("data:{mime};base64,{encoded}"));
+    }
+    images
+}
 
 /// Document-level marker for `<w:br w:type="page"/>`. The DOCX preview splits
 /// the converted document on it and starts a new page there.
@@ -20,7 +64,7 @@ fn is_page_break(br: &docx_rs::Break) -> bool {
 
 /// Renders one run's text with its emphasis and line-break children. Used by
 /// both paragraphs and hyperlinks because docx-rs nests runs inside links.
-fn run_html(run: &Run) -> String {
+fn run_html(run: &Run, images: &HashMap<String, String>) -> String {
     let mut run_text = String::new();
     let is_bold = run.run_property.bold.is_some();
     let is_italic = run.run_property.italic.is_some();
@@ -34,6 +78,17 @@ fn run_html(run: &Run) -> String {
             RunChild::Break(br) if is_page_break(br) => run_text.push_str(PAGE_BREAK_MARKER),
             RunChild::Break(_) => run_text.push_str("<br>"),
             RunChild::Tab(_) => run_text.push_str("&nbsp;&nbsp;&nbsp;&nbsp;"),
+            // #2184 — an embedded picture keeps its place in the document
+            // instead of being dropped by the converter.
+            RunChild::Drawing(drawing) => {
+                if let Some(DrawingData::Pic(pic)) = &drawing.data {
+                    if let Some(uri) = images.get(&pic.id) {
+                        run_text.push_str(&format!(
+                            r#"<figure class="gb-doc-image"><img src="{uri}" alt="embedded image"/></figure>"#
+                        ));
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -79,6 +134,7 @@ fn paragraph_tag(inner: &str, is_heading: bool, heading_level: u8) -> String {
 
 pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
     let docx = docx_rs::read_docx(bytes).map_err(|e| format!("Failed to parse DOCX: {e}"))?;
+    let images = document_images(&docx);
 
     let mut html = String::new();
 
@@ -107,13 +163,13 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
 
                 for content in &para.children {
                     match content {
-                        ParagraphChild::Run(run) => para_html.push_str(&run_html(run)),
+                        ParagraphChild::Run(run) => para_html.push_str(&run_html(run, &images)),
                         // Hyperlink labels are user text: dropping them deleted
                         // link text from opened/imported documents.
                         ParagraphChild::Hyperlink(link) => {
                             for child in &link.children {
                                 if let ParagraphChild::Run(run) = child {
-                                    para_html.push_str(&run_html(run));
+                                    para_html.push_str(&run_html(run, &images));
                                 }
                             }
                         }
@@ -139,11 +195,13 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                             if let TableCellContent::Paragraph(p) = para {
                                 for content in &p.children {
                                     match content {
-                                        ParagraphChild::Run(run) => html.push_str(&run_html(run)),
+                                        ParagraphChild::Run(run) => {
+                                            html.push_str(&run_html(run, &images))
+                                        }
                                         ParagraphChild::Hyperlink(link) => {
                                             for child in &link.children {
                                                 if let ParagraphChild::Run(run) = child {
-                                                    html.push_str(&run_html(run));
+                                                    html.push_str(&run_html(run, &images));
                                                 }
                                             }
                                         }
@@ -257,9 +315,7 @@ mod tests {
     fn page_break_is_hoisted_out_of_the_paragraph() {
         let docx = Docx::new()
             .add_paragraph(Paragraph::new().add_run(Run::new().add_text("first page")))
-            .add_paragraph(
-                Paragraph::new().add_run(Run::new().add_break(BreakType::Page)),
-            )
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_break(BreakType::Page)))
             .add_paragraph(Paragraph::new().add_run(Run::new().add_text("second page")));
         let mut buffer = Cursor::new(Vec::new());
         docx.build()

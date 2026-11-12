@@ -44,6 +44,7 @@ function loadDriveFileIntoEditor() {
           var m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
           article.innerHTML = m ? m[1] : html;
           if (article.dataset) article.dataset.docId = 'vm-' + vmPath;
+          if (typeof docsAfterContentLoad === 'function') docsAfterContentLoad(article);
           if (window.updatePageCount) window.updatePageCount();
         }
         var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
@@ -94,6 +95,7 @@ function loadDriveFileIntoEditor() {
       if (article) {
         article.innerHTML = doc.content || '';
         if (article.dataset) article.dataset.docId = doc.id || file;
+        if (typeof docsAfterContentLoad === 'function') docsAfterContentLoad(article);
         if (window.updatePageCount) window.updatePageCount();
       }
       var scope2 = document.querySelector('[id^="window-body-docs"]') || document;
@@ -128,6 +130,9 @@ function docsInit() {
     scheduleSave: scheduleSave,
     AI: DocumentAIDriver,
     insertPageBreak: insertPageBreak,
+    applyBlockStyle: docsApplyBlockStyle,
+    applyFontSize: docsApplyFontSize,
+    format: docsFormat,
     openHeaderFooterModal: openHeaderFooterModal,
     openPageLayoutModal: openPageLayoutModal,
     applyPageLayout: applyPageLayout,
@@ -141,6 +146,10 @@ function docsInit() {
   // #2184 — Ctrl+Enter starts a new page in the editor.
   if (typeof bindPageBreakShortcut === "function") {
     bindPageBreakShortcut(document.getElementById('window-body-docs') || null);
+  }
+  // #2184 — formatting row of the two-row toolbar.
+  if (typeof bindFormatToolbar === "function") {
+    bindFormatToolbar(document.getElementById('window-body-docs') || null);
   }
   // #2184 — a blank Docs window must be writable even before any document is
   // loaded: Live generation opens the app and then fills `document body`.

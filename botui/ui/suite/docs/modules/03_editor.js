@@ -99,6 +99,7 @@ function ensureDocArticle() {
         titleEl.value = heading[1].trim();
       }
       article.dispatchEvent(new Event("input", { bubbles: true }));
+      if (typeof docsAfterContentLoad === "function") docsAfterContentLoad(article);
       if (typeof updatePageCount === "function") updatePageCount();
     };
   }
@@ -117,7 +118,7 @@ function updatePageCount() {
     return;
   }
   var h = article.scrollHeight;
-  var pageH = 1056;
+  var pageH = parseInt(article.dataset.pageH, 10) || 1123;
   var count = Math.max(1, Math.ceil(h / pageH));
   el.textContent = docsT(
     "docs-page-count",

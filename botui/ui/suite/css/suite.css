@@ -282,14 +282,12 @@
   border-color: var(--border-color, #334155);
 }
 
-/* #2159 — Docs: visible A4 page separation while editing. The editor area
-   paints a repeating page sheet (A4 aspect ratio) with a gap/shadow between
-   pages so pagination is visible without printing. */
-#docs-app #doc-content, #docs-app .docs-editor {
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.06) 0, rgba(0,0,0,.06) 1px, transparent 1px) 0 0 / 100% 1056px,
-    #f1f5f9;
-  background-color: #cbd5e1;
+/* #2159 — Docs: visible A4 page separation while editing. The separator bands
+   are painted by renderPageGuides(); the sheet itself stays white so an
+   opened .docx does not get a stray stripe rhythm that disagrees with the
+   real page height (#2184). */
+#docs-app .docs-editor {
+  background: #f1f5f9;
 }
 #docs-app .docs-doc-view, #docs-app article.docs-doc-view {
   background: #ffffff;
@@ -298,3 +296,53 @@
   width: 816px;
   min-height: 1056px;
 }
+
+/* #2184 — embedded images of an opened Office document must fit the page
+   instead of rendering at their natural pixel size (which overflowed the
+   sheet and pushed the gallery off-screen, so the document looked text-only). */
+#docs-app article img {
+  max-width: 100%;
+  height: auto;
+}
+#docs-app article figure {
+  margin: 12px 0;
+}
+#docs-app article .gb-media {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+#docs-app article .gb-media img {
+  max-width: 46%;
+  max-height: 320px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+/* #2184 — explicit page breaks (Ctrl+Enter and `<w:br w:type="page"/>` from an
+   imported .docx) render as a visible separator band with a page label. */
+#docs-app article hr.gb-page-break,
+#docs-app article .gb-doc-page-break {
+  display: block;
+  border: 0;
+  border-top: 2px dashed #94a3b8;
+  margin: 26px 0 18px;
+  padding-top: 6px;
+  height: 0;
+  position: relative;
+}
+#docs-app article hr.gb-page-break::after,
+#docs-app article .gb-doc-page-break::after {
+  content: "page break";
+  position: absolute;
+  right: 0;
+  top: -9px;
+  padding: 0 6px;
+  font: 11px/1.4 system-ui, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #ffffff;
+}
+
