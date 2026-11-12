@@ -44,18 +44,23 @@ pub(crate) async fn handle_api_call(
         return false;
     }
 
-    // #2264 — honor the per-turn Agent/VM switch. When Agent is off, VM-dependent
-    // commands (terminal execution, Vibe project changes) must not run, even if
-    // the model emits them through the api-catalog. The toggle is per-turn and
-    // can flip mid-conversation, so resolve from the already-resolved identity.
-    let is_vm_dependent = name == "terminal.exec"
-        || name == "terminal.run"
-        || name == "vibe.project.change"
-        || crate::apps::commands::command_by_name(&name)
-            .map(|c| c.app == "terminal")
-            .unwrap_or(false);
-    if is_vm_dependent && !identity.agent_vm_enabled {
-        let msg = "Agent/VM is disabled for this conversation. I can't run terminal or workspace commands right now — turn the Agent switch on to enable them.";
+    let params = payload
+        .get("params")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    // #2264/#2239 — honor the per-turn Agent/VM switch. When Agent is off,
+    // commands whose work happens inside the workspace VM (terminal runs,
+    // Vibe agent runs, autotasks, workspace endpoints reached through
+    // `api.exec`) must not run, even if the model emits them through the
+    // api-catalog. The toggle is per-turn and can flip mid-conversation, so
+    // resolve from the already-resolved identity.
+    if super::super::agent_turn::command_runs_in_workspace(&name, &params)
+        && !super::super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled)
+    {
+        let msg = super::super::agent_turn::DISABLED_MESSAGE;
+        botlog::safe_info!(
+            "api_call '{name}' refused for session {session_id}: Agent/VM is off"
+        );
         let channel_name = sink.channel_type().to_string();
         let resp = botlib::models::BotResponse::new(
             bot_uuid.to_string(),
@@ -69,10 +74,6 @@ pub(crate) async fn handle_api_call(
         let _ = sm.save_message(session_id, user_id, 2, msg, 2);
         return true;
     }
-    let params = payload
-        .get("params")
-        .cloned()
-        .unwrap_or(serde_json::Value::Null);
     let compose = payload
         .get("compose")
         .and_then(|v| v.as_bool())

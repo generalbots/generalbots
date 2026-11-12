@@ -156,6 +156,37 @@ pub async fn process_message_internal(
         }
     }
 
+    // #2238/#2239 — unified chat controls. agent_enabled is session-scoped
+    // state: when the payload carries it we persist it, otherwise we read the
+    // stored session value so the toggle is the single source of truth.
+    // Resolved BEFORE `start.bas` and TOOL_EXEC so no path (script, tool chip,
+    // workspace route) can reach the VM while the switch is off.
+    let agent_enabled = super::chat_controls::resolve_agent_enabled(
+        state,
+        session_id,
+        user_id,
+        parsed.get("agent_enabled").and_then(|v| v.as_bool()),
+    )
+    .await;
+    // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
+    // path in this turn (native tools, provider resolution, workspace bridges).
+    let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);
+    let ui_automation_enabled = parsed
+        .get("ui_automation")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let media_type = parsed
+        .get("media_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("auto")
+        .to_string();
+    // Turn-scoped identity: downstream tool dispatch and provisioning must see
+    // the resolved per-turn Agent/VM toggle.
+    let identity = &SessionIdentity {
+        agent_vm_enabled: agent_enabled,
+        ..*identity
+    };
+
     // #1641 — store the attachment and turn it into prompt content.
     let attachment =
         super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
@@ -259,34 +290,8 @@ pub async fn process_message_internal(
         route.reason
     );
 
-    // #2238/#2239 — unified chat controls. agent_enabled is session-scoped
-    // state: when the payload carries it we persist it, otherwise we read the
-    // stored session value so the toggle is the single source of truth.
-    let agent_enabled = super::chat_controls::resolve_agent_enabled(
-        state,
-        session_id,
-        user_id,
-        parsed.get("agent_enabled").and_then(|v| v.as_bool()),
-    )
-    .await;
-    // #2239 — make the resolved agent/VM switch visible to every pipeline/tool
-    // path in this turn (native tools, provider resolution, workspace bridges).
-    let _agent_turn_guard = super::agent_turn::TurnGuard::new(session_id, agent_enabled);
-    let ui_automation_enabled = parsed
-        .get("ui_automation")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
-    let media_type = parsed
-        .get("media_type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("auto")
-        .to_string();
-    // Turn-scoped identity: downstream tool dispatch and provisioning must see
-    // the resolved per-turn Agent/VM toggle.
-    let identity = &SessionIdentity {
-        agent_vm_enabled: agent_enabled,
-        ..*identity
-    };
+    // The composer's app-automation/media switches ride with the client
+    // capabilities so the prompt only advertises what this turn may use.
     let client_caps_value = {
         let mut caps = parsed
             .get("client_capabilities")
@@ -348,7 +353,14 @@ pub async fn process_message_internal(
     messages.push(serde_json::json!({
         "role": "system",
         "content": if !agent_enabled {
-            "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, terminal_run, or terminal.exec, and do not assume a workspace/VM is available. Do not produce file artifacts (docx/xlsx/pdf/etc.) through the VM. Answer directly or use non-VM capabilities only."
+            format!(
+                "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
+                 terminal_run, or terminal.exec, and do not assume a workspace/VM is available. \
+                 Never claim a file was created and never emit a vmfile: link. Answer directly or use \
+                 non-VM capabilities only. When the request genuinely needs the VM (running code, \
+                 generating or attaching a file), say exactly: \"{}\"",
+                super::agent_turn::DISABLED_MESSAGE
+            )
         } else {
             match route.route {
                 crate::core::bot::ws::stream::routing::Route::Agentic => {
@@ -358,6 +370,7 @@ pub async fn process_message_internal(
                     "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
                 }
             }
+            .to_string()
         }
     }));
 
@@ -382,6 +395,7 @@ pub async fn process_message_internal(
         project_context.as_ref(),
         &user_text,
         &mut messages,
+        agent_enabled,
     )
     .await?
     {

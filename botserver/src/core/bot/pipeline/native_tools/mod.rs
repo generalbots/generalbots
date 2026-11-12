@@ -54,7 +54,7 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
         return true;
     }
     if name == "terminal_run" || name == "vm_exec" {
-        if !identity.agent_vm_enabled {
+        if !super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled) {
             send(identity, super::agent_turn::DISABLED_MESSAGE).await;
             return true;
         }

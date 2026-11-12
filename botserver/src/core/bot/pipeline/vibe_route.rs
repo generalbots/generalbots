@@ -19,6 +19,7 @@ pub(super) async fn route_vibe_project(
     bot_uuid: Uuid,
     session_id: Uuid,
     user_id: Uuid,
+    agent_vm_enabled: bool,
 ) -> PipelineResult<bool> {
     let project_context = project_context.cloned();
     // #1298 — a chat message that explicitly references a Vibe project via the
@@ -53,6 +54,23 @@ pub(super) async fn route_vibe_project(
         }
     };
     if let Some(pid) = routed_project_id {
+        // #2239/#2264 — this route dispatches a Vibe agent run (a workspace
+        // VM job). With the chat's Agent (VM) switch off it must not start:
+        // answer with the switch hint and stop the turn here.
+        if !super::agent_turn::workspace_route_allowed(agent_vm_enabled) {
+            botlog::safe_info!(
+                "vibe run refused for session {session_id}: Agent/VM is off"
+            );
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                super::agent_turn::DISABLED_MESSAGE,
+                "web",
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return Ok(true);
+        }
         let project_name = routed_project_name;
         let mut run_params = serde_json::Map::new();
         run_params.insert(

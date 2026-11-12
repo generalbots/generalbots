@@ -15,6 +15,11 @@ use super::workspace_progress::{WorkspaceProgress, PHASE_INFRA};
 /// start can take minutes before the model is even called; this is the first
 /// stage the user needs to see, not a silent spinner.
 pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Value>) {
+    // #2239/#2264 — the Agent (VM) switch is off: never provision the
+    // workspace and never hand the model the VM contract.
+    if !super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled) {
+        return;
+    }
     #[cfg(feature = "agent-vm")]
     {
         let SessionIdentity {

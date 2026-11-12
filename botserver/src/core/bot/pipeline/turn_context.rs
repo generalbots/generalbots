@@ -56,6 +56,7 @@ pub(super) async fn route_project(
     project_context: Option<&Value>,
     user_text: &str,
     messages: &mut Vec<Value>,
+    agent_vm_enabled: bool,
 ) -> PipelineResult<bool> {
     if super::vibe_route::route_vibe_project(
         routing.state,
@@ -65,6 +66,7 @@ pub(super) async fn route_project(
         routing.bot_uuid,
         routing.session_id,
         routing.user_id,
+        agent_vm_enabled,
     )
     .await?
     {

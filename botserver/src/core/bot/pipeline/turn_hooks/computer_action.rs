@@ -43,6 +43,20 @@ pub(crate) async fn propose_computer_action(
         return true;
     }
     if let Some(action) = crate::core::computer_use::propose_terminal_from_text(user_text) {
+        // #2239/#2264 — a terminal proposal runs inside the workspace VM:
+        // refuse it (with the switch hint) instead of offering a consent card
+        // the user could approve into a VM run.
+        if !super::super::agent_turn::workspace_route_allowed(identity.agent_vm_enabled) {
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                super::super::agent_turn::DISABLED_MESSAGE,
+                "web",
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return true;
+        }
         let proposal = crate::core::computer_use::create(
             &session_id.to_string(),
             user_id,

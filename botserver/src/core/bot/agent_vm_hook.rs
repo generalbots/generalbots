@@ -19,6 +19,24 @@ pub fn service() -> Option<&'static Arc<botagent::AgentService>> {
     SERVICE.get()
 }
 
+/// Central gate for the chat Agent/VM switch (#2239/#2264).
+///
+/// The pipeline records the switch per session for the current turn, so every
+/// workspace entry point checks it here: no route — native tool, api catalog
+/// command, Vibe run or bot script — can provision or drive a VM while the
+/// switch is off. Paths outside a chat turn keep their previous behaviour
+/// (the turn flag defaults to enabled).
+fn workspace_disabled(session_id: uuid::Uuid) -> bool {
+    !crate::core::bot::pipeline::agent_turn::is_enabled(session_id)
+}
+
+fn workspace_disabled_error() -> (u16, String) {
+    (
+        403,
+        crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string(),
+    )
+}
+
 /// Runs a shell script inside the user's conversation folder (#1613).
 ///
 /// Used by conversation autotasks to install and inspect cron/systemd entries
@@ -32,6 +50,12 @@ pub async fn run_shell_in_conversation(
     code: &str,
     timeout_ms: u64,
 ) -> Option<(bool, String, String)> {
+    if workspace_disabled(conversation_id) {
+        log::warn!(
+            "autotask: workspace run refused for conversation {conversation_id}: Agent/VM is off"
+        );
+        return None;
+    }
     let service = SERVICE.get()?;
     let conversation = conversation_id.to_string();
     let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await
@@ -71,6 +95,12 @@ pub async fn run_shell_in_conversation_as_root(
     code: &str,
     timeout_ms: u64,
 ) -> Option<(bool, String, String)> {
+    if workspace_disabled(conversation_id) {
+        log::warn!(
+            "autotask: root workspace run refused for conversation {conversation_id}: Agent/VM is off"
+        );
+        return None;
+    }
     let service = SERVICE.get()?;
     let conversation = conversation_id.to_string();
     let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await
@@ -140,6 +170,13 @@ pub async fn ensure_agent_vm(
     // container — `Uuid::nil()` used to create `ag-u00000000-*` VMs on every
     // anonymous message and filled the production host disk (#1596).
     if user_id.is_nil() {
+        return None;
+    }
+    // #2239 — the chat Agent/VM switch is off for this turn: never provision.
+    if workspace_disabled(session_id) {
+        botlog::safe_info!(
+            "workspace provisioning skipped for session {session_id}: Agent/VM is off"
+        );
         return None;
     }
     let service = SERVICE.get()?;
@@ -216,6 +253,9 @@ pub async fn exec_in_user_vm_result(
     timeout_ms: u64,
     packages: &[String],
 ) -> Result<Option<(bool, String, String)>, WorkspaceError> {
+    if workspace_disabled(session_id) {
+        return Err(workspace_disabled_error());
+    }
     let Some(service) = SERVICE.get() else {
         return Ok(None);
     };
@@ -262,6 +302,14 @@ pub async fn ensure_agent_vm_result(
             "guest sessions have no workspace; sign in to use yours".to_string(),
         ));
     }
+    // #2239/#2264 — the workspace run is dispatched here: refuse it outright
+    // when the chat's Agent/VM switch is off for this turn.
+    if workspace_disabled(session_id) {
+        botlog::safe_info!(
+            "workspace run refused for session {session_id}: Agent/VM is off"
+        );
+        return Err(workspace_disabled_error());
+    }
     let Some(service) = SERVICE.get() else {
         return Err((
             503,
@@ -303,6 +351,9 @@ pub async fn list_user_vm_output(
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
 ) -> Option<Vec<String>> {
+    if workspace_disabled(session_id) {
+        return None;
+    }
     let service = SERVICE.get()?;
     let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
     if row.status != botagent::vm::STATUS_RUNNING {
@@ -320,6 +371,9 @@ pub async fn read_session_file(
     session_id: uuid::Uuid,
     rel_path: &str,
 ) -> Result<Vec<u8>, String> {
+    if workspace_disabled(session_id) {
+        return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
+    }
     let service = SERVICE
         .get()
         .ok_or_else(|| "workspace unavailable".to_string())?;
@@ -342,6 +396,9 @@ pub async fn write_session_file(
     rel_path: &str,
     bytes: &[u8],
 ) -> Result<usize, String> {
+    if workspace_disabled(session_id) {
+        return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
+    }
     let service = SERVICE
         .get()
         .ok_or_else(|| "workspace unavailable".to_string())?;
@@ -368,6 +425,9 @@ pub async fn list_session_folder(
     session_id: uuid::Uuid,
     folder: &str,
 ) -> Option<Vec<(String, u64)>> {
+    if workspace_disabled(session_id) {
+        return None;
+    }
     let service = SERVICE.get()?;
     let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
     if row.status != botagent::vm::STATUS_RUNNING {
@@ -388,6 +448,9 @@ pub async fn list_session_folder_meta(
     session_id: uuid::Uuid,
     folder: &str,
 ) -> Option<Vec<(String, u64, u64)>> {
+    if workspace_disabled(session_id) {
+        return None;
+    }
     let service = SERVICE.get()?;
     let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
     if row.status != botagent::vm::STATUS_RUNNING {

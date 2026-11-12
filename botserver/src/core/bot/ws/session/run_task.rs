@@ -40,6 +40,9 @@ pub(super) fn spawn(spec: RunSpec) {
             session_id,
             user_id,
             bot_name: &bot_name,
+            // Placeholder only: `process_message_internal` re-resolves the
+            // chat Agent/VM switch per turn (payload or stored session value)
+            // before any pipeline stage or tool can dispatch a workspace run.
             agent_vm_enabled: true,
         };
         let mut next_text = Some(text);

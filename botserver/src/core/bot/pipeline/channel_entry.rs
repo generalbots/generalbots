@@ -85,6 +85,9 @@ pub async fn run_pipeline_for_channel(
         session_id,
         user_id,
         bot_name: &bot_name,
+        // Placeholder only: `process_message_internal` re-resolves the chat
+        // Agent/VM switch per turn before any pipeline stage or tool can
+        // dispatch a workspace run.
         agent_vm_enabled: true,
     };
     let result =
