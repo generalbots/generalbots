@@ -45,7 +45,18 @@ class VisionService:
         import tempfile
         from PIL import Image
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+        # Pick the temp-file suffix from the container magic bytes. cv2 /
+        # ffmpeg keys the demuxer off the extension in some builds, so writing
+        # a WebM payload to a `.mp4` file makes VideoCapture fail to open it
+        # (issue reported: webm not interpreted). Mirrors speech endpoint logic.
+        suffix = ".mp4"
+        if video_data.startswith(b"\\x1a\\x45\\xdf\\xa3"):
+            suffix = ".webm"
+        elif video_data.startswith(b"RIFF"):
+            suffix = ".avi"
+        elif video_data.startswith(b"\\x00\\x00\\x00") and b"ftyp" in video_data[:32]:
+            suffix = ".mp4"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp.write(video_data)
             tmp_path = tmp.name
 
@@ -55,6 +66,11 @@ class VisionService:
 
             if total_frames == 0:
                 capture.release()
+                logger.warning(
+                    "describe_video: cv2 could not read frames (suffix=%s, bytes=%d)",
+                    suffix,
+                    len(video_data),
+                )
                 return {
                     "description": "Could not read video frames",
                     "frame_count": 0,
