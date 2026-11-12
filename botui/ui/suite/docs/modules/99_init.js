@@ -11,6 +11,50 @@ function loadDriveFileIntoEditor() {
   var gp = window.__gbAppParams__ || {};
   var file = params.get('file') || gp.file;
   var bucket = params.get('bucket') || gp.bucket;
+  var vmConvId = params.get('vmConvId') || gp.vmConvId;
+  var vmPath = params.get('vmPath') || gp.vmPath;
+
+  // #2184 — VM mode: open an agent-workspace office file directly in the
+  // editor without a prior publish to Drive. Fetch the server-converted
+  // preview HTML and load it into the article.
+  if (vmConvId && vmPath) {
+    var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
+    var url = '/api/agent/vm/file?conversation_id=' + encodeURIComponent(vmConvId) +
+      '&path=' + encodeURIComponent(vmPath) + '&preview=1' +
+      (token ? '&access_token=' + encodeURIComponent(token) : '');
+    fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (html) {
+        var scope = document.querySelector('[id^="window-body-docs"]') || document;
+        var titleEl = scope.querySelector('#docTitle');
+        if (titleEl) titleEl.value = String(vmPath).split('/').pop().replace(/\.[^.]+$/, '');
+        var contentEl = scope.querySelector('#docs-content');
+        var article = contentEl && contentEl.querySelector('article[contenteditable]');
+        if (!article && contentEl) {
+          article = document.createElement('article');
+          article.className = 'docs-doc-view';
+          article.setAttribute('contenteditable', 'true');
+          article.id = 'doc-content';
+          contentEl.appendChild(article);
+          if (typeof attachEditorHandlers === 'function') attachEditorHandlers(contentEl);
+        }
+        if (article) {
+          // Extract <body> innerHTML from the converted document.
+          var m = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          article.innerHTML = m ? m[1] : html;
+          if (article.dataset) article.dataset.docId = 'vm-' + vmPath;
+          if (window.updatePageCount) window.updatePageCount();
+        }
+        var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
+        if (statusEl) statusEl.textContent = 'Opened from VM';
+      })
+      .catch(function (err) {
+        var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
+        if (statusEl) statusEl.textContent = 'Failed to open from VM: ' + err.message;
+      });
+    return;
+  }
+
   if (!file) return;
 
   fetch('/api/docs/open-from-drive', {

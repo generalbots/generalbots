@@ -379,15 +379,22 @@ if (window.MutationObserver) {
 messagesEl.addEventListener("scroll", function () {
   var box = document.getElementById("messages");
   var dist = box ? (box.scrollHeight - box.scrollTop - box.clientHeight) : 0;
+  // While a response is pending/streaming, be lenient: rapid content growth
+  // can momentarily push the distance over the normal threshold even though
+  // the reader never scrolled away. Flipping to "scrolled up" mid-turn made
+  // the transcript stop following and look like it scrolled up (#2244).
+  var pending = !!(ChatState && (ChatState.pendingResponseAt || ChatState.isStreaming));
   // Sticky bottom: once we're following the live edge, small layout shifts
   // (streaming/indicator growth, reflow) must not flip us to "scrolled up".
   // A real user scroll away produces a larger distance.
-  var threshold = ChatState.isUserAtBottom ? 120 : 40;
+  var threshold = ChatState.isUserAtBottom ? (pending ? 400 : 120) : 40;
   ChatState.isUserAtBottom = dist < threshold;
-  ChatState.isUserScrolling = true;
+  if (!pending) {
+    ChatState.isUserScrolling = true;
+    clearTimeout(messagesEl.scrollTimeout);
+    messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
+  }
   updateScrollButton();
-  clearTimeout(messagesEl.scrollTimeout);
-  messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
 });
 }
 

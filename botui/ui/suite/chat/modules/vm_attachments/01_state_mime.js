@@ -225,6 +225,32 @@ function vmOpenInOfficeApp(path, savedPath) {
   }, 120);
 }
 
+// #2184 — open a VM (agent workspace) office file directly in its editor
+// without requiring a prior publish to Drive. The docs/sheet/slides editors
+// gain a VM mode that fetches the converted preview from the agent VM.
+function vmOpenInOfficeAppVm(path, convId, vmPath) {
+  var app = vmOfficeAppFor(path);
+  if (!app) throw new Error("this file has no editor app");
+  if (!vmOfficeAppAvailable(app)) {
+    throw new Error("this edition does not include the " + app + " app");
+  }
+  if (!window.WindowManager || !window.WindowManager.openDeepLink) {
+    throw new Error("desktop shell unavailable");
+  }
+  window.WindowManager.openDeepLink(app, { vmConvId: convId || "", vmPath: vmPath || ("output/" + String(path || "").split("/").pop()) });
+  setTimeout(function () {
+    try {
+      if (window.WindowManager && typeof window.WindowManager.snapWindow === "function") {
+        if (window.WindowManager.getWindow && window.WindowManager.getWindow("chat")) {
+          window.WindowManager.snapWindow("chat", "left");
+        }
+        window.WindowManager.snapWindow(app, "right");
+      }
+      var input = document.querySelector("#chat-app textarea, .chat-input textarea, #messageInput");
+      if (input && typeof input.focus === "function") input.focus({ preventScroll: true });
+    } catch (e) {}
+  }, 120);
+}
 /* The Save-to-Drive actions call /api/agent/drive/save, which botserver only
    registers with the agent-vm feature. Without this guard the button rendered
    in every build and failed with HTTP 404. */

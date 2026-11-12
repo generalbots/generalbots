@@ -184,13 +184,18 @@ function vmBindAttachment(card) {
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, ["output/" + fileName]);
-        })
-        .then(function (data) {
-          var saved = (data && data.saved) || [];
-          if (!saved.length) throw new Error("file was not saved to Drive");
-          vmOpenInOfficeApp(fileName, saved[0].path);
-          vmReportSaved(data);
+          return vmSaveToDrive(convId, ["output/" + fileName])
+            .then(function (data) {
+              var saved = (data && data.saved) || [];
+              if (!saved.length) throw new Error("file was not saved to Drive");
+              vmOpenInOfficeApp(fileName, saved[0].path);
+              vmReportSaved(data);
+            })
+            .catch(function (err) {
+              // #2184 — Drive save failed (ownership/permissions): open the
+              // editor straight from the agent VM instead of dead-ending.
+              vmOpenInOfficeAppVm(fileName, convId, "output/" + fileName);
+            });
         })
         .catch(vmNotifyError);
     });

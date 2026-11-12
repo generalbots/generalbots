@@ -65,7 +65,9 @@ function gbAttachReaderIntent(messages) {
     messages.addEventListener(name, gbMarkReaderIntent, { passive: true });
   });
   messages.addEventListener("scroll", function () {
-    if (ChatState.isUserAtBottom === false) gbMarkReaderIntent();
+    // Do not treat scroll drift during an active turn as reader intent.
+    var pending = !!(ChatState && (ChatState.pendingResponseAt || ChatState.isStreaming));
+    if (!pending && ChatState.isUserAtBottom === false) gbMarkReaderIntent();
   }, { passive: true });
 }
 
