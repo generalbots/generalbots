@@ -29,12 +29,26 @@
     if (count) count.textContent = list.length + " note" + (list.length === 1 ? "" : "s");
     if (!list.length) {
       board.innerHTML = '<div class="notes-empty">No notes yet — click “+ New Note”.</div>';
+      board.style.position = "";
+      board.style.minHeight = "";
       return;
+    }
+    const hasPos = list.some(function (n) { return n && typeof n.x === "number" && typeof n.y === "number"; });
+    if (hasPos) {
+      board.style.position = "relative";
+      board.style.minHeight = "600px";
+    } else {
+      board.style.position = "";
+      board.style.minHeight = "";
     }
     board.innerHTML = list
       .map(function (n, i) {
+        var posStyle = "";
+        if (n && typeof n.x === "number" && typeof n.y === "number") {
+          posStyle = "position:absolute;left:" + n.x + "px;top:" + n.y + "px;width:220px;z-index:" + (10 + i) + ";cursor:grab;";
+        }
         return (
-          '<div class="note-card" style="background:' + n.color + '" data-i="' + i + '">' +
+          '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-i="' + i + '" data-ts="' + n.ts + '">' +
           '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + new Date(n.ts).toLocaleString() + "</span>" +
@@ -57,6 +71,51 @@
         list2.splice(parseInt(btn.dataset.del, 10), 1);
         write(list2);
         render();
+      });
+    });
+    Array.from(board.querySelectorAll(".note-card")).forEach(function (card) {
+      card.addEventListener("pointerdown", function (e) {
+        if (e.target.closest("textarea") || e.target.closest("button")) return;
+        e.preventDefault();
+        var idx = parseInt(card.getAttribute("data-i"), 10);
+        var list2 = read();
+        if (!list2[idx]) return;
+        var rect = card.getBoundingClientRect();
+        var brect = board.getBoundingClientRect();
+        if (typeof list2[idx].x !== "number" || typeof list2[idx].y !== "number") {
+          list2[idx].x = Math.max(0, rect.left - brect.left + board.scrollLeft);
+          list2[idx].y = Math.max(0, rect.top - brect.top + board.scrollTop);
+        }
+        var startX = e.clientX;
+        var startY = e.clientY;
+        var origX = list2[idx].x;
+        var origY = list2[idx].y;
+        board.style.position = "relative";
+        board.style.minHeight = "600px";
+        card.style.position = "absolute";
+        card.style.left = origX + "px";
+        card.style.top = origY + "px";
+        card.style.width = rect.width + "px";
+        card.style.zIndex = "1000";
+        card.style.cursor = "grabbing";
+        try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        function onMove(ev) {
+          list2[idx].x = Math.max(0, origX + (ev.clientX - startX));
+          list2[idx].y = Math.max(0, origY + (ev.clientY - startY));
+          card.style.left = list2[idx].x + "px";
+          card.style.top = list2[idx].y + "px";
+        }
+        function onUp() {
+          card.removeEventListener("pointermove", onMove);
+          card.removeEventListener("pointerup", onUp);
+          card.removeEventListener("pointercancel", onUp);
+          card.style.cursor = "grab";
+          write(list2);
+          render();
+        }
+        card.addEventListener("pointermove", onMove);
+        card.addEventListener("pointerup", onUp);
+        card.addEventListener("pointercancel", onUp);
       });
     });
   }

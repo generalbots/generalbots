@@ -132,6 +132,7 @@ pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     bind("sheet.new", "GET", "/api/sheet/new", &[], &[]),
     bind("sheet.delete", "POST", "/api/sheet/delete", &[("file_id", "id")], &[]),
     bind("sheet.export", "POST", "/api/sheet/export", &[("file_id", "id")], &[]),
+    bind("sheet.import", "POST", "/api/sheet/import", &[], &[]),
     bind("sheet.search", "GET", "/api/sheet/search", &[("query", "q")], &[]),
     bind("sheet.chart.create", "POST", "/api/sheet/chart", &[("file_id", "id"), ("range", "data_range"), ("type", "chart_type")], &[]),
     // ——— #2037 — Slides (crates/botslides) ———

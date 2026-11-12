@@ -15,7 +15,8 @@ use crate::types::Worksheet;
 /// a single numeric token via `get_range_values`; a cross-sheet range becomes
 /// one pre-aggregated number for these, preserving their semantics.
 const RANGE_AGGREGATE_FUNCS: &[&str] = &[
-    "SUM", "AVERAGE", "COUNT", "COUNTA", "COUNTBLANK", "MAX", "MIN", "PRODUCT", "MEDIAN",
+    "SUM", "SOMA", "AVERAGE", "MÉDIA", "MEDIA", "COUNT", "COUNTA", "COUNTBLANK",
+    "MAX", "MIN", "PRODUCT", "MEDIAN",
     "STDEV", "STDEVP",
 ];
 
@@ -133,7 +134,7 @@ fn aggregate_range(
         }
     }
     match func_name {
-        "SUM" => Some(sum(&nums)),
+        "SUM" | "SOMA" => Some(sum(&nums)),
         "PRODUCT" => {
             if nums.is_empty() {
                 None
@@ -141,7 +142,7 @@ fn aggregate_range(
                 Some(nums.iter().product::<f64>().to_string())
             }
         }
-        "AVERAGE" => {
+        "AVERAGE" | "MÉDIA" | "MEDIA" => {
             if nums.is_empty() {
                 None
             } else {

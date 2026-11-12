@@ -177,11 +177,35 @@ pub async fn handle_print_preview(
     )))
 }
 
+#[derive(serde::Deserialize, Default)]
+struct ImportPathRequest {
+    path: Option<String>,
+    file: Option<String>,
+    file_path: Option<String>,
+    bucket: Option<String>,
+}
+
+fn content_type_for_sheet_path(path: &str) -> &'static str {
+    match std::path::Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "csv" => "text/csv",
+        "json" => "application/json",
+        "ods" => "application/vnd.oasis.opendocument.spreadsheet",
+        "tsv" => "text/tab-separated-values",
+        _ => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }
+}
+
 pub async fn handle_import_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
     headers: axum::http::HeaderMap,
-    mut multipart: axum::extract::Multipart,
+    req: axum::extract::Request,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
@@ -192,26 +216,87 @@ pub async fn handle_import_sheet(
         return Err(upload_policy::rejection_json(&error, &headers));
     }
 
-    let mut file_bytes: Option<Vec<u8>> = None;
-    let mut filename = "import.xlsx".to_string();
-    let mut content_type = String::new();
+    let is_json = headers
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.to_ascii_lowercase().starts_with("application/json"))
+        .unwrap_or(false);
 
-    while let Ok(Some(field)) = multipart.next_field().await {
-        if field.name() == Some("file") {
-            filename = field.file_name().unwrap_or("import.xlsx").to_string();
-            content_type = field.content_type().map(str::to_string).unwrap_or_default();
-            if let Ok(bytes) = field.bytes().await {
-                file_bytes = Some(bytes.to_vec());
+    let (bytes, filename, content_type) = if is_json {
+        let body = axum::body::to_bytes(req.into_body(), upload_policy::max_bytes(UploadClass::SpreadsheetImport))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": "Invalid JSON body" })),
+                )
+            })?;
+        let payload: ImportPathRequest = serde_json::from_slice(&body).unwrap_or_default();
+        let path = payload
+            .path
+            .or(payload.file)
+            .or(payload.file_path)
+            .unwrap_or_default();
+        let path = path.trim().trim_start_matches('/').to_string();
+        if path.is_empty() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Missing file path for import" })),
+            ));
+        }
+        let bucket = payload.bucket.unwrap_or_else(|| "gbo".to_string());
+        let drive = state.drive.as_ref().ok_or_else(|| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ "error": "Drive not available" })),
+            )
+        })?;
+        let file_bytes = drive.get_object(&bucket, &path).await.map_err(|e| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": format!("Failed to read import file: {e}") })),
+            )
+        })?;
+        let name = std::path::Path::new(&path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("import.xlsx")
+            .to_string();
+        let ct = content_type_for_sheet_path(&path).to_string();
+        (file_bytes, name, ct)
+    } else {
+        use axum::extract::FromRequest;
+        let mut multipart = axum::extract::Multipart::from_request(req, &state)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": "Invalid multipart body" })),
+                )
+            })?;
+
+        let mut file_bytes: Option<Vec<u8>> = None;
+        let mut filename = "import.xlsx".to_string();
+        let mut content_type = String::new();
+
+        while let Ok(Some(field)) = multipart.next_field().await {
+            if field.name() == Some("file") {
+                filename = field.file_name().unwrap_or("import.xlsx").to_string();
+                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                if let Ok(bytes) = field.bytes().await {
+                    file_bytes = Some(bytes.to_vec());
+                }
             }
         }
-    }
 
-    let bytes = file_bytes.ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "No file uploaded" })),
-        )
-    })?;
+        let bytes = file_bytes.ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "No file uploaded" })),
+            )
+        })?;
+        (bytes, filename, content_type)
+    };
 
     // #2132 — the extension, the declared type and the magic bytes must agree.
     let upload = match upload_policy::validate_upload(
@@ -231,7 +316,6 @@ pub async fn handle_import_sheet(
         )
     })?;
 
-    let user_id = resolve_user_id(user.as_deref())?;
     sheet.owner_id = user_id.clone();
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
