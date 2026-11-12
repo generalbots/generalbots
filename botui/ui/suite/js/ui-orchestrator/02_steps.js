@@ -437,6 +437,31 @@
           // toolbar uses), so the cell keeps the colour on reload.
           var background = step.background || step.fill_color || step.bg;
           var foreground = step.color || step.text_color;
+          // Plans often express a colour as the cell VALUE ("A1 = Red") when the
+          // request is 'five cells each with a different colour'. When the value
+          // names a real CSS colour and no explicit fill was given, use it as
+          // the cell background (the sheet sets a readable text colour itself).
+          if (!background && !foreground && step.value) {
+            var NAMED_FILLS = {
+              amber: "#ffbf00",
+              gold: "#ffd700",
+              silver: "#c0c0c0",
+              peach: "#ffcba4",
+              mint: "#98ff98",
+              cream: "#fffdd0",
+              burgundy: "#800020",
+              emerald: "#50c878",
+              ruby: "#9b111e",
+              sapphire: "#0f52ba",
+            };
+            var candidate = String(step.value).trim();
+            var key = candidate.toLowerCase();
+            if (Object.prototype.hasOwnProperty.call(NAMED_FILLS, key)) {
+              background = NAMED_FILLS[key];
+            } else if (candidate && window.CSS && CSS.supports && CSS.supports("color", candidate)) {
+              background = candidate;
+            }
+          }
           if (background || foreground) {
             var style = {};
             if (background) style.background = background;

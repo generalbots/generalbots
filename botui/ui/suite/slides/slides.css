@@ -61,6 +61,39 @@
   background: #1d4ed8;
   color: #fff;
 }
+/* --- #2247 toolbar polish: no visible scrollbar, readable contrast --- */
+.slides-toolbar .toolbar-center,
+.slides-toolbar .toolbar-right {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.slides-toolbar .toolbar-center::-webkit-scrollbar,
+.slides-toolbar .toolbar-right::-webkit-scrollbar,
+.slides-toolbar-row::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+.slides-toolbar .btn-icon {
+  color: #cbd5e1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.slides-toolbar .btn-icon:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: #f8fafc;
+}
+.slides-toolbar .btn-icon strong,
+.slides-toolbar .btn-icon em,
+.slides-toolbar .btn-icon u {
+  color: inherit;
+}
+.slides-title-input {
+  color: #f8fafc;
+  font-weight: 600;
+}
+.sl-slide-count {
+  color: #94a3b8;
+}
 .sl-fmt { font: 600 13px/1 system-ui, sans-serif; }
 .sl-select {
   height: 26px;
@@ -181,4 +214,28 @@
     width: 100% !important;
     max-height: 34%;
   }
+}
+
+/* --- #2247 toolbar polish (final overrides; later rules in this file set the
+   muted text token, so the title and grouping need to win here) --- */
+#slides-app .slides-title-input {
+  color: #f8fafc;
+  font-weight: 600;
+}
+#slides-app .slides-title-input::placeholder {
+  color: #94a3b8;
+}
+.slides-toolbar .toolbar-center {
+  justify-content: flex-start;
+}
+.slides-toolbar-row-format .toolbar-format {
+  justify-content: flex-start;
+  gap: 2px;
+}
+.slides-toolbar-row-format .toolbar-group {
+  gap: 1px;
+}
+.slides-toolbar-row-format .toolbar-divider {
+  height: 16px;
+  margin: 0 4px;
 }
