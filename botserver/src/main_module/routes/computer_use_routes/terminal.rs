@@ -77,6 +77,41 @@ pub async fn terminal_exec(
             "error-computer-use-no-consent",
         ));
     }
+    // #2239 — a consent record is not enough when the composer's Agent/VM
+    // toggle is off: the terminal runs inside the user's agent container, so
+    // it must be refused for that conversation instead of executed.
+    if let Some(session_uuid) = body
+        .session_id
+        .as_deref()
+        .filter(|value| !value.is_empty())
+        .and_then(|value| Uuid::parse_str(value).ok())
+    {
+        let agent_enabled = crate::core::bot::pipeline::chat_controls::resolve_agent_enabled(
+            &state, session_uuid, user_id, None,
+        )
+        .await;
+        if !agent_enabled {
+            audit_terminal(
+                &state.conn,
+                TerminalAuditRow {
+                    user_id,
+                    session_id: &session_uuid.to_string(),
+                    action_id: Some(action_id),
+                    command: body.command.trim(),
+                    cwd: body.cwd.as_deref().unwrap_or(""),
+                    container: "",
+                    decision: "denied",
+                    exit_code: None,
+                    output: "agent/VM disabled for this conversation",
+                },
+            );
+            return Err(api_error(
+                &locale,
+                StatusCode::FORBIDDEN,
+                "error-agent-vm-disabled",
+            ));
+        }
+    }
     let command = body.command.trim();
     if command.is_empty() {
         return Err(api_error(

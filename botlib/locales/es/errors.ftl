@@ -245,6 +245,7 @@ error-computer-use-no-consent = No hay registro de consentimiento para esta acci
 error-computer-use-browser-only = Esta acción debe ejecutarse en el panel del navegador.
 error-computer-use-url-missing = La acción no tiene URL.
 error-terminal-approval-required = La ejecución en terminal requiere la aprobación explícita del usuario.
+error-agent-vm-disabled = El Agente/VM está desactivado en esta conversación. Actívalo en los controles del chat para usar el espacio de trabajo.
 error-terminal-action-id-required = La ejecución en terminal requiere un id de acción aprobado.
 error-terminal-command-required = El comando es obligatorio.
 error-terminal-command-too-long = El comando está limitado a 16000 caracteres.

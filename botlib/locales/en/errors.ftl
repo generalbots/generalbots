@@ -249,6 +249,7 @@ error-computer-use-no-consent = There is no consent record for this action; appr
 error-computer-use-browser-only = This action must run in the browser panel.
 error-computer-use-url-missing = The action has no URL.
 error-terminal-approval-required = Terminal execution requires explicit user approval.
+error-agent-vm-disabled = Agent/VM is disabled for this conversation. Turn it on in the chat controls to use the workspace.
 error-terminal-action-id-required = Terminal execution requires an approved action id.
 error-terminal-command-required = A command is required.
 error-terminal-command-too-long = The command is limited to 16000 characters.
