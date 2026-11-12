@@ -9,6 +9,43 @@
   const VirtualGrid = D.virtualGrid;
 
   // Toolbar format button handlers
+  /* Formats the selected cell with a payload that can carry either a `style`
+     object or a `format` string, then mirrors it in the local cell cache so the
+     grid repaints immediately (#2184). */
+  function formatSelectedRange(payload) {
+    var row = VirtualGrid.selectedRow;
+    var col = VirtualGrid.selectedCol;
+    if (row == null || col == null) return Promise.resolve(null);
+    var body = {
+      sheet_id: D.currentSheetId(),
+      worksheet_index: D.WORKSHEET_INDEX,
+      start_row: row,
+      start_col: col,
+      end_row: row,
+      end_col: col,
+    };
+    if (payload.style) body.style = payload.style;
+    if (payload.format !== undefined) body.format = payload.format;
+    return fetch("/api/sheet/format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () {
+        var key = row + "," + col;
+        var existing = VirtualGrid.cells.get(key) || {};
+        if (payload.format !== undefined) existing.format = payload.format;
+        if (payload.style) {
+          existing.style = Object.assign({}, existing.style || {}, payload.style);
+        }
+        VirtualGrid.cells.set(key, existing);
+        VirtualGrid.lastRenderedRange = null;
+        VirtualGrid.requestRange();
+      })
+      .catch(function () {});
+  }
+
   function initToolbar() {
     var boldBtn = document.getElementById("boldBtn");
     if (boldBtn) {
@@ -52,6 +89,38 @@
         VirtualGrid.formatSelectedCell({ color: textBtn.value });
       });
     }
+    // #2184 — alignment belongs to the formatting row of the two-row toolbar.
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn"),
+      function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          var align = btn.getAttribute("data-align") || "left";
+          document.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn")
+            .forEach(function (other) {
+              other.setAttribute("aria-pressed", other === btn ? "true" : "false");
+            });
+          VirtualGrid.formatSelectedCell({ text_align: align });
+        });
+      },
+    );
+    // #2184 — one-click number formats (currency, percent, decimals, general).
+    var NUMBER_FORMATS = {
+      currency: "R$ #,##0.00",
+      percent: "0.00%",
+      decimal: "0.00",
+      general: "",
+    };
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#currencyBtn, #percentBtn, #decimalBtn, #clearFormatBtn"),
+      function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          var key = btn.getAttribute("data-number-format") || "general";
+          formatSelectedRange({ format: NUMBER_FORMATS[key] || "" });
+        });
+      },
+    );
     var formulaInput = document.getElementById("formulaInput");
     if (formulaInput) {
       var commitFormula = function () {

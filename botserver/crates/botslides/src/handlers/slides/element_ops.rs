@@ -122,8 +122,14 @@ pub async fn handle_update_element<D: DriveOps>(
                 .and_then(|value| value.as_str())
                 .unwrap_or("on_click")
                 .to_string(),
-            duration: payload.get("duration").and_then(|value| value.as_f64()).unwrap_or(0.5),
-            delay: payload.get("delay").and_then(|value| value.as_f64()).unwrap_or(0.0),
+            duration: payload
+                .get("duration")
+                .and_then(|value| value.as_f64())
+                .unwrap_or(0.5),
+            delay: payload
+                .get("delay")
+                .and_then(|value| value.as_f64())
+                .unwrap_or(0.0),
             direction: payload
                 .get("direction")
                 .and_then(|value| value.as_str())
@@ -151,24 +157,72 @@ pub async fn handle_update_element<D: DriveOps>(
     // Canvas drag/resize and inline text edits target an existing element
     // with a partial payload; merge those fields so the element type and
     // table/chart content survive instead of being rebuilt as a 0×0 shape.
-    let partial_update = payload.get("element_type").is_none()
-        && payload.get("element_id").is_some();
+    let partial_update =
+        payload.get("element_type").is_none() && payload.get("element_id").is_some();
     if partial_update {
         let element_id = payload
             .get("element_id")
             .and_then(|value| value.as_str())
             .unwrap_or("")
             .to_string();
-        let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
+        let number = |key: &str| {
+            payload
+                .get(key)
+                .and_then(|value| value.as_f64())
+                .unwrap_or(0.0)
+        };
         let slide = &mut presentation.slides[slide_index];
         if let Some(existing) = slide.elements.iter_mut().find(|item| item.id == element_id) {
-            if payload.get("x").is_some() { existing.x = number("x"); }
-            if payload.get("y").is_some() { existing.y = number("y"); }
-            if payload.get("width").is_some() { existing.width = number("width"); }
-            if payload.get("height").is_some() { existing.height = number("height"); }
-            if payload.get("rotation").is_some() { existing.rotation = number("rotation"); }
+            if payload.get("x").is_some() {
+                existing.x = number("x");
+            }
+            if payload.get("y").is_some() {
+                existing.y = number("y");
+            }
+            if payload.get("width").is_some() {
+                existing.width = number("width");
+            }
+            if payload.get("height").is_some() {
+                existing.height = number("height");
+            }
+            if payload.get("rotation").is_some() {
+                existing.rotation = number("rotation");
+            }
             if let Some(text) = payload.get("text").and_then(|value| value.as_str()) {
                 existing.content.text = Some(text.to_string());
+            }
+            // #2184 — the formatting row edits the selected element's style.
+            // Merge only the keys present so a colour change never wipes the
+            // font size (or vice versa).
+            if let Some(style) = payload.get("style").and_then(|value| value.as_object()) {
+                let text = |key: &str| {
+                    style
+                        .get(key)
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string)
+                };
+                let num = |key: &str| style.get(key).and_then(|value| value.as_f64());
+                if let Some(value) = text("font_weight") {
+                    existing.style.font_weight = Some(value);
+                }
+                if let Some(value) = text("font_style") {
+                    existing.style.font_style = Some(value);
+                }
+                if let Some(value) = text("text_align") {
+                    existing.style.text_align = Some(value);
+                }
+                if let Some(value) = text("color") {
+                    existing.style.color = Some(value);
+                }
+                if let Some(value) = text("fill") {
+                    existing.style.fill = Some(value);
+                }
+                if let Some(value) = text("font_family") {
+                    existing.style.font_family = Some(value);
+                }
+                if let Some(value) = num("font_size") {
+                    existing.style.font_size = Some(value);
+                }
             }
             presentation.updated_at = Utc::now();
             save_pres!(state, &user_id, &presentation);
@@ -187,7 +241,11 @@ pub async fn handle_update_element<D: DriveOps>(
     })?;
     let element_id = element.id.clone();
     let slide = &mut presentation.slides[slide_index];
-    if let Some(position) = slide.elements.iter().position(|existing| existing.id == element.id) {
+    if let Some(position) = slide
+        .elements
+        .iter()
+        .position(|existing| existing.id == element.id)
+    {
         slide.elements[position] = element;
     } else {
         slide.elements.push(element);

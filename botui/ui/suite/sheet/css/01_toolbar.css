@@ -29,15 +29,74 @@
 
 .sheet-toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
     background: var(--sentient-bg-secondary, #f1f5f9);
     border-bottom: 2px solid var(--sentient-border, #cbd5e1);
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    gap: 16px;
+    gap: 0;
     flex-shrink: 0;
     min-height: 52px;
+}
+
+/* #2184 — classic two-row toolbar: sheet commands on the first row, cell
+   formatting on the second, the way 90s spreadsheets organised their bars. */
+.sheet-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 38px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.sheet-toolbar-row::-webkit-scrollbar { height: 0; display: none; }
+.sheet-toolbar-row-main { border-bottom: 1px solid var(--sentient-border, #cbd5e1); }
+.sheet-toolbar-row-format { background: var(--sentient-bg-primary, #ffffff); }
+.sheet-toolbar-row-format .toolbar-format {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+.sheet-toolbar-row-format .btn-icon {
+    padding: 3px;
+    min-width: 26px;
+    height: 26px;
+}
+.sheet-toolbar-row-format .btn-icon[aria-pressed="true"] {
+    background: var(--sentient-accent, #4285f4);
+    color: #fff;
+}
+.sheet-numfmt {
+    font: 600 12px/1 system-ui, sans-serif;
+    min-width: 30px !important;
+}
+.sheet-color {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 30px;
+    height: 26px;
+    border: 1px solid var(--sheet-border, #cbd5e1);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--sentient-text-primary, #212121);
+}
+.sheet-color input[type="color"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: none;
 }
 
 .toolbar-left,
@@ -226,3 +285,8 @@
     gap: -8px;
 }
 
+
+/* #2184 — the two-row toolbar owns the horizontal scrolling; the inner
+   command cluster must not paint a second scrollbar. */
+.sheet-toolbar-row .toolbar-center { overflow-x: auto; scrollbar-width: none; }
+.sheet-toolbar-row .toolbar-center::-webkit-scrollbar { height: 0; display: none; }
