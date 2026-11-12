@@ -196,10 +196,67 @@ function vmDropOrphanFileList(content) {
   }
 }
 
-// One folder card for every attachment of the reply (#1584): the user sees
+// The same generated file reaches several bot messages (the WORKSPACE RUN
+// progress card and the final answer both get one), so the conversation showed
+// the same "output" listing twice. One card per file: walking newest -> oldest,
+// the first card seen owns the file and every older duplicate is dropped
+// (together with a folder left empty). Conversation-wide on purpose: hydration
+// order is not guaranteed, so fixing only the current reply leaves the
+// duplicate painted by an earlier pass.
+function vmDedupeConversationCards(root, anchor) {
+  var scope = root || document;
+  var bots = Array.prototype.slice.call(scope.querySelectorAll(".message.bot"));
+  var self = anchor && anchor.closest
+    ? (anchor.classList && anchor.classList.contains("message") ? anchor : anchor.closest(".message.bot"))
+    : null;
+  var myIndex = bots.indexOf(self);
+  // Files already carried by an EARLIER reply are not new: the user asked for
+  // only what this turn produced, so those stay behind "Show all".
+  // Only replies from PREVIOUS turns count. The progress card of the same turn
+  // ("WORKSPACE RUN", rendered before the answer) carries the same files and
+  // must not make the answer's own files look old.
+  var turnStart = 0;
+  for (var u = myIndex - 1; u >= 0; u--) {
+    if (bots[u].classList && bots[u].classList.contains("user")) {
+      turnStart = u + 1;
+      break;
+    }
+  }
+  var earlierPaths = {};
+  for (var e = 0; e < turnStart; e++) {
+    var early = bots[e].querySelectorAll(".gb-attachment");
+    for (var q = 0; q < early.length; q++) {
+      if (early[q].dataset.path) earlierPaths[early[q].dataset.path] = true;
+    }
+  }
+  // One card per file: newest mention owns it, older duplicates are dropped.
+  var seen = {};
+  for (var i = bots.length - 1; i >= 0; i--) {
+    var cards = bots[i].querySelectorAll(".gb-attachment");
+    for (var j = 0; j < cards.length; j++) {
+      var card = cards[j];
+      var path = card.dataset.path;
+      if (!path) continue;
+      if (seen[path]) {
+        card.remove();
+        continue;
+      }
+      seen[path] = true;
+      if (i === myIndex && earlierPaths[path]) card.dataset.gbOlder = "1";
+    }
+    var folders = bots[i].querySelectorAll(".gb-attachment-folder");
+    for (var f = 0; f < folders.length; f++) {
+      if (!folders[f].querySelector(".gb-attachment")) folders[f].remove();
+    }
+  }
+}
+
+// One folder card for every attachment of the reply (#1584)// One folder card for every attachment of the reply (#1584)// One folder card for every attachment of the reply (#1584): the user sees
 // "output" as a folder with all generated files, not a flat list of links.
 function vmGroupAttachments(anchor) {
   if (!anchor) return;
+  var dedupeScope = (anchor.closest && anchor.closest(".chat-pane-messages")) || document;
+  vmDedupeConversationCards(dedupeScope, anchor);
   var cards = [];
   var all = anchor.querySelectorAll(".gb-attachment");
   for (var i = 0; i < all.length; i++) {
@@ -231,9 +288,17 @@ function vmGroupAttachments(anchor) {
   for (var j = cards.length - 1; j >= 0; j--) {
     grid.insertBefore(cards[j], grid.firstChild);
   }
-  var count = grid.querySelectorAll(".gb-attachment").length;
-  folder.querySelector(".gb-folder-count").textContent =
-    count + " file" + (count === 1 ? "" : "s");
+  var allCards = grid.querySelectorAll(".gb-attachment");
+  var olderCards = grid.querySelectorAll('.gb-attachment[data-gb-older="1"]');
+  var freshCount = allCards.length - olderCards.length;
+  var countEl = folder.querySelector(".gb-folder-count");
+  if (olderCards.length) {
+    countEl.textContent =
+      freshCount + " new file" + (freshCount === 1 ? "" : "s") +
+      " \u00b7 " + allCards.length + " total";
+  } else {
+    countEl.textContent = allCards.length + " file" + (allCards.length === 1 ? "" : "s");
+  }
   vmLabelAttachments(grid);
   vmOrderFolder(grid);
   var saveAll = folder.querySelector(".gb-folder-save");
@@ -265,20 +330,47 @@ function vmGroupAttachments(anchor) {
       var bots = (pane || document).querySelectorAll(".message.bot");
       if (bots.length && anchor !== bots[bots.length - 1]) isLatest = false;
     } catch (e) { /* default expanded */ }
+    // Older files of the conversation stay hidden: the reply only advertises
+    // what it just produced. "Show all" reveals the whole conversation.
+    function applyOlderState(showAll) {
+      var older = grid.querySelectorAll('.gb-attachment[data-gb-older="1"]');
+      for (var o = 0; o < older.length; o++) {
+        older[o].style.display = showAll ? "" : "none";
+      }
+      toggle.dataset.collapsed = showAll ? "0" : "1";
+    }
     if (!isLatest) {
+      // An older reply keeps its whole listing behind a control; expanding it
+      // also reveals that turn's historical files.
       grid.style.display = "none";
       toggle.textContent = "Show older output";
       toggle.dataset.collapsed = "1";
+      toggle.addEventListener("click", function () {
+        var open = toggle.dataset.collapsed === "1";
+        grid.style.display = open ? "" : "none";
+        applyOlderState(open);
+        toggle.dataset.collapsed = open ? "0" : "1";
+        toggle.textContent = open ? "Hide" : "Show older output";
+      });
+    } else if (olderCards.length) {
+      applyOlderState(false);
+      toggle.textContent = "Show all (" + allCards.length + ")";
+      toggle.dataset.collapsed = "1";
+      toggle.addEventListener("click", function () {
+        var showAll = toggle.dataset.collapsed === "1";
+        applyOlderState(showAll);
+        toggle.textContent = showAll ? "Show only new" : "Show all (" + allCards.length + ")";
+      });
     } else {
-      toggle.textContent = "Hide output";
+      toggle.textContent = "Hide";
       toggle.dataset.collapsed = "0";
+      toggle.addEventListener("click", function () {
+        var collapsed = toggle.dataset.collapsed === "1";
+        grid.style.display = collapsed ? "" : "none";
+        toggle.dataset.collapsed = collapsed ? "0" : "1";
+        toggle.textContent = collapsed ? "Hide" : "Show older output";
+      });
     }
-    toggle.addEventListener("click", function () {
-      var collapsed = toggle.dataset.collapsed === "1";
-      grid.style.display = collapsed ? "" : "none";
-      toggle.dataset.collapsed = collapsed ? "0" : "1";
-      toggle.textContent = collapsed ? "Hide output" : "Show older output";
-    });
   }
   // The cards no longer live in the `**Files**` list, so drop the emptied
   // bullets and their heading after the move (#2008).

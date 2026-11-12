@@ -181,7 +181,11 @@ function hydrateVmAttachments(container) {
         wrapper.className = "gb-attachments";
         missing.forEach(function (name) {
           var path = "output/" + name;
-          vmAppendCard(wrapper, conversationId, path, name);
+          var card = vmAppendCard(wrapper, conversationId, path, name);
+          // These come from the conversation-wide listing, i.e. files produced
+          // by EARLIER turns. They stay collapsed behind "Show all" so a reply
+          // only advertises what it just created.
+          if (card) card.dataset.gbOlder = "1";
           seen[path] = true;
         });
         var target = fallback.querySelector(".message-content") || fallback;
