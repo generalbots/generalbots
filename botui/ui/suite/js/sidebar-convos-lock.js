@@ -216,8 +216,10 @@
           if (data && data.unlock_token) {
             sessionStorage.setItem("gb-unlock:" + sessionId, data.unlock_token);
           }
+          // #2241 — unlocking must return the conversation to the main
+          // conversations list (not leave it in the locked view).
+          mod.loadHistory();
           mod.openConversation(sessionId);
-        })
         .catch(function (err) {
           report("Unlock conversation", "Could not unlock: " + err.message);
         });
