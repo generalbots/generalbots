@@ -82,10 +82,58 @@ window.GBClockApp = window.GBClockApp || {};
         timeZone: zone,
       }).format(now);
       if (dateEl) {
-        dateEl.textContent = new Intl.DateTimeFormat([], {
+        var dateText = new Intl.DateTimeFormat([], {
           weekday: "long", year: "numeric", month: "long", day: "numeric",
           timeZone: zone,
         }).format(now);
+        var meta = "";
+        try {
+          var parts = new Intl.DateTimeFormat("en", {
+            timeZone: zone, timeZoneName: "shortOffset",
+          }).formatToParts(now);
+          for (var i = 0; i < parts.length; i++) {
+            if (parts[i].type === "timeZoneName") { meta = parts[i].value; break; }
+          }
+        } catch (e2) { meta = ""; }
+        if (!meta) {
+          try {
+            meta = zone || "";
+          } catch (e3) { meta = ""; }
+        }
+        if (meta) {
+          var localTz = "";
+          try { localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e4) {}
+          var diffLabel = "";
+          if (zone && localTz && zone !== localTz) {
+            try {
+              var toMinutes = function (z) {
+                var ps = new Intl.DateTimeFormat("en", {
+                  timeZone: z, timeZoneName: "shortOffset", hour: "2-digit",
+                }).formatToParts(now);
+                var off = "";
+                for (var j = 0; j < ps.length; j++) {
+                  if (ps[j].type === "timeZoneName") { off = ps[j].value; break; }
+                }
+                var m = off.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+                if (!m) return null;
+                var sign = m[1] === "-" ? -1 : 1;
+                return sign * (parseInt(m[2], 10) * 60 + parseInt(m[3] || "0", 10));
+              };
+              var zm = toMinutes(zone);
+              var lm = toMinutes(localTz);
+              if (zm !== null && lm !== null) {
+                var diffMin = zm - lm;
+                var sign = diffMin >= 0 ? "+" : "-";
+                var ad = Math.abs(diffMin);
+                var hh = Math.floor(ad / 60);
+                var mm = ad % 60;
+                diffLabel = " · " + sign + hh + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "h") + " vs local";
+              }
+            } catch (e5) { diffLabel = ""; }
+          }
+          dateText += " (" + meta + (zone ? ", " + zone : "") + diffLabel + ")";
+        }
+        dateEl.textContent = dateText;
       }
     } catch (e) {
       digital.textContent = "--:--:--";
