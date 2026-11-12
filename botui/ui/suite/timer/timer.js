@@ -1,6 +1,7 @@
 "use strict";
 /* Timer / Pomodoro (#1154): countdown timer with session tracking and
-   desktop notifications on completion. */
+   desktop notifications on completion. #2261 — a completed session is also
+   handed to the bot through the chat send path (`window.sendMessage`). */
 
 (function () {
   if (window.GBTimer) return;
@@ -51,6 +52,10 @@
 
   function start() {
     if (running) return;
+    // #2261 — starting again after a completed session must count down afresh;
+    // otherwise the first tick sees a spent countdown and fires another "time's
+    // up" (and now another bot notification) immediately.
+    if (remaining <= 0) remaining = totalSeconds;
     running = true;
     interval = setInterval(tick, 1000);
     const startBtn = document.getElementById("timerStart");
@@ -70,6 +75,56 @@
     }
   }
 
+  // #2261 (TIMER-01) — a finished timer must reach the bot, not only the local
+  // UI: the toast/browser Notification of `stop()` were the end of the line, so
+  // the assistant never learned the session ended and could not confirm it,
+  // log it or suggest the next step.
+  function timerMessage(label, minutes) {
+    return "[Timer] " + label + " finished (" + minutes + " min). " +
+      "Please confirm the session is over and suggest the next step.";
+  }
+
+  function chatComposerReady() {
+    return typeof window.sendMessage === "function" && !!document.getElementById("messageInput");
+  }
+
+  function notifyBot(text) {
+    var delivered = false;
+    if (chatComposerReady()) {
+      try {
+        window.sendMessage(text);
+        delivered = true;
+      } catch (e) {
+        delivered = false;
+      }
+    }
+    if (!delivered) {
+      // The chat surface is not mounted (timer opened on its own, or the desktop
+      // never opened Chat): open it and send as soon as its composer exists.
+      // Bounded — a stale timer must not poll forever.
+      try {
+        if (typeof window.openDeepLink === "function") window.openDeepLink("chat", {});
+      } catch (e2) { /* no desktop shell: the event below is all we can do */ }
+      var attempts = 0;
+      var retry = setInterval(function () {
+        attempts += 1;
+        if (chatComposerReady()) {
+          clearInterval(retry);
+          try { window.sendMessage(text); } catch (e3) { /* give up quietly */ }
+          return;
+        }
+        if (attempts >= 20) clearInterval(retry);
+      }, 250);
+    }
+    // Other surfaces (and tests) can observe the completion without the chat.
+    try {
+      window.dispatchEvent(new CustomEvent("gb-timer-complete", {
+        detail: { text: text, delivered: delivered },
+      }));
+    } catch (e4) { /* non-DOM context */ }
+    return delivered;
+  }
+
   function stop(completed) {
     running = false;
     if (interval) { clearInterval(interval); interval = null; }
@@ -85,6 +140,10 @@
       if (window.GBToasts) {
         window.GBToasts.show("Timer", "Time's up! Take a break.", "success");
       }
+      // #2261 — hand the completion to the bot through the chat/tool path.
+      const labelEl = document.getElementById("timerLabel");
+      const label = (labelEl && labelEl.textContent) || "Timer";
+      notifyBot(timerMessage(label, Math.round(totalSeconds / 60)));
       // #1816: honour the desktop-notifications preference before firing a
       // native Notification.
       var notifAllowed = typeof window.gbDesktopNotificationsEnabled === "function"
@@ -134,5 +193,5 @@
     boot();
   }
 
-  window.GBTimer = { start: start, pause: pause, reset: reset, setMode: setMode };
+  window.GBTimer = { start: start, pause: pause, reset: reset, setMode: setMode, notify: notifyBot };
 })();

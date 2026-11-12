@@ -77,19 +77,26 @@
       card.addEventListener("pointerdown", function (e) {
         if (e.target.closest("textarea") || e.target.closest("button")) return;
         e.preventDefault();
-        var idx = parseInt(card.getAttribute("data-i"), 10);
-        var list2 = read();
-        if (!list2[idx]) return;
+        // #2261 — address the note by its `ts` key, never by its index in the
+        // list snapshot: a note added/removed by the chat delta path while the
+        // drag is in flight would otherwise be resurrected or deleted when the
+        // snapshot was written back.
+        var key = card.getAttribute("data-ts");
+        var start = read();
+        var idx = indexOfKey(start, key);
+        if (idx === -1) return;
         var rect = card.getBoundingClientRect();
         var brect = board.getBoundingClientRect();
-        if (typeof list2[idx].x !== "number" || typeof list2[idx].y !== "number") {
-          list2[idx].x = Math.max(0, rect.left - brect.left + board.scrollLeft);
-          list2[idx].y = Math.max(0, rect.top - brect.top + board.scrollTop);
+        // Absolute coordinates are relative to the board's padding box, so the
+        // border width must be subtracted or the card jumps on the first drag.
+        if (typeof start[idx].x !== "number" || typeof start[idx].y !== "number") {
+          start[idx].x = Math.max(0, rect.left - brect.left - board.clientLeft + board.scrollLeft);
+          start[idx].y = Math.max(0, rect.top - brect.top - board.clientTop + board.scrollTop);
         }
         var startX = e.clientX;
         var startY = e.clientY;
-        var origX = list2[idx].x;
-        var origY = list2[idx].y;
+        var origX = start[idx].x;
+        var origY = start[idx].y;
         board.style.position = "relative";
         board.style.minHeight = "600px";
         card.style.position = "absolute";
@@ -99,18 +106,30 @@
         card.style.zIndex = "1000";
         card.style.cursor = "grabbing";
         try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        function moveTo(x, y) {
+          const list2 = read();
+          const at = indexOfKey(list2, key);
+          if (at === -1) return;
+          list2[at].x = Math.max(0, x);
+          list2[at].y = Math.max(0, y);
+          write(list2);
+        }
+        var lastX = origX;
+        var lastY = origY;
         function onMove(ev) {
-          list2[idx].x = Math.max(0, origX + (ev.clientX - startX));
-          list2[idx].y = Math.max(0, origY + (ev.clientY - startY));
-          card.style.left = list2[idx].x + "px";
-          card.style.top = list2[idx].y + "px";
+          lastX = Math.max(0, origX + (ev.clientX - startX));
+          lastY = Math.max(0, origY + (ev.clientY - startY));
+          card.style.left = lastX + "px";
+          card.style.top = lastY + "px";
         }
         function onUp() {
           card.removeEventListener("pointermove", onMove);
           card.removeEventListener("pointerup", onUp);
           card.removeEventListener("pointercancel", onUp);
           card.style.cursor = "grab";
-          write(list2);
+          // Persisted on release (not only as a transient inline style) and
+          // merged into the current list so the position survives a reload.
+          moveTo(lastX, lastY);
           render();
         }
         card.addEventListener("pointermove", onMove);

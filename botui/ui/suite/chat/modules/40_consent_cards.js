@@ -41,6 +41,41 @@
     return h;
   }
 
+  // The payload's detail is a JSON object (e.g. {command:"api.exec",
+  // params:{method:"GET",path:"/api/..."}}). Rendering it directly printed
+  // "[object Object]" and left the user unable to see WHAT was being approved
+  // (UAT billing/products runs). Summarise it into one readable line.
+  function describeDetail(detail) {
+    if (detail === null || detail === undefined) return "";
+    if (typeof detail === "string") return detail;
+    if (typeof detail !== "object") return String(detail);
+    try {
+      var parts = [];
+      var command = detail.command || detail.tool || detail.name;
+      if (command && typeof command === "string") parts.push(command);
+      var params = detail.params;
+      if (params && typeof params === "object") {
+        var method = params.method ? String(params.method).toUpperCase() + " " : "";
+        var path = params.path || params.url || params.endpoint || params.route || "";
+        if (method || path) parts.push((parts.length ? " → " : "") + method + path);
+        var inner = params.params;
+        if (inner && typeof inner === "object") {
+          var keys = Object.keys(inner);
+          if (keys.length) {
+            parts.push((parts.length ? " " : "") + JSON.stringify(inner).slice(0, 200));
+          }
+        } else if (typeof inner === "string" && inner) {
+          parts.push((parts.length ? " " : "") + inner.slice(0, 200));
+        }
+      }
+      var text = parts.join("").replace(/\s+/g, " ").trim();
+      if (text) return text;
+      return JSON.stringify(detail).slice(0, 300).replace(/\s+/g, " ");
+    } catch (e) {
+      return "";
+    }
+  }
+
   function buildCard(req) {
     var card = document.createElement("div");
     card.className = "gb-consent-card";
@@ -61,9 +96,15 @@
       '<button type="button" class="gb-consent-btn" data-decision="always">Always allow</button>' +
       '<button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button>' +
       "</div>";
-    card.querySelector(".gb-consent-app").textContent =
-      req.app_id + " \u00B7 " + (req.action_class || "action");
-    card.querySelector(".gb-consent-detail").textContent = req.detail || "";
+    var detail = req.detail && typeof req.detail === "object" ? req.detail : {};
+    var appName = typeof req.app_id === "string" && req.app_id
+      ? req.app_id
+      : (typeof detail.app_id === "string" && detail.app_id ? detail.app_id : "workspace");
+    var action = typeof req.action_class === "string" && req.action_class
+      ? req.action_class
+      : (typeof detail.action_class === "string" && detail.action_class ? detail.action_class : "action");
+    card.querySelector(".gb-consent-app").textContent = appName + " \u00B7 " + action;
+    card.querySelector(".gb-consent-detail").textContent = describeDetail(req.detail);
     var risk = card.querySelector(".gb-consent-risk");
     risk.textContent = req.risk_tier ? "Risk: " + req.risk_tier : "";
     risk.className = "gb-consent-risk risk-" + (req.risk_tier || "unknown");

@@ -67,11 +67,77 @@ window.GBClockApp = window.GBClockApp || {};
     if (guess) select.value = guess;
   }
 
+  // #2261 (CLOCK-01) — offset of `zone` from UTC, in minutes. An empty zone
+  // means the reader's own zone. `shortOffset` renders UTC as a bare "GMT",
+  // which the old regex rejected, so UTC and any zero-offset zone produced no
+  // difference at all.
+  function zoneOffsetMinutes(zone, at) {
+    if (!zone) return -at.getTimezoneOffset();
+    try {
+      var parts = new Intl.DateTimeFormat("en", {
+        timeZone: zone, timeZoneName: "shortOffset", hour: "2-digit",
+      }).formatToParts(at);
+      for (var i = 0; i < parts.length; i += 1) {
+        if (parts[i].type === "timeZoneName") {
+          var parsed = parseOffsetLabel(parts[i].value);
+          if (parsed !== null) return parsed;
+        }
+      }
+    } catch (e) { /* not every runtime supports shortOffset: use wall clock */ }
+    try {
+      var fields = {};
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: zone, hour12: false, year: "numeric", month: "2-digit",
+        day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+      }).formatToParts(at).forEach(function (part) { fields[part.type] = part.value; });
+      if (!fields.year) return null;
+      var wall = Date.UTC(
+        parseInt(fields.year, 10), parseInt(fields.month, 10) - 1,
+        parseInt(fields.day, 10), parseInt(fields.hour, 10) % 24,
+        parseInt(fields.minute, 10), parseInt(fields.second, 10)
+      );
+      var whole = Math.floor(at.getTime() / 1000) * 1000;
+      return Math.round((wall - whole) / 60000);
+    } catch (e2) {
+      return null;
+    }
+  }
+
+  function parseOffsetLabel(label) {
+    if (!label) return null;
+    var m = String(label).match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+    if (!m) return /^\(?(GMT|UTC)\)?$/i.test(String(label).trim()) ? 0 : null;
+    var sign = m[1] === "-" ? -1 : 1;
+    return sign * (parseInt(m[2], 10) * 60 + parseInt(m[3] || "0", 10));
+  }
+
+  function offsetLabel(minutes) {
+    var abs = Math.abs(minutes);
+    var mm = abs % 60;
+    return "GMT" + (minutes < 0 ? "-" : "+") + Math.floor(abs / 60) + (mm ? ":" + pad(mm) : "");
+  }
+
+  /// "GMT-3 · +0h vs local" — offset of the shown zone plus its distance from
+  /// the reader's zone. "0h" and negative values are real answers, so the label
+  /// is always produced (the old code required `zone !== localTz`).
+  function timezoneDiff(zone, at) {
+    var zoneMin = zoneOffsetMinutes(zone, at);
+    if (zoneMin === null) return "";
+    var localMin = zoneOffsetMinutes("", at);
+    if (localMin === null) return offsetLabel(zoneMin);
+    var diff = zoneMin - localMin;
+    var abs = Math.abs(diff);
+    var text = (diff < 0 ? "-" : "+") + Math.floor(abs / 60) + "h";
+    if (abs % 60) text += " " + pad(abs % 60) + "m";
+    return offsetLabel(zoneMin) + " · " + text + " vs local";
+  }
+
   function tickClock() {
     var box = root();
     if (!box) return;
     var digital = box.querySelector("#gb-clock-digital");
     var dateEl = box.querySelector("#gb-clock-date");
+    var diffEl = box.querySelector("#gb-clock-diff");
     var tz = box.querySelector("#gb-clock-tz");
     if (!digital) return;
     var zone = tz ? tz.value : undefined;
@@ -81,60 +147,17 @@ window.GBClockApp = window.GBClockApp || {};
         hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
         timeZone: zone,
       }).format(now);
+      var offsetMin = zoneOffsetMinutes(zone, now);
+      var meta = offsetMin === null ? (zone || "") : offsetLabel(offsetMin);
       if (dateEl) {
         var dateText = new Intl.DateTimeFormat([], {
           weekday: "long", year: "numeric", month: "long", day: "numeric",
           timeZone: zone,
         }).format(now);
-        var meta = "";
-        try {
-          var parts = new Intl.DateTimeFormat("en", {
-            timeZone: zone, timeZoneName: "shortOffset",
-          }).formatToParts(now);
-          for (var i = 0; i < parts.length; i++) {
-            if (parts[i].type === "timeZoneName") { meta = parts[i].value; break; }
-          }
-        } catch (e2) { meta = ""; }
-        if (!meta) {
-          try {
-            meta = zone || "";
-          } catch (e3) { meta = ""; }
-        }
-        if (meta) {
-          var localTz = "";
-          try { localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e4) {}
-          var diffLabel = "";
-          if (zone && localTz && zone !== localTz) {
-            try {
-              var toMinutes = function (z) {
-                var ps = new Intl.DateTimeFormat("en", {
-                  timeZone: z, timeZoneName: "shortOffset", hour: "2-digit",
-                }).formatToParts(now);
-                var off = "";
-                for (var j = 0; j < ps.length; j++) {
-                  if (ps[j].type === "timeZoneName") { off = ps[j].value; break; }
-                }
-                var m = off.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
-                if (!m) return null;
-                var sign = m[1] === "-" ? -1 : 1;
-                return sign * (parseInt(m[2], 10) * 60 + parseInt(m[3] || "0", 10));
-              };
-              var zm = toMinutes(zone);
-              var lm = toMinutes(localTz);
-              if (zm !== null && lm !== null) {
-                var diffMin = zm - lm;
-                var sign = diffMin >= 0 ? "+" : "-";
-                var ad = Math.abs(diffMin);
-                var hh = Math.floor(ad / 60);
-                var mm = ad % 60;
-                diffLabel = " · " + sign + hh + (mm ? ":" + (mm < 10 ? "0" : "") + mm : "h") + " vs local";
-              }
-            } catch (e5) { diffLabel = ""; }
-          }
-          dateText += " (" + meta + (zone ? ", " + zone : "") + diffLabel + ")";
-        }
+        if (meta) dateText += " (" + meta + (zone ? ", " + zone : "") + ")";
         dateEl.textContent = dateText;
       }
+      if (diffEl) diffEl.textContent = timezoneDiff(zone, now);
     } catch (e) {
       digital.textContent = "--:--:--";
     }
@@ -346,6 +369,11 @@ window.GBClockApp = window.GBClockApp || {};
     box.querySelector("#gb-clock-stopwatch").hidden = state.tab !== "stopwatch";
     box.querySelector("#gb-clock-timer").hidden = state.tab !== "timer";
   }
+
+  /// Testable surface: the offset/diff helpers are pure and are exercised by
+  /// `botui/tests/clock_timezone_diff.test.js`.
+  app.zoneOffsetMinutes = zoneOffsetMinutes;
+  app.timezoneDiff = timezoneDiff;
 
   app.init = function () {
     var box = root();

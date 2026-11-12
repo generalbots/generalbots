@@ -68,6 +68,13 @@
   color: var(--text-secondary, #999);
 }
 
+/* #2261 — "GMT-3 · +0h vs local": the offset/diff line under the date. */
+.gb-clock-diff {
+  font-size: 12px;
+  color: var(--text-secondary, #999);
+  font-variant-numeric: tabular-nums;
+}
+
 .gb-clock-select {
   padding: 8px 10px;
   border-radius: 8px;
