@@ -190,7 +190,6 @@
       var req = JSON.parse(json);
       return req && req.request_id ? req : null;
     } catch (e) {
-      try { console.warn("[consent] decodeMarker failed:", e && e.message); } catch (e2) {}
       return null;
     }
   }
@@ -208,9 +207,13 @@
           req = decodeMarker(arguments[1]);
         }
         if (sender === "bot" && req) {
-          var pane = document.getElementById("messages");
+          // #2229 — during history replay, addMessage appends into a
+          // DocumentFragment (ChatState.appendTarget), not #messages. Look in
+          // the same container the message actually went into, otherwise the
+          // card is attached to the wrong bubble and the marker text leaks.
+          var pane = (window.ChatState && ChatState.appendTarget) || document.getElementById("messages");
           var lastMsgEl = pane ? pane.lastElementChild : null;
-          if (lastMsgEl && lastMsgEl.classList.contains("bot")) {
+          if (lastMsgEl && lastMsgEl.classList && lastMsgEl.classList.contains("bot")) {
             var body = lastMsgEl.querySelector(".message-content");
             if (body) {
               // Replace the marker payload with the interactive card; the
