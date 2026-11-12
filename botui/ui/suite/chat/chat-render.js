@@ -223,6 +223,8 @@ var deepLinkCatalog = null;
 // invented (e.g. app://vision?id=<made up>, app://docs?made_up=1) is treated
 // as a hallucination and stays plain text.
 function deepLinkTargetIsReal(appId, params) {
+  params = params || {};
+  var hasParams = Object.keys(params).length > 0;
   var declared = null;
   if (deepLinkCatalog) {
     if (!Object.prototype.hasOwnProperty.call(deepLinkCatalog, appId)) return false;
@@ -243,8 +245,11 @@ function deepLinkTargetIsReal(appId, params) {
     }
   }
   if (!declared) return true; // no catalog data to validate against: keep the link
+  // Bare app://appId (no params) is a valid "open the app" intent for any
+  // known app; only param-bearing links need a declared record key (#2240).
+  if (!hasParams) return true;
   var keys = declared.map(function (param) { return typeof param === "string" ? param : param && param.key; }).filter(Boolean);
-  if (!keys.length) return false;
+  if (!keys.length) return true; // app exists but declares no record keys: treat as open-app
   return keys.some(function (key) { return params[key] !== undefined && params[key] !== ""; });
 }
 
@@ -254,6 +259,12 @@ function deepLinkTargetIsReal(appId, params) {
 // (no window manager) — there the link stays as plain text.
 function renderDeepLinks(html) {
   if (!html || !window.WindowManager || !window.openDeepLink) return html;
+  // Protect code blocks: app:// inside <pre>/<code> stays literal (#2240).
+  var codeBlocks = [];
+  html = html.replace(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/gi, function (m) {
+    codeBlocks.push(m);
+    return "\u0000CODE" + (codeBlocks.length - 1) + "\u0000";
+  });
   // marked converts markdown links to <a href="app://...">label</a>;
   // match that anchor form (and any app:// href).
   var pattern = /<a\s+[^>]*href="app:\/\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
@@ -274,13 +285,14 @@ function renderDeepLinks(html) {
       'onclick="window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))">' +
       escapedLabel + "</button>";
   });
-  // Also convert bare app://appId?k=v URLs the LLM may emit in prose
-  // into the same button (fallback when it does not use markdown links).
-  // Only URLs with at least one query param carry a real record reference;
-  // bare app://appId or templated app://appId/{...} are left as-is.
-  var barePattern = /(^|[\s(>])(app:\/\/[A-Za-z0-9\-_.]+\?[A-Za-z0-9\-_.=&\{\}]+)/g;
+  // Also convert bare app://appId (with or without query params) URLs the LLM
+  // may emit in prose into the same button (fallback when it does not use
+  // markdown links). Templated app://appId/{...} paths stay literal.
+  var barePattern = /(^|[\s(>])(app:\/\/[A-Za-z0-9\-_.]+(?:\?[A-Za-z0-9\-_.=&\{\}]+)?)/g;
   html = html.replace(barePattern, function (m, pre, target) {
     var stripped = target.replace(/^app:\/\//i, "");
+    // templated path segments are not valid app ids — leave as-is
+    if (stripped.indexOf("/") !== -1) return m;
     var appId = stripped.split("?")[0];
     var params = parseDeepLinkParams(stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "");
     // #2226 — a bare URL already reads as text; only a real target becomes a button.
@@ -291,6 +303,10 @@ function renderDeepLinks(html) {
       'data-gb-app="' + appId + '" data-gb-params="' + json + '" ' +
       'onclick="window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))">' +
       'Open ' + appId + "</button>";
+  });
+  // Restore code blocks.
+  html = html.replace(/\u0000CODE(\d+)\u0000/g, function (m, idx) {
+    return codeBlocks[Number(idx)] || m;
   });
   return html;
 }

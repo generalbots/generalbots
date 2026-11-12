@@ -65,6 +65,9 @@
         if (typeof renderVmFileLinks === "function") {
           inner.innerHTML = renderVmFileLinks(inner.innerHTML);
         }
+        if (typeof renderDeepLinks === "function") {
+          inner.innerHTML = renderDeepLinks(inner.innerHTML);
+        }
       } catch (e) {
         inner.textContent = content;
       }

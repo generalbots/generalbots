@@ -43,6 +43,8 @@ function updateStreaming(content) {
   parsed = renderInlineMarkdown(parsed);
   parsed = parsed.replace(/<br\s*\/?>/gi, '');
   parsed = renderMentionInMessage(parsed);
+  if (typeof renderDeepLinks === "function") parsed = renderDeepLinks(parsed);
+  if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
   // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
