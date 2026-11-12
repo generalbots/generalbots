@@ -110,7 +110,28 @@ fi
 
 echo ""
 
-# Summary
+# Check for plaintext password keys in JSON config files (#2231)
+echo "10. Checking for plaintext password keys in JSON..."
+PLAINTEXT_JSON_PW=$(grep -rl '"password"' --include="*.json" . 2>/dev/null | grep -v "/target/" | grep -v "node_modules" || true)
+if [ -n "$PLAINTEXT_JSON_PW" ]; then
+    # only flag files where a literal "password" key (not salt/hash) is present
+    FLAGGED=""
+    for f in $PLAINTEXT_JSON_PW; do
+        if grep -q '"password"[[:space:]]*:' "$f" 2>/dev/null; then
+            FLAGGED="$FLAGGED $f"
+        fi
+    done
+    if [ -n "$FLAGGED" ]; then
+        echo "⚠️  WARNING: plaintext password key found in JSON:$FLAGGED"
+        echo "   Store a salted hash (password_salt/password_hash) instead."
+    else
+        echo "✅ No plaintext password keys in JSON"
+    fi
+else
+    echo "✅ No plaintext password keys in JSON"
+fi
+
+echo ""
 echo "📊 Security Audit Summary"
 echo "========================"
 echo ""
