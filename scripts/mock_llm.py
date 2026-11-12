@@ -126,18 +126,17 @@ class MockServer(ThreadingHTTPServer):
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "GBMockLLM/1.0"
+    server_version = "GBMockLLM/1.1"
     sys_version = ""
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003
-        # Keep stdout clean; route access-ish logs to stderr/file in _write_log when needed.
+        # Keep stdout clean; structured access is emitted via _write_log when useful.
         return
 
-    def _send_json(self, payload: dict[str, Any], code: int = 200) -> None:
-        data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    def _send_bytes(self, data: bytes, code: int = 200, content_type: str = "application/json") -> None:
         try:
             self.send_response(code)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -145,7 +144,47 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, OSError):
             _inc("errors")
 
+    def _send_json(self, payload: dict[str, Any], code: int = 200) -> None:
+        data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        self._send_bytes(data, code=code, content_type="application/json")
+
+    def _send_empty(self, code: int = 200) -> None:
+        try:
+            self.send_response(code)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, OSError):
+            _inc("errors")
+
     def _read_body(self) -> bytes:
+        # Support Content-Length and (rare) chunked transfer for robustness.
+        te = (self.headers.get("Transfer-Encoding") or "").lower()
+        if "chunked" in te:
+            chunks: list[bytes] = []
+            try:
+                while True:
+                    line = self.rfile.readline()
+                    if not line:
+                        break
+                    size_str = line.split(b";", 1)[0].strip()
+                    try:
+                        size = int(size_str, 16)
+                    except Exception:
+                        break
+                    if size <= 0:
+                        # consume trailing headers terminator
+                        while True:
+                            tail = self.rfile.readline()
+                            if not tail or tail in (b"\r\n", b"\n"):
+                                break
+                        break
+                    chunks.append(self.rfile.read(size))
+                    self.rfile.read(2)  # CRLF
+                return b"".join(chunks)
+            except Exception:
+                _inc("errors")
+                return b"".join(chunks)
+
         length_raw = self.headers.get("Content-Length", "0") or "0"
         try:
             length = int(length_raw)
@@ -161,48 +200,85 @@ class Handler(BaseHTTPRequestHandler):
 
     def _send_sse_headers(self) -> None:
         self.send_response(200)
-        self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-store")
         self.send_header("Connection", "close")
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
 
+    def _normalize_path(self) -> str:
+        path = self.path.split("?", 1)[0] or "/"
+        if len(path) > 1 and path.endswith("/"):
+            path = path[:-1]
+        return path
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        _inc("requests")
+        self._send_empty(204)
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        _inc("requests")
+        path = self._normalize_path()
+        if path in ("/", "/health", "/ready", "/v1/health", "/v1/models", "/models"):
+            self._send_empty(200)
+            return
+        self._send_empty(404)
+
     def do_GET(self) -> None:  # noqa: N802
         _inc("requests")
-        path = self.path.split("?", 1)[0]
-        if path in ("/health", "/v1/health"):
-            self._send_json({"status": "ok", "mock": True, "model": MODEL, "mode": MODE, **_snapshot()})
+        path = self._normalize_path()
+        if path in ("/", "/health", "/ready", "/v1/health", "/healthz", "/readyz"):
+            self._send_json({"status": "ok", "ready": True, "mock": True, "model": MODEL, "mode": MODE, **_snapshot()})
             return
         if path in ("/v1/models", "/models"):
+            created = _STATE.get("started_at", _now())
             self._send_json(
                 {
                     "object": "list",
                     "data": [
-                        {"id": MODEL, "object": "model", "owned_by": "mock"},
-                        {"id": "mock-deterministic", "object": "model", "owned_by": "mock"},
+                        {"id": MODEL, "object": "model", "created": created, "owned_by": "mock"},
+                        {"id": "mock-deterministic", "object": "model", "created": created, "owned_by": "mock"},
                     ],
                 }
             )
             return
-        self._send_json({"error": {"message": f"not found: {path}", "type": "not_found"}}, 404)
+        self._send_json({"error": {"message": f"not found: {path}", "type": "not_found", "param": None, "code": "not_found"}}, 404)
+
+    def _parse_json_body(self, raw: bytes) -> dict[str, Any]:
+        if not raw:
+            return {}
+        try:
+            body = json.loads(raw.decode("utf-8", errors="replace"))
+            if isinstance(body, dict):
+                return body
+            return {"input": body}
+        except Exception:
+            _inc("errors")
+            return {}
+
+    def _wants_stream(self, body: dict[str, Any]) -> bool:
+        if "stream" in body:
+            return bool(body.get("stream"))
+        accept = (self.headers.get("Accept") or "").lower()
+        if "text/event-stream" in accept:
+            return True
+        # OpenAI chat completions default is non-streaming; prefer JSON for omitted stream.
+        return False
 
     def do_POST(self) -> None:  # noqa: N802
         _inc("requests")
-        path = self.path.split("?", 1)[0]
+        path = self._normalize_path()
         raw = self._read_body()
-        try:
-            body = json.loads(raw.decode("utf-8") or "{}") if raw else {}
-        except Exception:
-            body = {}
-            _inc("errors")
+        body = self._parse_json_body(raw)
 
         if path.endswith("/embeddings"):
             _inc("embedding_requests")
             inp = body.get("input", "")
             if isinstance(inp, list):
-                n = max(1, len(inp))
+                items = inp
             else:
-                n = 1
+                items = [inp]
+            n = max(1, len(items))
             data = [
                 {"object": "embedding", "index": i, "embedding": [0.0] * 8}
                 for i in range(n)
@@ -217,23 +293,25 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
-        # Treat any other POST as chat/completions-compatible (common path variants).
+        # Treat chat/completions-compatible POSTs (common path variants) as chat.
+        if not (path.endswith("/chat/completions") or path.endswith("/completions") or "/chat" in path):
+            # Still accept unknown POSTs for robustness, but log clearly.
+            pass
         _inc("chat_requests")
         messages = body.get("messages") or []
+        if not isinstance(messages, list):
+            messages = []
         user_text = _user_text(messages)
         digest = hashlib.sha256(user_text.encode("utf-8", errors="ignore")).hexdigest()[:12]
-        stream = bool(body.get("stream", True))
-        if "stream" not in body:
-            # Default to streaming for OpenAI-client compatibility, but callers can
-            # explicitly request stream=false for simpler CI assertions.
-            stream = True
+        stream = self._wants_stream(body)
+        req_model = body.get("model") or MODEL
+        created = _now()
         if stream:
             _inc("stream_requests")
         else:
             _inc("non_stream_requests")
         _write_log(
-            f"REQ path={path} stream={stream} msgs={len(messages) if isinstance(messages, list) else 0} "
-            f"digest={digest} mode={MODE} model={body.get('model') or MODEL}"
+            f"REQ path={path} stream={stream} msgs={len(messages)} digest={digest} mode={MODE} model={req_model}"
         )
 
         if MODE == "tool":
@@ -241,15 +319,15 @@ class Handler(BaseHTTPRequestHandler):
                 "index": 0,
                 "id": f"call_mock_{digest}",
                 "type": "function",
-                "function": {"name": TOOL, "arguments": json.dumps({"path": "sanity/check.csv"})},
+                "function": {"name": TOOL, "arguments": json.dumps({"path": "sanity/check.csv"}, separators=(",", ":"))},
             }
             if not stream:
                 self._send_json(
                     {
                         "id": f"chatcmpl-mock-{digest}",
                         "object": "chat.completion",
-                        "created": 0,
-                        "model": MODEL,
+                        "created": created,
+                        "model": req_model,
                         "choices": [
                             {
                                 "index": 0,
@@ -261,17 +339,18 @@ class Handler(BaseHTTPRequestHandler):
                     }
                 )
                 return
-            self._send_tool_stream(digest, tool_call)
+            self._send_tool_stream(digest, tool_call, created=created, model=req_model)
             return
 
         reply = _reply_for(user_text, digest)
         if not stream:
+            completion_tokens = max(1, len(reply.split()))
             self._send_json(
                 {
                     "id": f"chatcmpl-mock-{digest}",
                     "object": "chat.completion",
-                    "created": 0,
-                    "model": MODEL,
+                    "created": created,
+                    "model": req_model,
                     "choices": [
                         {
                             "index": 0,
@@ -279,32 +358,36 @@ class Handler(BaseHTTPRequestHandler):
                             "finish_reason": "stop",
                         }
                     ],
-                    "usage": {"prompt_tokens": 1, "completion_tokens": max(1, len(reply.split())), "total_tokens": max(2, len(reply.split()) + 1)},
+                    "usage": {"prompt_tokens": 1, "completion_tokens": completion_tokens, "total_tokens": completion_tokens + 1},
                 }
             )
             return
-        self._send_content_stream(digest, reply)
+        self._send_content_stream(digest, reply, created=created, model=req_model)
 
-    def _send_content_stream(self, digest: str, reply: str) -> None:
+    def _send_content_stream(self, digest: str, reply: str, created: int | None = None, model: str | None = None) -> None:
         try:
             self._send_sse_headers()
             chunk_base = {
                 "id": f"chatcmpl-mock-{digest}",
                 "object": "chat.completion.chunk",
-                "created": 0,
-                "model": MODEL,
+                "created": int(created if created is not None else _now()),
+                "model": model or MODEL,
             }
 
             def send(delta: dict[str, Any], finish: str | None = None) -> None:
                 payload = dict(chunk_base)
                 payload["choices"] = [{"index": 0, "delta": delta, "finish_reason": finish}]
-                self.wfile.write(("data: " + json.dumps(payload, separators=(",", ":")) + "\n\n").encode("utf-8"))
+                data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+                self.wfile.write(("data: " + data + "\n\n").encode("utf-8"))
                 self.wfile.flush()
 
+            # Initial role delta improves OpenAI client compatibility.
+            send({"role": "assistant", "content": ""}, None)
             # Stream in small deterministic chunks for client compatibility.
             parts = [reply] if len(reply) <= 64 else [reply[i : i + 48] for i in range(0, len(reply), 48)]
             for part in parts:
-                send({"content": part})
+                if part:
+                    send({"content": part}, None)
             send({}, "stop")
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()
@@ -313,23 +396,24 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             self.close_connection = True
 
-    def _send_tool_stream(self, digest: str, tool_call: dict[str, Any]) -> None:
+    def _send_tool_stream(self, digest: str, tool_call: dict[str, Any], created: int | None = None, model: str | None = None) -> None:
         try:
             self._send_sse_headers()
             chunk_base = {
                 "id": f"chatcmpl-mock-{digest}",
                 "object": "chat.completion.chunk",
-                "created": 0,
-                "model": MODEL,
+                "created": int(created if created is not None else _now()),
+                "model": model or MODEL,
             }
 
             def send(delta: dict[str, Any], finish: str | None = None) -> None:
                 payload = dict(chunk_base)
                 payload["choices"] = [{"index": 0, "delta": delta, "finish_reason": finish}]
-                self.wfile.write(("data: " + json.dumps(payload, separators=(",", ":")) + "\n\n").encode("utf-8"))
+                data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+                self.wfile.write(("data: " + data + "\n\n").encode("utf-8"))
                 self.wfile.flush()
 
-            send({"tool_calls": [tool_call]})
+            send({"role": "assistant", "content": None, "tool_calls": [tool_call]}, None)
             send({}, "tool_calls")
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()

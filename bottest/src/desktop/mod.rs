@@ -1,3 +1,5 @@
+pub mod suite_chat;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
