@@ -161,7 +161,9 @@ async fn stream_llm_response_inner(
                 {
                     {
                         let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                        // The actual user-facing reply was persisted inside
+                        // handle_api_call (marker, composed answer, ...); do
+                        // not store the raw __api_call__ envelope here.
                         let _ = sm.record_message_model(session_id, llm_model);
                     }
                     break;

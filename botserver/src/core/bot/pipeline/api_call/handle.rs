@@ -94,6 +94,10 @@ pub(crate) async fn handle_api_call(
             &channel,
         );
         let _ = sink.send_bot_response(&progress).await;
+        // Persist the leading line so history replay shows it instead of the
+        // raw __api_call__ envelope (#consent text-instead-of-buttons).
+        let mut sm = state.session_manager.lock().await;
+        let _ = sm.save_message(session_id, user_id, 2, leading, 2);
     }
 
     // Tax commands: models frequently omit the `value` param even when the
@@ -131,6 +135,12 @@ pub(crate) async fn handle_api_call(
                 &channel,
             );
             let _ = sink.send_bot_response(&resp).await;
+            // Persist the consent marker (or denial) so a page reload still
+            // renders the interactive card instead of raw JSON.
+            {
+                let mut sm = state.session_manager.lock().await;
+                let _ = sm.save_message(session_id, user_id, 2, &message, 2);
+            }
             return true;
         }
     }
@@ -248,6 +258,8 @@ pub(crate) async fn handle_api_call(
                             &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
+                        let mut sm = state.session_manager.lock().await;
+                        let _ = sm.save_message(session_id, user_id, 2, &text, 2);
                     }
                     None => {
                         // Never lose the result to a composition failure: the
@@ -277,6 +289,8 @@ pub(crate) async fn handle_api_call(
                             &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
+                        let mut sm = state.session_manager.lock().await;
+                        let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
                     }
                 }
             } else {
@@ -292,6 +306,8 @@ pub(crate) async fn handle_api_call(
                     &channel,
                 );
                 let _ = sink.send_bot_response(&resp).await;
+                let mut sm = state.session_manager.lock().await;
+                let _ = sm.save_message(session_id, user_id, 2, &text, 2);
             }
             true
         }
