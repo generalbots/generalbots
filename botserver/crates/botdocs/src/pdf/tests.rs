@@ -111,7 +111,7 @@ fn toc_entries_become_internal_pdf_links() {
 
     let pdf = stream_text(&html_to_pdf(html));
     assert!(
-        pdf.contains("/Names [ (sec-introducao) ["),
+        pdf.contains("/Names [(sec-introducao) ["),
         "the destination name tree must expose the heading anchor: {pdf}"
     );
     assert!(
