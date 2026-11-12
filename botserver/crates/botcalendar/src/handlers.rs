@@ -1,7 +1,8 @@
 use super::*;
 
 pub async fn create_calendar(
-    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
     Json(input): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
@@ -46,53 +47,52 @@ pub async fn create_calendar(
 }
 
 pub async fn list_calendars_db(
-    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<Vec<CalendarRecord>>, StatusCode> {
     let pool = state.clone();
     let scope = write_scope_from_headers(&state, &headers);
     let (org_id, bot_id, branch_id) = (scope.org_id, scope.bot_id, scope.branch_id);
 
-    let result = tokio::task::spawn_blocking(
-        move || -> Result<Vec<CalendarRecord>, StatusCode> {
-            let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-            let calendars = calendars::table
-                .filter(calendars::org_id.eq(org_id))
-                .filter(calendars::bot_id.eq(bot_id))
-                .order(calendars::created_at.desc())
-                .load::<CalendarRecord>(&mut conn)
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            // #1250 — auto-provision a default calendar when the workspace
-            // has none: `create_event` requires a `calendar_id`, and a fresh
-            // user who opens Calendar would otherwise see an empty state with
-            // no way to create events until they manually create a calendar.
-            if calendars.is_empty() {
-                let now = Utc::now();
-                let default_calendar = CalendarRecord {
-                    id: Uuid::new_v4(),
-                    org_id,
-                    bot_id,
-                    branch_id,
-                    owner_id: Uuid::nil(),
-                    name: "Default".to_string(),
-                    description: Some("Your default calendar".to_string()),
-                    color: Some("#3b82f6".to_string()),
-                    timezone: Some("UTC".to_string()),
-                    is_primary: true,
-                    is_visible: true,
-                    is_shared: false,
-                    created_at: now,
-                    updated_at: now,
-                };
-                // Race-safe: two concurrent first lists may both try to
-                // insert; a duplicate-key error is harmless (the other won).
-                let _ = diesel::insert_into(calendars::table)
-                    .values(&default_calendar)
-                    .execute(&mut conn);
-                return Ok(vec![default_calendar]);
-            }
-            Ok(calendars)
-        },
-    )
+    let result = tokio::task::spawn_blocking(move || -> Result<Vec<CalendarRecord>, StatusCode> {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        let calendars = calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .order(calendars::created_at.desc())
+            .load::<CalendarRecord>(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        // #1250 — auto-provision a default calendar when the workspace
+        // has none: `create_event` requires a `calendar_id`, and a fresh
+        // user who opens Calendar would otherwise see an empty state with
+        // no way to create events until they manually create a calendar.
+        if calendars.is_empty() {
+            let now = Utc::now();
+            let default_calendar = CalendarRecord {
+                id: Uuid::new_v4(),
+                org_id,
+                bot_id,
+                branch_id,
+                owner_id: Uuid::nil(),
+                name: "Default".to_string(),
+                description: Some("Your default calendar".to_string()),
+                color: Some("#3b82f6".to_string()),
+                timezone: Some("UTC".to_string()),
+                is_primary: true,
+                is_visible: true,
+                is_shared: false,
+                created_at: now,
+                updated_at: now,
+            };
+            // Race-safe: two concurrent first lists may both try to
+            // insert; a duplicate-key error is harmless (the other won).
+            let _ = diesel::insert_into(calendars::table)
+                .values(&default_calendar)
+                .execute(&mut conn);
+            return Ok(vec![default_calendar]);
+        }
+        Ok(calendars)
+    })
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -100,7 +100,7 @@ pub async fn list_calendars_db(
 }
 
 pub async fn get_calendar(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
@@ -124,7 +124,7 @@ pub async fn get_calendar(
 }
 
 pub async fn update_calendar(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateCalendarRequest>,
@@ -180,7 +180,7 @@ pub async fn update_calendar(
 }
 
 pub async fn delete_calendar(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
@@ -195,8 +195,8 @@ pub async fn delete_calendar(
                 .filter(calendars::bot_id.eq(bot_id))
                 .find(id),
         )
-            .execute(&mut conn)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .execute(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         if deleted > 0 {
             Ok::<_, StatusCode>(StatusCode::NO_CONTENT)
@@ -213,7 +213,8 @@ pub async fn delete_calendar(
 }
 
 pub async fn list_events(
-    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
     Query(query): Query<EventQuery>,
 ) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
     let pool = state.clone();
@@ -262,7 +263,7 @@ pub async fn list_events(
 }
 
 pub async fn get_event(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
@@ -288,8 +289,64 @@ pub async fn get_event(
         .map(Json)
 }
 
+/// Resolves (or provisions) the calendar an event belongs to.
+///
+/// The web client posts `calendar_id: null` when its form uses the friendly
+/// "personal/work/family" values, which is not a UUID. Inserting `Uuid::nil()`
+/// then violated the calendars foreign key and event creation answered 500
+/// (UAT #2262 — "save broken"). Fall back to the workspace's primary calendar,
+/// creating a Default one when the workspace has never listed calendars.
+async fn default_calendar_id(
+    pool: &DbPool,
+    org_id: Uuid,
+    bot_id: Uuid,
+    branch_id: Uuid,
+) -> Result<Uuid, StatusCode> {
+    let pool = pool.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        if let Some(id) = calendars::table
+            .filter(calendars::org_id.eq(org_id))
+            .filter(calendars::bot_id.eq(bot_id))
+            .select(calendars::id)
+            .order(calendars::is_primary.desc())
+            .first::<Uuid>(&mut conn)
+            .optional()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            return Ok(id);
+        }
+        let now = Utc::now();
+        let id = Uuid::new_v4();
+        let record = CalendarRecord {
+            id,
+            org_id,
+            bot_id,
+            branch_id,
+            owner_id: Uuid::nil(),
+            name: "Default".to_string(),
+            description: Some("Your default calendar".to_string()),
+            color: Some("#3b82f6".to_string()),
+            timezone: Some("UTC".to_string()),
+            is_primary: true,
+            is_visible: true,
+            is_shared: false,
+            created_at: now,
+            updated_at: now,
+        };
+        diesel::insert_into(calendars::table)
+            .values(&record)
+            .execute(&mut conn)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(id)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+}
+
 pub async fn create_event(
-    State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
+    State(state): State<Arc<DbPool>>,
+    headers: axum::http::HeaderMap,
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
@@ -298,7 +355,10 @@ pub async fn create_event(
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
-    let calendar_id = input.calendar_id.unwrap_or_else(Uuid::nil);
+    let calendar_id = match input.calendar_id {
+        Some(id) if id != Uuid::nil() => id,
+        _ => default_calendar_id(&state, org_id, bot_id, scope.branch_id).await?,
+    };
 
     let reminders = if let Some(minutes) = input.reminder_minutes {
         serde_json::json!([{"minutes_before": minutes, "type": "notification"}])
@@ -354,7 +414,7 @@ pub async fn create_event(
 }
 
 pub async fn update_event(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
     Json(input): Json<CalendarEventInput>,
@@ -381,8 +441,7 @@ pub async fn update_event(
         event.end_time = input.end_time;
         event.all_day = input.all_day;
         event.recurrence_rule = input.recurrence;
-        event.attendees =
-            serde_json::to_value(&input.attendees).unwrap_or(serde_json::json!([]));
+        event.attendees = serde_json::to_value(&input.attendees).unwrap_or(serde_json::json!([]));
         if let Some(minutes) = input.reminder_minutes {
             event.reminders =
                 serde_json::json!([{"minutes_before": minutes, "type": "notification"}]);
@@ -409,7 +468,7 @@ pub async fn update_event(
 }
 
 pub async fn delete_event(
-        headers: axum::http::HeaderMap,
+    headers: axum::http::HeaderMap,
     State(state): State<Arc<DbPool>>,
     Path(id): Path<Uuid>,
 ) -> StatusCode {
@@ -424,8 +483,8 @@ pub async fn delete_event(
                 .filter(calendar_events::bot_id.eq(bot_id))
                 .find(id),
         )
-            .execute(&mut conn)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .execute(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         if deleted > 0 {
             info!("Deleted calendar event: {id}");

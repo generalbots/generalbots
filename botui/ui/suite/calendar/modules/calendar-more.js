@@ -1,6 +1,28 @@
 (function () {
 'use strict';
     var CS = window.__calCS;
+    // calendar.js keeps its helpers in its own closure. Call them through the
+    // module it exposes: the bare identifiers used here threw ReferenceError
+    // on every click, so the calendar never switched views or saved events
+    // (UAT #2262).
+    function renderMiniCalendar() { return window.CalendarModule.renderMiniCalendar(); }
+    function renderCurrentView() { return window.CalendarModule.renderCurrentView(); }
+    function loadEvents() { return window.CalendarModule.loadEvents(); }
+    function navigate(direction) { return window.CalendarModule.navigate(direction); }
+    /**
+     * Dispatch to the per-view painter for the active view. calendar.js's
+     * drawEvents() delegates here (the painters live in this module).
+     */
+    function drawEvents() {
+        if (CS.currentView === 'month') {
+            return drawEventsMonth();
+        }
+        if (CS.currentView === 'week') {
+            return drawEventsWeek();
+        }
+        return drawEventsDay();
+    }
+
     function drawEventsMonth() {
         const cells = document.querySelectorAll('.month-day');
         cells.forEach(cell => {
@@ -357,6 +379,7 @@
     // exposed by calendar.js so init/navigate/renderCurrentView/loadEvents
     // resolve from there instead of this module's empty scope.
     var base = window.CalendarModule || {};
+
     window.CalendarModule = {
         init: base.init || init,
         navigate: base.navigate || navigate,
@@ -370,6 +393,9 @@
             loadEvents();
         }
     };
+    // calendar.js's init() calls bindEvents(); hand it the real implementation.
+    window.CalendarModule.__bindEvents = bindEvents;
+    window.CalendarModule.__drawEvents = drawEvents;
 
     // Auto-initialize when DOM is ready
     var bootInit = window.CalendarModule.init;

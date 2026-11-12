@@ -220,6 +220,7 @@
           // conversations list (not leave it in the locked view).
           mod.loadHistory();
           mod.openConversation(sessionId);
+        })
         .catch(function (err) {
           report("Unlock conversation", "Could not unlock: " + err.message);
         });

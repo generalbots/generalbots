@@ -23,6 +23,15 @@
     }
 
     /**
+     * Bind UI listeners. The implementation lives in calendar-more.js (loaded
+     * after this file), which registers it on window.CalendarModule.
+     */
+    function bindEvents() {
+        var extended = window.CalendarModule && window.CalendarModule.__bindEvents;
+        if (typeof extended === "function") return extended();
+    }
+
+    /**
      * Initialize calendar module
      */
     function init() {
@@ -389,23 +398,26 @@
      * Draw CS.events on grids
      */
     function drawEvents() {
-        if (CS.currentView === 'month') {
-            drawEventsMonth();
-        } else if (CS.currentView === 'week') {
-            drawEventsWeek();
-        } else {
-            drawEventsDay();
-        }
+        // The per-view painters live in calendar-more.js (loaded after this
+        // file); calling them as bare identifiers here threw ReferenceError,
+        // so events were saved but never painted (UAT #2262).
+        var extended = window.CalendarModule && window.CalendarModule.__drawEvents;
+        if (typeof extended === "function") return extended();
     }
 
     // Expose the core functions so calendar-more.js (loaded after) can
     // extend the module instead of re-declaring them from an empty scope.
+    // NOTE: showEventPopup is defined in calendar-more.js, which loads AFTER
+    // this file. Referencing it here threw a ReferenceError while building
+    // this object, so window.CalendarModule was never assigned and the whole
+    // app failed to initialise (UAT #2262).
     window.CalendarModule = {
         init: init,
         navigate: navigate,
         renderCurrentView: renderCurrentView,
+        renderMiniCalendar: renderMiniCalendar,
         loadEvents: loadEvents,
         drawEvents: drawEvents,
-        showEventPopup: showEventPopup
+        bindEvents: bindEvents
     };
 })();
