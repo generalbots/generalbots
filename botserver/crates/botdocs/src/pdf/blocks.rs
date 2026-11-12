@@ -33,6 +33,12 @@ pub enum BlockKind {
 pub struct Block {
     pub kind: BlockKind,
     pub runs: Vec<InlineRun>,
+    /// Heading `id` attribute: becomes an internal PDF destination so a TOC
+    /// entry can jump to it (#2252).
+    pub anchor: Option<String>,
+    /// First same-document `#fragment` link in the block: becomes a clickable
+    /// internal PDF link over the block's lines (#2252).
+    pub link: Option<String>,
 }
 
 impl Block {
@@ -57,6 +63,8 @@ struct Builder {
     kind: Option<BlockKind>,
     owner: Option<String>,
     lists: Vec<ListContext>,
+    anchor: Option<String>,
+    link: Option<String>,
 }
 
 impl Builder {
@@ -98,10 +106,17 @@ impl Builder {
 
     /// Starts a block owning tag, emitting whatever was still open. Editors
     /// occasionally leave a paragraph unclosed, so this never drops content.
-    fn start_block(&mut self, kind: BlockKind, owner: &str, out: &mut Vec<Block>) {
+    fn start_block(
+        &mut self,
+        kind: BlockKind,
+        owner: &str,
+        anchor: Option<String>,
+        out: &mut Vec<Block>,
+    ) {
         self.finish_block(out);
         self.kind = Some(kind);
         self.owner = Some(owner.to_string());
+        self.anchor = anchor;
     }
 
     fn finish_block(&mut self, out: &mut Vec<Block>) {
@@ -110,10 +125,17 @@ impl Builder {
         // paragraph: dropping it would silently empty the exported PDF.
         let kind = self.kind.take().unwrap_or(BlockKind::Paragraph);
         self.owner = None;
+        let anchor = self.anchor.take();
+        let link = self.link.take();
         let mut runs = std::mem::take(&mut self.runs);
         trim_runs(&mut runs);
         if !runs.is_empty() {
-            out.push(Block { kind, runs });
+            out.push(Block {
+                kind,
+                runs,
+                anchor,
+                link,
+            });
         }
     }
 
@@ -122,6 +144,8 @@ impl Builder {
         out.push(Block {
             kind: BlockKind::PageBreak,
             runs: Vec::new(),
+            anchor: None,
+            link: None,
         });
     }
 
@@ -152,7 +176,7 @@ impl Builder {
                 if is_page_break(tag) {
                     self.push_page_break(out);
                 } else if self.kind.is_none() {
-                    self.start_block(BlockKind::Paragraph, name, out);
+                    self.start_block(BlockKind::Paragraph, name, None, out);
                 }
             }
             "hr" => {
@@ -164,7 +188,19 @@ impl Builder {
             }
             "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                 let level = name[1..].parse::<u8>().unwrap_or(1);
-                self.start_block(BlockKind::Heading(level), name, out);
+                // `id="sec-intro"` (editor anchors inserted by the Docs TOC,
+                // #2252) is the destination a TOC link points at.
+                let anchor = attribute_value(tag, "id").filter(|value| !value.is_empty());
+                self.start_block(BlockKind::Heading(level), name, anchor, out);
+            }
+            // Only same-document links (`href="#anchor"`) can be resolved
+            // inside the PDF; external URLs keep plain text.
+            "a" => {
+                if self.link.is_none() {
+                    self.link = attribute_value(tag, "href")
+                        .filter(|value| value.starts_with('#') && value.len() > 1)
+                        .map(|value| value[1..].to_string());
+                }
             }
             "ul" | "ol" => {
                 self.finish_block(out);
@@ -184,18 +220,18 @@ impl Builder {
                     }
                     _ => "-".to_string(),
                 };
-                self.start_block(BlockKind::ListItem { indent, marker }, "li", out);
+                self.start_block(BlockKind::ListItem { indent, marker }, "li", None, out);
             }
             "blockquote" => {
-                self.start_block(BlockKind::Blockquote, name, out);
+                self.start_block(BlockKind::Blockquote, name, None, out);
             }
             "pre" => {
                 self.finish_block(out);
-                self.start_block(BlockKind::Code, "pre", out);
+                self.start_block(BlockKind::Code, "pre", None, out);
             }
             "tr" => {
                 self.finish_block(out);
-                self.start_block(BlockKind::Paragraph, "tr", out);
+                self.start_block(BlockKind::Paragraph, "tr", None, out);
             }
             "td" | "th" => {
                 if !self.runs.is_empty() || !self.text.is_empty() {
@@ -245,6 +281,39 @@ fn trim_runs(runs: &mut Vec<InlineRun>) {
 
 fn tag_name(tag: &str) -> &str {
     tag.split_whitespace().next().unwrap_or("")
+}
+
+/// Reads `name="value"` (or `name='value'`) from a raw tag body.
+///
+/// Used for `id=` (heading destinations) and `href=#...` (TOC links), the two
+/// attributes the PDF TOC navigation needs (#2252).
+fn attribute_value(tag: &str, name: &str) -> Option<String> {
+    let lower = tag.to_ascii_lowercase();
+    let needle = format!("{name}=");
+    let mut search_from = 0;
+    while let Some(offset) = lower[search_from..].find(&needle) {
+        let absolute = search_from + offset;
+        // `data-id=` must not satisfy a lookup for `id=`.
+        let glued_to_other_name = absolute > 0
+            && lower[..absolute]
+                .chars()
+                .next_back()
+                .is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_');
+        if glued_to_other_name {
+            search_from = absolute + needle.len();
+            continue;
+        }
+        let rest = tag[absolute + needle.len()..].trim_start();
+        let value = match rest.chars().next() {
+            Some(quote @ ('"' | '\'')) => rest[1..].split(quote).next().unwrap_or(""),
+            _ => rest
+                .split(|ch: char| ch.is_whitespace() || ch == '>')
+                .next()
+                .unwrap_or(""),
+        };
+        return Some(decode_html_entities(value).trim().to_string());
+    }
+    None
 }
 
 /// `class="gb-doc-page-break"` (DOCX converter) and `class="gb-page-break"`

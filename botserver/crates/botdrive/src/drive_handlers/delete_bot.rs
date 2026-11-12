@@ -103,8 +103,11 @@ pub async fn open_file(
             "editor".to_string(),
             format!("/suite/editor.html?file={path}&bucket={bucket}"),
         ),
+        // #2254 — a PDF opens in Docs as an editable document: the importer
+        // reads its text back into paragraphs. The Drive preview modal (context
+        // menu → Preview) still renders the original pages.
         "pdf" => (
-            "preview".to_string(),
+            "docs".to_string(),
             format!("/suite/docs/docs.html?file={path}&bucket={bucket}"),
         ),
         "csv" | "xls" | "xlsx" | "ods" => (

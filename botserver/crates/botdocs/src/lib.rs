@@ -2,6 +2,7 @@ pub mod auth;
 pub mod collaboration;
 pub mod export_isolation;
 pub mod handlers_api;
+pub mod import_pdf;
 pub mod legacy;
 pub mod ooxml;
 pub mod pdf;

@@ -709,7 +709,7 @@ Imports a document from an external file format.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `file` | binary | Yes | File to import (docx, pdf, html, md, txt) |
+| `file` | binary | Yes | File to import (docx, odt, rtf, pdf, html, md, txt). A PDF is read into editable paragraphs, one per recovered block, pages kept in reading order (#2254) |
 | `name` | string | No | Document name (default: filename) |
 
 **Response:**

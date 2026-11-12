@@ -59,6 +59,11 @@ pub async fn handle_import_document(
 
     let format = detect_import_format(&filename, &bytes);
     let content = match format.as_str() {
+        // #2254 — a PDF is read back into editable paragraphs instead of being
+        // rejected as an unsupported format.
+        "pdf" => crate::import_pdf::pdf_to_editor_html(&bytes).map_err(|e| {
+            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+        })?,
         "docx" => convert_docx_to_html(&bytes).map_err(|e| {
             (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
         })?,
@@ -116,12 +121,13 @@ pub async fn handle_import_document(
     Ok(Json(doc))
 }
 
-fn detect_import_format(filename: &str, bytes: &[u8]) -> String {
+pub(crate) fn detect_import_format(filename: &str, bytes: &[u8]) -> String {
     let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     match ext.as_str() {
         "docx" => return "docx".to_string(),
         "odt" => return "odt".to_string(),
         "rtf" => return "rtf".to_string(),
+        "pdf" => return "pdf".to_string(),
         "md" | "markdown" => return "markdown".to_string(),
         "html" | "htm" => return "html".to_string(),
         "txt" => return "txt".to_string(),

@@ -95,6 +95,36 @@ fn bold_runs_and_portuguese_accents_survive_export() {
 }
 
 #[test]
+fn toc_entries_become_internal_pdf_links() {
+    let html = "<p class=\"gb-doc-toc-title\">Sumário</p>\
+         <p class=\"gb-doc-toc-entry\"><a href=\"#sec-introducao\">Introdução</a></p>\
+         <h1 id=\"sec-introducao\">Introdução</h1><p>Texto da proposta.</p>";
+
+    let pages = layout_pages(&parse_blocks(html));
+    assert!(
+        pages.iter().any(|page| page
+            .anchors
+            .iter()
+            .any(|(name, _)| name == "sec-introducao")),
+        "the heading id must become a layout destination"
+    );
+
+    let pdf = stream_text(&html_to_pdf(html));
+    assert!(
+        pdf.contains("/Names [ (sec-introducao) ["),
+        "the destination name tree must expose the heading anchor: {pdf}"
+    );
+    assert!(
+        pdf.contains("/Subtype /Link"),
+        "the TOC line must carry a link annotation: {pdf}"
+    );
+    assert!(
+        pdf.contains("/Dest (sec-introducao)"),
+        "the link must target the heading destination: {pdf}"
+    );
+}
+
+#[test]
 fn no_line_is_laid_out_outside_the_page_margins() {
     let mut html = String::from("<h1>Relatório longo</h1>");
     for index in 0..120 {

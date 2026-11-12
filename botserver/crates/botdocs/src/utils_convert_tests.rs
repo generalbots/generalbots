@@ -19,6 +19,8 @@ fn format_detection_uses_magic_bytes_then_text_markers() {
         ("bare zip", zip_with("nothing-here"), "zip"),
         ("rtf", b"{\\rtf1\\ansi}".to_vec(), "rtf"),
         ("doc", vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1], "doc"),
+        // #2254 — the PDF signature wins over the text fallbacks.
+        ("pdf", b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n".to_vec(), "pdf"),
         ("doctype", b"<!DOCTYPE html><p>x</p>".to_vec(), "html"),
         ("html", b"  <html><body>x</body></html>".to_vec(), "html"),
         ("heading", b"# Title".to_vec(), "markdown"),

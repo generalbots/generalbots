@@ -2142,6 +2142,7 @@ dependencies = [
  "log",
  "once_cell",
  "ooxmlsdk",
+ "pdf-extract",
  "quick-xml 0.42.0",
  "r2d2",
  "rand 0.9.4",

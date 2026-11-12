@@ -5,7 +5,7 @@
 //! positioned independently, which keeps indentation and per-line font sizes
 //! faithful to the block layout.
 
-use super::layout::{Line, Page, PAGE_HEIGHT, PAGE_WIDTH};
+use super::layout::{Line, Page, MARGIN, PAGE_HEIGHT, PAGE_WIDTH};
 
 /// Font resource name per emphasis combination.
 fn font_resource(mono: bool, bold: bool, italic: bool) -> &'static str {
@@ -29,20 +29,90 @@ struct PdfObject {
     content: Vec<u8>,
 }
 
+/// First page object id; page/content pairs follow the four font objects.
+const FIRST_PAGE_OBJECT: u32 = 7;
+
+fn page_object_id(page_index: usize) -> u32 {
+    FIRST_PAGE_OBJECT + page_index as u32 * 2
+}
+
+/// Internal destinations (`/Names /Dests`) collected from the heading anchors
+/// laid out on each page, sorted by name as the PDF name tree requires.
+///
+/// Duplicated anchors keep their first (top-most) occurrence so a link always
+/// lands on the first heading carrying that id.
+fn collect_destinations(pages: &[Page]) -> Vec<(String, usize, f32)> {
+    let mut out: Vec<(String, usize, f32)> = Vec::new();
+    for (page_index, page) in pages.iter().enumerate() {
+        for (name, y) in &page.anchors {
+            if out.iter().any(|(existing, _, _)| existing == name) {
+                continue;
+            }
+            out.push((name.clone(), page_index, *y));
+        }
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
+/// Link annotations for the lines that carry a same-document link (#2252).
+///
+/// A link whose destination is not in the document is dropped: a `/Dest` that
+/// no name tree resolves would be a dead annotation.
+fn link_annotations(page: &Page, destinations: &[(String, usize, f32)]) -> Vec<String> {
+    let mut annotations = Vec::new();
+    for line in &page.lines {
+        let Some(target) = line.link.as_deref() else {
+            continue;
+        };
+        if !destinations.iter().any(|(name, _, _)| name == target) {
+            continue;
+        }
+        let left = line.x;
+        let right = (line.x + line.width.max(4.0)).min(PAGE_WIDTH - MARGIN * 0.5);
+        let bottom = line.y - 2.0;
+        let top = line.y + line.size;
+        annotations.push(format!(
+            "<< /Type /Annot /Subtype /Link /Rect [{left:.1} {bottom:.1} {right:.1} {top:.1}] \
+             /Border [0 0 0] /Dest ({}) >>",
+            pdf_escape(target)
+        ));
+    }
+    annotations
+}
+
 /// Builds the PDF bytes for the paginated document.
 pub fn write_pdf(pages: &[Page]) -> Vec<u8> {
     let mut objects: Vec<PdfObject> = Vec::new();
+    let destinations = collect_destinations(pages);
 
-    // 1: Catalog, 2: Pages, 3-6: fonts, then page/content pairs.
+    // 1: Catalog (with the destination name tree), 2: Pages, 3-6: fonts,
+    // then page/content pairs.
+    let names: Vec<String> = destinations
+        .iter()
+        .map(|(name, page_index, y)| {
+            format!(
+                "({}) [{} 0 R /XYZ {MARGIN:.1} {y:.1} 0]",
+                pdf_escape(name),
+                page_object_id(*page_index)
+            )
+        })
+        .collect();
+    let catalog = if names.is_empty() {
+        "<< /Type /Catalog /Pages 2 0 R >>".to_string()
+    } else {
+        format!(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [{}] >> >> >>",
+            names.join(" ")
+        )
+    };
     objects.push(PdfObject {
         id: 1,
-        content: b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+        content: catalog.into_bytes(),
     });
 
-    const FIRST_PAGE_OBJECT: u32 = 7;
-
     let kids: Vec<String> = (0..pages.len())
-        .map(|index| format!("{} 0 R", FIRST_PAGE_OBJECT + index as u32 * 2))
+        .map(|index| format!("{} 0 R", page_object_id(index)))
         .collect();
     objects.push(PdfObject {
         id: 2,
@@ -72,15 +142,21 @@ pub fn write_pdf(pages: &[Page]) -> Vec<u8> {
     });
 
     for (index, page) in pages.iter().enumerate() {
-        let page_id = FIRST_PAGE_OBJECT + index as u32 * 2;
+        let page_id = page_object_id(index);
         let content_id = page_id + 1;
+        let annots = link_annotations(page, &destinations);
+        let annots_entry = if annots.is_empty() {
+            String::new()
+        } else {
+            format!(" /Annots [{}]", annots.join(" "))
+        };
 
         objects.push(PdfObject {
             id: page_id,
             content: format!(
                 "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGE_WIDTH:.1} {PAGE_HEIGHT:.1}] \
                  /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> \
-                 /Contents {content_id} 0 R >>"
+                 /Contents {content_id} 0 R{annots_entry} >>"
             )
             .into_bytes(),
         });

@@ -119,8 +119,9 @@ static DOC_IMPORT_LIMITS: UploadLimits = UploadLimits {
     max_bytes: 25 * 1024 * 1024,
     max_filename_len: 180,
     // The document importer explicitly converts HTML to editor content, so it
-    // is the one endpoint that accepts `.html`.
-    extensions: &["docx", "odt", "rtf", "md", "markdown", "html", "htm", "txt"],
+    // is the one endpoint that accepts `.html`. It accepts `.pdf` too: the PDF
+    // is read back into editable paragraphs (#2254).
+    extensions: &["docx", "odt", "rtf", "md", "markdown", "html", "htm", "txt", "pdf"],
 };
 
 static SHEET_IMPORT_LIMITS: UploadLimits = UploadLimits {

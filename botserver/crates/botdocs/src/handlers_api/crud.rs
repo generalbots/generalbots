@@ -289,6 +289,17 @@ pub async fn handle_open_from_drive(
         .to_lowercase();
 
     let content = match ext.as_str() {
+        // #2254 — a PDF opened from Drive becomes editable paragraphs.
+        "pdf" => match crate::import_pdf::pdf_to_editor_html(&bytes) {
+            Ok(html) => html,
+            Err(e) => {
+                log::warn!("docs editor: PDF import of {} failed: {e}", req.path);
+                return Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(serde_json::json!({ "error": e })),
+                ));
+            }
+        },
         "docx" | "doc" | "odt" | "rtf" => match crate::storage::convert_docx_to_html(&bytes) {
             Ok(html) => html,
             Err(e) => {

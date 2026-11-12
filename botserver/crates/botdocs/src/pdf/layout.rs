@@ -30,11 +30,17 @@ pub struct Line {
     pub y: f32,
     pub size: f32,
     pub segments: Vec<Segment>,
+    /// Rendered width in points, used to size an internal link annotation.
+    pub width: f32,
+    /// Internal PDF destination (`#anchor` without the `#`) this line links to.
+    pub link: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Page {
     pub lines: Vec<Line>,
+    /// Heading destinations placed on this page: `(anchor, baseline y)`.
+    pub anchors: Vec<(String, f32)>,
 }
 
 impl Page {
@@ -246,23 +252,56 @@ impl Layouter {
         }
     }
 
-    fn push_line(&mut self, x: f32, size: f32, leading: f32, segments: Vec<Segment>) {
+    fn push_line(
+        &mut self,
+        x: f32,
+        size: f32,
+        leading: f32,
+        segments: Vec<Segment>,
+        link: Option<&str>,
+    ) -> f32 {
         if self.y < MARGIN {
             self.new_page();
         }
         let y = self.y;
+        let width = segments
+            .iter()
+            .map(|segment| measure(&segment.text, size, segment.bold, segment.mono))
+            .sum();
         self.current.lines.push(Line {
             x,
             y,
             size,
             segments,
+            width,
+            link: link.map(str::to_string),
         });
         self.y -= leading;
+        y
+    }
+
+    /// Pushes a line and records the block's heading destination on the page
+    /// the line actually landed on (it may have moved to a new page).
+    fn emit_line(
+        &mut self,
+        x: f32,
+        size: f32,
+        leading: f32,
+        segments: Vec<Segment>,
+        link: Option<&str>,
+        anchor: &mut Option<String>,
+    ) {
+        let y = self.push_line(x, size, leading, segments, link);
+        if let Some(name) = anchor.take() {
+            self.current.anchors.push((name, y));
+        }
     }
 
     fn add_block(&mut self, block: &Block) {
         let style = style_for(&block.kind);
         let block_pieces = pieces(block);
+        let link = block.link.as_deref();
+        let mut anchor = block.anchor.clone();
 
         // No space before the first block of a page.
         if !self.current.is_empty() {
@@ -288,7 +327,7 @@ impl Layouter {
             match piece {
                 Piece::Break => {
                     let segments = std::mem::take(&mut line);
-                    self.push_line(x, style.size, style.leading, segments);
+                    self.emit_line(x, style.size, style.leading, segments, link, &mut anchor);
                     x = hanging_x;
                     available = PAGE_WIDTH - MARGIN - x;
                     line_width = 0.0;
@@ -307,7 +346,7 @@ impl Layouter {
                     };
                     if !line.is_empty() && line_width + space + width > available {
                         let segments = std::mem::take(&mut line);
-                        self.push_line(x, style.size, style.leading, segments);
+                        self.emit_line(x, style.size, style.leading, segments, link, &mut anchor);
                         x = hanging_x;
                         available = PAGE_WIDTH - MARGIN - x;
                         line_width = 0.0;
@@ -335,7 +374,7 @@ impl Layouter {
         }
 
         if !line.is_empty() {
-            self.push_line(x, style.size, style.leading, line);
+            self.emit_line(x, style.size, style.leading, line, link, &mut anchor);
         }
 
         self.y -= style.space_after;

@@ -322,6 +322,10 @@ fn strip_non_odt_tags(html: &str) -> String {
 }
 
 pub fn detect_document_format(content: &[u8]) -> &'static str {
+    // #2254 — a PDF is recognised by its signature, not by a text marker.
+    if crate::import_pdf::looks_like_pdf(content) {
+        return "pdf";
+    }
     if content.len() >= 4 {
         if &content[0..4] == b"PK\x03\x04" {
             if content.len() > 30 {
@@ -359,6 +363,7 @@ pub fn convert_to_html(content: &[u8]) -> Result<String, String> {
     let text = String::from_utf8_lossy(content).to_string();
 
     match format {
+        "pdf" => crate::import_pdf::pdf_to_editor_html(content),
         "rtf" => Ok(rtf_to_html(&text)),
         "html" => Ok(text),
         "markdown" => Ok(markdown_to_html(&text)),
