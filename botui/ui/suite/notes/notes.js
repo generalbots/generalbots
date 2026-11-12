@@ -35,7 +35,7 @@
       .map(function (n, i) {
         return (
           '<div class="note-card" style="background:' + n.color + '" data-i="' + i + '">' +
-          '<textarea data-i="' + i + '" data-gb-field="text title body" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
+          '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + new Date(n.ts).toLocaleString() + "</span>" +
           '<button class="note-del" data-del="' + i + '" title="Delete">✕</button>' +
@@ -61,18 +61,27 @@
     });
   }
 
-  function add(text) {
+  function add(text, color) {
     // #2225 — callers include a bare click listener and chat/automation hooks;
     // only a string is note text (a click Event must never become the body).
     const body = typeof text === "string" ? text : "";
+    // NOTE-01: honor a requested color name when present in the phrase.
+    var chosen = (typeof color === "string") ? color : null;
+    if (!chosen && body) {
+      var m = body.match(/(?:^|\s)(yellow|blue|green|pink|amber|cyan|purple)(?:\s|$)/i);
+      if (m) {
+        var map = { yellow: "#fef3c7", blue: "#bfdbfe", green: "#d9f99d", pink: "#fbcfe8", amber: "#fde68a", cyan: "#a7f3d0", purple: "#fbcfe8" };
+        chosen = map[m[1].toLowerCase()] || null;
+      }
+    }
     const list = read();
     // Two notes created in the same millisecond must stay distinguishable:
     // the timestamp doubles as the note key for patch/delete.
     const newest = list.reduce(function (max, n) { return Math.max(max, Number(n.ts) || 0); }, 0);
     const ts = Math.max(Date.now(), newest + 1);
     list.unshift({
-      text: body,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      text: body.replace(/(?:^|\s)(yellow|blue|green|pink|amber|cyan|purple)(?:\s|$)/i, " ").trim(),
+      color: chosen || COLORS[Math.floor(Math.random() * COLORS.length)],
       ts: ts,
     });
     write(list);
