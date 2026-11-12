@@ -102,12 +102,9 @@ function vmToggleInlinePreview(card, url, path, convId) {
     // document cannot touch the conversation, cookies or any network.
     var officeFrame = document.createElement("iframe");
     officeFrame.className = "gb-attachment-inline-frame";
-    officeFrame.setAttribute("sandbox", "");
+    officeFrame.setAttribute("sandbox", "allow-same-origin");
     officeFrame.setAttribute("title", name);
-    officeFrame.setAttribute(
-      "loading",
-      "lazy"
-    );
+    officeFrame.setAttribute("loading", "eager");
     var previewUrl = vmOfficePreviewUrl(convId || "", path);
     var fallbackNote = null;
     function showOfficeFallback() {
