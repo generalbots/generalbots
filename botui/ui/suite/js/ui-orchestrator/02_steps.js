@@ -152,6 +152,28 @@
   function stepFill(step) {
     var el = findField(step.field || "");
     if (!el) {
+      // Single-field apps (Notes' sticky note, small panels) have no label the
+      // plan can name: the whole surface is one editable area. Filling that is
+      // what the user asked for, so use it instead of failing the plan with
+      // "Field not found" (#2188 NOTES-1).
+      var scopeEl = fieldScope();
+      var editables = Array.prototype.slice.call(
+        scopeEl.querySelectorAll(
+          "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]), textarea, [contenteditable=true], [contenteditable='']"
+        )
+      ).filter(function (candidate) {
+        return !candidate.disabled && candidate.readOnly !== true &&
+          (candidate.offsetParent !== null || candidate.getClientRects().length > 0);
+      });
+      if (editables.length === 1) {
+        el = editables[0];
+        reportStep(
+          "Field '" + (step.field || "?") + "' not named — using the only editable field",
+          "warn"
+        );
+      }
+    }
+    if (!el) {
       reportStep("Field '" + (step.field || "?") + "' not found", "warn");
       return Promise.resolve(false);
     }
@@ -232,6 +254,27 @@
   function stepSelect(step) {
     var el = findField(step.field || "");
     if (!el || el.tagName !== "SELECT") {
+      // Section pickers in real apps are anchors/buttons (Settings nav,
+      // tabs, chips), not <select>s. The LLM legitimately plans
+      // `select "Profile"`, so fall back to clicking the match instead of
+      // failing the whole plan with "Select not found" (#2219).
+      var wanted = step.value || step.field || "";
+      var clickable = findClickable(wanted) ||
+        (step.field && step.value ? findClickable(step.field) : null);
+      if (clickable) {
+        var targetRect = getElementRect(clickable);
+        var label = step.field || wanted;
+        return new Promise(function (resolve) {
+          moveCursorTo(targetRect, function () {
+            try { clickable.click(); } catch (e) { /* detached */ }
+            reportStep("Selected '" + label + "'", "done");
+            setTimeout(function () {
+              S.focusRing.style.display = "none";
+              resolve(true);
+            }, 400);
+          });
+        });
+      }
       reportStep("Select '" + (step.field || "?") + "' not found", "warn");
       return Promise.resolve(false);
     }

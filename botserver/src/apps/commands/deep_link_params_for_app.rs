@@ -227,7 +227,10 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("video", "open → projects/cameras load → open a project"),
     ("learn", "open → courses load → open a course"),
     ("admin", "open → dashboard loads → manage users/roles/groups/billing"),
-    ("settings", "open → settings panel loads → pick a section"),
+    (
+        "settings",
+        "open → the Profile section is already shown → to reach another section click its nav item (Profile, Security, Appearance, Notifications) → fill fields by their label",
+    ),
     ("about", "open → read the build card (version, edition, licenses)"),
     ("automations", "open → automation list loads → New automation → describe it → pick a schedule → Save"),
     ("browser", "open → type a URL in the address bar → Enter; Switch tabs with the tab strip"),
