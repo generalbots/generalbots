@@ -19,9 +19,6 @@
 .window-dot-minimize:hover { background: #f5a623; }
 .window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: 10px; font-weight: 700; line-height: 1; }
 
-.window-dot-maximize       { background: #28c840; }
-.window-dot-maximize:hover { background: #1da830; }
-.window-dot-maximize::after{ content: "▢"; color: #003a00; font-size: 8px; font-weight: 700; line-height: 1; }
 
 .window-header-glass:hover .window-dot::after,
 .window-header-glass:hover .window-dot::after {
@@ -518,7 +515,4 @@ body.window-maximized .window-element.window-maximized-target {
 .window-element.window-settings-modal {
   resize: none !important;
   overflow: hidden;
-}
-.window-settings-modal .window-dot-maximize {
-  display: none;
 }

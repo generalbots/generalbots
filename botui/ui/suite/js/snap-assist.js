@@ -252,10 +252,11 @@ window.GBSnapAssist = window.GBSnapAssist || {};
     if (mod.initialized) return;
     mod.initialized = true;
 
-    // Wire the maximize dot: single click toggles max (existing behavior),
-    // hover opens the layout picker.
+    // #2223 — the header no longer renders a maximize dot; the expand control
+    // is the fullscreen dot, so snap layouts hang off it: single click toggles
+    // fullscreen (unchanged), a sustained hover opens the layout picker.
     document.addEventListener("mouseover", function (e) {
-      var dot = e.target.closest(".window-dot-maximize");
+      var dot = e.target.closest(".window-dot-fullscreen");
       if (!dot) return;
       var header = dot.closest(".window-header-glass");
       if (!header) return;
@@ -268,13 +269,12 @@ window.GBSnapAssist = window.GBSnapAssist || {};
       mod.__hoverTimer = setTimeout(function () { openPicker(id, dot); }, 350);
     });
     document.addEventListener("mouseout", function (e) {
-      if (e.target.closest(".window-dot-maximize")) {
+      if (e.target.closest(".window-dot-fullscreen")) {
         clearTimeout(mod.__hoverTimer);
       }
     });
     document.addEventListener("click", function (e) {
-      var dot = e.target.closest(".window-dot-maximize");
-      if (!dot) return;
+      if (!e.target.closest(".window-dot-fullscreen")) return;
       clearTimeout(mod.__hoverTimer);
       closePicker();
     });

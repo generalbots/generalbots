@@ -40,10 +40,6 @@ body.vibe-toolbar-mode #window-vibe .vibe-container {
     display: none !important;
 }
 
-#window-vibe .window-dot-maximize,
-#window-vibe .btn-maximize {
-    display: none !important;
-}
 
 /* ── Command toolbar — a 2-row grid (product spec, never >2 rows) ── */
 .vibe-shell-toolbar {

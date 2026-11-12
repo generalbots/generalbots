@@ -146,8 +146,7 @@
   font-size: 11px;
 }
 
-.window-tool .window-dot-minimize,
-.window-tool .window-dot-maximize {
+.window-tool .window-dot-minimize {
   display: none;
 }
 

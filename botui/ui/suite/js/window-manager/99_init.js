@@ -12,6 +12,20 @@
 window.WindowManager = new WindowManager();
 window.openDeepLink = (appId, params, opts) => window.WindowManager.openDeepLink(appId, params, opts);
 
+// #2223 — window snapping shipped without a caller: nothing invoked
+// GBSnapAssist.init(), so edge-drag ghosts and the snap layouts offered by the
+// expand dot were dead. sidebar scripts load after this file, hence the defer.
+function initSnapAssist() {
+  if (window.GBSnapAssist && typeof window.GBSnapAssist.init === "function") {
+    window.GBSnapAssist.init();
+  }
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSnapAssist, { once: true });
+} else {
+  initSnapAssist();
+}
+
 // Ctrl+K is owned by the unified command palette (command-palette.js) which
 // is loaded after this file. Expose the start menu for launchers but do NOT
 // bind Ctrl+K here — command-palette.js handles it with one handler only.

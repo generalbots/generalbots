@@ -129,8 +129,7 @@
     font-size: 14px;
 }
 
-.window-header .btn-minimize:hover,
-.window-header .btn-maximize:hover {
+.window-header .btn-minimize:hover {
     color: var(--text, #4b5563);
 }
 

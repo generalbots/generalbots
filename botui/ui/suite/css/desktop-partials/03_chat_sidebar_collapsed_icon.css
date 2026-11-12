@@ -184,8 +184,6 @@
 .window-dot-close:hover { background: #ff3b30; }
 .window-dot-minimize { background: #febc2e; }
 .window-dot-minimize:hover { background: #f5a623; }
-.window-dot-maximize { background: #28c840; }
-.window-dot-maximize:hover { background: #1da830; }
 
 .window-header-glass .window-title {
     flex: 1;
