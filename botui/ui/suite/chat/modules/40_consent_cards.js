@@ -177,7 +177,11 @@
     if (idx === -1) return null;
     try {
       var b64 = content.slice(idx + MARKER.length).trim();
-      var bin = atob(b64.replace(/-/g, "+").replace(/_/g, "/"));
+      // base64url (no padding) -> standard base64; restore padding so atob
+      // accepts payloads whose length is not a multiple of 4.
+      var std = b64.replace(/-/g, "+").replace(/_/g, "/");
+      while (std.length % 4 !== 0) std += "=";
+      var bin = atob(std);
       var json = decodeURIComponent(
         Array.prototype.map.call(bin, function (c) {
           return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
@@ -186,6 +190,7 @@
       var req = JSON.parse(json);
       return req && req.request_id ? req : null;
     } catch (e) {
+      try { console.warn("[consent] decodeMarker failed:", e && e.message); } catch (e2) {}
       return null;
     }
   }
