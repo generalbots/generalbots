@@ -66,13 +66,48 @@
     // only a string is note text (a click Event must never become the body).
     const body = typeof text === "string" ? text : "";
     const list = read();
+    // Two notes created in the same millisecond must stay distinguishable:
+    // the timestamp doubles as the note key for patch/delete.
+    const newest = list.reduce(function (max, n) { return Math.max(max, Number(n.ts) || 0); }, 0);
+    const ts = Math.max(Date.now(), newest + 1);
     list.unshift({
       text: body,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      ts: Date.now(),
+      ts: ts,
     });
     write(list);
     render();
+    return ts;
+  }
+
+  // #2225 — a chat/automation stream addresses a note by the key `add`
+  // returned; unknown keys are a no-op rather than a wrong-note update.
+  function indexOfKey(list, key) {
+    for (let i = 0; i < list.length; i += 1) {
+      if (String(list[i].ts) === String(key)) return i;
+    }
+    return -1;
+  }
+
+  function patch(key, text) {
+    if (typeof text !== "string") return false;
+    const list = read();
+    const at = indexOfKey(list, key);
+    if (at === -1) return false;
+    list[at].text = text;
+    write(list);
+    render();
+    return true;
+  }
+
+  function remove(key) {
+    const list = read();
+    const at = indexOfKey(list, key);
+    if (at === -1) return false;
+    list.splice(at, 1);
+    write(list);
+    render();
+    return true;
   }
 
   function escapeHtml(s) {
@@ -94,5 +129,5 @@
     boot();
   }
 
-  window.GBNotes = { add: add, render: render };
+  window.GBNotes = { add: add, patch: patch, remove: remove, render: render };
 })();
