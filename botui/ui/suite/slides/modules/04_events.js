@@ -136,6 +136,14 @@ window.GBSlidesExport = function (event) {
 };
 
 window.afterSlideInsert = function (element) {
+  var insertedAt = null;
+  if (element && element.querySelector) {
+    var posInput = element.querySelector('input[name="position"]');
+    if (posInput && posInput.value !== "") {
+      var parsed = parseInt(posInput.value, 10);
+      if (!isNaN(parsed)) insertedAt = parsed;
+    }
+  }
   var modal = element && element.closest ? element.closest(".sl-modal") : null;
   if (modal) {
     modal.remove();
@@ -145,12 +153,14 @@ window.afterSlideInsert = function (element) {
     if (container) container.innerHTML = "";
     else if (element && element.remove) element.remove();
   }
-  if (window.refreshSlideView) window.refreshSlideView();
+  if (window.refreshSlideView) window.refreshSlideView(insertedAt);
 };
 
-window.refreshSlideView = function () {
+window.refreshSlideView = function (slideIndex) {
   var canvas = document.getElementById("slide-canvas");
-  var index = (canvas && canvas.dataset.slideId) || "0";
+  var index = (slideIndex !== undefined && slideIndex !== null)
+    ? String(slideIndex)
+    : ((canvas && canvas.dataset.slideId) || "0");
   var deck = window.__SLIDES_PRESENTATION_ID || "current";
   if (!window.htmx) return;
   htmx.ajax(
