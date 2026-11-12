@@ -40,9 +40,7 @@ fn cell(raw: &str) -> CellData {
 fn with_cells(cells: &[(&str, &str)]) -> Worksheet {
     let mut worksheet = sheet();
     for (reference, raw) in cells {
-        worksheet
-            .data
-            .insert((*reference).to_string(), cell(raw));
+        worksheet.data.insert((*reference).to_string(), cell(raw));
     }
     worksheet
 }
@@ -116,4 +114,17 @@ fn an_unknown_function_reports_an_error_value() {
         "expected an error value, got {:?}",
         result.value
     );
+}
+
+#[test]
+fn pt_br_aliases_evaluate_like_their_english_names() {
+    let worksheet = with_cells(&[("0,0", "1"), ("1,0", "2"), ("2,0", "3")]);
+    // UAT SHEET-04 (#2258): localised names must reach the same evaluator, not
+    // fall through to #ERROR! because the function guard wants the English
+    // prefix.
+    assert_eq!(evaluate_formula("=SOMA(A1:A3)", &worksheet).value, "6");
+    assert_eq!(evaluate_formula("=MÉDIA(A1:A3)", &worksheet).value, "2");
+    assert_eq!(evaluate_formula("=MEDIA(A1:A3)", &worksheet).value, "2");
+    assert_eq!(evaluate_formula("=MÁXIMO(A1:A3)", &worksheet).value, "3");
+    assert_eq!(evaluate_formula("=MÍNIMO(A1:A3)", &worksheet).value, "1");
 }

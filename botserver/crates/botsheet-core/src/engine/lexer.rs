@@ -214,23 +214,25 @@ pub fn lex(input: &str) -> LexResult<Vec<Token>> {
             _ => {}
         }
         // Identifier or reference: letters, digits, `$`, `_` and `!`.
-        if c.is_ascii_alphabetic() || c == b'$' || c == b'_' {
+        // Letters are Unicode: localised function names (`MÉDIA`, `MÁXIMO`)
+        // start with a multibyte character, and byte-only ASCII scanning made
+        // those formulas fail to parse entirely (UAT #2258).
+        let first = input[i..].chars().next().unwrap_or('\u{fffd}');
+        if first.is_alphabetic() || first == '$' || first == '_' {
             let start = i;
-            while i < n
-                && (bytes[i].is_ascii_alphanumeric()
-                    || bytes[i] == b'_'
-                    || bytes[i] == b'$'
-                    || bytes[i] == b'!')
-            {
-                i += 1;
+            let mut end = i;
+            for (offset, current) in input[i..].char_indices() {
+                let allowed =
+                    current.is_alphanumeric() || current == '_' || current == '$' || current == '!';
+                if !allowed {
+                    break;
+                }
+                end = i + offset + current.len_utf8();
             }
-            let text = &input[start..i];
+            let text = &input[start..end];
             let kind = classify_word(text);
-            tokens.push(Token {
-                kind,
-                start,
-                end: i,
-            });
+            tokens.push(Token { kind, start, end });
+            i = end;
             continue;
         }
         return Err(LexError {
@@ -313,8 +315,11 @@ mod tests {
 
     #[test]
     fn lexes_absolute_references() {
-        let kinds: Vec<TokenKind> =
-            lex("$A$1+1").expect("lex").into_iter().map(|t| t.kind).collect();
+        let kinds: Vec<TokenKind> = lex("$A$1+1")
+            .expect("lex")
+            .into_iter()
+            .map(|t| t.kind)
+            .collect();
         assert_eq!(kinds[0], TokenKind::Reference("$A$1".to_string()));
     }
 

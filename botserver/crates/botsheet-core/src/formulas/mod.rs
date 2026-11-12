@@ -64,6 +64,37 @@ pub fn evaluate_formula_in(
     }
 }
 
+/// pt-BR aliases for the functions the dispatcher understands.
+///
+/// Translating only the dispatcher's match arms was not enough: every
+/// evaluator validates its own `NAME(` prefix (`evaluate_sum` requires
+/// `SUM(`), so `=SOMA(A1:A3)` still came back as `#ERROR!` (UAT #2258).
+/// Rewrite the call name to the canonical English one before dispatch.
+fn canonical_function_names(expr: String) -> String {
+    let Some((name, rest)) = expr.split_once('(') else {
+        return expr;
+    };
+    let canonical = match name.trim() {
+        "SOMA" => Some("SUM"),
+        "MÉDIA" | "MEDIA" => Some("AVERAGE"),
+        "SOMASE" => Some("SUMIF"),
+        "MÉDIASE" | "MEDIASE" => Some("AVERAGEIF"),
+        "SOMASES" => Some("SUMIFS"),
+        "MÉDIASES" | "MEDIASES" => Some("AVERAGEIFS"),
+        "CONT.SE" => Some("COUNTIF"),
+        "CONT.NÚM" => Some("COUNT"),
+        "CONT.VALORES" => Some("COUNTA"),
+        "MÁXIMO" => Some("MAX"),
+        "MÍNIMO" => Some("MIN"),
+        "MULT" => Some("PRODUCT"),
+        _ => None,
+    };
+    match canonical {
+        Some(canonical) => format!("{canonical}({rest}"),
+        None => expr,
+    }
+}
+
 /// Legacy string-dispatcher evaluation, used for function calls parsed by the
 /// new engine and as a fallback when the typed parser rejects a formula.
 pub fn evaluate_function_call(formula: &str, worksheet: &Worksheet) -> FormulaResult {
@@ -74,7 +105,8 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     // Drop the leading '=' without assuming it is there (an empty formula used
     // to panic with "byte index 1 is out of bounds") and without cutting into a
     // multi-byte first character.
-    let expr = formula.strip_prefix('=').unwrap_or(formula).to_uppercase();
+    let expr =
+        canonical_function_names(formula.strip_prefix('=').unwrap_or(formula).to_uppercase());
 
     // Otimização de busca direta O(1) com base no prefixo do nome da função.
     // Evita iterar linearmente sobre mais de 170 ponteiros de função de fórmula em casos de fallback.
@@ -90,7 +122,9 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
                 "COUNTBLANK" => criteria::evaluate_countblank(&expr, worksheet),
                 "COUNTIF" | "CONT.SE" => criteria::evaluate_countif(&expr, worksheet),
                 "SUMIF" | "SOMASE" => criteria::evaluate_sumif(&expr, worksheet),
-                "AVERAGEIF" | "MÉDIASE" | "MEDIASE" => criteria::evaluate_averageif(&expr, worksheet),
+                "AVERAGEIF" | "MÉDIASE" | "MEDIASE" => {
+                    criteria::evaluate_averageif(&expr, worksheet)
+                }
                 "MAX" => math::evaluate_max(&expr, worksheet),
                 "MIN" => math::evaluate_min(&expr, worksheet),
                 "IF" => logic::evaluate_if(&expr, worksheet),
@@ -170,7 +204,9 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
                 "CHOOSE" => lookup::evaluate_choose(&expr, worksheet),
                 "SUMIFS" | "SOMASES" => criteria::evaluate_sumifs(&expr, worksheet),
                 "COUNTIFS" | "CONT.SES" => criteria::evaluate_countifs(&expr, worksheet),
-                "AVERAGEIFS" | "MÉDIASES" | "MEDIASES" => criteria::evaluate_averageifs(&expr, worksheet),
+                "AVERAGEIFS" | "MÉDIASES" | "MEDIASES" => {
+                    criteria::evaluate_averageifs(&expr, worksheet)
+                }
                 "MAXIFS" => criteria::evaluate_maxifs(&expr, worksheet),
                 "MINIFS" => criteria::evaluate_minifs(&expr, worksheet),
                 "LET" => dynamic::evaluate_let(&expr, worksheet),

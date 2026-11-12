@@ -191,7 +191,13 @@ fn text_of(v: &CellValue) -> String {
     match v {
         CellValue::Number(n) => format_number(*n),
         CellValue::Text(s) => s.clone(),
-        CellValue::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
+        CellValue::Bool(b) => {
+            if *b {
+                "TRUE".to_string()
+            } else {
+                "FALSE".to_string()
+            }
+        }
         CellValue::Empty => String::new(),
         CellValue::Error(e) => e.clone(),
     }
@@ -211,7 +217,13 @@ pub fn evaluate_typed_in(formula: &str, worksheets: &[Worksheet], current: usize
     };
     match super::ast::parse(body) {
         Ok(expr) => eval_expr_in(&expr, worksheets, current),
-        Err(_) => CellValue::Error("#ERROR!".to_string()),
+        // A formula the typed parser cannot read may still be a legacy-shaped
+        // call (localised names, quirky ranges). Fall back to the string
+        // dispatcher instead of surfacing #ERROR! (UAT #2258).
+        Err(_) => {
+            let result = crate::formulas::evaluate_function_call(formula, &worksheets[current]);
+            CellValue::parse(&result.value)
+        }
     }
 }
 
@@ -228,7 +240,7 @@ mod tests {
                 key.to_string(),
                 CellData {
                     value: Some(val.to_string()),
-                        typed: None,
+                    typed: None,
                     formula: None,
                     style: None,
                     format: None,
@@ -275,7 +287,10 @@ mod tests {
 
     #[test]
     fn reference_resolution() {
-        assert_eq!(ev("=A1+B1", &ws_with(&[("0,0", "10"), ("0,1", "5")])), CellValue::Number(15.0));
+        assert_eq!(
+            ev("=A1+B1", &ws_with(&[("0,0", "10"), ("0,1", "5")])),
+            CellValue::Number(15.0)
+        );
     }
 
     #[test]
@@ -287,14 +302,20 @@ mod tests {
 
     #[test]
     fn division_by_zero_is_typed_error() {
-        assert_eq!(ev("=1/0", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
+        assert_eq!(
+            ev("=1/0", &Worksheet::default()),
+            CellValue::Error("#DIV/0!".to_string())
+        );
     }
 
     #[test]
     fn comparisons() {
         assert_eq!(ev("=1<2", &Worksheet::default()), CellValue::Bool(true));
         assert_eq!(ev("=3>=3", &Worksheet::default()), CellValue::Bool(true));
-        assert_eq!(ev("=\"a\"=\"a\"", &Worksheet::default()), CellValue::Bool(true));
+        assert_eq!(
+            ev("=\"a\"=\"a\"", &Worksheet::default()),
+            CellValue::Bool(true)
+        );
     }
 
     #[test]
@@ -313,8 +334,14 @@ mod tests {
     #[test]
     fn error_propagates_through_operators() {
         // =1/0 is #DIV/0!, and it must survive arithmetic and concatenation.
-        assert_eq!(ev("=1/0+5", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
-        assert_eq!(ev("=1/0*2", &Worksheet::default()), CellValue::Error("#DIV/0!".to_string()));
+        assert_eq!(
+            ev("=1/0+5", &Worksheet::default()),
+            CellValue::Error("#DIV/0!".to_string())
+        );
+        assert_eq!(
+            ev("=1/0*2", &Worksheet::default()),
+            CellValue::Error("#DIV/0!".to_string())
+        );
     }
 
     #[test]
@@ -322,5 +349,23 @@ mod tests {
         // =(-8)^(1/3) has no real result; must be #NUM!, not NaN.
         let ws = ws_with(&[("0,0", "-8")]);
         assert_eq!(ev("=A1^(1/3)", &ws), CellValue::Error("#NUM!".to_string()));
+    }
+
+    #[test]
+    fn accented_function_names_evaluate_through_the_typed_engine() {
+        let ws = ws_with(&[("0,0", "1"), ("1,0", "2"), ("2,0", "3")]);
+        // UAT SHEET-04 (#2258): multibyte function names must tokenise.
+        assert_eq!(
+            evaluate_typed_in("=MÉDIA(A1:A3)", std::slice::from_ref(&ws), 0),
+            CellValue::Number(2.0)
+        );
+        assert_eq!(
+            evaluate_typed_in("=MÁXIMO(A1:A3)", std::slice::from_ref(&ws), 0),
+            CellValue::Number(3.0)
+        );
+        assert_eq!(
+            evaluate_typed_in("=SOMA(A1:A3)", std::slice::from_ref(&ws), 0),
+            CellValue::Number(6.0)
+        );
     }
 }
