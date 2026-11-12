@@ -2,7 +2,9 @@
 # Syntax gate for Rust changes when a local `cargo check` cannot run.
 #
 # The dev container is capped at 4.5 GiB, so rustc is SIGKILLed while compiling
-# the botserver graph — even with CARGO_BUILD_JOBS=1. This script parses every
+# the botserver graph — even with CARGO_BUILD_JOBS=1. That cap is an
+# environment-specific exception; the project default is 6 jobs
+# (.cargo/config.toml, #2243). This script parses every
 # changed Rust file with rustfmt (a real parse, not a formatting diff) and
 # prints how to get the authoritative type-check from CI.
 #

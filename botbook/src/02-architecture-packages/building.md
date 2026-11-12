@@ -533,6 +533,9 @@ $env:PQ_LIB_DIR="C:\Program Files\PostgreSQL\15\lib"
 
 ### Out of Memory During Build
 
+The project default is **6 jobs**, set in `.cargo/config.toml`. Only reduce it
+on a host that cannot fit the default (see the memory note below).
+
 Use sccache to cache compilations (helps avoid recompilation in ephemeral CI, but does not reduce peak memory of a single crate):
 
 ```bash
@@ -541,17 +544,18 @@ export RUSTC_WRAPPER=sccache
 cargo build --release
 ```
 
-Or reduce parallel jobs:
+If `rustc` is SIGKILLed (the process reports "Killed"), reduce parallel jobs for
+that host only:
 
 ```bash
 cargo build --release -j 2
-```
-
-Or limit memory per job:
-
-```bash
+# or
 CARGO_BUILD_JOBS=2 cargo build --release
 ```
+
+On a very tight host (for example the 4.5 GiB dev container building the
+`botserver` graph), use `CARGO_BUILD_JOBS=1`; the default of 6 does not fit
+there. This is an environment-specific exception, not the project default.
 
 ### Linker Errors
 
@@ -652,13 +656,16 @@ export OPENSSL_INCLUDE_DIR=$(brew --prefix openssl)/include
 
 ### Error: Out of memory during build
 
-**Cause:** Too many parallel compilation jobs.
+**Cause:** Too many parallel compilation jobs for the host's memory.
 
 **Solution:**
 
-Reduce parallel jobs:
+The default is 6 jobs (`.cargo/config.toml`). Reduce it only on a low-memory host:
+
 ```bash
 CARGO_BUILD_JOBS=2 cargo build --release
+# very tight host (rustc SIGKILLed):
+CARGO_BUILD_JOBS=1 cargo build --release
 ```
 
 Or limit memory:
@@ -944,13 +951,13 @@ Expected output: `botserver 7.0.0` or similar.
 
 | Command | Purpose |
 |---------|---------|
-| `cargo build --release` | Optimized production build |
-| `cargo build --release -j 2` | Build with limited parallelism |
+| `cargo build --release` | Optimized production build (6 jobs by default) |
+| `cargo build --release -j 2` | Build with limited parallelism (low-memory host) |
 | `cargo check` | Fast syntax/type checking |
 | `cargo test` | Run all tests |
 | `cargo clippy` | Lint code |
 | `cargo clean` | Remove build artifacts |
-| `CARGO_BUILD_JOBS=2 cargo build` | Limit build jobs |
+| `CARGO_BUILD_JOBS=2 cargo build` | Limit build jobs (low-memory host) |
 | `RUSTC_WRAPPER=sccache cargo build` | Use compilation cache |
 
 ## Next Steps

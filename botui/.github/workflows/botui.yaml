@@ -89,7 +89,7 @@ jobs:
       - name: Build BotUI
         working-directory: workspace
         run: |
-          cargo build --release -p botui --features embed-ui -j 8 2>&1 | tee /tmp/build.log
+          cargo build --release -p botui --features embed-ui 2>&1 | tee /tmp/build.log
           ls -lh target/release/botui
           sccache --show-stats || true
 

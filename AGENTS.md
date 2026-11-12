@@ -627,9 +627,11 @@ Script: reads `/tmp/<crate>_check.log` → parses file:line:col → applies rege
 ### Memory Management (process "Killed")
 
 The dev container is capped at **4.5 GiB**, so `rustc` is SIGKILLed while
-compiling the `botserver` graph (diesel + ooxmlsdk). `CARGO_BUILD_JOBS=1`,
-`nohup` and crate-scoped checks do not make the full graph fit — do not burn
-time retrying it.
+compiling the `botserver` graph (diesel + ooxmlsdk). This cap is an
+**environment-specific exception, not the project default**: the default is
+**6 jobs** via `.cargo/config.toml` (#2243). On this container use
+`CARGO_BUILD_JOBS=1` (or 2) for local builds — `nohup` and crate-scoped checks
+do not make the full graph fit, so do not burn time retrying it.
 
 - **Syntax gate (local):** `scripts/verify-rust-syntax.sh [base-ref]` parses
   every changed `.rs` with `rustfmt --emit stdout` and reports failures.

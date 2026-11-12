@@ -1144,6 +1144,9 @@ jobs:
       matrix:
         crate: ${{ fromJSON(needs.coverage-plan.outputs.crates) }}
     env:
+      # Memory-budget exception (#2074): one crate per matrix entry already
+      # keeps each job small, but the coverage graph still needs 1 job to stay
+      # inside the runner. The project default is 6 (.cargo/config.toml).
       CARGO_BUILD_JOBS: "1"
       CARGO_TERM_COLOR: always
     steps:

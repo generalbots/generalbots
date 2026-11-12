@@ -1,8 +1,8 @@
 [build]
-# Compile as wide as the host allows: `jobs = 8` saturates the 4-vCPU dev box
-# (link and codegen overlap, which is where most wall time goes) and matches
-# the CI runners. Override per invocation with CARGO_BUILD_JOBS when the box is
-# shared — e.g. CARGO_BUILD_JOBS=2 while another job needs the cores.
+# Project default: 6 jobs. This file is the single source of truth for local
+# builds and CI — do not set CARGO_BUILD_JOBS unless the host cannot fit it.
+# Low-memory exception: on a host where rustc is SIGKILLed (e.g. the 4.5 GiB
+# dev container compiling the botserver graph), run CARGO_BUILD_JOBS=1 (or 2).
 jobs = 6
 
 [target.x86_64-unknown-linux-gnu]
