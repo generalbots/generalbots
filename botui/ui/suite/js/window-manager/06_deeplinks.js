@@ -30,17 +30,11 @@
       appId = "crm";
     }
     if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) {
-      // #1540: disabled deep links are not silent. Explain the state and
-      // fall back to the always-available chat surface.
-      if (window.GBToasts) {
-        GBToasts.show(
-          "Preview mode",
-          "This app is available in preview mode. Opening chat instead.",
-          "info"
-        );
-      }
-      appId = "chat";
-      params = {};
+      // #2226 — the deep link names an app the user explicitly asked for, so
+      // offer to turn Preview mode on and open it instead of silently
+      // falling back to chat.
+      this.offerPreviewApp(appId, params, opts);
+      return;
     }
     const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
     const title = app
@@ -97,6 +91,31 @@
       const body = document.getElementById(`window-body-${targetId}`);
       if (body) this._injectBodyContent(targetId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
     });
+  },
+
+  // #2226 — a deep link (chat button, __ui_plan__, start menu) to a preview
+  // app asks the user once to turn Preview mode on, then opens exactly the app
+  // that was requested. Declining leaves the desktop untouched.
+  offerPreviewApp(appId, params, opts) {
+    const openIt = () => {
+      window.GBPreviewMode.set(true);
+      if (window.WindowManager && typeof window.WindowManager.refreshAppsCatalog === "function") {
+        window.WindowManager.refreshAppsCatalog();
+      }
+      this.openDeepLink(appId, params, opts);
+    };
+    const label = appId;
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+      window.GBModal.confirm(
+        `"${label}" is a preview app. Turn on Preview mode and open it?`,
+        "Preview mode",
+        openIt,
+        function () {}
+      );
+      return;
+    }
+    // No modal available (isolated runs): honour the request directly.
+    openIt();
   },
 
   // VB6/Adobe-style floating tool window: open (or focus) a window under a

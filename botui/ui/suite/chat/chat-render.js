@@ -184,6 +184,70 @@ function convertNumberedLists(html) {
   return result.join('\n');
 }
 
+// Parses the query string of an app:// deep link into a plain object.
+function parseDeepLinkParams(query) {
+  var params = {};
+  if (!query) return params;
+  query.split("&").forEach(function (pair) {
+    var kv = pair.split("=");
+    if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+  });
+  return params;
+}
+
+// #2226 — the app catalog (/api/apps/catalog, public) is the authority for
+// which apps exist and which deep-link keys each declares. It is kept here
+// because window.APPS_REGISTRY only carries launcher-visible apps (preview
+// apps are filtered out unless Preview mode is on).
+var deepLinkCatalog = null;
+(function loadDeepLinkCatalog() {
+  if (typeof window.fetch !== "function") return;
+  window.fetch("/api/apps/catalog")
+    .then(function (response) { return response.ok ? response.json() : null; })
+    .then(function (data) {
+      if (!data || !Array.isArray(data.apps)) return;
+      var catalog = {};
+      data.apps.forEach(function (app) {
+        if (!app || !app.id) return;
+        catalog[app.id] = (Array.isArray(app.deep_link_params) ? app.deep_link_params : [])
+          .map(function (param) { return param && param.key; })
+          .filter(Boolean);
+      });
+      deepLinkCatalog = catalog;
+    })
+    .catch(function () { /* keep the registry fallback */ });
+})();
+
+// #2226 — a deep link is only real when the app is in the catalog AND carries
+// at least one of its declared record keys, so a link whose keys are all
+// invented (e.g. app://vision?id=<made up>, app://docs?made_up=1) is treated
+// as a hallucination and stays plain text.
+function deepLinkTargetIsReal(appId, params) {
+  var declared = null;
+  if (deepLinkCatalog) {
+    if (!Object.prototype.hasOwnProperty.call(deepLinkCatalog, appId)) return false;
+    declared = deepLinkCatalog[appId];
+  } else {
+    var registry = window.APPS_REGISTRY;
+    var app = null;
+    if (Array.isArray(registry) && registry.length) {
+      registry.some(function (candidate) {
+        if (candidate && candidate.id === appId) { app = candidate; return true; }
+        return false;
+      });
+      if (!app) return false;
+      declared = Array.isArray(app.deep_link_params) ? app.deep_link_params
+        .map(function (param) { return param && param.key; }).filter(Boolean) : null;
+    } else if (window.APP_CAPABILITIES && !window.APP_CAPABILITIES[appId]) {
+      return false;
+    }
+  }
+  if (!declared) return true; // no catalog data to validate against: keep the link
+  var keys = declared.map(function (param) { return typeof param === "string" ? param : param && param.key; }).filter(Boolean);
+  if (!keys.length) return false;
+  return keys.some(function (key) { return params[key] !== undefined && params[key] !== ""; });
+}
+
 // Converts deep links of the form [Label](app://appId?k=v&k2=v2) in bot
 // replies into clickable buttons that open the related app window
 // contextualized in the desktop shell. Disabled outside the web desktop
@@ -198,21 +262,10 @@ function renderDeepLinks(html) {
     if (!hrefMatch) return m;
     var target = hrefMatch[1];
     var appId = target.split("?")[0];
-    // #2226 — vision has no declared deep link (vision.analyze is chat-native),
-    // so any app://vision?... link the model hallucinates must not become a
-    // clickable button. Leave it as plain text instead.
-    if (appId === "vision") return m;
-    // #2235 F7 — only render deep links for known suite apps; hallucinated or
-    // unknown app:// targets stay as plain content instead of clickable buttons.
-    if (window.APP_CAPABILITIES && !window.APP_CAPABILITIES[appId]) return m;
-    var qs = target.indexOf("?") !== -1 ? target.split("?")[1] : "";
-    var params = {};
-    if (qs) {
-      qs.split("&").forEach(function (pair) {
-        var kv = pair.split("=");
-        if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
-      });
-    }
+    var params = parseDeepLinkParams(target.indexOf("?") !== -1 ? target.split("?")[1] : "");
+    // #2226 / #2235 F7 — unknown app or invented keys: render the label as
+    // plain text, never as a dead app:// anchor or a button.
+    if (!deepLinkTargetIsReal(appId, params)) return label;
     var escapedLabel = String(label).replace(/"/g, "&quot;");
     var json = JSON.stringify(params).replace(/"/g, "&quot;");
     return '<button type="button" class="app-deeplink-btn" ' +
@@ -229,18 +282,9 @@ function renderDeepLinks(html) {
   html = html.replace(barePattern, function (m, pre, target) {
     var stripped = target.replace(/^app:\/\//i, "");
     var appId = stripped.split("?")[0];
-    // #2226 — drop hallucinated vision deep links (no declared deep link).
-    if (appId === "vision") return m;
-    // #2235 F7 — validate app id against known capabilities before rendering.
-    if (window.APP_CAPABILITIES && !window.APP_CAPABILITIES[appId]) return m;
-    var qs = stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "";
-    var params = {};
-    if (qs) {
-      qs.split("&").forEach(function (pair) {
-        var kv = pair.split("=");
-        if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
-      });
-    }
+    var params = parseDeepLinkParams(stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "");
+    // #2226 — a bare URL already reads as text; only a real target becomes a button.
+    if (!deepLinkTargetIsReal(appId, params)) return m;
     var json = JSON.stringify(params).replace(/"/g, "&quot;");
     return pre + '<button type="button" class="app-deeplink-btn" ' +
       'title="Open ' + appId + '" ' +

@@ -18,7 +18,7 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("research", "research.discover", "Deep research", "Performs deep research on a topic across web and knowledge bases.", &[("topic", "the topic")], None, false),
     cmd("video", "video.projects.list", "List video projects", "List AI video editing/generation projects.", &[], Some("app://video?project_id={project_id?}"), false),
     cmd("jukebox", "jukebox.generate", "Create a song", "Create a complete song or instrumental from a description, style and optional lyrics.", &[("description", "the song brief"), ("lyrics", "optional structured lyrics"), ("duration", "10-600 seconds")], Some("app://jukebox?job_id={job_id?}"), false),
-    cmd("vision", "vision.analyze", "Analyze an image", "Run computer vision analysis on an image (labels, QR codes, description). Reply with the description in chat; do NOT emit an app://vision link (none exists).", &[("image", "image url or key")], None, false),
+    cmd("vision", "vision.analyze", "Analyze an image", "Run computer vision analysis on an image (labels, QR codes, description). Reply with the description in chat; link app://vision only with the real analysis id (image_id) returned by the call.", &[("image", "image url or key")], Some("app://vision?image_id={image_id?}"), false),
     cmd("learn", "learn.courses.list", "List courses", "List available learning courses and assessments.", &[], Some("app://learn?course_id={course_id?}"), false),
     // ——— Office ———
     cmd("mail", "mail.list", "List emails", "List emails from the unified inbox.", &[("folder", "optional folder"), ("limit", "optional")], Some("app://mail?message_id={message_id?}"), false),
@@ -256,7 +256,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("terminal", "open → a PTY opens in the workspace VM → type the command → Enter"),
     ("timeclock", "open → clock in/out → the timesheet lists the entries"),
     ("timer", "open → set the duration → Start; Stop and the status chip control it"),
-    ("vision", "Image description is chat-native: run vision.analyze on the attached image and reply with labels + description in chat. Open the Vision app only when the user asks to inspect details."),
+    ("vision", "Image description is chat-native: run vision.analyze on the attached image and reply with labels + description in chat. Do NOT emit a __ui_plan__ for vision to answer a description request, and never invent an app://vision link — open the Vision app only when the user explicitly asks to inspect details, and then only with the real image_id."),
 ];
 /// UI automation hint for an app id (empty string when not declared).
 pub fn ui_sequence_hint_for(app_id: &str) -> &'static str {
