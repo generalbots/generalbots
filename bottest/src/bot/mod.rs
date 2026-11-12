@@ -1,4 +1,3 @@
-
 pub mod conversation;
 pub mod runner;
 
@@ -32,7 +31,6 @@ pub enum ResponseContentType {
     Location,
     Contact,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct AssertionResult {
@@ -110,8 +108,7 @@ pub struct AssertionRecord {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ConversationState {
     #[default]
     Initial,
@@ -121,7 +118,6 @@ pub enum ConversationState {
     Ended,
     Error,
 }
-
 
 #[cfg(test)]
 mod tests {

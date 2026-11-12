@@ -42,7 +42,6 @@ pub enum Role {
     Guest,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Customer {
     pub id: Uuid,
@@ -84,7 +83,6 @@ pub enum Channel {
     Email,
     Api,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bot {
@@ -157,7 +155,6 @@ pub enum SessionState {
     Ended,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub id: Uuid,
@@ -204,7 +201,6 @@ pub enum ContentType {
     Contact,
     Interactive,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueueEntry {

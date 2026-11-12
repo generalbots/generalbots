@@ -8,8 +8,8 @@ use std::env;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use tracing::Level;
 use tracing::info;
+use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{services, web};
@@ -112,7 +112,10 @@ pub async fn download_file(url: &str, dest: &PathBuf) -> Result<()> {
     anyhow::ensure!(
         parsed.scheme() == "https"
             || (parsed.scheme() == "http"
-                && matches!(parsed.host_str(), Some("localhost") | Some("127.0.0.1") | Some("[::1]"))),
+                && matches!(
+                    parsed.host_str(),
+                    Some("localhost") | Some("127.0.0.1") | Some("[::1]")
+                )),
         "download URL must be https or loopback http"
     );
     info!("Downloading: {}", url);
@@ -152,10 +155,7 @@ pub fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<()> {
 
         // zip 9 returns the entry name as a Result; a name that cannot be
         // decoded is treated as a file, never as a directory.
-        let is_dir = file
-            .name()
-            .map(|name| name.ends_with('/'))
-            .unwrap_or(false);
+        let is_dir = file.name().map(|name| name.ends_with('/')).unwrap_or(false);
         if is_dir {
             std::fs::create_dir_all(&outpath)?;
         } else {
@@ -170,7 +170,6 @@ pub fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<()> {
 
         #[cfg(unix)]
         {
-            
             if let Some(mode) = file.unix_mode() {
                 std::fs::set_permissions(&outpath, std::fs::Permissions::from_mode(mode))?;
             }
@@ -233,7 +232,6 @@ pub async fn setup_chromedriver(browser_path: &str) -> Result<PathBuf> {
 
         #[cfg(unix)]
         {
-            
             std::fs::set_permissions(&final_path, std::fs::Permissions::from_mode(0o755))?;
         }
     }
@@ -280,7 +278,6 @@ pub async fn setup_chrome_for_testing() -> Result<PathBuf> {
     if chrome_path.exists() {
         #[cfg(unix)]
         {
-            
             std::fs::set_permissions(&chrome_path, std::fs::Permissions::from_mode(0o755))?;
         }
         info!("Chrome installed: {:?}", chrome_path);
@@ -304,7 +301,10 @@ pub async fn setup_test_dependencies() -> Result<(PathBuf, PathBuf)> {
     Ok((chromedriver, chrome))
 }
 
-pub async fn start_chromedriver(chromedriver_path: &PathBuf, port: u16) -> Result<std::process::Child> {
+pub async fn start_chromedriver(
+    chromedriver_path: &PathBuf,
+    port: u16,
+) -> Result<std::process::Child> {
     // #1297 — the driver path is resolved from the download cache at runtime.
     // Only ever execute a chromedriver binary that lives inside the tool cache
     // before it reaches the command line.
@@ -316,7 +316,10 @@ pub async fn start_chromedriver(chromedriver_path: &PathBuf, port: u16) -> Resul
         .unwrap_or_default()
         .to_string();
     if !canonical.starts_with(&cache_dir) || !file_name.starts_with("chromedriver") {
-        anyhow::bail!("refusing to execute unexpected binary: {}", canonical.display());
+        anyhow::bail!(
+            "refusing to execute unexpected binary: {}",
+            canonical.display()
+        );
     }
 
     info!("Starting ChromeDriver on port {}...", port);

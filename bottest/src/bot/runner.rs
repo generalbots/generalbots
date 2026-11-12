@@ -31,8 +31,7 @@ impl Default for BotRunnerConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -107,8 +106,8 @@ pub struct LogEntry {
     pub context: HashMap<String, String>,
 }
 
-mod with_config;
 mod session_info;
+mod with_config;
 pub use session_info::*;
 
 #[cfg(test)]

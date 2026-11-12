@@ -49,10 +49,7 @@ pub async fn capture(
         .goto(url)
         .await
         .with_context(|| format!("navigating to {url}"))?;
-    browser
-        .execute_script(ERROR_BRIDGE)
-        .await
-        .ok();
+    browser.execute_script(ERROR_BRIDGE).await.ok();
 
     // Let the page settle and run its init chain.
     tokio::time::sleep(std::time::Duration::from_millis(wait_ms)).await;
@@ -99,9 +96,7 @@ pub async fn read_console_errors(browser: &Browser) -> Result<Vec<String>> {
         .execute_script("JSON.stringify(window.__gbEvErrors || [])")
         .await
         .with_context(|| "reading console error buffer")?;
-    let raw = value
-        .as_str()
-        .unwrap_or_default();
+    let raw = value.as_str().unwrap_or_default();
     serde_json::from_str(raw).context("parsing console error buffer")
 }
 

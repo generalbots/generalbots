@@ -114,8 +114,8 @@ struct ErrorResponse {
     error_description: String,
 }
 
-mod start;
 mod expect_invalid_client;
+mod start;
 
 #[cfg(test)]
 mod tests {

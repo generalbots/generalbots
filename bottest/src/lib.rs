@@ -9,8 +9,8 @@ pub mod services;
 pub mod web;
 
 pub use harness::{
-    BotServerInstance, BotUIInstance, DesktopLocalStartOptions, Insertable, TestConfig, TestContext,
-    TestHarness,
+    BotServerInstance, BotUIInstance, DesktopLocalStartOptions, Insertable, TestConfig,
+    TestContext, TestHarness,
 };
 pub use ports::PortAllocator;
 

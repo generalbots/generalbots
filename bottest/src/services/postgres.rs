@@ -312,7 +312,9 @@ unix_socket_directories = ''
             let migration_dir = if candidate.is_dir() {
                 candidate
             } else {
-                crate_dir.parent().map(|p| p.join("botserver/migrations"))
+                crate_dir
+                    .parent()
+                    .map(|p| p.join("botserver/migrations"))
                     .filter(|p| p.is_dir())
                     .unwrap_or_else(|| crate_dir.join("migrations"))
             };

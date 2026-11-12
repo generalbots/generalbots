@@ -1,4 +1,3 @@
-
 mod llm;
 mod teams;
 mod whatsapp;
@@ -38,7 +37,9 @@ impl MockRegistry {
 
     #[must_use]
     pub const fn whatsapp(&self) -> &MockWhatsApp {
-        self.whatsapp.as_ref().expect("WhatsApp mock not configured")
+        self.whatsapp
+            .as_ref()
+            .expect("WhatsApp mock not configured")
     }
 
     #[must_use]

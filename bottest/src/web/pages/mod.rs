@@ -1,4 +1,3 @@
-
 use anyhow::Result;
 use std::time::Duration;
 
@@ -16,7 +15,6 @@ pub trait Page {
 
     async fn wait_for_load(&self, browser: &Browser) -> Result<()>;
 }
-
 
 pub struct LoginPage {
     pub base_url: String,
@@ -100,7 +98,6 @@ impl Page for LoginPage {
     }
 }
 
-
 pub struct DashboardPage {
     pub base_url: String,
 }
@@ -168,7 +165,6 @@ impl Page for DashboardPage {
         Ok(())
     }
 }
-
 
 pub struct ChatPage {
     pub base_url: String,

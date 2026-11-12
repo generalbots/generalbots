@@ -1,4 +1,3 @@
-
 mod browser_service;
 mod minio;
 mod postgres;
