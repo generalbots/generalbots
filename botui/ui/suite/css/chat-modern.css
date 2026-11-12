@@ -7,17 +7,17 @@
 
 #chat-app,
 .chat-sidebar {
-    --gb-bg: #fafafa;
-    --gb-surface: #ffffff;
-    --gb-surface-muted: #f4f4f5;
-    --gb-text: #18181b;
-    --gb-muted: #71717a;
+    --gb-bg: var(--bg, #fafafa);
+    --gb-surface: var(--surface, #ffffff);
+    --gb-surface-muted: var(--surface-hover, var(--surface, #f4f4f5));
+    --gb-text: var(--text, #18181b);
+    --gb-muted: var(--text-secondary, #71717a);
     /* Borders are true grays, never black and never a black alpha: a 8%
        black alpha still reads as a hard line on white. */
-    --gb-border: #e4e4e7;
-    --gb-border-soft: #ececef;
-    --gb-border-strong: #d4d4d8;
-    --gb-accent: #16a34a;
+    --gb-border: var(--border, #e4e4e7);
+    --gb-border-soft: var(--border, #ececef);
+    --gb-border-strong: var(--border, #d4d4d8);
+    --gb-accent: var(--accent, #16a34a);
     --gb-accent-soft: rgba(22, 163, 74, 0.10);
     --gb-shadow-bubble: 0 1px 2px rgba(16, 24, 40, 0.04);
     --gb-shadow-raised: 0 8px 24px rgba(16, 24, 40, 0.07);
@@ -218,7 +218,7 @@
     border-radius: 10px;
     padding: 12px 14px;
     font-size: 12.5px;
-    background: #f4f4f5;
+    background: var(--surface, #f4f4f5);
     color: #27272a;
 }
 
@@ -239,7 +239,7 @@
 /* ── Thinking block: part of the bubble, not a white card inside it ─── */
 
 #chat-app .thinking-section {
-    background: #f7f7f8;
+    background: var(--surface, #f7f7f8);
     border: 1px solid var(--gb-border-soft);
     border-radius: 12px;
     margin-bottom: 10px;
@@ -258,7 +258,7 @@
 }
 
 [data-color-scheme="dark"] #chat-app .thinking-section {
-    background: #202025;
+    background: var(--surface, #202025);
     border-color: #313138;
 }
 
