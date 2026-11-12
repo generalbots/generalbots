@@ -129,8 +129,23 @@ function GBDocsExport(format, id) {
             if (format === "pdf") {
                 var printWindow = window.open("", "_blank");
                 if (!printWindow) return;
+                // #2251 — the fallback printed unstyled HTML, so headings,
+                // list numbering and page breaks collapsed. Carry the page
+                // CSS (A4 sheet, hanging list indents, real page breaks).
                 printWindow.document.write(
-                    "<!doctype html><html><head><meta charset='utf-8'><title>Print</title></head><body>" +
+                    "<!doctype html><html><head><meta charset='utf-8'><title>Print</title>" +
+                    "<style>" +
+                    "@page{size:A4;margin:20mm;}" +
+                    "body{font:11pt/1.45 Helvetica,Arial,sans-serif;color:#111;}" +
+                    "h1{font-size:18pt;}h2{font-size:14pt;}h3{font-size:12.5pt;}" +
+                    "h1,h2,h3,h4,h5,h6{break-after:avoid;page-break-after:avoid;}" +
+                    "ol,ul{margin:0 0 6pt 18pt;padding:0;}" +
+                    "li{margin:0 0 2pt;}" +
+                    "p{margin:0 0 5pt;}" +
+                    ".gb-doc-page-break,hr.gb-page-break{break-after:page;page-break-after:always;" +
+                    "border:0;height:0;margin:0;padding:0;}" +
+                    ".gb-doc-page-break::after{content:none;}" +
+                    "</style></head><body>" +
                     html + "</body></html>"
                 );
                 printWindow.document.close();

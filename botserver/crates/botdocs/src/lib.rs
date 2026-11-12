@@ -4,6 +4,7 @@ pub mod export_isolation;
 pub mod handlers_api;
 pub mod legacy;
 pub mod ooxml;
+pub mod pdf;
 pub mod preview;
 pub mod review;
 pub mod state;
