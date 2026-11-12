@@ -348,7 +348,7 @@ pub async fn process_message_internal(
     messages.push(serde_json::json!({
         "role": "system",
         "content": if !agent_enabled {
-            "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec or terminal_run, and do not assume a workspace/VM is available. Answer directly or use non-VM capabilities only."
+            "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, terminal_run, or terminal.exec, and do not assume a workspace/VM is available. Do not produce file artifacts (docx/xlsx/pdf/etc.) through the VM. Answer directly or use non-VM capabilities only."
         } else {
             match route.route {
                 crate::core::bot::ws::stream::routing::Route::Agentic => {

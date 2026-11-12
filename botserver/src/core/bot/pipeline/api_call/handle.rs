@@ -43,6 +43,31 @@ pub(crate) async fn handle_api_call(
     if name.is_empty() {
         return false;
     }
+
+    // #2264 — honor the per-turn Agent/VM switch. When Agent is off, VM-dependent
+    // commands (terminal execution, Vibe project changes) must not run, even if
+    // the model emits them through the api-catalog. The toggle is per-turn and
+    // can flip mid-conversation, so resolve from the already-resolved identity.
+    let is_vm_dependent = name == "terminal.exec"
+        || name == "terminal.run"
+        || name == "vibe.project.change"
+        || crate::apps::commands::command_by_name(&name)
+            .map(|c| c.app == "terminal")
+            .unwrap_or(false);
+    if is_vm_dependent && !identity.agent_vm_enabled {
+        let msg = "Agent/VM is disabled for this conversation. I can't run terminal or workspace commands right now — turn the Agent switch on to enable them.";
+        let resp = botlib::models::BotResponse::new(
+            bot_uuid.to_string(),
+            session_id.to_string(),
+            user_id.to_string(),
+            msg,
+            &channel,
+        );
+        let _ = sink.send_bot_response(&resp).await;
+        let mut sm = state.session_manager.lock().await;
+        let _ = sm.save_message(session_id, user_id, 2, msg, 2);
+        return true;
+    }
     let params = payload
         .get("params")
         .cloned()
