@@ -524,7 +524,7 @@ jobs:
 
       - name: Upload first-run logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: first-run-logs
           path: |
@@ -545,7 +545,7 @@ jobs:
           du -sh dist
 
       - name: Upload Linux installer
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-installer
           path: dist/*
@@ -970,7 +970,7 @@ jobs:
           Write-Host ("windows-binaries payload: {0:N0} MB" -f $mb)
 
       - name: Upload Windows binaries
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-binaries
           path: dist/*
@@ -1393,7 +1393,7 @@ jobs:
           echo "smoke test passed"
 
       - name: Upload bundle artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: botmodels-pythonbox
           path: dist/*
@@ -1608,7 +1608,7 @@ jobs:
           Write-Host 'smoke test passed'
 
       - name: Upload bundle artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: botmodels-pythonbox-windows
           path: dist/*
@@ -1700,7 +1700,7 @@ jobs:
           (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os && cat SHA256SUMS-os)
 
       - name: Upload the ISO
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: generalbots-os-image
           path: |
