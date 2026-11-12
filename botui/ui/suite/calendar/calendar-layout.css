@@ -3,6 +3,11 @@
 /* Calendar Container */
 .calendar-container {
     display: flex;
+    /* The shared `.gb-app` surface (mindfulness.css) is a column flex box.
+       The calendar is a two-pane ROW (sidebar + grid); inheriting column made
+       the sidebar take the full height and collapsed .calendar-main to 0px —
+       the app looked blank (UAT #2262). */
+    flex-direction: row;
     height: 100%;
     min-height: 0;
     background: var(--background, var(--bg-primary, #0a0a0f));

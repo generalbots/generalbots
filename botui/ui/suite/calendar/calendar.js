@@ -418,6 +418,7 @@
         renderMiniCalendar: renderMiniCalendar,
         loadEvents: loadEvents,
         drawEvents: drawEvents,
-        bindEvents: bindEvents
+        bindEvents: bindEvents,
+        getWeekStart: getWeekStart
     };
 })();

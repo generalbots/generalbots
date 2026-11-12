@@ -5,6 +5,10 @@
     // module it exposes: the bare identifiers used here threw ReferenceError
     // on every click, so the calendar never switched views or saved events
     // (UAT #2262).
+    // Snapshot of the core module BEFORE this file replaces it, so delegates
+    // never recurse into the merged object.
+    var BASE = window.CalendarModule || {};
+    function getWeekStart(date) { return BASE.getWeekStart(date); }
     function renderMiniCalendar() { return window.CalendarModule.renderMiniCalendar(); }
     function renderCurrentView() { return window.CalendarModule.renderCurrentView(); }
     function loadEvents() { return window.CalendarModule.loadEvents(); }
@@ -387,6 +391,7 @@
         loadEvents: base.loadEvents || loadEvents,
         drawEvents: base.drawEvents || drawEvents,
         showEventPopup: showEventPopup,
+        getWeekStart: base.getWeekStart || getWeekStart,
         setView: function(view) {
             CS.currentView = view;
             renderCurrentView();
