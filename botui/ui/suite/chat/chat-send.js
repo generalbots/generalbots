@@ -12,9 +12,29 @@ function clearChatPending() {
     clearTimeout(ChatState.responseWatchdog);
     ChatState.responseWatchdog = null;
   }
+  if (ChatState.pendingHardTimeout) {
+    clearTimeout(ChatState.pendingHardTimeout);
+    ChatState.pendingHardTimeout = null;
+  }
   if (typeof setChatStatus === "function") setChatStatus("");
 }
 window.clearChatPending = clearChatPending;
+// #2244 — safety net: if the tab regains visibility and no request is pending,
+// drop any stale "Waiting for the model…" status that survived a missed frame.
+(function () {
+  function clearStale() {
+    if (ChatState && ChatState.pendingResponseAt) return;
+    if (typeof setChatStatus === "function") setChatStatus("");
+  }
+  if (typeof document !== "undefined" && document.addEventListener) {
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") clearStale();
+    });
+  }
+  if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("focus", clearStale);
+  }
+})();
 
 function armChatPending(text) {
   clearChatPending();
@@ -32,6 +52,14 @@ function armChatPending(text) {
       setChatStatus("Waiting for the model… the provider may be busy.");
     }
   }, slowAfter);
+  // #2244 — hard safety net: even if no terminal frame ever arrives (provider
+  // timeout/error, dropped WS message, turn-state desync), never leave the
+  // "Waiting for the model…" status (or a pending turn) stuck forever.
+  if (ChatState.pendingHardTimeout) clearTimeout(ChatState.pendingHardTimeout);
+  ChatState.pendingHardTimeout = setTimeout(function () {
+    if (!ChatState.pendingResponseAt) return;
+    clearChatPending();
+  }, 180000);
 }
 
 function clientCapabilities() {
