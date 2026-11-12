@@ -56,12 +56,13 @@ pub(crate) async fn handle_api_call(
             .unwrap_or(false);
     if is_vm_dependent && !identity.agent_vm_enabled {
         let msg = "Agent/VM is disabled for this conversation. I can't run terminal or workspace commands right now — turn the Agent switch on to enable them.";
+        let channel_name = sink.channel_type().to_string();
         let resp = botlib::models::BotResponse::new(
             bot_uuid.to_string(),
             session_id.to_string(),
             user_id.to_string(),
             msg,
-            &channel,
+            &channel_name,
         );
         let _ = sink.send_bot_response(&resp).await;
         let mut sm = state.session_manager.lock().await;
