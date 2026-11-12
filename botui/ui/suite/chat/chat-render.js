@@ -202,6 +202,9 @@ function renderDeepLinks(html) {
     // so any app://vision?... link the model hallucinates must not become a
     // clickable button. Leave it as plain text instead.
     if (appId === "vision") return m;
+    // #2235 F7 — only render deep links for known suite apps; hallucinated or
+    // unknown app:// targets stay as plain content instead of clickable buttons.
+    if (window.APP_CAPABILITIES && !window.APP_CAPABILITIES[appId]) return m;
     var qs = target.indexOf("?") !== -1 ? target.split("?")[1] : "";
     var params = {};
     if (qs) {
@@ -228,6 +231,8 @@ function renderDeepLinks(html) {
     var appId = stripped.split("?")[0];
     // #2226 — drop hallucinated vision deep links (no declared deep link).
     if (appId === "vision") return m;
+    // #2235 F7 — validate app id against known capabilities before rendering.
+    if (window.APP_CAPABILITIES && !window.APP_CAPABILITIES[appId]) return m;
     var qs = stripped.indexOf("?") !== -1 ? stripped.split("?")[1] : "";
     var params = {};
     if (qs) {

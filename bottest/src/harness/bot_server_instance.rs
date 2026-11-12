@@ -508,14 +508,22 @@ impl BotServerInstance {
 
         if let Some(ref completions) = llm_chat_completions_url {
             cmd.env("LLM_URL", completions);
-            cmd.env("LLM_API_URL", completions);
         }
+        // Prefer OpenAI-compatible base (`.../v1`) for API-base consumers while
+        // keeping the full completions endpoint available via LLM_URL. This
+        // matches the desktop-local smoke contract (LLM_API_URL/OPENAI_API_BASE as
+        // base, LLM_URL as full chat completions URL).
         if let Some(ref base) = llm_openai_base_url {
+            cmd.env("LLM_API_URL", base);
             cmd.env("OPENAI_API_BASE", base);
+        } else if let Some(ref completions) = llm_chat_completions_url {
+            cmd.env("LLM_API_URL", completions);
         }
         if llm_chat_completions_url.is_some() || llm_openai_base_url.is_some() {
             cmd.env("OPENAI_API_KEY", "mock-key");
             cmd.env("LLM_API_KEY", "mock-key");
+            cmd.env("LLM_MODEL", "mock-gpt");
+            cmd.env("LLM_PROVIDER", "openai");
         }
         for (k, v) in extra_env {
             cmd.env(k, v);

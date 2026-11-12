@@ -148,89 +148,117 @@ jobs:
             if ($redisSvc -and $redisSvc.Status -ne 'Running') { Start-Service $redisSvc.Name -ErrorAction SilentlyContinue }
           } catch { Write-Host "::warning::Redis unavailable, continuing: $($_.Exception.Message)" }
 
-          # #2166 — deterministic local OpenAI-compatible mock LLM (no paid providers).
-          # Handles /v1/models, /embeddings, and non-streaming chat completions.
-          $mockPy = Join-Path $env:RUNNER_TEMP 'mock_llm.py'
-          @'
-          import json
-          from http.server import BaseHTTPRequestHandler, HTTPServer
-
-          REPLY = "Hello from mock LLM."
-          STATE = {"requests": 0, "chat_requests": 0}
-
+          # #2166/#2173 — deterministic local OpenAI-compatible mock LLM (no paid providers).
+          # Prefer the repo-hardened script (aligned with harness expectations); fall back
+          # to a minimal embedded copy if the checkout layout differs in CI artifacts.
+          $mockScript = Join-Path (Get-Location) 'scripts\mock_llm.py'
+          if (-not (Test-Path $mockScript)) {
+            $mockScript = Join-Path $env:RUNNER_TEMP 'mock_llm.py'
+            @'
+          import json, os
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          REPLY = os.environ.get('MOCK_REPLY', 'Hello from mock LLM.')
+          MODEL = os.environ.get('MOCK_MODEL', 'mock-gpt')
+          STATE = {'requests': 0, 'chat_requests': 0}
           class H(BaseHTTPRequestHandler):
+              def log_message(self, *a): pass
               def _send(self, code, obj):
                   body = json.dumps(obj).encode('utf-8')
-                  self.send_response(code)
-                  self.send_header('Content-Type', 'application/json')
-                  self.send_header('Content-Length', str(len(body)))
-                  self.end_headers()
-                  self.wfile.write(body)
-
+                  self.send_response(code); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
               def do_GET(self):
-                  STATE["requests"] += 1
-                  if self.path.startswith('/v1/models'):
-                      self._send(200, {'object': 'list', 'data': [{'id': 'mock-gpt', 'object': 'model'}]})
-                  elif self.path.startswith('/health'):
-                      self._send(200, {'status': 'ok', 'mock': True, **STATE})
-                  else:
-                      self._send(200, {'status': 'ok', 'mock': True})
-
+                  STATE['requests'] += 1
+                  p = self.path.split('?',1)[0]
+                  if p.startswith('/v1/models'): self._send(200, {'object':'list','data':[{'id':MODEL,'object':'model'}]})
+                  elif p.startswith('/health'): self._send(200, {'status':'ok','mock':True,'model':MODEL, **STATE})
+                  else: self._send(200, {'status':'ok','mock':True})
               def do_POST(self):
-                  STATE["requests"] += 1
-                  length = int(self.headers.get('Content-Length', '0') or 0)
-                  raw = self.rfile.read(length) if length else b''
+                  STATE['requests'] += 1
+                  l = int(self.headers.get('Content-Length','0') or 0); _ = self.rfile.read(l) if l else b''
                   if '/embeddings' in self.path:
-                      self._send(200, {
-                          'object': 'list',
-                          'data': [{'object': 'embedding', 'index': 0, 'embedding': [0.0] * 8}],
-                          'model': 'mock-gpt',
-                          'usage': {'prompt_tokens': 1, 'total_tokens': 1}
-                      })
-                      return
-                  # Deterministic chat completion for chat/completions-like POSTs.
-                  STATE["chat_requests"] += 1
-                  self._send(200, {
-                      'id': 'chatcmpl-mock',
-                      'object': 'chat.completion',
-                      'created': 0,
-                      'model': 'mock-gpt',
-                      'choices': [{
-                          'index': 0,
-                          'message': {'role': 'assistant', 'content': REPLY},
-                          'finish_reason': 'stop'
-                      }],
-                      'usage': {'prompt_tokens': 1, 'completion_tokens': 4, 'total_tokens': 5}
-                  })
-
-              def log_message(self, fmt, *args):
-                  pass
-
-          HTTPServer(('127.0.0.1', 18080), H).serve_forever()
-          '@ | Set-Content -Encoding UTF8 $mockPy
+                      self._send(200, {'object':'list','data':[{'object':'embedding','index':0,'embedding':[0.0]*8}],'model':MODEL,'usage':{'prompt_tokens':1,'total_tokens':1}}); return
+                  STATE['chat_requests'] += 1
+                  self._send(200, {'id':'chatcmpl-mock','object':'chat.completion','created':0,'model':MODEL,'choices':[{'index':0,'message':{'role':'assistant','content':REPLY},'finish_reason':'stop'}],'usage':{'prompt_tokens':1,'completion_tokens':4,'total_tokens':5}})
+          ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('MOCK_PORT','18080'))), H).serve_forever()
+          '@ | Set-Content -Encoding UTF8 $mockScript
+            Write-Host "::warning::scripts/mock_llm.py not found; using embedded fallback mock"
+          } else {
+            Write-Host "Using repo mock LLM script: $mockScript"
+          }
           $mockLog = Join-Path (Get-Location) 'mock-llm.log'
           $mockErr = Join-Path (Get-Location) 'mock-llm.log.err'
           $py = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } elseif (Get-Command py -ErrorAction SilentlyContinue) { 'py' } else { $null }
           if (-not $py) { throw 'Python not found on PATH; required for deterministic local mock LLM' }
-          $pyArgs = if ($py -eq 'py') { @('-3', $mockPy) } else { @($mockPy) }
+          $env:MOCK_HOST = '127.0.0.1'
+          $env:MOCK_PORT = '18080'
+          $env:MOCK_MODEL = 'mock-gpt'
+          $env:MOCK_REPLY = 'Hello from mock LLM.'
+          $env:MOCK_MODE = 'answer'
+          $env:PYTHONUNBUFFERED = '1'
+          $pyArgs = if ($py -eq 'py') { @('-3', '-u', $mockScript) } else { @('-u', $mockScript) }
           $mockProc = Start-Process -FilePath $py -ArgumentList $pyArgs -PassThru -RedirectStandardOutput $mockLog -RedirectStandardError $mockErr -WindowStyle Hidden
-          Start-Sleep -Seconds 1
-          Write-Host "Mock LLM started (pid=$($mockProc.Id)) on 127.0.0.1:18080 via $py"
-          "mock_url=http://127.0.0.1:18080/v1`nreply=Hello from mock LLM." | Set-Content "smoke-artifacts/mock-info.txt"
+          # Readiness probe (hardened for windows-latest startup jitter).
+          $mockReady = $false
+          for ($m = 0; $m -lt 30; $m++) {
+            Start-Sleep -Milliseconds 500
+            if ($mockProc.HasExited) { break }
+            try {
+              $mh = Invoke-WebRequest -Uri 'http://127.0.0.1:18080/health' -UseBasicParsing -TimeoutSec 2
+              if ($mh.StatusCode -eq 200) { $mockReady = $true; $mh.Content | Set-Content "smoke-artifacts/mock-health.json"; break }
+            } catch {}
+          }
+          if (-not $mockReady) {
+            Write-Host "=== mock llm log (tail) ==="; Get-Content $mockLog -Tail 80 -ErrorAction SilentlyContinue
+            Write-Host "=== mock llm err (tail) ==="; Get-Content $mockErr -Tail 80 -ErrorAction SilentlyContinue
+            if ($mockProc -and -not $mockProc.HasExited) { Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue }
+            throw "Mock LLM did not become ready on http://127.0.0.1:18080/health"
+          }
+          Write-Host "Mock LLM ready (pid=$($mockProc.Id)) on 127.0.0.1:18080 via $py script=$mockScript"
+          "mock_url=http://127.0.0.1:18080/v1`nreply=Hello from mock LLM.`nscript=$mockScript" | Set-Content "smoke-artifacts/mock-info.txt"
 
           $log = Join-Path (Get-Location) 'botserver-testbuild.log'
           $proc = Start-Process -FilePath 'target\debug\botserver.exe' -ArgumentList '--noconsole' `
             -WorkingDirectory (Get-Location) -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err" -WindowStyle Hidden
 
           $dumpLogs = {
-            Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 120 -ErrorAction SilentlyContinue
-            Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 120 -ErrorAction SilentlyContinue
-            Write-Host "=== mock llm log (tail) ==="; Get-Content $mockLog -Tail 60 -ErrorAction SilentlyContinue
-            Write-Host "=== mock llm err (tail) ==="; Get-Content "$mockLog.err" -Tail 60 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver log (tail) ==="; Get-Content $log -Tail 160 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver err (tail) ==="; Get-Content "$log.err" -Tail 160 -ErrorAction SilentlyContinue
+            Write-Host "=== mock llm log (tail) ==="; Get-Content $mockLog -Tail 120 -ErrorAction SilentlyContinue
+            Write-Host "=== mock llm err (tail) ==="; Get-Content $mockErr -Tail 120 -ErrorAction SilentlyContinue
+            # Best-effort mock health snapshot at failure time for artifacts/debugging.
+            try {
+              $mhf = Invoke-WebRequest -Uri 'http://127.0.0.1:18080/health' -UseBasicParsing -TimeoutSec 2
+              $mhf.Content | Set-Content "smoke-artifacts/mock-health.json"
+              Write-Host "=== mock llm health === $($mhf.Content)"
+            } catch {}
+            # Failure artifacts: screenshot + process/env context (windows-latest).
+            try {
+              Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+              Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+              $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+              $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+              $graphics = [System.Drawing.Graphics]::FromImage($bmp)
+              $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+              $bmp.Save("smoke-artifacts/failure-screenshot.png", [System.Drawing.Imaging.ImageFormat]::Png)
+              $graphics.Dispose(); $bmp.Dispose()
+              Write-Host "Saved failure screenshot: smoke-artifacts/failure-screenshot.png"
+            } catch { Write-Host "::warning::Could not capture failure screenshot: $($_.Exception.Message)" }
+            try {
+              Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'botserver|python|py' } |
+                Select-Object Id, ProcessName, CPU, StartTime | Format-Table -AutoSize | Out-String |
+                Set-Content "smoke-artifacts/processes.txt"
+            } catch {}
           }
           $stopAll = {
-            if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-            if ($mockProc -and -not $mockProc.HasExited) { Stop-Process -Id $mockProc.Id -Force -ErrorAction SilentlyContinue }
+            # Capture final mock health before stopping (best-effort evidence).
+            try {
+              $mhf = Invoke-WebRequest -Uri 'http://127.0.0.1:18080/health' -UseBasicParsing -TimeoutSec 2
+              $mhf.Content | Set-Content "smoke-artifacts/mock-health-final.json"
+            } catch {}
+            foreach ($p in @($proc, $mockProc)) {
+              if ($p -and -not $p.HasExited) {
+                try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+              }
+            }
           }
 
           $ready = $false
@@ -309,53 +337,73 @@ jobs:
 
           # Headless chat e2e smoke (#2166/#2173): POST /api/chat must return 200 with
           # a usable assistant reply. Deterministic local mock LLM only (127.0.0.1).
+          # Hardened for windows-latest: retry transient startup/routing delays and
+          # capture structured failure artifacts for diagnosis.
           $chatOk = $false
           $chatReply = ''
-          try {
-            $body = @{ message = "hi" } | ConvertTo-Json
-            $resp = Invoke-WebRequest -Uri 'http://localhost:8080/api/chat' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing -TimeoutSec 30
-            Write-Host "chat status: $($resp.StatusCode)"
-            Write-Host "chat body: $($resp.Content)"
-            $resp.Content | Set-Content "smoke-artifacts/chat.json"
-            $json = $null
-            try { $json = $resp.Content | ConvertFrom-Json } catch { $json = $null }
-            $hasPayload = $false
-            if ($json) {
-              $chatReply = [string]($json.reply)
-              if (-not $chatReply) { $chatReply = [string]($json.message) }
-              $hasPayload = [bool]($chatReply -or $json.content -or $json.text -or $json.choices)
-              @{ status = $resp.StatusCode; hasPayload = $hasPayload; keys = @($json.PSObject.Properties.Name); reply = $chatReply } |
-                ConvertTo-Json -Compress | Set-Content "smoke-artifacts/chat-meta.json"
-            } else {
-              $hasPayload = ($resp.Content -match '"reply"|"message"|"content"|"text"|"choices"')
-              @{ status = $resp.StatusCode; hasPayload = $hasPayload; raw = $true } |
-                ConvertTo-Json -Compress | Set-Content "smoke-artifacts/chat-meta.json"
-            }
-            $fallbackNoProvider = 'Configure an LLM provider to enable AI replies.'
-            $fallbackNoLlm = 'No LLM provider configured'
-            $isFallback = ($chatReply -like "*$fallbackNoProvider*" -or $chatReply -like "*$fallbackNoLlm*")
-            if ($resp.StatusCode -eq 200 -and $hasPayload -and -not $isFallback) {
-              $chatOk = $true
-              if ($chatReply -match 'mock' -or $chatReply -match 'Hello from mock LLM') {
-                Write-Host "chat reply came from deterministic mock LLM"
+          $chatAttempts = @()
+          $fallbackNoProvider = 'Configure an LLM provider to enable AI replies.'
+          $fallbackNoLlm = 'No LLM provider configured'
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+              $body = @{ message = "hi"; prompt = "hi" } | ConvertTo-Json -Compress
+              $resp = Invoke-WebRequest -Uri 'http://localhost:8080/api/chat' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing -TimeoutSec 45
+              Write-Host "chat attempt ${attempt}: status=$($resp.StatusCode)"
+              $resp.Content | Set-Content "smoke-artifacts/chat-attempt-$attempt.json"
+              $json = $null
+              try { $json = $resp.Content | ConvertFrom-Json } catch { $json = $null }
+              $hasPayload = $false
+              $replyCandidate = ''
+              $keys = @()
+              if ($json) {
+                $keys = @($json.PSObject.Properties.Name)
+                $replyCandidate = [string]($json.reply)
+                if (-not $replyCandidate) { $replyCandidate = [string]($json.message) }
+                if (-not $replyCandidate) { $replyCandidate = [string]($json.content) }
+                if (-not $replyCandidate -and $json.response) { $replyCandidate = [string]($json.response) }
+                $hasPayload = [bool]($replyCandidate -or $json.text -or $json.choices)
               } else {
-                Write-Host "::warning::Chat returned non-fallback reply but mock marker not found; mock-path not proven by content"
+                $hasPayload = ($resp.Content -match '"reply"|"message"|"content"|"text"|"choices"|"response"')
               }
-            } elseif ($isFallback) {
-              Write-Host "chat reply indicates no LLM provider/fallback path: '$chatReply'"
+              $isFallback = ($replyCandidate -like "*$fallbackNoProvider*" -or $replyCandidate -like "*$fallbackNoLlm*")
+              $chatAttempts += [pscustomobject]@{ attempt = $attempt; status = $resp.StatusCode; hasPayload = $hasPayload; isFallback = $isFallback; keys = $keys; reply = $replyCandidate }
+              if ($replyCandidate) { $chatReply = $replyCandidate }
+              # Preserve latest response as canonical chat artifacts.
+              $resp.Content | Set-Content "smoke-artifacts/chat.json"
+              @{ status = $resp.StatusCode; hasPayload = $hasPayload; isFallback = $isFallback; keys = $keys; reply = $replyCandidate; attempt = $attempt } |
+                ConvertTo-Json -Compress | Set-Content "smoke-artifacts/chat-meta.json"
+              if ($resp.StatusCode -eq 200 -and $hasPayload -and -not $isFallback) {
+                $chatOk = $true
+                if ($chatReply -match 'mock' -or $chatReply -match 'Hello from mock LLM') {
+                  Write-Host "chat reply came from deterministic mock LLM"
+                } else {
+                  Write-Host "::warning::Chat returned non-fallback reply but mock marker not found; mock-path not proven by content"
+                }
+                break
+              }
+              if ($isFallback) {
+                Write-Host "chat attempt ${attempt}: fallback/no-provider reply detected: '$replyCandidate'"
+              } else {
+                Write-Host "chat attempt ${attempt}: response not usable yet (hasPayload=$hasPayload)"
+              }
+            } catch {
+              Write-Host "chat attempt ${attempt} failed: $($_.Exception.Message)"
+              $_.Exception.Message | Set-Content "smoke-artifacts/chat-error-attempt-$attempt.txt"
+              $chatAttempts += [pscustomobject]@{ attempt = $attempt; status = 'error'; hasPayload = $false; isFallback = $false; error = $_.Exception.Message }
+              if ($_.Exception.Response) {
+                try {
+                  $sr = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                  $errBody = $sr.ReadToEnd()
+                  $errBody | Set-Content "smoke-artifacts/chat-error-body-attempt-$attempt.txt"
+                  $errBody | Set-Content "smoke-artifacts/chat-error-body.txt"
+                  Write-Host "chat attempt ${attempt} error body: $errBody"
+                } catch {}
+              }
+              $_.Exception.Message | Set-Content "smoke-artifacts/chat-error.txt"
             }
-          } catch {
-            Write-Host "chat smoke request failed: $($_.Exception.Message)"
-            $_.Exception.Message | Set-Content "smoke-artifacts/chat-error.txt"
-            if ($_.Exception.Response) {
-              try {
-                $sr = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-                $errBody = $sr.ReadToEnd()
-                $errBody | Set-Content "smoke-artifacts/chat-error-body.txt"
-                Write-Host "chat error body: $errBody"
-              } catch {}
-            }
+            if ($attempt -lt 3) { Start-Sleep -Seconds 3 }
           }
+          $chatAttempts | ConvertTo-Json -Depth 5 | Set-Content "smoke-artifacts/chat-attempts.json"
           "reply=$chatReply" | Set-Content "smoke-artifacts/chat-reply.txt"
           try {
             $mh = Invoke-WebRequest -Uri 'http://127.0.0.1:18080/health' -UseBasicParsing -TimeoutSec 5
@@ -363,15 +411,20 @@ jobs:
             Write-Host "mock health: $($mh.Content)"
           } catch { Write-Host "mock health probe unavailable: $($_.Exception.Message)" }
           if (-not $chatOk) {
-            Write-Host "=== botserver log (tail, chat) ==="; Get-Content $log -Tail 140 -ErrorAction SilentlyContinue
+            Write-Host "=== botserver log (tail, chat) ==="; Get-Content $log -Tail 180 -ErrorAction SilentlyContinue
             & $dumpLogs
             & $stopAll
             throw "desktop-local chat e2e smoke failed (expected non-fallback assistant reply; mock LLM preferred)"
           }
 
           & $stopAll
-          "status=ok`nendpoint=/api/chat`nmode=local-mock-llm" | Set-Content "smoke-artifacts/smoke-summary.txt"
-          Write-Host "Smoke boot + HTTP assertions + chat e2e smoke OK"
+          $mockCalls = 0
+          try {
+            $mhf = Get-Content "smoke-artifacts/mock-health-final.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+            if ($mhf) { $mockCalls = [int]($mhf.chat_requests) }
+          } catch {}
+          "status=ok`nendpoint=/api/chat`nmode=local-mock-llm`nmock_chat_requests=$mockCalls`nmock_script=$mockScript" | Set-Content "smoke-artifacts/smoke-summary.txt"
+          Write-Host "Smoke boot + HTTP assertions + chat e2e smoke OK (mock_chat_requests=$mockCalls)"
 
 
       - name: Upload staged build artifacts

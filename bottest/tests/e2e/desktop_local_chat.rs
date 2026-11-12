@@ -16,18 +16,22 @@
 //!   completions endpoint, `LLM_API_URL`/`OPENAI_API_BASE` point at the OpenAI
 //!   base (`/v1`), `OPENAI_API_KEY`/`LLM_API_KEY` are dummy values, and
 //!   `LLM_MODEL`/`LLM_PROVIDER` identify the local mock model/provider.
+//!   `bottest::BotServerInstance::start_desktop_local` applies the same contract
+//!   when `with_mock_llm_urls(...)` is provided.
 //!
 //! ## Suite chat flow
 //! - Desktop shell route `/chat` loads the suite and opens chat; the chat UI is
 //!   the `partials/chat.html` fragment (also used by the desktop shell). Real
 //!   suite chat runs over WebSocket `/ws` after `/api/auth` + `/api/bot/public`;
-//!   HTTP `POST /api/chat` is a separate JSON endpoint used by headless smoke.
+//!   HTTP `POST /api/chat` is a separate JSON endpoint (registered in
+//!   `botserver/src/main_module/routes/chat_handlers.rs`) used by headless smoke.
 //! - Selectors aligned to `botui/ui/suite/partials/chat.html` and chat JS:
-//!   input `#messageInput` (fallbacks: `textarea[name='content']`, `#ai-input`,
-//!   `.ai-input`), send `#sendBtn` (fallbacks: `button[type='submit']`,
-//!   `#ai-send`, `.ai-send`), transcript `#messages`, bot/assistant replies
-//!   `.message.bot .bot-message`, `.message.bot`, `.message.assistant`,
-//!   `.assistant-message`, `.bot-message`.
+//!   input `#messageInput` (textarea `name="content"`; fallbacks `#ai-input`,
+//!   `.ai-input`), send `#sendBtn` (`button[type='submit']`; fallbacks
+//!   `#ai-send`, `.ai-send`), transcript `#messages` (`<main>`), bot/assistant
+//!   replies rendered as `.message.bot` with `.message-content.bot-message`
+//!   (fallbacks `.message.assistant`, `.assistant-message`,
+//!   `[data-role='assistant']`).
 //!
 //! ## Execution modes
 //! - `desktop_local_chat_mock_llm_wiring_smoke`: offline-safe, no browser/DB.
@@ -38,6 +42,34 @@
 //!   with a deterministic mock LLM wired.
 //! - `desktop_local_suite_chat_hi`: ignored; requires desktop-local
 //!   botserver+suite UI+browser wired to the mock LLM.
+//!
+//! ## How to run
+//! - Offline contracts/smoke (no paid LLM, no browser/DB/botserver required):
+//!   `cargo test -p bottest --features e2e desktop_local_chat -- --nocapture`
+//!   (or run individual `desktop_local_*_contract` /
+//!   `desktop_local_chat_mock_llm_wiring_smoke` tests).
+//! - Start-profile bootstrap with a desktop-local-capable binary:
+//!   `BOTSERVER_DESKTOP_LOCAL_BIN=/abs/path/to/botserver cargo test -p bottest --features e2e desktop_local_start_profile_with_mock_llm -- --ignored --nocapture`
+//! - Full suite chat UI flow (self-wired environment required): run a
+//!   desktop-local botserver started with the mock LLM env from
+//!   `desktop_local_botserver_env`/`start_desktop_local`, serve suite UI (botui)
+//!   against it, then run
+//!   `BOTSERVER_URL=http://127.0.0.1:<port> BOTUI_URL=http://localhost:3000 cargo test -p bottest --features e2e desktop_local_suite_chat_hi -- --ignored --nocapture`.
+//!
+//! ## CI / self-contained status
+//! - Mock LLM wiring, env/profile contracts, selector alignment, and
+//!   `BotServerInstance::start_desktop_local` env application are covered
+//!   offline/deterministically in this harness.
+//! - Remaining for a fully self-contained CI run: a desktop-local-capable
+//!   `botserver` binary + bootstrappable stack components (DB/cache/services as
+//!   required by desktop-local), suite UI served for the browser, and a browser
+//!   (CDP/WebDriver path used by `E2ETestContext::setup_with_browser`).
+//!   `desktop_local_suite_chat_hi` currently reuses an existing/wired stack via
+//!   `E2ETestContext` and does not spawn a mock-wired botserver itself; making
+//!   it fully self-contained requires orchestrating botserver+botui+browser with
+//!   the harness mock LLM in one isolated test setup. No `cargo`/`boteval` runs
+//!   are performed by this agent. Keep tabs/browser sessions open for
+//!   inspection. Use `/tmp` for temporary artifacts. No labels, no close.
 
 use super::{should_run_e2e_tests, E2ETestContext};
 use anyhow::{bail, Context, Result};
@@ -65,10 +97,17 @@ pub const SUITE_CHAT_SEND_SELECTOR: &str = "#sendBtn, button[type='submit'], #ai
 /// CSS selector(s) indicating a bot/assistant response in the transcript.
 pub const SUITE_CHAT_BOT_RESPONSE_SELECTOR: &str = ".message.bot .bot-message, .message.bot, .message.assistant, .assistant-message, .bot-message, [data-role='assistant']";
 
+/// HTTP/WS endpoints involved in the real suite chat flow (desktop-local parity).
+/// `/api/chat` is a headless JSON smoke path; browser chat uses WS `/ws`.
+pub const SUITE_CHAT_WS_PATH: &str = "/ws";
+pub const SUITE_CHAT_AUTH_PATH: &str = "/api/auth";
+pub const SUITE_CHAT_BOT_PUBLIC_PATH: &str = "/api/bot/public";
+pub const SUITE_CHAT_HTTP_SMOKE_PATH: &str = "/api/chat";
+
 /// URL candidates for the suite chat surface. Prefer the routed desktop entry so
 /// the shell boots chat + WS modules; include the real chat partial as a last
 /// structural fallback (fragment-only, may not establish WS on its own).
-fn suite_chat_urls(base: &str) -> Vec<String> {
+pub fn suite_chat_urls(base: &str) -> Vec<String> {
     let trimmed = base.trim_end_matches('/');
     vec![
         format!("{trimmed}/chat"),
@@ -248,11 +287,16 @@ async fn load_suite_chat(browser: &bottest::web::Browser, base: &str) -> Result<
         println!("🌐 [desktop-local] trying suite chat URL: {url}");
         match browser.goto(&url).await {
             Ok(()) => {
-                tokio::time::sleep(Duration::from_secs(3)).await;
-                let input = Locator::css(SUITE_CHAT_INPUT_SELECTOR);
-                if browser.exists(input).await {
-                    println!("✓ Suite chat input found at {url}");
-                    return Ok(url);
+                // Suite chat boot is async: auth fetch -> history/bot-public probe
+                // -> WS connect -> UI hydration. Poll for the composer instead of a
+                // single short sleep so routed desktop loads have time to settle.
+                for attempt in 1..=10 {
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    let input = Locator::css(SUITE_CHAT_INPUT_SELECTOR);
+                    if browser.exists(input).await {
+                        println!("✓ Suite chat input found at {url} (poll {attempt}/10)");
+                        return Ok(url);
+                    }
                 }
                 last_err = format!("chat input/composer not found at {url}");
             }
@@ -276,11 +320,11 @@ async fn send_hi_and_wait(browser: &bottest::web::Browser) -> Result<bool> {
     }
 
     println!("⏳ Waiting for bot response (mock LLM when wired via WS chat flow)...");
-    for attempt in 1..=8 {
+    for attempt in 1..=12 {
         tokio::time::sleep(Duration::from_secs(2)).await;
         let response = Locator::css(SUITE_CHAT_BOT_RESPONSE_SELECTOR);
         if matches!(browser.find_elements(response).await, Ok(ref els) if !els.is_empty()) {
-            println!("✓ Bot response element detected (poll {attempt}/8)");
+            println!("✓ Bot response element detected (poll {attempt}/12)");
             return Ok(true);
         }
     }
@@ -365,12 +409,21 @@ async fn desktop_local_start_profile_with_mock_llm() -> Result<()> {
         }
     }
     println!(
-        "  readiness={} url={} stack={}",
+        "  readiness={} url={} stack={} mock_llm={}",
         if ready { "ok" } else { "not-confirmed" },
         server.url,
-        server.stack_path.display()
+        server.stack_path.display(),
+        mock.chat_completions_url()
     );
+    if !ready {
+        println!(
+            "  note: binary bootstrapped but did not confirm HTTP readiness in time; \
+             stack/env/profile/mock wiring were exercised"
+        );
+    }
 
+    // Keep stack for post-run inspection under /tmp if needed by re-running with
+    // a fixed path; ephemeral stacks are removed here to avoid /tmp buildup.
     let _ = std::fs::remove_dir_all(&stack);
     Ok(())
 }
@@ -596,4 +649,32 @@ fn desktop_local_start_profile_builder_contract() {
 struct MockLLMContract {
     completions: String,
     base: String,
+}
+
+/// Offline contract: suite chat WS/HTTP flow endpoints and UI selector anchors.
+/// Validates the real browser flow expectations (`/api/auth` -> `/api/bot/public`
+/// -> `/ws`) alongside the headless HTTP smoke endpoint and suite selectors.
+#[test]
+fn desktop_local_suite_chat_flow_contract() {
+    assert_eq!(SUITE_CHAT_WS_PATH, "/ws");
+    assert_eq!(SUITE_CHAT_AUTH_PATH, "/api/auth");
+    assert_eq!(SUITE_CHAT_BOT_PUBLIC_PATH, "/api/bot/public");
+    assert_eq!(SUITE_CHAT_HTTP_SMOKE_PATH, "/api/chat");
+
+    let urls = suite_chat_urls("http://127.0.0.1:3000/");
+    assert_eq!(urls[0], "http://127.0.0.1:3000/chat");
+    assert!(urls.iter().any(|u| u == "http://127.0.0.1:3000/#chat"));
+    assert!(urls.iter().any(|u| u.ends_with("/suite/desktop.html#chat")));
+    assert!(urls
+        .iter()
+        .any(|u| u.ends_with("/suite/partials/chat.html")));
+
+    // Input/send/transcript anchors aligned to botui/ui/suite/partials/chat.html.
+    assert!(SUITE_CHAT_INPUT_SELECTOR.contains("#messageInput"));
+    assert!(SUITE_CHAT_INPUT_SELECTOR.contains("textarea[name='content']"));
+    assert!(SUITE_CHAT_INPUT_SELECTOR.contains("#ai-input"));
+    assert!(SUITE_CHAT_SEND_SELECTOR.contains("#sendBtn"));
+    assert!(SUITE_CHAT_SEND_SELECTOR.contains("button[type='submit']"));
+    assert!(SUITE_CHAT_BOT_RESPONSE_SELECTOR.contains(".message.bot .bot-message"));
+    assert!(SUITE_CHAT_BOT_RESPONSE_SELECTOR.contains("[data-role='assistant']"));
 }
