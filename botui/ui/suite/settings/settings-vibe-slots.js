@@ -47,7 +47,7 @@
                 .then(function (j) {
                     if (!j) return;
                     var conns = (j.items || []).filter(function (c) {
-                        return c.status !== "revoked" && /^(kilo-|openai|claude|azure|glm|bedrock|vertex|kiro|deepinfra|cerebras|fireworks|together|openrouter|requesty|openai-compatible)/.test(c.provider_slug || "");
+                        return c.status !== "revoked" && /^(kilo-|openai|claude|azure|glm|bedrock|vertex|kiro|deepinfra|cerebras|fireworks|together|openrouter|requesty|opencode|openai-compatible)/.test(c.provider_slug || "");
                     });
                     var options = '<option value="">— none —</option>' + conns.map(function (c) {
                         return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.provider_slug) + "</option>";

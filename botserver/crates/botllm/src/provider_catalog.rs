@@ -245,7 +245,7 @@ pub const PROVIDER_PROFILES: &[ProviderProfile] = &[
         host_patterns: &["deepinfra.com"],
         rate_limits: RateLimits::deepinfra_standard(),
         max_output_tokens: 8_192,
-        reference_model: "deepseek-v4-flash",
+        reference_model: "deepseek-ai/DeepSeek-V4-Flash",
         usd_per_mtok_in: 0.14,
         usd_per_mtok_out: 0.28,
     },

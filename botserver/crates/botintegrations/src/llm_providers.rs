@@ -69,7 +69,11 @@ pub fn llm_provider_defaults(provider_slug: &str) -> Option<(&'static str, &'sta
         ),
         "deepinfra" => (
             "https://api.deepinfra.com/v1/openai/chat/completions",
-            "deepseek-v4-flash",
+            "deepseek-ai/DeepSeek-V4-Flash",
+        ),
+        "opencode" | "opencode-go" => (
+            "https://opencode.ai/zen/go/v1/chat/completions",
+            "deepseek-v4.1-flash",
         ),
         "cerebras" => (
             "https://api.cerebras.ai/v1/chat/completions",
