@@ -137,6 +137,7 @@ pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str)
 /// wizard (never against a plaintext value read from disk). The legacy
 /// `admin@localhost / "dev"` bootstrap is accepted only when
 /// `BOTSERVER_DEV_MODE=1` is set. Never an email-only match.
+/// Plaintext `password` fields are ignored entirely (#2231).
 pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> Option<String> {
     let base = std::env::current_dir().ok()?;
     let mut candidates = vec![
@@ -176,7 +177,8 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
             // field are accepted only to upgrade them in place, then scrubbed.
             let file_salt = json.get("password_salt").and_then(|v| v.as_str()).unwrap_or("");
             let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
-            let mut legacy_plaintext_match = false;
+            // #2231 — never compare against a plaintext `password` field read
+            // from disk; only the salted digest is authoritative.
             let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
                 use sha2::{Digest, Sha256};
                 let mut hasher = Sha256::new();
@@ -184,9 +186,7 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
                 hasher.update(password.as_bytes());
                 format!("{:x}", hasher.finalize()) == file_hash
             } else {
-                let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
-                legacy_plaintext_match = !file_password.is_empty() && file_password == password;
-                legacy_plaintext_match
+                false
             };
             // #2231 — the hardcoded "dev" bootstrap is gated behind an explicit
             // dev-mode flag so production builds never accept it.
@@ -201,24 +201,6 @@ pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> O
                     // fall through to user_id resolution below
                 } else {
                     continue;
-                }
-            }
-            // Upgrade legacy plaintext files to the hashed form (best effort).
-            if legacy_plaintext_match {
-                use sha2::{Digest, Sha256};
-                let salt = uuid::Uuid::new_v4().to_string();
-                let mut hasher = Sha256::new();
-                hasher.update(salt.as_bytes());
-                hasher.update(password.as_bytes());
-                let hash = format!("{:x}", hasher.finalize());
-                let mut upgraded = json.clone();
-                if let Some(obj) = upgraded.as_object_mut() {
-                    obj.insert("password_salt".to_string(), serde_json::Value::String(salt));
-                    obj.insert("password_hash".to_string(), serde_json::Value::String(hash));
-                    obj.remove("password");
-                    if let Ok(serialized) = serde_json::to_string_pretty(&upgraded) {
-                        let _ = std::fs::write(&candidate, serialized);
-                    }
                 }
             }
             if let Some(user_id) = json.get("user_id").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
