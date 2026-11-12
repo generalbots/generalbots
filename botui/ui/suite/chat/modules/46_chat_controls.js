@@ -59,11 +59,17 @@
         return Object.assign({}, DEFAULTS, { web: webDefault });
       }
       var parsed = JSON.parse(raw);
+      var agent = typeof parsed.agent === "boolean" ? parsed.agent : DEFAULTS.agent;
+      var wanted = typeof parsed.appAutomationWanted === "boolean"
+        ? parsed.appAutomationWanted
+        : (typeof parsed.appAutomation === "boolean" ? parsed.appAutomation : DEFAULTS.appAutomation);
       return {
         web: typeof parsed.web === "boolean" ? parsed.web : DEFAULTS.web,
         mediaType: typeof parsed.mediaType === "string" ? parsed.mediaType : DEFAULTS.mediaType,
-        agent: typeof parsed.agent === "boolean" ? parsed.agent : DEFAULTS.agent,
-        appAutomation: typeof parsed.appAutomation === "boolean" ? parsed.appAutomation : DEFAULTS.appAutomation,
+        agent: agent,
+        // Live generation (UI hints into apps) needs the VM/agent loop.
+        appAutomationWanted: wanted,
+        appAutomation: agent && wanted,
       };
     } catch (e) {
       return Object.assign({}, DEFAULTS);
@@ -94,16 +100,31 @@
         state.web = !!window.ChatWebSearch.isEnabled();
       }
     } catch (e) {}
+    var agent = !!state.agent;
+    var wanted = state.appAutomationWanted !== undefined
+      ? !!state.appAutomationWanted
+      : !!state.appAutomation;
     return {
       web: !!state.web,
       mediaType: state.mediaType || "auto",
-      agent: !!state.agent,
-      appAutomation: !!state.appAutomation,
+      agent: agent,
+      // Hard rule: no live generation without the VM/agent.
+      appAutomation: agent && wanted,
     };
   }
 
   function setState(patch) {
-    state = Object.assign({}, state, patch || {});
+    var next = Object.assign({}, patch || {});
+    if (typeof next.appAutomation === "boolean") {
+      next.appAutomationWanted = next.appAutomation;
+    }
+    state = Object.assign({}, state, next);
+    if (typeof state.appAutomationWanted !== "boolean") {
+      state.appAutomationWanted = !!state.appAutomation;
+    }
+    // Unchecking Agent (VM) disables live generation in the same action; the
+    // preference is remembered so re-enabling the VM restores it.
+    state.appAutomation = !!state.agent && !!state.appAutomationWanted;
     write(state);
     syncWebToggle();
     render();
@@ -128,7 +149,18 @@
     var media = panel.querySelector("#cc-media");
     if (web) web.checked = s.web;
     if (agent) agent.checked = s.agent;
-    if (app) app.checked = s.appAutomation;
+    if (app) {
+      app.checked = s.appAutomation;
+      app.disabled = !s.agent;
+      var row = app.closest ? app.closest(".chat-controls-row") : null;
+      var hint = row ? row.querySelector("small") : null;
+      if (hint) {
+        hint.textContent = s.agent
+          ? "Generate in apps (docs/canvas) via UI hints"
+          : "Requires Agent (VM) — disabled while the VM is off";
+      }
+      if (row) row.style.opacity = s.agent ? "" : "0.55";
+    }
     if (media) media.value = s.mediaType;
   }
 
@@ -192,7 +224,15 @@
     var media = panel.querySelector("#cc-media");
     if (web) web.addEventListener("change", function () { setState({ web: !!web.checked }); });
     if (agent) agent.addEventListener("change", function () { setState({ agent: !!agent.checked }); });
-    if (app) app.addEventListener("change", function () { setState({ appAutomation: !!app.checked }); });
+    if (app) app.addEventListener("change", function () {
+      var current = getState();
+      if (!current.agent) {
+        // Defensive: a stale DOM could still dispatch a change event.
+        app.checked = false;
+        return;
+      }
+      setState({ appAutomation: !!app.checked });
+    });
     if (media) media.addEventListener("change", function () { setState({ mediaType: media.value || "auto" }); });
 
     // sync when web toggle button changes externally
