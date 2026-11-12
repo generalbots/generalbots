@@ -16,7 +16,7 @@
                 return d.getFullYear() === cellYear && d.getMonth() === cellMonth && d.getDate() === cellDay;
             });
 
-            const container = cell.querySelector('.month-day-CS.events');
+            const container = cell.querySelector('.month-day-events');
             if (container) {
                 container.innerHTML = dayEvents.map(evt => {
                     const color = evt.color || '#3b82f6';
@@ -60,7 +60,7 @@
     }
 
     function drawEventsDay() {
-        const container = document.getElementById('day-CS.events');
+        const container = document.getElementById('day-events');
         if (!container) return;
         container.innerHTML = '';
 
@@ -283,7 +283,7 @@
                 };
 
                 function sendEventSave() {
-                    fetch('/api/calendar/CS.events', {
+                    fetch('/api/calendar/events', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)
