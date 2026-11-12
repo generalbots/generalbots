@@ -90,6 +90,9 @@
         // Tag the rendered article with the semantic fill target so a UI-hint
         // plan can write into an already-open document too (#2184).
         if (typeof ensureDocArticle === "function") ensureDocArticle();
+        // #2252 — a server-rendered view arrives after this script start();
+        // give its headings ids so the TOC panel can link to them.
+        if (typeof docsAssignHeadingIds === "function") docsAssignHeadingIds(activeArticle());
         setTitle(doc.title || "Untitled Document");
         var stats = document.getElementById("doc-stats");
         if (stats) {

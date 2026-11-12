@@ -182,6 +182,9 @@ function watchPageGuides() {
    (their height changes the page count). */
 function docsAfterContentLoad(article) {
   if (!article) return;
+  // #2252 — every heading needs a stable id before the TOC (and the PDF
+  // export destinations) can point at it.
+  if (typeof docsAssignHeadingIds === "function") docsAssignHeadingIds(article);
   if (!article.dataset.pageH) article.dataset.pageH = "1123";
   var refresh = function () {
     if (typeof fitPageToWidth === "function") fitPageToWidth(article);
