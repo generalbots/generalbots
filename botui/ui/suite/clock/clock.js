@@ -129,7 +129,7 @@ window.GBClockApp = window.GBClockApp || {};
     var abs = Math.abs(diff);
     var text = (diff < 0 ? "-" : "+") + Math.floor(abs / 60) + "h";
     if (abs % 60) text += " " + pad(abs % 60) + "m";
-    return offsetLabel(zoneMin) + " · " + text + " vs local";
+    return offsetLabel(zoneMin) + " \u00b7 " + text + " vs local";
   }
 
   function tickClock() {
