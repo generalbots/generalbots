@@ -173,6 +173,20 @@ pub fn configure_router() -> Router {
             .route(&format!("/suite/{dir}/forms/*path"), any(proxy_api))
             .route(&format!("/suite/{dir}/partials/*path"), any(proxy_api));
     }
+    // A build may omit an app's feature (the dir is not in SUITE_DIRS) while
+    // botserver still serves its HTMX fragments: the static layer then answered
+    // 405 for the POSTs and every dialog in that app silently never opened
+    // (UAT #2249/#2246 — sheet chart + format modals). Route every suite dir's
+    // dynamic suffixes to the backend; matchit still prefers the static
+    // segments registered above.
+    #[cfg(not(feature = "embed-ui"))]
+    {
+        router = router
+            .route("/suite/:dir/fragments/*path", any(proxy_api))
+            .route("/suite/:dir/modals/*path", any(proxy_api))
+            .route("/suite/:dir/forms/*path", any(proxy_api))
+            .route("/suite/:dir/partials/*path", any(proxy_api));
+    }
     #[cfg(feature = "embed-ui")]
     {
         router = router

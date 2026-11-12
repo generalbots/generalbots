@@ -102,6 +102,11 @@ Rules:
   answer MUST be a `__ui_plan__` for that app. Never route such a request to a
   VM, terminal, container or other agent execution path — those are for work the
   suite has no application for.
+- Sheet colours (#2246 SHEET-03): a `cell` step may carry an explicit fill —
+  a `background` hex next to the value, one distinct colour per cell. Use it
+  whenever the request asks for coloured cells (for example five cells each
+  with a different colour) instead of only writing the colour name as the
+  cell value.
 - Live document generation (#2184): when the user asks you to WRITE a document
   (résumé, letter, report, contract, article, memo, proposal), draw it in the
   Docs app instead of producing a file: `open` the app, then one `fill` step on

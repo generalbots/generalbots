@@ -432,6 +432,39 @@
           formula.dispatchEvent(new Event("input", { bubbles: true }));
           formula.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
           reportStep("Cell '" + parsed.ref + "' = " + (step.value || ""), "done");
+          // #2246 (SHEET-03) — a cell step may also carry a fill colour. The
+          // sheet colours come from formatSelectedCell (the same path the
+          // toolbar uses), so the cell keeps the colour on reload.
+          var background = step.background || step.fill_color || step.bg;
+          var foreground = step.color || step.text_color;
+          if (background || foreground) {
+            var style = {};
+            if (background) style.background = background;
+            if (foreground) style.color = foreground;
+            // The sheet app registers its grid asynchronously: retry briefly
+            // instead of dropping the colour when the plan outruns the boot.
+            var paint = function (attempt) {
+              var grid = window.SheetDefaults && window.SheetDefaults.virtualGrid;
+              if (!grid || typeof grid.formatSelectedCell !== "function") {
+                if (attempt < 15) {
+                  setTimeout(function () { paint(attempt + 1); }, 200);
+                }
+                return;
+              }
+              try {
+                grid.selectedRow = parsed.row;
+                grid.selectedCol = parsed.col;
+                grid.formatSelectedCell(style);
+                reportStep(
+                  "Cell '" + parsed.ref + "' style " + JSON.stringify(style),
+                  "done"
+                );
+              } catch (e) {
+                reportStep("Cell '" + parsed.ref + "' style failed", "warn");
+              }
+            };
+            paint(0);
+          }
           setTimeout(function () {
             S.focusRing.style.display = "none";
             resolve(true);
