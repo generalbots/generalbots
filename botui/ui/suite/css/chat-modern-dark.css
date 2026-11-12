@@ -5,15 +5,15 @@
 
 [data-color-scheme="dark"] #chat-app,
 [data-color-scheme="dark"] .chat-sidebar {
-    --gb-bg: var(--bg, #131316);
-    --gb-surface: var(--surface, #1b1b1f);
-    --gb-surface-muted: var(--surface-hover, var(--surface, #26262b));
-    --gb-text: var(--text, #ededf0);
-    --gb-muted: var(--text-secondary, #a1a1aa);
-    --gb-border: var(--border, #3f3f46);
-    --gb-border-soft: var(--border, #313138);
-    --gb-border-strong: var(--border, #52525b);
-    --gb-accent: var(--accent, #4ade80);
+    --gb-bg: #131316;
+    --gb-surface: #1b1b1f;
+    --gb-surface-muted: #26262b;
+    --gb-text: #ededf0;
+    --gb-muted: #a1a1aa;
+    --gb-border: #3f3f46;
+    --gb-border-soft: #313138;
+    --gb-border-strong: #52525b;
+    --gb-accent: #4ade80;
     --gb-accent-soft: rgba(74, 222, 128, 0.12);
     --gb-shadow-bubble: 0 1px 2px rgba(0, 0, 0, 0.35);
     --gb-shadow-raised: 0 10px 28px rgba(0, 0, 0, 0.45);
