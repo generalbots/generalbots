@@ -245,11 +245,10 @@ function deepLinkTargetIsReal(appId, params) {
     }
   }
   if (!declared) return true; // no catalog data to validate against: keep the link
-  // Bare app://appId (no params) is a valid "open the app" intent for any
-  // known app; only param-bearing links need a declared record key (#2240).
-  if (!hasParams) return true;
   var keys = declared.map(function (param) { return typeof param === "string" ? param : param && param.key; }).filter(Boolean);
-  if (!keys.length) return true; // app exists but declares no record keys: treat as open-app
+  // #2240 — bare "open the app" link (no params) is valid for any known app.
+  if (!hasParams) return true;
+  if (!keys.length) return false;
   return keys.some(function (key) { return params[key] !== undefined && params[key] !== ""; });
 }
 
@@ -287,7 +286,8 @@ function renderDeepLinks(html) {
   });
   // Also convert bare app://appId (with or without query params) URLs the LLM
   // may emit in prose into the same button (fallback when it does not use
-  // markdown links). Templated app://appId/{...} paths stay literal.
+  // markdown links). #2240 — bare app://appId (no query) is a valid "open the
+  // app" intent. Templated app://appId/{...} paths stay literal.
   var barePattern = /(^|[\s(>])(app:\/\/[A-Za-z0-9\-_.]+(?:\?[A-Za-z0-9\-_.=&\{\}]+)?)/g;
   html = html.replace(barePattern, function (m, pre, target) {
     var stripped = target.replace(/^app:\/\//i, "");
