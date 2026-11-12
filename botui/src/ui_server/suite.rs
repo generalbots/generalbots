@@ -106,26 +106,41 @@ pub async fn index(
         });
 
     let path_parts: Vec<&str> = path.split('/').collect();
-    let mut bot_name = path_parts
-        .iter()
-        .rev()
-        .find(|part| {
-            !part.is_empty()
-                && **part != "chat"
-                && **part != "app"
-                && **part != "ws"
-                && **part != "ui"
-                && **part != "api"
-                && **part != "auth"
-                && **part != "suite"
-                && **part != "cloud"
-                // A static asset is never a bot name. `.html` matters most:
-                // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
-                // which failed the suite-dir check and 303-redirected the whole
-                // app to the login page (#2151).
-                && !part.contains('.')
-        })
-        .map(|s| s.to_string());
+    // #2244 — for `/suite/<app>/…` the app segment is authoritative. Deriving
+    // the bot from the LAST dot-free segment made asset subdirectories bot
+    // names: `/suite/docs/modules/99_init.js` resolved bot=`modules`, failed
+    // the access check and 303-redirected the file to the login page, so the
+    // app's JS was aborted by the browser (net::ERR_ABORTED) and Docs never
+    // initialised. Apps whose ServeDir is not feature-mounted (docs, slides,
+    // paper) were hit hardest because every deep asset goes through here.
+    let suite_app = path_parts
+        .get(1)
+        .filter(|part| **part == "suite")
+        .and_then(|_| path_parts.get(2))
+        .copied()
+        .filter(|part| !part.is_empty() && !part.contains('.'));
+    let mut bot_name = suite_app.map(|s| s.to_string()).or_else(|| {
+        path_parts
+            .iter()
+            .rev()
+            .find(|part| {
+                !part.is_empty()
+                    && **part != "chat"
+                    && **part != "app"
+                    && **part != "ws"
+                    && **part != "ui"
+                    && **part != "api"
+                    && **part != "auth"
+                    && **part != "suite"
+                    && **part != "cloud"
+                    // A static asset is never a bot name. `.html` matters most:
+                    // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
+                    // which failed the suite-dir check and 303-redirected the whole
+                    // app to the login page (#2151).
+                    && !part.contains('.')
+            })
+            .map(|s| s.to_string())
+    });
 
     // If no bot in URL path and we have a domain, resolve it. Platform
     // subdomains ({bot}.{GB_PLATFORM_DOMAIN}) resolve locally with no API

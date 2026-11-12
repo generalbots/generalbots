@@ -216,8 +216,16 @@
     // Drive open and the last fetch won, so a chat attachment opened a blank
     // Docs (#1711).
     var deepLink = window.__gbAppParams__ || {};
-    if (new URLSearchParams(window.location.search).get("file") || deepLink.file) return;
-    var wanted = new URLSearchParams(window.location.search).get("id");
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("file") || deepLink.file) return;
+    // #2184 — the same race applies to a VM/agent-workspace file
+    // (?vmConvId=&vmPath=): 99_init renders it, then this start() loaded the
+    // most recent Drive document on top and the last write won, so "Open in
+    // app" showed an unrelated document instead of the generated file.
+    if (params.get("vmConvId") || params.get("vmPath") || deepLink.vmConvId || deepLink.vmPath) {
+      return;
+    }
+    var wanted = params.get("id");
     json("/api/docs/list")
       .then(function (items) {
         return renderSidebar(items).then(function () {
