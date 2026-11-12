@@ -110,6 +110,9 @@
       faviconGlyph: "\u{1F4AC}",
     });
     var t = MC.ensureTab(tab.id, tab.title, null);
+    // Marks the tab as a brand-new conversation: connectTab asks the server
+    // for a FRESH session (?new=1) instead of adopting the recent one.
+    t.freshSession = true;
     MC.mountActive(t);
     MC.connectTab(t);
     MC.installSendRouter();
@@ -219,8 +222,20 @@
         var changed = false;
         // A restored tab whose session has no conversation (never used, or
         // encrypted under a dead key) is a dead "Chat N" tile: drop it.
+        // A tab the user JUST created is not dead — its first reply may still
+        // be in flight, and dropping it here made a new tab vanish the moment
+        // the user switched to another one (#2219-family navigation review).
+        var now = Date.now();
         GBTabs.state.tabs = GBTabs.state.tabs.filter(function (st) {
           if (st.id === "tab-default") return true;
+          if (st.id === GBTabs.state.activeTabId) return true;
+          if (!byId[st.sessionId]) {
+            if (st.fresh && now - st.fresh < 120000) return true;
+            if (/^(Chat \d+|Conversation)$/.test(st.title)) {
+              changed = true;
+              return false;
+            }
+          }
           if (byId[st.sessionId]) {
             if (st.title !== byId[st.sessionId]) {
               st.title = byId[st.sessionId];
@@ -228,13 +243,31 @@
             }
             return true;
           }
-          if (/^(Chat \d+|Conversation)$/.test(st.title)) {
-            changed = true;
-            return false;
-          }
           return true;
         });
-        if (changed) GBTabs.renderStrip();
+        if (changed) {
+          // Keep the local store and the active pointer consistent with what
+          // the strip actually shows; otherwise the dropped tile came back on
+          // the next reload (#2219-family navigation review).
+          if (!GBTabs.state.tabs.some(function (st) {
+            return st.id === GBTabs.state.activeTabId;
+          })) {
+            GBTabs.state.activeTabId = GBTabs.state.tabs.length
+              ? GBTabs.state.tabs[0].id
+              : null;
+          }
+          if (typeof GBTabs.writeLocal === "function") {
+            GBTabs.writeLocal(GBTabs.state.tabs);
+          }
+          if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
+          GBTabs.renderStrip();
+          // The server just named a conversation (or dropped a dead one): the
+          // sidebar list is stale until reloaded, so a brand-new conversation
+          // never appeared under History (#2219-family navigation review).
+          if (window.GBSidebarConvos && typeof GBSidebarConvos.loadHistory === "function") {
+            GBSidebarConvos.loadHistory();
+          }
+        }
       })
       .catch(function () { /* titles are cosmetic */ });
   }

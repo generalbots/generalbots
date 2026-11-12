@@ -57,26 +57,40 @@
     // session that were not created during this boot cannot represent a
     // conversation and are dropped.
     var seen = { "tab-default": true };
-    var keep = [];
     // #1949 — a persisted strip used to come back with EVERY previous
     // conversation stacked above the fresh one (reported as ~5 duplicate
     // chats). Keep at most two most-recent distinct conversations besides the
     // default tab, plus whatever session this page load is actually on.
     var RESTORED_LIMIT = 2;
-    var restored = 0;
     var currentSession = (window.ChatState && ChatState.currentSessionId) || null;
+    var defaultTab = null;
+    var activeTab = null;
+    var rest = [];
     GBTabs.state.tabs.forEach(function (tab) {
-      if (tab.id === "tab-default") { keep.unshift(tab); return; }
-      if (tab.id === GBTabs.state.activeTabId) { keep.push(tab); return; }
-      if (tab.fresh && tab.fresh > BOOT_AT + 1500) { keep.push(tab); return; }
+      if (tab.id === "tab-default") { defaultTab = tab; return; }
+      if (tab.id === GBTabs.state.activeTabId) { activeTab = tab; return; }
+      if (tab.fresh && tab.fresh > BOOT_AT + 1500) { rest.push(tab); return; }
       if (tab.sessionId && !seen[tab.sessionId]) {
         seen[tab.sessionId] = true;
-        if (currentSession && tab.sessionId !== currentSession && restored >= RESTORED_LIMIT) return;
-        if (!currentSession || tab.sessionId !== currentSession) restored++;
-        tab.restored = true;
-        keep.push(tab);
+        rest.push(tab);
       }
     });
+    // Keep the NEWEST conversations when the cap applies. Dropping from the
+    // front (oldest first) used to discard the tab the user had just opened
+    // from History, so a reload silently lost their most recent conversation
+    // (#2219-family chat navigation review).
+    var currentTab = rest.filter(function (tab) {
+      return currentSession && tab.sessionId === currentSession;
+    });
+    var others = rest.filter(function (tab) {
+      return !(currentSession && tab.sessionId === currentSession);
+    });
+    var keepRest = currentTab.concat(others.slice(Math.max(0, others.length - RESTORED_LIMIT)));
+    keepRest.forEach(function (tab) { tab.restored = true; });
+    var keep = [];
+    if (defaultTab) keep.push(defaultTab);
+    if (activeTab) keep.push(activeTab);
+    keep = keep.concat(keepRest);
     if (keep.length === GBTabs.state.tabs.length &&
         keep.some(function (tab) { return tab.id === GBTabs.state.activeTabId; })) {
       GBTabs.renderStrip();
@@ -100,6 +114,8 @@
         delete MC.tabs[id];
       }
     });
+    if (typeof GBTabs.writeLocal === "function") GBTabs.writeLocal(GBTabs.state.tabs);
+    if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
     GBTabs.renderStrip();
   }
 

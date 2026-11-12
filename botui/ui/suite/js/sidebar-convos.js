@@ -312,9 +312,16 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       WindowManager.getWindow("chat")
     );
     if (hasChatWindow) {
+      // The tab label must say WHICH conversation this is: a hard-coded
+      // "Conversation" left every history tab indistinguishable (#2219-family
+      // chat navigation review).
+      var nameEl = document.querySelector(
+        '.chat-sidebar-conv-item[data-session-id="' + sessionId + '"] .chat-sidebar-conv-name'
+      );
+      var label = nameEl && nameEl.textContent ? nameEl.textContent.trim() : "";
       window.dispatchEvent(
         new CustomEvent("gb-open-history-tab", {
-          detail: { sessionId: sessionId, title: "Conversation" },
+          detail: { sessionId: sessionId, title: label || "Conversation" },
         })
       );
     } else if (window.openDeepLink) {

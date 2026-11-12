@@ -45,6 +45,11 @@
     // endpoint mints a fresh conversation and the old one is orphaned.
     var authUrl = "/api/auth?bot_name=" + encodeURIComponent(resolveBotName());
     if (t.sessionId) authUrl += "&session_id=" + encodeURIComponent(t.sessionId);
+    // A tab created with "+" must OWN its conversation. Without `new=1` the
+    // auth endpoint resolves to the user's most recent session (2h window), so
+    // every parallel tab silently shared one conversation and side-by-side
+    // chats wrote into each other (#2219-family navigation review).
+    else if (t.freshSession) authUrl += "&new=1";
     fetch(authUrl, { headers: headers })
       .then(function (r) { return r.json(); })
       .then(function (auth) {
@@ -54,6 +59,7 @@
         }
         if (!t.sessionId) {
           t.sessionId = auth.session_id;
+          t.freshSession = false;
           // Keep the GBTabs entry in sync so the ws.send hook stamps the
           // tab's OWN session on outgoing frames.
           GBTabs.state.tabs.forEach(function (st) {
@@ -196,6 +202,15 @@
     // record here would duplicate them (double greeting) and inflate
     // the persisted scrollback on every boot.
     if (t.usesStockDom) return;
+    // A reply in a parallel tab is what lets the server name that
+    // conversation, so refresh the strip labels once the turn lands: the
+    // addMessage hook only covers the stock surface, which left every
+    // parallel tab stuck on "Chat N" (#2219-family chat navigation review).
+    if (data.is_complete && t.sessionId && window.GBTabs) {
+      setTimeout(function () {
+        if (MC.syncTabTitles) MC.syncTabTitles(true);
+      }, 2000);
+    }
     // Parallel tabs' frames ALWAYS arrive on their own socket (the stock
     // pipeline never sees them) — render unconditionally. When the tab is
     // the active one its pane IS #messages, so appendToContainer lands in
