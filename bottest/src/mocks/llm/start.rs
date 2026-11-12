@@ -228,24 +228,38 @@ impl MockLLM {
         let embedding: Vec<f32> = (0..dimensions)
             .map(|i| (i as f32) / (dimensions as f32))
             .collect();
-
-        let response_body = EmbeddingResponse {
-            object: "list".to_string(),
-            data: vec![EmbeddingData {
-                object: "embedding".to_string(),
-                embedding,
-                index: 0,
-            }],
-            model: "text-embedding-ada-002".to_string(),
-            usage: EmbeddingUsage {
-                prompt: 5,
-                total: 5,
-            },
-        };
+        let dims = dimensions.max(1);
+        let single = embedding.clone();
 
         Mock::given(method("POST"))
             .and(path("/v1/embeddings"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&response_body))
+            .respond_with(move |req: &wiremock::Request| {
+                let count = serde_json::from_slice::<serde_json::Value>(&req.body)
+                    .ok()
+                    .and_then(|v| v.get("input").cloned())
+                    .map(|input| match input {
+                        serde_json::Value::Array(items) => items.len().max(1),
+                        _ => 1,
+                    })
+                    .unwrap_or(1);
+                let response_body = EmbeddingResponse {
+                    object: "list".to_string(),
+                    data: (0..count)
+                        .map(|index| EmbeddingData {
+                            object: "embedding".to_string(),
+                            embedding: single.clone(),
+                            index,
+                        })
+                        .collect(),
+                    model: "text-embedding-ada-002".to_string(),
+                    usage: EmbeddingUsage {
+                        prompt: count as u32,
+                        total: count as u32,
+                    },
+                };
+                let _ = dims; // dimensions captured for clarity
+                ResponseTemplate::new(200).set_body_json(&response_body)
+            })
             .mount(&self.server)
             .await;
     }
@@ -406,15 +420,12 @@ impl MockLLM {
     /// harness: mounts a default completion reply so any prompt gets a stable
     /// response without a real provider.
     ///
-    /// `set_default_response` is mounted last so it acts as a catch-all for any
-    /// `/v1/chat/completions` request shape (system prompts, conversation history,
-    /// or prompts other than the exact "hi" body matcher), keeping the reply
-    /// stable for offline/e2e smoke runs.
+    /// Uses a catch-all `/v1/chat/completions` mock so the reply is stable for
+    /// any request shape (system prompts, conversation history, streaming flag
+    /// variants), keeping offline/e2e smoke runs deterministic. Also provides a
+    /// generic embedding response for KB/vector code paths.
     pub async fn configure_desktop_local_chat(&self, reply: &str) {
-        self.expect_completion("hi", reply).await;
         self.set_default_response(reply).await;
-        // Provide a generic embedding response for offline/self-contained stacks
-        // where KB/vector code paths may request embeddings.
         self.expect_embedding(1536).await;
     }
 
