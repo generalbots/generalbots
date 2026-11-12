@@ -168,9 +168,21 @@ async fn ingest_single_attachment(
             Some(text) => format!(
                 "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
             ),
-            None if media => media_note.unwrap_or_else(|| format!(
-                "The user attached the media file '{fname}' (stored at inbox/{fname}). Local transcription is unavailable, so you cannot read its pixels or audio. Answer only from the user's text and say plainly that you cannot see the file's content. Never invent what it shows."
-            )),
+            None if media => media_note.unwrap_or_else(|| {
+                let agent_on = parsed
+                    .get("agent_enabled")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(true);
+                if agent_on {
+                    format!(
+                        "The user attached the media file '{fname}' (stored at inbox/{fname}). Local transcription (BotModels) is unavailable, but the Agent/VM is enabled for this conversation: you may process the file from the VM (reachable at inbox/{fname}) to extract its content. Do not invent what it shows; only report what the VM actually extracts."
+                    )
+                } else {
+                    format!(
+                        "The user attached the media file '{fname}' (stored at inbox/{fname}). Local transcription is unavailable and the Agent/VM is disabled, so you cannot read its pixels or audio. Answer only from the user's text and say plainly that you cannot see the file's content. Never invent what it shows."
+                    )
+                }
+            }),
             None => format!(
                 "The user attached '{fname}' (stored at inbox/{fname}). No text extractor is available for this format, so you cannot read its content. Say the file is stored and ask the user to paste the relevant text (or to convert it). Never invent its content."
             ),
