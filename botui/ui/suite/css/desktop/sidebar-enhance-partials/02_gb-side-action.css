@@ -221,6 +221,189 @@
   white-space: nowrap;
 }
 
+/* Per-app ON/OFF: each tile carries a small hide action that appears on hover
+   or keyboard focus; the app leaves the rail only (registry untouched). */
+.chat-sidebar-collapsed-icons [hidden] {
+  display: none !important;
+}
+
+.gb-side-app-tile {
+  position: relative;
+}
+
+.gb-side-app-hide {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-hover, rgba(0, 0, 0, 0.55));
+  color: var(--text-secondary, #ccc);
+  font-size: 11px;
+  line-height: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.gb-side-app-tile:hover .gb-side-app-hide,
+.gb-side-app-tile:focus-within .gb-side-app-hide {
+  opacity: 1;
+}
+
+.gb-side-app-hide:hover {
+  background: #e5484d;
+  color: #fff;
+}
+
+.gb-side-apps-empty {
+  grid-column: 1 / -1;
+  padding: 6px 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-tertiary, #889);
+}
+
+/* ── Manage apps: bottom-of-rail entry + compact ON/OFF checklist ── */
+.gb-side-apps-manage {
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+}
+
+.gb-side-manage-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #b8b8c0);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gb-side-manage-btn:hover,
+.gb-side-manage-btn[aria-expanded="true"] {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.09));
+  color: var(--text, #eee);
+}
+
+.gb-side-manage-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.gb-side-manage-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gb-side-apps-manage-panel {
+  margin-top: 4px;
+  padding: 6px;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: var(--surface, rgba(20, 20, 26, 0.92));
+}
+
+.gb-side-manage-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.gb-side-manage-title {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #999);
+}
+
+.gb-side-manage-close {
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #999);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gb-side-manage-close:hover {
+  color: var(--text, #fff);
+}
+
+.gb-side-manage-all {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary, #b8b8c0);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.gb-side-manage-all:hover {
+  border-color: var(--primary, #84d669);
+  color: var(--text, #eee);
+}
+
+.gb-side-manage-list {
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.gb-side-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+  font-size: 11px;
+  color: var(--text, #ddd);
+  cursor: pointer;
+}
+
+.gb-side-manage-row:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.06));
+  border-radius: 4px;
+}
+
+.gb-side-manage-row input {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  accent-color: var(--primary, #84d669);
+  cursor: pointer;
+}
+
+.gb-side-manage-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gb-side-manage-summary,
+.gb-side-manage-empty {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-tertiary, #889);
+}
+
 .chat-sidebar {
   position: relative;
 }
