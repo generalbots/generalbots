@@ -295,6 +295,29 @@
     }
   }
 
+  // #2241 — allow the Default conversation to be reset when its session is
+  // deleted via the sidebar: clear its history and rotate to a fresh session
+  // instead of leaving stale content or an orphaned tab.
+  window.addEventListener("gb-conversation-deleted", function (e) {
+    var d = (e && e.detail) || {};
+    var sid = d.sessionId;
+    if (!sid) return;
+    var defTab = (GBTabs && GBTabs.state && Array.isArray(GBTabs.state.tabs))
+      ? GBTabs.state.tabs.find(function (t) { return t.id === "tab-default"; })
+      : null;
+    if (!defTab || String(defTab.sessionId || "") !== String(sid)) return;
+    try {
+      var msgs = document.getElementById("messages");
+      if (msgs) msgs.innerHTML = "";
+    } catch (err) {}
+    try {
+      defTab.sessionId = null;
+      if (window.ChatState) ChatState.currentSessionId = null;
+      GBTabs.state.activeTabId = "tab-default";
+      GBTabs.renderStrip && GBTabs.renderStrip();
+    } catch (err) {}
+  });
+
   MC.ensureStockSurface = ensureStockSurface;
   MC.installSendRouter = installSendRouter;
 
