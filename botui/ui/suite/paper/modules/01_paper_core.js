@@ -77,15 +77,15 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
                 switch (e.key.toLowerCase()) {
                     case "b":
                         e.preventDefault();
-                        document.execCommand("bold");
+                        gbFormat("bold");
                         break;
                     case "i":
                         e.preventDefault();
-                        document.execCommand("italic");
+                        gbFormat("italic");
                         break;
                     case "u":
                         e.preventDefault();
-                        document.execCommand("underline");
+                        gbFormat("underline");
                         break;
                     case "s":
                         e.preventDefault();
@@ -169,38 +169,34 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
             // Execute command
             switch (cmd) {
                 case "h1":
-                    document.execCommand("formatBlock", false, "h1");
+                    gbFormat("formatBlock", "h1");
                     break;
                 case "h2":
-                    document.execCommand("formatBlock", false, "h2");
+                    gbFormat("formatBlock", "h2");
                     break;
                 case "h3":
-                    document.execCommand("formatBlock", false, "h3");
+                    gbFormat("formatBlock", "h3");
                     break;
                 case "bullet":
-                    document.execCommand("insertUnorderedList");
+                    gbFormat("insertUnorderedList");
                     break;
                 case "number":
-                    document.execCommand("insertOrderedList");
+                    gbFormat("insertOrderedList");
                     break;
                 case "todo":
                     insertTodo();
                     break;
                 case "quote":
-                    document.execCommand("formatBlock", false, "blockquote");
+                    gbFormat("formatBlock", "blockquote");
                     break;
                 case "code":
-                    document.execCommand("formatBlock", false, "pre");
+                    gbFormat("formatBlock", "pre");
                     break;
                 case "divider":
-                    document.execCommand("insertHTML", false, "<hr>");
+                    gbFormat("insertHTML", "<hr>");
                     break;
                 case "callout":
-                    document.execCommand(
-                        "insertHTML",
-                        false,
-                        '<div class="callout">💡 </div>',
-                    );
+                    gbFormat("insertHTML", '<div class="callout">💡 </div>',);
                     break;
                 case "table":
                     insertTable();
@@ -222,7 +218,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
         function insertTodo() {
             const html =
                 '<div class="todo-item"><input type="checkbox" class="todo-checkbox"><span></span></div>';
-            document.execCommand("insertHTML", false, html);
+            gbFormat("insertHTML", html);
         }
 
         function insertTable() {
@@ -240,15 +236,14 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
                 </tr>
             </table>
         `;
-            document.execCommand("insertHTML", false, html);
+            gbFormat("insertHTML", html);
         }
 
         function insertImage() {
             const url = prompt("Enter image URL:");
             if (url) {
-                document.execCommand(
+                gbFormat(
                     "insertHTML",
-                    false,
                     `<img src="${url}" style="max-width: 100%;">`,
                 );
             }

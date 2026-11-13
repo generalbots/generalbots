@@ -39,9 +39,9 @@
     return text;
   }
 
-  function execCommand(cmd) {
+  function runCommand(cmd) {
     try {
-      document.execCommand(cmd, false, null);
+      gbFormat(cmd);
     } catch (err) {
       /* ignore */
     }
@@ -51,15 +51,15 @@
     var text = getSelectionText();
     if (text && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard.writeText(text).catch(function () {
-        execCommand("copy");
+        runCommand("copy");
       });
     } else {
-      execCommand("copy");
+      runCommand("copy");
     }
   }
 
   function doCut() {
-    execCommand("cut");
+    runCommand("cut");
   }
 
   function doPaste() {
@@ -73,13 +73,13 @@
           active.value = v.substring(0, s) + text + v.substring(e);
           active.selectionStart = active.selectionEnd = s + text.length;
         } else {
-          execCommand("paste");
+          runCommand("paste");
         }
       }).catch(function () {
-        execCommand("paste");
+        runCommand("paste");
       });
     } else {
-      execCommand("paste");
+      runCommand("paste");
     }
   }
 
@@ -97,10 +97,10 @@
         sel.removeAllRanges();
         sel.addRange(range);
       } catch (err) {
-        execCommand("selectAll");
+        runCommand("selectAll");
       }
     } else {
-      execCommand("selectAll");
+      runCommand("selectAll");
     }
   }
 

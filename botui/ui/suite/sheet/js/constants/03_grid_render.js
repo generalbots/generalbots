@@ -131,7 +131,7 @@
     }
     m = /^#([0-9a-f]{6})$/i.exec(text);
     if (m) {
-      return [0, 2, 4].map(function (i) { return parseInt(m[1].substr(i, 2), 16); });
+      return [0, 2, 4].map(function (i) { return parseInt(m[1].slice(i, i + 2), 16); });
     }
     m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(text);
     if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];

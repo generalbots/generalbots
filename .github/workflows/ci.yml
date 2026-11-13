@@ -281,6 +281,16 @@ jobs:
           python3 scripts/check_storage_reads.py --self-test
           python3 scripts/check_storage_reads.py --check
 
+      # #2340 — deprecated web APIs. `document.write` and `String#substr` are
+      # gone from the UI, and editing commands go through gbFormat() so the move
+      # off execCommand is one implementation change. settings/index.html is
+      # still exempt: its double bootstrap is #2332's subject.
+      - name: Deprecated web API guard (#2340)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_deprecated_web_apis.py --self-test
+          python3 scripts/check_deprecated_web_apis.py --check
+
       # IMP-08 / IMP-07 — the two directives AGENTS.md marks mandatory but
       # nothing verified. The gate greps the route registration surface and
       # fails when a state-changing handler is reachable without the CSRF

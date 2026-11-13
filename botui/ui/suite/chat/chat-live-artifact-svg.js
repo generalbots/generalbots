@@ -27,11 +27,11 @@ window.GBLiveSvg = window.GBLiveSvg || (function () {
   // half-written <rect x="1 during the stream from being rendered.
   function scanTag(s, at) {
     if (s.charAt(at) !== "<") return null;
-    if (s.substr(at, 4) === "<!--") {
+    if (s.slice(at, at + 4) === "<!--") {
       var c = s.indexOf("-->", at + 4);
       return c < 0 ? null : { kind: "markup", end: c + 3 };
     }
-    if (s.substr(at, 9) === "<![CDATA[") {
+    if (s.slice(at, at + 9) === "<![CDATA[") {
       var cd = s.indexOf("]]>", at + 9);
       return cd < 0 ? null : { kind: "markup", end: cd + 3 };
     }

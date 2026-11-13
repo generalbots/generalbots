@@ -75,7 +75,7 @@ function handleNoteInput() {
 function handlePaste(e) {
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
-    document.execCommand('insertText', false, text);
+    gbFormat('insertText', text);
 }
 
 function updateStats() {
@@ -120,7 +120,7 @@ function hideFormatPopup() {
 }
 
 function formatText(command) {
-    document.execCommand(command, false, null);
+    gbFormat(command);
     noteContent.focus();
 }
 

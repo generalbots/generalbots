@@ -231,10 +231,9 @@
     if (!url || url === "https://") return;
     var selection = window.getSelection ? String(window.getSelection()) : "";
     if (selection.trim()) {
-      document.execCommand("createLink", false, url);
+      gbFormat("createLink", url);
     } else {
-      document.execCommand("insertHTML", false,
-        '<a href="' + esc(url) + '">' + esc(url) + "</a>");
+      gbFormat("insertHTML", '<a href="' + esc(url) + '">' + esc(url) + "</a>");
     }
     save();
   }

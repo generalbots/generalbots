@@ -60,6 +60,104 @@
     }
   }
 
+  // Copies text with the async Clipboard API and keeps the deprecated
+  // `execCommand("copy")` path in exactly one place as a fallback (#2340).
+  // Resolves to true only when the text really reached the clipboard.
+  function copyText(text) {
+    var value = String(text == null ? "" : text);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      // The async path can stay pending forever when the document is not
+      // focused or the permission prompt is ignored (headless, background tab),
+      // which used to leave a copy button spinning with no feedback.
+      var write = navigator.clipboard.writeText(value).then(
+        function () {
+          return true;
+        },
+        function () {
+          return legacyCopy(value);
+        }
+      );
+      var timeout = new Promise(function (resolve) {
+        window.setTimeout(function () {
+          resolve(false);
+        }, 1200);
+      });
+      return Promise.race([write, timeout]).then(function (result) {
+        return result === true ? true : legacyCopy(value);
+      });
+    }
+    return Promise.resolve(legacyCopy(value));
+  }
+
+  function legacyCopy(value) {
+    var area = document.createElement("textarea");
+    area.value = value;
+    area.setAttribute("readonly", "readonly");
+    area.setAttribute("aria-hidden", "true");
+    area.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+    document.body.appendChild(area);
+    area.select();
+    var copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (error) {
+      copied = false;
+    }
+    area.remove();
+    return copied;
+  }
+
+  // Prints a standalone HTML document without `document.write` (#2340): the
+  // markup goes into an off-screen iframe's `srcdoc`, which parses it in an
+  // isolated document, and the iframe is removed once the print dialog closes.
+  function printHtml(html) {
+    var frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("title", "Print preview");
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    frame.addEventListener(
+      "load",
+      function () {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+        } catch (error) {
+          if (window.console && window.console.warn) {
+            window.console.warn("[gb-shared] print failed:", error);
+          }
+        }
+        window.setTimeout(function () {
+          frame.remove();
+        }, 60000);
+      },
+      { once: true }
+    );
+    frame.srcdoc = String(html == null ? "" : html);
+    document.body.appendChild(frame);
+    return frame;
+  }
+
+  // Single entry point for `document.execCommand` (#2340). Everything the
+  // Paper/Docs/Docs-spellcheck toolbars do goes through here, so the eventual
+  // move to Input Events Level 2 (or the shared collab engine, #2336) is one
+  // implementation change instead of a rewrite of every toolbar handler.
+  // The command vocabulary below is frozen: no new command may be added.
+  function format(command, value) {
+    if (typeof document.execCommand !== "function") return false;
+    try {
+      if (command === "styleWithCSS") {
+        document.execCommand("styleWithCSS", false, Boolean(value));
+        return true;
+      }
+      return document.execCommand(command, false, value === undefined ? null : value);
+    } catch (error) {
+      if (window.console && window.console.warn) {
+        window.console.warn("[gb-shared] format command failed:", command, error);
+      }
+      return false;
+    }
+  }
+
   function read(storage, key) {
     try {
       return (storage && storage.getItem(key)) || "";
@@ -237,6 +335,12 @@
     storeGet: storeGet
   };
   window.gbStoreGet = storeGet;
+  window.gbCopyText = copyText;
+  window.gbFormat = format;
+  window.gbPrintHtml = printHtml;
+  window.GBShared.copyText = copyText;
+  window.GBShared.format = format;
+  window.GBShared.printHtml = printHtml;
   window.GBDownload = window.GBDownload || downloadKit;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);

@@ -271,20 +271,10 @@
   }
 
   function copyFallback(text, done) {
-    var area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.left = "-9999px";
-    document.body.appendChild(area);
-    area.select();
-    try {
-      document.execCommand("copy");
-      done();
-    } catch (error) {
-      /* Clipboard access can be denied; leaving the value selectable is safe. */
-    }
-    document.body.removeChild(area);
+    // Clipboard access can be denied; leaving the value selectable is safe.
+    gbCopyText(text).then(function (copied) {
+      if (copied) done();
+    });
   }
 
   function copyValue(text, button) {

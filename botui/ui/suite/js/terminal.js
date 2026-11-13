@@ -72,7 +72,7 @@ const botCoderTerminal = {
     },
 
     generateSessionId: function() {
-        return 'term-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        return 'term-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
     },
 
     // Auth token used for API + WS upgrades.

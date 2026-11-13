@@ -45,7 +45,10 @@ function closeModal(modalId) {
 
 function copyShareLink() {
     const input = document.getElementById("share-link-input");
-    if (input) { input.select(); document.execCommand("copy"); showNotification("Share link copied to clipboard!", "success"); }
+    if (!input) return;
+    gbCopyText(input.value).then(function (copied) {
+        showNotification(copied ? "Share link copied to clipboard!" : "Copy failed", copied ? "success" : "error");
+    });
 }
 
 function showEditorModal(path, fileName, content) {

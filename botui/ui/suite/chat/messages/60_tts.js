@@ -52,18 +52,10 @@ function createCopyButton(text) {
         btn.title = "Copy message";
       }, 1500);
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(function () {
-        chatNotice("Copy failed", "warning");
-      });
-    } else {
-      var area = document.createElement("textarea");
-      area.value = text;
-      document.body.appendChild(area);
-      area.select();
-      try { document.execCommand("copy"); done(); } catch (err) { /* ignore */ }
-      area.remove();
-    }
+    gbCopyText(text).then(function (copied) {
+      if (copied) done();
+      else chatNotice("Copy failed", "warning");
+    });
   });
   return btn;
 }

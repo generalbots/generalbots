@@ -20,7 +20,7 @@
   };
 
   function addPending(action) {
-    action._id = action.action_id || ("sandbox-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4));
+    action._id = action.action_id || ("sandbox-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6));
     action._timestamp = Date.now();
     pendingActions.push(action);
     updateBadge();

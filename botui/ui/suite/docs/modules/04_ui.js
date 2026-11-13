@@ -313,8 +313,8 @@ function docsFormat(command, value) {
   if (!article) return;
   article.focus();
   try {
-    document.execCommand("styleWithCSS", false, true);
-    document.execCommand(command, false, value === undefined ? null : value);
+    gbFormat("styleWithCSS", true);
+    gbFormat(command, value);
   } catch (e) {
     return;
   }

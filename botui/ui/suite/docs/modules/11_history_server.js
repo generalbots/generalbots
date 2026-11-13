@@ -39,7 +39,7 @@
       .then(function (doc) {
         if (doc && applyRestored(doc)) return;
         // Server has nothing: fall back to the native editor stack.
-        document.execCommand(action === "undo" ? "undo" : "redo");
+        gbFormat(action === "undo" ? "undo" : "redo");
       })
       .catch(function () {})
       .finally(function () { busy = false; });

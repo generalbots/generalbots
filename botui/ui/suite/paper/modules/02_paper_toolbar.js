@@ -10,41 +10,41 @@
                 const cmd = this.dataset.cmd;
                 switch (cmd) {
                     case "bold":
-                        document.execCommand("bold");
+                        gbFormat("bold");
                         break;
                     case "italic":
-                        document.execCommand("italic");
+                        gbFormat("italic");
                         break;
                     case "underline":
-                        document.execCommand("underline");
+                        gbFormat("underline");
                         break;
                     case "strikethrough":
-                        document.execCommand("strikeThrough");
+                        gbFormat("strikeThrough");
                         break;
                     case "highlight":
-                        document.execCommand("hiliteColor", false, "#ffff00");
+                        gbFormat("hiliteColor", "#ffff00");
                         break;
                     case "alignLeft":
-                        document.execCommand("justifyLeft");
+                        gbFormat("justifyLeft");
                         break;
                     case "alignCenter":
-                        document.execCommand("justifyCenter");
+                        gbFormat("justifyCenter");
                         break;
                     case "alignRight":
-                        document.execCommand("justifyRight");
+                        gbFormat("justifyRight");
                         break;
                     case "bulletList":
-                        document.execCommand("insertUnorderedList");
+                        gbFormat("insertUnorderedList");
                         break;
                     case "numberedList":
-                        document.execCommand("insertOrderedList");
+                        gbFormat("insertOrderedList");
                         break;
                     case "todoList":
                         insertTodo();
                         break;
                     case "link":
                         const url = prompt("Enter URL:");
-                        if (url) document.execCommand("createLink", false, url);
+                        if (url) gbFormat("createLink", url);
                         break;
                     case "image":
                         insertImage();
@@ -53,20 +53,16 @@
                         insertTable();
                         break;
                     case "code":
-                        document.execCommand("formatBlock", false, "pre");
+                        gbFormat("formatBlock", "pre");
                         break;
                     case "quote":
-                        document.execCommand(
-                            "formatBlock",
-                            false,
-                            "blockquote",
-                        );
+                        gbFormat("formatBlock", "blockquote",);
                         break;
                     case "undo":
-                        document.execCommand("undo");
+                        gbFormat("undo");
                         break;
                     case "redo":
-                        document.execCommand("redo");
+                        gbFormat("redo");
                         break;
                 }
                 editor.focus();
@@ -79,9 +75,9 @@
             .addEventListener("change", function () {
                 const value = this.value;
                 if (value === "p") {
-                    document.execCommand("formatBlock", false, "p");
+                    gbFormat("formatBlock", "p");
                 } else {
-                    document.execCommand("formatBlock", false, value);
+                    gbFormat("formatBlock", value);
                 }
                 editor.focus();
             });
@@ -191,7 +187,7 @@
                     "ai-response-content",
                 ).innerHTML;
                 editor.focus();
-                document.execCommand("insertHTML", false, content);
+                gbFormat("insertHTML", content);
             });
 
         document
@@ -200,7 +196,7 @@
                 const content = document.getElementById(
                     "ai-response-content",
                 ).innerHTML;
-                document.execCommand("insertHTML", false, content);
+                gbFormat("insertHTML", content);
             });
 
     };

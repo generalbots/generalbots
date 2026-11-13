@@ -138,7 +138,7 @@
 
     function connect() {
         if (!term || tornDown) return;
-        sessionId = "vibe-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
+        sessionId = "vibe-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
 
         resolveTarget().then(function (target) {
             if (tornDown) return;

@@ -37,16 +37,7 @@ async function copyLink(path) {
             body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
         });
         var fullUrl = window.location.origin + link.url;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(fullUrl);
-        } else {
-            var ta = document.createElement("textarea");
-            ta.value = fullUrl;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-        }
+        if (!(await gbCopyText(fullUrl))) throw new Error("clipboard unavailable");
         showNotification("Link copied to clipboard", "success");
     } catch (err) {
         showNotification("Copy link failed: " + err.message, "error");
@@ -54,18 +45,8 @@ async function copyLink(path) {
 }
 
 async function copyPathToClipboard(path) {
-    var text = path;
     try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-        } else {
-            var ta = document.createElement("textarea");
-            ta.value = text;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-        }
+        if (!(await gbCopyText(path))) throw new Error("clipboard unavailable");
         showNotification("Path copied", "success");
     } catch (err) {
         showNotification("Copy path failed: " + err.message, "error");

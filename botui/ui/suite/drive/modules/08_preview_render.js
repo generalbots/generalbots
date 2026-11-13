@@ -241,19 +241,10 @@ function drivePreviewCopy(text, button) {
   } catch (err) {
     // fall through to the textarea fallback
   }
-  try {
-    var area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "readonly");
-    area.className = "gb-preview-copy-source";
-    document.body.appendChild(area);
-    area.select();
-    document.execCommand("copy");
-    document.body.removeChild(area);
-    done();
-  } catch (err) {
-    if (typeof showNotification === "function") showNotification("Copy failed", "error");
-  }
+  gbCopyText(text).then(function (copied) {
+    if (copied) done();
+    else if (typeof showNotification === "function") showNotification("Copy failed", "error");
+  });
 }
 
 function renderDriveJsonPreview(body, text, context) {

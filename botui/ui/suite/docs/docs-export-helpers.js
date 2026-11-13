@@ -139,12 +139,12 @@ function GBDocsExport(format, id) {
                 return;
             }
             if (format === "pdf") {
-                var printWindow = window.open("", "_blank");
-                if (!printWindow) return;
                 // #2251 — the fallback printed unstyled HTML, so headings,
                 // list numbering and page breaks collapsed. Carry the page
                 // CSS (A4 sheet, hanging list indents, real page breaks).
-                printWindow.document.write(
+                // #2340 — `srcdoc` in an off-screen frame instead of
+                // `document.write` into a popup.
+                var printHtml =
                     "<!doctype html><html><head><meta charset='utf-8'><title>Print</title>" +
                     "<style>" +
                     "@page{size:A4;margin:20mm;}" +
@@ -158,11 +158,8 @@ function GBDocsExport(format, id) {
                     "border:0;height:0;margin:0;padding:0;}" +
                     ".gb-doc-page-break::after{content:none;}" +
                     "</style></head><body>" +
-                    html + "</body></html>"
-                );
-                printWindow.document.close();
-                printWindow.focus();
-                printWindow.print();
+                    html + "</body></html>";
+                gbPrintHtml(printHtml);
                 return;
             }
             // The stored-document export 404s for a file opened from Drive:

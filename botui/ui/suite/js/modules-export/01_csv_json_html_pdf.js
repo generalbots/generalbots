@@ -87,11 +87,12 @@
   }
 
   function exportPDF(elem, opts) {
-    const win = window.open("", "_blank");
+    if (!elem) return;
     const css = (opts && opts.css) || "body{font-family:sans-serif;padding:24px;color:#000;background:#fff;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;padding:4px;}";
-    const html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Print</title><style>" + css + "</style></head><body>" + elem.outerHTML + "<script>window.onload=()=>{setTimeout(()=>{window.print();},200);};</script></body></html>";
-    win.document.write(html);
-    win.document.close();
+    // `srcdoc` (via gbPrintHtml) instead of `document.write`: the markup is
+    // parsed in its own document and the print dialog owns the lifecycle.
+    const html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Print</title><style>" + css + "</style></head><body>" + elem.outerHTML + "</body></html>";
+    gbPrintHtml(html);
   }
 
   function readGridAsArray(grid, range) {

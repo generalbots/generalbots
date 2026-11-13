@@ -190,11 +190,18 @@
     };
 
     window.playRecording = function (recordingId) {
-        var url = '/api/meet/recordings/' + recordingId + '/file';
+        var url = '/api/meet/recordings/' + encodeURIComponent(String(recordingId)) + '/file';
         var win = window.open('', '_blank');
-        if (win) {
-            win.document.write('<video src="' + url + '" controls autoplay style="width:100%;height:100vh"></video>');
-        }
+        if (!win) return;
+        // Build the player with DOM APIs: the URL never becomes markup (#2340).
+        win.document.title = 'Recording';
+        var video = win.document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.style.width = '100%';
+        video.style.height = '100vh';
+        win.document.body.appendChild(video);
     };
 
     window.downloadRecording = function (recordingId) {

@@ -178,16 +178,7 @@
     const text = buildClipboardText();
     if (!text) return;
     window.__gbClipboard = text;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (_) {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); } catch (__) {}
-      ta.remove();
-    }
+    await gbCopyText(text);
   }
 
   function cutSelection() {

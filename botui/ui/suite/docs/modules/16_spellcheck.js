@@ -96,7 +96,7 @@ function replaceFirstOccurrence(from, to) {
       sel.removeAllRanges();
       sel.addRange(range);
       article.focus();
-      document.execCommand("insertText", false, to);
+      gbFormat("insertText", to);
       return true;
     }
   }

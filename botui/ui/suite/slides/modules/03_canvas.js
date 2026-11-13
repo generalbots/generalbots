@@ -202,7 +202,7 @@ SlideCanvas.insertShape = function (type) {
   } else if (type === "triangle") {
     shapeStyle = "clip-path:polygon(50% 0%, 0% 100%, 100% 100%);";
   }
-  var id = "el_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
+  var id = "el_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
   var el = document.createElement("div");
   el.className = "sl-element";
   el.dataset.id = id;

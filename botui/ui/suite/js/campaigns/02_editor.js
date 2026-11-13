@@ -27,7 +27,7 @@ window.CampStudio.editor = {
 
   exec: function (command, value) {
     this.editEl.focus();
-    document.execCommand(command, false, value || null);
+    gbFormat(command, value || null);
     this.editEl.dispatchEvent(new Event("input"));
   },
 
