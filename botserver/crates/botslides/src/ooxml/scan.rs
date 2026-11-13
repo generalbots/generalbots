@@ -82,7 +82,7 @@ fn paragraphs_between(xml: &str, from: usize, to: usize) -> Vec<Paragraph> {
 /// Finds an opening tag, rejecting longer names that share the prefix
 /// (`<a:pPr>` and `<a:pic>` are not paragraphs, `<a:tbl>`/`<a:tc>` are not
 /// text runs).
-fn find_open(xml: &str, from: usize, tag: &str) -> Option<usize> {
+pub fn find_open(xml: &str, from: usize, tag: &str) -> Option<usize> {
     let mut cursor = from;
     while let Some(offset) = xml[cursor..].find(tag) {
         let start = cursor + offset;
