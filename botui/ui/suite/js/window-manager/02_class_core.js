@@ -160,6 +160,9 @@ class WindowManager {
       // Preview is a reading surface: wide enough for a page, not full screen.
       preview: { width: 780, height: 640 },
       admin: { width: 940, height: 680 },
+      // A workbook needs the canvas: the small default opened the grid at
+      // seven visible columns and hid the worksheet tabs (#2152).
+      sheet: { width: 1260, height: 840 },
     };
     const defSize = APP_DEFAULT_SIZE[id];
     if (defSize) {

@@ -8,6 +8,34 @@
   const COL_WIDTH = 96;
   const ROW_HEIGHT = 24;
 
+  // The workbook stores geometry in its native units — OOXML column widths are
+  // character counts and row heights are points — while the grid lays out in
+  // pixels. Passing either unit verbatim to the renderer squeezed every
+  // generated workbook into 3–11 px columns (#2152).
+  const CHAR_WIDTH_PX = 7; // Calibri 11 average advance
+  const COL_PADDING_PX = 5; // cell padding Excel adds to a column
+  const MIN_COL_PX = 28;
+  const POINTS_TO_PX = 96 / 72; // 1 pt = 1.333 px at 96 dpi
+  const MIN_ROW_PX = 18;
+
+  function charsToPx(chars) {
+    const px = chars * CHAR_WIDTH_PX + COL_PADDING_PX;
+    return Math.max(MIN_COL_PX, Math.round(px));
+  }
+
+  function colPxToChars(px) {
+    return Math.round(((px - COL_PADDING_PX) / CHAR_WIDTH_PX) * 100) / 100;
+  }
+
+  function pointsToPx(points) {
+    return Math.max(MIN_ROW_PX, Math.round(points * POINTS_TO_PX));
+  }
+
+  function rowPxToPoints(px) {
+    return Math.round((px / POINTS_TO_PX) * 100) / 100;
+  }
+
+
   let colWidths = null;
   let rowHeights = null;
 
@@ -35,13 +63,15 @@
       if (ws.column_widths) {
         for (const k in ws.column_widths) {
           const idx = parseInt(k, 10);
-          if (!isNaN(idx)) colWidths[idx] = ws.column_widths[k];
+          const chars = Number(ws.column_widths[k]);
+          if (!isNaN(idx) && isFinite(chars)) colWidths[idx] = charsToPx(chars);
         }
       }
       if (ws.row_heights) {
         for (const k in ws.row_heights) {
           const idx = parseInt(k, 10);
-          if (!isNaN(idx)) rowHeights[idx] = ws.row_heights[k];
+          const points = Number(ws.row_heights[k]);
+          if (!isNaN(idx) && isFinite(points)) rowHeights[idx] = pointsToPx(points);
         }
       }
     }
@@ -309,8 +339,12 @@
       e.preventDefault();
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", endDrag);
-      if (mode === "col" && index >= 0) persistResize({ col: index, width: colWidth(index) });
-      if (mode === "row" && index >= 0) persistResize({ row: index, height: rowHeight(index) });
+      // Persist in the workbook's native units, never in the px the grid uses:
+      // storing pixels made every reload multiply the size (#2152).
+      if (mode === "col" && index >= 0)
+        persistResize({ col: index, width: colPxToChars(colWidth(index)) });
+      if (mode === "row" && index >= 0)
+        persistResize({ row: index, height: rowPxToPoints(rowHeight(index)) });
       // A `click` fires on the header right after a drag-resize; the header
       // click handler would select the whole row/column and force-scroll to
       // the far corner (~1M index). Stamp the time so those handlers can
@@ -394,8 +428,12 @@
     rowTop: rowTop,
     rowAt: rowAt,
     computeVisibleColRange: computeVisibleColRange,
-    resizeColumn: function (idx, w) { setColWidth(idx, w); persistResize({ col: idx, width: colWidth(idx) }); },
-    resizeRow: function (idx, h) { setRowHeight(idx, h); persistResize({ row: idx, height: rowHeight(idx) }); },
+    resizeColumn: function (idx, w) { setColWidth(idx, w); persistResize({ col: idx, width: colPxToChars(colWidth(idx)) }); },
+    resizeRow: function (idx, h) { setRowHeight(idx, h); persistResize({ row: idx, height: rowPxToPoints(rowHeight(idx)) }); },
+    charsToPx: charsToPx,
+    pointsToPx: pointsToPx,
+    colPxToChars: colPxToChars,
+    rowPxToPoints: rowPxToPoints,
   };
 
   if (window.SheetCore) {

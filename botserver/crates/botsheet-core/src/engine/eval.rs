@@ -34,6 +34,12 @@ pub fn eval_expr_in(expr: &Expr, worksheets: &[Worksheet], current: usize) -> Ce
             apply_binary(op, l, r)
         }
         Expr::Call { name, raw, .. } => {
+            // Criteria functions take ranges, not single values: resolve each
+            // range against the worksheet it names before the legacy
+            // single-worksheet dispatcher can flatten them (#2152).
+            if let Some(value) = super::multi_criteria::evaluate(name, raw, worksheets, current) {
+                return value;
+            }
             // The legacy dispatcher expects `NAME(...)` and parses args itself.
             // Use the direct dispatcher (not evaluate_formula) to avoid
             // re-entering the typed engine for the nested call. The legacy

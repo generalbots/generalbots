@@ -25,7 +25,9 @@ pub fn extract_hyperlinks(
     sheet: &umya_spreadsheet::Worksheet,
 ) -> Option<HashMap<String, Hyperlink>> {
     let mut hyperlinks = HashMap::new();
-    for ((col, row), cell) in sheet.collection_to_hashmap() {
+    // umya keys the cell map `(row, col)` (1-based); reading it as `(col, row)`
+    // attached every hyperlink to the transposed cell (#2152).
+    for ((row, col), cell) in sheet.collection_to_hashmap() {
         if let Some(hyperlink) = cell.as_ref().hyperlink() {
             let url = hyperlink.url();
             if url.is_empty() {

@@ -9,7 +9,11 @@
 .sheet-app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    /* The app lives inside a floating desktop window, so it must fit the
+       window body — `100vh` overflowed it and pushed the worksheet tab bar
+       below the visible area (#2152). */
+    height: 100%;
+    min-height: 0;
     background: var(--sentient-bg-primary, #ffffff);
     color: var(--sentient-text-primary, #212121);
     font-family: var(

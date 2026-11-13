@@ -27,6 +27,11 @@ pub struct CreateSheetRequest {
 }
 
 /// `POST /api/sheet/cells` body: write `values` starting at the A1 `range`.
+///
+/// `styles` and `formats` are keyed by A1 reference so one call can produce a
+/// formatted block: without them a generated model needed a second round trip
+/// per formatted cell, which is why cash-flow/timetable runs landed unstyled
+/// (#2260, #2263).
 #[derive(Debug, Clone, Deserialize)]
 pub struct SetCellsRequest {
     #[serde(alias = "id", alias = "file_id")]
@@ -35,6 +40,10 @@ pub struct SetCellsRequest {
     pub worksheet_index: usize,
     pub range: String,
     pub values: Value,
+    #[serde(default)]
+    pub styles: Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
+    #[serde(default)]
+    pub formats: Option<std::collections::HashMap<String, String>>,
 }
 
 /// Sanitized 500 for a failed persistence step: the detail goes to the log.
@@ -130,6 +139,43 @@ fn keep_presentation(cell: &mut CellData, existing: Option<&CellData>) {
         cell.has_comment = existing.has_comment;
     }
 }
+
+/// Applies A1-keyed styles and number formats to a worksheet that was just
+/// written. Unknown references are skipped: a stale key must never create a
+/// cell that holds no value.
+fn apply_block_presentation(
+    worksheet: &mut Worksheet,
+    styles: &Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
+    formats: &Option<std::collections::HashMap<String, String>>,
+) {
+    if let Some(styles) = styles.as_ref() {
+        for (reference, style) in styles {
+            let Some((row, col)) = botsheet_core::formulas::parse_cell_ref(reference) else {
+                continue;
+            };
+            let key = format!("{row},{col}");
+            if let Some(cell) = worksheet.data.get_mut(&key) {
+                cell.style = Some(style.clone());
+            }
+        }
+    }
+    if let Some(formats) = formats.as_ref() {
+        for (reference, code) in formats {
+            let Some((row, col)) = botsheet_core::formulas::parse_cell_ref(reference) else {
+                continue;
+            };
+            let key = format!("{row},{col}");
+            if let Some(cell) = worksheet.data.get_mut(&key) {
+                cell.format = if code.trim().is_empty() {
+                    None
+                } else {
+                    Some(code.clone())
+                };
+            }
+        }
+    }
+}
+
 
 /// Builds a spreadsheet from a title and rows without touching Drive, so the
 /// shape of the created artifact is testable on its own.
@@ -229,6 +275,15 @@ pub async fn handle_set_cells(
                 written += 1;
             }
         }
+
+        // Presentation for the whole block in the same call (#2260/#2263):
+        // A1 keyed styles and number formats applied after the values land, so
+        // `keep_presentation` cannot wipe them.
+        apply_block_presentation(
+            &mut sheet.worksheets[req.worksheet_index],
+            &req.styles,
+            &req.formats,
+        );
 
         {
             // A block write invalidates every formula that reads the block:

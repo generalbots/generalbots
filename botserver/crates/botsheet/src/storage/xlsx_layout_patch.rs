@@ -157,7 +157,7 @@ fn patch_merges(xml: &str, ws: &Worksheet) -> String {
             super::xlsx_write::get_col_letter(m.end_col + 1),
             m.end_row + 1
         );
-        block.push_str(&format!(r#"<mergeCell ref="{start}:{end}"/"#));
+        block.push_str(&format!(r#"<mergeCell ref="{start}:{end}"/>"#));
     }
     block.push_str("</mergeCells>");
 
@@ -254,5 +254,42 @@ mod tests {
         let out = patch_rows(xml, &ws);
         assert!(out.contains(r#"r="1""#), "got: {out}");
         assert!(out.contains(r#"ht="25""#), "got: {out}");
+    }
+
+    /// The merge block used to close each tag with `/"` instead of `/>`,
+    /// producing `<mergeCell ref="B6:C6"/<mergeCell …` — XML that no reader
+    /// (ours included) could open again (#2152).
+    #[test]
+    fn merges_are_written_as_valid_self_closing_tags() {
+        let ws = Worksheet {
+            merged_cells: Some(vec![
+                crate::types::MergedCell {
+                    start_row: 5,
+                    start_col: 1,
+                    end_row: 5,
+                    end_col: 2,
+                },
+                crate::types::MergedCell {
+                    start_row: 5,
+                    start_col: 3,
+                    end_row: 5,
+                    end_col: 4,
+                },
+            ]),
+            ..Worksheet::default()
+        };
+        let xml = "<worksheet><sheetData></sheetData></worksheet>";
+        let out = patch_merges(xml, &ws);
+        assert!(
+            out.contains(r#"<mergeCell ref="B6:C6"/>"#),
+            "got: {out}"
+        );
+        assert!(
+            out.contains(r#"<mergeCell ref="D6:E6"/>"#),
+            "got: {out}"
+        );
+        assert!(!out.contains("/<"), "tag lost its `>`: {out}");
+        assert_eq!(out.matches("<mergeCells").count(), 1, "got: {out}");
+        assert_eq!(out.matches("</mergeCells>").count(), 1, "got: {out}");
     }
 }

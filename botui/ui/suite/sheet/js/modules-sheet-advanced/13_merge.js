@@ -105,6 +105,31 @@
     toast.__timer = setTimeout(function () { toast.style.display = "none"; }, 2600);
   }
 
+  // Span of a merged region in pixels, using the real (imported) geometry of
+  // every covered column/row — a fixed 96 px per column shrank merged headers
+  // and indicator boxes on any workbook with custom widths (#2152).
+  function spanWidth(g, first, last) {
+    let width = 0;
+    for (let c = first; c <= last; c++) {
+      width += g.colWidthOf ? g.colWidthOf(c) : COL_WIDTH;
+    }
+    return width;
+  }
+
+  function spanHeight(g, first, last) {
+    let height = 0;
+    for (let r = first; r <= last; r++) {
+      if (g.rowHeightOf) {
+        height += g.rowHeightOf(r);
+      } else if (window.SheetCore && window.SheetCore.rowHeight) {
+        height += window.SheetCore.rowHeight(r);
+      } else {
+        height += ROW_HEIGHT;
+      }
+    }
+    return height;
+  }
+
   function renderMerges() {
     const g = grid();
     const merges = mergedRanges();
@@ -112,7 +137,6 @@
     const visible = g.visibleRowRange();
     const COL_WIDTH = 96;
     const ROW_HEIGHT = 24;
-    const HEADER_WIDTH = 48;
     for (let i = 0; i < merges.length; i++) {
       const m = merges[i];
       if (m.end_row < visible.start || m.start_row >= visible.end) continue;
@@ -122,11 +146,11 @@
           if (!node) continue;
           if (r === m.start_row && c === m.start_col) {
             node.style.display = "block";
-            node.style.width = ((m.end_col - m.start_col + 1) * COL_WIDTH) + "px";
-            node.style.height = ((m.end_row - m.start_row + 1) * ROW_HEIGHT) + "px";
+            node.style.width = spanWidth(g, m.start_col, m.end_col) + "px";
+            node.style.height = spanHeight(g, m.start_row, m.end_row) + "px";
             node.style.zIndex = "4";
             node.style.overflow = "hidden";
-            node.textContent = g.cells.get(r + "," + c) ? (g.cells.get(r + "," + c).value || g.cells.get(r + "," + c).formula || "") : "";
+            node.textContent = g.cells.get(r + "," + c) ? (g.cells.get(r + "," + c).value || "") : "";
           } else {
             node.style.display = "none";
           }

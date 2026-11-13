@@ -186,14 +186,21 @@
     g.headerRow.querySelectorAll(".ss-sort-head").forEach(function (el) { el.remove(); });
     g.headerRow.style.position = "relative";
     const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
+    const tableCols = window.SheetCore && window.SheetCore.filterColumns
+      ? window.SheetCore.filterColumns()
+      : new Set();
     for (let c = cols.start; c < cols.end; c++) {
+      // Only table/autofilter columns get a sort handle, and only when the
+      // column is wide enough to carry the icon without covering its label.
+      if (!tableCols.has(c)) continue;
       const baseX = window.SheetCore && window.SheetCore.colX ? window.SheetCore.colX(c) : 0;
       const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : COL_WIDTH;
+      if (w < 56) continue;
       const head = document.createElement("div");
       head.className = "ss-sort-head";
       head.dataset.col = c;
       head.style.cssText =
-        "position:absolute;left:" + (baseX + w - 20) +
+        "position:absolute;left:" + (baseX + w - 36) +
         "px;top:2px;width:16px;height:16px;color:#64748b;" +
         "cursor:pointer;z-index:6;font-size:10px;line-height:16px;text-align:center;";
       head.textContent = "⤨";

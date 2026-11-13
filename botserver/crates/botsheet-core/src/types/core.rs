@@ -287,7 +287,7 @@ pub struct Worksheet {
     pub rich_text: Option<HashMap<String, Vec<RichTextRun>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CellData {
     /// Raw display value as rendered in the grid.
     #[serde(skip_serializing_if = "Option::is_none")]
