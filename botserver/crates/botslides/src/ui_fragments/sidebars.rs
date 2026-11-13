@@ -332,6 +332,17 @@ pub(super) fn render_slide(slide: &Slide) -> String {
                 .as_ref()
                 .map(|data| render_chart_html(&text, data))
                 .unwrap_or_else(|| html_escape(&text)),
+            "image" => {
+                let src = e.content.src.clone().unwrap_or_default();
+                if src.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        r#"<img src="{}" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none;" />"#,
+                        html_escape(&src)
+                    )
+                }
+            }
             _ => html_escape(&text),
         };
         html.push_str(&format!(
