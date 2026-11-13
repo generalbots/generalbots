@@ -4,17 +4,18 @@
 //! `sheet.cells.set` needs a block write. Both routes live here so the curated
 //! commands create a real artifact (with an id) instead of only opening the app.
 
-use crate::auth::{resolve_user_id, SheetError, SheetUser};
+use crate::auth::{SheetError, SheetUser, resolve_user_id};
 use crate::handlers::cell_ops::{MAX_COLS, MAX_RECALC_CELLS, MAX_ROWS};
-use crate::state::{save_sheet_to_drive, SheetState};
+use crate::handlers::data_ops::apply_inline_conditional_rules;
+use crate::state::{SheetState, save_sheet_to_drive};
 use crate::types::{CellData, SaveResponse, Spreadsheet, Worksheet};
-use botsheet_core::dependency_graph::DepGraph;
+use axum::Json;
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
-use axum::Json;
+use botsheet_core::dependency_graph::DepGraph;
 use chrono::Utc;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 /// `POST /api/sheet/new` body: a title and rows as a JSON array of arrays.
@@ -24,14 +25,21 @@ pub struct CreateSheetRequest {
     pub title: Option<String>,
     #[serde(default)]
     pub rows: Option<Value>,
+    #[serde(default)]
+    pub styles: Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
+    #[serde(default)]
+    pub formats: Option<std::collections::HashMap<String, String>>,
+    /// Conditional rules applied after creation so a cash-flow/timetable can be
+    /// fully styled in one call (#2260/#2263).
+    #[serde(default)]
+    pub conditional: Option<Vec<Value>>,
 }
 
 /// `POST /api/sheet/cells` body: write `values` starting at the A1 `range`.
 ///
-/// `styles` and `formats` are keyed by A1 reference so one call can produce a
-/// formatted block: without them a generated model needed a second round trip
-/// per formatted cell, which is why cash-flow/timetable runs landed unstyled
-/// (#2260, #2263).
+/// `styles`, `formats` and `conditional` let one call produce a fully styled
+/// block (e.g. a 12-month cash-flow with negative red / positive green) without
+/// extra round trips (#2260, #2263).
 #[derive(Debug, Clone, Deserialize)]
 pub struct SetCellsRequest {
     #[serde(alias = "id", alias = "file_id")]
@@ -44,6 +52,8 @@ pub struct SetCellsRequest {
     pub styles: Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
     #[serde(default)]
     pub formats: Option<std::collections::HashMap<String, String>>,
+    #[serde(default)]
+    pub conditional: Option<Vec<Value>>,
 }
 
 /// Sanitized 500 for a failed persistence step: the detail goes to the log.
@@ -176,6 +186,7 @@ fn apply_block_presentation(
     }
 }
 
+// conditional rules are applied via handlers::data_ops::apply_inline_conditional_rules.
 
 /// Builds a spreadsheet from a title and rows without touching Drive, so the
 /// shape of the created artifact is testable on its own.
@@ -220,8 +231,14 @@ pub async fn handle_create_sheet(
     Json(req): Json<CreateSheetRequest>,
 ) -> Result<Json<Spreadsheet>, SheetError> {
     let user_id = resolve_user_id(user.as_deref())?;
-    let sheet = build_spreadsheet(&user_id, req.title.as_deref(), req.rows.as_ref())
+    let mut sheet = build_spreadsheet(&user_id, req.title.as_deref(), req.rows.as_ref())
         .map_err(bad_request)?;
+    let sheet_id = sheet.id.clone();
+    if let Some(ws) = sheet.worksheets.get_mut(0) {
+        apply_block_presentation(ws, &req.styles, &req.formats);
+        apply_inline_conditional_rules(ws, &sheet_id, 0, &req.conditional);
+    }
+    sheet.updated_at = Utc::now();
     save_sheet_to_drive(&state, &user_id, &sheet)
         .await
         .map_err(|e| internal(&e))?;
@@ -266,11 +283,12 @@ pub async fn handle_set_cells(
                 }
                 let mut cell = cell_from_text(text, &sheet.worksheets, req.worksheet_index);
                 let key = format!("{row_index},{col_index}");
-                let existing = sheet.worksheets[req.worksheet_index].data.get(&key).cloned();
-                keep_presentation(&mut cell, existing.as_ref());
-                sheet.worksheets[req.worksheet_index]
+                let existing = sheet.worksheets[req.worksheet_index]
                     .data
-                    .insert(key, cell);
+                    .get(&key)
+                    .cloned();
+                keep_presentation(&mut cell, existing.as_ref());
+                sheet.worksheets[req.worksheet_index].data.insert(key, cell);
                 written_keys.push((row_index, col_index));
                 written += 1;
             }
@@ -283,6 +301,12 @@ pub async fn handle_set_cells(
             &mut sheet.worksheets[req.worksheet_index],
             &req.styles,
             &req.formats,
+        );
+        apply_inline_conditional_rules(
+            &mut sheet.worksheets[req.worksheet_index],
+            &req.sheet_id,
+            req.worksheet_index,
+            &req.conditional,
         );
 
         {

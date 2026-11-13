@@ -13,7 +13,7 @@
 
 use super::*;
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::apps::commands::verb_endpoint;
 
@@ -31,9 +31,55 @@ pub(super) async fn execute(
     name: &str,
     obj: &Map<String, Value>,
 ) -> Result<Value, String> {
+    // #2260 — a request for a NEW formatted sheet reaches this dispatcher as
+    // `sheet.cells.set` carrying `title` + `values` (no `file_id`, no `range`),
+    // because that is the verb whose description mentions styling. The cells
+    // endpoint then answers 422 for the missing fields and nothing is created.
+    // Route that shape to `sheet.create` instead of failing the turn; an
+    // existing sheet must still identify itself with `file_id`.
+    let has_target = obj.get("file_id").and_then(Value::as_str).is_some()
+        || obj.get("sheet_id").and_then(Value::as_str).is_some();
+    let values_instead_of_rows = !obj.contains_key("rows") && obj.contains_key("values");
+    let (name, params) = if name == "sheet.cells.set" && !has_target {
+        if !obj.contains_key("title") && !obj.contains_key("values") {
+            return Err(
+                "sheet.cells.set requires `file_id` (open or create a spreadsheet first)"
+                    .to_string(),
+            );
+        }
+        let mut params = obj.clone();
+        if values_instead_of_rows {
+            if let Some(values) = params.remove("values") {
+                params.insert("rows".to_string(), values);
+            }
+        }
+        ("sheet.create", params)
+    } else {
+        let mut params = obj.clone();
+        // `sheet.create` and `sheet.cells.set` were conflated by the model in
+        // both directions: accept `values` where the endpoint expects `rows`.
+        if name == "sheet.create" && values_instead_of_rows {
+            if let Some(values) = params.remove("values") {
+                params.insert("rows".to_string(), values);
+            }
+        }
+        // A single-cell write may say `cell` instead of an A1 `range`.
+        if name == "sheet.cells.set"
+            && !params.contains_key("range")
+            && params.get("cell").and_then(Value::as_str).is_some()
+        {
+            if let Some(cell) = params.remove("cell") {
+                params.insert("range".to_string(), cell);
+            }
+        }
+        (name, params)
+    };
     let binding = verb_endpoint(name).ok_or_else(|| format!("no endpoint for '{name}'"))?;
-    let mapped = binding.map_params(obj);
-    let result = crate::core::bot::api_exec::exec_endpoint(
+    let mapped = binding.map_params(&params);
+    // The command itself was gated upstream (handle.rs / api.exec); a second
+    // prompt here would ask for permission to write the very cells the user
+    // just approved.
+    let result = crate::core::bot::api_exec::exec_endpoint_trusted(
         state,
         user_id,
         Some(bot_uuid),
@@ -43,10 +89,10 @@ pub(super) async fn execute(
     )
     .await?;
 
-    let sheet_id = obj
+    let sheet_id = params
         .get("file_id")
         .and_then(Value::as_str)
-        .or_else(|| obj.get("sheet_id").and_then(Value::as_str))
+        .or_else(|| params.get("sheet_id").and_then(Value::as_str))
         .or_else(|| result.get("id").and_then(Value::as_str))
         .unwrap_or("")
         .to_string();
@@ -54,16 +100,19 @@ pub(super) async fn execute(
         return Ok(result);
     }
 
-    let styles = obj.get("styles");
-    let formats = obj.get("formats");
+    let styles = params.get("styles");
+    let formats = params.get("formats");
     if styles.is_some() || formats.is_some() {
         apply_styles(state, user_id, bot_uuid, &sheet_id, styles, formats).await?;
     }
-    if let Some(rules) = obj.get("conditional").and_then(Value::as_array) {
+    if let Some(rules) = params.get("conditional").and_then(Value::as_array) {
         apply_conditional(state, user_id, bot_uuid, &sheet_id, rules).await?;
     }
+    apply_charts(state, user_id, bot_uuid, &sheet_id, &params).await?;
 
-    Ok(crate::apps::commands::with_navigation(name, obj, result))
+    Ok(crate::apps::commands::with_navigation(
+        name, &params, result,
+    ))
 }
 
 /// Groups the A1 -> style / format maps into one request per identical pair, so
@@ -151,6 +200,66 @@ async fn apply_conditional(
     Ok(())
 }
 
+async fn apply_charts(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    bot_uuid: Uuid,
+    sheet_id: &str,
+    params: &Map<String, Value>,
+) -> Result<(), String> {
+    let Some(charts) = chart_specs(params) else {
+        return Ok(());
+    };
+    for chart in charts {
+        let Some(obj) = chart.as_object() else {
+            continue;
+        };
+        let mut body = obj.clone();
+        body.insert("id".into(), Value::String(sheet_id.to_string()));
+        if !body.contains_key("data_range") {
+            if let Some(range) = body.remove("range").or_else(|| body.remove("dataRange")) {
+                body.insert("data_range".into(), range);
+            }
+        }
+        if !body.contains_key("label_range") {
+            if let Some(labels) = body.remove("labels").or_else(|| body.remove("labelRange")) {
+                body.insert("label_range".into(), labels);
+            }
+        }
+        if !body.contains_key("chart_type") {
+            if let Some(kind) = body.remove("type").or_else(|| body.remove("chartType")) {
+                body.insert("chart_type".into(), kind);
+            }
+        }
+        crate::core::bot::api_exec::exec_endpoint_trusted(
+            state,
+            user_id,
+            Some(bot_uuid),
+            "POST",
+            "/api/sheet/chart",
+            &body,
+        )
+        .await
+        .map(|_| ())?;
+    }
+    Ok(())
+}
+
+fn chart_specs(params: &Map<String, Value>) -> Option<Vec<Value>> {
+    if let Some(charts) = params.get("charts").and_then(Value::as_array) {
+        return Some(charts.clone());
+    }
+    params.get("chart").and_then(|v| {
+        if v.is_array() {
+            v.as_array().cloned()
+        } else if v.is_object() {
+            Some(vec![v.clone()])
+        } else {
+            None
+        }
+    })
+}
+
 async fn post(
     state: &Arc<AppState>,
     user_id: Uuid,
@@ -161,7 +270,7 @@ async fn post(
 ) -> Result<(), String> {
     let mut params = params.clone();
     params.insert("sheet_id".into(), Value::String(sheet_id.to_string()));
-    crate::core::bot::api_exec::exec_endpoint(
+    crate::core::bot::api_exec::exec_endpoint_trusted(
         state,
         user_id,
         Some(bot_uuid),

@@ -75,6 +75,31 @@
         VirtualGrid.formatSelectedCell({ text_decoration: "line-through" });
       });
     }
+    var fontSizeInput = document.getElementById("fontSizeInput");
+    if (fontSizeInput) {
+      var parseFontSize = function (raw) {
+        var text = String(raw == null ? "" : raw).trim().toLowerCase();
+        var m = text.match(/(\d+(?:\.\d+)?)/);
+        if (!m) return null;
+        var n = Math.round(parseFloat(m[1]));
+        if (!isFinite(n) || n < 1 || n > 200) return null;
+        return n;
+      };
+      var applyFontSize = function () {
+        var size = parseFontSize(fontSizeInput.value);
+        if (size == null) return;
+        fontSizeInput.value = String(size);
+        VirtualGrid.formatSelectedCell({ font_size: size });
+      };
+      fontSizeInput.addEventListener("change", applyFontSize);
+      fontSizeInput.addEventListener("blur", applyFontSize);
+      fontSizeInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyFontSize();
+        }
+      });
+    }
     var fillBtn = document.getElementById("fillColorBtn");
     if (fillBtn) {
       fillBtn.addEventListener("change", function (e) {

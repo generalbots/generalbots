@@ -210,11 +210,23 @@
     sel.addRange(range);
   };
 
-  // Format the currently selected cell with given style properties
+  // Format the selected cell, or the whole active selection range when one
+  // spans multiple cells, so toolbar formatting applies where the user expects.
   VirtualGrid.formatSelectedCell = function (styleProps) {
     var row = this.selectedRow;
     var col = this.selectedCol;
     if (row == null || col == null) return Promise.resolve(null);
+    var startRow = row, startCol = col, endRow = row, endCol = col;
+    var adv = window.SheetAdvanced;
+    if (adv && typeof adv.getSelection === "function") {
+      var sel = adv.getSelection();
+      if (sel && (sel.startRow !== sel.endRow || sel.startCol !== sel.endCol)) {
+        startRow = sel.startRow;
+        startCol = sel.startCol;
+        endRow = sel.endRow;
+        endCol = sel.endCol;
+      }
+    }
     var self = this;
     return fetch("/api/sheet/format", {
       method: "POST",
@@ -222,22 +234,29 @@
       body: JSON.stringify({
         sheet_id: D.currentSheetId(),
         worksheet_index: D.WORKSHEET_INDEX,
-        start_row: row,
-        start_col: col,
-        end_row: row,
-        end_col: col,
+        start_row: startRow,
+        start_col: startCol,
+        end_row: endRow,
+        end_col: endCol,
         style: styleProps
       })
     }).then(function (r) { return r.json(); }).then(function () {
-      // Update local cell data and re-render the cell
-      var key = row + "," + col;
-      var existing = self.cells.get(key) || {};
-      var mergedStyle = Object.assign({}, existing.style || {}, styleProps);
-      existing.style = mergedStyle;
-      self.cells.set(key, existing);
-      // Re-render just this cell
-      var node = self.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
-      if (node) self.applyCellStyle(node, existing);
+      for (var r0 = startRow; r0 <= endRow; r0++) {
+        for (var c0 = startCol; c0 <= endCol; c0++) {
+          var key = r0 + "," + c0;
+          var existing = self.cells.get(key) || {};
+          existing.style = Object.assign({}, existing.style || {}, styleProps);
+          self.cells.set(key, existing);
+          var node = self.bodyInner.querySelector(
+            '[data-row="' + r0 + '"][data-col="' + c0 + '"]'
+          );
+          if (node) self.applyCellStyle(node, existing);
+        }
+      }
+      if (typeof self.requestRange === "function") {
+        self.lastRenderedRange = null;
+        self.requestRange();
+      }
     }).catch(function () { return null; });
   };
 })();

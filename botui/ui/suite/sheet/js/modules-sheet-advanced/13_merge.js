@@ -14,6 +14,10 @@
     return window.__SHEET_INITIAL_ID || "current";
   }
 
+  function isMergeableId(id) {
+    return !!id && id !== "current" && id !== "loading" && id !== "new";
+  }
+
   function wsIndex() {
     if (window.SheetCore && window.SheetCore.wsIndex) return window.SheetCore.wsIndex();
     try {
@@ -35,6 +39,26 @@
     return sheet.worksheets[wsIndex()].merged_cells || [];
   }
 
+  function authHeaders(extra) {
+    const headers = extra ? Object.assign({}, extra) : {};
+    let token = "";
+    try {
+      if (typeof window.getGBAccessToken === "function") {
+        token = window.getGBAccessToken() || "";
+      }
+      if (!token) {
+        token =
+          localStorage.getItem("gb-access-token") ||
+          sessionStorage.getItem("gb-access-token") ||
+          "";
+      }
+    } catch (_) {
+      token = "";
+    }
+    if (token) headers.Authorization = "Bearer " + token;
+    return headers;
+  }
+
   function rangePayload() {
     const sel = selection();
     const g = grid();
@@ -49,48 +73,101 @@
     };
   }
 
+  function readErrorMessage(response) {
+    return response
+      .text()
+      .then(function (text) {
+        if (!text) return "Request failed";
+        try {
+          const data = JSON.parse(text);
+          return data.message || data.error || data.detail || text;
+        } catch (_) {
+          return text;
+        }
+      })
+      .catch(function () {
+        return "Request failed";
+      });
+  }
+
   function mergeSelection() {
     const payload = rangePayload();
     if (!payload || (payload.start_row === payload.end_row && payload.start_col === payload.end_col)) {
       showToast("Select a range of more than one cell to merge");
-      return;
+      return Promise.resolve();
+    }
+    if (!isMergeableId(payload.sheet_id)) {
+      showToast("Save or open a sheet before merging cells", false);
+      return Promise.resolve();
     }
     return fetch("/api/sheet/merge", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     })
-      .then(function (r) { return r.json(); })
-      .then(function () { reloadFromServer(); })
-      .catch(function () {});
+      .then(function (r) {
+        if (!r.ok) {
+          return readErrorMessage(r).then(function (msg) {
+            throw new Error(msg || "Merge failed");
+          });
+        }
+        return r.json().catch(function () { return {}; });
+      })
+      .then(function () {
+        return reloadFromServer(true);
+      })
+      .catch(function (err) {
+        showToast(err && err.message ? err.message : "Merge failed", false);
+      });
   }
 
   function unmergeSelection() {
     const payload = rangePayload();
-    if (!payload) return;
+    if (!payload) return Promise.resolve();
+    if (!isMergeableId(payload.sheet_id)) {
+      showToast("Save or open a sheet before unmerging cells", false);
+      return Promise.resolve();
+    }
     return fetch("/api/sheet/unmerge", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     })
-      .then(function (r) { return r.json(); })
-      .then(function () { reloadFromServer(); })
+      .then(function (r) {
+        if (!r.ok) {
+          return readErrorMessage(r).then(function (msg) {
+            throw new Error(msg || "Unmerge failed");
+          });
+        }
+        return r.json().catch(function () { return {}; });
+      })
+      .then(function () {
+        return reloadFromServer(true);
+      })
+      .catch(function (err) {
+        showToast(err && err.message ? err.message : "Unmerge failed", false);
+      });
+  }
+
+  function reloadFromServer(rerender) {
+    const a = window.SheetAPI;
+    if (!a || typeof a.load !== "function") return Promise.resolve();
+    const id = currentSheetId();
+    if (!isMergeableId(id)) return Promise.resolve();
+    return a.load(id)
+      .then(function (sheet) {
+        if (sheet) {
+          window.__LOADED_SHEET = sheet;
+          window.__SHEET_INITIAL_ID = sheet.id || id;
+        }
+        if (rerender && window.SheetCore && window.SheetCore.rehydrateGrid) {
+          window.SheetCore.rehydrateGrid();
+        }
+      })
       .catch(function () {});
   }
 
-  function reloadFromServer() {
-    const a = window.SheetAPI;
-    if (!a) return;
-    a.load(currentSheetId()).then(function (sheet) {
-      if (sheet) {
-        window.__LOADED_SHEET = sheet;
-        window.__SHEET_INITIAL_ID = sheet.id;
-      }
-      if (window.SheetCore && window.SheetCore.rehydrateGrid) window.SheetCore.rehydrateGrid();
-    });
-  }
-
-  function showToast(msg) {
+  function showToast(msg, isError) {
     const id = "ss-merge-toast";
     let toast = document.getElementById(id);
     if (!toast) {

@@ -50,79 +50,151 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
   }
 
-  function barChart(c, w, h) {
-    const max = c.datasets.reduce(function (m, d) { return Math.max(m, d.data.reduce(function (x, v) { return Math.max(x, v); }, 0)); }, 1);
-    const labels = c.labels && c.labels.length ? c.labels : c.datasets.map(function (_, i) { return String(i + 1); });
-    const pad = { l: 30, r: 10, t: 20, b: 20 };
-    const plotW = w - pad.l - pad.r;
-    const plotH = h - pad.t - pad.b;
-    let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
-    svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">' + escapeXml(c.title) + '</text>';
-    const series = c.datasets.length || 1;
-    const barW = (plotW / labels.length) * 0.7 / series;
-    for (let i = 0; i < labels.length; i++) {
-      for (let s = 0; s < c.datasets.length; s++) {
-        const d = c.datasets[s];
-        const v = d.data[i] || 0;
-        const bh = Math.max(1, (v / max) * plotH);
-        const x = pad.l + i * (plotW / labels.length) + (s * barW) + (plotW / labels.length) * 0.15;
-        const y = pad.t + plotH - bh;
-        svg += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + bh + '" fill="' + escapeXml(d.color || "#3b82f6") + '"/>';
-      }
-      svg += '<text x="' + (pad.l + i * (plotW / labels.length) + plotW / labels.length / 2) + '" y="' + (h - 6) + '" fill="var(--sheet-muted, #94a3b8)" font-size="9" text-anchor="middle">' + escapeXml(String(labels[i])) + '</text>';
+  function chartMax(c) {
+    let max = 0;
+    c.datasets.forEach(function (d) {
+      (d.data || []).forEach(function (v) {
+        const n = Number(v) || 0;
+        if (n > max) max = n;
+      });
+    });
+    return max > 0 ? max * 1.1 : 1;
+  }
+
+  function fmtTick(v) {
+    const n = Number(v) || 0;
+    if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
+  function drawYAxis(svgParts, pad, plotH, max, w) {
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+      const val = (max / ticks) * i;
+      const y = pad.t + plotH - (i / ticks) * plotH;
+      svgParts.push('<line x1="' + pad.l + '" y1="' + y + '" x2="' + (w - pad.r) + '" y2="' + y + '" stroke="var(--sheet-border, #334155)" stroke-width="0.5"/>');
+      svgParts.push('<text x="' + (pad.l - 4) + '" y="' + (y + 3) + '" fill="var(--sheet-muted, #94a3b8)" font-size="9" text-anchor="end">' + escapeXml(fmtTick(val)) + '</text>');
     }
-    svg += '</svg>';
-    return svg;
+  }
+
+  function drawLegend(svgParts, c, w, y) {
+    const sets = c.datasets || [];
+    if (!sets.length) return;
+    let x = 40;
+    for (let i = 0; i < sets.length; i++) {
+      const d = sets[i];
+      const label = d.label || ("Series " + (i + 1));
+      svgParts.push('<rect x="' + x + '" y="' + (y - 8) + '" width="10" height="10" fill="' + escapeXml(d.color || "#3b82f6") + '"/>');
+      svgParts.push('<text x="' + (x + 14) + '" y="' + y + '" fill="var(--sheet-muted, #94a3b8)" font-size="9">' + escapeXml(label) + '</text>');
+      x += 14 + label.length * 6 + 14;
+      if (x > w - 20) break;
+    }
+  }
+
+  function barChart(c, w, h) {
+    const max = chartMax(c);
+    const labels = c.labels && c.labels.length ? c.labels : (c.datasets[0] && c.datasets[0].data ? c.datasets[0].data.map(function (_, i) { return String(i + 1); }) : []);
+    const pad = { l: 42, r: 10, t: 22, b: 34 };
+    const plotW = Math.max(10, w - pad.l - pad.r);
+    const plotH = Math.max(10, h - pad.t - pad.b);
+    const parts = [];
+    parts.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">');
+    parts.push('<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>');
+    parts.push('<text x="' + (w / 2) + '" y="14" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">' + escapeXml(c.title || "Chart") + '</text>');
+    drawYAxis(parts, pad, plotH, max, w);
+    const count = Math.max(labels.length, 1);
+    const series = c.datasets.length || 1;
+    const groupW = plotW / count;
+    const barW = (groupW * 0.7) / series;
+    for (let i = 0; i < count; i++) {
+      for (let sIdx = 0; sIdx < c.datasets.length; sIdx++) {
+        const d = c.datasets[sIdx];
+        const v = Number((d.data || [])[i] || 0);
+        const bh = Math.max(0, (v / max) * plotH);
+        const x = pad.l + i * groupW + (groupW * 0.15) + sIdx * barW;
+        const y = pad.t + plotH - bh;
+        parts.push('<rect x="' + x + '" y="' + y + '" width="' + Math.max(1, barW - 1) + '" height="' + bh + '" fill="' + escapeXml(d.color || "#3b82f6") + '"/>');
+      }
+      if (labels[i] != null) {
+        parts.push('<text x="' + (pad.l + i * groupW + groupW / 2) + '" y="' + (pad.t + plotH + 12) + '" fill="var(--sheet-muted, #94a3b8)" font-size="9" text-anchor="middle">' + escapeXml(String(labels[i])) + '</text>');
+      }
+    }
+    drawLegend(parts, c, w, h - 4);
+    parts.push('</svg>');
+    return parts.join("");
   }
 
   function lineChart(c, w, h) {
-    const max = c.datasets.reduce(function (m, d) { return Math.max(m, d.data.reduce(function (x, v) { return Math.max(x, v); }, 0)); }, 1) * 1.1;
-    const pad = { l: 30, r: 10, t: 20, b: 20 };
-    const plotW = w - pad.l - pad.r;
-    const plotH = h - pad.t - pad.b;
-    let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
-    svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title) + '</text>';
-    for (let s = 0; s < c.datasets.length; s++) {
-      const d = c.datasets[s];
-      let pts = "";
-      for (let i = 0; i < d.data.length; i++) {
-        const x = pad.l + (d.data.length === 1 ? plotW / 2 : pad.l + (i / (d.data.length - 1)) * plotW);
-        const y = pad.t + plotH - (d.data[i] / max) * plotH;
-        pts += x + "," + y + " ";
+    const max = chartMax(c);
+    const labels = c.labels && c.labels.length ? c.labels : (c.datasets[0] && c.datasets[0].data ? c.datasets[0].data.map(function (_, i) { return String(i + 1); }) : []);
+    const pad = { l: 42, r: 10, t: 22, b: 34 };
+    const plotW = Math.max(10, w - pad.l - pad.r);
+    const plotH = Math.max(10, h - pad.t - pad.b);
+    const parts = [];
+    parts.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">');
+    parts.push('<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>');
+    parts.push('<text x="' + (w / 2) + '" y="14" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title || "Chart") + '</text>');
+    drawYAxis(parts, pad, plotH, max, w);
+    const count = Math.max(labels.length, 1);
+    for (let sIdx = 0; sIdx < c.datasets.length; sIdx++) {
+      const d = c.datasets[sIdx];
+      const data = d.data || [];
+      let pts = [];
+      for (let i = 0; i < data.length; i++) {
+        const x = pad.l + (data.length === 1 ? plotW / 2 : (i / (count - 1 || 1)) * plotW);
+        const y = pad.t + plotH - ((Number(data[i]) || 0) / max) * plotH;
+        pts.push(x + "," + y);
       }
-      svg += '<polyline points="' + pts.trim() + '" fill="none" stroke="' + escapeXml(d.color || "#3b82f6") + '" stroke-width="2"/>';
+      parts.push('<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + escapeXml(d.color || "#3b82f6") + '" stroke-width="2"/>');
     }
-    svg += '</svg>';
-    return svg;
+    for (let i = 0; i < labels.length; i++) {
+      const x = pad.l + (count === 1 ? plotW / 2 : (i / (count - 1 || 1)) * plotW);
+      parts.push('<text x="' + x + '" y="' + (pad.t + plotH + 12) + '" fill="var(--sheet-muted, #94a3b8)" font-size="9" text-anchor="middle">' + escapeXml(String(labels[i])) + '</text>');
+    }
+    drawLegend(parts, c, w, h - 4);
+    parts.push('</svg>');
+    return parts.join("");
   }
 
   function pieChart(c, w, h) {
-    const total = c.datasets.reduce(function (m, d) { return m + d.data.reduce(function (x, v) { return x + v; }, 0); }, 1) || 1;
+    const total = c.datasets.reduce(function (m, d) { return m + (d.data || []).reduce(function (x, v) { return x + (Number(v) || 0); }, 0); }, 0) || 1;
     const cx2 = w / 2;
-    const cy2 = h / 2 + 6;
-    const r = Math.min(w, h) / 2 - 24;
-    let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
-    svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title) + '</text>';
+    const cy2 = h / 2 + 8;
+    const r = Math.max(20, Math.min(w, h) / 2 - 34);
+    const parts = [];
+    parts.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">');
+    parts.push('<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>');
+    parts.push('<text x="' + (w / 2) + '" y="14" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title || "Chart") + '</text>');
     const colors = ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#06b6d4", "#f97316", "#ec4899"];
+    const labels = c.labels && c.labels.length ? c.labels : [];
     let a0 = -Math.PI / 2;
+    const slices = [];
     c.datasets.forEach(function (d, s) {
-      d.data.forEach(function (v, i) {
-        const a1 = a0 + (v / total) * 2 * Math.PI;
-        if (v <= 0) return;
+      (d.data || []).forEach(function (v, i) {
+        const val = Number(v) || 0;
+        if (val <= 0) return;
+        const a1 = a0 + (val / total) * 2 * Math.PI;
         const x0 = cx2 + r * Math.cos(a0);
         const y0 = cy2 + r * Math.sin(a0);
         const x1 = cx2 + r * Math.cos(a1);
         const y1 = cy2 + r * Math.sin(a1);
         const large = a1 - a0 > Math.PI ? 1 : 0;
-        svg += '<path d="M' + cx2 + ',' + cy2 + ' L' + x0 + ',' + y0 + ' A' + r + ',' + r + ' 0 ' + large + ' 1 ' + x1 + ',' + y1 + ' Z" fill="' + colors[(s + i) % colors.length] + '"/>';
+        const color = colors[(s + i) % colors.length];
+        parts.push('<path d="M' + cx2 + ',' + cy2 + ' L' + x0 + ',' + y0 + ' A' + r + ',' + r + ' 0 ' + large + ' 1 ' + x1 + ',' + y1 + ' Z" fill="' + color + '"/>');
+        slices.push({ label: labels[i] || d.label || ("Item " + (i + 1)), color: color });
         a0 = a1;
       });
     });
-    svg += '</svg>';
-    return svg;
+    let lx = 10;
+    const ly = h - 8;
+    for (let i = 0; i < slices.length && i < 6; i++) {
+      parts.push('<rect x="' + lx + '" y="' + (ly - 8) + '" width="8" height="8" fill="' + slices[i].color + '"/>');
+      parts.push('<text x="' + (lx + 11) + '" y="' + ly + '" fill="var(--sheet-muted, #94a3b8)" font-size="9">' + escapeXml(String(slices[i].label)) + '</text>');
+      lx += 11 + String(slices[i].label).length * 6 + 10;
+      if (lx > w - 20) break;
+    }
+    parts.push('</svg>');
+    return parts.join("");
   }
 
   function sheetId() {

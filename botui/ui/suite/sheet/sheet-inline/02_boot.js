@@ -70,8 +70,14 @@
       var refNameInput = document.querySelector('.sheet-name-input');
       if (refNameInput && sheet && sheet.name) refNameInput.value = sheet.name;
     }).catch(function (err) {
-      // Keep the requested id: edits must still target the same workbook.
       console.error('Sheet load error:', err);
+      // #2269 — a missing/unreadable workbook must not fall through to a blank,
+      // writable grid that looks open but has no bound document.
+      window.__SHEET_LOAD_ERROR = {
+        message: 'Could not load the spreadsheet (' + (err && err.message ? err.message : 'load failed') + ').',
+        sheetId: sheetRef
+      };
+      window.__SHEET_INITIAL_ID = null;
     });
     return;
   }
@@ -98,13 +104,28 @@
       })()
     ),
     body: JSON.stringify({ bucket: bucket, path: path })
-  }).then(function(r){ return r.json(); }).then(function(sheet){
+  }).then(function(r){
+    if (!r.ok) {
+      var err = new Error('HTTP ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
+    return r.json();
+  }).then(function(sheet){
+    if (!sheet || !sheet.id) throw new Error('no sheet in response');
     window.__LOADED_SHEET = sheet;
     window.__SHEET_INITIAL_ID = sheet.id;
     if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
     if (nameInput) nameInput.value = sheet.name || fileName;
   }).catch(function(err){
     console.error('Sheet load error:', err);
-    window.__SHEET_INITIAL_ID = "current";
+    // #2269 — do not fall back to a blank "current" workbook: that hides the
+    // failure and lets edits/save target a different, unsourced document.
+    window.__SHEET_LOAD_ERROR = {
+      message: 'Could not open ' + fileName + ' from Drive (' + (err && err.message ? err.message : 'load failed') + ').',
+      bucket: bucket,
+      path: path
+    };
+    window.__SHEET_INITIAL_ID = null;
   });
 })();

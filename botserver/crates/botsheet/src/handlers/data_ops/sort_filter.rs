@@ -1,14 +1,14 @@
 //! Sort and filter mutations.
 
-use crate::auth::{resolve_user_id, SheetUser};
+use crate::auth::{SheetUser, resolve_user_id};
 use crate::state::SheetState;
 use crate::types::{
     CellData, ClearFilterRequest, FilterConfig, FilterRequest, SaveResponse, SortRequest,
 };
 use axum::{
+    Json,
     extract::{Extension, State},
     http::StatusCode,
-    Json,
 };
 use botsheet_core::engine::value::CellValue;
 use chrono::Utc;
@@ -33,7 +33,10 @@ pub async fn handle_sort_range(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -144,7 +147,10 @@ pub async fn handle_filter_data(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -154,7 +160,9 @@ pub async fn handle_filter_data(
     }
 
     let worksheet = &mut sheet.worksheets[req.worksheet_index];
-    let filters = worksheet.filters.get_or_insert_with(std::collections::HashMap::new);
+    let filters = worksheet
+        .filters
+        .get_or_insert_with(std::collections::HashMap::new);
 
     filters.insert(
         req.col,
@@ -206,7 +214,10 @@ pub async fn handle_clear_filter(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
