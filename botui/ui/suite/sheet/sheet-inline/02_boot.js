@@ -4,6 +4,20 @@
   var winId = bodyEl ? bodyEl.dataset.windowId || bodyEl.id.replace('window-body-', '') : '';
   var sheetData = (window.__SHEET_DATA_MAP || {})[winId];
 
+  // #2269 — the Drive file could not be read: keep the window in an explicit
+  // error state. Booting the blank stand-in here made a failed open look like
+  // an empty spreadsheet whose edits and "saved" toast went nowhere.
+  if (sheetData && sheetData.loadError) {
+    window.__SHEET_LOAD_ERROR = {
+      message: sheetData.loadError,
+      bucket: sheetData.requestedBucket || '',
+      path: sheetData.requestedPath || ''
+    };
+    window.__SHEET_INITIAL_ID = null;
+    window.__SHEET_BOOT = Promise.resolve();
+    return;
+  }
+
   if (sheetData && sheetData.loadedSheet) {
     // Opened from Drive — use pre-loaded data
     var sidebar = document.getElementById('sheet-sidebar');

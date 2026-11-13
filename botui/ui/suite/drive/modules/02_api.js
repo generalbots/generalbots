@@ -227,18 +227,23 @@ async function previewFile(path, bucket) {
                     window.__SHEET_DATA_MAP[winId].loadedSheet = sheetData;
                     window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 } else {
-                    window.__SHEET_DATA_MAP[winId].loadedSheet = {
-                        id: 'new-' + ts, name: fileName,
-                        worksheets: [{ name: 'Sheet1', data: {} }]
-                    };
+                    // #2269 — a failed load must not become a silent blank
+                    // workbook: a synthetic `new-<ts>` document has no
+                    // source_bucket/source_path, so its edits are stranded and
+                    // Save still reports success. Hand the window an explicit
+                    // error state instead.
+                    window.__SHEET_DATA_MAP[winId].loadError =
+                        'Could not open ' + fileName + ' from Drive (HTTP ' + sheetResp.status + ').';
+                    window.__SHEET_DATA_MAP[winId].requestedBucket = fileBucket;
+                    window.__SHEET_DATA_MAP[winId].requestedPath = path;
                     window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 }
             } catch(e) {
                 console.warn('Pre-load sheet failed:', e);
-                window.__SHEET_DATA_MAP[winId].loadedSheet = {
-                    id: 'new-' + ts, name: fileName,
-                    worksheets: [{ name: 'Sheet1', data: {} }]
-                };
+                window.__SHEET_DATA_MAP[winId].loadError =
+                    'Could not open ' + fileName + ' from Drive (' + (e && e.message ? e.message : 'network error') + ').';
+                window.__SHEET_DATA_MAP[winId].requestedBucket = fileBucket;
+                window.__SHEET_DATA_MAP[winId].requestedPath = path;
                 window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
             }
             window.WindowManager.open(winId, fileName, "");

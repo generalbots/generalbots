@@ -243,6 +243,11 @@
     var bootPromise = window.__SHEET_BOOT || Promise.resolve();
     bootPromise.then(function () {
       var host = myBody ? myBody.querySelector('#sheet-content') : document.getElementById("sheet-content");
+      // #2269 — a failed load shows its error instead of a blank, writable grid.
+      if (host && window.__SHEET_LOAD_ERROR) {
+        gbSheetShowLoadError(host, window.__SHEET_LOAD_ERROR);
+        return;
+      }
       if (host) {
         VirtualGrid.init(host);
         var loaded = myData && myData.loadedSheet ? myData.loadedSheet : window.__LOADED_SHEET;

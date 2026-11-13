@@ -346,7 +346,43 @@ function sheetNotify(message, isError) {
     document.body.appendChild(notif);
     setTimeout(function() { notif.remove(); }, isError ? 5000 : 2000);
 }
+/* A Drive file that could not be loaded must not turn into a blank workbook
+   (#2269): a synthetic `new-<ts>` document has no source_bucket/source_path, so
+   every edit is stranded and Save still says it worked. Show the failure and
+   let Save refuse instead. */
+function gbSheetShowLoadError(host, info) {
+    info = info || {};
+    if (!host) return;
+    host.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'gb-sheet-load-error';
+    box.style.cssText = 'padding:24px;text-align:center;color:#f87171;';
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;margin-bottom:8px;';
+    title.textContent = info.message || 'The spreadsheet could not be loaded.';
+    var hint = document.createElement('div');
+    hint.style.cssText = 'font-size:13px;color:var(--sheet-muted, #94a3b8);margin-bottom:16px;';
+    hint.textContent = 'Nothing was opened and nothing can be saved. The Drive file is unchanged.';
+    box.appendChild(title);
+    box.appendChild(hint);
+    if (info.bucket && info.path && window.WindowManager && window.WindowManager.openDeepLink) {
+        var retry = document.createElement('button');
+        retry.textContent = 'Retry';
+        retry.style.cssText = 'padding:6px 14px;border-radius:6px;border:1px solid var(--sheet-border, #334155);' +
+            'background:var(--sheet-bg-elevated, #1e293b);color:inherit;cursor:pointer;';
+        retry.addEventListener('click', function () {
+            window.__SHEET_LOAD_ERROR = null;
+            window.WindowManager.openDeepLink('sheet', { bucket: info.bucket, file: info.path });
+        });
+        box.appendChild(retry);
+    }
+    host.appendChild(box);
+}
 function saveSheet() {
+    if (window.__SHEET_LOAD_ERROR) {
+        sheetNotify('Not saved: this window has no document — the file failed to load.', true);
+        return;
+    }
     var nameInput = document.getElementById('sheetName');
     var name = nameInput ? nameInput.value : 'Untitled Spreadsheet';
     var id = getLiveSheetId();
