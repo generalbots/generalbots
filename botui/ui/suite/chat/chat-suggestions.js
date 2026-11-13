@@ -14,8 +14,15 @@ function renderSuggestions(suggestions, targetEl) {
     chip.className = "suggestion-chip";
     chip.textContent = suggestion.text || "Suggestion";
 
-chip.onclick = (function (sugg) {
-return function () {
+    chip.onclick = (function (sugg) {
+      return function () {
+        // Silence the old per-click noise so the suggestion rail never spams the
+        // console in production (#2351 §1). Tool-exec debugging, when needed, is
+        // gated behind a flag that is never set by default and never logs PII.
+        if (window.__GB_DEBUG_SUGGESTIONS__) {
+          console.debug("[SUGGESTION] Clicked:", sugg.text);
+          if (sugg.action) console.debug("[SUGGESTION] Action:", sugg.action);
+        }
 if (sugg.action) {
 try {
 var actionData = typeof sugg.action === "string"
@@ -32,18 +39,22 @@ if (actionData.prompt_for_params ||
 }
 // Check if WebSocket is available
 if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+var toolExecContext = {
+  tool_name: actionData.tool,
+  tool_description: actionData.description || sugg.description || "",
+  tool_icon: actionData.icon || "",
+  tool_params: actionData.params,
+  label: sugg.text || actionData.tool,
+  requestedAt: Date.now(),
+};
+ChatState.pendingToolExec = toolExecContext;
 var msg = {
 bot_id: ChatState.currentBotId,
 user_id: ChatState.currentUserId,
 session_id: ChatState.currentSessionId,
 channel: "web",
 content: actionData.tool,
-        _toolContext: {
-          tool_name: actionData.tool,
-          tool_description: actionData.description || "",
-          tool_icon: actionData.icon || "",
-          tool_params: actionData.params,
-        },
+        _toolContext: toolExecContext,
         _toolFlags: { tool_type: 6, from_tool: true },
 message_type: 6,
 active_switchers: typeof activeSwitcherIds === "function"

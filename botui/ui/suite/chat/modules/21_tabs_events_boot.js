@@ -22,22 +22,40 @@
   // #1753 — deleting the open conversation re-mints its session by calling
   // initChat(). Duplicate delete events (hover button + context menu, or a
   // re-injected module binding this listener twice) used to run two /api/auth
-  // rounds and leave two sockets fighting. Hold a browser-wide guard until the
+  // rounds and leave two sockets fighting. Hold a per-session guard until the
   // new session arrives (or a timeout) so a deletion reinitializes once.
+  // #2285 — the guard must not be page-global: a delete reinit for one session
+  // must not make another session's needed reinit permanently dead. A request
+  // that arrives while the same session is in flight is coalesced into one
+  // queued re-run on release instead of being dropped.
+  var gbChatReinitMap = Object.create(null);
   function reinitializeAfterDelete(sid) {
-    if (window.__gbChatReinit) return;
+    if (typeof window.initChat !== "function") return;
+    var key = String(sid || "__current__");
+    var state = gbChatReinitMap[key];
+    if (state && state.busy) {
+      state.queued = true;
+      return;
+    }
+    if (!state) {
+      state = gbChatReinitMap[key] = { busy: false, queued: false, timer: null };
+    }
+    state.busy = true;
+    state.queued = false;
     var release = function () {
-      if (!window.__gbChatReinit) return;
-      window.__gbChatReinit = null;
-      if (window.__gbChatReinitTimer) {
-        clearTimeout(window.__gbChatReinitTimer);
-        window.__gbChatReinitTimer = null;
+      if (!state.busy) return;
+      state.busy = false;
+      if (state.timer) {
+        clearTimeout(state.timer);
+        state.timer = null;
+      }
+      if (state.queued) {
+        state.queued = false;
+        setTimeout(function () { reinitializeAfterDelete(sid); }, 0);
       }
     };
-    if (typeof window.initChat !== "function") return;
-    window.__gbChatReinit = { sessionId: sid, at: Date.now() };
     window.addEventListener("gb-chat-session-changed", release, { once: true });
-    window.__gbChatReinitTimer = setTimeout(release, 15000);
+    state.timer = setTimeout(release, 15000);
     try {
       window.initChat();
     } catch (err) {

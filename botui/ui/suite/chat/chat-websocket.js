@@ -82,24 +82,44 @@ function tr(key, fallback) {
 // an anonymous visitor explains the real reason and offers a way in.
 function probeBotAccess(done) {
   if (window.__BOT_IS_PUBLIC__) { ChatState.botAccess = "allowed"; done("allowed"); return; }
-  if (ChatState.botAccess) { done(ChatState.botAccess); return; }
+  // Cache only resolved states. Probe errors stay retryable.
+  if (ChatState.botAccess === "allowed" || ChatState.botAccess === "auth_required") {
+    done(ChatState.botAccess);
+    return;
+  }
+  ChatState.botAccess = "probing";
   var bot = ChatState.currentBotName || window.__INITIAL_BOT_NAME__ || "default";
   fetch("/api/bot/public?bot_name=" + encodeURIComponent(bot), { credentials: "same-origin" })
-    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (r) {
+      if (!r || !r.ok) {
+        throw new Error("probe_failed");
+      }
+      return r.json();
+    })
     .then(function (info) {
+      if (!info || typeof info !== "object") {
+        throw new Error("probe_failed");
+      }
       var isPublic = info.is_public === true || String(info.is_public) === "true";
       var token = (window.GBSecurity && typeof GBSecurity.getToken === "function")
         ? GBSecurity.getToken() : null;
       ChatState.botAccess = (isPublic || token) ? "allowed" : "auth_required";
       done(ChatState.botAccess);
     })
-    .catch(function () { ChatState.botAccess = "allowed"; done("allowed"); });
+    .catch(function (err) {
+      // Fail closed: an unreachable or invalid probe must not be treated as public.
+      ChatState.botAccess = "probe_error";
+      console.warn("[WS] bot access probe failed for '" + bot + "':", err);
+      done("probe_error");
+    });
 }
 
 function showAuthRequired(botName) {
   var statusEl = document.getElementById("connectionStatus");
   if (statusEl) {
     statusEl.className = "connection-status disconnected";
+    statusEl.style.cursor = "";
+    statusEl.onclick = null;
     var statusText = statusEl.querySelector(".connection-text");
     if (statusText) {
       statusText.textContent = (window.i18n && window.i18n.t("chat-private-signin")) || "Private bot — sign in required";
@@ -117,20 +137,94 @@ function showAuthRequired(botName) {
   console.warn("[WS] bot '" + botName + "' is private; WebSocket not attempted");
 }
 
+function showProbeError(botName) {
+  var message = "Could not verify bot access";
+  var detail = "The server did not respond or returned an invalid response. Bot access is unknown, so chat will not connect automatically.";
+  var retryProbe = function () {
+    ChatState.botAccess = null;
+    updateConnectionStatus("connecting");
+    connectWebSocket();
+  };
+  var statusEl = document.getElementById("connectionStatus");
+  if (statusEl) {
+    statusEl.className = "connection-status disconnected";
+    statusEl.style.display = "flex";
+    statusEl.style.cursor = "pointer";
+    statusEl.title = "Retry connection";
+    statusEl.onclick = retryProbe;
+    var statusText = statusEl.querySelector(".connection-text");
+    if (statusText) statusText.textContent = message + " — click to retry";
+  }
+  var messages = document.getElementById("messages");
+  var loading = messages && messages.querySelector(".gb-state-loading");
+  if (loading) {
+    loading.className = "gb-state gb-state-error";
+    var stateMsg = loading.querySelector(".gb-state-msg");
+    if (stateMsg) {
+      stateMsg.textContent = detail + " ";
+      var link = document.createElement("button");
+      link.type = "button";
+      link.className = "gb-state-retry";
+      link.textContent = "Retry";
+      link.style.marginLeft = "8px";
+      link.onclick = retryProbe;
+      stateMsg.appendChild(link);
+    }
+  } else if (messages && !messages.querySelector(".gb-probe-error")) {
+    var box = document.createElement("div");
+    box.className = "gb-state gb-state-error gb-probe-error";
+    var msg = document.createElement("div");
+    msg.className = "gb-state-msg";
+    msg.textContent = message + ". " + detail + " ";
+    var retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "gb-state-retry";
+    retry.textContent = "Retry";
+    retry.onclick = retryProbe;
+    msg.appendChild(retry);
+    box.appendChild(msg);
+    messages.appendChild(box);
+  }
+  if (window.GBAppLifecycle) {
+    GBAppLifecycle.setState("error", message);
+  }
+  notify(message + " — chat will not connect until access can be verified", "error");
+  console.warn("[WS] bot access probe failed for '" + botName + "'; WebSocket not attempted");
+}
+
 // #2153 — a route segment or a stale selection can name a bot that does not
 // exist. The server refuses the upgrade and the page used to sit on
 // "Connecting…" forever while a generic "Reconnecting…" toast blamed the
-// network. Say what is wrong and offer the one action that fixes it.
+// network. Say what is wrong and offer an in-app recovery that keeps the
+// desktop shell intact.
+function recoverFromUnavailableBot() {
+  var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
+  try { localStorage.removeItem("gb_selected_bot"); } catch (e) {}
+  try { localStorage.removeItem("gb.chat.session." + (ChatState.botUnavailableFor || ChatState.currentBotName || "")); } catch (e) {}
+  ChatState.botUnavailable = false;
+  ChatState.botUnavailableFor = null;
+  ChatState.botAccess = null;
+  ChatState.currentBotName = fallbackBot;
+  window.__gbBotFallbackDone = false;
+  window.__gbBotFallbackFor = null;
+  if (typeof proceedWithChatInit === "function") {
+    proceedWithChatInit();
+  }
+}
+
 function showBotUnavailable(botName) {
+  var missingBot = botName || ChatState.botUnavailableFor || ChatState.currentBotName || "default";
+  // Scope the latch to the bot it refers to so a different bot is not affected.
   ChatState.botUnavailable = true;
-  var message = 'Bot "' + botName + '" was not found';
+  ChatState.botUnavailableFor = missingBot;
+  var message = 'Bot "' + missingBot + '" was not found';
   var statusEl = document.getElementById("connectionStatus");
   if (statusEl) {
     statusEl.className = "connection-status disconnected";
     statusEl.style.display = "flex";
     statusEl.style.cursor = "pointer";
     statusEl.title = "Open the default bot";
-    statusEl.onclick = function () { window.location.href = "/default"; };
+    statusEl.onclick = function () { recoverFromUnavailableBot(); };
     var statusText = statusEl.querySelector(".connection-text");
     if (statusText) statusText.textContent = message + " — open the default bot";
   }
@@ -142,14 +236,15 @@ function showBotUnavailable(botName) {
     if (stateMsg) {
       stateMsg.textContent = message + ". ";
       var link = document.createElement("a");
-      link.href = "/default";
+      link.href = "#";
       link.textContent = "Open the default bot →";
+      link.onclick = function (e) { if (e && e.preventDefault) e.preventDefault(); recoverFromUnavailableBot(); };
       stateMsg.appendChild(link);
     }
   }
   if (window.GBAppLifecycle) GBAppLifecycle.setState("error", message);
   notify(message + " — open the default bot", "error");
-  console.warn("[WS] bot '" + botName + "' does not exist; no socket dialled");
+  console.warn("[WS] bot '" + missingBot + "' does not exist; no socket dialled");
 }
 
 // One dial at a time: several boot modules call connectWebSocket() while the
@@ -160,9 +255,10 @@ var chatDialSeq = 0;
 
 function connectWebSocket() {
   // A bot that does not exist never gains a socket: redialling only replaced
-  // the explicit error with an endless "Connecting…" (#2153).
-  if (ChatState.botUnavailable) {
-    showBotUnavailable(ChatState.currentBotName);
+  // the explicit error with an endless "Connecting…" (#2153). Block only the
+  // bot the latch refers to so other bots can still connect.
+  if (ChatState.botUnavailable && ChatState.botUnavailableFor === ChatState.currentBotName) {
+    showBotUnavailable(ChatState.botUnavailableFor);
     return;
   }
   var seq = ++chatDialSeq;
@@ -178,25 +274,35 @@ function connectWebSocket() {
       showAuthRequired(ChatState.currentBotName);
       return;
     }
+    if (state !== "allowed") {
+      showProbeError(ChatState.currentBotName);
+      return;
+    }
     dialChatSocket(seq);
   });
 }
 
-function dialChatSocket(seq) {
-  // The socket must carry the suite token: the server verifies it and uses
-  // that identity over the (possibly stale) user_id the page remembers.
-  var socketToken = "";
+function getChatWsUrl() {
+  var base = WS_BASE_URL + window.location.host + "/ws";
+  var tok = null;
   try {
-    socketToken = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
-      localStorage.getItem("gb-access-token") ||
-      sessionStorage.getItem("gb-access-token") || "";
-  } catch (e) { socketToken = ""; }
-  var url = WS_URL +
-    (WS_URL.indexOf("?") === -1 ? "?" : "&") +
-    "session_id=" + ChatState.currentSessionId +
-    "&user_id=" + ChatState.currentUserId +
-    "&bot_name=" + ChatState.currentBotName +
-    (socketToken ? "&access_token=" + encodeURIComponent(socketToken) : "");
+    if (typeof window.getChatAccessToken === "function") tok = window.getChatAccessToken();
+    else if (window.GBSecurity && window.GBSecurity.getToken) tok = window.GBSecurity.getToken();
+    else tok = sessionStorage.getItem("gb-access-token");
+  } catch (e) { tok = null; }
+  if (tok) base += "?token=" + encodeURIComponent(tok);
+  return base;
+}
+
+function dialChatSocket(seq) {
+  // Identity is established via the suite session cookie on the WS handshake.
+  // A legacy token query param is included only when a current token is present.
+  var base = getChatWsUrl();
+  var url = base +
+    (base.indexOf("?") === -1 ? "?" : "&") +
+    "session_id=" + encodeURIComponent(ChatState.currentSessionId || "") +
+    "&user_id=" + encodeURIComponent(ChatState.currentUserId || "") +
+    "&bot_name=" + encodeURIComponent(ChatState.currentBotName || "default");
 
   var ws = (ChatState.ws = new WebSocket(url));
   if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
@@ -422,6 +528,11 @@ function dialChatSocket(seq) {
     var params = new URLSearchParams(window.location.search);
     var q = params.get("q");
     if (q && typeof window.sendMessage === "function") {
+      // Consume ?q= once so reconnects do not re-send the same deep-link turn.
+      params.delete("q");
+      var newSearch = params.toString();
+      var newUrl = window.location.pathname + (newSearch ? "?" + newSearch : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
       setTimeout(function () { window.sendMessage(q); }, 300);
     }
     // #1275 — the socket is healthy again: stop the “offline” state, then

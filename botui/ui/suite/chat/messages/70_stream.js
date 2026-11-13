@@ -81,8 +81,15 @@ function updateStreaming(content) {
   }
   var log = document.getElementById("messages");
   if (log) log.setAttribute("aria-busy", "true");
+  var toolExecHeader = "";
+  if (el && el.dataset && el.dataset.gbToolExecHeader) {
+    toolExecHeader = el.dataset.gbToolExecHeader;
+  } else if (msgContent) {
+    var existingToolCard = msgContent.querySelector(".gb-tool-card[data-tool-kind='tool-exec']");
+    if (existingToolCard) toolExecHeader = existingToolCard.outerHTML;
+  }
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
-  msgContent.innerHTML = thinkingHtml + parsed;
+  msgContent.innerHTML = thinkingHtml + toolExecHeader + parsed;
   // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
   // lives on the message (not inside .message-content) so the next streaming
   // re-render does not destroy and reload it every 200 ms.
@@ -197,11 +204,22 @@ function processMessage(data) {
       gbFinishTurn(data, completed);
       return;
     }
+    // #2360 — only explicit structured failure signals mark a message retryable.
+    var retryable = !!(data.error || data.is_error || data.failed || data.retryable ||
+      data.status === "error" || data.turn_status === "error" || data.turn_status === "failed");
+    var messageMeta = {};
+    if (retryable) messageMeta.retryable = true;
+    // Non-streaming completion (or a turn completed without a streaming bubble).
+    if (ChatState.pendingToolExec) {
+      messageMeta.toolExec = ChatState.pendingToolExec;
+      ChatState.pendingToolExec = null;
+    }
+    if (!retryable && !messageMeta.toolExec) messageMeta = null;
     if (completed.content) {
-      addMessage("bot", completed.content, null, finalReasoning);
+      addMessage("bot", completed.content, null, finalReasoning, null, messageMeta);
       if (TTSState.autoSpeak) speakText(completed.content);
     } else if (completed.reasoning && completed.reasoning.trim() !== "") {
-      addMessage("bot", "", null, completed.reasoning);
+      addMessage("bot", "", null, completed.reasoning, null, messageMeta);
       if (TTSState.autoSpeak) speakText(completed.reasoning);
     }
     ChatState.lastCompletedTurn = {
@@ -253,7 +271,12 @@ function processMessage(data) {
       ChatState.streamingMessageId = "streaming-" + Date.now();
       ChatState.currentStreamingContent = data.content || "";
       ChatState.currentReasoning = data.reasoning || "";
-      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning);
+      var streamMeta = null;
+      if (ChatState.pendingToolExec) {
+        streamMeta = { toolExec: ChatState.pendingToolExec };
+        ChatState.pendingToolExec = null;
+      }
+      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning, null, streamMeta);
       ChatState.lastRenderTime = Date.now();
       gbChatStatus({ state: "running", text: gbChatStatusText("status-generating", "Generating…") });
     } else {

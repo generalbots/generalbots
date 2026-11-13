@@ -66,6 +66,28 @@ pub(super) fn spawn(spec: RunSpec) {
                 Ok(()) => bus::bus().finish(&thread_id, botevents::RunState::Succeeded),
                 Err(error) => {
                     log::error!("pipeline task failed: {error}");
+                    // #2360 — propagate a structured terminal failure so the UI
+                    // can offer retry without scraping prose.
+                    let err_msg = "Sorry, something went wrong while processing your message. Please try again.";
+                    let err_frame = serde_json::json!({
+                        "bot_id": bot_uuid.to_string(),
+                        "user_id": user_id.to_string(),
+                        "session_id": session_id.to_string(),
+                        "channel": "web",
+                        "content": err_msg,
+                        "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
+                        "is_complete": true,
+                        "is_error": true,
+                        "error": true,
+                        "retryable": true,
+                        "status": "failed",
+                        "turn_status": "failed",
+                        "suggestions": [],
+                        "switchers": [],
+                        "context_length": 0,
+                        "context_max_length": 0,
+                    });
+                    let _ = crate::core::bot::pipeline::ChannelSink::send_raw_json(&sink, &err_frame).await;
                     bus::bus().finish(&thread_id, botevents::RunState::Failed);
                     break;
                 }

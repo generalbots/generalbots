@@ -91,14 +91,23 @@ fn relative_key(bucket_path: &str) -> &str {
 /// artifact was a dead link. The two forms the renderer understands are
 /// `vmfile:` (workspace files only, `chat/modules/vm_attachments/02_links.js`)
 /// and `app://` (`chat/chat-render.js`). Drive files therefore use the
-/// registered deep link `app://drive?path={path}`
+/// registered deep link `app://drive?path={path}&bucket={bucket}&scope=bot`
 /// (`apps/commands/deep_link_params_for_app.rs`), where `path` is the
-/// bucket-relative key, percent-encoded. `scope=bot` makes the Drive app open
-/// the bot workspace `drive_save` publishes into instead of the caller's
-/// personal bucket (`drive/modules/99_init.js`).
-fn drive_link(name: &str, key: &str) -> String {
+/// bucket-relative folder key and `bucket` identifies the store that holds it.
+/// `scope=bot` makes the Drive app open the bot workspace `drive_save`
+/// publishes into instead of the caller's personal bucket. #2283 — the bucket
+/// is required so the Drive resolves the path against the bucket the artifact
+/// was saved into instead of the currently selected one.
+fn drive_link(name: &str, bucket: &str, key: &str) -> String {
     let path = urlencoding::encode(key);
-    format!("[{name}](app://drive?path={path}&scope=bot)")
+    let bucket = urlencoding::encode(bucket);
+    format!("[{name}](app://drive?path={path}&bucket={bucket}&scope=bot)")
+}
+
+/// Folder holding `key` (bucket-relative file key). Deep links open the folder
+/// that contains the saved artifact.
+fn parent_key(key: &str) -> &str {
+    key.rsplit_once('/').map(|(dir, _)| dir).unwrap_or(key)
 }
 
 async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
@@ -230,9 +239,10 @@ async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
     )];
     for item in &items {
         let name = sanitize_name(&item.relative);
+        let folder = parent_key(&item.key);
         lines.push(format!(
             "- {} ({})",
-            drive_link(&name, &item.key),
+            drive_link(&name, &scope.bucket, folder),
             human_size(item.size)
         ));
     }
@@ -310,7 +320,12 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
                     continue;
                 }
                 match drive_bridge::save_object(state, &bot_uuid, &folder, name, bytes).await {
-                    Some(path) => saved.push(drive_link(name, relative_key(&path))),
+                    Some(path) => {
+                        let (bucket, file_key) = path
+                            .split_once('/')
+                            .unwrap_or(("", path.as_str()));
+                        saved.push(drive_link(name, bucket, parent_key(file_key)));
+                    }
                     None => failed.push(name.to_string()),
                 }
             }
@@ -443,29 +458,37 @@ mod tests {
     /// #2143 gap A — the chat renderer resolves only `vmfile:` and `app://`
     /// links, so a `drive:` URL rendered as dead text and the artifact was
     /// unreachable. The emitted string must be one of those two prefixes.
+    /// #2283 — the link carries the bucket and opens the folder holding the file.
     #[test]
     fn drive_link_uses_a_prefix_the_chat_renderer_resolves() {
         let link = drive_link(
             "report.pdf",
+            "beiner.gbai",
             "beiner.gbdrive/conversations/quarterly-report",
         );
         assert!(
             link.starts_with("[report.pdf](app://drive?path="),
             "unexpected link: {link}"
         );
+        assert!(link.contains("&bucket="), "missing bucket: {link}");
         assert!(link.ends_with("&scope=bot)"), "unexpected link: {link}");
         assert!(!link.contains("](drive:"), "dead drive: scheme: {link}");
         assert!(
-            link.starts_with("[report.pdf](app://") || link.starts_with("[report.pdf](vmfile:"),
+            link.starts_with("[report.pdf](app://")
+                || link.starts_with("[report.pdf](vmfile:"),
             "not a renderer prefix: {link}"
         );
     }
 
-    /// The path must survive percent-encoding, because the renderer decodes it
-    /// into the Drive app's `path` parameter.
+    /// The path and bucket must survive percent-encoding, because the renderer
+    /// decodes them into the Drive app's deep-link parameters.
     #[test]
-    fn drive_link_encodes_the_folder_key() {
-        let link = drive_link("report.pdf", "beiner.gbdrive/conversations/q3 2026");
+    fn drive_link_encodes_the_folder_key_and_bucket() {
+        let link = drive_link(
+            "report.pdf",
+            "beiner org.gbai",
+            "beiner.gbdrive/conversations/q3 2026",
+        );
         let encoded = link
             .split("path=")
             .nth(1)
@@ -477,6 +500,25 @@ mod tests {
             .unwrap_or_default();
         assert_eq!(decoded, "beiner.gbdrive/conversations/q3 2026");
         assert!(encoded.contains("%2F"), "slashes must be encoded: {link}");
+        let bucket = link
+            .split("bucket=")
+            .nth(1)
+            .and_then(|rest| rest.split('&').next())
+            .unwrap_or_default();
+        assert_eq!(
+            urlencoding::decode(bucket).ok().map(|v| v.into_owned()),
+            Some("beiner org.gbai".to_string())
+        );
+    }
+
+    /// Deep links open the folder that holds the saved file.
+    #[test]
+    fn parent_key_returns_folder() {
+        assert_eq!(
+            parent_key("beiner.gbdrive/conversations/q3/report.pdf"),
+            "beiner.gbdrive/conversations/q3"
+        );
+        assert_eq!(parent_key("report.pdf"), "report.pdf");
     }
 
     /// `save_object` returns `bucket/key`; the Drive app addresses the key.

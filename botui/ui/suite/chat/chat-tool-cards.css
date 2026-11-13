@@ -46,3 +46,11 @@
 }
 .gb-tool-summary { font-size: 12px; margin-top: 4px; color: var(--text, inherit); }
 .gb-tool-error .gb-tool-summary { color: #f85149; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

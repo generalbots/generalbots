@@ -116,6 +116,7 @@ struct Captured {
     outlet: &'static str,
     home: &'static str,
     image_url: String,
+    drive_bucket: String,
     drive_key: String,
     captured_at: String,
 }
@@ -183,18 +184,19 @@ async fn capture(home: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-/// Stores the capture in the bot's Drive and returns the drive key plus a
-/// token-shared URL the chat can render (`/api/files/public/{token}`).
+/// Stores the capture in the bot's Drive and returns the bucket, drive key
+/// and a token-shared URL the chat can render (`/api/files/public/{token}`).
 async fn publish(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
     user_id: Uuid,
     name: &str,
     png: Vec<u8>,
-) -> Result<(String, String), String> {
-    let saved = crate::core::bot::drive_bridge::save_object(state, &bot_uuid, "front-pages", name, png)
-        .await
-        .ok_or_else(|| "the capture could not be stored in Drive".to_string())?;
+) -> Result<(String, String, String), String> {
+    let saved =
+        crate::core::bot::drive_bridge::save_object(state, &bot_uuid, "front-pages", name, png)
+            .await
+            .ok_or_else(|| "the capture could not be stored in Drive".to_string())?;
     let (bucket, key) = saved
         .split_once('/')
         .ok_or_else(|| "the stored capture has no Drive path".to_string())?;
@@ -224,7 +226,11 @@ async fn publish(
         "the capture could not be shared".to_string()
     })?;
 
-    Ok((key.to_string(), format!("/api/files/public/{token}")))
+    Ok((
+        bucket.to_string(),
+        key.to_string(),
+        format!("/api/files/public/{token}"),
+    ))
 }
 
 async fn status(
@@ -306,10 +312,11 @@ pub async fn capture_and_inject(
         match capture(outlet.home).await {
             Ok(png) => {
                 match publish(state, bot_uuid, user_id, &file_name(outlet.name), png).await {
-                    Ok((drive_key, image_url)) => captured.push(Captured {
+                    Ok((drive_bucket, drive_key, image_url)) => captured.push(Captured {
                         outlet: outlet.name,
                         home: outlet.home,
                         image_url,
+                        drive_bucket,
                         drive_key,
                         captured_at: captured_at.clone(),
                     }),
@@ -330,16 +337,22 @@ pub async fn capture_and_inject(
          are the only valid front pages for this answer.\n\n",
     );
     for item in &captured {
+        let folder = item
+            .drive_key
+            .rsplit_once('/')
+            .map(|(dir, _)| dir)
+            .unwrap_or(&item.drive_key);
         block.push_str(&format!(
-            "- ![Capa de {} — {}]({})\n  outlet: {}\n  front page: {}\n  published: {}\n  drive: [{}](app://drive?path={}&scope=bot)\n\n",
+            "- ![Capa de {} — {}]({})\n  outlet: {}\n  front page: {}\n  published: {}\n  drive: [{}](app://drive?path={}&bucket={}&scope=bot)\n\n",
             item.outlet,
             item.captured_at,
             item.image_url,
             item.outlet,
             item.home,
             item.captured_at,
-            item.drive_key,
-            urlencoding::encode(&item.drive_key),
+            folder,
+            urlencoding::encode(folder),
+            urlencoding::encode(&item.drive_bucket),
         ));
     }
     if !failed.is_empty() {

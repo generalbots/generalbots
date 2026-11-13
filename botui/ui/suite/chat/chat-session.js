@@ -117,8 +117,14 @@ window.getChatSessionInfo = function () {
 window.ChatSwitchBot = function (botName) {
   if (!botName) return Promise.resolve();
   var headers = {};
-  var tok = window.getGBAccessToken ? window.getGBAccessToken()
-    : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+  var tok = null;
+  if (typeof window.getChatAccessToken === "function") {
+    tok = window.getChatAccessToken();
+  } else if (window.GBSecurity && window.GBSecurity.getToken) {
+    tok = window.GBSecurity.getToken();
+  } else {
+    try { tok = sessionStorage.getItem("gb-access-token"); } catch (e) { tok = null; }
+  }
   if (tok) headers["Authorization"] = "Bearer " + tok;
 
   return fetch("/api/auth?bot_name=" + encodeURIComponent(botName), { headers: headers })
@@ -226,10 +232,15 @@ window.ChatSwitchBot = function (botName) {
 
   var HISTORY_PAGE_TURNS = 500;
 
+  function getSessionToken() {
+    if (typeof window.getChatAccessToken === "function") return window.getChatAccessToken();
+    if (window.GBSecurity && window.GBSecurity.getToken) return window.GBSecurity.getToken();
+    try { return sessionStorage.getItem("gb-access-token"); } catch (e) { return null; }
+  }
+
   function fetchSessionHistory(sessionId, offsetTurns) {
     var headers = {};
-    var tok = window.getGBAccessToken ? window.getGBAccessToken()
-      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+    var tok = getSessionToken();
     if (tok) headers["Authorization"] = "Bearer " + tok;
     var url = "/api/chat/history/sessions/" + encodeURIComponent(sessionId) +
       "/messages?limit=" + HISTORY_PAGE_TURNS + "&offset=" + (offsetTurns || 0);
@@ -363,10 +374,6 @@ window.ChatSwitchBot = function (botName) {
     ChatState.historyOffsetTurns = 0;
     ChatState.historyHasMore = false;
     ChatState.historyLoadingMore = false;
-    var headers = {};
-    var tok = window.getGBAccessToken ? window.getGBAccessToken()
-      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
-    if (tok) headers["Authorization"] = "Bearer " + tok;
     return fetchSessionHistory(sessionId, 0)
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {

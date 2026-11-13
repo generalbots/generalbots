@@ -324,8 +324,8 @@ function openArtifactPanel(content, sourceEl) {
     var token = "";
     try {
       token =
-        (window.getGBAccessToken && window.getGBAccessToken()) ||
-        localStorage.getItem("gb-access-token") ||
+        (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
         sessionStorage.getItem("gb-access-token") ||
         "";
     } catch (e) {}

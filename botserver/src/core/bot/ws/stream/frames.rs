@@ -3,6 +3,8 @@ use serde_json::{json, Value};
 use super::LlmTurn;
 
 /// Error frame used when the turn cannot start.
+/// #2360 — explicit structured failure markers so the UI can render retry
+/// without inferring from prose.
 pub(super) fn error(turn: &LlmTurn<'_>, content: String) -> Value {
     json!({
         "bot_id": turn.bot_uuid.to_string(),
@@ -11,6 +13,11 @@ pub(super) fn error(turn: &LlmTurn<'_>, content: String) -> Value {
         "channel": "web",
         "content": content,
         "message_type": 2, "is_complete": true,
+        "is_error": true,
+        "error": true,
+        "retryable": true,
+        "status": "failed",
+        "turn_status": "failed",
         "suggestions": [], "switchers": [],
         "context_length": 0, "context_max_length": 0,
     })

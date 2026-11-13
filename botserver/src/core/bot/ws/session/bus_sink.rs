@@ -76,8 +76,26 @@ impl ChannelSink for RunBusSink {
     }
 
     async fn send_error(&self, session_id: &str, message: &str) -> Result<(), PipelineError> {
-        let response = botlib::models::BotResponse::new("", session_id, "", message, "web");
-        self.send_bot_response(&response).await
+        // #2360 — terminal failure must carry an explicit structured signal so
+        // the UI can offer retry without matching prose. Send as a raw completion
+        // frame with error flags (BotResponse has no error fields).
+        let frame = serde_json::json!({
+            "session_id": session_id,
+            "channel": "web",
+            "content": message,
+            "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
+            "is_complete": true,
+            "is_error": true,
+            "error": true,
+            "retryable": true,
+            "status": "failed",
+            "turn_status": "failed",
+            "suggestions": [],
+            "switchers": [],
+            "context_length": 0,
+            "context_max_length": 0,
+        });
+        self.send_raw_json(&frame).await
     }
 
     fn channel_type(&self) -> &str {

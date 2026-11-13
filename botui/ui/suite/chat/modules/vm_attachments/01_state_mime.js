@@ -14,10 +14,9 @@ var VmAttachments = {
 function vmAttachmentsToken() {
   try {
     return (
-      (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
-      localStorage.getItem("gb-access-token") ||
+      (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
       sessionStorage.getItem("gb-access-token") ||
-      localStorage.getItem("management_token") ||
       ""
     );
   } catch (e) {

@@ -134,18 +134,6 @@ function sendMessage(messageContent, extra) {
 
   var display = content || ("📎 " + fileNames);
   if (content && fileNames) display += "\n\n📎 " + fileNames;
-  addMessage("user", display);
-  // Immediate feedback: the provider may take seconds (or minutes) before the
-  // first thinking frame, and the chat used to look frozen after Enter. The
-  // turn state machine keeps this element until the final answer (#2098).
-  if (window.GBTurn) GBTurn.start(content || fileNames);
-  else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
-  // Sending returns to the live edge only when the reader was already there.
-  if (wasAtBottom) {
-    ChatState.isUserScrolling = false;
-    ChatState.isUserAtBottom = true;
-    scrollToBottom(false);
-  }
 
   var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];
   ChatState.selectedMentions = [];
@@ -173,6 +161,15 @@ function sendMessage(messageContent, extra) {
 
   var isAnonymous = !!(window.__BOT_IS_PUBLIC__ && !(window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()));
 
+  function generateTurnMessageId() {
+    try {
+      if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+      }
+    } catch (e) {}
+    return "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
   var payload = {
     bot_id: ChatState.currentBotId,
     user_id: ChatState.currentUserId,
@@ -180,6 +177,7 @@ function sendMessage(messageContent, extra) {
     channel: "web",
     content: content,
     message_type: MessageType.USER,
+    message_id: generateTurnMessageId(),
     client_id: ChatState.clientId,
     active_switchers: outgoingSwitchers,
     drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? { source: "user_drive", untrusted: true, files: driveFiles.slice(0, 20) } : undefined,
@@ -258,6 +256,24 @@ function sendMessage(messageContent, extra) {
     // canonical field used by the current chat pipeline.
     payload.project_id = payload.project_context.project_id;
     payload.project_name = payload.project_context.project_name;
+  }
+
+  // #2360 — keep the structured turn payload on the user bubble so a failed
+  // turn can be retried without re-reading rendered prose (which includes
+  // attachment markers and loses original file payloads).
+  ChatState.lastUserTurnPayload = payload;
+
+  addMessage("user", display);
+  // Immediate feedback: the provider may take seconds (or minutes) before the
+  // first thinking frame, and the chat used to look frozen after Enter. The
+  // turn state machine keeps this element until the final answer (#2098).
+  if (window.GBTurn) GBTurn.start(content || fileNames);
+  else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
+  // Sending returns to the live edge only when the reader was already there.
+  if (wasAtBottom) {
+    ChatState.isUserScrolling = false;
+    ChatState.isUserAtBottom = true;
+    scrollToBottom(false);
   }
 
   var finalSend = function () {
@@ -396,6 +412,79 @@ function queueOfflineMessage(payload) {
 }
 
 window.sendMessage = sendMessage;
+
+// #2360 — retry a failed turn using its original structured payload (text +
+// attachments) instead of re-reading rendered prose.
+window.gbResendChatPayload = function (originalPayload) {
+  if (!originalPayload || typeof originalPayload !== "object") return;
+  var payload = {};
+  try {
+    payload = JSON.parse(JSON.stringify(originalPayload));
+  } catch (e) {
+    payload = {};
+    Object.keys(originalPayload).forEach(function (k) { payload[k] = originalPayload[k]; });
+  }
+  payload.session_id = ChatState.currentSessionId;
+  payload.bot_id = ChatState.currentBotId;
+  payload.user_id = ChatState.currentUserId;
+  payload.client_id = ChatState.clientId;
+  payload.timestamp = new Date().toISOString();
+  try {
+    if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
+      payload.message_id = crypto.randomUUID();
+    } else {
+      payload.message_id = "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+    }
+  } catch (e) {
+    payload.message_id = "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  var text = payload.content || "";
+  var hasFiles = !!(payload.files && payload.files.length) || !!payload.file;
+
+  function doResend() {
+    var sentPayload = payload;
+    ChatState.ws.send(JSON.stringify(sentPayload));
+    armChatPending(text || (hasFiles ? "attachment" : ""));
+    ChatState.pendingSend = {
+      payload: sentPayload,
+      at: Date.now(),
+      attempts: 1,
+      acked: false,
+    };
+    setTimeout(function () {
+      var pending = ChatState.pendingSend;
+      if (!pending || pending.payload !== sentPayload) return;
+      if (pending.acked) {
+        ChatState.pendingSend = null;
+        return;
+      }
+      if (pending.attempts >= 3) {
+        ChatState.pendingSend = null;
+        notify("Message not delivered — reconnecting", "error");
+        return;
+      }
+      ChatState.pendingSend = {
+        payload: sentPayload,
+        at: Date.now(),
+        attempts: pending.attempts + 1,
+        acked: false,
+      };
+      if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
+      ChatState.offlineQueue.push(sentPayload);
+      if (typeof connectWebSocket === "function") connectWebSocket();
+    }, 6000);
+    if (window.GBTurn) GBTurn.start(text || (hasFiles ? "Retrying attachment" : "Retry"));
+    else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
+  }
+
+  ChatState.lastUserTurnPayload = payload;
+  if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+    doResend();
+  } else {
+    queueOfflineMessage(payload);
+  }
+};
 
 // #1670 — the surface renderer submits forms and plan approvals here.
 window.ChatSend = window.ChatSend || {};

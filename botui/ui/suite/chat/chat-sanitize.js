@@ -3,8 +3,8 @@
  * Bot output is untrusted: a KB document, a web-search result, an inbound
  * email, a tool OUTPUT or a prompt injection can make the model emit markup.
  * It used to be handed to `innerHTML` (and `<script>` re-executed with
- * `new Function`) in the suite origin, where `localStorage['gb-access-token']`
- * is the live bearer — a stored-XSS to account-takeover chain.
+ * `new Function`) in the suite origin, where a persisted live bearer token
+ * could be exfiltrated — a stored-XSS to account-takeover chain.
  *
  * Every inline render path now runs the parsed markdown through
  * `GBSanitize.html()` first. Interactive code belongs in the artifact iframe

@@ -26,7 +26,9 @@
   // but every write is also persisted so a new session (or another device)
   // starts with the same preferences.
   function authToken() {
-    return localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    if (typeof window.getChatAccessToken === "function") return window.getChatAccessToken() || "";
+    if (window.GBSecurity && window.GBSecurity.getToken) return window.GBSecurity.getToken() || "";
+    try { return sessionStorage.getItem("gb-access-token") || ""; } catch (e) { return ""; }
   }
 
   function persistToServer(key, value) {

@@ -28,14 +28,14 @@
     }
   });
 
-  // Kept local: consent flow also falls back to management_token.
+  // #2347 — bearer tokens must not be read from localStorage.
   function authHeaders(extra) {
     var h = extra || {};
     try {
-      var t = window.getGBAccessToken ? window.getGBAccessToken()
-        : (localStorage.getItem("gb-access-token") ||
-           sessionStorage.getItem("gb-access-token") ||
-           localStorage.getItem("management_token"));
+      var t = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken())
+        || (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken())
+        || sessionStorage.getItem("gb-access-token")
+        || "";
       if (t) h["Authorization"] = "Bearer " + t;
     } catch (e) { /* anonymous */ }
     return h;
