@@ -62,7 +62,10 @@
     })
       .then(function (r) { return r.json(); })
       .then(function () { reloadFromServer(); })
-      .catch(function () {});
+      .catch(function (err) {
+        console.error("[gb-sheet] Merge failed:", err);
+        showToast("Could not merge cells");
+      });
   }
 
   function unmergeSelection() {
@@ -75,7 +78,10 @@
     })
       .then(function (r) { return r.json(); })
       .then(function () { reloadFromServer(); })
-      .catch(function () {});
+      .catch(function (err) {
+        console.error("[gb-sheet] Unmerge failed:", err);
+        showToast("Could not unmerge cells");
+      });
   }
 
   function reloadFromServer() {

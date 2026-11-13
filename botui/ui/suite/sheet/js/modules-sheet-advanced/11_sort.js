@@ -145,7 +145,9 @@
       body: JSON.stringify({ sheet_id: currentSheetId(), worksheet_index: wsIndex(), col: null }),
     })
       .then(function () { reloadFromServer(); })
-      .catch(function () {});
+      .catch(function (err) {
+        console.error("[gb-sheet] Clear filters failed:", err);
+      });
   }
 
   function closeMenu() {

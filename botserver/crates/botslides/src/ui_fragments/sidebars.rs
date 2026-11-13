@@ -98,13 +98,19 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
         return Ok(handle_presentation_view(Json(pres)).await);
     }
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or_default();
-    let requested = payload
+    let requested_slide = payload
         .get("slide_index")
         .or_else(|| payload.get("slide"))
         .and_then(|value| value.as_u64())
         .unwrap_or(0) as usize;
-    let pres = super::get_bridge::load_or_blank(&state, user.owner_id(), id).await;
-    Ok(Html(render_presentation_view(&pres, requested)))
+    let transient_new = payload
+        .get("new")
+        .and_then(|value| value.as_bool().or_else(|| value.as_str().map(|text| text == "1" || text.eq_ignore_ascii_case("true"))))
+        .unwrap_or(false);
+    match super::get_bridge::load_or_blank(&state, user.owner_id(), id, transient_new).await {
+        Ok(pres) => Ok(Html(render_presentation_view(&pres, requested_slide))),
+        Err(message) => Ok(Html(super::err_fragment(&message))),
+    }
 }
 
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {

@@ -31,7 +31,15 @@
 
   function activeDocId() {
     var article = activeArticle();
-    return article && article.dataset ? (article.dataset.docId || "current") : "current";
+    if (!article || !article.dataset) return "";
+    var id = article.dataset.docId || "";
+    if (!id || id === "current") {
+      if (typeof docsEnsureArticleDocId === "function") {
+        return docsEnsureArticleDocId(article);
+      }
+      return "";
+    }
+    return id;
   }
 
   function processHtmx(host) {
@@ -224,9 +232,19 @@
     var host = document.getElementById("docs-content");
     if (!host) return;
     host.innerHTML = "";
-    if (typeof ensureDocArticle === "function") ensureDocArticle();
+    var article = typeof ensureDocArticle === "function" ? ensureDocArticle() : null;
+    if (article && typeof docsEnsureArticleDocId === "function") docsEnsureArticleDocId(article);
     setTitle(window.docsT ? docsT("docs-untitled", "Untitled Document") : "Untitled Document");
   }
+
+  function docsRefreshSidebar() {
+    return json("/api/docs/list")
+      .then(renderSidebar)
+      .catch(function (err) {
+        console.error("[docs] Failed to refresh sidebar:", err);
+      });
+  }
+  window.docsRefreshSidebar = docsRefreshSidebar;
 
   /* #2253 — a share link is a read-only view. The token is the only
    * credential, so the document is resolved by the server from the token, never

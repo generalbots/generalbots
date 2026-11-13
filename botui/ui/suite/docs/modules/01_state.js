@@ -162,5 +162,22 @@ function setCaretPosition(element, offset) {
   }
 }
 
+function docsMintDocId() {
+  if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
+    try { return crypto.randomUUID(); } catch (e) {}
+  }
+  return "doc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+
+function docsEnsureArticleDocId(article) {
+  if (!article || !article.dataset) return "";
+  var id = article.dataset.docId || "";
+  if (!id || id === "current") {
+    id = docsMintDocId();
+    article.dataset.docId = id;
+  }
+  return id;
+}
+
 function $(s, r) { return (r || document).querySelector(s); }
 function $$(s, r) { return Array.from((r || document).querySelectorAll(s)); }

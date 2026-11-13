@@ -13,7 +13,7 @@
   var menu = null;
 
   function presentationId() {
-    return (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
+    return (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "";
   }
 
   function elementFromTarget(t) {

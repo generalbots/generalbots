@@ -379,7 +379,10 @@ function GBDocsRefreshTrackChanges() {
             var panel = document.getElementById("docs-panel-body");
             if (panel) panel.innerHTML = html;
         })
-        .catch(function () {});
+        .catch(function (err) {
+            /* Best-effort panel refresh after mutation; failure is non-actionable here. */
+            console.debug("[gb-docs] Track-changes panel refresh failed:", err);
+        });
 }
 window.GBDocsRefreshTrackChanges = GBDocsRefreshTrackChanges;
 

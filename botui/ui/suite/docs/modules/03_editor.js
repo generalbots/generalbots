@@ -88,6 +88,13 @@ function ensureDocArticle() {
   }
   article.setAttribute("data-gb-field", "body");
   if (!article.getAttribute("aria-label")) article.setAttribute("aria-label", "document body");
+  if (typeof docsEnsureArticleDocId === "function") {
+    docsEnsureArticleDocId(article);
+  } else if (article.dataset && (!article.dataset.docId || article.dataset.docId === "current")) {
+    article.dataset.docId = typeof crypto !== "undefined" && crypto && crypto.randomUUID
+      ? crypto.randomUUID()
+      : "doc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
   if (!article.__gbFill) {
     article.__gbFill = function (value) {
       article.innerHTML = docsRenderBlocks(value);

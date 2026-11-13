@@ -36,13 +36,13 @@ function injectEditorStyles() {
     // first row, character and paragraph formatting on the second), the layout
     // people know from 90s word processors.
     ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;flex-direction:column;padding:0;min-height:0;overflow:hidden;}",
-    ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:none;}",
-    ".docs-toolbar-row::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#475569 transparent;position:relative;}",
+    ".docs-toolbar-row::-webkit-scrollbar{height:4px;}.docs-toolbar-row::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
     ".docs-toolbar-row-main{border-bottom:1px solid #1f2937;}",
     ".docs-toolbar-row-format{background:#0f172a;flex-wrap:wrap;row-gap:2px;overflow-x:visible;}",
     ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0;}",
-    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
-    ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#475569 transparent;}",
+    ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:4px;}.docs-toolbar .toolbar-center::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
     ".docs-toolbar .toolbar-format{display:flex;align-items:center;gap:1px;flex-wrap:wrap;row-gap:2px;}",
     ".docs-toolbar .toolbar-right{display:flex;align-items:center;gap:4px;margin-left:auto;flex:0 0 auto;}",
     ".docs-toolbar .btn-icon{padding:4px;}",
@@ -64,10 +64,10 @@ function injectEditorStyles() {
     ".docs-toolbar-row-format .btn-icon svg{width:13px;height:13px;}",
     ".docs-toolbar-row-format .toolbar-group{gap:0;}",
     ".docs-toolbar-row-format .toolbar-divider{height:16px;margin:0 2px;}",
-    ".docs-toolbar-row-format .docs-color{padding:0 2px;height:22px;}",
-    ".docs-toolbar .docs-color{position:relative;display:inline-flex;align-items:center;gap:3px;height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;cursor:pointer;font-size:13px;}",
-    ".docs-toolbar .docs-color:hover{background:#1f2937;color:#f8fafc;}",
-    ".docs-toolbar .docs-color input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;border:0;padding:0;}",
+    ".docs-toolbar-row-format .docs-color .gb-cp-trigger{height:22px;}",
+    ".docs-toolbar .docs-color{display:inline-flex;align-items:center;} .docs-toolbar .docs-color .gb-cp-trigger{height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;font-size:13px;gap:3px;}",
+    ".docs-toolbar .docs-color .gb-cp-trigger:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-toolbar .docs-color .gb-cp-swatch{width:12px;height:12px;}",
     ".docs-title-input{background:transparent;border:1px solid transparent;color:#f8fafc;font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
     ".docs-title-input:focus{border-color:#3b82f6;outline:none;background:#0f172a;}",
     ".save-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:320px;}",
@@ -82,6 +82,13 @@ function injectEditorStyles() {
     "#docs-app .docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
     "#docs-app .docs-sidebar{background:#0b1220;border-right:1px solid #1f2937;color:#cbd5e1;}",
     "#docs-app .docs-title-input{color:#f8fafc;}",
+    ".toolbar-overflow-btn{position:sticky;right:0;margin-left:auto;flex:0 0 auto;display:none;align-items:center;justify-content:center;width:28px;min-width:28px;height:28px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#e2e8f0;cursor:pointer;box-shadow:-8px 0 8px -4px #1e293b;z-index:5;}",
+    ".toolbar-overflow-btn.visible{display:inline-flex;}",
+    ".toolbar-overflow-btn:hover{background:#334155;color:#f8fafc;}",
+    ".toolbar-overflow-menu{position:fixed;z-index:10050;min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:4px;}",
+    ".toolbar-overflow-menu[hidden]{display:none;}",
+    ".toolbar-overflow-menu .tb-overflow-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;}",
+    ".toolbar-overflow-menu .tb-overflow-item:hover,.toolbar-overflow-menu .tb-overflow-item:focus{background:#334155;outline:none;}",
     "@media screen{body{background:#0f172a;}}"
   ].join("");
   document.head.appendChild(style);
@@ -360,11 +367,21 @@ function bindFormatToolbar(host) {
       docsFormat(button.getAttribute("data-cmd"));
     });
     var color = scope.querySelector("#fmtColor");
-    if (color) color.addEventListener("input", function () { docsFormat("foreColor", color.value); });
+    if (color) {
+      var colorTrigger = scope.querySelector('[data-gb-color-for="fmtColor"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(color, { trigger: colorTrigger });
+      color.addEventListener("gb-color-commit", function () { docsFormat("foreColor", color.value); });
+      color.addEventListener("change", function () {
+        if (!color._gbColorEnhanced) docsFormat("foreColor", color.value);
+      });
+    }
     var highlight = scope.querySelector("#fmtHighlight");
     if (highlight) {
-      highlight.addEventListener("input", function () {
-        docsFormat("hiliteColor", highlight.value);
+      var highlightTrigger = scope.querySelector('[data-gb-color-for="fmtHighlight"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(highlight, { trigger: highlightTrigger });
+      highlight.addEventListener("gb-color-commit", function () { docsFormat("hiliteColor", highlight.value); });
+      highlight.addEventListener("change", function () {
+        if (!highlight._gbColorEnhanced) docsFormat("hiliteColor", highlight.value);
       });
     }
     scope.addEventListener("keyup", docsSyncFormatState);
@@ -439,20 +456,17 @@ if (!window.__gbDocsAiHook) {
     var detail = event.detail || {};
     var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
     if (path.indexOf("/api/docs/ai/") !== 0 || !detail.successful) return;
-    var text = "";
+    var textResp = "";
     try {
       var data = JSON.parse(detail.xhr.responseText);
-      // A batch answer that could not run returns the selection unchanged
-      // plus an explicit error. Showing `content` alone echoed the user's own
-      // text and hid the reason, so surface the error first.
-      text = data.result === "unavailable" && data.error
+      textResp = data.result === "unavailable" && data.error
         ? data.error
         : (data.content || data.response || data.text || data.result || "");
     } catch (error) {
-      text = detail.xhr.responseText;
+      textResp = detail.xhr.responseText;
     }
     var target = document.getElementById("ai-result-panel") ||
       document.getElementById("ai-result-modal");
-    if (target) target.textContent = text;
+    if (target) target.textContent = textResp;
   });
 }

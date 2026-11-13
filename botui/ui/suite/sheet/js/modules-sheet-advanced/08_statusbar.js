@@ -5,6 +5,9 @@
   let bar = null;
 
   function grid() {
+    var D = window.SheetDefaults;
+    var inst = D && D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
+    if (inst && inst.grid) return inst.grid;
     if (window.SheetCore && window.SheetCore.getGrid) return window.SheetCore.getGrid();
     return window.SheetVirtualGrid || null;
   }
@@ -21,6 +24,9 @@
   }
 
   function host() {
+    var D = window.SheetDefaults;
+    var inst = D && D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
+    if (inst && inst.host) return inst.host;
     if (window.SheetCore && window.SheetCore.getHost) return window.SheetCore.getHost();
     return document.getElementById("sheet-content");
   }
@@ -29,6 +35,9 @@
     if (bar && bar.isConnected) return bar;
     const h = host();
     if (!h) return null;
+    // avoid duplicating in same host
+    var existing = h.querySelector('.ss-status-bar');
+    if (existing) { bar = existing; return bar; }
     bar = document.createElement("div");
     bar.className = "ss-status-bar";
     bar.style.cssText = "display:flex;align-items:center;gap:24px;padding:4px 16px;background:var(--sheet-bg, #0f172a);border-top:1px solid var(--sheet-border, #334155);flex-shrink:0;font-size:12px;color:var(--sheet-muted, #94a3b8);min-height:26px;";

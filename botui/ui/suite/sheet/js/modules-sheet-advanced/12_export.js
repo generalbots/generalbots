@@ -5,14 +5,19 @@
   let menu = null;
 
   function currentSheetId() {
+    var D = window.SheetDefaults;
+    if (D && D.currentSheetId) return D.currentSheetId();
     if (window.SheetCore && window.SheetCore.currentSheetId) return window.SheetCore.currentSheetId();
     return window.__SHEET_INITIAL_ID || "current";
   }
 
   function currentName() {
-    const input = document.getElementById("sheetName");
+    var D = window.SheetDefaults;
+    var inst = D && D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
+    var scope = inst && inst.body ? inst.body : document;
+    const input = scope.querySelector("#sheetName") || document.getElementById("sheetName");
     if (input && input.value) return input.value.trim();
-    const sheet = window.__LOADED_SHEET;
+    const sheet = (inst && inst.loadedSheet) || window.__LOADED_SHEET;
     return (sheet && sheet.name) || "sheet";
   }
 

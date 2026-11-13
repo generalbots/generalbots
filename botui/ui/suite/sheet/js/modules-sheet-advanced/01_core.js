@@ -30,14 +30,16 @@
   }
 
   function currentSheetId() {
-    // The plan/launcher can open the window before a deep link sets an id, and
-    // the sentinel "current" then made every write land on a different sheet
-    // record than the one on screen (#2148). Prefer the workbook that is
-    // actually loaded.
+    var D = window.SheetDefaults;
+    if (D && D.currentSheetId) return D.currentSheetId();
+    // Fallback: prefer workbook on screen (#2148, #2270)
+    var inst = D && D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
+    if (inst) {
+      if (inst.loadedSheet && inst.loadedSheet.id) return inst.loadedSheet.id;
+      if (inst.sheetId) return inst.sheetId;
+    }
     if (window.__LOADED_SHEET && window.__LOADED_SHEET.id) return window.__LOADED_SHEET.id;
     if (window.__SHEET_INITIAL_ID) return window.__SHEET_INITIAL_ID;
-    const host = document.querySelector('[id^="window-body-sheet"] #sheet-content');
-    if (host && host.dataset.sheetId) return host.dataset.sheetId;
     return "current";
   }
 
@@ -362,7 +364,10 @@
       setTimeout(wire, 100);
       return;
     }
-    hostEl = hostEl || document.querySelector("#sheet-content");
+    if (!hostEl) {
+    var inst = window.SheetDefaults && window.SheetDefaults.getActiveSheetInstance ? window.SheetDefaults.getActiveSheetInstance() : null;
+    hostEl = (inst && inst.host) || document.querySelector("#sheet-content");
+  }
     ensureOverlays();
     ensureFillPreview();
     bindGridEvents();

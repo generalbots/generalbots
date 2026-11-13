@@ -95,8 +95,10 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
     )
     .unwrap_or_default();
     if slides.is_empty() {
-        let pres = super::get_bridge::load_or_blank(&state, user.owner_id(), pid).await;
-        slides = pres.slides;
+        match super::get_bridge::load_or_blank(&state, user.owner_id(), pid, false).await {
+            Ok(pres) => slides = pres.slides,
+            Err(_) => slides = Vec::new(),
+        }
     }
     if slides.is_empty() {
         return Ok(Html(empty_fragment("Nenhum slide para ordenar.")));

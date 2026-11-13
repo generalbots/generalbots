@@ -89,12 +89,13 @@ fn to_json(mut params: Params) -> Json<serde_json::Value> {
     ))
 }
 
-/// The deck an empty session starts from: the rest of the app addresses it
-/// as `current` (saves and canvas operations use that literal id).
-pub(crate) fn blank_presentation(owner_id: &str) -> Presentation {
+/// The deck an empty session starts from. `id` must be a real, unique deck
+/// id (never the literal `current`) so an unsaved blank deck cannot be
+/// persisted under a shared sentinel and overwrite another deck.
+pub(crate) fn blank_presentation(owner_id: &str, id: &str) -> Presentation {
     let theme = crate::utils::create_default_theme();
     Presentation {
-        id: "current".to_string(),
+        id: id.to_string(),
         name: "Untitled Presentation".to_string(),
         owner_id: owner_id.to_string(),
         slides: vec![crate::utils::create_blank_slide(&theme)],
@@ -106,22 +107,33 @@ pub(crate) fn blank_presentation(owner_id: &str) -> Presentation {
     }
 }
 
-/// Resolves the deck for a fragment load: `new`/empty never touches Drive,
-/// any other id loads from Drive and falls back to a blank deck on miss
-/// (a missing `gbo` bucket on a fresh install must not break the shell).
+/// Resolves the deck for a fragment load.
+///
+/// - empty / `new`: no id was asked for → a fresh blank deck with a new id.
+/// - `current`: legacy sentinel, never a real stored deck → treat as "no id".
+/// - `transient_new && id`: a client-minted id for an unsaved blank deck →
+///   render a blank deck with that exact id (not persisted) so parallel
+///   fragment loads share one identity.
+/// - otherwise: a requested id must exist; a miss is `Err("deck not found")`
+///   so a missing/deleted/foreign id never silently becomes a blank deck.
 pub(super) async fn load_or_blank<D: DriveOps>(
     state: &Arc<SlidesState<D>>,
     user_id: &str,
     id: &str,
-) -> Presentation {
-    if id.is_empty() || id == "new" {
-        return blank_presentation(user_id);
+    transient_new: bool,
+) -> Result<Presentation, String> {
+    let requested = id.trim();
+    if requested.is_empty() || requested == "new" || requested == "current" {
+        return Ok(blank_presentation(user_id, &uuid::Uuid::new_v4().to_string()));
     }
     match state.drive.as_ref() {
-        Some(drive) => crate::storage::load_presentation_by_id(drive, user_id, id)
-            .await
-            .unwrap_or_else(|_| blank_presentation(user_id)),
-        None => blank_presentation(user_id),
+        Some(drive) => match crate::storage::load_presentation_by_id(drive, user_id, requested).await {
+            Ok(presentation) => Ok(presentation),
+            Err(_) if transient_new => Ok(blank_presentation(user_id, requested)),
+            Err(_) => Err("Deck not found".to_string()),
+        },
+        None if transient_new => Ok(blank_presentation(user_id, requested)),
+        None => Err("Deck not found".to_string()),
     }
 }
 
@@ -179,21 +191,29 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
     let user_id = user.owner_id();
     let query = params.clone();
     let json = to_json(params);
+    let transient_new = query
+        .get("new")
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
     let html = match path.as_str() {
         "fragments/presentation-view" => {
             let id = query.get("id").cloned().unwrap_or_default();
-            let requested = query
+            let requested_slide = query
                 .get("slide_index")
                 .or_else(|| query.get("slide"))
                 .and_then(|value| value.parse::<usize>().ok())
                 .unwrap_or(0);
-            let pres = load_or_blank(&state, user_id, &id).await;
-            Html(super::sidebars::render_presentation_view(&pres, requested))
+            match load_or_blank(&state, user_id, &id, transient_new).await {
+                Ok(pres) => Html(super::sidebars::render_presentation_view(&pres, requested_slide)),
+                Err(message) => Html(super::err_fragment(&message)),
+            }
         }
         "fragments/slide-thumbnails" => {
             let id = query.get("id").cloned().unwrap_or_default();
-            let pres = load_or_blank(&state, user_id, &id).await;
-            thumbnails_html(&pres)
+            match load_or_blank(&state, user_id, &id, transient_new).await {
+                Ok(pres) => thumbnails_html(&pres),
+                Err(message) => Html(super::err_fragment(&message)),
+            }
         }
         "fragments/presentation-list" => {
             let items = match state.drive.as_ref() {
@@ -206,10 +226,10 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
             };
             super::sidebars::handle_presentation_list_sidebar(Json(items)).await
         }
-        // "+ Nova": an unsaved deck addressed as `current`, rendered inline
-        // instead of dumping the JSON of /api/slides/new into the canvas.
+        // "+ Nova": mint a fresh unsaved deck with a unique id.
         "fragments/new" => {
-            super::sidebars::handle_presentation_view(Json(blank_presentation(user_id))).await
+            let deck = blank_presentation(user_id, &uuid::Uuid::new_v4().to_string());
+            super::sidebars::handle_presentation_view(Json(deck)).await
         }
         "fragments/themes" => super::themes::handle_theme_picker(json).await,
         "fragments/sorter" => {

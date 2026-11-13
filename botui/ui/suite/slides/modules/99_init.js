@@ -25,8 +25,11 @@ function isDriveOfficePath(value) {
 }
 
 // Bind the app to a stored deck: title, rename target and every toolbar form
-// that sends the literal "current".
+// that sends the literal "current"/"new".
 function pointDeckAt(id) {
+  if (!id || id === 'current' || id === 'new') {
+    id = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || id;
+  }
   window.__SLIDES_PRESENTATION_ID = id;
   var titleEl = slidesScope().querySelector('#presTitle');
   if (titleEl) {
@@ -36,6 +39,7 @@ function pointDeckAt(id) {
 }
 
 function loadDeckById(id) {
+  if (!id || id === 'current' || id === 'new') return;
   pointDeckAt(id);
   var scope = slidesScope();
   var headers = (window.GBSidebarConvos && window.GBSidebarConvos.authHeaders)
@@ -48,24 +52,47 @@ function loadDeckById(id) {
   setStatus('Opening deck…');
   fetch('/api/slides/' + encodeURIComponent(id), { headers: headers })
     .then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) throw new Error(r.status === 404 ? 'Deck not found' : 'HTTP ' + r.status);
       return r.json();
     })
     .then(function (presentation) {
       var titleEl = scope.querySelector('#presTitle');
       if (titleEl && presentation && presentation.name) titleEl.value = presentation.name;
       setStatus('Opened deck');
+      if (window.htmx) {
+        htmx.ajax('GET', '/suite/slides/fragments/presentation-view?id=' + encodeURIComponent(id),
+          { target: '#slides-content', swap: 'innerHTML' });
+        htmx.ajax('GET', '/suite/slides/fragments/slide-thumbnails?id=' + encodeURIComponent(id),
+          { target: '#sidebar-thumbs', swap: 'innerHTML' });
+      }
     })
     .catch(function (err) {
-      // Keep the id: new slides and edits must still target the requested deck.
-      setStatus('Deck not loaded: ' + err.message);
+      var msg = err && err.message ? err.message : 'Deck not found';
+      setStatus(msg);
+      var titleEl = scope.querySelector('#presTitle');
+      if (titleEl) titleEl.value = 'Deck not found';
+      if (window.htmx) {
+        htmx.ajax('GET', '/suite/slides/fragments/presentation-view?id=' + encodeURIComponent(id),
+          { target: '#slides-content', swap: 'innerHTML' });
+        htmx.ajax('GET', '/suite/slides/fragments/slide-thumbnails?id=' + encodeURIComponent(id),
+          { target: '#sidebar-thumbs', swap: 'innerHTML' });
+      }
     });
-  if (window.htmx) {
-    htmx.ajax('GET', '/suite/slides/fragments/presentation-view?id=' + encodeURIComponent(id),
-      { target: '#slides-content', swap: 'innerHTML' });
-    htmx.ajax('GET', '/suite/slides/fragments/slide-thumbnails?id=' + encodeURIComponent(id),
-      { target: '#sidebar-thumbs', swap: 'innerHTML' });
-  }
+}
+
+// Start a brand-new blank deck: mint a unique id and render a transient
+// unsaved deck (persisted only on first save) so no shared "current" object
+// is ever written.
+function loadNewBlankDeck() {
+  var id = (window.getSlidesPresentationId && window.getSlidesPresentationId()) ||
+    ('deck-' + Date.now().toString(36));
+  pointDeckAt(id);
+  if (!window.htmx) return;
+  var qs = 'id=' + encodeURIComponent(id) + '&new=1';
+  htmx.ajax('GET', '/suite/slides/fragments/presentation-view?' + qs,
+    { target: '#slides-content', swap: 'innerHTML' });
+  htmx.ajax('GET', '/suite/slides/fragments/slide-thumbnails?' + qs,
+    { target: '#sidebar-thumbs', swap: 'innerHTML' });
 }
 
 // Issue #720 parity: when opened from Drive (or a deep link) the app imports
@@ -162,34 +189,48 @@ function slidesInit() {
   }
   // A deck the shell rendered directly (already-imported Drive file) has no
   // deep link to run: adopt its id so thumbnails, rename and canvas edits do
-  // not fall back to the literal "current" deck.
+  // not fall back to the literal "current"/"new" deck.
   var initialView = document.querySelector(".sl-view[data-presentation-id]");
   if (initialView && initialView.dataset.presentationId &&
-      initialView.dataset.presentationId !== "current") {
+      initialView.dataset.presentationId !== "current" &&
+      initialView.dataset.presentationId !== "new") {
     pointDeckAt(initialView.dataset.presentationId);
   }
-  // The two hx-trigger="load" fragments still ask for id="new" (the blank
-  // deck). This script runs while the window body is being injected, before
-  // htmx processes it, so retargeting here makes the very first load fetch
-  // the deck the deep link asked for.
+  // Resolve what to open: a deep-link deck id, a Drive office file, or a
+  // fresh blank deck with a unique id (never "current").
   var bootRef = deckRefFromParams(
     new URLSearchParams(window.location.search),
     window.__gbAppParams__ || {}
   );
-  if (bootRef) {
-    pointDeckAt(bootRef);
-    ["#slides-content", "#sidebar-thumbs"].forEach(function (selector) {
-      var container = document.querySelector(selector);
-      if (container) container.setAttribute("hx-vals", JSON.stringify({ id: bootRef }));
-    });
+  var gpBoot = window.__gbAppParams__ || {};
+  var bootFile = (new URLSearchParams(window.location.search)).get('file') || gpBoot.file;
+  var bootFileIsPath = isDriveOfficePath(bootFile);
+  var requestedDeck = bootRef || (bootFileIsPath ? '' : bootFile || '');
+  if (requestedDeck) {
+    loadDeckById(requestedDeck);
+  } else if (bootFileIsPath) {
+    loadDrivePresentationIntoApp();
+  } else {
+    // No specific deck requested: start a fresh blank deck with a unique id.
+    loadNewBlankDeck();
   }
-  loadDrivePresentationIntoApp();
   if (!window.__gbSlidesDeepLinkBound) {
     window.__gbSlidesDeepLinkBound = true;
     document.addEventListener('gb:deep-link', function (event) {
-      var appId = (event.detail || {}).appId || '';
+      var detail = event.detail || {};
+      var appId = detail.appId || '';
       if (appId === 'slides' || appId.indexOf('slides-') === 0) {
-        loadDrivePresentationIntoApp((event.detail || {}).params || null);
+        var lp = detail.params || null;
+        var p = new URLSearchParams(window.location.search);
+        var ref = lp ? deckRefFromParams(new URLSearchParams(), lp) : deckRefFromParams(p, window.__gbAppParams__ || {});
+        var f = (lp && (lp.file || lp.path)) || p.get('file') || (window.__gbAppParams__ || {}).file;
+        if (ref && !isDriveOfficePath(ref)) {
+          loadDeckById(ref);
+        } else if (f && isDriveOfficePath(f)) {
+          loadDrivePresentationIntoApp(lp);
+        } else if (ref) {
+          loadDeckById(ref);
+        }
       }
     });
   }

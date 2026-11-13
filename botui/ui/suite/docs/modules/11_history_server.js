@@ -41,7 +41,10 @@
         // Server has nothing: fall back to the native editor stack.
         gbFormat(action === "undo" ? "undo" : "redo");
       })
-      .catch(function () {})
+      .catch(function (err) {
+        /* Best-effort server history; native editor stack remains available. */
+        console.debug("[gb-docs] Server history request failed:", err);
+      })
       .finally(function () { busy = false; });
   }
 

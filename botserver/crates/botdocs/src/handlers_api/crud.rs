@@ -13,6 +13,18 @@ use std::sync::Arc;
 use uuid::Uuid;
 use crate::auth::DocUser;
 
+fn reject_current_doc_id(id: Option<&str>) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    if id == Some("current") {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "Document id 'current' is reserved and cannot be persisted"
+            })),
+        ));
+    }
+    Ok(())
+}
+
 /// Resolution of the title stored with a save. The editor autosave sends only
 /// `{id, content}`; an empty title must keep the existing one instead of
 /// renaming the document to "Untitled Document" on every keystroke.
@@ -54,6 +66,7 @@ pub async fn handle_docs_save(
     user: DocUser,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    reject_current_doc_id(req.id.as_deref())?;
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
@@ -201,6 +214,7 @@ pub async fn handle_save_document(
     user: DocUser,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    reject_current_doc_id(req.id.as_deref())?;
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;

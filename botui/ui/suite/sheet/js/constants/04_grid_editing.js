@@ -12,30 +12,37 @@
   const VirtualGrid = D.virtualGrid;
 
   function positionSelectionOverlay(row, col) {
-    if (!VirtualGrid.selectionOverlay) return;
+    var grid = this && this.selectionOverlay ? this : ((D.getActiveSheetInstance && D.getActiveSheetInstance() && D.getActiveSheetInstance().grid) || VirtualGrid);
+    if (!grid.selectionOverlay) return;
     const cwFn = (window.SheetCore && window.SheetCore.colWidth) ? window.SheetCore.colWidth : function () { return COL_WIDTH; };
     const cxFn = (window.SheetCore && window.SheetCore.colX) ? window.SheetCore.colX : function (c) { return HEADER_WIDTH + c * COL_WIDTH; };
-    VirtualGrid.selectionOverlay.style.display = "block";
-    VirtualGrid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
-    VirtualGrid.selectionOverlay.style.top = (rTop(row) - 1) + "px";
-    VirtualGrid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
-    VirtualGrid.selectionOverlay.style.height = (rH(row) + 2) + "px";
+    grid.selectionOverlay.style.display = "block";
+    grid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
+    grid.selectionOverlay.style.top = (rTop(row) - 1) + "px";
+    grid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
+    grid.selectionOverlay.style.height = (rH(row) + 2) + "px";
   }
 
-  function updateFormulaBar() {
-    const addrEl = document.getElementById("cellAddress");
-    const formulaEl = document.getElementById("formulaInput");
+  function qInGrid(grid, selector) {
+    if (grid && grid.windowBody) return grid.windowBody.querySelector(selector);
+    return document.querySelector(selector);
+  }
+
+  function updateFormulaBar(grid) {
+    grid = grid || (D.getActiveSheetInstance && D.getActiveSheetInstance() && D.getActiveSheetInstance().grid) || VirtualGrid;
+    const addrEl = qInGrid(grid, "#cellAddress");
+    const formulaEl = qInGrid(grid, "#formulaInput");
     if (!addrEl) return;
-    if (VirtualGrid.selectedRow == null || VirtualGrid.selectedCol == null) {
+    if (grid.selectedRow == null || grid.selectedCol == null) {
       addrEl.value = "";
       if (formulaEl) formulaEl.value = "";
       return;
     }
-    const ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+    const ref = colName(grid.selectedCol) + (grid.selectedRow + 1);
     addrEl.value = ref;
     if (formulaEl) {
-      const key = VirtualGrid.selectedRow + "," + VirtualGrid.selectedCol;
-      const cellData = VirtualGrid.cells.get(key);
+      const key = grid.selectedRow + "," + grid.selectedCol;
+      const cellData = grid.cells.get(key);
       const formula = cellData && cellData.formula ? cellData.formula : "";
       const val = cellData && cellData.value ? cellData.value : "";
       formulaEl.value = formula ? formula : val;
@@ -52,10 +59,11 @@
   };
 
   VirtualGrid.selectCell = function (row, col, preventScroll) {
+    if (D.setActiveSheetInstance && this.instance) D.setActiveSheetInstance(this.instance);
     this.selectedRow = row;
     this.selectedCol = col;
-    positionSelectionOverlay(row, col);
-    updateFormulaBar();
+    positionSelectionOverlay.call(this, row, col);
+    updateFormulaBar(this);
     if (!preventScroll) this.ensureVisible(row, col);
     // Focus the cell element so keyboard events reach it
     var cellEl = this.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
@@ -99,10 +107,11 @@
   };
 
   VirtualGrid.onCellBlur = function (e) {
+    var self = this;
     var cell = e.target;
     // Only process if this cell was being edited
-    if (this.editingCell !== cell) return;
-    this.editingCell = null;
+    if (self.editingCell !== cell) return;
+    self.editingCell = null;
     cell.contentEditable = "false";
     cell.style.outline = "none";
     cell.style.zIndex = "1";
@@ -114,16 +123,16 @@
     if (val === origVal) {
       if (cell.dataset.formula) {
         const key = cell.dataset.row + "," + cell.dataset.col;
-        const cellData = VirtualGrid.cells.get(key);
+        const cellData = self.cells.get(key);
         cell.textContent = cellData ? (cellData.value || "") : "";
       }
       return;
     }
 
-    D.SheetAPI.updateCell(ref, val).then(function (res) {
+    D.SheetAPI.updateCell(ref, val, self.instance || self).then(function (res) {
       if (res && res.success) {
-        VirtualGrid.lastRenderedRange = null;
-        VirtualGrid.requestRange();
+        self.lastRenderedRange = null;
+        self.requestRange();
         return;
       }
       // A rejected edit used to stay on screen as if saved. Restore the
@@ -216,12 +225,13 @@
     var col = this.selectedCol;
     if (row == null || col == null) return Promise.resolve(null);
     var self = this;
+    var inst = self.instance || (D.getActiveSheetInstance && D.getActiveSheetInstance());
     return fetch("/api/sheet/format", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sheet_id: D.currentSheetId(),
-        worksheet_index: D.WORKSHEET_INDEX,
+        sheet_id: D.currentSheetId(inst),
+        worksheet_index: inst && typeof inst.worksheetIndex === "number" ? inst.worksheetIndex : D.WORKSHEET_INDEX,
         start_row: row,
         start_col: col,
         end_row: row,
@@ -240,4 +250,10 @@
       if (node) self.applyCellStyle(node, existing);
     }).catch(function () { return null; });
   };
+
+  // sync proto for per-window instances (#2270)
+  var D2 = window.SheetDefaults;
+  for (var _k4 in VirtualGrid) {
+    if (typeof VirtualGrid[_k4] === "function") D2.GridProto[_k4] = VirtualGrid[_k4];
+  }
 })();

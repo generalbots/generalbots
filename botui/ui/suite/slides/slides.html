@@ -86,14 +86,14 @@
                         <option value="40">40</option>
                         <option value="54">54</option>
                     </select>
-                    <label class="sl-color" title="Text colour" aria-label="Text colour">
-                        <span style="font-weight:700;">A</span>
-                        <input type="color" id="slTextColor" value="#f8fafc" aria-label="Text colour" />
-                    </label>
-                    <label class="sl-color" title="Shape fill" aria-label="Shape fill">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg>
-                        <input type="color" id="slFillColor" value="#3b82f6" aria-label="Shape fill" />
-                    </label>
+                    <span class="sl-color gb-cp-wrap" title="Text colour">
+                        <input type="hidden" id="slTextColor" value="#f8fafc" />
+                        <button type="button" class="gb-cp-trigger" data-gb-color-for="slTextColor" title="Text colour" aria-label="Text colour"><span style="font-weight:700;">A</span><span class="gb-cp-swatch"></span></button>
+                    </span>
+                    <span class="sl-color gb-cp-wrap" title="Shape fill">
+                        <input type="hidden" id="slFillColor" value="#3b82f6" />
+                        <button type="button" class="gb-cp-trigger" data-gb-color-for="slFillColor" title="Shape fill" aria-label="Shape fill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg><span class="gb-cp-swatch"></span></button>
+                    </span>
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group" id="rotation-group" style="display:none;">
@@ -147,11 +147,11 @@
                 <button class="sidebar-tab active" data-sidebar-tab="thumbs" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><line x1="7" y1="5" x2="7" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="2.5" y1="12" x2="21.5" y2="12"/></svg> Slides</button>
                 <button class="sidebar-tab" data-sidebar-tab="files" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             </div>
-            <div class="sidebar-content" id="sidebar-thumbs" data-sidebar-content="thumbs" hx-get="/suite/slides/fragments/slide-thumbnails" hx-vals='{"id":"new"}' hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;"></div>
+            <div class="sidebar-content" id="sidebar-thumbs" data-sidebar-content="thumbs" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;"></div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/suite/slides/fragments/presentation-list" hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="display:none;flex:1;overflow-y:auto;padding:8px;"></div>
         </aside>
 
-        <div class="slides-content" id="slides-content" hx-get="/suite/slides/fragments/presentation-view" hx-vals='{"id":"new"}' hx-trigger="load" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;overflow:auto;min-height:0;">
+        <div class="slides-content" id="slides-content" style="flex:1;display:flex;flex-direction:column;background:#0f172a;overflow:auto;min-height:0;">
         </div>
     </div>
 
@@ -188,7 +188,8 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/05_presence.js"></script>
 <script src="/suite/slides/modules/06_comments.js"></script>
 <script src="/suite/slides/modules/07_presenter.js"></script>
-<script src="/suite/slides/modules/08_toolbar.js"></script>
+<script src="/suite/js/gb-color-picker.js"></script>
+    <script src="/suite/slides/modules/08_toolbar.js"></script>
 <script src="/suite/slides/modules/13_delta.js?v=3"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script>
@@ -198,7 +199,7 @@ function openSlidesComments() {
     var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
     window.GBCollabComments.open({
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
         title: "Comments on " + title,
         includeChildren: true,
     });
@@ -209,7 +210,7 @@ function openSlidesActivity() {
     var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
     window.GBCollabActivity.open({
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
         title: "Activity on " + title,
     });
 }
@@ -219,7 +220,7 @@ function openSlidesShare() {
     var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
     window.GBCollabShare.open({
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
         title: "Share " + title,
     });
 }
@@ -229,7 +230,7 @@ function openSlidesVersions() {
     var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
     window.GBCollabVersions.open({
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
         title: "Version history — " + title,
         onRestore: function (content) {
             var host = document.getElementById("slides-content");
@@ -250,7 +251,7 @@ function recordSlidesSnapshot() {
     _slidesSnapshotTimer = setTimeout(function () {
         var host = document.getElementById("slides-content");
         if (!host) return;
-        var sid = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
+        var sid = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "";
         window.GBCollabVersions.snapshot({
             resourceType: "slides",
             resourceId: sid,
@@ -264,7 +265,7 @@ function recordSlidesSnapshot() {
 }
 var _slidesEditTimer = null;
 function slidesDraftKey() {
-    return "slides:" + ((window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current");
+    return "slides:" + ((window.getSlidesPresentationId && window.getSlidesPresentationId()) || "");
 }
 function applySlidesContent(content) {
     var host = document.getElementById("slides-content");
@@ -306,7 +307,7 @@ function recordSlidesEdit() {
     _slidesEditTimer = setTimeout(function () {
         window.GBCollabActivity.record({
             resourceType: "slides",
-            resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+            resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
             action: "edit",
             payload: {}
         }).catch(function () {});
@@ -318,7 +319,7 @@ function bindSlidesBadge() {
     if (!btn) return;
     window.GBCollabComments.bindBadge(btn, {
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
         includeChildren: true,
     });
 }
@@ -327,7 +328,7 @@ function startSlidesConflictWatch() {
     if (!window.GBCollabConflict) return;
     window.GBCollabConflict.start({
         resourceType: "slides",
-        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current"
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || ""
     });
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { bindSlidesBadge(); startSlidesConflictWatch(); });
