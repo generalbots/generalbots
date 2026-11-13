@@ -84,11 +84,20 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
     ),
     (
         "docs",
-        &[DeepLinkParam {
-            key: "file",
-            description: "drive file",
-            example: "proposta/contrato.docx",
-        }],
+        &[
+            DeepLinkParam {
+                key: "file",
+                description: "drive file",
+                example: "proposta/contrato.docx",
+            },
+            // #2275 — `/api/docs/open-from-drive` resolves a file by bucket AND
+            // path; a link carrying only the path could never open a document.
+            DeepLinkParam {
+                key: "bucket",
+                description: "drive bucket holding the file",
+                example: "default.gbai",
+            },
+        ],
     ),
     (
         "sheet",

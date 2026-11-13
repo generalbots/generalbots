@@ -59,6 +59,23 @@ function loadDriveFileIntoEditor() {
 
   if (!file) return;
 
+  // #2275 — the catalogue's Docs link carried only the path, while
+  // `/api/docs/open-from-drive` resolves the file by bucket AND path, so the
+  // call always answered `400 bucket and path are required`. Fall back to the
+  // bucket Drive is currently showing (the same value its rows carry) and, if
+  // that is unknown too, say so instead of showing a bare 400.
+  if (!bucket && typeof window.getEffectiveBucket === 'function') {
+    bucket = window.getEffectiveBucket();
+  }
+  if (!bucket) {
+    var noBucketStatus = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
+    if (noBucketStatus) {
+      noBucketStatus.textContent = 'This link names no bucket: open the document from Drive so its bucket is known.';
+    }
+    console.warn('[docs] deep link has no bucket for:', file);
+    return;
+  }
+
   fetch('/api/docs/open-from-drive', {
     method: 'POST',
     headers: Object.assign(

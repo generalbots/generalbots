@@ -27,7 +27,9 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("meet", "meet.recordings.list", "List recordings", "List meeting recordings and transcriptions.", &[], Some("app://meet?meeting_id={meeting_id?}"), false),
     cmd("meet", "meet.recordings.start", "Start recording", "Start recording a meeting (host only).", &[("room_id", "meeting room id")], None, false),
     cmd("meet", "meet.recordings.stop", "Stop recording", "Stop the active recording of a meeting (host only).", &[("room_id", "meeting room id")], None, false),
-    cmd("docs", "docs.list", "List documents", "List documents in the workspace.", &[], Some("app://docs?file={file?}"), false),
+    // #2275 — the endpoint needs the bucket as well as the path; a path-only
+    // link was dead on arrival (`400 bucket and path are required`).
+    cmd("docs", "docs.list", "List documents", "List documents in the workspace.", &[], Some("app://docs?file={file?}&bucket={bucket?}"), false),
     cmd("sheet", "sheet.open", "Open spreadsheet", "Open a spreadsheet and read cells.", &[("file_id", "spreadsheet id"), ("cell", "optional A1 cell")], Some("app://sheet?file_id={file_id}&cell={cell?}"), false),
     cmd("tasks", "tasks.list", "List tasks", "List tasks and their status.", &[("filter", "all/active/completed")], Some("app://tasks?task_id={task_id?}"), false),
     cmd("tasks", "tasks.autotask.create", "Create automated task", "Turn a plain-language request into an automated task and run it (classify, plan, generate BASIC script, execute).", &[("intent", "what should be automated")], Some("app://tasks"), true),
