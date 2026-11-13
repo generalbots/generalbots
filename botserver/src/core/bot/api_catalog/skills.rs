@@ -44,7 +44,10 @@ struct SkillFindRow {
 /// `skills.list` — every skill installed for the bot, including disabled ones
 /// (the flag is what the UI toggles).
 pub(super) fn list_skills(state: &Arc<AppState>, bot_uuid: Uuid) -> Result<Value, String> {
-    let mut conn = state.conn.get().map_err(|e| format!("database unavailable: {e}"))?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| format!("database unavailable: {e}"))?;
     let rows: Vec<SkillListRow> = diesel::sql_query(
         "SELECT name, description, enabled FROM bot_skills
          WHERE bot_id = $1 ORDER BY name ASC",
@@ -125,7 +128,10 @@ pub(super) fn find_skills(
     bot_uuid: Uuid,
     query: &str,
 ) -> Result<Value, String> {
-    let mut conn = state.conn.get().map_err(|e| format!("database unavailable: {e}"))?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| format!("database unavailable: {e}"))?;
     let terms = search_terms(query);
     let rows: Vec<SkillFindRow> = if terms.is_empty() {
         diesel::sql_query(
@@ -207,13 +213,19 @@ mod tests {
     #[test]
     fn the_body_budget_is_bounded() {
         assert!(MAX_BODY_CHARS >= 2_000, "a real method needs room");
-        assert!(MAX_BODY_CHARS <= 10_000, "one package must not crowd the turn");
+        assert!(
+            MAX_BODY_CHARS <= 10_000,
+            "one package must not crowd the turn"
+        );
         assert!(MAX_MATCHES <= 5, "keep the answer scannable");
     }
 
     #[test]
     fn a_query_becomes_terms_and_stems() {
-        assert_eq!(search_terms("branded deck"), vec!["branded", "brand", "deck"]);
+        assert_eq!(
+            search_terms("branded deck"),
+            vec!["branded", "brand", "deck"]
+        );
         assert!(search_terms("presentations").contains(&"presentation".to_string()));
         assert!(search_terms("  ").is_empty());
         assert!(search_terms("a!").is_empty());

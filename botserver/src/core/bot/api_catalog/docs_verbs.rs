@@ -51,7 +51,7 @@ async fn exec_docs_path(
     path: &str,
     params: serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    crate::core::bot::api_exec::exec_endpoint(
+    crate::core::bot::api_exec::exec_endpoint_trusted(
         state,
         user_id,
         Some(bot_uuid),

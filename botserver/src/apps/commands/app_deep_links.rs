@@ -411,11 +411,23 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
     ),
     (
         "drive",
-        &[DeepLinkParam {
-            key: "path",
-            description: "drive folder/file path",
-            example: "faturas%2F2026-08",
-        }],
+        &[
+            DeepLinkParam {
+                key: "path",
+                description: "drive folder/file path",
+                example: "faturas%2F2026-08",
+            },
+            DeepLinkParam {
+                key: "bucket",
+                description: "drive bucket containing the path",
+                example: "beiner.gbai",
+            },
+            DeepLinkParam {
+                key: "scope",
+                description: "drive scope (bot, user, shared)",
+                example: "bot",
+            },
+        ],
     ),
     (
         "player",

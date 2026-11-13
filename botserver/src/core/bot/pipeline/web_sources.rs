@@ -18,8 +18,7 @@ use botresearch::web_search::WebSearchResult;
 /// first bytes of the article answer liveness *and* the publish date.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(6);
 const PROBE_PREFIX_BYTES: usize = 180_000;
-const USER_AGENT: &str =
-    "Mozilla/5.0 (compatible; GeneralBots/1.0; +https://generalbo.ts)";
+const USER_AGENT: &str = "Mozilla/5.0 (compatible; GeneralBots/1.0; +https://generalbo.ts)";
 
 /// Path fragments that name a *section or tag index* instead of an article.
 /// Citing one sends the reader to a page that changes every day, which is
@@ -143,7 +142,8 @@ fn date_from_url(url: &str) -> Option<String> {
     for (index, segment) in segments.iter().enumerate() {
         let is_year = segment.len() == 4 && segment.chars().all(|c| c.is_ascii_digit());
         if is_year {
-            let (Some(month), Some(day)) = (segments.get(index + 1), segments.get(index + 2)) else {
+            let (Some(month), Some(day)) = (segments.get(index + 1), segments.get(index + 2))
+            else {
                 continue;
             };
             let day_digits: String = day.chars().take(2).collect();
@@ -176,10 +176,7 @@ fn date_from_text(text: &str) -> Option<String> {
 fn is_hub_markup(body: &str) -> bool {
     static RE: OnceLock<Option<regex::Regex>> = OnceLock::new();
     let re = RE.get_or_init(|| {
-        regex::Regex::new(
-            r#"property=["']og:type["'][^>]*content=["']([^"']+)"#,
-        )
-        .ok()
+        regex::Regex::new(r#"property=["']og:type["'][^>]*content=["']([^"']+)"#).ok()
     });
     let value = re
         .as_ref()
@@ -310,19 +307,23 @@ pub fn prompt_block(results: &[WebSearchResult]) -> String {
          api.find, web.search or any other command to look for a search tool — \
          the search has already been done for you.\n\n\
          NEWS DIGEST CONTRACT\n\
-         - List between 3 and 5 items, newest first, one per topic. Never repeat \
-         a headline or a URL.\n\
+         - List at least 5 items when 5 or more article sources are provided; \
+         otherwise list every article source provided. Never invent items, \
+         headlines, outlets, dates or URLs to reach a count.\n\
+         - Order newest first when dates are available, one per topic. Never \
+         repeat a headline or a URL.\n\
          - Every item is ONE line in this exact shape: \
          `- **[headline](ARTICLE_URL)** — outlet, published YYYY-MM-DD`.\n\
          - Use the ARTICLE_URL printed for that item, verbatim. Never cite a \
          section, tag, home or \"tudo sobre\" index page; those are not articles \
          and were already removed. Never invent a URL, an outlet or a date.\n\
          - When an item shows `published: not shown`, say the date is not shown \
-         by that source instead of guessing one.\n\
-         - If the material does not answer the question, say in one line what \
-         is missing. Never pad the list with filler.\n\
-         - Answer in the language of the user's message and never print raw \
-         JSON or the field names above.\n\n\
+         by that source instead of guessing one. Prefer items with real \
+         publication dates for time-sensitive news requests.\n\
+         - If the material does not answer the question, say clearly in one \
+         line what is missing. Never pad the list with filler.\n\
+         - Include a short summary in the language of the user's message and \
+         never print raw JSON or the field names above.\n\n\
          SOURCES\n",
     );
     for (index, result) in results.iter().enumerate() {
@@ -378,7 +379,10 @@ mod web_source_tests {
 
     #[test]
     fn dates_are_normalised_to_iso() {
-        assert_eq!(normalize_date("2026-11-12T18:03:00-03:00").as_deref(), Some("2026-11-12"));
+        assert_eq!(
+            normalize_date("2026-11-12T18:03:00-03:00").as_deref(),
+            Some("2026-11-12")
+        );
         assert_eq!(normalize_date("2026-11-12").as_deref(), Some("2026-11-12"));
         assert_eq!(normalize_date("12/11/2026").as_deref(), Some("2026-11-12"));
         assert_eq!(normalize_date("ontem"), None);
@@ -387,8 +391,14 @@ mod web_source_tests {
 
     #[test]
     fn headlines_dedupe_across_punctuation() {
-        assert_eq!(headline_key("Lula: fala sobre juros!"), headline_key("Lula fala sobre juros"));
-        assert_ne!(headline_key("Lula fala sobre juros"), headline_key("Bolsonaro nega"));
+        assert_eq!(
+            headline_key("Lula: fala sobre juros!"),
+            headline_key("Lula fala sobre juros")
+        );
+        assert_ne!(
+            headline_key("Lula fala sobre juros"),
+            headline_key("Bolsonaro nega")
+        );
     }
 
     #[test]
@@ -399,12 +409,21 @@ mod web_source_tests {
                 "https://g1.globo.com/politica/noticia/2026/11/12/lula-fala.ghtml",
                 Some("2026-11-12"),
             ),
-            result("Outra notícia", "https://exemplo.com/2026/11/10/outra", None),
+            result(
+                "Outra notícia",
+                "https://exemplo.com/2026/11/10/outra",
+                None,
+            ),
             result("Sem data", "https://exemplo.com/sem-data", None),
         ]);
         assert!(block.contains("NEWS DIGEST CONTRACT"));
-        assert!(block.contains("never repeat a headline"), "contract missing");
-        assert!(block.contains("article_url: https://g1.globo.com/politica/noticia/2026/11/12/lula-fala.ghtml"));
+        assert!(
+            block.contains("never repeat a headline"),
+            "contract missing"
+        );
+        assert!(block.contains(
+            "article_url: https://g1.globo.com/politica/noticia/2026/11/12/lula-fala.ghtml"
+        ));
         assert!(block.contains("published: 2026-11-12"));
         // The date is recovered from the URL when the provider gives none...
         assert!(block.contains("published: 2026-11-10"));

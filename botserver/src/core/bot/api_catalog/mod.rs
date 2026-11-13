@@ -21,7 +21,7 @@ pub(crate) use base64::Engine;
 pub(crate) use bigdecimal::BigDecimal;
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::RunQueryDsl;
-pub(crate) use serde_json::{json, Value};
+pub(crate) use serde_json::{Value, json};
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 
@@ -30,7 +30,7 @@ pub const API_CALL_TRIGGER: &str = "\"__api_call__\":";
 /// The declarative command model lives in `crate::apps::commands`. We reuse
 /// that single source of truth here so the chat/WhatsApp prompt, the palette
 /// and the discovery commands all agree on the same per-app actions.
-pub use crate::apps::commands::{command_by_name, AppCommand};
+pub use crate::apps::commands::{AppCommand, command_by_name};
 
 pub struct ApiEndpoint {
     pub method: &'static str,
@@ -75,6 +75,36 @@ struct InvoiceRow {
 }
 
 #[derive(diesel::QueryableByName)]
+struct PaymentRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    payment_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    payment_number: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    payer_name: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Numeric)]
+    amount: BigDecimal,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+    invoice_id: Option<Uuid>,
+}
+
+#[derive(diesel::QueryableByName)]
+struct QuoteRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    quote_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    quote_number: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    customer_name: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Numeric)]
+    total: BigDecimal,
+}
+
+#[derive(diesel::QueryableByName)]
 struct ProductRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     product_id: Uuid,
@@ -106,10 +136,10 @@ struct TicketRow {
 
 mod archive_drive_files;
 mod branch_scope;
+mod commands_list;
 #[cfg(feature = "database")]
 mod database_verbs;
 mod docs_verbs;
-mod commands_list;
 mod execute_command;
 mod find_api_entries;
 mod is_api_call_trigger;
