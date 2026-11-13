@@ -6,6 +6,8 @@ function renderSuggestions(suggestions, targetEl) {
 
   suggestionsEl.innerHTML = "";
   suggestionsEl.classList.add("has-bot-suggestions");
+  // #2349 — the suggestion rail is the empty state when the bot ships one.
+  if (typeof hideChatEmptyState === "function") hideChatEmptyState();
 
   suggestions.forEach(function (suggestion) {
     var chip = document.createElement("button");

@@ -351,7 +351,7 @@ function dialChatSocket(seq) {
         }
         if (data.content && typeof data.content === "string" && data.content.trim() !== "") {
           if (typeof addMessage === "function") {
-            addMessage("user", data.content, null, null, data.timestamp);
+            addMessage("user", data.content, data.message_id || data.id || null, null, data.timestamp);
           }
         }
         return;

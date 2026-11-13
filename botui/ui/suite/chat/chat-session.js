@@ -213,7 +213,7 @@ window.ChatSwitchBot = function (botName) {
     if (pane) pane.innerHTML = "";
     ChatState.suppressPersist = true;
     local.forEach(function (m) {
-      addMessage(m.sender, m.content, null, null, m.ts);
+      addMessage(m.sender, m.content, m.id || m.message_id || null, null, m.ts);
     });
     ChatState.suppressPersist = false;
     if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
@@ -264,7 +264,7 @@ window.ChatSwitchBot = function (botName) {
         previousContent = m.content;
         // Server history does not expose timestamps yet; pass one through when
         // a future payload includes it, otherwise the bubble omits the label.
-        addMessage(role, m.content, null, null, m.ts || m.timestamp || m.created_at || m.time);
+        addMessage(role, m.content, m.id || m.message_id || null, null, m.ts || m.timestamp || m.created_at || m.time);
       });
     } finally {
       ChatState.appendTarget = previousTarget;

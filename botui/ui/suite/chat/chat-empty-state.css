@@ -1,0 +1,28 @@
+/* #2349 — the empty-conversation card.
+ * Shown only while the transcript has no bubbles; removed by the first
+ * addMessage() or by the bot's suggestion rail. */
+.gb-chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: auto;
+    padding: 32px 24px;
+    max-width: 460px;
+    text-align: center;
+    color: var(--gb-text-muted, #64748b);
+}
+
+.gb-chat-empty-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gb-text, #0f172a);
+}
+
+.gb-chat-empty-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+}

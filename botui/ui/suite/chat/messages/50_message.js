@@ -38,6 +38,36 @@ function collapseUserMessageIfNeeded(div, text) {
   textBox.parentNode.insertBefore(toggle, textBox.nextSibling);
 }
 
+/* #2349 — an empty conversation used to render nothing at all, which is
+ * indistinguishable from a failed load. One card, shown only while the
+ * transcript has no bubbles. */
+function renderChatEmptyState() {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  if (messages.querySelector(".message")) return;
+  var existing = document.getElementById("gb-chat-empty");
+  if (existing) return;
+  var botName = (ChatState.currentBotId || "your assistant");
+  var card = document.createElement("div");
+  card.id = "gb-chat-empty";
+  card.className = "gb-chat-empty";
+  card.setAttribute("role", "status");
+  var title = document.createElement("p");
+  title.className = "gb-chat-empty-title";
+  title.textContent = "Start a conversation with " + botName;
+  var hint = document.createElement("p");
+  hint.className = "gb-chat-empty-hint";
+  hint.textContent = "Type a message below, or pick a suggestion when your bot offers one.";
+  card.appendChild(title);
+  card.appendChild(hint);
+  messages.appendChild(card);
+}
+
+function hideChatEmptyState() {
+  var card = document.getElementById("gb-chat-empty");
+  if (card && card.parentNode) card.parentNode.removeChild(card);
+}
+
 function addMessage(sender, content, msgId, reasoning, timestamp) {
   var messages = ChatState.appendTarget || document.getElementById("messages");
   if (!messages) return;
@@ -71,6 +101,15 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   var div = document.createElement("div");
   div.className = "message " + sender;
   if (msgId) div.id = msgId;
+  // #2349 — every bubble is addressable. Ids used to be dropped at this
+  // boundary (all call sites passed null), so no message could be targeted for
+  // delete/edit/feedback or scoped auditing. Server ids are kept when present;
+  // otherwise the bubble gets a stable local id.
+  var addressableId = msgId ||
+    ("msg-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8));
+  div.dataset.messageId = String(addressableId);
+  div.dataset.role = sender;
+  hideChatEmptyState();
   // Hover timestamp. Replayed history keeps its own stored time; live turns
   // are stamped now. Server history currently carries no timestamp, so those
   // bubbles simply omit the hover label rather than inventing one.

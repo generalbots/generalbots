@@ -476,7 +476,11 @@ if (document.readyState === 'loading') {
 (function(){ var __cb = function() {
 setupEventHandlers();
 initChat();
-}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); }
+// #2349 — a conversation with no turns must say so instead of showing a blank
+// pane; the card removes itself as soon as the first bubble is appended.
+if (typeof renderChatEmptyState === "function") renderChatEmptyState();
+})();
 } else {
 setupEventHandlers();
 initChat();
