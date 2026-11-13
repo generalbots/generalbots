@@ -274,11 +274,25 @@
     window.addMessage = wrapped;
   }
 
+  // chat-send.js defines `addMessage` after this module loads, so a single
+  // install at parse time found nothing and every consent prompt leaked its
+  // raw `GB-CONSENT-REQUEST:<base64>` marker into the bubble (#2194).
+  function installHookWhenReady(attempt) {
+    var tries = attempt || 0;
+    if (typeof window.addMessage === "function") {
+      installHook();
+      return;
+    }
+    if (tries >= 60) {
+      return;
+    }
+    setTimeout(function () { installHookWhenReady(tries + 1); }, 250);
+  }
+
   installHook();
+  installHookWhenReady(0);
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", installHook);
-  } else {
-    installHook();
+    document.addEventListener("DOMContentLoaded", function () { installHookWhenReady(0); });
   }
 
   // Revive unresolved cards once the messages pane exists.

@@ -162,3 +162,7 @@
         </div>
     </div>
 </div>
+<!-- Every other suite app registers its delta renderer; the lists fragment did
+     not, so `add_item`/`check`/`reorder` ops from chat were silently dropped
+     (#2189). -->
+<script src="/suite/lists/modules/13_delta.js"></script>

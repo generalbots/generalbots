@@ -250,7 +250,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("memory", "open → search the memory list → edit an entry inline → sync state shows"),
     ("notes", "open → click '+ New Note' → fill field 'text' with the note content → it saves as you type"),
     ("o365", "open → connect the account → browse OneDrive or the unified mail view"),
-    ("paper", "open → choose a template or start blank → edit → export"),
+    ("paper", "open → click '+' to create a note (a note must be open, otherwise the fill has no editor) → then write the whole note in ONE step: {\"op\":\"fill\",\"field\":\"document body\",\"value\":\"<markdown-lite>\"} — '# ' / '## ' headings, '- ' bullets, '1. ' numbered items, blank line between paragraphs, **bold**; never emit one fill per line"),
     ("photos", "open → the library loads → select a photo → details and AI tags"),
     ("plan", "open → OKRs load → select a period → edit a key result"),
     ("player", "open → choose a stream or playlist → Play"),
