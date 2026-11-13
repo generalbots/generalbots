@@ -23,7 +23,7 @@
                 // The whole point of deploy: a clickable link to the running app.
                 html += '<div class="vibe-card" style="margin-bottom:10px;padding:12px;border:1px solid var(--accent,#84d669);">' +
                     '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">🚀 OPEN YOUR APP</div>' +
-                    '<a href="' + D.esc(url) + '" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' +
+                    '<a href="' + D.esc(url) + '" target="_blank" rel="noopener noreferrer" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' +
                     D.esc(url) + " ↗</a>" +
                     '<div style="font-size:10px;color:var(--text-muted);margin-top:6px;">env ' + D.esc(env) +
                     (probe.http_code ? " · http " + probe.http_code : "") +
@@ -56,7 +56,7 @@
                 grid.innerHTML = '<div class="vibe-card" style="margin-bottom:10px;padding:12px;border:1px solid var(--accent,#84d669);">' +
                     '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">✅ PUBLIC SITE UPDATED</div>' +
                     (url
-                        ? '<a href="' + D.esc(url) + '" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' + D.esc(url) + " ↗</a>"
+                        ? '<a href="' + D.esc(url) + '" target="_blank" rel="noopener noreferrer" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' + D.esc(url) + " ↗</a>"
                         : "<div>Promoted.</div>") +
                     "</div>";
             }

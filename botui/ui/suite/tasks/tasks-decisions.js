@@ -322,7 +322,7 @@ function showAppUrlNotification(appUrl) {
   notification.innerHTML = `
     <div style="font-weight: 600; margin-bottom: 8px;">🎉 App Created Successfully!</div>
     <div style="font-size: 13px; opacity: 0.9; margin-bottom: 12px;">Your app is ready to use</div>
-    <a href="${appUrl}" target="_blank" style="
+    <a href="${appUrl}" target="_blank" rel="noopener noreferrer" style="
       display: inline-block;
       background: white;
       color: #16a34a;

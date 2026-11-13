@@ -262,6 +262,16 @@ jobs:
           python3 scripts/check_security_headers.py --check
           python3 scripts/check_security_headers.py --self-test
 
+      # #2327 — a target="_blank" anchor without rel="noopener noreferrer"
+      # hands the destination a live window.opener handle back to the suite
+      # (reverse tabnabbing) and leaks the suite URL in Referer. The gate scans
+      # static HTML and JS template strings alike, vendor excluded.
+      - name: Reverse-tabnabbing guard (#2327)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_target_blank.py --self-test
+          python3 scripts/check_target_blank.py --check
+
       # IMP-08 / IMP-07 — the two directives AGENTS.md marks mandatory but
       # nothing verified. The gate greps the route registration surface and
       # fails when a state-changing handler is reachable without the CSRF

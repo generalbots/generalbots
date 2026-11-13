@@ -45,7 +45,7 @@ function vmRenderInlineReferences(root) {
         card.innerHTML =
           '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
           '<span class="gb-attachment-order">0</span>' +
-          '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
+          '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener noreferrer"></a>' +
           '<span class="gb-content-type-badge gb-type-badge">' + vmEscapeHtml(vmContentTypeBadge(parts.path)) + "</span>" +
           '<span class="gb-attachment-desc gb-attachment-minor">' + vmEscapeHtml(vmAttachmentDescription(parts.path)) + "</span>" +
           '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +

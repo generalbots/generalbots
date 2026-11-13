@@ -69,7 +69,7 @@ function renderVmFileLinks(html) {
       vmFileIcon(parts.path) +
       "</span>" +
       '<span class="gb-attachment-order">0</span>' +
-      '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener">' +
+      '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener noreferrer">' +
       vmEscapeHtml(name) +
       "</a>" +
       '<span class="gb-content-type-badge gb-type-badge">' +

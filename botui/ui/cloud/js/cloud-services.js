@@ -138,7 +138,7 @@ function renderFilteredServices() {
         </div>
       </div>
       <div class="service-actions">
-        ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank">${gbT('cloud-open', 'Open')}</a>` : ''}
+        ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank" rel="noopener noreferrer">${gbT('cloud-open', 'Open')}</a>` : ''}
         ${s.status === 'active' ? `<button class="btn-text" onclick="cancelService('${s.id}')">${gbT('cloud-cancel', 'Cancel')}</button>` : ''}
       </div>
     `;

@@ -186,7 +186,7 @@ if (tasksWindow) {
             <div class="result-message result-success">✓ ${response.message || "Done!"}</div>`;
 
           if (response.app_url) {
-            html += `<a href="${response.app_url}" class="result-link" target="_blank">
+            html += `<a href="${response.app_url}" class="result-link" target="_blank" rel="noopener noreferrer">
               Open App →
             </a>`;
           }

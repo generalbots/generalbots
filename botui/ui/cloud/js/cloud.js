@@ -219,7 +219,7 @@ function renderDashboardOrgs(orgs) {
         ${o.vps_address ? `<p>VPS: ${o.vps_address}</p>` : ''}
       </div>
       <div class="saas-org-actions">
-        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank"' : 'disabled'}>${gbT('cloud-open', 'Open')}</a>
+        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank" rel="noopener noreferrer"' : 'disabled'}>${gbT('cloud-open', 'Open')}</a>
         <button onclick="openBilling('${o.id}')" class="btn-text">${gbT('cloud-billing', 'Billing')}</button>
       </div>
     </div>

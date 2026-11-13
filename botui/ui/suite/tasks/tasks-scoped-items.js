@@ -239,7 +239,7 @@ function parseMarkdown(text) {
   // Links [text](url)
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener">$1</a>',
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
   );
 
   // Unordered lists (- item or * item)

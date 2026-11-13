@@ -57,7 +57,7 @@
             return '<span class="db-dt">' + DB.sanitize(d) + '</span>';
         }
         if (/^https?:\/\//.test(s)) {
-            return '<a class="db-link" href="' + DB.sanitize(s) + '" target="_blank" rel="noopener">' + DB.sanitize(s) + '</a>';
+            return '<a class="db-link" href="' + DB.sanitize(s) + '" target="_blank" rel="noopener noreferrer">' + DB.sanitize(s) + '</a>';
         }
         if (t.indexOf('json') !== -1) {
             var preview = s.length > 64 ? s.slice(0, 64) + '&hellip;' : s;

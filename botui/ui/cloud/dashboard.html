@@ -358,7 +358,7 @@
         return '<span style="display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.25rem .5rem;margin:0 .35rem .35rem 0;white-space:nowrap;font-size:.75rem">' +
           '<span style="font-weight:600;color:var(--text)">' + escapeHtml(b.name) + '</span>' +
           '<span style="color:var(--accent3);font-family:monospace">' + escapeHtml(b.slug) + '</span>' +
-          '<a href="' + chatUrl + '" target="_blank" style="color:var(--accent);text-decoration:none" title="Open chat">\u2197</a>' +
+          '<a href="' + chatUrl + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none" title="Open chat">\u2197</a>' +
           '<span onclick="navigator.clipboard.writeText(\'' + chatUrl + '\').then(()=>{this.textContent=\'Copied\';setTimeout(()=>this.textContent=\'\uD83D\uDCCB\',1200)}).catch(()=>{})" style="cursor:pointer;color:var(--muted)" title="Copy link">\uD83D\uDCCB</span>' +
           '</span>';
       }).join('');

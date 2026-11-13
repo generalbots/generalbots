@@ -13,7 +13,7 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   card.innerHTML =
     '<span class="gb-attachment-icon"></span>' +
     '<span class="gb-attachment-order">0</span>' +
-    '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
+    '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener noreferrer"></a>' +
     '<span class="gb-content-type-badge gb-type-badge"></span>' +
     '<span class="gb-attachment-desc gb-attachment-minor"></span>' +
     '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +

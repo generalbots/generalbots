@@ -83,7 +83,7 @@
                 '<li><a href="' +
                 base +
                 entry[1] +
-                '" target="_blank" rel="noopener">' +
+                '" target="_blank" rel="noopener noreferrer">' +
                 entry[0] +
                 "</a></li>"
             );
