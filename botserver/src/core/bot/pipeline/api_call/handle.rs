@@ -253,7 +253,12 @@ pub(crate) async fn handle_api_call(
                         "The results are live web search hits. Cite the source of every factual or \
                          time-sensitive claim as a markdown link using the exact title and url from \
                          the results, e.g. [title](url). Never invent a url or a source. If the \
-                         results do not answer the question, say what is missing instead of guessing."
+                         results do not answer the question, say what is missing instead of guessing. \
+                         Build news digests as one line per item — `- **[title](url)** — outlet, \
+                         published YYYY-MM-DD` — using the `outlet` and `published_date` fields; \
+                         never repeat a headline or a url, never cite a section, tag or \"tudo sobre\" \
+                         index page, and when a hit has no date say the date is not shown instead of \
+                         guessing one. List 3 to 5 items, newest first."
                             .to_string()
                     } else if deep_links.is_empty() {
                         String::new()

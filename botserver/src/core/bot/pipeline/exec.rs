@@ -455,14 +455,26 @@ pub async fn process_message_internal(
     // #1632 item 3 / #2238 — the composer's Web switch is the decision.
     // When explicitly off, do not search (even for informational requests).
     // When on (or unspecified legacy), search as before.
+    //
+    // #2147 — a front-page request is answered from rendered images, not from
+    // search snippets, so it never pays for a web search first.
+    #[cfg(all(feature = "browser", feature = "drive"))]
+    let front_page_turn = super::front_page::wants_front_page(&user_text);
+
     #[cfg(any(feature = "research", feature = "web-search"))]
     {
+        #[cfg(all(feature = "browser", feature = "drive"))]
+        let web_search_allowed = !front_page_turn;
+        #[cfg(not(all(feature = "browser", feature = "drive")))]
+        let web_search_allowed = true;
+
         let web_flag = parsed.get("web_search").and_then(|value| value.as_bool());
-        let web_search_enabled = match web_flag {
-            Some(false) => false,
-            Some(true) => true,
-            None => super::turn_hooks::is_informational_request(&user_text),
-        };
+        let web_search_enabled = web_search_allowed
+            && match web_flag {
+                Some(false) => false,
+                Some(true) => true,
+                None => super::turn_hooks::is_informational_request(&user_text),
+            };
         if web_search_enabled {
             let citations =
                 super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
@@ -474,6 +486,14 @@ pub async fn process_message_internal(
                     .insert(session_id.to_string(), citations);
             }
         }
+    }
+
+    // #2147 — "as capas dos jornais … foto" must arrive as pictures. The
+    // capture runs here, after every other grounding block, so the exact
+    // markdown image is the freshest instruction the model reads.
+    #[cfg(all(feature = "browser", feature = "drive"))]
+    if front_page_turn {
+        super::front_page::capture_and_inject(identity, &user_text, &mut messages).await;
     }
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 
