@@ -398,6 +398,24 @@
     padding: 0;
 }
 
+/* #2147 — a newspaper front-page capture is the answer: show it at the bubble
+   width instead of letting a 1280px screenshot overflow the conversation. */
+.bot-message img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0.5em 0;
+    border-radius: 8px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+}
+
+/* A capture that could not be loaded degrades to text + link (45_bot_images.js). */
+.gb-image-fallback {
+    display: inline-block;
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+}
+
 /* Thinking Section - collapsible reasoning block */
 .thinking-section {
     background: var(--surface2, #1e1e2e);

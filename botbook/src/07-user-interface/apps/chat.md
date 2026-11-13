@@ -252,6 +252,30 @@ Bot responses support full Markdown rendering:
 - Links and images
 - Tables
 
+### Web answers: dated sources and front pages
+
+When the composer's **Web** switch is on, the turn is searched and the hits are
+injected as the freshest system block. Before the prompt is built the hits are
+cleaned up (`botserver/src/core/bot/pipeline/web_sources.rs`): dead URLs
+(404/410), section/tag hubs (`/tudo-sobre/`, `/tag/`, `/politica/<topic>/`) and
+duplicate stories are removed, and every surviving article is probed once for
+its publish date (`article:published_time`, JSON-LD, `<time>`, `.../YYYY/MM/DD/`
+URLs). The answer contract is one line per item —
+`- **[headline](article_url)** — outlet, published YYYY-MM-DD` — and the same
+sources arrive as citation chips above the answer, each showing the outlet and
+the date.
+
+A turn that asks for newspaper **front pages** as pictures is answered with
+rendered images instead (`botserver/src/core/bot/pipeline/front_page.rs`): the
+publication's home page is captured in the browser, checked to be a real page
+capture (PNG signature, plausible dimensions) rather than a placeholder, stored
+in the bot's Drive under `conversations/front-pages/`, and shared by token so
+the chat can display it. The model receives the exact markdown image plus the
+Drive link and never has to guess a URL. A capture that fails is reported as
+such, with the publication's front-page link, so no newspaper is dropped
+silently; an image that later fails to load degrades to its caption and a link.
+
+
 ---
 
 ## Keyboard Shortcuts

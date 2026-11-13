@@ -12,6 +12,8 @@ pub mod drive_context;
 pub mod enriched_llm;
 pub mod event_sink;
 pub mod exec;
+#[cfg(all(feature = "browser", feature = "drive"))]
+pub mod front_page;
 pub mod history;
 pub mod kb;
 pub mod llm;
@@ -38,6 +40,8 @@ pub mod types;
 pub mod vibe_route;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_context;
+#[cfg(any(feature = "research", feature = "web-search"))]
+pub mod web_sources;
 pub mod workspace_progress;
 
 pub use channel_entry::run_pipeline_for_channel;

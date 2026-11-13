@@ -81,12 +81,17 @@ pub async fn execute_command(
             let results = botresearch::web_search::search_web(&query, max, "wt-wt")
                 .await
                 .map_err(|e| e.to_string())?;
+            // #2146 — the model builds the digest from this JSON, so the
+            // outlet and the publish date travel with every hit instead of
+            // being guessed later.
             Ok(json!({
                 "query": query,
                 "results": results.iter().map(|r| json!({
                     "title": r.title,
                     "url": r.url,
                     "snippet": r.snippet,
+                    "outlet": r.source,
+                    "published_date": r.published_date,
                 })).collect::<Vec<_>>(),
             }))
         }

@@ -261,6 +261,15 @@
     white-space: nowrap;
 }
 
+/* #2146 — the article date belongs to the source chip: a digest whose chips
+   carry no date fails the "source + date per item" check even when the prose
+   mentions it once. */
+.source-chip-date {
+    color: var(--text-secondary, #888);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 sup.gb-cite-ref {
     color: var(--accent, #2563eb);
     cursor: pointer;

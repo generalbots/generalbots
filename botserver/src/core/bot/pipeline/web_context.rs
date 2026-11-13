@@ -15,8 +15,12 @@ use botlib::models::BotResponse;
 
 use super::sink::ChannelSink;
 use super::types::SessionIdentity;
+use super::web_sources;
 
-const MAX_RESULTS: usize = 5;
+/// Eight hits instead of five: index pages are now removed before the prompt
+/// (#2146), so a news turn must start with enough raw hits to keep 3–5
+/// articles worth citing.
+const MAX_RESULTS: usize = 8;
 
 // #1835 — re-exported from turn_hooks so the classifier stays available even
 // when the research/web-search features are disabled (the VM skip uses it).
@@ -149,10 +153,11 @@ pub async fn search_and_inject(
         .await;
         return Vec::new();
     }
-    // Search engines still return removed articles. A citation the reader
-    // cannot open is worse than no citation (TS-01 opens every source), so
-    // drop only URLs that answer 404/410 — bot-blocked pages stay.
-    let results = drop_dead_sources(results).await;
+    // Search engines still return removed articles and hub pages. A citation
+    // the reader cannot open — or that leads to a daily-changing index — is
+    // worse than no citation (TS-01/UAT-03), so dead URLs and section indexes
+    // are dropped here and the survivors are probed for their publish date.
+    let results = web_sources::refine(results).await;
     if results.is_empty() {
         status(
             sink,
@@ -188,21 +193,12 @@ pub async fn search_and_inject(
     )
     .await;
 
-    let mut block = String::from(
-        "Fresh web search results are provided below. They are sufficient for \
-         this turn: answer the user NOW from this material. Do not call \
-         api.find, web.search or any other command to look for a search tool — \
-         the search has already been done for you. Cite the source of every \
-         factual or time-sensitive claim as a markdown link [title](url). Never \
-         invent a URL or a source. If the results do not answer the question, \
-         say what is missing.\n\n",
+    let mut block = web_sources::prompt_block(&results);
+    block.push_str(
+        "\nCite the source of every factual or time-sensitive claim as a \
+         markdown link [headline](article_url). Never invent a URL, an outlet or \
+         a date.\n",
     );
-    for result in &results {
-        block.push_str(&format!(
-            "--- {} ---\nURL: {}\n{}\n\n",
-            result.title, result.url, result.snippet
-        ));
-    }
     messages.push(json!({ "role": "system", "content": block }));
     log::info!(
         "web context: injected {} results for query '{}'",
@@ -216,58 +212,17 @@ pub async fn search_and_inject(
     results.iter().map(citation_for).collect()
 }
 
-/// Removes search hits whose URL is definitively gone (404/410). HEAD is
-/// best-effort: a network error or a bot challenge is not evidence that the
-/// page is dead, so those results are kept.
-async fn drop_dead_sources(
-    results: Vec<botresearch::web_search::WebSearchResult>,
-) -> Vec<botresearch::web_search::WebSearchResult> {
-    let client = match reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(4))
-        .user_agent("Mozilla/5.0 (compatible; GeneralBots/1.0; +https://generalbo.ts)")
-        .build()
-    {
-        Ok(client) => client,
-        Err(error) => {
-            log::debug!("web context: liveness client unavailable: {error}");
-            return results;
-        }
-    };
-    let checks = results.iter().map(|result| {
-        let client = client.clone();
-        let url = result.url.clone();
-        async move {
-            match client.head(&url).send().await {
-                Ok(response) => !matches!(response.status().as_u16(), 404 | 410),
-                Err(_) => true,
-            }
-        }
-    });
-    let live = futures::future::join_all(checks).await;
-    let mut kept = Vec::with_capacity(results.len());
-    let mut dead = 0usize;
-    for (result, is_live) in results.into_iter().zip(live) {
-        if is_live {
-            kept.push(result);
-        } else {
-            dead += 1;
-            log::info!("web context: dropped dead source {}", result.url);
-        }
-    }
-    if dead > 0 {
-        log::info!("web context: {dead} dead source(s) removed");
-    }
-    kept
-}
-
 /// Maps one search result to the citation shape the chat renderer consumes
-/// (`30_citations.js`): `{title, url, host}` plus the optional favicon.
+/// (`30_citations.js`): `{title, url, host, date}` plus the optional favicon.
 fn citation_for(result: &botresearch::web_search::WebSearchResult) -> serde_json::Value {
     json!({
         "title": result.title,
         "url": result.url,
         "host": result.source,
         "favicon": result.favicon,
+        // #2146 — the chip shows the outlet *and* the article date, so the
+        // "every item needs a date" check survives the prose.
+        "date": web_sources::item_date(result),
     })
 }
 
@@ -311,5 +266,22 @@ mod tests {
         assert_eq!(citation["url"], "https://en.wikipedia.org/wiki/Umbrella");
         assert_eq!(citation["host"], "en.wikipedia.org");
         assert_eq!(citation["favicon"], "https://en.wikipedia.org/favicon.ico");
+        // #2146 — a hit without a date carries an explicit null, never an
+        // invented date.
+        assert!(citation["date"].is_null());
+    }
+
+    /// #2146 — the chip shape carries the article date the uat asked for.
+    #[test]
+    fn citation_carries_the_article_date() {
+        let result = botresearch::web_search::WebSearchResult {
+            title: "Lula recebe ministros".to_string(),
+            url: "https://g1.globo.com/politica/noticia/2026/11/12/lula-fala.ghtml".to_string(),
+            snippet: String::new(),
+            source: "g1.globo.com".to_string(),
+            favicon: None,
+            published_date: Some("2026-11-12T09:10:00-03:00".to_string()),
+        };
+        assert_eq!(citation_for(&result)["date"], "2026-11-12");
     }
 }

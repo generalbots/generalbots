@@ -293,12 +293,18 @@ pub async fn public_link_download(
     let mime = guess_mime(&file_name);
 
     use axum::response::IntoResponse;
+    // #2147 — an image served as `attachment` cannot be shown inline by the
+    // chat: the reader would get a download prompt where the front page should
+    // be. Images from a share link render in place; everything else keeps the
+    // download disposition the Drive UI expects.
+    let disposition = if mime.starts_with("image/") {
+        format!("inline; filename=\"{file_name}\"")
+    } else {
+        format!("attachment; filename=\"{file_name}\"")
+    };
     let headers = [
         (axum::http::header::CONTENT_TYPE, mime.to_string()),
-        (
-            axum::http::header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", file_name),
-        ),
+        (axum::http::header::CONTENT_DISPOSITION, disposition),
         (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
         (
             axum::http::header::CACHE_CONTROL,

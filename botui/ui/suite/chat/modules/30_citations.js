@@ -40,11 +40,15 @@
     if (!/^https?:\/\//i.test(url)) return null;
     var host = citation.host || hostOf(url);
     var title = citation.title || host;
+    // #2146 — every source carries its article date next to the outlet. The
+    // date is what the UAT asked for; a chip without one must not look older
+    // or newer than the others, so it simply omits the label.
+    var date = String(citation.date || citation.published_date || "").trim();
     var chip = document.createElement("button");
     chip.type = "button";
     chip.className = "source-chip";
     chip.setAttribute("data-url", url);
-    chip.title = title + "\n" + url;
+    chip.title = title + "\n" + (date ? host + " · " + date : host) + "\n" + url;
     var avatar = document.createElement("span");
     avatar.className = "source-chip-avatar";
     avatar.textContent = (host.charAt(0) || "S").toUpperCase();
@@ -53,6 +57,12 @@
     label.textContent = host;
     chip.appendChild(avatar);
     chip.appendChild(label);
+    if (date) {
+      var dateLabel = document.createElement("span");
+      dateLabel.className = "source-chip-date";
+      dateLabel.textContent = date;
+      chip.appendChild(dateLabel);
+    }
     chip.addEventListener("click", function () {
       window.open(url, "_blank", "noopener,noreferrer");
     });
