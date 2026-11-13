@@ -234,8 +234,9 @@
     var rules = ws && ws.conditional_formats;
     if (!rules || !rules.length) return null;
     var value = cellData && cellData.value != null ? cellData.value : "";
-    var num = (cellData && cellData.typed && typeof cellData.typed.as_number === "function")
-      ? cellData.typed.as_number() : (value.trim() === "" ? null : Number(value));
+    var num = (cellData && cellData.typed && cellData.typed.t === "number")
+      ? Number(cellData.typed.v) : (cellData && cellData.typed && typeof cellData.typed.as_number === "function")
+      ? cellData.typed.as_number() : (value.trim() === "" ? null : Number(String(value).replace(/,/g, "")));
     for (var i = 0; i < rules.length; i++) {
       var rule = rules[i];
       if (row < rule.start_row || row > rule.end_row || col < rule.start_col || col > rule.end_col) continue;
@@ -247,8 +248,9 @@
   VirtualGrid.formatColorFor = function (cellData, value) {
     if (!cellData || !cellData.format) return null;
     var sections = String(cellData.format).split(";");
-    var num = (cellData.typed && typeof cellData.typed.as_number === "function")
-      ? cellData.typed.as_number() : Number(value);
+    var num = (cellData.typed && cellData.typed.t === "number")
+      ? Number(cellData.typed.v) : (cellData.typed && typeof cellData.typed.as_number === "function")
+      ? cellData.typed.as_number() : Number(String(value).replace(/,/g, ""));
     var idx = 0;
     if (!isNaN(num)) {
       if (num < 0 && sections.length > 1) idx = 1;

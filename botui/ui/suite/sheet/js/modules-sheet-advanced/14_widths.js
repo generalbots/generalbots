@@ -210,6 +210,10 @@
         node.style.color = "var(--sheet-fg, #f8fafc)";
         node.style.backgroundColor = "var(--sheet-bg, #0f172a)";
         if (g.applyCellStyle) g.applyCellStyle(node, cellData);
+        var condStyle = g.conditionalStyleFor ? g.conditionalStyleFor(row, c, cellData) : null;
+        if (condStyle && g.applyCellStyle) g.applyCellStyle(node, { style: condStyle });
+        var fmtColor = g.formatColorFor ? g.formatColorFor(cellData, value) : null;
+        if (fmtColor) node.style.color = fmtColor;
         if (g.editingCell !== node) {
           node.contentEditable = "false";
           node.style.outline = "none";
