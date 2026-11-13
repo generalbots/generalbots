@@ -450,7 +450,7 @@ mime_guess = "2.0"
 mockito = "1.7.0"
 wiremock = "0.6"
 cookie = "0.18"
-chromiumoxide = { version = "0.7", features = ["tokio-runtime"], default-features = false }
+chromiumoxide = { version = "0.8", features = ["tokio-runtime"], default-features = false }
 insta = { version = "1.40", features = ["json", "yaml"] }
 
 # ─── PROCESS CONTROL ───
