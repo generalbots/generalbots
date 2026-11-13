@@ -73,11 +73,30 @@ pub async fn vm_file(
     mut headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
-    // A file link must work as a plain URL: browsers cannot attach an
-    // Authorization header to a download/navigation. Accept the same verified
-    // token as a query parameter when the header is absent.
+    // Prefer Authorization header, then the session cookie, then the legacy
+    // `access_token` query parameter (kept only for compatibility; clients must
+    // not put bearer tokens in URLs because they leak into history/logs).
     if !headers.contains_key(axum::http::header::AUTHORIZATION) {
-        if let Some(token) = params.get("access_token").filter(|t| !t.is_empty()) {
+        let cookie_token = headers
+            .get(axum::http::header::COOKIE)
+            .and_then(|value| value.to_str().ok())
+            .and_then(|cookies| {
+                cookies.split(';').find_map(|pair| {
+                    let mut parts = pair.trim().splitn(2, '=');
+                    let name = parts.next()?;
+                    let value = parts.next()?;
+                    if name == "gb-access-token" {
+                        Some(value.to_string())
+                    } else {
+                        None
+                    }
+                })
+            });
+        let token = cookie_token
+            .as_deref()
+            .or_else(|| params.get("access_token").map(String::as_str))
+            .filter(|t| !t.is_empty());
+        if let Some(token) = token {
             if let Ok(value) = axum::http::HeaderValue::from_str(&format!("Bearer {token}")) {
                 headers.insert(axum::http::header::AUTHORIZATION, value);
             }

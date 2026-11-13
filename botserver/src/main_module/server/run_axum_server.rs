@@ -122,14 +122,12 @@ pub async fn run_axum_server(
     };
 
     let csrf_config = CsrfConfig {
-        // Single-user desktop (`no_security=true`): there is no account
-        // session or auth cookie for CSRF to protect, and the double-submit
-        // cookie cannot work because the token cookie is HttpOnly while the
-        // desktop sends no bearer token to skip the check. Leaving CSRF on
-        // rejected every local POST/DELETE — file uploads (#1840), downloads
-        // (#1834) and folder operations — with 403. Normal authenticated
-        // deployments keep CSRF enabled.
-        enabled: !sec.no_security,
+        // Keep CSRF active in all modes. In single-user desktop (`no_security`),
+        // the middleware enforces loopback Origin/Referer checks so a cross-site
+        // page cannot drive the localhost API, while trusted loopback origins
+        // (the desktop WebView) can proceed without a double-submit token pair.
+        enabled: true,
+        no_security_mode: sec.no_security,
         exempt_paths: vec![
             "/api/health".into(),
             "/api/auth".into(),
@@ -274,6 +272,8 @@ pub async fn run_axum_server(
         &site_path,
     );
 
+    let no_security = sec.no_security;
+
     let app = apply_middleware(
         base_router,
         app_state.clone(),
@@ -288,7 +288,7 @@ pub async fn run_axum_server(
         },
     );
 
-    listen(app, port).await
+    listen(app, port, no_security).await
 }
 pub(super) fn build_base_router(
     app_state: Arc<AppState>,

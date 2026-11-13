@@ -171,7 +171,7 @@ impl PackageManager {
     pub fn install_container_only(&self, component_name: &str) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component_name);
 
-        let _ = safe_lxd(&["init", "--auto"]);
+        let _ = safe_incus_admin(&["init", "--auto"]);
 
         let images = [
             "ubuntu:24.04",
@@ -185,7 +185,7 @@ impl PackageManager {
 
         for image in &images {
             info!("Attempting to create container with image: {}", image);
-            let output = safe_lxc(&[
+            let output = safe_incus(&[
                 "launch",
                 image,
                 &container_name,
@@ -206,7 +206,7 @@ impl PackageManager {
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
 
-            let _ = safe_lxc(&["delete", &container_name, "--force"]);
+            let _ = safe_incus(&["delete", &container_name, "--force"]);
         }
 
         if !success {

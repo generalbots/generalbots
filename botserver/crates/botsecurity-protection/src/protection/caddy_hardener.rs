@@ -61,7 +61,7 @@ impl CaddyHardener {
     }
 
     pub async fn status() -> Result<String> {
-        let out = Self::lxc_exec(&["caddy", "version"]).await?;
+        let out = Self::incus_exec(&["caddy", "version"]).await?;
         Ok(out)
     }
 
@@ -110,7 +110,7 @@ impl CaddyHardener {
     }
 
     async fn read_config() -> Result<String> {
-        let out = Self::lxc_exec(&["cat", CADDY_CONFIG_PATH]).await?;
+        let out = Self::incus_exec(&["cat", CADDY_CONFIG_PATH]).await?;
         Ok(out)
     }
 
@@ -121,21 +121,21 @@ impl CaddyHardener {
             .context("failed to write caddy config to host /tmp")?;
 
         // Push file into container
-        SafeCommand::new("lxc")?
+        SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-caddy-host")?
             .arg(format!("{CADDY_CONTAINER}{tmp}"))?
             .execute()
-            .context("lxc file push failed")?;
+            .context("incus file push failed")?;
 
         // Move to final location inside container
-        Self::lxc_exec(&["mv", tmp, CADDY_CONFIG_PATH]).await?;
+        Self::incus_exec(&["mv", tmp, CADDY_CONFIG_PATH]).await?;
         Ok(())
     }
 
     async fn reload_caddy(log: &mut String) -> Result<()> {
-        Self::lxc_exec(&[
+        Self::incus_exec(&[
             "caddy",
             "reload",
             "--config",
@@ -150,8 +150,8 @@ impl CaddyHardener {
         Ok(())
     }
 
-    async fn lxc_exec(cmd: &[&str]) -> Result<String> {
-        let mut c = SafeCommand::new("lxc")?
+    async fn incus_exec(cmd: &[&str]) -> Result<String> {
+        let mut c = SafeCommand::new("incus")?
             .arg("exec")?
             .arg(CADDY_CONTAINER)?
             .arg("--")?;
@@ -160,7 +160,7 @@ impl CaddyHardener {
             c = c.arg(arg)?;
         }
 
-        let out = c.execute().context("lxc exec failed")?;
+        let out = c.execute().context("incus exec failed")?;
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     }
 }

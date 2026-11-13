@@ -76,12 +76,12 @@ impl DnsHardener {
     }
 
     pub async fn status() -> Result<String> {
-        let out = Self::lxc_exec(&["coredns", "--version"]).await?;
+        let out = Self::incus_exec(&["coredns", "--version"]).await?;
         Ok(out)
     }
 
     async fn read_config() -> Result<String> {
-        let out = Self::lxc_exec(&["cat", COREFILE_PATH]).await?;
+        let out = Self::incus_exec(&["cat", COREFILE_PATH]).await?;
         Ok(out)
     }
 
@@ -89,34 +89,34 @@ impl DnsHardener {
         let host_tmp = "/tmp/gb-corefile";
         std::fs::write(host_tmp, content).context("failed to write Corefile to /tmp")?;
 
-        SafeCommand::new("lxc")?
+        SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
             .arg(host_tmp)?
             .arg(format!("{DNS_CONTAINER}{COREFILE_PATH}"))?
             .execute()
-            .context("lxc file push Corefile failed")?;
+            .context("incus file push Corefile failed")?;
 
         Ok(())
     }
 
     async fn reload_coredns(log: &mut String) -> Result<()> {
-        Self::lxc_exec(&["pkill", "-HUP", "coredns"])
+        Self::incus_exec(&["pkill", "-HUP", "coredns"])
             .await
             .context("CoreDNS SIGHUP failed")?;
         log.push_str("CoreDNS reloaded\n");
         Ok(())
     }
 
-    async fn lxc_exec(cmd: &[&str]) -> Result<String> {
-        let mut c = SafeCommand::new("lxc")?
+    async fn incus_exec(cmd: &[&str]) -> Result<String> {
+        let mut c = SafeCommand::new("incus")?
             .arg("exec")?
             .arg(DNS_CONTAINER)?
             .arg("--")?;
         for arg in cmd {
             c = c.arg(arg)?;
         }
-        let out = c.execute().context("lxc exec failed")?;
+        let out = c.execute().context("incus exec failed")?;
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     }
 }

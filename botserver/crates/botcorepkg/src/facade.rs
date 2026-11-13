@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use log::{info, trace, warn};
 use std::collections::HashMap;
 
-use crate::facade_container::{safe_lxc, safe_lxd};
+use crate::facade_container::{safe_incus, safe_incus_admin};
 
 impl PackageManager {
     pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {
@@ -127,7 +127,7 @@ impl PackageManager {
 
     pub fn install_container_only(&self, component_name: &str) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component_name);
-        let _ = safe_lxd(&["init", "--auto"]);
+        let _ = safe_incus_admin(&["init", "--auto"]);
         let images = [
             "ubuntu:24.04",
             "ubuntu:22.04",
@@ -138,7 +138,7 @@ impl PackageManager {
         let mut success = false;
         for image in &images {
             info!("Attempting to create container with image: {}", image);
-            let output = safe_lxc(&[
+            let output = safe_incus(&[
                 "launch", image, &container_name, "-c", "security.privileged=true",
             ]);
             let output = match output {
@@ -152,11 +152,11 @@ impl PackageManager {
             }
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
-            let _ = safe_lxc(&["delete", &container_name, "--force"]);
+            let _ = safe_incus(&["delete", &container_name, "--force"]);
         }
         if !success {
             return Err(anyhow::anyhow!(
-                "LXC container creation failed with all images. Last error: {}",
+                "Incus container creation failed with all images. Last error: {}",
                 last_error
             ));
         }
@@ -206,8 +206,8 @@ impl PackageManager {
 
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let _ = safe_lxc(&["stop", &container_name]);
-        let output = safe_lxc(&["delete", &container_name]);
+        let _ = safe_incus(&["stop", &container_name]);
+        let output = safe_incus(&["delete", &container_name]);
         if let Some(o) = output {
             if !o.status.success() {
                 warn!(
@@ -231,7 +231,7 @@ impl PackageManager {
             }
             InstallMode::Container => {
                 let container_name = format!("{}-{}", self.tenant, component_name);
-                let output = match safe_lxc(&["list", &container_name, "--format=json"]) {
+                let output = match safe_incus(&["list", &container_name, "--format=json"]) {
                     Some(o) => o,
                     None => {
                         log::warn!("Failed to check container status");

@@ -26,7 +26,7 @@ pub(crate) fn desktop_download_allowed() -> bool {
     )
 }
 
-mod safe_lxc;
+mod safe_incus;
 mod install;
 mod install_container;
 mod initialize_vault;
@@ -36,5 +36,5 @@ mod install_binary;
 mod setup_port_forwarding;
 mod collapse_single_subdirectory;
 
-use safe_lxc::*;
+use safe_incus::*;
 use collapse_single_subdirectory::*;

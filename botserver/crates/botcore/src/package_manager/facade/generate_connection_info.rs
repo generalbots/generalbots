@@ -206,8 +206,8 @@ Store credentials in Vault:
     }
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let _ = safe_lxc(&["stop", &container_name]);
-        let output = safe_lxc(&["delete", &container_name]);
+        let _ = safe_incus(&["stop", &container_name]);
+        let output = safe_incus(&["delete", &container_name]);
         if let Some(o) = output {
             if !o.status.success() {
                 warn!(
@@ -236,7 +236,7 @@ Store credentials in Vault:
             }
             InstallMode::Container => {
                 let container_name = format!("{}-{}", self.tenant, component_name);
-                let output = match safe_lxc(&["list", &container_name, "--format=json"]) {
+                let output = match safe_incus(&["list", &container_name, "--format=json"]) {
                     Some(o) => o,
                     None => {
                         log::warn!("Failed to check container status");

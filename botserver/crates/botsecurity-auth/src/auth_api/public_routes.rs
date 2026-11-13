@@ -39,12 +39,12 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     // rejects a caller without a verified token.
     routes.read("/api/i18n/:locale");
 
-    // ── Launcher and integration catalogs ───────────────────────────────────
-    // The desktop launcher renders before login; the handlers serve the app
-    // registry and the built-in provider seeds only (#1342, #1428).
+    // ── Launcher catalog ────────────────────────────────────────────────────
+    // The desktop launcher renders before login; the handler serves the app
+    // registry only (#1342). The integrations catalog stays authenticated: it
+    // exposes provider auth profiles, OAuth flow metadata, credential field
+    // schemas, setup guidance and roadmap status (#2351).
     routes.read("/api/apps/catalog");
-    routes.read("/api/apps/integrations/catalog");
-    routes.read("/api/apps/integrations/catalog/:provider");
 
     // ── Public bot access check ─────────────────────────────────────────────
     // Answers "is this bot public?" before any token exists. Only the exact
@@ -394,6 +394,16 @@ mod tests {
         assert!(!is_public(Method::GET, "/api/bots/access"));
         assert!(is_public(Method::GET, "/api/files/public/abc"));
         assert!(!is_public(Method::GET, "/api/files/public/abc/extra"));
+    }
+
+    #[test]
+    fn the_integrations_catalog_requires_authentication() {
+        // #2351 — the catalog exposes auth profiles, OAuth flow metadata,
+        // credential-field schemas (including secret semantics), setup steps
+        // and roadmap status, so it must never be reachable anonymously.
+        assert!(!is_public(Method::GET, "/api/apps/integrations/catalog"));
+        assert!(!is_public(Method::GET, "/api/apps/integrations/catalog/github"));
+        assert!(!is_public(Method::POST, "/api/apps/integrations/catalog"));
     }
 
     #[test]

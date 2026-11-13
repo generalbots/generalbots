@@ -3,13 +3,36 @@ use axum::Router;
 use log::{error, info};
 use std::net::SocketAddr;
 
-pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
+pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io::Result<()> {
     let stack = botcore::shared::utils::get_stack_path();
     let cert_dir = std::path::PathBuf::from(format!("{}/conf/system/certificates", stack));
     let cert_path = cert_dir.join("api/server.crt");
     let key_path = cert_dir.join("api/server.key");
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    // In single-user desktop/no_security mode the API must not be reachable
+    // from the network. Bind to loopback only and refuse explicit non-loopback
+    // host configuration to avoid exposing an unauthenticated surface.
+    let host = std::env::var("BOTSERVER_HOST").unwrap_or_default();
+    if no_security && !host.is_empty() {
+        let host_trimmed = host.trim();
+        let is_loopback_host = matches!(
+            host_trimmed,
+            "127.0.0.1" | "localhost" | "::1" | "[::1]"
+        );
+        if !is_loopback_host {
+            return Err(std::io::Error::other(format!(
+                "Refusing to start in no_security mode: BOTSERVER_HOST '{}' is not loopback",
+                host_trimmed
+            )));
+        }
+    }
+
+    let ip = if no_security {
+        std::net::IpAddr::from([127, 0, 0, 1])
+    } else {
+        std::net::IpAddr::from([0, 0, 0, 0])
+    };
+    let addr = SocketAddr::new(ip, port);
 
     let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")
         .map(|v| v == "true" || v == "1")
