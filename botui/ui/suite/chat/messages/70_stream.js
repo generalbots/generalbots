@@ -14,6 +14,23 @@ function gbChatStatus(payload) {
 function gbChatStatusText(key, fallback) {
   return window.gbT ? window.gbT(key, fallback) : fallback;
 }
+// #2357 — one render per ChatState.renderInterval at most. The timer is the
+// trailing half of the throttle: a burst that stops mid-interval still paints
+// its last chunk instead of waiting for the next frame (which may never come).
+var streamRenderTimer = null;
+
+function flushStreamingRender() {
+  ChatState.lastRenderTime = Date.now();
+  updateStreaming(ChatState.currentStreamingContent);
+}
+
+function clearStreamRenderTimer() {
+  if (streamRenderTimer) {
+    clearTimeout(streamRenderTimer);
+    streamRenderTimer = null;
+  }
+}
+
 function updateStreaming(content) {
   var el = document.getElementById(ChatState.streamingMessageId);
   if (!el && window.GBChatVirtual && typeof window.GBChatVirtual.ensureById === "function") {
@@ -147,6 +164,7 @@ function processMessage(data) {
       return;
     }
     if (ChatState.isStreaming) {
+      clearStreamRenderTimer();
       finalizeStreaming();
     }
     // The server can emit the same completion more than once (stream end +
@@ -233,8 +251,15 @@ function processMessage(data) {
         ChatState.currentStreamingContent += data.content;
       }
       var now = Date.now();
-      if (now - ChatState.lastRenderTime > ChatState.renderInterval) {
-        updateStreaming(ChatState.currentStreamingContent);
+      var wait = ChatState.renderInterval - (now - ChatState.lastRenderTime);
+      if (wait <= 0) {
+        clearStreamRenderTimer();
+        flushStreamingRender();
+      } else if (!streamRenderTimer) {
+        streamRenderTimer = setTimeout(function () {
+          streamRenderTimer = null;
+          if (ChatState.isStreaming) flushStreamingRender();
+        }, wait);
       }
     }
   }
