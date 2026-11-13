@@ -49,7 +49,7 @@ async function showVersionHistory(path) {
                 + '</div>';
         });
         localVersions.forEach(function(v, i) {
-            var date = new Date(v.timestamp).toLocaleString();
+            var date = gbFormatDateTime(new Date(v.timestamp));
             body += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px dashed #334155;border-radius:8px;margin-bottom:8px;">'
                 + '<div><div style="color:#f8fafc;font-size:14px;">' + escapeHtml(v.label || "Local version") + '</div><div style="color:#64748b;font-size:12px;">' + escapeHtml(date) + ' &middot; ' + formatFileSize(v.size || 0) + ' &middot; this device</div></div>'
                 + '<button onclick="DriveModule.restoreVersion(\'' + escapeJs(path) + '\',' + i + ',\'' + escapeJs(bucket || '') + '\')" style="background:#475569;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'

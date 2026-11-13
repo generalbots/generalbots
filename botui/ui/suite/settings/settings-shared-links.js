@@ -235,7 +235,7 @@
       return;
     }
     var now = new Date();
-    node.textContent = "Checked " + now.toLocaleTimeString();
+    node.textContent = "Checked " + gbFormatTime(now);
   }
 
   function refresh(force) {

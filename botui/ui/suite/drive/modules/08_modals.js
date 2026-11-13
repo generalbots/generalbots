@@ -203,10 +203,10 @@ function showShareLink(result) {
         if (!result.expires_at) {
             status.textContent = "Anyone with this link can download the file until it is revoked (no expiry). " + reach;
         } else if (isExpired(result.expires_at)) {
-            status.textContent = "This link expired on " + new Date(result.expires_at).toLocaleString() + ".";
+            status.textContent = "This link expired on " + gbFormatDateTime(new Date(result.expires_at)) + ".";
         } else {
             status.textContent = "Anyone with this link can download the file until " +
-                new Date(result.expires_at).toLocaleString() + ". Revoke it at any time. " + reach;
+                gbFormatDateTime(new Date(result.expires_at)) + ". Revoke it at any time. " + reach;
         }
     }
     var createBtn = document.getElementById("share-create-btn");

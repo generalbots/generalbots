@@ -169,7 +169,7 @@
                         '<div class="recording-item">' +
                         '<div class="recording-item-info">' +
                         '<div class="recording-item-title">Meeting recording · ' + statusText + '</div>' +
-                        '<div class="recording-item-meta">' + duration + ' · ' + new Date(r.started_at).toLocaleString() + '</div>' +
+                        '<div class="recording-item-meta">' + duration + ' · ' + gbFormatDateTime(new Date(r.started_at)) + '</div>' +
                         '</div>' +
                         '<div class="recording-item-actions">' +
                         (ready

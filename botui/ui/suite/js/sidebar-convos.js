@@ -57,7 +57,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     if (hours < 24) return hours + "h";
     var days = Math.floor(hours / 24);
     if (days < 7) return days + "d";
-    return new Date(iso).toLocaleDateString();
+    return gbFormatDate(new Date(iso));
   };
 
   function currentActiveSession() {

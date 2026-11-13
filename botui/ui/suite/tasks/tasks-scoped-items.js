@@ -123,7 +123,7 @@ function updateActivityMetrics(activity) {
   }
 
   if (activity.tokens_used) {
-    html += `<div class="metric-row"><span class="metric-label">Tokens:</span> <span class="metric-value">${activity.tokens_used.toLocaleString()}</span></div>`;
+    html += `<div class="metric-row"><span class="metric-label">Tokens:</span> <span class="metric-value">${Number(activity.tokens_used).toLocaleString()}</span></div>`;
   }
 
   if (activity.files_created && activity.files_created.length > 0) {

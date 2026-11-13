@@ -258,7 +258,7 @@
       + '<p style="color:#64748b;font-size:12px;margin:0 0 16px;">' + (supported
           ? "The folder is mirrored both ways with the currently open Drive folder. Changed files keep both copies: the Drive revision stays canonical and your local edit is saved next to it as a conflict copy."
           : "This platform does not expose a local folder picker, so folder sync is unavailable. Offline caching and queued uploads keep working.") + '</p>'
-      + '<div id="gb-sync-status" style="color:#94a3b8;font-size:12px;margin-bottom:16px;">' + escapeHtml(syncState.state) + (syncState.lastSync ? " · last sync " + escapeHtml(new Date(syncState.lastSync).toLocaleString()) : "") + '</div>'
+      + '<div id="gb-sync-status" style="color:#94a3b8;font-size:12px;margin-bottom:16px;">' + escapeHtml(syncState.state) + (syncState.lastSync ? " · last sync " + escapeHtml(gbFormatDateTime(new Date(syncState.lastSync))) : "") + '</div>'
       + '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">'
       + '<button type="button" data-sync-action="choose" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:8px 16px;cursor:pointer;"' + (supported ? "" : " disabled") + '>Choose folder</button>'
       + '<button type="button" data-sync-action="sync" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:8px 16px;cursor:pointer;"' + (syncState.folder ? "" : " disabled") + '>Sync now</button>'

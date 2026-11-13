@@ -141,7 +141,7 @@
         ? '<div style="color:#94a3b8;text-align:center;padding:20px;">Nenhum comentário ainda</div>'
         : '<h4 style="margin:0 0 12px 0;font-size:14px;">Comentários (' + arr.length + ')</h4>' + arr.map(c =>
             '<div style="border-left:3px solid ' + (c.resolved ? "#64748b" : "#3b82f6") + ';padding:8px 10px;margin-bottom:8px;background:#0f172a;border-radius:4px;' + (c.resolved ? "opacity:0.6;" : "") + '">' +
-              '<div style="font-size:11px;color:#94a3b8;">' + escapeHtml(c.author) + ' • ' + new Date(c.createdAt).toLocaleString() + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;">' + escapeHtml(c.author) + ' • ' + gbFormatDateTime(new Date(c.createdAt)) + '</div>' +
               '<div style="margin-top:4px;">' + escapeHtml(c.text) + '</div>' +
               (c.replies.length ? '<div style="margin-top:6px;border-top:1px solid #334155;padding-top:6px;">' + c.replies.map(r => '<div style="font-size:11px;color:#cbd5e1;margin-top:4px;"><b>' + escapeHtml(r.author) + ':</b> ' + escapeHtml(r.text) + '</div>').join("") + '</div>' : '') +
               '<div style="margin-top:6px;display:flex;gap:6px;">' +

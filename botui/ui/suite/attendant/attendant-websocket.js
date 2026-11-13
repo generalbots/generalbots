@@ -189,7 +189,7 @@
                         hour: "2-digit",
                         minute: "2-digit",
                     });
-                return date.toLocaleDateString();
+                return gbFormatDate(date);
             }
 
             function formatWaitTime(seconds) {

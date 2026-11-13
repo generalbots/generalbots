@@ -112,7 +112,7 @@
   }
 
   function timeFmt(iso) {
-    try { return new Date(iso).toLocaleString(); } catch (_) { return iso; }
+    try { return gbFormatDateTime(new Date(iso)); } catch (_) { return iso; }
   }
 
   function chips(comment) {

@@ -287,7 +287,7 @@ window.selectScheduler = function (schedulerName) {
       document.getElementById("scheduler-cron").textContent =
         scheduler.cron || "-";
       document.getElementById("scheduler-next").textContent = scheduler.next_run
-        ? `Next run: ${new Date(scheduler.next_run).toLocaleString()}`
+        ? `Next run: ${gbFormatDateTime(new Date(scheduler.next_run))}`
         : "Next run: -";
       document.getElementById("scheduler-file").textContent = scheduler.file
         ? `File: ${scheduler.file}`
@@ -336,7 +336,7 @@ window.selectMonitor = function (monitorName) {
         : "Interval: -";
       document.getElementById("monitor-last-check").textContent =
         monitor.last_check
-          ? `Last check: ${new Date(monitor.last_check).toLocaleString()}`
+          ? `Last check: ${gbFormatDateTime(new Date(monitor.last_check))}`
           : "Last check: -";
       document.getElementById("monitor-last-value").textContent =
         monitor.last_value

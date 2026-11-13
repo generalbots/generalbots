@@ -435,7 +435,7 @@
                         ? window.GBDateTime.now()
                         : {
                               time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                              date: now.toLocaleDateString(),
+                              date: gbFormatDate(now),
                           };
                     if (timeEl) timeEl.textContent = formatted.time;
                     if (dateEl) dateEl.textContent = formatted.date;

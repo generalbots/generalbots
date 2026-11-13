@@ -129,7 +129,7 @@
     updateBadge(current);
 
     if (checkedEl) {
-      checkedEl.textContent = "Loaded at " + new Date().toLocaleTimeString();
+      checkedEl.textContent = "Loaded at " + gbFormatTime(new Date());
     }
 
     applyBtn.addEventListener("click", function () {
@@ -152,7 +152,7 @@
           }
         }
         if (checkedEl) {
-          checkedEl.textContent = "Updated at " + new Date().toLocaleTimeString();
+          checkedEl.textContent = "Updated at " + gbFormatTime(new Date());
         }
       });
     });

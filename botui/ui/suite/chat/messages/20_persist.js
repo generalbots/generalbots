@@ -15,7 +15,7 @@ function formatRelativeTime(ts) {
   var days = Math.floor(hours / 24);
   if (days < 7) return days + "d ago";
   try {
-    return new Date(then).toLocaleDateString();
+    return gbFormatDate(new Date(then));
   } catch (e) {
     return "";
   }
@@ -40,11 +40,11 @@ function attachMessageTimestamp(message, ts) {
     message.appendChild(stamp);
     message.addEventListener("mouseenter", function () {
       stamp.textContent = formatRelativeTime(then);
-      stamp.title = new Date(then).toLocaleString();
+      stamp.title = gbFormatDateTime(new Date(then));
     });
   }
   stamp.textContent = formatRelativeTime(then);
-  stamp.title = new Date(then).toLocaleString();
+  stamp.title = gbFormatDateTime(new Date(then));
 }
 
 function persistLocalMessage(sender, content) {

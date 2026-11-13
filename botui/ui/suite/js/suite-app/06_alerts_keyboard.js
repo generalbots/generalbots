@@ -53,7 +53,7 @@ window.GBAlerts = (function () {
   function add(notification) {
     notifications.unshift({
       ...notification,
-      time: new Date().toLocaleTimeString(),
+      time: gbFormatTime(new Date()),
     });
     updateBadge();
     renderList();

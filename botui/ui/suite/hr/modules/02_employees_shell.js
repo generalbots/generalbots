@@ -104,7 +104,7 @@ async function loadStats() {
     set('hr-stat-reviews', pendingReviews);
     set('hr-stat-turnover', emps.length ? ((emps.filter(e => (e.status || '') === 'terminated').length / emps.length) * 100).toFixed(0) + '%' : '0%');
     set('hrOpenPositions', openReqs);
-    set('hrUpdated', new Date().toLocaleString());
+    set('hrUpdated', gbFormatDateTime(new Date()));
   } catch (e) { /* non-fatal */ }
 }
 

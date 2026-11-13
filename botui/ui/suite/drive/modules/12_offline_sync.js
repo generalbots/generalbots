@@ -156,7 +156,7 @@
     if (button) {
       button.title = "Offline sync: " + syncState.state +
         (syncState.folder ? " (" + syncState.folder + ")" : "") +
-        (syncState.lastSync ? " · last " + new Date(syncState.lastSync).toLocaleString() : "");
+        (syncState.lastSync ? " · last " + gbFormatDateTime(new Date(syncState.lastSync)) : "");
     }
   }
 

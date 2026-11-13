@@ -140,7 +140,7 @@
         
         const start = new Date(evt.start_time);
         const end = new Date(evt.end_time);
-        popup.querySelector('.popup-time').textContent = `${start.toLocaleDateString()} ${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        popup.querySelector('.popup-time').textContent = `${gbFormatDate(start)} ${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
 
         popup.style.left = `${e.clientX + 10}px`;
         popup.style.top = `${e.clientY + 10}px`;

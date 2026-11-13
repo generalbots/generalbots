@@ -307,7 +307,7 @@ function openArtifactPanel(content, sourceEl) {
               ": " +
               saved.name +
               " · " +
-              new Date().toLocaleTimeString();
+              gbFormatTime(new Date());
             sourceEl.appendChild(externalNote);
           }
         });
@@ -363,7 +363,7 @@ function openArtifactPanel(content, sourceEl) {
           note.className = "gb-artifact-saved";
           note.href = "#";
           note.textContent =
-            "Saved to Drive: " + path + " · " + new Date().toLocaleTimeString();
+            "Saved to Drive: " + path + " · " + gbFormatTime(new Date());
           note.addEventListener("click", function (e) {
             e.preventDefault();
             if (window.openDeepLink) window.openDeepLink("drive", { path: path });

@@ -128,7 +128,7 @@
       escapeHtml(ok ? meta.outcome : "Could not record your decision") +
       "</span>" +
       '<span class="gb-consent-outcome-time">' +
-      new Date().toLocaleTimeString() +
+      gbFormatTime(new Date()) +
       "</span></div>";
   }
 

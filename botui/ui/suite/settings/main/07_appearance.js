@@ -220,7 +220,7 @@ function formatDigestDate(value) {
   var date = new Date(value);
   if (isNaN(date.getTime())) return "";
   try {
-    return date.toLocaleString();
+    return gbFormatDateTime(date);
   } catch (e) {
     return date.toISOString();
   }

@@ -106,5 +106,5 @@ function formatRelativeTime(date) {
     if (diffHour < 24) return `${diffHour}h ago`;
     if (diffDay < 7) return `${diffDay}d ago`;
     
-    return past.toLocaleDateString();
+    return gbFormatDate(past);
 }

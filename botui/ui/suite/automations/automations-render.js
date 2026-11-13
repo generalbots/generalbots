@@ -19,7 +19,7 @@ function autoFmtElapsed(startedAt, finishedAt) {
 function autoFmtWhen(value) {
     if (!value) return "";
     const d = new Date(value);
-    return isNaN(d.getTime()) ? "" : d.toLocaleString();
+    return isNaN(d.getTime()) ? "" : gbFormatDateTime(d);
 }
 
 async function loadSchedulesAndRender() {

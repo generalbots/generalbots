@@ -210,7 +210,7 @@ function updateLastSaved() {
             const hours = Math.floor(diff / 3600000);
             text = `Saved ${hours} hour${hours > 1 ? 's' : ''} ago`;
         } else {
-            text = `Saved ${date.toLocaleDateString()}`;
+            text = `Saved ${gbFormatDate(date)}`;
         }
 
         lastSavedEl.textContent = text;

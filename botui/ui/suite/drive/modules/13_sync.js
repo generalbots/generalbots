@@ -117,7 +117,7 @@
           '<span class="drive-sync-schedule">' + esc(schedule) + "</span></div>" +
           '<div class="drive-sync-paths"><code>' + esc(job.local_path) + "</code> → <code>" + esc(job.drive_path) + "</code></div>" +
           '<div class="drive-sync-meta">' +
-          (job.last_run ? "last run " + esc(new Date(job.last_run).toLocaleString()) : "never ran") +
+          (job.last_run ? "last run " + esc(gbFormatDateTime(new Date(job.last_run))) : "never ran") +
           (job.last_duration_ms != null ? " · " + job.last_duration_ms + " ms" : "") +
           (job.last_summary ? " · " + esc(job.last_summary) : "") +
           "</div>" +

@@ -178,7 +178,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             fetch('/api/social/activity').then(function(r){return r.json()}).then(function(list){
                 if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No recent activity</p>'; return; }
                 el.innerHTML = list.map(function(a){
-                    var when = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                    var when = a.created_at ? gbFormatDateTime(new Date(a.created_at)) : '';
                     return '<div class="activity-item"><span class="activity-kind">' + escapeHtml(a.kind) + '</span><span class="activity-summary">' + escapeHtml(a.summary) + '</span><span class="activity-time">' + escapeHtml(when) + '</span></div>';
                 }).join('');
             }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });

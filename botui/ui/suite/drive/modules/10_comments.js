@@ -76,7 +76,7 @@ async function sendPresence(typing) {
 function commentsTime(iso) {
     try {
         const d = new Date(iso);
-        return d.toLocaleString();
+        return gbFormatDateTime(d);
     } catch (e) { return iso; }
 }
 

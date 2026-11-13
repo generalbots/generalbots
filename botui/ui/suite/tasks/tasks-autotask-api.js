@@ -58,7 +58,7 @@
           .map(function (row) {
             var title = row.title || "automation";
             var status = row.status || "pending";
-            var when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
+            var when = row.created_at ? gbFormatDateTime(new Date(row.created_at)) : "";
             return (
               '<div class="autotask-item" data-item-id="' + esc(row.id) + '">' +
               '<span class="autotask-item-status st-' + esc(status) + '">' + esc(status) + "</span>" +

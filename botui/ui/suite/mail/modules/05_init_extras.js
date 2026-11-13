@@ -71,7 +71,7 @@
       .then(function (res) {
         if (res && res.snoozed_count !== undefined) {
           if (typeof window.showNotification === "function") {
-            window.showNotification("Snoozed until " + new Date(res.snooze_until).toLocaleString(), "success");
+            window.showNotification("Snoozed until " + gbFormatDateTime(new Date(res.snooze_until)), "success");
           }
         } else {
           throw new Error("Snooze failed");

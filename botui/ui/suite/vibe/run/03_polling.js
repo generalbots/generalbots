@@ -126,7 +126,7 @@
             line.className = "vibe-runner-log-line";
             line.setAttribute("data-ev-id", e.event_id || "");
             var when = "";
-            try { when = new Date(e.timestamp).toLocaleTimeString(); } catch (ignore) { when = ""; }
+            try { when = gbFormatTime(new Date(e.timestamp)); } catch (ignore) { when = ""; }
             var icon = "•";
             var label = String(e.event_type || "");
             if (label === "tool_call_started") { icon = "⚙️"; label = "running " + (e.tool_name || "tool"); }
