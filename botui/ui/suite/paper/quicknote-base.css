@@ -348,3 +348,8 @@
     max-width: 500px;
     max-height: 85vh;
     overflow: hidden;
+/* #2315 — the sync chip now reports real state. */
+.sync-status[data-state="error"] .status-dot { background: #d9534f; }
+.sync-status[data-state="idle"] .status-dot { background: var(--paper-text-light); }
+.sync-status[data-state="error"] .status-text { color: #d9534f; }
+.sync-status .status-text { font-size: 12px; }

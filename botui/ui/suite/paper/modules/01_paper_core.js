@@ -240,13 +240,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
         }
 
         function insertImage() {
-            const url = prompt("Enter image URL:");
-            if (url) {
-                gbFormat(
-                    "insertHTML",
-                    `<img src="${url}" style="max-width: 100%;">`,
-                );
-            }
+            // #2315 — prompt() is blocked in the desktop shell, so inserting an
+            // image was a silent no-op there. GBModal works in both contexts.
+            GBModal.prompt("Image URL", "", "Insert image", function (url) {
+                if (!url) return;
+                const safe = String(url).replace(/"/g, "&quot;").trim();
+                if (!/^(https?:|data:image\/|\/)/i.test(safe)) {
+                    GBModal.alert("Only http(s), data:image or site-relative URLs are allowed.");
+                    return;
+                }
+                gbFormat("insertHTML", `<img src="${safe}" style="max-width: 100%;">`);
+            });
         }
 
         function openAIPanel(action) {

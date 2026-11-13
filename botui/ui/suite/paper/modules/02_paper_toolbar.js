@@ -43,8 +43,17 @@
                         insertTodo();
                         break;
                     case "link":
-                        const url = prompt("Enter URL:");
-                        if (url) gbFormat("createLink", url);
+                        // #2315 — themed dialog; native prompt() is blocked in
+                        // the desktop shell and made linking a silent no-op.
+                        GBModal.prompt("Link URL", "", "Insert link", function (url) {
+                            if (!url) return;
+                            const safe = String(url).trim();
+                            if (!/^https?:\/\//i.test(safe)) {
+                                GBModal.alert("Links must start with http:// or https://");
+                                return;
+                            }
+                            gbFormat("createLink", safe);
+                        });
                         break;
                     case "image":
                         insertImage();

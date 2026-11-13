@@ -164,7 +164,7 @@ function saveNote() {
 
     saveToHistory(content, timestamp);
 
-    updateSyncStatus('synced');
+    updateSyncStatus('local');
     updateLastSaved();
 }
 
@@ -217,18 +217,35 @@ function updateLastSaved() {
     }
 }
 
+function syncLabel(status) {
+    if (status === 'syncing') return 'Saving…';
+    if (status === 'error') return 'Not saved — retry';
+    if (status === 'local') return 'Saved on this device';
+    return 'Saved';
+}
+
+// #2315 — state used to be thrown away here (`if (!syncStatus) return;` in a
+// function whose only job was to change that element). Now the chip is
+// mounted, labelled and announced.
 function updateSyncStatus(status) {
     if (!syncStatus) return;
+    syncStatus.setAttribute('data-state', status);
+    syncStatus.classList.toggle('syncing', status === 'syncing');
+    const text = syncStatus.querySelector('.status-text');
+    if (text) text.textContent = syncLabel(status);
 }
 
 function clearNote() {
-    if (noteContent.innerText.trim() && !confirm((window.gbT ? window.gbT("paper-clear-confirm", "Are you sure you want to clear all notes?") : "Are you sure you want to clear all notes?"))) {
-        return;
-    }
-
-    noteContent.innerHTML = '';
-    updateStats();
-    saveNote();
+    const message = window.gbT ? window.gbT("paper-clear-confirm", "Clear every note in this document?") : "Clear every note in this document?";
+    const wipe = () => {
+        noteContent.innerHTML = '';
+        updateStats();
+        saveNote();
+    };
+    if (!noteContent.innerText.trim()) { wipe(); return; }
+    // #2315 — destructive bulk action through the themed danger dialog, so it
+    // works in the desktop shell and reads as dangerous.
+    GBModal.confirm(message, "Clear notes", wipe);
 }
 
 function exportNote() {
@@ -246,7 +263,7 @@ function processNotes() {
     const content = noteContent.innerText.trim();
 
     if (!content) {
-        alert((window.gbT ? window.gbT("paper-empty-warning", "Please write some notes first!") : "Please write some notes first!"));
+        GBModal.alert(window.gbT ? window.gbT("paper-empty-warning", "Write some notes first.") : "Write some notes first.");
         return;
     }
 
@@ -411,7 +428,7 @@ function executeAllActions() {
     const checkboxes = document.querySelectorAll('.result-checkbox:checked');
 
     if (checkboxes.length === 0) {
-        alert((window.gbT ? window.gbT("paper-no-actions", "No actions selected!") : "No actions selected!"));
+        GBModal.alert(window.gbT ? window.gbT("paper-no-actions", "No actions selected.") : "No actions selected.");
         return;
     }
 
@@ -420,6 +437,6 @@ function executeAllActions() {
 
     setTimeout(() => {
         updateSyncStatus('synced');
-        alert(`${checkboxes.length} action(s) have been processed successfully!`);
+        GBModal.alert(`${checkboxes.length} action(s) processed.`);
     }, 1500);
 }

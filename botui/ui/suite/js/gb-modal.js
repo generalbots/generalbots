@@ -2,7 +2,7 @@
 /* GB Suite Modal (#1844): in-app replacement for legacy alert/confirm/prompt.
    Uses the desktop WindowManager floating tool windows when available, falling
    back to native dialogs in isolated runs. */
-const GBModal = (() => {
+var GBModal = window.GBModal || (() => {
 
   // #2095 — user-visible strings come from the catalogue; the authored English
   // text is the fallback when the active locale has no entry yet.
