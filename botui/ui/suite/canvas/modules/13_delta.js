@@ -36,6 +36,13 @@
       }
     });
   }
-  if (window.GBDocDelta) window.GBDocDelta.register("canvas", apply);
-  else document.addEventListener("DOMContentLoaded", function () { if (window.GBDocDelta) window.GBDocDelta.register("canvas", apply); });
+  function registerWhenReady(attempt) {
+    if (window.GBDocDelta && typeof window.GBDocDelta.register === "function") {
+      window.GBDocDelta.register("canvas", apply);
+      return;
+    }
+    if ((attempt || 0) >= 20) return;
+    setTimeout(function () { registerWhenReady((attempt || 0) + 1); }, 250);
+  }
+  registerWhenReady(0);
 })();
