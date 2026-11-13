@@ -150,16 +150,24 @@ window.DriveModule = {
 // the shell). #2143 — links emitted by `drive_save` carry `scope=bot` because
 // the saved artifact lives in the bot workspace, not in the caller's personal
 // bucket; without it the folder resolved against `users/{id}/` and rendered
-// empty.
+// empty. #2283 — carry `bucket` explicitly so the path resolves in the right
+// store instead of whatever bucket happens to be selected.
 var __deepParams = window.__gbAppParams__ || {};
 var __deepPath = __deepParams.path;
 var __deepScope = String(__deepParams.scope || "").toLowerCase();
+var __deepBucket = __deepParams.bucket;
 if (__deepPath) {
     var __origInit = init;
     init = async function () {
         await __origInit();
         if (__deepScope === "bot") currentScope = "bot";
-        try { await loadFiles(__deepPath); } catch (e) { /* default listing */ }
+        try {
+            if (__deepBucket) {
+                await loadFiles(__deepPath, __deepBucket);
+            } else {
+                await loadFiles(__deepPath);
+            }
+        } catch (e) { /* default listing */ }
     };
 }
 

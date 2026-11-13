@@ -44,28 +44,59 @@ function notifySteering(message) {
 
 function updateConnectionStatus(status) {
   var statusEl = document.getElementById("connectionStatus");
-  if (!statusEl) return;
-  statusEl.className = "connection-status " + status;
-  var statusText = statusEl.querySelector(".connection-text");
-  if (statusText) {
-    switch (status) {
-      case "connected":
-        statusText.textContent = tr("chat-online", "Connected");
-        statusEl.style.display = "none";
-        if (window.GBAppLifecycle) GBAppLifecycle.setState(null);
-        break;
-      case "disconnected":
-        statusText.textContent = tr("chat-offline", "Disconnected");
-        statusEl.style.display = "flex";
-        if (window.GBAppLifecycle) GBAppLifecycle.setState("error", tr("chat-offline", "Disconnected"));
-        break;
-      case "connecting":
-        statusText.textContent = tr("chat-connecting", "Connecting...");
-        statusEl.style.display = "flex";
-        if (window.GBAppLifecycle) GBAppLifecycle.setState("loading", tr("chat-connecting", "Connecting…"));
-        break;
-    }
+  if (statusEl) {
+    statusEl.className = "connection-status " + status;
   }
+  var statusText = statusEl ? statusEl.querySelector(".connection-text") : null;
+  var label = "";
+  switch (status) {
+    case "connected":
+      label = tr("chat-online", "Connected");
+      if (statusText) statusText.textContent = label;
+      if (statusEl) statusEl.style.display = "none";
+      // #2155 UI-REG-01c: announce the transition so gb-sr-live does not
+      // keep "Connecting…" after the socket is online.
+      if (window.GBAppLifecycle) {
+        GBAppLifecycle.setState(null, label);
+      } else {
+        announceChatStatus(label);
+      }
+      break;
+    case "disconnected":
+      label = tr("chat-offline", "Disconnected");
+      if (statusText) statusText.textContent = label;
+      if (statusEl) statusEl.style.display = "flex";
+      if (window.GBAppLifecycle) {
+        GBAppLifecycle.setState("error", label);
+      } else {
+        announceChatStatus(label);
+      }
+      break;
+    case "connecting":
+      label = tr("chat-connecting", "Connecting...");
+      if (statusText) statusText.textContent = label;
+      if (statusEl) statusEl.style.display = "flex";
+      if (window.GBAppLifecycle) {
+        GBAppLifecycle.setState("loading", label);
+      } else {
+        announceChatStatus(label);
+      }
+      break;
+  }
+}
+
+function announceChatStatus(message) {
+  if (!message) return;
+  var el = document.getElementById("gb-sr-live");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "gb-sr-live";
+    el.className = "gb-sr-status";
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+  }
+  el.textContent = "";
+  el.textContent = message;
 }
 
 function tr(key, fallback) {
@@ -157,6 +188,11 @@ function showBotUnavailable(botName) {
 // socket. The loser stayed open as an orphan while ChatState.ws pointed at a
 // dead one, so the composer kept writing into a closed socket.
 var chatDialSeq = 0;
+var CHAT_CONNECT_TIMEOUT_MS = 12000;
+
+function clearChatConnectTimeout() {
+  if (ChatState.wsConnectTimeout) { clearTimeout(ChatState.wsConnectTimeout); ChatState.wsConnectTimeout = null; }
+}
 
 function connectWebSocket() {
   // A bot that does not exist never gains a socket: redialling only replaced
@@ -166,9 +202,10 @@ function connectWebSocket() {
     return;
   }
   var seq = ++chatDialSeq;
+  clearChatConnectTimeout();
   if (ChatState.ws) {
     // Detach lifecycles first: the superseded socket must not schedule dials.
-    try { ChatState.ws.onclose = null; ChatState.ws.onopen = null; } catch (e) {}
+    try { ChatState.ws.onclose = null; ChatState.ws.onopen = null; ChatState.ws.onerror = null; } catch (e) {}
     try { ChatState.ws.close(); } catch (e) {}
   }
   updateConnectionStatus("connecting");
@@ -199,7 +236,21 @@ function dialChatSocket(seq) {
     (socketToken ? "&access_token=" + encodeURIComponent(socketToken) : "");
 
   var ws = (ChatState.ws = new WebSocket(url));
-  if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
+  if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);
+  clearChatConnectTimeout();
+  ChatState.wsConnectTimeout = setTimeout(function () {
+    ChatState.wsConnectTimeout = null;
+    if (seq !== chatDialSeq || ChatState.ws !== ws) return;
+    if (ws.readyState !== WebSocket.CONNECTING) return;
+    try { ws.onclose = null; ws.onerror = null; } catch (e) {}
+    try { ws.close(); } catch (e) {}
+    ChatState.ws = null;
+    updateConnectionStatus("disconnected");
+    ChatState.reconnectAttempts++;
+    updateConnectionStatus("connecting");
+    setTimeout(connectWebSocket, Math.min(1000 * ChatState.reconnectAttempts, 10000));
+  }, CHAT_CONNECT_TIMEOUT_MS);
+  ChatState.ws.onmessage = function (event) {
     try {
       var data = JSON.parse(event.data);
       // Any frame proves the socket is alive; the send guard in chat-init
@@ -209,60 +260,31 @@ function dialChatSocket(seq) {
       // Server receipt for a chat turn. The send guard in chat-init waits for
       // this instead of "any frame", so a message accepted by the socket but
       // lost in a dying connection is resent instead of silently ignored.
-      if (data.type === "message_received") {
-        if (ChatState.pendingSend) ChatState.pendingSend.acked = true;
-        return;
-      }
+      if (data.type === "message_received") { if (ChatState.pendingSend) ChatState.pendingSend.acked = true; return; }
 
-      if (data.type === "connected") {
-        ChatState.reconnectAttempts = 0;
-        ChatState.currentUserId = data.user_id || ChatState.currentUserId;
-        return;
-      }
+      if (data.type === "connected") { ChatState.reconnectAttempts = 0; ChatState.currentUserId = data.user_id || ChatState.currentUserId; return; }
 
-      if (data.event) {
-        if (data.event === "change_theme") applyThemeData(data.data || {});
-        return;
-      }
+      if (data.event) { if (data.event === "change_theme") applyThemeData(data.data || {}); return; }
 
       if (data.content && typeof data.content === "string") {
         try {
           var contentObj = JSON.parse(data.content);
-          if (contentObj.event === "change_theme") {
-            applyThemeData(contentObj.data || {});
-            return;
-          }
+          if (contentObj.event === "change_theme") { applyThemeData(contentObj.data || {}); return; }
         } catch (e) {}
       }
 
-      if (data.type === "chat_status") {
-        if (typeof setChatStatus === "function") setChatStatus(data.text || "");
-        return;
-      }
+      if (data.type === "chat_status") { if (typeof setChatStatus === "function") setChatStatus(data.text || ""); return; }
       // #2098 — the server accepted our cancel; the turn is over.
       // #2179 — live document deltas streamed over the session WS.
       if (data.event === "gb-doc-delta") {
-        try {
-          // #2179 — delta renderers and the window manager listen on
-          // `document`; dispatching on `window` skipped both.
-          document.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data }));
-        } catch (e) { /* CustomEvent unavailable */ }
+        try { document.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data })); } catch (e) {}
         return;
       }
 
-      if (data.type === "run_cancelled") {
-        if (window.GBTurn) GBTurn.forceHide();
-        return;
-      }
-      if (data.type === "gb.steering_queued") {
-        notifySteering(data.message || "Queued for the next step.");
-        return;
-      }
+      if (data.type === "run_cancelled") { if (window.GBTurn) GBTurn.forceHide(); return; }
+      if (data.type === "gb.steering_queued") { notifySteering(data.message || "Queued for the next step."); return; }
       // #1701 — the queued correction is being applied inside the running turn.
-      if (data.type === "gb.steer") {
-        notifySteering("Steering: " + (data.message || ""));
-        return;
-      }
+      if (data.type === "gb.steer") { notifySteering("Steering: " + (data.message || "")); return; }
       // #2098 — one turn state machine owns the progress element: keepalive
       // frames keep it alive, step/tool frames label it ("Running search…"),
       // and only the completion frame ends the turn. This runs before the
@@ -271,24 +293,9 @@ function dialChatSocket(seq) {
         try { GBTurn.observe(data); } catch (e) { console.warn("[WS] turn state failed:", e); }
       }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
-      if (data.seq) {
-        try {
-          window.dispatchEvent(new CustomEvent("gb-run-frame", { detail: { frame: data } }));
-        } catch (e) { /* CustomEvent unavailable */ }
-      }
-      if (data.type === "run_resume_done") {
-        try {
-          window.dispatchEvent(new CustomEvent("run_resume_done", { detail: data }));
-        } catch (e) { /* CustomEvent unavailable */ }
-      }
-      if (window.RunTimeline) {
-        // #2084 — a timeline/renderer exception here used to abort this whole
-        // handler before the message reached processMessage, so the answer was
-        // received and never drawn. The transcript is the priority.
-        try {
-          window.RunTimeline.handleFrame(data);
-        } catch (e) { console.warn("[WS] run timeline frame failed:", e); }
-      }
+      if (data.seq) { try { window.dispatchEvent(new CustomEvent("gb-run-frame", { detail: { frame: data } })); } catch (e) {} }
+      if (data.type === "run_resume_done") { try { window.dispatchEvent(new CustomEvent("run_resume_done", { detail: data })); } catch (e) {} }
+      if (window.RunTimeline) { try { window.RunTimeline.handleFrame(data); } catch (e) { console.warn("[WS] run timeline frame failed:", e); } }
       // #1669 — trusted catalog surfaces and structured questions.
       if (data.type === "CUSTOM" && data.data && window.SurfaceRenderer) {
         if (data.data.name === "gb.surface") {
@@ -305,18 +312,15 @@ function dialChatSocket(seq) {
           window.GBSubagents.apply(data.data.payload || {});
         }
       }
-      if (window.AgentMode && data.type &&
-        ["thought_process", "terminal_output", "browser_ready", "step_progress", "step_complete", "todo_update", "agent_status", "file_created"].indexOf(data.type) !== -1) {
+      if (window.AgentMode && data.type && ["thought_process", "terminal_output", "browser_ready", "step_progress", "step_complete", "todo_update", "agent_status", "file_created"].indexOf(data.type) !== -1) {
         window.AgentMode.handleMessage(data);
       }
 
-      if (data.css && typeof data.css === 'string' && data.css.length > 0) {
-        var cssId = 'bot-style-' + ChatState.currentBotName;
-        var existing = document.getElementById(cssId);
-        if (!existing) {
-          var styleEl = document.createElement('style');
-          styleEl.id = cssId;
-          styleEl.textContent = data.css;
+      if (data.css && typeof data.css === "string" && data.css.length > 0) {
+        var cssId = "bot-style-" + ChatState.currentBotName;
+        if (!document.getElementById(cssId)) {
+          var styleEl = document.createElement("style");
+          styleEl.id = cssId; styleEl.textContent = data.css;
           document.head.appendChild(styleEl);
           window.__cssInjected = (window.__cssInjected || 0) + 1;
         }
@@ -385,6 +389,7 @@ function dialChatSocket(seq) {
     // and re-arm the loop — the endless 1s connect/close flap seen after
     // chat windows are closed and re-opened (#1288 family).
     if (ChatState.ws !== ws) return;
+    clearChatConnectTimeout();
     updateConnectionStatus("disconnected");
     if (!ChatState.disconnectNotified) {
       notify("Disconnected from chat server", "error");
@@ -402,6 +407,7 @@ function dialChatSocket(seq) {
   ChatState.ws.onopen = function () {
     // Stale socket racing its replacement: ignore its lifecycle entirely.
     if (ChatState.ws !== ws) return;
+    clearChatConnectTimeout();
     ChatState.reconnectAttempts = 0;
     ChatState.disconnectNotified = false;
     // Reset streaming state and reveal the app (the original onopen — its
@@ -457,8 +463,7 @@ function dialChatSocket(seq) {
   };
 
   ChatState.ws.onerror = function () {
+    clearChatConnectTimeout();
     updateConnectionStatus("disconnected");
   };
 }
-
-// cache-bust: 20261110b

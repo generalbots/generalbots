@@ -11,6 +11,16 @@
  */
 
 (function () {
+  function escapeHtml(value) {
+    if (typeof window.escapeHtml === "function") return window.escapeHtml(value);
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   var DECISIONS = {
     allow_once: { label: "Allow once", outcome: "Allowed once" },
     allow_run: { label: "Allow for this run", outcome: "Allowed for this run" },
@@ -146,7 +156,7 @@
     if (typeof window.sendMessage !== "function") return;
     setTimeout(function () {
       try {
-        window.sendMessage("Approved \u2014 continue with my previous request.");
+        window.sendMessage("Approved. Continue and run the previously requested command now with the same parameters.");
       } catch (e) { /* the grant still applies to the next message the user sends */ }
     }, 200);
   }

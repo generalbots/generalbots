@@ -498,7 +498,7 @@
           formula.dispatchEvent(new Event("input", { bubbles: true }));
           formula.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
           reportStep("Cell '" + parsed.ref + "' = " + (step.value || ""), "done");
-          // #2246 (SHEET-03) — a cell step may also carry a fill colour. The
+          // #2246 / #2155 (SHEET-03) — a cell step may carry a fill colour. The
           // sheet colours come from formatSelectedCell (the same path the
           // toolbar uses), so the cell keeps the colour on reload.
           var background = step.background || step.fill_color || step.bg;
@@ -528,38 +528,54 @@
               background = candidate;
             }
           }
-          if (background || foreground) {
+          // Paint style as part of the step contract: wait for the grid and the
+          // format POST so the step only succeeds when the colour is actually
+          // applied (avoids "automation reports done but cell.style is null").
+          var paintStyle = function () {
+            if (!background && !foreground) return Promise.resolve(true);
             var style = {};
             if (background) style.background = background;
             if (foreground) style.color = foreground;
-            // The sheet app registers its grid asynchronously: retry briefly
-            // instead of dropping the colour when the plan outruns the boot.
-            var paint = function (attempt) {
+            var apply = function (attempt) {
               var grid = window.SheetDefaults && window.SheetDefaults.virtualGrid;
               if (!grid || typeof grid.formatSelectedCell !== "function") {
-                if (attempt < 15) {
-                  setTimeout(function () { paint(attempt + 1); }, 200);
+                if (attempt < 20) {
+                  return waitMs(200).then(function () { return apply(attempt + 1); });
                 }
-                return;
+                reportStep(
+                  "Cell '" + parsed.ref + "' style failed — sheet grid not ready",
+                  "warn"
+                );
+                return Promise.resolve(false);
               }
               try {
                 grid.selectedRow = parsed.row;
                 grid.selectedCol = parsed.col;
-                grid.formatSelectedCell(style);
-                reportStep(
-                  "Cell '" + parsed.ref + "' style " + JSON.stringify(style),
-                  "done"
-                );
+                return Promise.resolve(grid.formatSelectedCell(style)).then(function () {
+                  reportStep(
+                    "Cell '" + parsed.ref + "' style " + JSON.stringify(style),
+                    "done"
+                  );
+                  return true;
+                }).catch(function () {
+                  reportStep("Cell '" + parsed.ref + "' style failed", "warn");
+                  return false;
+                });
               } catch (e) {
                 reportStep("Cell '" + parsed.ref + "' style failed", "warn");
+                return Promise.resolve(false);
               }
             };
-            paint(0);
-          }
-          setTimeout(function () {
-            S.focusRing.style.display = "none";
-            resolve(true);
-          }, 500);
+            return apply(0);
+          };
+          // Allow the value commit (keydown Enter) to flush before styling so
+          // update_cell and format do not race on a brand-new cell.
+          waitMs(350).then(paintStyle).then(function (styleOk) {
+            setTimeout(function () {
+              S.focusRing.style.display = "none";
+              resolve(styleOk);
+            }, 200);
+          });
         }, 300);
       });
     });

@@ -217,57 +217,105 @@
     </div>
 </div>
 
+<div id="products-toast" class="products-toast" role="status" aria-live="polite" style="display:none;position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:12px 14px;border-radius:8px;color:#fff;background:#323232;box-shadow:0 4px 12px rgba(0,0,0,.2);font-size:14px;line-height:1.4"></div>
+
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script>
 (function() {
+    var toastTimer;
+    function showProductsToast(message, type) {
+        var el = document.getElementById("products-toast");
+        if (!el) return;
+        el.textContent = message || "Something went wrong";
+        el.style.background = type === "success" ? "#1e7e34" : (type === "info" ? "#2457b2" : "#b42318");
+        el.style.display = "block";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { el.style.display = "none"; }, 4500);
+    }
+
+    function productsErrorMessage(xhr) {
+        if (!xhr) return "Request failed";
+        if (xhr.status === 0) return "Network error. Please check your connection.";
+        try {
+            var data = JSON.parse(xhr.responseText || "{}");
+            if (data && (data.message || data.error || data.detail)) {
+                return String(data.message || data.error || data.detail);
+            }
+        } catch (e) {}
+        var text = (xhr.responseText || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (text && text.length < 180) return text;
+        return "Request failed (" + xhr.status + ")";
+    }
+
+    window.showProductsToast = showProductsToast;
+    window.productsErrorMessage = productsErrorMessage;
+
     // Tab switching
-    document.querySelectorAll('.products-tab').forEach(tab => {
+    document.querySelectorAll('.products-tab').forEach(function(tab) {
         tab.addEventListener('click', function() {
-            document.querySelectorAll('.products-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.products-view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.products-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.products-view').forEach(function(v) { v.classList.remove('active'); });
             this.classList.add('active');
-            const view = this.dataset.view;
-            document.getElementById(`products-${view}-view`).classList.add('active');
+            var view = this.dataset.view;
+            var target = document.getElementById('products-' + view + '-view');
+            if (target) target.classList.add('active');
         });
     });
 
     // View toggle (grid/list)
-    document.querySelectorAll('.view-btn').forEach(btn => {
+    document.querySelectorAll('.view-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.view-btn').forEach(function(b) { b.classList.remove('active'); });
             this.classList.add('active');
-            const grid = document.getElementById('products-grid');
-            if (this.dataset.view === 'list') {
-                grid.classList.add('list-view');
-            } else {
-                grid.classList.remove('list-view');
-            }
+            var grid = document.getElementById('products-grid');
+            if (!grid) return;
+            if (this.dataset.view === 'list') grid.classList.add('list-view');
+            else grid.classList.remove('list-view');
         });
     });
 
     // New Product button
-    document.getElementById('products-new-btn').addEventListener('click', function() {
-        htmx.ajax('GET', '/suite/products/partials/product-form.html', '#products-modal-content').then(() => {
-            openProductsModal();
+    var newBtn = document.getElementById('products-new-btn');
+    if (newBtn) {
+        newBtn.addEventListener('click', function() {
+            htmx.ajax('GET', '/suite/products/partials/product-form.html', {target: '#products-modal-content', swap: 'innerHTML'}).then(function() {
+                openProductsModal();
+            }).catch(function() {
+                showProductsToast('Could not load product form');
+            });
         });
-    });
+    }
 
     // Modal functions
     window.openProductsModal = function() {
-        document.getElementById('products-modal').classList.add('open');
+        var modal = document.getElementById('products-modal');
+        if (modal) modal.classList.add('open');
     };
 
     window.closeProductsModal = function() {
-        document.getElementById('products-modal').classList.remove('open');
+        var modal = document.getElementById('products-modal');
+        if (modal) modal.classList.remove('open');
     };
 
-    // Keyboard shortcut: Escape to close modal
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeProductsModal();
+        if (e.key === 'Escape') closeProductsModal();
+    });
+
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        var xhr = evt.detail && evt.detail.xhr;
+        showProductsToast(productsErrorMessage(xhr));
+    });
+    document.body.addEventListener('htmx:sendError', function() {
+        showProductsToast('Network error. Please try again.');
+    });
+    document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        var status = evt.detail.xhr ? evt.detail.xhr.status : 0;
+        if (status >= 400) {
+            evt.detail.shouldSwap = false;
+            evt.detail.isError = false;
         }
     });
 
-    // Initialize i18n if available
     if (window.i18n && window.i18n.translatePage) {
         window.i18n.translatePage();
     }

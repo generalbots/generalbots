@@ -22,12 +22,17 @@
     // A delta that lands before notepad.js finishes booting must survive the
     // initial seed (the boot pass used to overwrite it with the stored note).
     if("value" in ed) ed.dataset.gbDelta="1";
+    var changed = false;
     (payload.ops||[]).forEach(function(op){
-      if(op.op==="clear") { if("value" in ed) ed.value=""; else ed.textContent=""; }
-      if(op.op==="append_text") { var t=op.text||""; if("value" in ed) ed.value+=t; else ed.textContent+=t; }
-      if(op.op==="patch_text" && op.text!=null) { if("value" in ed) ed.value=op.text; else ed.textContent=op.text; }
-      if(op.op==="fill") { var t=op.text!=null?op.text:(typeof op.value==="string"?op.value:""); if(t && "value" in ed) ed.value=String(t); }
+      if(op.op==="clear") { if("value" in ed) ed.value=""; else ed.textContent=""; changed = true; }
+      if(op.op==="append_text") { var t=op.text||""; if("value" in ed) ed.value+=t; else ed.textContent+=t; changed = true; }
+      if(op.op==="patch_text" && op.text!=null) { if("value" in ed) ed.value=op.text; else ed.textContent=op.text; changed = true; }
+      if(op.op==="fill") { var t=op.text!=null?op.text:(typeof op.value==="string"?op.value:""); if(t && "value" in ed) { ed.value=String(t); changed = true; } }
     });
+    // Persist through notepad.js autosave (it listens for input events).
+    if (changed) {
+      try { ed.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+    }
   }
   registerWhenReady(0);
   // Standalone fallback only: with GBDocDelta present, register() already

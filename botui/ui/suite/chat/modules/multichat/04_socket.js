@@ -270,26 +270,38 @@
       t.streamingContent = (t.streamingContent || "") + (data.content || "");
       // Active + mounted: live-stream into the visible pane (Claude-Code-
       // style parallel agents must stream in their own tab, not appear all
-      // at once on completion).
-      var activeMounted = t.id === MC.activeId && t.pane &&
-        MC.q("messages") && MC.q("messages").__mcTabId === t.id;
+      // at once on completion). The canonical #messages is the pane's inner
+      // <main> while mounted; __mcTabId lives on the outer .chat-pane div, so
+      // compare the mounted element to this tab's own message container.
+      var mountedMsgs = MC.q("messages");
+      var paneMsgs = t.pane ? t.pane.querySelector(".chat-pane-messages") : null;
+      var activeMounted = t.id === MC.activeId && !!mountedMsgs && !!paneMsgs && mountedMsgs === paneMsgs;
       if (activeMounted) {
-        if (!t.streamingEl || !t.streamingEl.nodeType) {
-          var holder = t.pane.querySelector(".chat-pane-messages");
-          if (holder) {
-            var div = document.createElement("div");
-            div.className = "message bot";
-            div.innerHTML = '<div class="message-content bot-message"></div>';
-            holder.appendChild(div);
-            t.streamingEl = div;
-          }
+        if (!t.streamingEl || !t.streamingEl.nodeType || !t.streamingEl.parentNode) {
+          var div = document.createElement("div");
+          div.className = "message bot";
+          div.innerHTML = '<div class="message-content bot-message"></div>';
+          paneMsgs.appendChild(div);
+          t.streamingEl = div;
         }
         if (t.streamingEl && t.streamingEl.nodeType) {
           var body = t.streamingEl.querySelector(".message-content");
           if (body) body.textContent = t.streamingContent;
-          var msgsEl = t.pane.querySelector(".chat-pane-messages");
-          if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+          paneMsgs.scrollTop = paneMsgs.scrollHeight;
         }
+      } else if (t.pane && paneMsgs) {
+        // Keep the tab's own pane DOM in sync while it is in the background so
+        // switching back never reveals a blank/stale view (UI-REG-03). The pane
+        // may be detached; DOM updates are safe and preserved across mounts.
+        if (!t.streamingEl || !t.streamingEl.nodeType || !t.streamingEl.parentNode) {
+          var bgDiv = document.createElement("div");
+          bgDiv.className = "message bot";
+          bgDiv.innerHTML = '<div class="message-content bot-message"></div>';
+          paneMsgs.appendChild(bgDiv);
+          t.streamingEl = bgDiv;
+        }
+        var bgBody = t.streamingEl.querySelector(".message-content");
+        if (bgBody) bgBody.textContent = t.streamingContent;
       } else {
         t.streamingEl = t.streamingEl || { placeholder: true };
       }

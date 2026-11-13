@@ -1,5 +1,5 @@
 <!-- Product Form - Products Partial -->
-<form class="product-form" hx-post="/api/products/items" hx-target="#products-grid" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+<form class="product-form" hx-post="/api/products/items" hx-ext="json-enc" hx-swap="none" hx-disabled-elt="find button[type='submit']" hx-on::after-request="var xhr=event.detail.xhr; if(event.detail.successful){ if(window.showProductsToast){showProductsToast('Product created','success');} closeProductsModal(); htmx.ajax('GET','/api/ui/products/items',{target:'#products-grid',swap:'innerHTML'}); htmx.ajax('GET','/api/ui/products/stats/total-products',{target:'[hx-get=&quot;/api/ui/products/stats/total-products&quot;]',swap:'innerHTML'}); htmx.ajax('GET','/api/ui/products/stats/active',{target:'[hx-get=&quot;/api/ui/products/stats/active&quot;]',swap:'innerHTML'}); } else { if(window.showProductsToast){showProductsToast(window.productsErrorMessage?productsErrorMessage(xhr):'Could not save product');} }">
     <div class="product-form-header">
         <h2 class="product-form-title" data-i18n="products-new-product">New Product</h2>
         <button type="button" class="form-close" onclick="closeProductsModal()">
@@ -28,24 +28,24 @@
     <div class="form-row">
         <div class="form-group">
             <label class="form-label" data-i18n="products-name">Product Name *</label>
-            <input type="text" name="name" class="form-input" required placeholder="Enter product name">
+            <input type="text" id="product-name" name="name" class="form-input" required placeholder="Enter product name">
         </div>
         <div class="form-group">
             <label class="form-label" data-i18n="products-sku">SKU</label>
-            <input type="text" name="sku" class="form-input" placeholder="PRD-001">
+            <input type="text" id="product-sku" name="sku" class="form-input" placeholder="PRD-001">
         </div>
     </div>
 
     <div class="form-group">
         <label class="form-label" data-i18n="products-description">Description</label>
-        <textarea name="description" class="form-textarea" rows="3" placeholder="Product description..."></textarea>
+        <textarea id="product-description" name="description" class="form-textarea" rows="3" placeholder="Product description..."></textarea>
     </div>
 
     <!-- Pricing -->
     <div class="form-row">
         <div class="form-group">
             <label class="form-label" data-i18n="products-price">Price *</label>
-            <input type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
+            <input type="number" id="product-price" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
         </div>
         <div class="form-group">
             <label class="form-label" data-i18n="products-cost">Cost</label>
@@ -56,8 +56,8 @@
     <!-- Category & Type -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="products-category">Category *</label>
-            <select name="category" class="form-select" required>
+            <label class="form-label" data-i18n="products-category">Category</label>
+            <select name="category" class="form-select">
                 <option value="" data-i18n="products-select-category">Select category...</option>
                 <option value="software" data-i18n="products-cat-software">Software</option>
                 <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>

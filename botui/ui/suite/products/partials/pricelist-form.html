@@ -1,5 +1,5 @@
 <!-- Price List Form - Products Partial -->
-<form class="product-form" hx-post="/api/products/pricelists" hx-target="#products-modal-content" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+<form class="product-form" hx-post="/api/products/pricelists" hx-ext="json-enc" hx-swap="none" hx-disabled-elt="find button[type='submit']" hx-on::after-request="var xhr=event.detail.xhr; if(event.detail.successful){ if(window.showProductsToast){showProductsToast('Price list saved','success');} closeProductsModal(); htmx.ajax('GET','/api/ui/products/pricelists',{target:'#pricelists-table-body',swap:'innerHTML'}); } else { if(window.showProductsToast){showProductsToast(window.productsErrorMessage?productsErrorMessage(xhr):'Could not save price list');} }">
     <div class="product-form-header">
         <h2 class="product-form-title" data-i18n="products-new-pricelist">New Price List</h2>
         <button type="button" class="form-close" onclick="closeProductsModal()">

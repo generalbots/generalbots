@@ -59,6 +59,11 @@
         el.setAttribute("aria-live", "polite");
         document.body.appendChild(el);
       }
+      // #2155 UI-REG-01c: clear before setting so polite live regions pick up
+      // repeated/transition text and stale "Connecting…" cannot linger in DOM.
+      if (el.textContent !== message) {
+        el.textContent = "";
+      }
       el.textContent = message;
     },
     setState: function (stateName, message) {
@@ -71,6 +76,16 @@
         }
         var msgEl = roots[i].querySelector(".gb-state.is-active .gb-state-msg");
         if (msgEl && message !== undefined) msgEl.textContent = message;
+        // Clear/refresh static loading placeholders when leaving loading state
+        // so stale "Connecting…" text does not persist in app state regions.
+        if (!stateName && message !== undefined) {
+          var loadingMsgs = roots[i].querySelectorAll(
+            ".gb-state-loading .gb-state-msg, .gb-state.is-loading .gb-state-msg"
+          );
+          for (var j = 0; j < loadingMsgs.length; j++) {
+            loadingMsgs[j].textContent = message;
+          }
+        }
       }
       if (message) window.GBAppLifecycle.announce(message);
     },
