@@ -70,6 +70,17 @@ function updateStreaming(content) {
   parsed = renderMentionInMessage(parsed);
   if (typeof renderDeepLinks === "function") parsed = renderDeepLinks(parsed);
   if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
+  // #2359 — `#messages` is role="log" aria-live="polite"; replacing this
+  // bubble's innerHTML on every render makes assistive tech re-announce the
+  // whole accumulated answer each tick. The in-progress bubble stays out of the
+  // live region (`aria-hidden`) and the region reports `aria-busy`; the single
+  // insertion of the completed bubble is then the one announcement.
+  if (el) {
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("aria-busy", "true");
+  }
+  var log = document.getElementById("messages");
+  if (log) log.setAttribute("aria-busy", "true");
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
   // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
@@ -109,6 +120,8 @@ function finalizeStreaming() {
       }
     } catch (e) {}
   }
+  var transcript = document.getElementById("messages");
+  if (transcript) transcript.removeAttribute("aria-busy");
   ChatState.streamingMessageId = null;
   ChatState.currentStreamingContent = "";
   ChatState.currentReasoning = "";
