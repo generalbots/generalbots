@@ -40,7 +40,8 @@ pub async fn search_files(
     // #1638 — "search everywhere" means every bucket this caller may address,
     // never another tenant's. Without `all_buckets` the old single-bucket
     // behaviour is preserved for callers that ask for it explicitly.
-    let mut buckets: Vec<String> = if params.all_buckets.unwrap_or(false) {
+    let search_all = params.all_buckets.unwrap_or(false);
+    let mut buckets: Vec<String> = if search_all {
         super::cached_quota::allowed_buckets_for(&state, &user)
     } else {
         vec![current_bucket.clone()]
@@ -49,12 +50,22 @@ pub async fn search_files(
     let mut seen_buckets = std::collections::HashSet::new();
     buckets.retain(|bucket| seen_buckets.insert(bucket.clone()));
 
+    // Global "search everywhere" must find files across the user's allowed
+    // buckets (including bot gbdrive conversation artifacts saved by the VM),
+    // so do not restrict listing to the scope prefix in that mode. Scoped/single-
+    // bucket search keeps the existing prefix behavior.
+    let list_prefix: Option<&str> = if search_all || prefix.is_empty() {
+        None
+    } else {
+        Some(&prefix)
+    };
+
     let search_content = params.content.unwrap_or(true);
     let mut filtered: Vec<FileListItem> = Vec::new();
     let mut content_scanned = 0usize;
 
     for bucket in &buckets {
-        let keys = match drive.list_objects(bucket, Some(&prefix)).await {
+        let keys = match drive.list_objects(bucket, list_prefix).await {
             Ok(keys) => keys,
             Err(e) => {
                 warn!("search: listing {bucket} failed: {e}");
