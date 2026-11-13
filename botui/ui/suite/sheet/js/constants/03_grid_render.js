@@ -194,6 +194,72 @@
     return true;
   };
 
+  // Conditional-format rules and number-format colour sections ([Red], [Green],
+  // …) are carried by the cell but were never applied during paint, so a
+  // "negative red, positive green" cash-flow stayed the default white (#2260).
+  function colorNameToHex(name) {
+    var map = { red: "#DC2626", green: "#16A34A", blue: "#2563EB",
+      yellow: "#CA8A04", magenta: "#C026D3", cyan: "#0891B2",
+      white: "#FFFFFF", black: "#000000" };
+    return map[String(name || "").toLowerCase()] || null;
+  }
+
+  function matchesCondition(rule, num, text) {
+    var condition = String(rule.condition || "").trim();
+    if (!condition) return false;
+    var m = condition.match(/^(>=|<=|<>|>|<|=)\s*(-?\d+(?:\.\d+)?)$/);
+    if (m && num != null && !isNaN(num)) {
+      var rhs = Number(m[2]);
+      switch (m[1]) {
+        case ">": return num > rhs;
+        case "<": return num < rhs;
+        case ">=": return num >= rhs;
+        case "<=": return num <= rhs;
+        case "=": return num === rhs;
+        case "<>": return num !== rhs;
+      }
+    }
+    // "between a and b"
+    var bm = condition.match(/^between\s+(-?\d+(?:\.\d+)?)\s+and\s+(-?\d+(?:\.\d+)?)$/i);
+    if (bm && num != null && !isNaN(num)) {
+      return num >= Number(bm[1]) && num <= Number(bm[2]);
+    }
+    // equality on text
+    return String(text).trim().toLowerCase() === condition.toLowerCase();
+  }
+
+  VirtualGrid.conditionalStyleFor = function (row, col, cellData) {
+    var sheet = window.__LOADED_SHEET;
+    var ws = sheet && sheet.worksheets && sheet.worksheets[D.WORKSHEET_INDEX];
+    var rules = ws && ws.conditional_formats;
+    if (!rules || !rules.length) return null;
+    var value = cellData && cellData.value != null ? cellData.value : "";
+    var num = (cellData && cellData.typed && typeof cellData.typed.as_number === "function")
+      ? cellData.typed.as_number() : (value.trim() === "" ? null : Number(value));
+    for (var i = 0; i < rules.length; i++) {
+      var rule = rules[i];
+      if (row < rule.start_row || row > rule.end_row || col < rule.start_col || col > rule.end_col) continue;
+      if (matchesCondition(rule, num, value)) return rule.style || null;
+    }
+    return null;
+  };
+
+  VirtualGrid.formatColorFor = function (cellData, value) {
+    if (!cellData || !cellData.format) return null;
+    var sections = String(cellData.format).split(";");
+    var num = (cellData.typed && typeof cellData.typed.as_number === "function")
+      ? cellData.typed.as_number() : Number(value);
+    var idx = 0;
+    if (!isNaN(num)) {
+      if (num < 0 && sections.length > 1) idx = 1;
+      else if (num === 0 && sections.length > 2) idx = 2;
+    }
+    var section = sections[idx] || sections[0] || "";
+    var m = /\[(Red|Green|Blue|Yellow|Magenta|Cyan|White|Black)\]/i.exec(section);
+    if (!m) return null;
+    return colorNameToHex(m[1]);
+  };
+
   VirtualGrid.renderRow = function (row) {
     const cols = this.visibleColRange();
     for (let c = cols.start; c < cols.end; c++) {
@@ -223,6 +289,10 @@
       node.style.color = "var(--sheet-fg, var(--sheet-fg, #f8fafc))";
       node.style.backgroundColor = "var(--sheet-bg, var(--sheet-bg, #0f172a))";
       this.applyCellStyle(node, cellData);
+      var condStyle = this.conditionalStyleFor(row, c, cellData);
+      if (condStyle) this.applyCellStyle(node, { style: condStyle });
+      var fmtColor = this.formatColorFor(cellData, value);
+      if (fmtColor) node.style.color = fmtColor;
       if (this.editingCell !== node) {
         node.contentEditable = "false";
         node.style.outline = "none";
