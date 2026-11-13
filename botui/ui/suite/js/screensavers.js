@@ -281,9 +281,41 @@
       removeEventListener("resize", fit);
     };
 
-    ["mousemove", "mousedown", "keydown", "touchstart", "wheel"].forEach(function (ev) {
+    // Dismissing the overlay used to consume the click: `stop` removed it on
+    // `mousedown`, so the following `mouseup`/`click` had no target and the
+    // app never saw the first interaction (#2155 UI-REG-02: 0 click events
+    // after the overlay dismissed). The overlay now forwards the dismissing
+    // press to whatever sits under the cursor.
+    function dismissAndForward(event) {
+      var x = event.clientX;
+      var y = event.clientY;
+      var pointer = event.type === "mousedown" || event.type === "touchstart";
+      stop();
+      if (!pointer) return;
+      var forward = function (upEvent) {
+        document.removeEventListener("mouseup", forward, true);
+        document.removeEventListener("touchend", forward, true);
+        var px = typeof upEvent.clientX === "number" ? upEvent.clientX : x;
+        var py = typeof upEvent.clientY === "number" ? upEvent.clientY : y;
+        var target = document.elementFromPoint(px, py);
+        if (!target) return;
+        target.dispatchEvent(new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          clientX: px,
+          clientY: py,
+          view: window,
+        }));
+      };
+      document.addEventListener("mouseup", forward, true);
+      document.addEventListener("touchend", forward, true);
+    }
+
+    ["mousemove", "keydown", "wheel"].forEach(function (ev) {
       overlay.addEventListener(ev, stop, { once: true });
     });
+    overlay.addEventListener("mousedown", dismissAndForward, { once: true });
+    overlay.addEventListener("touchstart", dismissAndForward, { once: true });
   }
 
   function stop() {

@@ -181,9 +181,17 @@
   };
 
   function clickableText(el) {
-    return normalize(
-      el.textContent || el.value || el.getAttribute("aria-label") || el.title || ""
-    );
+    // Whitespace-only textContent (newlines from an SVG icon) is truthy, so the
+    // || chain stopped there and every icon-only button — title="Merge Cells",
+    // no aria-label, only an <svg> child — became invisible to findClickable
+    // (#2155: "Click 'Merge cells' — element not found").
+    var text = normalize(el.textContent || "");
+    if (text) return text;
+    var value = normalize(el.value || "");
+    if (value) return value;
+    var aria = normalize(el.getAttribute("aria-label") || "");
+    if (aria) return aria;
+    return normalize(el.title || "");
   }
 
   function clickTargets(label) {
