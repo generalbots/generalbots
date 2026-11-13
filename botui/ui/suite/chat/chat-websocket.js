@@ -363,8 +363,11 @@ function dialChatSocket(seq) {
         // that carries no content (thinking, tool boundary, retry) must keep
         // the progress element, and only the completion frame ends the turn.
         if (window.GBTurn) GBTurn.touch();
-        var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
-        console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
+        // #2351 — never log reply text (it is user data) in production; keep
+        // the frame trace behind an explicit debug flag instead.
+        if (window.__GB_DEBUG_CHAT_WS__) {
+          console.debug("[WS] frame complete=" + data.is_complete + " len=" + (data.content || "").length);
+        }
         processMessage(data);
       }
 

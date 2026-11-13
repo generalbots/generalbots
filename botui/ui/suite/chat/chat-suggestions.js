@@ -14,17 +14,13 @@ function renderSuggestions(suggestions, targetEl) {
 
 chip.onclick = (function (sugg) {
 return function () {
-console.log("[SUGGESTION] Clicked:", sugg.text, "Action:", sugg.action);
 if (sugg.action) {
 try {
 var actionData = typeof sugg.action === "string"
 ? JSON.parse(sugg.action)
 : sugg.action;
 
-console.log("[SUGGESTION] Parsed action:", actionData);
-
 if (actionData.type === "invoke_tool") {
-console.log("[SUGGESTION] Invoking tool:", actionData.tool);
 // TOOL_EXEC (message_type 6) only carries the tool name; a tool that
 // declares parameters needs a normal turn so the model can ask for them.
 if (actionData.prompt_for_params ||
@@ -46,11 +42,8 @@ active_switchers: typeof activeSwitcherIds === "function"
   : Array.from(ChatState.activeSwitchers || []),
 timestamp: new Date().toISOString(),
 };
-console.log("[SUGGESTION] Sending via WS:", msg);
 ChatState.ws.send(JSON.stringify(msg));
-console.log("[SUGGESTION] Sent successfully");
 } else {
-console.log("[SUGGESTION] WS not available, fallback to sendMessage");
 // Fallback: send as regular message if WS not available
 window.sendMessage(sugg.text);
 }
