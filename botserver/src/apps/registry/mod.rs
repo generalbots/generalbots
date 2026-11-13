@@ -224,6 +224,7 @@ mod launcher_split_guard_tests {
         "calculator",
         "browser",
         "notes",
+        "notepad",
         "photos",
         "timer",
         "weather",

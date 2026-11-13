@@ -90,6 +90,7 @@ pub const OWNERSHIP: &[(&str, &str, AppStatus)] = &[
     ("minutes", "office", AppStatus::Preview),
     ("monitoring", "platform", AppStatus::Preview),
     ("notes", "desktop", AppStatus::Supported),
+    ("notepad", "office", AppStatus::Supported),
     ("o365", "office", AppStatus::Preview),
     ("paper", "office", AppStatus::Supported),
     ("people", "business", AppStatus::Preview),
