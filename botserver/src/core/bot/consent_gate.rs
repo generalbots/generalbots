@@ -59,6 +59,20 @@ pub async fn check_with_context(
             card_html: None,
         };
     };
+    // An "Allow once" click is a one-shot handoff: consume it before the
+    // grant lookup, otherwise the model's retry raised a fresh prompt and the
+    // approved call never ran (#2203).
+    if botconsent::enforce::take_approved_match(service, user_id, app_id, action_class)
+        .await
+        .is_some()
+    {
+        return GateOutcome {
+            allowed: true,
+            request_id: None,
+            pending_request: None,
+            card_html: None,
+        };
+    }
     let context = botconsent::enforce::ConsentContext {
         thread_id,
         run_id,

@@ -16,7 +16,7 @@ mod service;
 mod tests;
 
 pub use authorize::{authorize, authorize_with_context};
-pub use resolve::{resolve, take_pending_approved};
+pub use resolve::{resolve, take_approved_match, take_pending_approved};
 pub use service::{
     ConsentContext, ConsentDecision, ConsentService, PendingMap, PendingRequest, ResolvedOutcome,
     PENDING_TTL_SECS,

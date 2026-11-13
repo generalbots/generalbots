@@ -323,12 +323,50 @@
     document.addEventListener("DOMContentLoaded", function () { installHookWhenReady(0); });
   }
 
+  // Render-path independent sweep. Wrapping `window.addMessage` is fragile:
+  // the chat reassigns that global from several modules (citations,
+  // multichat) and history replay batches through a DocumentFragment, so a
+  // marker could still reach the bubble as raw text (#2194). The observer
+  // watches the transcript itself, so every path ends up with a real card.
+  function renderMessageMarker(msgEl) {
+    if (!msgEl || msgEl.dataset.gbConsentDone === "1") return;
+    var body = msgEl.querySelector(".message-content") || msgEl;
+    var text = body.textContent || "";
+    if (text.indexOf(MARKER) === -1) return;
+    msgEl.dataset.gbConsentDone = "1";
+    var req = decodeMarker(text);
+    var lead = window.GBConsentStrip(text);
+    body.innerHTML = lead ? '<div class="gb-message-text">' + escapeHtml(lead) + "</div>" : "";
+    if (req) body.appendChild(buildCard(req));
+  }
+
+  function sweepConsentMarkers() {
+    var nodes = document.querySelectorAll("#messages .message, .chat-messages .message");
+    for (var i = 0; i < nodes.length; i++) renderMessageMarker(nodes[i]);
+  }
+
+  function observeConsentMarkers() {
+    sweepConsentMarkers();
+    if (typeof window.MutationObserver !== "function") return;
+    var scheduled = null;
+    var observer = new MutationObserver(function () {
+      if (scheduled) return;
+      scheduled = setTimeout(function () {
+        scheduled = null;
+        sweepConsentMarkers();
+      }, 120);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   // Revive unresolved cards once the messages pane exists.
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
+      observeConsentMarkers();
       setTimeout(revivePending, 600);
     });
   } else {
+    observeConsentMarkers();
     setTimeout(revivePending, 600);
   }
 })();

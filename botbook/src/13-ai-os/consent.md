@@ -11,6 +11,12 @@ to remote channels). Decisions are **Allow once**, **Always allow** or **Deny**;
 every decision is audited (`consent_audit`). Grants can be reviewed and revoked
 in Settings.
 
+**Allow once** is a one-shot handoff, not a stored grant. The decision lands in
+an in-memory approved map, and the gate consumes the matching approval
+(`take_approved_match`) before it looks for a grant, so the assistant's retry
+runs exactly once and the next identical request prompts again. A destructive
+class always prompts, even when a broader grant exists.
+
 Enforcement points: the chat command path (`__api_call__`) and the api/ui
 loopback executor (classified by HTTP method). Manual use of the applications
 is never gated.

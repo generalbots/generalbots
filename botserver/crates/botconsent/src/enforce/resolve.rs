@@ -47,9 +47,19 @@ pub async fn resolve(
 ) -> Result<ResolvedOutcome, String> {
     let outcome = {
         let mut pend = state.pending.lock().await;
+        // The chat gate keys the request by the session user, while the HTTP
+        // route resolves the caller from the JWT / login session; the two
+        // derivations can differ for the same person, which made every click
+        // answer "unknown consent request" (#2203). The request id is the
+        // unguessable capability and is only delivered to that conversation,
+        // so a mismatch is recorded and the decision still applies.
         if let Some((req, _)) = pend.get(request_id) {
             if req.user_id != user_id {
-                return Err(format!("unknown consent request '{request_id}'"));
+                tracing::warn!(
+                    "consent: resolving request {request_id} for a different user id ({} vs {}); accepting by request-id capability",
+                    user_id,
+                    req.user_id
+                );
             }
         }
         let mut appr = state.approved_once.lock().await;
@@ -99,6 +109,30 @@ pub async fn resolve(
     }
 
     Ok(outcome)
+}
+
+/// Executor handoff for `allow_once` when the caller does not know the
+/// request id (the chat gate re-checks on the model's retry): removes the
+/// first approval matching this `(user, app, action_class)` so the gated
+/// operation runs exactly once. Without this an "Allow once" click was
+/// stored and never consumed, so every retry prompted again (#2203).
+pub async fn take_approved_match(
+    state: &Arc<ConsentService>,
+    user_id: Uuid,
+    app_id: &str,
+    action_class: &str,
+) -> Option<PendingRequest> {
+    let mut appr = state.approved_once.lock().await;
+    sweep_maps(&mut HashMap::new(), &mut appr, Instant::now());
+    let key = appr
+        .iter()
+        .find(|(_, (req, _))| {
+            req.user_id == user_id
+                && req.app_id == app_id
+                && req.action_class == action_class
+        })
+        .map(|(key, _)| key.clone());
+    key.and_then(|key| appr.remove(&key).map(|(req, _)| req))
 }
 
 /// Executor handoff for `allow_once`: removes and returns the approved
