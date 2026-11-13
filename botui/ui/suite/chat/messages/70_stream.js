@@ -31,6 +31,12 @@ function updateStreaming(content) {
     window.GBLiveArtifact.lastBlock(content))
     ? stripLiveArtifactBlock(content)
     : content;
+  // A consent prompt streams through this preview before the completion
+  // frame renders the card; the raw marker must never be visible, not even
+  // for one chunk (#2194).
+  if (typeof window.GBConsentStrip === "function") {
+    previewContent = window.GBConsentStrip(previewContent);
+  }
   var cleanContent = stripMarkdownBlocks(previewContent);
   var parsed;
   if (typeof marked !== "undefined" && marked.parse) {

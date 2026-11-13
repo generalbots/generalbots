@@ -116,6 +116,8 @@
     return card;
   }
 
+  window.GBBuildConsentCard = buildCard;
+
   function swapToOutcome(card, decision, ok) {
     var meta = DECISIONS[decision] || { outcome: decision };
     card.classList.add("resolved", ok ? "granted" : "failed");
@@ -235,6 +237,22 @@
     }
   }
 
+  // Shared by every render path (stock addMessage, parallel-tab panes,
+  // streaming preview, history replay). `GBConsentStrip` guarantees the raw
+  // `GB-CONSENT-REQUEST:<base64>` payload never reaches the user even when a
+  // path cannot render the card (truncated chunk, legacy pane).
+  var MARKER_RE = /GB-CONSENT-REQUEST:[A-Za-z0-9+/=_-]+/g;
+
+  window.GBConsentExtract = decodeMarker;
+  window.GBConsentStrip = function (content) {
+    if (typeof content !== "string") return content;
+    return content
+      .replace(MARKER_RE, "")
+      .replace(/[ \t]+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  };
+
   function installHook() {
     if (typeof window.addMessage !== "function" || window.addMessage.__gbConsentHooked) {
       return;
@@ -246,6 +264,11 @@
         var req = sender === "bot" ? lastConsentRequest : null;
         if (!req && arguments.length > 1) {
           req = decodeMarker(arguments[1]);
+        }
+        if (sender === "bot" && !req && typeof arguments[1] === "string") {
+          // No decodable request (truncated chunk): still hide the payload.
+          var cleaned = window.GBConsentStrip(arguments[1]);
+          if (cleaned !== arguments[1]) arguments[1] = cleaned;
         }
         if (sender === "bot" && req) {
           // #2229 — during history replay, addMessage appends into a
@@ -259,7 +282,12 @@
             if (body) {
               // Replace the marker payload with the interactive card; the
               // leading sentence stays for screen readers and copy-out.
-              body.innerHTML = "";
+              var lead = typeof arguments[1] === "string"
+                ? window.GBConsentStrip(arguments[1])
+                : "";
+              body.innerHTML = lead
+                ? '<div class="gb-message-text">' + escapeHtml(lead) + "</div>"
+                : "";
               body.appendChild(buildCard(req));
             } else {
               window.GBRenderConsentCard(lastMsgEl, req);

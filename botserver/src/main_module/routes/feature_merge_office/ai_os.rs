@@ -73,8 +73,19 @@ pub(super) async fn merge_office_ai_os(
     #[cfg(feature = "consent")]
     {
         crate::core::bot::consent_gate::init(app_state.conn.clone());
-        let consent_state = Arc::new(botconsent::ConsentService::new(app_state.conn.clone()));
-        consent_state.ensure_sweeper();
+        // Mount the SAME service the gate writes pending requests into; a
+        // fresh instance here made every resolve fail with 404 (#2194).
+        let consent_state = match crate::core::bot::consent_gate::shared_service() {
+            Some(service) => service,
+            None => {
+                log::error!(
+                    "consent gate service unavailable after init; mounting a standalone instance"
+                );
+                let fallback = Arc::new(botconsent::ConsentService::new(app_state.conn.clone()));
+                fallback.ensure_sweeper();
+                fallback
+            }
+        };
         *api_router = api_router
             .clone()
             .merge(botconsent::configure_routes().with_state(consent_state));

@@ -45,6 +45,17 @@
     if (!container) return null;
     var msgs = container.__msgs || container.querySelector(".chat-pane-messages");
     if (!msgs) return null;
+    // Parallel tabs and history replay render here, bypassing addMessage and
+    // therefore the consent-card hook: the raw GB-CONSENT-REQUEST payload used
+    // to leak into those bubbles (#2194/#2203/#2204/#2216). Decode it and swap
+    // in the interactive card, and always strip the payload from the text.
+    var consentReq = null;
+    if (sender !== "user" && typeof window.GBConsentExtract === "function") {
+      consentReq = window.GBConsentExtract(content);
+    }
+    var displayContent = consentReq && typeof window.GBConsentStrip === "function"
+      ? window.GBConsentStrip(content)
+      : content;
     var div = document.createElement("div");
     div.className = "message " + (sender === "user" ? "user" : "bot");
     if (msgId) div.id = msgId;
@@ -58,7 +69,7 @@
       inner.innerHTML = '<div class="gb-message-text">' + processed + "</div>";
     } else if (typeof marked !== "undefined" && marked.parse) {
       try {
-        inner.innerHTML = marked.parse(content || "");
+        inner.innerHTML = marked.parse(displayContent || "");
         // Replayed messages must render vmfile links as attachment cards too;
         // the stock addMessage path does this conversion, appendToContainer
         // (used by history replay and parallel tabs) did not.
@@ -69,12 +80,15 @@
           inner.innerHTML = renderDeepLinks(inner.innerHTML);
         }
       } catch (e) {
-        inner.textContent = content;
+        inner.textContent = displayContent;
       }
     } else {
-      inner.textContent = content;
+      inner.textContent = displayContent;
     }
     div.appendChild(inner);
+    if (consentReq && typeof window.GBBuildConsentCard === "function") {
+      inner.appendChild(window.GBBuildConsentCard(consentReq));
+    }
     if (sender === "user" && typeof collapseUserMessageIfNeeded === "function") {
       collapseUserMessageIfNeeded(div, content);
     }
@@ -85,9 +99,9 @@
     }
     // Parallel tabs render through this helper, so they must add the same
     // per-message actions the stock addMessage path attaches.
-    if (sender !== "user" && content && content.trim()) {
-      if (typeof createCopyButton === "function") div.appendChild(createCopyButton(content));
-      if (typeof createSpeakButton === "function") div.appendChild(createSpeakButton(content));
+    if (sender !== "user" && displayContent && displayContent.trim()) {
+      if (typeof createCopyButton === "function") div.appendChild(createCopyButton(displayContent));
+      if (typeof createSpeakButton === "function") div.appendChild(createSpeakButton(displayContent));
     }
     msgs.appendChild(div);
     if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);

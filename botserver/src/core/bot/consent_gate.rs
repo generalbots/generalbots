@@ -15,6 +15,13 @@ fn service() -> Option<&'static Arc<botconsent::ConsentService>> {
     SERVICE.get()
 }
 
+/// The one process-wide service. The HTTP routes MUST mount this instance:
+/// creating a second `ConsentService` gives it an empty pending map, so every
+/// prompt the gate raised resolved to "Consent request not found" (#2194).
+pub fn shared_service() -> Option<Arc<botconsent::ConsentService>> {
+    SERVICE.get().cloned()
+}
+
 pub struct GateOutcome {
     pub allowed: bool,
     pub request_id: Option<String>,
@@ -110,10 +117,17 @@ pub fn marker_content(request: &botconsent::PendingRequest) -> String {
     });
     let encoded =
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(payload.to_string().as_bytes());
+    // Requests raised by the api loopback carry an empty app id; printing
+    // "on ''" was meaningless to the user.
+    let app = if request.app_id.trim().is_empty() {
+        "workspace"
+    } else {
+        request.app_id.as_str()
+    };
     format!(
         "Permission needed: the assistant wants to run '{class}' on '{app}'. Reply via the buttons or Settings.\nGB-CONSENT-REQUEST:{encoded}",
         class = request.action_class,
-        app = request.app_id,
+        app = app,
         encoded = encoded,
     )
 }
