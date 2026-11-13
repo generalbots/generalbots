@@ -38,6 +38,13 @@ user_id: ChatState.currentUserId,
 session_id: ChatState.currentSessionId,
 channel: "web",
 content: actionData.tool,
+        _toolContext: {
+          tool_name: actionData.tool,
+          tool_description: actionData.description || "",
+          tool_icon: actionData.icon || "",
+          tool_params: actionData.params,
+        },
+        _toolFlags: { tool_type: 6, from_tool: true },
 message_type: 6,
 active_switchers: typeof activeSwitcherIds === "function"
   ? activeSwitcherIds()
