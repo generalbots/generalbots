@@ -23,7 +23,8 @@ pub async fn handle_search_history<S: ResearchState>(
     }
 
     let conn = state.db_pool().clone();
-    let branch_id = botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
+    let branch_id =
+        botsecurity_core::tenant::branch_from_claims(&headers).unwrap_or_else(uuid::Uuid::nil);
     let history: Vec<SearchHistoryEntry> = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,

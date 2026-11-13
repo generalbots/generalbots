@@ -71,6 +71,10 @@ pub(super) async fn search_mojeek(
         pos = snip_start.max(a_end);
     }
 
-    info!("Mojeek search for '{}' returned {} results", query, results.len());
+    info!(
+        "Mojeek search for '{}' returned {} results",
+        query,
+        results.len()
+    );
     Ok(results)
 }
