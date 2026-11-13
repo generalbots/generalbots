@@ -215,6 +215,21 @@
           }, 300);
           return;
         }
+        // #2204 — a numeric input rejects the intermediate states the typing
+        // animation produces ("19." is not a valid number, so the browser
+        // discards it and "19.99" lands as "99"). Assign once instead.
+        if (isNumericField(el)) {
+          el.value = value;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+          syncHiddenField(el, value);
+          reportStep("Filled '" + (step.field || "?") + "' = " + value, "done");
+          setTimeout(function () {
+            S.focusRing.style.display = "none";
+            resolve(true);
+          }, 300);
+          return;
+        }
         var i = 0;
         el.value = "";
         function typeNext() {
@@ -236,6 +251,16 @@
         typeNext();
       });
     });
+  }
+
+  // A field the browser validates as a number: assigning one character at a
+  // time drops the decimal separator ("19." is invalid and reads back empty),
+  // truncating the value. Such fields are filled in a single assignment.
+  function isNumericField(el) {
+    var type = (el.type || "").toLowerCase();
+    if (type === "number" || type === "range") return true;
+    var mode = (el.getAttribute("inputmode") || "").toLowerCase();
+    return mode === "numeric" || mode === "decimal";
   }
 
   function syncHiddenField(el, value) {

@@ -6,18 +6,16 @@
 
 <script>
     // The settings fragment is also opened as a full page (admin deep link);
-    // there it needs the local htmx and the security bootstrap to swap in
-    // the section partials with proper auth headers (#1839).
+    // there it needs the local htmx to swap in the section partials (#1839).
     if (!window.htmx && window.top === window.self) {
         document.write('<script src="/suite/js/vendor/htmx.min.js"><\/script>');
-        document.write('<script src="/suite/js/security-bootstrap/01_tokens.js?v=6"><\/script>');
-        document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"><\/script>');
-        document.write('<script src="/suite/js/security-bootstrap/99_init.js?v=6"><\/script>');
     }
     // #1821/#1839 — when Settings is opened in its own window/tab it is outside
     // the desktop shell, so the security bootstrap that adds the Bearer token
     // to HTMX/fetch/XHR requests must be loaded here too. Inside the desktop
-    // shell window.GBSecurity already exists and this block is a no-op.
+    // shell window.GBSecurity already exists and this block is a no-op. This is
+    // the ONLY bootstrap load: a second copy at another cache-busting version
+    // installed the interceptors twice (#2332).
     if (window.top === window.self && !window.GBSecurity) {
         document.write('<script src="/suite/js/security-bootstrap/01_tokens.js?v=7"><\/script>');
         document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=7"><\/script>');
