@@ -27,6 +27,12 @@ pub struct GateOutcome {
     pub request_id: Option<String>,
     pub pending_request: Option<botconsent::PendingRequest>,
     pub card_html: Option<String>,
+    /// Set when this decision consumed an "Allow once" approval. The payload
+    /// the user approved travels with it so the executor can recover the
+    /// parameters the model dropped on its retry (#2194: the retry text is
+    /// "continue", which carries no amount, so `service.tax` ran without a
+    /// `value` and failed after the user had already approved it).
+    pub approved_detail: Option<serde_json::Value>,
 }
 
 /// Decide whether `user_id` may run `action_class` on `app_id`.
@@ -57,20 +63,21 @@ pub async fn check_with_context(
             request_id: None,
             pending_request: None,
             card_html: None,
+            approved_detail: None,
         };
     };
     // An "Allow once" click is a one-shot handoff: consume it before the
     // grant lookup, otherwise the model's retry raised a fresh prompt and the
     // approved call never ran (#2203).
-    if botconsent::enforce::take_approved_match(service, user_id, app_id, action_class)
-        .await
-        .is_some()
+    if let Some(approved) =
+        botconsent::enforce::take_approved_match(service, user_id, app_id, action_class).await
     {
         return GateOutcome {
             allowed: true,
             request_id: None,
             pending_request: None,
             card_html: None,
+            approved_detail: Some(approved.detail),
         };
     }
     let context = botconsent::enforce::ConsentContext {
@@ -93,6 +100,7 @@ pub async fn check_with_context(
             request_id: None,
             pending_request: None,
             card_html: None,
+            approved_detail: None,
         },
         botconsent::enforce::ConsentDecision::Pending(request) => {
             let card = botconsent::cards::prompt_card_html(&request);
@@ -101,6 +109,7 @@ pub async fn check_with_context(
                 request_id: Some(request.request_id.clone()),
                 pending_request: Some(request),
                 card_html: Some(card),
+                approved_detail: None,
             }
         }
         botconsent::enforce::ConsentDecision::Denied => GateOutcome {
@@ -108,6 +117,7 @@ pub async fn check_with_context(
             request_id: None,
             pending_request: None,
             card_html: None,
+            approved_detail: None,
         },
     }
 }

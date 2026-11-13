@@ -13,14 +13,41 @@ document.getElementById('currentDate').textContent = new Date().toLocaleDateStri
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
+function activateTab(name) {
+  const tab = document.querySelector(`.tab[data-tab="${name}"]`);
+  if (!tab) return false;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  const panel = document.getElementById(`panel-${name}`);
+  if (panel) panel.classList.add('active');
+  return true;
+}
+
+/**
+ * Deep link -> tab. The app opens on NF-e unconditionally, so "open the tax app
+ * and show the NFS-e documents" landed on the wrong tab: the plan can only
+ * click, and a click on a tab that is already the default is a no-op the user
+ * still sees as the wrong filter (#2194). Accepts the tab id and the names the
+ * chat uses (nfs-e, nota de serviço, ct-e, sped).
+ */
+function tabFromDeepLink() {
+  const p = window.__gbAppParams__ || {};
+  const raw = String(p.tab || p.view || p.filter || p.document || '').toLowerCase();
+  if (!raw) return null;
+  const key = raw.replace(/[\s_]+/g, '-');
+  if (/nfse|nfs-e|servi/.test(key)) return 'nfse';
+  if (/cte|ct-e|conhecimento|transporte/.test(key)) return 'cte';
+  if (/sped/.test(key)) return 'sped';
+  if (/nfe|nf-e|eletr/.test(key)) return 'nfe';
+  return null;
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
-  });
+  tab.addEventListener('click', () => activateTab(tab.dataset.tab));
 });
+
+window.GBTaxActivateTab = activateTab;
 
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -371,4 +398,7 @@ document.getElementById('btnDownloadSpedFiscal').addEventListener('click', () =>
 
 loadAll();
 loadSpedStatus();
+
+const deepTab = tabFromDeepLink();
+if (deepTab) activateTab(deepTab);
 })();

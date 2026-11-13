@@ -132,6 +132,25 @@
       "</span></div>";
   }
 
+  /**
+   * A granted decision must RESUME the turn. The server ends the turn with the
+   * consent marker, so the assistant never retries the gated call by itself:
+   * "Allow once" used to grant the capability and then sit there, and UAT runs
+   * for billing/tax/products stalled on a card that had already been approved.
+   * Sending the continuation through `window.sendMessage` routes to the tab
+   * that owns the card (multichat wraps that global), so the retry lands in the
+   * same conversation and session the approval is bound to.
+   */
+  function resumeAfterGrant(decision) {
+    if (decision === "deny") return;
+    if (typeof window.sendMessage !== "function") return;
+    setTimeout(function () {
+      try {
+        window.sendMessage("Approved \u2014 continue with my previous request.");
+      } catch (e) { /* the grant still applies to the next message the user sends */ }
+    }, 200);
+  }
+
   function resolve(card, requestId, decision) {
     var buttons = card.querySelectorAll(".gb-consent-btn");
     buttons.forEach(function (b) { b.disabled = true; });
@@ -143,6 +162,7 @@
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         swapToOutcome(card, decision, true);
+        resumeAfterGrant(decision);
       })
       .catch(function () {
         swapToOutcome(card, decision, false);

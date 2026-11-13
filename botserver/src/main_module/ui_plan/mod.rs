@@ -49,6 +49,13 @@ pub struct UiStep {
     /// Menu labels in order for a `menu` step (`["Download", "PDF"]`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<Vec<String>>,
+    /// Landing parameters for an `open` step, forwarded to the app as
+    /// `window.__gbAppParams__` (`{"tab":"nfse"}`, `{"path":"docs/x.md"}`).
+    /// The orchestrator already forwards them; without this field the JSON
+    /// was dropped during plan validation, so an open step could never select
+    /// a tab, folder or record (#2194).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub params: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -223,8 +230,10 @@ Compose a message to Rodrigo."#;
 }
 
 mod from_label;
+mod open_hints;
 mod sanitize_value;
 mod ui_automation_instructions;
 
+pub use open_hints::*;
 pub use sanitize_value::*;
 pub use ui_automation_instructions::*;

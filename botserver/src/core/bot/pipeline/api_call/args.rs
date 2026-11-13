@@ -55,6 +55,32 @@ pub(super) fn inject_tax_value_from_user(
     }
 }
 
+/// Fills the gaps in `params` from an earlier, approved call to the same
+/// command. Only keys the model left out (absent or empty string) are taken
+/// from the approved payload, so a fresh value still wins over the old one.
+pub(super) fn merge_missing_params(
+    params: &serde_json::Value,
+    approved: &serde_json::Value,
+) -> serde_json::Value {
+    let (serde_json::Value::Object(current), serde_json::Value::Object(approved)) =
+        (params, approved)
+    else {
+        return params.clone();
+    };
+    let mut merged = current.clone();
+    for (key, value) in approved {
+        let missing = match merged.get(key) {
+            None | Some(serde_json::Value::Null) => true,
+            Some(serde_json::Value::String(s)) => s.trim().is_empty(),
+            Some(_) => false,
+        };
+        if missing {
+            merged.insert(key.clone(), value.clone());
+        }
+    }
+    serde_json::Value::Object(merged)
+}
+
 /// The BRL amount pattern, compiled once per process: this runs on every
 /// API-call fallback in the message pipeline (see #1493).
 const MONEY_AMOUNT_PATTERN: &str = r"(?i)R\$\s*([\d.,]+)|\b([\d.,]+)\s*reais";

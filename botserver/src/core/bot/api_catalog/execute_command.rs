@@ -419,6 +419,11 @@ pub async fn execute_command(
         name if docs_verbs::handles(name) => {
             docs_verbs::execute(state, user_id, bot_uuid, name, obj).await
         }
+        // Values plus styling in one call: the generic loopback below writes
+        // cells and drops `styles`/`formats`/`conditional` (#2260, #2263).
+        name if sheet_verbs::handles(name) => {
+            sheet_verbs::execute(state, user_id, bot_uuid, name, obj).await
+        }
         #[cfg(feature = "database")]
         name if database_verbs::handles(name) => {
             database_verbs::execute(state, bot_uuid, name, obj).await

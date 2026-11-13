@@ -2,7 +2,7 @@
 //! description of the result.
 
 use super::super::types::{LlmTarget, SessionIdentity};
-use super::args::{extract_deep_links, inject_tax_value_from_user};
+use super::args::{extract_deep_links, inject_tax_value_from_user, merge_missing_params};
 use super::humanize::humanize_result;
 use super::parse::{extract_api_call_payload, strip_api_call_block};
 
@@ -136,7 +136,7 @@ pub(crate) async fn handle_api_call(
     };
 
     #[cfg(feature = "consent")]
-    {
+    let approved_detail = {
         let app_id = crate::apps::commands::command_by_name(&name)
             .map(|c| c.app.to_string())
             .unwrap_or_else(|| name.clone());
@@ -170,7 +170,19 @@ pub(crate) async fn handle_api_call(
             }
             return true;
         }
-    }
+        gate.approved_detail
+    };
+    #[cfg(not(feature = "consent"))]
+    let approved_detail: Option<serde_json::Value> = None;
+
+    // The approval that just got consumed is for a specific payload. The
+    // assistant's retry is usually a bare "continue", so any parameter the
+    // model left out is gone (the tax amount lives in the message the user
+    // approved, not in "continue"). Restore what the user saw and approved.
+    let params = match approved_detail.as_ref().and_then(|d| d.get("params")) {
+        Some(approved) => merge_missing_params(&params, approved),
+        None => params,
+    };
 
     match api_catalog::execute_command(state, bot_uuid, user_id, &name, &params).await {
         Ok(result) => {

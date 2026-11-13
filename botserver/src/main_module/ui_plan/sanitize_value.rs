@@ -68,6 +68,7 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
         ms: None,
         cell: None,
         path: None,
+        params: None,
     };
     if let Some(app) = &step.app {
         out.app = Some(sanitize_value(app));
@@ -121,7 +122,39 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
     if step.op == UiOp::Download && out.label.is_none() {
         return Err("download step requires a label".to_string());
     }
+    // Open-step landing params reach the app as `window.__gbAppParams__`, so
+    // they are flat string keys/values only — no nesting, no unbounded length.
+    if let Some(params) = &step.params {
+        let Some(map) = params.as_object() else {
+            return Err("open step params must be an object".to_string());
+        };
+        if map.len() > 12 {
+            return Err("open step has too many params".to_string());
+        }
+        let mut clean = serde_json::Map::new();
+        for (key, value) in map {
+            if !valid_param_key(key) {
+                return Err(format!("Invalid open step param '{key}'"));
+            }
+            let text = match value {
+                serde_json::Value::String(text) => text.clone(),
+                serde_json::Value::Number(number) => number.to_string(),
+                serde_json::Value::Bool(flag) => flag.to_string(),
+                _ => return Err(format!("open step param '{key}' must be a scalar")),
+            };
+            clean.insert(key.clone(), serde_json::Value::String(sanitize_value(&text)));
+        }
+        out.params = Some(serde_json::Value::Object(clean));
+    }
     Ok(out)
+}
+/// Param names are lower-case identifiers (`tab`, `file_id`, `path`).
+fn valid_param_key(key: &str) -> bool {
+    !key.is_empty()
+        && key.len() <= 32
+        && key
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '_' | '-'))
 }
 /// Validates a spreadsheet cell reference like "A1" or "B5".
 pub(super) fn is_cell_ref(reference: &str) -> bool {

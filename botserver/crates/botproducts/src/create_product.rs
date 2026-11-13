@@ -71,11 +71,15 @@ pub async fn list_products(
 
     // Anonymous storefront callers (no token) may only see the public global
     // catalog (branch nil, `is_public` rows); authenticated callers get their
-    // own tenant branch. A token that does not resolve to a branch is rejected
-    // instead of falling back to the default branch, which used to hand one
-    // tenant the other tenant's catalogue (issue #2128).
+    // own tenant branch. A token that resolves to no branch reads the same
+    // global catalog: a suite session (opaque token, no SaaS `branch_id`
+    // claim, no CRM contact row) used to get `401` here while
+    // `/api/products/stats` answered `200` for the very same token, so the
+    // Products app grid rendered "No products yet" against a seeded catalogue
+    // (#2204). Reads stay scoped — never another tenant's branch — and writes
+    // still fail closed in `create_product` (issue #2128).
     let branch_id = if has_token {
-        verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?
+        verified_branch(&headers, &state.pool).unwrap_or_else(Uuid::nil)
     } else {
         Uuid::nil()
     };

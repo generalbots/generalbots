@@ -82,9 +82,15 @@
     var willWrite = !!(plan && Array.isArray(plan.steps) && plan.steps.some(function (s) {
       return s && (s.op === "fill" || s.op === "cell");
     }));
-    if (willWrite && step.blank !== false &&
+    // A plan open step may carry the app's own landing params (tax `tab`,
+    // drive `path`, docs `file_id`). They used to be dropped: the step only
+    // reached openDeepLink when the plan was about to WRITE, so "open the tax
+    // app on the NFS-e tab" opened the default tab (#2194).
+    var stepParams = (step.params && typeof step.params === "object") ? step.params : {};
+    var hasParams = Object.keys(stepParams).length > 0;
+    if ((willWrite || hasParams) && step.blank !== false &&
         window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
-      var params = Object.assign({}, step.params || {}, { blank: true });
+      var params = Object.assign({}, stepParams, willWrite ? { blank: true } : {});
       window.WindowManager.openDeepLink(appId, params, { ownerId: "chat" });
       S.currentApp = appId;
       reportStep("Opened " + appId + " (blank)", "done");

@@ -114,6 +114,7 @@ mod execute_command;
 mod find_api_entries;
 mod is_api_call_trigger;
 mod list_people;
+mod sheet_verbs;
 #[cfg(feature = "sources")]
 mod skills;
 // The installed-skill listing is the fallback used only when the source-backed

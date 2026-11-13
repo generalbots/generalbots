@@ -178,6 +178,13 @@ async fn stream_llm_response_inner(
                     {
                         match plan {
                             Ok(validated) => {
+                                // Recover the landing tab the user actually
+                                // asked for when the plan left it out (#2194).
+                                let validated =
+                                    crate::main_module::ui_plan::apply_open_hints(
+                                        validated,
+                                        user_text,
+                                    );
                                 log::info!(
                                     "UI plan validated: {} steps for app {:?}",
                                     validated.steps.len(),

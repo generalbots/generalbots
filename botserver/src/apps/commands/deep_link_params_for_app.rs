@@ -204,7 +204,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
         "docs",
         "open → the editor shows a blank document, draw it in ONE step: {\"op\":\"fill\",\"field\":\"document body\",\"value\":\"<markdown>\"} — value is markdown-lite: '# ' / '## ' headings, '- ' bullets, '1. ' numbered items, blank line between paragraphs, **bold**; never emit one fill per line and never wrap the value in HTML tags",
     ),
-    ("sheet", "open → spreadsheet loads from drive params → write cells with sheet.cells.set; when the user asks for colours or number formats pass `styles` (A1 -> {background,color,font_weight}) and `formats` (A1 -> number format code) in the SAME call — writing values only leaves the sheet unstyled (#2260, #2263)"),
+    ("sheet", "open → spreadsheet loads from drive params → write cells with sheet.cells.set; when the user asks for colours, number formats or conditional rules pass `styles` (A1 -> {background,color,font_weight}), `formats` (A1 -> number format code) and `conditional` ([{range,rule_type:cellIs,condition:lessThan|greaterThan|equal,value,bg_color}]) in the SAME call — writing values only leaves the sheet unstyled; for a legend add a plain row of coloured cells, one per category (#2260, #2263)"),
     ("drive", "open → tab bar (Bots/My Files/Shared/Public/Root) → navigate folders → open/select files"),
     (
         "database",
@@ -214,7 +214,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("hr", "open → employees list loads → switch tabs (Recruitment/Attendance/Performance)"),
     ("compliance", "open → checks load → switch tabs (Checks/Issues/Audit Log/Risks)"),
     ("kyc", "open → verifications list loads → select a verification"),
-    ("tax", "open → documents load → filter NF-e/NFS-e/CT-e tabs"),
+    ("tax", "open → documents load → tabs are NFe/NFSe/CTe/SPED; to land on a specific one pass {\"tab\":\"nfse\"} (nfe|nfse|cte|sped) — the app otherwise opens on NF-e, so a click on the requested tab is required when no param is sent"),
     ("analytics", "open → dashboards load → pick a report/dashboard"),
     ("monitoring", "open → health panels load → switch service/env filters"),
     ("attendant", "open → queue console loads → take/assign sessions"),
