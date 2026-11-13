@@ -200,7 +200,11 @@ async function previewFile(path, bucket) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
             var bucket = getEffectiveBucket();
-            var winId = "sheets-" + ts;
+            // #2272 — one window-id namespace per app: the sheet registry id
+            // (`sheet`) plus a suffix. `sheets-<ts>` did not match the sheet
+            // app's own deep-link guard (`sheet-`), so every deep link aimed at
+            // this Drive window was dropped.
+            var winId = "sheet-" + ts;
             var qs = url.split('?')[1] || '';
             // Per-window sheet data map — avoids race when multiple files open rapidly
             window.__SHEET_DATA_MAP = window.__SHEET_DATA_MAP || {};

@@ -36,6 +36,11 @@
   // opened empty while still accepting edits, which then landed on a
   // different, blank workbook (UAT SHEET-01 / SHEET-03).
   var sheetRef = params.get('file_id') || params.get('id') || gp.file_id || gp.id || '';
+  // The deep link may also name the cell to land on (`&cell=B7`, #2271). It is
+  // applied by the grid boot (js/constants/06_boot.js) once the workbook and
+  // the grid exist, because the grid is not built yet at this point.
+  var bootCell = params.get('cell') || gp.cell || '';
+  if (bootCell) window.__SHEET_BOOT_CELL = bootCell;
   if (!bucket && !path && sheetRef) {
     window.__SHEET_INITIAL_ID = sheetRef;
     var refToken = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';

@@ -280,6 +280,12 @@
           if (adv) window.SheetAdvancedInstance = adv;
         }
       }
+      // A deep link that names a cell (`app://sheet?file_id=…&cell=B7`) lands
+      // on it once the workbook is rendered (#2271).
+      if (window.__SHEET_BOOT_CELL && typeof gbSheetGotoCell === 'function') {
+        gbSheetGotoCell(window.__SHEET_BOOT_CELL);
+      }
+      window.__SHEET_BOOT_CELL = null;
       window.SheetAPI = SheetAPI;
       window.SheetVirtualGrid = VirtualGrid;
     });

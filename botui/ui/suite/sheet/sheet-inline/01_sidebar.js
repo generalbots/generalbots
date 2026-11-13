@@ -7,6 +7,35 @@ function _t(key, fallback, params) {
     }
     return text;
 }
+/* A1 reference ("B7", "$B$7") → zero-based {row, col}. Deep links carry the
+   cell the bot is talking about, while the grid API addresses cells by index. */
+function gbSheetParseA1(ref) {
+    var m = /^\$?([A-Za-z]+)\$?(\d+)$/.exec(String(ref || '').trim());
+    if (!m) return null;
+    var letters = m[1].toUpperCase();
+    var col = 0;
+    for (var i = 0; i < letters.length; i++) {
+        col = col * 26 + (letters.charCodeAt(i) - 64);
+    }
+    var row = parseInt(m[2], 10);
+    if (!row || col < 1) return null;
+    return { row: row - 1, col: col - 1 };
+}
+/* Select and scroll to an A1 reference after a workbook load (#2271: the boot
+   and deep-link paths dropped the `cell` parameter, so "B7 is 1234" opened at
+   A1). Returns false when the address is malformed or no grid is on screen. */
+function gbSheetGotoCell(ref) {
+    var pos = gbSheetParseA1(ref);
+    if (!pos) {
+        console.warn('[sheet] ignoring malformed cell reference:', ref);
+        return false;
+    }
+    var grid = window.SheetVirtualGrid ||
+        (window.SheetCore && window.SheetCore.getGrid ? window.SheetCore.getGrid() : null);
+    if (!grid || typeof grid.selectCell !== 'function') return false;
+    grid.selectCell(pos.row, pos.col);
+    return true;
+}
 function newSheet() {
     fetch('/api/sheet/new').then(function(r){ return r.json(); }).then(function(s){
         window.__LOADED_SHEET = s;
@@ -76,7 +105,7 @@ function openSheetPanel(panel) {
     }).then(function(r){ return r.text(); }).then(function(html){ panelHost.innerHTML = html; })
     .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>'; });
 }
-function loadSheet(id) {
+function loadSheet(id, cell) {
     window.__SHEET_INITIAL_ID = id;
     // Each workbook starts on its first tab: the persisted index belonged to
     // the previously open sheet and could point at a missing worksheet.
@@ -127,6 +156,8 @@ function loadSheet(id) {
                 // opened sheet shows its cells and silently loses its charts.
                 document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
             }
+            // The deep link that triggered this load may point at a cell.
+            if (cell) gbSheetGotoCell(cell);
         }
     }).catch(function(){
         if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Error loading sheet.</div>';
