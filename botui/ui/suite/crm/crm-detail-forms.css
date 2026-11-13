@@ -448,3 +448,10 @@
 
 /* Issue #741: Folder view inside lead detail */
 .lead-detail { padding: 16px; }
+
+/* #2313 — the lost-reason dialog is one field, so it explains why it is asked. */
+.crm-form-hint {
+    margin: 0 0 12px;
+    font-size: 13px;
+    opacity: 0.75;
+}

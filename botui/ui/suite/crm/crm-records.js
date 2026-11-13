@@ -314,23 +314,11 @@
         });
     });
 
-    // Lost reason from the detail panel (#1441 C7).
-    document.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-action="save-lost-reason"]');
-        if (!btn) return;
-        var input = document.getElementById('record-lost-reason');
-        var entity = btn.dataset.entity;
-        var id = btn.dataset.id;
-        var base = entity === 'opportunity' ? ENDPOINTS.opportunity : ENDPOINTS.lead;
-        fetch(base + '/' + id, {
-            method: 'PUT',
-            headers: headers(true),
-            body: JSON.stringify({ lost_reason: input ? input.value.trim() : '' })
-        }).then(function(resp) {
-            notice(resp.ok ? 'Lost reason saved' : 'Save failed (' + resp.status + ')');
-            if (resp.ok) openRecordDetail(entity, id);
-        });
-    });
+    // #2313 — the lost reason lives on the record form (input#crm-lost-reason,
+    // name="lost_reason"), which the shared submit below persists with the rest
+    // of the record. The former click handler here targeted #record-lost-reason
+    // and a [data-action="save-lost-reason"] button that no HTML ever shipped,
+    // so it could only ever throw.
 
     // ── Row actions (View / Edit / Delete) ─────────────────────────────────
     function fetchRecord(entity, id) {

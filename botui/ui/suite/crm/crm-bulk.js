@@ -83,17 +83,90 @@
         });
     }
 
-    function closeOpportunities(won) {
+    // #2313 — the loss reason is CRM gold: churn analysis, win-back campaigns
+    // and pricing decisions all read it. It is recorded only when a human picks
+    // it explicitly; the old flow pre-filled the native prompt with "price", so
+    // every user who pressed Enter wrote a reason nobody chose.
+    var LOST_REASONS = [
+        { value: 'price', label: 'Price / budget' },
+        { value: 'competitor', label: 'Lost to a competitor' },
+        { value: 'timing', label: 'Bad timing' },
+        { value: 'no_decision', label: 'No decision' },
+        { value: 'feature_gap', label: 'Missing feature' },
+        { value: 'other', label: 'Other' }
+    ];
+
+    function lostReasonLabel(value) {
+        for (var i = 0; i < LOST_REASONS.length; i++) {
+            if (LOST_REASONS[i].value === value) return LOST_REASONS[i].label;
+        }
+        return value;
+    }
+
+    // Reuses the app's own #crm-modal, so this works in the desktop shell where
+    // native prompt()/confirm() are blocked.
+    function askLostReason(onPick) {
+        var modal = document.getElementById('crm-modal');
+        var content = document.getElementById('crm-modal-content');
+        if (!modal || !content) {
+            notice('opportunities', 'Lost-reason dialog unavailable — open CRM in the suite');
+            return;
+        }
+        var options = LOST_REASONS.map(function(r) {
+            return '<option value="' + r.value + '">' + r.label + '</option>';
+        }).join('');
+        content.innerHTML =
+            '<div class="crm-form">' +
+            '<h3 data-i18n="crm-lost-reason-title">Why was the deal lost?</h3>' +
+            '<p class="crm-form-hint">The reason is saved with every selected opportunity ' +
+            'and drives loss reporting.</p>' +
+            '<label class="crm-form-label" for="crm-lost-reason-pick">Lost reason</label>' +
+            '<select class="crm-form-input" id="crm-lost-reason-pick">' +
+            '<option value="">Choose a reason…</option>' + options + '</select>' +
+            '<div class="crm-form-actions">' +
+            '<button type="button" class="btn-secondary" id="crm-lost-cancel">Cancel</button>' +
+            '<button type="button" class="btn-danger" id="crm-lost-confirm" disabled>Mark lost</button>' +
+            '</div></div>';
+        var pick = document.getElementById('crm-lost-reason-pick');
+        var confirmBtn = document.getElementById('crm-lost-confirm');
+        var cancelBtn = document.getElementById('crm-lost-cancel');
+        function close() { window.closeCrmModal(); }
+        if (pick) {
+            pick.addEventListener('change', function () {
+                confirmBtn.disabled = !pick.value;
+            });
+            pick.focus();
+        }
+        if (cancelBtn) cancelBtn.addEventListener('click', close);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                if (!pick || !pick.value) return;
+                var reason = pick.value;
+                close();
+                onPick(reason);
+            });
+        }
+        if (typeof window.openCrmModal === 'function') window.openCrmModal();
+        else modal.classList.add('open');
+    }
+
+    function closeOpportunities(won, lostReason) {
         var ids = selectedIds('opportunities');
         if (!ids.length) { notice('opportunities', 'Select rows first'); return; }
-        var lostReason = won ? null : (prompt('Lost reason:', 'price') || '');
+        if (won === false && !lostReason) {
+            askLostReason(function (reason) {
+                if (!reason) return; // cancelled — nothing is written
+                closeOpportunities(false, reason);
+            });
+            return;
+        }
         var done = 0;
         var failed = 0;
         ids.forEach(function(id) {
             fetch('/api/crm/opportunities/' + id + '/close', {
                 method: 'POST',
                 headers: headers(true),
-                body: JSON.stringify({ won: won, lost_reason: lostReason })
+                body: JSON.stringify({ won: won, lost_reason: won ? null : lostReason })
             }).then(function(resp) {
                 if (resp.ok) done++; else failed++;
                 if (done + failed === ids.length) {
@@ -120,6 +193,7 @@
         bulk('opportunities', 'stage', { stage: stage });
     });
     onClick('opps-close-won-btn', function() { closeOpportunities(true); });
+    onClick('opps-close-lost-btn', function() { closeOpportunities(false); });
     onClick('opps-bulk-delete-btn', function() {
         if (confirm('Delete the selected records? This is recorded in the audit trail.')) {
             bulk('opportunities', 'delete');
