@@ -109,7 +109,7 @@
         container.innerHTML =
             '<div class="stage-toolbar">' +
             '<button id="stage-add-btn" class="btn-secondary" title="Add a custom stage">+ Add stage</button>' +
-            '<span id="stage-admin-result" class="stage-admin-result"></span>' +
+            '<span id="stage-admin-result" class="stage-admin-result" role="status" aria-live="polite" aria-atomic="true"></span>' +
             '</div>' + sorted.map(function(s, i) {
                 return '<div class="pipeline-column' + (s.name === 'won' ? ' won' : '') +
                     (s.name === 'lost' ? ' lost' : '') + '" data-stage="' + s.name + '" data-stage-id="' + (s.id || '') + '">' +

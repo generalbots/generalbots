@@ -25,15 +25,27 @@
     }
 
     function refreshCount(grid) {
-        var cfg = config(grid);
-        var el = document.getElementById(cfg.count);
-        if (el) el.textContent = selectedIds(grid).length + ' selected';
+        var el = document.getElementById(config(grid).count);
+        if (el) {
+            el.setAttribute('role', 'status');
+            el.setAttribute('aria-live', 'polite');
+            el.setAttribute('aria-atomic', 'true');
+            el.textContent = selectedIds(grid).length + ' selected';
+        }
     }
 
     function notice(grid, text) {
         var cfg = config(grid);
-        var el = document.getElementById(cfg.result);
-        if (el) el.textContent = text;
+        var elId = cfg && cfg.result ? cfg.result : (grid === 'campaigns' ? 'campaign-result' : null);
+        var el = elId ? document.getElementById(elId) : null;
+        if (el) {
+            var lower = String(text || '').toLower();
+            var isAlert = /fail|error|unavailable|blocked|required|first|denied/.test(lower);
+            el.setAttribute('role', isAlert ? 'alert' : 'status');
+            el.setAttribute('aria-live', isAlert ? 'assertive' : 'polite');
+            el.setAttribute('aria-atomic', 'true');
+            el.textContent = text;
+        }
         setTimeout(function() { if (el) el.textContent = ''; }, 8000);
     }
 
@@ -85,7 +97,7 @@
 
     // #2313 — the loss reason is CRM gold: churn analysis, win-back campaigns
     // and pricing decisions all read it. It is recorded only when a human picks
-    // it explicitly; the old flow pre-filled the native prompt with "price", so
+    // it explicitly; the old flow pre-filled a native dialog with "price", so
     // every user who pressed Enter wrote a reason nobody chose.
     var LOST_REASONS = [
         { value: 'price', label: 'Price / budget' },
@@ -104,7 +116,7 @@
     }
 
     // Reuses the app's own #crm-modal, so this works in the desktop shell where
-    // native prompt()/confirm() are blocked.
+    // native dialogs are blocked.
     function askLostReason(onPick) {
         var modal = document.getElementById('crm-modal');
         var content = document.getElementById('crm-modal-content');
@@ -187,6 +199,12 @@
         if (el) el.addEventListener('click', handler);
     }
 
+    function gbConfirm(message, onYes) {
+        if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+            window.GBModal.confirm(message, 'Confirm', onYes);
+        }
+    }
+
     // Opportunities grid
     onClick('opps-bulk-stage-btn', function() {
         var stage = document.getElementById('opps-bulk-stage').value;
@@ -195,34 +213,35 @@
     onClick('opps-close-won-btn', function() { closeOpportunities(true); });
     onClick('opps-close-lost-btn', function() { closeOpportunities(false); });
     onClick('opps-bulk-delete-btn', function() {
-        if (confirm('Delete the selected records? This is recorded in the audit trail.')) {
+        gbConfirm('Delete the selected records? This is recorded in the audit trail.', function() {
             bulk('opportunities', 'delete');
-        }
+        });
     });
 
     // Deals grid
     onClick('deals-bulk-stage-btn', function() { bulk('deals', 'stage', { stage: 'won' }); });
     onClick('deals-bulk-delete-btn', function() {
-        if (confirm('Delete the selected deals? This is recorded in the audit trail.')) {
+        gbConfirm('Delete the selected deals? This is recorded in the audit trail.', function() {
             bulk('deals', 'delete');
-        }
+        });
     });
 
     // Contacts grid
     onClick('contacts-bulk-delete-btn', function() {
         var ids = selectedIds('contacts');
         if (!ids.length) { notice('contacts', 'Select rows first'); return; }
-        if (!confirm('Delete the selected contacts? This is recorded in the audit trail.')) return;
-        fetch('/api/crm/contacts/bulk', {
-            method: 'POST',
-            headers: headers(true),
-            body: JSON.stringify({ ids: ids, action: 'delete' })
-        }).then(function(resp) {
-            if (!resp.ok) { notice('contacts', 'Delete failed (' + resp.status + ')'); return; }
-            return resp.json().then(function(r) {
-                notice('contacts', 'Deleted ' + (r.deleted || 0) +
-                    (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
-                window.reloadCrmGrid('contacts');
+        gbConfirm('Delete the selected contacts? This is recorded in the audit trail.', function() {
+            fetch('/api/crm/contacts/bulk', {
+                method: 'POST',
+                headers: headers(true),
+                body: JSON.stringify({ ids: ids, action: 'delete' })
+            }).then(function(resp) {
+                if (!resp.ok) { notice('contacts', 'Delete failed (' + resp.status + ')'); return; }
+                return resp.json().then(function(r) {
+                    notice('contacts', 'Deleted ' + (r.deleted || 0) +
+                        (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
+                    window.reloadCrmGrid('contacts');
+                });
             });
         });
     });
@@ -256,16 +275,17 @@
                 return dry.json().then(function(report) {
                     var summary = 'Validated: ' + report.imported + ' rows, ' +
                         report.skipped_duplicates + ' duplicates, ' + report.errors.length + ' errors';
-                    if (!confirm(summary + '. Commit this import?')) { notice(grid, summary + ' — not committed'); return; }
-                    fetch(endpoint, {
-                        method: 'POST', headers: headers({ 'Content-Type': 'text/csv' }), body: text
-                    }).then(function(resp) {
-                        if (!resp.ok) { notice(grid, 'Import failed (' + resp.status + ')'); return; }
-                        return resp.json().then(function(result) {
-                            notice(grid, 'Imported ' + result.imported +
-                                (result.skipped_duplicates ? ', duplicates ' + result.skipped_duplicates : '') +
-                                (result.errors && result.errors.length ? ', errors ' + result.errors.length : ''));
-                            window.reloadCrmGrid(grid);
+                    gbConfirm(summary + '. Commit this import?', function() {
+                        fetch(endpoint, {
+                            method: 'POST', headers: headers({ 'Content-Type': 'text/csv' }), body: text
+                        }).then(function(resp) {
+                            if (!resp.ok) { notice(grid, 'Import failed (' + resp.status + ')'); return; }
+                            return resp.json().then(function(result) {
+                                notice(grid, 'Imported ' + result.imported +
+                                    (result.skipped_duplicates ? ', duplicates ' + result.skipped_duplicates : '') +
+                                    (result.errors && result.errors.length ? ', errors ' + result.errors.length : ''));
+                                window.reloadCrmGrid(grid);
+                            });
                         });
                     });
                 });
@@ -359,12 +379,13 @@
         var send = e.target.closest('.campaign-send-btn');
         if (send) {
             var id = send.dataset.id;
-            if (!confirm('Send this campaign to its recipients now?')) return;
-            fetch('/api/crm/campaigns/' + id + '/send', {
-                method: 'POST', headers: headers(true), body: '{}'
-            }).then(function(resp) {
-                notice('campaigns', resp.ok ? 'Send dispatched' : 'Send failed (' + resp.status + ')');
-                refreshCampaigns();
+            gbConfirm('Send this campaign to its recipients now?', function() {
+                fetch('/api/crm/campaigns/' + id + '/send', {
+                    method: 'POST', headers: headers(true), body: '{}'
+                }).then(function(resp) {
+                    notice('campaigns', resp.ok ? 'Send dispatched' : 'Send failed (' + resp.status + ')');
+                    refreshCampaigns();
+                });
             });
             return;
         }
@@ -396,11 +417,15 @@
     if (auditBtn && auditDrawer) {
         auditBtn.addEventListener('click', function() {
             var body = document.getElementById('crm-audit-body');
+            body.setAttribute('role', 'status');
+            body.setAttribute('aria-live', 'polite');
             body.innerHTML = '<div class="crm-audit-empty">Loading…</div>';
             auditDrawer.classList.add('open');
             fetch('/api/crm/audit?limit=60', { headers: headers() })
                 .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
                 .then(function(rows) {
+                    body.setAttribute('role', 'status');
+                    body.setAttribute('aria-live', 'polite');
                     if (!rows.length) { body.innerHTML = '<div class="crm-audit-empty">No audit entries yet</div>'; return; }
                     body.innerHTML = rows.map(function(r) {
                         var when = (r.created_at || '').replace('T', ' ').slice(0, 16);
@@ -413,6 +438,8 @@
                     }).join('');
                 })
                 .catch(function(status) {
+                    body.setAttribute('role', 'alert');
+                    body.setAttribute('aria-live', 'assertive');
                     body.innerHTML = '<div class="crm-audit-empty">Audit unavailable (' + status + ')</div>';
                 });
         });

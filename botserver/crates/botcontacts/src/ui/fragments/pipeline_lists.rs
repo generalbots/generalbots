@@ -10,7 +10,8 @@
 //! `GET /api/crm/opportunities` do not apply that filter, so a record created
 //! through the API was listed by REST and invisible in the pipeline: the bulk
 //! bar had no rows to select and the grid claimed "No opportunities yet". Both
-//! surfaces now show the same rows.
+//! surfaces now show the same rows and every rendered row carries a selectable
+//! checkbox so bulk actions can act on API-created records too.
 
 use axum::{
     extract::{Query, State},
@@ -246,7 +247,7 @@ pub async fn handle_crm_opportunities(
     }
     if html.is_empty() {
         return Html(
-            r#"<tr><td colspan="10">No opportunities yet — convert a qualified lead to create one</td></tr>"#
+            r#"<tr><td colspan="10">No opportunities yet</td></tr>"#
                 .to_string(),
         );
     }

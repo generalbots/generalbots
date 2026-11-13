@@ -45,6 +45,11 @@
         var box = document.getElementById('crm-bulk-result');
         if (!box) box = document.getElementById('campaign-result');
         if (!box) return;
+        var lower = String(text || '').toLowerCase();
+        var isAlert = /fail|error|unavailable/.test(lower);
+        box.setAttribute('role', isAlert ? 'alert' : 'status');
+        box.setAttribute('aria-live', isAlert ? 'assertive' : 'polite');
+        box.setAttribute('aria-atomic', 'true');
         box.textContent = text;
         setTimeout(function() { box.textContent = ''; }, 8000);
     }
@@ -267,14 +272,19 @@
         var panel = document.getElementById('record-detail-panel');
         if (!panel) return;
         panel.classList.add('open');
+        panel.setAttribute('role', 'region');
+        panel.setAttribute('aria-live', 'polite');
         panel.innerHTML = '<div class="crm-detail-empty">Loading…</div>';
         fetch('/api/ui/crm/records/' + entity + '/' + id, { headers: headers() })
             .then(function(r) { return r.ok ? r.text() : Promise.reject(r.status); })
             .then(function(html) {
+                panel.setAttribute('aria-live', 'polite');
                 panel.innerHTML = html;
                 if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
             })
             .catch(function(status) {
+                panel.setAttribute('role', 'alert');
+                panel.setAttribute('aria-live', 'assertive');
                 panel.innerHTML = '<div class="crm-detail-empty">Record unavailable (' + status + ')</div>';
             });
     }
@@ -350,14 +360,17 @@
             });
         } else if (action === 'delete') {
             e.preventDefault();
-            if (!confirm('Delete this ' + entity + '? The action is recorded in the audit trail.')) return;
-            var base = ENDPOINTS[entity];
-            if (!base) return;
-            fetch(base + '/' + id, { method: 'DELETE', headers: headers() })
-                .then(function(resp) {
-                    notice(resp.ok ? entity + ' deleted' : 'Delete failed (' + resp.status + ')');
-                    if (resp.ok) refreshEntity(entity);
+            if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+                window.GBModal.confirm('Delete this ' + entity + '? The action is recorded in the audit trail.', 'Confirm', function() {
+                    var base = ENDPOINTS[entity];
+                    if (!base) return;
+                    fetch(base + '/' + id, { method: 'DELETE', headers: headers() })
+                        .then(function(resp) {
+                            notice(resp.ok ? entity + ' deleted' : 'Delete failed (' + resp.status + ')');
+                            if (resp.ok) refreshEntity(entity);
+                        });
                 });
+            }
         }
     });
 })();

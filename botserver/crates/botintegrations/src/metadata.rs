@@ -13,9 +13,14 @@ pub const MAX_METADATA_STRING_LEN: usize = 512;
 pub const MAX_METADATA_ARRAY_LEN: usize = 50;
 
 /// Keys allowed inside event metadata. Everything else is stripped.
+/// Credential metadata such as display name and visibility is safe to audit;
+/// secret material is still rejected by the sensitive-key filter above.
 const ALLOWED_METADATA_KEYS: &[&str] = &[
     "provider",
+    "display_name",
     "auth_kind",
+    "visibility",
+    "scope_count",
     "status",
     "test_status",
     "outcome_detail",

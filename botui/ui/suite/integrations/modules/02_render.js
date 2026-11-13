@@ -293,14 +293,41 @@
     };
 
     function formatDate(value) {
-        if (!value) {
-            return "Never";
-        }
+        if (!value) return "Never";
         var date = new Date(value);
-        if (Number.isNaN(date.getTime())) {
-            return "Not reported";
-        }
+        if (Number.isNaN(date.getTime())) return "Not reported";
         return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+    }
+
+    function relativeDate(value) {
+        var rel = typeof namespace.relativeDate === "function" ? namespace.relativeDate(value) : "";
+        return rel || formatDate(value);
+    }
+
+    function expiryState(value) {
+        return typeof namespace.expiryState === "function" ? namespace.expiryState(value) : "";
+    }
+
+    function credentialAuditCell(row) {
+        var version = "Credential v" + namespace.escapeHtml(String(row.credential_version));
+        var parts = [];
+        if (row.rotated_at || row.rotated_by) {
+            var when = relativeDate(row.rotated_at) || formatDate(row.rotated_at);
+            var who = namespace.text(row.rotated_by, "");
+            parts.push("Rotated " + when + (who ? " by " + who : ""));
+        } else if (row.updated_at || row.created_at) {
+            var activity = relativeDate(row.updated_at || row.created_at) || formatDate(row.updated_at || row.created_at);
+            parts.push("Updated " + activity);
+        } else {
+            parts.push("Rotation audit not recorded");
+        }
+        var state = expiryState(row.expires_at);
+        if (row.expires_at) {
+            var expiry = relativeDate(row.expires_at) || formatDate(row.expires_at);
+            parts.push(state === "expired" ? "Expired " + expiry : "Expires " + expiry);
+        }
+        return '<span class="integrations-connected-name">' + version + '</span>' +
+            '<span class="integrations-cell-subtext">' + namespace.escapeHtml(parts.join(" · ")) + '</span>';
     }
 
     function statusBadge(value) {
@@ -319,10 +346,15 @@
 
     function testCell(row) {
         if (!row.last_test_status) {
-            return '<span class="integrations-faint-text">Not tested</span>';
+            return '<span class="integrations-faint-text">Not tested yet</span>' +
+                '<span class="integrations-cell-subtext">Run a test to verify stored credentials.</span>';
         }
+        var when = relativeDate(row.last_tested_at) || formatDate(row.last_tested_at);
+        var detail = namespace.text(row.last_test_detail || (namespace.testDetails && namespace.testDetails[row.id] && namespace.testDetails[row.id].detail), "");
+        var detailHtml = detail ? '<span class="integrations-cell-subtext">' + namespace.escapeHtml(detail) + '</span>' : '';
         return statusBadge(row.last_test_status) +
-            '<span class="integrations-cell-subtext">' + namespace.escapeHtml(formatDate(row.last_tested_at)) + '</span>';
+            '<span class="integrations-cell-subtext">Last tested ' + namespace.escapeHtml(when) + '</span>' +
+            detailHtml;
     }
 
     // GB7-18 — the consent view: what the connection may read or do, and who
@@ -343,18 +375,25 @@
 
     function connectionRow(row) {
         var name = row.display_name || namespace.titleCase(row.provider_slug, "Connection");
-        var expires = row.expires_at ? formatDate(row.expires_at) : "No expiry";
+        var expState = expiryState(row.expires_at);
+        var expires = row.expires_at ? ((expState === "expired" ? "Expired " : "Expires ") + (relativeDate(row.expires_at) || formatDate(row.expires_at))) : "No expiry";
+        var testLabel = row.last_test_status ? "Retest" : "Test";
         var actions = '<div class="integrations-row-actions">' +
-            '<button class="integrations-button integrations-button-subtle" type="button" data-action="test-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '">Test</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="test-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '" data-provider-slug="' + namespace.escapeHtml(row.provider_slug) + '">' + testLabel + '</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="rotate-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '" data-provider-slug="' + namespace.escapeHtml(row.provider_slug) + '">Rotate</button>' +
             '<button class="integrations-button integrations-button-subtle" type="button" data-action="revoke-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '">Revoke</button>' +
             '</div>';
+        var expClass = expState === "expired" ? ' class="is-expired"' : (expState === "soon" ? ' class="is-expiring-soon"' : '');
         return '<tr><td data-label="Service"><span class="integrations-connected-name">' + namespace.escapeHtml(name) + '</span>' +
             '<span class="integrations-connected-type">' + namespace.escapeHtml(namespace.titleCase(row.provider_slug, "Provider")) + ' / ' + namespace.escapeHtml(namespace.titleCase(row.auth_kind, "Auth")) + '</span></td>' +
             '<td data-label="Status">' + statusBadge(row.status) + '</td>' +
             '<td data-label="Shared">' + sharedCell(row) + '</td>' +
             '<td data-label="Last test">' + testCell(row) + '</td>' +
-            '<td data-label="Credential">v' + namespace.escapeHtml(String(row.credential_version)) + '</td>' +
-            '<td data-label="Expires">' + namespace.escapeHtml(expires) + '</td>' +
+            '<td data-label="Credential">' + credentialAuditCell(row) + '</td>' +
+            '<td data-label="Expires"' + expClass + '><span>' + namespace.escapeHtml(expires) + '</span>' +
+            (expState === "soon" ? '<span class="integrations-cell-subtext integrations-expiry-warning">Renew soon</span>' : '') +
+            (expState === "expired" ? '<span class="integrations-cell-subtext integrations-expiry-warning">Credential expired</span>' : '') +
+            '</td>' +
             '<td data-label="Actions">' + actions + '</td></tr>';
     }
 

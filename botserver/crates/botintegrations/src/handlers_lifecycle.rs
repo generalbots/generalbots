@@ -57,6 +57,7 @@ pub async fn test_connection(
                 "medium",
                 &serde_json::json!({
                     "provider": row.provider_slug,
+                    "display_name": row.display_name,
                     "outcome_detail": "credential store unavailable"
                 }),
             );
@@ -85,6 +86,7 @@ pub async fn test_connection(
                     "low",
                     &serde_json::json!({
                         "provider": row.provider_slug,
+                        "display_name": row.display_name,
                         "test_status": "unverified",
                         "outcome_detail": "shape validated; no outbound probe in this slice"
                     }),
@@ -104,6 +106,7 @@ pub async fn test_connection(
                     "low",
                     &serde_json::json!({
                         "provider": row.provider_slug,
+                        "display_name": row.display_name,
                         "outcome_detail": "invalid credential or configuration shape"
                     }),
                 );
@@ -146,7 +149,11 @@ pub async fn rotate(
             "connection.rotated",
             "ok",
             "medium",
-            &serde_json::json!({ "provider": row.provider_slug, "credential_version": version }),
+            &serde_json::json!({
+                "provider": row.provider_slug,
+                "display_name": row.display_name,
+                "credential_version": version
+            }),
         );
         version
     };

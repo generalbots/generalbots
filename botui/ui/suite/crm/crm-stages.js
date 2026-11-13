@@ -5,7 +5,14 @@
 (function() {
     function showStageResult(text) {
         var el = document.getElementById('stage-admin-result');
-        if (el) el.textContent = text;
+        if (el) {
+            var lower = String(text || '').toLowerCase();
+            var isAlert = /fail|error|blocked|required|must|unavailable/.test(lower);
+            el.setAttribute('role', isAlert ? 'alert' : 'status');
+            el.setAttribute('aria-live', isAlert ? 'assertive' : 'polite');
+            el.setAttribute('aria-atomic', 'true');
+            el.textContent = text;
+        }
         setTimeout(function() { if (el) el.textContent = ''; }, 8000);
     }
 
@@ -72,40 +79,49 @@
         if (!stageId) { showStageResult('Static column — configure stages first'); return; }
 
         if (btn.dataset.action === 'rename') {
-            var name = prompt('Rename stage "' + stageName + '" to:', stageName);
-            if (!name || name.trim() === stageName) return;
-            api('/api/crm/pipeline/stages/' + stageId, {
-                method: 'PUT', body: JSON.stringify({ name: name.trim() })
-            }).then(function(resp) {
-                showStageResult(resp.ok ? 'Stage renamed' : 'Rename failed (' + resp.status + ')');
-                if (resp.ok) reloadStages();
-            });
-        } else if (btn.dataset.action === 'probability') {
-            var raw = prompt('Win probability % for "' + stageName + '":', '50');
-            if (raw === null) return;
-            var probability = parseInt(raw, 10);
-            if (isNaN(probability) || probability < 0 || probability > 100) {
-                showStageResult('Probability must be 0-100');
-                return;
+            if (window.GBModal && typeof window.GBModal.prompt === 'function') {
+                window.GBModal.prompt('Rename stage "' + stageName + '" to:', stageName, 'Rename stage', function(name) {
+                    if (!name || name.trim() === stageName) return;
+                    api('/api/crm/pipeline/stages/' + stageId, {
+                        method: 'PUT', body: JSON.stringify({ name: name.trim() })
+                    }).then(function(resp) {
+                        showStageResult(resp.ok ? 'Stage renamed' : 'Rename failed (' + resp.status + ')');
+                        if (resp.ok) reloadStages();
+                    });
+                });
             }
-            api('/api/crm/pipeline/stages/' + stageId, {
-                method: 'PUT', body: JSON.stringify({ probability: probability })
-            }).then(function(resp) {
-                showStageResult(resp.ok ? 'Probability updated' : 'Update failed (' + resp.status + ')');
-                if (resp.ok) reloadStages();
-            });
+        } else if (btn.dataset.action === 'probability') {
+            if (window.GBModal && typeof window.GBModal.prompt === 'function') {
+                window.GBModal.prompt('Win probability % for "' + stageName + '":', '50', 'Win probability', function(raw) {
+                    if (raw === null) return;
+                    var probability = parseInt(raw, 10);
+                    if (isNaN(probability) || probability < 0 || probability > 100) {
+                        showStageResult('Probability must be 0-100');
+                        return;
+                    }
+                    api('/api/crm/pipeline/stages/' + stageId, {
+                        method: 'PUT', body: JSON.stringify({ probability: probability })
+                    }).then(function(resp) {
+                        showStageResult(resp.ok ? 'Probability updated' : 'Update failed (' + resp.status + ')');
+                        if (resp.ok) reloadStages();
+                    });
+                });
+            }
         } else if (btn.dataset.action === 'delete') {
-            if (!confirm('Delete stage "' + stageName + '"? Blocked while leads still use it.')) return;
-            api('/api/crm/pipeline/stages/' + stageId, { method: 'DELETE' }).then(function(resp) {
-                if (resp.ok) {
-                    showStageResult('Stage deleted');
-                    reloadStages();
-                } else if (resp.status === 409) {
-                    showStageResult('Stage still holds leads — move them first');
-                } else {
-                    showStageResult('Delete failed (' + resp.status + ')');
-                }
-            });
+            if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+                window.GBModal.confirm('Delete stage "' + stageName + '"? Blocked while leads still use it.', 'Confirm', function() {
+                    api('/api/crm/pipeline/stages/' + stageId, { method: 'DELETE' }).then(function(resp) {
+                        if (resp.ok) {
+                            showStageResult('Stage deleted');
+                            reloadStages();
+                        } else if (resp.status === 409) {
+                            showStageResult('Stage still holds leads — move them first');
+                        } else {
+                            showStageResult('Delete failed (' + resp.status + ')');
+                        }
+                    });
+                });
+            }
         }
     });
 })();

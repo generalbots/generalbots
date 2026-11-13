@@ -8,13 +8,8 @@
 <link rel="stylesheet" href="/suite/crm/crm-detail-forms.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-bulk-drawers.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-crud.css?v=1">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
-<script src="/suite/js/vendor/htmx.min.js"></script>
-<script src="/suite/js/vendor/htmx-json-enc.js"></script>
-<script src="/suite/js/security-bootstrap/01_tokens.js"></script>
-<script src="/suite/js/security-bootstrap/02_interceptors.js"></script>
-<script src="/suite/js/security-bootstrap/99_init.js"></script>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 
 <div class="crm-container gb-app" data-gb-app="crm">
     <!-- Header -->
@@ -68,7 +63,7 @@
     </header>
 
     <!-- Search Results Dropdown -->
-    <div id="crm-search-results" class="crm-search-results"></div>
+    <div id="crm-search-results" class="crm-search-results" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Pipeline View (Default) — columns are rendered from
          /api/crm/pipeline/stages (#1441 A4); the static six below are the
@@ -127,23 +122,23 @@
         <div class="pipeline-summary">
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-total-value">Total Pipeline Value</span>
-                <span class="summary-value" hx-get="/api/crm/stats/pipeline-value" hx-trigger="load">—</span>
+                <span class="summary-value" hx-get="/api/crm/stats/pipeline-value" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true">—</span>
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-conversion-rate">Conversion Rate</span>
-                <span class="summary-value" hx-get="/api/crm/stats/conversion-rate" hx-trigger="load">0%</span>
+                <span class="summary-value" hx-get="/api/crm/stats/conversion-rate" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true">0%</span>
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-avg-deal">Avg Deal Size</span>
-                <span class="summary-value" hx-get="/api/crm/stats/avg-deal" hx-trigger="load">—</span>
+                <span class="summary-value" hx-get="/api/crm/stats/avg-deal" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true">—</span>
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-this-month">Won This Month</span>
-                <span class="summary-value success" hx-get="/api/crm/stats/won-month" hx-trigger="load">—</span>
+                <span class="summary-value success" hx-get="/api/crm/stats/won-month" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true">—</span>
             </div>
             <!-- #1441 C7 — reporting: weighted forecast + funnel by source. -->
-            <div class="summary-card" id="crm-forecast-card" hx-get="/api/ui/crm/stats/forecast" hx-trigger="load"></div>
-            <div class="summary-card" id="crm-funnel-card" hx-get="/api/ui/crm/stats/funnel" hx-trigger="load"></div>
+            <div class="summary-card" id="crm-forecast-card" hx-get="/api/ui/crm/stats/forecast" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true"></div>
+            <div class="summary-card" id="crm-funnel-card" hx-get="/api/ui/crm/stats/funnel" hx-trigger="load" role="status" aria-live="polite" aria-atomic="true"></div>
         </div>
     </div>
 
@@ -179,10 +174,10 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load"></tbody>
+            <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load" aria-live="polite"></tbody>
         </table>
         <div class="crm-bulk-bar" id="opps-bulk-bar">
-            <span class="crm-bulk-count" id="opps-bulk-count">0 selected</span>
+            <span class="crm-bulk-count" id="opps-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
             <select id="opps-bulk-stage">
                 <option value="new">New</option>
                 <option value="qualified">Qualified</option>
@@ -198,7 +193,7 @@
             <button class="btn-secondary" id="opps-import-btn">Import CSV</button>
             <button class="btn-danger" id="opps-bulk-delete-btn">Delete</button>
             <input type="file" id="opps-import-file" accept=".csv,text/csv" style="display:none">
-            <span class="crm-bulk-result" id="opps-bulk-result"></span>
+            <span class="crm-bulk-result" id="opps-bulk-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
     </div>
 
@@ -234,13 +229,13 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load"></tbody>
+            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load" aria-live="polite"></tbody>
         </table>
         <div class="crm-bulk-bar" id="deals-bulk-bar">
-            <span class="crm-bulk-count" id="deals-bulk-count">0 selected</span>
+            <span class="crm-bulk-count" id="deals-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
             <button class="btn-secondary" id="deals-bulk-stage-btn">Set stage won</button>
             <button class="btn-danger" id="deals-bulk-delete-btn">Delete</button>
-            <span class="crm-bulk-result" id="deals-bulk-result"></span>
+            <span class="crm-bulk-result" id="deals-bulk-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
     </div>
 
@@ -264,7 +259,7 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load"></tbody>
+            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load" aria-live="polite"></tbody>
         </table>
     </div>
 
@@ -289,15 +284,15 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load"></tbody>
+            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load" aria-live="polite"></tbody>
         </table>
         <div class="crm-bulk-bar" id="contacts-bulk-bar">
-            <span class="crm-bulk-count" id="contacts-bulk-count">0 selected</span>
+            <span class="crm-bulk-count" id="contacts-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
             <button class="btn-secondary" id="contacts-export-btn">Export CSV</button>
             <button class="btn-secondary" id="contacts-import-btn">Import CSV</button>
             <button class="btn-danger" id="contacts-bulk-delete-btn">Delete</button>
             <input type="file" id="contacts-import-file" accept=".csv,text/csv" style="display:none">
-            <span class="crm-bulk-result" id="contacts-bulk-result"></span>
+            <span class="crm-bulk-result" id="contacts-bulk-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
     </div>
 
@@ -306,9 +301,9 @@
         <div class="crm-bulk-bar">
             <button class="btn-primary" id="campaign-new-btn">New Campaign</button>
             <input type="search" class="grid-search" data-grid="campaigns" placeholder="Filter campaigns…">
-            <span class="crm-bulk-result" id="campaign-result"></span>
+            <span class="crm-bulk-result" id="campaign-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
-        <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML"></div>
+        <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML" role="status" aria-live="polite"></div>
     </div>
 
     <!-- #2015 — Quotes & Orders. The former standalone "Sales" app only
@@ -331,7 +326,7 @@
                     <th data-i18n="crm-col-stage">Status</th>
                 </tr>
             </thead>
-            <tbody id="crm-quotes-body">
+            <tbody id="crm-quotes-body" role="status" aria-live="polite" aria-atomic="true">
                 <tr><td colspan="6" data-i18n="crm-loading">Loading…</td></tr>
             </tbody>
         </table>
@@ -351,7 +346,7 @@
                     <th data-i18n="crm-col-delivery">Delivery</th>
                 </tr>
             </thead>
-            <tbody id="crm-orders-body">
+            <tbody id="crm-orders-body" role="status" aria-live="polite" aria-atomic="true">
                 <tr><td colspan="6" data-i18n="crm-loading">Loading…</td></tr>
             </tbody>
         </table>
@@ -365,7 +360,7 @@
 </div>
 
 <!-- Record detail drawer (#1441 C1) — the fragment is loaded per record type -->
-<div id="record-detail-panel" class="crm-detail-panel"></div>
+<div id="record-detail-panel" class="crm-detail-panel" role="region" aria-live="polite" aria-label="Record details"></div>
 
 <!-- #1453 — campaign create form, loaded into the shared modal on demand -->
 <template id="campaign-form-template">
@@ -402,7 +397,7 @@
         <span data-i18n="crm-audit-title">Audit trail</span>
         <button id="crm-audit-close" title="Close">×</button>
     </div>
-    <div class="crm-audit-body" id="crm-audit-body"></div>
+    <div class="crm-audit-body" id="crm-audit-body" role="status" aria-live="polite" aria-atomic="false"></div>
 </div>
 
 <script src="/suite/crm/crm.js?v=6"></script>
