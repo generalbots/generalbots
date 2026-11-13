@@ -16,3 +16,6 @@ tokio = { workspace = true, features = ["full"], default-features = true }
 log = { workspace = true }
 rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
 botsecurity-core = { workspace = true }
+
+[lints]
+workspace = true

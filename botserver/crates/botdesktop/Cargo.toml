@@ -23,3 +23,6 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 botcoresecrets = { workspace = true }
 botsecurity-auth = { workspace = true }
+
+[lints]
+workspace = true

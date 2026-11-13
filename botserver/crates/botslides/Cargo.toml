@@ -31,3 +31,6 @@ zip = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 hmac = { workspace = true }
 sha2 = { workspace = true }
+
+[lints]
+workspace = true

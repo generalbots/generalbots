@@ -35,3 +35,6 @@ dirs = { workspace = true }
 botcore = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botsecurity = { workspace = true }
+
+[lints]
+workspace = true

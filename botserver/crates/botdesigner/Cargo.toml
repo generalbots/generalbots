@@ -19,3 +19,6 @@ uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 log = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-stream = { workspace = true }
+
+[lints]
+workspace = true

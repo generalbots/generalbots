@@ -30,3 +30,6 @@ log = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 serde_urlencoded = "0.7"
+
+[lints]
+workspace = true

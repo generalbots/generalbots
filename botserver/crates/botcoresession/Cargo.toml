@@ -28,3 +28,6 @@ tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 redis = { workspace = true, features = ["tokio-comp"], optional = true }
+
+[lints]
+workspace = true

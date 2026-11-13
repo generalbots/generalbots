@@ -41,3 +41,6 @@ tokio-tungstenite = { workspace = true, features = ["connect"] }
 
 [dev-dependencies]
 hmac = { workspace = true }
+
+[lints]
+workspace = true

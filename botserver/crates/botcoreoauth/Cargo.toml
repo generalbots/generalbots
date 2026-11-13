@@ -28,3 +28,6 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v5"] }
+
+[lints]
+workspace = true

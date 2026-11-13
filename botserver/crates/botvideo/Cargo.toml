@@ -24,3 +24,6 @@ log = { workspace = true }
 redis = { workspace = true, features = ["r2d2"] }
 reqwest = { workspace = true, features = ["json"] }
 dirs = { workspace = true }
+
+[lints]
+workspace = true

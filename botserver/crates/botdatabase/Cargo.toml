@@ -17,3 +17,6 @@ postgres = { version = "0.19", features = ["with-uuid-1", "with-chrono-0_4", "wi
 chrono = { workspace = true, features = ["clock", "std"] }
 base64 = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
+
+[lints]
+workspace = true

@@ -37,3 +37,6 @@ base64 = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 toml = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
+
+[lints]
+workspace = true

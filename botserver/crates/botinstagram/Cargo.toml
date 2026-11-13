@@ -21,3 +21,6 @@ hex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4"] }
 urlencoding = { workspace = true }
+
+[lints]
+workspace = true

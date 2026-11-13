@@ -12,9 +12,6 @@ categories = ["web-programming", "gui"]
 workspace = true
 features = ["http-client"]
 
-[dependencies.botcoresecrets]
-workspace = true
-
 # IMP-09: the same header layer botserver applies. One implementation, every
 # server (suite :3000, cloud :4000, login :5000, API :8080).
 [dependencies.botsecurity-core]

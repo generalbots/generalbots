@@ -33,3 +33,6 @@ required-features = ["http", "vibe"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"], default-features = true }
+
+[lints]
+workspace = true

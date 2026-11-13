@@ -19,3 +19,6 @@ diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_js
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
+
+[lints]
+workspace = true

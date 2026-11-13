@@ -8,3 +8,6 @@ description = "Redacting log facade for sensitive identifiers"
 [dependencies]
 log = { workspace = true }
 regex = { workspace = true }
+
+[lints]
+workspace = true

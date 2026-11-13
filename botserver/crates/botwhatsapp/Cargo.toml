@@ -23,3 +23,6 @@ sha2 = { workspace = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
+
+[lints]
+workspace = true

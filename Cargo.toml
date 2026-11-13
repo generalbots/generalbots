@@ -140,8 +140,6 @@ version = "7.0.37"
 edition = "2021"
 license = "MIT"
 authors = ["General Bots"]
-description = "General Bots BotServer monorepo."
-publish = false
 
 [workspace.lints.rust]
 
@@ -160,7 +158,6 @@ botlog = { path = "botserver/crates/botlog" }
 http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
 botbrazil = { path = "botserver/crates/botbrazil" }
-boteval = { path = "botserver/crates/boteval" }
 botevents = { path = "botserver/crates/botevents" }
 botfraud = { path = "botserver/crates/botfraud" }
 botgl = { path = "botserver/crates/botgl" }
@@ -263,7 +260,6 @@ botpos = { path = "botserver/crates/botpos" }
 bothandoff = { path = "botserver/crates/bothandoff" }
 botkyc = { path = "botserver/crates/botkyc" }
 bottimeclock = { path = "botserver/crates/bottimeclock" }
-botpublic = { path = "botserver/crates/botpublic" }
 botdomains = { path = "botserver/crates/botdomains" }
 # #1621 — botcore declares the domain feature set in its own `default`. Every
 # dependent crate used to inherit it, so a slim product build still compiled and
@@ -292,12 +288,9 @@ color-eyre = "0.6.5"
 # ─── ASYNC RUNTIME ───
 tokio = { version = "1.41", default-features = false }
 tokio-stream = "0.1"
-tokio-util = { version = "0.7", default-features = false }
 tokio-rustls = "0.26"
-tokio-test = "0.4"
 tokio-tungstenite = { version = "0.24", default-features = false }
 async-trait = "0.1"
-async-lock = "2.8.0"
 async-stream = "0.3"
 futures = "0.3"
 futures-util = { version = "0.3", default-features = false }
@@ -308,7 +301,6 @@ serde = { version = "1.0", default-features = false }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 toml = "0.8"
-ciborium = "0.2"
 
 # ─── DATE / TIME ───
 chrono = { version = "0.4", default-features = false }
@@ -323,11 +315,6 @@ axum = { version = "0.7.5", features = ["ws", "multipart", "macros"] }
 axum-server = { version = "0.8", features = ["tls-rustls"] }
 tower = "0.4"
 tower-http = { version = "0.6", default-features = false }
-tower-cookies = "0.10"
-hyper = { version = "1.4", default-features = false }
-hyper-rustls = { version = "0.28", default-features = false }
-hyper-util = { version = "0.1.19", default-features = false }
-http-body-util = "0.1.3"
 
 # ─── HTTP CLIENT ───
 reqwest = { version = "0.12", default-features = false }
@@ -361,8 +348,6 @@ ring = "0.17"
 rustls = { version = "0.23", default-features = false }
 rcgen = { version = "0.14", default-features = false }
 x509-parser = "0.15"
-rustls-native-certs = "0.8"
-webpki-roots = "0.26"
 native-tls = "0.2"
 
 # ─── REGEX / TEXT ───
@@ -375,7 +360,6 @@ url = "2.5"
 dirs = "5.0"
 tempfile = "3"
 walkdir = "2.5.0"
-notify = "8.0"
 
 # ─── COMPRESSION / ARCHIVES ───
 flate2 = "1.0"
@@ -390,7 +374,6 @@ zstd = "0.14"
 docx-rs = { path = "3rdparty/docx-rs" }
 ooxmlsdk = { version = "0.15", default-features = false }
 calamine = "0.38"
-spreadsheet-ods = "1.0"
 pdf-extract = "0.12.1"
 quick-xml = { version = "0.42", features = ["serialize"] }
 rust_xlsxwriter = "0.102"
@@ -407,7 +390,6 @@ mailparse = "0.15"
 
 # ─── CONFIGURATION ───
 dotenvy = "0.15"
-figment = { version = "0.10", default-features = false }
 once_cell = "1.18.0"
 
 # ─── TRACING / LOGGING ───
@@ -431,9 +413,6 @@ rhai = { version = "1.23", features = ["sync"] }
 # #2011 — 1.20 moves to tonic 0.14, which drops the unmaintained
 # rustls-pemfile (RUSTSEC-2025-0134). Only botemail declares it today.
 qdrant-client = "1.20"
-
-# ─── VIDEO / MEETINGS ───
-livekit = "0.7"
 
 # ─── SYSTEM MONITORING ───
 sysinfo = "0.37.2"
@@ -462,9 +441,6 @@ governor = "0.10"
 # ─── CSV ───
 csv = "1.3"
 
-# ─── GRPC ───
-tonic = { version = "0.14.2", default-features = false }
-
 # ─── STATIC FILES ───
 rust-embed = { version = "8.5", features = ["interpolate-folder-path"] }
 mime_guess = "2.0"
@@ -475,29 +451,17 @@ mockito = "1.7.0"
 wiremock = "0.6"
 cookie = "0.18"
 chromiumoxide = { version = "0.7", features = ["tokio-runtime"], default-features = false }
-pretty_assertions = "1.4"
 insta = { version = "1.40", features = ["json", "yaml"] }
 
 # ─── PROCESS CONTROL ───
 nix = { version = "0.29", features = ["signal", "process"] }
 which = "7"
 
-# ─── ANDROID ───
-android_logger = "0.14"
-
-# ─── VALIDATOR ───
-validator = { version = "0.20", features = ["derive"] }
-
 # ─── MISC ───
-webbrowser = "0.8"
-hostname = "0.4"
-local-ip-address = "0.6.5"
 # #2012 — no workspace member inherits `image` any more (the only one was an
 # unused Windows-only dependency of `botapp`). Keeping the bare entry here made
 # every resolver run pull the avif encoder (ravif -> rav1e -> paste).
 libc = "0.2"
-
-trayicon = "0.2"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PROFILES

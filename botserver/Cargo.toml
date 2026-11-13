@@ -155,7 +155,7 @@ nvidia = ["automation", "drive", "cache", "dep:botnvidia"]
 compliance = ["automation", "drive", "cache", "legal", "dep:csv", "dep:botcompliance"]
 timeseries = ["automation", "drive", "cache", "dep:bottimeseries", "botcore/timeseries"]
 weba = ["automation", "drive", "cache", "dep:botweba", "botcore/weba"]
-progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
+progress-bars = ["automation", "drive", "cache", "botcore/progress-bars"]
 grpc = ["automation", "drive", "cache", "botcore/grpc"]
 jemalloc = ["automation", "drive", "cache", "dep:mimalloc", "botcore/jemalloc"]
 console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
@@ -315,7 +315,6 @@ tokio-rustls = { workspace = true }
 rcgen = { workspace = true, features = ["crypto", "ring", "pem"] }
 x509-parser = { workspace = true }
 ring = { workspace = true }
-ciborium = { workspace = true }
 time = { workspace = true, features = ["formatting"] }
 jsonwebtoken = { workspace = true }
 
@@ -372,8 +371,7 @@ redis = { workspace = true, features = ["tokio-comp"], optional = true }
 # System Monitoring (monitoring feature)
 sysinfo = { workspace = true, optional = true }
 
-# UI Enhancement (progress-bars feature)
-indicatif = { workspace = true, optional = true }
+# UI Enhancement (progress-bars feature, provided by botcore)
 smartstring = { workspace = true }
 
 # Memory allocator (jemalloc feature)
@@ -515,3 +513,6 @@ botproviders = { workspace = true, optional = true }
 mockito = { workspace = true }
 tempfile = { workspace = true }
 bigdecimal = { workspace = true }
+
+[lints]
+workspace = true

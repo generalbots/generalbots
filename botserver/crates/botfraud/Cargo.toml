@@ -21,3 +21,6 @@ reqwest = { workspace = true, features = ["json"], optional = true, default-feat
 [features]
 ml = ["dep:reqwest"]
 default = ["ml"]
+
+[lints]
+workspace = true

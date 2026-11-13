@@ -17,3 +17,6 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4", "v5"] }
 vaultrs = { workspace = true }
+
+[lints]
+workspace = true

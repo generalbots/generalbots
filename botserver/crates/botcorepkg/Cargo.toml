@@ -30,3 +30,6 @@ dotenvy = { workspace = true }
 zip = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
+
+[lints]
+workspace = true
