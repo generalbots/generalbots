@@ -1,10 +1,16 @@
 //! #1441 C2/A3 — the pipeline list fragments: `/api/ui/crm/deals` (the lead
 //! board's list twin) and `/api/ui/crm/opportunities`.
 //!
-//! Opportunities are the converted subset of `crm_deals` (`lead_id` set by
-//! `POST /api/crm/leads/:id/convert`), so the grid reads the same rows the
-//! Convert endpoint writes. The old implementation read `crm_opportunities`,
-//! a parallel table nothing writes to — Convert dead-ended in the UI.
+//! Both grids read `crm_deals` — the table every CRM write path targets. The
+//! old implementation read `crm_opportunities`, a parallel table nothing wrote
+//! to, so Convert dead-ended in the UI.
+//!
+//! #2356 — the opportunities grid used to add `lead_id IS NOT NULL` (the
+//! converted subset). `POST /api/crm/opportunities` and
+//! `GET /api/crm/opportunities` do not apply that filter, so a record created
+//! through the API was listed by REST and invisible in the pipeline: the bulk
+//! bar had no rows to select and the grid claimed "No opportunities yet". Both
+//! surfaces now show the same rows.
 
 use axum::{
     extract::{Query, State},
@@ -156,7 +162,6 @@ pub async fn handle_crm_opportunities(
 
     let mut rows: Vec<CrmDeal> = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::lead_id.is_not_null())
         .order(crm_deals::created_at.desc())
         .limit(SORT_WINDOW)
         .load(&mut conn)
