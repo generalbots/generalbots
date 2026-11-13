@@ -1,4 +1,6 @@
 GOAL: Process all github issues off-line first codeing, let github ci do the work and download release here to test and fix code, loop, until no more issues openened. And parallel off-line code, do not depend on response to continue coding. Commenting issues and webtesting before clsogin issues, respect those rules of agents.md here. Letting botbook updated if changed.
+
+**Operating model:** run the [Parallel Issue Loop](#-parallel-issue-loop--mandatory-operating-model) below — never idle while compiling, fan out up to 8 agents (one issue each), close an issue only with browser/test evidence, and loop until zero open issues.
 <p align="center"><img src="logo.svg" alt="General Bots" width="200"></p>
 
 ## Non-Negotiable Rules
@@ -43,6 +45,75 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 - ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
 - 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
 - The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors/`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
+
+---
+
+## 🔁 Parallel Issue Loop — Mandatory Operating Model
+
+**Rule:** the loop never stops because something is compiling, and never closes an issue without evidence. One session drives; agents execute; the driver verifies.
+
+### The loop
+
+```
+1. Pick the next OPEN issue(s)                          → gh issue list --state open
+2. Start any build in the background (never block)       → CARGO_BUILD_JOBS=8 nohup cargo build -p botserver > /tmp/opencode/build.log 2>&1 &
+3. Fan out up to 8 agents, ONE ISSUE EACH                → subagent(background=true)
+4. While they run: continue with non-overlapping work    → never poll, never sleep
+5. Agent result arrives → driver checks the evidence
+6. Evidence good → gh issue close --reason completed
+   Evidence bad  → comment the FAIL table, leave OPEN
+7. Restart botserver with the new binary, re-run the UAT that the fix targets
+8. Repeat from 1 until `gh issue list --state open` is empty
+```
+
+### Fan-out contract
+
+| Item | Rule |
+|------|------|
+| **Agents per batch** | Up to **8** in parallel; one issue per agent, never two agents on the same issue |
+| **Overlap** | Agents must own **disjoint files**. Two agents may never edit the same crate/UI app |
+| **Code agents** | Read the issue + comments, fix in the working tree, **no commit / no push** — the driver commits |
+| **UAT agents** | Browser-only: run the dialog, screenshot, comment PASS/FAIL; no code changes |
+| **Compilation** | ❌ NEVER run `cargo` while another build is running — check `ps aux \| grep -E "[c]argo\|[r]ustc"` first; otherwise validate with `rustfmt --emit stdout <file> >/dev/null` and `node --check` |
+| **Server** | ❌ Agents never restart, rebuild or kill `botserver` — only the driver does, after a build completes |
+| **Browser** | One tab per use case, per agent: open a **new** tab, never navigate or close tabs another agent owns; close the browser only on explicit request |
+| **Screenshots** | `/tmp/opencode/uat<issue>_<case>.png` — never in the repo |
+| **Closure** | Only the driver closes an issue, and only when the comment body shows per-criterion evidence (screenshot paths, command output, file:line) |
+
+### UAT agent prompt template
+
+```
+Read AGENTS.md. You own issue #<N> "<title>". Run its UAT in the live app:
+- Chrome CDP http://127.0.0.1:9224; open your OWN new tab at http://localhost:3000/default
+  (authenticated). NEVER close or navigate other tabs.
+- One message at a time: send, wait, read the reply, decide the next message.
+- Screenshots → /tmp/opencode/uat<N>_case<k>.png
+- Never restart/rebuild botserver, never run cargo, never commit or push.
+- Finish with ONE issue comment: per-criterion table (criterion | observed | PASS/FAIL),
+  screenshot paths, broken behaviour. Close ONLY if every criterion passes with evidence.
+```
+
+### Code agent prompt template
+
+```
+Read AGENTS.md. You own issue #<N> "<title>". Root-cause it offline and fix it.
+- Only touch files in <owned area>; another agent owns the rest.
+- Do NOT commit or push; leave the changes in the working tree.
+- Do NOT run cargo while a build is running (check `ps aux | grep -E "[c]argo|[r]ustc"`).
+  Validate with `rustfmt --emit stdout <file> >/dev/null` and `node --check <file>`.
+- No unwrap/expect/panic, no #[allow], no new files at the repo root, no CDN links, files < 450 lines.
+- Report: root cause (file:line), changed paths with a short diff, what still needs a running server, validation output.
+```
+
+### Driver checklist after every batch
+
+- [ ] Every returned agent result has evidence attached (screenshots, test output, file:line)
+- [ ] Issues with evidence closed; issues with gaps commented and still open
+- [ ] Build finished → restart `botserver` → re-run the targeted UAT → update the comment
+- [ ] `cargo test -p <touched crate>` green before commit
+- [ ] Commit split by area (sheet, docs, chat, …), then `git push alm main` and `git push origin main`
+- [ ] `botbook/` updated when user-facing behaviour changed
+- [ ] `gh issue list --state open` re-read and the next batch started
 
 ---
 

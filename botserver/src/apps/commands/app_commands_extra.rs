@@ -185,7 +185,7 @@ pub static ALL_COMMANDS_EXTRA: &[AppCommand] = &[
     cmd("slides", "slides.slide.duplicate", "Duplicate slide", "Copy a slide and insert the copy right after it.", &[("file_id", "presentation id"), ("slide", "slide number")], Some("app://slides?file={file_id}"), false),
     cmd("slides", "slides.theme.set", "Set theme", "Apply a theme to the deck.", &[("file_id", "presentation id"), ("theme", "theme id or name")], None, false),
     cmd("slides", "slides.transition.set", "Set transition", "Set the transition between slides.", &[("file_id", "presentation id"), ("transition", "transition name")], None, false),
-    cmd("slides", "slides.media.add", "Add media", "Add an image, audio or video to a slide.", &[("file_id", "presentation id"), ("slide", "slide number"), ("path", "drive path")], None, false),
+    cmd("slides", "slides.media.add", "Add image", "Place an image on a slide (full-bleed look: x=0, y=0, width=960, height=540). Use the Drive path or the file URL returned when the image was generated.", &[("file_id", "presentation id"), ("slide", "slide number"), ("path", "drive path or image URL"), ("x", "left, default 0"), ("y", "top, default 0"), ("width", "default 200"), ("height", "default 120")], None, false),
     cmd("slides", "slides.presenter.start", "Start presenter view", "Open presenter mode with notes and timer.", &[("file_id", "presentation id")], Some("app://slides?file={file_id}"), false),
     cmd("slides", "slides.ai", "AI edit deck", "Ask the assistant to rewrite or restructure slides.", &[("file_id", "presentation id"), ("instruction", "what to change")], None, false),
     cmd("slides", "slides.search", "Search presentations", "Search decks by text.", &[("query", "search text")], None, false),

@@ -148,6 +148,10 @@ pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     bind("slides.slide.duplicate", "POST", "/api/slides/slide/duplicate", &[("file_id", "presentation_id"), ("slide", "slide_index")], &[]),
     bind("slides.slide.notes", "POST", "/api/slides/slide/notes", &[("file_id", "presentation_id"), ("slide", "slide_index")], &[]),
     bind("slides.element.add", "POST", "/api/slides/element/add", &[("file_id", "presentation_id"), ("slide", "slide_index")], &[]),
+    // #2151 — the media verb had no endpoint, so a "deck with images" request
+    // could only be answered with text. The element writer already stores an
+    // `image` element with a `src`; bind the verb onto it.
+    bind("slides.media.add", "POST", "/api/slides/element/add", &[("file_id", "presentation_id"), ("slide", "slide_index"), ("path", "src"), ("source", "src")], &[("element_type", "image")]),
     bind("slides.element.delete", "POST", "/api/slides/element/delete", &[("file_id", "presentation_id"), ("slide", "slide_index")], &[]),
     bind("slides.theme.set", "POST", "/api/slides/theme", &[("file_id", "presentation_id"), ("theme", "theme_name")], &[]),
     // ——— #2037 — Canvas (crates/botcanvas) ———
