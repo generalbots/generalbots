@@ -720,7 +720,7 @@ jobs:
             http://127.0.0.1:8080/suite/login.html --require-desktop
       - name: Upload botserver log
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: a11y-botserver-log
           path: /tmp/botserver-a11y.log
@@ -853,7 +853,7 @@ jobs:
             --catalog http://127.0.0.1:8080/api/apps/catalog
       - name: Upload botserver log
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-surfaces-botserver-log
           path: /tmp/botserver-smoke.log
@@ -1114,7 +1114,7 @@ jobs:
           python3 scripts/check_slo.py --snapshot /tmp/slo-api.json --class api
       - name: Upload the SLO report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: slo-report
           path: /tmp/slo-report.json
@@ -1197,7 +1197,7 @@ jobs:
             --baseline issues/coverage/baseline.json
       - name: Upload the lcov report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-${{ matrix.crate }}
           path: coverage/${{ matrix.crate }}.lcov
@@ -1264,7 +1264,7 @@ jobs:
             -max_total_time=90 -rss_limit_mb=4096 -print_final_stats=1
       - name: Upload any crash artifact
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fuzz-artifacts-${{ matrix.target }}
           path: fuzz/artifacts/${{ matrix.target }}/
