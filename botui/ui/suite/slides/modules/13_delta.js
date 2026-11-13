@@ -110,9 +110,11 @@
   }
 
   registerWhenReady(0);
-  if (window.GBDocDelta && window.GBDocDelta.apply) {
+  // Standalone fallback only: register() already routes batches to apply().
+  if (!window.GBDocDelta) {
     document.addEventListener("gb-doc-delta", function (e) {
       apply((e && e.detail) || {});
     });
   }
+})();
 })();

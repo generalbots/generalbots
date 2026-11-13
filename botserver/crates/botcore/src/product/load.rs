@@ -43,6 +43,7 @@ impl Default for ProductConfig {
             "minutes",
             "monitoring",
             "notes",
+            "notepad",
             "o365",
             "paper",
             "people",

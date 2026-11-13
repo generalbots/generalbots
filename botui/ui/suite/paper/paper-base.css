@@ -2,7 +2,17 @@
     /* Paper Container */
     .paper-container {
         display: flex;
-        height: calc(100vh - 60px);
+        /* The app is mounted inside a desktop window, so a 100vh container
+           pushed the editor canvas below the fold (its rect started at
+           y=1308 and only 80px tall). Fill the window instead and let the
+           sidebar list scroll on its own. */
+        height: 100%;
+        max-height: calc(100vh - 60px);
+        min-height: 0;
+        /* The suite's generic `.gb-app` rule sets column direction; without
+           this the sidebar stacked above the editor and, with a long note
+           list, squeezed the canvas to 0px (#2186). */
+        flex-direction: row;
         background: var(--background);
         color: var(--foreground);
     }
@@ -10,10 +20,13 @@
     /* Sidebar */
     .paper-sidebar {
         width: 280px;
+        flex: 0 0 280px;
         border-right: 1px solid var(--border);
         background: var(--card);
         display: flex;
         flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
         transition: width 0.2s ease;
     }
 

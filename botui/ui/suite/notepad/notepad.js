@@ -28,7 +28,9 @@ window.GBNotepad = window.GBNotepad || {};
         sel.appendChild(o);
       });
       if (keep && names().indexOf(keep) !== -1) sel.value = keep;
-      ta.value = loadIndex()[sel.value] || "";
+      // A gb-doc-delta may have filled the editor before this boot pass ran;
+      // seeding the stored note here would silently discard it.
+      if (ta.dataset.gbDelta !== "1") ta.value = loadIndex()[sel.value] || "";
     }
     function mark(dirty) { status.textContent = dirty ? "Editing…" : "Saved"; }
 

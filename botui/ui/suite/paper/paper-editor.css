@@ -5,6 +5,11 @@
         flex-direction: column;
         position: relative;
         overflow: hidden;
+        min-height: 0;
+        /* A percentage height makes the column's height definite; without it
+           the canvas' flex-grow had no free space and collapsed to its 80px
+           padding, pushing the editor out of view (#2186). */
+        height: 100%;
     }
 
     /* Toolbar */
@@ -105,6 +110,7 @@
     /* Editor Canvas */
     .editor-canvas {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
         padding: 40px;
         display: flex;

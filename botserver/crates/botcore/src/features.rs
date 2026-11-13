@@ -146,6 +146,7 @@ pub const COMPILED_FEATURES: &[&str] = &[
     "concierge",
     "jukebox",
     "notes",
+    "notepad",
     "photos",
     "plugins",
     "recycle",

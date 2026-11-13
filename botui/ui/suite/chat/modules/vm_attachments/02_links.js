@@ -44,6 +44,14 @@ function renderVmFileLinks(html) {
   var pattern = /<a\s+[^>]*href="vmfile:([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   return html.replace(pattern, function (match, target, label) {
     var parts = vmSplitTarget(target);
+    // The Preview app opens "the last generated file" with no explicit
+    // conversation/path; remember the newest attachment we rendered (#2216).
+    if (parts.path) {
+      window.__gbLastArtifact = {
+        conversation: parts.conversationId || "",
+        path: parts.path,
+      };
+    }
     var text = String(label || "").replace(/<[^>]*>/g, "").trim();
     var name = text || parts.path.split("/").pop();
     var convAttr = parts.conversationId

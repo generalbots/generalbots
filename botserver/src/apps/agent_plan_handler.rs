@@ -207,7 +207,7 @@ pub(super) fn is_app_compiled(id: &str) -> bool {
         // every build and were previously hidden because the map answered
         // `false` for anything it did not recognise (#1381).
         "calculator" | "clock" | "clock-widget" | "concierge" | "jukebox" | "notes" | "photos"
-        | "plugins" | "recycle" | "store" | "timer" | "weather" => true,
+        | "plugins" | "recycle" | "store" | "timer" | "weather" | "notepad" | "preview" => true,
         _ => false,
     }
 }

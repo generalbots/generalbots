@@ -99,6 +99,7 @@ pub const OWNERSHIP: &[(&str, &str, AppStatus)] = &[
     ("player", "desktop", AppStatus::Supported),
     ("plugins", "platform", AppStatus::Preview),
     ("pos", "business", AppStatus::Preview),
+    ("preview", "office", AppStatus::Supported),
     ("products", "business", AppStatus::Supported),
     ("project", "office", AppStatus::Preview),
     ("recycle", "desktop", AppStatus::Preview),

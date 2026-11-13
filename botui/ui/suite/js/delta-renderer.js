@@ -6,10 +6,19 @@
 (function () {
   var handlers = {};
   var revByFile = {};
+  // A batch can arrive while the app module is still loading (deep link opens
+  // the window, the delta follows immediately). Dropping it lost the first
+  // batch forever, so hold it per app and replay on register.
+  var pending = {};
+  var PENDING_MAX = 20;
 
   function register(appId, handler) {
     if (!appId || typeof handler !== "function") return;
     handlers[appId] = handler;
+    var queued = pending[appId];
+    if (!queued || !queued.length) return;
+    delete pending[appId];
+    queued.forEach(function (payload) { apply(payload); });
   }
 
   function apply(payload) {
@@ -17,11 +26,19 @@
     var file = payload.file || "";
     var rev = Number(payload.rev || 0);
     if (file && rev && revByFile[file] && rev <= revByFile[file]) return; // stale
-    if (file && rev) revByFile[file] = rev;
     var h = handlers[payload.app];
-    if (h) {
-      try { h(payload); } catch (e) { console.warn("[gb-doc-delta] handler failed", e); }
+    if (!h) {
+      // No renderer yet (the app module loads after the deep link): queue it
+      // and do NOT record the rev. Keeping the rev unrecorded left the first
+      // batch unapplied, so the app opened empty (#2189/#2191/#2186).
+      var q = pending[payload.app] || (pending[payload.app] = []);
+      q.push(payload);
+      if (q.length > PENDING_MAX) q.shift();
+      return;
     }
+    // Only a delivered batch advances the revision watermark.
+    if (file && rev) revByFile[file] = rev;
+    try { h(payload); } catch (e) { console.warn("[gb-doc-delta] handler failed", e); }
     // Also dispatch a generic event so apps not pre-registered can react.
     document.dispatchEvent(new CustomEvent("gb-doc-delta:applied", { detail: payload }));
   }

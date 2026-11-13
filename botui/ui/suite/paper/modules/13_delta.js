@@ -32,6 +32,38 @@
     return html;
   }
 
+  // Persists the note the delta just wrote. The chat used to claim it saved
+  // while every attempt created another empty "Untitled" note; one stable
+  // id per open paper app keeps repeated turns on the same document (#2186).
+  function persist(appRoot, root) {
+    var titleEl = document.getElementById("paper-title");
+    var title = titleEl && titleEl.innerText.trim();
+    if (!title) {
+      var heading = root.querySelector("h1, h2, h3");
+      title = heading && heading.textContent.trim();
+    }
+    if (!titleEl.innerText.trim() && title) titleEl.textContent = title;
+    var noteId = appRoot.getAttribute("data-note-id");
+    if (!noteId) {
+      noteId = "note-" + Date.now().toString(36) + "-" +
+        Math.random().toString(36).slice(2, 8);
+      appRoot.setAttribute("data-note-id", noteId);
+    }
+    return fetch("/api/ui/paper/autosave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: noteId,
+        title: title || "Untitled",
+        content: root.innerHTML,
+      }),
+    }).then(function () {
+      if (window.htmx && document.getElementById("paper-list")) {
+        window.htmx.ajax("GET", "/api/ui/paper/list", { target: "#paper-list" });
+      }
+    }).catch(function () { /* persistence is best-effort */ });
+  }
+
   function apply(payload) {
     // The document body is #editor-content; `[contenteditable=true]` alone
     // matched #paper-title first, so every block landed in the title.
@@ -67,7 +99,10 @@
         }
       }
     });
+    var appRoot = document.getElementById("paper-app");
+    if (appRoot && root.innerHTML.trim()) persist(appRoot, root);
   }
+
   if (window.GBDocDelta) window.GBDocDelta.register("paper", apply);
   else document.addEventListener("DOMContentLoaded", function(){ if(window.GBDocDelta) window.GBDocDelta.register("paper", apply); });
 })();

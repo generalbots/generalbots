@@ -17,7 +17,7 @@ name=General Bots
 # Active apps (comma-separated list): always visible in every launcher.
 # Core surfaces (about, admin, settings, auth) are always available without
 # being listed here.
-apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations,docs,sheet,slides,paper,crm,billing,products,tasks,calendar,mail
+apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations,docs,sheet,slides,paper,crm,billing,products,tasks,calendar,mail,notepad,preview
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are

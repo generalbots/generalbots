@@ -24,9 +24,18 @@
   function registerSimple(appId, selector){
     if(!window.GBDocDelta) return;
     window.GBDocDelta.register(appId, function(payload){
+      // Records must land inside the app window that is already open; the
+      // old body fallback wrote them off-screen behind the desktop (#2176).
       var c=document.querySelector(selector);
       if(!c){ c=document.querySelector("#"+appId+"-list, ."+appId+"-list, [data-app='"+appId+"']"); }
-      if(!c){ c=document.body; }
+      if(!c){
+        var win=document.querySelector("#window-"+appId+" .gb-window-content, #window-"+appId);
+        if(!win) return;
+        c=document.createElement("div");
+        c.id=appId+"-list";
+        c.className="delta-record-list";
+        win.insertBefore(c, win.firstChild);
+      }
       applyToContainer(c, payload);
     });
   }

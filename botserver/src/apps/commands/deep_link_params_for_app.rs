@@ -44,6 +44,7 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("canvas", "canvas.open", "Open canvas", "Open a creative canvas or whiteboard.", &[("id", "canvas id")], Some("app://canvas?canvas_id={id}"), false),
     cmd("paper", "paper.notes.list", "List notes", "List rich notes and documents.", &[], Some("app://paper?note_id={note_id?}"), false),
     cmd("slides", "slides.list", "List presentations", "List presentation decks.", &[], Some("app://slides?deck_id={deck_id?}"), false),
+    cmd("preview", "preview.open", "Preview a file", "Open the preview app on a generated file or document (finalize-only: no record ops).", &[("file", "file name or path"), ("bucket", "optional bucket")], Some("app://preview?file={file}&bucket={bucket?}"), false),
     // ——— Business ———
     cmd("crm", "crm.people.list", "List people", "List CRM people/contacts and their pipeline stage.", &[], Some("app://crm?person_id={person_id?}"), false),
     cmd("crm", "crm.people.search", "Search people", "Search people by name and return a deep link to the matched record.", &[("query", "name to search")], Some("app://crm?person_id={person_id?}"), false),
@@ -256,6 +257,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("photos", "open → the library loads → select a photo → details and AI tags"),
     ("plan", "open → OKRs load → select a period → edit a key result"),
     ("player", "open → choose a stream or playlist → Play"),
+    ("preview", "open with file=<name> (or url/html) → the file renders in the preview body; nothing else to click"),
     ("plugins", "open → plugin list loads → enable/disable an entry"),
     ("recycle", "open → deleted items list → Restore or Empty bin"),
     ("slides", "open → deck loads → + adds a slide → Present starts full screen"),

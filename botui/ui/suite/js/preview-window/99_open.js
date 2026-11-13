@@ -224,9 +224,15 @@
   function readParams() {
     var params = (window.__gbAppParams__ || {});
     // Do not clear: the window manager may pass params again on re-target.
+    // "Preview the last generated file" carries no conversation/path, so fall
+    // back to the newest attachment chat rendered and the live session (#2216).
+    var last = window.__gbLastArtifact || {};
+    var session = (window.ChatState &&
+      (window.ChatState.sessionId || window.ChatState.conversationId)) || "";
     return {
-      conversation: params.conversation || params.conversation_id || "",
-      path: params.path || params.file || "",
+      conversation:
+        params.conversation || params.conversation_id || last.conversation || session,
+      path: params.path || params.file || last.path || "",
     };
   }
 

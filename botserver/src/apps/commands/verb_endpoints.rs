@@ -135,6 +135,7 @@ pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     bind("sheet.import", "POST", "/api/sheet/import", &[], &[]),
     bind("sheet.search", "GET", "/api/sheet/search", &[("query", "q")], &[]),
     bind("sheet.chart.create", "POST", "/api/sheet/chart", &[("file_id", "id"), ("range", "data_range"), ("type", "chart_type")], &[]),
+    bind("sheet.conditional_format.apply", "POST", "/api/sheet/conditional-format", &[("file_id", "id")], &[]),
     // ——— #2037 — Slides (crates/botslides) ———
     bind("slides.list", "GET", "/api/slides/list", &[], &[]),
     bind("slides.create", "POST", "/api/slides/new", &[], &[]),
