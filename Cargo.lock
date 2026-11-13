@@ -1623,11 +1623,16 @@ dependencies = [
  "axum 0.7.9",
  "botlib",
  "botschema",
+ "botsecurity-core",
  "chrono",
  "diesel",
+ "futures-util",
+ "log",
+ "once_cell",
  "r2d2",
  "serde",
  "serde_json",
+ "tokio",
  "uuid",
 ]
 

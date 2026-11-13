@@ -391,12 +391,7 @@
     return { row: parseInt(m[2], 10) - 1, col: col - 1, ref: ref.toUpperCase() };
   }
 
-  function stepCell(step) {
-    var parsed = parseCellRef(step.cell || "");
-    if (!parsed) {
-      reportStep("Invalid cell reference '" + (step.cell || "?") + "'", "warn");
-      return Promise.resolve(false);
-    }
+  function findCellElement(parsed) {
     var scope = fieldScope();
     var cellEl = scope.querySelector(
       '[data-row="' + parsed.row + '"][data-col="' + parsed.col + '"], ' +
@@ -408,7 +403,47 @@
         '[data-cell="' + parsed.ref + '"], [data-ref="' + parsed.ref + '"]'
       );
     }
+    return cellEl;
+  }
+
+  // The sheet grid is virtualized: a cell past the current scroll position
+  // (or past totalCols) has no DOM node, so plans that write I4..L4 aborted
+  // with "Cell 'I4' not found in app" (#2260). Grow the grid if needed and
+  // scroll the target into view before retrying the lookup.
+  function revealSheetCell(parsed) {
+    var grid = (window.SheetDefaults && window.SheetDefaults.virtualGrid) ||
+      window.SheetVirtualGrid;
+    if (!grid || !grid.scrollArea) return false;
+    if (parsed.col >= grid.totalCols) {
+      grid.totalCols = parsed.col + 1;
+      grid.__totalColsWidth = null;
+    }
+    if (parsed.row >= grid.totalRows) grid.totalRows = parsed.row + 1;
+    var D = window.SheetDefaults || {};
+    var colWidth = D.COL_WIDTH || 100;
+    var rowHeight = D.ROW_HEIGHT || 28;
+    try {
+      grid.scrollArea.scrollLeft = Math.max(0, parsed.col * colWidth - colWidth);
+      grid.scrollArea.scrollTop = Math.max(0, parsed.row * rowHeight - rowHeight);
+      if (typeof grid.render === "function") grid.render();
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  function stepCell(step, retried) {
+    var parsed = parseCellRef(step.cell || "");
+    if (!parsed) {
+      reportStep("Invalid cell reference '" + (step.cell || "?") + "'", "warn");
+      return Promise.resolve(false);
+    }
+    var cellEl = findCellElement(parsed);
     if (!cellEl) {
+      if (!retried && revealSheetCell(parsed)) {
+        reportStep("Scrolling cell '" + parsed.ref + "' into view", "info");
+        return waitMs(400).then(function () { return stepCell(step, true); });
+      }
       reportStep("Cell '" + parsed.ref + "' not found in app", "warn");
       return Promise.resolve(false);
     }

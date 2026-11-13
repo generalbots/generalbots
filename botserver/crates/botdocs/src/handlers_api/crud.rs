@@ -206,6 +206,11 @@ pub async fn handle_save_document(
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
     let content = effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
 
+    // Autosave is the path the in-editor translate/format flows use; without
+    // this snapshot the previous version never reached the undo stack and
+    // `POST /api/docs/history` answered 204 (#2256).
+    super::history::capture_snapshot(&state, &doc_id, &title, &content).await;
+
     if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,

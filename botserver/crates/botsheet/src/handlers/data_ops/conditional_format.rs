@@ -75,6 +75,12 @@ pub async fn handle_conditional_format(
     } else {
         req.condition.clone()
     };
+    // Chat plans often say "negative" / "positive" instead of a comparison.
+    let condition = match condition.trim().to_ascii_lowercase().as_str() {
+        "negative" | "negatives" => "<0".to_string(),
+        "positive" | "positives" => ">=0".to_string(),
+        _ => condition,
+    };
     let rule_type = if req.rule_type == "duplicate" {
         "duplicates".to_string()
     } else {

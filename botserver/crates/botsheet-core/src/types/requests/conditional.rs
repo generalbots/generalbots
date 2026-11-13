@@ -30,8 +30,9 @@ pub struct ConditionalFormatRequest {
     /// Toolbar form comparison value; becomes `condition` when it is empty.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
-    /// Toolbar form fill colour; merged into `style.background`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Toolbar form fill colour; merged into `style.background`. `fill` is
+    /// the curated-command name used by chat plans.
+    #[serde(default, alias = "fill", skip_serializing_if = "Option::is_none")]
     pub bg_color: Option<String>,
 }
 
