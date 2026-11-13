@@ -455,7 +455,7 @@ insta = { version = "1.40", features = ["json", "yaml"] }
 
 # ─── PROCESS CONTROL ───
 nix = { version = "0.29", features = ["signal", "process"] }
-which = "7"
+which = "8"
 
 # ─── MISC ───
 # #2012 — no workspace member inherits `image` any more (the only one was an
