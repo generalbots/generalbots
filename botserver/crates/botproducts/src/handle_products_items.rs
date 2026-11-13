@@ -6,8 +6,19 @@ pub(super) async fn handle_products_items(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -115,7 +126,8 @@ pub(super) async fn handle_products_items(
             <div class=\"empty-icon\">\u{1f4e6}</div>\
             <p>No products yet</p>\
             <p class=\"empty-hint\">Add your first product to get started</p>\
-            </div>".to_string(),
+            </div>"
+                .to_string(),
         ),
     }
 }
@@ -125,8 +137,19 @@ pub(super) async fn handle_products_services(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -235,7 +258,8 @@ pub(super) async fn handle_products_services(
             <p>No services yet</p>\
             <p class=\"empty-hint\">Add services to your catalog</p>\
             </td>\
-            </tr>".to_string(),
+            </tr>"
+                .to_string(),
         ),
     }
 }

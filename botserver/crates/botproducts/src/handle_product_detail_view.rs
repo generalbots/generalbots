@@ -15,10 +15,7 @@ pub(super) async fn handle_product_detail_view(
         }
     };
 
-    let product: Product = match products::table
-        .filter(products::id.eq(id))
-        .first(&mut conn)
-    {
+    let product: Product = match products::table.filter(products::id.eq(id)).first(&mut conn) {
         Ok(p) => p,
         Err(_) => {
             let message = botlib::i18n::get(&locale, "error-product-not-found");
@@ -27,8 +24,16 @@ pub(super) async fn handle_product_detail_view(
     };
 
     let price_str = format_currency(bd_to_f64(&product.price), &product.currency);
-    let cost_str = product.cost.as_ref().map(|c| format_currency(bd_to_f64(c), &product.currency)).unwrap_or_else(|| "-".to_string());
-    let stock_str = if product.stock_quantity == -1 { "Unlimited".to_string() } else { product.stock_quantity.to_string() };
+    let cost_str = product
+        .cost
+        .as_ref()
+        .map(|c| format_currency(bd_to_f64(c), &product.currency))
+        .unwrap_or_else(|| "-".to_string());
+    let stock_str = if product.stock_quantity == -1 {
+        "Unlimited".to_string()
+    } else {
+        product.stock_quantity.to_string()
+    };
     let status_badge = if product.is_active {
         "<span class=\"status-active\">Active</span>"
     } else {
@@ -74,8 +79,16 @@ pub(super) async fn handle_product_detail_view(
         stock = stock_str,
         unit = html_escape(&product.unit),
         status = status_badge,
-        barcode = product.attributes.get("barcode").and_then(|v| v.as_str()).unwrap_or("-"),
-        weight = product.attributes.get("weight").map(|w| format!("{} kg", w)).unwrap_or_else(|| "-".to_string()),
+        barcode = product
+            .attributes
+            .get("barcode")
+            .and_then(|v| v.as_str())
+            .unwrap_or("-"),
+        weight = product
+            .attributes
+            .get("weight")
+            .map(|w| format!("{} kg", w))
+            .unwrap_or_else(|| "-".to_string()),
         desc = html_escape(desc_str),
         created = created,
         updated = updated,
@@ -96,10 +109,7 @@ pub(super) async fn handle_product_edit_form(
         }
     };
 
-    let product: Product = match products::table
-        .filter(products::id.eq(id))
-        .first(&mut conn)
-    {
+    let product: Product = match products::table.filter(products::id.eq(id)).first(&mut conn) {
         Ok(p) => p,
         Err(_) => {
             let message = botlib::i18n::get(&locale, "error-product-not-found");
@@ -108,20 +118,28 @@ pub(super) async fn handle_product_edit_form(
     };
 
     let price_str = product.price.to_string();
-    let cost_str = product.cost.as_ref().map(|c| c.to_string()).unwrap_or_default();
+    let cost_str = product
+        .cost
+        .as_ref()
+        .map(|c| c.to_string())
+        .unwrap_or_default();
     let tax_rate_str = product.tax_rate.to_string();
     let active_sel = |v: bool, expected: bool| {
         if v == expected { "selected" } else { "" }
     };
     let cat_sel = |c: &str| {
-        if product.category.as_deref() == Some(c) { "selected" } else { "" }
+        if product.category.as_deref() == Some(c) {
+            "selected"
+        } else {
+            ""
+        }
     };
     let unit_sel = |u: &str| {
         if product.unit == u { "selected" } else { "" }
     };
 
     Html(format!(
-        "<form class=\"product-form\" hx-put=\"/api/products/items/{id}\" hx-target=\"#products-grid\" hx-swap=\"innerHTML\" hx-on::after-request=\"closeProductsModal()\">\
+        "<form class=\"product-form\" hx-put=\"/api/products/items/{id}\" hx-ext=\"json-enc\" hx-swap=\"none\" hx-disabled-elt=\"find button[type='submit']\" hx-on::after-request=\"var xhr=event.detail.xhr; if(event.detail.successful){{ if(window.showProductsToast){{showProductsToast('Product updated','success');}} closeProductsModal(); htmx.ajax('GET','/api/ui/products/items',{{target:'#products-grid',swap:'innerHTML'}}); }} else {{ if(window.showProductsToast){{showProductsToast(window.productsErrorMessage?productsErrorMessage(xhr):'Could not update product');}} }}\">\
         <div class=\"product-form-header\">\
         <h2 class=\"product-form-title\">Edit Product</h2>\
         <button type=\"button\" class=\"form-close\" onclick=\"closeProductsModal()\">\
@@ -208,7 +226,13 @@ pub(super) async fn handle_product_edit_form(
         status_i = active_sel(product.is_active, false),
         tax_rate = tax_rate_str,
         stock = product.stock_quantity.to_string(),
-        barcode = html_escape(product.attributes.get("barcode").and_then(|v| v.as_str()).unwrap_or("")),
+        barcode = html_escape(
+            product
+                .attributes
+                .get("barcode")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+        ),
     ))
 }
 pub(super) async fn handle_products_debug() -> &'static str {
@@ -217,14 +241,35 @@ pub(super) async fn handle_products_debug() -> &'static str {
 pub fn configure_products_routes() -> Router<Arc<ProductsState>> {
     Router::new()
         .route("/api/ui/products/items", get(handle_products_items))
-        .route("/api/ui/products/items/:id/detail", get(handle_product_detail_view))
-        .route("/api/ui/products/items/:id/edit", get(handle_product_edit_form))
-        .route("/api/ui/products/items/:id/debug", get(handle_products_debug))
+        .route(
+            "/api/ui/products/items/:id/detail",
+            get(handle_product_detail_view),
+        )
+        .route(
+            "/api/ui/products/items/:id/edit",
+            get(handle_product_edit_form),
+        )
+        .route(
+            "/api/ui/products/items/:id/debug",
+            get(handle_products_debug),
+        )
         .route("/api/ui/products/services", get(handle_products_services))
-        .route("/api/ui/products/pricelists", get(handle_products_pricelists))
-        .route("/api/ui/products/stats/total-products", get(handle_total_products))
-        .route("/api/ui/products/stats/total-services", get(handle_total_services))
-        .route("/api/ui/products/stats/pricelists", get(handle_total_pricelists))
+        .route(
+            "/api/ui/products/pricelists",
+            get(handle_products_pricelists),
+        )
+        .route(
+            "/api/ui/products/stats/total-products",
+            get(handle_total_products),
+        )
+        .route(
+            "/api/ui/products/stats/total-services",
+            get(handle_total_services),
+        )
+        .route(
+            "/api/ui/products/stats/pricelists",
+            get(handle_total_pricelists),
+        )
         .route("/api/ui/products/stats/active", get(handle_active_products))
         .route("/api/ui/products/search", get(handle_products_search))
 }
