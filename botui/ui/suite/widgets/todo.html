@@ -26,7 +26,7 @@
 
   function read() {
     try {
-      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      var raw = gbStoreGet(STORAGE_KEY, []);
       return Array.isArray(raw) ? raw : [];
     } catch (e) {
       return [];

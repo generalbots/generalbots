@@ -177,7 +177,7 @@ function loadNote() {
 }
 
 function saveToHistory(content, timestamp) {
-    const history = JSON.parse(localStorage.getItem('paper-history') || '[]');
+    const history = gbStoreGet('paper-history', []);
     const preview = noteContent.innerText.substring(0, 100);
 
     history.unshift({

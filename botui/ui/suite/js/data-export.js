@@ -33,7 +33,7 @@
       var key = localStorage.key(i);
       if (key && key.indexOf("gb_chat_history_") === 0) {
         try {
-          var messages = JSON.parse(localStorage.getItem(key));
+          var messages = gbStoreGet(key, null);
           sessions.push({ session_key: key, messages: messages });
         } catch (e) {}
       }

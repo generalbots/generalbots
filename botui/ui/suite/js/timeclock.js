@@ -16,9 +16,9 @@
   const STORAGE_KEY = "gb-timeclock-entries";
   const PROJECT_KEY = "gb-timeclock-projects";
 
-  function readArr(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (_) { return []; } }
+  function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
   function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
-  function readObj(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (_) { return {}; } }
+  function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function uid() { return "tc_" + Math.random().toString(36).slice(2, 12) + "_" + Date.now().toString(36); }
 

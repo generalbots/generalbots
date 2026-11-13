@@ -16,7 +16,7 @@
 
   function readStore() {
     try {
-      var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      var parsed = gbStoreGet(STORAGE_KEY, []);
       if (!Array.isArray(parsed)) return [];
       // #1632 item 6 — a previous build allowed Vibe to be pinned; drop it on
       // load so the taskbar never renders a chip the launcher no longer owns.

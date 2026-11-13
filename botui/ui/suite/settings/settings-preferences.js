@@ -100,7 +100,7 @@
             if (u && u.roles && u.roles.length) {
                 try {
                     var stored = {};
-                    try { stored = JSON.parse(localStorage.getItem('gb-user') || '{}') || {}; } catch (e) {}
+                    try { stored = gbStoreGet('gb-user', {}) || {}; } catch (e) {}
                     stored.roles = u.roles;
                     localStorage.setItem('gb-user', JSON.stringify(stored));
                 } catch (e) {}

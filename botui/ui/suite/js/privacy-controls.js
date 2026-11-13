@@ -21,7 +21,7 @@
   function loadSettings() {
     var settings;
     try {
-      var saved = JSON.parse(localStorage.getItem(PRIVACY_KEY) || "{}");
+      var saved = gbStoreGet(PRIVACY_KEY, {});
       settings = Object.assign({}, defaults, saved);
     } catch (e) {
       settings = Object.assign({}, defaults);

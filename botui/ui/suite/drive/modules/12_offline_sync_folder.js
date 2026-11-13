@@ -73,7 +73,7 @@
   }
 
   function readManifest() {
-    try { return JSON.parse(localStorage.getItem(MANIFEST_KEY) || "{}"); } catch (e) { return {}; }
+    try { return gbStoreGet(MANIFEST_KEY, {}); } catch (e) { return {}; }
   }
 
   function saveManifest(manifest) {

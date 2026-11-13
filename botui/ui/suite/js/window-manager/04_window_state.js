@@ -148,7 +148,7 @@
 
   _windowPreferences() {
     try {
-      return JSON.parse(localStorage.getItem("gb.window.prefs.v1") || "{}") || {};
+      return gbStoreGet("gb.window.prefs.v1", {}) || {};
     } catch (e) {
       return {};
     }

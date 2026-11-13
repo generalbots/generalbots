@@ -9,7 +9,7 @@
 
   function readHistory() {
     try {
-      return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      return gbStoreGet(HISTORY_KEY, []);
     } catch (e) {
       return [];
     }

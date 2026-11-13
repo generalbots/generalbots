@@ -7,7 +7,7 @@
         return "gb_user_memory_cache";
     }
     function load() {
-        try { return JSON.parse(localStorage.getItem(storageKey()) || "[]"); }
+        try { return gbStoreGet(storageKey(), []); }
         catch (e) { return []; }
     }
     function save(mem) {

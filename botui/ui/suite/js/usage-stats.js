@@ -22,7 +22,7 @@
   }
 
   function loadStats() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch (e) { return {}; }
+    try { return gbStoreGet(STORAGE_KEY, {}); } catch (e) { return {}; }
   }
 
   function saveStats(stats) {

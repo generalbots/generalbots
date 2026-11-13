@@ -42,7 +42,7 @@
 
   function readStore() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      return gbStoreGet(STORAGE_KEY, []);
     } catch (e) {
       return [];
     }

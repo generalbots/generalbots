@@ -15,7 +15,7 @@
   }
 
   function loadMemory() {
-    try { return JSON.parse(localStorage.getItem(storageKey()) || "{}"); } catch (e) { return {}; }
+    try { return gbStoreGet(storageKey(), {}); } catch (e) { return {}; }
   }
 
   function saveMemory(mem) {

@@ -1,7 +1,7 @@
 
 function showHistory() {
     const historyList = document.getElementById('history-list');
-    const history = JSON.parse(localStorage.getItem('paper-history') || '[]');
+    const history = gbStoreGet('paper-history', []);
 
     if (history.length === 0) {
         historyList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No history yet</div>';
@@ -18,7 +18,7 @@ function showHistory() {
 }
 
 function restoreFromHistory(index) {
-    const history = JSON.parse(localStorage.getItem('paper-history') || '[]');
+    const history = gbStoreGet('paper-history', []);
     if (history[index]) {
         noteContent.innerHTML = history[index].content;
         updateStats();

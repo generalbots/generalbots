@@ -35,7 +35,7 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
 
   function readItems() {
     try {
-      var raw = JSON.parse(localStorage.getItem(storeKey()) || "[]");
+      var raw = gbStoreGet(storeKey(), []);
       return Array.isArray(raw) ? raw : [];
     } catch (e) {
       return [];

@@ -231,7 +231,7 @@
     // in the launcher's quick-access (Recent) grid.
     if (id === "vibe" || String(id).indexOf("vibe-") === 0) return;
     try {
-      let recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
+      let recent = gbStoreGet("gb-recent-apps", []);
       recent = recent.filter((r) => r.id !== id);
       recent.unshift({ id, title, ts: Date.now() });
       recent = recent.slice(0, 10);
@@ -241,7 +241,7 @@
 
   getRecentApps() {
     try {
-      const recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
+      const recent = gbStoreGet("gb-recent-apps", []);
       const registry = window.APPS_REGISTRY || APPS_REGISTRY;
       // #2015 — an app that left the registry (e.g. the duplicate "Sales"
       // surface folded into CRM) must not linger as a Recent tile with an

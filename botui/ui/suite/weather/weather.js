@@ -55,7 +55,7 @@
 
   function readCache() {
     try {
-      return normalize(JSON.parse(localStorage.getItem(CACHE_KEY) || "null"));
+      return normalize(gbStoreGet(CACHE_KEY, null));
     } catch (e) {
       return normalize(null);
     }

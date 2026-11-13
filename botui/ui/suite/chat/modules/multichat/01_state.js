@@ -80,7 +80,7 @@
   function restore() {
     var rec = null;
     try {
-      rec = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      rec = gbStoreGet(STORAGE_KEY, null);
     } catch (e) { rec = null; }
     if (!rec || !rec.tabs) return false;
     var ids = Object.keys(rec.tabs);

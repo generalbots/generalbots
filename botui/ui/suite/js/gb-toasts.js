@@ -15,7 +15,7 @@ const GBToasts = (() => {
     if (initialized) return;
     initialized = true;
     try {
-      notifications = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      notifications = gbStoreGet(STORAGE_KEY, []);
     } catch (e) {
       notifications = [];
     }

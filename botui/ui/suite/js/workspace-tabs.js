@@ -22,7 +22,7 @@ const WorkspaceTabs = (() => {
 
   function load() {
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const parsed = gbStoreGet(STORAGE_KEY, null);
       if (parsed && Array.isArray(parsed.tabs) && parsed.tabs.length) return parsed;
     } catch (e) {
       /* fall through to default */

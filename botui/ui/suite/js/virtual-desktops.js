@@ -34,7 +34,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
   function read() {
     try {
-      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      var raw = gbStoreGet(STORAGE_KEY, null);
       if (raw && Array.isArray(raw.desktops) && raw.desktops.length) {
         state.desktops = raw.desktops;
         state.current = Math.min(raw.current || 0, state.desktops.length - 1);

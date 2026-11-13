@@ -4,7 +4,7 @@ window.GBNotepad = window.GBNotepad || {};
 (function (app) {
   var IDX = "gb-notepad-index";
   function loadIndex() {
-    try { return JSON.parse(localStorage.getItem(IDX) || "{}"); } catch (e) { return {}; }
+    try { return gbStoreGet(IDX, {}); } catch (e) { return {}; }
   }
   function saveIndex(i) { try { localStorage.setItem(IDX, JSON.stringify(i)); } catch (e) {} }
 

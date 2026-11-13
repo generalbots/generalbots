@@ -333,7 +333,7 @@
             }
             var key = "gb-browser-bookmarks";
             var list = [];
-            try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) { list = []; }
+            try { list = gbStoreGet(key, []); } catch (e) { list = []; }
             if (list.indexOf(url) === -1) list.push(url);
             localStorage.setItem(key, JSON.stringify(list));
             setBrowserStatus("Bookmarked " + url, 'success');

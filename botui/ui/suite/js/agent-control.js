@@ -13,7 +13,7 @@ const AgentControl = (() => {
 
   function loadConsent() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      return gbStoreGet(STORAGE_KEY, null) || {};
     } catch (_e) {
       return {};
     }

@@ -15,8 +15,8 @@
   const NAME_KEY = "gb-sheet-names";
   const TABLE_KEY = "gb-sheet-tables";
 
-  function readObj(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (_) { return {}; } }
-  function readArr(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (_) { return []; } }
+  function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
+  function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
 

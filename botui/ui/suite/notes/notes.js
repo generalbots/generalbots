@@ -9,7 +9,7 @@
 
   function read() {
     try {
-      return JSON.parse(localStorage.getItem(KEY) || "[]");
+      return gbStoreGet(KEY, []);
     } catch (e) {
       return [];
     }

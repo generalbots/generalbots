@@ -30,7 +30,7 @@
   const TRANS_KEY = "gb-slides-transitions";
   const ANIM_KEY = "gb-slides-animations";
 
-  function readObj(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (_) { return {}; } }
+  function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
 

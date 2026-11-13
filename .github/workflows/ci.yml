@@ -272,6 +272,15 @@ jobs:
           python3 scripts/check_target_blank.py --self-test
           python3 scripts/check_target_blank.py --check
 
+      # #2310 — one corrupt localStorage key used to throw inside the desktop
+      # boot chain and leave the user with no way to clear it. Every JSON read
+      # must go through gbStoreGet(), which self-heals and logs the dropped key.
+      - name: LocalStorage read guard (#2310)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_storage_reads.py --self-test
+          python3 scripts/check_storage_reads.py --check
+
       # IMP-08 / IMP-07 — the two directives AGENTS.md marks mandatory but
       # nothing verified. The gate greps the route registration surface and
       # fails when a state-changing handler is reachable without the CSRF

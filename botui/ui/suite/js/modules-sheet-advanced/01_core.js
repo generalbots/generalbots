@@ -3,8 +3,8 @@
 (function (window) {
   const SPARK_KEY = "gb-sheet-sparks";
 
-  function readObj(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (_) { return {}; } }
-  function readArr(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (_) { return []; } }
+  function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
+  function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }

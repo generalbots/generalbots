@@ -92,7 +92,7 @@
 
   function isAdmin() {
     try {
-      var user = JSON.parse(localStorage.getItem("gb-user") || "{}") || {};
+      var user = gbStoreGet("gb-user", {}) || {};
       if (Array.isArray(user.roles) && user.roles.length) {
         return user.roles.some(function (role) {
           return String(role).toLowerCase().indexOf("admin") !== -1;

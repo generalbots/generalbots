@@ -74,7 +74,7 @@
   // built-in default when nothing is saved or geocoding fails.
   function refresh(box) {
     try {
-      var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      var cached = gbStoreGet(CACHE_KEY, null);
       if (cached) render(box, cached);
     } catch (e) {}
     var city = savedCity();

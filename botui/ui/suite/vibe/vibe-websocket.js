@@ -66,7 +66,7 @@ var VIBE_REPLAY_WINDOW_MS = 10 * 60 * 1000;
 
 function vibeReplayStore(eventData) {
     try {
-        var buf = JSON.parse(localStorage.getItem(VIBE_REPLAY_KEY) || "[]");
+        var buf = gbStoreGet(VIBE_REPLAY_KEY, []);
         if (!Array.isArray(buf)) buf = [];
         buf.push({ at: Date.now(), event: eventData });
         if (buf.length > VIBE_REPLAY_MAX) buf = buf.slice(buf.length - VIBE_REPLAY_MAX);
@@ -77,7 +77,7 @@ function vibeReplayStore(eventData) {
 function vibeReplayBuffered() {
     var buf = [];
     try {
-        buf = JSON.parse(localStorage.getItem(VIBE_REPLAY_KEY) || "[]");
+        buf = gbStoreGet(VIBE_REPLAY_KEY, []);
     } catch (e) {
         return;
     }

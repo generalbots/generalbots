@@ -50,7 +50,7 @@ function attachMessageTimestamp(message, ts) {
 function persistLocalMessage(sender, content) {
   try {
     var key = "gb_chat_history_" + (ChatState.currentSessionId || "default");
-    var history = JSON.parse(localStorage.getItem(key) || "[]");
+    var history = gbStoreGet(key, []);
     history.push({ sender: sender, content: content, ts: Date.now() });
     if (history.length > 500) history = history.slice(-500);
     localStorage.setItem(key, JSON.stringify(history));
@@ -60,7 +60,7 @@ function persistLocalMessage(sender, content) {
 function loadLocalHistory() {
   try {
     var key = "gb_chat_history_" + (ChatState.currentSessionId || "default");
-    return JSON.parse(localStorage.getItem(key) || "[]");
+    return gbStoreGet(key, []);
   } catch (e) { return []; }
 }
 
@@ -71,7 +71,7 @@ function listLocalSessions() {
       var k = localStorage.key(i);
       if (k && k.indexOf("gb_chat_history_") === 0) {
         var id = k.replace("gb_chat_history_", "");
-        var msgs = JSON.parse(localStorage.getItem(k) || "[]");
+        var msgs = gbStoreGet(k, []);
         if (msgs.length > 0) {
           sessions.push({ id: id, last_message: msgs[msgs.length - 1].content || "", ts: msgs[msgs.length - 1].ts || 0, count: msgs.length });
         }

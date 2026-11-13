@@ -16,7 +16,7 @@
 
     function loadTabModeMap() {
         try {
-            return JSON.parse(localStorage.getItem(AGENT_MODE_STORE_KEY) || "{}") || {};
+            return gbStoreGet(AGENT_MODE_STORE_KEY, {}) || {};
         } catch (e) {
             return {};
         }

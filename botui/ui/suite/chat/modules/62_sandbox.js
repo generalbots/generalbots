@@ -45,7 +45,7 @@
   }
 
   function loadLog() {
-    try { actionLog = JSON.parse(localStorage.getItem("gb_sandbox_log") || "[]"); } catch (e) { actionLog = []; }
+    try { actionLog = gbStoreGet("gb_sandbox_log", []); } catch (e) { actionLog = []; }
   }
 
   function updateBadge() {

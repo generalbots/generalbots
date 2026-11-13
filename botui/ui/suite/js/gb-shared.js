@@ -32,6 +32,34 @@
     });
   }
 
+  // Reads a JSON value stored by the suite (#2310). localStorage outlives a
+  // deploy, so a truncated or hand-edited key used to throw at boot and brick
+  // the desktop. A value that cannot be parsed is dropped once, logged, and
+  // replaced by the caller's fallback, so the app always starts.
+  function storeGet(key, fallback) {
+    var raw;
+    try {
+      raw = window.localStorage.getItem(key);
+    } catch (error) {
+      return fallback;
+    }
+    if (raw === null || raw === "") return fallback;
+    try {
+      var parsed = JSON.parse(raw);
+      return parsed === null ? fallback : parsed;
+    } catch (error) {
+      try {
+        window.localStorage.removeItem(key);
+      } catch (dropError) {
+        // Nothing else to do: the fallback keeps this boot alive.
+      }
+      if (window.console && window.console.warn) {
+        window.console.warn("[gb-shared] dropped unreadable localStorage key:", key);
+      }
+      return fallback;
+    }
+  }
+
   function read(storage, key) {
     try {
       return (storage && storage.getItem(key)) || "";
@@ -201,7 +229,14 @@
   var downloadKit = { download: download, saveBlob: saveBlob, isDesktop: isDesktop };
 
   window.GBHtml = window.GBHtml || html;
-  window.GBShared = { html: html, auth: auth, download: download, saveBlob: saveBlob };
+  window.GBShared = {
+    html: html,
+    auth: auth,
+    download: download,
+    saveBlob: saveBlob,
+    storeGet: storeGet
+  };
+  window.gbStoreGet = storeGet;
   window.GBDownload = window.GBDownload || downloadKit;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);

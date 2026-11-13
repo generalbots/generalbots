@@ -12,7 +12,7 @@ const Proactivity = (() => {
 
   function seenSet() {
     try {
-      return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
+      return new Set(gbStoreGet(SEEN_KEY, []));
     } catch (e) {
       return new Set();
     }
