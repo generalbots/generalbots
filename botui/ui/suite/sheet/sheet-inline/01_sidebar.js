@@ -21,20 +21,35 @@ function gbSheetParseA1(ref) {
     if (!row || col < 1) return null;
     return { row: row - 1, col: col - 1 };
 }
+/* Select and scroll to a zero-based grid position. */
+function gbSheetApplyCell(pos) {
+    var grid = window.SheetVirtualGrid ||
+        (window.SheetCore && window.SheetCore.getGrid ? window.SheetCore.getGrid() : null);
+    if (!grid || typeof grid.selectCell !== 'function') return false;
+    grid.selectCell(pos.row, pos.col);
+    return true;
+}
 /* Select and scroll to an A1 reference after a workbook load (#2271: the boot
    and deep-link paths dropped the `cell` parameter, so "B7 is 1234" opened at
-   A1). Returns false when the address is malformed or no grid is on screen. */
+   A1). The request is remembered because VirtualGrid.init() schedules a default
+   selectCell(0,0) 100 ms later, which would undo the selection right away. */
 function gbSheetGotoCell(ref) {
     var pos = gbSheetParseA1(ref);
     if (!pos) {
         console.warn('[sheet] ignoring malformed cell reference:', ref);
         return false;
     }
-    var grid = window.SheetVirtualGrid ||
-        (window.SheetCore && window.SheetCore.getGrid ? window.SheetCore.getGrid() : null);
-    if (!grid || typeof grid.selectCell !== 'function') return false;
-    grid.selectCell(pos.row, pos.col);
-    return true;
+    window.__SHEET_PENDING_CELL = ref;
+    return gbSheetApplyCell(pos);
+}
+/* Runs when the grid's deferred default selection fires: a requested cell wins
+   over the default A1, and the request is cleared either way. */
+function gbSheetConsumePendingCell() {
+    var ref = window.__SHEET_PENDING_CELL;
+    if (!ref) return false;
+    window.__SHEET_PENDING_CELL = null;
+    var pos = gbSheetParseA1(ref);
+    return pos ? gbSheetApplyCell(pos) : false;
 }
 function newSheet() {
     fetch('/api/sheet/new').then(function(r){ return r.json(); }).then(function(s){

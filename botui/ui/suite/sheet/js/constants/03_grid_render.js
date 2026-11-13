@@ -54,9 +54,12 @@
     this.updateViewport();
     this.renderHeaders();
     this.requestRange();
-    // Select first cell by default
+    // Select first cell by default — unless the window was opened by a deep
+    // link that asked for a specific cell (#2271), which must not be undone by
+    // this deferred default.
     var self = this;
     setTimeout(function () {
+      if (typeof gbSheetConsumePendingCell === 'function' && gbSheetConsumePendingCell()) return;
       self.selectCell(0, 0);
     }, 100);
   };
