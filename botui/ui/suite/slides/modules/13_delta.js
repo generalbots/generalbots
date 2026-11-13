@@ -55,6 +55,41 @@
   window.SlidesEditor.addSlide = addSlide;
   window.addSlide = addSlide;
 
+(function () {
+  function registerWhenReady(attempt) {
+    if (window.GBDocDelta && typeof window.GBDocDelta.register === "function") {
+      window.GBDocDelta.register("slides", apply);
+      return;
+    }
+    if ((attempt || 0) >= 20) return;
+    setTimeout(function () { registerWhenReady((attempt || 0) + 1); }, 250);
+  }
+
+  function fillTitle(value) {
+    var input = document.getElementById("deck-title") ||
+      document.querySelector("#presentation-title, .presentation-title, [data-presentation-title]");
+    if (input) {
+      if ("value" in input) input.value = String(value || "");
+      else input.textContent = String(value || "");
+    }
+    var id = window.__SLIDES_PRESENTATION_ID || "current";
+    fetch("/api/slides/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ presentation_id: id, title: String(value || "") })
+    }).catch(function () {});
+  }
+
+  function fillSlides(value) {
+    var text = String(value || "");
+    // Treat a newline-separated string or an array as slide bodies.
+    var slides = Array.isArray(value) ? value : text.split(/\n{2,}/).filter(function (part) { return part.trim(); });
+    if (!slides.length) slides = [text];
+    slides.forEach(function (body) {
+      addSlide({ layout: "title_content", title: String(body).split("\n")[0].slice(0, 80), body: body }, null);
+    });
+  }
+
   function apply(payload) {
     var ops = payload.ops || [];
     ops.forEach(function (op) {
@@ -63,9 +98,21 @@
         addSlide(op, payload);
       } else if (op.op === "finalize" && window.GBToasts) {
         window.GBToasts.show("Slides", "Generation complete", "success");
+      } else if (op.op === "fill") {
+        var field = String(op.field || "").toLowerCase();
+        if (field.indexOf("title") >= 0) {
+          fillTitle(op.value);
+        } else if (field.indexOf("body") >= 0 || field.indexOf("slide") >= 0) {
+          fillSlides(op.value);
+        }
       }
     });
   }
-  if (window.GBDocDelta) window.GBDocDelta.register("slides", apply);
-  else document.addEventListener("DOMContentLoaded", function () { if (window.GBDocDelta) window.GBDocDelta.register("slides", apply); });
+
+  registerWhenReady(0);
+  if (window.GBDocDelta && window.GBDocDelta.apply) {
+    document.addEventListener("gb-doc-delta", function (e) {
+      apply((e && e.detail) || {});
+    });
+  }
 })();
