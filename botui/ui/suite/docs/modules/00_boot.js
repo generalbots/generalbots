@@ -181,7 +181,7 @@
     var pages = doc && doc.pageCount ? doc.pageCount : 1;
     return (
       '<div class="docs-pages" data-pages="' + pages + '">' +
-      '<article class="docs-doc-view" contenteditable="true" spellcheck="false" ' +
+      '<article class="docs-doc-view" contenteditable="true" spellcheck="true" ' +
       'data-doc-id="' + escapeHtml(doc.id) + '" ' +
       'data-page-h="1123" style="width:794px;min-height:1123px;padding:96px;">' +
       (doc.content || "<p><br></p>") +

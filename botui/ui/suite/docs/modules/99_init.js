@@ -134,6 +134,8 @@ function docsInit() {
     applyFontSize: docsApplyFontSize,
     format: docsFormat,
     openHeaderFooterModal: openHeaderFooterModal,
+    translateDocument: (typeof translateDocument === "function" ? translateDocument : (window.GBDocsTranslate || null)),
+    translate: (typeof translateDocument === "function" ? translateDocument : (window.GBDocsTranslate || null)),
     openPageLayoutModal: openPageLayoutModal,
     applyPageLayout: applyPageLayout,
     insertHeaderFooterZone: insertHeaderFooterZone,

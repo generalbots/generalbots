@@ -4,7 +4,7 @@
     <div class="docs-toolbar" role="toolbar" aria-label="Document toolbar">
         <div class="docs-toolbar-row docs-toolbar-row-main">
             <div class="toolbar-left">
-                <input type="text" class="docs-title-input" id="docTitle" value="Untitled Document" spellcheck="false" aria-label="Document title" />
+                <input type="text" class="docs-title-input" id="docTitle" value="Untitled Document" spellcheck="true" aria-label="Document title" />
             </div>
             <div class="toolbar-center">
                 <div class="toolbar-group">
@@ -141,6 +141,10 @@
                     <button class="btn-icon" id="tocBtn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" title="Table of Contents" aria-label="Table of contents">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </button>
+                    <button class="btn-icon" id="spellcheckBtn" onclick="openSpellcheck()" title="Spellcheck" aria-label="Spellcheck">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M18 14l3 3-3 3"></path></svg>
+                    </button>
+                    <button class="btn-icon" id="translateBtn" onclick="openTranslateModal()" title="Translate" aria-label="Translate">T</button>
                     <button class="btn-icon" id="commentsBtn" onclick="openDocComments()" title="Comments" aria-label="Comments">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     </button>
@@ -211,6 +215,8 @@
 <script src="/suite/docs/modules/02b_export.js"></script>
 <script src="/suite/docs/modules/03_editor.js"></script>
 <script src="/suite/docs/modules/04_ui.js"></script>
+<script src="/suite/docs/modules/16_spellcheck.js"></script>
+<script src="/suite/docs/modules/17_translate.js"></script>
 <script src="/suite/docs/modules/05_collab.js"></script>
 <script src="/suite/docs/modules/06_events.js"></script>
 <script src="/suite/docs/modules/07_presence.js"></script>

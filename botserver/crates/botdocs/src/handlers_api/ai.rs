@@ -1,4 +1,4 @@
-use crate::types::{AiRequest, AiResponse, DocsAiRequest, DocsAiResponse};
+use crate::types::{AiRequest, AiResponse, DocsAiRequest, DocsAiResponse, SpellcheckCorrection, SpellcheckResponse};
 use axum::{extract::State, http::StatusCode, Json, response::IntoResponse};
 use std::sync::Arc;
 
@@ -34,6 +34,7 @@ async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, 
     let resp = client
         .post(&llm_url)
         .header("Authorization", format!("Bearer {llm_key}"))
+        .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
         .json(&body)
         .send()
         .await
@@ -117,11 +118,25 @@ pub async fn handle_docs_ai(
     let prompt = req.prompt.clone().unwrap_or_default();
 
     if (!text.trim().is_empty() || !prompt.trim().is_empty()) && !command.contains("help") {
-        let system_prompt = "You are an AI writing assistant embedded in a document editor. \
+        let is_translate = command.contains("translate");
+        let system_prompt = if is_translate {
+            "You are a professional translator. Translate the textual content of the given             document into the target language, faithfully preserving tone and meaning. The input may be             HTML or markdown: keep every tag, attribute, heading, list, bold/italic marker and overall             structure EXACTLY in place - translate only the human-readable text between tags/markers.             Return ONLY a JSON object with a single key \"response\" containing the translated document."
+        } else {
+            "You are an AI writing assistant embedded in a document editor. \
             Apply the user's requested edit to the provided text and return ONLY a JSON object \
-            with a single key \"response\" containing the resulting text.";
+            with a single key \"response\" containing the resulting text."
+        };
         let instruction = if prompt.trim().is_empty() { command.clone() } else { prompt.clone() };
-        let user_prompt = format!("Command: {}\n\nText:\n{}", instruction, text);
+        let user_prompt = if is_translate {
+            let lang = if instruction.split_whitespace().count() == 1 {
+                instruction.clone()
+            } else {
+                "English".to_string()
+            };
+            format!("Translate this document into {lang}:\n\n{}", text)
+        } else {
+            format!("Command: {}\n\nText:\n{}", instruction, text)
+        };
         match llm_complete(system_prompt, &user_prompt).await {
             Ok(result) => {
                 return Json(DocsAiResponse {
@@ -232,9 +247,12 @@ pub async fn handle_ai_translate(
 ) -> Result<Json<AiResponse>, (StatusCode, Json<serde_json::Value>)> {
     let text = text_or_selected(&req);
     let lang = req.translate_lang.clone().unwrap_or_else(|| "English".to_string());
-    let system = "You are a professional translator. Translate the given text faithfully, \
-        preserving tone and meaning. Return ONLY a JSON object with key \"response\".";
-    let user = format!("Translate this text into {lang}:\n\n{}", text);
+    let system = "You are a professional translator. Translate the textual content of the given \
+        document into the target language, faithfully preserving tone and meaning. The input may be \
+        HTML or markdown: keep every tag, attribute, heading, list, bold/italic marker and overall \
+        structure EXACTLY in place - translate only the human-readable text between tags/markers. \
+        Return ONLY a JSON object with key \"response\" containing the translated document.";
+    let user = format!("Translate this document into {lang}:\n\n{}", text);
     Ok(Json(ai_action(&req, system, &user).await))
 }
 
@@ -246,4 +264,41 @@ pub async fn handle_ai_custom(
         given text. Return ONLY a JSON object with key \"response\" containing the resulting text.";
     let user = format!("Request: {}\n\nText:\n{}", req.prompt, text);
     Ok(Json(ai_action(&req, system, &user).await))
+}
+
+pub async fn handle_ai_spellcheck(
+    Json(req): Json<AiRequest>,
+) -> Result<Json<SpellcheckResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let text = req.selected_text.clone().unwrap_or_default();
+    let text = if text.trim().is_empty() {
+        req.prompt.clone()
+    } else {
+        text
+    };
+    if text.trim().is_empty() {
+        return Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: None }));
+    }
+    let system = "You are a spelling and grammar checker. Return ONLY a JSON object with key \
+        \"corrections\" containing an array of objects {\"from\": \"<exact original word or phrase>\", \
+        \"to\": \"<corrected word or phrase>\"}. Include only words that are actually misspelled or \
+        grammatically wrong. Do not change meaning or style. If nothing is wrong, return an empty array.";
+    let user = format!("Check this text:\n\n{}", text);
+    match llm_complete(system, &user).await {
+        Ok(content) => {
+            let parsed: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+            let mut corrections = Vec::new();
+            if let Some(arr) = parsed.get("corrections").and_then(|v| v.as_array()) {
+                for item in arr {
+                    let from = item.get("from").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    let to = item.get("to").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    if !from.is_empty() && from != to {
+                        corrections.push(SpellcheckCorrection { from, to });
+                    }
+                }
+            }
+            Ok(Json(SpellcheckResponse { corrections, error: None }))
+        }
+        Err(Some(e)) => Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: Some(e) })),
+        Err(None) => Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: Some("LLM not configured".to_string()) })),
+    }
 }

@@ -255,6 +255,19 @@ pub struct AiResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpellcheckCorrection {
+    pub from: String,
+    pub to: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpellcheckResponse {
+    pub corrections: Vec<SpellcheckCorrection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportQuery {
     pub id: String,
 }

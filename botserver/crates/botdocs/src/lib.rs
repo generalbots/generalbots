@@ -41,7 +41,7 @@ pub use collaboration::{
 pub use handlers_api::*;
 pub use review::{MergedFinding, ReviewOutcome, ReviewerRole, Severity};
 pub use types::{
-    AiRequest, AiResponse, CollabMessage, CommentReply, ComparisonSummary, Document,
+    AiRequest, AiResponse, SpellcheckCorrection, SpellcheckResponse, CollabMessage, CommentReply, ComparisonSummary, Document,
     DocumentComment, DocumentComparison, DocumentDiff, DocumentMetadata, DocumentStyle, Endnote,
     Footnote, OutlineItem, SaveRequest, SaveResponse, SearchQuery, TableOfContents, TocEntry,
     TrackChange,
@@ -75,6 +75,7 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         .route("/api/docs/ai/summarize", axum::routing::post(handle_ai_summarize))
         .route("/api/docs/ai/expand", axum::routing::post(handle_ai_expand))
         .route("/api/docs/ai/improve", axum::routing::post(handle_ai_improve))
+        .route("/api/docs/ai/spellcheck", axum::routing::post(handle_ai_spellcheck))
         .route("/api/docs/ai/review-pair", axum::routing::post(handle_ai_review_pair))
         .route("/api/docs/ai/simplify", axum::routing::post(handle_ai_simplify))
         .route("/api/docs/ai/translate", axum::routing::post(handle_ai_translate))

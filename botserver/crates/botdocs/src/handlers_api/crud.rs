@@ -83,7 +83,12 @@ pub async fn handle_docs_get_by_id(
     let user_id = user.id().to_string();
 
     match load_document_from_drive(&state, &user_id, &doc_id).await {
-        Ok(Some(doc)) => Ok(Json(doc)),
+        Ok(Some(doc)) => {
+            // Seed undo history with the loaded version so a later in-editor
+            // transformation (e.g. translate) is undoable in one step.
+            super::history::capture_snapshot(&state, &doc.id, &doc.title, &doc.content).await;
+            Ok(Json(doc))
+        }
         Ok(None) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Document not found" })),
@@ -176,7 +181,10 @@ pub async fn handle_get_document(
     })?;
 
     match load_document_from_drive(&state, &user_id, &doc_id).await {
-        Ok(Some(doc)) => Ok(Json(doc)),
+        Ok(Some(doc)) => {
+            super::history::capture_snapshot(&state, &doc.id, &doc.title, &doc.content).await;
+            Ok(Json(doc))
+        }
         Ok(None) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Document not found" })),
