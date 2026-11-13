@@ -34,5 +34,5 @@
                 hour: "2-digit",
                 minute: "2-digit",
             });
-        if (dateEl) dateEl.textContent = now.toLocaleDateString();
+        if (dateEl) dateEl.textContent = gbFormatDate(now);
     }, 1000);

@@ -107,7 +107,10 @@
                 applySettingsRbac();
             }
         })
-        .catch(function () {});
+        .catch(function (err) {
+            /* Best-effort preferences load; defaults remain in effect. */
+            console.debug("[gb-settings] Preferences fetch failed:", err);
+        });
 
     // Live-update desktop wallpaper when changed in another tab
     window.addEventListener('storage', function (e) {
@@ -123,6 +126,10 @@
       var container = document.getElementById("versionsTableContainer");
       if (!container) return;
       versionsLoaded = true;
+      container.setAttribute("role", "status");
+      container.setAttribute("aria-live", "polite");
+      container.setAttribute("aria-atomic", "true");
+      container.setAttribute("aria-busy", "true");
       fetch("/api/system/versions")
         .then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
@@ -156,8 +163,13 @@
           });
           html += "</tbody></table>";
           container.innerHTML = html;
+          container.setAttribute("aria-busy", "false");
         })
         .catch(function () {
+          container.setAttribute("aria-busy", "false");
+          container.setAttribute("role", "alert");
+          container.setAttribute("aria-live", "assertive");
+          container.setAttribute("aria-atomic", "true");
           container.innerHTML =
             '<div style="padding:24px;text-align:center;color:var(--text-secondary,#888)">' +
             "<p>Could not load version information.</p>" +

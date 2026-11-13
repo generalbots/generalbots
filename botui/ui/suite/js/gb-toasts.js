@@ -116,7 +116,7 @@ const GBToasts = (() => {
               '<div class="gb-nc-title">' + esc(n.title) + "</div>" +
               '<div class="gb-nc-msg">' + esc(n.message) + "</div>" +
               (n.appId ? '<button class="gb-nc-open" data-app="' + esc(n.appId) + '" data-params="' + esc(JSON.stringify(n.params || {})) + '">' + esc(n.label || tr("toast-open", "Open")) + "</button>" : "") +
-              '<div class="gb-nc-time">' + new Date(n.ts).toLocaleTimeString() + "</div>" +
+              '<div class="gb-nc-time">' + gbFormatTime(new Date(n.ts)) + "</div>" +
               "</div>"
             )
             .join("")

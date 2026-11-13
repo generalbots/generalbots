@@ -162,6 +162,25 @@
 
     // ---- actions ------------------------------------------------------------
 
+    function notifyMembers(message, kind) {
+        if (window.GBToasts && typeof window.GBToasts.show === "function") {
+            window.GBToasts.show("Members", String(message), kind || "error");
+            return;
+        }
+        if (window.GBModal && typeof window.GBModal.alert === "function") {
+            window.GBModal.alert(String(message), "Members");
+        }
+    }
+
+    function confirmMembers(message, title) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            return new Promise(function (resolve) {
+                window.GBModal.confirm(String(message), title || "Confirm", function () { resolve(true); }, function () { resolve(false); });
+            });
+        }
+        return Promise.resolve(false);
+    }
+
     async function add() {
         var pid = projectId();
         if (!pid) return;
@@ -171,7 +190,7 @@
             ? document.getElementById("vibeMemberTarget").value.trim()
             : (selectedMemberId || document.getElementById("vibeMemberTarget").value.trim());
         if (!target) {
-            alert(t("vibe-members-choose-target", "Choose a user or enter a group name first."));
+            notifyMembers(t("vibe-members-choose-target", "Choose a user or enter a group name first."), "warning");
             return;
         }
         var path = kind === "group"
@@ -187,7 +206,7 @@
             selectedMemberId = null;
             await load();
         } else {
-            alert(data.error || t("vibe-members-add-failed", "Failed to add member"));
+            notifyMembers(data.error || t("vibe-members-add-failed", "Failed to add member"), "error");
         }
     }
 
@@ -196,11 +215,12 @@
         if (!pid) return;
         var target = selectedTransferId || document.getElementById("vibeTransferTarget").value.trim();
         if (!target) {
-            alert(t("vibe-members-choose-owner", "Choose a new owner first."));
+            notifyMembers(t("vibe-members-choose-owner", "Choose a new owner first."), "warning");
             return;
         }
         var label = document.getElementById("vibeTransferTarget").value.trim();
-        if (!confirm(t("vibe-members-transfer-confirm", "Transfer ownership of this project to {name}?", { name: label }))) return;
+        var ok = await confirmMembers(t("vibe-members-transfer-confirm", "Transfer ownership of this project to {name}?", { name: label }), t("vibe-members-transfer-title", "Transfer ownership"));
+        if (!ok) return;
         var data = await api("/api/vibe/projects/" + pid + "/members/transfer-ownership", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -211,7 +231,7 @@
             selectedTransferId = null;
             await load();
         } else {
-            alert(data.error || t("vibe-members-transfer-failed", "Transfer failed"));
+            notifyMembers(data.error || t("vibe-members-transfer-failed", "Transfer failed"), "error");
         }
     }
 

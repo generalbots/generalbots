@@ -10,6 +10,11 @@
 
     .color-option {
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
     }
 
     .color-option input {
@@ -137,8 +142,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
         border: none;
         border-radius: 6px;
         background: transparent;
@@ -152,8 +159,10 @@
     }
 
     .btn-icon-sm {
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
         border: none;
         border-radius: 4px;
         background: transparent;
@@ -234,3 +243,15 @@
             right: 16px !important;
         }
     }
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+

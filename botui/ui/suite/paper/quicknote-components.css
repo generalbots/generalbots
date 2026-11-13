@@ -40,8 +40,8 @@
 }
 
 .btn-close {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -266,8 +266,10 @@
 
 .toggle {
     position: relative;
+    display: inline-flex;
+    align-items: center;
     width: 44px;
-    height: 24px;
+    height: 44px;
 }
 
 .toggle input {
@@ -279,10 +281,10 @@
 .toggle-slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
+    top: 10px;
     left: 0;
     right: 0;
-    bottom: 0;
+    height: 24px;
     background: var(--paper-border);
     border-radius: 24px;
     transition: 0.3s;
@@ -302,3 +304,11 @@
 
 .toggle input:checked + .toggle-slider {
     background: var(
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

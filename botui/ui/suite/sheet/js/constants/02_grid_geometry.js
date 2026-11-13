@@ -11,27 +11,49 @@
   var rH = D.rH;
   var rowIdx = D.rowIdx;
 
-  const VirtualGrid = {
-    totalRows: D.DEFAULT_TOTAL_ROWS,
-    totalCols: D.DEFAULT_TOTAL_COLS,
-    scrollTop: 0,
-    scrollLeft: 0,
-    viewportHeight: 0,
-    viewportWidth: 0,
-    cells: new Map(),
-    pool: [],
-    usedCount: 0,
-    root: null,
-    headerRow: null,
-    headerCol: null,
-    body: null,
-    requestSeq: 0,
-    lastRenderedRange: null,
-    selectedRow: 0,
-    selectedCol: 0,
-    editingCell: null,
-    selectionOverlay: null
+  D.GridProto = D.GridProto || {};
+
+  function freshGridState() {
+    return {
+      totalRows: D.DEFAULT_TOTAL_ROWS,
+      totalCols: D.DEFAULT_TOTAL_COLS,
+      scrollTop: 0,
+      scrollLeft: 0,
+      viewportHeight: 0,
+      viewportWidth: 0,
+      cells: new Map(),
+      pool: [],
+      usedCount: 0,
+      root: null,
+      headerRow: null,
+      headerCol: null,
+      body: null,
+      requestSeq: 0,
+      lastRenderedRange: null,
+      selectedRow: 0,
+      selectedCol: 0,
+      editingCell: null,
+      selectionOverlay: null,
+      scrollArea: null,
+      midRow: null,
+      bodyInner: null,
+      headerColPool: [],
+      __totalColsWidth: 0,
+      host: null,
+      instance: null,
+    };
+  }
+
+  D.createVirtualGrid = function () {
+    var g = freshGridState();
+    var p = D.GridProto;
+    for (var k in p) {
+      if (Object.prototype.hasOwnProperty.call(p, k)) g[k] = p[k];
+    }
+    return g;
   };
+
+  const VirtualGrid = D.createVirtualGrid();
 
   VirtualGrid.updateViewport = function () {
     this.viewportHeight = this.scrollArea.clientHeight;
@@ -143,22 +165,26 @@
     this.renderRowHeaders(range);
 
     const seq = ++this.requestSeq;
-    D.SheetAPI.getRange(range.start, cols.start, range.end - 1, cols.end - 1)
+    var self = this;
+    D.SheetAPI.getRange(range.start, cols.start, range.end - 1, cols.end - 1, this.instance || this)
       .then(function (data) {
-        if (seq !== VirtualGrid.requestSeq) return;
+        if (seq !== self.requestSeq) return;
         // Apply the server's recalculated cells: dependents of an edited
         // cell are already cached locally, so skipping existing keys kept
         // stale values on screen until a reload.
         if (data.cells) {
           for (var k in data.cells) {
-            VirtualGrid.cells.set(k, data.cells[k]);
+            self.cells.set(k, data.cells[k]);
           }
         }
-        if (data.total_rows) VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, data.total_rows);
-        if (data.total_cols) VirtualGrid.totalCols = Math.max(VirtualGrid.totalCols, data.total_cols);
-        VirtualGrid.render();
+        if (data.total_rows) self.totalRows = Math.max(self.totalRows, data.total_rows);
+        if (data.total_cols) self.totalCols = Math.max(self.totalCols, data.total_cols);
+        self.render();
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort range fetch; grid can retry on next scroll/request. */
+        console.debug("[gb-sheet] Range fetch failed:", err);
+      });
   };
 
   VirtualGrid.renderRowHeaders = function (range) {
@@ -180,4 +206,8 @@
   };
 
   D.virtualGrid = VirtualGrid;
+  // keep proto in sync for future per-window instances (#2270)
+  for (var _k in VirtualGrid) {
+    if (typeof VirtualGrid[_k] === "function") D.GridProto[_k] = VirtualGrid[_k];
+  }
 })();

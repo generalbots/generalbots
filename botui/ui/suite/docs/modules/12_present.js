@@ -82,7 +82,10 @@
     document.addEventListener("keydown", onKey, true);
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
       // Full screen is a nicety: a denied request must not break presenting.
-      document.documentElement.requestFullscreen().catch(function () {});
+      document.documentElement.requestFullscreen().catch(function (err) {
+        /* Best-effort fullscreen; permission denial is non-actionable for presenting. */
+        console.debug("[gb-docs] Fullscreen request failed:", err);
+      });
     }
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -102,7 +105,10 @@
       exitBar = null;
     }
     if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(function () {});
+      document.exitFullscreen().catch(function (err) {
+        /* Best-effort fullscreen exit; failure is non-actionable. */
+        console.debug("[gb-docs] Exit fullscreen failed:", err);
+      });
     }
   }
 

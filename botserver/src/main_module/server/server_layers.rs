@@ -295,6 +295,10 @@ pub(super) fn add_attendant_routes(r: Router, s: &Arc<AppState>) -> Router {
         )),
     )
 }
-pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
-    crate::main_module::listen_impl::listen(app, port).await
+pub(crate) async fn listen(
+    app: Router,
+    port: u16,
+    no_security: bool,
+) -> std::io::Result<()> {
+    crate::main_module::listen_impl::listen(app, port, no_security).await
 }

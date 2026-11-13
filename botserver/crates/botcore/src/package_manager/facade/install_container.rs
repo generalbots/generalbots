@@ -4,7 +4,7 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-        let _ = safe_lxd(&["init", "--auto"]);
+        let _ = safe_incus_admin(&["init", "--auto"]);
 
         let images = [
             "ubuntu:24.04",
@@ -18,7 +18,7 @@ impl PackageManager {
 
         for image in &images {
             info!("Attempting to create container with image: {}", image);
-            let output = safe_lxc(&[
+            let output = safe_incus(&[
                 "launch",
                 image,
                 &container_name,
@@ -39,7 +39,7 @@ impl PackageManager {
             last_error = String::from_utf8_lossy(&output.stderr).to_string();
             warn!("Failed to create container with {}: {}", image, last_error);
 
-            let _ = safe_lxc(&["delete", &container_name, "--force"]);
+            let _ = safe_incus(&["delete", &container_name, "--force"]);
         }
 
         if !success {
@@ -153,7 +153,7 @@ impl PackageManager {
         for _ in 0..15 {
             std::thread::sleep(std::time::Duration::from_secs(2));
 
-            if let Some(o) = safe_lxc(&["list", container_name, "-c", "4", "--format", "csv"]) {
+            if let Some(o) = safe_incus(&["list", container_name, "-c", "4", "--format", "csv"]) {
                 if o.status.success() {
                     let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
                     let ip = out.split([' ', '(']).next().unwrap_or("").trim();
@@ -163,7 +163,7 @@ impl PackageManager {
                 }
             }
 
-            if let Some(o) = safe_lxc(&["exec", container_name, "--", "hostname", "-I"]) {
+            if let Some(o) = safe_incus(&["exec", container_name, "--", "hostname", "-I"]) {
                 if o.status.success() {
                     let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
                     if let Some(ip) = out.split_whitespace().find(|s| s.contains('.')) {
@@ -208,7 +208,7 @@ impl PackageManager {
         };
 
         // Derive last octet from MAC to avoid collisions (range 100-249).
-        let mac_out = safe_lxc(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
+        let mac_out = safe_incus(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
         let octet = mac_out
             .and_then(|o| o.status.success().then(|| String::from_utf8_lossy(&o.stdout).trim().to_string()))
             .and_then(|mac| {
@@ -222,9 +222,9 @@ impl PackageManager {
         let cidr = prefix.replace("{octet}", &octet.to_string());
         let ip = cidr.split('/').next().unwrap_or("").to_string();
 
-        safe_lxc(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
-        safe_lxc(&["exec", container_name, "--", "ip", "route", "add", "default", "via", &gateway]);
-        safe_lxc(&["exec", container_name, "--", "bash", "-c",
+        safe_incus(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
+        safe_incus(&["exec", container_name, "--", "ip", "route", "add", "default", "via", &gateway]);
+        safe_incus(&["exec", container_name, "--", "bash", "-c",
             &format!("printf 'nameserver 8.8.8.8\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf && \
                       printf '#!/bin/sh\\nip addr add {cidr} dev eth0 2>/dev/null||true\\nip route add default via {gateway} 2>/dev/null||true\\nexit 0\\n' > /etc/rc.local && \
                       chmod +x /etc/rc.local && systemctl enable rc-local 2>/dev/null||true")]);

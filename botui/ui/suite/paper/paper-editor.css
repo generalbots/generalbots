@@ -59,8 +59,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
         border: none;
         border-radius: 4px;
         background: transparent;
@@ -99,8 +99,8 @@
     }
 
     .color-picker {
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
         padding: 0;
         border: 1px solid var(--border);
         border-radius: 4px;
@@ -326,3 +326,4 @@
         font-size: 12px;
         color: var(--muted-foreground);
     }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

@@ -16,7 +16,10 @@
             <span class="alert-summary"
                   hx-get="/api/monitoring/alerts/summary"
                   hx-trigger="load, every 30s"
-                  hx-swap="innerHTML">
+                  hx-swap="innerHTML"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true">
                 <span class="summary-item critical">0 Critical</span>
                 <span class="summary-item warning">0 Warning</span>
                 <span class="summary-item info">0 Info</span>
@@ -99,8 +102,11 @@
         <div class="alerts-list" id="alerts-list"
              hx-get="/api/monitoring/alerts/active"
              hx-trigger="load, every 30s"
-             hx-swap="innerHTML">
-            <div class="alert-placeholder">
+             hx-swap="innerHTML"
+             role="region"
+             aria-label="Active alerts"
+             aria-live="polite">
+            <div class="alert-placeholder" role="status">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -141,8 +147,11 @@
         <div class="rules-grid" id="rules-grid"
              hx-get="/api/monitoring/alerts/rules"
              hx-trigger="load"
-             hx-swap="innerHTML">
-            <div class="rule-card skeleton">
+             hx-swap="innerHTML"
+             role="region"
+             aria-label="Alert rules"
+             aria-live="polite">
+            <div class="rule-card skeleton" role="status" aria-label="Loading rules">
                 <div class="skeleton-line"></div>
                 <div class="skeleton-line short"></div>
             </div>
@@ -182,17 +191,20 @@
         <div class="history-list" id="history-list"
              hx-get="/api/monitoring/alerts/history"
              hx-trigger="load"
-             hx-swap="innerHTML">
-            <div class="loading-state">
-                <div class="spinner"></div>
+             hx-swap="innerHTML"
+             role="region"
+             aria-label="Alert history"
+             aria-live="polite">
+            <div class="loading-state" role="status" aria-live="polite">
+                <div class="spinner" aria-hidden="true"></div>
                 <p data-i18n="monitoring-alerts-loading-history">Loading history...</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="monitoring-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="monitoring-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/alerts.js"></script>
 
 <!-- Create Alert Rule Modal -->

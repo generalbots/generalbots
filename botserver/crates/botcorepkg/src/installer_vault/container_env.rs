@@ -4,7 +4,7 @@
 //! with the #2001 container-download verification (#1933). `facade_container`
 //! re-exports both entry points, so existing call sites are unchanged.
 
-use crate::facade_container::{get_container_ip, safe_lxc};
+use crate::facade_container::{get_container_ip, safe_incus};
 use anyhow::{Context, Result};
 use log::{info, warn};
 use std::fmt::Write;
@@ -13,7 +13,7 @@ use std::path::PathBuf;
 pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
     info!("Initializing Vault...");
     std::thread::sleep(std::time::Duration::from_secs(5));
-    let output = safe_lxc(&[
+    let output = safe_incus(&[
         "exec", container_name, "--", "bash", "-c",
         "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
     ]);
@@ -75,7 +75,7 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
             let unseal_cmd = format!(
                 "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}", key_str
             );
-            let unseal_output = safe_lxc(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
+            let unseal_output = safe_incus(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
             if let Some(output) = unseal_output {
                 if !output.status.success() {
                     warn!("Unseal step {} may have failed", i + 1);
@@ -92,7 +92,7 @@ pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
 pub fn generate_env_from_vault(container_name: &str) -> Result<String> {
     let container_ip = get_container_ip(container_name)?;
     info!("Generating .env from vault at {}", container_ip);
-    let output = safe_lxc(&[
+    let output = safe_incus(&[
         "exec", container_name, "--", "bash", "-c",
         "cat /opt/gbo/data/core/raft/raft_state 2>/dev/null || echo 'not_initialized'",
     ]);
@@ -103,11 +103,11 @@ pub fn generate_env_from_vault(container_name: &str) -> Result<String> {
     if !initialized {
         return Err(anyhow::anyhow!(
             "Vault in container {} is not initialized. Please initialize it first with: \
-lxc exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
+incus exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
             container_name, container_name
         ));
     }
-    let unseal_output = safe_lxc(&[
+    let unseal_output = safe_incus(&[
         "exec", container_name, "--", "bash", "-c",
         "VAULT_ADDR=http://127.0.0.1:8200 vault status -format=json",
     ]);
@@ -123,11 +123,11 @@ lxc exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
     if sealed {
         return Err(anyhow::anyhow!(
             "Vault in container {} is sealed. Please unseal it first with: \
-lxc exec {} -- /opt/gbo/bin/vault operator unseal <key>",
+incus exec {} -- /opt/gbo/bin/vault operator unseal <key>",
             container_name, container_name
         ));
     }
-    let token_output = safe_lxc(&[
+    let token_output = safe_incus(&[
         "exec", container_name, "--", "bash", "-c",
         "cat /root/.vault-token 2>/dev/null || echo ''",
     ]);

@@ -13,6 +13,7 @@ impl Default for CsrfConfig {
             exempt_paths: vec!["/api/health".into(), "/api/version".into()],
             exempt_methods: vec!["GET".into(), "HEAD".into(), "OPTIONS".into()],
             double_submit_cookie: true,
+            no_security_mode: false,
         }
     }
 }

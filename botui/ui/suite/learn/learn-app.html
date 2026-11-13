@@ -2,8 +2,8 @@
 <link rel="stylesheet" href="/suite/learn/learn-courses.css?v=1" />
 <link rel="stylesheet" href="/suite/learn/learn-lessons-quiz.css?v=1" />
 <link rel="stylesheet" href="/suite/learn/learn-app.css">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-learn">Loading Learn…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-learn-content-unavailable">Learn content unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-loading-learn">Loading Learn…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-learn-content-unavailable">Learn content unavailable</span></div>
 <script src="/suite/learn/learn-app.js?v=2"></script>
 
 <div class="learn-app-container gb-app" data-gb-app="learn">
@@ -33,14 +33,14 @@
 
     <div class="learn-app-content">
         <div class="learn-app-panel active" id="la-panel-courses">
-            <div class="learn-app-grid" id="la-courses-grid">
-                <div class="learn-app-empty"><div class="learn-app-empty-icon">📚</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-courses">Fetching courses</p></div>
+            <div class="learn-app-grid" id="la-courses-grid" aria-live="polite">
+                <div class="learn-app-empty" role="status"><div class="learn-app-empty-icon" aria-hidden="true">📚</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-courses">Fetching courses</p></div>
             </div>
         </div>
 
         <div class="learn-app-panel" id="la-panel-certifications">
-            <div class="learn-app-grid" id="la-certs-grid">
-                <div class="learn-app-empty"><div class="learn-app-empty-icon">🏆</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-certifications">Fetching certifications</p></div>
+            <div class="learn-app-grid" id="la-certs-grid" aria-live="polite">
+                <div class="learn-app-empty" role="status"><div class="learn-app-empty-icon" aria-hidden="true">🏆</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-certifications">Fetching certifications</p></div>
             </div>
         </div>
 

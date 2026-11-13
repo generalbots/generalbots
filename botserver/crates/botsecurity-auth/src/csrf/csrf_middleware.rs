@@ -1,6 +1,51 @@
 use super::*;
 use crate::auth::{AuthenticatedUser, Role};
 
+fn is_loopback_host(host: &str) -> bool {
+    matches!(
+        host.to_ascii_lowercase().as_str(),
+        "localhost" | "127.0.0.1" | "::1" | "[::1]"
+    )
+}
+
+fn origin_or_referer_host(value: &str) -> Option<String> {
+    let parsed = url::Url::parse(value).ok()?;
+    parsed.host_str().map(ToString::to_string)
+}
+
+fn loopback_origin_ok(request: &Request<Body>) -> Result<bool, ()> {
+    if let Some(origin) = request
+        .headers()
+        .get(header::ORIGIN)
+        .and_then(|v| v.to_str().ok())
+    {
+        if origin.eq_ignore_ascii_case("null") {
+            return Err(());
+        }
+        let host = origin_or_referer_host(origin).ok_or(())?;
+        return if is_loopback_host(&host) {
+            Ok(true)
+        } else {
+            Err(())
+        };
+    }
+
+    if let Some(referer) = request
+        .headers()
+        .get(header::REFERER)
+        .and_then(|v| v.to_str().ok())
+    {
+        let host = origin_or_referer_host(referer).ok_or(())?;
+        return if is_loopback_host(&host) {
+            Ok(true)
+        } else {
+            Err(())
+        };
+    }
+
+    Ok(false)
+}
+
 pub async fn csrf_middleware(
     csrf_manager: Arc<CsrfManager>,
     request: Request<Body>,
@@ -21,6 +66,31 @@ pub async fn csrf_middleware(
 
     if csrf_manager.is_exempt_path(&path) {
         return next.run(request).await;
+    }
+
+    if config.no_security_mode {
+        match loopback_origin_ok(&request) {
+            Ok(true) => return next.run(request).await,
+            Ok(false) => {
+                // No Origin/Referer: non-browser/local clients on a loopback-bound
+                // desktop server are allowed; browser cross-site requests send Origin.
+                return next.run(request).await;
+            }
+            Err(()) => {
+                warn!(
+                    "CSRF blocked non-loopback origin for {} {} in no_security mode",
+                    method, path
+                );
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": "csrf_validation_failed",
+                        "message": "Cross-origin requests are not allowed in desktop-local mode"
+                    })),
+                )
+                    .into_response();
+            }
+        }
     }
 
     // Skip CSRF for API requests using Bearer token auth (stateless)

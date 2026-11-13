@@ -80,6 +80,36 @@
     }
   }
 
+  function gbDashPrompt(message, defaultValue, title) {
+    if (window.GBModal && typeof window.GBModal.prompt === "function") {
+      return new Promise((resolve) => {
+        try {
+          window.GBModal.prompt(message, defaultValue == null ? "" : String(defaultValue), title || "Input", (value) => {
+            resolve(value == null ? null : String(value));
+          });
+        } catch (e) {
+          console.error("GBModal.prompt failed", e);
+          resolve(null);
+        }
+      });
+    }
+    return Promise.resolve(null);
+  }
+
+  function gbDashWidgetConfirm(message, title) {
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+      return new Promise((resolve) => {
+        try {
+          window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+        } catch (e) {
+          console.error("GBModal.confirm failed", e);
+          resolve(false);
+        }
+      });
+    }
+    return Promise.resolve(false);
+  }
+
   async function editWidget(widgetId) {
     if (!state.currentDashboard) return;
     const widget = (state.widgets || []).find((w) => w.id === widgetId);
@@ -110,17 +140,15 @@
       modal.style.display = "flex";
       return;
     }
-    const title = prompt("Widget title", widget.title || "");
+    const title = await gbDashPrompt("Widget title", widget.title || "", "Edit Widget");
     if (title === null) return;
-    const width = parseInt(
-      prompt("Width (columns 1-12)", String((widget.position && widget.position.width) || 4)),
-      10,
-    );
+    const widthRaw = await gbDashPrompt("Width (columns 1-12)", String((widget.position && widget.position.width) || 4), "Edit Widget");
+    if (widthRaw === null) return;
+    const width = parseInt(widthRaw, 10);
     if (isNaN(width)) return;
-    const height = parseInt(
-      prompt("Height (rows 1-12)", String((widget.position && widget.position.height) || 2)),
-      10,
-    );
+    const heightRaw = await gbDashPrompt("Height (rows 1-12)", String((widget.position && widget.position.height) || 2), "Edit Widget");
+    if (heightRaw === null) return;
+    const height = parseInt(heightRaw, 10);
     if (isNaN(height)) return;
     const data = {
       title: title || "Untitled Widget",
@@ -219,7 +247,7 @@
   }
 
   async function removeWidget(widgetId) {
-    if (!confirm("Remove this widget?")) return;
+    if (!(await gbDashWidgetConfirm("Remove this widget?", "Confirm"))) return;
     if (!state.currentDashboard) return;
 
     try {

@@ -5,22 +5,35 @@
 <script src="/suite/js/auto-update-settings.js?v=1"></script>
 
 <script>
-    // The settings fragment is also opened as a full page (admin deep link);
-    // there it needs the local htmx to swap in the section partials (#1839).
-    if (!window.htmx && window.top === window.self) {
-        document.write('<script src="/suite/js/vendor/htmx.min.js"><\/script>');
-    }
-    // #1821/#1839 — when Settings is opened in its own window/tab it is outside
-    // the desktop shell, so the security bootstrap that adds the Bearer token
-    // to HTMX/fetch/XHR requests must be loaded here too. Inside the desktop
-    // shell window.GBSecurity already exists and this block is a no-op. This is
-    // the ONLY bootstrap load: a second copy at another cache-busting version
-    // installed the interceptors twice (#2332).
-    if (window.top === window.self && !window.GBSecurity) {
-        document.write('<script src="/suite/js/security-bootstrap/01_tokens.js?v=7"><\/script>');
-        document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=7"><\/script>');
-        document.write('<script src="/suite/js/security-bootstrap/99_init.js?v=7"><\/script>');
-    }
+    // Settings is also opened as a full page (admin deep link), outside the
+    // desktop shell; there it needs the local htmx and the security bootstrap
+    // that adds the Bearer token to HTMX/fetch/XHR requests (#1821/#1839).
+    // This used the legacy writer twice, at two cache-busters ("?v=6" and
+    // "?v=7"), so which bootstrap version ran depended on parse timing (#2332).
+    // Each file is now appended once, in order, and only when missing.
+    (function () {
+        if (window.top !== window.self) return; // inside the shell: already loaded
+        var files = [];
+        if (!window.htmx) files.push("/suite/js/vendor/htmx.min.js");
+        if (!window.GBSecurity) {
+            files.push(
+                "/suite/js/security-bootstrap/01_tokens.js?v=7",
+                "/suite/js/security-bootstrap/02_interceptors.js?v=7",
+                "/suite/js/security-bootstrap/99_init.js?v=7"
+            );
+        }
+        (function loadNext(index) {
+            if (index >= files.length) return;
+            var script = document.createElement("script");
+            script.src = files[index];
+            script.onload = function () { loadNext(index + 1); };
+            script.onerror = function () {
+                console.error("settings: failed to load " + files[index]);
+                loadNext(index + 1);
+            };
+            document.head.appendChild(script);
+        })(0);
+    })();
 </script>
 
 <div class="gb-app settings-layout" data-gb-app="settings">
@@ -309,15 +322,15 @@
             <div class="workspace-card-head">
                 <div>
                     <h2 id="workspace-card-title" data-i18n="auto-this-workspace">This workspace</h2>
-                    <p id="workspace-identity" class="workspace-line" data-i18n="auto-loading-identity">Loading identity…</p>
+                    <p id="workspace-identity" class="workspace-line" role="status" aria-live="polite" aria-atomic="true" data-i18n="auto-loading-identity">Loading identity…</p>
                 </div>
-                <span id="workspace-edition" class="workspace-badge" title="Deployment edition">—</span>
+                <span id="workspace-edition" class="workspace-badge" role="status" aria-live="polite" aria-atomic="true" title="Deployment edition">—</span>
             </div>
             <div class="workspace-chips">
-                <button type="button" class="workspace-chip" id="workspace-plan" title="Plan managed on the Cloud portal" data-i18n="auto-plan-2">Plan: —</button>
+                <button type="button" class="workspace-chip" id="workspace-plan" aria-live="polite" aria-atomic="true" title="Plan managed on the Cloud portal" data-i18n="auto-plan-2">Plan: —</button>
                 <button type="button" class="workspace-chip" data-workspace-goto="storage" data-i18n="monitoring-health-storage">Storage</button>
-                <button type="button" class="workspace-chip" data-workspace-goto="versions" data-i18n="settings-versions">Versions</button>
-                <button type="button" class="workspace-chip" id="workspace-preview" data-i18n="auto-preview">Preview: —</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="versions" aria-live="polite" aria-atomic="true" data-i18n="settings-versions">Versions</button>
+                <button type="button" class="workspace-chip" id="workspace-preview" aria-live="polite" aria-atomic="true" data-i18n="auto-preview">Preview: —</button>
             </div>
         </section>
         <div hx-get="/suite/settings/partials/01_profile_security.html" hx-trigger="load" hx-swap="outerHTML"></div>
@@ -344,6 +357,7 @@
 <link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" />
 <link rel="stylesheet" href="/suite/settings/settings-on-device-ai.css" />
 <script src="/suite/settings/settings-workspace-card.js?v=1"></script>
+<script src="/suite/js/gb-datetime.js?v=3"></script>
 <script src="/suite/settings/settings-nav.js?v=1"></script>
 
 <!-- Sidebar overlay for mobile -->

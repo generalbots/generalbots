@@ -243,7 +243,10 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: locale }),
-      }).catch(function () {});
+      }).catch(function (err) {
+        /* Best-effort locale persistence; local preference is already applied. */
+        console.debug("[gb-i18n] Locale persistence failed:", err);
+      });
     } catch (e) {
       /* persistence is optional */
     }

@@ -18,7 +18,7 @@
                 <div class="toolbar-group">
                     <button
                         class="btn btn-primary btn-small"
-                        onclick="saveEditorFile()">
+                        onclick="saveEditorFile(this)">
                         <span class="spinner" id="save-spinner" style="display:none;"></span>
                         💾 Save
                     </button>
@@ -68,12 +68,12 @@
                 <div class="toolbar-group" id="csv-tools" style="display: none;">
                     <button
                         class="btn btn-small"
-                        onclick="csvAddRow()">
+                        onclick="csvAddRow(this)">
                         ➕ Row
                     </button>
                     <button
                         class="btn btn-small"
-                        onclick="csvAddColumn()" data-i18n="auto-column">
+                        onclick="csvAddColumn(this)" data-i18n="auto-column">
                         ➕ Column
                     </button>
                 </div>

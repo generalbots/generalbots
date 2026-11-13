@@ -101,8 +101,8 @@
             };
             if (window.WindowManager && window.WindowManager.promptFloating) {
                 window.WindowManager.promptFloating("Add text", "Text", "Heading", addLabel);
-            } else {
-                addLabel((window.GBModal||{prompt:prompt}).prompt("Text", "Heading"));
+            } else if (window.GBModal && typeof window.GBModal.prompt === "function") {
+                window.GBModal.prompt("Text", "Heading", "Add text", addLabel);
             }
             return;
         }

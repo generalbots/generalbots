@@ -29,8 +29,13 @@ function pauseTask(taskId) {
     }, 100);
 }
 
-function cancelTask(taskId) {
-  if (!confirm("Are you sure you want to cancel this task?")) {
+async function cancelTask(taskId) {
+  const ok = typeof gbConfirm === "function"
+    ? await gbConfirm("Are you sure you want to cancel this task?", "Cancel task")
+    : (window.GBModal && typeof window.GBModal.confirm === "function"
+      ? await new Promise((r) => window.GBModal.confirm("Are you sure you want to cancel this task?", "Cancel task", () => r(true), () => r(false)))
+      : false);
+  if (!ok) {
     return;
   }
 
@@ -367,56 +372,5 @@ if (typeof taskStyleElement === "undefined") {
   document.head.appendChild(taskStyleElement);
 }
 
-// =============================================================================
-// GOALS, PENDING INFO, SCHEDULERS, MONITORS
-// =============================================================================
-
-// Select a goal and show its details
-window.selectGoal = function (goalId) {
-  TasksState.selectedItemType = "goal";
-  window.selectedTaskId = goalId;
-
-  document.getElementById("window-tasks").querySelectorAll(".task-item, .task-card").forEach((el) => {
-    el.classList.remove("selected");
-  }, 100);
-  const selectedEl = document.getElementById("window-tasks").querySelector(`[data-goal-id="${goalId}"]`);
-  if (selectedEl) {
-    selectedEl.classList.add("selected");
-  }
-
-  document.getElementById("task-detail-empty").style.display = "none";
-  document.getElementById("task-detail-content").style.display = "block";
-
-  // Hide other sections, show goal section
-  hideAllDetailSections();
-  document.getElementById("goal-progress-section").style.display = "block";
-
-  fetch(`/api/goals/${goalId}`)
-    .then((response) => response.json())
-    .then((goal) => {
-      document.getElementById("detail-title").textContent =
-        goal.goal_text || "Untitled Goal";
-      document.getElementById("detail-status-text").textContent =
-        goal.status || "active";
-      document.getElementById("detail-priority-text").textContent = "Goal";
-      document.getElementById("detail-description").textContent =
-        goal.goal_text || "";
-
-      const percent =
-        goal.target_value > 0
-          ? Math.round((goal.current_value / goal.target_value) * 100)
-          : 0;
-      document.getElementById("goal-progress-fill").style.width = `${percent}%`;
-      document.getElementById("goal-current-value").textContent =
-        goal.current_value || 0;
-      document.getElementById("goal-target-value").textContent =
-        goal.target_value || 0;
-      document.getElementById("goal-percent").textContent = percent;
-      document.getElementById("goal-last-action").textContent = goal.last_action
-        ? `Last action: ${goal.last_action}`
-        : "No actions yet";
-    })
-    .catch((err) => console.error("Failed to load goal:", err));
-};
-
-// Select a pending info item
+// Goal/pending/scheduler/monitor detail selection is handled by tasks-toasts.js
+// and tasks-scoped-selection.js with resilient DOM fallbacks.

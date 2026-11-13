@@ -55,7 +55,7 @@
       '<div class="drive-sync-overlay" data-close="1"></div>' +
       '<div class="drive-sync-dialog" role="dialog" aria-modal="true" aria-labelledby="drive-sync-title">' +
       '<header><h2 id="drive-sync-title">Local sync</h2>' +
-      '<span class="drive-sync-state" id="drive-sync-state">idle</span>' +
+      '<span class="drive-sync-state" id="drive-sync-state" role="status" aria-live="polite" aria-atomic="true">idle</span>' +
       '<button type="button" class="drive-sync-x" data-close="1" aria-label="Close">&times;</button></header>' +
       '<div class="drive-sync-body">' +
       '<p class="drive-sync-hint">Mirror a local folder with a Drive folder using rsync. The server runs the schedule; every job can also run on demand.</p>' +
@@ -117,7 +117,7 @@
           '<span class="drive-sync-schedule">' + esc(schedule) + "</span></div>" +
           '<div class="drive-sync-paths"><code>' + esc(job.local_path) + "</code> → <code>" + esc(job.drive_path) + "</code></div>" +
           '<div class="drive-sync-meta">' +
-          (job.last_run ? "last run " + esc(new Date(job.last_run).toLocaleString()) : "never ran") +
+          (job.last_run ? "last run " + esc(gbFormatDateTime(new Date(job.last_run))) : "never ran") +
           (job.last_duration_ms != null ? " · " + job.last_duration_ms + " ms" : "") +
           (job.last_summary ? " · " + esc(job.last_summary) : "") +
           "</div>" +
@@ -270,7 +270,10 @@
     window.GBDriveSync.refresh = refresh;
     var panel = (location.search.match(/[?&]panel=([^&]+)/) || [])[1];
     if (panel === "sync") open();
-    api("/status").then(function (status) { setState(status.state); }).catch(function () {});
+    api("/status").then(function (status) { setState(status.state); }).catch(function (err) {
+      /* Best-effort initial sync status fetch; panel can refresh on demand. */
+      console.debug("[gb-drive] Sync status fetch failed:", err);
+    });
   }
 
   if (document.readyState === "loading") {

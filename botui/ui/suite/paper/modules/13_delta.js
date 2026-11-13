@@ -35,6 +35,23 @@
   // Persists the note the delta just wrote. The chat used to claim it saved
   // while every attempt created another empty "Untitled" note; one stable
   // id per open paper app keeps repeated turns on the same document (#2186).
+  // #2315 — the status bar shipped a static "Saved" that never changed, and a
+  // failed autosave was swallowed. A rejected save looked exactly like a saved
+  // one, so the user closed the tab and lost the note.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
+  function saveStatus(state, label, retry) {
+    var el = document.getElementById("save-status");
+    if (!el) return;
+    el.setAttribute("data-state", state);
+    el.textContent = label;
+    el.title = retry ? t("paper-save-retry-hint", "Click to retry saving") : label;
+    el.style.cursor = retry ? "pointer" : "";
+    el.onclick = retry || null;
+  }
+
   function persist(appRoot, root) {
     var titleEl = document.getElementById("paper-title");
     var title = titleEl && titleEl.innerText.trim();
@@ -49,6 +66,7 @@
         Math.random().toString(36).slice(2, 8);
       appRoot.setAttribute("data-note-id", noteId);
     }
+    saveStatus("syncing", t("paper-saving", "Saving…"));
     return fetch("/api/ui/paper/autosave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,11 +75,18 @@
         title: title || "Untitled",
         content: root.innerHTML,
       }),
-    }).then(function () {
+    }).then(function (resp) {
+      if (!resp.ok) throw new Error("autosave failed (" + resp.status + ")");
+      saveStatus("saved", t("paper-saved", "Saved"));
       if (window.htmx && document.getElementById("paper-list")) {
         window.htmx.ajax("GET", "/api/ui/paper/list", { target: "#paper-list" });
       }
-    }).catch(function () { /* persistence is best-effort */ });
+    }).catch(function (error) {
+      // Surface it, and make the indicator itself the retry affordance.
+      if (window.console && console.warn) console.warn("[paper] autosave failed:", error);
+      saveStatus("error", t("paper-save-failed", "Not saved — retry"),
+        function () { persist(appRoot, root); });
+    });
   }
 
   function apply(payload) {

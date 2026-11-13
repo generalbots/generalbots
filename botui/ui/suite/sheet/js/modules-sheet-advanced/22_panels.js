@@ -285,7 +285,16 @@
   }
 
   function formatValue(value) {
-    if (typeof value === "number") return value.toLocaleString();
+    if (typeof value === "number") {
+      if (window.i18n && typeof window.i18n.formatNumber === "function") {
+        return window.i18n.formatNumber(value);
+      }
+      try {
+        return new Intl.NumberFormat((window.i18n && typeof window.i18n.getLocale === "function" && window.i18n.getLocale()) || undefined).format(value);
+      } catch (_) {
+        return String(value);
+      }
+    }
     if (value === null || value === undefined) return "";
     return escapeHtml(value);
   }

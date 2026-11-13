@@ -2,8 +2,8 @@
 <form class="invoice-form" hx-post="/api/billing/invoices" hx-target="#invoices-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
     <div class="invoice-form-header">
         <h2 class="invoice-form-title" data-i18n="billing-new-invoice">New Invoice</h2>
-        <button type="button" class="form-close" onclick="closeBillingModal()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="form-close" onclick="closeBillingModal()" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -15,14 +15,14 @@
         <div class="form-section-title" data-i18n="billing-customer">Customer</div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-account">Account *</label>
-                <select name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
+                <label class="form-label" for="invoice-account-id" data-i18n="billing-account">Account *</label>
+                <select id="invoice-account-id" name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
                     <option value="" data-i18n="billing-select-account">Select account...</option>
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-contact">Contact</label>
-                <select name="contact_id" class="form-select">
+                <label class="form-label" for="invoice-contact-id" data-i18n="billing-contact">Contact</label>
+                <select id="invoice-contact-id" name="contact_id" class="form-select">
                     <option value="" data-i18n="billing-select-contact">Select contact...</option>
                 </select>
             </div>
@@ -34,18 +34,18 @@
         <div class="form-section-title" data-i18n="billing-details">Invoice Details</div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-invoice-date">Invoice Date *</label>
-                <input type="date" name="invoice_date" class="form-input" required>
+                <label class="form-label" for="invoice-date" data-i18n="billing-invoice-date">Invoice Date *</label>
+                <input id="invoice-date" type="date" name="invoice_date" class="form-input" required>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-due-date">Due Date *</label>
-                <input type="date" name="due_date" class="form-input" required>
+                <label class="form-label" for="invoice-due-date" data-i18n="billing-due-date">Due Date *</label>
+                <input id="invoice-due-date" type="date" name="due_date" class="form-input" required>
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-payment-terms">Payment Terms</label>
-                <select name="payment_terms" class="form-select">
+                <label class="form-label" for="invoice-payment-terms" data-i18n="billing-payment-terms">Payment Terms</label>
+                <select id="invoice-payment-terms" name="payment_terms" class="form-select">
                     <option value="immediate" data-i18n="billing-terms-immediate">Due on Receipt</option>
                     <option value="net15" data-i18n="billing-terms-net15">Net 15</option>
                     <option value="net30" selected data-i18n="billing-terms-net30">Net 30</option>
@@ -54,8 +54,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-currency">Currency</label>
-                <select name="currency" class="form-select">
+                <label class="form-label" for="invoice-currency" data-i18n="billing-currency">Currency</label>
+                <select id="invoice-currency" name="currency" class="form-select">
                     <option value="USD" data-i18n="auto-usd-us-dollar">USD - US Dollar</option>
                     <option value="EUR" data-i18n="auto-eur-euro">EUR - Euro</option>
                     <option value="BRL" data-i18n="auto-brl-brazilian-real">BRL - Brazilian Real</option>
@@ -78,12 +78,12 @@
             </div>
             <div id="invoice-line-items">
                 <div class="line-item" data-index="0">
-                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required>
-                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)">
-                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
+                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)" aria-label="Item quantity">
+                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)" aria-label="Item unit price">
                     <span class="line-item-total">$0.00</span>
-                    <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" aria-label="Remove line item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -91,7 +91,7 @@
                 </div>
             </div>
             <button type="button" class="add-line-item" onclick="addLineItem()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -104,22 +104,22 @@
     <div class="invoice-totals">
         <div class="invoice-total-row">
             <span class="label" data-i18n="billing-subtotal">Subtotal</span>
-            <span class="value" id="invoice-subtotal">$0.00</span>
+            <span class="value" id="invoice-subtotal" role="status" aria-live="polite" aria-atomic="true">$0.00</span>
         </div>
         <div class="invoice-total-row">
             <span class="label" data-i18n="billing-tax">Tax (0%)</span>
-            <span class="value" id="invoice-tax">$0.00</span>
+            <span class="value" id="invoice-tax" role="status" aria-live="polite" aria-atomic="true">$0.00</span>
         </div>
         <div class="invoice-total-row grand-total">
             <span class="label" data-i18n="billing-total">Total</span>
-            <span class="value" id="invoice-total">$0.00</span>
+            <span class="value" id="invoice-total" role="status" aria-live="polite" aria-atomic="true">$0.00</span>
         </div>
     </div>
 
     <!-- Notes -->
     <div class="form-group">
-        <label class="form-label" data-i18n="billing-notes">Notes</label>
-        <textarea name="notes" class="form-textarea" rows="2" placeholder="Payment instructions or additional notes..."></textarea>
+        <label class="form-label" for="invoice-notes" data-i18n="billing-notes">Notes</label>
+        <textarea id="invoice-notes" name="notes" class="form-textarea" rows="2" placeholder="Payment instructions or additional notes..."></textarea>
     </div>
 
     <div class="form-actions">
@@ -133,18 +133,34 @@
 (function() {
     let lineItemIndex = 1;
 
+    function toCents(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100);
+    }
+
+    function lineCents(qty, unitPrice) {
+        const q = Number(qty);
+        const safeQty = Number.isFinite(q) ? Math.round(q) : 0;
+        return toCents(unitPrice) * safeQty;
+    }
+
+    function formatMoney(cents) {
+        return '$' + (cents / 100).toFixed(2);
+    }
+
     window.addLineItem = function() {
         const container = document.getElementById('invoice-line-items');
         const newItem = document.createElement('div');
         newItem.className = 'line-item';
         newItem.dataset.index = lineItemIndex;
         newItem.innerHTML = `
-            <input type="text" name="items[${lineItemIndex}][description]" class="form-input" placeholder="Product or service description" required>
-            <input type="number" name="items[${lineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)">
-            <input type="number" name="items[${lineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)">
+            <input type="text" name="items[${lineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
+            <input type="number" name="items[${lineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)" aria-label="Item quantity">
+            <input type="number" name="items[${lineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)" aria-label="Item unit price">
             <span class="line-item-total">$0.00</span>
-            <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" aria-label="Remove line item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -164,26 +180,26 @@
 
     window.updateLineTotal = function(input) {
         const lineItem = input.closest('.line-item');
-        const qty = parseFloat(lineItem.querySelector('input[name*="quantity"]').value) || 0;
-        const price = parseFloat(lineItem.querySelector('input[name*="unit_price"]').value) || 0;
-        const total = qty * price;
-        lineItem.querySelector('.line-item-total').textContent = '$' + total.toFixed(2);
+        const qty = lineItem.querySelector('input[name*="quantity"]').value;
+        const price = lineItem.querySelector('input[name*="unit_price"]').value;
+        const cents = lineCents(qty, price);
+        lineItem.querySelector('.line-item-total').textContent = formatMoney(cents);
         updateInvoiceTotals();
     };
 
     function updateInvoiceTotals() {
-        let subtotal = 0;
+        let subtotalCents = 0;
         document.querySelectorAll('.line-item').forEach(item => {
-            const qty = parseFloat(item.querySelector('input[name*="quantity"]').value) || 0;
-            const price = parseFloat(item.querySelector('input[name*="unit_price"]').value) || 0;
-            subtotal += qty * price;
+            const qty = item.querySelector('input[name*="quantity"]').value;
+            const price = item.querySelector('input[name*="unit_price"]').value;
+            subtotalCents += lineCents(qty, price);
         });
-        const tax = 0; // Could add tax calculation
-        const total = subtotal + tax;
+        const taxCents = 0; // Could add tax calculation
+        const totalCents = subtotalCents + taxCents;
 
-        document.getElementById('invoice-subtotal').textContent = '$' + subtotal.toFixed(2);
-        document.getElementById('invoice-tax').textContent = '$' + tax.toFixed(2);
-        document.getElementById('invoice-total').textContent = '$' + total.toFixed(2);
+        document.getElementById('invoice-subtotal').textContent = formatMoney(subtotalCents);
+        document.getElementById('invoice-tax').textContent = formatMoney(taxCents);
+        document.getElementById('invoice-total').textContent = formatMoney(totalCents);
     }
 
     // Set default dates

@@ -10,7 +10,7 @@
  */
 (function () {
   function deckId(payload) {
-    return (payload && payload.file) || window.__SLIDES_PRESENTATION_ID || "current";
+    return (payload && payload.file) || (window.getSlidesPresentationId && window.getSlidesPresentationId()) || window.__SLIDES_PRESENTATION_ID || "";
   }
 
   // `position` is the 0-based insert index the op log carries; `after` is the
@@ -72,12 +72,17 @@
       if ("value" in input) input.value = String(value || "");
       else input.textContent = String(value || "");
     }
-    var id = window.__SLIDES_PRESENTATION_ID || "current";
+    var id = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || window.__SLIDES_PRESENTATION_ID || "";
     fetch("/api/slides/rename", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ presentation_id: id, title: String(value || "") })
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.error("[gb-slides] Rename failed:", err);
+      if (window.GBToasts && window.GBToasts.show) {
+        window.GBToasts.show("Slides", "Could not rename presentation", "error");
+      }
+    });
   }
 
   function fillSlides(value) {

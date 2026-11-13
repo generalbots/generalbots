@@ -1,4 +1,14 @@
 
+function projectAlert(message, title) {
+    if (window.GBModal && typeof window.GBModal.alert === 'function') {
+        window.GBModal.alert(message, title || (typeof projectT === 'function' ? projectT('project-alert-title', 'Project') : 'Project'));
+    } else if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+        window.GBToasts.show(title || (typeof projectT === 'function' ? projectT('project-alert-title', 'Project') : 'Project'), String(message), 'error');
+    } else {
+        console.error(title || 'Project', message);
+    }
+}
+
 async function removeDependency(taskId, predecessorId) {
     try {
         const resp = await fetch(`/api/tasks/${taskId}/dependencies/remove`, {
@@ -10,10 +20,10 @@ async function removeDependency(taskId, predecessorId) {
             await loadProjectData(currentProjectId);
             showTaskDetail(taskId);
         } else {
-            alert(projectT('project-dependency-remove-failed', 'Failed to remove dependency'));
+            projectAlert(projectT('project-dependency-remove-failed', 'Failed to remove dependency'));
         }
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
@@ -52,7 +62,7 @@ async function handleImportFile(input) {
             const result = await resp.json();
             input.value = '';
             if (result.warnings && result.warnings.length) {
-                alert(result.warnings.map((w) => w.message).join('\n'));
+                projectAlert(result.warnings.map((w) => w.message).join('\n'), projectT('project-import-warnings-title', 'Import warnings'));
             }
             loadProjectList();
             if (result.project && result.project.id) {
@@ -60,20 +70,20 @@ async function handleImportFile(input) {
             }
         } else {
             const err = await resp.json().catch(() => ({}));
-            alert(projectT('project-import-failed', 'Import failed: ' + (err.error || resp.status), { error: err.error || resp.status }));
+            projectAlert(projectT('project-import-failed', 'Import failed: ' + (err.error || resp.status), { error: err.error || resp.status }));
         }
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
 async function exportProject(format) {
-    if (!currentProjectId) { alert(projectT('project-select-project-first', 'Select a project first')); return; }
+    if (!currentProjectId) { projectAlert(projectT('project-select-project-first', 'Select a project first')); return; }
     const fmt = format || 'xml';
     try {
         const resp = await fetch(`/api/projects/${currentProjectId}/export?format=${fmt}`);
         if (!resp.ok) {
-            alert(projectT('project-export-failed', 'Export failed: ' + resp.status, { error: resp.status }));
+            projectAlert(projectT('project-export-failed', 'Export failed: ' + resp.status, { error: resp.status }));
             return;
         }
         const blob = await resp.blob();
@@ -87,7 +97,7 @@ async function exportProject(format) {
         a.remove();
         URL.revokeObjectURL(url);
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
@@ -95,6 +105,7 @@ function showNewTaskForm() {
     if (!currentProjectId) return;
 
     const modal = document.getElementById('project-modal');
+    if (!modal) return;
     modal.innerHTML = `
         <div class="modal" style="display:flex">
             <div class="modal-backdrop" onclick="closeNewTaskForm()"></div>
@@ -122,20 +133,26 @@ function showNewTaskForm() {
 }
 
 function closeNewTaskForm() {
-    document.getElementById('project-modal').innerHTML = '';
+    const modal = document.getElementById('project-modal');
+    if (modal) modal.innerHTML = '';
 }
 
 function closeProjectModal() {
-    document.getElementById('project-modal').innerHTML = '';
+    const modal = document.getElementById('project-modal');
+    if (modal) modal.innerHTML = '';
 }
 
 async function createProjectFromForm() {
-    const name = document.getElementById('new-project-name').value.trim();
-    if (!name) { alert(projectT('project-name-required', 'Please enter a project name')); return; }
+    const nameEl = document.getElementById('new-project-name');
+    if (!nameEl) return;
+    const name = nameEl.value.trim();
+    if (!name) { projectAlert(projectT('project-name-required', 'Please enter a project name')); return; }
 
-    const start = document.getElementById('new-project-start').value
-        || new Date().toISOString().slice(0, 10);
-    const end = document.getElementById('new-project-end').value || null;
+    const startEl = document.getElementById('new-project-start');
+    const endEl = document.getElementById('new-project-end');
+    const descEl = document.getElementById('new-project-description');
+    const start = (startEl && startEl.value) || new Date().toISOString().slice(0, 10);
+    const end = endEl ? (endEl.value || null) : null;
 
     try {
         const resp = await fetch('/api/projects', {
@@ -143,7 +160,7 @@ async function createProjectFromForm() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: name,
-                description: document.getElementById('new-project-description').value.trim() || null,
+                description: descEl ? (descEl.value.trim() || null) : null,
                 start_date: start,
                 end_date: end
             })
@@ -152,20 +169,23 @@ async function createProjectFromForm() {
             closeProjectModal();
             loadProjectList();
         } else {
-            alert(projectT('project-create-failed', 'Failed to create project: ' + resp.status, { error: resp.status }));
+            projectAlert(projectT('project-create-failed', 'Failed to create project: ' + resp.status, { error: resp.status }));
         }
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
 async function createTask() {
-    const name = document.getElementById('new-task-name').value.trim();
-    if (!name) { alert(projectT('project-task-name-required', 'Please enter a task name')); return; }
+    const nameEl = document.getElementById('new-task-name');
+    if (!nameEl) return;
+    const name = nameEl.value.trim();
+    if (!name) { projectAlert(projectT('project-task-name-required', 'Please enter a task name')); return; }
 
-    const start = document.getElementById('new-task-start').value
-        || new Date().toISOString().slice(0, 10);
-    const end = document.getElementById('new-task-end').value;
+    const startEl = document.getElementById('new-task-start');
+    const endEl = document.getElementById('new-task-end');
+    const start = (startEl && startEl.value) || new Date().toISOString().slice(0, 10);
+    const end = endEl ? endEl.value : '';
     let duration_days = 1;
     if (end) {
         const ms = new Date(end) - new Date(start);
@@ -189,10 +209,10 @@ async function createTask() {
             closeNewTaskForm();
             loadProjectData(currentProjectId);
         } else {
-            alert(projectT('project-create-task-failed', 'Failed to create task'));
+            projectAlert(projectT('project-create-task-failed', 'Failed to create task'));
         }
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 

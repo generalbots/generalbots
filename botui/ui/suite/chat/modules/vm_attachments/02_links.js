@@ -112,33 +112,28 @@ function enforceNoVmFileLinks(root) {
 }
 window.enforceNoVmFileLinks = enforceNoVmFileLinks;
 
-// A real, browser-consumable URL. The endpoint also accepts the suite token
-// as a query parameter, so a plain anchor/iframe can fetch the file without
-// the blob dance (which made the name look like a dead link).
+// A real, browser-consumable URL. Auth is sent via Authorization header or
+// the session cookie (never in the URL, to avoid leaking tokens to history/logs).
 function vmAttachmentUrl(conversationId, path) {
-  var token = vmAttachmentsToken();
-  var url =
+  return (
     "/api/agent/vm/file?conversation_id=" +
     encodeURIComponent(conversationId) +
     "&path=" +
     encodeURIComponent(path) +
-    "&raw=1";
-  if (token) url += "&access_token=" + encodeURIComponent(token);
-  return url;
+    "&raw=1"
+  );
 }
 
 // Office conversion endpoint: same signed pipeline, server-rendered and
 // sanitized (no scripts, no frames, no external fetch) (#1672).
 function vmOfficePreviewUrl(conversationId, path) {
-  var token = vmAttachmentsToken();
-  var url =
+  return (
     "/api/agent/vm/file?conversation_id=" +
     encodeURIComponent(conversationId) +
     "&path=" +
     encodeURIComponent(path) +
-    "&preview=1";
-  if (token) url += "&access_token=" + encodeURIComponent(token);
-  return url;
+    "&preview=1"
+  );
 }
 
 function vmNotifyError(err) {
@@ -151,17 +146,38 @@ function vmNotifyError(err) {
   else console.error(message);
 }
 
+function vmFetchAuthenticated(url, init) {
+  var token = vmAttachmentsToken();
+  var opts = Object.assign({}, init || {});
+  opts.credentials = opts.credentials || "same-origin";
+  opts.headers = Object.assign({}, opts.headers || {});
+  if (token && !opts.headers.Authorization) {
+    opts.headers.Authorization = "Bearer " + token;
+  }
+  return fetch(url, opts);
+}
+
 // #1834 — use the native Save dialog in the desktop WebView; the plain
-// anchor is the web-build fallback.
+// anchor is the web-build fallback. Fetches with auth so tokens never appear
+// in URLs.
 function vmDownload(url, fileName) {
   if (window.GBShared && typeof window.GBShared.download === "function") {
     return window.GBShared.download(url, fileName);
   }
-  var link = document.createElement("a");
-  link.href = url;
-  link.download = fileName || "";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  return Promise.resolve(null);
+  return vmFetchAuthenticated(url)
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.blob();
+    })
+    .then(function (blob) {
+      var blobUrl = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 15000);
+      return null;
+    });
 }

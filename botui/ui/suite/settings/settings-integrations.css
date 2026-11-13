@@ -291,3 +291,10 @@
   font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
   resize: vertical;
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -7,6 +7,7 @@
     namespace.allowedAuthKinds = ["api_key", "basic", "token", "access_key", "oauth2", "protocol"];
     namespace.states = namespace.states || new WeakMap();
     namespace.instanceCount = namespace.instanceCount || 0;
+    namespace.testDetails = namespace.testDetails || {};
     namespace.categoryOrder = [
         "featured",
         "llm",
@@ -82,6 +83,24 @@
         return Object.assign(headers, extra && typeof extra === "object" ? extra : {});
     };
 
+    namespace.csrfToken = function () {
+        try {
+            if (window.GBSecurity && typeof window.GBSecurity.getCsrfToken === "function") {
+                var live = window.GBSecurity.getCsrfToken();
+                if (live) return live;
+            }
+        } catch (ignore) { /* fall through to cookie */ }
+        var cookies = String(document.cookie || "").split(";");
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf("csrf_token=") === 0) {
+                return decodeURIComponent(c.substring("csrf_token=".length));
+            }
+        }
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta && meta.content ? String(meta.content) : "";
+    };
+
     /* Resolve once a usable token exists — either immediately, on the next
        `gb:security:ready` event, or after a short bounded wait. */
     namespace.waitForToken = function () {
@@ -102,12 +121,22 @@
 
     namespace.fetchJson = async function (url, options) {
         var config = options && typeof options === "object" ? options : {};
+        var method = String(config.method || "GET").toUpperCase();
         var headers = namespace.authHeaders(config.headers);
         if (config.body !== undefined) {
             headers["Content-Type"] = "application/json";
         }
+        if (["POST", "PUT", "DELETE", "PATCH"].indexOf(method) !== -1) {
+            var csrf = namespace.csrfToken();
+            if (!csrf) {
+                var missing = new Error("CSRF token is missing. Reload the page and try again.");
+                missing.code = "CSRF_MISSING";
+                throw missing;
+            }
+            headers["X-CSRF-Token"] = csrf;
+        }
         var response = await fetch(url, {
-            method: config.method || "GET",
+            method: method,
             credentials: "same-origin",
             headers: headers,
             body: config.body === undefined ? undefined : JSON.stringify(config.body)
@@ -125,6 +154,9 @@
             var failure = new Error("Request failed with status " + response.status);
             failure.status = response.status;
             throw failure;
+        }
+        if (response.status === 204) {
+            return {};
         }
         var payload = await response.json();
         if (!payload || typeof payload !== "object") {
@@ -233,16 +265,28 @@
         return items.filter(function (item) { return item && typeof item === "object"; })
             .map(function (record) {
                 var version = Number(record.credential_version);
+                var id = namespace.text(record.id, "");
+                var overlay = namespace.testDetails && id ? namespace.testDetails[id] : null;
+                var status = namespace.text(record.last_test_status, "");
+                var detail = namespace.text(record.last_test_detail || record.outcome_detail || "", "");
+                if (overlay && overlay.detail && (!detail || overlay.outcome === status || !status)) {
+                    detail = overlay.detail;
+                }
                 return {
-                    id: namespace.text(record.id, ""),
+                    id: id,
                     provider_slug: namespace.text(record.provider_slug, ""),
                     display_name: namespace.text(record.display_name, ""),
                     auth_kind: namespace.text(record.auth_kind, ""),
                     status: namespace.text(record.status, ""),
                     credential_version: Number.isFinite(version) ? version : 0,
-                    last_test_status: namespace.text(record.last_test_status, ""),
+                    last_test_status: status,
                     last_tested_at: namespace.text(record.last_tested_at, ""),
                     expires_at: namespace.text(record.expires_at, ""),
+                    rotated_at: namespace.text(record.rotated_at || record.credential_rotated_at, ""),
+                    rotated_by: namespace.text(record.rotated_by || record.credential_rotated_by, ""),
+                    updated_at: namespace.text(record.updated_at, ""),
+                    created_at: namespace.text(record.created_at, ""),
+                    last_test_detail: detail,
                     // GB7-18 — "see exactly what is shared" needs the scopes and
                     // visibility the provider granted, not just a status badge.
                     granted_scopes: Array.isArray(record.granted_scopes)
@@ -261,6 +305,32 @@
         }
         live.textContent = "";
         window.requestAnimationFrame(function () { live.textContent = message; });
+    };
+
+    namespace.relativeDate = function (value) {
+        if (!value) return "";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        var diffMs = Date.now() - date.getTime();
+        var future = diffMs < 0;
+        var abs = Math.abs(diffMs);
+        var minute = 60000, hour = 60 * minute, day = 24 * hour;
+        var label;
+        if (abs < hour) label = Math.max(1, Math.round(abs / minute)) + " min";
+        else if (abs < day) label = Math.round(abs / hour) + " hr";
+        else if (abs < 30 * day) label = Math.round(abs / day) + " days";
+        else return "";
+        return future ? "in " + label : label + " ago";
+    };
+
+    namespace.expiryState = function (value) {
+        if (!value) return "";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        var diff = date.getTime() - Date.now();
+        if (diff < 0) return "expired";
+        if (diff <= 30 * 24 * 60 * 60 * 1000) return "soon";
+        return "ok";
     };
 
     namespace.createState = function (root) {

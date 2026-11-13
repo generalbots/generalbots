@@ -117,8 +117,14 @@ window.getChatSessionInfo = function () {
 window.ChatSwitchBot = function (botName) {
   if (!botName) return Promise.resolve();
   var headers = {};
-  var tok = window.getGBAccessToken ? window.getGBAccessToken()
-    : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+  var tok = null;
+  if (typeof window.getChatAccessToken === "function") {
+    tok = window.getChatAccessToken();
+  } else if (window.GBSecurity && window.GBSecurity.getToken) {
+    tok = window.GBSecurity.getToken();
+  } else {
+    try { tok = sessionStorage.getItem("gb-access-token"); } catch (e) { tok = null; }
+  }
   if (tok) headers["Authorization"] = "Bearer " + tok;
 
   return fetch("/api/auth?bot_name=" + encodeURIComponent(botName), { headers: headers })
@@ -213,7 +219,7 @@ window.ChatSwitchBot = function (botName) {
     if (pane) pane.innerHTML = "";
     ChatState.suppressPersist = true;
     local.forEach(function (m) {
-      addMessage(m.sender, m.content, null, null, m.ts);
+      addMessage(m.sender, m.content, m.id || m.message_id || null, null, m.ts);
     });
     ChatState.suppressPersist = false;
     if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
@@ -226,10 +232,15 @@ window.ChatSwitchBot = function (botName) {
 
   var HISTORY_PAGE_TURNS = 500;
 
+  function getSessionToken() {
+    if (typeof window.getChatAccessToken === "function") return window.getChatAccessToken();
+    if (window.GBSecurity && window.GBSecurity.getToken) return window.GBSecurity.getToken();
+    try { return sessionStorage.getItem("gb-access-token"); } catch (e) { return null; }
+  }
+
   function fetchSessionHistory(sessionId, offsetTurns) {
     var headers = {};
-    var tok = window.getGBAccessToken ? window.getGBAccessToken()
-      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+    var tok = getSessionToken();
     if (tok) headers["Authorization"] = "Bearer " + tok;
     var url = "/api/chat/history/sessions/" + encodeURIComponent(sessionId) +
       "/messages?limit=" + HISTORY_PAGE_TURNS + "&offset=" + (offsetTurns || 0);
@@ -264,7 +275,7 @@ window.ChatSwitchBot = function (botName) {
         previousContent = m.content;
         // Server history does not expose timestamps yet; pass one through when
         // a future payload includes it, otherwise the bubble omits the label.
-        addMessage(role, m.content, null, null, m.ts || m.timestamp || m.created_at || m.time);
+        addMessage(role, m.content, m.id || m.message_id || null, null, m.ts || m.timestamp || m.created_at || m.time);
       });
     } finally {
       ChatState.appendTarget = previousTarget;
@@ -363,10 +374,6 @@ window.ChatSwitchBot = function (botName) {
     ChatState.historyOffsetTurns = 0;
     ChatState.historyHasMore = false;
     ChatState.historyLoadingMore = false;
-    var headers = {};
-    var tok = window.getGBAccessToken ? window.getGBAccessToken()
-      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
-    if (tok) headers["Authorization"] = "Bearer " + tok;
     return fetchSessionHistory(sessionId, 0)
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {

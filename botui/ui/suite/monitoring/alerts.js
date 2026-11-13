@@ -1,6 +1,20 @@
 if (window.GBAppLifecycle) GBAppLifecycle.begin("monitoring");
 /* Alerts page JavaScript */
 
+function gbConfirm(message, title) {
+    if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+        return new Promise((resolve) => {
+            try {
+                window.GBModal.confirm(message, title || 'Confirm', () => resolve(true), () => resolve(false));
+            } catch (e) {
+                console.error('GBModal.confirm failed', e);
+                resolve(false);
+            }
+        });
+    }
+    return Promise.resolve(false);
+}
+
 function switchTab(tab, btn) {
     // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -96,14 +110,14 @@ function acknowledgeAlert(alertId) {
     });
 }
 
-function acknowledgeAllAlerts() {
-    if (confirm('Are you sure you want to acknowledge all active alerts?')) {
-        htmx.ajax('POST', '/api/monitoring/alerts/acknowledge-all', {
-            swap: 'none'
-        }).then(() => {
-            htmx.trigger('#alerts-list', 'refresh');
-        });
-    }
+async function acknowledgeAllAlerts() {
+    const confirmed = await gbConfirm('Are you sure you want to acknowledge all active alerts?', 'Confirm');
+    if (!confirmed) return;
+    htmx.ajax('POST', '/api/monitoring/alerts/acknowledge-all', {
+        swap: 'none'
+    }).then(() => {
+        htmx.trigger('#alerts-list', 'refresh');
+    });
 }
 
 function silenceAlert(alertId, duration) {
@@ -133,14 +147,14 @@ function editRule(ruleId) {
     });
 }
 
-function deleteRule(ruleId) {
-    if (confirm('Are you sure you want to delete this alert rule?')) {
-        htmx.ajax('DELETE', `/api/monitoring/alerts/rules/${ruleId}`, {
-            swap: 'none'
-        }).then(() => {
-            htmx.trigger('#rules-grid', 'refresh');
-        });
-    }
+async function deleteRule(ruleId) {
+    const confirmed = await gbConfirm('Are you sure you want to delete this alert rule?', 'Confirm');
+    if (!confirmed) return;
+    htmx.ajax('DELETE', `/api/monitoring/alerts/rules/${ruleId}`, {
+        swap: 'none'
+    }).then(() => {
+        htmx.trigger('#rules-grid', 'refresh');
+    });
 }
 
 function exportHistory() {

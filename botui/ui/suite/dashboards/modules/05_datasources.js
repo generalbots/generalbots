@@ -126,8 +126,22 @@
     }
   }
 
+  function gbDashDsConfirm(message, title) {
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+      return new Promise((resolve) => {
+        try {
+          window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+        } catch (e) {
+          console.error("GBModal.confirm failed", e);
+          resolve(false);
+        }
+      });
+    }
+    return Promise.resolve(false);
+  }
+
   async function removeDataSource(sourceId) {
-    if (!confirm("Remove this data source?")) return;
+    if (!(await gbDashDsConfirm("Remove this data source?", "Confirm"))) return;
 
     try {
       const response = await fetch(`/api/dashboards/data-sources/${sourceId}`, {

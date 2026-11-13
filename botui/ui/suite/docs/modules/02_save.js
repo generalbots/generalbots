@@ -10,44 +10,71 @@ function setSaveStatus(text, isError) {
 }
 
 var saveTimer = null;
-function docDraftKey(id) { return "docs:" + (id || "current"); }
+function docDraftKey(id) { return "docs:" + (id || "unknown"); }
+function resolveDocsSaveId(id) {
+  var docId = id;
+  if (!docId || docId === "current") {
+    var article = typeof getActiveArticle === "function" ? getActiveArticle() : null;
+    if (article && typeof docsEnsureArticleDocId === "function") {
+      docId = docsEnsureArticleDocId(article);
+    } else if (article && article.dataset) {
+      docId = article.dataset.docId || "";
+    }
+  }
+  if (!docId || docId === "current") return "";
+  return String(docId);
+}
 function scheduleSave(id, content) {
   // #2253 — a shared-link view has no write path: the server answers 401 for
   // every mutating Docs route without a session, so queueing a save here would
   // only show a spurious "saving" status.
   if (typeof docsIsReadOnly === "function" && docsIsReadOnly()) return;
+  var docId = resolveDocsSaveId(id);
+  if (!docId) {
+    setSaveStatus("Save failed: missing document id", true);
+    return;
+  }
   clearTimeout(saveTimer);
   setSaveStatus("Saving...", false);
   saveTimer = setTimeout(function () {
     fetch("/api/docs/autosave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: id || "current", content: content })
+      body: JSON.stringify({ id: docId, content: content })
     })
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
       .then(function () {
         setSaveStatus("All changes saved", false);
-        if (window.GBOfflineDraft) window.GBOfflineDraft.clear(docDraftKey(id));
+        if (window.GBOfflineDraft) window.GBOfflineDraft.clear(docDraftKey(docId));
         if (window.GBCollabActivity) {
           window.GBCollabActivity.record({
             resourceType: "docs",
-            resourceId: String(id || "current"),
+            resourceId: String(docId),
             action: "edit",
             payload: {}
-          }).catch(function () {});
+          }).catch(function (err) {
+            /* Best-effort activity side effect after a successful save. */
+            console.debug("[gb-docs] Activity record failed:", err);
+          });
         }
         if (window.GBCollabVersions) {
           window.GBCollabVersions.snapshot({
             resourceType: "docs",
-            resourceId: String(id || "current"),
+            resourceId: String(docId),
             content: content
-          }).catch(function () {});
+          }).catch(function (err) {
+            /* Best-effort collaboration snapshot after a successful save. */
+            console.debug("[gb-docs] Collab snapshot failed:", err);
+          });
+        }
+        if (typeof window.docsRefreshSidebar === "function") {
+          window.docsRefreshSidebar();
         }
       })
       .catch(function () {
         // Offline (or server error): keep the content locally so it survives
         // a reload and is re-synced when the browser reconnects.
-        if (window.GBOfflineDraft) window.GBOfflineDraft.save(docDraftKey(id), content);
+        if (window.GBOfflineDraft) window.GBOfflineDraft.save(docDraftKey(docId), content);
         setSaveStatus("Offline — saved locally", true);
         if (window.GBOfflineDraft) {
           window.GBOfflineDraft.showBanner("You're offline — changes are saved locally");
@@ -60,8 +87,10 @@ function scheduleSave(id, content) {
 function restoreDocDraft() {
   var article = getActiveArticle();
   if (!article) return;
-  var docId = article.dataset.docId || "current";
-  if (!window.GBOfflineDraft) return;
+  var docId = (typeof docsEnsureArticleDocId === "function")
+    ? docsEnsureArticleDocId(article)
+    : (article.dataset ? article.dataset.docId : "");
+  if (!docId || docId === "current" || !window.GBOfflineDraft) return;
   var draft = window.GBOfflineDraft.load(docDraftKey(docId));
   if (!draft) return;
   if (window.GBOfflineDraft.isOnline()) {
@@ -90,7 +119,10 @@ function checkDocDraftOnLoad() {
   if (!window.GBOfflineDraft) return;
   var article = getActiveArticle();
   if (!article) return;
-  var docId = article.dataset.docId || "current";
+  var docId = (typeof docsEnsureArticleDocId === "function")
+    ? docsEnsureArticleDocId(article)
+    : (article.dataset ? article.dataset.docId : "");
+  if (!docId || docId === "current") return;
   if (!window.GBOfflineDraft.has(docDraftKey(docId))) return;
   window.GBOfflineDraft.showBanner(
     "You have unsaved changes from a previous session",
@@ -153,6 +185,11 @@ document.addEventListener("htmx:configRequest", function (event) {
   var article = document.querySelector("article[data-doc-id]");
   var docId = (view && view.getAttribute("data-id")) ||
     (article && article.dataset ? article.dataset.docId : "") || "";
+  if (!docId || docId === "current") {
+    if (article && typeof docsEnsureArticleDocId === "function") {
+      docId = docsEnsureArticleDocId(article);
+    }
+  }
   if (!docId || docId === "current") return;
   keys.forEach(function (key) {
     if (parameters[key] === "current") parameters[key] = docId;

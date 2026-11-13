@@ -172,8 +172,8 @@
     if (d.botName) params.push("bot_name=" + encodeURIComponent(d.botName));
     var token = "";
     try {
-      token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
-        localStorage.getItem("gb-access-token") || localStorage.getItem("management_token") ||
+      token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
         sessionStorage.getItem("gb-access-token") || "";
     } catch (e) { /* storage may be unavailable */ }
     if (token) params.push("token=" + encodeURIComponent(token));

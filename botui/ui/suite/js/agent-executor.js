@@ -78,7 +78,9 @@ const AgentExecutor = (() => {
             window.WindowManager._injectBodyContent(app.id, html);
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[gb-agent-executor] Failed to open app content:", err);
+        });
     }
   }
 

@@ -230,15 +230,42 @@ async fn stream_llm_response_inner(
                     );
                     let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
                     let err_msg = llm_empty_message(&locale);
-                    let err_resp = botlib::models::BotResponse::new(
-                        &bot_uuid_s,
-                        &session_id_s,
-                        user_id.to_string(),
-                        &err_msg,
-                        "web",
-                    );
-                    if let Err(error) = sink.send_bot_response(&err_resp).await {
-                        log::error!("empty-response notice not delivered: {error}");
+                    // #2360 — terminal failure after retries: emit explicit
+                    // structured error flags so the client can mark this turn
+                    // retryable without matching prose.
+                    let err_frame = serde_json::json!({
+                        "bot_id": bot_uuid_s,
+                        "user_id": user_id.to_string(),
+                        "session_id": session_id_s,
+                        "channel": "web",
+                        "content": err_msg,
+                        "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
+                        "is_complete": true,
+                        "is_error": true,
+                        "error": true,
+                        "retryable": true,
+                        "status": "failed",
+                        "turn_status": "failed",
+                        "suggestions": [],
+                        "switchers": [],
+                        "context_length": 0,
+                        "context_max_length": 0,
+                    });
+                    if sink.supports_raw_frames() {
+                        if let Err(error) = sink.send_raw_json(&err_frame).await {
+                            log::error!("empty-response notice not delivered: {error}");
+                        }
+                    } else {
+                        let err_resp = botlib::models::BotResponse::new(
+                            &bot_uuid_s,
+                            &session_id_s,
+                            user_id.to_string(),
+                            &err_msg,
+                            "web",
+                        );
+                        if let Err(error) = sink.send_bot_response(&err_resp).await {
+                            log::error!("empty-response notice not delivered: {error}");
+                        }
                     }
                     {
                         let mut sm = state.session_manager.lock().await;

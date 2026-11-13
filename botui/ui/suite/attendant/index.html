@@ -47,10 +47,10 @@
                             id="statusIndicator"
                         ></div>
                         <div class="status-info">
-                            <div class="status-name" id="attendantName">
+                            <div class="status-name" id="attendantName" aria-live="polite">
                                 Loading...
                             </div>
-                            <div class="status-text" id="statusText" data-i18n="attendant-status-online">
+                            <div class="status-text" id="statusText" data-i18n="attendant-status-online" role="status" aria-live="polite">
                                 Online - Ready for conversations
                             </div>
                         </div>
@@ -97,7 +97,7 @@
                     </div>
                 </div>
 
-                <div class="queue-stats">
+                <div class="queue-stats" aria-live="polite" aria-atomic="true">
                     <div class="stat-item">
                         <div class="stat-value" id="waitingCount">0</div>
                         <div class="stat-label">Waiting</div>
@@ -143,13 +143,14 @@
                     </button>
                 </div>
 
-                <div class="conversation-list" id="conversationList">
-                    <div class="empty-queue" id="emptyQueue">
+                <div class="conversation-list" id="conversationList" aria-live="polite">
+                    <div class="empty-queue" id="emptyQueue" role="status">
                         <svg
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
                             stroke-width="1.5"
+                            aria-hidden="true"
                         >
                             <path d="M20 6L9 17l-5-5" />
                         </svg>
@@ -187,7 +188,7 @@
                                 >Customer Sentiment</span
                             >
                         </div>
-                        <div class="insight-value">
+                        <div class="insight-value" role="status" aria-live="polite">
                             <span
                                 class="sentiment-indicator sentiment-neutral"
                                 id="sentimentValue"
@@ -199,7 +200,7 @@
                         <div class="insight-header">
                             <span class="insight-label">Detected Intent</span>
                         </div>
-                        <div class="insight-value" id="intentValue">
+                        <div class="insight-value" id="intentValue" role="status" aria-live="polite">
                             Awaiting messages...
                         </div>
                     </div>
@@ -209,7 +210,7 @@
                                 >Conversation Summary</span
                             >
                         </div>
-                        <div class="insight-value" id="summaryValue">
+                        <div class="insight-value" id="summaryValue" role="status" aria-live="polite">
                             No conversation selected
                         </div>
                     </div>
@@ -231,7 +232,7 @@
                         </svg>
                         Suggested Replies
                     </div>
-                    <div id="suggestedReplies">
+                    <div id="suggestedReplies" aria-live="polite">
                         <div
                             class="suggested-reply"
                             onclick="useSuggestion(this)"
@@ -272,19 +273,19 @@
                     </div>
                     <div class="customer-detail-item">
                         <div class="detail-label">Email</div>
-                        <div class="detail-value" id="detailEmail">-</div>
+                        <div class="detail-value" id="detailEmail" aria-live="polite">-</div>
                     </div>
                     <div class="customer-detail-item">
                         <div class="detail-label">Phone</div>
-                        <div class="detail-value" id="detailPhone">-</div>
+                        <div class="detail-value" id="detailPhone" aria-live="polite">-</div>
                     </div>
                     <div class="customer-detail-item">
                         <div class="detail-label">Location</div>
-                        <div class="detail-value" id="detailLocation">-</div>
+                        <div class="detail-value" id="detailLocation" aria-live="polite">-</div>
                     </div>
                     <div class="customer-detail-item">
                         <div class="detail-label">Tags</div>
-                        <div class="tags-container" id="detailTags"></div>
+                        <div class="tags-container" id="detailTags" aria-live="polite"></div>
                     </div>
                 </div>
 
@@ -303,8 +304,8 @@
                         </svg>
                         Previous Conversations
                     </div>
-                    <div id="conversationHistory">
-                        <div class="history-item">
+                    <div id="conversationHistory" aria-live="polite">
+                        <div class="history-item" role="status">
                             <div class="history-header">
                                 <span class="history-date"
                                     >No history available</span
@@ -369,9 +370,9 @@
             </div>
         </div>
 
-        <!-- Toast Container -->
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading console…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Console unavailable</span></div>
+        <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="false"></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg">Loading console…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg">Console unavailable</span></div>
 <script src="/suite/attendant/attendant-templates.js?v=1"></script>
 <script src="/suite/attendant/attendant-state.js?v=1"></script>
 <script src="/suite/attendant/attendant-events/01_init_queue.js?v=1"></script>

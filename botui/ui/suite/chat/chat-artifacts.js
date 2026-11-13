@@ -87,31 +87,13 @@ window.GBArtifacts = window.GBArtifacts || (function () {
   }
 
   // Renders markdown/HTML into the panel without executing anything the model
-  // produced: no scripts, frames, objects, event handlers or javascript: URLs.
+  // produced. Delegates to the shared sanitizer (#2354) so the artifact panel
+  // and the message bubbles cannot drift apart.
   function safeHtml(html) {
-    var tpl = document.createElement("template");
-    tpl.innerHTML = String(html || "");
-    var blocked = "script,style,iframe,object,embed,link,meta,base,form,input,button";
-    Array.prototype.forEach.call(
-      tpl.content.querySelectorAll(blocked),
-      function (node) {
-        node.remove();
-      },
-    );
-    Array.prototype.forEach.call(tpl.content.querySelectorAll("*"), function (el) {
-      Array.prototype.slice.call(el.attributes).forEach(function (attr) {
-        var name = attr.name.toLowerCase();
-        if (name.indexOf("on") === 0) {
-          el.removeAttribute(attr.name);
-        } else if (
-          (name === "href" || name === "src") &&
-          /^\s*(javascript|data:text\/html)/i.test(attr.value)
-        ) {
-          el.removeAttribute(attr.name);
-        }
-      });
-    });
-    return tpl.innerHTML;
+    if (window.GBSanitize && GBSanitize.html) return GBSanitize.html(html);
+    // Fail closed: without the sanitizer, show the text, never raw markup.
+    console.error("GBSanitize missing — artifact markup rendered as text");
+    return escapeHtml(html).replace(/\n/g, "<br>");
   }
 
   function renderMarkdown(text) {
@@ -325,7 +307,7 @@ function openArtifactPanel(content, sourceEl) {
               ": " +
               saved.name +
               " · " +
-              new Date().toLocaleTimeString();
+              gbFormatTime(new Date());
             sourceEl.appendChild(externalNote);
           }
         });
@@ -342,8 +324,8 @@ function openArtifactPanel(content, sourceEl) {
     var token = "";
     try {
       token =
-        (window.getGBAccessToken && window.getGBAccessToken()) ||
-        localStorage.getItem("gb-access-token") ||
+        (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
         sessionStorage.getItem("gb-access-token") ||
         "";
     } catch (e) {}
@@ -381,7 +363,7 @@ function openArtifactPanel(content, sourceEl) {
           note.className = "gb-artifact-saved";
           note.href = "#";
           note.textContent =
-            "Saved to Drive: " + path + " · " + new Date().toLocaleTimeString();
+            "Saved to Drive: " + path + " · " + gbFormatTime(new Date());
           note.addEventListener("click", function (e) {
             e.preventDefault();
             if (window.openDeepLink) window.openDeepLink("drive", { path: path });

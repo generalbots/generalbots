@@ -322,6 +322,59 @@
       });
   }
 
+  /* #2329 — the suite's one date/time formatter.
+   *
+   * Unprefixed `toLocaleDateString()` / `toLocaleString()` render in whatever
+   * locale the *browser* reports, so the same record reads 01/02/2026 to one
+   * collaborator and 02/01/2026 to another. These delegate to GBDateTime, which
+   * honours the format preference saved in Settings -> Language, and fall back
+   * to the suite locale. Numbers are a different concern: `value.toLocaleString()`
+   * on a number is number grouping, not a date.
+   */
+  function suiteLocale() {
+    try {
+      return localStorage.getItem("gb-locale") || navigator.language || "en";
+    } catch (e) {
+      return "en";
+    }
+  }
+
+  function toDate(value) {
+    return value instanceof Date ? value : new Date(value);
+  }
+
+  function gbFormatDate(value) {
+    var date = toDate(value);
+    if (!date || isNaN(date.getTime())) return "";
+    if (window.GBDateTime) return window.GBDateTime.formatDate(date);
+    try {
+      return new Intl.DateTimeFormat(suiteLocale(), {
+        year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(date);
+    } catch (e) {
+      return date.toDateString();
+    }
+  }
+
+  function gbFormatTime(value) {
+    var date = toDate(value);
+    if (!date || isNaN(date.getTime())) return "";
+    if (window.GBDateTime) return window.GBDateTime.formatTime(date);
+    try {
+      return new Intl.DateTimeFormat(suiteLocale(), {
+        hour: "2-digit", minute: "2-digit",
+      }).format(date);
+    } catch (e) {
+      return date.toTimeString().slice(0, 5);
+    }
+  }
+
+  function gbFormatDateTime(value) {
+    var date = toDate(value);
+    if (!date || isNaN(date.getTime())) return "";
+    return gbFormatDate(date) + " " + gbFormatTime(date);
+  }
+
   var html = { escape: escapeHtml };
   var auth = { token: token, headers: headers };
   var downloadKit = { download: download, saveBlob: saveBlob, isDesktop: isDesktop };
@@ -337,10 +390,16 @@
   window.gbStoreGet = storeGet;
   window.gbCopyText = copyText;
   window.gbFormat = format;
+  window.gbFormatDate = gbFormatDate;
+  window.gbFormatTime = gbFormatTime;
+  window.gbFormatDateTime = gbFormatDateTime;
   window.gbPrintHtml = printHtml;
   window.GBShared.copyText = copyText;
   window.GBShared.format = format;
   window.GBShared.printHtml = printHtml;
+  window.GBShared.formatDate = gbFormatDate;
+  window.GBShared.formatTime = gbFormatTime;
+  window.GBShared.formatDateTime = gbFormatDateTime;
   window.GBDownload = window.GBDownload || downloadKit;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);

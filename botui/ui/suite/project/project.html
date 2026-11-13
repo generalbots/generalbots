@@ -30,8 +30,8 @@
         </div>
 
         <nav class="sidebar-nav">
-            <div id="project-list">
-                <div class="loading-placeholder" data-i18n="auto-loading-projects">Loading projects...</div>
+            <div id="project-list" aria-live="polite" aria-busy="true">
+                <div class="loading-placeholder" role="status" data-i18n="auto-loading-projects">Loading projects...</div>
             </div>
         </nav>
     </aside>
@@ -41,10 +41,10 @@
         <!-- Project Header -->
         <header class="project-header">
             <div class="project-info">
-                <h1 id="project-name" data-i18n="auto-select-a-project">Select a Project</h1>
+                <h1 id="project-name" data-i18n="auto-select-a-project" aria-live="polite" aria-atomic="true">Select a Project</h1>
                 <div class="project-meta">
-                    <span class="meta-item" id="project-status">
-                        <span class="status-dot"></span>
+                    <span class="meta-item" id="project-status" role="status" aria-live="polite" aria-atomic="true">
+                        <span class="status-dot" aria-hidden="true"></span>
                         <span data-i18n="auto-no-project-selected-3">No project selected</span>
                     </span>
                     <select
@@ -59,7 +59,7 @@
                         <option value="completed" data-i18n="learn-completed">Completed</option>
                         <option value="cancelled" data-i18n="status-cancelled">Cancelled</option>
                     </select>
-                    <span class="meta-item" id="project-progress">
+                    <span class="meta-item" id="project-progress" role="status" aria-live="polite" aria-atomic="true">
                         <span class="progress-label" data-i18n="auto-progress-2">Progress:</span>
                         <span class="progress-value">--</span>
                     </span>
@@ -159,8 +159,9 @@
                         <div
                             id="gantt-table-body"
                             class="gantt-table-body"
+                            aria-live="polite"
                         >
-                            <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-tasks">
+                            <div class="empty-state-inline" role="status" data-i18n="auto-select-a-project-to-view-tasks">
                                 Select a project to view tasks
                             </div>
                         </div>
@@ -173,8 +174,9 @@
                         <div
                             id="gantt-chart-body"
                             class="gantt-chart-body"
+                            aria-live="polite"
                         >
-                            <div class="empty-state-inline">
+                            <div class="empty-state-inline" role="status">
                                 <p data-i18n="auto-no-tasks-to-display">No tasks to display</p>
                             </div>
                         </div>
@@ -187,8 +189,9 @@
                 <div
                     id="timeline-container"
                     class="timeline-container"
+                    aria-live="polite"
                 >
-                    <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-timeline">Select a project to view timeline</div>
+                    <div class="empty-state-inline" role="status" data-i18n="auto-select-a-project-to-view-timeline">Select a project to view timeline</div>
                 </div>
             </div>
 
@@ -197,8 +200,9 @@
                 <div
                     id="list-container"
                     class="list-container"
+                    aria-live="polite"
                 >
-                    <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-tasks">Select a project to view tasks</div>
+                    <div class="empty-state-inline" role="status" data-i18n="auto-select-a-project-to-view-tasks">Select a project to view tasks</div>
                 </div>
             </div>
 
@@ -207,23 +211,23 @@
                 <div class="board-columns">
                     <div class="board-column" data-status="not-started">
                         <h3 data-i18n="auto-not-started">Not Started</h3>
-                        <div id="board-tasks-not-started" class="column-tasks"></div>
+                        <div id="board-tasks-not-started" class="column-tasks" aria-live="polite"></div>
                     </div>
                     <div class="board-column" data-status="in-progress">
                         <h3 data-i18n="status-in-progress">In Progress</h3>
-                        <div id="board-tasks-in-progress" class="column-tasks"></div>
+                        <div id="board-tasks-in-progress" class="column-tasks" aria-live="polite"></div>
                     </div>
                     <div class="board-column" data-status="completed">
                         <h3 data-i18n="learn-completed">Completed</h3>
-                        <div id="board-tasks-completed" class="column-tasks"></div>
+                        <div id="board-tasks-completed" class="column-tasks" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Resource View -->
             <div id="resource-view" class="view-container">
-                <div id="resource-container" class="resource-container">
-                    <div class="empty-state-inline" data-i18n="project-select-project-resources">Select a project to view resources</div>
+                <div id="resource-container" class="resource-container" aria-live="polite">
+                    <div class="empty-state-inline" role="status" data-i18n="project-select-project-resources">Select a project to view resources</div>
                 </div>
             </div>
         </div>
@@ -250,14 +254,14 @@
             <span>&#x2139;&#xFE0F;</span>
         </button>
         <div class="panel-content">
-            <div id="task-details">
-                <p class="empty-message" data-i18n="auto-select-a-task-to-view-details">Select a task to view details</p>
+            <div id="task-details" aria-live="polite" aria-atomic="true">
+                <p class="empty-message" role="status" data-i18n="auto-select-a-task-to-view-details">Select a task to view details</p>
             </div>
         </div>
     </aside>
 
     <!-- Modal Container -->
-    <div id="project-modal" class="modal-container"></div>
+    <div id="project-modal" class="modal-container" aria-live="polite"></div>
 
     <!-- Hidden file input for project import (MPP/XML/CSV/JSON) -->
     <input

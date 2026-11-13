@@ -6,7 +6,7 @@ impl PackageManager {
 
         std::thread::sleep(std::time::Duration::from_secs(5));
 
-        let output = safe_lxc(&[
+        let output = safe_incus(&[
             "exec",
             container_name,
             "--",
@@ -93,7 +93,7 @@ impl PackageManager {
                     key_str
                 );
                 let unseal_output =
-                    safe_lxc(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
+                    safe_incus(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
 
                 if let Some(output) = unseal_output {
                     if !output.status.success() {
@@ -114,7 +114,7 @@ impl PackageManager {
 
         info!("Generating .env from vault at {}", container_ip);
 
-        let output = safe_lxc(&[
+        let output = safe_incus(&[
             "exec",
             container_name,
             "--",
@@ -136,7 +136,7 @@ impl PackageManager {
             ));
         }
 
-        let unseal_output = safe_lxc(&[
+        let unseal_output = safe_incus(&[
             "exec",
             container_name,
             "--",
@@ -163,7 +163,7 @@ impl PackageManager {
             ));
         }
 
-        let token_output = safe_lxc(&[
+        let token_output = safe_incus(&[
             "exec",
             container_name,
             "--",

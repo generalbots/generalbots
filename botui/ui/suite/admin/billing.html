@@ -31,7 +31,7 @@
  <div class="billing-card usage-summary">
 <div class="card-header"> <h2 data-i18n="auto-usage-this-period">Usage This Period</h2>
 <span class="period-label" data-i18n="auto-jan-21-feb-21-2025">Jan 21 - Feb 21, 2025</span> </div>
-<div class="usage-items" hx-get="/api/billing/usage" hx-trigger="load" hx-swap="innerHTML"> <div class="usage-item">
+<div class="usage-items" role="status" aria-live="polite" hx-get="/api/billing/usage" hx-trigger="load" hx-swap="innerHTML"> <div class="usage-item">
 <div class="usage-info"> <span class="usage-label" data-i18n="monitoring-health-storage">Storage</span>
 <span class="usage-value">12.5 GB / 50 GB</span> </div>
 <div class="usage-bar"> <div class="usage-fill" style="width: 25%"></div>
@@ -56,7 +56,7 @@
 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"> <line x1="12" y1="5" x2="12" y2="19"></line>
 <line x1="5" y1="12" x2="19" y2="12"></line> </svg>
 </button> </div>
-<div class="payment-methods" hx-get="/api/billing/payment-methods" hx-trigger="load" hx-swap="innerHTML"> <div class="payment-card active">
+<div class="payment-methods" role="status" aria-live="polite" hx-get="/api/billing/payment-methods" hx-trigger="load" hx-swap="innerHTML"> <div class="payment-card active">
 <div class="card-brand"> <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none">
 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect> <line x1="1" y1="10" x2="23" y2="10"></line>
 </svg> </div>
@@ -69,7 +69,7 @@
 <button class="btn-icon" onclick="showEditAddressModal()"> <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path> <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 </svg> </button>
-</div> <div class="address-content" hx-get="/api/billing/address" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="address-content" role="status" aria-live="polite" hx-get="/api/billing/address" hx-trigger="load" hx-swap="innerHTML">
 <p class="address-name">Acme Corporation</p> <p class="address-line">123 Business Street</p>
 <p class="address-line" data-i18n="auto-suite-456">Suite 456</p> <p class="address-line" data-i18n="auto-san-francisco-ca-94102">San Francisco, CA 94102</p>
 <p class="address-line" data-i18n="auto-united-states">United States</p> </div>
@@ -81,7 +81,7 @@
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
 Export All </button>
 </div> <div class="billing-table-container">
-<table class="billing-table" hx-get="/api/ui/billing/invoices/admin" hx-trigger="load" hx-swap="innerHTML"> <thead>
+<table class="billing-table" role="status" aria-live="polite" hx-get="/api/ui/billing/invoices/admin" hx-trigger="load" hx-swap="innerHTML"> <thead>
 <tr> <th data-i18n="billing-col-invoice">Invoice</th>
 <th data-i18n="label-date">Date</th> <th data-i18n="billing-col-amount">Amount</th>
 <th data-i18n="label-status">Status</th> <th data-i18n="billing-col-actions">Actions</th>
@@ -162,7 +162,7 @@ Export All </button>
 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path> <line x1="12" y1="9" x2="12" y2="13"></line>
 <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
 <h3 data-i18n="auto-we-re-sorry-to-see-you-go">We're sorry to see you go!</h3> <p data-i18n="auto-before-you-cancel-would-you-like-to-consider-any-of-these-op">Before you cancel, would you like to consider any of these options?</p>
-</div> <div class="retention-offers" hx-get="/api/billing/retention-offers" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="retention-offers" role="status" aria-live="polite" hx-get="/api/billing/retention-offers" hx-trigger="load" hx-swap="innerHTML">
 <div class="retention-offer"> <div class="offer-icon">💰</div>
 <div class="offer-details"> <h4>Get 25% off for 3 months</h4>
 <p data-i18n="auto-stay-with-us-at-a-reduced-rate">Stay with us at a reduced rate</p> </div>

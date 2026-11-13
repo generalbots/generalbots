@@ -148,7 +148,9 @@ const Spotlight = (() => {
             window.WindowManager._injectBodyContent(r.id, html);
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[gb-spotlight] Failed to open app content:", err);
+        });
     }
   }
 

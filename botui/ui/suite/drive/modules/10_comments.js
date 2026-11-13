@@ -76,7 +76,7 @@ async function sendPresence(typing) {
 function commentsTime(iso) {
     try {
         const d = new Date(iso);
-        return d.toLocaleString();
+        return gbFormatDateTime(d);
     } catch (e) { return iso; }
 }
 
@@ -130,18 +130,18 @@ function commentNode(comment, isReply) {
 
 async function loadComments() {
     if (!commentsFile || !commentsList) return;
-    commentsList.innerHTML = '<div class="cm-loading">Loading comments\u2026</div>';
+    commentsList.innerHTML = '<div class="cm-loading" role="status" aria-live="polite" aria-busy="true">Loading comments\u2026</div>';
     try {
         const items = await collabRequest("/comments?resource_type=drive:file&resource_id=" + encodeURIComponent(commentsResourceId()));
         commentsList.innerHTML = "";
         if (!items || items.length === 0) {
-            commentsList.innerHTML = '<div class="cm-empty">No comments yet. Be the first to leave feedback on this file.</div>';
+            commentsList.innerHTML = '<div class="cm-empty" role="status" aria-live="polite">No comments yet. Be the first to leave feedback on this file.</div>';
         } else {
             items.forEach(function(c) { commentsList.appendChild(commentNode(c, false)); });
         }
         loadPresence();
     } catch (err) {
-        commentsList.innerHTML = '<div class="cm-error">Failed to load comments: ' + escapeHtml(err.message) + '</div>';
+        commentsList.innerHTML = '<div class="cm-error" role="alert" aria-live="assertive">Failed to load comments: ' + escapeHtml(err.message) + '</div>';
     }
 }
 
@@ -214,8 +214,21 @@ async function toggleReaction(commentId, emoji) {
     }
 }
 
+function driveConfirm(msg, title) {
+    return new Promise(function (resolve) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            try {
+                window.GBModal.confirm(msg, title || "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        resolve(false);
+    });
+}
+
 async function deleteComment(commentId) {
-    if (!confirm("Delete this comment?")) return;
+    var ok = await driveConfirm("Delete this comment?", "Confirm");
+    if (!ok) return;
     try {
         await collabRequest("/comments/" + commentId, { method: "DELETE" });
         await loadComments();
@@ -231,7 +244,7 @@ function buildCommentsPanel() {
     commentsPanel.innerHTML =
         '<div class="comments-panel-header">' +
             '<span class="comments-panel-title">Comments</span>' +
-            '<span id="comments-presence" class="comments-presence" style="display:none"></span>' +
+            '<span id="comments-presence" class="comments-presence" role="status" aria-live="polite" aria-atomic="true" style="display:none"></span>' +
             '<button class="comments-panel-close" onclick="DriveComments.close()" title="Close">\u00D7</button>' +
         '</div>' +
         '<div id="comments-list" class="comments-list"></div>' +
@@ -251,7 +264,7 @@ function buildCommentsPanel() {
     });
 
     // Event delegation for reactions / replies / deletes.
-    commentsList.addEventListener("click", function(e) {
+    commentsList.addEventListener("click", async function(e) {
         const reactEl = e.target.closest(".cm-react");
         if (reactEl) { toggleReaction(reactEl.dataset.comment, reactEl.dataset.emoji); return; }
         const delEl = e.target.closest(".cm-del");
@@ -259,8 +272,15 @@ function buildCommentsPanel() {
         const replyEl = e.target.closest(".cm-reply-btn");
         if (replyEl) {
             const parentId = replyEl.dataset.comment;
-            const replyBody = prompt("Reply to comment:");
-            if (replyBody) postReply(parentId, replyBody.trim());
+            var replyBody = null;
+            if (window.GBModal && typeof window.GBModal.prompt === "function") {
+                replyBody = await new Promise(function (resolve) {
+                    try {
+                        window.GBModal.prompt("Reply to comment:", "", "Reply", function (val) { resolve(val); });
+                    } catch (err) { resolve(null); }
+                });
+            }
+            if (replyBody) postReply(parentId, String(replyBody).trim());
         }
     });
 }

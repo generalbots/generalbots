@@ -7,35 +7,51 @@
             <button class="botcoder-btn-icon" onclick="DB.refreshSchema()" title="Refresh Schema">↻</button>
         </div>
 
-        <div id="dbTableList" class="botcoder-table-list">
+        <div id="dbTableList" class="botcoder-table-list" role="status" aria-live="polite" aria-busy="true">
             <div class="botcoder-loading" data-i18n="auto-loading-tables">Loading tables...</div>
         </div>
 
         <div class="botcoder-query-builder">
             <h4 data-i18n="auto-query-builder">Query Builder</h4>
-            <textarea id="dbSqlEditor" placeholder="SELECT * FROM table..."></textarea>
+            <textarea id="dbSqlEditor" placeholder="SELECT * FROM table..." aria-label="SQL query"></textarea>
             <button class="botcoder-btn botcoder-btn-primary" onclick="DB.executeSql()" data-i18n="auto-run-query">Run Query</button>
-            <span id="dbQueryDuration" class="db-query-duration"></span>
-            <div id="dbSqlResults" class="db-sql-results"></div>
+            <span id="dbQueryDuration" class="db-query-duration" role="status" aria-live="polite" aria-atomic="true"></span>
+            <div id="dbSqlResults" class="db-sql-results" role="status" aria-live="polite"></div>
         </div>
     </div>
 
     <div class="botcoder-db-main">
-        <div class="botcoder-grid-toolbar">
+        <div class="botcoder-grid-toolbar" role="status" aria-live="polite" aria-atomic="true">
             <span id="dbTableName" class="db-table-name" data-i18n="compliance-results">Results</span>
+        </div>
+        <div style="margin-bottom:8px;">
             <button class="botcoder-btn" onclick="DB.exportCsv()" data-i18n="compliance-export-csv">Export CSV</button>
         </div>
 
-        <div id="dbDataGrid" class="botcoder-data-grid">
+        <div id="dbDataGrid" class="botcoder-data-grid" role="region" aria-label="Data grid" aria-live="polite">
             <!-- Grid data here -->
             <div class="botcoder-empty" data-i18n="auto-select-a-table-to-view-data">Select a table to view data</div>
         </div>
 
         <div class="db-pagination">
-            <span id="dbRowCount" class="db-pagination-info"></span>
+            <span id="dbRowCount" class="db-pagination-info" role="status" aria-live="polite" aria-atomic="true"></span>
             <button id="dbPrevBtn" class="botcoder-btn" onclick="DB.prevPage()" data-i18n="auto-prev">◀ Prev</button>
-            <span id="dbPageInfo" class="db-pagination-info" data-i18n="auto-page-1-of-1">Page 1 of 1</span>
+            <span id="dbPageInfo" class="db-pagination-info" role="status" aria-live="polite" aria-atomic="true" data-i18n="auto-page-1-of-1">Page 1 of 1</span>
             <button id="dbNextBtn" class="botcoder-btn" onclick="DB.nextPage()" data-i18n="auto-next-2">Next ▶</button>
+        </div>
+    </div>
+</div>
+
+<div id="dbInsertModal" class="botcoder-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; z-index:1000;">
+    <div class="botcoder-modal-content" style="background:#fff; color:#111; border-radius:8px; padding:16px; width:min(720px,92vw); max-height:80vh; overflow:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+            <h3 id="dbInsertTitle" style="margin:0;" data-i18n="auto-insert-row">Insert row</h3>
+            <button class="botcoder-btn" type="button" onclick="DB.closeInsertDialog()" data-i18n="action-close">Close</button>
+        </div>
+        <div id="dbInsertForm"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+            <button class="botcoder-btn" type="button" onclick="DB.closeInsertDialog()" data-i18n="action-cancel">Cancel</button>
+            <button class="botcoder-btn botcoder-btn-primary" type="button" onclick="DB.submitInsert()" data-i18n="action-save">Insert</button>
         </div>
     </div>
 </div>

@@ -5,9 +5,22 @@
 "use strict";
 
 // ── File Actions ─────────────────────────────────────────────
+function driveConfirmAction(msg, title) {
+    return new Promise(function (resolve) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            try {
+                window.GBModal.confirm(msg, title || "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        resolve(false);
+    });
+}
+
 async function deleteItem(path, bucket) {
     const fileName = path.split("/").pop();
-    if (!confirm('Move "' + fileName + '" to Trash? It can be restored for 30 days.')) return;
+    var ok = await driveConfirmAction('Move "' + fileName + '" to Trash? It can be restored for 30 days.', "Confirm");
+    if (!ok) return;
     try {
         // #1640 — user deletes go to Trash, not a hard delete; permanent
         // deletion only happens through Empty Trash.
@@ -126,7 +139,8 @@ async function exportPaths(paths, folder, bucket) {
 async function deleteSelected() {
     if (selectedFiles.size === 0) return;
     const count = selectedFiles.size;
-    if (!confirm("Move " + count + " item(s) to Trash? They can be restored for 30 days.")) return;
+    var ok = await driveConfirmAction("Move " + count + " item(s) to Trash? They can be restored for 30 days.", "Confirm");
+    if (!ok) return;
     var deleted = 0;
     for (const path of selectedFiles) {
         try {
@@ -147,10 +161,17 @@ async function deleteSelected() {
 
 async function renameItem(path, bucket) {
     const oldName = path.split("/").pop();
-    const newName = prompt("Enter new name:", oldName);
-    if (!newName || newName === oldName || !newName.trim()) return;
+    var newName = null;
+    if (window.GBModal && typeof window.GBModal.prompt === "function") {
+        newName = await new Promise(function (resolve) {
+            try {
+                window.GBModal.prompt("Enter new name:", oldName, "Rename", function (val) { resolve(val); });
+            } catch (e) { resolve(null); }
+        });
+    }
+    if (!newName || newName === oldName || !String(newName).trim()) return;
     const parentPath = path.substring(0, path.lastIndexOf("/"));
-    const newPath = parentPath ? parentPath + "/" + newName.trim() : newName.trim();
+    const newPath = parentPath ? parentPath + "/" + String(newName).trim() : String(newName).trim();
     try {
         var sourceBucket = bucket || driveBucketForPath(path);
         await apiRequest("/move", {

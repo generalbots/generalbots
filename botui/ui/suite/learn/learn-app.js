@@ -9,9 +9,18 @@ var selectedCourse=null;
 
 function showFeedback(msg,type){
     var el=document.getElementById('la-feedback');
-    if(!el){el=document.createElement('div');el.id='la-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
+    if(!el){
+        el=document.createElement('div');
+        el.id='la-feedback';
+        el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';
+        el.setAttribute('aria-atomic','true');
+        document.body.appendChild(el);
+    }
+    var isError=type==='error';
+    el.setAttribute('role',isError?'alert':'status');
+    el.setAttribute('aria-live',isError?'assertive':'polite');
     el.textContent=msg;
-    el.style.background=type==='error'?'#ef4444':'#22c55e';
+    el.style.background=isError?'#ef4444':'#22c55e';
     el.style.color='#fff';
     el.style.opacity='1';
     setTimeout(function(){el.style.opacity='0'},3000);
@@ -44,7 +53,7 @@ function updateStats(){
 function renderCourses(){
     var grid=document.getElementById('la-courses-grid');
     if(!grid)return;
-    if(courses.length===0){grid.innerHTML='<div class="learn-app-empty"><div class="learn-app-empty-icon">📚</div><h3>No Courses Available</h3><p>Check back later for new content</p></div>';return}
+    if(courses.length===0){grid.innerHTML='<div class="learn-app-empty" role="status" aria-live="polite"><div class="learn-app-empty-icon" aria-hidden="true">📚</div><h3>No Courses Available</h3><p>Check back later for new content</p></div>';return}
     grid.innerHTML=courses.map(function(c){
         var diffClass=c.difficulty==='beginner'?'beginner':c.difficulty==='advanced'?'advanced':'intermediate';
         var pct=c.progress!=null?c.progress:0;
@@ -61,7 +70,7 @@ function renderCourses(){
 function renderCertifications(){
     var grid=document.getElementById('la-certs-grid');
     if(!grid)return;
-    if(certifications.length===0){grid.innerHTML='<div class="learn-app-empty"><div class="learn-app-empty-icon">🏆</div><h3>No Certifications</h3><p>Complete courses to earn certifications</p></div>';return}
+    if(certifications.length===0){grid.innerHTML='<div class="learn-app-empty" role="status" aria-live="polite"><div class="learn-app-empty-icon" aria-hidden="true">🏆</div><h3>No Certifications</h3><p>Complete courses to earn certifications</p></div>';return}
     grid.innerHTML=certifications.map(function(c){
         var isEarned=c.earned===true;
         return '<div class="learn-app-card">'
@@ -91,7 +100,7 @@ function renderProgress(){
     var badgesGrid=document.getElementById('la-badges-grid');
     if(badgesGrid){
         var badges=progress.badges||[];
-        if(badges.length===0){badgesGrid.innerHTML='<div class="learn-app-empty" style="grid-column:1/-1"><p>No badges earned yet</p></div>';return}
+        if(badges.length===0){badgesGrid.innerHTML='<div class="learn-app-empty" role="status" aria-live="polite" style="grid-column:1/-1"><p>No badges earned yet</p></div>';return}
         badgesGrid.innerHTML=badges.map(function(b){
             return '<div class="learn-app-badge-item"><div class="learn-app-badge-icon">'+(b.icon||'🏅')+'</div><div class="learn-app-badge-name">'+(b.name||'')+'</div><div class="learn-app-badge-date">'+(b.date||'')+'</div></div>';
         }).join('');

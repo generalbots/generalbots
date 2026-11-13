@@ -196,14 +196,20 @@
                     render();
                 }
             });
-        }).catch(function () { });
+        }).catch(function (err) {
+            /* Best-effort template loading for the canvas. */
+            console.debug("[gb-vibe] Canvas template fetch failed:", err);
+        });
         if (!state.pipelineStages) {
             api("/api/vibe/pipeline/software_development").then(function (data) {
                 if (data && data.success && data.pipeline && Array.isArray(data.pipeline.stages)) {
                     state.pipelineStages = data.pipeline.stages;
                     render();
                 }
-            }).catch(function () { });
+            }).catch(function (err) {
+                /* Best-effort pipeline stages load for the canvas. */
+                console.debug("[gb-vibe] Pipeline stages fetch failed:", err);
+            });
         }
     }
 

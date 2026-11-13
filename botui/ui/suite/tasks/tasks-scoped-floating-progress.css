@@ -192,8 +192,10 @@
 }
 
 .floating-progress-actions button {
-    width: 24px;
-    height: 24px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -446,4 +448,12 @@
     font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
     font-size: 11px;
     line-height: 1.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

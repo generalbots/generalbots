@@ -23,7 +23,9 @@
 
   function postJson(path, body) {
     var headers = { "Content-Type": "application/json" };
-    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+      sessionStorage.getItem("gb-access-token") || "";
     if (token) headers.Authorization = "Bearer " + token;
     return fetch(path, { method: "POST", headers: headers, body: JSON.stringify(body || {}) })
       .then(function (res) {
@@ -132,7 +134,9 @@
     if (typeof clearChatPending === "function") clearChatPending();
     if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
     if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
-      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+        sessionStorage.getItem("gb-access-token") || "";
       fetch("/api/computer/actions/" + encodeURIComponent(actionId) + "/result", {
         method: "POST",
         headers: token
@@ -219,7 +223,9 @@
   function pollPendingTerminal() {
     var sid = window.ChatState && ChatState.currentSessionId;
     if (!sid) return;
-    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+      sessionStorage.getItem("gb-access-token") || "";
     fetch("/api/computer/actions/pending?kind=terminal&session_id=" + encodeURIComponent(sid), {
       headers: token ? { Authorization: "Bearer " + token } : {},
     })
@@ -273,7 +279,9 @@
     panel.querySelector("#gbTerminalAuditClose").addEventListener("click", function () { overlay.remove(); });
 
     try {
-      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+        sessionStorage.getItem("gb-access-token") || "";
       var response = await fetch("/api/terminal/audit?limit=50", {
         headers: token ? { Authorization: "Bearer " + token } : {},
       });

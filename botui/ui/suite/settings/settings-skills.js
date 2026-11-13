@@ -45,6 +45,9 @@
     if (!node) return;
     node.textContent = message;
     node.className = "settings-mcp-status" + (isError ? " is-error" : "");
+    node.setAttribute("role", isError ? "alert" : "status");
+    node.setAttribute("aria-live", isError ? "assertive" : "polite");
+    node.setAttribute("aria-atomic", "true");
   }
 
   function render(skills) {
@@ -194,15 +197,22 @@
       var remove = event.target.closest(".settings-skill-remove");
       if (remove) {
         var id = remove.getAttribute("data-skill");
-        if (!(window.GBModal||{confirm:confirm}).confirm("Remove skill " + id + "?")) return;
-        fetch(
-          BASE + "/" + encodeURIComponent(id) + "?bot_id=" + encodeURIComponent(botId()),
-          { method: "DELETE", headers: headers() }
-        )
-          .then(load)
-          .catch(function (error) {
-            status("Skill removal failed: " + error.message, true);
-          });
+        var doRemove = function () {
+          fetch(
+            BASE + "/" + encodeURIComponent(id) + "?bot_id=" + encodeURIComponent(botId()),
+            { method: "DELETE", headers: headers() }
+          )
+            .then(load)
+            .catch(function (error) {
+              status("Skill removal failed: " + error.message, true);
+            });
+        };
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+          window.GBModal.confirm("Remove skill " + id + "?", "Confirm", doRemove);
+        } else {
+          doRemove();
+        }
+        return;
       }
     });
   }

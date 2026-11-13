@@ -34,8 +34,7 @@
     /**
      * Initialize calendar module
      */
-    function init() {
-        // Get DOM elements
+    function refreshElements() {
         CS.miniCalDays = document.getElementById('mini-cal-days');
         CS.miniCalTitle = document.getElementById('mini-cal-title');
         CS.currentPeriod = document.getElementById('current-period');
@@ -44,8 +43,12 @@
         CS.monthView = document.getElementById('month-view');
         CS.eventModal = document.getElementById('event-modal');
         CS.eventPopup = document.getElementById('event-popup');
+    }
 
-        if (!CS.miniCalDays) return; // Not on calendar page
+    function init() {
+        refreshElements();
+
+        if (!document.getElementById('calendar-app')) return; // Not on calendar page
 
         generateTimeSlots();
         renderMiniCalendar();
@@ -156,6 +159,7 @@
      * Render day view
      */
     function renderDayView() {
+        refreshElements();
         if (!CS.dayView || !CS.weekView || !CS.monthView) return;
 
         CS.dayView.classList.remove('hidden');
@@ -181,6 +185,7 @@
      * Render week view
      */
     function renderWeekView() {
+        refreshElements();
         if (!CS.dayView || !CS.weekView || !CS.monthView) return;
 
         CS.dayView.classList.add('hidden');
@@ -214,6 +219,7 @@
      * Render month view
      */
     function renderMonthView() {
+        refreshElements();
         if (!CS.dayView || !CS.weekView || !CS.monthView) return;
 
         CS.dayView.classList.add('hidden');
@@ -419,6 +425,7 @@
         loadEvents: loadEvents,
         drawEvents: drawEvents,
         bindEvents: bindEvents,
-        getWeekStart: getWeekStart
+        getWeekStart: getWeekStart,
+        refreshElements: refreshElements
     };
 })();

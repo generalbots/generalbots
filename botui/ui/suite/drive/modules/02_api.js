@@ -181,33 +181,42 @@ async function previewFile(path, bucket) {
     }
 }
 
-    async function openFile(path, bucket) {
+    function stampWindowFileCtx(winId, bucket, path, scope) {
+    var ctx = { bucket: bucket || "", path: path || "", scope: scope || "bot" };
+    window.__GB_WINDOW_FILE_CTX = window.__GB_WINDOW_FILE_CTX || {};
+    window.__GB_WINDOW_FILE_CTX[winId] = ctx;
+    var body = document.getElementById("window-body-" + winId);
+    if (body) {
+        body.dataset.gbFileBucket = ctx.bucket;
+        body.dataset.gbFilePath = ctx.path;
+        body.dataset.gbFileScope = ctx.scope;
+    }
+    return ctx;
+}
+
+async function openFile(path, bucket) {
     try {
+        // #2281 — resolve the target bucket once (param wins; fallback to the
+        // effective bucket when absent) and use it in every branch so opening a
+        // file from Shared/Public/search never reads/writes the wrong bucket.
+        const resolvedBucket = bucket || getEffectiveBucket();
         // #1801 — local files have no editor-app integration yet; the preview
         // modal is the working viewer for every local type.
-        var localBucketName = bucket || currentBucket;
-        if (parseLocalBucket(localBucketName)) {
-            previewFile(path, localBucketName);
+        if (parseLocalBucket(resolvedBucket)) {
+            previewFile(path, resolvedBucket);
             return;
         }
-        const fileBucket = bucket || getEffectiveBucket();
         const response = await apiRequest("/open", {
             method: "POST",
-            body: JSON.stringify({ bucket: fileBucket, path: path, scope: currentScope }),
+            body: JSON.stringify({ bucket: resolvedBucket, path: path, scope: currentScope }),
         });
         const { app, url } = response;
         if (app === "sheets" && window.WindowManager) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
-            // #2268 — a file's bucket is not the current bucket: every rendered
-            // row carries its own `data-bucket`. `var bucket = getEffectiveBucket()`
-            // here shadowed (reassigned) the `openFile` parameter for the whole
-            // body, so the sheet was loaded from — and later saved back to — the
-            // wrong Drive object. `fileBucket` already resolves the parameter.
-            // #2272 — one window-id namespace per app: the sheet registry id
-            // (`sheet`) plus a suffix. `sheets-<ts>` did not match the sheet
-            // app's own deep-link guard (`sheet-`), so every deep link aimed at
-            // this Drive window was dropped.
+            // #2268/#2281 — a file's bucket comes from the rendered row
+            // (parameter -> resolvedBucket), never the global current bucket;
+            // #2272 keeps the per-app window-id namespace (`sheet-`).
             var winId = "sheet-" + ts;
             var qs = url.split('?')[1] || '';
             // Per-window sheet data map — avoids race when multiple files open rapidly
@@ -217,7 +226,7 @@ async function previewFile(path, bucket) {
                 var sheetResp = await fetch('/api/sheet/load-from-drive', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bucket: fileBucket, path: path })
+                    body: JSON.stringify({ bucket: resolvedBucket, path: path })
                 });
                 if (sheetResp.ok) {
                     var sheetData = await sheetResp.json();
@@ -234,7 +243,7 @@ async function previewFile(path, bucket) {
                     // error state instead.
                     window.__SHEET_DATA_MAP[winId].loadError =
                         'Could not open ' + fileName + ' from Drive (HTTP ' + sheetResp.status + ').';
-                    window.__SHEET_DATA_MAP[winId].requestedBucket = fileBucket;
+                    window.__SHEET_DATA_MAP[winId].requestedBucket = resolvedBucket;
                     window.__SHEET_DATA_MAP[winId].requestedPath = path;
                     window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
                 }
@@ -242,7 +251,7 @@ async function previewFile(path, bucket) {
                 console.warn('Pre-load sheet failed:', e);
                 window.__SHEET_DATA_MAP[winId].loadError =
                     'Could not open ' + fileName + ' from Drive (' + (e && e.message ? e.message : 'network error') + ').';
-                window.__SHEET_DATA_MAP[winId].requestedBucket = fileBucket;
+                window.__SHEET_DATA_MAP[winId].requestedBucket = resolvedBucket;
                 window.__SHEET_DATA_MAP[winId].requestedPath = path;
                 window.__SHEET_DATA_MAP[winId].boot = Promise.resolve();
             }
@@ -258,39 +267,44 @@ async function previewFile(path, bucket) {
         // query string of its own, so the app reads file/bucket from
         // window.__gbAppParams__ (see docs 99_init / slides boot).
         if (app === "docs" && window.WindowManager) {
-            window.WindowManager.openDeepLink("docs", { file: path, bucket: fileBucket || "" });
+            window.WindowManager.openDeepLink("docs", { file: path, bucket: resolvedBucket || "" });
             return;
         }
         if (app === "slides" && window.WindowManager) {
-            window.WindowManager.openDeepLink("slides", { file: path, bucket: fileBucket || "" });
+            window.WindowManager.openDeepLink("slides", { file: path, bucket: resolvedBucket || "" });
             return;
         }
         if (app === "designer" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Script";
             var ts = Date.now();
-            window.__EDITOR_FILE_BUCKET = fileBucket;
+            var winId = "designer-" + ts;
+            window.__EDITOR_FILE_BUCKET = resolvedBucket;
             window.__EDITOR_FILE_PATH = path;
             window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
-            window.WindowManager.open("designer-" + ts, fileName, "");
+            window.WindowManager.open(winId, fileName, "");
+            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
             fetch("/suite/designer.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent("designer-" + ts, html);
+                window.WindowManager._injectBodyContent(winId, html);
             });
             return;
         }
         if (app === "canvas" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Canvas";
             var ts = Date.now();
-            // Canvas app context: the .draw file is loaded/saved by the app
-            // through the drive API using these globals (bucket + folder).
-            window.__CANVAS_FILE_BUCKET = fileBucket;
+            var winId = "canvas-" + ts;
+            // #2282 — per-window canvas context (globals clobbered by next open)
+            window.__CANVAS_FILE_CTX = window.__CANVAS_FILE_CTX || {};
+            window.__CANVAS_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
+            window.__CANVAS_FILE_BUCKET = resolvedBucket;
             window.__CANVAS_FILE_PATH = path;
             window.__CANVAS_FILE_SCOPE = currentScope;
             var folder = path.indexOf("/") === -1 ? "" : path.substring(0, path.lastIndexOf("/"));
             window.__CANVAS_FOLDER = folder;
-            window.WindowManager.open("canvas-" + ts, fileName, "");
+            window.WindowManager.open(winId, fileName, "");
+            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
             fetch("/suite/canvas/canvas.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent("canvas-" + ts, html);
+                window.WindowManager._injectBodyContent(winId, html);
             });
             return;
         }
@@ -300,11 +314,14 @@ async function previewFile(path, bucket) {
             var fileName = path.split("/").pop() || "Photo";
             var ts = Date.now();
             var winId = "photo-editor-" + ts;
-            window.__PHOTO_FILE_BUCKET = fileBucket;
+            window.__PHOTO_FILE_CTX = window.__PHOTO_FILE_CTX || {};
+            window.__PHOTO_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
+            window.__PHOTO_FILE_BUCKET = resolvedBucket;
             window.__PHOTO_FILE_PATH = path;
             window.__PHOTO_FILE_SCOPE = currentScope;
             window.__PHOTO_BOOT = Promise.resolve();
             window.WindowManager.open(winId, fileName, "");
+            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
             fetch("/suite/photos/photos-editor.html").then(function (r) { return r.text(); }).then(function (html) {
                 window.WindowManager._injectBodyContent(winId, html);
                 if (window.GBPhotoEditor && typeof window.GBPhotoEditor.init === "function") {
@@ -316,20 +333,24 @@ async function previewFile(path, bucket) {
         if (app === "editor" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Untitled";
             var ts = Date.now();
-            window.WindowManager.open("editor-" + ts, fileName, "");
-            window.__EDITOR_FILE_BUCKET = fileBucket;
+            var winId = "editor-" + ts;
+            window.__EDITOR_FILE_CTX = window.__EDITOR_FILE_CTX || {};
+            window.__EDITOR_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
+            window.__EDITOR_FILE_BUCKET = resolvedBucket;
             window.__EDITOR_FILE_PATH = path;
             window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
+            window.WindowManager.open(winId, fileName, "");
+            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
             fetch("/suite/editor.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent("editor-" + ts, html);
+                window.WindowManager._injectBodyContent(winId, html);
             });
             return;
         }
         // PDFs and unknown types have no app window; the Drive preview modal
         // is the working viewer (htmx has no #main-content target here).
-        previewFile(path, fileBucket);
-        window.history.pushState({}, "", "/#" + app + "?bucket=" + encodeURIComponent(fileBucket) + "&path=" + encodeURIComponent(path));
+        previewFile(path, resolvedBucket);
+        window.history.pushState({}, "", "/#" + app + "?bucket=" + encodeURIComponent(resolvedBucket || "") + "&path=" + encodeURIComponent(path));
     } catch (err) {
         console.error("Failed to open file:", err);
         showNotification("Failed to open file: " + err.message, "error");

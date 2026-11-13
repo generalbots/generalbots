@@ -106,7 +106,7 @@ SlideCanvas.bindElement = function (el) {
 SlideCanvas.deleteElement = function (el) {
   if (!el) return;
   var slide = this.canvas ? this.canvas.dataset.slideId : "0";
-  var deck = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
+  var deck = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "";
   var elementId = el.dataset.id;
   el.remove();
   this.selectedId = null;
@@ -122,7 +122,12 @@ SlideCanvas.deleteElement = function (el) {
       slide_index: parseInt(slide, 10) || 0,
       element_id: elementId
     })
-  }).catch(function () {});
+  }).catch(function (err) {
+    console.error("[gb-slides] Failed to delete element:", err);
+    if (window.GBToasts && window.GBToasts.show) {
+      window.GBToasts.show("Slides", "Could not save element deletion", "error");
+    }
+  });
   if (window.recordSlidesEdit) window.recordSlidesEdit();
   if (window.recordSlidesSnapshot) window.recordSlidesSnapshot();
 };
@@ -218,7 +223,7 @@ SlideCanvas.insertShape = function (type) {
   this.bindElement(el);
   this.selectElement(el);
   var payload = {
-    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
     slide_id: slideId,
     element_id: id,
     element_type: "shape",
@@ -231,7 +236,12 @@ SlideCanvas.insertShape = function (type) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
-  }).catch(function () {});
+  }).catch(function (err) {
+    console.error("[gb-slides] Failed to add element:", err);
+    if (window.GBToasts && window.GBToasts.show) {
+      window.GBToasts.show("Slides", "Could not save new element", "error");
+    }
+  });
   if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
     window.GBCollab.send("slide_update", { content: JSON.stringify(payload), slide_index: parseInt(slideId, 10) || 0, element_id: id });
   }
@@ -241,7 +251,7 @@ SlideCanvas.persistElement = function (el, text) {
   var slide = this.canvas ? this.canvas.dataset.slideId : null;
   if (!slide) return;
   var payload = {
-    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "",
     slide_id: slide,
     element_id: el.dataset.id,
     x: parseInt(el.style.left, 10) || 0,
@@ -257,7 +267,12 @@ SlideCanvas.persistElement = function (el, text) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
-  }).catch(function () {});
+  }).catch(function (err) {
+    console.error("[gb-slides] Failed to persist element update:", err);
+    if (window.GBToasts && window.GBToasts.show) {
+      window.GBToasts.show("Slides", "Could not save element changes", "error");
+    }
+  });
   if (window.recordSlidesEdit) window.recordSlidesEdit();
   if (window.recordSlidesSnapshot) window.recordSlidesSnapshot();
   if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
@@ -272,8 +287,13 @@ SlideCanvas.persistSlide = function () {
   fetch("/api/slides/element/add", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current", slide_id: slide, elements: elements })
-  }).catch(function () {});
+    body: JSON.stringify({ presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "", slide_id: slide, elements: elements })
+  }).catch(function (err) {
+    console.error("[gb-slides] Failed to persist slide elements:", err);
+    if (window.GBToasts && window.GBToasts.show) {
+      window.GBToasts.show("Slides", "Could not save slide changes", "error");
+    }
+  });
 };
 
 SlideCanvas.bindRotationInput = function () {

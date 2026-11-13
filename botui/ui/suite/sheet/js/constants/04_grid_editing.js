@@ -12,30 +12,37 @@
   const VirtualGrid = D.virtualGrid;
 
   function positionSelectionOverlay(row, col) {
-    if (!VirtualGrid.selectionOverlay) return;
+    var grid = this && this.selectionOverlay ? this : ((D.getActiveSheetInstance && D.getActiveSheetInstance() && D.getActiveSheetInstance().grid) || VirtualGrid);
+    if (!grid.selectionOverlay) return;
     const cwFn = (window.SheetCore && window.SheetCore.colWidth) ? window.SheetCore.colWidth : function () { return COL_WIDTH; };
     const cxFn = (window.SheetCore && window.SheetCore.colX) ? window.SheetCore.colX : function (c) { return HEADER_WIDTH + c * COL_WIDTH; };
-    VirtualGrid.selectionOverlay.style.display = "block";
-    VirtualGrid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
-    VirtualGrid.selectionOverlay.style.top = (rTop(row) - 1) + "px";
-    VirtualGrid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
-    VirtualGrid.selectionOverlay.style.height = (rH(row) + 2) + "px";
+    grid.selectionOverlay.style.display = "block";
+    grid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
+    grid.selectionOverlay.style.top = (rTop(row) - 1) + "px";
+    grid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
+    grid.selectionOverlay.style.height = (rH(row) + 2) + "px";
   }
 
-  function updateFormulaBar() {
-    const addrEl = document.getElementById("cellAddress");
-    const formulaEl = document.getElementById("formulaInput");
+  function qInGrid(grid, selector) {
+    if (grid && grid.windowBody) return grid.windowBody.querySelector(selector);
+    return document.querySelector(selector);
+  }
+
+  function updateFormulaBar(grid) {
+    grid = grid || (D.getActiveSheetInstance && D.getActiveSheetInstance() && D.getActiveSheetInstance().grid) || VirtualGrid;
+    const addrEl = qInGrid(grid, "#cellAddress");
+    const formulaEl = qInGrid(grid, "#formulaInput");
     if (!addrEl) return;
-    if (VirtualGrid.selectedRow == null || VirtualGrid.selectedCol == null) {
+    if (grid.selectedRow == null || grid.selectedCol == null) {
       addrEl.value = "";
       if (formulaEl) formulaEl.value = "";
       return;
     }
-    const ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+    const ref = colName(grid.selectedCol) + (grid.selectedRow + 1);
     addrEl.value = ref;
     if (formulaEl) {
-      const key = VirtualGrid.selectedRow + "," + VirtualGrid.selectedCol;
-      const cellData = VirtualGrid.cells.get(key);
+      const key = grid.selectedRow + "," + grid.selectedCol;
+      const cellData = grid.cells.get(key);
       const formula = cellData && cellData.formula ? cellData.formula : "";
       const val = cellData && cellData.value ? cellData.value : "";
       formulaEl.value = formula ? formula : val;
@@ -52,10 +59,11 @@
   };
 
   VirtualGrid.selectCell = function (row, col, preventScroll) {
+    if (D.setActiveSheetInstance && this.instance) D.setActiveSheetInstance(this.instance);
     this.selectedRow = row;
     this.selectedCol = col;
-    positionSelectionOverlay(row, col);
-    updateFormulaBar();
+    positionSelectionOverlay.call(this, row, col);
+    updateFormulaBar(this);
     if (!preventScroll) this.ensureVisible(row, col);
     // Focus the cell element so keyboard events reach it
     var cellEl = this.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
@@ -99,10 +107,11 @@
   };
 
   VirtualGrid.onCellBlur = function (e) {
+    var self = this;
     var cell = e.target;
     // Only process if this cell was being edited
-    if (this.editingCell !== cell) return;
-    this.editingCell = null;
+    if (self.editingCell !== cell) return;
+    self.editingCell = null;
     cell.contentEditable = "false";
     cell.style.outline = "none";
     cell.style.zIndex = "1";
@@ -114,16 +123,16 @@
     if (val === origVal) {
       if (cell.dataset.formula) {
         const key = cell.dataset.row + "," + cell.dataset.col;
-        const cellData = VirtualGrid.cells.get(key);
+        const cellData = self.cells.get(key);
         cell.textContent = cellData ? (cellData.value || "") : "";
       }
       return;
     }
 
-    D.SheetAPI.updateCell(ref, val).then(function (res) {
+    D.SheetAPI.updateCell(ref, val, self.instance || self).then(function (res) {
       if (res && res.success) {
-        VirtualGrid.lastRenderedRange = null;
-        VirtualGrid.requestRange();
+        self.lastRenderedRange = null;
+        self.requestRange();
         return;
       }
       // A rejected edit used to stay on screen as if saved. Restore the
@@ -210,30 +219,37 @@
     sel.addRange(range);
   };
 
-  // Format the selected cell, or the whole active selection range when one
-  // spans multiple cells, so toolbar formatting applies where the user expects.
+  // Format the currently selected cell with given style properties
   VirtualGrid.formatSelectedCell = function (styleProps) {
     var row = this.selectedRow;
     var col = this.selectedCol;
     if (row == null || col == null) return Promise.resolve(null);
-    var startRow = row, startCol = col, endRow = row, endCol = col;
-    var adv = window.SheetAdvanced;
-    if (adv && typeof adv.getSelection === "function") {
-      var sel = adv.getSelection();
-      if (sel && (sel.startRow !== sel.endRow || sel.startCol !== sel.endCol)) {
-        startRow = sel.startRow;
-        startCol = sel.startCol;
-        endRow = sel.endRow;
-        endCol = sel.endCol;
-      }
-    }
     var self = this;
+    var inst = self.instance || (D.getActiveSheetInstance && D.getActiveSheetInstance());
+    // #2155 SHEET-09 — apply the style to the WHOLE selection, not just the
+    // anchor cell, so "bold + 16pt across A1:E1" styles every covered cell.
+    var startRow = row;
+    var startCol = col;
+    var endRow = row;
+    var endCol = col;
+    try {
+      var adv = window.SheetAdvanced;
+      var sel = adv && typeof adv.getSelection === "function" ? adv.getSelection() : null;
+      if (sel && typeof sel.startRow === "number" && typeof sel.startCol === "number") {
+        startRow = Math.min(sel.startRow, row);
+        startCol = Math.min(sel.startCol, col);
+        endRow = Math.max(typeof sel.endRow === "number" ? sel.endRow : row, row);
+        endCol = Math.max(typeof sel.endCol === "number" ? sel.endCol : col, col);
+      }
+    } catch (e) { /* selection is optional; fall back to the anchor cell */ }
+    var spanRows = Math.max(endRow - startRow + 1, 1);
+    var spanCols = Math.max(endCol - startCol + 1, 1);
     return fetch("/api/sheet/format", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sheet_id: D.currentSheetId(),
-        worksheet_index: D.WORKSHEET_INDEX,
+        sheet_id: D.currentSheetId(inst),
+        worksheet_index: inst && typeof inst.worksheetIndex === "number" ? inst.worksheetIndex : D.WORKSHEET_INDEX,
         start_row: startRow,
         start_col: startCol,
         end_row: endRow,
@@ -241,22 +257,26 @@
         style: styleProps
       })
     }).then(function (r) { return r.json(); }).then(function () {
-      for (var r0 = startRow; r0 <= endRow; r0++) {
-        for (var c0 = startCol; c0 <= endCol; c0++) {
-          var key = r0 + "," + c0;
+      // Update local cell data and re-render every covered cell so a range
+      // format shows immediately instead of only on the anchor cell.
+      for (var r2 = startRow; r2 <= endRow; r2++) {
+        for (var c2 = startCol; c2 <= endCol; c2++) {
+          var key = r2 + "," + c2;
           var existing = self.cells.get(key) || {};
-          existing.style = Object.assign({}, existing.style || {}, styleProps);
+          var mergedStyle = Object.assign({}, existing.style || {}, styleProps);
+          existing.style = mergedStyle;
           self.cells.set(key, existing);
-          var node = self.bodyInner.querySelector(
-            '[data-row="' + r0 + '"][data-col="' + c0 + '"]'
-          );
+          var node = self.bodyInner.querySelector('[data-row="' + r2 + '"][data-col="' + c2 + '"]');
           if (node) self.applyCellStyle(node, existing);
         }
       }
-      if (typeof self.requestRange === "function") {
-        self.lastRenderedRange = null;
-        self.requestRange();
-      }
+      if (typeof self.render === "function" && (spanRows > 1 || spanCols > 1)) self.render();
     }).catch(function () { return null; });
   };
+
+  // sync proto for per-window instances (#2270)
+  var D2 = window.SheetDefaults;
+  for (var _k4 in VirtualGrid) {
+    if (typeof VirtualGrid[_k4] === "function") D2.GridProto[_k4] = VirtualGrid[_k4];
+  }
 })();

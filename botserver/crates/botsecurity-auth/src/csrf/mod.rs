@@ -28,6 +28,12 @@ pub struct CsrfConfig {
     pub exempt_paths: Vec<String>,
     pub exempt_methods: Vec<String>,
     pub double_submit_cookie: bool,
+    /// Single-user desktop mode (`no_security=true`): enforce loopback
+    /// Origin/Referer checks as the primary CSRF control so cross-site pages
+    /// cannot drive the local API, while allowing trusted loopback origins to
+    /// proceed without a double-submit token pair the WebView cannot provide.
+    #[serde(default)]
+    pub no_security_mode: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

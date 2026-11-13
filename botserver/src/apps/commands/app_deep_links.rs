@@ -419,13 +419,8 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
             },
             DeepLinkParam {
                 key: "bucket",
-                description: "drive bucket containing the path",
-                example: "beiner.gbai",
-            },
-            DeepLinkParam {
-                key: "scope",
-                description: "drive scope (bot, user, shared)",
-                example: "bot",
+                description: "drive bucket that holds the path",
+                example: "default.gbai",
             },
         ],
     ),

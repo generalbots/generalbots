@@ -56,7 +56,7 @@
   flex-direction: column;
   border: var(--win-border-width) solid var(--win-border-color);
   overflow: hidden;
-  z-index: 100;
+  z-index: var(--z-window, 400);
   animation: winOpenIn var(--win-open-dur) var(--win-open-timing);
   transition:
     border-color 180ms var(--win-open-timing),
@@ -101,7 +101,7 @@
   flex-direction: column;
   border: var(--win-border-width) solid var(--win-border-color);
   overflow: hidden;
-  z-index: 100;
+  z-index: var(--z-window, 400);
   transition:
     border-color 180ms var(--win-open-timing),
     box-shadow 200ms var(--win-open-timing),
@@ -231,7 +231,7 @@
    of the desktop. */
 #window-vibe-run {
   height: clamp(480px, 72vh, 680px) !important;
-  z-index: 900;
+  z-index: var(--z-dropdown, 1000);
 }
 
 /* Vibe Project Info — fixed-size popup so the Close / Delete project
@@ -314,4 +314,12 @@
   justify-content: center;
   position: relative;
   flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

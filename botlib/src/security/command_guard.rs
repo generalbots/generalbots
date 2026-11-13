@@ -43,9 +43,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "initdb.exe",
         "psql.exe",
         "pg_isready",
-        "lxc",
-        "lxc-execute",
-        "lxd",
+
         "docker",
         "apt-get",
         "brew",
@@ -175,7 +173,7 @@ impl SafeCommand {
     }
 
     pub fn shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus" | "lxc");
+        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus");
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
@@ -234,7 +232,7 @@ impl SafeCommand {
         script: &str,
         trusted: bool,
     ) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus" | "lxc");
+        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus");
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(

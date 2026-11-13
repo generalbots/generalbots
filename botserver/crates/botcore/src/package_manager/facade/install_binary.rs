@@ -169,7 +169,7 @@ impl PackageManager {
     }
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
         info!("Executing in container {}: {}", container, command);
-        let output = safe_lxc_exec_in_container(container, command)
+        let output = safe_incus_exec_in_container(container, command)
             .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc command"))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -255,10 +255,10 @@ impl PackageManager {
             std::fs::create_dir_all(&host_path)?;
             let device_name = format!("{}-{}", component, dir);
             let container_path = format!("/opt/gbo/{}", dir);
-            let _ = safe_lxc(&["config", "device", "remove", container, &device_name]);
+            let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
             let source_arg = format!("source={}", host_path);
             let path_arg = format!("path={}", container_path);
-            let output = safe_lxc(&[
+            let output = safe_incus(&[
                 "config",
                 "device",
                 "add",
@@ -329,7 +329,7 @@ impl PackageManager {
         let service_file = format!("/tmp/{}.service", component);
         std::fs::write(&service_file, &service_content)?;
         let dest = format!("{container}/etc/systemd/system/{component}.service");
-        let output = safe_lxc(&["file", "push", &service_file, &dest])
+        let output = safe_incus(&["file", "push", &service_file, &dest])
             .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc file push command"))?;
         if !output.status.success() {
             warn!("Failed to push service file to container");

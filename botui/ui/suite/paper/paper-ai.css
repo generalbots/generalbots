@@ -213,3 +213,24 @@
     .save-status.saved {
         color: var(--chart-2);
     }
+
+    /* #2315 — the indicator is live: syncing, saved, or failed-with-retry. */
+    .save-status[data-state="syncing"] {
+        color: var(--chart-4);
+        opacity: 0.9;
+    }
+
+    .save-status[data-state="syncing"]::after {
+        content: "…";
+    }
+
+    .save-status[data-state="saved"] {
+        color: var(--chart-2);
+    }
+
+    .save-status[data-state="error"] {
+        color: var(--chart-6, #d9534f);
+        font-weight: 600;
+        text-decoration: underline dotted;
+    }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

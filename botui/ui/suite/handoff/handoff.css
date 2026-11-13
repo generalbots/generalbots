@@ -77,3 +77,11 @@
 .btn-primary{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent,#d4f505);color:var(--bg);border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease}
 .btn-primary:hover{filter:brightness(1.1)}
 @media(max-width:768px){.handoff-header{flex-direction:column;gap:16px;align-items:stretch}.handoff-summary{flex-wrap:wrap}.analytics-cards{grid-template-columns:1fr}.channels-grid{grid-template-columns:1fr}.csat-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

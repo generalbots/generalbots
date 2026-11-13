@@ -23,6 +23,17 @@ function proceedWithChatInit() {
     botName = requestedBot;
     ChatState.currentBotName = botName;
   }
+  // Switching bots must not inherit a missing-bot latch or access probe for
+  // another bot; self-healing fallback is also scoped per attempted bot.
+  if (ChatState.botUnavailableFor && ChatState.botUnavailableFor !== botName) {
+    ChatState.botUnavailable = false;
+    ChatState.botUnavailableFor = null;
+  }
+  if (window.__gbBotFallbackFor && window.__gbBotFallbackFor !== botName) {
+    window.__gbBotFallbackDone = false;
+    window.__gbBotFallbackFor = null;
+  }
+  ChatState.botAccess = null;
   var storageKey = "gb_chat_" + botName;
   var requestedSession = readRequestedSession();
   // #2222 — the sidebar's "New conversation" fallback (chat not mounted) parks
@@ -73,23 +84,61 @@ function proceedWithChatInit() {
     }
   } catch (e) { /* non-fatal */ }
 
-  // Capture auth token passed back from the login server (?token=...) —
+  function clearStaleChatAuthTokens() {
+    var lsKeys = ["gb-access-token", "management_token", "token", "id_token", "gb_token",
+      "management_email", "management_name", "management_is_admin", "gb-refresh-token"];
+    var ssKeys = ["gb-access-token", "token", "id_token", "gb_token", "gb-refresh-token"];
+    lsKeys.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    ssKeys.forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} });
+    if (window.GBSecurity && window.GBSecurity.clearTokens) {
+      try { window.GBSecurity.clearTokens(); } catch (e) {}
+    }
+  }
+
+  // Capture auth token passed back from the login server (?token=...).
   // localStorage is origin-scoped, so the login domain's storage is not
-  // visible here. Consume the param and persist for this origin, promoting
-  // it into every auth slot so the freshly acquired credential wins over
-  // any stale session token from a previous login.
+  // visible here. Consume the param without long-lived localStorage persistence
+  // (#2347): promote it into memory/session auth state, purge legacy localStorage
+  // bearer copies, and strip the token from the URL immediately.
   try {
-    var urlTok = new URLSearchParams(window.location.search).get("token");
+    var u = new URL(window.location.href);
+    var urlTok = u.searchParams.get("token");
     if (urlTok) {
-      localStorage.setItem("management_token", urlTok);
-      localStorage.setItem("gb-access-token", urlTok);
-      sessionStorage.setItem("gb-access-token", urlTok);
+      u.searchParams.delete("token");
+      window.history.replaceState({}, "", u.pathname + u.search + u.hash);
+      try { localStorage.removeItem("gb-access-token"); } catch (e) {}
+      try { localStorage.removeItem("management_token"); } catch (e) {}
+      try { localStorage.removeItem("token"); } catch (e) {}
+      try { localStorage.removeItem("id_token"); } catch (e) {}
+      try { localStorage.removeItem("gb_token"); } catch (e) {}
       if (window.GBSecurity && window.GBSecurity.setTokens) {
         window.GBSecurity.setTokens(urlTok, sessionStorage.getItem("gb-refresh-token"), null, true);
+      } else {
+        try { sessionStorage.setItem("gb-access-token", urlTok); } catch (e) {}
       }
-      var u = new URL(window.location.href);
-      u.search = "";
-      window.history.replaceState({}, "", u);
+    } else {
+      // Migrate any legacy persisted bearer token into transient auth state once,
+      // then drop the localStorage copies so they are not exfiltrable across reloads.
+      var legacyPersisted =
+        (function () { try { return localStorage.getItem("gb-access-token"); } catch (e) { return ""; } })() ||
+        (function () { try { return localStorage.getItem("management_token"); } catch (e) { return ""; } })() ||
+        (function () { try { return localStorage.getItem("token"); } catch (e) { return ""; } })() ||
+        (function () { try { return localStorage.getItem("id_token"); } catch (e) { return ""; } })() ||
+        (function () { try { return localStorage.getItem("gb_token"); } catch (e) { return ""; } })();
+      if (legacyPersisted) {
+        var hasTransient = !!((window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+          (function () { try { return sessionStorage.getItem("gb-access-token"); } catch (e) { return ""; } })());
+        if (!hasTransient) {
+          if (window.GBSecurity && window.GBSecurity.setTokens) {
+            window.GBSecurity.setTokens(legacyPersisted, sessionStorage.getItem("gb-refresh-token"), null, true);
+          } else {
+            try { sessionStorage.setItem("gb-access-token", legacyPersisted); } catch (e) {}
+          }
+        }
+        ["gb-access-token", "management_token", "token", "id_token", "gb_token"].forEach(function (k) {
+          try { localStorage.removeItem(k); } catch (e) {}
+        });
+      }
     }
   } catch (e) {}
 
@@ -99,7 +148,14 @@ function proceedWithChatInit() {
   }
 
   var authHeaders = {};
-  var gbToken = window.getGBAccessToken ? window.getGBAccessToken() : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+  var gbToken = null;
+  if (window.getGBAccessToken) {
+    gbToken = window.getGBAccessToken();
+  } else if (window.GBSecurity && window.GBSecurity.getToken) {
+    gbToken = window.GBSecurity.getToken();
+  } else {
+    try { gbToken = sessionStorage.getItem("gb-access-token"); } catch (e) { gbToken = null; }
+  }
   if (gbToken) authHeaders["Authorization"] = "Bearer " + gbToken;
 
   fetch(authUrl, { headers: authHeaders })
@@ -111,10 +167,7 @@ function proceedWithChatInit() {
       // valid suite session). Without this, all cookie-carrying apps (CRM,
       // Drive, ...) silently scope to an empty anonymous branch.
       if (!auth.is_authenticated && auth.status !== "authenticated" && gbToken && !window.__BOT_IS_PUBLIC__) {
-        try {
-          localStorage.removeItem("gb-access-token");
-          sessionStorage.removeItem("gb-access-token");
-        } catch (e) {}
+        clearStaleChatAuthTokens();
         var loginUrl = window.GB_LOGIN_URL || "/login";
         window.location.href = loginUrl + "?redirect=" + encodeURIComponent(window.location.href);
         return;
@@ -130,8 +183,11 @@ function proceedWithChatInit() {
       if (auth.bot_id === "00000000-0000-0000-0000-000000000000") {
         var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
         try { localStorage.removeItem("gb_selected_bot"); } catch (e) {}
-        if (!window.__gbBotFallbackDone && botName !== fallbackBot) {
+        var canFallback = (!window.__gbBotFallbackDone || window.__gbBotFallbackFor !== botName) &&
+          botName !== fallbackBot;
+        if (canFallback) {
           window.__gbBotFallbackDone = true;
+          window.__gbBotFallbackFor = botName;
           notify('Bot "' + botName + '" was not found — opening ' + fallbackBot, "error");
           ChatState.currentBotName = fallbackBot;
           setTimeout(proceedWithChatInit, 0);
@@ -140,6 +196,12 @@ function proceedWithChatInit() {
         showBotUnavailable(botName);
         return;
       }
+      // A real bot resolved: clear any stale missing-bot latch so later boots
+      // and other bots can connect without a page reload.
+      ChatState.botUnavailable = false;
+      ChatState.botUnavailableFor = null;
+      window.__gbBotFallbackDone = false;
+      window.__gbBotFallbackFor = null;
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
         localStorage.setItem("gb.chat.session." + botName, auth.session_id);
@@ -411,30 +473,49 @@ hideMention();
 function initChat() {
   // #1753 — deleting the open conversation reinitializes through here.
   // Duplicate delete events (or a re-injected module binding again) must not
-  // run two /api/auth rounds and two sockets. The guard is released when the
-  // minted session lands, or after a 12 s safety timeout.
-  if (window.__gbInitChatBusy) return;
-  window.__gbInitChatBusy = true;
-  if (!window.__gbInitChatRelease) {
-    window.__gbInitChatRelease = function () {
-      window.__gbInitChatBusy = false;
-      if (window.__gbInitChatTimer) {
-        clearTimeout(window.__gbInitChatTimer);
-        window.__gbInitChatTimer = null;
-      }
-    };
-    window.addEventListener("gb-chat-session-changed", window.__gbInitChatRelease);
-    window.addEventListener("gb-chat-connected", window.__gbInitChatRelease);
+  // run two /api/auth rounds and two sockets for the SAME chat instance.
+  // #2285 — the guard is per-window/instance (not page-global): opening a
+  // second chat while the first is booting must still produce a working second
+  // chat. A boot request that arrives while this instance is in flight is
+  // coalesced into one queued re-run on release instead of being dropped.
+  var root = document.getElementById("chat-app") || document.body;
+  if (root.__gbInitChatBusy) {
+    root.__gbInitChatQueued = true;
+    return;
   }
-  if (window.__gbInitChatTimer) clearTimeout(window.__gbInitChatTimer);
-  window.__gbInitChatTimer = setTimeout(window.__gbInitChatRelease, 12000);
+  root.__gbInitChatBusy = true;
+  root.__gbInitChatQueued = false;
+  var release = function () {
+    if (!root.__gbInitChatBusy) return;
+    root.__gbInitChatBusy = false;
+    if (root.__gbInitChatTimer) {
+      clearTimeout(root.__gbInitChatTimer);
+      root.__gbInitChatTimer = null;
+    }
+    if (root.__gbInitChatQueued) {
+      root.__gbInitChatQueued = false;
+      setTimeout(initChat, 0);
+    }
+  };
+  root.__gbInitChatRelease = release;
+  if (!root.__gbInitChatReleaseBound) {
+    root.__gbInitChatReleaseBound = true;
+    window.addEventListener("gb-chat-session-changed", function () {
+      if (root.__gbInitChatRelease) root.__gbInitChatRelease();
+    });
+    window.addEventListener("gb-chat-connected", function () {
+      if (root.__gbInitChatRelease) root.__gbInitChatRelease();
+    });
+  }
+  if (root.__gbInitChatTimer) clearTimeout(root.__gbInitChatTimer);
+  root.__gbInitChatTimer = setTimeout(release, 12000);
   if (window.GBAppLifecycle) GBAppLifecycle.begin("chat");
   if (typeof loadBotConfig === 'function') {
     loadBotConfig();
   }
-proceedWithChatInit();
-autoFocusInput();
-installComposerFocusAfterLayoutChange();
+  proceedWithChatInit();
+  autoFocusInput();
+  installComposerFocusAfterLayoutChange();
   // #2228 — after a period of inactivity, return focus to the composer.
   (function installIdleRefocus() {
     if (window.__gbIdleRefocusBound) return;
@@ -476,7 +557,11 @@ if (document.readyState === 'loading') {
 (function(){ var __cb = function() {
 setupEventHandlers();
 initChat();
-}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+}; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); }
+// #2349 — a conversation with no turns must say so instead of showing a blank
+// pane; the card removes itself as soon as the first bubble is appended.
+if (typeof renderChatEmptyState === "function") renderChatEmptyState();
+})();
 } else {
 setupEventHandlers();
 initChat();

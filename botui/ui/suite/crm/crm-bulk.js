@@ -25,15 +25,27 @@
     }
 
     function refreshCount(grid) {
-        var cfg = config(grid);
-        var el = document.getElementById(cfg.count);
-        if (el) el.textContent = selectedIds(grid).length + ' selected';
+        var el = document.getElementById(config(grid).count);
+        if (el) {
+            el.setAttribute('role', 'status');
+            el.setAttribute('aria-live', 'polite');
+            el.setAttribute('aria-atomic', 'true');
+            el.textContent = selectedIds(grid).length + ' selected';
+        }
     }
 
     function notice(grid, text) {
         var cfg = config(grid);
-        var el = document.getElementById(cfg.result);
-        if (el) el.textContent = text;
+        var elId = cfg && cfg.result ? cfg.result : (grid === 'campaigns' ? 'campaign-result' : null);
+        var el = elId ? document.getElementById(elId) : null;
+        if (el) {
+            var lower = String(text || '').toLower();
+            var isAlert = /fail|error|unavailable|blocked|required|first|denied/.test(lower);
+            el.setAttribute('role', isAlert ? 'alert' : 'status');
+            el.setAttribute('aria-live', isAlert ? 'assertive' : 'polite');
+            el.setAttribute('aria-atomic', 'true');
+            el.textContent = text;
+        }
         setTimeout(function() { if (el) el.textContent = ''; }, 8000);
     }
 
@@ -83,17 +95,90 @@
         });
     }
 
-    function closeOpportunities(won) {
+    // #2313 — the loss reason is CRM gold: churn analysis, win-back campaigns
+    // and pricing decisions all read it. It is recorded only when a human picks
+    // it explicitly; the old flow pre-filled a native dialog with "price", so
+    // every user who pressed Enter wrote a reason nobody chose.
+    var LOST_REASONS = [
+        { value: 'price', label: 'Price / budget' },
+        { value: 'competitor', label: 'Lost to a competitor' },
+        { value: 'timing', label: 'Bad timing' },
+        { value: 'no_decision', label: 'No decision' },
+        { value: 'feature_gap', label: 'Missing feature' },
+        { value: 'other', label: 'Other' }
+    ];
+
+    function lostReasonLabel(value) {
+        for (var i = 0; i < LOST_REASONS.length; i++) {
+            if (LOST_REASONS[i].value === value) return LOST_REASONS[i].label;
+        }
+        return value;
+    }
+
+    // Reuses the app's own #crm-modal, so this works in the desktop shell where
+    // native dialogs are blocked.
+    function askLostReason(onPick) {
+        var modal = document.getElementById('crm-modal');
+        var content = document.getElementById('crm-modal-content');
+        if (!modal || !content) {
+            notice('opportunities', 'Lost-reason dialog unavailable — open CRM in the suite');
+            return;
+        }
+        var options = LOST_REASONS.map(function(r) {
+            return '<option value="' + r.value + '">' + r.label + '</option>';
+        }).join('');
+        content.innerHTML =
+            '<div class="crm-form">' +
+            '<h3 data-i18n="crm-lost-reason-title">Why was the deal lost?</h3>' +
+            '<p class="crm-form-hint">The reason is saved with every selected opportunity ' +
+            'and drives loss reporting.</p>' +
+            '<label class="crm-form-label" for="crm-lost-reason-pick">Lost reason</label>' +
+            '<select class="crm-form-input" id="crm-lost-reason-pick">' +
+            '<option value="">Choose a reason…</option>' + options + '</select>' +
+            '<div class="crm-form-actions">' +
+            '<button type="button" class="btn-secondary" id="crm-lost-cancel">Cancel</button>' +
+            '<button type="button" class="btn-danger" id="crm-lost-confirm" disabled>Mark lost</button>' +
+            '</div></div>';
+        var pick = document.getElementById('crm-lost-reason-pick');
+        var confirmBtn = document.getElementById('crm-lost-confirm');
+        var cancelBtn = document.getElementById('crm-lost-cancel');
+        function close() { window.closeCrmModal(); }
+        if (pick) {
+            pick.addEventListener('change', function () {
+                confirmBtn.disabled = !pick.value;
+            });
+            pick.focus();
+        }
+        if (cancelBtn) cancelBtn.addEventListener('click', close);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                if (!pick || !pick.value) return;
+                var reason = pick.value;
+                close();
+                onPick(reason);
+            });
+        }
+        if (typeof window.openCrmModal === 'function') window.openCrmModal();
+        else modal.classList.add('open');
+    }
+
+    function closeOpportunities(won, lostReason) {
         var ids = selectedIds('opportunities');
         if (!ids.length) { notice('opportunities', 'Select rows first'); return; }
-        var lostReason = won ? null : (prompt('Lost reason:', 'price') || '');
+        if (won === false && !lostReason) {
+            askLostReason(function (reason) {
+                if (!reason) return; // cancelled — nothing is written
+                closeOpportunities(false, reason);
+            });
+            return;
+        }
         var done = 0;
         var failed = 0;
         ids.forEach(function(id) {
             fetch('/api/crm/opportunities/' + id + '/close', {
                 method: 'POST',
                 headers: headers(true),
-                body: JSON.stringify({ won: won, lost_reason: lostReason })
+                body: JSON.stringify({ won: won, lost_reason: won ? null : lostReason })
             }).then(function(resp) {
                 if (resp.ok) done++; else failed++;
                 if (done + failed === ids.length) {
@@ -114,41 +199,49 @@
         if (el) el.addEventListener('click', handler);
     }
 
+    function gbConfirm(message, onYes) {
+        if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+            window.GBModal.confirm(message, 'Confirm', onYes);
+        }
+    }
+
     // Opportunities grid
     onClick('opps-bulk-stage-btn', function() {
         var stage = document.getElementById('opps-bulk-stage').value;
         bulk('opportunities', 'stage', { stage: stage });
     });
     onClick('opps-close-won-btn', function() { closeOpportunities(true); });
+    onClick('opps-close-lost-btn', function() { closeOpportunities(false); });
     onClick('opps-bulk-delete-btn', function() {
-        if (confirm('Delete the selected records? This is recorded in the audit trail.')) {
+        gbConfirm('Delete the selected records? This is recorded in the audit trail.', function() {
             bulk('opportunities', 'delete');
-        }
+        });
     });
 
     // Deals grid
     onClick('deals-bulk-stage-btn', function() { bulk('deals', 'stage', { stage: 'won' }); });
     onClick('deals-bulk-delete-btn', function() {
-        if (confirm('Delete the selected deals? This is recorded in the audit trail.')) {
+        gbConfirm('Delete the selected deals? This is recorded in the audit trail.', function() {
             bulk('deals', 'delete');
-        }
+        });
     });
 
     // Contacts grid
     onClick('contacts-bulk-delete-btn', function() {
         var ids = selectedIds('contacts');
         if (!ids.length) { notice('contacts', 'Select rows first'); return; }
-        if (!confirm('Delete the selected contacts? This is recorded in the audit trail.')) return;
-        fetch('/api/crm/contacts/bulk', {
-            method: 'POST',
-            headers: headers(true),
-            body: JSON.stringify({ ids: ids, action: 'delete' })
-        }).then(function(resp) {
-            if (!resp.ok) { notice('contacts', 'Delete failed (' + resp.status + ')'); return; }
-            return resp.json().then(function(r) {
-                notice('contacts', 'Deleted ' + (r.deleted || 0) +
-                    (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
-                window.reloadCrmGrid('contacts');
+        gbConfirm('Delete the selected contacts? This is recorded in the audit trail.', function() {
+            fetch('/api/crm/contacts/bulk', {
+                method: 'POST',
+                headers: headers(true),
+                body: JSON.stringify({ ids: ids, action: 'delete' })
+            }).then(function(resp) {
+                if (!resp.ok) { notice('contacts', 'Delete failed (' + resp.status + ')'); return; }
+                return resp.json().then(function(r) {
+                    notice('contacts', 'Deleted ' + (r.deleted || 0) +
+                        (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
+                    window.reloadCrmGrid('contacts');
+                });
             });
         });
     });
@@ -182,16 +275,17 @@
                 return dry.json().then(function(report) {
                     var summary = 'Validated: ' + report.imported + ' rows, ' +
                         report.skipped_duplicates + ' duplicates, ' + report.errors.length + ' errors';
-                    if (!confirm(summary + '. Commit this import?')) { notice(grid, summary + ' — not committed'); return; }
-                    fetch(endpoint, {
-                        method: 'POST', headers: headers({ 'Content-Type': 'text/csv' }), body: text
-                    }).then(function(resp) {
-                        if (!resp.ok) { notice(grid, 'Import failed (' + resp.status + ')'); return; }
-                        return resp.json().then(function(result) {
-                            notice(grid, 'Imported ' + result.imported +
-                                (result.skipped_duplicates ? ', duplicates ' + result.skipped_duplicates : '') +
-                                (result.errors && result.errors.length ? ', errors ' + result.errors.length : ''));
-                            window.reloadCrmGrid(grid);
+                    gbConfirm(summary + '. Commit this import?', function() {
+                        fetch(endpoint, {
+                            method: 'POST', headers: headers({ 'Content-Type': 'text/csv' }), body: text
+                        }).then(function(resp) {
+                            if (!resp.ok) { notice(grid, 'Import failed (' + resp.status + ')'); return; }
+                            return resp.json().then(function(result) {
+                                notice(grid, 'Imported ' + result.imported +
+                                    (result.skipped_duplicates ? ', duplicates ' + result.skipped_duplicates : '') +
+                                    (result.errors && result.errors.length ? ', errors ' + result.errors.length : ''));
+                                window.reloadCrmGrid(grid);
+                            });
                         });
                     });
                 });
@@ -285,12 +379,13 @@
         var send = e.target.closest('.campaign-send-btn');
         if (send) {
             var id = send.dataset.id;
-            if (!confirm('Send this campaign to its recipients now?')) return;
-            fetch('/api/crm/campaigns/' + id + '/send', {
-                method: 'POST', headers: headers(true), body: '{}'
-            }).then(function(resp) {
-                notice('campaigns', resp.ok ? 'Send dispatched' : 'Send failed (' + resp.status + ')');
-                refreshCampaigns();
+            gbConfirm('Send this campaign to its recipients now?', function() {
+                fetch('/api/crm/campaigns/' + id + '/send', {
+                    method: 'POST', headers: headers(true), body: '{}'
+                }).then(function(resp) {
+                    notice('campaigns', resp.ok ? 'Send dispatched' : 'Send failed (' + resp.status + ')');
+                    refreshCampaigns();
+                });
             });
             return;
         }
@@ -322,11 +417,15 @@
     if (auditBtn && auditDrawer) {
         auditBtn.addEventListener('click', function() {
             var body = document.getElementById('crm-audit-body');
+            body.setAttribute('role', 'status');
+            body.setAttribute('aria-live', 'polite');
             body.innerHTML = '<div class="crm-audit-empty">Loading…</div>';
             auditDrawer.classList.add('open');
             fetch('/api/crm/audit?limit=60', { headers: headers() })
                 .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
                 .then(function(rows) {
+                    body.setAttribute('role', 'status');
+                    body.setAttribute('aria-live', 'polite');
                     if (!rows.length) { body.innerHTML = '<div class="crm-audit-empty">No audit entries yet</div>'; return; }
                     body.innerHTML = rows.map(function(r) {
                         var when = (r.created_at || '').replace('T', ' ').slice(0, 16);
@@ -339,6 +438,8 @@
                     }).join('');
                 })
                 .catch(function(status) {
+                    body.setAttribute('role', 'alert');
+                    body.setAttribute('aria-live', 'assertive');
                     body.innerHTML = '<div class="crm-audit-empty">Audit unavailable (' + status + ')</div>';
                 });
         });

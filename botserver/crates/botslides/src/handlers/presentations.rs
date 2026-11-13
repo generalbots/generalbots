@@ -133,9 +133,15 @@ pub async fn handle_save_presentation<D: DriveOps>(
     Json(req): Json<SavePresentationRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = user.owner_id().to_string();
+    if req.id.as_deref() == Some("current") {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Presentation id 'current' is not allowed; create a deck with a unique id first" })),
+        ));
+    }
     let presentation_id = req
         .id
-        .filter(|id| !id.is_empty())
+        .filter(|id| !id.trim().is_empty())
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
     // Always start from the stored deck when it exists: that preserves the

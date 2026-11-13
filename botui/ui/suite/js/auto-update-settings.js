@@ -18,7 +18,7 @@
   function formatDate(value) {
     if (!value) return "";
     try {
-      return new Date(value).toLocaleString();
+      return gbFormatDateTime(new Date(value));
     } catch (error) {
       return String(value);
     }

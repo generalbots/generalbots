@@ -12,16 +12,17 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
-pub(crate) fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("lxc")
+pub(crate) fn safe_incus(args: &[&str]) -> Option<std::process::Output> {
+    SafeCommand::new("incus")
         .and_then(|c| c.args(args))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }
 
-pub(crate) fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
-    let cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
-    cmd_res.ok().and_then(|cmd| cmd.execute().ok())
+pub(crate) fn safe_incus_admin(args: &[&str]) -> Option<std::process::Output> {
+    let mut all = vec!["admin"];
+    all.extend_from_slice(args);
+    safe_incus(&all)
 }
 
 pub fn install_container(
@@ -31,7 +32,7 @@ pub fn install_container(
     _base_path: &std::path::Path,
 ) -> Result<InstallResult> {
     let container_name = format!("{}-{}", tenant, component.name);
-    let _ = safe_lxd(&["init", "--auto"]);
+    let _ = safe_incus_admin(&["init", "--auto"]);
     let images = [
         "ubuntu:24.04",
         "ubuntu:22.04",
@@ -42,7 +43,7 @@ pub fn install_container(
     let mut success = false;
     for image in &images {
         info!("Attempting to create container with image: {}", image);
-        let output = safe_lxc(&[
+        let output = safe_incus(&[
             "launch", image, &container_name, "-c", "security.privileged=true",
         ]);
         let output = match output {
@@ -56,11 +57,11 @@ pub fn install_container(
         }
         last_error = String::from_utf8_lossy(&output.stderr).to_string();
         warn!("Failed to create container with {}: {}", image, last_error);
-        let _ = safe_lxc(&["delete", &container_name, "--force"]);
+        let _ = safe_incus(&["delete", &container_name, "--force"]);
     }
     if !success {
         return Err(anyhow::anyhow!(
-            "LXC container creation failed with all images. Last error: {}", last_error
+            "Incus container creation failed with all images. Last error: {}", last_error
         ));
     }
     std::thread::sleep(std::time::Duration::from_secs(15));
@@ -132,7 +133,7 @@ pub fn install_container(
 pub fn get_container_ip(container_name: &str) -> Result<String> {
     for _ in 0..15 {
         std::thread::sleep(std::time::Duration::from_secs(2));
-        if let Some(o) = safe_lxc(&["list", container_name, "-c", "4", "--format", "csv"]) {
+        if let Some(o) = safe_incus(&["list", container_name, "-c", "4", "--format", "csv"]) {
             if o.status.success() {
                 let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
                 let ip = out.split([' ', '(']).next().unwrap_or("").trim();
@@ -141,7 +142,7 @@ pub fn get_container_ip(container_name: &str) -> Result<String> {
                 }
             }
         }
-        if let Some(o) = safe_lxc(&["exec", container_name, "--", "hostname", "-I"]) {
+        if let Some(o) = safe_incus(&["exec", container_name, "--", "hostname", "-I"]) {
             if o.status.success() {
                 let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
                 if let Some(ip) = out.split_whitespace().find(|s| s.contains('.')) {
@@ -176,7 +177,7 @@ pub fn assign_static_ip(container_name: &str) -> Result<String> {
         Some(pair) => pair,
         None => return Err(anyhow::anyhow!("Cannot determine lxdbr0 subnet")),
     };
-    let mac_out = safe_lxc(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
+    let mac_out = safe_incus(&["exec", container_name, "--", "cat", "/sys/class/net/eth0/address"]);
     let octet = mac_out
         .and_then(|o| o.status.success().then(|| String::from_utf8_lossy(&o.stdout).trim().to_string()))
         .and_then(|mac| {
@@ -188,9 +189,9 @@ pub fn assign_static_ip(container_name: &str) -> Result<String> {
         .unwrap_or(100);
     let cidr = prefix.replace("{octet}", &octet.to_string());
     let ip = cidr.split('/').next().unwrap_or("").to_string();
-    safe_lxc(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
-    safe_lxc(&["exec", container_name, "--", "ip", "route", "add", "default", "via", &gateway]);
-    safe_lxc(&["exec", container_name, "--", "bash", "-c",
+    safe_incus(&["exec", container_name, "--", "ip", "addr", "add", &cidr, "dev", "eth0"]);
+    safe_incus(&["exec", container_name, "--", "ip", "route", "add", "default", "via", &gateway]);
+    safe_incus(&["exec", container_name, "--", "bash", "-c",
         &format!("printf 'nameserver 8.8.8.8\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf && \
 printf '#!/bin/sh\\nip addr add {cidr} dev eth0 2>/dev/null||true\\nip route add default via {gateway} 2>/dev/null||true\\nexit 0\\n' > /etc/rc.local && \
 chmod +x /etc/rc.local && systemctl enable rc-local 2>/dev/null||true")]);
@@ -211,17 +212,17 @@ pub fn mount_container_directories(container: &str, component: &str, tenant: &st
         std::fs::create_dir_all(&host_path)?;
         let device_name = format!("{}-{}", component, dir);
         let container_path = format!("/opt/gbo/{}", dir);
-        let _ = safe_lxc(&["config", "device", "remove", container, &device_name]);
+        let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
         let source_arg = format!("source={}", host_path);
         let path_arg = format!("path={}", container_path);
-        let output = safe_lxc(&[
+        let output = safe_incus(&[
             "config", "device", "add", container, &device_name, "disk",
             &source_arg, &path_arg,
         ]);
         let output = match output {
             Some(o) => o,
             None => {
-                warn!("Failed to execute lxc mount command for {}", dir);
+                warn!("Failed to execute incus mount command for {}", dir);
                 continue;
             }
         };
@@ -271,8 +272,8 @@ pub fn create_container_service(
     let service_file = format!("/tmp/{}.service", component);
     std::fs::write(&service_file, &service_content)?;
     let dest = format!("{container}/etc/systemd/system/{component}.service");
-    let output = safe_lxc(&["file", "push", &service_file, &dest])
-        .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc file push command"))?;
+    let output = safe_incus(&["file", "push", &service_file, &dest])
+        .ok_or_else(|| anyhow::anyhow!("Failed to execute incus file push command"))?;
     if !output.status.success() {
         warn!("Failed to push service file to container");
     }
@@ -288,14 +289,14 @@ pub fn create_container_service(
 pub fn setup_port_forwarding(container: &str, ports: &[u16]) -> Result<()> {
     for port in ports {
         let device_name = format!("port-{}", port);
-        let _ = safe_lxc(&["config", "device", "remove", container, &device_name]);
+        let _ = safe_incus(&["config", "device", "remove", container, &device_name]);
         let listen_arg = format!("listen=tcp:0.0.0.0:{port}");
         let connect_arg = format!("connect=tcp:127.0.0.1:{port}");
-        let output = safe_lxc(&[
+        let output = safe_incus(&[
             "config", "device", "add", container, &device_name,
             "proxy", &listen_arg, &connect_arg,
         ])
-        .ok_or_else(|| anyhow::anyhow!("Failed to execute lxc port forward command"))?;
+        .ok_or_else(|| anyhow::anyhow!("Failed to execute incus port forward command"))?;
         if !output.status.success() {
             warn!("Failed to setup port forwarding for port {}", port);
         }

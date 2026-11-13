@@ -5,7 +5,16 @@
 
 async function revokeShareLink(token, path) {
     if (!token) return;
-    if (!confirm("Revoke this link? Anyone holding it will lose access immediately.")) return;
+    var ok = await new Promise(function (resolve) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            try {
+                window.GBModal.confirm("Revoke this link? Anyone holding it will lose access immediately.", "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        resolve(false);
+    });
+    if (!ok) return;
     try {
         await apiRequest("/revoke-link", {
             method: "POST",
@@ -116,10 +125,15 @@ async function saveEditorContent() {
 function closeEditor() {
     const modal = document.getElementById("editor-modal");
     const statusEl = document.getElementById("editor-status");
+    var doClose = function () { if (modal) modal.remove(); };
     if (statusEl && statusEl.textContent.indexOf("Modified") !== -1) {
-        if (!confirm("You have unsaved changes. Close anyway?")) return;
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            window.GBModal.confirm("You have unsaved changes. Close anyway?", "Confirm", doClose, function () {});
+            return;
+        }
+        return;
     }
-    if (modal) modal.remove();
+    doClose();
 }
 
 function openNewBotModal() {

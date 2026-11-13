@@ -60,7 +60,7 @@ pub async fn handle_chat_message(
         ));
     }
 
-    let reply = if let Some(llm) = state.llm_provider.clone() {
+    let (reply, is_error, retryable) = if let Some(llm) = state.llm_provider.clone() {
         let prompt = if context.is_empty() {
             format!(
                 "You are a helpful assistant inside a General Bots workspace. \
@@ -73,21 +73,37 @@ pub async fn handle_chat_message(
             )
         };
         match llm.generate_simple(&prompt).await {
-            Ok(answer) => answer,
+            Ok(answer) => (answer, false, false),
             Err(e) => {
                 log::error!("Chat LLM error: {e}");
-                "I'm sorry, I encountered an error while processing your message.".to_string()
+                (
+                    "I'm sorry, I encountered an error while processing your message.".to_string(),
+                    true,
+                    true,
+                )
             }
         }
     } else {
-        format!(
-            "I received your message: {trimmed}. Configure an LLM provider to enable AI replies."
+        (
+            format!(
+                "I received your message: {trimmed}. Configure an LLM provider to enable AI replies."
+            ),
+            true,
+            false,
         )
     };
 
-    Ok(Json(
-        serde_json::json!({ "reply": reply, "message": reply }),
-    ))
+    let status = if is_error { "failed" } else { "ok" };
+    let turn_status = if is_error { "failed" } else { "completed" };
+    Ok(Json(serde_json::json!({
+        "reply": reply,
+        "message": reply,
+        "is_error": is_error,
+        "error": is_error,
+        "retryable": retryable,
+        "status": status,
+        "turn_status": turn_status,
+    })))
 }
 
 pub async fn handle_chat_message_htmx(
@@ -105,24 +121,39 @@ pub async fn handle_chat_message_htmx(
         return Html(String::new());
     }
 
-    let reply = if let Some(llm) = state.llm_provider.clone() {
+    let (reply, is_error) = if let Some(llm) = state.llm_provider.clone() {
         match llm
             .generate_simple(&format!(
                 "You are a helpful assistant in a General Bots workspace. Answer concisely.\n\nUser: {message}"
             ))
             .await
         {
-            Ok(answer) => answer,
+            Ok(answer) => (answer, false),
             Err(e) => {
                 log::error!("Chat LLM error: {e}");
-                "I'm sorry, I could not process that right now.".to_string()
+                (
+                    "I'm sorry, I could not process that right now.".to_string(),
+                    true,
+                )
             }
         }
     } else {
-        "No LLM provider configured. Please set one up in bot settings.".to_string()
+        (
+            "No LLM provider configured. Please set one up in bot settings.".to_string(),
+            true,
+        )
     };
 
-    Html(render_bot_message(&reply))
+    let mut html = render_bot_message(&reply);
+    if is_error {
+        // #2360 — explicit structured marker for failed HTMX turns.
+        html = html.replacen(
+            r#"<div class="message bot">"#,
+            r#"<div class="message bot" data-gb-retryable="1" data-status="failed">"#,
+            1,
+        );
+    }
+    Html(html)
 }
 
 pub async fn handle_chat_context(
@@ -166,24 +197,39 @@ pub async fn handle_sessions_current_message(
         return Html(String::new());
     }
 
-    let reply = if let Some(llm) = state.llm_provider.clone() {
+    let (reply, is_error) = if let Some(llm) = state.llm_provider.clone() {
         match llm
             .generate_simple(&format!(
                 "You are a helpful assistant in a General Bots workspace. Answer concisely.\n\nUser: {message}"
             ))
             .await
         {
-            Ok(answer) => answer,
+            Ok(answer) => (answer, false),
             Err(e) => {
                 log::error!("Chat LLM error: {e}");
-                "I'm sorry, I could not process that right now.".to_string()
+                (
+                    "I'm sorry, I could not process that right now.".to_string(),
+                    true,
+                )
             }
         }
     } else {
-        "No LLM provider configured. Please set one up in bot settings.".to_string()
+        (
+            "No LLM provider configured. Please set one up in bot settings.".to_string(),
+            true,
+        )
     };
 
-    Html(render_bot_message(&reply))
+    let mut html = render_bot_message(&reply);
+    if is_error {
+        // #2360 — explicit structured marker for failed HTMX turns.
+        html = html.replacen(
+            r#"<div class="message bot">"#,
+            r#"<div class="message bot" data-gb-retryable="1" data-status="failed">"#,
+            1,
+        );
+    }
+    Html(html)
 }
 
 pub fn configure_chat_routes() -> Router<Arc<AppState>> {

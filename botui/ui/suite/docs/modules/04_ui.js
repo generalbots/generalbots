@@ -36,13 +36,13 @@ function injectEditorStyles() {
     // first row, character and paragraph formatting on the second), the layout
     // people know from 90s word processors.
     ".docs-toolbar{background:#111827;border-bottom:1px solid #1f2937;color:#e5e7eb;display:flex;flex-direction:column;padding:0;min-height:0;overflow:hidden;}",
-    ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:none;}",
-    ".docs-toolbar-row::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar-row{display:flex;align-items:center;gap:8px;padding:5px 10px;min-height:34px;width:100%;box-sizing:border-box;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#475569 transparent;position:relative;}",
+    ".docs-toolbar-row::-webkit-scrollbar{height:4px;}.docs-toolbar-row::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
     ".docs-toolbar-row-main{border-bottom:1px solid #1f2937;}",
     ".docs-toolbar-row-format{background:#0f172a;flex-wrap:wrap;row-gap:2px;overflow-x:visible;}",
     ".docs-toolbar .toolbar-left{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0;}",
-    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
-    ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:0;display:none;}",
+    ".docs-toolbar .toolbar-center{display:flex;align-items:center;gap:1px;flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#475569 transparent;}",
+    ".docs-toolbar .toolbar-center::-webkit-scrollbar{height:4px;}.docs-toolbar .toolbar-center::-webkit-scrollbar-thumb{background:#475569;border-radius:2px;}",
     ".docs-toolbar .toolbar-format{display:flex;align-items:center;gap:1px;flex-wrap:wrap;row-gap:2px;}",
     ".docs-toolbar .toolbar-right{display:flex;align-items:center;gap:4px;margin-left:auto;flex:0 0 auto;}",
     ".docs-toolbar .btn-icon{padding:4px;}",
@@ -64,10 +64,10 @@ function injectEditorStyles() {
     ".docs-toolbar-row-format .btn-icon svg{width:13px;height:13px;}",
     ".docs-toolbar-row-format .toolbar-group{gap:0;}",
     ".docs-toolbar-row-format .toolbar-divider{height:16px;margin:0 2px;}",
-    ".docs-toolbar-row-format .docs-color{padding:0 2px;height:22px;}",
-    ".docs-toolbar .docs-color{position:relative;display:inline-flex;align-items:center;gap:3px;height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;cursor:pointer;font-size:13px;}",
-    ".docs-toolbar .docs-color:hover{background:#1f2937;color:#f8fafc;}",
-    ".docs-toolbar .docs-color input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;border:0;padding:0;}",
+    ".docs-toolbar-row-format .docs-color .gb-cp-trigger{height:22px;}",
+    ".docs-toolbar .docs-color{display:inline-flex;align-items:center;} .docs-toolbar .docs-color .gb-cp-trigger{height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;color:#cbd5e1;font-size:13px;gap:3px;}",
+    ".docs-toolbar .docs-color .gb-cp-trigger:hover{background:#1f2937;color:#f8fafc;}",
+    ".docs-toolbar .docs-color .gb-cp-swatch{width:12px;height:12px;}",
     ".docs-title-input{background:transparent;border:1px solid transparent;color:#f8fafc;font-size:15px;font-weight:600;padding:4px 8px;border-radius:6px;min-width:120px;max-width:280px;}",
     ".docs-title-input:focus{border-color:#3b82f6;outline:none;background:#0f172a;}",
     ".save-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:320px;}",
@@ -82,6 +82,13 @@ function injectEditorStyles() {
     "#docs-app .docs-status-bar{background:#111827;border-top:1px solid #1f2937;color:#94a3b8;}",
     "#docs-app .docs-sidebar{background:#0b1220;border-right:1px solid #1f2937;color:#cbd5e1;}",
     "#docs-app .docs-title-input{color:#f8fafc;}",
+    ".toolbar-overflow-btn{position:sticky;right:0;margin-left:auto;flex:0 0 auto;display:none;align-items:center;justify-content:center;width:28px;min-width:28px;height:28px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#e2e8f0;cursor:pointer;box-shadow:-8px 0 8px -4px #1e293b;z-index:5;}",
+    ".toolbar-overflow-btn.visible{display:inline-flex;}",
+    ".toolbar-overflow-btn:hover{background:#334155;color:#f8fafc;}",
+    ".toolbar-overflow-menu{position:fixed;z-index:10050;min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:4px;}",
+    ".toolbar-overflow-menu[hidden]{display:none;}",
+    ".toolbar-overflow-menu .tb-overflow-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;}",
+    ".toolbar-overflow-menu .tb-overflow-item:hover,.toolbar-overflow-menu .tb-overflow-item:focus{background:#334155;outline:none;}",
     "@media screen{body{background:#0f172a;}}"
   ].join("");
   document.head.appendChild(style);
@@ -90,7 +97,16 @@ function injectEditorStyles() {
 function openPageLayoutModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
-  host.innerHTML = "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;z-index:9999;\"><div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\"><h3 style=\"margin:0;font-size:16px;\">Page layout</h3><label style=\"font-size:13px;\">Paper size<select id=\"pl-size\" style=\"margin-left:8px;padding:4px;\"><option value=\"a4\">A4</option><option value=\"letter\">Letter</option></select></label><label style=\"font-size:13px;\">Orientation<select id=\"pl-orient\" style=\"margin-left:8px;padding:4px;\"><option value=\"portrait\">Portrait</option><option value=\"landscape\">Landscape</option></select></label><label style=\"font-size:13px;\">Margins<input id=\"pl-margins\" type=\"number\" value=\"96\" style=\"margin-left:8px;padding:4px;width:70px;\"> px</label><div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button onclick=\"document.getElementById('docs-modal-container').innerHTML='';\" style=\"padding:6px 12px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;cursor:pointer;\">Close</button><button onclick=\"window.DocsEditor.applyPageLayout();\" style=\"padding:6px 12px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;\">Apply</button></div></div></div>";
+  host.innerHTML = [
+    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;\">",
+    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
+    "<h3 style=\"margin:0;font-size:16px;\">Page layout</h3>",
+    "<label style=\"font-size:13px;\">Paper size<select id=\"pl-size\" style=\"margin-left:8px;padding:4px;\"><option value=\"a4\">A4</option><option value=\"letter\">Letter</option></select></label>",
+    "<label style=\"font-size:13px;\">Orientation<select id=\"pl-orient\" style=\"margin-left:8px;padding:4px;\"><option value=\"portrait\">Portrait</option><option value=\"landscape\">Landscape</option></select></label>",
+    "<label style=\"font-size:13px;\">Margins<input id=\"pl-margins\" type=\"number\" value=\"96\" style=\"margin-left:8px;padding:4px;width:70px;\"> px</label>",
+    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button onclick=\"document.getElementById('docs-modal-container').innerHTML='';\" style=\"padding:6px 12px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;cursor:pointer;\">Close</button><button onclick=\"window.DocsEditor.applyPageLayout();\" style=\"padding:6px 12px;border-radius:6px;border:none;background:#3b82f6;color:#fff;cursor:pointer;\">Apply</button></div>",
+    "</div></div>"
+  ].join("");
 }
 /* Visible page separation: a continuous white sheet gives no clue where a
  * printed page ends, so dashed guides plus a page number are drawn at every
@@ -156,15 +172,25 @@ function watchPageGuides() {
     clearTimeout(timer);
     timer = setTimeout(function () {
       var article = typeof getActiveArticle === "function" ? getActiveArticle() : null;
-      if (article) { fitPageToWidth(article); renderPageGuides(article); }
+      if (article) {
+        fitPageToWidth(article);
+        renderPageGuides(article);
+      }
     }, 150);
   };
   document.addEventListener("input", schedule, true);
   window.addEventListener("resize", schedule);
 }
-/* Programmatic loads don't fire input; refresh guides after content/images load (#2184). */
+
+/* #2184 — content loaded programmatically (VM file, Drive file, ui-hint fill)
+   never fires `input`, so the page separators were never drawn: an opened
+   .docx looked like a single endless sheet. Re-fit the sheet and repaint the
+   guides after every load, and again when its lazy images finish loading
+   (their height changes the page count). */
 function docsAfterContentLoad(article) {
   if (!article) return;
+  // #2252 — every heading needs a stable id before the TOC (and the PDF
+  // export destinations) can point at it.
   if (typeof docsAssignHeadingIds === "function") docsAssignHeadingIds(article);
   if (!article.dataset.pageH) article.dataset.pageH = "1123";
   var refresh = function () {
@@ -341,11 +367,21 @@ function bindFormatToolbar(host) {
       docsFormat(button.getAttribute("data-cmd"));
     });
     var color = scope.querySelector("#fmtColor");
-    if (color) color.addEventListener("input", function () { docsFormat("foreColor", color.value); });
+    if (color) {
+      var colorTrigger = scope.querySelector('[data-gb-color-for="fmtColor"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(color, { trigger: colorTrigger });
+      color.addEventListener("gb-color-commit", function () { docsFormat("foreColor", color.value); });
+      color.addEventListener("change", function () {
+        if (!color._gbColorEnhanced) docsFormat("foreColor", color.value);
+      });
+    }
     var highlight = scope.querySelector("#fmtHighlight");
     if (highlight) {
-      highlight.addEventListener("input", function () {
-        docsFormat("hiliteColor", highlight.value);
+      var highlightTrigger = scope.querySelector('[data-gb-color-for="fmtHighlight"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(highlight, { trigger: highlightTrigger });
+      highlight.addEventListener("gb-color-commit", function () { docsFormat("hiliteColor", highlight.value); });
+      highlight.addEventListener("change", function () {
+        if (!highlight._gbColorEnhanced) docsFormat("hiliteColor", highlight.value);
       });
     }
     scope.addEventListener("keyup", docsSyncFormatState);
@@ -373,76 +409,64 @@ function insertHeaderFooterZone(kind) {
   var zone = document.createElement("div");
   zone.className = kind === "header" ? "docs-header-zone" : "docs-footer-zone";
   zone.contentEditable = "true";
-  zone.textContent = kind === "header" ? "Cabeçalho — clique para editar" : "Rodapé — clique para editar";
-  if (kind === "header") article.insertBefore(zone, article.firstChild); else article.appendChild(zone);
+  zone.dataset.zoneKind = kind;
+  zone.setAttribute("data-placeholder", kind === "header" ? "Cabeçalho — clique para editar" : "Rodapé — clique para editar");
+  if (!zone.textContent) zone.textContent = zone.getAttribute("data-placeholder");
+  if (kind === "header") article.insertBefore(zone, article.firstChild);
+  else article.appendChild(zone);
   scheduleSave(article.dataset.docId, article.innerHTML);
 }
 
 function openHeaderFooterModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
-  var article = getActiveArticle();
-  var curH = "", curF = "";
-  if (article) {
-    var hz = article.querySelector(".docs-header-zone");
-    var fz = article.querySelector(".docs-footer-zone");
-    if (hz) curH = (hz.textContent || "").trim();
-    if (fz) curF = (fz.textContent || "").trim();
-  }
-  var btn = "background:#334155;color:#f8fafc;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;";
-  var inp = "width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;";
-  host.innerHTML =
-    "<div class=\"docs-modal\" id=\"docs-hf-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;z-index:9999;\">" +
-    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:560px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:10px;\">" +
-    "<h3 style=\"margin:0;font-size:16px;\">Cabeçalho e Rodapé</h3>" +
-    "<p style=\"margin:0;font-size:12px;color:#94a3b8;\">Repete em todas as páginas (impressão/PDF/DOCX). Use {{page}} e {{pages}}.</p>" +
-    "<label style=\"font-size:12px;color:#94a3b8;\">Cabeçalho<input id=\"hf-header\" type=\"text\" placeholder=\"Ex.: Nome da empresa\" style=\"" + inp + "\"/></label>" +
-    "<div style=\"display:flex;gap:6px;\"><button type=\"button\" class=\"hf-insert\" data-target=\"hf-header\" data-token=\"{{page}}\" style=\"" + btn + "\">+ Nº página</button><button type=\"button\" class=\"hf-insert\" data-target=\"hf-header\" data-token=\"{{pages}}\" style=\"" + btn + "\">+ Total</button></div>" +
-    "<label style=\"font-size:12px;color:#94a3b8;\">Rodapé<input id=\"hf-footer\" type=\"text\" placeholder=\"Ex.: Página {{page}} de {{pages}}\" style=\"" + inp + "\"/></label>" +
-    "<div style=\"display:flex;gap:6px;\"><button type=\"button\" class=\"hf-insert\" data-target=\"hf-footer\" data-token=\"{{page}}\" style=\"" + btn + "\">+ Nº página</button><button type=\"button\" class=\"hf-insert\" data-target=\"hf-footer\" data-token=\"{{pages}}\" style=\"" + btn + "\">+ Total</button></div>" +
-    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\"><button id=\"hf-cancel\" type=\"button\" style=\"background:#334155;color:#f8fafc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;\">Cancelar</button><button id=\"hf-apply\" type=\"button\" style=\"background:#3b82f6;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;\">Aplicar</button></div></div></div>";
-  var headerInput = document.getElementById("hf-header");
-  var footerInput = document.getElementById("hf-footer");
-  if (headerInput) headerInput.value = curH;
-  if (footerInput) footerInput.value = curF;
-  host.querySelectorAll(".hf-insert").forEach(function (b) {
-    b.onclick = function () {
-      var t = document.getElementById(b.getAttribute("data-target"));
-      if (!t) return;
-      var tok = b.getAttribute("data-token") || "";
-      var s = t.selectionStart || t.value.length, e = t.selectionEnd || s;
-      t.value = t.value.slice(0, s) + tok + t.value.slice(e);
-      t.focus();
-      try { t.setSelectionRange(s + tok.length, s + tok.length); } catch (err) {}
-    };
-  });
+  host.innerHTML = [
+    "<div class=\"docs-modal\" id=\"docs-hf-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;\">",
+    "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:520px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
+    "<h3 style=\"margin:0;font-size:16px;\">Cabeçalho e Rodapé</h3>",
+    "<label style=\"font-size:12px;color:#94a3b8;\">Cabeçalho (aparece no topo de cada página)<input id=\"hf-header\" type=\"text\" placeholder=\"Cabeçalho...\" style=\"width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;\"/></label>",
+    "<label style=\"font-size:12px;color:#94a3b8;\">Rodapé (aparece no final de cada página)<input id=\"hf-footer\" type=\"text\" placeholder=\"Rodapé...\" style=\"width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;\"/></label>",
+    "<div style=\"display:flex;gap:8px;justify-content:flex-end;\">",
+    "<button id=\"hf-cancel\" type=\"button\" style=\"background:#334155;color:#f8fafc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;\">Cancelar</button>",
+    "<button id=\"hf-apply\" type=\"button\" style=\"background:#3b82f6;color:white;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600;\">Aplicar</button>",
+    "</div></div></div>"
+  ].join("");
   document.getElementById("hf-cancel").onclick = function () { host.innerHTML = ""; };
   document.getElementById("hf-apply").onclick = function () {
-    var art = getActiveArticle();
-    if (!art) { host.innerHTML = ""; return; }
-    var h = art.querySelector(".docs-header-zone");
-    if (!h) { h = document.createElement("div"); h.className = "docs-header-zone"; h.contentEditable = "true"; art.insertBefore(h, art.firstChild); }
-    h.textContent = (headerInput && headerInput.value) || "";
-    var f = art.querySelector(".docs-footer-zone");
-    if (!f) { f = document.createElement("div"); f.className = "docs-footer-zone"; f.contentEditable = "true"; art.appendChild(f); }
-    f.textContent = (footerInput && footerInput.value) || "";
-    scheduleSave(art.dataset.docId, art.innerHTML);
+    var header = document.getElementById("hf-header").value || "";
+    var footer = document.getElementById("hf-footer").value || "";
+    var article = getActiveArticle();
+    if (!article) { host.innerHTML = ""; return; }
+    var h = article.querySelector(".docs-header-zone");
+    if (!h) { h = document.createElement("div"); h.className = "docs-header-zone"; h.contentEditable = "true"; article.insertBefore(h, article.firstChild); }
+    h.textContent = header;
+    var f = article.querySelector(".docs-footer-zone");
+    if (!f) { f = document.createElement("div"); f.className = "docs-footer-zone"; f.contentEditable = "true"; article.appendChild(f); }
+    f.textContent = footer;
+    scheduleSave(article.dataset.docId, article.innerHTML);
     host.innerHTML = "";
   };
 }
 
-// AI endpoints answer JSON; render the answer field instead of swapping the object.
+// AI endpoints answer JSON ({response}); htmx used to swap the object into
+// the panel/modal as text. Render the answer field instead.
 if (!window.__gbDocsAiHook) {
   window.__gbDocsAiHook = true;
   document.addEventListener("htmx:afterRequest", function (event) {
-    var detail = event.detail || {}, path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
+    var detail = event.detail || {};
+    var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
     if (path.indexOf("/api/docs/ai/") !== 0 || !detail.successful) return;
-    var text = "";
+    var textResp = "";
     try {
       var data = JSON.parse(detail.xhr.responseText);
-      text = data.result === "unavailable" && data.error ? data.error : (data.content || data.response || data.text || data.result || "");
-    } catch (error) { text = detail.xhr.responseText; }
-    var target = document.getElementById("ai-result-panel") || document.getElementById("ai-result-modal");
-    if (target) target.textContent = text;
+      textResp = data.result === "unavailable" && data.error
+        ? data.error
+        : (data.content || data.response || data.text || data.result || "");
+    } catch (error) {
+      textResp = detail.xhr.responseText;
+    }
+    var target = document.getElementById("ai-result-panel") ||
+      document.getElementById("ai-result-modal");
+    if (target) target.textContent = textResp;
   });
 }

@@ -66,3 +66,4 @@
 .learn-app-form-group input:focus,.learn-app-form-group select:focus,.learn-app-form-group textarea:focus{outline:none;border-color:var(--primary-color,#3b82f6)}
 @media(max-width:768px){.learn-app-stats{grid-template-columns:1fr 1fr}.learn-app-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.learn-app-stats{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

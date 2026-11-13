@@ -12,8 +12,8 @@
     if (window.GBShared && window.GBShared.auth) return window.GBShared.auth.headers();
     try {
       var token =
-        (window.getGBAccessToken && window.getGBAccessToken()) ||
-        localStorage.getItem("gb-access-token") ||
+        (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
         sessionStorage.getItem("gb-access-token") ||
         "";
       return token ? { Authorization: "Bearer " + token } : {};

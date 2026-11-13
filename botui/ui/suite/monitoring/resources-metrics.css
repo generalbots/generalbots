@@ -281,8 +281,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -438,7 +440,6 @@
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border);
 }
-
 .interface-row:last-child {
     border-bottom: none;
 }
@@ -448,3 +449,4 @@
     flex-direction: column;
     gap: 0.125rem;
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

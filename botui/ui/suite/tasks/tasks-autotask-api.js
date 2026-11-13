@@ -58,7 +58,7 @@
           .map(function (row) {
             var title = row.title || "automation";
             var status = row.status || "pending";
-            var when = row.created_at ? new Date(row.created_at).toLocaleString() : "";
+            var when = row.created_at ? gbFormatDateTime(new Date(row.created_at)) : "";
             return (
               '<div class="autotask-item" data-item-id="' + esc(row.id) + '">' +
               '<span class="autotask-item-status st-' + esc(status) + '">' + esc(status) + "</span>" +
@@ -91,11 +91,13 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.success) {
-          alert((data && data.message) || "Could not resolve this item's source.");
+          if (typeof gbAlert === "function") gbAlert((data && data.message) || "Could not resolve this item's source.");
+          else if (typeof showToast === "function") showToast((data && data.message) || "Could not resolve this item's source.", "error");
           return;
         }
         if (!window.WindowManager || !data.project_id) {
-          alert("Editing needs the bot's project (no git project found).");
+          if (typeof gbAlert === "function") gbAlert("Editing needs the bot's project (no git project found).");
+          else if (typeof showToast === "function") showToast("Editing needs the bot's project (no git project found).", "warning");
           return;
         }
         var ts = Date.now();
@@ -109,7 +111,8 @@
           });
       })
       .catch(function () {
-        alert("Could not load this item's source.");
+        if (typeof gbAlert === "function") gbAlert("Could not load this item's source.");
+        else if (typeof showToast === "function") showToast("Could not load this item's source.", "error");
       });
   }
 

@@ -124,7 +124,7 @@ async function loadSettings(){
     if(data&&data.connected){
         if(accountEl)accountEl.textContent=data.account||'o365';
         if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
-        if(syncEl)syncEl.textContent=(data.last_sync?new Date(data.last_sync).toLocaleString():new Date().toLocaleString());
+        if(syncEl)syncEl.textContent=(data.last_sync?gbFormatDateTime(new Date(data.last_sync)):gbFormatDateTime(new Date()));
     }else{
         if(accountEl)accountEl.textContent='o365';
         if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
@@ -183,7 +183,7 @@ async function syncNow(){
     var syncEl=document.getElementById('settings-sync');
     if(syncEl)syncEl.textContent='Syncing...';
     await apiCall('/api/o365/sync',{method:'POST'});
-    if(syncEl)syncEl.textContent=new Date().toLocaleString();
+    if(syncEl)syncEl.textContent=gbFormatDateTime(new Date());
     loadAll();
 }
 

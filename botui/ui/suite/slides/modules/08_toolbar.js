@@ -5,6 +5,9 @@
  * `/api/slides/element/update` (the handler merges the `style` object into the
  * element) AND be applied locally for instant feedback. Every control acts on
  * the element currently selected on the slide.
+ * #2291 — colour pickers use GBColorPicker: live preview stays local, a single
+ * commit (swatch/hex/native change) produces one update + one edit record +
+ * one snapshot per interaction (never per drag pixel).
  */
 (function () {
   function selectedElement() {
@@ -22,6 +25,12 @@
     if (style.font_size) el.style.fontSize = style.font_size + "px";
   }
 
+  function applyLocalOnly(style) {
+    var el = selectedElement();
+    if (!el) return;
+    applyLocal(el, style);
+  }
+
   function persist(style) {
     var el = selectedElement();
     if (!el) return;
@@ -37,7 +46,12 @@
         element_id: el.dataset.id,
         style: style,
       }),
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.error("[gb-slides] Failed to save toolbar style:", err);
+      if (window.GBToasts && window.GBToasts.show) {
+        window.GBToasts.show("Slides", "Could not save style change", "error");
+      }
+    });
     if (window.recordSlidesEdit) window.recordSlidesEdit();
     if (window.recordSlidesSnapshot) window.recordSlidesSnapshot();
   }
@@ -57,6 +71,33 @@
       button.setAttribute("aria-pressed", next === on ? "true" : "false");
       var style = {};
       style[key] = next;
+      persist(style);
+    });
+  }
+
+  function bindColor(id, styleKey) {
+    var input = document.getElementById(id);
+    if (!input) return;
+    var trigger = document.querySelector('[data-gb-color-for="' + id + '"]');
+    if (window.GBColorPicker) {
+      window.GBColorPicker.enhance(input, { trigger: trigger });
+    }
+    input.addEventListener("gb-color-preview", function () {
+      var style = {};
+      style[styleKey] = input.value;
+      applyLocalOnly(style);
+    });
+    input.addEventListener("gb-color-commit", function () {
+      var style = {};
+      style[styleKey] = input.value;
+      persist(style);
+    });
+    // Fallback: if richer picker is unavailable, commit on native change only
+    // (never on per-pixel input) to avoid flooding.
+    input.addEventListener("change", function () {
+      if (input._gbColorEnhanced) return;
+      var style = {};
+      style[styleKey] = input.value;
       persist(style);
     });
   }
@@ -100,35 +141,12 @@
       });
     }
 
-    var textColor = document.getElementById("slTextColor");
-    if (textColor) {
-      textColor.addEventListener("input", function () {
-        persist({ color: textColor.value });
-      });
-    }
-
-    var fillColor = document.getElementById("slFillColor");
-    if (fillColor) {
-      fillColor.addEventListener("input", function () {
-        persist({ fill: fillColor.value });
-      });
-    }
-
-    var remove = document.getElementById("slDeleteBtn");
-    if (remove) {
-      remove.addEventListener("click", function (event) {
-        event.preventDefault();
-        var el = selectedElement();
-        if (el && window.SlideCanvas && window.SlideCanvas.deleteElement) {
-          window.SlideCanvas.deleteElement(el);
-        }
-      });
-    }
+    bindColor("slTextColor", "color");
+    bindColor("slFillColor", "fill");
   }
 
-  window.initSlidesToolbar = initToolbar;
   if (document.readyState === "loading") {
-    window.addEventListener("DOMContentLoaded", initToolbar);
+    document.addEventListener("DOMContentLoaded", initToolbar);
   } else {
     initToolbar();
   }

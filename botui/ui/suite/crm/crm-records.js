@@ -45,6 +45,11 @@
         var box = document.getElementById('crm-bulk-result');
         if (!box) box = document.getElementById('campaign-result');
         if (!box) return;
+        var lower = String(text || '').toLowerCase();
+        var isAlert = /fail|error|unavailable/.test(lower);
+        box.setAttribute('role', isAlert ? 'alert' : 'status');
+        box.setAttribute('aria-live', isAlert ? 'assertive' : 'polite');
+        box.setAttribute('aria-atomic', 'true');
         box.textContent = text;
         setTimeout(function() { box.textContent = ''; }, 8000);
     }
@@ -267,14 +272,19 @@
         var panel = document.getElementById('record-detail-panel');
         if (!panel) return;
         panel.classList.add('open');
+        panel.setAttribute('role', 'region');
+        panel.setAttribute('aria-live', 'polite');
         panel.innerHTML = '<div class="crm-detail-empty">Loading…</div>';
         fetch('/api/ui/crm/records/' + entity + '/' + id, { headers: headers() })
             .then(function(r) { return r.ok ? r.text() : Promise.reject(r.status); })
             .then(function(html) {
+                panel.setAttribute('aria-live', 'polite');
                 panel.innerHTML = html;
                 if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
             })
             .catch(function(status) {
+                panel.setAttribute('role', 'alert');
+                panel.setAttribute('aria-live', 'assertive');
                 panel.innerHTML = '<div class="crm-detail-empty">Record unavailable (' + status + ')</div>';
             });
     }
@@ -314,23 +324,11 @@
         });
     });
 
-    // Lost reason from the detail panel (#1441 C7).
-    document.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-action="save-lost-reason"]');
-        if (!btn) return;
-        var input = document.getElementById('record-lost-reason');
-        var entity = btn.dataset.entity;
-        var id = btn.dataset.id;
-        var base = entity === 'opportunity' ? ENDPOINTS.opportunity : ENDPOINTS.lead;
-        fetch(base + '/' + id, {
-            method: 'PUT',
-            headers: headers(true),
-            body: JSON.stringify({ lost_reason: input ? input.value.trim() : '' })
-        }).then(function(resp) {
-            notice(resp.ok ? 'Lost reason saved' : 'Save failed (' + resp.status + ')');
-            if (resp.ok) openRecordDetail(entity, id);
-        });
-    });
+    // #2313 — the lost reason lives on the record form (input#crm-lost-reason,
+    // name="lost_reason"), which the shared submit below persists with the rest
+    // of the record. The former click handler here targeted #record-lost-reason
+    // and a [data-action="save-lost-reason"] button that no HTML ever shipped,
+    // so it could only ever throw.
 
     // ── Row actions (View / Edit / Delete) ─────────────────────────────────
     function fetchRecord(entity, id) {
@@ -362,14 +360,17 @@
             });
         } else if (action === 'delete') {
             e.preventDefault();
-            if (!confirm('Delete this ' + entity + '? The action is recorded in the audit trail.')) return;
-            var base = ENDPOINTS[entity];
-            if (!base) return;
-            fetch(base + '/' + id, { method: 'DELETE', headers: headers() })
-                .then(function(resp) {
-                    notice(resp.ok ? entity + ' deleted' : 'Delete failed (' + resp.status + ')');
-                    if (resp.ok) refreshEntity(entity);
+            if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+                window.GBModal.confirm('Delete this ' + entity + '? The action is recorded in the audit trail.', 'Confirm', function() {
+                    var base = ENDPOINTS[entity];
+                    if (!base) return;
+                    fetch(base + '/' + id, { method: 'DELETE', headers: headers() })
+                        .then(function(resp) {
+                            notice(resp.ok ? entity + ' deleted' : 'Delete failed (' + resp.status + ')');
+                            if (resp.ok) refreshEntity(entity);
+                        });
                 });
+            }
         }
     });
 })();

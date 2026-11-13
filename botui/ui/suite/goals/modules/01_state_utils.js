@@ -39,7 +39,7 @@
     if (!dateString) return "Not set";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString();
+      return gbFormatDate(date);
     } catch {
       return dateString;
     }

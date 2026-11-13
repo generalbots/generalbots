@@ -151,7 +151,7 @@
             </div>
 
             <!-- AI Response -->
-            <div class="ai-response hidden" id="ai-response">
+            <div class="ai-response hidden" id="ai-response" aria-live="polite">
                 <div class="ai-response-header">
                     <span data-i18n="paper-ai-response">AI Response</span>
                     <div class="ai-response-actions">
@@ -219,7 +219,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="ai-response-content" id="ai-response-content">
+                <div class="ai-response-content" id="ai-response-content" role="status" aria-live="polite" aria-atomic="false">
                     <!-- AI response loads here -->
                 </div>
             </div>

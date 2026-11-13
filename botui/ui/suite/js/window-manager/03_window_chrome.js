@@ -109,8 +109,12 @@
     const body = document.getElementById(`window-body-${id}`);
     if (!body) return;
     body.dataset.windowId = id;
+    // #2356 — `open(id)` with no content used to set innerHTML = undefined,
+    // which renders the literal word "undefined" in the app body and reads
+    // like a broken mount. Never let a missing fragment become visible text.
+    const html = (htmlContent == null) ? "" : String(htmlContent);
     const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlContent;
+    tempDiv.innerHTML = html;
     const scripts = Array.from(tempDiv.querySelectorAll("script")).map((s) => {
       const clone = document.createElement("script");
       Array.from(s.attributes).forEach((a) => clone.setAttribute(a.name, a.value));

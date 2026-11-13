@@ -22,34 +22,64 @@
             return fetch(url, options);
         }
 
-        function closeEditorWindow() {
-            // Find the window element and close via WindowManager
-            var el = document.getElementById('editor-filename');
-            if (!el) { window.location.href = '/suite/desktop.html#'; return; }
-            // Walk up to find window-container
-            var w = el.closest('[id^="window-"]');
+        // #2282 — resolve the editor window root and its Drive file context so
+        // two editor windows keep independent file contexts.
+        function gbEditorResolveRoot(el) {
+            var node = el && el.nodeType ? el : (el && el.target ? el.target : null);
+            if (node && node.closest) {
+                var w = node.closest('[id^="window-body-"]');
+                if (w) return w;
+            }
+            var ae = document.activeElement;
+            if (ae && ae.closest) {
+                var aw = ae.closest('[id^="window-body-"]');
+                if (aw) return aw;
+            }
+            return document;
+        }
+        function gbEditorFileCtx(root) {
+            root = root || document;
+            var ds = root.dataset || {};
+            if (ds.gbFilePath) {
+                return { bucket: ds.gbFileBucket || '', path: ds.gbFilePath, scope: ds.gbFileScope || 'bot' };
+            }
+            var wid = ds.windowId || (root.id || '').replace('window-body-', '');
+            var map = (window.__EDITOR_FILE_CTX && window.__EDITOR_FILE_CTX[wid]) ||
+                (window.__GB_WINDOW_FILE_CTX && window.__GB_WINDOW_FILE_CTX[wid]);
+            if (map && map.path) return { bucket: map.bucket || '', path: map.path, scope: map.scope || 'bot' };
+            var params = new URLSearchParams(window.location.search);
+            return {
+                bucket: window.__EDITOR_FILE_BUCKET || params.get('bucket') || '',
+                path: window.__EDITOR_FILE_PATH || params.get('file') || '',
+                scope: window.__EDITOR_FILE_SCOPE || 'bot',
+            };
+        }
+
+        function closeEditorWindow(el) {
+            var root = gbEditorResolveRoot(el);
+            var w = root && root.id ? document.getElementById(root.id.replace('window-body-', 'window-')) : null;
+            if (!w && root && root.closest) w = root.closest('[id^="window-"]');
             if (w) {
                 var id = w.id.replace('window-', '');
                 if (window.WindowManager) window.WindowManager.close(id);
                 return;
             }
-            // Fallback: navigate to drive
             if (window.htmx) htmx.ajax('GET', '/api/files/list', { target: '#main-content', pushUrl: true });
             else window.location.href = '/suite/drive/drive.html';
         }
 
-        // Save file content back to Drive
-        function saveEditorFile() {
-            var filePath = window.__EDITOR_FILE_PATH || '';
-            var params = new URLSearchParams(window.location.search);
-            if (!filePath) filePath = params.get('file') || '';
-            var bucket = window.__EDITOR_FILE_BUCKET || params.get('bucket') || '';
-            var scope = window.__EDITOR_FILE_SCOPE || 'bot';
+        // Save file content back to Drive (scoped to the invoking window)
+        function saveEditorFile(el) {
+            var root = gbEditorResolveRoot(el);
+            var ctx = gbEditorFileCtx(root);
+            var filePath = ctx.path || '';
+            var bucket = ctx.bucket || '';
+            var scope = ctx.scope || 'bot';
             if (!filePath) { showSaveNotification({detail:{successful:false}}); return; }
             var content = '';
-            if (window.__CSV_ACTIVE) {
-                // Rebuild CSV from table inputs
-                var table = document.querySelector('#csv-editor table.csv-table');
+            var csvActive = root && root.__csvActive;
+            if (csvActive) {
+                var table = root.querySelector('#csv-editor table.csv-table') || root.querySelector('.csv-table');
                 if (table) {
                     var rows = Array.from(table.querySelectorAll('tbody tr'));
                     var headers = Array.from(table.querySelectorAll('thead th')).slice(1).map(function(th) { return th.textContent; });
@@ -62,12 +92,12 @@
                     content = lines.join('\n');
                 }
             } else {
-                var ta = document.getElementById('text-editor');
+                var ta = root.querySelector ? root.querySelector('#text-editor') : document.getElementById('text-editor');
                 content = ta ? ta.value : '';
-                if (window.monacoEditorInstance) content = window.monacoEditorInstance.getValue();
-
+                if (root && root.__monacoEditorInstance) content = root.__monacoEditorInstance.getValue();
+                else if (window.monacoEditorInstance && !root.__vibeProjectId) content = window.monacoEditorInstance.getValue();
             }
-            var spinner = document.getElementById('save-spinner');
+            var spinner = root.querySelector ? root.querySelector('#save-spinner') : document.getElementById('save-spinner');
             if (spinner) spinner.style.display = 'inline-block';
             var pathParts = filePath.split('/');
             var relativePath = pathParts.slice(2).join('/');
@@ -85,7 +115,8 @@
                 if (spinner) spinner.style.display = 'none';
                 if (r.ok) {
                     showSaveNotification({detail:{successful:true}});
-                    document.getElementById('dirty-indicator').style.display = 'none';
+                    var dirty = root.querySelector ? root.querySelector('#dirty-indicator') : document.getElementById('dirty-indicator');
+                    if (dirty) dirty.style.display = 'none';
                 } else {
                     showSaveNotification({detail:{successful:false}});
                 }
@@ -95,18 +126,18 @@
             });
         }
 
-        function switchToCsvMode(csvData) {
-            var textWrapper = document.getElementById('text-editor-wrapper');
-            var csvSection = document.getElementById('csv-editor');
-            var textTools = document.getElementById('text-tools');
-            var csvTools = document.getElementById('csv-tools');
+        function switchToCsvMode(csvData, root) {
+            root = gbEditorResolveRoot(root);
+            var textWrapper = root.querySelector ? root.querySelector('#text-editor-wrapper') : document.getElementById('text-editor-wrapper');
+            var csvSection = root.querySelector ? root.querySelector('#csv-editor') : document.getElementById('csv-editor');
+            var textTools = root.querySelector ? root.querySelector('#text-tools') : document.getElementById('text-tools');
+            var csvTools = root.querySelector ? root.querySelector('#csv-tools') : document.getElementById('csv-tools');
             if (textWrapper) textWrapper.style.display = 'none';
             if (csvSection) { csvSection.style.display = 'block'; csvSection.innerHTML = ''; }
             if (csvTools) csvTools.style.display = 'flex';
             if (textTools) textTools.style.display = 'none';
-            var monacoContainer = document.getElementById('monaco-editor');
+            var monacoContainer = root.querySelector ? root.querySelector('#monaco-editor') : document.getElementById('monaco-editor');
             if (monacoContainer) monacoContainer.style.display = 'none';
-            // Build CSV table
             if (!csvData) return;
             var lines = csvData.split('\n').filter(function(l) { return l.trim(); });
             if (lines.length === 0) return;
@@ -119,7 +150,7 @@
             cornerTh.className = 'row-num';
             cornerTh.textContent = '#';
             headRow.appendChild(cornerTh);
-            headers.forEach(function(h, ci) {
+            headers.forEach(function(h) {
                 var th = document.createElement('th');
                 th.textContent = h;
                 headRow.appendChild(th);
@@ -148,14 +179,16 @@
                 tbody.appendChild(tr);
             }
             table.appendChild(tbody);
-            var csvSection = document.getElementById('csv-editor');
+            csvSection = root.querySelector ? root.querySelector('#csv-editor') : document.getElementById('csv-editor');
             if (csvSection) { csvSection.innerHTML = ''; csvSection.appendChild(table); }
+            if (root && root.dataset) root.__csvActive = true;
             window.__CSV_DATA = csvData;
             window.__CSV_ACTIVE = true;
         }
 
-        function csvAddRow() {
-            var table = document.querySelector('#csv-editor table.csv-table');
+        function csvAddRow(el) {
+            var root = gbEditorResolveRoot(el);
+            var table = root.querySelector ? root.querySelector('#csv-editor table.csv-table') : document.querySelector('#csv-editor table.csv-table');
             if (!table) return;
             var tbody = table.querySelector('tbody');
             if (!tbody) { tbody = document.createElement('tbody'); table.appendChild(tbody); }
@@ -177,11 +210,14 @@
             }
             tbody.appendChild(tr);
             window.__CSV_DIRTY = true;
-            document.getElementById('dirty-indicator').style.display = 'inline-block';
+            if (root && root.dataset) root.__csvDirty = true;
+            var dirty = root.querySelector ? root.querySelector('#dirty-indicator') : document.getElementById('dirty-indicator');
+            if (dirty) dirty.style.display = 'inline-block';
         }
 
-        function csvAddColumn() {
-            var table = document.querySelector('#csv-editor table.csv-table');
+        function csvAddColumn(el) {
+            var root = gbEditorResolveRoot(el);
+            var table = root.querySelector ? root.querySelector('#csv-editor table.csv-table') : document.querySelector('#csv-editor table.csv-table');
             if (!table) return;
             var thead = table.querySelector('thead');
             if (thead) {
@@ -200,7 +236,9 @@
                 tr.appendChild(td);
             });
             window.__CSV_DIRTY = true;
-            document.getElementById('dirty-indicator').style.display = 'inline-block';
+            if (root && root.dataset) root.__csvDirty = true;
+            var dirty = root.querySelector ? root.querySelector('#dirty-indicator') : document.getElementById('dirty-indicator');
+            if (dirty) dirty.style.display = 'inline-block';
         }
 
         function parseCsvLine(line) {

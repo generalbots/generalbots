@@ -146,8 +146,8 @@
             <span class="stat-label" data-i18n="monitoring-logs-total">Total</span>
             <span class="stat-count" id="total-count">0</span>
         </div>
-        <div class="connection-status" id="connection-status">
-            <span class="status-dot"></span>
+        <div class="connection-status" id="connection-status" role="status" aria-live="polite" aria-atomic="true">
+            <span class="status-dot" aria-hidden="true"></span>
             <span class="status-text" data-i18n="terminal-connecting">Connecting...</span>
         </div>
     </div>
@@ -155,8 +155,8 @@
     <!-- Log Stream Container -->
     <!-- Note: ws-connect="/ws/logs" removed until backend WebSocket endpoint is implemented -->
     <div class="log-stream-container">
-        <div class="log-stream" id="log-stream">
-            <div class="log-placeholder">
+        <div class="log-stream" id="log-stream" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Log stream">
+            <div class="log-placeholder" role="status" aria-live="polite">
                 <svg
                     width="48"
                     height="48"
@@ -164,6 +164,7 @@
                     fill="none"
                     stroke="currentColor"
                     stroke-width="1.5"
+                    aria-hidden="true"
                 >
                     <path
                         d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
@@ -267,6 +268,6 @@
     </div>
 </template>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/logs.js"></script>

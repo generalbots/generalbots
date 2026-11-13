@@ -70,15 +70,18 @@
             view.innerHTML = "";
             return;
         }
+        var app = root();
         try {
             var payload = await namespace.fetchJson(base(), { credentials: "same-origin" });
             var items = Array.isArray(payload.automations) ? payload.automations : [];
             statusNode.textContent = items.length ? "" : "No automations yet.";
             view.removeAttribute("aria-busy");
             view.innerHTML = items.length ? items.map(rowMarkup).join("") : "";
+            if (app) namespace.announce(app, items.length ? items.length + " automation" + (items.length === 1 ? "" : "s") + " loaded" : "No automations yet");
         } catch (error) {
             statusNode.textContent = "Automations are unavailable right now.";
             view.removeAttribute("aria-busy");
+            if (app) namespace.announce(app, "Automations are unavailable right now");
         }
     }
 
@@ -96,9 +99,45 @@
             '</article>';
     }
 
+    function confirmWithModal(message) {
+        return new Promise(function (resolve) {
+            if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                window.GBModal.confirm(message, "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            }
+            resolve(false);
+        });
+    }
+
+    async function deleteAutomation(app, article, id, button) {
+        if (!app || !article || !id || !button) return;
+        if (button.disabled || button.dataset.deleting === "1") return;
+
+        var confirmed = await confirmWithModal("Delete this automation?");
+        if (!confirmed) return;
+
+        button.disabled = true;
+        button.dataset.deleting = "1";
+        button.setAttribute("aria-busy", "true");
+
+        try {
+            await namespace.fetchJson(base() + "/" + encodeURIComponent(id), { method: "DELETE" });
+            article.remove();
+            var statusNode = app.querySelector("[data-automation-status]");
+            var remaining = app.querySelectorAll("[data-automation-id]").length;
+            if (!remaining && statusNode) statusNode.textContent = "No automations yet.";
+            namespace.announce(app, "Automation deleted.");
+        } catch (error) {
+            button.disabled = false;
+            delete button.dataset.deleting;
+            button.removeAttribute("aria-busy");
+            namespace.announce(app, "Could not delete the automation.");
+        }
+    }
+
     function onDelegatedClick(event) {
         var target = event.target;
-        if (!target.closest) return;
+        if (!target || !target.closest) return;
         var app = target.closest("[data-integrations-app]");
         if (!app) return;
 
@@ -115,44 +154,60 @@
             app.querySelector("[data-automation-form]").hidden = true;
             return;
         }
-        if (target.matches('[data-action="delete-automation"]')) {
-            var article = target.closest("[data-automation-id]");
+        var deleteButton = target.closest('[data-action="delete-automation"]');
+        if (deleteButton && app.contains(deleteButton)) {
+            var article = deleteButton.closest("[data-automation-id]");
             var id = article && article.dataset.automationId;
             if (!id) return;
             event.preventDefault();
-            namespace.fetchJson(base() + "/" + encodeURIComponent(id), { method: "DELETE" })
-                .then(function () {
-                    article.remove();
-                    var remaining = app.querySelectorAll("[data-automation-id]").length;
-                    if (!remaining) app.querySelector("[data-automation-status]").textContent = "No automations yet.";
-                })
-                .catch(function () {});
+            void deleteAutomation(app, article, id, deleteButton);
+        }
+    }
+
+    async function toggleAutomation(app, article, id, input, enabled) {
+        if (!app || !article || !id || !input) return;
+        if (input.disabled || input.dataset.toggling === "1") return;
+
+        input.disabled = true;
+        input.dataset.toggling = "1";
+        try {
+            await namespace.fetchJson(base() + "/" + encodeURIComponent(id), {
+                method: "PATCH",
+                body: { enabled: enabled }
+            });
+            namespace.announce(app, enabled ? "Automation enabled." : "Automation disabled.");
+        } catch (error) {
+            input.checked = !enabled;
+            namespace.announce(app, "Could not update the automation.");
+        } finally {
+            input.disabled = false;
+            delete input.dataset.toggling;
         }
     }
 
     function onDelegatedChange(event) {
         var input = event.target;
-        if (!input.matches) return;
-        if (input.matches("[data-automation-provider]") ) {
-            syncActions(input.closest("[data-automation-form]"));
+        if (!input || !input.matches) return;
+        if (input.matches("[data-automation-provider]")) {
+            var providerForm = input.closest("[data-automation-form]");
+            if (providerForm) syncActions(providerForm);
             return;
         }
         if (input.matches("[data-automation-toggle]")) {
+            var app = input.closest("[data-integrations-app]");
             var article = input.closest("[data-automation-id]");
             var id = article && article.dataset.automationId;
-            if (!id) return;
-            namespace.fetchJson(base() + "/" + encodeURIComponent(id), {
-                method: "PATCH",
-                body: { enabled: input.checked }
-            }).catch(function () {});
+            if (!app || !id) return;
+            void toggleAutomation(app, article, id, input, input.checked);
         }
     }
 
     function onDelegatedSubmit(event) {
         var form = event.target;
-        if (!form.matches || !form.matches("[data-automation-form]")) return;
+        if (!form || !form.matches || !form.matches("[data-automation-form]")) return;
         event.preventDefault();
         var errorNode = form.querySelector("[data-automation-error]");
+        if (!errorNode) return;
         errorNode.hidden = true;
 
         var providerSlug = form.elements.provider.value;
@@ -176,13 +231,17 @@
             method: "POST",
             body: { provider: providerSlug, action: actionKey, schedule: schedule, params: params }
         }).then(function () {
+            var app = root();
             form.reset();
             form.hidden = true;
+            if (app) namespace.announce(app, "Automation created");
             var view = root().querySelector("[data-automations-view]");
             loadAutomations(view, root().querySelector("[data-automation-status]"));
         }).catch(function () {
+            var app = root();
             errorNode.textContent = "Could not create the automation.";
             errorNode.hidden = false;
+            if (app) namespace.announce(app, "Could not create the automation");
         });
     }
 

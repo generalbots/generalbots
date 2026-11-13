@@ -102,11 +102,32 @@
         });
     }
 
-    function deleteRow(row) {
+    function dbConfirm(message, title) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            return new Promise(function (resolve) {
+                window.GBModal.confirm(String(message), title || "Confirm", function () { resolve(true); }, function () { resolve(false); });
+            });
+        }
+        return Promise.resolve(false);
+    }
+
+    function dbPrompt(message, defaultValue, title) {
+        if (window.GBModal && typeof window.GBModal.prompt === "function") {
+            return new Promise(function (resolve) {
+                window.GBModal.prompt(String(message), defaultValue == null ? "" : String(defaultValue), title || "Input", function (v) {
+                    resolve(v == null ? null : String(v));
+                });
+            });
+        }
+        return Promise.resolve(null);
+    }
+
+    async function deleteRow(row) {
         var tableName = M.state.table ? M.state.table.name : null;
         if (!tableName) return;
         var pk = M.pkValue(row);
-        if (!confirm("Delete row with " + (M.state.pk || "id") + " = " + pk + "?")) return;
+        var ok = await dbConfirm("Delete row with " + (M.state.pk || "id") + " = " + pk + "?", "Delete row");
+        if (!ok) return;
         var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row/" + encodeURIComponent(pk);
         M.apiEnv(url, { method: "DELETE" }).then(function (data) {
             var status = document.getElementById("vibeDbTableLabel");
@@ -123,12 +144,13 @@
         });
     }
 
-    function insertRow() {
+    async function insertRow() {
         var tableName = M.state.table ? M.state.table.name : null;
         if (!tableName) return;
         var data = {};
-        M.state.cols.forEach(function (c) {
-            var v = prompt("Value for " + c + " (blank = NULL):", "");
+        for (var i = 0; i < M.state.cols.length; i++) {
+            var c = M.state.cols[i];
+            var v = await dbPrompt("Value for " + c + " (blank = NULL):", "", "Insert row");
             if (v === null) return; // cancelled
             if (v === "") {
                 data[c] = null;
@@ -139,7 +161,7 @@
                 else if (v === "false") data[c] = false;
                 else data[c] = v;
             }
-        });
+        }
         var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row";
         M.apiEnv(url, { method: "POST", body: { data: data } }).then(function (res) {
             var status = document.getElementById("vibeDbTableLabel");

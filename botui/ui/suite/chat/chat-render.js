@@ -110,21 +110,6 @@ function stripLiveArtifactBlock(content) {
     .trim();
 }
 
-function reexecuteScripts(container) {
-  var scripts = container.querySelectorAll('script');
-  for (var i = 0; i < scripts.length; i++) {
-    try {
-      var text = scripts[i].textContent || '';
-      if (text.trim()) {
-        var fn = new Function(text);
-        fn();
-      }
-    } catch (e) {
-      console.warn('Script exec error:', e);
-    }
-  }
-}
-
 function renderThinkingSection(reasoning) {
   if (!reasoning || reasoning.trim() === "") return "";
   var safeReasoning = escapeHtml(reasoning);

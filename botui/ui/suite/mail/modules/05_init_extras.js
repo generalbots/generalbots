@@ -53,6 +53,7 @@
   window.closeAddAccount = closeAddAccount;
   window.saveAccount = saveAccount;
   window.toggleSearchFilters = toggleSearchFilters;
+  window.applySearchFilters = applySearchFilters;
   window.loadUnifiedInbox = loadUnifiedInbox;
   window.searchAllAccounts = searchAllAccounts;
   window.handleSearchInput = handleSearchInput;
@@ -71,7 +72,7 @@
       .then(function (res) {
         if (res && res.snoozed_count !== undefined) {
           if (typeof window.showNotification === "function") {
-            window.showNotification("Snoozed until " + new Date(res.snooze_until).toLocaleString(), "success");
+            window.showNotification("Snoozed until " + gbFormatDateTime(new Date(res.snooze_until)), "success");
           }
         } else {
           throw new Error("Snooze failed");
@@ -103,7 +104,10 @@
             '<div class="smart-reply-label">Smart replies</div>' + chips;
         }
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort smart-reply suggestions; compose remains fully usable. */
+        console.debug("[gb-mail] Smart reply fetch failed:", err);
+      });
   }
 
   function useSmartReply(text) {
@@ -140,7 +144,10 @@
           }
         }
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort nudge suggestions; inbox remains usable without them. */
+        console.debug("[gb-mail] Nudge fetch failed:", err);
+      });
   }
 
   function dismissNudge(emailId) {
@@ -153,7 +160,10 @@
         var banner = document.getElementById("nudges-banner-" + emailId);
         if (banner) banner.innerHTML = "";
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort nudge dismiss; UI is already updated optimistically. */
+        console.debug("[gb-mail] Nudge dismiss failed:", err);
+      });
   }
 
   function initEmailExtras() {

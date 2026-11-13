@@ -48,7 +48,10 @@
         tx.oncomplete = function () { resolve(); };
         tx.onerror = function () { resolve(); };
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      /* Best-effort offline cache write; online drive remains the source of truth. */
+      console.debug("[gb-drive] Offline cache write failed:", err);
+    });
   }
 
   function getCachedListing(bucket, path) {
@@ -59,7 +62,11 @@
         req.onsuccess = function () { resolve(req.result || null); };
         req.onerror = function () { resolve(null); };
       });
-    }).catch(function () { return null; });
+    }).catch(function (err) {
+      /* Best-effort offline cache read; online drive remains the source of truth. */
+      console.debug("[gb-drive] Offline cache read failed:", err);
+      return null;
+    });
   }
 
   function addPendingUpload(bucket, path, content, scope) {
@@ -70,7 +77,10 @@
         tx.oncomplete = function () { resolve(); };
         tx.onerror = function () { resolve(); };
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      /* Best-effort offline queue write; upload may require manual retry. */
+      console.debug("[gb-drive] Offline queue write failed:", err);
+    });
   }
 
   function getPendingUploads() {
@@ -92,7 +102,10 @@
         tx.oncomplete = function () { resolve(); };
         tx.onerror = function () { resolve(); };
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      /* Best-effort offline queue cleanup. */
+      console.debug("[gb-drive] Offline queue cleanup failed:", err);
+    });
   }
 
   function syncPendingUploads() {
@@ -156,7 +169,7 @@
     if (button) {
       button.title = "Offline sync: " + syncState.state +
         (syncState.folder ? " (" + syncState.folder + ")" : "") +
-        (syncState.lastSync ? " · last " + new Date(syncState.lastSync).toLocaleString() : "");
+        (syncState.lastSync ? " · last " + gbFormatDateTime(new Date(syncState.lastSync)) : "");
     }
   }
 

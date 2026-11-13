@@ -257,7 +257,9 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.error("[gb-sheet] Failed to persist column width:", err);
+    });
   }
 
   function setColWidth(idx, w) {

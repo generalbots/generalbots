@@ -57,6 +57,32 @@
         return month + "/" + day + "/" + year;
     }
 
+    function toDate(value) {
+        return value instanceof Date ? value : new Date(value);
+    }
+
+    /* #2329 — the suite-wide formatters, available even on pages that load
+       this file without the desktop shell (the quicknote window, the settings
+       deep link). gb-shared.js defines the same three; whichever loads first
+       wins and both read the Settings -> Language preference. */
+    if (!window.gbFormatDate) {
+        window.gbFormatDate = function (value) {
+            var date = toDate(value);
+            if (!date || isNaN(date.getTime())) return "";
+            return formatDate(date, window.GBDateTime.dateFormat());
+        };
+        window.gbFormatTime = function (value) {
+            var date = toDate(value);
+            if (!date || isNaN(date.getTime())) return "";
+            return formatTime(date, window.GBDateTime.timeFormat());
+        };
+        window.gbFormatDateTime = function (value) {
+            var date = toDate(value);
+            if (!date || isNaN(date.getTime())) return "";
+            return window.gbFormatDate(date) + " " + window.gbFormatTime(date);
+        };
+    }
+
     window.GBDateTime = {
         timeFormat: function () {
             return readPref("gb-time-format", DEFAULT_TIME_FORMAT);
@@ -69,6 +95,9 @@
         },
         formatDate: function (date) {
             return formatDate(date, this.dateFormat());
+        },
+        formatDateTime: function (date) {
+            return formatDate(date, this.dateFormat()) + " " + formatTime(date, this.timeFormat());
         },
         /* Current time/date as an object, ready to paint into the clock. */
         now: function () {

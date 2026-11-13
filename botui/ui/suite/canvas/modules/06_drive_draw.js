@@ -1,34 +1,28 @@
 (function () {
     "use strict";
 
-    function currentCanvasFile() {
-        var p = window.__CANVAS_FILE_PATH || "";
-        var b = window.__CANVAS_FILE_BUCKET || "";
-        var s = window.__CANVAS_FILE_SCOPE || "bot";
-        // Deep links (chat artifact, Drive "Open") pass their arguments through
-        // window.__gbAppParams__; the shell URL has no query string of its own
-        // (#1708). Query params stay supported for direct navigation.
-        var gp = window.__gbAppParams__ || {};
-        if (!p) p = gp.file || "";
-        if (!b) b = gp.bucket || "";
-        if (gp.scope) s = gp.scope;
-        if (!p || !b) {
-            var qs = new URLSearchParams(window.location.search);
-            if (!p) p = qs.get("path") || "";
-            if (!b) b = qs.get("bucket") || "";
-        }
-        var folder = window.__CANVAS_FOLDER;
-        if (folder === undefined && p) {
-            folder = p.indexOf("/") === -1 ? "" : p.substring(0, p.lastIndexOf("/"));
-        }
-        return {
-            path: p,
-            bucket: b,
-            scope: s,
-            folder: folder || "",
-            name: p ? p.split("/").pop() : "",
-        };
+    // #2282 — per-window file context (page globals clobbered by next open).
+    var __canvasRoot = (function () { var s = document.currentScript; return s && s.closest ? s.closest('[id^="window-body-canvas"]') : null; })();
+    var __canvasWinId = __canvasRoot ? (__canvasRoot.dataset.windowId || __canvasRoot.id.replace("window-body-", "")) : "";
+    var __canvasFileCtx = (function () {
+        var ds = (__canvasRoot && __canvasRoot.dataset) || {};
+        var m = (window.__CANVAS_FILE_CTX && __canvasWinId && window.__CANVAS_FILE_CTX[__canvasWinId]) || (window.__GB_WINDOW_FILE_CTX && __canvasWinId && window.__GB_WINDOW_FILE_CTX[__canvasWinId]) || {};
+        var gp = window.__gbAppParams__ || {}, qs = new URLSearchParams(window.location.search);
+        return { bucket: ds.gbFileBucket || m.bucket || window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "",
+            path: ds.gbFilePath || m.path || window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "",
+            scope: ds.gbFileScope || m.scope || window.__CANVAS_FILE_SCOPE || gp.scope || qs.get("scope") || "bot" };
+    })();
+    function __setCanvasPath(p) {
+        __canvasFileCtx.path = p || "";
+        if (__canvasRoot && __canvasRoot.dataset) __canvasRoot.dataset.gbFilePath = p || "";
+        if (__canvasWinId) { window.__CANVAS_FILE_CTX = window.__CANVAS_FILE_CTX || {}; window.__CANVAS_FILE_CTX[__canvasWinId] = window.__CANVAS_FILE_CTX[__canvasWinId] || {}; window.__CANVAS_FILE_CTX[__canvasWinId].path = p || ""; }
     }
+    function currentCanvasFile() {
+        var p = __canvasFileCtx.path || "", b = __canvasFileCtx.bucket || "", s = __canvasFileCtx.scope || "bot";
+        var folder = p ? (p.indexOf("/") === -1 ? "" : p.substring(0, p.lastIndexOf("/"))) : "";
+        return { path: p, bucket: b, scope: s, folder: folder, name: p ? p.split("/").pop() : "" };
+    }
+    if (window._canvasApp) window._canvasApp._fileCtx = __canvasFileCtx;
 
     function driveFileOpen() {
         var f = currentCanvasFile();
@@ -166,7 +160,7 @@
                     // Keep the source SVG untouched: subsequent saves go to a
                     // sibling .draw file (which also round-trips the original
                     // SVG through `generated` when it stays a background).
-                    window.__CANVAS_FILE_PATH = f.path.replace(/\.svg$/i, ".draw");
+                    __setCanvasPath(f.path.replace(/\.svg$/i, ".draw"));
                     importSvgAsElements(text);
                     return;
                 }
@@ -228,7 +222,7 @@
                 method: "POST",
                 body: JSON.stringify(writeBody),
             }).then(function () {
-                window.__CANVAS_FILE_PATH = path;
+                __setCanvasPath(path);
                 setStatus("Saved · " + path.split("/").pop() + " ✓");
             });
         }
@@ -281,7 +275,7 @@
         if (app && typeof app.setCanvasElements === "function") app.setCanvasElements([]);
         var nameEl = document.getElementById("canvas-name");
         if (nameEl) nameEl.value = "Untitled Canvas";
-        window.__CANVAS_FILE_PATH = "";
+        __setCanvasPath("");
         setStatus("New canvas — press Save");
     }
 

@@ -74,7 +74,10 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
             desktops: state.desktops,
             current: state.current,
           }),
-        }).catch(function () {});
+        }).catch(function (err) {
+          /* Best-effort virtual desktop persistence. */
+          console.debug("[gb-virtual-desktops] Persist failed:", err);
+        });
       } catch (e) {}
     }, 1200);
   }

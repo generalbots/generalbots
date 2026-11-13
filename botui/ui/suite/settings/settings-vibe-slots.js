@@ -61,7 +61,7 @@
                             '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
                             '<select class="vibe-agent-select" data-agent="' + a.id + '" data-bot="' + botId + '" style="padding:8px 10px;border:1px solid var(--border,#334155);border-radius:6px;background:var(--bg,#14142a);color:var(--text,#eee);min-width:220px">' + options + "</select>" +
                             '<button type="button" class="btn-primary btn-sm vibe-agent-save" data-agent="' + a.id + '" data-bot="' + botId + '">Assign</button>' +
-                            '<span class="vibe-agent-status" data-status="' + a.id + '" style="font-size:12px;color:var(--text-muted,#8b93a7)"></span>' +
+                            '<span class="vibe-agent-status" data-status="' + a.id + '" role="status" aria-live="polite" aria-atomic="true" style="font-size:12px;color:var(--text-muted,#8b93a7)"></span>' +
                             "</div></div>"
                         );
                     }).join("");
@@ -88,6 +88,9 @@
                         .catch(function () { bindEvents(botId, conns); });
                 })
                 .catch(function (e) {
+                    root.setAttribute("role", "alert");
+                    root.setAttribute("aria-live", "assertive");
+                    root.setAttribute("aria-atomic", "true");
                     root.innerHTML = '<div class="empty-state"><p>Vibe agents unavailable: ' + escapeHtml((e && e.message) || e) + "</p></div>";
                 });
         }
@@ -113,7 +116,12 @@
                         .then(function (j) {
                             if (!j.success) throw new Error(j.error || "assign failed");
                             if (status) status.textContent = j.provider + " · " + j.model + " ✔";
-                            (window.GBModal||{alert:alert}).alert("Vibe " + agent + " agent → " + j.provider + " (" + j.model + ")");
+                            var msg = "Vibe " + agent + " agent → " + j.provider + " (" + j.model + ")";
+                            if (window.GBModal && typeof window.GBModal.alert === "function") {
+                              window.GBModal.alert(msg, "Vibe Agent");
+                            } else if (window.GBToasts && typeof window.GBToasts.show === "function") {
+                              window.GBToasts.show("Vibe Agent", msg, "success");
+                            }
                             render();
                         })
                         .catch(function (e) {

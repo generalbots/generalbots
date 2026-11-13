@@ -15,12 +15,11 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
 
   function token() {
     try {
-      return (
-        (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
-        localStorage.getItem("gb-access-token") ||
-        sessionStorage.getItem("gb-access-token") ||
-        ""
-      );
+      if (typeof window.getChatAccessToken === "function") return window.getChatAccessToken() || "";
+      if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
+        return window.GBSecurity.getToken() || "";
+      }
+      return sessionStorage.getItem("gb-access-token") || "";
     } catch (e) {
       return "";
     }

@@ -210,12 +210,27 @@ function toggleStream() {
   }
 }
 
-function clearLogs() {
-  if (confirm("Are you sure you want to clear all logs?")) {
-    const stream = document.getElementById("log-stream");
-    if (!stream) return;
+function gbLogsConfirm(message, title) {
+  if (window.GBModal && typeof window.GBModal.confirm === "function") {
+    return new Promise((resolve) => {
+      try {
+        window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+      } catch (e) {
+        console.error("GBModal.confirm failed", e);
+        resolve(false);
+      }
+    });
+  }
+  return Promise.resolve(false);
+}
 
-    stream.innerHTML = `
+async function clearLogs() {
+  const confirmed = await gbLogsConfirm("Are you sure you want to clear all logs?", "Confirm");
+  if (!confirmed) return;
+  const stream = document.getElementById("log-stream");
+  if (!stream) return;
+
+  stream.innerHTML = `
             <div class="log-placeholder">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -229,15 +244,14 @@ function clearLogs() {
             </div>
         `;
 
-    // Reset counts
-    logCounts = { debug: 0, info: 0, warn: 0, error: 0, fatal: 0 };
-    Object.keys(logCounts).forEach((level) => {
-      const el = document.getElementById(`${level}-count`);
-      if (el) el.textContent = "0";
-    });
-    const totalEl = document.getElementById("total-count");
-    if (totalEl) totalEl.textContent = "0";
-  }
+  // Reset counts
+  logCounts = { debug: 0, info: 0, warn: 0, error: 0, fatal: 0 };
+  Object.keys(logCounts).forEach((level) => {
+    const el = document.getElementById(`${level}-count`);
+    if (el) el.textContent = "0";
+  });
+  const totalEl = document.getElementById("total-count");
+  if (totalEl) totalEl.textContent = "0";
 }
 
 function downloadLogs() {

@@ -46,7 +46,8 @@
 }
 
 /* #2184 — classic two-row toolbar: sheet commands on the first row, cell
-   formatting on the second, the way 90s spreadsheets organised their bars. */
+   formatting on the second, the way 90s spreadsheets organised their bars.
+   #2290 — keep overflow discoverable: thin scrollbar + overflow chevron. */
 .sheet-toolbar-row {
     display: flex;
     align-items: center;
@@ -56,9 +57,15 @@
     box-sizing: border-box;
     min-height: 38px;
     overflow-x: auto;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sentient-border, #94a3b8) transparent;
 }
-.sheet-toolbar-row::-webkit-scrollbar { height: 0; display: none; }
+.sheet-toolbar-row::-webkit-scrollbar { height: 4px; }
+.sheet-toolbar-row::-webkit-scrollbar-thumb {
+    background: var(--sentient-border, #94a3b8);
+    border-radius: 2px;
+}
+.sheet-toolbar-row::-webkit-scrollbar-track { background: transparent; }
 .sheet-toolbar-row-main { border-bottom: 1px solid var(--sentient-border, #cbd5e1); }
 .sheet-toolbar-row-format { background: var(--sentient-bg-primary, #ffffff); }
 .sheet-toolbar-row-format .toolbar-format {
@@ -81,27 +88,22 @@
     min-width: 30px !important;
 }
 .sheet-color {
-    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+.sheet-color .gb-cp-trigger {
     gap: 2px;
+    min-width: 30px;
     width: 30px;
     height: 26px;
+    padding: 0;
     border: 1px solid var(--sheet-border, #cbd5e1);
     border-radius: 4px;
-    cursor: pointer;
     color: var(--sentient-text-primary, #212121);
 }
-.sheet-color input[type="color"] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    border: 0;
-    padding: 0;
-    background: none;
-}
+.sheet-color .gb-cp-trigger:hover { background: var(--sentient-surface-hover, #f1f3f4); }
+.sheet-color .gb-cp-swatch { width: 10px; height: 10px; }
 
 .toolbar-left,
 .toolbar-center,
@@ -120,7 +122,10 @@
     flex: 1;
     justify-content: flex-start;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sentient-border, #94a3b8) transparent;
 }
 
 .toolbar-center::-webkit-scrollbar {
@@ -128,7 +133,7 @@
 }
 
 .toolbar-center::-webkit-scrollbar-thumb {
-    background: var(--sentient-border, #e0e0e0);
+    background: var(--sentient-border, #94a3b8);
     border-radius: 2px;
 }
 
@@ -290,7 +295,97 @@
 }
 
 
-/* #2184 — the two-row toolbar owns the horizontal scrolling; the inner
-   command cluster must not paint a second scrollbar. */
-.sheet-toolbar-row .toolbar-center { overflow-x: auto; scrollbar-width: none; }
-.sheet-toolbar-row .toolbar-center::-webkit-scrollbar { height: 0; display: none; }
+/* #2290 — inner command cluster scrolls when needed but stays discoverable. */
+.sheet-toolbar-row .toolbar-center {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sentient-border, #94a3b8) transparent;
+}
+.sheet-toolbar-row .toolbar-center::-webkit-scrollbar { height: 4px; }
+.sheet-toolbar-row .toolbar-center::-webkit-scrollbar-thumb {
+    background: var(--sentient-border, #94a3b8);
+    border-radius: 2px;
+}
+
+/* #2290 — overflow affordance: chevron reveals hidden toolbar commands. */
+.sheet-toolbar-row { position: relative; }
+.toolbar-overflow-btn {
+    position: sticky;
+    right: 0;
+    margin-left: auto;
+    flex: 0 0 auto;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    border: 1px solid var(--sentient-border, #cbd5e1);
+    border-radius: 6px;
+    background: var(--sentient-bg-secondary, #f1f5f9);
+    color: var(--sentient-text-primary, #334155);
+    cursor: pointer;
+    box-shadow: -8px 0 8px -4px var(--sentient-bg-secondary, #f1f5f9);
+    z-index: 5;
+}
+.toolbar-overflow-btn.visible { display: inline-flex; }
+.toolbar-overflow-btn:hover {
+    background: var(--sentient-bg-elevated, #e2e8f0);
+}
+.toolbar-overflow-menu {
+    position: fixed;
+    z-index: 10050;
+    min-width: 180px;
+    max-width: min(320px, 90vw);
+    max-height: 60vh;
+    overflow: auto;
+    padding: 6px;
+    border: 1px solid var(--sentient-border, #cbd5e1);
+    border-radius: 8px;
+    background: var(--sentient-bg-primary, #ffffff);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.toolbar-overflow-menu[hidden] { display: none; }
+.toolbar-overflow-menu .tb-overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+.toolbar-overflow-menu .tb-overflow-item:hover,
+.toolbar-overflow-menu .tb-overflow-item:focus {
+    background: var(--sentient-bg-secondary, #f1f5f9);
+    outline: none;
+}
+.toolbar-overflow-menu .tb-overflow-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 0;
+}
+.toolbar-overflow-menu .toolbar-divider {
+    width: 100%;
+    height: 1px;
+    margin: 2px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

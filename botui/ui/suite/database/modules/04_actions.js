@@ -90,8 +90,13 @@
 
         batchDeleteSelected: function () {
             if (!DB.selected.size) return;
-            if (!confirm('Delete ' + DB.selected.size + ' selected row(s)?')) return;
-            DB.deleteRows(Array.from(DB.selected));
+            var msg = 'Delete ' + DB.selected.size + ' selected row(s)?';
+            if (window.GBModal && window.GBModal.confirm) {
+                window.GBModal.confirm(msg, 'Confirm', function () {
+                    DB.deleteRows(Array.from(DB.selected));
+                });
+                return;
+            }
         },
 
         editCell: function (col, row) {
@@ -160,8 +165,12 @@
         },
 
         deleteRow: function (row) {
-            if (!confirm('Delete this row?')) return;
-            DB.deleteRows([row]);
+            if (window.GBModal && window.GBModal.confirm) {
+                window.GBModal.confirm('Delete this row?', 'Confirm', function () {
+                    DB.deleteRows([row]);
+                });
+                return;
+            }
         },
 
         addNewRow: function () {
@@ -202,7 +211,11 @@
                     obj[key] = raw === '' ? null : (isNaN(Number(raw)) ? raw : Number(raw));
                 } else obj[key] = input.value;
             }
-            if (!Object.keys(obj).length) { alert('No editable fields'); return; }
+            if (!Object.keys(obj).length) {
+                if (window.GBModal && window.GBModal.alert) window.GBModal.alert('No editable fields', 'Database');
+                else if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', 'No editable fields', 'error');
+                return;
+            }
             try {
                 await DB.fetchJson(DB.API + '/table/' + encodeURIComponent(DB.currentTable) + '/row', {
                     method: 'POST',
@@ -212,7 +225,9 @@
                 modal.style.display = 'none';
                 DB.loadTableData(DB.currentTable);
             } catch (e) {
-                alert('Error creating row: ' + e.message);
+                var msg = 'Error creating row: ' + e.message;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
             }
         },
 
@@ -229,7 +244,8 @@
             var sql = document.getElementById('db-sql-input').value.trim();
             if (!sql) return;
             var result = document.getElementById('db-sql-result');
-            result.innerHTML = '<div class="db-loading">Executing...</div>';
+            result.setAttribute('aria-busy', 'true');
+            result.innerHTML = '<div class="db-loading" role="status">Executing...</div>';
             try {
                 var data = await DB.fetchJson(DB.API + '/query', {
                     method: 'POST',
@@ -249,14 +265,16 @@
                         html += '</tr>';
                     });
                     html += '</tbody></table>';
-                    result.innerHTML = html;
+                    result.innerHTML = '<div class="db-success" role="status">Query returned ' + data.rows.length + ' row(s).</div>' + html;
                 } else if (data.error) {
-                    result.innerHTML = '<div class="db-error">' + DB.sanitize(data.error) + '</div>';
+                    result.innerHTML = '<div class="db-error" role="alert">' + DB.sanitize(data.error) + '</div>';
                 } else {
-                    result.innerHTML = '<div class="db-success">Query executed successfully</div>';
+                    result.innerHTML = '<div class="db-success" role="status">Query executed successfully</div>';
                 }
             } catch (e) {
-                result.innerHTML = '<div class="db-error">' + DB.sanitize(e.message) + '</div>';
+                result.innerHTML = '<div class="db-error" role="alert">' + DB.sanitize(e.message) + '</div>';
+            } finally {
+                result.setAttribute('aria-busy', 'false');
             }
         },
 
@@ -285,7 +303,9 @@
                 a.remove();
                 URL.revokeObjectURL(url);
             } catch (e) {
-                alert('Error exporting CSV: ' + e.message);
+                var msg = 'Error exporting CSV: ' + e.message;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
             }
         },
 
@@ -368,7 +388,11 @@
                 });
                 DBApp.hideNewTableModal();
                 DB.loadSchema();
-            } catch (e) { alert('Error creating table: ' + e.message); }
+            } catch (e) {
+                var msg = 'Error creating table: ' + e.message;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
+            }
         }
     });
 })();

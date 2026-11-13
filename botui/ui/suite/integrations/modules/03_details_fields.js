@@ -162,9 +162,9 @@
             var badges = actionPill(risk, "") +
                 actionPill(action.requires_approval === true ? "Approval required" : "No approval", "") +
                 actionPill(action.implemented === true ? "Implemented" : "Planned", action.implemented === true ? "is-must" : "");
-            var runButton = action.implemented === true ?
-                '<button class="integrations-button integrations-button-subtle integrations-run-button" type="button" data-run-action="' +
-                namespace.escapeHtml(action.name) + '" data-provider-slug="' + namespace.escapeHtml(provider.id) + '">Run</button>' : "";
+            var runButton = '<button class="integrations-button integrations-button-subtle integrations-run-button" type="button" data-run-action="' +
+                namespace.escapeHtml(action.name) + '" data-provider-slug="' + namespace.escapeHtml(provider.id) + '"' +
+                (action.implemented === true ? '' : ' data-planned="true"') + '>Run</button>';
             var detailParts = params.map(function (param) {
                 var name = namespace.text(param.name || param.key, "parameter");
                 var type = namespace.text(param.type, "value");
@@ -198,6 +198,7 @@
             .map(function (field, index) {
                 var type = field.secret ? "password" : "text";
                 var inputId = uid + "-connect-" + index;
+                var errorId = inputId + "-error";
                 var metadata = (field.secret ? "<span>Secret</span>" : "<span>Configuration</span>") +
                     '<span>' + (field.required ? "Required" : "Optional") + '</span>';
                 var placeholder = field.secret ? "Stored in the secrets vault" : "Value stored with the connection";
@@ -206,7 +207,10 @@
                     '<input type="' + type + '" id="' + namespace.escapeHtml(inputId) + '" name="' + namespace.escapeHtml(field.key) + '"' +
                     (field.required ? " required" : "") + ' autocomplete="' + (field.secret ? "new-password" : "off") + '"' +
                     ' placeholder="' + namespace.escapeHtml(placeholder) + '"' +
-                    ' aria-label="' + namespace.escapeHtml(field.label + ", " + (field.secret ? "secret, " : "") + (field.required ? "required" : "optional")) + '">' +
+                    ' aria-label="' + namespace.escapeHtml(field.label + ", " + (field.secret ? "secret, " : "") + (field.required ? "required" : "optional")) + '"' +
+                    ' aria-describedby="' + namespace.escapeHtml(errorId) + '"' +
+                    ' data-connect-input="true">' +
+                    '<span class="integrations-field-error" id="' + namespace.escapeHtml(errorId) + '" data-field-error="' + namespace.escapeHtml(field.key) + '" hidden></span>' +
                     (field.description ? '<span class="integrations-field-help">' + namespace.escapeHtml(field.description) + '</span>' : '') + '</label>';
             }).join("");
     }
@@ -228,7 +232,7 @@
                 '<details class="integrations-oauth-setup"><summary>App configuration (only without a managed app)</summary>' +
                 '<p class="integrations-connect-help">A packaged desktop ships a managed public client, so Authorize works as-is. Self-hosted installations register one app at the provider console with this redirect URI and paste its client id here; no client secret is needed because the flow uses PKCE.</p>' +
                 '<p class="integrations-connect-help"><code data-oauth-redirect>' + namespace.escapeHtml(redirectUri) + '</code></p>' +
-                '<form class="integrations-connect-form" data-oauth-client-form novalidate>' +
+                '<form class="integrations-connect-form" data-oauth-client-form>' +
                 '<label class="integrations-field"><span class="integrations-field-label"><span>Client ID</span></span>' +
                 '<input type="text" name="oauth_client_id" required autocomplete="off" aria-label="OAuth client id"></label>' +
                 '<label class="integrations-field"><span class="integrations-field-label"><span>Client secret</span>' +
@@ -255,8 +259,9 @@
             '<p class="integrations-connect-help">Values travel once over an authenticated request; secret keys are written to the server-side vault and never displayed again.</p>' +
             '<label class="integrations-field"><span class="integrations-field-label"><span>Display name</span>' +
             '<span class="integrations-field-meta"><span>Required</span></span></span>' +
-            '<input type="text" name="display_name" required maxlength="255" autocomplete="off" value="' +
-            namespace.escapeHtml(provider.name + " connection") + '" aria-label="Display name, required"></label>' +
+            '<input type="text" id="' + namespace.escapeHtml(uid + "-connect-display-name") + '" name="display_name" required maxlength="255" autocomplete="off" value="' +
+            namespace.escapeHtml(provider.name + " connection") + '" aria-label="Display name, required" aria-describedby="' + namespace.escapeHtml(uid + "-connect-display-name-error") + '" data-connect-input="true">' +
+            '<span class="integrations-field-error" id="' + namespace.escapeHtml(uid + "-connect-display-name-error") + '" data-field-error="display_name" hidden></span></label>' +
             connectInputs(provider, uid) +
             '<p class="integrations-inline-progress" data-connect-progress hidden role="status">Storing credentials...</p>' +
             '<p class="integrations-inline-error" data-connect-error hidden role="alert"></p>' +
@@ -270,7 +275,11 @@
         fieldSource(provider).forEach(function (rawField) {
             var field = normalizeField(rawField, provider);
             var input = form.elements[field.key];
-            if (!input || !String(input.value).trim()) {
+            if (!input) {
+                return;
+            }
+            var value = String(input.value || "").trim();
+            if (!value) {
                 return;
             }
             if (field.secret) {
@@ -281,15 +290,92 @@
         });
     }
 
-    function clearFormInputs(form) {
-        Array.prototype.forEach.call(form.querySelectorAll("input"), function (input) {
-            input.value = "";
+    function clearFieldErrors(form) {
+        Array.prototype.forEach.call(form.querySelectorAll("[data-field-error]"), function (node) {
+            node.textContent = "";
+            node.hidden = true;
         });
-        form.reset();
+        Array.prototype.forEach.call(form.querySelectorAll("input[aria-invalid], select[aria-invalid], textarea[aria-invalid]"), function (input) {
+            input.removeAttribute("aria-invalid");
+        });
     }
 
-    function connectErrorMessage(error) {
+    function setFieldError(form, fieldKey, message) {
+        var errorNode = form.querySelector('[data-field-error="' + fieldKey.replace(/"/g, '\\"') + '"]');
+        var input = form.elements[fieldKey];
+        if (errorNode) {
+            errorNode.textContent = message;
+            errorNode.hidden = !message;
+        }
+        if (input && input.setAttribute) {
+            if (message) {
+                input.setAttribute("aria-invalid", "true");
+            } else {
+                input.removeAttribute("aria-invalid");
+            }
+        }
+    }
+
+    function requiredFieldLabel(provider, fieldKey) {
+        if (fieldKey === "display_name") {
+            return "Display name";
+        }
+        var match = fieldSource(provider).map(function (field) { return normalizeField(field, provider); })
+            .find(function (field) { return field.key === fieldKey; });
+        return match ? match.label : namespace.titleCase(fieldKey);
+    }
+
+    function validateConnectForm(provider, form) {
+        clearFieldErrors(form);
+        var missing = [];
+        var displayInput = form.elements.display_name;
+        if (displayInput && displayInput.hasAttribute("required") && !String(displayInput.value || "").trim()) {
+            missing.push("display_name");
+            setFieldError(form, "display_name", "Display name is required.");
+        }
+        fieldSource(provider).forEach(function (rawField) {
+            var field = normalizeField(rawField, provider);
+            var input = form.elements[field.key];
+            if (!input || !field.required) {
+                return;
+            }
+            if (!String(input.value || "").trim()) {
+                missing.push(field.key);
+                setFieldError(form, field.key, requiredFieldLabel(provider, field.key) + " is required.");
+            }
+        });
+        if (missing.length && typeof form.checkValidity === "function") {
+            form.checkValidity();
+        }
+        return { valid: missing.length === 0, missing: missing };
+    }
+
+    function clearFormInputs(form, options) {
+        var opts = options || {};
+        var secretsOnly = opts.secretsOnly === true;
+        Array.prototype.forEach.call(form.querySelectorAll("input"), function (input) {
+            if (input.type === "hidden" || input.type === "submit" || input.type === "button") {
+                return;
+            }
+            if (secretsOnly && input.type !== "password") {
+                return;
+            }
+            input.value = "";
+        });
+        if (!secretsOnly && typeof form.reset === "function") {
+            form.reset();
+        }
+        if (secretsOnly) {
+            // Keep non-secret values and validation state consistent after clearing secrets.
+            clearFieldErrors(form);
+        }
+    }
+
+    function connectErrorMessage(error, context) {
         var status = error && typeof error.status === "number" ? error.status : 0;
+        if (error && (error.code === "CSRF_MISSING" || /CSRF token/i.test(String(error.message || "")))) {
+            return "Security token missing. Reload this page and try again.";
+        }
         if (status === 409) {
             return "An active connection for this provider already exists.";
         }
@@ -300,7 +386,13 @@
             return "Credential vault unavailable. Nothing was stored; try again shortly.";
         }
         if (status === 400) {
-            return "Some values were rejected by the control plane. Review the fields and try again.";
+            if (context && context.fieldName) {
+                return context.fieldName + " was rejected by the control plane. Review it and try again.";
+            }
+            if (context && Array.isArray(context.missingFields) && context.missingFields.length) {
+                return "Missing required fields: " + context.missingFields.join(", ") + ".";
+            }
+            return "Some values were rejected by the control plane. Review the highlighted fields and try again.";
         }
         return "Connection could not be created. The control plane may be unreachable; try again.";
     }
@@ -316,6 +408,9 @@
         providerMark: providerMark,
         authKindFor: authKindFor,
         collectFieldValues: collectFieldValues,
+        clearFieldErrors: clearFieldErrors,
+        validateConnectForm: validateConnectForm,
+        requiredFieldLabel: requiredFieldLabel,
         clearFormInputs: clearFormInputs,
         connectErrorMessage: connectErrorMessage,
     };

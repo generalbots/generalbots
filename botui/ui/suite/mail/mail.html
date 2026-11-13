@@ -152,8 +152,9 @@
             hx-get="/api/ui/email/templates"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading templates…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
@@ -191,8 +192,9 @@
             hx-get="/api/ui/email/signatures"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading signatures…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
@@ -230,8 +232,9 @@
             hx-get="/api/ui/email/rules"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading rules…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>
@@ -374,8 +377,10 @@
 </dialog>
 
 <link rel="stylesheet" href="/suite/mail/mail.css" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<script src="/suite/js/gb-modal.js?v=1"></script>
+<script src="/suite/js/gb-toasts.js?v=1"></script>
 <script src="/suite/mail/mail-templates.js?v=1"></script>
 <script src="/suite/mail/modules/01_compose.js?v=2"></script>
 <script src="/suite/mail/modules/02_panels_compose.js?v=2"></script>

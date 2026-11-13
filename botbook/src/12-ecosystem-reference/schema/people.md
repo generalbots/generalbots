@@ -264,6 +264,40 @@ Indexes: `idx_unified_search_crm_contacts(to_tsvector('english', COALESCE(first_
 | lost_reason | VARCHAR(255) | yes | — | — | — |
 | branch_id | UUID | yes | — | FK | branches.id |
 
+### Deal-loss reasons (`lost_reason`)
+
+`crm_opportunities.lost_reason` and `crm_leads.lost_reason` record **why** a deal
+was lost — churn analysis, win-back campaigns and pricing decisions all read it,
+so it is only written when a human picks a value.
+
+The suite taxonomy (CRM bulk bar → **Mark lost**, `crm-bulk.js` → `LOST_REASONS`):
+
+| Value | Label |
+|-------|-------|
+| `price` | Price / budget |
+| `competitor` | Lost to a competitor |
+| `timing` | Bad timing |
+| `no_decision` | No decision |
+| `feature_gap` | Missing feature |
+| `other` | Other |
+
+Bulk close opens a dialog with **no preselected reason** and a disabled confirm
+button, so nothing is written until one is chosen. Before #2313 the flow
+pre-filled a native prompt with `"price"`, which means rows closed before that
+fix can carry a `"price"` nobody actually chose — review them once:
+
+```sql
+-- Rows whose reason may be the old fabricated default.
+SELECT id, name, stage, lost_reason, closed_at
+FROM crm_opportunities
+WHERE lost_reason = 'price'
+  AND closed_at < '2026-11-13'
+ORDER BY closed_at DESC;
+```
+
+Per-record editing uses the record form's `lost_reason` field
+(`partials/deal-form.html`, `#crm-lost-reason`), saved with the rest of the record.
+
 ### crm_leads
 
 - Domain: `people` · Feature gate: `#[cfg(feature = "people")]` · Migration: `6.5.23-branch-scope-cleanup`

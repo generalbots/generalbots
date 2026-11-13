@@ -38,6 +38,19 @@
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function uid() { return "fn_" + Math.random().toString(36).slice(2, 10); }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
+  function t(key, fallback, params) { return window.gbT ? window.gbT(key, fallback, params) : fallback; }
+  function ensureDocsCommentStyles() {
+    if (document.getElementById("gb-docs-advanced-comments-css")) return;
+    var style = document.createElement("style");
+    style.id = "gb-docs-advanced-comments-css";
+    style.textContent =
+      ".gb-docs-comment-actions{margin-top:6px;display:flex;gap:6px;}" +
+      ".gb-docs-comment-btn{font-size:11px;padding:2px 6px;border:none;border-radius:3px;cursor:pointer;" +
+      "color:var(--gb-text-on-accent,#f8fafc);background:var(--gb-surface-3,#334155);}" +
+      ".gb-docs-comment-btn:hover{filter:brightness(1.1);}" +
+      ".gb-docs-comment-btn--resolve{background:var(--gb-accent-muted,#1e3a8a);}";
+    document.head.appendChild(style);
+  }
 
   const CSL = {
     "knuth1997": { author: "Donald E. Knuth", title: "The Art of Computer Programming, Volume 1: Fundamental Algorithms", year: "1997", publisher: "Addison-Wesley" },
@@ -128,8 +141,23 @@
       if (c) { c.resolved = true; writeArr(COMMENTS_KEY + ":" + this.docId, arr); this._renderComments(); }
     },
     listComments: function () { return readArr(COMMENTS_KEY + ":" + this.docId); },
+    _promptReply: function (id) {
+      const self = this;
+      const promptText = t("comments-reply-prompt", "Reply to comment:");
+      const title = t("comments-reply-title", "Reply");
+      const done = function (text) {
+        if (text) self.replyComment(id, String(text).trim());
+      };
+      if (window.GBModal && typeof window.GBModal.prompt === "function") {
+        window.GBModal.prompt(promptText, "", title, done);
+      } else if (window.WindowManager && typeof window.WindowManager.promptFloating === "function") {
+        window.WindowManager.promptFloating(title, promptText, "", done);
+      }
+    },
     _renderComments: function () {
       const arr = readArr(COMMENTS_KEY + ":" + this.docId);
+      ensureDocsCommentStyles();
+      const self = this;
       let panel = document.getElementById("gb-docs-comments-panel");
       if (!panel) {
         panel = document.createElement("div");
@@ -137,16 +165,36 @@
         panel.style.cssText = "position:fixed;top:80px;right:16px;width:320px;max-height:70vh;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;overflow-y:auto;z-index:50;display:none;color:#f8fafc;font-size:13px;";
         document.body.appendChild(panel);
       }
+      if (!panel.dataset.gbDocsBound) {
+        panel.dataset.gbDocsBound = "1";
+        panel.addEventListener("click", function (e) {
+          const replyBtn = e.target.closest("[data-gb-docs-reply]");
+          if (replyBtn) {
+            e.preventDefault();
+            self._promptReply(replyBtn.getAttribute("data-comment-id"));
+            return;
+          }
+          const resolveBtn = e.target.closest("[data-gb-docs-resolve]");
+          if (resolveBtn) {
+            e.preventDefault();
+            self.resolveComment(resolveBtn.getAttribute("data-comment-id"));
+          }
+        });
+      }
+      const emptyText = t("comments-empty-open", "No comments yet");
+      const titleText = t("comments-title", "Comments");
+      const replyLabel = t("action-reply", "Reply");
+      const resolveLabel = t("comments-resolve", "Resolve");
       panel.innerHTML = arr.length === 0
-        ? '<div style="color:#94a3b8;text-align:center;padding:20px;">Nenhum comentário ainda</div>'
-        : '<h4 style="margin:0 0 12px 0;font-size:14px;">Comentários (' + arr.length + ')</h4>' + arr.map(c =>
+        ? '<div style="color:#94a3b8;text-align:center;padding:20px;">' + escapeHtml(emptyText) + '</div>'
+        : '<h4 style="margin:0 0 12px 0;font-size:14px;">' + escapeHtml(titleText) + ' (' + arr.length + ')</h4>' + arr.map(c =>
             '<div style="border-left:3px solid ' + (c.resolved ? "#64748b" : "#3b82f6") + ';padding:8px 10px;margin-bottom:8px;background:#0f172a;border-radius:4px;' + (c.resolved ? "opacity:0.6;" : "") + '">' +
-              '<div style="font-size:11px;color:#94a3b8;">' + escapeHtml(c.author) + ' • ' + new Date(c.createdAt).toLocaleString() + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;">' + escapeHtml(c.author) + ' • ' + gbFormatDateTime(new Date(c.createdAt)) + '</div>' +
               '<div style="margin-top:4px;">' + escapeHtml(c.text) + '</div>' +
               (c.replies.length ? '<div style="margin-top:6px;border-top:1px solid #334155;padding-top:6px;">' + c.replies.map(r => '<div style="font-size:11px;color:#cbd5e1;margin-top:4px;"><b>' + escapeHtml(r.author) + ':</b> ' + escapeHtml(r.text) + '</div>').join("") + '</div>' : '') +
-              '<div style="margin-top:6px;display:flex;gap:6px;">' +
-                '<button onclick="window.DocsAdvanced && window.DocsAdvanced.reply(\'' + c.id + '\', prompt(\'Responder:\'))" style="font-size:11px;padding:2px 6px;background:#334155;border:none;color:#f8fafc;border-radius:3px;cursor:pointer;">Responder</button>' +
-                (!c.resolved ? '<button onclick="window.DocsAdvanced && window.DocsAdvanced.resolve(\'' + c.id + '\')" style="font-size:11px;padding:2px 6px;background:#1e3a8a;border:none;color:#f8fafc;border-radius:3px;cursor:pointer;">Resolver</button>' : '') +
+              '<div class="gb-docs-comment-actions">' +
+                '<button type="button" class="gb-docs-comment-btn gb-docs-comment-reply" data-gb-docs-reply="1" data-comment-id="' + escapeHtml(c.id) + '">' + escapeHtml(replyLabel) + '</button>' +
+                (!c.resolved ? '<button type="button" class="gb-docs-comment-btn gb-docs-comment-btn--resolve" data-gb-docs-resolve="1" data-comment-id="' + escapeHtml(c.id) + '">' + escapeHtml(resolveLabel) + '</button>' : '') +
               '</div>' +
             '</div>'
           ).join("");
@@ -182,7 +230,7 @@
       const panel = document.getElementById("gb-docs-footnotes-panel");
       if (!panel) return;
       panel.innerHTML = arr.length === 0
-        ? '<div style="color:#94a3b8;">Nenhuma nota de rodapé</div>'
+        ? '<div style="color:#94a3b8;">' + escapeHtml(t("docs-footnotes-empty", "No footnotes")) + '</div>'
         : arr.map((fn, i) => '<div style="border-bottom:1px solid #334155;padding:8px 0;font-size:12px;"><b>[' + (i + 1) + ']</b> ' + escapeHtml(fn.text) + '</div>').join("");
     },
     insertCitation: function (key, page) {
@@ -219,8 +267,8 @@
         document.body.appendChild(panel);
       }
       panel.innerHTML = items.length === 0
-        ? '<div style="color:#94a3b8;">Sem citações</div>'
-        : '<h4 style="margin:0 0 8px 0;font-size:13px;">Bibliografia</h4>' + items.map(c =>
+        ? '<div style="color:#94a3b8;">' + escapeHtml(t("docs-citations-empty", "No citations")) + '</div>'
+        : '<h4 style="margin:0 0 8px 0;font-size:13px;">' + escapeHtml(t("docs-bibliography-title", "Bibliography")) + '</h4>' + items.map(c =>
             '<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #334155;">' +
               escapeHtml(c.author) + ' (' + c.year + '). <i>' + escapeHtml(c.title) + '</i>. ' + escapeHtml(c.publisher) + '.' +
             '</div>'
@@ -272,7 +320,7 @@
     },
     renderTocHTML: function () {
       const items = this.buildToc();
-      if (!items.length) return "<p>Nenhum cabeçalho encontrado.</p>";
+      if (!items.length) return "<p>" + escapeHtml(t("docs-toc-empty", "No headings found.")) + "</p>";
       return '<ul class="gb-toc">' + items.map(it =>
         '<li style="margin-left:' + ((it.level - 1) * 16) + 'px;"><a href="#' + it.id + '" style="color:#60a5fa;text-decoration:none;">' + escapeHtml(it.text) + '</a></li>'
       ).join("") + '</ul>';
@@ -321,7 +369,7 @@
       header.textContent = cfg.header || "";
       footer.textContent = cfg.footer || "";
       if (cfg.pageNumbers) {
-        footer.textContent += "  —  Página X de Y";
+        footer.textContent += "  —  " + t("docs-page-x-of-y", "Page X of Y");
       }
     }
   };

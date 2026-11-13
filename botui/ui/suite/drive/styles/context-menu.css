@@ -8,7 +8,7 @@
         0 12px 40px rgba(0, 0, 0, 0.2),
         0 4px 12px rgba(0, 0, 0, 0.1);
     min-width: 200px;
-    z-index: 1000;
+    z-index: var(--z-context-menu, 1100);
     padding: 6px;
     backdrop-filter: blur(12px);
     animation: contextMenuIn 0.15s ease-out;
@@ -101,4 +101,12 @@
         transparent 100%
     );
     margin: 6px 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

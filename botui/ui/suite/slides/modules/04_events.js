@@ -3,11 +3,16 @@
 
 // Toolbar forms send the deck id as `id`/`presentation_id` = "current". Once a
 // deck is open, point those parameters at the real id so save/rename/export
-// and element actions reach the open deck.
+// and element actions reach the open deck. Scoped to Slides requests so
+// opening a deck never rewrites generic `id` params for Docs/Sheets toolbars.
 document.addEventListener("htmx:configRequest", function (event) {
-  var parameters = (event.detail && event.detail.parameters) || {};
+  var detail = event.detail || {};
+  var path = detail.path ||
+    (detail.pathInfo && detail.pathInfo.requestPath) || "";
+  if (path.indexOf("/slides/") === -1) return;
+  var parameters = detail.parameters || {};
   // Toolbar forms address the visible slide as "current"; always send its
-  // 0-based index, even while the deck id is still "current".
+  // 0-based index.
   var canvas = document.getElementById("slide-canvas");
   var visibleSlide = canvas && canvas.dataset.slideId ? canvas.dataset.slideId : "0";
   ["slide", "slide_index", "current_slide"].forEach(function (key) {
@@ -18,10 +23,10 @@ document.addEventListener("htmx:configRequest", function (event) {
   if (parameters.current_slide === undefined) {
     parameters.current_slide = parseInt(visibleSlide, 10) || 0;
   }
-  var real = window.__SLIDES_PRESENTATION_ID;
-  if (!real || real === "current") return;
+  var real = getSlidesPresentationId();
+  if (!real) return;
   ["id", "presentation_id"].forEach(function (key) {
-    if (parameters[key] === "current") parameters[key] = real;
+    if (parameters[key] === "current" || parameters[key] === "new") parameters[key] = real;
   });
 });
 
@@ -70,7 +75,10 @@ document.addEventListener("htmx:afterRequest", function (event) {
 window.GBSlidesEndPresent = function () {
   try {
     if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(function () {});
+      document.exitFullscreen().catch(function (err) {
+        /* Best-effort fullscreen exit when ending presentation. */
+        console.debug("[gb-slides] Exit fullscreen failed:", err);
+      });
     }
   } catch (error) {}
   if (window.SlidesPresenter && window.SlidesPresenter.releasePresenter) {
@@ -83,7 +91,10 @@ window.GBSlidesEndPresent = function () {
 window.GBSlidesStartPresent = function () {
   try {
     if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(function () {});
+      document.documentElement.requestFullscreen().catch(function (err) {
+        /* Best-effort fullscreen for presentation mode. */
+        console.debug("[gb-slides] Fullscreen request failed:", err);
+      });
     }
   } catch (error) {}
   if (window.SlidesPresenter && window.SlidesPresenter.takePresenter) {
@@ -231,12 +242,17 @@ function initAuth() {
   if (window.GBAuthGuard) GBAuthGuard.injectLoginButton(document.getElementById("gb-auth-button"));
 }
 
-// Single source of truth for the active presentation id. Persisted saves can
-// capture a real UUID into window.__SLIDES_PRESENTATION_ID; until then the
-// app operates on the "current" deck (the backend treats "current" as the
-// literal id of the live presentation).
+// Single source of truth for the active presentation id. A fresh blank deck
+// gets a stable, unique id up front so it can never be persisted under the
+// shared "current" sentinel (which would overwrite every other blank deck).
 function getSlidesPresentationId() {
-  return window.__SLIDES_PRESENTATION_ID || "current";
+  var id = window.__SLIDES_PRESENTATION_ID;
+  if (id && id !== "current" && id !== "new") return id;
+  var minted = (window.crypto && typeof window.crypto.randomUUID === "function")
+    ? window.crypto.randomUUID()
+    : "deck-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  window.__SLIDES_PRESENTATION_ID = minted;
+  return minted;
 }
 window.getSlidesPresentationId = getSlidesPresentationId;
 
@@ -260,7 +276,7 @@ window.gbSlidesParams = gbSlidesParams;
 
 // hx-vals cannot use `js:` here: htmx evaluates it while processing the
 // injected window, before this module exists, and then binds nothing at all.
-// Rewrite the literal "current" placeholders at request time instead.
+// Rewrite the literal "current"/"new" placeholders at request time instead.
 document.addEventListener("htmx:configRequest", function (event) {
   var detail = event.detail || {};
   var path = detail.path || "";
@@ -268,8 +284,11 @@ document.addEventListener("htmx:configRequest", function (event) {
   var params = detail.parameters || {};
   var canvas = document.getElementById("slide-canvas");
   var current = canvas ? parseInt(canvas.dataset.slideId, 10) || 0 : 0;
-  if (params.presentation_id === "current") {
+  if (params.presentation_id === "current" || params.presentation_id === "new") {
     params.presentation_id = getSlidesPresentationId();
+  }
+  if (params.id === "current" || params.id === "new") {
+    params.id = getSlidesPresentationId();
   }
   ["slide_index", "current_slide", "slide"].forEach(function (key) {
     if (params[key] === "current") params[key] = current;
@@ -341,17 +360,20 @@ function initCollab() {
 document.addEventListener("htmx:afterSwap", function (e) {
   if (e.target.id === "slides-content" || (e.target.closest && e.target.closest("#slides-content"))) {
     // Any rendered deck (import or metadata card) tells the toolbar which id
-    // to address; without this the next save/rename created a second deck.
+    // to address; never adopt the legacy "current"/"new" sentinel.
     var view = document.getElementById("slides-view");
     if (view && view.dataset.presentationId) {
-      window.__SLIDES_PRESENTATION_ID = view.dataset.presentationId;
-      var titleInput = document.getElementById("presTitle");
-      if (titleInput) {
-        titleInput.setAttribute(
-          "hx-vals",
-          JSON.stringify({ id: view.dataset.presentationId, action: "rename" })
-        );
-        if (window.htmx) htmx.process(titleInput);
+      var adopted = view.dataset.presentationId;
+      if (adopted && adopted !== "current" && adopted !== "new") {
+        window.__SLIDES_PRESENTATION_ID = adopted;
+        var titleInput = document.getElementById("presTitle");
+        if (titleInput) {
+          titleInput.setAttribute(
+            "hx-vals",
+            JSON.stringify({ id: adopted, action: "rename" })
+          );
+          if (window.htmx) htmx.process(titleInput);
+        }
       }
     }
     SlideCanvas.attach(document.getElementById("slides-content"));
@@ -366,7 +388,7 @@ document.addEventListener("htmx:afterSwap", function (e) {
           htmx.ajax("GET", "/suite/slides/fragments/presentation-view", {
             target: "#slides-content",
             swap: "innerHTML",
-            values: { id: window.__SLIDES_PRESENTATION_ID || "current", slide: slideId }
+            values: { id: getSlidesPresentationId(), slide: slideId }
           });
         }
         // Presenter drives every follower's slide (remote control).

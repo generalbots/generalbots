@@ -196,6 +196,82 @@ pub async fn handle_ws(
                         // subscriber of this session so other browsers see the
                         // turn in real time, not just the bot's reply.
                         let parsed_msg = serde_json::from_str::<serde_json::Value>(&text).ok();
+                        let frame_type = parsed_msg
+                            .as_ref()
+                            .and_then(|v| v.get("type").and_then(|t| t.as_str()))
+                            .unwrap_or("");
+                        let is_control = matches!(
+                            frame_type,
+                            "run_resume" | "run_cancel" | "run_takeover"
+                        );
+                        if !is_control {
+                            let message_id = parsed_msg
+                                .as_ref()
+                                .and_then(|v| v.get("message_id"))
+                                .and_then(|m| match m {
+                                    serde_json::Value::String(s) if !s.is_empty() => {
+                                        Some(s.clone())
+                                    }
+                                    serde_json::Value::Number(n) => {
+                                        let s = n.to_string();
+                                        if s.is_empty() {
+                                            None
+                                        } else {
+                                            Some(s)
+                                        }
+                                    }
+                                    _ => None,
+                                });
+                            if let Some(mid) = message_id {
+                                let dedup_key = format!("ws:dedup:{session_id}:{user_id}:{mid}");
+                                let mut duplicate = false;
+                                if let Some(ref cache) = state.cache {
+                                    match cache.get_multiplexed_async_connection().await {
+                                        Ok(mut conn) => {
+                                            let set_result: Result<Option<String>, _> =
+                                                redis::cmd("SET")
+                                                    .arg(&dedup_key)
+                                                    .arg("1")
+                                                    .arg("NX")
+                                                    .arg("EX")
+                                                    .arg(600_i64)
+                                                    .query_async(&mut conn)
+                                                    .await;
+                                            match set_result {
+                                                Ok(None) => duplicate = true,
+                                                Ok(Some(_)) => {}
+                                                Err(e) => {
+                                                    botlog::safe_warn!(
+                                                        "WS dedup check failed (continuing): {e}"
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            botlog::safe_warn!(
+                                                "WS dedup cache unavailable (continuing): {e}"
+                                            );
+                                        }
+                                    }
+                                }
+                                if duplicate {
+                                    botlog::safe_info!(
+                                        "WS duplicate message_id ignored: session={session_id} message_id={mid}"
+                                    );
+                                    let ack = serde_json::json!({
+                                        "type": "message_received",
+                                        "session_id": session_id,
+                                        "message_id": mid,
+                                    });
+                                    let _ = ws_sender
+                                        .lock()
+                                        .await
+                                        .send(Message::Text(ack.to_string()))
+                                        .await;
+                                    continue;
+                                }
+                            }
+                        }
                         let msg_text = parsed_msg
                             .as_ref()
                             .and_then(|v| v.get("content").and_then(|c| c.as_str()).map(String::from))

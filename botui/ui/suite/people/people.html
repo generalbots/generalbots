@@ -226,10 +226,10 @@
             </div>
 
             <!-- Contacts List -->
-            <div class="contacts-list" id="contacts-list">
+            <div class="contacts-list" id="contacts-list" role="region" aria-label="Contacts" aria-live="polite">
                 <!-- Contacts will be loaded here -->
-                <div class="loading-state">
-                    <div class="spinner"></div>
+                <div class="loading-state" role="status">
+                    <div class="spinner" aria-hidden="true"></div>
                     <p data-i18n="people-loading">Loading contacts...</p>
                 </div>
             </div>
@@ -237,21 +237,21 @@
 
         <!-- Groups Tab -->
         <div id="groups-tab" class="tab-content">
-            <div class="groups-grid" id="groups-list">
+            <div class="groups-grid" id="groups-list" role="region" aria-label="Groups" aria-live="polite">
                 <!-- Groups will be loaded here -->
             </div>
         </div>
 
         <!-- Directory Tab -->
         <div id="directory-tab" class="tab-content">
-            <div class="directory-tree" id="directory-tree">
+            <div class="directory-tree" id="directory-tree" role="region" aria-label="Directory" aria-live="polite">
                 <!-- Organization directory will be loaded here -->
             </div>
         </div>
 
         <!-- Recent Tab -->
         <div id="recent-tab" class="tab-content">
-            <div class="recent-list" id="recent-list">
+            <div class="recent-list" id="recent-list" role="region" aria-label="Recent contacts" aria-live="polite">
                 <!-- Recent contacts will be loaded here -->
             </div>
         </div>
@@ -385,8 +385,8 @@
     </div>
 </dialog>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/people/modules/people-state/01_state_helpers.js?v=1"></script>
 <script src="/suite/people/modules/people-state/02_contacts.js?v=1"></script>
 <script src="/suite/people/modules/people-state/03_directory_boot.js?v=1"></script>

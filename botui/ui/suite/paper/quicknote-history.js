@@ -9,7 +9,7 @@ function showHistory() {
         historyList.innerHTML = history.map((item, index) => `
             <div class="history-item" onclick="restoreFromHistory(${index})">
                 <span class="history-item-preview">${item.preview || 'Empty note'}</span>
-                <span class="history-item-date">${new Date(item.timestamp).toLocaleDateString()}</span>
+                <span class="history-item-date">${gbFormatDate(new Date(item.timestamp))}</span>
             </div>
         `).join('');
     }

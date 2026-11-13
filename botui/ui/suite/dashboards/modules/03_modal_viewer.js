@@ -120,8 +120,8 @@
 
     if (widgets.length === 0) {
       container.innerHTML = `
-        <div class="empty-widgets">
-          <span class="empty-icon">📈</span>
+        <div class="empty-widgets" role="status" aria-live="polite">
+          <span class="empty-icon" aria-hidden="true">📈</span>
           <h3>No widgets yet</h3>
           <p>Add widgets to visualize your data</p>
           <button class="btn-primary" onclick="showAddWidgetModal()">
@@ -169,17 +169,17 @@
     if (type === "image") {
       return cfg.image_url
         ? `<img src="${dashEscapeHtml(cfg.image_url)}" alt="${dashEscapeHtml(widget.title)}" class="widget-image" />`
-        : `<div class="widget-empty">No image configured</div>`;
+        : `<div class="widget-empty" role="status">No image configured</div>`;
     }
     if (type === "iframe") {
       return cfg.iframe_url
         ? `<iframe src="${dashEscapeHtml(cfg.iframe_url)}" class="widget-iframe" title="${dashEscapeHtml(widget.title)}"></iframe>`
-        : `<div class="widget-empty">No URL configured</div>`;
+        : `<div class="widget-empty" role="status">No URL configured</div>`;
     }
     if (type === "table") {
       const table = cfg.table_config || {};
       const columns = table.columns || [];
-      if (!columns.length) return `<div class="widget-empty">No columns configured</div>`;
+      if (!columns.length) return `<div class="widget-empty" role="status">No columns configured</div>`;
       return `<div class="widget-table-wrap"><table class="widget-table"><thead><tr>${columns.map(c => `<th>${dashEscapeHtml(c.label || c.field || "")}</th>`).join("")}</tr></thead><tbody></tbody></table></div>`;
     }
 
@@ -193,7 +193,7 @@
       : [];
 
     if (!values.length) {
-      return `<div class="widget-empty">No data yet — configure a data source and refresh.</div>`;
+      return `<div class="widget-empty" role="status">No data yet — configure a data source and refresh.</div>`;
     }
 
     const max = Math.max(...values, 1);

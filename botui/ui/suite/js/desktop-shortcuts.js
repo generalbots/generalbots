@@ -305,7 +305,10 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
           scope: "user",
           content: JSON.stringify(readItems()),
         }),
-      }).catch(function () {});
+      }).catch(function (err) {
+        /* Best-effort desktop shortcuts persistence. */
+        console.debug("[gb-desktop-shortcuts] Persist failed:", err);
+      });
     }, 1500);
   };
 

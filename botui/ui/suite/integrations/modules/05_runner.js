@@ -54,12 +54,12 @@
             '<form data-run-form novalidate>' +
             '<div class="integrations-run-grid">' + inputs + '</div>' +
             '<p class="integrations-inline-error" data-run-error hidden role="alert"></p>' +
-            '<p class="integrations-inline-progress" data-run-progress hidden role="status">Running against the live provider...</p>' +
+            '<p class="integrations-inline-progress" data-run-progress hidden role="status" aria-live="polite">Running against the live provider...</p>' +
             '<div class="integrations-run-actions">' +
             '<button class="integrations-button" type="submit">Execute</button>' +
             '<button class="integrations-button integrations-button-subtle" type="button" data-action="close-runner">Close</button>' +
             '</div></form>' +
-            '<div class="integrations-run-outcome" data-run-outcome hidden></div>' +
+            '<div class="integrations-run-outcome" data-run-outcome hidden role="status" aria-live="polite" aria-atomic="true"></div>' +
             '</div>';
     }
 
@@ -108,6 +108,7 @@
     }
 
     async function execute(article, providerSlug, actionKey, form) {
+        var rootNode = findRoot(article);
         var errorNode = form.querySelector("[data-run-error]");
         var progressNode = form.querySelector("[data-run-progress]");
         var outcomeNode = article.querySelector("[data-run-outcome]");
@@ -119,6 +120,7 @@
             progressNode.hidden = true;
             errorNode.textContent = collected.invalid;
             errorNode.hidden = false;
+            if (rootNode) namespace.announce(rootNode, "Action cannot run: " + collected.invalid);
             return;
         }
 
@@ -127,34 +129,62 @@
             progressNode.hidden = true;
             errorNode.textContent = "Open this app inside a bot workspace to run actions.";
             errorNode.hidden = false;
+            if (rootNode) namespace.announce(rootNode, "Action cannot run: open a bot workspace first");
             return;
         }
 
         try {
-            var response = await fetch("/api/bots/" + encodeURIComponent(botId) + "/integration-actions/invoke", {
-                method: "POST",
-                credentials: "same-origin",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    provider: providerSlug,
-                    action: actionKey,
-                    params: collected.params,
-                }),
-            });
-            var payload = await response.json().catch(function () { return null; });
+            var requestUrl = "/api/bots/" + encodeURIComponent(botId) + "/integration-actions/invoke";
+            var requestBody = {
+                provider: providerSlug,
+                action: actionKey,
+                params: collected.params,
+            };
+            var payload;
+            if (namespace && typeof namespace.fetchJson === "function") {
+                payload = await namespace.fetchJson(requestUrl, { method: "POST", body: requestBody });
+            } else {
+                var headers = { "Content-Type": "application/json" };
+                var token = (namespace && typeof namespace.currentToken === "function") ? namespace.currentToken() : "";
+                if (token) {
+                    headers["Authorization"] = "Bearer " + token;
+                }
+                var csrf = (namespace && typeof namespace.csrfToken === "function") ? namespace.csrfToken() : "";
+                if (!csrf) {
+                    throw new Error("CSRF token is missing. Reload the page and try again.");
+                }
+                headers["X-CSRF-Token"] = csrf;
+                var response = await fetch(requestUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: headers,
+                    body: JSON.stringify(requestBody),
+                });
+                payload = await response.json().catch(function () { return null; });
+                if (!response.ok) {
+                    var err = new Error("request failed");
+                    err.status = response.status;
+                    err.body = payload;
+                    throw err;
+                }
+            }
             progressNode.hidden = true;
-            if (!response.ok || !payload || payload.outcome === undefined) {
+            if (!payload || payload.outcome === undefined) {
                 var detail = payload && (payload.detail || payload.error || payload.message);
-                errorNode.textContent = detail || ("Request failed with status " + response.status);
+                errorNode.textContent = detail || "Action did not return an outcome.";
                 errorNode.hidden = false;
+                if (rootNode) namespace.announce(rootNode, "Action failed: " + (detail || "no outcome returned"));
                 return;
             }
             outcomeNode.innerHTML = outcomeMarkup(payload.outcome);
             outcomeNode.hidden = false;
+            if (rootNode) namespace.announce(rootNode, "Action completed: " + (payload.outcome.summary || "outcome available"));
         } catch (error) {
             progressNode.hidden = true;
-            errorNode.textContent = "Network error while calling the connector.";
+            var detailText = error && error.body && (error.body.detail || error.body.error || error.body.message);
+            errorNode.textContent = detailText || (error && error.message ? error.message : "Network error while calling the connector.");
             errorNode.hidden = false;
+            if (rootNode) namespace.announce(rootNode, "Action failed: " + (detailText || error.message || "network error"));
         }
     }
 

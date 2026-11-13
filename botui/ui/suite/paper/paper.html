@@ -23,8 +23,9 @@
     <div hx-get="/suite/paper/partials/07_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
 <link rel="stylesheet" href="/suite/paper/paper.css" />
-    <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
-<script src="/suite/paper/modules/01_paper_core.js?v=2"></script>
-<script src="/suite/paper/modules/02_paper_toolbar.js?v=2"></script>
-<script src="/suite/paper/modules/13_delta.js?v=2"></script>
+    <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<script src="/suite/js/gb-modal.js?v=2"></script>
+<script src="/suite/paper/modules/01_paper_core.js?v=3"></script>
+<script src="/suite/paper/modules/02_paper_toolbar.js?v=3"></script>
+<script src="/suite/paper/modules/13_delta.js?v=3"></script>

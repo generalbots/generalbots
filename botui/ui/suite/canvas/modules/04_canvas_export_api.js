@@ -221,6 +221,26 @@
         C.doExport();
     }
 
+    // #2282 — resolve file context per window (page globals clobbered by next open)
+    var __canvasCtxRoot = (function () {
+        var s = document.currentScript;
+        return s && s.closest ? s.closest('[id^="window-body-canvas"]') : null;
+    })();
+    var __canvasCtxWinId = __canvasCtxRoot
+        ? (__canvasCtxRoot.dataset.windowId || __canvasCtxRoot.id.replace("window-body-", "")) : "";
+    function __canvasCtx() {
+        var ds = (__canvasCtxRoot && __canvasCtxRoot.dataset) || {};
+        var m = (window.__CANVAS_FILE_CTX && __canvasCtxWinId && window.__CANVAS_FILE_CTX[__canvasCtxWinId]) ||
+            (window.__GB_WINDOW_FILE_CTX && __canvasCtxWinId && window.__GB_WINDOW_FILE_CTX[__canvasCtxWinId]) || {};
+        var gp = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        return {
+            path: ds.gbFilePath || m.path || window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "",
+            bucket: ds.gbFileBucket || m.bucket || window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "",
+            project: gp.project || qs.get("project") || "",
+        };
+    }
+
     // The drawing a teammate has to open. Sharing used to copy
     // `?tool=canvas`, which the canvas app ignores, so the second browser got
     // an empty board — "Share" reported a link but never the same drawing
@@ -228,16 +248,12 @@
     // path (or the project it was opened from); without one there is nothing
     // to share yet.
     function canvasShareLink() {
-        var gp = window.__gbAppParams__ || {};
-        var qs = new URLSearchParams(window.location.search);
-        var path = window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "";
-        var bucket = window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "";
-        var project = gp.project || qs.get("project") || "";
-        if (!path && !project) return "";
+        var fc = __canvasCtx();
+        if (!fc.path && !fc.project) return "";
         var params = new URLSearchParams({ app: "canvas" });
-        if (path) params.set("path", path);
-        if (bucket) params.set("bucket", bucket);
-        if (project) params.set("project", project);
+        if (fc.path) params.set("path", fc.path);
+        if (fc.bucket) params.set("bucket", fc.bucket);
+        if (fc.project) params.set("project", fc.project);
         return window.location.origin + window.location.pathname + "?" + params.toString();
     }
 
@@ -359,11 +375,8 @@
     Object.assign(window, window._canvasApp);
     C.initCollab = function initCollab() {
         if (!window.GBCollab) return;
-        var gp = window.__gbAppParams__ || {};
-        var qs = new URLSearchParams(window.location.search);
-        var path = window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "";
-        var bucket = window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "";
-        var docId = path || (bucket ? bucket + "/canvas" : "");
+        var fc = __canvasCtx();
+        var docId = fc.path || (fc.bucket ? fc.bucket + "/canvas" : "");
         if (!docId) return;
         var applyingRemote = false;
         window.GBCollab.connect({

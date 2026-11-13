@@ -71,66 +71,66 @@ impl Fail2banManager {
         Ok(log)
     }
 
-    /// Install and configure fail2ban in the proxy (Caddy) LXC container.
+    /// Install and configure fail2ban in the proxy (Caddy) Incus container.
     pub async fn apply_proxy() -> Result<String> {
         let mut log = String::new();
 
         // Install fail2ban inside the proxy container
-        Self::lxc_exec(PROXY_CONTAINER, &["apt-get", "install", "-y", "--fix-missing", "fail2ban"])
+        Self::incus_exec(PROXY_CONTAINER, &["apt-get", "install", "-y", "--fix-missing", "fail2ban"])
             .await
             .context("failed to install fail2ban in proxy container")?;
 
         // Write caddy filter
         std::fs::write("/tmp/gb-caddy-filter.conf", CADDY_FILTER)
             .context("failed to write caddy filter to /tmp")?;
-        SafeCommand::new("lxc")?
+        SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-caddy-filter.conf")?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/filter.d/caddy.conf"))?
             .execute()
-            .context("lxc file push caddy filter failed")?;
+            .context("incus file push caddy filter failed")?;
 
         // Disable default sshd jail (no sshd in proxy)
         std::fs::write("/tmp/gb-proxy-defaults.conf", PROXY_DEFAULTS_DEBIAN)
             .context("failed to write proxy defaults to /tmp")?;
-        SafeCommand::new("lxc")?
+        SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-proxy-defaults.conf")?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.d/defaults-debian.conf"))?
             .execute()
-            .context("lxc file push proxy defaults failed")?;
+            .context("incus file push proxy defaults failed")?;
 
         // Write proxy jail.local
         std::fs::write("/tmp/gb-proxy-jail.local", PROXY_JAIL_LOCAL)
             .context("failed to write proxy jail.local to /tmp")?;
-        SafeCommand::new("lxc")?
+        SafeCommand::new("incus")?
             .arg("file")?
             .arg("push")?
             .arg("/tmp/gb-proxy-jail.local")?
             .arg(format!("{PROXY_CONTAINER}/etc/fail2ban/jail.local"))?
             .execute()
-            .context("lxc file push proxy jail.local failed")?;
+            .context("incus file push proxy jail.local failed")?;
 
         // Enable and restart
-        Self::lxc_exec(PROXY_CONTAINER, &["systemctl", "enable", "--now", "fail2ban"]).await?;
-        Self::lxc_exec(PROXY_CONTAINER, &["systemctl", "restart", "fail2ban"]).await?;
+        Self::incus_exec(PROXY_CONTAINER, &["systemctl", "enable", "--now", "fail2ban"]).await?;
+        Self::incus_exec(PROXY_CONTAINER, &["systemctl", "restart", "fail2ban"]).await?;
 
         log.push_str("fail2ban configured in proxy container (caddy-http-flood jail)\n");
         info!("fail2ban proxy jail applied");
         Ok(log)
     }
 
-    async fn lxc_exec(container: &str, cmd: &[&str]) -> Result<std::process::Output> {
-        let mut c = SafeCommand::new("lxc")?
+    async fn incus_exec(container: &str, cmd: &[&str]) -> Result<std::process::Output> {
+        let mut c = SafeCommand::new("incus")?
             .arg("exec")?
             .arg(container)?
             .arg("--")?;
         for arg in cmd {
             c = c.arg(arg)?;
         }
-        c.execute().context("lxc exec failed")
+        c.execute().context("incus exec failed")
     }
 
     pub async fn status() -> Result<String> {

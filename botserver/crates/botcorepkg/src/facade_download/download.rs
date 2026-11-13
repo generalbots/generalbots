@@ -27,11 +27,11 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
 
 pub fn exec_in_container(container: &str, command: &str) -> Result<()> {
     info!("Executing in container {}: {}", container, command);
-    let output = SafeCommand::new("lxc")
+    let output = SafeCommand::new("incus")
         .and_then(|c| c.args(&["exec", container, "--", "bash", "-c"]))
         .and_then(|c| c.trusted_shell_script_arg(command))
         .and_then(|c| c.execute())
-        .map_err(|e| anyhow::anyhow!("Failed to execute lxc command: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to execute incus command: {e}"))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);

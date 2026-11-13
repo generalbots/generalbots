@@ -97,7 +97,16 @@ async function restoreTrash(id) {
 }
 
 async function emptyTrash() {
-    if (!confirm("Permanently delete all items in trash? This cannot be undone.")) return;
+    var ok = await new Promise(function (resolve) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            try {
+                window.GBModal.confirm("Permanently delete all items in trash? This cannot be undone.", "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        resolve(false);
+    });
+    if (!ok) return;
     try {
         await apiRequest("/trash/empty", { method: "POST", body: JSON.stringify({ scope: currentScope }) });
         showNotification("Trash emptied", "success");

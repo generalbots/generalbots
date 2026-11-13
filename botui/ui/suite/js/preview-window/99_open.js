@@ -149,7 +149,10 @@
         if (!url) throw new Error("no link");
         var absolute = url.indexOf("http") === 0 ? url : window.location.origin + url;
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(absolute).catch(function () {});
+          navigator.clipboard.writeText(absolute).catch(function (err) {
+            /* Best-effort clipboard copy; share link is still shown in status/toast. */
+            console.debug("[gb-preview] Share link copy failed:", err);
+          });
         }
         status("Share link copied", "ok");
         if (window.GBToasts) {

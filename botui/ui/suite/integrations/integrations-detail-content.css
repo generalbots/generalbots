@@ -68,7 +68,7 @@
 
 .integrations-app .integrations-field input {
     width: 100%;
-    min-height: 42px;
+    min-height: 44px;
     padding: 9px 12px;
     border: 1px solid var(--integrations-border);
     border-radius: var(--integrations-radius-sm);
@@ -206,6 +206,22 @@
     outline: none;
 }
 
+.integrations-app .integrations-connect-form .integrations-field input[aria-invalid="true"] {
+    border-color: var(--integrations-error);
+    background: var(--integrations-error-bg, var(--integrations-surface));
+}
+
+.integrations-app .integrations-field-error {
+    margin: 0;
+    color: var(--integrations-error);
+    font-size: 10px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-field-error[hidden] {
+    display: none;
+}
+
 .integrations-app .integrations-connect-actions {
     display: flex;
     justify-content: flex-end;
@@ -244,6 +260,21 @@
 .integrations-app .integrations-faint-text {
     color: var(--integrations-faint);
     font-size: 11px;
+}
+
+.integrations-app .integrations-expiry-warning {
+    color: var(--integrations-warning);
+    font-weight: 650;
+}
+
+.integrations-app td.is-expired > span:first-child,
+.integrations-app td.is-expiring-soon > span:first-child {
+    color: var(--integrations-warning);
+    font-weight: 650;
+}
+
+.integrations-app td.is-expired .integrations-expiry-warning {
+    color: var(--integrations-error);
 }
 
 /* Action runner (#939 wave) */

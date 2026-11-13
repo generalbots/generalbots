@@ -132,8 +132,8 @@
 }
 
 .crm-form-close {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -448,3 +448,11 @@
 
 /* Issue #741: Folder view inside lead detail */
 .lead-detail { padding: 16px; }
+
+/* #2313 — the lost-reason dialog is one field, so it explains why it is asked. */
+.crm-form-hint {
+    margin: 0 0 12px;
+    font-size: 13px;
+    opacity: 0.75;
+}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

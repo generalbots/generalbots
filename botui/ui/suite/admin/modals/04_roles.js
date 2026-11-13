@@ -192,14 +192,17 @@ function savePermissions() {
 
 function resetPermissions() {
   if (!currentRole) return;
-  if (
-    !confirm(
-      "Reset permissions to default? This will undo any unsaved changes.",
-    )
-  )
+  var msg = "Reset permissions to default? This will undo any unsaved changes.";
+  var doReset = function () {
+    loadRolePermissions(currentRole.id);
+    showNotification(t("admin-notify-permissions-reset-to-saved-state", "Permissions reset to saved state"), "info");
+  };
+
+  if (window.GBModal && typeof window.GBModal.confirm === "function") {
+    window.GBModal.confirm(msg, "Confirm", doReset);
     return;
-  loadRolePermissions(currentRole.id);
-  showNotification(t("admin-notify-permissions-reset-to-saved-state", "Permissions reset to saved state"), "info");
+  }
+  showNotification("Confirmation dialog unavailable", "error");
 }
 
 function duplicateRole() {
@@ -208,33 +211,39 @@ function duplicateRole() {
     return;
   }
 
-  const newName = prompt(
-    "Enter name for the new role:",
-    currentRole.name + "_copy",
-  );
-  if (!newName) return;
+  var promptMsg = "Enter name for the new role:";
+  var defaultName = currentRole.name + "_copy";
+  var doDuplicate = function (newName) {
+    if (!newName) return;
 
-  fetch("/api/rbac/roles", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: newName,
-      displayName: currentRole.displayName + " (Copy)",
-      description: currentRole.description,
-      permissions: assignedPermissions.map((p) => p.id),
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success || data.id) {
-        showNotification(t("admin-notify-role-duplicated-successfully", "Role duplicated successfully"), "success");
-        location.reload();
-      } else {
-        showNotification(t("admin-notify-failed-to-duplicate-role-reason", "Failed to duplicate role: {reason}", { reason: (data.error || "Unknown error") }), "error",
-        );
-      }
+    fetch("/api/rbac/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        displayName: currentRole.displayName + " (Copy)",
+        description: currentRole.description,
+        permissions: assignedPermissions.map((p) => p.id),
+      }),
     })
-    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success || data.id) {
+          showNotification(t("admin-notify-role-duplicated-successfully", "Role duplicated successfully"), "success");
+          location.reload();
+        } else {
+          showNotification(t("admin-notify-failed-to-duplicate-role-reason", "Failed to duplicate role: {reason}", { reason: (data.error || "Unknown error") }), "error",
+          );
+        }
+      })
+      .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  };
+
+  if (window.GBModal && typeof window.GBModal.prompt === "function") {
+    window.GBModal.prompt(promptMsg, defaultName, "Duplicate role", doDuplicate);
+    return;
+  }
+  showNotification("Prompt dialog unavailable", "error");
 }
 
 function confirmDeleteRole() {

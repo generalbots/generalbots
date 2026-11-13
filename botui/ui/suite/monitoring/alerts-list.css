@@ -312,8 +312,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -395,8 +397,11 @@
 
 .rule-toggle {
     position: relative;
-    width: 36px;
-    height: 20px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
 }
 
 .rule-toggle input {
@@ -408,10 +413,10 @@
 .rule-toggle .toggle-slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
+    top: 12px;
     left: 0;
     right: 0;
-    bottom: 0;
+    height: 20px;
     background: var(--border);
     border-radius: 20px;
     transition: 0.3s;
@@ -423,7 +428,7 @@
     height: 16px;
     width: 16px;
     left: 2px;
-    bottom: 2px;
+    top: 2px;
     background: white;
     border-radius: 50%;
     transition: 0.3s;
@@ -434,7 +439,7 @@
 }
 
 .rule-toggle input:checked + .toggle-slider:before {
-    transform: translateX(16px);
+    transform: translateX(24px);
 }
 
 .rule-body {
@@ -447,3 +452,4 @@
     color: var(--text);
     margin-bottom: 0.375rem;
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

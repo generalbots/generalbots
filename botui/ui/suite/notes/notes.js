@@ -51,7 +51,7 @@
           '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-i="' + i + '" data-ts="' + n.ts + '">' +
           '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
-          '<span class="note-time">' + new Date(n.ts).toLocaleString() + "</span>" +
+          '<span class="note-time">' + gbFormatDateTime(new Date(n.ts)) + "</span>" +
           '<button class="note-del" data-del="' + i + '" title="Delete">✕</button>' +
           "</div>" +
           "</div>"

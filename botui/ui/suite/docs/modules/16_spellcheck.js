@@ -4,8 +4,14 @@
 var spellcheckCorrections = [];
 
 function activeDocIdSpellcheck() {
-  var article = document.querySelector("article[data-doc-id]");
-  return (article && article.dataset && article.dataset.docId) || "current";
+  var article = typeof getActiveArticle === "function" ? getActiveArticle()
+    : document.querySelector("article[data-doc-id]");
+  if (article && typeof docsEnsureArticleDocId === "function") {
+    return docsEnsureArticleDocId(article);
+  }
+  return (article && article.dataset && article.dataset.docId && article.dataset.docId !== "current")
+    ? article.dataset.docId
+    : "";
 }
 
 function openSpellcheck() {
@@ -115,7 +121,13 @@ function acceptSpellcheckCorrection(idx) {
   renderSpellcheckList();
   var article = getActiveArticle();
   if (article && typeof scheduleSave === "function") {
-    scheduleSave(article.dataset.docId || "current", article.innerHTML);
+    var docId = article.dataset ? article.dataset.docId : "";
+    if ((!docId || docId === "current") && typeof docsEnsureArticleDocId === "function") {
+      docId = docsEnsureArticleDocId(article);
+    }
+    if (docId && docId !== "current") {
+      scheduleSave(docId, article.innerHTML);
+    }
   }
 }
 

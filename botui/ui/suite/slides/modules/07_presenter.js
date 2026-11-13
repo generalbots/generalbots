@@ -25,7 +25,7 @@
   var state = { presentationId: "current", questions: [], isPresenter: false, presenterName: null };
 
   function presId() {
-    return (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
+    return (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "";
   }
   function send(type, data) {
     if (window.GBCollab && window.GBCollab.send) window.GBCollab.send(type, data);

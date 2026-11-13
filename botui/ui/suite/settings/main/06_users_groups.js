@@ -47,8 +47,9 @@ function initGroupManagement() {
 function loadUsers(search) {
   var container = document.getElementById("users-list");
   if (!container) return;
+  container.setAttribute("aria-busy", "true");
   container.innerHTML =
-    '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    '<div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
   var params = new URLSearchParams();
   params.append("per_page", "50");
   if (search) params.append("search", search);
@@ -64,10 +65,12 @@ function loadUsers(search) {
     .then(function (data) {
       usersData = data.users || [];
       renderUsers(container);
+      container.setAttribute("aria-busy", "false");
     })
     .catch(function () {
+      container.setAttribute("aria-busy", "false");
       container.innerHTML =
-        '<div class="error-state"><p>Failed to load users.</p></div>';
+        '<div class="error-state" role="alert" aria-live="assertive"><p>Failed to load users.</p></div>';
     });
 }
 
@@ -122,8 +125,9 @@ function renderUsers(container) {
 function loadGroups(search) {
   var container = document.getElementById("groups-list");
   if (!container) return;
+  container.setAttribute("aria-busy", "true");
   container.innerHTML =
-    '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    '<div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
   var params = new URLSearchParams();
   params.append("per_page", "50");
   if (search) params.append("search", search);
@@ -138,10 +142,12 @@ function loadGroups(search) {
     .then(function (data) {
       groupsData = data.groups || [];
       renderGroups(container);
+      container.setAttribute("aria-busy", "false");
     })
     .catch(function () {
+      container.setAttribute("aria-busy", "false");
       container.innerHTML =
-        '<div class="error-state"><p>Failed to load groups.</p></div>';
+        '<div class="error-state" role="alert" aria-live="assertive"><p>Failed to load groups.</p></div>';
     });
 }
 
@@ -386,7 +392,10 @@ function handleLogout() {
     fetch(API_ENDPOINTS.LOGOUT, {
       method: "POST",
       headers: { Authorization: "Bearer " + token },
-    }).catch(function () {});
+    }).catch(function (err) {
+      /* Best-effort server logout; local session is cleared below regardless. */
+      console.debug("[gb-settings] Server logout request failed:", err);
+    });
   localStorage.removeItem("gb-access-token");
   localStorage.removeItem("gb-refresh-token");
   localStorage.removeItem("gb-token-expires");

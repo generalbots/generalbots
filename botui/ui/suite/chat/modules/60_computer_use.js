@@ -49,7 +49,9 @@
     // assistant can read it even when the tab reconnects. The WS frame below
     // stays as the live path.
     if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
-      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+        (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+        sessionStorage.getItem("gb-access-token") || "";
       fetch("/api/computer/actions/" + encodeURIComponent(actionId) + "/result", {
         method: "POST",
         headers: token
@@ -84,7 +86,9 @@
   }
 
   function postJson(path, body) {
-    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+      sessionStorage.getItem("gb-access-token") || "";
     return fetch(path, {
       method: "POST",
       headers: token
@@ -261,7 +265,9 @@
   function pollPendingBrowser() {
     var sid = window.ChatState && ChatState.currentSessionId;
     if (!sid) return;
-    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+      sessionStorage.getItem("gb-access-token") || "";
     fetch("/api/computer/actions/pending?kind=browser&session_id=" + encodeURIComponent(sid), {
       headers: token ? { Authorization: "Bearer " + token } : {},
     })

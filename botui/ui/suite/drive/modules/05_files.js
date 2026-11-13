@@ -21,7 +21,7 @@ async function loadFiles(path, bucket) {
 
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading files...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading files...</p></div>';
     updateBreadcrumb();
 
     try {
@@ -45,9 +45,9 @@ async function loadFiles(path, bucket) {
         var msg = err.message || '';
         // Show a more user-friendly message for missing buckets
         if (msg.indexOf('NoSuchBucket') !== -1 || msg.indexOf('bucket does not exist') !== -1) {
-            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Welcome to your Drive</h3><p style="color:#94a3b8;">Drag files here or click Upload to get started.</p></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Welcome to your Drive</h3><p style="color:#94a3b8;">Drag files here or click Upload to get started.</p></div>';
         } else if (currentBackend === "local") {
-            content.innerHTML = '<div class="empty-state"><h3>Could not read this folder</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles(\'' + escapeJs(currentPath || "") + '\', \'' + escapeJs(localBucket(currentLocalRoot)) + '\')">Try again</button></div>';
+            content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>Could not read this folder</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles(\'' + escapeJs(currentPath || "") + '\', \'' + escapeJs(localBucket(currentLocalRoot)) + '\')">Try again</button></div>';
         } else {
             if (window.DriveOfflineSync) {
                 DriveOfflineSync.getCachedListing(getEffectiveBucket(), currentPath).then(function (cached) {
@@ -55,12 +55,12 @@ async function loadFiles(path, bucket) {
                         renderFiles(cached.files);
                         showNotification("Showing cached files (offline)", "info");
                     } else {
-                        content.innerHTML = '<div class="empty-state"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
+                        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
                     }
                 });
                 return;
             }
-            content.innerHTML = '<div class="empty-state"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
+            content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
         }
     }
 }
@@ -167,9 +167,12 @@ function showUploadProgress(total) {
     if (el) el.remove();
     el = document.createElement("div");
     el.id = "gb-upload-progress";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "off");
+    el.setAttribute("aria-atomic", "true");
     el.style.cssText = "position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);";
     el.innerHTML = '<div style="color:#f8fafc;font-size:13px;margin-bottom:8px;" id="gb-upload-label">Preparing upload...</div>'
-        + '<div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" style="height:100%;background:#3b82f6;border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
+        + '<div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:100%;background:#3b82f6;border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
         + '<div style="color:#64748b;font-size:11px;margin-top:6px;" id="gb-upload-detail">0 / ' + total + '</div>';
     document.body.appendChild(el);
     return el;
@@ -181,7 +184,11 @@ function updateUploadProgress(el, current, total, fileName) {
     var bar = document.getElementById("gb-upload-bar");
     var label = document.getElementById("gb-upload-label");
     var detail = document.getElementById("gb-upload-detail");
-    if (bar) bar.style.width = pct + "%";
+    if (bar) {
+        bar.style.width = pct + "%";
+        bar.setAttribute("aria-valuenow", String(pct));
+        bar.setAttribute("aria-valuetext", current + " of " + total);
+    }
     if (label) label.textContent = "Uploading " + (fileName.length > 30 ? fileName.substring(0, 27) + "..." : fileName);
     if (detail) detail.textContent = current + " / " + total;
 }
@@ -197,14 +204,14 @@ function hideUploadProgress(el) {
 
 async function createFolder() {
     var doCreate = async function (name) {
-        if (!name || !name.trim()) return;
+        if (!name || !String(name).trim()) return;
         try {
             await apiRequest("/createFolder", {
                 method: "POST",
                 body: JSON.stringify({
                     bucket: getEffectiveBucket(),
                     path: currentPath,
-                    name: name.trim(),
+                    name: String(name).trim(),
                     scope: currentScope,
                 }),
             });
@@ -221,10 +228,13 @@ async function createFolder() {
         });
         return;
     }
-    var name = (window.GBModal && window.GBModal.prompt)
-        ? window.GBModal.prompt("Enter folder name:", "")
-        : prompt("Enter folder name:");
-    await doCreate(name);
+    if (window.GBModal && typeof window.GBModal.prompt === "function") {
+        window.GBModal.prompt("Enter folder name:", "", "New folder", function (name) {
+            doCreate(name);
+        });
+        return;
+    }
+    return;
 }
 
 /* #1974 — Recent is "everything I opened", not "what happens to be in the tab
@@ -275,10 +285,10 @@ async function fetchRecentEntries() {
 async function loadRecentFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
     var entries = await fetchRecentEntries();
     if (!entries.length) {
-        content.innerHTML = '<div class="empty-state"><h3>No recent files</h3><p>Files you open or upload show up here, from every Drive location.</p></div>';
+        content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>No recent files</h3><p>Files you open or upload show up here, from every Drive location.</p></div>';
         return;
     }
     renderFiles(entries);
@@ -293,13 +303,13 @@ window.fetchRecentEntries = fetchRecentEntries;
 async function loadTrashFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("scope", currentScope);
         const items = await apiRequest("/trash?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state"><h3>Trash is empty</h3></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>Trash is empty</h3></div>';
             return;
         }
         var html = '<div style="margin-bottom:12px"><button class="btn-danger" onclick="window.emptyTrash()">Empty Trash</button></div><div class="file-list">';
@@ -319,7 +329,7 @@ async function loadTrashFiles() {
         html += '</div>';
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Trash is empty</h3></div>';
+        content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>Trash is empty</h3></div>';
     }
 }
 
@@ -327,7 +337,7 @@ async function searchFiles(query, allBuckets) {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
     const everywhere = allBuckets !== false;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching ' + (everywhere ? 'every folder and bucket' : 'this folder') + '...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Searching ' + (everywhere ? 'every folder and bucket' : 'this folder') + '...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("query", query);
@@ -347,7 +357,7 @@ async function searchFiles(query, allBuckets) {
         }
         const files = await apiRequest("/search?" + params.toString());
         if (!files || files.length === 0) {
-            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>No matches for "' + escapeHtml(query) + '"</h3><p>Search covers file names and the text inside text, PDF, DOCX and XLSX files.</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>No matches for "' + escapeHtml(query) + '"</h3><p>Search covers file names and the text inside text, PDF, DOCX and XLSX files.</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
             return;
         }
         renderFiles(files);
@@ -355,6 +365,6 @@ async function searchFiles(query, allBuckets) {
     } catch (err) {
         // #1638 — distinguish “the server could not search” from “nothing
         // matched”, otherwise a broken search looks like an empty folder.
-        content.innerHTML = '<div class="empty-state"><h3>Search unavailable</h3><p>' + escapeHtml(humanizeError(err.message)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
+        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>Search unavailable</h3><p>' + escapeHtml(humanizeError(err.message)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
     }
 }

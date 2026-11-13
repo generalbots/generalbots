@@ -16,7 +16,7 @@
             if (runState === "completed") {
                 var grid = document.getElementById("vibeDeployMain");
                 if (grid) {
-                    grid.innerHTML = '<div class="vibe-empty">✅ Deployed — opening <b>' +
+                    grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">✅ Deployed — opening <b>' +
                         D.esc(M.state.projectName || "project") + "</b>…</div>";
                 }
                 // #1504 — bot projects open the Chat window on the PROD tab
@@ -31,7 +31,7 @@
             } else if (runState === "failed" || runState === "cancelled" || runState === "aborted") {
                 var gf = document.getElementById("vibeDeployMain");
                 if (gf) {
-                    gf.innerHTML = '<div class="vibe-empty">Deploy ' + D.esc(runState) +
+                    gf.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Deploy ' + D.esc(runState) +
                         ": " + D.esc((data && data.error) || "see Runner Log for details.") + "</div>";
                 }
             } else {
@@ -71,7 +71,7 @@
             }
         }).catch(function (err) {
             var grid = document.getElementById("vibeDeployMain");
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy promote failed: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Deploy promote failed: ' + D.esc(err) + "</div>";
         });
     }
 
@@ -82,7 +82,7 @@
         var w = window.open("about:blank", "_blank");
         if (!w) {
             var grid = document.getElementById("vibeDeployMain");
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Allow pop-ups to open the deployed app.</div>';
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Allow pop-ups to open the deployed app.</div>';
             return;
         }
         w.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Opening deployed app…</p>";
@@ -92,7 +92,7 @@
             } else {
                 w.close();
                 var grid = document.getElementById("vibeDeployMain");
-                if (grid) grid.innerHTML = '<div class="vibe-empty">Deployed, but no live URL was reported.</div>';
+                if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Deployed, but no live URL was reported.</div>';
             }
         };
         D.api("/api/vibe/projects/" + encodeURIComponent(M.state.projectId) + "/preview?env=" + encodeURIComponent(envName))

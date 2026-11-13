@@ -230,3 +230,10 @@
 .gb-admin-metric-label { font-size: 12px; color: var(--gb-text-muted, #57606a); }
 .gb-admin-metric-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gb-admin-metric-hint { font-size: 12px; color: var(--gb-text-muted, #57606a); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

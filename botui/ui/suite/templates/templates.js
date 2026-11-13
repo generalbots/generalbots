@@ -113,7 +113,7 @@ function previewTemplate() {
         .replace(/\{\{contact\.name\}\}/g, 'John Doe')
         .replace(/\{\{contact\.email\}\}/g, 'john@example.com')
         .replace(/\{\{company\}\}/g, 'Acme Corp')
-        .replace(/\{\{date\}\}/g, new Date().toLocaleDateString())
+        .replace(/\{\{date\}\}/g, gbFormatDate(new Date()))
         .replace(/\{\{bot\.name\}\}/g, 'Support Bot')
         .replace(/\{\{user\.name\}\}/g, 'Admin User')
         .replace(/\{\{[^}]+\}\}/g, '[variable]');
@@ -128,7 +128,7 @@ function previewTemplateFull(id) {
         .replace(/\{\{contact\.name\}\}/g, 'John Doe')
         .replace(/\{\{contact\.email\}\}/g, 'john@example.com')
         .replace(/\{\{company\}\}/g, 'Acme Corp')
-        .replace(/\{\{date\}\}/g, new Date().toLocaleDateString())
+        .replace(/\{\{date\}\}/g, gbFormatDate(new Date()))
         .replace(/\{\{bot\.name\}\}/g, 'Support Bot')
         .replace(/\{\{user\.name\}\}/g, 'Admin User')
         .replace(/\{\{[^}]+\}\}/g, '[variable]');

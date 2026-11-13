@@ -172,7 +172,8 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    min-width: 28px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .alpha-btn:hover {
@@ -281,8 +282,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -297,8 +300,10 @@
 }
 
 .icon-btn.small {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .contact-panel {
@@ -338,8 +343,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -446,3 +453,4 @@
     color: var(--text-secondary);
     white-space: pre-wrap;
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

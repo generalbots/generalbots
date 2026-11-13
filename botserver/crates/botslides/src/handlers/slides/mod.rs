@@ -7,15 +7,15 @@
 macro_rules! load_pres {
     ($state:expr, $user_id:expr, $pres_id:expr) => {{
         let requested_id = $pres_id.to_string();
+        if requested_id.trim().is_empty() || requested_id == "current" || requested_id == "new" {
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                axum::Json(serde_json::json!({ "error": "A unique deck id is required; the 'current' sentinel cannot be mutated" })),
+            ));
+        }
         match $state.drive.as_ref() {
             Some(drive) => match $crate::storage::load_presentation_by_id(drive, $user_id, &requested_id).await {
                 Ok(p) => p,
-                // The blank deck rendered as `current` is not persisted until
-                // the first mutation; without this fallback every element,
-                // slide and notes call on a fresh deck returned 404.
-                Err(_) if requested_id == "current" => {
-                    $crate::ui_fragments::get_bridge::blank_presentation($user_id)
-                }
                 Err(e) => {
                     return Err((
                         axum::http::StatusCode::NOT_FOUND,

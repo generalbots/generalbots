@@ -11,6 +11,21 @@
   const VirtualGrid = D.virtualGrid;
 
   VirtualGrid.init = function (host) {
+    this.host = host;
+    this.windowBody = host ? host.closest('[id^="window-body-"]') : null;
+    this.windowId = this.windowBody
+      ? (this.windowBody.dataset.windowId || this.windowBody.id.replace("window-body-", ""))
+      : null;
+    if (this.windowId && window.SheetDefaults && window.SheetDefaults.ensureSheetInstance) {
+      var inst = window.SheetDefaults.ensureSheetInstance(this.windowId);
+      if (inst) {
+        inst.grid = this;
+        inst.host = host;
+        inst.body = this.windowBody;
+        this.instance = inst;
+        window.SheetDefaults.setActiveSheetInstance(inst);
+      }
+    }
     this.root = document.createElement("div");
     this.root.className = "virtual-grid";
     this.root.style.cssText = "position:relative;display:flex;flex-direction:column;flex:1;background:var(--sheet-bg, var(--sheet-bg, #0f172a));overflow:hidden;";
@@ -50,6 +65,14 @@
     this.bodyInner.appendChild(this.selectionOverlay);
 
     this.scrollArea.addEventListener("scroll", this.onScroll.bind(this), { passive: true });
+    // track active instance on interaction (#2270)
+    var self = this;
+    this.root.addEventListener("mousedown", function () {
+      if (window.SheetDefaults && self.instance) window.SheetDefaults.setActiveSheetInstance(self.instance);
+    }, true);
+    this.root.addEventListener("focusin", function () {
+      if (window.SheetDefaults && self.instance) window.SheetDefaults.setActiveSheetInstance(self.instance);
+    }, true);
     host.appendChild(this.root);
     this.updateViewport();
     this.renderHeaders();
@@ -57,8 +80,15 @@
     // Select first cell by default — unless the window was opened by a deep
     // link that asked for a specific cell (#2271), which must not be undone by
     // this deferred default.
-    var self = this;
     setTimeout(function () {
+      // honor per-instance pending cell if set, else legacy global
+      var pending = (self.instance && self.instance.pendingCell) || window.__SHEET_PENDING_CELL;
+      if (pending) {
+        if (self.instance) self.instance.pendingCell = null;
+        if (window.__SHEET_PENDING_CELL === pending) window.__SHEET_PENDING_CELL = null;
+        var pos = (typeof gbSheetParseA1 === 'function') ? gbSheetParseA1(pending) : null;
+        if (pos) { self.selectCell(pos.row, pos.col); return; }
+      }
       if (typeof gbSheetConsumePendingCell === 'function' && gbSheetConsumePendingCell()) return;
       self.selectCell(0, 0);
     }, 100);
@@ -306,4 +336,9 @@
       node.style.overflow = cellData && this.canSpill(row, c, cellData) ? "visible" : "hidden";
     }
   };
+
+  // sync proto for per-window instances (#2270)
+  for (var _k3 in VirtualGrid) {
+    if (typeof VirtualGrid[_k3] === "function") D.GridProto[_k3] = VirtualGrid[_k3];
+  }
 })();

@@ -143,3 +143,11 @@
 .cv-badge.missing { background: rgba(198,40,40,0.15); color: #c62828; }
 .framework-detail-error { color: #c62828; padding: 16px; }
 .framework-detail-modal { max-width: 820px; width: 92%; max-height: 80vh; overflow: auto; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

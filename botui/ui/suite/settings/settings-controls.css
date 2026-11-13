@@ -1,8 +1,10 @@
     .toggle {
         position: relative;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
         width: 48px;
-        height: 26px;
+        height: 44px;
+        min-height: 44px;
     }
 
     .toggle input {
@@ -14,10 +16,11 @@
     .toggle-slider {
         position: absolute;
         cursor: pointer;
-        top: 0;
+        top: 50%;
         left: 0;
         right: 0;
-        bottom: 0;
+        height: 26px;
+        transform: translateY(-50%);
         background: var(--border);
         border-radius: 26px;
         transition: 0.3s;
@@ -360,6 +363,8 @@
     .checkbox-item input[type="checkbox"] {
         width: 18px;
         height: 18px;
+        min-width: 44px;
+        min-height: 44px;
     }
 
     /* Mobile Toggle Button */

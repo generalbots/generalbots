@@ -46,32 +46,28 @@ function renderInlineArtifact(html, titleOverride) {
 // User-uploaded attachments (#1673): the chip under a user turn offers a
 // Preview button that streams the staged Drive inbox copy through the
 // sanitized preview endpoint. Nothing is fetched until the button is pressed.
+// Auth is sent via Authorization header/cookies (never in the URL).
 function userAttachmentPreviewUrl(name) {
   var bot =
     (window.ChatState && ChatState.currentBotName) ||
     window.__INITIAL_BOT_NAME__ ||
     "default";
-  var url =
+  return (
     "/api/chat/attachments/preview?bot=" +
     encodeURIComponent(bot) +
     "&name=" +
-    encodeURIComponent(name);
-  var token = "";
-  try {
-    token =
-      (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
-      localStorage.getItem("gb-access-token") ||
-      sessionStorage.getItem("gb-access-token") ||
-      "";
-  } catch (e) { /* storage unavailable */ }
-  if (token) url += "&access_token=" + encodeURIComponent(token);
-  return url;
+    encodeURIComponent(name)
+  );
 }
 
 function toggleUserAttachmentPreview(chip, name) {
   if (!chip) return;
   var existing = chip.nextElementSibling;
   if (existing && existing.classList && existing.classList.contains("gb-user-preview")) {
+    var existingUrl = existing.dataset.blobUrl;
+    if (existingUrl) {
+      try { URL.revokeObjectURL(existingUrl); } catch (e) {}
+    }
     existing.remove();
     return;
   }
@@ -107,6 +103,10 @@ function toggleUserAttachmentPreview(chip, name) {
   close.textContent = "×";
   close.addEventListener("click", function () {
     if (window.GBArtifactOverlay) window.GBArtifactOverlay.close(box);
+    var blobUrl = box.dataset.blobUrl;
+    if (blobUrl) {
+      try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+    }
     box.remove();
   });
   head.appendChild(close);
@@ -114,7 +114,6 @@ function toggleUserAttachmentPreview(chip, name) {
   var body = document.createElement("div");
   body.className = "gb-attachment-inline-body";
   var frame = document.createElement("iframe");
-  frame.src = userAttachmentPreviewUrl(name);
   frame.title = "Preview of " + name;
   // Chrome refuses to run its PDF viewer inside a sandboxed frame; the
   // server already sends application/pdf + nosniff, so a PDF is safe.
@@ -127,4 +126,32 @@ function toggleUserAttachmentPreview(chip, name) {
   box.appendChild(body);
   chip.after(box);
   if (typeof snapToBottom === "function") snapToBottom();
+
+  var token = "";
+  try {
+    token =
+      (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
+      (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
+      sessionStorage.getItem("gb-access-token") ||
+      "";
+  } catch (e) { /* storage unavailable */ }
+  var headers = token ? { Authorization: "Bearer " + token } : {};
+  fetch(userAttachmentPreviewUrl(name), { headers: headers, credentials: "same-origin" })
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.blob();
+    })
+    .then(function (blob) {
+      if (!box.isConnected) return;
+      var blobUrl = URL.createObjectURL(blob);
+      box.dataset.blobUrl = blobUrl;
+      frame.src = blobUrl;
+    })
+    .catch(function () {
+      if (!box.isConnected) return;
+      var note = document.createElement("div");
+      note.className = "gb-attachment-inline-note";
+      note.textContent = "Could not load the preview.";
+      body.appendChild(note);
+    });
 }

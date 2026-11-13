@@ -120,7 +120,10 @@ pub async fn create(
         "low",
         &serde_json::json!({
             "provider": parsed.provider_slug,
+            "display_name": parsed.display_name,
             "auth_kind": parsed.auth_kind,
+            "visibility": parsed.visibility,
+            "scope_count": parsed.granted_scopes.len(),
             "status": "active",
         }),
     );
@@ -183,6 +186,7 @@ pub async fn remove(
             "medium",
             &serde_json::json!({
                 "provider": stored.provider_slug,
+                "display_name": stored.display_name,
                 "reason": "deleted by owner",
             }),
         );

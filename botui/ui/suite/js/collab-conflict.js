@@ -220,7 +220,9 @@
     if (!btn || !btn.getAttribute || !btn.hasAttribute("data-res")) return;
     var item = btn.closest(".gbc-item");
     if (!item) return;
-    resolve(item.getAttribute("data-id"), btn.getAttribute("data-res")).catch(function () {});
+    resolve(item.getAttribute("data-id"), btn.getAttribute("data-res")).catch(function (err) {
+      console.error("[gb-collab-conflict] Conflict resolution failed:", err);
+    });
   });
 
   window.GBCollabConflict = {

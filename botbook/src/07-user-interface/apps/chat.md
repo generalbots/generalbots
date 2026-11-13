@@ -252,6 +252,28 @@ Bot responses support full Markdown rendering:
 - Links and images
 - Tables
 
+#### What is rendered and what is not (#2354)
+
+Bot output is untrusted — a knowledge-base document, an inbound email, a web
+search result or a prompt-injection can make the model emit markup. Every
+bubble therefore passes the parsed markdown through one sanitizer
+(`botui/ui/suite/chat/chat-sanitize.js`, `window.GBSanitize`) **before** it
+reaches the page:
+
+- `<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<form>` and their
+  controls are removed; so is `<foreignObject>`, which could smuggle HTML into
+  inline SVG
+- every `on*` attribute (`onerror`, `onload`, …) is removed
+- `javascript:`, `vbscript:` and `data:text/html` URLs are dropped from `href`,
+  `src`, `action`, `formaction`, `poster`, `srcset` and `srcdoc`; inert image
+  payloads (`data:image/png|jpeg|gif|webp|bmp`) are kept
+- model-authored `<script>` elements are **never** executed — the chat no
+  longer builds functions from reply text
+
+The same rule applies while a reply is still streaming. Interactive code the
+model writes belongs in the artifact preview, which runs in a sandboxed iframe
+without `allow-same-origin`; the chat document itself never runs it.
+
 ### Web answers: dated sources and front pages
 
 When the composer's **Web** switch is on, the turn is searched and the hits are

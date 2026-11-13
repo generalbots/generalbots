@@ -70,7 +70,10 @@ const Proactivity = (() => {
           const ah = {};
           const at = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
           if (at) ah["Authorization"] = "Bearer " + at;
-          fetch("/api/vibe/proactivity/cards/" + card.card_id + "/seen", { method: "POST", headers: ah }).catch(function () {});
+          fetch("/api/vibe/proactivity/cards/" + card.card_id + "/seen", { method: "POST", headers: ah }).catch(function (err) {
+            /* Best-effort seen beacon; card dismissal is already reflected locally. */
+            console.debug("[gb-proactivity] Card seen beacon failed:", err);
+          });
         }
       })
       .catch(() => {

@@ -1,7 +1,8 @@
 <!-- Paper - Single Page Actionable Notes -->
 <div class="gb-app paper-app" id="paper-app" data-gb-app="paper">
     <!-- Header -->
-    <header class="paper-header">
+    <script src="/suite/js/gb-modal.js?v=2"></script>
+<header class="paper-header">
         <div class="header-left">
             <h1 class="paper-logo">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -108,6 +109,12 @@
             <span class="char-count"><span id="char-count">0</span> characters</span>
         </div>
         <div class="footer-center">
+            <!-- #2315 — the CSS and JS for this indicator shipped, the element
+                 never did, so sync state was invisible. -->
+            <span class="sync-status" id="sync-status" data-state="idle" role="status" aria-live="polite">
+                <span class="status-dot"></span>
+                <span class="status-text" data-i18n="paper-saved-locally">Saved on this device</span>
+            </span>
             <span class="last-saved" id="last-saved">Not saved yet</span>
         </div>
         <div class="footer-right">
@@ -247,5 +254,5 @@
     <div hx-get="./partials/03_modal_history.html" hx-trigger="load" hx-swap="outerHTML"></div>
     <div hx-get="./partials/04_modal_settings.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg">Service unavailable</span></div>

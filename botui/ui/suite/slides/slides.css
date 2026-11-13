@@ -30,7 +30,7 @@
 }
 
 /* #2184 — classic two-row toolbar: deck/slide commands on the first row,
-   object formatting on the second. */
+   object formatting on the second. #2290 — keep overflow discoverable. */
 .slides-toolbar-row {
   display: flex;
   align-items: center;
@@ -40,9 +40,13 @@
   box-sizing: border-box;
   min-height: 36px;
   overflow-x: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #64748b transparent;
+  position: relative;
 }
-.slides-toolbar-row::-webkit-scrollbar { height: 0; display: none; }
+.slides-toolbar-row::-webkit-scrollbar { height: 4px; }
+.slides-toolbar-row::-webkit-scrollbar-thumb { background: #64748b; border-radius: 2px; }
+.slides-toolbar-row::-webkit-scrollbar-track { background: transparent; }
 .slides-toolbar-row-main { border-bottom: 1px solid var(--border, #475569); }
 .slides-toolbar-row-format { background: var(--surface-raised-1, #293548); }
 .slides-toolbar-row-format .toolbar-format {
@@ -61,17 +65,22 @@
   background: #1d4ed8;
   color: #fff;
 }
-/* --- #2247 toolbar polish: no visible scrollbar, readable contrast --- */
+/* --- #2247 toolbar polish, #2290 overflow discoverable --- */
 .slides-toolbar .toolbar-center,
 .slides-toolbar .toolbar-right {
   overflow-x: auto;
-  scrollbar-width: none;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #64748b transparent;
 }
 .slides-toolbar .toolbar-center::-webkit-scrollbar,
-.slides-toolbar .toolbar-right::-webkit-scrollbar,
-.slides-toolbar-row::-webkit-scrollbar {
-  height: 0;
-  display: none;
+.slides-toolbar .toolbar-right::-webkit-scrollbar {
+  height: 4px;
+}
+.slides-toolbar .toolbar-center::-webkit-scrollbar-thumb,
+.slides-toolbar .toolbar-right::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 2px;
 }
 .slides-toolbar .btn-icon {
   color: #cbd5e1;
@@ -105,27 +114,20 @@
   font-size: 12px;
 }
 .sl-color {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+}
+.sl-color .gb-cp-trigger {
   height: 26px;
   padding: 0 5px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: #cbd5e1;
-  cursor: pointer;
   font-size: 13px;
+  gap: 3px;
 }
-.sl-color:hover { background: rgba(148, 163, 184, 0.14); }
-.sl-color input[type="color"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-  border: 0;
-  padding: 0;
-}
+.sl-color .gb-cp-trigger:hover { background: rgba(148, 163, 184, 0.14); }
+.sl-color .gb-cp-swatch { width: 12px; height: 12px; }
 
 .slides-toolbar .toolbar-left {
   display: flex;
@@ -238,4 +240,73 @@
 .slides-toolbar-row-format .toolbar-divider {
   height: 16px;
   margin: 0 4px;
+}
+
+/* #2290 — overflow affordance: chevron reveals hidden toolbar commands. */
+.toolbar-overflow-btn {
+  position: sticky;
+  right: 0;
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #334155;
+  color: #e2e8f0;
+  cursor: pointer;
+  box-shadow: -8px 0 8px -4px #334155;
+  z-index: 5;
+}
+.toolbar-overflow-btn.visible { display: inline-flex; }
+.toolbar-overflow-btn:hover { background: #475569; color: #f8fafc; }
+.toolbar-overflow-menu {
+  position: fixed;
+  z-index: 10050;
+  min-width: 180px;
+  max-width: min(320px, 90vw);
+  max-height: 60vh;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.toolbar-overflow-menu[hidden] { display: none; }
+.toolbar-overflow-menu .tb-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.toolbar-overflow-menu .tb-overflow-item:hover,
+.toolbar-overflow-menu .tb-overflow-item:focus {
+  background: #334155;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

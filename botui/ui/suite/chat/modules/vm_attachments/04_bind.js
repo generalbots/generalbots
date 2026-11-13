@@ -144,20 +144,20 @@ function vmBindAttachment(card) {
   }
   if (nameLink) {
     nameLink.addEventListener("click", function (e) {
-      // Before the first resolve the href is still "#": keep the browser on
-      // the page and open the real URL once it is known.
-      if (!nameLink.href || nameLink.getAttribute("href") === "#") {
-        e.preventDefault();
-        urlFor()
-          .then(function (url) {
-            if (inlineViewable || officeDoc) {
-              window.open(url, "_blank", "noopener");
-            } else {
-              vmDownload(url, fileName);
-            }
-          })
-          .catch(vmNotifyError);
-      }
+      // Always handle in JS so auth is sent via header/cookie without putting
+      // bearer tokens in URLs (history/logs).
+      e.preventDefault();
+      urlFor()
+        .then(function (url) {
+          if (inlineViewable || officeDoc) {
+            return vmFetchBlobUrl(url).then(function (blobUrl) {
+              window.open(blobUrl, "_blank", "noopener");
+              setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+            });
+          }
+          return vmDownload(url, fileName);
+        })
+        .catch(vmNotifyError);
     });
   }
 

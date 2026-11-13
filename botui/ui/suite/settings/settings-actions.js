@@ -136,6 +136,10 @@
         } else {
             const toast = document.createElement('div');
             toast.className = 'toast-notification toast-' + type;
+            const isError = type === 'error' || type === 'danger';
+            toast.setAttribute('role', isError ? 'alert' : 'status');
+            toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+            toast.setAttribute('aria-atomic', 'true');
             toast.textContent = message;
             toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:10000;animation:fadeIn 0.3s';
             document.body.appendChild(toast);
@@ -325,7 +329,10 @@
             try {
                 var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
                 if (tauri && tauri.invoke) {
-                    tauri.invoke('set_badge_count', { count: 0 }).catch(function () {});
+                    tauri.invoke('set_badge_count', { count: 0 }).catch(function (err) {
+                        /* Best-effort native badge update in the desktop shell. */
+                        console.debug("[gb-settings] Badge clear failed:", err);
+                    });
                 }
             } catch (e) { /* not in Tauri shell */ }
         }
@@ -344,7 +351,10 @@
         try {
             var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
             if (tauri && tauri.invoke) {
-                tauri.invoke('set_badge_count', { count: count || 0 }).catch(function () {});
+                tauri.invoke('set_badge_count', { count: count || 0 }).catch(function (err) {
+                    /* Best-effort native badge update in the desktop shell. */
+                    console.debug("[gb-settings] Badge update failed:", err);
+                });
             }
         } catch (e) { /* not in Tauri shell */ }
     };
@@ -398,6 +408,9 @@
         var message = status === 401
             ? 'Your session is not authorized for this request. Sign in again from the desktop and retry.'
             : 'Request failed' + (status ? ' (HTTP ' + status + ')' : '') + '. Please retry.';
+        target.setAttribute('role', 'alert');
+        target.setAttribute('aria-live', 'assertive');
+        target.setAttribute('aria-atomic', 'true');
         target.innerHTML = '<div class="error-state"><p>' + message + '</p></div>';
     };
     if (!window.__gbSettingsRequestErrorBound) {

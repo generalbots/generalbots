@@ -26,8 +26,8 @@ function projectInfoHtml(p) {
         ["Repository", p.repository || "—"],
         ["Framework", p.framework || "—"],
         ["Status", p.status || "—"],
-        ["Created", p.created_at ? new Date(p.created_at).toLocaleString() : "—"],
-        ["Updated", p.updated_at ? new Date(p.updated_at).toLocaleString() : "—"],
+        ["Created", p.created_at ? gbFormatDateTime(new Date(p.created_at)) : "—"],
+        ["Updated", p.updated_at ? gbFormatDateTime(new Date(p.updated_at)) : "—"],
     ];
     return (
         '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:360px;max-width:520px">' +
@@ -94,7 +94,7 @@ function loadProjectInfoStats(p) {
                 return;
             }
             box.innerHTML = runs.map(function (r) {
-                var when = r.created_at ? new Date(r.created_at).toLocaleString() : "";
+                var when = r.created_at ? gbFormatDateTime(new Date(r.created_at)) : "";
                 var dur = "";
                 if (r.created_at && r.completed_at) {
                     var ms = new Date(r.completed_at) - new Date(r.created_at);

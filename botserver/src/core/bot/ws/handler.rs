@@ -133,14 +133,30 @@ pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
     Query(params): Query<WsQuery>,
+    headers: axum::http::HeaderMap,
 ) -> axum::response::Response {
     let session_id = params
         .session_id
         .and_then(|s| Uuid::parse_str(&s).ok())
         .unwrap_or_else(Uuid::new_v4);
-    let token_user = params
-        .access_token
+    let cookie_token = headers
+        .get(axum::http::header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookies| {
+            cookies.split(';').find_map(|pair| {
+                let mut parts = pair.trim().splitn(2, '=');
+                let name = parts.next()?;
+                let value = parts.next()?;
+                if name == "gb-access-token" {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            })
+        });
+    let token_user = cookie_token
         .as_deref()
+        .or(params.access_token.as_deref())
         .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
         .map(|(id, _)| id);
     let user_id = token_user
@@ -210,6 +226,7 @@ pub async fn websocket_handler_with_bot(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     Query(mut params): Query<WsQuery>,
+    headers: axum::http::HeaderMap,
 ) -> axum::response::Response {
     let raw_bot_name = if bot_name.is_empty() {
         params
@@ -228,9 +245,24 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
-    let token_user = params
-        .access_token
+    let cookie_token = headers
+        .get(axum::http::header::COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookies| {
+            cookies.split(';').find_map(|pair| {
+                let mut parts = pair.trim().splitn(2, '=');
+                let name = parts.next()?;
+                let value = parts.next()?;
+                if name == "gb-access-token" {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            })
+        });
+    let token_user = cookie_token
         .as_deref()
+        .or(params.access_token.as_deref())
         .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
         .map(|(id, _)| id);
     let user_id = token_user
@@ -276,5 +308,5 @@ pub async fn websocket_handler_with_bot(
         }
     }
 
-    websocket_handler(ws, State(state), Query(params)).await
+    websocket_handler(ws, State(state), Query(params), headers).await
 }

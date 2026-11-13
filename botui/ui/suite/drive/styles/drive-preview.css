@@ -6,7 +6,7 @@
 .gb-preview-overlay {
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    z-index: var(--z-overlay, 1600);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -125,8 +125,10 @@
 }
 
 .gb-preview-close {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -424,4 +426,12 @@
     .gb-preview-overlay {
         padding: 0;
     }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

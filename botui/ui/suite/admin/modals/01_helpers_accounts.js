@@ -103,19 +103,26 @@ function connectAccount(provider) {
 }
 
 function disconnectAccount(provider) {
-  if (!confirm(`Disconnect ${provider} account?`)) return;
+  var msg = `Disconnect ${provider} account?`;
+  var doDisconnect = function () {
+    fetch(`/api/settings/accounts/${provider}/disconnect`, { method: "POST" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          showNotification(`${provider} disconnected`, "success");
+          location.reload();
+        } else {
+          showNotification(t("admin-notify-failed-to-disconnect-reason", "Failed to disconnect: {reason}", { reason: data.error }), "error");
+        }
+      })
+      .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  };
 
-  fetch(`/api/settings/accounts/${provider}/disconnect`, { method: "POST" })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        showNotification(`${provider} disconnected`, "success");
-        location.reload();
-      } else {
-        showNotification(t("admin-notify-failed-to-disconnect-reason", "Failed to disconnect: {reason}", { reason: data.error }), "error");
-      }
-    })
-    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  if (window.GBModal && typeof window.GBModal.confirm === "function") {
+    window.GBModal.confirm(msg, "Confirm", doDisconnect);
+    return;
+  }
+  showNotification("Confirmation dialog unavailable", "error");
 }
 
 // =============================================================================

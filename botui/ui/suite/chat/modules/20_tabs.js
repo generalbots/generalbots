@@ -28,16 +28,15 @@ function tabText(key, fallback) {
 (function () {
   function token() {
     try {
-      if (window.getGBAccessToken) {
-        var t = window.getGBAccessToken();
-        if (t) return t;
+      if (typeof window.getChatAccessToken === "function") {
+        var ct = window.getChatAccessToken();
+        if (ct) return ct;
       }
-      return (
-        localStorage.getItem("gb-access-token") ||
-        sessionStorage.getItem("gb-access-token") ||
-        localStorage.getItem("management_token") ||
-        ""
-      );
+      if (window.GBSecurity && window.GBSecurity.getToken) {
+        var st = window.GBSecurity.getToken();
+        if (st) return st;
+      }
+      return sessionStorage.getItem("gb-access-token") || "";
     } catch (e) {
       return "";
     }

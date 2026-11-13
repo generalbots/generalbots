@@ -5,8 +5,8 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-stage-panel.css" />
 
 <div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-db" style="height:100%">
-  <div id="specHost" style="position:absolute; inset:0; overflow-y:auto; padding:16px; box-sizing:border-box;"></div>
-  <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="vibe-db-loading">Loading Database Schema…</span></div>
+  <div id="specHost" style="position:absolute; inset:0; overflow-y:auto; padding:16px; box-sizing:border-box;" aria-live="polite" aria-relevant="additions text"></div>
+  <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="vibe-db-loading">Loading Database Schema…</span></div>
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>

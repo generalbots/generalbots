@@ -367,7 +367,9 @@
             window.WindowManager._injectBodyContent("widgetwin-" + id, html);
           }
         })
-        .catch(function () {});
+        .catch(function (err) {
+          console.error("[gb-widget-registry] Failed to open widget content:", err);
+        });
     },
 
     openIsolated: function (id) {

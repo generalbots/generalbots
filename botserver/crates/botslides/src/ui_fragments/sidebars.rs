@@ -1,21 +1,13 @@
 use super::{empty_fragment, html_escape, render_metadata_card};
-use crate::SlidesState;
-use crate::auth::{SlidesUnauthorized, SlidesUser};
-use crate::types::{Presentation, PresentationMetadata, Slide};
-use axum::{
-    Json,
-    extract::{Query, State},
-    response::Html,
-};
 use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
+use axum::{extract::{Query, State}, response::Html, Json};
+use crate::auth::{SlidesUser, SlidesUnauthorized};
+use crate::types::{Presentation, PresentationMetadata, Slide};
+use crate::SlidesState;
 
-pub async fn handle_presentation_list_sidebar(
-    Json(items): Json<Vec<PresentationMetadata>>,
-) -> Html<String> {
+pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     if items.is_empty() {
-        return Html(empty_fragment(
-            "Nenhuma apresentação. Crie uma nova para começar.",
-        ));
+        return Html(empty_fragment("Nenhuma apresentação. Crie uma nova para começar."));
     }
     let mut body = String::new();
     for m in &items {
@@ -105,17 +97,20 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
     if let Ok(pres) = serde_json::from_value::<Presentation>(payload.clone()) {
         return Ok(handle_presentation_view(Json(pres)).await);
     }
-    let id = payload
-        .get("id")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default();
-    let requested = payload
+    let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+    let requested_slide = payload
         .get("slide_index")
         .or_else(|| payload.get("slide"))
         .and_then(|value| value.as_u64())
         .unwrap_or(0) as usize;
-    let pres = super::get_bridge::load_or_blank(&state, user.owner_id(), id).await;
-    Ok(Html(render_presentation_view(&pres, requested)))
+    let transient_new = payload
+        .get("new")
+        .and_then(|value| value.as_bool().or_else(|| value.as_str().map(|text| text == "1" || text.eq_ignore_ascii_case("true"))))
+        .unwrap_or(false);
+    match super::get_bridge::load_or_blank(&state, user.owner_id(), id, transient_new).await {
+        Ok(pres) => Ok(Html(render_presentation_view(&pres, requested_slide))),
+        Err(message) => Ok(Html(super::err_fragment(&message))),
+    }
 }
 
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {
@@ -165,21 +160,11 @@ pub fn render_presentation_view(pres: &Presentation, requested: usize) -> String
 }
 
 pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let slide: Option<Slide> = serde_json::from_value(
-        payload
-            .get("slide")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null),
-    )
-    .ok();
-    let pid = payload
-        .get("presentation_id")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let slide: Option<Slide> = serde_json::from_value(payload.get("slide").cloned().unwrap_or(serde_json::Value::Null)).ok();
+    let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
     let slide_html = slide.as_ref().map(render_slide).unwrap_or_default();
-    let bg = slide
-        .as_ref()
+    let bg = slide.as_ref()
         .and_then(|s| s.background.color.clone())
         .unwrap_or_else(|| "#0f172a".to_string());
     Html(format!(
@@ -194,6 +179,7 @@ pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> 
         pid = html_escape(pid)
     ))
 }
+
 
 /// Renders a table element with escaped cell text and a header row.
 fn render_table_html(data: &crate::types::TableData) -> String {
@@ -226,20 +212,14 @@ pub(crate) fn render_chart_html(title: &str, data: &crate::types::ChartData) -> 
     let dataset = data.datasets.first();
     let values = dataset.map(|item| item.data.as_slice()).unwrap_or(&[]);
     let color = dataset.map(|item| item.color.as_str()).unwrap_or("#3b82f6");
-    let palette = [
-        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4",
-    ];
+    let palette = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
     match data.chart_type.as_str() {
         "pie" | "doughnut" => {
             let total: f64 = values.iter().sum();
             let mut stops = String::new();
             let mut cursor = 0.0_f64;
             for (index, value) in values.iter().enumerate() {
-                let share = if total > 0.0 {
-                    value / total * 100.0
-                } else {
-                    0.0
-                };
+                let share = if total > 0.0 { value / total * 100.0 } else { 0.0 };
                 let next = (cursor + share).min(100.0);
                 stops.push_str(&format!(
                     "{color} {cursor:.2}% {next:.2}%,",
@@ -334,35 +314,15 @@ pub(super) fn render_slide(slide: &Slide) -> String {
     for e in &slide.elements {
         let style = format!(
             "position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px;transform:rotate({r}deg);z-index:{z};",
-            x = e.x as i32,
-            y = e.y as i32,
-            w = e.width as i32,
-            h = e.height as i32,
-            r = e.rotation as i32,
-            z = e.z_index
+            x = e.x as i32, y = e.y as i32, w = e.width as i32, h = e.height as i32,
+            r = e.rotation as i32, z = e.z_index
         );
-        let fill = e
-            .style
-            .fill
-            .clone()
-            .unwrap_or_else(|| "transparent".to_string());
-        let color = e
-            .style
-            .color
-            .clone()
-            .unwrap_or_else(|| "#f8fafc".to_string());
+        let fill = e.style.fill.clone().unwrap_or_else(|| "transparent".to_string());
+        let color = e.style.color.clone().unwrap_or_else(|| "#f8fafc".to_string());
         let font_size = e.style.font_size.unwrap_or(16.0) as i32;
-        let font_family = e
-            .style
-            .font_family
-            .clone()
-            .unwrap_or_else(|| "Arial".to_string());
+        let font_family = e.style.font_family.clone().unwrap_or_else(|| "Arial".to_string());
         let text = e.content.text.clone().unwrap_or_default();
-        let text_align = e
-            .style
-            .text_align
-            .clone()
-            .unwrap_or_else(|| "left".to_string());
+        let text_align = e.style.text_align.clone().unwrap_or_else(|| "left".to_string());
         // Tables and charts carry structured content; render it instead of the
         // former empty box (their text field is only the chart title).
         let inner = match e.element_type.as_str() {
@@ -391,16 +351,8 @@ pub(super) fn render_slide(slide: &Slide) -> String {
             }
             _ => html_escape(&text),
         };
-        let (align_items, text_wrap) = match e.element_type.as_str() {
-            "text" => (
-                "flex-start",
-                "white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;width:100%;",
-            ),
-            "table" | "chart" => ("stretch", ""),
-            _ => ("center", ""),
-        };
         html.push_str(&format!(
-            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" data-rotation="{r}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:{align_items};padding:4px;overflow:hidden;{text_wrap}">{inner}</div>"##,
+            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" data-rotation="{r}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:center;padding:4px;overflow:hidden;">{inner}</div>"##,
             id = html_escape(&e.id),
             kind = html_escape(&e.element_type),
             r = e.rotation as i32,
@@ -410,8 +362,6 @@ pub(super) fn render_slide(slide: &Slide) -> String {
             fs = font_size,
             ff = html_escape(&font_family),
             ta = html_escape(&text_align),
-            align_items = align_items,
-            text_wrap = text_wrap,
             inner = inner
         ));
     }

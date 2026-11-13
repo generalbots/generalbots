@@ -231,7 +231,19 @@
             return;
         }
         if (e.target && e.target.id === "gbMemoryClear") {
-            if (!confirm("Forget every remembered fact (server and this browser)?")) return;
+            var ok = await new Promise(function (resolve) {
+                if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                    window.GBModal.confirm(
+                        "Forget every remembered fact (server and this browser)?",
+                        "Confirm",
+                        function () { resolve(true); },
+                        function () { resolve(false); }
+                    );
+                    return;
+                }
+                resolve(true);
+            });
+            if (!ok) return;
             busy = true;
             setSyncStatus("Syncing…");
             var all = entries.slice();

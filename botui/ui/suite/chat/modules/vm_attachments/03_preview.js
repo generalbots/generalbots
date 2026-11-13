@@ -3,6 +3,41 @@
 // VM file attachments — inline and window preview.
 // Split out of the former 70_vm_attachments module for #1731; globals unchanged.
 
+function vmAuthFetch(url, init) {
+  if (typeof vmFetchAuthenticated === "function") return vmFetchAuthenticated(url, init);
+  return fetch(url, init);
+}
+
+function vmTrackBlobUrl(box, blobUrl) {
+  if (!box) return;
+  if (!box._gbBlobUrls) box._gbBlobUrls = [];
+  box._gbBlobUrls.push(blobUrl);
+  if (!box._gbBlobObserver) {
+    box._gbBlobObserver = new MutationObserver(function () {
+      if (box.isConnected) return;
+      var urls = box._gbBlobUrls || [];
+      for (var i = 0; i < urls.length; i++) {
+        try { URL.revokeObjectURL(urls[i]); } catch (e) {}
+      }
+      box._gbBlobUrls = [];
+      box._gbBlobObserver.disconnect();
+      box._gbBlobObserver = null;
+    });
+    box._gbBlobObserver.observe(document.body, { childList: true, subtree: true });
+  }
+}
+
+function vmFetchBlobUrl(url, box) {
+  return vmAuthFetch(url).then(function (res) {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.blob();
+  }).then(function (blob) {
+    var blobUrl = URL.createObjectURL(blob);
+    if (box) vmTrackBlobUrl(box, blobUrl);
+    return blobUrl;
+  });
+}
+
 // #1672 — inline preview inside the attachment card. The frame is created
 // lazily on the first click; nothing is fetched while the card is idle.
 function vmToggleInlinePreview(card, url, path, convId) {
@@ -29,7 +64,6 @@ function vmToggleInlinePreview(card, url, path, convId) {
   expand.textContent = "Expand";
   expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
-    // #2099 — expand into the modal layer, not the 80% message bubble.
     if (window.GBArtifactOverlay) {
       window.GBArtifactOverlay.toggle(box, expand, { label: name });
       return;
@@ -64,42 +98,47 @@ function vmToggleInlinePreview(card, url, path, convId) {
   body.className = "gb-attachment-inline-body";
   if (kind === "image") {
     var img = document.createElement("img");
-    img.src = url;
     img.loading = "lazy";
     img.alt = name;
     body.appendChild(img);
+    vmFetchBlobUrl(url, box).then(function (blobUrl) {
+      if (box.isConnected) img.src = blobUrl;
+    }).catch(function () {
+      if (box.isConnected) img.alt = "Could not load preview";
+    });
   } else if (kind === "audio") {
-    // #1908 — inline speaker/play button for voice/audio attachments.
     var audio = document.createElement("audio");
     audio.controls = true;
     audio.preload = "metadata";
-    audio.src = url;
     audio.style.width = "100%";
     body.appendChild(audio);
     var hint = document.createElement("div");
     hint.className = "gb-attachment-inline-note";
     hint.textContent = "Click play to listen inline. Download if playback fails.";
     body.appendChild(hint);
+    vmFetchBlobUrl(url, box).then(function (blobUrl) {
+      if (box.isConnected) audio.src = blobUrl;
+    }).catch(function () {
+      if (box.isConnected) hint.textContent = "Could not load audio preview.";
+    });
   } else if (kind === "pdf" || kind === "html") {
     var frame = document.createElement("iframe");
-    // Interactive HTML artifacts (infographics, charts, dashboards) need
-    // scripts and get an opaque origin: they cannot read the suite DOM,
-    // cookies or storage. A PDF must NOT be sandboxed — Chrome refuses to run
-    // its built-in viewer inside a sandboxed frame and shows a broken-file
-    // icon. The PDF response is application/pdf + nosniff, so it cannot
-    // execute as the parent origin.
     if (kind === "html") {
       frame.setAttribute("sandbox", "allow-scripts allow-forms allow-modals");
     }
     frame.setAttribute("referrerpolicy", "no-referrer");
     frame.setAttribute("title", name);
-    frame.src = url;
     body.appendChild(frame);
+    vmFetchBlobUrl(url, box).then(function (blobUrl) {
+      if (box.isConnected) frame.src = blobUrl;
+    }).catch(function () {
+      if (!box.isConnected) return;
+      var note = document.createElement("div");
+      note.className = "gb-attachment-inline-note";
+      note.textContent = "Could not load the preview.";
+      body.appendChild(note);
+    });
   } else if (kind === "office") {
-    // #1672 — Office renders INLINE now: the server converts the package to
-    // sanitized, script-free HTML (xlsx sheets, docx paragraphs, pptx
-    // slides) through the same signed pipeline. Fully opaque iframe: the
-    // document cannot touch the conversation, cookies or any network.
     var officeFrame = document.createElement("iframe");
     officeFrame.className = "gb-attachment-inline-frame";
     officeFrame.setAttribute("sandbox", "allow-same-origin");
@@ -121,47 +160,42 @@ function vmToggleInlinePreview(card, url, path, convId) {
         vmShowPreviewUrl(url, path);
       });
       fallbackNote.appendChild(openWindow);
-      officeFrame.replaceWith(fallbackNote);
+      if (officeFrame.parentNode) officeFrame.replaceWith(fallbackNote);
     }
-    officeFrame.addEventListener("error", showOfficeFallback);
     body.appendChild(officeFrame);
-    // An iframe fires no `error` event for an HTTP error page (the 415 used
-    // for unconvertible packages renders the raw response), so probe the
-    // conversion endpoint before loading it.
-    fetch(previewUrl, { method: "GET", credentials: "same-origin" })
+    vmAuthFetch(previewUrl, { credentials: "same-origin" })
       .then(function (res) {
-        if (!res.ok) {
-          showOfficeFallback();
-          return;
-        }
-        officeFrame.src = previewUrl;
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.blob();
+      })
+      .then(function (blob) {
+        if (!box.isConnected) return;
+        var blobUrl = URL.createObjectURL(blob);
+        vmTrackBlobUrl(box, blobUrl);
+        officeFrame.src = blobUrl;
       })
       .catch(showOfficeFallback);
   } else if (kind === "text") {
-    // Plain text, CSV, markdown and JSON render inline: fetch the signed URL
-    // and write it into a <pre> as text (never parsed as HTML).
     var pre = document.createElement("pre");
     pre.className = "gb-attachment-inline-text";
     pre.textContent = "Loading…";
     body.appendChild(pre);
-    fetch(url)
+    vmAuthFetch(url)
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.text();
       })
       .then(function (text) {
-        pre.textContent = text.slice(0, 200000);
+        if (box.isConnected) pre.textContent = text.slice(0, 200000);
       })
       .catch(function () {
-        pre.textContent = "Could not load the file preview.";
+        if (box.isConnected) pre.textContent = "Could not load the file preview.";
       });
   } else {
     var other = document.createElement("div");
     other.className = "gb-attachment-inline-note";
     other.textContent =
       "This file type has no inline preview. Open the window preview to view it.";
-    // #1753 — same fallback affordance as the office branch: unknown types
-    // still open through the signed window preview instead of being a dead end.
     var openOther = document.createElement("button");
     openOther.type = "button";
     openOther.className = "gb-attachment-btn";
@@ -179,33 +213,33 @@ function vmToggleInlinePreview(card, url, path, convId) {
 function vmShowPreviewUrl(url, path) {
   var mime = vmFileMimeType(path);
   var overlay = document.getElementById("gb-vm-preview");
+  if (overlay) {
+    if (overlay._gbBlobUrl) {
+      try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) {}
+    }
+  }
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "gb-vm-preview";
     overlay.className = "gb-vm-preview";
     overlay.addEventListener("click", function (e) {
       if (e.target === overlay || e.target.classList.contains("gb-vm-preview-close")) {
+        if (overlay._gbBlobUrl) {
+          try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) {}
+          overlay._gbBlobUrl = null;
+        }
         overlay.remove();
-        if (overlay._gbUrl) URL.revokeObjectURL(overlay._gbUrl);
       }
     });
     document.body.appendChild(overlay);
   }
   var name = vmEscapeHtml(path.split("/").pop() || "file");
   var downloadUrl = url.indexOf("preview=1") !== -1 ? url.replace("preview=1", "raw=1") : url;
-  var body;
-  if (mime.indexOf("image/") === 0) {
-    body = '<img class="gb-vm-preview-body" src="' + url + '" alt="' + name + '">';
-  } else if (mime.indexOf("audio/") === 0) {
-    body = '<audio class="gb-vm-preview-body" controls src="' + url + '"></audio>';
-  } else {
-    body = '<iframe class="gb-vm-preview-body" src="' + url + '" title="' + name + '"></iframe>';
-  }
   overlay.innerHTML =
     '<div class="gb-vm-preview-head"><span>' + name + "</span>" +
-    '<a class="gb-vm-preview-download" download="' + name + '" href="' + downloadUrl + '">Download</a>' +
+    '<a class="gb-vm-preview-download" download="' + name + '" href="#">Download</a>' +
     '<button type="button" class="gb-vm-preview-close" aria-label="Close preview">&times;</button></div>' +
-    body;
+    '<div class="gb-vm-preview-body">Loading…</div>';
   var downloadLink = overlay.querySelector(".gb-vm-preview-download");
   if (downloadLink) {
     downloadLink.addEventListener("click", function (e) {
@@ -213,5 +247,28 @@ function vmShowPreviewUrl(url, path) {
       vmDownload(downloadUrl, path.split("/").pop() || "file");
     });
   }
-  overlay._gbUrl = url;
+  vmFetchBlobUrl(url)
+    .then(function (blobUrl) {
+      if (!overlay.isConnected) {
+        try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+        return;
+      }
+      overlay._gbBlobUrl = blobUrl;
+      var body;
+      if (mime.indexOf("image/") === 0) {
+        body = '<img class="gb-vm-preview-body" src="' + blobUrl + '" alt="' + name + '">';
+      } else if (mime.indexOf("audio/") === 0) {
+        body = '<audio class="gb-vm-preview-body" controls src="' + blobUrl + '"></audio>';
+      } else {
+        body = '<iframe class="gb-vm-preview-body" src="' + blobUrl + '" title="' + name + '"></iframe>';
+      }
+      var existingBody = overlay.querySelector(".gb-vm-preview-body");
+      if (existingBody) {
+        existingBody.outerHTML = body;
+      }
+    })
+    .catch(function () {
+      var existingBody = overlay.querySelector(".gb-vm-preview-body");
+      if (existingBody) existingBody.textContent = "Could not load preview.";
+    });
 }

@@ -137,24 +137,28 @@ function exportAuditLog() {
 // =============================================================================
 
 function closeDetailPanel() {
-  const panel = document.getElementById("detail-panel");
+  const panel =
+    document.getElementById("detail-panel") ||
+    document.getElementById("group-detail-panel") ||
+    document.getElementById("user-detail-panel");
   if (panel) {
     panel.classList.remove("open");
   }
 }
 
 function openDetailPanel(groupId) {
-  const panel = document.getElementById("detail-panel");
-  if (panel) {
-    panel.classList.add("open");
-    // Load group details
-    if (typeof htmx !== "undefined") {
-      htmx.ajax(
-        "GET",
-        `/api/directory/groups/${groupId}`,
-        "#panel-content",
-      );
-    }
+  const panel =
+    document.getElementById("detail-panel") ||
+    document.getElementById("group-detail-panel");
+  if (!panel) return;
+  panel.classList.add("open");
+  if (groupId) panel.dataset.groupId = groupId;
+  if (typeof htmx !== "undefined" && document.getElementById("panel-content")) {
+    htmx.ajax(
+      "GET",
+      "/api/directory/groups/" + groupId,
+      "#panel-content",
+    );
   }
 }
 
@@ -167,8 +171,10 @@ function closeCreateGroup() {
 }
 
 function saveGroup() {
-  const name = document.getElementById("group-name")?.value;
-  const description = document.getElementById("group-description")?.value;
+  const nameEl = document.getElementById("group-name");
+  const descriptionEl = document.getElementById("group-description");
+  const name = nameEl ? nameEl.value : "";
+  const description = descriptionEl ? descriptionEl.value : "";
 
   if (!name) {
     showNotification(t("admin-notify-please-enter-a-group-name", "Please enter a group name"), "error");

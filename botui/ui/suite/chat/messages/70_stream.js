@@ -14,6 +14,23 @@ function gbChatStatus(payload) {
 function gbChatStatusText(key, fallback) {
   return window.gbT ? window.gbT(key, fallback) : fallback;
 }
+// #2357 — one render per ChatState.renderInterval at most. The timer is the
+// trailing half of the throttle: a burst that stops mid-interval still paints
+// its last chunk instead of waiting for the next frame (which may never come).
+var streamRenderTimer = null;
+
+function flushStreamingRender() {
+  ChatState.lastRenderTime = Date.now();
+  updateStreaming(ChatState.currentStreamingContent);
+}
+
+function clearStreamRenderTimer() {
+  if (streamRenderTimer) {
+    clearTimeout(streamRenderTimer);
+    streamRenderTimer = null;
+  }
+}
+
 function updateStreaming(content) {
   var el = document.getElementById(ChatState.streamingMessageId);
   if (!el && window.GBChatVirtual && typeof window.GBChatVirtual.ensureById === "function") {
@@ -45,14 +62,34 @@ function updateStreaming(content) {
     var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
+  // #2354 — same gate as the completed-message path.
+  parsed = GBSanitize.html(parsed);
   parsed = convertNumberedLists(parsed);
   parsed = renderInlineMarkdown(parsed);
   parsed = parsed.replace(/<br\s*\/?>/gi, '');
   parsed = renderMentionInMessage(parsed);
   if (typeof renderDeepLinks === "function") parsed = renderDeepLinks(parsed);
   if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
+  // #2359 — `#messages` is role="log" aria-live="polite"; replacing this
+  // bubble's innerHTML on every render makes assistive tech re-announce the
+  // whole accumulated answer each tick. The in-progress bubble stays out of the
+  // live region (`aria-hidden`) and the region reports `aria-busy`; the single
+  // insertion of the completed bubble is then the one announcement.
+  if (el) {
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("aria-busy", "true");
+  }
+  var log = document.getElementById("messages");
+  if (log) log.setAttribute("aria-busy", "true");
+  var toolExecHeader = "";
+  if (el && el.dataset && el.dataset.gbToolExecHeader) {
+    toolExecHeader = el.dataset.gbToolExecHeader;
+  } else if (msgContent) {
+    var existingToolCard = msgContent.querySelector(".gb-tool-card[data-tool-kind='tool-exec']");
+    if (existingToolCard) toolExecHeader = existingToolCard.outerHTML;
+  }
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
-  msgContent.innerHTML = thinkingHtml + parsed;
+  msgContent.innerHTML = thinkingHtml + toolExecHeader + parsed;
   // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
   // lives on the message (not inside .message-content) so the next streaming
   // re-render does not destroy and reload it every 200 ms.
@@ -90,6 +127,8 @@ function finalizeStreaming() {
       }
     } catch (e) {}
   }
+  var transcript = document.getElementById("messages");
+  if (transcript) transcript.removeAttribute("aria-busy");
   ChatState.streamingMessageId = null;
   ChatState.currentStreamingContent = "";
   ChatState.currentReasoning = "";
@@ -145,6 +184,7 @@ function processMessage(data) {
       return;
     }
     if (ChatState.isStreaming) {
+      clearStreamRenderTimer();
       finalizeStreaming();
     }
     // The server can emit the same completion more than once (stream end +
@@ -164,11 +204,22 @@ function processMessage(data) {
       gbFinishTurn(data, completed);
       return;
     }
+    // #2360 — only explicit structured failure signals mark a message retryable.
+    var retryable = !!(data.error || data.is_error || data.failed || data.retryable ||
+      data.status === "error" || data.turn_status === "error" || data.turn_status === "failed");
+    var messageMeta = {};
+    if (retryable) messageMeta.retryable = true;
+    // Non-streaming completion (or a turn completed without a streaming bubble).
+    if (ChatState.pendingToolExec) {
+      messageMeta.toolExec = ChatState.pendingToolExec;
+      ChatState.pendingToolExec = null;
+    }
+    if (!retryable && !messageMeta.toolExec) messageMeta = null;
     if (completed.content) {
-      addMessage("bot", completed.content, null, finalReasoning);
+      addMessage("bot", completed.content, null, finalReasoning, null, messageMeta);
       if (TTSState.autoSpeak) speakText(completed.content);
     } else if (completed.reasoning && completed.reasoning.trim() !== "") {
-      addMessage("bot", "", null, completed.reasoning);
+      addMessage("bot", "", null, completed.reasoning, null, messageMeta);
       if (TTSState.autoSpeak) speakText(completed.reasoning);
     }
     ChatState.lastCompletedTurn = {
@@ -220,7 +271,12 @@ function processMessage(data) {
       ChatState.streamingMessageId = "streaming-" + Date.now();
       ChatState.currentStreamingContent = data.content || "";
       ChatState.currentReasoning = data.reasoning || "";
-      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning);
+      var streamMeta = null;
+      if (ChatState.pendingToolExec) {
+        streamMeta = { toolExec: ChatState.pendingToolExec };
+        ChatState.pendingToolExec = null;
+      }
+      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning, null, streamMeta);
       ChatState.lastRenderTime = Date.now();
       gbChatStatus({ state: "running", text: gbChatStatusText("status-generating", "Generating…") });
     } else {
@@ -231,8 +287,15 @@ function processMessage(data) {
         ChatState.currentStreamingContent += data.content;
       }
       var now = Date.now();
-      if (now - ChatState.lastRenderTime > ChatState.renderInterval) {
-        updateStreaming(ChatState.currentStreamingContent);
+      var wait = ChatState.renderInterval - (now - ChatState.lastRenderTime);
+      if (wait <= 0) {
+        clearStreamRenderTimer();
+        flushStreamingRender();
+      } else if (!streamRenderTimer) {
+        streamRenderTimer = setTimeout(function () {
+          streamRenderTimer = null;
+          if (ChatState.isStreaming) flushStreamingRender();
+        }, wait);
       }
     }
   }

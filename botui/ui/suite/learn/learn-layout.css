@@ -440,7 +440,6 @@
 .btn-primary-sm:hover {
     background: #d97706;
 }
-
 /* Tab Content */
 .tab-content {
     display: none;
@@ -448,3 +447,4 @@
     overflow-y: auto;
     padding: 24px;
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

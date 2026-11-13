@@ -74,14 +74,14 @@
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group" role="group" aria-label="Colour">
-                    <label class="docs-color" title="Font colour" aria-label="Font colour">
-                        <span style="font-weight:700;">A</span>
-                        <input type="color" id="fmtColor" value="#111827" aria-label="Font colour" />
-                    </label>
-                    <label class="docs-color" title="Highlight" aria-label="Highlight">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        <input type="color" id="fmtHighlight" value="#fde68a" aria-label="Highlight colour" />
-                    </label>
+                    <span class="docs-color gb-cp-wrap" title="Font colour">
+                        <input type="hidden" id="fmtColor" value="#111827" />
+                        <button type="button" class="gb-cp-trigger" data-gb-color-for="fmtColor" title="Font colour" aria-label="Font colour"><span style="font-weight:700;">A</span><span class="gb-cp-swatch"></span></button>
+                    </span>
+                    <span class="docs-color gb-cp-wrap" title="Highlight">
+                        <input type="hidden" id="fmtHighlight" value="#fde68a" />
+                        <button type="button" class="gb-cp-trigger" data-gb-color-for="fmtHighlight" title="Highlight colour" aria-label="Highlight colour"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span class="gb-cp-swatch"></span></button>
+                    </span>
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group" role="group" aria-label="Alignment">
@@ -214,6 +214,7 @@
 <script src="/suite/docs/modules/02_save.js"></script>
 <script src="/suite/docs/modules/02b_export.js"></script>
 <script src="/suite/docs/modules/03_editor.js"></script>
+<script src="/suite/js/gb-color-picker.js"></script>
 <script src="/suite/docs/modules/04_ui.js"></script>
 <script src="/suite/docs/modules/16_spellcheck.js"></script>
 <script src="/suite/docs/modules/17_translate.js"></script>
@@ -228,6 +229,7 @@
 <script src="/suite/docs/modules/13_delta.js"></script>
 <script src="/suite/docs/modules/14_toc_anchors.js"></script>
 <script src="/suite/docs/modules/15_readonly.js"></script>
+<script src="/suite/docs/modules/18_toolbar_overflow.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>

@@ -170,7 +170,12 @@
       this.timer = { start: Date.now(), elapsed: 0, paused: false };
       this.rehearsal = { currentSlide: 0, autoAdvance: false, slidesCount: (this.canvas && this.canvas.querySelectorAll("[data-slide-index]").length) || 0 };
       this._renderRehearsalUI();
-      document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {});
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          /* Best-effort fullscreen for rehearsal; presenting still works without it. */
+          console.debug("[gb-slides-advanced] Fullscreen request failed:", err);
+        });
+      }
     },
     stopRehearsal: function () {
       this.timer.paused = true;

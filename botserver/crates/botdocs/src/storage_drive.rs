@@ -91,6 +91,9 @@ async fn save_document_with_extras(
     content: &str,
     document: Option<&Document>,
 ) -> Result<String, String> {
+    if doc_id == "current" {
+        return Err("Document id 'current' is reserved and cannot be persisted".to_string());
+    }
     let base_path = get_user_docs_path(user_identifier);
     let doc_path = format!("{base_path}/{doc_id}.html");
     let meta_path = format!("{base_path}/{doc_id}.meta.json");

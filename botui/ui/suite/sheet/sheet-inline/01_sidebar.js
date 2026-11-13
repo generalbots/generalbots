@@ -7,6 +7,23 @@ function _t(key, fallback, params) {
     }
     return text;
 }
+function _sheetCtx(arg) {
+    var D = window.SheetDefaults || {};
+    var ev = (typeof event !== 'undefined') ? event : null;
+    var node = arg;
+    if (node && node.target) node = node.target;
+    if (!node || !node.closest) node = ev && ev.target;
+    if (!node || !node.closest) node = document.activeElement;
+    var body = node && node.closest ? node.closest('[id^="window-body-"]') : null;
+    if (!body && arg && arg.windowBody) body = arg.windowBody;
+    if (!body && arg && arg.body) body = arg.body;
+    var winId = body ? (body.dataset.windowId || body.id.replace('window-body-', '')) : null;
+    var inst = winId && D.getSheetInstance ? D.getSheetInstance(winId) : (D.getActiveSheetInstance ? D.getActiveSheetInstance() : null);
+    if (!body && inst) body = inst.body;
+    if (inst && D.setActiveSheetInstance) D.setActiveSheetInstance(inst);
+    return { body: body, inst: inst, winId: winId || (inst && inst.windowId) || null };
+}
+function _q(ctx, sel) { return ctx && ctx.body ? ctx.body.querySelector(sel) : null; }
 /* A1 reference ("B7", "$B$7") → zero-based {row, col}. Deep links carry the
    cell the bot is talking about, while the grid API addresses cells by index. */
 function gbSheetParseA1(ref) {
@@ -22,25 +39,29 @@ function gbSheetParseA1(ref) {
     return { row: row - 1, col: col - 1 };
 }
 /* Select and scroll to a zero-based grid position. */
-function gbSheetApplyCell(pos) {
-    var grid = window.SheetVirtualGrid ||
-        (window.SheetCore && window.SheetCore.getGrid ? window.SheetCore.getGrid() : null);
+function gbSheetApplyCell(pos, ctx) {
+    var inst = ctx && (ctx.inst || ctx.grid ? ctx : null);
+    if (ctx && ctx.instance) inst = ctx.instance;
+    var grid = (inst && inst.grid) || (ctx && ctx.grid) || (window.SheetDefaults && window.SheetDefaults.getActiveSheetInstance && (window.SheetDefaults.getActiveSheetInstance() || {}).grid) || window.SheetVirtualGrid;
     if (!grid || typeof grid.selectCell !== 'function') return false;
     grid.selectCell(pos.row, pos.col);
     return true;
 }
-/* Select and scroll to an A1 reference after a workbook load (#2271: the boot
-   and deep-link paths dropped the `cell` parameter, so "B7 is 1234" opened at
-   A1). The request is remembered because VirtualGrid.init() schedules a default
-   selectCell(0,0) 100 ms later, which would undo the selection right away. */
-function gbSheetGotoCell(ref) {
+/* Select and scroll to an A1 reference after a workbook load (#2271). */
+function gbSheetGotoCell(ref, ctx) {
     var pos = gbSheetParseA1(ref);
     if (!pos) {
         console.warn('[sheet] ignoring malformed cell reference:', ref);
         return false;
     }
+    var inst = ctx && (ctx.inst || ctx);
+    if (inst && inst.windowId && window.__SHEET_INSTANCES__ && window.__SHEET_INSTANCES__[inst.windowId]) inst = window.__SHEET_INSTANCES__[inst.windowId];
+    if (inst && inst.grid) {
+        inst.pendingCell = ref;
+        return gbSheetApplyCell(pos, inst);
+    }
     window.__SHEET_PENDING_CELL = ref;
-    return gbSheetApplyCell(pos);
+    return gbSheetApplyCell(pos, ctx);
 }
 /* Runs when the grid's deferred default selection fires: a requested cell wins
    over the default A1, and the request is cleared either way. */
@@ -51,15 +72,21 @@ function gbSheetConsumePendingCell() {
     var pos = gbSheetParseA1(ref);
     return pos ? gbSheetApplyCell(pos) : false;
 }
-function newSheet() {
+function newSheet(arg) {
+    var ctx = _sheetCtx(arg);
     fetch('/api/sheet/new').then(function(r){ return r.json(); }).then(function(s){
+        if (ctx.inst) {
+            ctx.inst.loadedSheet = s;
+            ctx.inst.sheetId = s.id;
+            if (window.SheetDefaults) window.SheetDefaults.setActiveSheetInstance(ctx.inst);
+        }
         window.__LOADED_SHEET = s;
         window.__SHEET_INITIAL_ID = s.id;
-        var host = document.getElementById('sheet-content');
+        var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
         if (!host) return;
         host.innerHTML = '';
-        if (window.SheetVirtualGrid) {
-            var VG = window.SheetVirtualGrid;
+        var VG = (ctx.inst && ctx.inst.grid) || window.SheetVirtualGrid;
+        if (VG) {
             VG.cells = new Map();
             VG.pool = [];
             VG.usedCount = 0;
@@ -76,15 +103,16 @@ function newSheet() {
         }
     });
 }
-function loadSidebar() {
-    var el = document.getElementById('sidebar-files');
+function loadSidebar(arg) {
+    var ctx = _sheetCtx(arg);
+    var el = _q(ctx, '#sidebar-files') || document.getElementById('sidebar-files');
     if (!el) return;
     fetch('/api/sheet/list').then(function(r){ return r.json(); }).then(function(items){
         if (!items || items.length === 0) {
             el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sheet-none', 'No spreadsheets yet. Create one to start.') + '</div>';
             return;
         }
-        var html = '<div class="ss-sidebar" id="sheet-list-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, #334155);"><h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:14px;">' + _t('sheet-my-sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sheet-new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
+        var html = '<div class="ss-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, #334155);"><h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:14px;">' + _t('sheet-my-sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sheet-new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
         for (var i = 0; i < items.length; i++) {
             var m = items[i];
             html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid var(--sheet-border, #334155);border-radius:6px;background:var(--sheet-bg-elevated, #1e293b);cursor:pointer;"><div style="font-weight:600;color:var(--sheet-fg, #f8fafc);">' + escHtml(m.name) + '</div><div style="font-size:12px;color:var(--sheet-muted, #94a3b8);margin-top:4px;">' + _t('sheet-sheets-count', '{0} sheet(s)', { count: m.worksheet_count || 0 }) + '</div></div>';
@@ -97,16 +125,15 @@ function loadSidebar() {
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openSheetPanel(panel) {
-    var sheet = window.__LOADED_SHEET;
+    var ctx = _sheetCtx();
+    var sheet = (ctx.inst && ctx.inst.loadedSheet) || window.__LOADED_SHEET;
     if (!sheet) {
-        var host = document.getElementById('sheet-content');
+        var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
         if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-sidebar-load-first', 'Load a spreadsheet first.') + '</div>';
         return;
     }
-    var panelHost = document.getElementById('sheet-content');
+    var panelHost = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
     if (!panelHost) return;
-    // The module reloads the workbook before rendering: posting the cached
-    // copy showed stale protection/chart state after every mutation.
     if (window.GBSheetRefreshPanel) {
         window.GBSheetRefreshPanel(panel).catch(function () {
             panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>';
@@ -121,27 +148,26 @@ function openSheetPanel(panel) {
     .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>'; });
 }
 function loadSheet(id, cell) {
+    var ctx = _sheetCtx();
+    if (ctx.inst) {
+        ctx.inst.sheetId = id;
+        ctx.inst.worksheetIndex = 0;
+        if (window.SheetDefaults) window.SheetDefaults.setActiveSheetInstance(ctx.inst);
+    }
     window.__SHEET_INITIAL_ID = id;
-    // Each workbook starts on its first tab: the persisted index belonged to
-    // the previously open sheet and could point at a missing worksheet.
     try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) {}
-    document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
-    var host = document.getElementById('sheet-content');
+    document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0, windowId: ctx.winId }, bubbles: true }));
+    var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
     if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';
-    // Load the worksheet tabs HTML from server, then init VirtualGrid
     fetch('/api/sheet/load?id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(sheet){
+        if (ctx.inst) { ctx.inst.loadedSheet = sheet; ctx.inst.sheetId = sheet.id || id; }
         window.__LOADED_SHEET = sheet;
-        // Switching workbooks must refresh the title input: it kept the
-        // previous workbook's name, and the next Save then renamed the newly
-        // opened sheet to that stale value.
-        var titleInput = document.getElementById('sheetName');
+        var titleInput = _q(ctx, '#sheetName') || document.getElementById('sheetName');
         if (titleInput && sheet && sheet.name) titleInput.value = sheet.name;
         if (!host) return;
         host.innerHTML = '';
-        // Re-initialize VirtualGrid with fresh state
-        if (window.SheetVirtualGrid) {
-            // Reset VirtualGrid state completely
-            var VG = window.SheetVirtualGrid;
+        var VG = (ctx.inst && ctx.inst.grid) || window.SheetVirtualGrid;
+        if (VG) {
             VG.cells = new Map();
             VG.pool = [];
             VG.usedCount = 0;
@@ -155,57 +181,54 @@ function loadSheet(id, cell) {
             VG.init(host);
             if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
             if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
-            if (window.__LOADED_SHEET && window.__LOADED_SHEET.worksheets && window.__LOADED_SHEET.worksheets.length > 0) {
-                var ws = window.__LOADED_SHEET.worksheets[0];
+            var loaded = (ctx.inst && ctx.inst.loadedSheet) || window.__LOADED_SHEET;
+            if (loaded && loaded.worksheets && loaded.worksheets.length > 0) {
+                var ws = loaded.worksheets[0];
                 if (ws.data) {
-                    for (var cellRef in ws.data) {
-                        VG.cells.set(cellRef, ws.data[cellRef]);
-                    }
+                    for (var cellRef in ws.data) { VG.cells.set(cellRef, ws.data[cellRef]); }
                 }
                 VG.requestSeq++;
                 VG.totalRows = Math.max(VG.totalRows, 50);
                 VG.render();
                 if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
-                // Charts render off `gb-sheet-tab`, but the event above fires
-                // before the workbook arrives; without this second dispatch an
-                // opened sheet shows its cells and silently loses its charts.
-                document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
+                document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0, windowId: ctx.winId }, bubbles: true }));
             }
-            // The deep link that triggered this load may point at a cell.
-            if (cell) gbSheetGotoCell(cell);
+            if (cell) gbSheetGotoCell(cell, ctx.inst || VG);
         }
     }).catch(function(){
         if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">Error loading sheet.</div>';
     });
 }
-function getLiveSheetId() {
+function getLiveSheetId(arg) {
+    var ctx = _sheetCtx(arg);
+    if (ctx.inst) {
+        return (ctx.inst.loadedSheet && ctx.inst.loadedSheet.id) || ctx.inst.sheetId || null;
+    }
     return (window.__LOADED_SHEET && window.__LOADED_SHEET.id) || window.__SHEET_INITIAL_ID || null;
 }
 // Toolbar modals hardcode id="current"; rewrite it to the live sheet id once
-// per HTMX request so the modal (and the form it renders) targets the open
-// workbook instead of a session literal.
+// per HTMX request so the modal/form targets the open workbook (#2270).
 document.addEventListener("htmx:configRequest", function (event) {
     var parameters = (event.detail && event.detail.parameters) || {};
-    var live = getLiveSheetId();
+    var ctx = _sheetCtx(event.detail && event.detail.elt);
+    var live = getLiveSheetId(ctx);
     if (live && live !== "current") {
         ["id", "sheet_id"].forEach(function (key) {
             if (parameters[key] === "current") parameters[key] = live;
         });
     }
-    // Mutations must target the active worksheet tab, not always the first.
-    if (window.SheetCore && typeof window.SheetCore.wsIndex === "function") {
+    if (ctx.inst && typeof ctx.inst.worksheetIndex === "number") {
+        parameters.worksheet_index = ctx.inst.worksheetIndex;
+    } else if (window.SheetCore && typeof window.SheetCore.wsIndex === "function") {
         parameters.worksheet_index = window.SheetCore.wsIndex();
     } else {
-        var tabs = document.getElementById("worksheet-tabs");
+        var tabs = _q(ctx, "#worksheet-tabs") || document.getElementById("worksheet-tabs");
         if (tabs && tabs.dataset.activeIndex !== undefined) {
             parameters.worksheet_index = parseInt(tabs.dataset.activeIndex, 10) || 0;
         }
     }
 });
-// Re-render the grid after a successful htmx mutation (CF/DV/format/chart/
-// share) so the change is visible without a reload. Cell edits use fetch.
-// Sheet AI answers are JSON; render the text in #ai-response instead of
-// swapping the object into the panel.
+// Sheet AI answers are JSON; render the text in #ai-response in that window.
 document.addEventListener("htmx:afterRequest", function (event) {
     var detail = event.detail || {};
     var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
@@ -217,7 +240,8 @@ document.addEventListener("htmx:afterRequest", function (event) {
     } catch (error) {
         text = detail.xhr.responseText;
     }
-    var target = document.getElementById("ai-response");
+    var ctx = _sheetCtx(detail.elt);
+    var target = _q(ctx, "#ai-response") || document.getElementById("ai-response");
     if (target) target.textContent = text;
 });
 
@@ -227,31 +251,40 @@ document.addEventListener("htmx:afterRequest", function (event) {
     var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
     if (path.indexOf("/api/sheet/") !== 0) return;
     if (path === "/api/sheet/load" || path === "/api/sheet/load-from-drive") return;
-    var live = getLiveSheetId();
-    if (live && typeof loadSheet === "function") loadSheet(live);
+    var ctx = _sheetCtx(detail.elt);
+    var live = getLiveSheetId(ctx);
+    if (live && typeof loadSheet === "function") {
+        // preserve context by setting active before reloading this window
+        if (ctx.inst && window.SheetDefaults) window.SheetDefaults.setActiveSheetInstance(ctx.inst);
+        loadSheet(live);
+    }
 });
 function GBSheetRefreshNamedRanges(sheetId) {
+    var ctx = _sheetCtx();
     var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
     var headers = { "Content-Type": "application/json" };
     if (token) headers.Authorization = "Bearer " + token;
     fetch("/suite/sheet/fragments/named-ranges", {
         method: "POST",
         headers: headers,
-        body: JSON.stringify({ id: sheetId }),
+        body: JSON.stringify({ id: sheetId || getLiveSheetId(ctx) }),
     })
         .then(function (response) { return response.text(); })
         .then(function (html) {
-            var current = document.getElementById("named-ranges-panel");
+            var current = _q(ctx, "#named-ranges-panel") || document.getElementById("named-ranges-panel");
             if (!current) return;
             var holder = document.createElement("div");
             holder.innerHTML = html.trim();
             var next = holder.firstElementChild;
             if (next) current.replaceWith(next);
         })
-        .catch(function () {});
+        .catch(function (err) {
+            console.debug("[gb-sheet] Named ranges refresh failed:", err);
+        });
 }
 window.GBSheetRefreshNamedRanges = GBSheetRefreshNamedRanges;
 function GBSheetCreateNamedRange(sheetId) {
+    var ctx = _sheetCtx();
     var name = (window.GBModal||{prompt:prompt}).prompt("Nome do intervalo:", "");
     if (!name || !name.trim()) return;
     var sel = window.SheetAdvanced && window.SheetAdvanced.getSelection
@@ -260,6 +293,7 @@ function GBSheetCreateNamedRange(sheetId) {
         sheetNotify("Selecione as células do intervalo primeiro.", true);
         return;
     }
+    var inst = ctx.inst || (window.SheetDefaults && window.SheetDefaults.getActiveSheetInstance ? window.SheetDefaults.getActiveSheetInstance() : null);
     var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
     var headers = { "Content-Type": "application/json" };
     if (token) headers.Authorization = "Bearer " + token;
@@ -267,10 +301,10 @@ function GBSheetCreateNamedRange(sheetId) {
         method: "POST",
         headers: headers,
         body: JSON.stringify({
-            sheet_id: sheetId,
+            sheet_id: sheetId || getLiveSheetId(ctx),
             name: name.trim(),
             scope: "workbook",
-            worksheet_index: window.SheetCore ? window.SheetCore.wsIndex() : 0,
+            worksheet_index: inst && typeof inst.worksheetIndex === "number" ? inst.worksheetIndex : (window.SheetCore ? window.SheetCore.wsIndex() : 0),
             start_row: sel.startRow,
             start_col: sel.startCol,
             end_row: sel.endRow,
@@ -279,7 +313,7 @@ function GBSheetCreateNamedRange(sheetId) {
     })
         .then(function (response) {
             if (!response.ok) throw new Error("HTTP " + response.status);
-            GBSheetRefreshNamedRanges(sheetId);
+            GBSheetRefreshNamedRanges(sheetId || getLiveSheetId(ctx));
         })
         .catch(function (error) {
             sheetNotify("Could not create the named range: " + error.message, true);
@@ -288,7 +322,8 @@ function GBSheetCreateNamedRange(sheetId) {
 window.GBSheetCreateNamedRange = GBSheetCreateNamedRange;
 function openSheetComments() {
     if (!window.GBCollabComments) return;
-    var id = getLiveSheetId();
+    var ctx = _sheetCtx();
+    var id = getLiveSheetId(ctx);
     if (!id || id === 'current') {
         alert('Save the spreadsheet first, then open comments.');
         return;
@@ -297,20 +332,19 @@ function openSheetComments() {
         resourceType: 'sheet',
         resourceId: String(id),
         title: 'Spreadsheet comments',
-        // Aggregate every cell-anchored comment (sheet:cell) under this sheet
-        // so the doc-level panel shows the full discussion, not just a few
-        // sheet-level comments.
         includeChildren: true,
     });
 }
-function renameSheet() {
-    var nameInput = document.getElementById('sheetName');
+function renameSheet(arg) {
+    var ctx = _sheetCtx(arg);
+    var nameInput = _q(ctx, '#sheetName') || document.getElementById('sheetName');
     if (!nameInput) return;
     var name = nameInput.value.trim();
-    if (!name) { nameInput.value = window.__LOADED_SHEET ? window.__LOADED_SHEET.name : 'Untitled Spreadsheet'; return; }
-    var id = getLiveSheetId();
+    var loaded = (ctx.inst && ctx.inst.loadedSheet) || window.__LOADED_SHEET;
+    if (!name) { nameInput.value = loaded ? loaded.name : 'Untitled Spreadsheet'; return; }
+    var id = getLiveSheetId(ctx);
     if (!id || id === 'current') {
-        // No live document yet — persist the title with the next save.
+        if (ctx.inst && ctx.inst.loadedSheet) ctx.inst.loadedSheet.name = name;
         if (window.__LOADED_SHEET) window.__LOADED_SHEET.name = name;
         return;
     }
@@ -324,19 +358,14 @@ function renameSheet() {
             return j;
         });
     }).then(function() {
+        if (ctx.inst && ctx.inst.loadedSheet) ctx.inst.loadedSheet.name = name;
         if (window.__LOADED_SHEET) window.__LOADED_SHEET.name = name;
-        var notif = document.createElement('div');
-        notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#3b82f6;color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-        notif.textContent = 'Renamed';
-        document.body.appendChild(notif);
-        setTimeout(function() { notif.remove(); }, 2000);
+        sheetNotify('Renamed');
     }).catch(function(err) {
         sheetNotify('Rename failed: ' + (err && err.message ? err.message : 'unknown error'), true);
     });
 }
 
-// Save/rename failures used to be swallowed by an empty .catch; show them in
-// the same place successes appear so a failed save is never silent (#1712).
 function sheetNotify(message, isError) {
     var notif = document.createElement('div');
     notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:' +
@@ -346,10 +375,6 @@ function sheetNotify(message, isError) {
     document.body.appendChild(notif);
     setTimeout(function() { notif.remove(); }, isError ? 5000 : 2000);
 }
-/* A Drive file that could not be loaded must not turn into a blank workbook
-   (#2269): a synthetic `new-<ts>` document has no source_bucket/source_path, so
-   every edit is stranded and Save still says it worked. Show the failure and
-   let Save refuse instead. */
 function gbSheetShowLoadError(host, info) {
     info = info || {};
     if (!host) return;
@@ -378,18 +403,20 @@ function gbSheetShowLoadError(host, info) {
     }
     host.appendChild(box);
 }
-function saveSheet() {
-    if (window.__SHEET_LOAD_ERROR) {
+function saveSheet(arg) {
+    var ctx = _sheetCtx(arg);
+    if (ctx.inst && ctx.inst.loadError) {
         sheetNotify('Not saved: this window has no document — the file failed to load.', true);
         return;
     }
-    var nameInput = document.getElementById('sheetName');
+    if (!ctx.inst && window.__SHEET_LOAD_ERROR) {
+        sheetNotify('Not saved: this window has no document — the file failed to load.', true);
+        return;
+    }
+    var nameInput = _q(ctx, '#sheetName') || document.getElementById('sheetName');
     var name = nameInput ? nameInput.value : 'Untitled Spreadsheet';
-    var id = getLiveSheetId();
+    var id = getLiveSheetId(ctx);
     var payload = { name: name, action: 'save' };
-    // "current" is a real live session: every cell edit was written to it.
-    // Dropping it here made the server create a fresh blank workbook, losing
-    // the edits the user had just made.
     if (id) payload.id = id;
     fetch('/api/sheet/save', {
         method: 'POST',
@@ -402,6 +429,10 @@ function saveSheet() {
         });
     }).then(function(j) {
         if (j && j.id) {
+            if (ctx.inst) {
+                ctx.inst.sheetId = j.id;
+                if (ctx.inst.loadedSheet) ctx.inst.loadedSheet.id = j.id;
+            }
             window.__SHEET_INITIAL_ID = j.id;
             if (window.__LOADED_SHEET) window.__LOADED_SHEET.id = j.id;
         }
@@ -416,8 +447,11 @@ function saveSheet() {
 }
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        saveSheet();
+        var t = e.target;
+        if (t && t.closest && t.closest('[id^="window-body-"]')) {
+            e.preventDefault();
+            saveSheet(t);
+        }
     }
 });
 if (typeof htmx === 'undefined') {

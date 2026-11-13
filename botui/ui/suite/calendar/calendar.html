@@ -25,11 +25,9 @@
         <!-- Quick Actions -->
         <div class="sidebar-actions">
             <button
+                type="button"
                 class="btn-primary-full"
                 id="new-event-btn"
-                hx-get="/api/ui/calendar/events/new"
-                hx-target="#event-modal-content"
-                hx-swap="innerHTML"
             >
                 <svg
                     width="16"
@@ -119,6 +117,7 @@
             <div
                 class="calendars-list"
                 id="calendars-list"
+                aria-live="polite"
                 hx-get="/api/ui/calendar/calendars"
                 hx-trigger="load once"
                 hx-swap="innerHTML"
@@ -199,7 +198,7 @@
 <div id="calendarTplSlot1"></div>
 
     <!-- Event Details Popup -->
-    <div class="event-popup hidden" id="event-popup">
+    <div class="event-popup hidden" id="event-popup" role="status" aria-live="polite" aria-atomic="true">
         <div class="event-popup-header">
             <div class="event-popup-color" id="popup-color"></div>
             <h4 id="popup-title" data-i18n="auto-event-title">Event Title</h4>
@@ -393,7 +392,7 @@
                         <option value="" data-i18n="auto-default-calendar">Default Calendar</option>
                     </select>
                 </div>
-                <div id="import-result" style="margin-top: 12px"></div>
+                <div id="import-result" style="margin-top: 12px" role="status" aria-live="polite"></div>
                 <div class="form-actions">
                     <button
                         type="button"
@@ -410,10 +409,11 @@
 </div>
 
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-calendar">Loading calendar…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-calendar-unavailable">Calendar unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="auto-loading-calendar">Loading calendar…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="auto-calendar-unavailable">Calendar unavailable</span></div>
 <script src="/suite/calendar/calendar-templates.js?v=1"></script>
 <script src="/suite/calendar/calendar.js?v=5"></script>
+<script src="/suite/calendar/modules/calendar-draw.js?v=1"></script>
 <script src="/suite/calendar/modules/calendar-more.js?v=4"></script>
 
 <div id="calendarTplSlot2"></div>

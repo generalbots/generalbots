@@ -16,25 +16,27 @@ use governor::{
 };
 use serde_json::json;
 use std::{
-    net::SocketAddr,
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
     num::NonZeroU32,
-    sync::Arc,
+    sync::{Arc, OnceLock},
 };
 
 pub type GlobalRateLimiter = GovernorRateLimiter<NotKeyed, InMemoryState, DefaultClock>;
 
-/// Per-client limiter for the authentication endpoints. Keyed by the client
-/// address (the first `X-Forwarded-For` hop behind Caddy), so one client
-/// cannot exhaust the login endpoint for everyone.
+/// Per-client limiter for the authentication endpoints. Keyed by the resolved
+/// client address (trusted-proxy aware), so one client cannot exhaust the login
+/// endpoint for everyone and spoofed forwarding headers from untrusted peers
+/// cannot rotate the key.
 pub type AuthKeyedRateLimiter =
     GovernorRateLimiter<String, DefaultKeyedStateStore<String>, DefaultClock>;
+const TRUSTED_PROXIES_ENV: &str = "AUTH_TRUSTED_PROXIES";
 
 #[derive(Debug, Clone)]
 pub struct HttpRateLimitConfig {
     pub requests_per_second: u32,
     pub burst_size: u32,
 }
-
 impl Default for HttpRateLimitConfig {
     fn default() -> Self {
         Self {
@@ -43,12 +45,14 @@ impl Default for HttpRateLimitConfig {
         }
     }
 }
-
 impl HttpRateLimitConfig {
+    /// Strict profile for authentication surfaces. Matches IMP-07: 10 req/s
+    /// with a small burst to absorb legitimate retries while stopping
+    /// brute-force attempts.
     pub fn strict() -> Self {
         Self {
-            requests_per_second: 50,
-            burst_size: 100,
+            requests_per_second: 10,
+            burst_size: 10,
         }
     }
 
@@ -66,13 +70,11 @@ impl HttpRateLimitConfig {
         }
     }
 }
-
 pub struct CombinedRateLimiter {
     http_limiter: Arc<GlobalRateLimiter>,
     auth_limiter: Arc<AuthKeyedRateLimiter>,
     botlib_limiter: Arc<BotlibRateLimiter>,
 }
-
 impl CombinedRateLimiter {
     pub fn new(http_config: HttpRateLimitConfig, system_limits: SystemLimits) -> Self {
         const DEFAULT_RPS: NonZeroU32 = match NonZeroU32::new(100) {
@@ -87,18 +89,15 @@ impl CombinedRateLimiter {
         let quota = Quota::per_second(
             NonZeroU32::new(http_config.requests_per_second).unwrap_or(DEFAULT_RPS),
         )
-        .allow_burst(
-            NonZeroU32::new(http_config.burst_size).unwrap_or(DEFAULT_BURST),
-        );
-
+        .allow_burst(NonZeroU32::new(http_config.burst_size).unwrap_or(DEFAULT_BURST));
         // Authentication endpoints get their own quota: 10 req/s with a burst
-        // of 20 per client. This is the IMP-07 auth limit; it stops online
-        // password guessing without throttling normal API traffic.
+        // of 10 per client (IMP-07). This stops online password guessing without
+        // throttling normal API traffic.
         const AUTH_RPS: NonZeroU32 = match NonZeroU32::new(10) {
             Some(v) => v,
             None => DEFAULT_RPS,
         };
-        const AUTH_BURST: NonZeroU32 = match NonZeroU32::new(20) {
+        const AUTH_BURST: NonZeroU32 = match NonZeroU32::new(10) {
             Some(v) => v,
             None => DEFAULT_BURST,
         };
@@ -137,7 +136,6 @@ impl CombinedRateLimiter {
         self.botlib_limiter.cleanup_stale_entries().await;
     }
 }
-
 impl Clone for CombinedRateLimiter {
     fn clone(&self) -> Self {
         Self {
@@ -147,7 +145,6 @@ impl Clone for CombinedRateLimiter {
         }
     }
 }
-
 pub async fn rate_limit_middleware(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     axum::Extension(limiter): axum::Extension<Arc<CombinedRateLimiter>>,
@@ -164,11 +161,14 @@ pub async fn rate_limit_middleware(
         Ok(()) => next.run(request).await,
         Err(limit_exceeded) => {
             let (status, body) = format_limit_error_response(&limit_exceeded);
-            (StatusCode::from_u16(status).unwrap_or(StatusCode::TOO_MANY_REQUESTS), body).into_response()
+            (
+                StatusCode::from_u16(status).unwrap_or(StatusCode::TOO_MANY_REQUESTS),
+                body,
+            )
+                .into_response()
         }
     }
 }
-
 pub async fn simple_rate_limit_middleware(
     axum::Extension(limiter): axum::Extension<Arc<CombinedRateLimiter>>,
     request: Request<Body>,
@@ -181,8 +181,9 @@ pub async fn simple_rate_limit_middleware(
 }
 
 /// Enforces the global HTTP quota and, for `/api/auth/*`, the stricter
-/// per-client auth quota. The client key is the first `X-Forwarded-For` hop
-/// (Caddy sets it) with `X-Real-IP` and the peer address as fallbacks.
+/// per-client auth quota. Forwarding headers are trusted only when the direct
+/// peer is a configured trusted proxy; otherwise the peer IP is used so clients
+/// cannot spoof `X-Forwarded-For`/`X-Real-IP` to bypass brute-force protection.
 pub async fn auth_rate_limit_middleware(
     addr: Option<ConnectInfo<SocketAddr>>,
     axum::Extension(limiter): axum::Extension<Arc<CombinedRateLimiter>>,
@@ -202,33 +203,95 @@ pub async fn auth_rate_limit_middleware(
 
     next.run(request).await
 }
-
-fn client_key(request: &Request<Body>, addr: Option<SocketAddr>) -> String {
-    if let Some(first) = request
+fn trusted_proxies() -> &'static HashSet<IpAddr> {
+    static TRUSTED: OnceLock<HashSet<IpAddr>> = OnceLock::new();
+    TRUSTED.get_or_init(|| {
+        std::env::var(TRUSTED_PROXIES_ENV)
+            .ok()
+            .map(|value| parse_trusted_proxies(&value))
+            .unwrap_or_default()
+    })
+}
+fn parse_trusted_proxies(value: &str) -> HashSet<IpAddr> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .filter_map(|entry| entry.parse::<IpAddr>().ok())
+        .collect()
+}
+fn is_trusted_proxy(ip: IpAddr) -> bool {
+    trusted_proxies().contains(&ip)
+}
+fn forwarded_client_ip(request: &Request<Body>, trusted: &HashSet<IpAddr>) -> Option<IpAddr> {
+    if let Some(chain) = request
         .headers()
         .get("x-forwarded-for")
         .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(',').next())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
     {
-        return first.to_string();
+        let mut rightmost_untrusted = None;
+        for part in chain.split(',') {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if let Ok(ip) = trimmed.parse::<IpAddr>() {
+                if trusted.contains(&ip) {
+                    continue;
+                }
+                rightmost_untrusted = Some(ip);
+            }
+        }
+        if let Some(ip) = rightmost_untrusted {
+            return Some(ip);
+        }
     }
 
-    if let Some(real_ip) = request
+    request
         .headers()
         .get("x-real-ip")
         .and_then(|value| value.to_str().ok())
         .map(str::trim)
         .filter(|value| !value.is_empty())
-    {
-        return real_ip.to_string();
-    }
-
-    addr.map(|socket| socket.ip().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+        .and_then(|value| value.parse::<IpAddr>().ok())
+        .filter(|ip| !trusted.contains(ip))
 }
+fn client_key(request: &Request<Body>, addr: Option<SocketAddr>) -> String {
+    let peer_ip = addr.map(|socket| socket.ip());
 
+    match peer_ip {
+        Some(peer) if is_trusted_proxy(peer) => {
+            if let Some(client) = forwarded_client_ip(request, trusted_proxies()) {
+                return client.to_string();
+            }
+            if let Some(chain) = request
+                .headers()
+                .get("x-forwarded-for")
+                .and_then(|value| value.to_str().ok())
+            {
+                if let Some(last) = chain
+                    .split(',')
+                    .map(str::trim)
+                    .rfind(|value| !value.is_empty())
+                {
+                    return last.to_string();
+                }
+            }
+            if let Some(real_ip) = request
+                .headers()
+                .get("x-real-ip")
+                .and_then(|value| value.to_str().ok())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                return real_ip.to_string();
+            }
+            peer.to_string()
+        }
+        Some(peer) => peer.to_string(),
+        None => "unknown".to_string(),
+    }
+}
 fn http_rate_limit_response(retry_after: u64) -> Response {
     let mut response = (
         StatusCode::TOO_MANY_REQUESTS,
@@ -246,7 +309,6 @@ fn http_rate_limit_response(retry_after: u64) -> Response {
 
     response
 }
-
 pub fn create_rate_limit_layer(
     http_config: HttpRateLimitConfig,
     system_limits: SystemLimits,
@@ -257,31 +319,32 @@ pub fn create_rate_limit_layer(
     let limiter = Arc::new(CombinedRateLimiter::new(http_config, system_limits));
     (axum::Extension(Arc::clone(&limiter)), limiter)
 }
-
 pub fn create_default_rate_limit_layer() -> (
     axum::Extension<Arc<CombinedRateLimiter>>,
     Arc<CombinedRateLimiter>,
 ) {
     create_rate_limit_layer(HttpRateLimitConfig::default(), SystemLimits::default())
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use std::net::{IpAddr, Ipv4Addr};
     #[test]
     fn test_http_config_presets() {
         let default = HttpRateLimitConfig::default();
         assert_eq!(default.requests_per_second, 100);
+        assert_eq!(default.burst_size, 200);
 
         let strict = HttpRateLimitConfig::strict();
-        assert_eq!(strict.requests_per_second, 50);
+        assert_eq!(strict.requests_per_second, 10);
+        assert_eq!(strict.burst_size, 10);
 
         let relaxed = HttpRateLimitConfig::relaxed();
         assert_eq!(relaxed.requests_per_second, 500);
 
         let api = HttpRateLimitConfig::api();
         assert_eq!(api.requests_per_second, 100);
+        assert_eq!(api.burst_size, 150);
     }
 
     #[test]
@@ -300,20 +363,18 @@ mod tests {
     #[tokio::test]
     async fn test_user_rate_limit() {
         let limiter = CombinedRateLimiter::with_defaults();
-        let result = limiter.check_user_limit("test-user").await;
-        assert!(result.is_ok());
+        assert!(limiter.check_user_limit("test-user").await.is_ok());
     }
-
     #[test]
-    fn test_auth_rate_limit_rejects_a_burst_for_one_client() {
+    fn test_auth_rate_limit_rejects_after_burst_for_one_client() {
         let limiter = CombinedRateLimiter::with_defaults();
         let mut rejected = 0;
-        for _ in 0..40 {
+        for _ in 0..12 {
             if !limiter.check_auth_limit("198.51.100.7") {
                 rejected += 1;
             }
         }
-        assert!(rejected > 0, "a 40-request burst must be throttled");
+        assert!(rejected > 0, "the 11th attempt must be throttled");
         assert!(
             limiter.check_auth_limit("198.51.100.8"),
             "a different client must keep its own budget"
@@ -321,11 +382,62 @@ mod tests {
     }
 
     #[test]
-    fn test_client_key_prefers_forwarded_for() {
+    fn test_client_key_ignores_forwarded_for_from_untrusted_peer() {
         let request = Request::builder()
             .header("x-forwarded-for", "203.0.113.9, 10.0.0.1")
+            .header("x-real-ip", "203.0.113.10")
             .body(Body::empty())
             .expect("request builds");
-        assert_eq!(client_key(&request, None), "203.0.113.9");
+        let peer = SocketAddr::from((Ipv4Addr::new(198, 51, 100, 20), 12345));
+        assert_eq!(client_key(&request, Some(peer)), "198.51.100.20");
+    }
+
+    #[test]
+    fn test_client_key_falls_back_to_peer_without_trusted_proxy() {
+        let request = Request::builder().body(Body::empty()).expect("request builds");
+        let peer = SocketAddr::from((Ipv4Addr::new(198, 51, 100, 30), 12345));
+        assert_eq!(client_key(&request, Some(peer)), "198.51.100.30");
+    }
+    #[test]
+    fn test_forwarded_client_ip_picks_rightmost_untrusted() {
+        let request = Request::builder()
+            .header("x-forwarded-for", "203.0.113.9, 198.51.100.44, 10.0.0.5")
+            .body(Body::empty())
+            .expect("request builds");
+        let trusted = HashSet::from([
+            IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5)),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+        ]);
+        assert_eq!(
+            forwarded_client_ip(&request, &trusted),
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 44)))
+        );
+    }
+
+    #[test]
+    fn test_spoofed_xff_from_untrusted_peer_still_limited_by_peer_ip() {
+        let limiter = CombinedRateLimiter::with_defaults();
+        let peer = SocketAddr::from((Ipv4Addr::new(198, 51, 100, 77), 4444));
+        let mut rejected = 0;
+        for attempt in 1..=11 {
+            let request = Request::builder()
+                .uri("/api/auth/login")
+                .header("x-forwarded-for", format!("203.0.113.{attempt}"))
+                .body(Body::empty())
+                .expect("request builds");
+            let key = client_key(&request, Some(peer));
+            assert_eq!(key, "198.51.100.77");
+            if !limiter.check_auth_limit(&key) {
+                rejected += 1;
+            }
+        }
+        assert_eq!(rejected, 1, "only the 11th attempt must be rejected");
+    }
+    #[test]
+    fn test_parse_trusted_proxies_ignores_invalid_entries() {
+        let parsed = parse_trusted_proxies("10.0.0.1, not-an-ip, ::1,  ");
+        assert!(parsed.contains(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
+        assert!(parsed.contains(&"::1".parse::<IpAddr>().expect("valid ipv6")));
+        assert_eq!(parsed.len(), 2);
     }
 }

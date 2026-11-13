@@ -146,7 +146,7 @@
                         box.innerHTML = messages
                             .map(function (m) {
                                 var when = m.created_at
-                                    ? new Date(m.created_at).toLocaleString()
+                                    ? gbFormatDateTime(new Date(m.created_at))
                                     : "";
                                 var who = m.sender_type
                                     ? m.sender_type

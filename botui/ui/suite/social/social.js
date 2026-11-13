@@ -178,7 +178,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             fetch('/api/social/activity').then(function(r){return r.json()}).then(function(list){
                 if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No recent activity</p>'; return; }
                 el.innerHTML = list.map(function(a){
-                    var when = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                    var when = a.created_at ? gbFormatDateTime(new Date(a.created_at)) : '';
                     return '<div class="activity-item"><span class="activity-kind">' + escapeHtml(a.kind) + '</span><span class="activity-summary">' + escapeHtml(a.summary) + '</span><span class="activity-time">' + escapeHtml(when) + '</span></div>';
                 }).join('');
             }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
@@ -202,7 +202,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 body: JSON.stringify({ to_user_id: userId, badge_type: 'follow', message: 'Following you', is_public: true })
             }).then(function(){
                 if (window.GBAlerts) window.GBAlerts.info('Social', 'Following!');
-            }).catch(function(){});
+            }).catch(function(err){
+                console.error("[gb-social] Follow request failed:", err);
+                if (window.GBAlerts && window.GBAlerts.error) {
+                    window.GBAlerts.error('Social', 'Could not follow user');
+                }
+            });
         }
 
         function addPostImage() {
@@ -271,7 +276,10 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 }
                 var bt = document.getElementById('best-times');
                 if (d.best_times && bt) bt.textContent = d.best_times;
-            }).catch(function(){});
+            }).catch(function(err){
+                /* Best-effort analytics load; dashboard remains usable without it. */
+                console.debug("[gb-social] Analytics fetch failed:", err);
+            });
         };
 
         window.likePost = function(postId) {
@@ -307,8 +315,19 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             });
         };
 
-        window.deletePost = function(postId) {
-            if (!confirm('Delete this post?')) return;
+        window.deletePost = async function(postId) {
+            const confirmed = await new Promise(function(resolve) {
+                if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+                    try {
+                        window.GBModal.confirm('Delete this post?', 'Confirm', function() { resolve(true); }, function() { resolve(false); });
+                        return;
+                    } catch (e) {
+                        console.error('GBModal.confirm failed', e);
+                    }
+                }
+                resolve(false);
+            });
+            if (!confirmed) return;
             fetch('/api/social/posts/' + postId, {method:'DELETE'}).then(function(){
                 htmx.trigger('#social-content', 'refresh');
             });

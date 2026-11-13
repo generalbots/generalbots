@@ -157,42 +157,80 @@
   }
 
   function insertLink() {
-    var url = prompt("Enter URL:");
-    if (url) {
-      var selection = window.getSelection();
-      if (selection.rangeCount) {
-        var range = selection.getRangeAt(0);
-        var a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        if (range.collapsed) {
-          a.textContent = url;
+    var modal = window.GBModal;
+    if (!modal || typeof modal.prompt !== "function") {
+      return;
+    }
+    var selection = window.getSelection();
+    var savedRange = null;
+    if (selection && selection.rangeCount) {
+      savedRange = selection.getRangeAt(0).cloneRange();
+    }
+    modal.prompt("Enter URL:", "https://", "Insert link", function (url) {
+      if (!url) {
+        return;
+      }
+      var sel = window.getSelection();
+      var range = savedRange;
+      if (!range && sel && sel.rangeCount) {
+        range = sel.getRangeAt(0).cloneRange();
+      }
+      if (!range) {
+        return;
+      }
+      var a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      if (range.collapsed) {
+        a.textContent = url;
+        range.insertNode(a);
+      } else {
+        try {
+          range.surroundContents(a);
+        } catch (e) {
+          var contents = range.extractContents();
+          a.appendChild(contents);
           range.insertNode(a);
-        } else {
-          try {
-            range.surroundContents(a);
-          } catch (e) {
-            var contents = range.extractContents();
-            a.appendChild(contents);
-            range.insertNode(a);
-          }
         }
       }
-    }
+      var body = document.getElementById("compose-body");
+      if (body) {
+        body.focus();
+      }
+    });
   }
 
   function insertImage() {
-    var url = prompt("Enter image URL:");
-    if (url) {
-      var selection = window.getSelection();
-      if (selection.rangeCount) {
-        var range = selection.getRangeAt(0);
-        var img = document.createElement("img");
-        img.src = url;
-        img.style.maxWidth = "100%";
-        range.insertNode(img);
-      }
+    var modal = window.GBModal;
+    if (!modal || typeof modal.prompt !== "function") {
+      return;
     }
+    var selection = window.getSelection();
+    var savedRange = null;
+    if (selection && selection.rangeCount) {
+      savedRange = selection.getRangeAt(0).cloneRange();
+    }
+    modal.prompt("Enter image URL:", "https://", "Insert image", function (url) {
+      if (!url) {
+        return;
+      }
+      var sel = window.getSelection();
+      var range = savedRange;
+      if (!range && sel && sel.rangeCount) {
+        range = sel.getRangeAt(0).cloneRange();
+      }
+      if (!range) {
+        return;
+      }
+      var img = document.createElement("img");
+      img.src = url;
+      img.style.maxWidth = "100%";
+      range.insertNode(img);
+      var body = document.getElementById("compose-body");
+      if (body) {
+        body.focus();
+      }
+    });
   }
 
   function saveDraft() {

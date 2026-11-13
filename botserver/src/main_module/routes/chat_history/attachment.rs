@@ -17,28 +17,43 @@ fn escape_preview_text(input: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// `GET /api/chat/attachments/preview?bot=&name=&access_token=`
+/// `GET /api/chat/attachments/preview?bot=&name=`
 ///
-/// User uploads are staged in the bot's Drive `inbox/`; the chat iframe
-/// cannot attach an Authorization header, so the same suite token accepted by
-/// `/api/agent/vm/file` is accepted as a query parameter. Office packages are
-/// converted to sanitized, script-free HTML with `office_html`.
+/// User uploads are staged in the bot's Drive `inbox/`. Callers authenticate
+/// with `Authorization: Bearer <token>` or the `gb-access-token` cookie. The
+/// legacy `access_token` query parameter is still accepted for compatibility
+/// but clients must not send it (URLs leak into history/logs). Office packages
+/// are converted to sanitized, script-free HTML with `office_html`.
 pub async fn handle_attachment_preview(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
     request: axum::extract::Request,
 ) -> Result<axum::response::Response, HandlerError> {
-    let token = params
-        .get("access_token")
-        .cloned()
+    let token = request
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .map(str::to_string)
         .or_else(|| {
             request
                 .headers()
-                .get(axum::http::header::AUTHORIZATION)
+                .get(axum::http::header::COOKIE)
                 .and_then(|value| value.to_str().ok())
-                .and_then(|value| value.strip_prefix("Bearer "))
-                .map(str::to_string)
+                .and_then(|cookies| {
+                    cookies.split(';').find_map(|pair| {
+                        let mut parts = pair.trim().splitn(2, '=');
+                        let name = parts.next()?;
+                        let value = parts.next()?;
+                        if name == "gb-access-token" {
+                            Some(value.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                })
         })
+        .or_else(|| params.get("access_token").cloned())
         .unwrap_or_default();
     let (user_raw, _roles) = resolve_token_user(&token).ok_or((
         StatusCode::UNAUTHORIZED,

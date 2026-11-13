@@ -60,7 +60,13 @@
 
   function status(message) {
     var node = document.getElementById("ai-accounts-status");
-    if (node) node.textContent = message || "";
+    if (!node) return;
+    var text = message || "";
+    var isError = /unavailable|failed|error|cannot|no active bot/i.test(text);
+    node.setAttribute("role", isError ? "alert" : "status");
+    node.setAttribute("aria-live", isError ? "assertive" : "polite");
+    node.setAttribute("aria-atomic", "true");
+    node.textContent = text;
   }
 
   function card(account) {

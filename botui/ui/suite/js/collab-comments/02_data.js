@@ -64,7 +64,10 @@
         S.presenceEl.textContent = typing.length ? "typing: " + names.join(", ") : "viewing: " + names.join(", ");
         S.presenceEl.style.display = "inline-block";
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort presence refresh. */
+        console.debug("[gb-collab-comments] Presence fetch failed:", err);
+      });
   }
 
   function sendPresence(typing) {
@@ -181,7 +184,10 @@
     req("/comments/read", {
       method: "POST",
       body: JSON.stringify({ resource_type: state.resourceType, resource_id: state.resourceId })
-    }).then(function () { if (S.badgeRefreshFn) S.badgeRefreshFn(); }).catch(function () {});
+    }).then(function () { if (S.badgeRefreshFn) S.badgeRefreshFn(); }).catch(function (err) {
+      /* Best-effort read marker; unread state can refresh later. */
+      console.debug("[gb-collab-comments] Mark-read failed:", err);
+    });
   }
 
   function notify(msg, type) {

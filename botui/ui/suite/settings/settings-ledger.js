@@ -119,6 +119,9 @@
   function loadBudget(group) {
     var box = document.getElementById("ledger-budget-report");
     if (!box) return;
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    box.setAttribute("aria-busy", "true");
     box.innerHTML = empty("Loading…");
     fetch("/api/groups/" + encodeURIComponent(group) + "/usage?limit=200", {
       headers: token() ? { Authorization: "Bearer " + token() } : {},
@@ -129,14 +132,25 @@
         return response.json();
       })
       .then(function (payload) {
+        box.setAttribute("aria-busy", "false");
         box.innerHTML = renderBudgetReport(payload);
       })
       .catch(function (error) {
+        box.setAttribute("aria-busy", "false");
+        box.setAttribute("role", "alert");
+        box.setAttribute("aria-live", "assertive");
         box.innerHTML = empty("Could not load the report: " + error.message);
       });
   }
 
   function saveBudget(group, amount) {
+    var box = document.getElementById("ledger-budget-report");
+    if (box) {
+      box.setAttribute("role", "status");
+      box.setAttribute("aria-live", "polite");
+      box.setAttribute("aria-busy", "true");
+      box.innerHTML = empty("Saving…");
+    }
     fetch("/api/groups/" + encodeURIComponent(group) + "/budget", {
       method: "PUT",
       headers: Object.assign(
@@ -153,8 +167,12 @@
         loadBudget(group);
       })
       .catch(function (error) {
-        var box = document.getElementById("ledger-budget-report");
-        if (box) box.innerHTML = empty("Could not save the budget: " + error.message);
+        if (box) {
+          box.setAttribute("aria-busy", "false");
+          box.setAttribute("role", "alert");
+          box.setAttribute("aria-live", "assertive");
+          box.innerHTML = empty("Could not save the budget: " + error.message);
+        }
       });
   }
 
@@ -182,6 +200,9 @@
   function loadTtft(hours) {
     var box = document.getElementById("ledger-ttft-report");
     if (!box) return;
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    box.setAttribute("aria-busy", "true");
     box.innerHTML = empty("Loading…");
     fetch("/api/runs/ttft?hours=" + encodeURIComponent(hours), {
       headers: token() ? { Authorization: "Bearer " + token() } : {},
@@ -191,6 +212,7 @@
         return response.json();
       })
       .then(function (payload) {
+        box.setAttribute("aria-busy", "false");
         var summary = (payload && payload.summary) || {};
         var buckets = (payload && payload.trend) || [];
         var head =
@@ -217,6 +239,9 @@
           "<th>p50 (ms)</th><th>p95 (ms)</th></tr></thead><tbody>" + rows + "</tbody></table>";
       })
       .catch(function (error) {
+        box.setAttribute("aria-busy", "false");
+        box.setAttribute("role", "alert");
+        box.setAttribute("aria-live", "assertive");
         box.innerHTML = empty("Could not load TTFT metrics: " + error.message);
       });
   }
@@ -236,14 +261,21 @@
     state.busy = true;
     state.kind = kind;
     var box = list();
+    if (box) {
+      box.setAttribute("role", "status");
+      box.setAttribute("aria-live", "polite");
+      box.setAttribute("aria-atomic", "true");
+    }
     if (kind === "ttft") {
       if (box) {
+        box.setAttribute("aria-busy", "false");
         box.innerHTML =
           '<div class="ledger-budget-toolbar">' +
           '<label>Window (hours) <input id="ledger-ttft-hours" type="number" min="1" max="720" value="24"></label>' +
           '<button type="button" class="btn-secondary btn-sm" id="ledger-ttft-load">Load</button>' +
           "</div>" +
-          '<div id="ledger-ttft-report">' + empty("Load the window to see first-token latency.") + "</div>";
+          '<div id="ledger-ttft-report" role="status" aria-live="polite" aria-atomic="true">' +
+          empty("Load the window to see first-token latency.") + "</div>";
         bindTtft();
         loadTtft(24);
       }
@@ -252,14 +284,24 @@
     }
     if (kind === "budget") {
       if (box) {
+        box.setAttribute("aria-busy", "false");
         box.innerHTML = budgetForm();
+        var report = document.getElementById("ledger-budget-report");
+        if (report) {
+          report.setAttribute("role", "status");
+          report.setAttribute("aria-live", "polite");
+          report.setAttribute("aria-atomic", "true");
+        }
         bindBudget();
         loadBudget(budgetGroup());
       }
       state.busy = false;
       return;
     }
-    if (box) box.innerHTML = empty("Loading…");
+    if (box) {
+      box.setAttribute("aria-busy", "true");
+      box.innerHTML = empty("Loading…");
+    }
     var url =
       (kind === "browser" ? "/api/browser/audit" : "/api/terminal/audit") + "?limit=50";
     fetch(url, {
@@ -272,11 +314,17 @@
       .then(function (payload) {
         var entries = (payload && payload.entries) || [];
         if (!box) return;
+        box.setAttribute("aria-busy", "false");
         box.innerHTML =
           kind === "browser" ? renderBrowser(entries) : renderTerminal(entries);
       })
       .catch(function (error) {
-        if (box) box.innerHTML = empty("Could not load the ledger: " + error.message);
+        if (box) {
+          box.setAttribute("aria-busy", "false");
+          box.setAttribute("role", "alert");
+          box.setAttribute("aria-live", "assertive");
+          box.innerHTML = empty("Could not load the ledger: " + error.message);
+        }
       })
       .finally(function () {
         state.busy = false;

@@ -21,26 +21,27 @@
         namespace.renderExplore(root);
         announce(root, "Showing all " + state.providers.length + " providers");
     }
-
-    function testFailureMessage(error) {
-        var status = error && typeof error.status === "number" ? error.status : 0;
-        if (status === 503) {
-            return "Connection test failed: credential vault unavailable";
+    function csrfMessage(error) {
+        if (error && (error.code === "CSRF_MISSING" || /CSRF token/i.test(String(error.message || "")))) {
+            return "Security token missing. Reload this page and try again.";
         }
-        if (status === 404) {
-            return "Connection test failed: connection no longer exists";
-        }
-        return "Connection test failed";
+        return "";
     }
 
-    function revokeFailureMessage(error) {
+    function testFailureMessage(error) {
+        var csrf = csrfMessage(error);
+        if (csrf) return "Connection test failed: " + csrf;
         var status = error && typeof error.status === "number" ? error.status : 0;
-        if (status === 503) {
-            return "Revoke incomplete: credential vault unavailable";
-        }
-        if (status === 404) {
-            return "Revoke skipped: connection no longer exists";
-        }
+        if (status === 503) return "Connection test failed: credential vault unavailable";
+        if (status === 404) return "Connection test failed: connection no longer exists";
+        return "Connection test failed";
+    }
+    function revokeFailureMessage(error) {
+        var csrf = csrfMessage(error);
+        if (csrf) return "Revoke failed: " + csrf;
+        var status = error && typeof error.status === "number" ? error.status : 0;
+        if (status === 503) return "Revoke incomplete: credential vault unavailable";
+        if (status === 404) return "Revoke skipped: connection no longer exists";
         return "Revoke failed; the connection was left unchanged";
     }
 
@@ -92,21 +93,39 @@
 
     namespace.testConnection = async function (root, connectionId, button) {
         var url = namespace.connectionActionUrl(connectionId, "/test");
-        if (!url) {
-            announce(root, "Connection test needs a workspace context");
-            return;
-        }
-        var originalLabel = button.textContent;
-        button.disabled = true;
-        button.textContent = "Testing...";
+        if (!url) return announce(root, "Connection test needs a workspace context");
+        if (button) { button.disabled = true; button.textContent = "Testing..."; button.setAttribute("aria-busy", "true"); }
+        var state = namespace.getState(root);
         try {
             var outcome = await namespace.fetchJson(url, { method: "POST", body: {} });
-            announce(root, "Test finished: " + namespace.text(outcome.outcome, "unknown"));
+            var status = namespace.text(outcome.outcome || outcome.status, "unknown");
+            var detail = namespace.text(outcome.detail || outcome.outcome_detail || outcome.message, "");
+            var testedAt = new Date().toISOString();
+            namespace.testDetails[connectionId] = { outcome: status, detail: detail, testedAt: testedAt };
+            if (state && Array.isArray(state.connectors)) {
+                state.connectors = state.connectors.map(function (row) {
+                    if (row.id !== connectionId) return row;
+                    return Object.assign({}, row, {
+                        last_test_status: status,
+                        last_tested_at: testedAt,
+                        last_test_detail: detail
+                    });
+                });
+                state.connectedStatus = "ready";
+                namespace.renderConnected(root);
+            }
+            var parts = ["Connection test: " + namespace.titleCase(status, "Unknown")];
+            if (detail) parts.push(detail);
+            announce(root, parts.join(" — "));
+            if (button && button.isConnected) { button.textContent = "Retest"; }
         } catch (error) {
+            var errDetail = namespace.text(error && (error.detail || error.outcome_detail), "");
+            if (errDetail) {
+                namespace.testDetails[connectionId] = { outcome: "failed", detail: errDetail, testedAt: new Date().toISOString() };
+            }
             announce(root, testFailureMessage(error));
         } finally {
-            button.disabled = false;
-            button.textContent = originalLabel;
+            if (button && button.isConnected) { button.disabled = false; button.removeAttribute("aria-busy"); }
             namespace.loadConnected(root);
         }
     };
@@ -117,9 +136,17 @@
             announce(root, "Revoke needs a workspace context");
             return;
         }
-        if (!(window.GBModal||{confirm:confirm}).confirm("Revoke this connection? Its stored credentials will be deleted.")) {
-            return;
-        }
+        var t = window.gbT || function (key, fallback) { return fallback; };
+        var message = t("integrations-revoke-confirm", "Revoke this connection? Its stored credentials will be deleted.");
+        var title = t("integrations-revoke-title", "Revoke connection");
+        var confirmed = await new Promise(function (resolve) {
+            if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                window.GBModal.confirm(message, title, function () { resolve(true); }, function () { resolve(false); });
+            } else {
+                resolve(false);
+            }
+        });
+        if (!confirmed) return;
         try {
             await namespace.fetchJson(url, { method: "DELETE" });
             announce(root, "Connection revoked");
@@ -128,6 +155,8 @@
         }
         namespace.loadConnected(root);
     };
+
+
 
     namespace.loadCatalog = async function (root) {
         var state = namespace.getState(root);
@@ -248,6 +277,12 @@
             namespace.openDetails(root, state.selectedProviderId);
         } else if (action === "test-connection" && button && button.dataset.connectionId) {
             namespace.testConnection(root, button.dataset.connectionId, button);
+        } else if (action === "rotate-connection" && button && button.dataset.connectionId) {
+            if (typeof namespace.openRotateConnection === "function") {
+                namespace.openRotateConnection(root, button.dataset.connectionId, button.dataset.providerSlug || "");
+            } else {
+                announce(root, "Rotate action is unavailable");
+            }
         } else if (action === "revoke-connection" && button && button.dataset.connectionId) {
             namespace.revokeConnection(root, button.dataset.connectionId);
         }
@@ -397,6 +432,7 @@
     function start(root) {
         var state = namespace.createState(root);
         state.connectedStatus = "idle";
+        state.rotateTarget = null;
         // BBSIA #1542: preview OFF exposes only production-ready connectors.
         // #2100: the value is re-resolved from the payload in `loadCatalog`,
         // because a catalog without priorities would match nothing here.

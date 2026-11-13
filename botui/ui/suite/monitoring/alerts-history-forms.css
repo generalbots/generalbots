@@ -178,7 +178,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-modal-backdrop, 1200);
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -230,8 +230,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
@@ -364,6 +366,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
+    min-height: 44px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -390,8 +393,10 @@
 }
 
 .checkbox-custom {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
     border: 2px solid var(--border);
     border-radius: 4px;
     display: flex;
@@ -418,6 +423,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-height: 44px;
     cursor: pointer;
     font-size: 0.875rem;
     color: var(--text);
@@ -430,6 +436,17 @@
 .toggle-switch {
     position: relative;
     width: 44px;
+    height: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
+.toggle-switch::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10px;
     height: 24px;
     background: var(--border);
     border-radius: 24px;
@@ -443,7 +460,16 @@
     height: 20px;
     background: white;
     border-radius: 50%;
-    top: 2px;
+    top: 12px;
     left: 2px;
+    z-index: 1;
     transition: transform 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

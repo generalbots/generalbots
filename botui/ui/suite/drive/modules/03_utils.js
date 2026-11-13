@@ -126,6 +126,12 @@ function showNotification(message, type) {
     if (type === "success") notification.style.background = "#22c55e";
     if (type === "warning") notification.style.background = "#f59e0b";
     document.body.appendChild(notification);
+    var liveId = type === "error" ? "drive-live-alert" : "drive-live-status";
+    var live = document.getElementById(liveId);
+    if (live) {
+        live.textContent = "";
+        setTimeout(function () { live.textContent = message; }, 30);
+    }
     setTimeout(() => notification.remove(), 4000);
 }
 
