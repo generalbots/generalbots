@@ -56,6 +56,7 @@ function fileExists(relPath) {
 }
 
 var featureFiles = [
+  "chat/chat-sanitize.js",
   "chat/chat-artifacts.js",
   "chat/chat-render.js",
   "chat/chat-messages.js",

@@ -132,6 +132,38 @@ test("ISSUE #1650: the epic definition of done is recorded", function () {
     "removed scope not recorded");
 });
 
+test("ISSUE #2354: model output is sanitized before any bubble innerHTML", function () {
+  // Stored XSS: a KB document, email, web page or prompt injection can make the
+  // model emit markup; it must never reach innerHTML with handlers or scripts.
+  var sanitize = readFile("chat/chat-sanitize.js");
+  assert(sanitize.indexOf("window.GBSanitize") !== -1, "sanitizer missing");
+  ["script", "iframe", "object", "embed", "form"].forEach(function (tag) {
+    assert(sanitize.indexOf('"' + tag + '"') !== -1, tag + " not blocked");
+  });
+  assert(sanitize.indexOf("javascript|vbscript|livescript") !== -1 ||
+    sanitize.indexOf("javascript") !== -1, "javascript: URLs not blocked");
+
+  var message = readFile("chat/messages/50_message.js");
+  assert(message.indexOf("parsed = GBSanitize.html(parsed)") !== -1,
+    "completed-message path is unsanitized");
+  var stream = readFile("chat/messages/70_stream.js");
+  assert(stream.indexOf("parsed = GBSanitize.html(parsed)") !== -1,
+    "streaming path is unsanitized");
+
+  // Executing model-authored <script> is never correct.
+  assert(readFile("chat/chat-render.js").indexOf("reexecuteScripts") === -1,
+    "script re-execution must be gone");
+  assert(message.indexOf("new Function(") === -1, "message path builds functions");
+
+  // Load order: the sanitizer must exist before its consumers.
+  var chat = readFile("partials/chat.html");
+  assert(chat.indexOf("chat/chat-sanitize.js") !== -1, "sanitizer not loaded");
+  assert(chat.indexOf("chat/chat-sanitize.js") < chat.indexOf("chat/chat-artifacts.js"),
+    "sanitizer must load before chat-artifacts.js");
+  assert(chat.indexOf("chat/chat-sanitize.js") < chat.indexOf("messages/50_message.js"),
+    "sanitizer must load before the message renderer");
+});
+
 test("SIZE: touched chat and pipeline files stay under the 450-line limit", function () {
   var files = [
     "chat/chat-init.js",

@@ -45,6 +45,8 @@ function updateStreaming(content) {
     var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
+  // #2354 — same gate as the completed-message path.
+  parsed = GBSanitize.html(parsed);
   parsed = convertNumberedLists(parsed);
   parsed = renderInlineMarkdown(parsed);
   parsed = parsed.replace(/<br\s*\/?>/gi, '');

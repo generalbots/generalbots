@@ -87,31 +87,13 @@ window.GBArtifacts = window.GBArtifacts || (function () {
   }
 
   // Renders markdown/HTML into the panel without executing anything the model
-  // produced: no scripts, frames, objects, event handlers or javascript: URLs.
+  // produced. Delegates to the shared sanitizer (#2354) so the artifact panel
+  // and the message bubbles cannot drift apart.
   function safeHtml(html) {
-    var tpl = document.createElement("template");
-    tpl.innerHTML = String(html || "");
-    var blocked = "script,style,iframe,object,embed,link,meta,base,form,input,button";
-    Array.prototype.forEach.call(
-      tpl.content.querySelectorAll(blocked),
-      function (node) {
-        node.remove();
-      },
-    );
-    Array.prototype.forEach.call(tpl.content.querySelectorAll("*"), function (el) {
-      Array.prototype.slice.call(el.attributes).forEach(function (attr) {
-        var name = attr.name.toLowerCase();
-        if (name.indexOf("on") === 0) {
-          el.removeAttribute(attr.name);
-        } else if (
-          (name === "href" || name === "src") &&
-          /^\s*(javascript|data:text\/html)/i.test(attr.value)
-        ) {
-          el.removeAttribute(attr.name);
-        }
-      });
-    });
-    return tpl.innerHTML;
+    if (window.GBSanitize && GBSanitize.html) return GBSanitize.html(html);
+    // Fail closed: without the sanitizer, show the text, never raw markup.
+    console.error("GBSanitize missing — artifact markup rendered as text");
+    return escapeHtml(html).replace(/\n/g, "<br>");
   }
 
   function renderMarkdown(text) {

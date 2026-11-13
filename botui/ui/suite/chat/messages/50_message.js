@@ -191,6 +191,9 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
+    // #2354 — model output is untrusted; sanitize before any transform adds
+    // trusted markup (deep-link buttons carry an onclick by design).
+    parsed = GBSanitize.html(parsed);
     parsed = convertNumberedLists(parsed);
     parsed = renderInlineMarkdown(parsed);
     parsed = parsed.replace(/<br\s*\/?>/gi, '');
@@ -218,7 +221,6 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
     mergeWorkspaceOutput(div);
   if (!mergedOutput && sender !== "user") polishOutputBlocks(div);
 
-  reexecuteScripts(div);
   // BBSIA-CHAT-02 (#1582): VM-generated files become attachment cards.
   if (
     sender === "bot" &&
