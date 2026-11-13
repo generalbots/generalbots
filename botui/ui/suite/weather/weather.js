@@ -49,6 +49,7 @@
       emoji: safeStr(data.emoji, "🌡"),
       humidity: safeNum(data.humidity),
       wind: safeNum(data.wind),
+      updated: safeNum(data.updated),
       daily: daily,
     };
   }
@@ -63,8 +64,20 @@
 
   function writeCache(data) {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(normalize(data)));
-    } catch (e) {}
+      var record = normalize(data);
+      record.updated = Date.now();
+      localStorage.setItem(CACHE_KEY, JSON.stringify(record));
+    } catch (e) {
+      // Deliberate best-effort: a full/blocked localStorage only costs the
+      // offline fallback, so this never becomes a user-facing error.
+      debugLog("could not cache the forecast", e);
+    }
+  }
+
+  function debugLog(message, error) {
+    if (window.console && window.console.debug) {
+      window.console.debug("[weather] " + message, error || "");
+    }
   }
 
   function readCity() {
@@ -78,7 +91,10 @@
   function writeCity(city) {
     try {
       localStorage.setItem(CITY_KEY, safeStr(city));
-    } catch (e) {}
+    } catch (e) {
+      // Best-effort: the profile copy below still remembers the city.
+      debugLog("could not store the chosen city", e);
+    }
     persistCityToProfile(safeStr(city));
   }
 
@@ -97,8 +113,12 @@
           Authorization: "Bearer " + token,
         },
         body: "location=" + encodeURIComponent(safeStr(city)),
-      }).catch(function () {});
-    } catch (e) {}
+      }).catch(function (error) {
+        debugLog("profile city mirror failed", error);
+      });
+    } catch (e) {
+      debugLog("profile city mirror unavailable", e);
+    }
   }
 
   // Restores a previously saved city from the user profile when this browser
@@ -123,7 +143,10 @@
           var m = /name="location"[^>]*value="([^"]*)"/.exec(html || "");
           done(m && m[1] ? m[1].trim() : "");
         })
-        .catch(function () { done(""); });
+        .catch(function (error) {
+          debugLog("profile city restore failed", error);
+          done("");
+        });
     } catch (e) {
       done("");
     }
@@ -216,8 +239,9 @@
         writeCity(safeStr(city));
         render(data);
       })
-      .catch(function () {
-        renderFallback(safeStr(city));
+      .catch(function (error) {
+        debugLog("forecast search failed for " + city, error);
+        renderStale(city, function () { search(city); });
       });
   }
 
@@ -234,15 +258,16 @@
     }
     current.innerHTML = '<div class="weather-empty">Locating…</div>';
     const generation = ++discoverGeneration;
-    const onFail = function () {
+    const onFail = function (reason) {
       if (generation !== discoverGeneration) return;
-      try {
-        const c = document.getElementById("weatherCurrent");
-        if (c) c.innerHTML = "";
-      } catch (e) {}
-      showCityPrompt();
+      const cached = readCache();
+      if (cached.temp !== null || cached.daily.length) {
+        renderStale(cached.city, function () { search(cached.city); });
+        return;
+      }
+      showCityPrompt("Location unavailable — " + (reason || "type a city name") + ".");
     };
-    const timer = setTimeout(onFail, 4000);
+    const timer = setTimeout(function () { onFail("location lookup timed out"); }, 4000);
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         clearTimeout(timer);
@@ -251,22 +276,29 @@
       },
       function () {
         clearTimeout(timer);
-        onFail();
+        onFail("the browser denied or could not find your location");
       },
       { timeout: 4000, maximumAge: 600000 }
     );
   }
 
-  function showCityPrompt() {
+  function showCityPrompt(reason) {
     const current = document.getElementById("weatherCurrent");
     if (!current) return;
     current.innerHTML =
+      (reason ? '<div class="weather-empty weather-reason">' + escapeHtml(reason) + "</div>" : "") +
       '<div class="weather-empty">Type a city name to see its weather.<br/>' +
       'Example: <em>São Paulo</em></div>';
     const input = document.getElementById("weatherCity");
     if (input) {
       input.placeholder = "Search city… (e.g. São Paulo)";
-      try { input.focus(); } catch (e) {}
+      try {
+        input.focus();
+      } catch (e) {
+        // The input may be detached while the window closes; focusing is
+        // cosmetic, so the prompt stays usable either way.
+        debugLog("could not focus the city input", e);
+      }
     }
   }
 
@@ -283,74 +315,39 @@
         writeCache(data);
         render(data);
       })
-      .catch(function () {
-        renderFallback(FALLBACK[0].city);
+      .catch(function (error) {
+        debugLog("coordinate forecast failed", error);
+        renderStale("", function () { searchByCoords(lat, lon); });
       });
   }
 
-  // Old-school cellphone week list: one row per day with weekday, small icon
-  // and min/max temperatures. Compact and monochrome-friendly.
-  function weekRows(daily) {
-    if (!daily.length) {
-      return '<div class="weather-empty">No week forecast available.</div>';
-    }
-    return (
-      '<div class="weather-week">' +
-      daily
-        .map(function (d, i) {
-          const min = d.min === null ? "–" : d.min + "°";
-          const max = d.max === null ? "–" : d.max + "°";
-          return (
-            '<div class="weather-week-row">' +
-            '<span class="ww-day">' + escapeHtml(d.day || "Day " + (i + 1)) + "</span>" +
-            '<span class="ww-icon">' + d.emoji + "</span>" +
-            '<span class="ww-min">' + min + "</span>" +
-            '<span class="ww-max">' + max + "</span>" +
-            "</div>"
-          );
-        })
-        .join("") +
-      "</div>"
-    );
-  }
-
+  // View layer lives in weather-render.js (both files stay well under 450
+  // lines). These delegates keep the call sites below readable.
   function render(data) {
-    const current = document.getElementById("weatherCurrent");
-    const forecast = document.getElementById("weatherForecast");
-    if (!current) return;
-    const d = normalize(data);
-    current.innerHTML =
-      '<div class="weather-emoji" style="font-size:44px">' + d.emoji + "</div>" +
-      '<div class="weather-temp">' + (d.temp === null ? "–" : d.temp + "°C") + "</div>" +
-      '<div class="weather-desc">' + escapeHtml(d.desc || "--") + "</div>" +
-      '<div class="weather-city">' + escapeHtml(d.city || "Current location") + "</div>" +
-      '<div class="weather-meta">' +
-        "<span>💧 " + (d.humidity === null ? "–" : d.humidity + "%") + "</span>" +
-        "<span>🌬 " + (d.wind === null ? "–" : d.wind + " km/h") + "</span>" +
-      "</div>";
-    forecast.innerHTML = weekRows(d.daily);
-  }
-
-  function renderFallback(city) {
-    const current = document.getElementById("weatherCurrent");
-    if (!current) return;
-    const base = readCache();
-    if (!base.temp && base.temp !== 0) {
-      // Nothing usable cached: reuse the built-in estimate record.
-      current.innerHTML =
-        '<div class="weather-empty">Weather is offline and no saved data exists. ' +
-        "Try again later or search another city.</div>";
-      return;
-    }
-    current.innerHTML =
-      '<div class="weather-emoji" style="font-size:44px">' + base.emoji + "</div>" +
-      '<div class="weather-temp">' + (base.temp === null ? "–" : base.temp + "°C") + "</div>" +
-      '<div class="weather-desc">' + escapeHtml(base.desc || "--") + " (offline estimate)</div>" +
-      '<div class="weather-city">' + escapeHtml(city || base.city || "Current location") + "</div>";
+    GBWeatherRender.render(normalize(data));
   }
 
   function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    return GBWeatherRender.escapeHtml(s);
+  }
+
+  function renderStale(city, retry) {
+    const cached = readCache();
+    if (city) cached.city = city;
+    if (cached.temp === null && !cached.daily.length) {
+      GBWeatherRender.renderOffline(cached.city || city);
+      return;
+    }
+    GBWeatherRender.renderStale(cached, retry);
+  }
+
+  function renderFallback(city) {
+    const cached = readCache();
+    if (cached.temp === null && !cached.daily.length) {
+      GBWeatherRender.renderOffline(city);
+      return;
+    }
+    GBWeatherRender.render(cached);
   }
 
   // #1311 — the desktop injects this file into a window body, so the script
