@@ -1,0 +1,114 @@
+/* #2253 — standalone read-only viewer for a Docs share link.
+ * No toolbar, no editor: the only control on the page is the browser's own. */
+
+html, body { height: 100%; }
+
+.docs-shared-body {
+    margin: 0;
+    background: #0b1220;
+    color: #e2e8f0;
+    font: 15px/1.7 Georgia, "Times New Roman", serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.docs-shared-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.docs-shared-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f8fafc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.docs-shared-badge {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .18);
+    border: 1px solid rgba(148, 163, 184, .55);
+    color: #cbd5f5;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.docs-shared-main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 40px;
+}
+
+.docs-shared-state {
+    align-self: center;
+    margin: 0;
+    color: #94a3b8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+}
+
+.docs-shared-state-error { color: #f87171; }
+
+.docs-shared-pages {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.docs-shared-doc {
+    width: 794px;
+    max-width: 100%;
+    min-height: 1000px;
+    box-sizing: border-box;
+    padding: 72px 80px;
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+    outline: none;
+    cursor: default;
+    overflow-wrap: break-word;
+}
+
+.docs-shared-doc img { max-width: 100%; height: auto; }
+.docs-shared-doc table { border-collapse: collapse; max-width: 100%; }
+.docs-shared-doc td,
+.docs-shared-doc th { border: 1px solid #cbd5e1; padding: 6px 8px; }
+.docs-shared-doc pre {
+    background: #f1f5f9;
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+}
+.docs-shared-doc a { color: #1d4ed8; }
+
+.docs-shared-footer {
+    padding: 10px 20px;
+    border-top: 1px solid #334155;
+    background: #0f172a;
+    color: #94a3b8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 11px;
+    text-align: center;
+}
+
+@media (max-width: 860px) {
+    .docs-shared-doc { padding: 32px 22px; min-height: 60vh; }
+}

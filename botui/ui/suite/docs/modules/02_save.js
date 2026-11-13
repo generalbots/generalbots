@@ -12,6 +12,10 @@ function setSaveStatus(text, isError) {
 var saveTimer = null;
 function docDraftKey(id) { return "docs:" + (id || "current"); }
 function scheduleSave(id, content) {
+  // #2253 — a shared-link view has no write path: the server answers 401 for
+  // every mutating Docs route without a session, so queueing a save here would
+  // only show a spurious "saving" status.
+  if (typeof docsIsReadOnly === "function" && docsIsReadOnly()) return;
   clearTimeout(saveTimer);
   setSaveStatus("Saving...", false);
   saveTimer = setTimeout(function () {

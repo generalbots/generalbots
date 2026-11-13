@@ -43,6 +43,22 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Comments | Discussions attached to a position in the text |
 | Presence | Collaborator indicators when a realtime collaboration endpoint is configured; the shipped server exposes REST presence/comments and no `/ws/{app}` collaboration socket, so the editor reports offline instead of retrying a missing route |
 
+### Sharing
+
+The Share control opens the shared access dialog (people grants, public links,
+ownership transfer). A **public link** is read-only by design:
+
+| Behaviour | Where it is implemented |
+|---|---|
+| The dialog mints a token and copies `…/suite/docs/shared.html?link=<token>` | `botui/ui/suite/js/collab-share.js` (`POST /api/collab/links`), `botui/ui/suite/docs/shared.html` |
+| Opening the link renders the document in a standalone viewer with **no toolbar and no editor**, marked **Read-only** | `botui/ui/suite/docs/shared-viewer.js` |
+| The server resolves the token — never a document id in the URL — and returns the body with `read_only: true` | `GET /api/docs/shared/:token` in `botserver/crates/botdocs/src/shared_link.rs` |
+| The link cannot write: every mutating Docs route requires a signed-in `DocUser`, and the token route is declared a capability (read methods only) | `botserver/crates/botsecurity-auth/src/auth_api/public_routes.rs` |
+| The Share button shows a dot while a read-only link is active | `botui/ui/suite/docs/modules/15_readonly.js` |
+
+Links can be revoked in the same dialog; expired, revoked and unknown tokens all
+answer `404`, so a link never reveals whether a document exists.
+
 ### References and AI
 
 | Capability | Notes |

@@ -121,6 +121,11 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.capability("/api/agent/vm/file");
     routes.capability("/api/agent/vm/files");
     routes.capability("/api/chat/attachments/preview");
+    // Docs share links (#2253): the URL carries the unguessable token minted by
+    // `POST /api/collab/links`; the handler resolves it to exactly one document
+    // and answers a read-only body. The link grants a view, never a write, so
+    // no mutating Docs route is declared here.
+    routes.capability("/api/docs/shared/:token");
 
     // ── Inbound provider webhooks (handler verifies the call) ───────────────
     // Meta verification challenge (GET) and message delivery (POST, signed
@@ -389,6 +394,20 @@ mod tests {
         assert!(!is_public(Method::GET, "/api/bots/access"));
         assert!(is_public(Method::GET, "/api/files/public/abc"));
         assert!(!is_public(Method::GET, "/api/files/public/abc/extra"));
+    }
+
+    #[test]
+    fn a_docs_share_link_is_a_read_only_capability() {
+        // #2253 — an anonymous reader opens the document through its token.
+        assert!(is_public(Method::GET, "/api/docs/shared/abcd"));
+        assert!(!is_public(Method::GET, "/api/docs/shared/abcd/extra"));
+        // The link grants a view only: every write path stays authenticated.
+        assert!(!is_public(Method::POST, "/api/docs/shared/abcd"));
+        assert!(!is_public(Method::PUT, "/api/docs/shared/abcd"));
+        assert!(!is_public(Method::DELETE, "/api/docs/shared/abcd"));
+        assert!(!is_public(Method::POST, "/api/docs/save"));
+        assert!(!is_public(Method::POST, "/api/docs/autosave"));
+        assert!(!is_public(Method::GET, "/api/docs/list"));
     }
 
     #[test]

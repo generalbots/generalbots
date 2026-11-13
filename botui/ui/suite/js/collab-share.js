@@ -270,10 +270,13 @@
         list.innerHTML = links.map(function (l) {
           // #1977 — compose from the configured base, not an origin that may
           // resolve to localhost for everyone but this machine.
-          var url = (linkBase || window.location.origin) + "/suite/docs/" +
-            encodeURIComponent(state.resourceId) + "?link=" + l.token;
+          // #2253 — a link opens the read-only viewer, not the editor shell:
+          // an anonymous reader has no session, so `/suite/docs/editor.html`
+          // would answer a login redirect instead of the document.
+          var url = (linkBase || window.location.origin) + "/suite/docs/shared.html?link=" + l.token;
           return '<div class="gbs-link">' +
             '<span class="gbs-link-text">' + esc(url) + '</span>' +
+            '<span class="gbs-item-role">' + esc(roleLabel(l.role)) + '</span>' +
             '<button class="gbs-btn gbs-ghost" data-copy="' + esc(url) + '">' +
               esc(T("action-copy", "Copy")) + '</button>' +
             '<button class="gbs-item-remove" data-revoke="' + esc(l.token) + '" title="' +
@@ -390,5 +393,20 @@
     if (overlay) overlay.classList.remove("gbs-open");
   }
 
-  window.GBCollabShare = { open: open, close: close };
+  /**
+   * #2253 — active links for a resource, for callers that need the shared
+   * state without opening the dialog (the Docs toolbar shows it). A caller
+   * without a session (a reader on a share link) gets an empty list instead of
+   * an error: they cannot see links, and the app must keep rendering.
+   */
+  function links(resourceType, resourceId) {
+    return api(
+      "/api/collab/links?resource_type=" + encodeURIComponent(resourceType) +
+      "&resource_id=" + encodeURIComponent(resourceId)
+    )
+      .then(function (list) { return Array.isArray(list) ? list : []; })
+      .catch(function () { return []; });
+  }
+
+  window.GBCollabShare = { open: open, close: close, links: links };
 })(window);

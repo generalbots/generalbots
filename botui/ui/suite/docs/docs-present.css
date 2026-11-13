@@ -31,3 +31,25 @@ body.docs-presenting article {
 }
 .docs-present-exitbar button:hover { background: rgba(255,255,255,.15); }
 .docs-present-stop { font-weight: 600; }
+
+/* #2253 — a shared link opens the document read-only; the badge is the only
+   editing-related control left in the toolbar, so the state is never implicit. */
+.docs-readonly-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    background: rgba(148, 163, 184, .18); border: 1px solid rgba(148, 163, 184, .5);
+    color: #cbd5f5; font: 600 10px/1.6 ui-sans-serif, system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+}
+.docs-readonly article,
+.docs-readonly #docs-content article { cursor: default; }
+.docs-readonly .docs-toolbar button[disabled],
+.docs-readonly .docs-toolbar select[disabled] { opacity: .4; cursor: not-allowed; }
+
+/* #2253 — the Share control reflects an active read-only link. */
+.gb-share-active { position: relative; }
+.gb-share-active::after {
+    content: ""; position: absolute; top: 4px; right: 4px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #34d399; box-shadow: 0 0 0 2px rgba(52, 211, 153, .25);
+}

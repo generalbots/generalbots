@@ -240,6 +240,20 @@ pub async fn my_role(
     })))
 }
 
+/// Storage owner captured on a link, for resource types whose objects live
+/// under `users/{owner}/…` (#2135, #2253).
+///
+/// A link is redeemed by a reader with no session, so the owner cannot be
+/// derived at read time: it is recorded when the link is minted. Resource
+/// types that address their storage by id alone (sheets, drive files) get
+/// `None` and are unaffected.
+fn link_owner_id(user: &AuthenticatedUser, resource_type: &str) -> Option<String> {
+    if !matches!(resource_type, "docs" | "slides" | "paper") {
+        return None;
+    }
+    crate::security::office_owner::verified_owner_id(user)
+}
+
 /// `POST /api/collab/links` — create a shareable link granting a role to
 /// anyone with the link, optionally expiring.
 pub async fn create_link(
@@ -273,10 +287,14 @@ pub async fn create_link(
         .filter(|h| *h > 0)
         .map(|h| chrono::Utc::now() + chrono::Duration::hours(h));
     let created_at = chrono::Utc::now();
+    // #2253 — `owner_id` is what makes a docs link redeemable without a
+    // session; see `link_owner_id`.
+    let owner_id = link_owner_id(&user, &req.resource_type);
 
     diesel::sql_query(
-        "INSERT INTO resource_links (token, resource_type, resource_id, role, expires_at, created_by) \
-         VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO resource_links \
+         (token, resource_type, resource_id, role, expires_at, created_by, owner_id) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind::<Text, _>(&token)
     .bind::<Text, _>(&req.resource_type)
@@ -284,6 +302,7 @@ pub async fn create_link(
     .bind::<Text, _>(&req.role)
     .bind::<Nullable<Timestamptz>, _>(expires_at)
     .bind::<Text, _>(&collab_user_id(&user))
+    .bind::<Nullable<Text>, _>(owner_id)
     .execute(&mut conn)
     .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 

@@ -8,6 +8,7 @@ pub mod ooxml;
 pub mod pdf;
 pub mod preview;
 pub mod review;
+pub mod shared_link;
 pub mod state;
 pub mod storage;
 pub mod storage_core;
@@ -52,6 +53,12 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         .merge(ui_fragments::configure())
         .route("/api/files/office-preview", get(preview::handle_office_preview))
         .route("/api/docs/list", get(handle_list_documents))
+        // #2253 — the read side of a share link. Read-only capability route
+        // (anonymous); every write keeps requiring a `DocUser`.
+        .route(
+            "/api/docs/shared/:token",
+            get(shared_link::handle_shared_document),
+        )
         .route("/api/docs/search", get(handle_search_documents))
         .route("/api/docs/load", get(handle_get_document))
         .route("/api/docs/save", axum::routing::post(handle_docs_save))

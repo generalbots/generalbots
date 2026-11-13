@@ -44,6 +44,18 @@ function openDocShare() {
     if (!window.GBCollabShare) return;
     var article = document.querySelector("article[contenteditable]");
     var docId = (article && article.dataset && article.dataset.docId) || "current";
+    // #2253 — a share link addresses a stored document. Sharing the
+    // placeholder id would mint a link that can never resolve, so ask for a
+    // saved document first (the editor assigns the real id on first save).
+    if (String(docId) === "current" || String(docId).indexOf("vm-") === 0) {
+        if (window.GBSuite && window.GBSuite.toast) {
+            window.GBSuite.toast(
+                docsT("docs-share-save-first", "Save the document before sharing it."),
+                "warn"
+            );
+        }
+        return;
+    }
     var title = (document.getElementById("docTitle") && document.getElementById("docTitle").value) || "Document";
     window.GBCollabShare.open({
         resourceType: "docs",

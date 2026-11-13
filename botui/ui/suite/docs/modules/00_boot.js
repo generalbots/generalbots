@@ -94,6 +94,10 @@
         // give its headings ids so the TOC panel can link to them.
         if (typeof docsAssignHeadingIds === "function") docsAssignHeadingIds(activeArticle());
         setTitle(doc.title || "Untitled Document");
+        // #2253 — the toolbar answers the same question the Share dialog does:
+        // is a read-only link active for this document? A reader on a link is
+        // already read-only and never asks.
+        if (typeof refreshDocsShareState === "function") refreshDocsShareState();
         var stats = document.getElementById("doc-stats");
         if (stats) {
           var text = String(doc.content || "").replace(/<[^>]*>/g, " ");
@@ -193,6 +197,7 @@
   }
 
   function saveTitle() {
+    if (typeof docsIsReadOnly === "function" && docsIsReadOnly()) return;
     var input = document.getElementById("docTitle");
     var article = activeArticle();
     if (!input || !article) return;
@@ -223,6 +228,41 @@
     setTitle(window.docsT ? docsT("docs-untitled", "Untitled Document") : "Untitled Document");
   }
 
+  /* #2253 — a share link is a read-only view. The token is the only
+   * credential, so the document is resolved by the server from the token, never
+   * from `?id=` in the URL (a reader must not be able to swap in another id). */
+  function openSharedLink(token) {
+    var host = document.getElementById("docs-content");
+    if (host) host.innerHTML = "";
+    status(docsT("docs-shared-loading", "Loading shared document…"), false);
+    fetch("/api/docs/shared/" + encodeURIComponent(token))
+      .then(function (response) {
+        if (!response.ok) throw new Error("link -> " + response.status);
+        return response.json();
+      })
+      .then(function (doc) {
+        if (!doc || doc.read_only !== true) throw new Error("link -> not read-only");
+        return renderView(doc).then(function () {
+          if (typeof docsApplyReadOnly === "function") docsApplyReadOnly("shared-link");
+        });
+      })
+      .catch(function () {
+        if (host) {
+          host.innerHTML =
+            '<div class="gb-state gb-state-error" style="padding:32px;color:#f87171;">' +
+            escapeHtml(
+              docsT(
+                "docs-shared-unavailable",
+                "This shared link is no longer available."
+              )
+            ) +
+            "</div>";
+        }
+        setTitle(docsT("docs-shared-title", "Shared document"));
+        status(docsT("docs-shared-unavailable", "This shared link is no longer available."), true);
+      });
+  }
+
   function start() {
     if (!document.getElementById("docs-content")) return;
     // A deep link has no query string of its own (the shell URL stays
@@ -232,6 +272,14 @@
     // Docs (#1711).
     var deepLink = window.__gbAppParams__ || {};
     var params = new URLSearchParams(window.location.search);
+    // #2253 — a share link opens the document read-only. Checked before every
+    // other branch: the link must never fall through to the "most recent
+    // document" path, which would show a different document.
+    var linkToken = params.get("link") || deepLink.link;
+    if (linkToken) {
+      openSharedLink(linkToken);
+      return;
+    }
     // #2184 — a UI-hint plan opens Docs expecting an EMPTY surface to draw in
     // (blank: true). Loading the most recent document here would fill the
     // wrong one and the plan's fill would land on a stale doc.
