@@ -6,7 +6,10 @@
     <div class="health-overview"
          hx-get="/api/monitoring/health/overview"
          hx-trigger="load, every 10s"
-         hx-swap="innerHTML">
+         hx-swap="innerHTML"
+         role="status"
+         aria-live="polite"
+         aria-atomic="true">
         <div class="health-status healthy">
             <div class="status-icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -116,7 +119,10 @@
         <div class="health-checks-grid" id="health-checks"
              hx-get="/api/monitoring/health/checks"
              hx-trigger="load, every 10s"
-             hx-swap="innerHTML">
+             hx-swap="innerHTML"
+             role="region"
+             aria-label="Health check endpoints"
+             aria-live="polite">
             <div class="health-check-card">
                 <div class="check-header">
                     <span class="check-status healthy"></span>
@@ -335,6 +341,6 @@
     </div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/health.js"></script>

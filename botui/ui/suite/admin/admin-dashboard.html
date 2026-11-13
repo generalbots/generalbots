@@ -11,7 +11,7 @@ Export Report </button>
 <line x1="20" y1="8" x2="20" y2="14"></line> <line x1="23" y1="11" x2="17" y2="11"></line>
 </svg> Invite Member
 </button> </div>
-</div> <div class="stats-overview" hx-get="/api/admin/dashboard/stats" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="stats-overview" role="status" aria-live="polite" hx-get="/api/admin/dashboard/stats" hx-trigger="load" hx-swap="innerHTML">
 <div class="stat-card members"> <div class="stat-icon">
 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"> <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
 <circle cx="9" cy="7" r="4"></circle> <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -43,7 +43,7 @@ Export Report </button>
 <div class="dashboard-grid"> <div class="card system-health">
 <div class="card-header"> <h2 data-i18n="monitoring-health-title">System Health</h2>
 <span class="health-badge healthy" id="overallHealth" data-i18n="auto-all-systems-operational">All Systems Operational</span> </div>
-<div class="health-items" hx-get="/api/admin/dashboard/health" hx-trigger="load, every 30s" hx-swap="innerHTML"> <div class="health-item">
+<div class="health-items" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/admin/dashboard/health" hx-trigger="load, every 30s" hx-swap="innerHTML"> <div class="health-item">
 <div class="health-indicator healthy"></div> <div class="health-info">
 <span class="health-name" data-i18n="auto-api-server">API Server</span> <span class="health-status" data-i18n="auto-operational">Operational</span>
 </div> <div class="health-metrics">
@@ -82,7 +82,7 @@ Export Report </button>
 <div class="activity-filters"> <button class="filter-btn active" data-filter="all">All</button>
 <button class="filter-btn" data-filter="members" data-i18n="auto-members">Members</button> <button class="filter-btn" data-filter="bots" data-i18n="settings-bots">Bots</button>
 <button class="filter-btn" data-filter="security" data-i18n="learn-security">Security</button> </div>
-</div> <div class="activity-list" hx-get="/api/admin/dashboard/activity" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="activity-list" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/admin/dashboard/activity" hx-trigger="load" hx-swap="innerHTML">
 <div class="activity-item"> <div class="activity-avatar">
 <img src="/suite/assets/avatars/default.svg" alt="User avatar"> </div>
 <div class="activity-content"> <div class="activity-text">
@@ -133,7 +133,7 @@ Load More Activity </button>
 </div> <div class="member-stat">
 <span class="stat-number">2</span> <span class="stat-desc" data-i18n="label-inactive">Inactive</span>
 </div> </div>
-<div class="member-list" hx-get="/api/admin/dashboard/members" hx-trigger="load" hx-swap="innerHTML"> <div class="member-item">
+<div class="member-list" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/admin/dashboard/members" hx-trigger="load" hx-swap="innerHTML"> <div class="member-item">
 <div class="member-avatar"> <img src="/suite/assets/avatars/default.svg" alt="User avatar">
 <span class="status-indicator online"></span> </div>
 <div class="member-info"> <span class="member-name" data-i18n="auto-john-smith">John Smith</span>
@@ -159,7 +159,7 @@ Load More Activity </button>
 </div> <div class="card role-distribution">
 <div class="card-header"> <h2 data-i18n="auto-role-distribution">Role Distribution</h2>
 <a href="/admin/roles" class="view-all-link" data-i18n="auto-manage-roles">Manage Roles</a> </div>
-<div class="role-chart" hx-get="/api/admin/dashboard/roles" hx-trigger="load" hx-swap="innerHTML"> <div class="role-bars">
+<div class="role-chart" role="status" aria-live="polite" hx-get="/api/admin/dashboard/roles" hx-trigger="load" hx-swap="innerHTML"> <div class="role-bars">
 <div class="role-bar-item"> <div class="role-bar-label">
 <span class="role-name" data-i18n="crm-owner">Owner</span> <span class="role-count">1</span>
 </div> <div class="role-bar">
@@ -186,7 +186,7 @@ Load More Activity </button>
 </div> </div>
 <div class="card bot-status"> <div class="card-header">
 <h2 data-i18n="auto-bot-status">Bot Status</h2> <a href="/bots" class="view-all-link" data-i18n="auto-manage-bots">Manage Bots</a>
-</div> <div class="bot-list" hx-get="/api/admin/dashboard/bots" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="bot-list" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/admin/dashboard/bots" hx-trigger="load" hx-swap="innerHTML">
 <div class="bot-item"> <div class="bot-avatar">CS</div>
 <div class="bot-info"> <span class="bot-name" data-i18n="auto-customer-support-bot">Customer Support Bot</span>
 <span class="bot-desc" data-i18n="auto-handles-customer-inquiries">Handles customer inquiries</span> </div>
@@ -216,7 +216,7 @@ Load More Activity </button>
 <circle cx="8.5" cy="7" r="4"></circle> <line x1="20" y1="8" x2="20" y2="14"></line>
 <line x1="23" y1="11" x2="17" y2="11"></line> </svg>
 Bulk Invite </button>
-</div> <div class="invitation-list" hx-get="/api/admin/dashboard/invitations" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="invitation-list" role="status" aria-live="polite" hx-get="/api/admin/dashboard/invitations" hx-trigger="load" hx-swap="innerHTML">
 <div class="invitation-empty"><p data-i18n="auto-loading-invitations">Loading invitations…</p></div> </div>
 </div> <!-- Invite Member Modal -->
 <dialog id="invite-member-modal" class="modal"> <div class="modal-content">
@@ -246,8 +246,8 @@ Bulk Invite </button>
 </div> <div class="modal-footer">
 <button type="button" class="btn-secondary" onclick="closeBulkInviteModal()" data-i18n="action-cancel">Cancel</button> <button type="button" class="btn-primary" onclick="sendBulkInvitations()" data-i18n="auto-send-invites">Send Invites</button>
 </div> </div>
-</dialog> <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div> <script src="/suite/admin/admin-handlers.js"></script>
+</dialog> <div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div> <script src="/suite/admin/admin-handlers.js"></script>
 <script src="/suite/admin/modals/01_helpers_accounts.js"></script> <script src="/suite/admin/modals/02_dashboards_billing.js"></script>
 <script src="/suite/admin/modals/03_compliance_groups.js"></script> <script src="/suite/admin/modals/04_roles.js"></script>
 <script src="/suite/admin/modals/05_billing_ops.js"></script> <script src="/suite/admin/modals/06_onboarding_accounts.js"></script>

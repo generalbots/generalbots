@@ -78,8 +78,8 @@
             const container = document.getElementById("contacts-list");
             if (!container) return;
             container.innerHTML = `
-        <div class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <div class="empty-state" role="status" aria-live="polite">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
@@ -88,7 +88,7 @@
             <h3 data-i18n="people-empty-title">No contacts yet</h3>
             <p data-i18n="people-empty-desc">Add your first contact to get started</p>
             <button class="btn btn-primary" onclick="window.openAddContact()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -158,6 +158,30 @@
             if (modal && modal.close) modal.close();
         }
 
+        function showPeopleNotice(message, kind) {
+            if (window.GBToasts && typeof window.GBToasts.show === "function") {
+                window.GBToasts.show("People", message, kind || "info");
+            } else if (typeof showToast === "function") {
+                showToast(message, kind || "info");
+            } else {
+                console[kind === "error" ? "error" : "info"](message);
+            }
+        }
+
+        function confirmPeopleAction(message, title) {
+            if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                return new Promise((resolve) => {
+                    try {
+                        window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+                    } catch (e) {
+                        console.error("GBModal.confirm failed", e);
+                        resolve(false);
+                    }
+                });
+            }
+            return Promise.resolve(false);
+        }
+
         async function saveContact(event) {
             event.preventDefault();
             const form = event.target;
@@ -189,12 +213,14 @@
                 if (state.currentContact) closeContactPanel();
             } catch (error) {
                 console.error("Failed to save contact:", error);
-                alert("Failed to save contact: " + error.message);
+                showPeopleNotice("Failed to save contact: " + error.message, "error");
             }
         }
 
         async function deleteContact() {
-            if (!state.currentContact || !confirm("Delete this contact?")) return;
+            if (!state.currentContact) return;
+            const confirmed = await confirmPeopleAction("Delete this contact?", "Confirm");
+            if (!confirmed) return;
 
             try {
                 await apiFetch(`/${state.currentContact.id}`, { method: "DELETE" });
@@ -202,7 +228,7 @@
                 await loadContacts();
             } catch (error) {
                 console.error("Failed to delete contact:", error);
-                alert("Failed to delete contact: " + error.message);
+                showPeopleNotice("Failed to delete contact: " + error.message, "error");
             }
         }
 

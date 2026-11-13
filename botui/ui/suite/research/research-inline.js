@@ -219,6 +219,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("research");
             if (!host) {
                 host = document.createElement("div");
                 host.id = "research-toast";
+                host.setAttribute("role", "status");
+                host.setAttribute("aria-live", "polite");
+                host.setAttribute("aria-atomic", "true");
                 host.style.cssText =
                     "position:fixed;bottom:16px;left:16px;background:#1e293b;color:#e2e8f0;" +
                     "padding:8px 12px;border-radius:6px;font-size:13px;z-index:9999;opacity:0;" +

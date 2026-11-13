@@ -399,8 +399,10 @@
 /* ---- Buttons ----------------------------------------------------------------- */
 
 .btn-icon {
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     background: transparent;
     color: var(--text-secondary);
@@ -439,3 +441,15 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+

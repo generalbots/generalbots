@@ -123,7 +123,10 @@ function updateActivityMetrics(activity) {
   }
 
   if (activity.tokens_used) {
-    html += `<div class="metric-row"><span class="metric-label">Tokens:</span> <span class="metric-value">${Number(activity.tokens_used).toLocaleString()}</span></div>`;
+    const tokenText = (window.i18n && typeof window.i18n.formatNumber === "function")
+      ? window.i18n.formatNumber(Number(activity.tokens_used))
+      : Number(activity.tokens_used).toLocaleString((window.i18n && typeof window.i18n.getLocale === "function" && window.i18n.getLocale()) || undefined);
+    html += `<div class="metric-row"><span class="metric-label">Tokens:</span> <span class="metric-value">${tokenText}</span></div>`;
   }
 
   if (activity.files_created && activity.files_created.length > 0) {
@@ -339,7 +342,12 @@ function updateTerminalWithMarkdown(taskId, markdown) {
 }
 
 function addTerminalLine(terminal, message, step, activity) {
-  const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
+  const now = new Date();
+  const timestamp = (typeof window.gbFormatTime === "function")
+    ? window.gbFormatTime(now)
+    : (window.i18n && typeof window.i18n.formatDate === "function")
+      ? window.i18n.formatDate(now, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+      : now.toLocaleTimeString((window.i18n && typeof window.i18n.getLocale === "function" && window.i18n.getLocale()) || undefined, { hour12: false });
   const isLlmStream = step === "llm_stream";
   const isLlmOutput =
     step === "llm_output" || (message && message.length > 200);

@@ -21,8 +21,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-invoice-amount">Invoice Amount</label>
-                <input type="text" id="invoice-amount-display" class="form-input" readonly placeholder="$0.00">
+                <label class="form-label" for="invoice-amount-display" data-i18n="billing-invoice-amount">Invoice Amount</label>
+                <input type="text" id="invoice-amount-display" class="form-input" readonly placeholder="$0.00" aria-live="polite" aria-atomic="true">
             </div>
         </div>
     </div>
@@ -79,6 +79,12 @@
     const today = new Date().toISOString().split('T')[0];
     document.querySelector('input[name="payment_date"]').value = today;
 
+    function toCents(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100);
+    }
+
     // Update invoice info when selection changes
     window.updateInvoiceInfo = function() {
         const select = document.querySelector('select[name="invoice_id"]');
@@ -87,8 +93,9 @@
 
         if (select.selectedOptions[0] && select.selectedOptions[0].dataset.amount) {
             const amount = select.selectedOptions[0].dataset.amount;
-            amountDisplay.value = '$' + parseFloat(amount).toFixed(2);
-            amountInput.value = amount;
+            const cents = toCents(amount);
+            amountDisplay.value = '$' + (cents / 100).toFixed(2);
+            amountInput.value = (cents / 100).toFixed(2);
         }
     };
 

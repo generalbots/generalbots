@@ -38,8 +38,36 @@
         return null;
     }
 
+    function showPlayerToast(title, message, kind) {
+        if (window.GBToasts && typeof window.GBToasts.show === "function") {
+            window.GBToasts.show(title, message, kind || "info");
+        }
+    }
+
+    function gbPrompt(message, defaultValue) {
+        return new Promise((resolve) => {
+            if (window.GBModal && typeof window.GBModal.prompt === "function") {
+                window.GBModal.prompt(message, defaultValue || "", (value) => {
+                    resolve(value == null ? null : String(value));
+                });
+                return;
+            }
+            resolve(null);
+        });
+    }
+
+    function gbConfirm(message) {
+        return new Promise((resolve) => {
+            if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                window.GBModal.confirm(message, () => resolve(true), () => resolve(false));
+                return;
+            }
+            resolve(false);
+        });
+    }
+
     async function createPlaylist() {
-        const name = (window.GBModal||{prompt:prompt}).prompt("Playlist name:");
+        const name = await gbPrompt("Playlist name:", "");
         if (!name || !name.trim()) return;
         try {
             const playlist = await apiFetch("/api/player/playlists", {
@@ -51,7 +79,7 @@
             openPlaylist(playlist.id);
         } catch (err) {
             console.error("Failed to create playlist:", err);
-            alert("Failed to create playlist: " + err.message);
+            showPlayerToast("Playlist", "Failed to create playlist: " + err.message, "error");
         }
     }
 
@@ -135,7 +163,7 @@
 
     async function renamePlaylist() {
         if (!currentPlaylist) return;
-        const name = (window.GBModal||{prompt:prompt}).prompt("New playlist name:", currentPlaylist.name);
+        const name = await gbPrompt("New playlist name:", currentPlaylist.name);
         if (!name || !name.trim()) return;
         try {
             await apiFetch("/api/player/playlists/" + currentPlaylist.id, {
@@ -146,11 +174,13 @@
             await openPlaylist(currentPlaylist.id);
         } catch (err) {
             console.error("Failed to rename playlist:", err);
+            showPlayerToast("Playlist", "Failed to rename playlist: " + err.message, "error");
         }
     }
 
     async function deletePlaylist(playlistId) {
-        if (!(window.GBModal||{confirm:confirm}).confirm("Delete this playlist?")) return;
+        const confirmed = await gbConfirm("Delete this playlist?");
+        if (!confirmed) return;
         try {
             await apiFetch("/api/player/playlists/" + playlistId, { method: "DELETE" });
             if (currentPlaylist && currentPlaylist.id === playlistId) {
@@ -159,12 +189,13 @@
             await loadPlaylists();
         } catch (err) {
             console.error("Failed to delete playlist:", err);
+            showPlayerToast("Playlist", "Failed to delete playlist: " + err.message, "error");
         }
     }
 
     async function addCurrentToPlaylist() {
         if (!currentFile) {
-            alert("Load a media file first");
+            showPlayerToast("Playlist", "Load a media file first", "warning");
             return;
         }
         if (!currentPlaylist) {
@@ -183,7 +214,7 @@
             await openPlaylist(playlistId);
         } catch (err) {
             console.error("Failed to add item:", err);
-            alert("Failed to add to playlist: " + err.message);
+            showPlayerToast("Playlist", "Failed to add to playlist: " + err.message, "error");
         }
     }
 

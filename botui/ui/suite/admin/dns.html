@@ -50,10 +50,10 @@ Register and manage DNS hostnames for your bots
 <th data-i18n="admin-dns-col-actions">Actions</th>
 </tr>
 </thead>
-<tbody id="dns-table-body" hx-get="/api/dns/list" hx-trigger="load" hx-swap="innerHTML" >
+<tbody id="dns-table-body" role="status" aria-live="polite" hx-get="/api/dns/list" hx-trigger="load" hx-swap="innerHTML" >
 <tr>
 <td colspan="7" class="loading-cell">
-<div class="loading-state">
+<div class="loading-state" role="status">
 <div class="spinner"></div>
 <p data-i18n="admin-dns-loading">
 Loading DNS records...
@@ -189,7 +189,7 @@ Enter the IPv4 address to point to
 <span data-i18n="admin-dns-auto-ssl" >Automatically provision SSL certificate</span >
 </label>
 </div>
-<div id="dns-result"></div>
+<div id="dns-result" role="status" aria-live="polite" aria-atomic="true"></div>
 <div class="modal-footer">
 <button type="button" class="btn-secondary" onclick="document.getElementById('register-dns-modal').close()" data-i18n="action-cancel" >
 Cancel
@@ -252,11 +252,11 @@ Cancel
 </svg>
 </button>
 </div>
-<div id="edit-dns-form-container">
+<div id="edit-dns-form-container" role="status" aria-live="polite">
 <!-- Form loaded via HTMX -->
 </div>
 </div>
 </dialog>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/admin/dns-inline.js"></script>

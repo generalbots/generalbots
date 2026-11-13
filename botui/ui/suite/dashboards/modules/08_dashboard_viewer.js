@@ -273,8 +273,22 @@
         }
     }
 
+    function gbDashViewerConfirm(message, title) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            return new Promise((resolve) => {
+                try {
+                    window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+                } catch (e) {
+                    console.error("GBModal.confirm failed", e);
+                    resolve(false);
+                }
+            });
+        }
+        return Promise.resolve(false);
+    }
+
     async function removeWidget(widgetId) {
-        if (!currentDashboardId || !confirm("Remove this widget?")) return;
+        if (!currentDashboardId || !(await gbDashViewerConfirm("Remove this widget?", "Confirm"))) return;
         try {
             const resp = await fetch(`/api/dashboards/${currentDashboardId}/widgets/${widgetId}`, {
                 method: "DELETE",

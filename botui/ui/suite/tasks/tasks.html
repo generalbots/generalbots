@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-detail-sections.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-log-detail.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-detail-layout.css?v=1" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/collab-comments/01_helpers.js"></script>
 <script src="/suite/js/collab-comments/02_data.js"></script>
 <script src="/suite/js/collab-comments/99_panel.js"></script>
@@ -26,50 +26,50 @@
 <!-- Hidden element to load stats on page load -->
 <div hx-get="/api/ui/tasks/stats" hx-trigger="load, taskCreated from:div" hx-swap="innerHTML" style="display: none" ></div>
 <!-- Status Filter Pills Row -->
-<div class="status-filter-row">
+<div class="status-filter-row" aria-label="Task filters" data-i18n-aria-label="tasks-filters">
 <button class="filter-pill" data-filter="complete" hx-get="/api/ui/tasks?filter=complete" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">✓</span>
 <span class="pill-label" data-i18n="tasks-completed">Complete</span>
-<span class="pill-count" id="count-complete">-</span>
+<span class="pill-count" id="count-complete" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill active" data-filter="all" hx-get="/api/ui/tasks?filter=all" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">📋</span>
 <span class="pill-label" data-i18n="tasks-all">All Tasks</span>
-<span class="pill-count" id="count-all">-</span>
+<span class="pill-count" id="count-all" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="active" hx-get="/api/ui/tasks?filter=active" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">⚡</span>
 <span class="pill-label" data-i18n="tasks-active" >Active Intents</span >
-<span class="pill-count" id="count-active">-</span>
+<span class="pill-count" id="count-active" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="awaiting" hx-get="/api/ui/tasks?filter=awaiting" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">⏳</span>
 <span class="pill-label" data-i18n="tasks-awaiting" >Awaiting Decision</span >
-<span class="pill-count" id="count-awaiting">-</span>
+<span class="pill-count" id="count-awaiting" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="paused" hx-get="/api/ui/tasks?filter=paused" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">⏸</span>
 <span class="pill-label" data-i18n="tasks-paused">Paused</span>
-<span class="pill-count" id="count-paused">-</span>
+<span class="pill-count" id="count-paused" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="blocked" hx-get="/api/ui/tasks?filter=blocked" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">⚠</span>
 <span class="pill-label" data-i18n="tasks-blocked" >Blocked/Issues</span >
-<span class="pill-count" id="count-blocked">-</span>
+<span class="pill-count" id="count-blocked" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="overdue" hx-get="/api/ui/tasks?filter=overdue" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">🔴</span>
 <span class="pill-label" data-i18n="billing-overdue">Overdue</span>
-<span class="pill-count" id="count-overdue">-</span>
+<span class="pill-count" id="count-overdue" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <button class="filter-pill" data-filter="due-soon" hx-get="/api/ui/tasks?filter=due-soon" hx-target="closest .window-body #task-list" hx-swap="innerHTML" >
 <span class="pill-icon">🟠</span>
 <span class="pill-label" data-i18n="auto-due-soon-2">Due soon</span>
-<span class="pill-count" id="count-due-soon">-</span>
+<span class="pill-count" id="count-due-soon" aria-live="polite" aria-atomic="true">-</span>
 </button>
 <div class="time-saved-badge">
 <span class="time-label" data-i18n="tasks-time-saved" >Active Time Saved:</span >
-<span class="time-value" id="time-saved-value">-</span>
+<span class="time-value" id="time-saved-value" aria-live="polite" aria-atomic="true">-</span>
 </div>
 </div>
 <!-- Quick Intent Input -->
@@ -81,14 +81,14 @@
 <span class="spinner" id="intent-spinner"></span>
 </button>
 </div>
-<div id="intent-result" class="intent-result"></div>
-<div id="intent-result-hidden" style="display: none"></div>
+<div id="intent-result" class="intent-result" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="intent-result-hidden" style="display: none" aria-hidden="true"></div>
 </div>
 <!-- AutoTask items (auto_tasks rows): every created automation with a
          ✏️ action that opens the .bas it produced in the bot's repository. -->
 <div class="autotask-items-bar">
 <h4 class="autotask-items-title" data-i18n="auto-autotask-items">// AUTOTASK ITEMS</h4>
-<div id="autotask-items-list" class="autotask-items-list">
+<div id="autotask-items-list" class="autotask-items-list" role="status" aria-live="polite" aria-atomic="false">
 <div class="autotask-items-empty" data-i18n="crm-loading">Loading…</div>
 </div>
 </div>
@@ -96,10 +96,10 @@
 <main class="tasks-main">
 <!-- Left Panel: Task Cards List -->
 <section class="tasks-list-panel">
-<div class="tasks-list-scroll" id="task-list" hx-get="/api/ui/tasks?filter=all" hx-trigger="load, taskCreated from:div throttle:2s" hx-swap="innerHTML transition:false" >
+<div class="tasks-list-scroll" id="task-list" hx-get="/api/ui/tasks?filter=all" hx-trigger="load, taskCreated from:div throttle:2s" hx-swap="innerHTML transition:false" aria-live="polite" aria-busy="true">
 <!-- Loading state - replaced by HTMX -->
-<div class="loading-state">
-<div class="loading-spinner"></div>
+<div class="loading-state" role="status" aria-live="polite" aria-atomic="true">
+<div class="loading-spinner" aria-hidden="true"></div>
 <p data-i18n="auto-loading-tasks">Loading tasks...</p>
 </div>
 </div>
@@ -127,46 +127,46 @@ and monitors work across all apps.
 </div>
 </div>
 <!-- Dynamic detail content -->
-<div id="task-detail-content" style="display: none" hx-get="" hx-trigger="taskSelected from:div" hx-swap="innerHTML" >
+<div id="task-detail-content" style="display: none" hx-get="" hx-trigger="taskSelected from:div" hx-swap="innerHTML" role="region" aria-live="polite" aria-label="Task details" data-i18n-aria-label="tasks-detail-region">
 <!-- Loaded via HTMX when task selected -->
 </div>
 </aside>
 </main>
 </div>
 <!-- Floating Progress Panel - Shows live task generation progress -->
-<div class="floating-progress-panel" id="floating-progress" style="display: none" >
+<div class="floating-progress-panel" id="floating-progress" style="display: none" role="region" aria-label="Task progress" data-i18n-aria-label="tasks-progress-region" aria-live="polite">
 <div class="floating-progress-header">
 <div class="floating-progress-title">
-<span class="progress-dot"></span>
-<span id="floating-task-name" data-i18n="label-processing">Processing...</span>
+<span class="progress-dot" aria-hidden="true"></span>
+<span id="floating-task-name" data-i18n="label-processing" aria-live="polite" aria-atomic="true">Processing...</span>
 </div>
 <div class="floating-progress-actions">
-<button class="btn-minimize" onclick="minimizeFloatingProgress()">
+<button class="btn-minimize" type="button" onclick="minimizeFloatingProgress()" aria-label="Minimize progress" data-i18n-aria-label="tasks-progress-minimize">
 —
 </button>
-<button class="btn-close-float" onclick="closeFloatingProgress()">
+<button class="btn-close-float" type="button" onclick="closeFloatingProgress()" aria-label="Close progress" data-i18n-aria-label="tasks-progress-close">
 ×
 </button>
 </div>
 </div>
 <div class="floating-progress-div">
-<div class="floating-progress-bar">
+<div class="floating-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Task progress bar" data-i18n-aria-label="tasks-progress-bar">
 <div class="floating-progress-fill" id="floating-progress-fill" style="width: 0%" ></div>
 </div>
 <div class="floating-progress-info">
-<span id="floating-progress-step" data-i18n="auto-starting">Starting...</span>
-<span id="floating-progress-percent">0%</span>
+<span id="floating-progress-step" data-i18n="auto-starting" aria-live="polite" aria-atomic="true">Starting...</span>
+<span id="floating-progress-percent" aria-live="polite" aria-atomic="true">0%</span>
 </div>
-<div class="floating-progress-log" id="floating-progress-log">
+<div class="floating-progress-log" id="floating-progress-log" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Progress log" data-i18n-aria-label="tasks-progress-log">
 <!-- Live log entries appear here -->
 </div>
-<div class="floating-llm-terminal" id="floating-llm-terminal">
+<div class="floating-llm-terminal" id="floating-llm-terminal" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Task output" data-i18n-aria-label="tasks-progress-output">
 <!-- LLM streaming output appears here -->
 </div>
 </div>
 </div>
 <!-- Toast Container -->
-<div class="toast-container" id="toast-container"></div>
+<div class="toast-container" id="toast-container" aria-live="polite" aria-relevant="additions text"></div>
 <!-- New Intent Modal -->
 <div class="modal" id="new-intent-modal" style="display: none">
 <div class="modal-backdrop" onclick="closeNewIntentModal()"></div>

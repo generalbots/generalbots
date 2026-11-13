@@ -135,17 +135,24 @@ function resendInvitation(invitationId) {
 }
 
 function cancelInvitation(invitationId) {
-  if (!confirm(t("admin-notify-cancel-invitation-confirm", "Cancel this invitation?"))) return;
+  var msg = t("admin-notify-cancel-invitation-confirm", "Cancel this invitation?");
+  var doCancel = function () {
+    fetch(`/api/admin/invitations/${invitationId}`, { method: "DELETE" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          showNotification(t("admin-notify-invitation-cancelled", "Invitation cancelled"), "success");
+          refreshInvitations();
+        }
+      })
+      .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  };
 
-  fetch(`/api/admin/invitations/${invitationId}`, { method: "DELETE" })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        showNotification(t("admin-notify-invitation-cancelled", "Invitation cancelled"), "success");
-        refreshInvitations();
-      }
-    })
-    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  if (window.GBModal && typeof window.GBModal.confirm === "function") {
+    window.GBModal.confirm(msg, "Confirm", doCancel);
+    return;
+  }
+  showNotification("Confirmation dialog unavailable", "error");
 }
 
 // =============================================================================

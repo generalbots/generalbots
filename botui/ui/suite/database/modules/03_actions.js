@@ -14,6 +14,7 @@
 
     DB.loadSchema = async function () {
         var list = document.getElementById('db-table-list');
+        if (list) list.setAttribute('aria-busy', 'true');
         try {
             var data = await DB.fetchJson(DB.API + '/schema');
             DB.tables = (data.tables || []).map(function (t) {
@@ -37,7 +38,9 @@
             DB.renderTableList();
             DB.renderStartup();
         } catch (e) {
-            list.innerHTML = '<div class="db-error">Error loading schema: ' + DB.sanitize(e.message) + '</div>';
+            if (list) list.innerHTML = '<div class="db-error" role="alert">Error loading schema: ' + DB.sanitize(e.message) + '</div>';
+        } finally {
+            if (list) list.setAttribute('aria-busy', 'false');
         }
     };
 
@@ -74,6 +77,10 @@
         if (DB.sortColumn) url += '&sort=' + encodeURIComponent(DB.sortColumn) + '&sort_order=' + DB.sortOrder;
 
         var container = document.getElementById('db-grid-container');
+        if (container) {
+            container.setAttribute('aria-busy', 'true');
+            container.innerHTML = '<div class="db-loading" role="status">Loading table data...</div>';
+        }
         try {
             var data = await DB.fetchJson(url);
             DB.columns = [];
@@ -91,7 +98,9 @@
             DB.renderPagination();
             DB.renderFilters();
         } catch (e) {
-            container.innerHTML = '<div class="db-empty-state"><p>Error: ' + DB.sanitize(e.message) + '</p></div>';
+            if (container) container.innerHTML = '<div class="db-empty-state" role="alert"><p>Error: ' + DB.sanitize(e.message) + '</p></div>';
+        } finally {
+            if (container) container.setAttribute('aria-busy', 'false');
         }
     };
 
@@ -142,14 +151,17 @@
             DB.selected.clear();
             DB.loadTableData(DB.currentTable);
         } catch (e) {
-            alert('Error deleting rows: ' + e.message);
+            var msg = 'Error deleting rows: ' + e.message;
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+            else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
         }
     };
 
     DB.saveCellValue = async function (col, rowIdx, rawValue) {
         var pk = DB.rowPks[rowIdx];
         if (!pk) {
-            alert('No primary key available for this row');
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', 'No primary key available for this row', 'error');
+            else if (window.GBModal && window.GBModal.alert) window.GBModal.alert('No primary key available for this row', 'Database');
             return;
         }
         var value = rawValue;
@@ -171,7 +183,9 @@
             });
             DB.loadTableData(DB.currentTable);
         } catch (e) {
-            alert('Error saving: ' + e.message);
+            var msg = 'Error saving: ' + e.message;
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+            else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
             DB.loadTableData(DB.currentTable);
         }
     };

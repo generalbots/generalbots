@@ -117,8 +117,8 @@
             </form>
 
             <!-- Search Indicator -->
-            <div class="search-indicator htmx-indicator" id="search-indicator">
-                <div class="indicator-dots">
+            <div class="search-indicator htmx-indicator" id="search-indicator" role="status" aria-live="polite">
+                <div class="indicator-dots" aria-hidden="true">
                     <span></span><span></span><span></span>
                 </div>
                 <span class="indicator-text" data-i18n="auto-searching-sources">Searching sources...</span>
@@ -177,7 +177,7 @@
         </div>
 
         <!-- Results Area -->
-        <div class="results-container" id="main-results">
+        <div class="results-container" id="main-results" role="region" aria-live="polite" aria-label="Search results">
             <!-- Results loaded here via HTMX -->
         </div>
     </main>
@@ -333,7 +333,7 @@
 
 
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-research">Loading Research…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-research-service-unavailable">Research service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-loading-research">Loading Research…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-research-service-unavailable">Research service unavailable</span></div>
 <script src="/suite/research/research-templates.js?v=1"></script>
 <script src="/suite/research/research-inline.js?v=1"></script>

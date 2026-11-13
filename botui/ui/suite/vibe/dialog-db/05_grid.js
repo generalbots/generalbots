@@ -65,14 +65,14 @@
             M.state.tables = [];
             M.state.table = null;
             var list0 = document.getElementById("vibeDbTableList");
-            if (list0) list0.innerHTML = '<div class="vibe-empty">Select a Vibe project to inspect its database.</div>';
+            if (list0) list0.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Select a Vibe project to inspect its database.</div>';
             var grid0 = document.getElementById("vibeDbGrid");
-            if (grid0) grid0.innerHTML = '<div class="vibe-empty">No project selected — open a project in Vibe first.</div>';
+            if (grid0) grid0.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">No project selected — open a project in Vibe first.</div>';
             return;
         }
         if (!quiet) {
             var list = document.getElementById("vibeDbTableList");
-            if (list) list.innerHTML = '<div class="vibe-empty">Loading schema...</div>';
+            if (list) list.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Loading schema...</div>';
         }
         M.apiEnv("/api/database/schema").then(function (data) {
             M.state.tables = (data && data.tables) || [];
@@ -80,18 +80,18 @@
             if (M.state.table) M.loadTableData();
         }).catch(function (err) {
             var list = document.getElementById("vibeDbTableList");
-            if (list) list.innerHTML = '<div class="vibe-empty">Schema error: ' + D.esc(err) + "</div>";
+            if (list) list.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Schema error: ' + D.esc(err) + "</div>";
         });
     }
 
     function loadTableData() {
         if (!M.state.table) return;
         var grid = document.getElementById("vibeDbGrid");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Loading ' + D.esc(M.state.table.name) + "...</div>";
+        if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Loading ' + D.esc(M.state.table.name) + "...</div>";
         M.apiEnv("/api/database/table/" + encodeURIComponent(M.state.table.name) + "/data?page=" +
             M.state.page + "&page_size=" + M.state.pageSize).then(function (data) {
             if (!data || !data.columns) {
-                if (grid) grid.innerHTML = '<div class="vibe-empty">Table has no data.</div>';
+                if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Table has no data.</div>';
                 M.state.cols = []; M.state.rows = [];
                 return;
             }
@@ -102,7 +102,7 @@
             M.renderGrid();
             M.renderPager();
         }).catch(function (err) {
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Load error: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Load error: ' + D.esc(err) + "</div>";
         });
     }
 
@@ -124,7 +124,7 @@
         var sql = document.getElementById("vibeDbSql");
         if (!sql || !sql.value.trim()) return;
         var grid = document.getElementById("vibeDbGrid");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Running query...</div>';
+        if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Running query...</div>';
         // Backend QueryRequest field is `query` (not `sql`) — sending the
         // wrong key returned 422 and the SQL runner never worked.
         M.apiEnv("/api/database/query", {
@@ -132,7 +132,7 @@
             body: { query: sql.value.trim() },
         }).then(function (data) {
             if (!data || data.error || !Array.isArray(data.columns)) {
-                if (grid) grid.innerHTML = '<div class="vibe-empty">Query error: ' + D.esc((data && data.error) || (data && data.message) || "invalid response") + "</div>";
+                if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Query error: ' + D.esc((data && data.error) || (data && data.message) || "invalid response") + "</div>";
                 return;
             }
             M.state.cols = (data.columns || []).map(function (c) { return String(c); });
@@ -142,7 +142,7 @@
             M.renderGrid();
             M.renderPager();
         }).catch(function (err) {
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Query error: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Query error: ' + D.esc(err) + "</div>";
         });
     }
 

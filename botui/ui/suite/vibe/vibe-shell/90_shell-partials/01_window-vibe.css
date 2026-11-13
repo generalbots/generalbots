@@ -183,8 +183,8 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
    Project/Branch combos height (~52px), left-aligned, compact width —
    sized up per follow-up reviews ("a little larger", then "+1pt"). */
 .vibe-shell-tb-cmds .vibe-shell-tb-btn {
-    min-height: 0;
-    height: 19px;
+    min-height: 44px;
+    height: auto;
     padding: 1px 6px;
     gap: 3px;
     justify-content: flex-start;
@@ -266,7 +266,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     /* Project and Branch combos share the SAME width (product spec). */
     width: 160px;
     max-width: 160px;
-    height: 24px;
+    height: 44px;
     padding: 2px 6px;
     border: 1px solid var(--border, #2a2a4a);
     border-radius: 4px;
@@ -300,7 +300,8 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     justify-content: center;
     gap: 4px;
     min-width: auto;
-    height: 28px;
+    min-height: 44px;
+    height: auto;
     padding: 3px 9px;
     border: 1px solid transparent;
     background: transparent;
@@ -319,3 +320,4 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 .vibe-shell-tb-btn:active:not(:disabled) {
     transform: translateY(1px);
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

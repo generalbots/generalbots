@@ -184,8 +184,8 @@
                         doClear,
                         null
                     );
-                } else if ((window.GBModal||{confirm:confirm}).confirm("Clear all design elements?")) {
-                    doClear();
+                } else if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                    window.GBModal.confirm("Clear all design elements?", "Clear canvas", doClear, function () {});
                 }
             }
         });

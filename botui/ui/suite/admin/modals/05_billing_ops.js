@@ -167,7 +167,7 @@ function refreshHealth() {
   const healthGrid = document.querySelector(".health-grid");
   if (healthGrid) {
     healthGrid.innerHTML =
-      '<div class="loading-state"><div class="spinner"></div></div>';
+      '<div class="loading-state" role="status" aria-live="polite"><div class="spinner"></div></div>';
   }
 
   fetch("/api/ops/health")
@@ -196,7 +196,7 @@ function refreshHealth() {
     .catch((err) => {
       if (healthGrid) {
         healthGrid.innerHTML =
-          '<div class="error-state">Failed to load health data</div>';
+          '<div class="error-state" role="alert">Failed to load health data</div>';
       }
     });
 }

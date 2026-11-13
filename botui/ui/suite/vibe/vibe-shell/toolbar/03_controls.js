@@ -293,5 +293,7 @@
         vibeApi("/api/vibe/projects/" + encodeURIComponent(pid) + "/branches/" +
             encodeURIComponent(sel.value), { method: "POST" })
             .then(function () { loadBranches(); })
-            .catch(function () { });
+            .catch(function (err) {
+                console.error("[gb-vibe] Branch switch failed:", err);
+            });
     }

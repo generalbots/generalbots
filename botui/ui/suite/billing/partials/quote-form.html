@@ -2,8 +2,8 @@
 <form class="invoice-form" hx-post="/api/billing/quotes" hx-target="#quotes-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
     <div class="invoice-form-header">
         <h2 class="invoice-form-title" data-i18n="billing-new-quote">New Quote</h2>
-        <button type="button" class="form-close" onclick="closeBillingModal()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="form-close" onclick="closeBillingModal()" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -15,14 +15,14 @@
         <div class="form-section-title" data-i18n="billing-customer">Customer</div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-account">Account *</label>
-                <select name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
+                <label class="form-label" for="quote-account-id" data-i18n="billing-account">Account *</label>
+                <select id="quote-account-id" name="account_id" class="form-select" required hx-get="/api/crm/accounts/search" hx-trigger="load">
                     <option value="" data-i18n="billing-select-account">Select account...</option>
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-opportunity">Opportunity</label>
-                <select name="opportunity_id" class="form-select" hx-get="/api/crm/opportunities/search" hx-trigger="load">
+                <label class="form-label" for="quote-opportunity-id" data-i18n="billing-opportunity">Opportunity</label>
+                <select id="quote-opportunity-id" name="opportunity_id" class="form-select" hx-get="/api/crm/opportunities/search" hx-trigger="load">
                     <option value="" data-i18n="billing-select-opportunity">Select opportunity...</option>
                 </select>
             </div>
@@ -34,22 +34,22 @@
         <div class="form-section-title" data-i18n="billing-quote-details">Quote Details</div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-quote-date">Quote Date *</label>
-                <input type="date" name="quote_date" class="form-input" required>
+                <label class="form-label" for="quote-date" data-i18n="billing-quote-date">Quote Date *</label>
+                <input id="quote-date" type="date" name="quote_date" class="form-input" required>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-valid-until">Valid Until *</label>
-                <input type="date" name="valid_until" class="form-input" required>
+                <label class="form-label" for="quote-valid-until" data-i18n="billing-valid-until">Valid Until *</label>
+                <input id="quote-valid-until" type="date" name="valid_until" class="form-input" required>
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-quote-name">Quote Name</label>
-                <input type="text" name="name" class="form-input" placeholder="e.g., Q1 Software License Proposal">
+                <label class="form-label" for="quote-name" data-i18n="billing-quote-name">Quote Name</label>
+                <input id="quote-name" type="text" name="name" class="form-input" placeholder="e.g., Q1 Software License Proposal">
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="billing-currency">Currency</label>
-                <select name="currency" class="form-select">
+                <label class="form-label" for="quote-currency" data-i18n="billing-currency">Currency</label>
+                <select id="quote-currency" name="currency" class="form-select">
                     <option value="USD" data-i18n="auto-usd-us-dollar">USD - US Dollar</option>
                     <option value="EUR" data-i18n="auto-eur-euro">EUR - Euro</option>
                     <option value="BRL" data-i18n="auto-brl-brazilian-real">BRL - Brazilian Real</option>
@@ -72,12 +72,12 @@
             </div>
             <div id="quote-line-items">
                 <div class="line-item" data-index="0">
-                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required>
-                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)">
-                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
+                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity">
+                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price">
                     <span class="line-item-total">$0.00</span>
-                    <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -85,7 +85,7 @@
                 </div>
             </div>
             <button type="button" class="add-line-item" onclick="addQuoteLineItem()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -97,16 +97,16 @@
     <!-- Discount -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="billing-discount-type">Discount Type</label>
-            <select name="discount_type" class="form-select" onchange="updateQuoteTotals()">
+            <label class="form-label" for="quote-discount-type" data-i18n="billing-discount-type">Discount Type</label>
+            <select id="quote-discount-type" name="discount_type" class="form-select" onchange="updateQuoteTotals()">
                 <option value="none" data-i18n="billing-discount-none">No Discount</option>
                 <option value="percent" data-i18n="billing-discount-percent">Percentage (%)</option>
                 <option value="fixed" data-i18n="billing-discount-fixed">Fixed Amount</option>
             </select>
         </div>
         <div class="form-group">
-            <label class="form-label" data-i18n="billing-discount-value">Discount Value</label>
-            <input type="number" name="discount_value" class="form-input" placeholder="0" min="0" step="0.01" onchange="updateQuoteTotals()">
+            <label class="form-label" for="quote-discount-value" data-i18n="billing-discount-value">Discount Value</label>
+            <input id="quote-discount-value" type="number" name="discount_value" class="form-input" placeholder="0" min="0" step="0.01" onchange="updateQuoteTotals()">
         </div>
     </div>
 
@@ -114,27 +114,27 @@
     <div class="invoice-totals">
         <div class="invoice-total-row">
             <span class="label" data-i18n="billing-subtotal">Subtotal</span>
-            <span class="value" id="quote-subtotal">$0.00</span>
+            <span class="value" id="quote-subtotal" role="status" aria-live="polite" aria-atomic="true">$0.00</span>
         </div>
         <div class="invoice-total-row">
             <span class="label" data-i18n="billing-discount">Discount</span>
-            <span class="value" id="quote-discount">-$0.00</span>
+            <span class="value" id="quote-discount" role="status" aria-live="polite" aria-atomic="true">-$0.00</span>
         </div>
         <div class="invoice-total-row grand-total">
             <span class="label" data-i18n="billing-total">Total</span>
-            <span class="value" id="quote-total">$0.00</span>
+            <span class="value" id="quote-total" role="status" aria-live="polite" aria-atomic="true">$0.00</span>
         </div>
     </div>
 
     <!-- Terms & Notes -->
     <div class="form-group">
-        <label class="form-label" data-i18n="billing-terms">Terms & Conditions</label>
-        <textarea name="terms" class="form-textarea" rows="2" placeholder="Payment terms, delivery conditions, etc."></textarea>
+        <label class="form-label" for="quote-terms" data-i18n="billing-terms">Terms & Conditions</label>
+        <textarea id="quote-terms" name="terms" class="form-textarea" rows="2" placeholder="Payment terms, delivery conditions, etc."></textarea>
     </div>
 
     <div class="form-group">
-        <label class="form-label" data-i18n="billing-notes">Notes</label>
-        <textarea name="notes" class="form-textarea" rows="2" placeholder="Additional notes for the customer..."></textarea>
+        <label class="form-label" for="quote-notes" data-i18n="billing-notes">Notes</label>
+        <textarea id="quote-notes" name="notes" class="form-textarea" rows="2" placeholder="Additional notes for the customer..."></textarea>
     </div>
 
     <div class="form-actions">
@@ -148,18 +148,34 @@
 (function() {
     let quoteLineItemIndex = 1;
 
+    function toCents(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100);
+    }
+
+    function lineCents(qty, unitPrice) {
+        const q = Number(qty);
+        const safeQty = Number.isFinite(q) ? Math.round(q) : 0;
+        return toCents(unitPrice) * safeQty;
+    }
+
+    function formatMoney(cents) {
+        return '$' + (cents / 100).toFixed(2);
+    }
+
     window.addQuoteLineItem = function() {
         const container = document.getElementById('quote-line-items');
         const newItem = document.createElement('div');
         newItem.className = 'line-item';
         newItem.dataset.index = quoteLineItemIndex;
         newItem.innerHTML = `
-            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required>
-            <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)">
-            <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)">
+            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
+            <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity">
+            <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price">
             <span class="line-item-total">$0.00</span>
-            <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -179,36 +195,39 @@
 
     window.updateQuoteLineTotal = function(input) {
         const lineItem = input.closest('.line-item');
-        const qty = parseFloat(lineItem.querySelector('input[name*="quantity"]').value) || 0;
-        const price = parseFloat(lineItem.querySelector('input[name*="unit_price"]').value) || 0;
-        const total = qty * price;
-        lineItem.querySelector('.line-item-total').textContent = '$' + total.toFixed(2);
+        const qty = lineItem.querySelector('input[name*="quantity"]').value;
+        const price = lineItem.querySelector('input[name*="unit_price"]').value;
+        const cents = lineCents(qty, price);
+        lineItem.querySelector('.line-item-total').textContent = formatMoney(cents);
         updateQuoteTotals();
     };
 
     window.updateQuoteTotals = function() {
-        let subtotal = 0;
+        let subtotalCents = 0;
         document.querySelectorAll('#quote-line-items .line-item').forEach(item => {
-            const qty = parseFloat(item.querySelector('input[name*="quantity"]').value) || 0;
-            const price = parseFloat(item.querySelector('input[name*="unit_price"]').value) || 0;
-            subtotal += qty * price;
+            const qty = item.querySelector('input[name*="quantity"]').value;
+            const price = item.querySelector('input[name*="unit_price"]').value;
+            subtotalCents += lineCents(qty, price);
         });
 
         const discountType = document.querySelector('select[name="discount_type"]').value;
-        const discountValue = parseFloat(document.querySelector('input[name="discount_value"]').value) || 0;
+        const discountValueRaw = document.querySelector('input[name="discount_value"]').value;
+        const discountValue = Number(discountValueRaw);
 
-        let discount = 0;
-        if (discountType === 'percent') {
-            discount = subtotal * (discountValue / 100);
-        } else if (discountType === 'fixed') {
-            discount = discountValue;
+        let discountCents = 0;
+        if (discountType === 'percent' && Number.isFinite(discountValue)) {
+            discountCents = Math.round(subtotalCents * Math.round(discountValue * 100) / 10000);
+        } else if (discountType === 'fixed' && Number.isFinite(discountValue)) {
+            discountCents = toCents(discountValue);
         }
+        if (discountCents < 0) discountCents = 0;
+        if (discountCents > subtotalCents) discountCents = subtotalCents;
 
-        const total = subtotal - discount;
+        const totalCents = subtotalCents - discountCents;
 
-        document.getElementById('quote-subtotal').textContent = '$' + subtotal.toFixed(2);
-        document.getElementById('quote-discount').textContent = '-$' + discount.toFixed(2);
-        document.getElementById('quote-total').textContent = '$' + total.toFixed(2);
+        document.getElementById('quote-subtotal').textContent = formatMoney(subtotalCents);
+        document.getElementById('quote-discount').textContent = '-' + formatMoney(discountCents).replace('$', '$');
+        document.getElementById('quote-total').textContent = formatMoney(totalCents);
     };
 
     // Set default dates

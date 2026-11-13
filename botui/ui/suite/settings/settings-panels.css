@@ -239,8 +239,11 @@
 /* Toggle Switch */
 .toggle-switch {
     position: relative;
+    display: inline-flex;
+    align-items: center;
     width: 48px;
-    height: 24px;
+    height: 44px;
+    min-height: 44px;
 }
 
 .toggle-switch input {
@@ -249,7 +252,11 @@
 
 .toggle-slider {
     position: absolute;
-    inset: 0;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 24px;
+    transform: translateY(-50%);
     background: var(--border);
     border-radius: 24px;
     cursor: pointer;
@@ -342,4 +349,3 @@
 .theme-option input {
     display: none;
 }
-

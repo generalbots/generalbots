@@ -85,3 +85,11 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-row{display:flex;align-items:center;justify-content:center;padding:40px;gap:8px;color:var(--text-secondary,#888);font-size:13px}
 @media(max-width:768px){.banking-header{flex-direction:column;gap:16px;align-items:stretch}.banking-header-left{flex-direction:column;align-items:stretch}.banking-tabs{overflow-x:auto}.banking-summary{flex-wrap:wrap}.reconcile-container{flex-direction:column}.reports-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

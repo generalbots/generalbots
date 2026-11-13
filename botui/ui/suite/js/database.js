@@ -39,22 +39,27 @@ const DB = {
     },
 
     toggleSidebar: function () {
-        const sidebar = document.getElementById('dbSidebar');
+        const sidebar = document.getElementById('dbSidebar') || document.querySelector('.botcoder-db-sidebar');
+        if (!sidebar) return;
         sidebar.classList.toggle('collapsed');
     },
 
     switchTab: function (tab) {
-        if (!document.getElementById('dbTabData') || !document.getElementById('dbTabStructure') || !document.getElementById('dbTabSql')) return;
+        const tabData = document.getElementById('dbTabData');
+        const tabStructure = document.getElementById('dbTabStructure');
+        const tabSql = document.getElementById('dbTabSql');
+        if (!tabData || !tabStructure || !tabSql) return;
         this.activeTab = tab;
         document.querySelectorAll('.db-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-        document.getElementById('dbTabData').style.display = tab === 'data' ? '' : 'none';
-        document.getElementById('dbTabStructure').style.display = tab === 'structure' ? '' : 'none';
-        document.getElementById('dbTabSql').style.display = tab === 'sql' ? '' : 'none';
+        tabData.style.display = tab === 'data' ? '' : 'none';
+        tabStructure.style.display = tab === 'structure' ? '' : 'none';
+        tabSql.style.display = tab === 'sql' ? '' : 'none';
     },
 
     refreshSchema: async function () {
         const list = document.getElementById('dbTableList');
         if (!list) return;
+        list.setAttribute('aria-busy', 'true');
         list.innerHTML = '<div class="db-loading">Loading…</div>';
 
         try {
@@ -68,6 +73,7 @@ const DB = {
         }
 
         this._renderTableList();
+        list.setAttribute('aria-busy', 'false');
     },
 
     _renderTableList: function () {
@@ -107,6 +113,7 @@ const DB = {
         if (!this.currentTable) return;
 
         const grid = document.getElementById('dbDataGrid');
+        if (!grid) return;
         grid.innerHTML = '<div class="db-loading">Loading data…</div>';
 
         try {
@@ -119,12 +126,13 @@ const DB = {
             this._renderGrid(data.columns || [], data.rows || []);
             this._updatePagination();
         } catch (e) {
-            grid.innerHTML = `<div class="db-error">Failed to load data: ${this._esc(e.message)}</div>`;
+            grid.innerHTML = `<div class="db-error" role="alert">Failed to load data: ${this._esc(e.message)}</div>`;
         }
     },
 
     _renderGrid: function (columns, rows) {
         const grid = document.getElementById('dbDataGrid');
+        if (!grid) return;
         if (!columns.length) {
             grid.innerHTML = '<div class="db-empty">No columns</div>';
             return;
@@ -160,10 +168,14 @@ const DB = {
 
     _updatePagination: function () {
         const totalPages = Math.max(1, Math.ceil(this.totalRows / this.pageSize));
-        document.getElementById('dbPageInfo').textContent = `Page ${this.currentPage} of ${totalPages}`;
-        document.getElementById('dbRowCount').textContent = `${this.totalRows} rows`;
-        document.getElementById('dbPrevBtn').disabled = this.currentPage <= 1;
-        document.getElementById('dbNextBtn').disabled = this.currentPage >= totalPages;
+        const pageInfo = document.getElementById('dbPageInfo');
+        const rowCount = document.getElementById('dbRowCount');
+        const prevBtn = document.getElementById('dbPrevBtn');
+        const nextBtn = document.getElementById('dbNextBtn');
+        if (pageInfo) pageInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
+        if (rowCount) rowCount.textContent = `${this.totalRows} rows`;
+        if (prevBtn) prevBtn.disabled = this.currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = this.currentPage >= totalPages;
     },
 
     prevPage: function () {
@@ -219,11 +231,13 @@ const DB = {
 
     executeSql: async function () {
         const editor = document.getElementById('dbSqlEditor');
+        if (!editor) return;
         const query = editor.value.trim();
         if (!query) return;
 
         const results = document.getElementById('dbSqlResults');
         const durationEl = document.getElementById('dbQueryDuration');
+        if (!results) return;
         results.innerHTML = '<div class="db-loading">Executing…</div>';
 
         const start = performance.now();
@@ -236,18 +250,18 @@ const DB = {
             });
 
             const elapsed = Math.round(performance.now() - start);
-            durationEl.textContent = `${elapsed}ms`;
+            if (durationEl) durationEl.textContent = `${elapsed}ms`;
 
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({ error: resp.statusText }));
-                results.innerHTML = `<div class="db-error">Error: ${this._esc(err.error || 'Unknown error')}</div>`;
+                results.innerHTML = `<div class="db-error" role="alert">Error: ${this._esc(err.error || 'Unknown error')}</div>`;
                 return;
             }
 
             const data = await resp.json();
 
             if (data.is_mutation) {
-                results.innerHTML = `<div class="db-success">Executed. ${data.row_count} row(s) affected. Duration: ${data.duration_ms}ms</div>`;
+                results.innerHTML = `<div class="db-success" role="status">Executed. ${data.row_count} row(s) affected. Duration: ${data.duration_ms}ms</div>`;
                 this.loadData();
                 this.refreshSchema();
                 return;
@@ -260,7 +274,7 @@ const DB = {
 
             this._renderGridTo(results, data.columns, data.rows || []);
         } catch (e) {
-            results.innerHTML = `<div class="db-error">Error: ${this._esc(e.message)}</div>`;
+            results.innerHTML = `<div class="db-error" role="alert">Error: ${this._esc(e.message)}</div>`;
         }
     },
 
@@ -283,9 +297,12 @@ const DB = {
     },
 
     clearSql: function () {
-        document.getElementById('dbSqlEditor').value = '';
-        document.getElementById('dbSqlResults').innerHTML = '<div class="db-empty">Execute a query to see results</div>';
-        document.getElementById('dbQueryDuration').textContent = '';
+        const editor = document.getElementById('dbSqlEditor');
+        const results = document.getElementById('dbSqlResults');
+        const duration = document.getElementById('dbQueryDuration');
+        if (editor) editor.value = '';
+        if (results) results.innerHTML = '<div class="db-empty">Execute a query to see results</div>';
+        if (duration) duration.textContent = '';
     },
 
     showInsertDialog: function () {
@@ -294,7 +311,15 @@ const DB = {
         const table = this.schema.find(t => t.name === this.currentTable);
         if (!table) return;
 
-        document.getElementById('dbInsertTitle').textContent = `Insert into ${this.currentTable}`;
+        const title = document.getElementById('dbInsertTitle');
+        const form = document.getElementById('dbInsertForm');
+        const modal = document.getElementById('dbInsertModal');
+        if (!title || !form || !modal) {
+            if (window.GBModal && window.GBModal.alert) window.GBModal.alert('Insert dialog is unavailable in this view.', 'Database');
+            else if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', 'Insert dialog is unavailable in this view.', 'error');
+            return;
+        }
+        title.textContent = `Insert into ${this.currentTable}`;
 
         let html = '';
         table.columns.forEach(col => {
@@ -305,18 +330,21 @@ const DB = {
             </div>`;
         });
 
-        document.getElementById('dbInsertForm').innerHTML = html;
-        document.getElementById('dbInsertModal').style.display = 'flex';
+        form.innerHTML = html;
+        modal.style.display = 'flex';
     },
 
     closeInsertDialog: function () {
-        document.getElementById('dbInsertModal').style.display = 'none';
+        const modal = document.getElementById('dbInsertModal');
+        if (modal) modal.style.display = 'none';
     },
 
     submitInsert: async function () {
         if (!this.currentTable) return;
 
-        const inputs = document.querySelectorAll('#dbInsertForm .db-input');
+        const form = document.getElementById('dbInsertForm');
+        if (!form) return;
+        const inputs = form.querySelectorAll('.db-input');
         const data = {};
 
         inputs.forEach(input => {
@@ -332,7 +360,8 @@ const DB = {
         });
 
         if (Object.keys(data).length === 0) {
-            alert('Provide at least one value');
+            if (window.GBModal && window.GBModal.alert) window.GBModal.alert('Provide at least one value', 'Database');
+            else if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', 'Provide at least one value', 'error');
             return;
         }
 
@@ -345,7 +374,9 @@ const DB = {
 
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({ error: resp.statusText }));
-                alert(`Insert failed: ${err.error}`);
+                const msg = `Insert failed: ${err.error}`;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
                 return;
             }
 
@@ -353,54 +384,74 @@ const DB = {
             await this.loadData();
             this.refreshSchema();
         } catch (e) {
-            alert(`Insert failed: ${e.message}`);
+            const msg = `Insert failed: ${e.message}`;
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+            else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
         }
     },
 
-    confirmDelete: async function (pk) {
+    confirmDelete: function (pk) {
         if (!this.currentTable) return;
-        if (!confirm(`Delete row with id ${pk}?`)) return;
+        const run = async () => {
+            try {
+                const resp = await fetch(
+                    `/api/database/table/${encodeURIComponent(this.currentTable)}/row/${encodeURIComponent(pk)}`,
+                    { method: 'DELETE', headers: this._apiHeaders() }
+                );
 
-        try {
-            const resp = await fetch(
-                `/api/database/table/${encodeURIComponent(this.currentTable)}/row/${encodeURIComponent(pk)}`,
-                { method: 'DELETE', headers: this._apiHeaders() }
-            );
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ error: resp.statusText }));
+                    const msg = `Delete failed: ${err.error}`;
+                    if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                    else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
+                    return;
+                }
 
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({ error: resp.statusText }));
-                alert(`Delete failed: ${err.error}`);
-                return;
+                await this.loadData();
+                this.refreshSchema();
+            } catch (e) {
+                const msg = `Delete failed: ${e.message}`;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
             }
-
-            await this.loadData();
-            this.refreshSchema();
-        } catch (e) {
-            alert(`Delete failed: ${e.message}`);
+        };
+        if (window.GBModal && window.GBModal.confirm) {
+            window.GBModal.confirm(`Delete row with id ${pk}?`, 'Confirm', () => { run(); });
+            return;
         }
     },
 
-    confirmDropTable: async function (name) {
-        if (!confirm(`DROP TABLE "${name}"? This cannot be undone.`)) return;
+    confirmDropTable: function (name) {
+        const run = async () => {
+            try {
+                const resp = await fetch(
+                    `/api/database/table/${encodeURIComponent(name)}`,
+                    { method: 'DELETE', headers: this._apiHeaders() }
+                );
 
-        try {
-            const resp = await fetch(
-                `/api/database/table/${encodeURIComponent(name)}`,
-                { method: 'DELETE', headers: this._apiHeaders() }
-            );
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ error: resp.statusText }));
+                    const msg = `Drop failed: ${err.error}`;
+                    if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                    else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
+                    return;
+                }
 
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({ error: resp.statusText }));
-                alert(`Drop failed: ${err.error}`);
-                return;
+                this.currentTable = null;
+                const tableName = document.getElementById('dbTableName');
+                const grid = document.getElementById('dbDataGrid');
+                if (tableName) tableName.textContent = '';
+                if (grid) grid.innerHTML = '<div class="db-empty">Select a table</div>';
+                await this.refreshSchema();
+            } catch (e) {
+                const msg = `Drop failed: ${e.message}`;
+                if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Database', msg, 'error');
+                else if (window.GBModal && window.GBModal.alert) window.GBModal.alert(msg, 'Database');
             }
-
-            this.currentTable = null;
-            document.getElementById('dbTableName').textContent = '';
-            document.getElementById('dbDataGrid').innerHTML = '<div class="db-empty">Select a table</div>';
-            await this.refreshSchema();
-        } catch (e) {
-            alert(`Drop failed: ${e.message}`);
+        };
+        if (window.GBModal && window.GBModal.confirm) {
+            window.GBModal.confirm(`DROP TABLE "${name}"? This cannot be undone.`, 'Confirm', () => { run(); });
+            return;
         }
     },
 

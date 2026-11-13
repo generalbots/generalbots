@@ -145,6 +145,17 @@
         cursor: pointer;
         vertical-align: super;
         transition: transform 0.15s;
+        position: relative;
+    }
+
+    .citation::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
     }
 
     .citation:hover {
@@ -164,8 +175,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
         border: 1px solid var(--border);
         border-radius: 6px;
         background: var(--background);
@@ -446,3 +459,4 @@
             z-index: 50;
         }
     }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

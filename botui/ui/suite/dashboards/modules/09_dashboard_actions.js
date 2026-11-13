@@ -94,11 +94,15 @@
     }
 
     function showNotification(message, type) {
-        const notification = document.createElement("div");
-        notification.className = `notification ${type}`;
+        var isError = type === "error";
+        var notification = document.createElement("div");
+        notification.className = "notification " + (type || "info");
+        notification.setAttribute("role", isError ? "alert" : "status");
+        notification.setAttribute("aria-live", isError ? "assertive" : "polite");
+        notification.setAttribute("aria-atomic", "true");
         notification.textContent = message;
         document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
+        setTimeout(function () { notification.remove(); }, 3000);
     }
 
     document.querySelectorAll(".template-option").forEach((btn) => {

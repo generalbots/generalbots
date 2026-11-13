@@ -77,10 +77,14 @@ function showToast(message, type) {
   if (existing) existing.remove();
   var toast = document.createElement("div");
   toast.className = "toast toast-" + type;
+  var isError = type === "error" || type === "danger";
+  toast.setAttribute("role", isError ? "alert" : "status");
+  toast.setAttribute("aria-live", isError ? "assertive" : "polite");
+  toast.setAttribute("aria-atomic", "true");
   toast.innerHTML =
     '<span class="toast-message">' +
     message +
-    '</span><button class="toast-close" onclick="this.parentElement.remove()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
+    '</span><button class="toast-close" aria-label="Dismiss notification" onclick="this.parentElement.remove()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
   document.body.appendChild(toast);
   requestAnimationFrame(function () {
     toast.classList.add("show");
@@ -104,8 +108,15 @@ function showToast(message, type) {
 
 window.downloadDataExport = async function downloadDataExport() {
   var token = (window.SettingsApp && SettingsApp.getAuthToken) ? SettingsApp.getAuthToken() : (localStorage.getItem('gb_token') || '');
+  var notify = function (msg, type) {
+    if (SettingsApp.showToast) { SettingsApp.showToast(msg, type); return; }
+    if (window.showToast) { window.showToast(msg, type); return; }
+    if (window.GBToasts && typeof window.GBToasts.show === "function") {
+      window.GBToasts.show(type === "error" ? "Error" : "Notice", msg, type || "info");
+    }
+  };
   try {
-    (SettingsApp.showToast || window.showToast || function(){})('Preparing export…');
+    notify('Preparing export…');
     var res = await fetch('/api/user/data/export', {
       method: 'POST',
       headers: token ? { 'Authorization': 'Bearer ' + token } : {}
@@ -114,7 +125,7 @@ window.downloadDataExport = async function downloadDataExport() {
     if (!res.ok || ct.indexOf('application/zip') === -1) {
       var msg = 'Export failed';
       try { var j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
-      (SettingsApp.showToast || window.showToast || alert)(msg, 'error');
+      notify(msg, 'error');
       return;
     }
     var blob = await res.blob();
@@ -128,8 +139,8 @@ window.downloadDataExport = async function downloadDataExport() {
     a.click();
     a.remove();
     URL.revokeObjectURL(a.href);
-    (SettingsApp.showToast || window.showToast || function(){})('Export downloaded');
+    notify('Export downloaded');
   } catch (e) {
-    (SettingsApp.showToast || window.showToast || alert)('Export failed', 'error');
+    notify('Export failed', 'error');
   }
 };

@@ -18,7 +18,13 @@
     btn.addEventListener("click", function () {
       var taskId = window.TasksState && window.TasksState.selectedTaskId;
       if (!taskId) {
-        (window.GBModal||{alert:alert}).alert("Select a task first to comment on it.");
+        if (window.GBModal && typeof window.GBModal.alert === "function") {
+          window.GBModal.alert("Select a task first to comment on it.");
+        } else if (typeof window.showToast === "function") {
+          window.showToast("Select a task first to comment on it.", "warning");
+        } else if (window.GBToasts && typeof window.GBToasts.show === "function") {
+          window.GBToasts.show("Tasks", "Select a task first to comment on it.", "warning");
+        }
         return;
       }
       window.GBCollabComments.open({

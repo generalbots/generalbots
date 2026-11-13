@@ -13,15 +13,15 @@ Create Role </button>
 </div> </div>
 <div class="roles-layout"> <div class="roles-sidebar">
 <div class="sidebar-header"> <h3 data-i18n="auto-roles">Roles</h3>
-<div class="role-filters"> <select id="role-type-filter" onchange="filterRoles(this.value)">
+<div class="role-filters"> <select id="role-type-filter" aria-label="Filter role type" onchange="filterRoles(this.value)">
 <option value="all" data-i18n="auto-all-roles">All Roles</option> <option value="system" data-i18n="auto-system-roles">System Roles</option>
 <option value="custom" data-i18n="auto-custom-roles">Custom Roles</option> </select>
 </div> </div>
 <div class="search-box"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-</svg> <input type="text" placeholder="Search roles..." name="q" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
-</div> <div class="roles-list" id="roles-list" hx-get="/api/rbac/roles" hx-trigger="load" hx-swap="innerHTML">
-<div class="loading-state"> <div class="spinner"></div>
+</svg> <input type="text" placeholder="Search roles..." aria-label="Search roles" name="q" autocomplete="off" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
+</div> <div class="roles-list" id="roles-list" role="status" aria-live="polite" hx-get="/api/rbac/roles" hx-trigger="load" hx-swap="innerHTML">
+<div class="loading-state" role="status"> <div class="spinner"></div>
 </div> </div>
 </div> <div class="roles-content">
 <div class="role-detail-placeholder" id="role-placeholder"> <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -61,8 +61,8 @@ Delete </button>
 <div class="list-box available-box"> <div class="list-box-header">
 <span data-i18n="auto-available-permissions">Available Permissions</span> <span class="count" id="available-count">0</span>
 </div> <div class="list-box-search">
-<input type="text" placeholder="Filter available..." onkeyup="filterAvailable(this.value)"> </div>
-<div class="category-filter"> <select onchange="filterByCategory(this.value, 'available')">
+<input type="text" placeholder="Filter available..." aria-label="Filter available permissions" onkeyup="filterAvailable(this.value)"> </div>
+<div class="category-filter"> <select aria-label="Filter available permissions by category" onchange="filterByCategory(this.value, 'available')">
 <option value="" data-i18n="products-cat-all">All Categories</option> <option value="admin" data-i18n="settings-administration">Administration</option>
 <option value="compliance" data-i18n="learn-compliance">Compliance</option> <option value="security" data-i18n="learn-security">Security</option>
 <option value="mail" data-i18n="email-title">Mail</option> <option value="calendar" data-i18n="calendar-title">Calendar</option>
@@ -72,8 +72,8 @@ Delete </button>
 <option value="tasks" data-i18n="tasks-title">Tasks</option> <option value="ai" data-i18n="auto-ai-bots">AI & Bots</option>
 <option value="analytics" data-i18n="settings-analytics">Analytics</option> <option value="integrations" data-i18n="settings-integrations">Integrations</option>
 <option value="automation" data-i18n="auto-automation">Automation</option> </select>
-</div> <div class="list-box-content" id="available-permissions">
-<div class="loading-state"><div class="spinner"></div></div> </div>
+</div> <div class="list-box-content" id="available-permissions" role="status" aria-live="polite">
+<div class="loading-state" role="status"><div class="spinner"></div></div> </div>
 </div> <div class="transfer-buttons">
 <button class="transfer-btn" onclick="assignSelected()" title="Assign selected permissions"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <polyline points="9 18 15 12 9 6"></polyline> </svg>
@@ -89,9 +89,9 @@ Delete </button>
 </div> <div class="list-box assigned-box">
 <div class="list-box-header"> <span data-i18n="auto-assigned-permissions">Assigned Permissions</span>
 <span class="count" id="assigned-count">0</span> </div>
-<div class="list-box-search"> <input type="text" placeholder="Filter assigned..." onkeyup="filterAssigned(this.value)">
+<div class="list-box-search"> <input type="text" placeholder="Filter assigned..." aria-label="Filter assigned permissions" onkeyup="filterAssigned(this.value)">
 </div> <div class="category-filter">
-<select onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
+<select aria-label="Filter assigned permissions by category" onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
 <option value="admin" data-i18n="settings-administration">Administration</option> <option value="compliance" data-i18n="learn-compliance">Compliance</option>
 <option value="security" data-i18n="learn-security">Security</option> <option value="mail" data-i18n="email-title">Mail</option>
 <option value="calendar" data-i18n="calendar-title">Calendar</option> <option value="drive" data-i18n="drive-title">Drive</option>
@@ -101,7 +101,7 @@ Delete </button>
 <option value="ai" data-i18n="auto-ai-bots">AI & Bots</option> <option value="analytics" data-i18n="settings-analytics">Analytics</option>
 <option value="integrations" data-i18n="settings-integrations">Integrations</option> <option value="automation" data-i18n="auto-automation">Automation</option>
 </select> </div>
-<div class="list-box-content" id="assigned-permissions"> <div class="empty-state" data-i18n="auto-no-permissions-assigned">No permissions assigned</div>
+<div class="list-box-content" id="assigned-permissions" role="status" aria-live="polite"> <div class="empty-state" data-i18n="auto-no-permissions-assigned">No permissions assigned</div>
 </div> </div>
 </div> <div class="assignment-footer">
 <button class="btn-secondary" onclick="resetPermissions()" data-i18n="auto-reset-to-default">Reset to Default</button> <button class="btn-primary" onclick="savePermissions()" id="btn-save-permissions">
@@ -116,7 +116,7 @@ Delete </button>
 <line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
 </svg> Add User
 </button> </div>
-<div class="assigned-users-list" id="assigned-users"> <div class="loading-state"><div class="spinner"></div></div>
+<div class="assigned-users-list" id="assigned-users" role="status" aria-live="polite"> <div class="loading-state" role="status"><div class="spinner"></div></div>
 </div> </div>
 </div> <div class="tab-content" id="tab-groups" style="display: none;">
 <div class="groups-assignment"> <div class="assignment-header">
@@ -124,8 +124,8 @@ Delete </button>
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="12" y1="5" x2="12" y2="19"></line>
 <line x1="5" y1="12" x2="19" y2="12"></line> </svg>
 Add Group </button>
-</div> <div class="assigned-groups-list" id="assigned-groups">
-<div class="loading-state"><div class="spinner"></div></div> </div>
+</div> <div class="assigned-groups-list" id="assigned-groups" role="status" aria-live="polite">
+<div class="loading-state" role="status"><div class="spinner"></div></div> </div>
 </div> </div>
 <div class="tab-content" id="tab-audit" style="display: none;"> <div class="audit-log">
 <div class="assignment-header"> <h4 data-i18n="auto-role-change-history">Role Change History</h4>
@@ -133,25 +133,25 @@ Add Group </button>
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline>
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
 Export </button>
-</div> <div class="audit-log-list" id="audit-log">
-<div class="loading-state"><div class="spinner"></div></div> </div>
+</div> <div class="audit-log-list" id="audit-log" role="status" aria-live="polite">
+<div class="loading-state" role="status"><div class="spinner"></div></div> </div>
 </div> </div>
 </div> </div>
 </div> </div>
 <dialog id="create-role-modal" class="modal"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="auto-create-new-role">Create New Role</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <form hx-post="/api/rbac/roles" hx-target="#roles-list" hx-swap="innerHTML" hx-on::after-request="this.closest('dialog').close(); this.reset();">
-<div class="form-group"> <label>Role Name <span class="required">*</span></label>
-<input type="text" name="name" placeholder="e.g., content_editor" required pattern="[a-z_]+" title="Lowercase letters and underscores only"> <p class="help-text" data-i18n="auto-lowercase-no-spaces-use-underscores">Lowercase, no spaces (use underscores)</p>
+<div class="form-group"> <label for="create-role-name">Role Name <span class="required">*</span></label>
+<input id="create-role-name" type="text" name="name" placeholder="e.g., content_editor" required pattern="[a-z_]+" title="Lowercase letters and underscores only" autocomplete="off"> <p class="help-text" data-i18n="auto-lowercase-no-spaces-use-underscores">Lowercase, no spaces (use underscores)</p>
 </div> <div class="form-group">
-<label>Display Name <span class="required">*</span></label> <input type="text" name="display_name" placeholder="e.g., Content Editor" required>
+<label for="create-role-display-name">Display Name <span class="required">*</span></label> <input id="create-role-display-name" type="text" name="display_name" placeholder="e.g., Content Editor" required autocomplete="off">
 </div> <div class="form-group">
-<label data-i18n="label-description">Description</label> <textarea name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
+<label for="create-role-description" data-i18n="label-description">Description</label> <textarea id="create-role-description" name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
 </div> <div class="form-group">
-<label data-i18n="auto-copy-permissions-from">Copy Permissions From</label> <select name="copy_from">
+<label for="create-role-copy-from" data-i18n="auto-copy-permissions-from">Copy Permissions From</label> <select id="create-role-copy-from" name="copy_from">
 <option value="" data-i18n="auto-start-with-no-permissions">Start with no permissions</option> <option value="standard_user" data-i18n="auto-standard-user">Standard User</option>
 <option value="power_user" data-i18n="auto-power-user">Power User</option> <option value="viewer" data-i18n="auto-viewer">Viewer</option>
 <option value="guest_user" data-i18n="auto-guest-user">Guest User</option> </select>
@@ -161,7 +161,7 @@ Export </button>
 </div> </dialog>
 <dialog id="delete-role-modal" class="modal modal-small"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="auto-delete-role">Delete Role</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
@@ -178,16 +178,16 @@ Export </button>
 </div> </dialog>
 <dialog id="add-user-modal" class="modal"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="auto-assign-role-to-users">Assign Role to Users</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
-<div class="form-group"> <label data-i18n="auto-search-users">Search Users</label>
-<input type="text" id="user-search" placeholder="Type to search users..." hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
-<div class="search-results" id="user-search-results"> <p class="empty-text" data-i18n="auto-type-to-search-for-users">Type to search for users</p>
-</div> <div class="selected-items" id="selected-users">
+<div class="form-group"> <label for="user-search" data-i18n="auto-search-users">Search Users</label>
+<input type="text" id="user-search" placeholder="Type to search users..." aria-label="Search users" autocomplete="off" hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
+<div class="search-results" id="user-search-results" role="status" aria-live="polite"> <p class="empty-text" data-i18n="auto-type-to-search-for-users">Type to search for users</p>
+</div> <div class="selected-items" id="selected-users" aria-live="polite">
 </div> <div class="form-group">
-<label data-i18n="auto-expiration-optional">Expiration (Optional)</label> <input type="datetime-local" id="role-expires-at" name="expires_at">
+<label for="role-expires-at" data-i18n="auto-expiration-optional">Expiration (Optional)</label> <input type="datetime-local" id="role-expires-at" name="expires_at">
 <p class="help-text" data-i18n="auto-leave-empty-for-permanent-assignment">Leave empty for permanent assignment</p> </div>
 </div> <div class="modal-footer">
 <button class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button> <button class="btn-primary" onclick="assignUsersToRole()" data-i18n="auto-assign-role">Assign Role</button>
@@ -199,10 +199,10 @@ Export </button>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <div class="modal-body"> <div class="form-group">
-<label data-i18n="auto-search-groups">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
-</div> <div class="search-results" id="group-search-results">
+<label for="group-search" data-i18n="auto-search-groups">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." aria-label="Search groups" autocomplete="off" hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
+</div> <div class="search-results" id="group-search-results" role="status" aria-live="polite">
 <p class="empty-text" data-i18n="auto-type-to-search-for-groups">Type to search for groups</p> </div>
-<div class="selected-items" id="selected-groups"> </div>
+<div class="selected-items" id="selected-groups" aria-live="polite"> </div>
 </div> <div class="modal-footer">
 <button class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button> <button class="btn-primary" onclick="assignGroupsToRole()" data-i18n="auto-assign-role">Assign Role</button>
 </div> </div>

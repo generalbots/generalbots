@@ -40,6 +40,30 @@
             URL.revokeObjectURL(url);
         }
 
+        function showPeopleIoNotice(message, kind) {
+            if (window.GBToasts && typeof window.GBToasts.show === "function") {
+                window.GBToasts.show("People", message, kind || "info");
+            } else if (typeof showToast === "function") {
+                showToast(message, kind || "info");
+            } else {
+                console[kind === "error" ? "error" : "info"](message);
+            }
+        }
+
+        function confirmPeopleIoAction(message, title) {
+            if (window.GBModal && typeof window.GBModal.confirm === "function") {
+                return new Promise((resolve) => {
+                    try {
+                        window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+                    } catch (e) {
+                        console.error("GBModal.confirm failed", e);
+                        resolve(false);
+                    }
+                });
+            }
+            return Promise.resolve(false);
+        }
+
         window.importCsv = async function(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
@@ -75,7 +99,7 @@
                         console.error("CSV import row failed", err);
                     }
                 }
-                alert(`Imported ${imported} contacts`);
+                showPeopleIoNotice(`Imported ${imported} contacts`, "success");
                 await loadContacts();
             };
             reader.readAsText(file);
@@ -117,7 +141,8 @@
         }
 
         window.mergeContacts = async function(id1, id2) {
-            if (!confirm("Merge these contacts? The first contact will be kept.")) return;
+            const confirmed = await confirmPeopleIoAction("Merge these contacts? The first contact will be kept.", "Confirm");
+            if (!confirmed) return;
             try {
                 await apiFetch(`/${id1}`, {
                     method: "PUT",
@@ -129,7 +154,7 @@
                 await loadContacts();
             } catch (err) {
                 console.error("Merge failed", err);
-                alert("Merge failed: " + err.message);
+                showPeopleIoNotice("Merge failed: " + err.message, "error");
             }
         }
 

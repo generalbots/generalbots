@@ -8,9 +8,9 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h3 style="margin:0; font-size:15px; color:var(--text,#eee);" data-i18n="vibe-members-title">Project Members</h3>
       </div>
-      <div id="vibeMembersRole" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);"></div>
-      <div id="vibeMeterUsage" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);"></div>
-      <div id="vibeMembersList" style="margin-bottom:16px;"></div>
+      <div id="vibeMembersRole" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="vibeMeterUsage" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="vibeMembersList" style="margin-bottom:16px;" aria-live="polite" aria-relevant="additions removals text" aria-label="Project members list" data-i18n-aria-label="vibe-members-list"></div>
       <div style="border-top:1px solid var(--border,#333); padding-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <div style="position:relative; flex:1; min-width:200px;">
           <input id="vibeMemberTarget" placeholder="Search user by name or email…" data-i18n-placeholder="vibe-members-search-placeholder" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#999); font-size:13px;" />
@@ -36,7 +36,7 @@
       </div>
     </div>
   </div>
-  <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="vibe-members-loading">Loading members…</span></div>
+  <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="vibe-members-loading">Loading members…</span></div>
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>

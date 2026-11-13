@@ -131,9 +131,12 @@
                         hx-get="/api/ui/analytics/timeseries/messages"
                         hx-trigger="load, every 60s"
                         hx-swap="innerHTML"
+                        role="img"
+                        aria-label="Messages over time chart"
+                        aria-live="polite"
                     >
-                        <div class="chart-loading">
-                            <div class="spinner"></div>
+                        <div class="chart-loading" role="status">
+                            <div class="spinner" aria-hidden="true"></div>
                             <span>Loading chart data...</span>
                         </div>
                     </div>
@@ -166,9 +169,12 @@
                         hx-get="/api/ui/analytics/timeseries/response_time"
                         hx-trigger="load, every 60s"
                         hx-swap="innerHTML"
+                        role="img"
+                        aria-label="Response time distribution chart"
+                        aria-live="polite"
                     >
-                        <div class="chart-loading">
-                            <div class="spinner"></div>
+                        <div class="chart-loading" role="status">
+                            <div class="spinner" aria-hidden="true"></div>
                             <span>Loading chart data...</span>
                         </div>
                     </div>
@@ -185,9 +191,12 @@
                         hx-get="/api/ui/analytics/channels/distribution"
                         hx-trigger="load, every 120s"
                         hx-swap="innerHTML"
+                        role="img"
+                        aria-label="Channel distribution chart"
+                        aria-live="polite"
                     >
-                        <div class="chart-loading">
-                            <div class="spinner"></div>
+                        <div class="chart-loading" role="status">
+                            <div class="spinner" aria-hidden="true"></div>
                             <span>Loading chart data...</span>
                         </div>
                     </div>
@@ -204,9 +213,12 @@
                         hx-get="/api/ui/analytics/bots/performance"
                         hx-trigger="load, every 60s"
                         hx-swap="innerHTML"
+                        role="img"
+                        aria-label="Bot performance chart"
+                        aria-live="polite"
                     >
-                        <div class="chart-loading">
-                            <div class="spinner"></div>
+                        <div class="chart-loading" role="status">
+                            <div class="spinner" aria-hidden="true"></div>
                             <span>Loading chart data...</span>
                         </div>
                     </div>
@@ -237,7 +249,7 @@
                     >
                 </div>
 
-                <div class="chat-messages" id="analyticsChatMessages">
+                <div class="chat-messages" id="analyticsChatMessages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Analytics assistant conversation">
                     <div class="chat-message assistant">
                         <div class="message-avatar">
                             <svg
@@ -346,8 +358,11 @@
                 hx-get="/api/ui/analytics/activity/recent"
                 hx-trigger="load, every 15s"
                 hx-swap="innerHTML"
+                role="region"
+                aria-label="Recent activity"
+                aria-live="polite"
             >
-                <div class="activity-loading">Loading activity...</div>
+                <div class="activity-loading" role="status">Loading activity...</div>
             </div>
 
             <h3 class="mt-4">Top Queries</h3>
@@ -356,17 +371,20 @@
                 hx-get="/api/ui/analytics/queries/top"
                 hx-trigger="load, every 60s"
                 hx-swap="innerHTML"
+                role="region"
+                aria-label="Top queries"
+                aria-live="polite"
             >
-                <div class="activity-loading">Loading queries...</div>
+                <div class="activity-loading" role="status">Loading queries...</div>
             </div>
         </aside>
         </div>
     </section>
 
     <section class="analytics-pane" id="analytics-operations-pane">
-        <div id="analyticsOpsSlot">
-            <div class="chart-loading">
-                <div class="spinner"></div>
+        <div id="analyticsOpsSlot" role="region" aria-label="Operational panels" aria-live="polite">
+            <div class="chart-loading" role="status">
+                <div class="spinner" aria-hidden="true"></div>
                 <span>Loading operational panels...</span>
             </div>
         </div>
@@ -375,8 +393,8 @@
     <link rel="stylesheet" href="/suite/analytics/analytics-dashboard.css?v=1" />
 <link rel="stylesheet" href="/suite/analytics/analytics-loading-responsive.css?v=1" />
     <link rel="stylesheet" href="/suite/analytics/analytics-ops.css?v=1" />
-    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading analytics…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Analytics unavailable</span></div>
+    <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg">Loading analytics…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg">Analytics unavailable</span></div>
 <script src="/suite/analytics/analytics-templates.js?v=1"></script>
 <script src="/suite/analytics/analytics-ops-templates.js?v=1"></script>
 <script src="/suite/analytics/analytics-ops.js?v=1"></script>

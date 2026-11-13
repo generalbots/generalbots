@@ -8,8 +8,8 @@
               hx-on::after-request="closeTicketsModal(); if (window.refreshTicketsList) window.refreshTicketsList();">
             <div class="ticket-form-header">
                 <h2 class="ticket-form-title" data-i18n="tickets-new-case">New Support Case</h2>
-                <button type="button" class="form-close" onclick="closeTicketsModal()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button type="button" class="form-close" onclick="closeTicketsModal()" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
@@ -26,27 +26,27 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="tickets-subject">Subject</label>
-                <input type="text" name="subject" class="form-input" required placeholder="Brief description of the issue" data-i18n-placeholder="tickets-subject-placeholder"/>
+                <label class="form-label" for="ticket-subject" data-i18n="tickets-subject">Subject</label>
+                <input id="ticket-subject" type="text" name="subject" class="form-input" required placeholder="Brief description of the issue" data-i18n-placeholder="tickets-subject-placeholder" autocomplete="off"/>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" data-i18n="tickets-account">Account</label>
-                    <select name="account_id" class="form-select" hx-get="/api/crm/accounts/search" hx-trigger="load">
+                    <label class="form-label" for="ticket-account-id" data-i18n="tickets-account">Account</label>
+                    <select id="ticket-account-id" name="account_id" class="form-select" hx-get="/api/crm/accounts/search" hx-trigger="load">
                         <option value="" data-i18n="tickets-select-account">Select account...</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" data-i18n="tickets-contact">Contact</label>
-                    <select name="contact_id" class="form-select">
+                    <label class="form-label" for="ticket-contact-id" data-i18n="tickets-contact">Contact</label>
+                    <select id="ticket-contact-id" name="contact_id" class="form-select">
                         <option value="" data-i18n="tickets-select-contact">Select contact...</option>
                     </select>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" data-i18n="tickets-priority">Priority</label>
-                    <select name="priority" class="form-select" required>
+                    <label class="form-label" for="ticket-priority" data-i18n="tickets-priority">Priority</label>
+                    <select id="ticket-priority" name="priority" class="form-select" required>
                         <option value="low" data-i18n="tickets-priority-low">Low</option>
                         <option value="medium" selected data-i18n="tickets-priority-medium">Medium</option>
                         <option value="high" data-i18n="tickets-priority-high">High</option>
@@ -54,8 +54,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" data-i18n="tickets-category">Category</label>
-                    <select name="category" class="form-select" required>
+                    <label class="form-label" for="ticket-category" data-i18n="tickets-category">Category</label>
+                    <select id="ticket-category" name="category" class="form-select" required>
                         <option value="technical" data-i18n="tickets-category-technical">Technical</option>
                         <option value="billing" data-i18n="tickets-category-billing">Billing</option>
                         <option value="general" data-i18n="tickets-category-general">General</option>
@@ -64,8 +64,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label" data-i18n="tickets-description">Description</label>
-                <textarea name="description" class="form-textarea" required rows="5" placeholder="Describe the issue in detail..." data-i18n-placeholder="tickets-description-placeholder" hx-post="/api/ui/tickets/ai-suggest" hx-trigger="blur delay:500ms" hx-target="#ai-suggestions"></textarea>
+                <label class="form-label" for="ticket-description" data-i18n="tickets-description">Description</label>
+                <textarea id="ticket-description" name="description" class="form-textarea" required rows="5" placeholder="Describe the issue in detail..." data-i18n-placeholder="tickets-description-placeholder" hx-post="/api/ui/tickets/ai-suggest" hx-trigger="blur delay:500ms" hx-target="#ai-suggestions"></textarea>
             </div>
             <div id="ai-suggestions" class="ai-suggestions"></div>
             <div class="form-actions">

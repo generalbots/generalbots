@@ -93,7 +93,7 @@
     </header>
 
     <!-- Search Results -->
-    <div id="billing-search-results" class="billing-search-results"></div>
+    <div id="billing-search-results" class="billing-search-results" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Summary Cards -->
 <div id="billingSummarySlot"></div>
@@ -168,6 +168,7 @@
                 id="payments-table-body"
                 hx-get="/api/ui/billing/payments"
                 hx-trigger="load"
+                aria-live="polite"
             ></tbody>
         </table>
     </div>
@@ -240,6 +241,7 @@
                 id="quotes-table-body"
                 hx-get="/api/ui/billing/quotes"
                 hx-trigger="load"
+                aria-live="polite"
             ></tbody>
         </table>
     </div>
@@ -255,6 +257,8 @@
             id="inventory-content"
             hx-get="/api/ui/billing/inventory"
             hx-trigger="load"
+            role="status"
+            aria-live="polite"
         >
             <!-- Inventory loaded via HTMX -->
         </div>
@@ -291,6 +295,8 @@
             id="gl-content"
             hx-get="/api/ui/billing/gl/accounts"
             hx-trigger="load"
+            role="status"
+            aria-live="polite"
         >
             <!-- GL loaded via HTMX -->
         </div>
@@ -307,6 +313,8 @@
             id="procurement-content"
             hx-get="/api/ui/billing/procurement"
             hx-trigger="load"
+            role="status"
+            aria-live="polite"
         >
             <!-- Procurement loaded via HTMX -->
         </div>

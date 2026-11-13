@@ -1,27 +1,43 @@
 /* Editor app — module 3/3: file bootstrap, Vibe workspace explorer and Monaco loader (split from editor-inline-panels.js for #1731) */
 
-        // Set filename SYNCHRONOUSLY — no async microtask delay
-        (function() {
-            var filePath = window.__EDITOR_FILE_PATH || '';
+        // #2282 — boot scoped to this window so two Drive-opened editors keep
+        // independent file contexts (page globals clobbered by the next open).
+        var __editorBootRoot = (document.currentScript && document.currentScript.closest('[id^="window-body-"]')) || null;
+        if (!__editorBootRoot) {
+            var __ebs = document.querySelectorAll('[id^="window-body-editor"]');
+            if (__ebs.length === 1) __editorBootRoot = __ebs[__ebs.length - 1];
+        }
+        function __editorBootCtx() {
+            if (typeof gbEditorFileCtx === 'function') return gbEditorFileCtx(__editorBootRoot || document);
+            var ds = (__editorBootRoot && __editorBootRoot.dataset) || {};
             var params = new URLSearchParams(window.location.search);
-            if (!filePath) filePath = params.get('file') || '';
+            return {
+                bucket: ds.gbFileBucket || window.__EDITOR_FILE_BUCKET || params.get('bucket') || '',
+                path: ds.gbFilePath || window.__EDITOR_FILE_PATH || params.get('file') || '',
+                scope: ds.gbFileScope || window.__EDITOR_FILE_SCOPE || 'bot',
+            };
+        }
+        if (__editorBootRoot) __editorBootRoot.__monacoEditorInstance = null;
+
+        (function() {
+            var ctx = __editorBootCtx();
+            var filePath = ctx.path || '';
             if (filePath) {
                 var fileName = filePath.split('/').pop();
-                var fnEl = document.getElementById('editor-filename');
-                var fpEl = document.getElementById('editor-filepath');
+                var root = __editorBootRoot || document;
+                var fnEl = root.querySelector ? root.querySelector('#editor-filename') : document.getElementById('editor-filename');
+                var fpEl = root.querySelector ? root.querySelector('#editor-filepath') : document.getElementById('editor-filepath');
                 if (fnEl) fnEl.textContent = fileName;
                 if (fpEl) fpEl.textContent = filePath;
             }
         })();
 
-        // Load file content asynchronously
         var editorBootPromise = window.__EDITOR_BOOT || Promise.resolve();
         editorBootPromise.then(function() {
-            var filePath = window.__EDITOR_FILE_PATH || '';
-            var params = new URLSearchParams(window.location.search);
-            if (!filePath) filePath = params.get('file') || '';
-            var bucket = window.__EDITOR_FILE_BUCKET || params.get('bucket') || '';
-            var scope = window.__EDITOR_FILE_SCOPE || 'bot';
+            var ctx = __editorBootCtx();
+            var filePath = ctx.path || '';
+            var bucket = ctx.bucket || '';
+            var scope = ctx.scope || 'bot';
             if (filePath) {
                 var isCsv = filePath.toLowerCase().endsWith('.csv');
                 var pathParts = filePath.split('/');
@@ -36,14 +52,14 @@
                     if (data.content) {
                         var decoded = atob(data.content);
                         if (isCsv) {
-                            switchToCsvMode(decoded);
+                            switchToCsvMode(decoded, __editorBootRoot);
                         } else {
-                            var ta = document.getElementById('text-editor');
+                            var root = __editorBootRoot || document;
+                            var ta = root.querySelector ? root.querySelector('#text-editor') : document.getElementById('text-editor');
                             if (ta) {
                                 ta.value = decoded;
-                                if (window.monacoEditorInstance) {
-                                    window.monacoEditorInstance.setValue(decoded);
-                                }
+                                var mi = (__editorBootRoot && __editorBootRoot.__monacoEditorInstance) || window.monacoEditorInstance;
+                                if (mi) mi.setValue(decoded);
                             }
                         }
                     }

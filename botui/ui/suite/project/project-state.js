@@ -10,6 +10,16 @@ function projectT(key, fallback, params) {
     return window.gbT ? window.gbT(key, fallback, params) : fallback;
 }
 
+function projectAlert(message, title) {
+    if (window.GBModal && typeof window.GBModal.alert === 'function') {
+        window.GBModal.alert(message, title || projectT('project-alert-title', 'Project'));
+    } else if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+        window.GBToasts.show(title || projectT('project-alert-title', 'Project'), String(message), 'error');
+    } else {
+        console.error(title || 'Project', message);
+    }
+}
+
 var currentProjectId = null;
 var currentProjectData = null;
 var taskNameCache = {};
@@ -434,9 +444,9 @@ async function addDependency(taskId) {
             await loadProjectData(currentProjectId);
             showTaskDetail(taskId);
         } else {
-            alert(projectT('project-dependency-add-failed', 'Failed to add dependency'));
+            projectAlert(projectT('project-dependency-add-failed', 'Failed to add dependency'));
         }
     } catch (e) {
-        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
+        projectAlert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }

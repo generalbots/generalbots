@@ -139,6 +139,9 @@
       return;
     }
     node.className = "shared-status shared-status-" + (tone || "off");
+    node.setAttribute("role", "status");
+    node.setAttribute("aria-live", "polite");
+    node.setAttribute("aria-atomic", "true");
     node.innerHTML = '<span class="shared-status-dot"></span>' + escapeHtml(label);
   }
 

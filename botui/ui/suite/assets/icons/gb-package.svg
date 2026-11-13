@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#475569" >
+  <style data-gb-icon-theme="1">:root,svg{color:#475569}@media (prefers-color-scheme: dark){:root,svg{color:#e2e8f0}}</style>
   <!-- GB-inspired package icon - hexagonal bot head with package box -->
   <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" opacity="0.2" fill="currentColor"/>
   <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z"/>

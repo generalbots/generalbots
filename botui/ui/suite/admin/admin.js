@@ -68,10 +68,20 @@ document.addEventListener('keydown', function(e) {
 /**
  * Confirm dangerous actions
  * @param {string} message - Confirmation message
- * @returns {boolean} - User's confirmation choice
+ * @param {Function} [onConfirm] - Called when confirmed
+ * @param {Function} [onCancel] - Called when cancelled
+ * @returns {void}
  */
-function confirmAction(message) {
-    return confirm(message || 'Are you sure you want to perform this action?');
+function confirmAction(message, onConfirm, onCancel) {
+    var msg = message || 'Are you sure you want to perform this action?';
+    if (window.GBModal && typeof window.GBModal.confirm === 'function') {
+        window.GBModal.confirm(msg, 'Confirm', onConfirm || function () {}, onCancel || function () {});
+        return;
+    }
+    if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+        window.GBToasts.show('Confirm', msg, 'warning');
+    }
+    if (typeof onCancel === 'function') onCancel();
 }
 
 /**

@@ -1,4 +1,4 @@
-(function(){var b=document.getElementById('btn-edit-text');if(b&&window.__EDITOR_FILE_PATH)b.style.display='';})();
+(function(){var root=(document.currentScript&&document.currentScript.closest('[id^="window-body-"]'))||null,b=root?root.querySelector('#btn-edit-text'):document.getElementById('btn-edit-text'),ds=(root&&root.dataset)||{},wid=ds.windowId||(root&&root.id?root.id.replace('window-body-',''):''),m=(window.__GB_WINDOW_FILE_CTX&&wid&&window.__GB_WINDOW_FILE_CTX[wid])||{};if(b&&(ds.gbFilePath||m.path||window.__EDITOR_FILE_PATH))b.style.display='';})();
 // Designer State
         const state = {
             nodes: new Map(),

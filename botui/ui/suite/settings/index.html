@@ -322,15 +322,15 @@
             <div class="workspace-card-head">
                 <div>
                     <h2 id="workspace-card-title" data-i18n="auto-this-workspace">This workspace</h2>
-                    <p id="workspace-identity" class="workspace-line" data-i18n="auto-loading-identity">Loading identity…</p>
+                    <p id="workspace-identity" class="workspace-line" role="status" aria-live="polite" aria-atomic="true" data-i18n="auto-loading-identity">Loading identity…</p>
                 </div>
-                <span id="workspace-edition" class="workspace-badge" title="Deployment edition">—</span>
+                <span id="workspace-edition" class="workspace-badge" role="status" aria-live="polite" aria-atomic="true" title="Deployment edition">—</span>
             </div>
             <div class="workspace-chips">
-                <button type="button" class="workspace-chip" id="workspace-plan" title="Plan managed on the Cloud portal" data-i18n="auto-plan-2">Plan: —</button>
+                <button type="button" class="workspace-chip" id="workspace-plan" aria-live="polite" aria-atomic="true" title="Plan managed on the Cloud portal" data-i18n="auto-plan-2">Plan: —</button>
                 <button type="button" class="workspace-chip" data-workspace-goto="storage" data-i18n="monitoring-health-storage">Storage</button>
-                <button type="button" class="workspace-chip" data-workspace-goto="versions" data-i18n="settings-versions">Versions</button>
-                <button type="button" class="workspace-chip" id="workspace-preview" data-i18n="auto-preview">Preview: —</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="versions" aria-live="polite" aria-atomic="true" data-i18n="settings-versions">Versions</button>
+                <button type="button" class="workspace-chip" id="workspace-preview" aria-live="polite" aria-atomic="true" data-i18n="auto-preview">Preview: —</button>
             </div>
         </section>
         <div hx-get="/suite/settings/partials/01_profile_security.html" hx-trigger="load" hx-swap="outerHTML"></div>

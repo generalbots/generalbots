@@ -31,8 +31,8 @@
                 <input type="text" class="org-search-input" id="org-search" placeholder="Search organizations...">
             </div>
 
-            <div class="org-list" id="org-list">
-                <div class="org-loading" id="org-loading">
+            <div class="org-list" id="org-list" role="status" aria-live="polite">
+                <div class="org-loading" id="org-loading" role="status" aria-live="polite">
                     <div class="org-loading-spinner"></div>
                 </div>
             </div>
@@ -90,8 +90,8 @@
         </div>
     </div>
 
-    <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+    <div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/admin/organization-switcher-inline.js"></script>
 
     <link rel="stylesheet" href="/suite/admin/organization-switcher-modal.css">

@@ -1,5 +1,5 @@
 
-.toggle-label input:checked + .toggle-switch {
+.toggle-label input:checked + .toggle-switch::after {
     background: var(--primary);
 }
 

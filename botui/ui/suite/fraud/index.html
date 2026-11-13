@@ -54,9 +54,18 @@ async function load() {
     ]);
     tabs.events = ev; tabs.rules = ru; tabs.blocklist = bl;
     document.querySelector('#stats').innerHTML = Object.entries(st).map(([k,v])=>`<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${k.replace(/_/g,' ')}</div></div>`).join('');
-    document.querySelector('#eventsBody').innerHTML = ev.map(e=>`<tr><td>${e.event_type}</td><td>${e.entity_type}</td><td>${e.risk_score}</td><td><span class="badge badge-${e.risk_level}">${e.risk_level}</span></td><td>${e.action_taken}</td><td>${new Date(e.created_at).toLocaleString()}</td></tr>`).join('');
+    const fmtDateTime = (v) => {
+      const d = new Date(v);
+      if (typeof gbFormatDateTime === 'function') return gbFormatDateTime(d);
+      if (window.i18n && typeof window.i18n.formatDate === 'function') return window.i18n.formatDate(d, { dateStyle: 'short', timeStyle: 'short' });
+      try {
+        const locale = (window.i18n && typeof window.i18n.getLocale === 'function' && window.i18n.getLocale()) || undefined;
+        return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(d);
+      } catch (_) { return String(v); }
+    };
+    document.querySelector('#eventsBody').innerHTML = ev.map(e=>`<tr><td>${e.event_type}</td><td>${e.entity_type}</td><td>${e.risk_score}</td><td><span class="badge badge-${e.risk_level}">${e.risk_level}</span></td><td>${e.action_taken}</td><td>${fmtDateTime(e.created_at)}</td></tr>`).join('');
     document.querySelector('#rulesBody').innerHTML = ru.map(r=>`<tr><td>${r.name}</td><td>${r.rule_type}</td><td><span class="badge badge-${r.severity}">${r.severity}</span></td><td>${r.action}</td><td>${r.is_active?'✅':'❌'}</td></tr>`).join('');
-    document.querySelector('#blocklistBody').innerHTML = bl.map(b=>`<tr><td>${b.block_type}</td><td>${b.block_value}</td><td>${b.reason||''}</td><td>${b.expires_at?new Date(b.expires_at).toLocaleString():'Never'}</td></tr>`).join('');
+    document.querySelector('#blocklistBody').innerHTML = bl.map(b=>`<tr><td>${b.block_type}</td><td>${b.block_value}</td><td>${b.reason||''}</td><td>${b.expires_at?fmtDateTime(b.expires_at):'Never'}</td></tr>`).join('');
   } catch(e) { console.error(e); }
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active');}));

@@ -67,11 +67,27 @@
             method: "POST",
         }).then(function (data) {
             if (data && data.status === "failure") {
-                alert(t("vibe-git-branch-switch-failed", "Branch switch failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }));
+                notifyGit(t("vibe-git-branch-switch-failed", "Branch switch failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }), "error");
             }
             M.state.selected = null;
             M.refreshAll();
-        }).catch(function (err) { alert(t("vibe-git-branch-error", "Branch error: {reason}", { reason: err })); });
+        }).catch(function (err) { notifyGit(t("vibe-git-branch-error", "Branch error: {reason}", { reason: err }), "error"); });
+    }
+
+    function notifyGit(message, kind) {
+        if (window.GBToasts && typeof window.GBToasts.show === "function") {
+            window.GBToasts.show("Source Control", String(message), kind || "error");
+            return;
+        }
+        if (window.GBModal && typeof window.GBModal.alert === "function") {
+            window.GBModal.alert(String(message), "Source Control");
+            return;
+        }
+        var status = document.getElementById("vibeGitCount");
+        if (status) {
+            status.textContent = String(message);
+            status.className = "vibe-status " + (kind === "success" ? "ok" : "err");
+        }
     }
 
     function loadLog() {
@@ -79,19 +95,22 @@
             .then(function (data) {
                 M.state.log = (data && data.log) || (data && data.commits) || [];
             })
-            .catch(function () { });
+            .catch(function (err) {
+                /* Best-effort git log load; dialog can retry. */
+                console.debug("[gb-vibe] Git log fetch failed:", err);
+            });
     }
 
     function pullBranch() {
         D.api("/api/git/pull?repo=" + encodeURIComponent(M.repoName()), { method: "POST" })
             .then(function (data) {
                 if (data && data.status === "failure") {
-                    alert(t("vibe-git-pull-failed", "Pull failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }));
+                    notifyGit(t("vibe-git-pull-failed", "Pull failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }), "error");
                 } else {
                     M.refreshAll();
                 }
             })
-            .catch(function (err) { alert(t("vibe-git-pull-error", "Pull error: {reason}", { reason: err })); });
+            .catch(function (err) { notifyGit(t("vibe-git-pull-error", "Pull error: {reason}", { reason: err }), "error"); });
     }
 
     function pushBranch() {
@@ -100,13 +119,13 @@
         D.api("/api/git/push?repo=" + encodeURIComponent(M.repoName()), { method: "POST" })
             .then(function (data) {
                 if (data && (data.status === "failure" || data.success === false)) {
-                    alert(t("vibe-git-push-failed", "Push failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }));
+                    notifyGit(t("vibe-git-push-failed", "Push failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }), "error");
                 } else {
                     M.loadStatus();
                     M.loadLog();
                 }
             })
-            .catch(function (err) { alert(t("vibe-git-push-error", "Push error: {reason}", { reason: err })); })
+            .catch(function (err) { notifyGit(t("vibe-git-push-error", "Push error: {reason}", { reason: err }), "error"); })
             .finally(function () {
                 if (btn) { btn.disabled = false; btn.textContent = "⤒ Push"; }
             });
@@ -130,10 +149,10 @@
                 if (andPush) M.pushBranch();
                 M.refreshAll();
             } else {
-                alert(t("vibe-git-commit-failed", "Commit failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }));
+                notifyGit(t("vibe-git-commit-failed", "Commit failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }), "error");
             }
         }).catch(function (err) {
-            alert(t("vibe-git-commit-error", "Commit error: {reason}", { reason: err }));
+            notifyGit(t("vibe-git-commit-error", "Commit error: {reason}", { reason: err }), "error");
         }).finally(function () {
             if (btn) { btn.disabled = false; btn.textContent = "Commit"; }
         });

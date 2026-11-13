@@ -52,7 +52,10 @@
       ? window.GBCalcEngine.format(app.state.lastResult)
       : app.state.expr;
     if (!text || !navigator.clipboard) return;
-    navigator.clipboard.writeText(text).catch(function () {});
+    navigator.clipboard.writeText(text).catch(function (err) {
+      /* Best-effort clipboard copy; browsers may block it outside a user gesture. */
+      console.debug("[gb-calculator] Clipboard copy failed:", err);
+    });
   }
 
   function toggleMemory(action) {

@@ -57,9 +57,11 @@ async function sendAnalyticsQuery() {
     const loadingMessage = document.createElement("div");
     loadingMessage.className = "chat-message assistant";
     loadingMessage.id = "loading-message";
+    loadingMessage.setAttribute("role", "status");
+    loadingMessage.setAttribute("aria-live", "polite");
     loadingMessage.innerHTML = `
         <div class="message-avatar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
                 <circle cx="9" cy="10" r="2" fill="currentColor"/>
                 <circle cx="15" cy="10" r="2" fill="currentColor"/>
@@ -67,8 +69,8 @@ async function sendAnalyticsQuery() {
             </svg>
         </div>
         <div class="message-content">
-            <div class="spinner" style="width: 16px; height: 16px;"></div>
-            Analyzing your data...
+            <div class="spinner" style="width: 16px; height: 16px;" aria-hidden="true"></div>
+            <span>Analyzing your data...</span>
         </div>
     `;
     messagesContainer.appendChild(loadingMessage);
@@ -112,9 +114,11 @@ async function sendAnalyticsQuery() {
 
         const errorMessage = document.createElement("div");
         errorMessage.className = "chat-message assistant";
+        errorMessage.setAttribute("role", "alert");
+        errorMessage.setAttribute("aria-live", "assertive");
         errorMessage.innerHTML = `
             <div class="message-avatar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
                     <circle cx="9" cy="10" r="2" fill="currentColor"/>
                     <circle cx="15" cy="10" r="2" fill="currentColor"/>

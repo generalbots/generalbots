@@ -370,9 +370,14 @@ function reopenTask(taskId) {
     });
 }
 
-function deleteTask(taskId) {
+async function deleteTask(taskId) {
   if (!taskId) return;
-  if (!confirm("Delete this task? This cannot be undone.")) {
+  const ok = typeof gbConfirm === "function"
+    ? await gbConfirm("Delete this task? This cannot be undone.", "Delete task")
+    : (window.GBModal && typeof window.GBModal.confirm === "function"
+      ? await new Promise((r) => window.GBModal.confirm("Delete this task? This cannot be undone.", "Delete task", () => r(true), () => r(false)))
+      : false);
+  if (!ok) {
     return;
   }
 

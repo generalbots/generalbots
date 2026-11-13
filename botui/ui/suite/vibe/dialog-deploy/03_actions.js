@@ -11,7 +11,7 @@
         var proj = M.state.projects.find(function (x) { return x.id === M.state.projectId; });
         var env = (proj && (proj.environment || proj.env)) || "production";
         var grid = document.getElementById("vibeDeployMain");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Probing environment (' + D.esc(env) + ")...</div>";
+        if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Probing environment (' + D.esc(env) + ")...</div>";
         D.api("/api/vibe/projects/" + encodeURIComponent(M.state.projectId) + "/envs/" + encodeURIComponent(env) + "/probe", {
             method: "POST",
             body: {},
@@ -34,7 +34,7 @@
             html += '<div class="vibe-diff"><pre>' + D.esc(JSON.stringify(data || {}, null, 2)) + "</pre></div>";
             if (grid) grid.innerHTML = html;
         }).catch(function (err) {
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Probe error: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Probe error: ' + D.esc(err) + "</div>";
         });
     }
 
@@ -46,7 +46,7 @@
     function promoteSite() {
         if (!M.state.projectId) return;
         var grid = document.getElementById("vibeDeployMain");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Promoting the tested release to the public site…</div>';
+        if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Promoting the tested release to the public site…</div>';
         D.api(
             "/api/vibe/projects/" + encodeURIComponent(M.state.projectId) + "/site/promote",
             { method: "POST", body: {} }
@@ -65,7 +65,7 @@
         }).catch(function (err) {
             var message = err && err.message ? err.message : String(err);
             if (grid) {
-                grid.innerHTML = '<div class="vibe-empty">Promote unavailable: ' + D.esc(message) +
+                grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Promote unavailable: ' + D.esc(message) +
                     ' — publish the project to its test site first.</div>';
             }
         });
@@ -76,7 +76,7 @@
         var previewWindow = window.open("about:blank", "_blank");
         if (!previewWindow) {
             var grid = document.getElementById("vibeDeployMain");
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Allow pop-ups to open the app preview.</div>';
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Allow pop-ups to open the app preview.</div>';
             return;
         }
         previewWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Resolving project preview…</p>";
@@ -90,14 +90,14 @@
             if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
                 previewWindow.close();
                 var grid = document.getElementById("vibeDeployMain");
-                if (grid) grid.innerHTML = '<div class="vibe-empty">No live URL yet. Deploy the project first.</div>';
+                if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">No live URL yet. Deploy the project first.</div>';
                 return;
             }
             previewWindow.location.href = url;
         }).catch(function (err) {
             previewWindow.close();
             var grid = document.getElementById("vibeDeployMain");
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Preview error: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Preview error: ' + D.esc(err) + "</div>";
         });
     }
 
@@ -110,7 +110,7 @@
         // referenced the function-local `projName` (ReferenceError).
         M.state.projectName = projName;
         var grid = document.getElementById("vibeDeployMain");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Launching deploy pipeline (fully automated)...</div>';
+        if (grid) grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Launching deploy pipeline (fully automated)...</div>';
         D.api("/api/vibe/run", {
             method: "POST",
             body: {
@@ -124,7 +124,7 @@
         }).then(function (data) {
             if (data && data.success) {
                 if (grid) {
-                    grid.innerHTML = '<div class="vibe-empty">Deploy pipeline started for <b>' +
+                    grid.innerHTML = '<div class="vibe-empty" role="status" aria-live="polite">Deploy pipeline started for <b>' +
                         D.esc(projName) + "</b> — approve stages in the Run Dock.</div>";
                 }
                 setTimeout(M.loadHistory, 8000);
@@ -133,10 +133,10 @@
                 // (https://{app}.{platform-domain}) in a fresh tab.
                 M.waitDeployFinished(data.run_id, 0);
             } else {
-                if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy start failed: ' + D.esc((data && data.error) || "unknown") + "</div>";
+                if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Deploy start failed: ' + D.esc((data && data.error) || "unknown") + "</div>";
             }
         }).catch(function (err) {
-            if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy error: ' + D.esc(err) + "</div>";
+            if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Deploy error: ' + D.esc(err) + "</div>";
         });
     }
 

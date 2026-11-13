@@ -19,10 +19,10 @@
                             <span>JD</span>
                         </div>
                         <div class="avatar-actions">
-                            <label class="btn-secondary upload-btn">
-                                <input type="file" name="avatar" accept="image/*" hidden onchange="previewAvatar(this)">
+                            <label class="btn-secondary upload-btn" for="profile-avatar">
+                                <input id="profile-avatar" type="file" name="avatar" accept="image/*" hidden onchange="previewAvatar(this)">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
+                                    stroke-width="2" aria-hidden="true">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="17 8 12 3 7 8"></polyline>
                                     <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -41,21 +41,21 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label data-i18n="settings-display-name">Display Name</label>
-                            <input type="text" name="display_name" placeholder="John Doe" hx-get="/api/user/profile"
-                                hx-trigger="load" hx-swap="outerHTML" hx-select="[name='display_name']">
+                            <label for="profile-display-name" data-i18n="settings-display-name">Display Name</label>
+                            <input id="profile-display-name" type="text" name="display_name" placeholder="John Doe" autocomplete="name"
+                                hx-get="/api/user/profile" hx-trigger="load" hx-swap="outerHTML" hx-select="[name='display_name']">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="dashboards-username">Username</label>
-                            <input type="text" name="username" placeholder="johndoe">
+                            <label for="profile-username" data-i18n="dashboards-username">Username</label>
+                            <input id="profile-username" type="text" name="username" placeholder="johndoe" autocomplete="username">
                         </div>
                         <div class="form-group full-width">
-                            <label data-i18n="auth-email-address">Email Address</label>
-                            <input type="email" name="email" placeholder="john@example.com">
+                            <label for="profile-email" data-i18n="auth-email-address">Email Address</label>
+                            <input id="profile-email" type="email" name="email" placeholder="john@example.com" autocomplete="email">
                         </div>
                         <div class="form-group full-width">
-                            <label>Bio</label>
-                            <textarea name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                            <label for="profile-bio">Bio</label>
+                            <textarea id="profile-bio" name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -73,21 +73,21 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label data-i18n="auto-public-display-name">Public Display Name</label>
+                            <label for="public-display-name" data-i18n="auto-public-display-name">Public Display Name</label>
                             <input type="text" name="public_display_name" id="public-display-name"
-                                placeholder="Your Name"
+                                placeholder="Your Name" autocomplete="nickname"
                                 oninput="(function(v){var slug=(v||'your-name').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var el1=document.getElementById('public-profile-url-preview');var el2=document.getElementById('public-profile-url-hint');if(el1)el1.textContent=slug+'.generalbots.org';if(el2)el2.textContent=slug+'.generalbots.org';})(this.value)">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="auto-your-profile-url-will-be">Your profile URL will be</label>
-                            <div class="profile-url-preview">
+                            <label id="public-profile-url-label" data-i18n="auto-your-profile-url-will-be">Your profile URL will be</label>
+                            <div class="profile-url-preview" aria-labelledby="public-profile-url-label">
                                 <code id="public-profile-url-preview">your-name.generalbots.org</code>
                                 <span class="coming-soon-badge" data-i18n="auto-coming-soon">Coming soon</span>
                             </div>
                         </div>
                         <div class="form-group full-width">
-                            <label data-i18n="auto-public-bio">Public Bio</label>
-                            <textarea name="public_bio" rows="3"
+                            <label for="public-bio" data-i18n="auto-public-bio">Public Bio</label>
+                            <textarea id="public-bio" name="public_bio" rows="3"
                                 placeholder="A short description visible on your public profile..."></textarea>
                         </div>
                     </div>
@@ -101,22 +101,22 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label data-i18n="settings-phone-number">Phone Number</label>
-                            <input type="tel" name="phone" placeholder="+1 (555) 000-0000">
+                            <label for="profile-phone" data-i18n="settings-phone-number">Phone Number</label>
+                            <input id="profile-phone" type="tel" name="phone" placeholder="+1 (555) 000-0000" autocomplete="tel">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="security-col-location">Location</label>
-                            <input type="text" name="location" placeholder="City, Country">
+                            <label for="profile-location" data-i18n="security-col-location">Location</label>
+                            <input id="profile-location" type="text" name="location" placeholder="City, Country" autocomplete="address-level2">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="crm-source-website">Website</label>
-                            <input type="url" name="website" placeholder="https://example.com">
+                            <label for="profile-website" data-i18n="crm-source-website">Website</label>
+                            <input id="profile-website" type="url" name="website" placeholder="https://example.com" autocomplete="url">
                         </div>
                         <!-- #1888 — the timezone has exactly one control:
                              Language & region. The profile form still carries
                              the value (hidden) so both stores converge. -->
                         <div class="form-group">
-                            <label data-i18n="settings-timezone">Timezone</label>
+                            <span class="form-label-like" data-i18n="settings-timezone">Timezone</span>
                             <p class="settings-hint profile-timezone-hint">
                                 Set in <a href="#language" class="info-link"
                                     onclick="showSection('language', document.querySelector('.settings-nav a[href=\'#language\']')); return false;" data-i18n="auto-language-region">Language &amp; region</a>.
@@ -151,17 +151,17 @@
                     hx-on::after-request="this.reset(); showToast('Password changed successfully')">
                     <div class="form-grid">
                         <div class="form-group full-width">
-                            <label data-i18n="settings-current-password">Current Password</label>
-                            <input type="password" name="current_password" required autocomplete="current-password">
+                            <label for="current-password" data-i18n="settings-current-password">Current Password</label>
+                            <input id="current-password" type="password" name="current_password" required autocomplete="current-password">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="auth-new-password">New Password</label>
-                            <input type="password" name="new_password" required minlength="8"
+                            <label for="new-password" data-i18n="auth-new-password">New Password</label>
+                            <input id="new-password" type="password" name="new_password" required minlength="8"
                                 autocomplete="new-password">
                         </div>
                         <div class="form-group">
-                            <label data-i18n="auth-confirm-new-password">Confirm New Password</label>
-                            <input type="password" name="confirm_password" required autocomplete="new-password">
+                            <label for="confirm-password" data-i18n="auth-confirm-new-password">Confirm New Password</label>
+                            <input id="confirm-password" type="password" name="confirm_password" required autocomplete="new-password">
                         </div>
                     </div>
                     <div class="form-actions">

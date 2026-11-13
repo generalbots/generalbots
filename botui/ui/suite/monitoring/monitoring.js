@@ -73,8 +73,15 @@
   document.body.addEventListener("htmx:beforeRequest", function (evt) {
     if (evt.target.id === "monitoring-content") {
       const label = window.gbT ? window.gbT("monitoring-loading-data", "Loading monitoring data...") : "Loading monitoring data...";
+      evt.target.setAttribute("aria-busy", "true");
       evt.target.innerHTML =
-        '<div class="loading-state"><div class="spinner"></div><p>' + label + "</p></div>";
+        '<div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p>' + label + "</p></div>";
+    }
+  });
+
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    if (evt.target && evt.target.id === "monitoring-content") {
+      evt.target.setAttribute("aria-busy", "false");
     }
   });
 

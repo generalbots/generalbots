@@ -19,9 +19,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Above the desktop window layer (1500) and the Start menu (9999):
-       modal dialogs appended to <body> must never render behind windows. */
-    z-index: 12000;
+    /* Modal layer (#2321): above windows/menus, below toasts/tooltips. */
+    z-index: var(--z-modal-backdrop, 1200);
     padding: 16px;
     opacity: 0;
     visibility: hidden;
@@ -329,7 +328,7 @@ select.form-input {
     visibility: hidden;
     transition: all 0.15s ease;
     pointer-events: none;
-    z-index: 100;
+    z-index: var(--z-tooltip, 1500);
 }
 
 [data-tooltip]:hover::after {
@@ -360,7 +359,7 @@ select.form-input {
     visibility: hidden;
     transform: translateY(-8px);
     transition: all 0.15s ease;
-    z-index: 100;
+    z-index: var(--z-dropdown, 1000);
 }
 
 .dropdown.open .dropdown-menu {
@@ -393,3 +392,11 @@ select.form-input {
     color: hsl(var(--destructive));
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

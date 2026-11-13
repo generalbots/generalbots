@@ -10,7 +10,7 @@
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
 </svg> Export Report
 </button> </div>
-</div> <div class="metrics-overview" hx-get="/api/ui/billing/dashboard/metrics" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="metrics-overview" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/metrics" hx-trigger="load" hx-swap="innerHTML">
 <div class="metric-card spending"> <div class="metric-icon">
 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"> <line x1="12" y1="1" x2="12" y2="23"></line>
 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path> </svg>
@@ -44,7 +44,7 @@
 <h2 data-i18n="auto-spending-trends">Spending Trends</h2> <div class="chart-controls">
 <button class="chart-btn active" data-view="daily" data-i18n="auto-daily">Daily</button> <button class="chart-btn" data-view="weekly" data-i18n="auto-weekly">Weekly</button>
 <button class="chart-btn" data-view="monthly" data-i18n="products-cycle-monthly">Monthly</button> </div>
-</div> <div class="chart-container" id="spendingChart" hx-get="/api/ui/billing/dashboard/spending-chart" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="chart-container" id="spendingChart" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/spending-chart" hx-trigger="load" hx-swap="innerHTML">
 <div class="chart-placeholder"> <svg viewBox="0 0 400 200" class="spending-svg">
 <defs> <linearGradient id="spendingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
 <stop offset="0%" style="stop-color:var(--primary);stop-opacity:0.3" /> <stop offset="100%" style="stop-color:var(--primary);stop-opacity:0" />
@@ -69,7 +69,7 @@
 <line x1="21" y1="21" x2="16.65" y2="16.65"></line> <line x1="11" y1="8" x2="11" y2="14"></line>
 <line x1="8" y1="11" x2="14" y2="11"></line> </svg>
 </button> </div>
-<div class="breakdown-chart" hx-get="/api/ui/billing/dashboard/cost-breakdown" hx-trigger="load" hx-swap="innerHTML"> <div class="donut-chart">
+<div class="breakdown-chart" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/cost-breakdown" hx-trigger="load" hx-swap="innerHTML"> <div class="donut-chart">
 <svg viewBox="0 0 100 100" class="donut-svg"> <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface-border)" stroke-width="8"></circle>
 <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-1)" stroke-width="8" stroke-dasharray="100.53 150.79" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle> <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-2)" stroke-width="8" stroke-dasharray="62.83 188.49" stroke-dashoffset="-100.53" transform="rotate(-90 50 50)"></circle>
 <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-3)" stroke-width="8" stroke-dasharray="50.26 200.06" stroke-dashoffset="-163.36" transform="rotate(-90 50 50)"></circle> <circle cx="50" cy="50" r="40" fill="none" stroke="var(--chart-4)" stroke-width="8" stroke-dasharray="37.70 213.62" stroke-dashoffset="-213.62" transform="rotate(-90 50 50)"></circle>
@@ -93,7 +93,7 @@
 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"> <circle cx="12" cy="12" r="3"></circle>
 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path> </svg>
 Settings </button>
-</div> <div class="quota-list" hx-get="/api/ui/billing/dashboard/quotas" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="quota-list" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/quotas" hx-trigger="load" hx-swap="innerHTML">
 <div class="quota-item"> <div class="quota-header">
 <div class="quota-info"> <span class="quota-name" data-i18n="auto-api-calls">API Calls</span>
 <span class="quota-usage">1,247,500 / 2,000,000</span> </div>
@@ -142,7 +142,7 @@ Settings </button>
 <select class="metric-selector" id="botMetric" onchange="updateBotMetric(this.value)"> <option value="api_calls" data-i18n="auto-api-calls">API Calls</option>
 <option value="messages" data-i18n="monitoring-messages">Messages</option> <option value="storage" data-i18n="monitoring-health-storage">Storage</option>
 <option value="cost" data-i18n="products-cost">Cost</option> </select>
-</div> <div class="bot-usage-list" hx-get="/api/ui/billing/dashboard/bot-usage" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="bot-usage-list" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/bot-usage" hx-trigger="load" hx-swap="innerHTML">
 <div class="bot-usage-item"> <div class="bot-info">
 <div class="bot-avatar">CS</div> <div class="bot-details">
 <span class="bot-name" data-i18n="auto-customer-support-bot">Customer Support Bot</span> <span class="bot-id" data-i18n="auto-bot-cs-01">bot_cs_01</span>
@@ -176,7 +176,7 @@ Settings </button>
 </div> </div>
 <div class="card recent-invoices"> <div class="card-header">
 <h2 data-i18n="auto-recent-invoices">Recent Invoices</h2> <a href="/admin/billing" class="view-all-link" data-i18n="learn-view-all">View All</a>
-</div> <div class="invoices-list" hx-get="/api/ui/billing/dashboard/recent-invoices" hx-trigger="load" hx-swap="innerHTML">
+</div> <div class="invoices-list" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/recent-invoices" hx-trigger="load" hx-swap="innerHTML">
 <div class="invoice-item"> <div class="invoice-info">
 <span class="invoice-id">INV-2025-0122</span> <span class="invoice-date">Jan 21, 2025</span>
 </div> <div class="invoice-amount">$247.50</div>
@@ -206,7 +206,7 @@ Settings </button>
 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path> <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
 </svg> Configure
 </button> </div>
-<div class="alerts-list" hx-get="/api/ui/billing/dashboard/alerts" hx-trigger="load" hx-swap="innerHTML"> <div class="alert-item warning">
+<div class="alerts-list" role="status" aria-live="polite" hx-get="/api/ui/billing/dashboard/alerts" hx-trigger="load" hx-swap="innerHTML"> <div class="alert-item warning">
 <div class="alert-icon"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path> <line x1="12" y1="9" x2="12" y2="13"></line>
 <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
@@ -265,7 +265,7 @@ Settings </button>
 <button type="button" class="btn-secondary" onclick="closeAlertsConfig()" data-i18n="action-cancel">Cancel</button> <button type="button" class="btn-primary" onclick="saveAlertSettings()" data-i18n="action-save">Save</button>
 </div> </form>
 </div> </dialog>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div> <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div> <div class="gb-state gb-state-error" role="alert"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/admin/admin-handlers.js"></script> <script src="/suite/admin/modals/01_helpers_accounts.js"></script>
 <script src="/suite/admin/modals/02_dashboards_billing.js"></script> <script src="/suite/admin/modals/03_compliance_groups.js"></script>
 <script src="/suite/admin/modals/04_roles.js"></script> <script src="/suite/admin/modals/05_billing_ops.js"></script>

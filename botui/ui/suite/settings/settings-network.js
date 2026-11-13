@@ -34,7 +34,10 @@
           renderRelay(String(data.peer.relay));
         }
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort network status fetch; UI can retry later. */
+        console.debug("[gb-settings] Network status fetch failed:", err);
+      });
   }
 
   function byId(id) {
@@ -102,6 +105,9 @@
   function updateBadge(mode) {
     var badge = byId("network-mode-badge");
     if (!badge) { return; }
+    badge.setAttribute("role", "status");
+    badge.setAttribute("aria-live", "polite");
+    badge.setAttribute("aria-atomic", "true");
     if (mode === "p2p") {
       badge.className = "shared-status shared-status-ready";
       badge.innerHTML = '<span class="shared-status-dot"></span>P2P';
@@ -137,6 +143,9 @@
       if (statusEl) {
         statusEl.textContent = "Applying " + chosen + "…";
         statusEl.className = "note";
+        statusEl.setAttribute("role", "status");
+        statusEl.setAttribute("aria-live", "polite");
+        statusEl.setAttribute("aria-atomic", "true");
       }
       applyMode(chosen).then(function (enabled) {
         if (statusEl) {
@@ -144,12 +153,17 @@
             statusEl.textContent = "Could not reach the server: the mode is " +
               "remembered and applies on the next start.";
             statusEl.className = "note warn";
+            statusEl.setAttribute("role", "alert");
+            statusEl.setAttribute("aria-live", "assertive");
           } else {
             statusEl.textContent = enabled
               ? "P2P is on: this desktop is reachable and can share links."
               : "Offline: no listeners, no identity, no links — stopped now.";
             statusEl.className = "note ok";
+            statusEl.setAttribute("role", "status");
+            statusEl.setAttribute("aria-live", "polite");
           }
+          statusEl.setAttribute("aria-atomic", "true");
         }
         if (checkedEl) {
           checkedEl.textContent = "Updated at " + gbFormatTime(new Date());

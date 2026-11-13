@@ -199,7 +199,7 @@
                     <h2 data-i18n="auto-agent-llm-providers">Agent LLM Providers</h2>
                     <span class="subtitle" data-i18n="auto-each-agent-type-routes-its-runs-to-the-provider-selected-her">Each agent type routes its runs to the provider selected here for this branch</span>
                 </div>
-                <div class="vibe-agent-slots" id="vibe-agent-slots">
+                <div class="vibe-agent-slots" id="vibe-agent-slots" role="status" aria-live="polite" aria-atomic="true">
                     <div class="empty-state"><p data-i18n="auto-loading-agent-providers">Loading agent providers…</p></div>
                 </div>
             </div>
@@ -301,7 +301,7 @@
                         <option value="global" data-i18n="auto-global-all-bots">Global (all bots)</option>
                         <option value="bot" data-i18n="auto-bot-specific">Bot-specific</option>
                     </select>
-                    <span id="gbMemorySyncStatus" class="setting-desc" data-i18n="paper-synced">Synced</span>
+                    <span id="gbMemorySyncStatus" class="setting-desc" role="status" aria-live="polite" aria-atomic="true" data-i18n="paper-synced">Synced</span>
                 </div>
                 <div id="gbMemoryBotScope" class="setting-desc" style="padding:0 20px 8px;">
                     Bot scope: <strong id="gbMemoryBotName" data-i18n="auto-default">default</strong>

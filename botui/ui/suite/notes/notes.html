@@ -8,10 +8,10 @@
 <body>
     <div class="gb-notes" id="gb-notes">
         <div class="notes-toolbar">
-            <button class="notes-add" id="notesAdd" data-i18n="auto-new-note">+ New Note</button>
-            <span class="notes-count" id="notesCount">0 notes</span>
+            <button class="notes-add" id="notesAdd" type="button" data-i18n="auto-new-note">+ New Note</button>
+            <span class="notes-count" id="notesCount" role="status" aria-live="polite" aria-atomic="true">0 notes</span>
         </div>
-        <div class="notes-board" id="notesBoard"></div>
+        <div class="notes-board" id="notesBoard" aria-live="polite" aria-relevant="additions removals text" aria-label="Notes board" data-i18n-aria-label="notes-board"></div>
     </div>
     <script src="/suite/notes/notes.js"></script>
     <script src="/suite/notes/modules/13_delta.js"></script>

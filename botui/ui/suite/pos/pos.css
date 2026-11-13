@@ -33,9 +33,9 @@
 .pos-cart-item-name{font-size:13px;font-weight:500;color:var(--text,#f8fafc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pos-cart-item-price{font-size:12px;color:var(--text-secondary,#888)}
 .pos-cart-qty{display:flex;align-items:center;gap:4px}
-.pos-cart-qty button{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:var(--surface,rgba(255,255,255,.08));border:1px solid var(--border,#2a2a2a);border-radius:4px;color:var(--text,#f8fafc);font-size:14px;cursor:pointer;transition:all .15s ease}
+.pos-cart-qty button{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--surface,rgba(255,255,255,.08));border:1px solid var(--border,#2a2a2a);border-radius:4px;color:var(--text,#f8fafc);font-size:14px;cursor:pointer;transition:all .15s ease}
 .pos-cart-qty button:hover{border-color:var(--accent,#d4f505);color:var(--accent,#d4f505)}
-.pos-cart-qty span{width:28px;text-align:center;font-size:13px;font-weight:500}
+.pos-cart-qty span{width:32px;text-align:center;font-size:13px;font-weight:500}
 .pos-cart-item-total{font-size:13px;font-weight:600;color:var(--text,#f8fafc);white-space:nowrap}
 .pos-cart-item-remove{background:none;border:none;color:var(--text-secondary,#888);cursor:pointer;padding:2px;font-size:16px;line-height:1;transition:color .15s ease}
 .pos-cart-item-remove:hover{color:#ef4444}
@@ -57,3 +57,11 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-row{display:flex;align-items:center;justify-content:center;padding:40px;gap:8px;color:var(--text-secondary,#888);font-size:13px}
 @media(max-width:768px){.pos-container{flex-direction:column}.pos-cart{width:100%;max-height:50vh;border-top:1px solid var(--border,#2a2a2a)}.pos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -239,6 +239,9 @@
     if (!node) { return; }
     node.textContent = message;
     node.className = "settings-mcp-status" + (isError ? " is-error" : "");
+    node.setAttribute("role", isError ? "alert" : "status");
+    node.setAttribute("aria-live", isError ? "assertive" : "polite");
+    node.setAttribute("aria-atomic", "true");
   }
 
   function render(servers) {

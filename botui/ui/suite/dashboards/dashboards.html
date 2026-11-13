@@ -11,8 +11,10 @@
                     hx-get="/api/dashboards?owner=me"
                     hx-trigger="load"
                     hx-swap="innerHTML"
+                    aria-live="polite"
+                    aria-label="My dashboards"
                 >
-                    <div class="loading-placeholder">
+                    <div class="loading-placeholder" role="status">
                         <div class="skeleton-item"></div>
                         <div class="skeleton-item"></div>
                         <div class="skeleton-item"></div>
@@ -26,8 +28,10 @@
                     hx-get="/api/dashboards?shared=true"
                     hx-trigger="load"
                     hx-swap="innerHTML"
+                    aria-live="polite"
+                    aria-label="Shared dashboards"
                 >
-                    <div class="loading-placeholder">
+                    <div class="loading-placeholder" role="status">
                         <div class="skeleton-item"></div>
                     </div>
                 </nav>
@@ -39,8 +43,10 @@
                     hx-get="/api/dashboards/templates"
                     hx-trigger="load"
                     hx-swap="innerHTML"
+                    aria-live="polite"
+                    aria-label="Dashboard templates"
                 >
-                    <div class="loading-placeholder">
+                    <div class="loading-placeholder" role="status">
                         <div class="skeleton-item"></div>
                         <div class="skeleton-item"></div>
                     </div>
@@ -53,8 +59,10 @@
                     hx-get="/api/dashboards/sources"
                     hx-trigger="load"
                     hx-swap="innerHTML"
+                    aria-live="polite"
+                    aria-label="Data sources"
                 >
-                    <div class="loading-placeholder">
+                    <div class="loading-placeholder" role="status">
                         <div class="skeleton-item small"></div>
                         <div class="skeleton-item small"></div>
                     </div>
@@ -88,8 +96,11 @@
                 hx-get="/api/dashboards"
                 hx-trigger="load"
                 hx-swap="innerHTML"
+                role="region"
+                aria-label="Dashboards"
+                aria-live="polite"
             >
-                <div class="grid-loading">
+                <div class="grid-loading" role="status" aria-label="Loading dashboards">
                     <div class="dashboard-card-skeleton">
                         <div class="skeleton-header"></div>
                         <div class="skeleton-body">
@@ -311,13 +322,13 @@
                         All Data Sources
                     </option>
                 </select>
-                <div id="query-loading" class="query-loading htmx-indicator">
-                    <div class="loading-spinner small"></div>
+                <div id="query-loading" class="query-loading htmx-indicator" role="status" aria-live="polite">
+                    <div class="loading-spinner small" aria-hidden="true"></div>
                     <span data-i18n="dashboards-analyzing"
                         >Analyzing your data...</span
                     >
                 </div>
-                <div id="query-results" class="query-results"></div>
+                <div id="query-results" class="query-results" role="region" aria-live="polite" aria-label="Query results"></div>
             </div>
         </main>
     </div>

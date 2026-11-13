@@ -44,6 +44,28 @@
     }
   }
 
+  function applySearchFilters() {
+    var qInput = document.getElementById("email-search");
+    var query = qInput ? qInput.value : "";
+    var parts = [];
+    if (query && query.trim()) {
+      parts.push(query.trim());
+    }
+    var unread = document.getElementById("filter-unread");
+    if (unread && unread.checked) {
+      parts.push("is:unread");
+    }
+    var hasAttachment = document.getElementById("filter-has-attachment");
+    if (hasAttachment && hasAttachment.checked) {
+      parts.push("has:attachment");
+    }
+    var fromInput = document.getElementById("filter-from");
+    if (fromInput && fromInput.value && fromInput.value.trim()) {
+      parts.push("from:" + fromInput.value.trim());
+    }
+    searchAllAccounts(parts.join(" "));
+  }
+
   function loadUnifiedInbox() {
     var mailList = document.getElementById("mail-list");
     if (mailList && typeof htmx !== "undefined") {

@@ -60,7 +60,13 @@
 
   function say(message) {
     var node = document.getElementById("oda-status");
-    if (node) node.textContent = message || "";
+    if (!node) return;
+    var text = message || "";
+    var isError = /cannot|failed|lost|error|unavailable/i.test(text);
+    node.setAttribute("role", isError ? "alert" : "status");
+    node.setAttribute("aria-live", isError ? "assertive" : "polite");
+    node.setAttribute("aria-atomic", "true");
+    node.textContent = text;
   }
 
   function allModels() {
@@ -304,29 +310,45 @@
       });
   }
 
+  function confirmModal(message, title) {
+    return new Promise(function (resolve) {
+      if (window.GBModal && typeof window.GBModal.confirm === "function") {
+        window.GBModal.confirm(message, title || "Confirm", function () { resolve(true); }, function () { resolve(false); });
+        return;
+      }
+      resolve(true);
+    });
+  }
+
   function activate(id, profile) {
     var model = findModel(id);
     if (!model) return;
+    var doActivate = function () {
+      var payload = { model_id: id };
+      if (profile) payload.profile = profile;
+      json("/api/llm/local/activate", { method: "POST", body: JSON.stringify(payload) })
+        .then(function (body) {
+          say(
+            "Saved. " + body.active + " is the on-device model; restart the local model to load it."
+          );
+          load();
+        })
+        .catch(function (error) {
+          say("Cannot activate: " + error.message);
+        });
+    };
+    var askSwitch = function () {
+      confirmModal("Switch the on-device model? It is used the next time the local model starts.", "Confirm").then(function (ok) {
+        if (ok) doActivate();
+      });
+    };
     if (!model.fits) {
-      if (!window.confirm("This model needs more memory than this device has. Activate it anyway?")) {
-        return;
-      }
-    }
-    if (!window.confirm("Switch the on-device model? It is used the next time the local model starts.")) {
+      confirmModal("This model needs more memory than this device has. Activate it anyway?", "Confirm").then(function (ok) {
+        if (ok) askSwitch();
+      });
       return;
     }
-    var payload = { model_id: id };
-    if (profile) payload.profile = profile;
-    json("/api/llm/local/activate", { method: "POST", body: JSON.stringify(payload) })
-      .then(function (body) {
-        say(
-          "Saved. " + body.active + " is the on-device model; restart the local model to load it."
-        );
-        load();
-      })
-      .catch(function (error) {
-        say("Cannot activate: " + error.message);
-      });
+    askSwitch();
   }
 
   function remove(id) {

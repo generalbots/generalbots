@@ -100,8 +100,8 @@
 }
 
 .as-collapse-btn {
-    width: 20px;
-    height: 20px;
+    width: 44px;
+    height: 44px;
     border: none;
     background: transparent;
     color: var(--text-muted, #888);
@@ -240,3 +240,4 @@
     width: 8px;
     transition: transform 0.15s;
 }
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

@@ -187,9 +187,15 @@ window.togglePushNotifications = function (checkbox) {
   var enabled = checkbox.checked;
   localStorage.setItem("gb-push-enabled", enabled);
   if (enabled) {
-    requestPushPermissionAndSubscribe().catch(function () {});
+    requestPushPermissionAndSubscribe().catch(function (err) {
+      /* Push subscription is user-initiated but browser/permission failures are common. */
+      console.warn("[gb-settings] Push subscribe failed:", err);
+    });
   } else {
-    unregisterPushSubscription().catch(function () {});
+    unregisterPushSubscription().catch(function (err) {
+      /* Best-effort unsubscribe; local preference is already updated. */
+      console.debug("[gb-settings] Push unsubscribe failed:", err);
+    });
   }
   // Persist the whole preferences form to the server (best effort).
   var form = checkbox.closest("form");
@@ -202,7 +208,10 @@ window.togglePushNotifications = function (checkbox) {
         Authorization: "Bearer " + getAuthToken(),
       },
       body: JSON.stringify(Object.fromEntries(params.entries())),
-    }).catch(function () {});
+    }).catch(function (err) {
+      /* Best-effort preferences persist; local toggle already applied. */
+      console.debug("[gb-settings] Push preference save failed:", err);
+    });
   }
   showToast(enabled ? "Push notifications enabled" : "Push notifications disabled");
 };
@@ -277,7 +286,10 @@ function loadNotificationPreferences() {
     .then(function (prefs) {
       if (prefs) applyNotificationPreferences(prefs);
     })
-    .catch(function () {});
+    .catch(function (err) {
+      /* Best-effort notification preferences load; defaults remain in effect. */
+      console.debug("[gb-settings] Notification preferences fetch failed:", err);
+    });
 }
 
 if (document.body) {

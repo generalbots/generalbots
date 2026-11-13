@@ -190,7 +190,10 @@
         var n = (r && r.count) || 0;
         badge.textContent = n > 99 ? "99+" : String(n);
         badge.style.display = n > 0 ? "inline-block" : "none";
-      }).catch(function () {});
+      }).catch(function (err) {
+        /* Best-effort unread badge refresh. */
+        console.debug("[gb-collab-comments] Badge refresh failed:", err);
+      });
     }
     S.badgeRefreshFn = refresh;
     refresh();
@@ -217,7 +220,10 @@
           );
         }
       })
-      .catch(function () {});
+      .catch(function (err) {
+        /* Best-effort mention polling. */
+        console.debug("[gb-collab-comments] Mention poll failed:", err);
+      });
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { pollMentions(); setInterval(pollMentions, 60000); });

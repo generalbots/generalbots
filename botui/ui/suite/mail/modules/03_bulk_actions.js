@@ -63,38 +63,47 @@
       }
       return;
     }
-    var labelName = prompt("Enter label name to add to selected emails:");
-    if (!labelName || !labelName.trim()) return;
+    var modal = window.GBModal;
+    if (!modal || typeof modal.prompt !== "function") {
+      return;
+    }
+    modal.prompt("Enter label name to add to selected emails:", "", "Add label", function (labelName) {
+      if (!labelName || !labelName.trim()) return;
 
-    var ids = Array.from(selectedEmails);
-    fetch("/api/email/bulk/add-label", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: ids, label_name: labelName.trim() })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res && res.success) {
-        if (typeof window.showNotification === "function") {
-          window.showNotification("Label applied to selected emails", "success");
+      var ids = Array.from(selectedEmails);
+      fetch("/api/email/bulk/add-label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ids, label_name: labelName.trim() })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.success) {
+          if (typeof window.showNotification === "function") {
+            window.showNotification("Label applied to selected emails", "success");
+          }
+          selectedEmails.clear();
+          updateBulkActions();
+          refreshMailList();
+          var labelsList = document.getElementById("labels-list");
+          if (labelsList && typeof htmx !== "undefined") {
+            htmx.trigger(labelsList, "load");
+          }
         }
-        selectedEmails.clear();
-        updateBulkActions();
-        refreshMailList();
-        var labelsList = document.getElementById("labels-list");
-        if (labelsList && typeof htmx !== "undefined") {
-          htmx.trigger(labelsList, "load");
-        }
-      }
-    })
-    .catch(function(e) {
-      console.error(e);
+      })
+      .catch(function(e) {
+        console.error(e);
+      });
     });
   }
 
   function deleteSelected() {
     if (selectedEmails.size === 0) return;
-    if (confirm("Delete " + selectedEmails.size + " emails?")) {
+    var modal = window.GBModal;
+    if (!modal || typeof modal.confirm !== "function") {
+      return;
+    }
+    modal.confirm("Delete " + selectedEmails.size + " emails?", "Delete emails", function () {
       var ids = Array.from(selectedEmails);
       fetch("/api/email/bulk/delete", {
         method: "POST",
@@ -119,7 +128,7 @@
           window.showNotification("Delete error: " + err.message, "error");
         }
       });
-    }
+    });
   }
 
   function saveLabel() {

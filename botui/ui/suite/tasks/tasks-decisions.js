@@ -225,8 +225,13 @@ function pauseTask(taskId) {
     });
 }
 
-function cancelTask(taskId) {
-  if (!confirm("Are you sure you want to cancel this task?")) {
+async function cancelTask(taskId) {
+  const ok = typeof gbConfirm === "function"
+    ? await gbConfirm("Are you sure you want to cancel this task?", "Cancel task")
+    : (window.GBModal && typeof window.GBModal.confirm === "function"
+      ? await new Promise((r) => window.GBModal.confirm("Are you sure you want to cancel this task?", "Cancel task", () => r(true), () => r(false)))
+      : false);
+  if (!ok) {
     return;
   }
 

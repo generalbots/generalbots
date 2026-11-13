@@ -166,13 +166,17 @@
     function handleFrame(data) {
         if (!canvas) {
             canvas = document.getElementById('vnc-canvas');
-            ctx = canvas.getContext('2d');
+            ctx = canvas ? canvas.getContext('2d') : null;
+            if (canvas && !ctx) {
+                ctx = canvas.getContext('2d');
+            }
         }
 
         frameCount++;
         const now = Date.now();
         if (now - lastFpsTime >= 1000) {
-            document.getElementById('status-fps').textContent = 'FPS: ' + frameCount;
+            const fpsEl = document.getElementById('status-fps');
+            if (fpsEl) fpsEl.textContent = 'FPS: ' + frameCount;
             frameCount = 0;
             lastFpsTime = now;
         }
@@ -255,11 +259,14 @@
     }
 
     function sendAuth() {
-        const password = document.getElementById('auth-password').value;
+        const passwordEl = document.getElementById('auth-password');
+        if (!passwordEl) return;
+        const password = passwordEl.value;
         if (ws && password) {
             ws.send(JSON.stringify({ type: 'auth', password: password }));
-            document.getElementById('auth-modal-overlay').style.display = 'none';
-            document.getElementById('auth-password').value = '';
+            const authOverlay = document.getElementById('auth-modal-overlay');
+            if (authOverlay) authOverlay.style.display = 'none';
+            passwordEl.value = '';
         }
     }
 
@@ -270,27 +277,49 @@
     }
 
     function init() {
-        document.getElementById('btn-new-connection').addEventListener('click', function() {
-            document.getElementById('modal-overlay').style.display = 'flex';
-        });
-        document.getElementById('btn-modal-close').addEventListener('click', closeModal);
-        document.getElementById('btn-modal-cancel').addEventListener('click', closeModal);
-        document.getElementById('btn-modal-save').addEventListener('click', saveAndConnect);
-        document.getElementById('btn-quick-connect').addEventListener('click', function() {
-            const val = document.getElementById('quick-host').value.trim();
-            if (!val) return;
-            const parts = val.split(':');
-            connect(parts[0], parseInt(parts[1]) || 5900, 'vnc');
-        });
-        document.getElementById('btn-disconnect').addEventListener('click', disconnect);
-        document.getElementById('btn-ctrl-alt-del').addEventListener('click', sendCtrlAltDel);
-        document.getElementById('btn-auth-submit').addEventListener('click', sendAuth);
+        const btnNewConnection = document.getElementById('btn-new-connection');
+        if (btnNewConnection) {
+            btnNewConnection.addEventListener('click', function() {
+                const modalOverlay = document.getElementById('modal-overlay');
+                if (modalOverlay) modalOverlay.style.display = 'flex';
+            });
+        }
+        const btnModalClose = document.getElementById('btn-modal-close');
+        if (btnModalClose) btnModalClose.addEventListener('click', closeModal);
+        const btnModalCancel = document.getElementById('btn-modal-cancel');
+        if (btnModalCancel) btnModalCancel.addEventListener('click', closeModal);
+        const btnModalSave = document.getElementById('btn-modal-save');
+        if (btnModalSave) btnModalSave.addEventListener('click', saveAndConnect);
+        const btnQuickConnect = document.getElementById('btn-quick-connect');
+        if (btnQuickConnect) {
+            btnQuickConnect.addEventListener('click', function() {
+                const quickHost = document.getElementById('quick-host');
+                const val = quickHost ? quickHost.value.trim() : '';
+                if (!val) return;
+                const parts = val.split(':');
+                connect(parts[0], parseInt(parts[1], 10) || 5900, 'vnc');
+            });
+        }
+        const btnDisconnect = document.getElementById('btn-disconnect');
+        if (btnDisconnect) btnDisconnect.addEventListener('click', disconnect);
+        const btnCtrlAltDel = document.getElementById('btn-ctrl-alt-del');
+        if (btnCtrlAltDel) btnCtrlAltDel.addEventListener('click', sendCtrlAltDel);
+        const btnAuthSubmit = document.getElementById('btn-auth-submit');
+        if (btnAuthSubmit) btnAuthSubmit.addEventListener('click', sendAuth);
 
-        document.getElementById('quick-host').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') document.getElementById('btn-quick-connect').click();
-        });
+        const quickHostInput = document.getElementById('quick-host');
+        if (quickHostInput) {
+            quickHostInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const btn = document.getElementById('btn-quick-connect');
+                    if (btn) btn.click();
+                }
+            });
+        }
 
-        loadConnections();
+        if (grid || connectionsSection) {
+            loadConnections();
+        }
     }
 
     window.DesktopVDI = {

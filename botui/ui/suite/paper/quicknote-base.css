@@ -83,8 +83,8 @@
 }
 
 .btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -204,8 +204,8 @@
 }
 
 .format-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -353,3 +353,11 @@
 .sync-status[data-state="idle"] .status-dot { background: var(--paper-text-light); }
 .sync-status[data-state="error"] .status-text { color: #d9534f; }
 .sync-status .status-text { font-size: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -3,7 +3,7 @@
 /* --- Snap assist picker + ghost --- */
 .gb-snap-picker {
   position: fixed;
-  z-index: 9991;
+  z-index: var(--z-overlay, 1600);
   background: rgba(22, 24, 34, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
@@ -33,7 +33,7 @@
 .gb-snap-picker-grid button[data-layout="full"] { border-color: rgba(80, 140, 255, 0.6); }
 .gb-snap-ghost {
   position: fixed;
-  z-index: 9989;
+  z-index: var(--z-overlay, 1600);
   background: rgba(80, 140, 255, 0.16);
   border: 2px solid rgba(80, 140, 255, 0.65);
   border-radius: 8px;
@@ -44,7 +44,7 @@
 /* --- Virtual desktop strip --- */
 .gb-desktops-strip {
   position: fixed;
-  z-index: 75;
+  z-index: var(--z-sticky, 100);
   background: rgba(20, 20, 28, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -91,7 +91,7 @@
 /* --- Snap assist --- */
 .snap-assist-zone {
   position: fixed;
-  z-index: 9990;
+  z-index: var(--z-overlay, 1600);
   background: rgba(80, 140, 255, 0.18);
   border: 2px dashed rgba(80, 140, 255, 0.7);
   border-radius: 8px;
@@ -111,7 +111,7 @@
   border-radius: 12px;
   padding: 8px 10px;
   display: none;
-  z-index: 70;
+  z-index: var(--z-sticky, 100);
   gap: 6px;
 }
 .virtual-desktop-switcher.visible { display: flex; }

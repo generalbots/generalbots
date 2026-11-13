@@ -16,6 +16,22 @@ const PosApp = {
         return res.json();
     },
 
+    toCents(v) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return 0;
+        return Math.round(n * 100);
+    },
+
+    lineCents(price, qty) {
+        const q = Number(qty);
+        const safeQty = Number.isFinite(q) ? Math.round(q) : 0;
+        return this.toCents(price) * safeQty;
+    },
+
+    cartSubtotalCents() {
+        return this.state.cart.reduce((sum, item) => sum + this.lineCents(item.price, item.qty), 0);
+    },
+
     async loadProducts() {
         try {
             const data = await this.api('/api/pos/products');
@@ -23,7 +39,12 @@ const PosApp = {
             this.buildCategories();
             this.renderProducts();
         } catch (e) {
-            document.getElementById('pos-grid').innerHTML = '<div class="loading-row">Failed to load products</div>';
+            const grid = document.getElementById('pos-grid');
+            if (grid) {
+                grid.setAttribute('role', 'alert');
+                grid.setAttribute('aria-live', 'assertive');
+                grid.innerHTML = '<div class="loading-row">Failed to load products</div>';
+            }
         }
     },
 
@@ -55,6 +76,9 @@ const PosApp = {
             );
         }
         const grid = document.getElementById('pos-grid');
+        if (!grid) return;
+        grid.setAttribute('role', 'status');
+        grid.setAttribute('aria-live', 'polite');
         if (!products.length) { grid.innerHTML = '<div class="loading-row">No products found</div>'; return; }
         grid.innerHTML = products.map(p => {
             const stock = p.stock || 0;
@@ -123,17 +147,17 @@ const PosApp = {
                         <span>${i.qty}</span>
                         <button onclick="PosApp.updateQty('${i.id}',1)">+</button>
                     </div>
-                    <span class="pos-cart-item-total">${this.fmt(i.price * i.qty)}</span>
+                    <span class="pos-cart-item-total">${this.fmt(this.lineCents(i.price, i.qty) / 100)}</span>
                     <button class="pos-cart-item-remove" onclick="PosApp.removeFromCart('${i.id}')">&times;</button>
                 </div>
             `).join('');
         }
-        const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-        const tax = subtotal * 0.1;
-        const total = subtotal + tax;
-        document.getElementById('cart-subtotal').textContent = this.fmt(subtotal);
-        document.getElementById('cart-tax').textContent = this.fmt(tax);
-        document.getElementById('cart-total').textContent = this.fmt(total);
+        const subtotalCents = this.cartSubtotalCents();
+        const taxCents = Math.round(subtotalCents * 10 / 100);
+        const totalCents = subtotalCents + taxCents;
+        document.getElementById('cart-subtotal').textContent = this.fmt(subtotalCents / 100);
+        document.getElementById('cart-tax').textContent = this.fmt(taxCents / 100);
+        document.getElementById('cart-total').textContent = this.fmt(totalCents / 100);
         document.getElementById('pos-confirm').disabled = !items.length;
     },
 
@@ -145,12 +169,20 @@ const PosApp = {
 
     async confirmOrder() {
         if (!this.state.cart.length) return;
-        const subtotal = this.state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-        const tax = subtotal * 0.1;
-        const total = subtotal + tax;
+        const subtotalCents = this.cartSubtotalCents();
+        const taxCents = Math.round(subtotalCents * 10 / 100);
+        const totalCents = subtotalCents + taxCents;
         const order = {
-            items: this.state.cart.map(i => ({ product_id: i.id, name: i.name, price: i.price, qty: i.qty })),
-            subtotal, tax, total,
+            items: this.state.cart.map(i => ({
+                product_id: i.id,
+                name: i.name,
+                price: this.toCents(i.price) / 100,
+                qty: i.qty,
+                line_total: this.lineCents(i.price, i.qty) / 100
+            })),
+            subtotal: subtotalCents / 100,
+            tax: taxCents / 100,
+            total: totalCents / 100,
             payment_method: this.state.paymentMethod
         };
         try {
@@ -158,9 +190,20 @@ const PosApp = {
             this.state.cart = [];
             this.renderCart();
             this.loadProducts();
-            alert('Order confirmed!');
+            this.announce('Order confirmed!', 'status');
+            if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+                window.GBToasts.show('POS', 'Order confirmed!', 'success');
+            } else if (window.GBModal && typeof window.GBModal.alert === 'function') {
+                window.GBModal.alert('Order confirmed!', 'POS');
+            }
         } catch (e) {
-            alert('Order failed: ' + e.message);
+            const msg = 'Order failed: ' + e.message;
+            this.announce(msg, 'alert');
+            if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+                window.GBToasts.show('POS', msg, 'error');
+            } else if (window.GBModal && typeof window.GBModal.alert === 'function') {
+                window.GBModal.alert(msg, 'POS');
+            }
         }
     },
 
@@ -169,6 +212,15 @@ const PosApp = {
         this.renderCart();
     },
 
+    announce(text, kind) {
+        const el = document.getElementById('pos-live-status');
+        if (!el) return;
+        const alert = kind === 'alert';
+        el.setAttribute('role', alert ? 'alert' : 'status');
+        el.setAttribute('aria-live', alert ? 'assertive' : 'polite');
+        el.textContent = '';
+        setTimeout(() => { el.textContent = text || ''; }, 20);
+    },
     fmt(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v || 0); },
     esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 };

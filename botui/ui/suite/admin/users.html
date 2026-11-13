@@ -20,13 +20,15 @@
     <!-- Search and Filters -->
     <div class="toolbar">
         <div class="search-box">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="text"
                    placeholder="Search users..."
+                   aria-label="Search users"
                    name="q"
+                   autocomplete="off"
                    hx-get="/api/directory/users/search"
                    hx-trigger="keyup changed delay:300ms"
                    hx-target="#users-table-body"
@@ -34,6 +36,7 @@
         </div>
         <div class="filters">
             <select name="role"
+                    aria-label="Filter by role"
                     hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
@@ -45,6 +48,7 @@
                 <option value="user" data-i18n="start-menu-user">User</option>
             </select>
             <select name="status"
+                    aria-label="Filter by status"
                     hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
@@ -64,7 +68,7 @@
             <thead>
                 <tr>
                     <th>
-                        <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)">
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" aria-label="Select all users">
                     </th>
                     <th data-i18n="start-menu-user">User</th>
                     <th data-i18n="attendant-channel-email">Email</th>
@@ -74,13 +78,13 @@
                     <th data-i18n="billing-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="users-table-body"
+            <tbody id="users-table-body" role="status" aria-live="polite"
                    hx-get="/api/directory/users/list"
                    hx-trigger="load"
                    hx-swap="innerHTML">
                 <tr>
                     <td colspan="7" class="loading-cell">
-                        <div class="loading-state">
+                        <div class="loading-state" role="status">
                             <div class="spinner"></div>
                             <p data-i18n="auto-loading-users">Loading users...</p>
                         </div>
@@ -91,7 +95,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination" id="users-pagination"
+    <div class="pagination" id="users-pagination" role="status" aria-live="polite"
          hx-get="/api/directory/users/list/pagination"
          hx-trigger="load"
          hx-swap="innerHTML">
@@ -102,8 +106,8 @@
 <div class="detail-panel" id="user-detail-panel">
     <div class="panel-header">
         <h2 id="panel-user-name" data-i18n="auto-user-details">User Details</h2>
-        <button class="close-btn" onclick="closeDetailPanel()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="close-btn" onclick="closeDetailPanel()" aria-label="Close user details">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -116,7 +120,7 @@
         <button class="tab-btn" data-tab="security" onclick="switchTab(this, 'security')" data-i18n="learn-security">Security</button>
         <button class="tab-btn" data-tab="activity" onclick="switchTab(this, 'activity')" data-i18n="crm-activity">Activity</button>
     </div>
-    <div class="panel-content" id="user-detail-content">
+    <div class="panel-content" id="user-detail-content" role="status" aria-live="polite">
         <!-- Content loaded via HTMX -->
     </div>
 </div>
@@ -126,8 +130,8 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 data-i18n="auto-create-new-user">Create New User</h2>
-            <button type="button" class="close-btn" onclick="document.getElementById('create-user-modal').close()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="close-btn" onclick="document.getElementById('create-user-modal').close()" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -139,40 +143,40 @@
               hx-on::after-request="if(event.detail.successful) { document.getElementById('create-user-modal').close(); showToast('User created successfully'); }">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Username <span class="required">*</span></label>
-                    <input type="text" name="username" required placeholder="johndoe">
+                    <label for="create-user-username">Username <span class="required">*</span></label>
+                    <input id="create-user-username" type="text" name="username" required placeholder="johndoe" autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="settings-display-name">Display Name</label>
-                    <input type="text" name="display_name" placeholder="John Doe">
+                    <label for="create-user-display-name" data-i18n="settings-display-name">Display Name</label>
+                    <input id="create-user-display-name" type="text" name="display_name" placeholder="John Doe" autocomplete="name">
                 </div>
             </div>
             <div class="form-group">
-                <label>Email <span class="required">*</span></label>
-                <input type="email" name="email" required placeholder="john@example.com">
+                <label for="create-user-email">Email <span class="required">*</span></label>
+                <input id="create-user-email" type="email" name="email" required placeholder="john@example.com" autocomplete="email">
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Password <span class="required">*</span></label>
-                    <input type="password" name="password" required placeholder="••••••••" minlength="8" autocomplete="new-password">
+                    <label for="create-user-password">Password <span class="required">*</span></label>
+                    <input id="create-user-password" type="password" name="password" required placeholder="••••••••" minlength="8" autocomplete="new-password">
                 </div>
                 <div class="form-group">
-                    <label>Confirm Password <span class="required">*</span></label>
-                    <input type="password" name="password_confirm" required placeholder="••••••••" autocomplete="new-password">
+                    <label for="create-user-password-confirm">Confirm Password <span class="required">*</span></label>
+                    <input id="create-user-password-confirm" type="password" name="password_confirm" required placeholder="••••••••" autocomplete="new-password">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label data-i18n="label-role">Role</label>
-                    <select name="role">
+                    <label for="create-user-role" data-i18n="label-role">Role</label>
+                    <select id="create-user-role" name="role">
                         <option value="user" data-i18n="start-menu-user">User</option>
                         <option value="moderator" data-i18n="auto-moderator">Moderator</option>
                         <option value="admin" data-i18n="nav-admin">Admin</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label data-i18n="label-status">Status</label>
-                    <select name="status">
+                    <label for="create-user-status" data-i18n="label-status">Status</label>
+                    <select id="create-user-status" name="status">
                         <option value="active" data-i18n="label-active">Active</option>
                         <option value="inactive" data-i18n="label-inactive">Inactive</option>
                     </select>
@@ -203,14 +207,14 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 data-i18n="auto-edit-user">Edit User</h2>
-            <button type="button" class="close-btn" onclick="document.getElementById('edit-user-modal').close()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="close-btn" onclick="document.getElementById('edit-user-modal').close()" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
         </div>
-        <div id="edit-user-form-container">
+        <div id="edit-user-form-container" role="status" aria-live="polite">
             <!-- Form loaded via HTMX -->
         </div>
     </div>
@@ -221,8 +225,8 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 data-i18n="auto-delete-user">Delete User</h2>
-            <button type="button" class="close-btn" onclick="document.getElementById('delete-user-modal').close()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" class="close-btn" onclick="document.getElementById('delete-user-modal').close()" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>

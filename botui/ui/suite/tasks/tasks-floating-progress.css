@@ -156,8 +156,10 @@
 }
 
 .floating-progress-actions button {
-    width: 24px;
-    height: 24px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -444,4 +446,12 @@
 .terminal-content .log-bytes {
     color: #7ee787;
     margin-left: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

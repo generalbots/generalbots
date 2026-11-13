@@ -38,7 +38,9 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ app_id: id }),
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.error("[gb-store] App install request failed:", err);
+    });
     window.dispatchEvent(new CustomEvent("gb-app-installed", { detail: { id, title } }));
     // Pin the freshly installed app to the launcher so it's one click away.
     window.dispatchEvent(new CustomEvent("gb-launcher-pin-request", { detail: { kind: "app", appId: id } }));
@@ -57,7 +59,9 @@
             window.WindowManager._injectBodyContent(app.id, html);
           }
         })
-        .catch(function () {});
+        .catch(function (err) {
+          console.error("[gb-store] Failed to load app content:", err);
+        });
     } else {
       window.open(app.url, "_blank", "noopener");
     }

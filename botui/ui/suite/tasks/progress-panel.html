@@ -1,5 +1,5 @@
 <div class="gb-app progress-panel" id="task-progress-panel" data-gb-app="tasks">
-    <div class="status-section">
+    <div class="status-section" role="status" aria-live="polite" aria-atomic="false">
         <div class="status-header">
             <span class="status-label" data-i18n="auto-status">STATUS</span>
         </div>
@@ -8,23 +8,23 @@
                 <span class="status-title" id="status-title" data-i18n="auto-implement-user-authentication-system">Implement User Authentication System</span>
                 <div class="status-time">
                     <span class="runtime-label" data-i18n="auto-runtime">Runtime:</span>
-                    <span class="runtime-value" id="status-runtime">42 min</span>
-                    <span class="status-indicator active"></span>
+                    <span class="runtime-value" id="status-runtime" aria-live="polite" aria-atomic="true">42 min</span>
+                    <span class="status-indicator active" aria-hidden="true"></span>
                 </div>
             </div>
             <div class="status-current-action">
-                <span class="action-dot active"></span>
-                <span class="action-text" id="current-action" data-i18n="auto-choose-token-expiration-strategy">Choose Token Expiration Strategy</span>
+                <span class="action-dot active" aria-hidden="true"></span>
+                <span class="action-text" id="current-action" data-i18n="auto-choose-token-expiration-strategy" aria-live="polite" aria-atomic="true">Choose Token Expiration Strategy</span>
                 <div class="estimated-time">
                     <span class="estimated-label" data-i18n="auto-estimated">Estimated:</span>
-                    <span class="estimated-value" id="estimated-time">15 min</span>
-                    <span class="settings-icon">⚙</span>
+                    <span class="estimated-value" id="estimated-time" aria-live="polite" aria-atomic="true">15 min</span>
+                    <span class="settings-icon" aria-hidden="true">⚙</span>
                 </div>
             </div>
             <div class="status-decision-point">
-                <span class="decision-dot pending"></span>
+                <span class="decision-dot pending" aria-hidden="true"></span>
                 <span class="decision-text">Decision Point Coming (Step <span id="decision-step">26</span>/<span id="decision-total">60</span>)</span>
-                <span class="decision-badge" id="decision-note" data-i18n="auto-will-need-approval-for-security-configuration">Will need approval for security configuration</span>
+                <span class="decision-badge" id="decision-note" data-i18n="auto-will-need-approval-for-security-configuration" aria-live="polite">Will need approval for security configuration</span>
             </div>
         </div>
     </div>
@@ -33,22 +33,22 @@
         <div class="progress-log-header">
             <span class="progress-log-label" data-i18n="auto-progress-log">PROGRESS LOG</span>
         </div>
-        <div class="progress-log-content" id="progress-log-content">
+        <div class="progress-log-content" id="progress-log-content" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Progress log" data-i18n-aria-label="tasks-progress-log">
         </div>
     </div>
 
     <div class="terminal-section">
         <div class="terminal-header">
             <span class="terminal-label" data-i18n="auto-terminal-live-agent-activity">TERMINAL (LIVE AGENT ACTIVITY)</span>
-            <div class="terminal-stats">
+            <div class="terminal-stats" role="status" aria-live="polite" aria-atomic="true">
                 <span class="stat-item"><span data-i18n="auto-processed">Processed: </span><strong id="terminal-processed">127</strong> <span data-i18n="auto-data-points">data points</span></span>
-                <span class="stat-separator">/</span>
+                <span class="stat-separator" aria-hidden="true">/</span>
                 <span class="stat-item">Processing speed: <strong id="terminal-speed" data-i18n="auto-8-sources-min">~8 sources/min</strong></span>
-                <span class="stat-separator"></span>
+                <span class="stat-separator" aria-hidden="true"></span>
                 <span class="stat-item">Estimated completion: <strong id="terminal-eta">6 minutes</strong></span>
             </div>
         </div>
-        <div class="terminal-content" id="terminal-content">
+        <div class="terminal-content" id="terminal-content" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Live agent activity" data-i18n-aria-label="tasks-terminal-log">
             <div class="terminal-line" data-i18n="auto-synthesizing-competitive-insights">Synthesizing competitive insights...</div>
             <div class="terminal-line" data-i18n="auto-cross-referencing-pricing-data">Cross-referencing pricing data...</div>
         </div>
@@ -101,5 +101,5 @@
 <template id="terminal-line-template">
     <div class="terminal-line ${line_type}">${content}</div>
 </template>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>

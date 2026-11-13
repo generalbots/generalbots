@@ -8,7 +8,10 @@
         <div class="resource-card cpu-card"
              hx-get="/api/monitoring/resources/cpu"
              hx-trigger="load, every 5s"
-             hx-swap="innerHTML">
+             hx-swap="innerHTML"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true">
             <div class="card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="4" y="4" width="16" height="16" rx="2"></rect>
@@ -37,7 +40,10 @@
         <div class="resource-card memory-card"
              hx-get="/api/monitoring/resources/memory"
              hx-trigger="load, every 5s"
-             hx-swap="innerHTML">
+             hx-swap="innerHTML"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true">
             <div class="card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="6" width="20" height="12" rx="2"></rect>
@@ -61,7 +67,10 @@
         <div class="resource-card disk-card"
              hx-get="/api/monitoring/resources/disk"
              hx-trigger="load, every 30s"
-             hx-swap="innerHTML">
+             hx-swap="innerHTML"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true">
             <div class="card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
@@ -83,7 +92,10 @@
         <div class="resource-card network-card"
              hx-get="/api/monitoring/resources/network"
              hx-trigger="load, every 5s"
-             hx-swap="innerHTML">
+             hx-swap="innerHTML"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true">
             <div class="card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
@@ -363,6 +375,6 @@
     </div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/monitoring/resources.js"></script>

@@ -315,7 +315,9 @@
         if (!currentFile) return;
         const url = `${window.location.origin}/player?file=${encodeURIComponent(currentFile.path)}`;
         navigator.clipboard.writeText(url);
-        alert("Link copied to clipboard!");
+        if (window.GBToasts && typeof window.GBToasts.show === "function") {
+            window.GBToasts.show("Share", "Link copied to clipboard!", "success");
+        }
     }
 
     function togglePlaylistPanel() {

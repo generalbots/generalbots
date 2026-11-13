@@ -28,6 +28,12 @@
     height: 32px;
 }
 
+/* Keep app icons legible when suite dark themes are active (external SVGs
+   cannot read host theme vars; OS media queries may not match app theme). */
+[data-color-scheme="dark"] .brand-icon {
+    filter: brightness(1.8) saturate(0.85);
+}
+
 .meet-brand h1 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -389,4 +395,12 @@
 
 .control-btn-lg:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

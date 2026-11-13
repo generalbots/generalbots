@@ -391,3 +391,32 @@
     --text-secondary: #696969;
 }
 
+/* ============================================ */
+/* Z-INDEX STACKING SCALE (#2321)               */
+/* Canonical layers for suite surfaces.         */
+/* Use tokens instead of literal z-index.       */
+/* Windows use --z-window as base; the window   */
+/* manager raises the focused window via inline */
+/* z-index (runtime), so global floating UI must */
+/* sit at/above --z-dropdown to stay visible.   */
+/* ============================================ */
+:root {
+    --z-below: -1;
+    --z-base: 0;
+    --z-raised: 10;
+    --z-content: 20;
+    --z-sticky: 100;
+    --z-header: 200;
+    --z-fixed: 300;
+    --z-window: 400;
+    --z-dropdown: 1000;
+    --z-popover: 1100;
+    --z-context-menu: 1100;
+    --z-modal-backdrop: 1200;
+    --z-modal: 1300;
+    --z-toast: 1400;
+    --z-tooltip: 1500;
+    --z-overlay: 1600;
+    --z-system: 2000;
+}
+

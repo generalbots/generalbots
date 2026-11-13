@@ -35,15 +35,21 @@
   }
 
   function showNotification(message, type) {
-    if (typeof window.showNotification === "function") {
-      window.showNotification(message, type);
-    } else if (typeof window.GBAlerts !== "undefined") {
+    if (typeof window.GBAlerts !== "undefined") {
       if (type === "success") window.GBAlerts.success("Dashboards", message);
       else if (type === "error") window.GBAlerts.error("Dashboards", message);
       else window.GBAlerts.info("Dashboards", message);
-    } else {
-      console.log(`[${type}] ${message}`);
+      return;
     }
+    var isError = type === "error";
+    var notification = document.createElement("div");
+    notification.className = "notification " + (type || "info");
+    notification.setAttribute("role", isError ? "alert" : "status");
+    notification.setAttribute("aria-live", isError ? "assertive" : "polite");
+    notification.setAttribute("aria-atomic", "true");
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(function () { notification.remove(); }, 3000);
   }
 
   // =============================================================================

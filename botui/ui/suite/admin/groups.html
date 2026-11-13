@@ -33,12 +33,12 @@ hx-swap="innerHTML"> <option value="" data-i18n="auto-all-visibility">All Visibi
 </button> </div>
 </div> </div>
  <!-- Groups Grid -->
-<div class="groups-grid" id="groups-grid" hx-get="/api/directory/groups/list"
+<div class="groups-grid" id="groups-grid" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/directory/groups/list"
 hx-trigger="load" hx-swap="innerHTML">
-<div class="loading-state"> <div class="spinner"></div>
+<div class="loading-state" role="status"> <div class="spinner"></div>
 <p data-i18n="auto-loading-groups">Loading groups...</p> </div>
 </div> 
-<!-- Pagination --> <div class="pagination" id="groups-pagination"
+<!-- Pagination --> <div class="pagination" id="groups-pagination" role="status" aria-live="polite"
 hx-get="/api/directory/groups/list/pagination" hx-trigger="load"
 hx-swap="innerHTML"> </div>
 </div> 
@@ -51,7 +51,7 @@ hx-swap="innerHTML"> </div>
 <button class="tab-btn active" data-tab="overview" onclick="switchTab(this, 'overview')" data-i18n="auto-overview">Overview</button> <button class="tab-btn" data-tab="members" onclick="switchTab(this, 'members')" data-i18n="auto-members">Members</button>
 <button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')" data-i18n="auto-permissions">Permissions</button> <button class="tab-btn" data-tab="kbs" onclick="switchTab(this, 'kbs')" data-i18n="auto-knowledge-bases">Knowledge Bases</button>
 <button class="tab-btn" data-tab="settings" onclick="switchTab(this, 'settings')" data-i18n="workspace-settings">Settings</button> <button class="tab-btn" data-tab="analytics" onclick="switchTab(this, 'analytics')" data-i18n="settings-analytics">Analytics</button>
-</div> <div class="panel-content" id="group-detail-content">
+</div> <div class="panel-content" id="group-detail-content" role="status" aria-live="polite">
 <!-- Content loaded via HTMX --> </div>
 </div> 
 <!-- Create Group Modal --> <dialog id="create-group-modal" class="modal">
@@ -99,7 +99,7 @@ hx-on::after-request="if(event.detail.successful) { document.getElementById('add
 placeholder="Search by name or email..." hx-get="/api/directory/users/search"
 hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results"
 hx-swap="innerHTML"> </div>
-<div id="user-search-results" class="search-results"></div> </div>
+<div id="user-search-results" class="search-results" role="status" aria-live="polite"></div> </div>
 <div class="form-group"> <label data-i18n="auto-selected-users">Selected Users</label>
 <div id="selected-users" class="selected-users"> <p class="empty-text" data-i18n="auto-no-users-selected">No users selected</p>
 </div> </div>
@@ -148,7 +148,7 @@ Delete Group </button>
 </dialog> 
 <link rel="stylesheet" href="/suite/admin/groups-inline/01_groups_layout.css"> <link rel="stylesheet" href="/suite/admin/groups-inline/02_groups_panel.css">
 <link rel="stylesheet" href="/suite/admin/groups-inline/03_groups_controls.css"> 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div> <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div> <div class="gb-state gb-state-error" role="alert"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script></script> function setView(view, btn) {
 const grid = document.getElementById('groups-grid'); document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
 btn.classList.add('active'); 
@@ -181,6 +181,8 @@ deleteBtn.setAttribute('hx-delete', `/api/directory/groups/${groupId}/delete`); 
 document.getElementById('delete-group-modal').showModal(); }
  function showToast(message) {
 const toast = document.createElement('div'); toast.textContent = message;
+toast.setAttribute('role', 'status');
+toast.setAttribute('aria-live', 'polite');
 toast.style.cssText = ` position: fixed;
 bottom: 24px; right: 24px;
 background: var(--surface); border: 1px solid var(--border);

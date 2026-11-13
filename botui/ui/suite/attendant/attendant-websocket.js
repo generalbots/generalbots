@@ -201,8 +201,13 @@
 
             function showToast(message, type = "info") {
                 const container = document.getElementById("toastContainer");
+                if (!container) return;
                 const toast = document.createElement("div");
                 toast.className = `toast ${type}`;
+                const isAlert = type === "error" || type === "warning";
+                toast.setAttribute("role", isAlert ? "alert" : "status");
+                toast.setAttribute("aria-live", isAlert ? "assertive" : "polite");
+                toast.setAttribute("aria-atomic", "true");
                 toast.innerHTML = `
                 <span>${escapeHtml(message)}</span>
             `;

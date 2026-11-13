@@ -76,7 +76,10 @@
           tile.title = f.name + " — preview unavailable (download it from Drive)";
         }
       })
-      .catch(function () {})
+      .catch(function (err) {
+        /* Best-effort thumbnail probe; tile keeps its fallback state. */
+        console.debug("[gb-photos] Thumbnail probe failed:", err);
+      })
       .then(function () {
         loadThumbnails(images, i + 1);
       });

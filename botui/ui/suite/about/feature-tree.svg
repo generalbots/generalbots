@@ -15,8 +15,8 @@
     </linearGradient>
     
     <!-- Arrow marker -->
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#888">
-      <polygon points="0 0, 10 3.5, 0 7"/>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--ft-muted, #64748b)"/>
     </marker>
     
     <!-- Glow filter -->
@@ -29,19 +29,38 @@
     </filter>
   </defs>
 
-  <style>
-    .title { font: bold 24px sans-serif; fill: #e0e0e0; }
-    .subtitle { font: 14px sans-serif; fill: #888; }
-    .node-label { font: bold 11px monospace; fill: #e0e0e0; text-anchor: middle; }
-    .category-label { font: bold 12px sans-serif; fill: #888; text-anchor: middle; }
-    .dep-text { font: 10px sans-serif; fill: #666; }
-    .legend-text { font: 11px sans-serif; fill: #888; }
+  <style data-gb-icon-theme="1">
+    :root, svg {
+      --ft-text: #334155;
+      --ft-muted: #64748b;
+      --ft-legend-bg: #f8fafc;
+      --ft-legend-stroke: #cbd5e1;
+      --ft-edge: #94a3b8;
+      --ft-edge-deps: #cbd5e1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root, svg {
+        --ft-text: #e0e0e0;
+        --ft-muted: #94a3b8;
+        --ft-legend-bg: #1a1a2e;
+        --ft-legend-stroke: #334155;
+        --ft-edge: #64748b;
+        --ft-edge-deps: #475569;
+      }
+    }
+    .title { font: bold 24px sans-serif; fill: var(--ft-text, #334155); }
+    .subtitle { font: 14px sans-serif; fill: var(--ft-muted, #64748b); }
+    .node-label { font: bold 11px monospace; fill: var(--ft-text, #334155); text-anchor: middle; }
+    .category-label { font: bold 12px sans-serif; fill: var(--ft-muted, #64748b); text-anchor: middle; }
+    .dep-text { font: 10px sans-serif; fill: var(--ft-muted, #64748b); }
+    .legend-text { font: 11px sans-serif; fill: var(--ft-muted, #64748b); }
     .node { stroke-width: 2; }
     .node-core { fill: url(#coreGradient); stroke: #d4f505; }
     .node-app { fill: url(#nodeGradient); stroke: #22c55e; }
     .node-bundle { fill: url(#bundleGradient); stroke: #3b82f6; }
-    .edge { stroke: #555; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
-    .edge-deps { stroke: #444; stroke-width: 1; stroke-dasharray: 4,2; }
+    .edge { stroke: var(--ft-edge, #94a3b8); stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .edge-deps { stroke: var(--ft-edge-deps, #cbd5e1); stroke-width: 1; stroke-dasharray: 4,2; }
+    .legend-bg { fill: var(--ft-legend-bg, #f8fafc); stroke: var(--ft-legend-stroke, #cbd5e1); }
   </style>
 
   <!-- Title -->
@@ -50,7 +69,7 @@
 
   <!-- Legend -->
   <g transform="translate(20, 80)">
-    <rect x="0" y="0" width="130" height="90" rx="8" fill="#1a1a2e" stroke="#333"/>
+    <rect x="0" y="0" width="130" height="90" rx="8" class="legend-bg"/>
     <text x="10" y="20" class="legend-text" font-weight="bold">Legend</text>
     <rect x="10" y="30" width="16" height="16" rx="4" class="node-core"/>
     <text x="32" y="42" class="legend-text">Core Technology</text>
@@ -203,7 +222,7 @@
   <path d="M 150 350 L 172 380" class="edge"/>
 
   <!-- ================ RESEARCH / LEARNING (Layer 3) ================ -->
-  <text x="600" y="360" class="category-label">RESEARCH & LEARNING</text>
+  <text x="600" y="360" class="category-label">RESEARCH &amp; LEARNING</text>
   
   <!-- research (depends on llm, vectordb) -->
   <g transform="translate(550, 395)">
@@ -226,7 +245,7 @@
   </g>
 
   <!-- ================ ADMIN / ANALYTICS (Layer 4) ================ -->
-  <text x="200" y="240" class="category-label">ADMIN & ANALYTICS</text>
+  <text x="200" y="240" class="category-label">ADMIN &amp; ANALYTICS</text>
   
   <!-- analytics -->
   <g transform="translate(100, 275)">

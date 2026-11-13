@@ -23,8 +23,9 @@
             hx-get="/api/ui/email/templates"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading templates…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
@@ -62,8 +63,9 @@
             hx-get="/api/ui/email/signatures"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading signatures…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
@@ -101,8 +103,9 @@
             hx-get="/api/ui/email/rules"
             hx-trigger="load"
             hx-swap="innerHTML"
+            aria-live="polite"
         >
-            <div class="loading-state"><div class="spinner"></div></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading rules…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>

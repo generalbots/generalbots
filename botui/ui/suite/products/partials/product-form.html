@@ -2,8 +2,8 @@
 <form class="product-form" hx-post="/api/products/items" hx-target="#products-grid" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
     <div class="product-form-header">
         <h2 class="product-form-title" data-i18n="products-new-product">New Product</h2>
-        <button type="button" class="form-close" onclick="closeProductsModal()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="form-close" onclick="closeProductsModal()" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -12,9 +12,9 @@
 
     <!-- Image Upload -->
     <div class="form-group">
-        <label class="form-label" data-i18n="products-image">Product Image</label>
+        <label class="form-label" for="product-image" data-i18n="products-image">Product Image</label>
         <label class="image-upload" for="product-image">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <polyline points="21 15 16 10 5 21"></polyline>
@@ -27,37 +27,37 @@
     <!-- Basic Info -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="products-name">Product Name *</label>
-            <input type="text" name="name" class="form-input" required placeholder="Enter product name">
+            <label class="form-label" for="product-name" data-i18n="products-name">Product Name *</label>
+            <input id="product-name" type="text" name="name" class="form-input" required placeholder="Enter product name" autocomplete="off">
         </div>
         <div class="form-group">
-            <label class="form-label" data-i18n="products-sku">SKU</label>
-            <input type="text" name="sku" class="form-input" placeholder="PRD-001">
+            <label class="form-label" for="product-sku" data-i18n="products-sku">SKU</label>
+            <input id="product-sku" type="text" name="sku" class="form-input" placeholder="PRD-001" autocomplete="off">
         </div>
     </div>
 
     <div class="form-group">
-        <label class="form-label" data-i18n="products-description">Description</label>
-        <textarea name="description" class="form-textarea" rows="3" placeholder="Product description..."></textarea>
+        <label class="form-label" for="product-description" data-i18n="products-description">Description</label>
+        <textarea id="product-description" name="description" class="form-textarea" rows="3" placeholder="Product description..."></textarea>
     </div>
 
     <!-- Pricing -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="products-price">Price *</label>
-            <input type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
+            <label class="form-label" for="product-price" data-i18n="products-price">Price *</label>
+            <input id="product-price" type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
         </div>
         <div class="form-group">
-            <label class="form-label" data-i18n="products-cost">Cost</label>
-            <input type="number" name="cost" class="form-input" placeholder="0.00" min="0" step="0.01">
+            <label class="form-label" for="product-cost" data-i18n="products-cost">Cost</label>
+            <input id="product-cost" type="number" name="cost" class="form-input" placeholder="0.00" min="0" step="0.01">
         </div>
     </div>
 
     <!-- Category & Type -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="products-category">Category *</label>
-            <select name="category" class="form-select" required>
+            <label class="form-label" for="product-category" data-i18n="products-category">Category *</label>
+            <select id="product-category" name="category" class="form-select" required>
                 <option value="" data-i18n="products-select-category">Select category...</option>
                 <option value="software" data-i18n="products-cat-software">Software</option>
                 <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>
@@ -69,8 +69,8 @@
             </select>
         </div>
         <div class="form-group">
-            <label class="form-label" data-i18n="products-unit">Unit</label>
-            <select name="unit" class="form-select">
+            <label class="form-label" for="product-unit" data-i18n="products-unit">Unit</label>
+            <select id="product-unit" name="unit" class="form-select">
                 <option value="unit" data-i18n="products-unit-unit">Unit</option>
                 <option value="license" data-i18n="products-unit-license">License</option>
                 <option value="seat" data-i18n="products-unit-seat">Seat</option>
@@ -84,15 +84,15 @@
     <!-- Status -->
     <div class="form-row">
         <div class="form-group">
-            <label class="form-label" data-i18n="products-status">Status</label>
-            <select name="status" class="form-select">
+            <label class="form-label" for="product-status" data-i18n="products-status">Status</label>
+            <select id="product-status" name="status" class="form-select">
                 <option value="active" data-i18n="products-status-active">Active</option>
                 <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
             </select>
         </div>
         <div class="form-group">
-            <label class="form-label" data-i18n="products-taxable">Taxable</label>
-            <select name="taxable" class="form-select">
+            <label class="form-label" for="product-taxable" data-i18n="products-taxable">Taxable</label>
+            <select id="product-taxable" name="taxable" class="form-select">
                 <option value="yes" data-i18n="common-yes">Yes</option>
                 <option value="no" data-i18n="common-no">No</option>
             </select>

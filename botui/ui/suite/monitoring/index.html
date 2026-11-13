@@ -194,6 +194,6 @@
 </div>
 <link rel="stylesheet" href="/suite/monitoring/monitoring-base.css?v=1" />
 <link rel="stylesheet" href="/suite/monitoring/monitoring-responsive.css?v=1" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="monitoring-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="monitoring-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/monitoring.js"></script>

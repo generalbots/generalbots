@@ -72,8 +72,22 @@
     }
   }
 
+  function gbDashConfirm(message, title) {
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+      return new Promise((resolve) => {
+        try {
+          window.GBModal.confirm(message, title || "Confirm", () => resolve(true), () => resolve(false));
+        } catch (e) {
+          console.error("GBModal.confirm failed", e);
+          resolve(false);
+        }
+      });
+    }
+    return Promise.resolve(false);
+  }
+
   async function deleteDashboard(dashboardId) {
-    if (!confirm("Delete this dashboard? This cannot be undone.")) return;
+    if (!(await gbDashConfirm("Delete this dashboard? This cannot be undone.", "Confirm"))) return;
 
     try {
       const response = await fetch(`/api/dashboards/${dashboardId}`, {

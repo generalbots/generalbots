@@ -390,3 +390,10 @@
     border-radius: 4px;
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
