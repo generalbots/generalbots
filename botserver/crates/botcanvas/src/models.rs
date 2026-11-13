@@ -370,3 +370,14 @@ mod element_type_tests {
 #[cfg(test)]
 #[path = "models_tests.rs"]
 mod tests;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CanvasCollabMessage {
+    pub msg_type: String,
+    pub canvas_id: String,
+    pub user_id: String,
+    pub user_name: String,
+    pub user_color: String,
+    pub elements: Option<serde_json::Value>,
+    pub timestamp: DateTime<Utc>,
+}

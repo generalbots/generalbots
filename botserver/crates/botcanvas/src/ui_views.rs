@@ -5,7 +5,11 @@ pub async fn canvas_detail(
     Path(canvas_id): Path<Uuid>,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
-        return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
+        return Html(render_empty_state(
+            "⚠️",
+            "Database Error",
+            "Could not connect to database",
+        ));
     };
 
     let canvas: DbCanvas = match canvases::table
@@ -34,7 +38,11 @@ pub async fn canvas_detail(
     let created = canvas.created_at.format("%Y-%m-%d %H:%M").to_string();
     let updated = canvas.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let element_count = elements.len();
-    let status = if canvas.is_public { "Public" } else { "Private" };
+    let status = if canvas.is_public {
+        "Public"
+    } else {
+        "Private"
+    };
     let template_status = if canvas.is_template { "Yes" } else { "No" };
 
     Html(format!(
@@ -92,7 +100,11 @@ pub async fn canvas_editor(
     Path(canvas_id): Path<Uuid>,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
-        return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
+        return Html(render_empty_state(
+            "⚠️",
+            "Database Error",
+            "Could not connect to database",
+        ));
     };
 
     let canvas: DbCanvas = match canvases::table
@@ -326,7 +338,11 @@ pub async fn canvas_settings(
     Path(canvas_id): Path<Uuid>,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
-        return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
+        return Html(render_empty_state(
+            "⚠️",
+            "Database Error",
+            "Could not connect to database",
+        ));
     };
 
     let canvas: DbCanvas = match canvases::table
@@ -340,7 +356,11 @@ pub async fn canvas_settings(
     };
 
     let name = html_escape(&canvas.name);
-    let description = canvas.description.as_deref().map(html_escape).unwrap_or_default();
+    let description = canvas
+        .description
+        .as_deref()
+        .map(html_escape)
+        .unwrap_or_default();
     let bg_color = canvas.background_color.as_deref().unwrap_or("#ffffff");
     let is_public_checked = if canvas.is_public { "checked" } else { "" };
     let is_template_checked = if canvas.is_template { "checked" } else { "" };

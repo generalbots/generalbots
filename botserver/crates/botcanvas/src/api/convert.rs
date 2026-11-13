@@ -1,8 +1,7 @@
 use super::super::*;
 
 pub(crate) fn db_to_canvas_element(db: DbCanvasElement) -> CanvasElement {
-    let properties: ElementProperties =
-        serde_json::from_value(db.properties).unwrap_or_default();
+    let properties: ElementProperties = serde_json::from_value(db.properties).unwrap_or_default();
     CanvasElement {
         id: db.id,
         canvas_id: db.canvas_id,

@@ -46,7 +46,10 @@ fn db_element(element_type: &str, properties: serde_json::Value) -> DbCanvasElem
 
 #[test]
 fn missing_background_falls_back_to_white() {
-    assert_eq!(db_to_canvas(db_canvas(None), vec![]).background_color, "#ffffff");
+    assert_eq!(
+        db_to_canvas(db_canvas(None), vec![]).background_color,
+        "#ffffff"
+    );
     assert_eq!(
         db_to_canvas(db_canvas(Some("#123456")), vec![]).background_color,
         "#123456"

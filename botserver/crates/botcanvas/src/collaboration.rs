@@ -55,7 +55,12 @@ pub(crate) async fn list_workspace_collaborators(
     .bind::<diesel::sql_types::Uuid, _>(org_id)
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .load::<WorkspaceCollaboratorRow>(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Query error: {e}"),
+        )
+    })?;
 
     Ok(Json(
         rows.into_iter().map(|r| r.into_collaborator()).collect(),
@@ -74,7 +79,12 @@ pub(crate) async fn list_collaborators(
     let collaborators: Vec<DbCanvasCollaborator> = canvas_collaborators::table
         .filter(canvas_collaborators::canvas_id.eq(canvas_id))
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     Ok(Json(collaborators))
 }
@@ -107,7 +117,12 @@ pub(crate) async fn add_collaborator(
     diesel::insert_into(canvas_collaborators::table)
         .values(&collaborator)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Insert error: {e}"),
+            )
+        })?;
 
     Ok(Json(collaborator))
 }
@@ -127,7 +142,12 @@ pub(crate) async fn remove_collaborator(
             .filter(canvas_collaborators::user_id.eq(user_id)),
     )
     .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Delete error: {e}"),
+        )
+    })?;
 
     if deleted > 0 {
         Ok(StatusCode::NO_CONTENT)
@@ -149,7 +169,12 @@ pub(crate) async fn list_comments(
         .filter(canvas_comments::canvas_id.eq(canvas_id))
         .order(canvas_comments::created_at.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     Ok(Json(comments))
 }
@@ -191,7 +216,12 @@ pub(crate) async fn create_comment(
     diesel::insert_into(canvas_comments::table)
         .values(&comment)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Insert error: {e}"),
+            )
+        })?;
 
     Ok(Json(comment))
 }
@@ -220,7 +250,12 @@ pub(crate) async fn resolve_comment(
         canvas_comments::updated_at.eq(now),
     ))
     .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Update error: {e}"),
+        )
+    })?;
 
     let comment: DbCanvasComment = canvas_comments::table
         .filter(canvas_comments::id.eq(comment_id))
@@ -243,7 +278,12 @@ pub(crate) async fn list_versions(
         .filter(canvas_versions::canvas_id.eq(canvas_id))
         .order(canvas_versions::version_number.desc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     Ok(Json(versions))
 }
@@ -293,7 +333,12 @@ pub(crate) async fn create_version(
     diesel::insert_into(canvas_versions::table)
         .values(&version)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Insert error: {e}"),
+            )
+        })?;
 
     Ok(Json(version))
 }

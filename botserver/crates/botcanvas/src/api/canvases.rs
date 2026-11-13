@@ -41,7 +41,12 @@ pub(crate) async fn list_canvases(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     let mut summaries = Vec::with_capacity(db_canvases.len());
     for c in db_canvases {
@@ -91,7 +96,10 @@ pub(crate) async fn create_canvas(
         description: req.description,
         width: req.width.unwrap_or(1920),
         height: req.height.unwrap_or(1080),
-        background_color: Some(req.background_color.unwrap_or_else(|| "#ffffff".to_string())),
+        background_color: Some(
+            req.background_color
+                .unwrap_or_else(|| "#ffffff".to_string()),
+        ),
         thumbnail_url: None,
         is_public: false,
         is_template: req.is_template.unwrap_or(false),
@@ -103,7 +111,12 @@ pub(crate) async fn create_canvas(
     diesel::insert_into(canvases::table)
         .values(&db_canvas)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Insert error: {e}"),
+            )
+        })?;
 
     let canvas = db_to_canvas(db_canvas, vec![]);
     Ok(Json(canvas))
@@ -176,7 +189,12 @@ pub(crate) async fn update_canvas(
     diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
         .set(&db_canvas)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Update error: {e}"),
+            )
+        })?;
 
     let db_elements: Vec<DbCanvasElement> = canvas_elements::table
         .filter(canvas_elements::canvas_id.eq(canvas_id))
@@ -219,7 +237,12 @@ pub(crate) async fn delete_canvas(
 
     let deleted = diesel::delete(canvases::table.filter(canvases::id.eq(canvas_id)))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Delete error: {e}"),
+            )
+        })?;
 
     if deleted > 0 {
         Ok(StatusCode::NO_CONTENT)

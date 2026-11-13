@@ -26,8 +26,12 @@ pub(crate) async fn export_canvas(
 
     match req.format {
         ExportFormat::Json => {
-            let json = serde_json::to_string_pretty(&canvas)
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("JSON error: {e}")))?;
+            let json = serde_json::to_string_pretty(&canvas).map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("JSON error: {e}"),
+                )
+            })?;
             Ok(Json(ExportResponse {
                 format: ExportFormat::Json,
                 url: None,
@@ -82,13 +86,7 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
                 .as_deref()
                 .unwrap_or("transparent"),
         );
-        let stroke = svg_escape(
-            element
-                .properties
-                .stroke_color
-                .as_deref()
-                .unwrap_or("none"),
-        );
+        let stroke = svg_escape(element.properties.stroke_color.as_deref().unwrap_or("none"));
         let stroke_width = element.properties.stroke_width.unwrap_or(1.0);
         let opacity = element.properties.opacity.unwrap_or(1.0);
 

@@ -212,7 +212,7 @@
     // (botsheet) and /ws/slides/{id} (botslides), which is exactly what
     // `defaultUrl()` builds. Apps without a realtime route keep the REST
     // presence path, so no reconnect loop is started for them.
-    var HAS_REALTIME = { docs: true, sheet: true, slides: true };
+    var HAS_REALTIME = { docs: true, sheet: true, slides: true, canvas: true };
     if (!this.opts.url && HAS_REALTIME[this.app] !== true) {
       console.info("[GBCollab] no realtime route for '" + this.app + "'; using REST presence");
       this.callbacks.onDisconnect();

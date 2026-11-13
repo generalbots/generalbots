@@ -32,9 +32,6 @@ pub use botschema::canvas_versions;
 
 pub use botschema::canvas_comments;
 
-
-
-
 // #1370 — this crate root used to be a 2090-line file. It is split by
 // responsibility: models (rows, domain types, payloads), api (canvas and
 // element CRUD), export (PNG/SVG rendering), collaboration (collaborators,
@@ -47,6 +44,8 @@ mod export;
 mod models;
 mod ui;
 mod ui_views;
+mod websocket;
+mod ws_auth;
 
 pub(crate) use api::*;
 pub use collaboration::*;
@@ -99,6 +98,10 @@ pub fn configure_canvas_routes() -> Router<Arc<CanvasState>> {
             "/api/canvas/:canvas_id/collaborate",
             get(get_collaboration_info),
         )
+        .route(
+            "/ws/canvas/:canvas_id",
+            get(websocket::handle_canvas_websocket),
+        )
 }
 
 pub fn configure_canvas_ui_routes() -> Router<Arc<CanvasState>> {
@@ -106,10 +109,16 @@ pub fn configure_canvas_ui_routes() -> Router<Arc<CanvasState>> {
         .route("/api/ui/canvas", get(canvas_list))
         .route("/api/ui/canvas/cards", get(canvas_cards))
         .route("/api/ui/canvas/count", get(canvas_count))
-        .route("/api/ui/canvas/templates/count", get(canvas_templates_count))
+        .route(
+            "/api/ui/canvas/templates/count",
+            get(canvas_templates_count),
+        )
         .route("/api/ui/canvas/new", get(new_canvas_form))
         .route("/api/ui/canvas/:canvas_id", get(canvas_detail))
         .route("/api/ui/canvas/:canvas_id/editor", get(canvas_editor))
-        .route("/api/ui/canvas/:canvas_id/elements", get(canvas_elements_svg))
+        .route(
+            "/api/ui/canvas/:canvas_id/elements",
+            get(canvas_elements_svg),
+        )
         .route("/api/ui/canvas/:canvas_id/settings", get(canvas_settings))
 }

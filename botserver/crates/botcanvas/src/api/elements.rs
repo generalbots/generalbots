@@ -19,7 +19,12 @@ pub(crate) async fn list_elements(
         .filter(canvas_elements::canvas_id.eq(canvas_id))
         .order(canvas_elements::z_index.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     let elements: Vec<CanvasElement> = db_elements.into_iter().map(db_to_canvas_element).collect();
     Ok(Json(elements))
@@ -76,7 +81,12 @@ pub(crate) async fn create_element(
     diesel::insert_into(canvas_elements::table)
         .values(&db_element)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Insert error: {e}"),
+            )
+        })?;
 
     diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
         .set(canvases::updated_at.eq(now))
@@ -133,7 +143,12 @@ pub(crate) async fn update_element(
     diesel::update(canvas_elements::table.filter(canvas_elements::id.eq(element_id)))
         .set(&db_element)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Update error: {e}"),
+            )
+        })?;
 
     diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))
         .set(canvases::updated_at.eq(Utc::now()))
@@ -159,7 +174,12 @@ pub(crate) async fn delete_element(
             .filter(canvas_elements::canvas_id.eq(canvas_id)),
     )
     .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Delete error: {e}"),
+        )
+    })?;
 
     if deleted > 0 {
         diesel::update(canvases::table.filter(canvases::id.eq(canvas_id)))

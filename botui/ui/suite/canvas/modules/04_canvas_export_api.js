@@ -298,7 +298,10 @@
             lines.push(people > 0
                 ? people + " collaborator(s) have access."
                 : "No collaborators have access yet.");
-            lines.push("Live co-editing streams through chat and refreshes on reload.");
+            var connected = !!(window.GBCollab && window.GBCollab.connected);
+            lines.push(connected
+                ? "Real-time collaboration session active."
+                : "Collaboration session not connected yet.");
             (window.GBModal || { alert: alert }).alert(lines.join("\n"));
         });
     }
@@ -354,5 +357,45 @@
         canvasSaveMethods: { saveCanvas: C.saveCanvas, clearCanvas: C.clearCanvas, undo: C.undo, redo: C.redo },
     };
     Object.assign(window, window._canvasApp);
+    C.initCollab = function initCollab() {
+        if (!window.GBCollab) return;
+        var gp = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        var path = window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "";
+        var bucket = window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "";
+        var docId = path || (bucket ? bucket + "/canvas" : "");
+        if (!docId) return;
+        var applyingRemote = false;
+        window.GBCollab.connect({
+            app: "canvas",
+            docId: docId,
+            collaboratorsEl: document.getElementById("collaborators") || null,
+            onConnect: function () {},
+            onDisconnect: function () {},
+            onEdit: function (msg) {
+                if (!msg || !msg.content) return;
+                try {
+                    var els = JSON.parse(msg.content);
+                    if (!Array.isArray(els)) return;
+                    applyingRemote = true;
+                    C.elements = els;
+                    if (typeof C.redraw === "function") C.redraw();
+                    applyingRemote = false;
+                } catch (e) { applyingRemote = false; }
+            }
+        });
+        if (!C._collabHooked) {
+            C._collabHooked = true;
+            var origSaveHistory = C.saveHistory;
+            C.saveHistory = function () {
+                if (origSaveHistory) origSaveHistory();
+                if (applyingRemote) return;
+                if (window.GBCollab && window.GBCollab.connected) {
+                    try { window.GBCollab.sendEdit({ content: JSON.stringify(C.elements || []) }); } catch (e) {}
+                }
+            };
+        }
+    };
     C.boot();
+    setTimeout(function () { if (typeof C.initCollab === "function") C.initCollab(); }, 800);
 })();

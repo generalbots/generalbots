@@ -25,10 +25,7 @@ pub(crate) fn render_canvas_card(canvas: &DbCanvas, element_count: i64) -> Strin
         .as_deref()
         .map(html_escape)
         .unwrap_or_default();
-    let bg_color = canvas
-        .background_color
-        .as_deref()
-        .unwrap_or("#ffffff");
+    let bg_color = canvas.background_color.as_deref().unwrap_or("#ffffff");
     let updated = canvas.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let id = canvas.id;
     let template_badge = if canvas.is_template {
@@ -80,7 +77,11 @@ pub(crate) fn render_canvas_row(canvas: &DbCanvas, element_count: i64) -> String
         .unwrap_or_else(|| "-".to_string());
     let updated = canvas.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let id = canvas.id;
-    let status = if canvas.is_public { "Public" } else { "Private" };
+    let status = if canvas.is_public {
+        "Public"
+    } else {
+        "Private"
+    };
 
     format!(
         r##"<tr class="canvas-row" data-id="{id}">
@@ -104,7 +105,11 @@ pub async fn canvas_list(
     Query(query): Query<UiListQuery>,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
-        return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
+        return Html(render_empty_state(
+            "⚠️",
+            "Database Error",
+            "Could not connect to database",
+        ));
     };
 
     let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
@@ -179,7 +184,11 @@ pub async fn canvas_cards(
     Query(query): Query<UiListQuery>,
 ) -> Html<String> {
     let Ok(mut conn) = state.pool.get() else {
-        return Html(render_empty_state("⚠️", "Database Error", "Could not connect to database"));
+        return Html(render_empty_state(
+            "⚠️",
+            "Database Error",
+            "Could not connect to database",
+        ));
     };
 
     let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
