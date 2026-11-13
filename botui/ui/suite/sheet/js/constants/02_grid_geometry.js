@@ -82,6 +82,11 @@
     return COL_WIDTH;
   };
 
+  VirtualGrid.rowHeightOf = function (r) {
+    if (window.SheetCore && window.SheetCore.rowHeight) return window.SheetCore.rowHeight(r);
+    return ROW_HEIGHT;
+  };
+
   VirtualGrid.colXOf = function (c) {
     if (window.SheetCore && window.SheetCore.colX) return window.SheetCore.colX(c);
     return HEADER_WIDTH + c * COL_WIDTH;

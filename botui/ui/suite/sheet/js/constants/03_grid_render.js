@@ -163,6 +163,37 @@
     if (s.border) node.style.border = s.border;
   };
 
+  // Cell text that does not fit used to be clipped at the column edge, so a
+  // title in a one-column cell read "FINAN…". Excel spills text into the empty
+  // cells on its right; replicate that when at least three neighbours are free
+  // and the cell is not part of a merged region (#2152).
+  function mergedRegion(row, col) {
+    var sheet = window.__LOADED_SHEET;
+    var ws = sheet && sheet.worksheets && sheet.worksheets[D.WORKSHEET_INDEX];
+    var merges = (ws && ws.merged_cells) || [];
+    for (var i = 0; i < merges.length; i++) {
+      var m = merges[i];
+      if (row >= m.start_row && row <= m.end_row && col >= m.start_col && col <= m.end_col) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  VirtualGrid.canSpill = function (row, col, cellData) {
+    if (!cellData) return false;
+    var typed = cellData.typed;
+    var textual = typed ? typed.t === "text" : typeof cellData.value === "string";
+    if (!textual) return false;
+    if (mergedRegion(row, col)) return false;
+    for (var i = 1; i <= 3; i++) {
+      var next = this.cells.get(row + "," + (col + i));
+      if (next && next.value != null && String(next.value).length) return false;
+      if (mergedRegion(row, col + i)) return false;
+    }
+    return true;
+  };
+
   VirtualGrid.renderRow = function (row) {
     const cols = this.visibleColRange();
     for (let c = cols.start; c < cols.end; c++) {
@@ -195,8 +226,9 @@
       if (this.editingCell !== node) {
         node.contentEditable = "false";
         node.style.outline = "none";
-        node.style.zIndex = "1";
+        node.style.zIndex = this.canSpill(row, c, cellData) ? "2" : "1";
       }
+      node.style.overflow = cellData && this.canSpill(row, c, cellData) ? "visible" : "hidden";
     }
   };
 })();

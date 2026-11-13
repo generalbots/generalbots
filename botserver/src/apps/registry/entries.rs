@@ -164,7 +164,7 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             category: "office",
             color: "#0f9d58",
             url: "/suite/sheet/sheet.html",
-            description: "Spreadsheets with formulas, charts, filtering, sorting, merge, freeze panes, validation and CSV/XLSX import/export.",
+            description: "Spreadsheets with formulas, charts, filtering, sorting, merge, freeze panes, validation and CSV/XLSX import/export. When the user asks for a chart, create it with sheet.chart.create — never ask the user to insert one by hand.",
             keywords: "spreadsheet table grid formula chart filter sort merge freeze validation",
             icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"3\" y1=\"9\" x2=\"21\" y2=\"9\"/><line x1=\"9\" y1=\"21\" x2=\"9\" y2=\"9\"/>",
         }),

@@ -11,6 +11,7 @@ pub mod eval;
 pub mod format_render;
 pub mod formats;
 pub mod lexer;
+pub mod multi_criteria;
 pub mod references;
 pub mod value;
 

@@ -132,14 +132,33 @@ pub fn parse_xlsx_to_worksheets(
     }
 
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
-        if let Ok(workbook) = umya_spreadsheet::reader::xlsx::read_reader(std::io::Cursor::new(bytes), true) {
+        // Repair the OOXML forms the reader cannot parse (self-closing
+        // `<mergeCell/>`, emitted by our own export) and never let a library
+        // panic escape into a request handler (#2152).
+        let package = match super::xlsx_normalize::normalise_merge_cells(bytes) {
+            Ok(package) => package,
+            Err(error) => {
+                log::warn!("xlsx normalisation skipped: {error}");
+                bytes.to_vec()
+            }
+        };
+        let parsed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            umya_spreadsheet::reader::xlsx::read_reader(std::io::Cursor::new(package), true)
+        }))
+        .map_err(|_| log::error!("xlsx reader panicked on this package; treating it as unreadable"))
+        .ok();
+        if let Some(Ok(workbook)) = parsed {
             let mut worksheets = Vec::new();
 
             for sheet in workbook.sheet_collection() {
                 let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
 
                 // Iterate actual cells (umya's map), not the 1..=max bounding box.
-                for ((col, row), cell) in sheet.collection_to_hashmap() {
+                // umya keys the map `(row, col)` (1-based) — destructuring it as
+                // `(col, row)` transposed every imported workbook, so formulas
+                // referenced mirrored cells and pivots summed the wrong columns
+                // (#2152).
+                for ((row, col), cell) in sheet.collection_to_hashmap() {
                     let cell = cell.as_ref();
                     let value = cell.value().to_string();
                     let formula = if cell.formula().is_empty() {
@@ -237,6 +256,16 @@ pub fn parse_xlsx_to_worksheets(
             }
 
             if !worksheets.is_empty() {
+                // Generated packages store formulas without cached results, so
+                // the workbook must be calculated before charts resolve their
+                // ranges — otherwise every series comes back empty and the
+                // dashboard shows blank boxes (#2152).
+                let recalculated =
+                    botsheet_core::recalc::recalculate_if_needed(&mut worksheets);
+                if recalculated > 0 {
+                    log::info!("xlsx import recalculated {recalculated} formula cells");
+                }
+
                 #[cfg(feature = "xlsx")]
                 if let Ok(format_map) = super::format_codes::extract_cell_format_codes(bytes) {
                     super::format_codes::apply_format_codes(&mut worksheets, &format_map);
@@ -341,7 +370,7 @@ pub fn import_spreadsheet_bytes(
     let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
     let detected = detect_spreadsheet_format(bytes);
 
-    let worksheets = match detected {
+    let mut worksheets = match detected {
         "xlsx" | "xlsm" => parse_xlsx_to_worksheets(bytes, "xlsx")?,
         "xls" => super::import_binary::parse_binary_to_worksheets(bytes, "xls")?,
         "xlsb" => super::import_binary::parse_binary_to_worksheets(bytes, "xlsb")?,
@@ -368,6 +397,17 @@ pub fn import_spreadsheet_bytes(
         .unwrap_or(raw_filename)
         .to_string();
 
+    // A generated package carries formulas without cached results; without
+    // this pass the grid shows labels and empty cells (#2152 follow-up).
+    let recalculated = botsheet_core::recalc::recalculate_if_needed(&mut worksheets);
+    if recalculated > 0 {
+        log::info!("import recalculated {recalculated} formula cells");
+    }
+    let refreshed = botsheet_core::chart_data::refresh_chart_data(&mut worksheets);
+    if refreshed > 0 {
+        log::info!("import refreshed {refreshed} chart series");
+    }
+
     Ok(Spreadsheet {
         id: Uuid::new_v4().to_string(),
         name,
@@ -390,4 +430,63 @@ pub fn import_spreadsheet_bytes(
         },
         acl: HashMap::new(),
     })
+}
+
+#[cfg(all(test, feature = "xlsx"))]
+mod orientation_tests {
+    use super::parse_xlsx_to_worksheets;
+
+    /// Builds a three-cell workbook whose shape is asymmetric, so a transposed
+    /// import cannot pass: A1 = "Year", B1 = "GDP", A2 = 2024, B2 = 10.5.
+    fn sample_workbook() -> Vec<u8> {
+        let mut workbook = rust_xlsxwriter::Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        worksheet.set_name("Data").expect("sheet name");
+        worksheet.write_string(0, 0, "Year").expect("A1");
+        worksheet.write_string(0, 1, "GDP").expect("B1");
+        worksheet.write_number(1, 0, 2024.0).expect("A2");
+        worksheet.write_number(1, 1, 10.5).expect("B2");
+        // A merged pair: rust_xlsxwriter emits `<mergeCell .../>`, the form the
+        // reader used to panic on.
+        worksheet
+            .merge_range(3, 0, 3, 1, "Header", &rust_xlsxwriter::Format::new())
+            .expect("merge");
+        workbook.save_to_buffer().expect("xlsx bytes")
+    }
+
+    #[test]
+    fn keeps_row_column_orientation() {
+        let worksheets = parse_xlsx_to_worksheets(&sample_workbook(), "xlsx").expect("parse");
+        assert_eq!(worksheets.len(), 1);
+        let data = &worksheets[0].data;
+        assert_eq!(
+            data.get("0,0").and_then(|cell| cell.value.clone()),
+            Some("Year".to_string()),
+            "A1 must stay at row 0 col 0"
+        );
+        assert_eq!(
+            data.get("0,1").and_then(|cell| cell.value.clone()),
+            Some("GDP".to_string()),
+            "B1 must stay at row 0 col 1"
+        );
+        assert_eq!(
+            data.get("1,0").and_then(|cell| cell.value.clone()),
+            Some("2024".to_string()),
+            "A2 must stay at row 1 col 0"
+        );
+        assert_eq!(
+            data.get("1,1").and_then(|cell| cell.value.clone()),
+            Some("10.5".to_string()),
+            "B2 must stay at row 1 col 1"
+        );
+    }
+
+    #[test]
+    fn reads_merged_ranges_without_panicking() {
+        // rust_xlsxwriter emits self-closing `<mergeCell/>`; the reader used to
+        // panic on it before the package normalisation step (#2152).
+        let worksheets = parse_xlsx_to_worksheets(&sample_workbook(), "xlsx").expect("parse");
+        assert!(!worksheets.is_empty());
+        assert!(worksheets[0].data.contains_key("0,0"));
+    }
 }

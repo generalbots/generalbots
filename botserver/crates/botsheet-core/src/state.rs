@@ -196,8 +196,22 @@ pub async fn load_sheet_by_id(
         }
     })?;
 
-    let sheet: crate::types::Spreadsheet =
+    let mut sheet: crate::types::Spreadsheet =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse sheet: {e}"))?;
+
+    // Workbooks saved before import-time recalculation (and packages generated
+    // with formulas but no cached results) still hold empty formula cells.
+    // Fill them on load so the grid, exports and the AI never see a blank
+    // model (#2152 follow-up).
+    let recalculated = crate::recalc::recalculate_if_needed(&mut sheet.worksheets);
+    if recalculated > 0 {
+        log::info!("sheet {sheet_id} recalculated {recalculated} formula cells on load");
+    }
+    // Charts persisted next to an uncached workbook hold empty series.
+    let refreshed = crate::chart_data::refresh_chart_data(&mut sheet.worksheets);
+    if refreshed > 0 {
+        log::info!("sheet {sheet_id} refreshed {refreshed} chart series on load");
+    }
 
     if !can_read_sheet(user_id, &sheet) {
         return Err("Access denied: sheet is not shared with this user".to_string());

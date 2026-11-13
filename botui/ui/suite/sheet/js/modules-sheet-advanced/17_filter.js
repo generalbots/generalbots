@@ -310,15 +310,22 @@
     const COL_WIDTH = 96;
     const active = currentFilters();
     const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
+    const tableCols = window.SheetCore && window.SheetCore.filterColumns
+      ? window.SheetCore.filterColumns()
+      : new Set();
     for (let c = cols.start; c < cols.end; c++) {
+      // Excel shows the funnel only on autofilter/table columns; drawing it on
+      // every column covered the data with "▾" glyphs (#2152).
+      if (!tableCols.has(c)) continue;
+      const baseX = window.SheetCore && window.SheetCore.colX ? window.SheetCore.colX(c) : HEADER_WIDTH + c * COL_WIDTH;
+      const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : COL_WIDTH;
+      if (w < 56) continue;
       const head = document.createElement("div");
       head.className = "ss-filter-head";
       head.dataset.col = c;
       head.title = "Filter";
-      const baseX = window.SheetCore && window.SheetCore.colX ? window.SheetCore.colX(c) : HEADER_WIDTH + c * COL_WIDTH;
-      const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : COL_WIDTH;
       head.style.cssText =
-        "position:absolute;left:" + (baseX + w - 34) + "px;top:2px;width:16px;height:16px;color:" + (active[c] ? "#3b82f6" : "#475569") +
+        "position:absolute;left:" + (baseX + w - 18) + "px;top:2px;width:16px;height:16px;color:" + (active[c] ? "#3b82f6" : "#475569") +
         ";cursor:pointer;z-index:6;font-size:10px;line-height:16px;text-align:center;";
       head.textContent = "▾";
       g.headerRow.appendChild(head);

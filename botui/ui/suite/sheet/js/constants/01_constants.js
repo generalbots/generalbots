@@ -15,7 +15,17 @@
   const MAX_VISIBLE_ROWS = 60;
   D.WORKSHEET_INDEX = 0;
 
-  function currentSheetId() { return window.__SHEET_INITIAL_ID || "current"; }
+  function currentSheetId() {
+    // Prefer the workbook on screen: an unset `__SHEET_INITIAL_ID` fell back to
+    // the "current" sentinel, so toolbar writes hit a different record than the
+    // grid showed (#2148).
+    if (window.__LOADED_SHEET && window.__LOADED_SHEET.id) return window.__LOADED_SHEET.id;
+    if (window.__SHEET_INITIAL_ID) return window.__SHEET_INITIAL_ID;
+    var host = document.querySelector('[id^="window-body-sheet"] #sheet-content');
+    if (host && host.dataset.sheetId) return host.dataset.sheetId;
+    return "current";
+  }
+
 
   function $$(s, r) { return Array.from((r || document).querySelectorAll(s)); }
 

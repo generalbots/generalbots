@@ -10,6 +10,8 @@ pub mod xlsx_comments;
 pub mod xlsx_external_links;
 pub mod xlsx_layout;
 pub mod xlsx_layout_patch;
+#[cfg(feature = "xlsx")]
+pub mod xlsx_normalize;
 pub mod xlsx_passthrough;
 #[cfg(test)]
 mod xlsx_passthrough_tests;

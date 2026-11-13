@@ -30,7 +30,47 @@
   }
 
   function currentSheetId() {
-    return window.__SHEET_INITIAL_ID || "current";
+    // The plan/launcher can open the window before a deep link sets an id, and
+    // the sentinel "current" then made every write land on a different sheet
+    // record than the one on screen (#2148). Prefer the workbook that is
+    // actually loaded.
+    if (window.__LOADED_SHEET && window.__LOADED_SHEET.id) return window.__LOADED_SHEET.id;
+    if (window.__SHEET_INITIAL_ID) return window.__SHEET_INITIAL_ID;
+    const host = document.querySelector('[id^="window-body-sheet"] #sheet-content');
+    if (host && host.dataset.sheetId) return host.dataset.sheetId;
+    return "current";
+  }
+
+  function colIdx(name) {
+    let n = 0;
+    const text = String(name || "").toUpperCase();
+    for (let i = 0; i < text.length; i++) n = n * 26 + (text.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  // Columns covered by an autofilter or a table header. Excel shows the
+  // sort/filter dropdowns only for those; drawing them on every column
+  // cluttered narrow imported sheets with "⤨ ▾" glyphs over the data (#2152).
+  function filterColumns() {
+    const columns = new Set();
+    const sheet = window.__LOADED_SHEET;
+    const ws = sheet && sheet.worksheets && sheet.worksheets[wsIndex()];
+    if (!ws) return columns;
+    const addRange = function (range) {
+      const m = String(range || "").match(/^([A-Za-z]+)(\d+)?(?::([A-Za-z]+)(\d+)?)?$/);
+      if (!m) return;
+      const first = colIdx(m[1]);
+      const last = m[3] ? colIdx(m[3]) : first;
+      for (let c = Math.min(first, last); c <= Math.max(first, last); c++) columns.add(c);
+    };
+    addRange(ws.autofilter);
+    (ws.tables || []).forEach(function (table) {
+      const first = Number(table.start_col);
+      const last = Number(table.end_col);
+      if (!isFinite(first) || !isFinite(last)) return;
+      for (let c = Math.min(first, last); c <= Math.max(first, last); c++) columns.add(c);
+    });
+    return columns;
   }
 
   function api() {
@@ -363,6 +403,7 @@
     window.SheetCore.getTabBar = function () { return tabBar; };
     window.SheetCore.setTabBar = function (t) { tabBar = t; };
     window.SheetCore.wsIndex = wsIndex;
+    window.SheetCore.filterColumns = filterColumns;
     window.SheetCore.api = api;
     window.SheetCore.currentSheetId = currentSheetId;
     window.SheetCore.colName = colName;
