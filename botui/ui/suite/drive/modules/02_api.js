@@ -199,7 +199,11 @@ async function previewFile(path, bucket) {
         if (app === "sheets" && window.WindowManager) {
             const fileName = path.split("/").pop() || "Spreadsheet";
             const ts = Date.now();
-            var bucket = getEffectiveBucket();
+            // #2268 — a file's bucket is not the current bucket: every rendered
+            // row carries its own `data-bucket`. `var bucket = getEffectiveBucket()`
+            // here shadowed (reassigned) the `openFile` parameter for the whole
+            // body, so the sheet was loaded from — and later saved back to — the
+            // wrong Drive object. `fileBucket` already resolves the parameter.
             // #2272 — one window-id namespace per app: the sheet registry id
             // (`sheet`) plus a suffix. `sheets-<ts>` did not match the sheet
             // app's own deep-link guard (`sheet-`), so every deep link aimed at
@@ -213,7 +217,7 @@ async function previewFile(path, bucket) {
                 var sheetResp = await fetch('/api/sheet/load-from-drive', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bucket: bucket, path: path })
+                    body: JSON.stringify({ bucket: fileBucket, path: path })
                 });
                 if (sheetResp.ok) {
                     var sheetData = await sheetResp.json();
@@ -257,10 +261,9 @@ async function previewFile(path, bucket) {
             return;
         }
         if (app === "designer" && window.WindowManager) {
-            var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Script";
             var ts = Date.now();
-            window.__EDITOR_FILE_BUCKET = bucket;
+            window.__EDITOR_FILE_BUCKET = fileBucket;
             window.__EDITOR_FILE_PATH = path;
             window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
@@ -271,12 +274,11 @@ async function previewFile(path, bucket) {
             return;
         }
         if (app === "canvas" && window.WindowManager) {
-            var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Canvas";
             var ts = Date.now();
             // Canvas app context: the .draw file is loaded/saved by the app
             // through the drive API using these globals (bucket + folder).
-            window.__CANVAS_FILE_BUCKET = bucket;
+            window.__CANVAS_FILE_BUCKET = fileBucket;
             window.__CANVAS_FILE_PATH = path;
             window.__CANVAS_FILE_SCOPE = currentScope;
             var folder = path.indexOf("/") === -1 ? "" : path.substring(0, path.lastIndexOf("/"));
@@ -290,11 +292,10 @@ async function previewFile(path, bucket) {
         if (app === "photo-editor" && window.WindowManager) {
             // #1306 — image files open the Photo Editor as an APP WINDOW:
             // never window.open, never a raw fragment navigation.
-            var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Photo";
             var ts = Date.now();
             var winId = "photo-editor-" + ts;
-            window.__PHOTO_FILE_BUCKET = bucket;
+            window.__PHOTO_FILE_BUCKET = fileBucket;
             window.__PHOTO_FILE_PATH = path;
             window.__PHOTO_FILE_SCOPE = currentScope;
             window.__PHOTO_BOOT = Promise.resolve();
@@ -308,11 +309,10 @@ async function previewFile(path, bucket) {
             return;
         }
         if (app === "editor" && window.WindowManager) {
-            var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Untitled";
             var ts = Date.now();
             window.WindowManager.open("editor-" + ts, fileName, "");
-            window.__EDITOR_FILE_BUCKET = bucket;
+            window.__EDITOR_FILE_BUCKET = fileBucket;
             window.__EDITOR_FILE_PATH = path;
             window.__EDITOR_FILE_SCOPE = currentScope;
             window.__EDITOR_BOOT = Promise.resolve();
