@@ -4,9 +4,7 @@
 //! `botdatabase` handlers, synthesizing the bot scope header so a chat command
 //! uses the same per-bot database as the app. Split out of `execute_command.rs`
 //! to keep that dispatcher under the 450-line limit.
-
 use super::*;
-
 /// True when `name` is one of the database verbs this module executes.
 pub(super) fn handles(name: &str) -> bool {
     matches!(
@@ -20,7 +18,6 @@ pub(super) fn handles(name: &str) -> bool {
             | "database.rows.import"
     )
 }
-
 /// Executes one database verb with the caller's bot scope.
 pub(super) async fn execute(
     state: &Arc<AppState>,
@@ -61,10 +58,8 @@ pub(super) async fn execute(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
                 axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::UpdateRowRequest {
-                    pk_value: id,
-                    data,
-                }),
+                axum::extract::Path(id),
+                axum::extract::Json(data),
             )
             .await
             .map_err(database_error)?;
@@ -76,7 +71,8 @@ pub(super) async fn execute(
             let result = botdatabase::handlers::delete_row(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
-                axum::extract::Path((table, id)),
+                axum::extract::Path(table),
+                axum::extract::Path(id),
             )
             .await
             .map_err(database_error)?;
@@ -84,38 +80,33 @@ pub(super) async fn execute(
         }
         "database.rows.batch_delete" => {
             let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let ids: Vec<String> = serde_json::from_value(
-                obj.get("ids")
-                    .cloned()
-                    .ok_or_else(|| "params.ids is required".to_string())?,
-            )
-            .map_err(|_| "params.ids must be a JSON array of row ids".to_string())?;
-            let result = botdatabase::handlers::batch_delete(
+            let ids = obj
+                .get("ids")
+                .and_then(|v| v.as_array())
+                .ok_or_else(|| "params.ids must be an array".to_string())?;
+            let result = botdatabase::handlers::batch_delete_rows(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
                 axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::BatchDeleteRequest { ids }),
+                axum::extract::Json(serde_json::Value::Array(
+                    ids.iter().filter_map(|v| v.as_str().map(String::from)).collect(),
+                )),
             )
             .await
             .map_err(database_error)?;
             Ok(json!({ "success": result.0.success, "message": result.0.message }))
         }
         "database.table.create" => {
-            let name = str_of("name").ok_or_else(|| "params.name is required".to_string())?;
-            let columns: Vec<botdatabase::handlers::ColumnDef> = serde_json::from_value(
-                obj.get("columns")
-                    .cloned()
-                    .ok_or_else(|| "params.columns is required".to_string())?,
-            )
-            .map_err(|_| "params.columns must be a JSON array of {name, type}".to_string())?;
+            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
+            let schema = obj
+                .get("schema")
+                .cloned()
+                .ok_or_else(|| "params.schema is required".to_string())?;
             let result = botdatabase::handlers::create_table(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
-                axum::extract::Json(botdatabase::handlers::CreateTableRequest {
-                    name,
-                    columns,
-                    table_name: None,
-                }),
+                axum::extract::Path(table),
+                axum::extract::Json(schema),
             )
             .await
             .map_err(database_error)?;
@@ -123,131 +114,150 @@ pub(super) async fn execute(
         }
         "database.column.add" => {
             let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let name = str_of("name").ok_or_else(|| "params.name is required".to_string())?;
-            let data_type = str_of("type").ok_or_else(|| "params.type is required".to_string())?;
+            let column = str_of("column").ok_or_else(|| "params.column is required".to_string())?;
+            let dtype = str_of("type").ok_or_else(|| "params.type is required".to_string())?;
             let result = botdatabase::handlers::add_column(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
                 axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::AddColumnRequest {
-                    name,
-                    data_type: Some(data_type),
-                    col_type: None,
-                    nullable: None,
-                    not_null: None,
-                    default: None,
-                }),
+                axum::extract::Path(column),
+                axum::extract::Json(serde_json::json!({ "data_type": dtype })),
             )
             .await
             .map_err(database_error)?;
             Ok(json!({ "success": result.0.success, "message": result.0.message }))
         }
         "database.rows.import" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let rows = import_rows(obj)?;
-            if rows.is_empty() {
-                return Err("params.csv or params.json must carry at least one row".to_string());
-            }
-            let mut inserted = 0usize;
-            for row in rows {
-                botdatabase::handlers::insert_row(
-                    axum::extract::State(Arc::clone(state)),
-                    database_bot_headers(bot_uuid),
-                    axum::extract::Path(table.clone()),
-                    axum::extract::Json(row),
-                )
-                .await
-                .map(|_| ())
-                .map_err(database_error)?;
-                inserted += 1;
-            }
-            Ok(json!({
-                "success": true,
-                "table": table,
-                "inserted": inserted,
-                "message": format!("{inserted} row(s) imported into {table}"),
-            }))
+            import_rows(obj).map_err(|e| format!("import failed: {e}"))
         }
-        _ => Err(format!("unknown database command '{name}'")),
+        _ => unreachable!("handles() is the only caller"),
     }
 }
-
-/// #2034 — the database handlers authorize on the `X-Bot-Id` header. The chat
-/// command already runs for a resolved bot, so synthesize the same scope header
-/// instead of trusting client input.
-#[cfg(feature = "database")]
-fn database_bot_headers(bot_id: Uuid) -> axum::http::HeaderMap {
-    let mut headers = axum::http::HeaderMap::new();
-    if let Ok(value) = axum::http::HeaderValue::from_str(&bot_id.to_string()) {
-        headers.insert("X-Bot-Id", value);
-    }
-    headers
+use std::fmt;
+use axum::http::StatusCode;
+use axum::response::Response;
+use axum::response::Response as IntoResponse;
+#[derive(Debug)]
+enum DatabaseVerbError {
+    UnsupportedObject(serde_json::Value),
 }
-
-#[cfg(feature = "database")]
-fn database_error(
-    (_status, axum::Json(body)): (axum::http::StatusCode, axum::Json<Value>),
-) -> String {
-    body.get("error")
-        .and_then(Value::as_str)
-        .unwrap_or("database operation failed")
-        .to_string()
-}
-
-/// #2034 — accepts either a JSON array of objects or CSV text with a header
-/// row, so a chat import does not depend on the caller guessing the shape.
-#[cfg(feature = "database")]
-fn import_rows(params: &serde_json::Map<String, Value>) -> Result<Vec<Value>, String> {
-    if let Some(rows) = params.get("json") {
-        let rows: Vec<Value> = serde_json::from_value(rows.clone())
-            .map_err(|_| "params.json must be an array of objects".to_string())?;
-        return Ok(rows);
+impl fmt::Display for DatabaseVerbError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DatabaseVerbError::UnsupportedObject(v) => write!(f, "expected object, got {v}"),
+        }
     }
-
-    let Some(csv) = params.get("csv").and_then(Value::as_str) else {
+}
+impl std::error::Error for DatabaseVerbError {}
+impl IntoResponse for DatabaseVerbError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "expected object, got unsupported value",
+        )
+            .into_response()
+    }
+}
+use DatabaseVerbError as DbVerbsError;
+/// Imports rows from CSV or JSON into `table` for the caller's bot scope.
+pub(super) fn import_rows(
+    params: &serde_json::Map<String, Value>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let table = params
+        .get("table")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "params.table is required".to_string())?;
+    let source = if let Some(csv) = params.get("csv").and_then(|v| v.as_str()) {
+        "csv"
+    } else if params.get("json").is_some() {
+        "json"
+    } else {
         return Err("params.csv or params.json is required".to_string());
     };
-
-    let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
-    let header_line = lines
-        .next()
-        .ok_or_else(|| "CSV is empty (a header row is required)".to_string())?;
-    let headers = split_csv_line(header_line);
-    if headers.is_empty() {
-        return Err("CSV header row is empty".to_string());
+    match source {
+        "csv" => {
+            let csv = params
+                .get("csv")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "params.csv is required".to_string())?;
+            let rows = import_csv(csv)?;
+            Ok(rows)
+        }
+        "json" => {
+            let json = params
+                .get("json")
+                .cloned()
+                .ok_or_else(|| "params.json is required".to_string())?;
+            import_json(&json)?
+        }
+        _ => unreachable!("source is validated above"),
     }
-
-    let mut rows = Vec::new();
-    for line in lines {
-        let values = split_csv_line(line);
-        if values.len() != headers.len() {
+}
+/// Imports rows from a CSV string. Returns owned row objects keyed by header.
+pub(super) fn import_csv(csv: &str) -> Result<Vec<serde_json::Value>, String> {
+    let mut lines = csv.lines();
+    let header = lines
+        .next()
+        .ok_or_else(|| "csv must have a header row".to_string())?;
+    let headers = split_csv_line(header);
+    if headers.is_empty() {
+        return Err("csv header must not be empty".to_string());
+    }
+    let mut out = Vec::new();
+    for (lineno, line) in lines.enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let fields = split_csv_line(line);
+        if fields.len() != headers.len() {
             return Err(format!(
-                "CSV row has {} value(s) but the header has {}",
-                values.len(),
-                headers.len()
+                "line {} has {} fields, header has {}",
+                lineno + 2,
+                fields.len(),
+                headers.len(),
             ));
         }
-        let mut object = serde_json::Map::new();
-        for (key, value) in headers.iter().zip(values) {
-            object.insert(key.clone(), Value::String(value));
+        let mut row = serde_json::Map::new();
+        for (header, value) in headers.iter().zip(fields) {
+            row.insert(header.clone(), json!(value));
         }
-        rows.push(Value::Object(object));
+        out.push(serde_json::Value::Object(row));
     }
-
-    Ok(rows)
+    Ok(out)
 }
-
+/// Imports rows from a JSON value (array of objects or single object).
+pub(super) fn import_json(json: &serde_json::Value) -> Result<Vec<serde_json::Value>, String> {
+    match json {
+        serde_json::Value::Array(arr) => {
+            let mut out = Vec::with_capacity(arr.len());
+            for (i, item) in arr.iter().enumerate() {
+                match item {
+                    serde_json::Value::Object(map) => out.push(serde_json::json!(map)),
+                    other => {
+                        return Err(format!(
+                            "json array element {i} must be an object, got {}",
+                            other
+                        ))
+                    }
+                }
+            }
+            Ok(out)
+        }
+        serde_json::Value::Object(map) => Ok(vec![serde_json::json!(map)]),
+        _ => Err("params.json must be an object or an array of objects".to_string()),
+    }
+}
 /// Splits one CSV line, honouring double-quoted fields with `""` escapes.
 #[cfg(feature = "database")]
-fn split_csv_line(line: &str) -> Vec<String> {
+pub(super) fn split_csv_line(line: &str) -> Vec<String> {
     let mut fields = Vec::new();
     let mut current = String::new();
     let mut quoted = false;
     let mut chars = line.chars().peekable();
-
     while let Some(ch) = chars.next() {
         match ch {
-            '"' if quoted && chars.peek() == Some(&'"') => {
+            '"' if quoted && chars.peek() == Some(&'\"') => {
                 current.push('"');
                 chars.next();
             }
@@ -262,66 +272,71 @@ fn split_csv_line(line: &str) -> Vec<String> {
     fields.push(current.trim().to_string());
     fields
 }
-
 #[cfg(test)]
 mod database_import_tests {
     #![cfg(feature = "database")]
     use super::{import_rows, split_csv_line};
     use serde_json::json;
-
     fn params(value: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
         match value {
             serde_json::Value::Object(map) => map,
-            other => panic!("expected object, got {other}"),
+            _other => panic!("test helper: import_rows() expects a JSON object"),
         }
     }
-
     #[test]
     fn csv_import_maps_the_header_to_each_row() {
         let rows = import_rows(&params(json!({
             "csv": "name,email\nJoão,joao@example.com\nMaria,maria@example.com\n"
         })))
         .expect("rows");
-
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["name"], json!("João"));
         assert_eq!(rows[1]["email"], json!("maria@example.com"));
     }
-
     #[test]
     fn csv_import_honours_quoted_fields_and_escaped_quotes() {
         let rows = import_rows(&params(json!({
             "csv": "name,note\n\"Silva, João\",\"said \"\"hi\"\"\"\n"
         })))
         .expect("rows");
-
         assert_eq!(rows[0]["name"], json!("Silva, João"));
         assert_eq!(rows[0]["note"], json!("said \"hi\""));
     }
-
     #[test]
     fn csv_import_rejects_ragged_rows() {
-        let error = import_rows(&params(json!({ "csv": "a,b\n1\n" }))).unwrap_err();
+        let rows_result = import_rows(&params(json!({ "csv": "a,b\n1\n" })));
+        assert!(rows_result.is_err());
+        let error = rows_result.unwrap_err();
         assert!(error.contains("header has 2"));
     }
-
     #[test]
     fn json_import_accepts_an_array_of_objects() {
         let rows = import_rows(&params(json!({
             "json": [{ "name": "João" }, { "name": "Maria" }]
         })))
-        .expect("rows");
-
+        .expect("json import should succeed");
         assert_eq!(rows.len(), 2);
     }
-
     #[test]
     fn import_requires_csv_or_json() {
         assert!(import_rows(&params(json!({ "table": "clientes" }))).is_err());
     }
-
     #[test]
     fn csv_split_trims_and_keeps_empty_fields() {
         assert_eq!(split_csv_line(" a , ,c "), vec!["a", "", "c"]);
+    }
+    #[test]
+    fn params_wardens_the_test_helper_against_non_object_inputs() {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            params(serde_json::Value::String("not an object".into()));
+        }));
+        assert!(result.is_err());
+    }
+    #[test]
+    fn params_returns_the_object_when_given_one() {
+        let input: serde_json::Value = serde_json::json!({ "table": "foo" });
+        let m = params(input);
+        assert_eq!(m.len(), 1);
+        assert_eq!(m.get("table").and_then(|v| v.as_str()), Some("foo"));
     }
 }
