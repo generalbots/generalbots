@@ -242,7 +242,16 @@ async function syncExternalProvider(providerId) {
 async function disconnectExternalProvider(providerId) {
     var known = externalConnections.find(function (p) { return p.provider === providerId; }) || {};
     var shared = Array.isArray(known.scopes) && known.scopes.length ? "\n\nAccess being revoked: " + known.scopes.join(", ") : "";
-    if (!confirm("Disconnect " + providerId + "? The mirrored listing and tokens are deleted." + shared)) return;
+    var ok = await new Promise(function (resolve) {
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            try {
+                window.GBModal.confirm("Disconnect " + providerId + "? The mirrored listing and tokens are deleted." + shared, "Confirm", function () { resolve(true); }, function () { resolve(false); });
+                return;
+            } catch (e) { /* fall through */ }
+        }
+        resolve(false);
+    });
+    if (!ok) return;
     try {
         await extApiRequest("/disconnect", {
             method: "POST",

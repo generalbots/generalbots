@@ -7,13 +7,13 @@
 async function loadStarredFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("scope", currentScope);
         const items = await apiRequest("/favorite?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state"><h3>No starred files</h3><p>Click the ☆ button on any file (or its ⋮ menu) to add it here.</p></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>No starred files</h3><p>Click the ☆ button on any file (or its ⋮ menu) to add it here.</p></div>';
             return;
         }
         var html = '<div class="file-list">';
@@ -24,7 +24,7 @@ async function loadStarredFiles() {
         html += '</div>';
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>No starred files</h3></div>';
+        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>No starred files</h3></div>';
     }
 }
 
@@ -95,13 +95,13 @@ window.toggleStar = toggleStar;
 async function loadSharedFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("scope", currentScope);
         const items = await apiRequest("/shared?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state"><h3>No shared files</h3><p>Files shared with you will appear here.</p></div>';
+            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>No shared files</h3><p>Files shared with you will appear here.</p></div>';
             return;
         }
         var html = '<div class="file-list">';
@@ -112,6 +112,6 @@ async function loadSharedFiles() {
         html += '</div>';
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>No shared files</h3></div>';
+        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>No shared files</h3></div>';
     }
 }

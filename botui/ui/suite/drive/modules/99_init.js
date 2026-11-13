@@ -146,20 +146,54 @@ window.DriveModule = {
 };
 
 // Deep-link from a desktop shortcut or a chat link: jump straight to the
-// file's folder once the module is ready (window.__gbAppParams__.path, set by
-// the shell). #2143 — links emitted by `drive_save` carry `scope=bot` because
-// the saved artifact lives in the bot workspace, not in the caller's personal
-// bucket; without it the folder resolved against `users/{id}/` and rendered
-// empty.
+// file's folder once the module is ready (window.__gbAppParams__, set by the
+// shell). #2143 — links emitted by `drive_save` carry `scope=bot` because the
+// saved artifact lives in the bot workspace. #2283 — saved-artifact links also
+// carry `bucket`, so the Drive resolves the path against the bucket the artifact
+// was saved into instead of the currently selected one.
 var __deepParams = window.__gbAppParams__ || {};
 var __deepPath = __deepParams.path;
+var __deepBucket = __deepParams.bucket;
 var __deepScope = String(__deepParams.scope || "").toLowerCase();
 if (__deepPath) {
     var __origInit = init;
     init = async function () {
         await __origInit();
         if (__deepScope === "bot") currentScope = "bot";
-        try { await loadFiles(__deepPath); } catch (e) { /* default listing */ }
+        if (__deepBucket) {
+            currentBucket = __deepBucket;
+            // Mirror search-hit bucket switching (06_render.js) so effective
+            // bucket resolution matches the store that holds the deep-linked path.
+            if (String(__deepBucket).indexOf(".gborg") > 0) {
+                currentGborgBucket = __deepBucket;
+                currentGborgBranch = String(__deepBucket).replace(".gborg", "");
+            } else {
+                currentGborgBucket = __deepBucket.indexOf(".gbai") > 0 ? null : currentGborgBucket;
+                if (!currentGborgBucket) currentGborgBranch = null;
+            }
+            if (typeof updateBucketSelector === "function") updateBucketSelector();
+        }
+        function showDeepLinkNotFound(reason) {
+            var contentEl = document.getElementById("drive-content") || document.getElementById("file-grid");
+            if (!contentEl) return;
+            var detail = reason ? "<p>" + escapeHtml(humanizeError(reason)) + "</p>" : "";
+            contentEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>Not found in the current Drive</h3><p>The linked path could not be resolved.</p>' + detail + '</div>';
+        }
+        try {
+            await loadFiles(__deepPath, __deepBucket || undefined);
+            // A deep-linked folder that cannot be resolved must not look like an
+            // empty folder. If the load rendered the generic empty state for the
+            // requested path, surface an explicit not-found state.
+            var content = document.getElementById("drive-content") || document.getElementById("file-grid");
+            if (content) {
+                var h3 = content.querySelector(".empty-state h3");
+                if (h3 && h3.textContent === "This folder is empty") {
+                    showDeepLinkNotFound("");
+                }
+            }
+        } catch (e) {
+            showDeepLinkNotFound(e && e.message ? e.message : "");
+        }
     };
 }
 

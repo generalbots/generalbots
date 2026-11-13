@@ -6,7 +6,15 @@ function renderFiles(files) {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
     if (!files || files.length === 0) {
-        content.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3>This folder is empty</h3><p>Upload files or create a new folder to get started</p></div>';
+        content.innerHTML = '<div class="empty-state drive-empty-folder" role="status" aria-live="polite">'
+            + '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>'
+            + '<h3>This folder is empty</h3>'
+            + '<p>Upload files or create a new folder to get started.</p>'
+            + '<div class="empty-state-actions">'
+            + '<button type="button" class="btn-primary" aria-label="Upload files to this folder" onclick="(window.uploadFile || function(){ var b=document.getElementById(\'upload-btn\'); if(b) b.click(); })()">Upload files</button>'
+            + '<button type="button" class="btn-secondary-empty" aria-label="Create a new folder" onclick="(window.createFolder || (window.DriveModule && DriveModule.createFolder) || function(){})()">New folder</button>'
+            + '</div>'
+            + '</div>';
         return;
     }
     const folders = files.filter(function(f) { return f.is_dir; }).sort(function(a, b) { return a.name.localeCompare(b.name); });
@@ -107,7 +115,7 @@ function bindFileEvents() {
         // context-menu "Open" still reaches the real editors (photo editor,
         // sheets, designer) per #1306.
         else if (isPreviewable(path)) previewFile(path, hitBucket || getEffectiveBucket());
-        else openFile(path);
+        else openFile(path, hitBucket || getEffectiveBucket());
     });
 }
 

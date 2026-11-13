@@ -36,7 +36,7 @@
     border: 1px solid var(--border, #2a2a3a);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    z-index: var(--z-sticky, 100);
 }
 
 .selection-count {
@@ -55,8 +55,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -79,8 +81,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -176,8 +180,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -263,7 +269,7 @@
     position: fixed;
     right: 22px;
     bottom: 22px;
-    z-index: 9990;
+    z-index: var(--z-popover, 1100);
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -284,7 +290,7 @@
     position: fixed;
     right: 22px;
     bottom: 82px;
-    z-index: 9991;
+    z-index: var(--z-popover, 1100);
     width: 380px;
     max-width: calc(100vw - 44px);
     height: 480px;
@@ -420,7 +426,7 @@
     right: 22px;
     top: 80px;
     bottom: 22px;
-    z-index: 9980;
+    z-index: var(--z-dropdown, 1000);
     width: 360px;
     max-width: calc(100vw - 44px);
     background: #1e293b;
@@ -445,4 +451,12 @@
     gap: 8px;
     padding: 12px 14px;
     border-bottom: 1px solid #334155;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -12,7 +12,7 @@ async function loadBotConfigs() {
 
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading bots...</p></div>';
+    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading bots...</p></div>';
 
     try {
         const params = new URLSearchParams();

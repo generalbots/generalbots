@@ -55,8 +55,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -79,8 +81,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -162,6 +166,29 @@
     opacity: 0.9;
 }
 
+.empty-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.empty-state .btn-secondary-empty {
+    padding: 10px 20px;
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    background: var(--surface, #12121a);
+    color: var(--text, #ffffff);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.empty-state .btn-secondary-empty:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.08));
+}
+
 /* File Checkbox */
 .file-checkbox {
     width: 16px;
@@ -176,8 +203,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -362,3 +391,11 @@
     margin: 8px 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

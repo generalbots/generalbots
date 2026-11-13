@@ -97,8 +97,10 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     background: none;
     border: 1px solid var(--border);
@@ -249,4 +251,12 @@
 .file-card.selected {
     border-color: hsl(var(--primary, 217 91% 60%));
     background: var(--primary-light);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

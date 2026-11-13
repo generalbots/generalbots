@@ -134,8 +134,8 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("admin", "admin.users.list", "List users", "List organization users, roles and groups.", &[], None, true),
     cmd("settings", "settings.read", "Read settings", "Read user and workspace settings.", &[], None, false),
     // ——— System ———
-    cmd("drive", "drive.list", "List files", "List drive files for a folder.", &[("path", "optional folder")], Some("app://drive?path={path?}"), false),
-    cmd("drive", "drive.search", "Search files", "Search drive files by name.", &[("query", "file name")], Some("app://drive?path={path?}"), false),
+    cmd("drive", "drive.list", "List files", "List drive files for a folder.", &[("path", "optional folder"), ("bucket", "optional bucket")], Some("app://drive?path={path?}&bucket={bucket?}"), false),
+    cmd("drive", "drive.search", "Search files", "Search drive files by name.", &[("query", "file name")], Some("app://drive?path={path?}&bucket={bucket?}"), false),
     cmd("biometry", "biometry.status", "Biometry status", "Report biometric verification status.", &[], None, false),
     cmd("player", "player.streams.list", "List streams", "List media streams.", &[], Some("app://player?media_id={media_id?}"), false),
     cmd("player", "player.playlists.list", "List playlists", "List the user's media playlists.", &[], Some("app://player"), false),
