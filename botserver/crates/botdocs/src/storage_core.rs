@@ -354,8 +354,14 @@ pub async fn load_docx_from_drive(
     let doc = load_docx_from_bytes(&bytes, user_identifier, file_path).await?;
     // #2042 — a Drive-opened DOCX is persisted under the deck id so the first
     // save (and every save after a restart) patches the real package.
-    if let Err(error) =
-        crate::storage_docx_source::persist_original_docx(state, user_identifier, &doc.id, &bytes, &doc.content).await
+    if let Err(error) = crate::storage_docx_source::persist_original_docx(
+        state,
+        user_identifier,
+        &doc.id,
+        &bytes,
+        &doc.content,
+    )
+    .await
     {
         log::warn!("docs: could not persist the opened DOCX: {error}");
     }
@@ -379,7 +385,11 @@ pub async fn load_docx_from_bytes(
 
     let html_content = match crate::ooxml::load_docx_preserving(bytes) {
         Ok(ooxml_doc) => {
-            let texts: Vec<String> = ooxml_doc.paragraphs.iter().map(|p| p.text.clone()).collect();
+            let texts: Vec<String> = ooxml_doc
+                .paragraphs
+                .iter()
+                .map(|p| p.text.clone())
+                .collect();
             paragraphs_to_html(&texts)
         }
         Err(_) => convert_docx_to_html(bytes)?,

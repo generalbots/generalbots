@@ -17,7 +17,10 @@ fn a_written_pdf_becomes_editor_paragraphs_in_order() {
     let html = pdf_to_editor_html(&sample_pdf()).expect("a written PDF must be readable");
 
     assert!(html.starts_with("<p>"), "paragraph markup expected: {html}");
-    assert!(html.contains("Quarterly Report"), "heading text lost: {html}");
+    assert!(
+        html.contains("Quarterly Report"),
+        "heading text lost: {html}"
+    );
     assert!(
         html.contains("first paragraph"),
         "first paragraph text lost: {html}"
@@ -69,7 +72,8 @@ fn a_corrupt_pdf_returns_a_clean_error() {
 
 #[test]
 fn paragraphs_join_wrapped_lines_and_break_on_pages() {
-    let text = "Wrapped line one\ncontinues here\n\nSecond paragraph\n\u{000C}Third page paragraph\n";
+    let text =
+        "Wrapped line one\ncontinues here\n\nSecond paragraph\n\u{000C}Third page paragraph\n";
     let paragraphs = paragraphs_from_text(text);
 
     assert_eq!(

@@ -17,7 +17,7 @@
 //! 2. The policy header plus `attachment`/`octet-stream` — the document never
 //!    renders on the suite origin at all.
 
-use axum::http::{header, HeaderMap, HeaderValue};
+use axum::http::{HeaderMap, HeaderValue, header};
 
 use crate::storage_core::escape_html;
 
@@ -91,7 +91,10 @@ pub fn download_headers(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
     );
-    headers.insert(header::REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("no-referrer"),
+    );
     if let Some(policy) = csp {
         headers.insert(
             header::CONTENT_SECURITY_POLICY,
@@ -113,11 +116,7 @@ pub fn html_export_headers(title: &str) -> HeaderMap {
 
 /// Headers for a plain-text export (`md`, `txt`).
 #[must_use]
-pub fn text_export_headers(
-    title: &str,
-    extension: &str,
-    content_type: &'static str,
-) -> HeaderMap {
+pub fn text_export_headers(title: &str, extension: &str, content_type: &'static str) -> HeaderMap {
     download_headers(content_type, &export_filename(title, extension), None)
 }
 
@@ -147,11 +146,10 @@ body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; paddin
 }
 
 fn attachment_header(filename: &str) -> HeaderValue {
-    HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
-        .unwrap_or_else(|error| {
-            log::warn!("docs export: unsafe file name dropped: {error}");
-            HeaderValue::from_static("attachment")
-        })
+    HeaderValue::from_str(&format!("attachment; filename=\"{filename}\"")).unwrap_or_else(|error| {
+        log::warn!("docs export: unsafe file name dropped: {error}");
+        HeaderValue::from_static("attachment")
+    })
 }
 
 #[cfg(test)]
@@ -176,26 +174,36 @@ mod tests {
         let headers = html_export_headers(TITLE_BREAKOUT);
 
         assert_eq!(
-            headers.get(header::CONTENT_SECURITY_POLICY).and_then(|v| v.to_str().ok()),
+            headers
+                .get(header::CONTENT_SECURITY_POLICY)
+                .and_then(|v| v.to_str().ok()),
             Some("sandbox allow-scripts; default-src 'none'")
         );
         assert_eq!(
-            headers.get(header::X_CONTENT_TYPE_OPTIONS).and_then(|v| v.to_str().ok()),
+            headers
+                .get(header::X_CONTENT_TYPE_OPTIONS)
+                .and_then(|v| v.to_str().ok()),
             Some("nosniff")
         );
         assert_eq!(
-            headers.get(header::REFERRER_POLICY).and_then(|v| v.to_str().ok()),
+            headers
+                .get(header::REFERRER_POLICY)
+                .and_then(|v| v.to_str().ok()),
             Some("no-referrer")
         );
         assert_eq!(
-            headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()),
+            headers
+                .get(header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok()),
             Some("application/octet-stream")
         );
-        assert!(headers
-            .get(header::CONTENT_DISPOSITION)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or_default()
-            .starts_with("attachment;"));
+        assert!(
+            headers
+                .get(header::CONTENT_DISPOSITION)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default()
+                .starts_with("attachment;")
+        );
     }
 
     #[test]
@@ -215,7 +223,10 @@ mod tests {
             export_filename("../../etc/pass\nwd", "html"),
             "etcpass_wd.html"
         );
-        assert_eq!(export_filename("\"quoted\" name", "html"), "quoted_name.html");
+        assert_eq!(
+            export_filename("\"quoted\" name", "html"),
+            "quoted_name.html"
+        );
         assert_eq!(export_filename("evil.html", "html"), "evilhtml.html");
         assert_eq!(export_filename("  ", "txt"), "document.txt");
         assert_eq!(export_filename("Q3 Report", "md"), "Q3_Report.md");
@@ -227,7 +238,9 @@ mod tests {
 
         assert!(headers.get(header::CONTENT_SECURITY_POLICY).is_none());
         assert_eq!(
-            headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()),
+            headers
+                .get(header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok()),
             Some("text/plain; charset=utf-8")
         );
         assert_eq!(

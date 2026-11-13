@@ -101,7 +101,9 @@ impl SlidePreview {
                     }
                     "a:p" if in_paragraph => {
                         let finished = std::mem::take(&mut paragraph);
-                        preview.sequence.push(SlideItem::Paragraph(finished.clone()));
+                        preview
+                            .sequence
+                            .push(SlideItem::Paragraph(finished.clone()));
                         preview.paragraphs.push(finished);
                         in_paragraph = false;
                     }
@@ -151,9 +153,7 @@ pub(super) fn presentation_html(bytes: &[u8]) -> Result<String, String> {
     }
     let mut html = String::new();
     for (number, slide) in slides {
-        html.push_str(&format!(
-            r#"<div class="gb-slide"><h3>Slide {number}</h3>"#
-        ));
+        html.push_str(&format!(r#"<div class="gb-slide"><h3>Slide {number}</h3>"#));
         for item in slide.sequence {
             match item {
                 SlideItem::Paragraph(paragraph) => {
@@ -247,7 +247,10 @@ fn notes_target(rels_xml: &str) -> Option<String> {
 /// Resolves an OOXML relationship target (`../notesSlides/notesSlide1.xml`)
 /// against the part directory (`ppt/slides`).
 fn rels_target_path(base_dir: &str, target: &str) -> String {
-    let mut parts: Vec<&str> = base_dir.split('/').filter(|part| !part.is_empty()).collect();
+    let mut parts: Vec<&str> = base_dir
+        .split('/')
+        .filter(|part| !part.is_empty())
+        .collect();
     for segment in target.split('/') {
         match segment {
             "" | "." => {}
@@ -329,10 +332,7 @@ mod tests {
         let xml = r#"<p:sld xmlns:a="a"><a:p><a:t>Title</a:t></a:p><a:tbl><a:tr><a:tc><a:p><a:t>A</a:t></a:p></a:tc><a:tc><a:p><a:t>B</a:t></a:p></a:tc></a:tr><a:tr><a:tc><a:p><a:t>1</a:t></a:p></a:tc><a:tc><a:p><a:t>2</a:t></a:p></a:tc></a:tr></a:tbl></p:sld>"#;
         let slide = SlidePreview::parse(xml);
         assert_eq!(slide.paragraphs, vec!["Title"]);
-        assert_eq!(
-            slide.tables,
-            vec![vec![vec!["A", "B"], vec!["1", "2"]]]
-        );
+        assert_eq!(slide.tables, vec![vec![vec!["A", "B"], vec!["1", "2"]]]);
     }
 
     #[test]

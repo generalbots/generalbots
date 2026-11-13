@@ -18,12 +18,17 @@ pub fn html_to_markdown(html: &str) -> String {
     md = md.replace("<h4>", "#### ").replace("</h4>", "\n");
     md = md.replace("<h5>", "##### ").replace("</h5>", "\n");
     md = md.replace("<h6>", "###### ").replace("</h6>", "\n");
-    md = md.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n");
+    md = md
+        .replace("<br>", "\n")
+        .replace("<br/>", "\n")
+        .replace("<br />", "\n");
     md = md.replace("<p>", "").replace("</p>", "\n\n");
     md = md.replace("<li>", "- ").replace("</li>", "\n");
     md = md.replace("<ul>", "").replace("</ul>", "\n");
     md = md.replace("<ol>", "").replace("</ol>", "\n");
-    md = md.replace("<blockquote>", "> ").replace("</blockquote>", "\n");
+    md = md
+        .replace("<blockquote>", "> ")
+        .replace("</blockquote>", "\n");
     md = md.replace("<code>", "`").replace("</code>", "`");
     md = md.replace("<code>", "`").replace("</code>", "`");
     md = md.replace("<pre>", "```\n").replace("</pre>", "\n```\n");

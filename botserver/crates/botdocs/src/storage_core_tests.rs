@@ -54,7 +54,11 @@ fn formatted_runs_mark_the_paragraph() {
     ];
     for (html, expected) in cases {
         let parsed = paragraphs(html);
-        assert_eq!((parsed[0].2, parsed[0].3, parsed[0].4), expected, "html {html:?}");
+        assert_eq!(
+            (parsed[0].2, parsed[0].3, parsed[0].4),
+            expected,
+            "html {html:?}"
+        );
     }
 }
 

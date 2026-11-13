@@ -2,12 +2,12 @@
 //! The save path calls [`capture_snapshot`] BEFORE persisting, archiving the
 //! previous version; `POST /api/docs/history {id, action}` walks the stacks.
 
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use serde::Deserialize;
 use std::sync::Arc;
 
-use crate::state::DocState;
 use crate::Document;
+use crate::state::DocState;
 use axum::http::StatusCode;
 
 #[derive(Deserialize)]

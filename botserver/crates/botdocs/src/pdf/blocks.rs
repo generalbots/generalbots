@@ -22,7 +22,10 @@ pub enum BlockKind {
     Heading(u8),
     Paragraph,
     /// `indent` is the nesting depth; `marker` is the rendered label (`1.`).
-    ListItem { indent: u8, marker: String },
+    ListItem {
+        indent: u8,
+        marker: String,
+    },
     Blockquote,
     Code,
     /// Explicit page break (`<div class="gb-doc-page-break">` or `<hr>`).

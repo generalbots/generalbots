@@ -15,13 +15,17 @@ pub fn load_docx_preserving(bytes: &[u8]) -> Result<OoxmlDocument, String> {
     use ooxmlsdk::sdk::SdkType;
 
     let reader = Cursor::new(bytes);
-    let docx = WordprocessingDocument::new(reader)
-        .map_err(|e| format!("Failed to parse DOCX: {e}"))?;
+    let docx =
+        WordprocessingDocument::new(reader).map_err(|e| format!("Failed to parse DOCX: {e}"))?;
 
     let xml_str = docx
         .main_document_part()
         .ok()
-        .and_then(|part| part.root_element(&docx).ok().and_then(|root| root.to_xml().ok()))
+        .and_then(|part| {
+            part.root_element(&docx)
+                .ok()
+                .and_then(|root| root.to_xml().ok())
+        })
         .unwrap_or_default();
 
     let paragraphs = extract_paragraphs(&xml_str);
@@ -72,8 +76,7 @@ fn extract_text_from_paragraph(para_xml: &str) -> String {
             let abs_content_start = abs_start + content_start_rel + 1;
 
             if let Some(t_end_rel) = para_xml[abs_content_start..].find("</w:t>") {
-                let content =
-                    &para_xml[abs_content_start..abs_content_start + t_end_rel];
+                let content = &para_xml[abs_content_start..abs_content_start + t_end_rel];
                 text.push_str(content);
                 pos = abs_content_start + t_end_rel + 6;
             } else {
@@ -108,7 +111,7 @@ pub fn update_docx_text(
     new_paragraphs: &[String],
 ) -> Result<Vec<u8>, String> {
     use std::io::{Read, Write};
-    use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
+    use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
     let reader = Cursor::new(original_bytes);
     let mut archive =
@@ -179,8 +182,7 @@ fn replace_paragraph_texts(xml: &str, new_paragraphs: &[String]) -> String {
 
             if para_content.contains("<w:t") {
                 if para_idx < new_paragraphs.len() {
-                    let new_para =
-                        replace_first_text_run(&para_content, &new_paragraphs[para_idx]);
+                    let new_para = replace_first_text_run(&para_content, &new_paragraphs[para_idx]);
                     let new_len = new_para.len();
                     result = format!("{}{}{}", &result[..abs_start], new_para, &result[abs_end..]);
                     search_pos = abs_start + new_len;
@@ -217,14 +219,17 @@ fn replace_first_text_run(para_xml: &str, new_text: &str) -> String {
                     let escaped = escape_xml(new_text);
                     result = format!(
                         "{}{}{}",
-                        &result[..abs_content_start], escaped, &result[abs_content_end..]
+                        &result[..abs_content_start],
+                        escaped,
+                        &result[abs_content_end..]
                     );
                     found_first = true;
                     search_pos = abs_content_start + escaped.len() + 6;
                 } else {
                     result = format!(
                         "{}{}",
-                        &result[..abs_content_start], &result[abs_content_end..]
+                        &result[..abs_content_start],
+                        &result[abs_content_end..]
                     );
                     search_pos = abs_content_start;
                 }
@@ -248,9 +253,7 @@ mod update_docx_tests {
     /// it exercises the same zip walk a real Word file does.
     fn sample_docx(text: &str) -> Vec<u8> {
         use docx_rs::{Docx, Paragraph, Run};
-        let docx = Docx::new().add_paragraph(
-            Paragraph::new().add_run(Run::new().add_text(text)),
-        );
+        let docx = Docx::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(text)));
         let mut buffer = std::io::Cursor::new(Vec::new());
         docx.build().pack(&mut buffer).expect("pack docx");
         buffer.into_inner()
@@ -317,8 +320,7 @@ mod fixture_round_trip {
     use std::io::Read;
 
     fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
-        let mut archive =
-            zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
         let mut out = Vec::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).expect("entry");
@@ -342,8 +344,11 @@ mod fixture_round_trip {
             return;
         };
         let parsed = load_docx_preserving(&original).expect("fixture parses");
-        let mut paragraphs: Vec<String> = parsed.paragraphs.iter().map(|p| p.text.clone()).collect();
-        let Some(first) = paragraphs.first_mut() else { return };
+        let mut paragraphs: Vec<String> =
+            parsed.paragraphs.iter().map(|p| p.text.clone()).collect();
+        let Some(first) = paragraphs.first_mut() else {
+            return;
+        };
         *first = format!("{first} (edited)");
 
         let patched = update_docx_text(&original, &paragraphs).expect("patch");
@@ -360,4 +365,3 @@ mod fixture_round_trip {
         }
     }
 }
-

@@ -1,14 +1,18 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
-    AddCommentRequest, CommentReply, DeleteCommentRequest, DocumentComment,
-    ListCommentsResponse, ReplyCommentRequest, ResolveCommentRequest,
+    AddCommentRequest, CommentReply, DeleteCommentRequest, DocumentComment, ListCommentsResponse,
+    ReplyCommentRequest, ResolveCommentRequest,
 };
-use axum::{extract::{Query, State}, http::StatusCode, Json};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_add_comment(
     State(state): State<Arc<DocState>>,
@@ -22,13 +26,15 @@ pub async fn handle_add_comment(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+                ),
+            ));
         }
     };
 
@@ -52,11 +58,15 @@ pub async fn handle_add_comment(
     if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+            ),
         ));
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "comment": comment })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "comment": comment }),
+    ))
 }
 
 pub async fn handle_reply_comment(
@@ -71,13 +81,15 @@ pub async fn handle_reply_comment(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+                ),
+            ));
         }
     };
 
@@ -102,7 +114,9 @@ pub async fn handle_reply_comment(
     if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+            ),
         ));
     }
 
@@ -121,13 +135,15 @@ pub async fn handle_resolve_comment(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+                ),
+            ));
         }
     };
 
@@ -145,7 +161,9 @@ pub async fn handle_resolve_comment(
     if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+            ),
         ));
     }
 
@@ -164,13 +182,15 @@ pub async fn handle_delete_comment(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+                ),
+            ));
         }
     };
 
@@ -182,7 +202,9 @@ pub async fn handle_delete_comment(
     if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+            ),
         ));
     }
 
@@ -202,13 +224,15 @@ pub async fn handle_list_comments(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::comments", None)}),
+                ),
+            ));
         }
     };
 

@@ -1,15 +1,19 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
-    AddEndnoteRequest, AddFootnoteRequest, DeleteEndnoteRequest, DeleteFootnoteRequest,
-    Endnote, Footnote, ListEndnotesResponse, ListFootnotesResponse, UpdateEndnoteRequest,
+    AddEndnoteRequest, AddFootnoteRequest, DeleteEndnoteRequest, DeleteFootnoteRequest, Endnote,
+    Footnote, ListEndnotesResponse, ListFootnotesResponse, UpdateEndnoteRequest,
     UpdateFootnoteRequest,
 };
-use axum::{extract::{Query, State}, http::StatusCode, Json};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_add_footnote(
     State(state): State<Arc<DocState>>,
@@ -19,8 +23,20 @@ pub async fn handle_add_footnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     let footnotes = doc.footnotes.get_or_insert_with(Vec::new);
@@ -37,10 +53,17 @@ pub async fn handle_add_footnote(
     doc.updated_at = Utc::now();
 
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "footnote": footnote })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "footnote": footnote }),
+    ))
 }
 
 pub async fn handle_update_footnote(
@@ -51,8 +74,20 @@ pub async fn handle_update_footnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(footnotes) = &mut doc.footnotes {
@@ -66,7 +101,12 @@ pub async fn handle_update_footnote(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -80,8 +120,20 @@ pub async fn handle_delete_footnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(footnotes) = &mut doc.footnotes {
@@ -93,7 +145,12 @@ pub async fn handle_delete_footnote(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -108,8 +165,20 @@ pub async fn handle_list_footnotes(
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     let footnotes = doc.footnotes.unwrap_or_default();
@@ -118,9 +187,19 @@ pub async fn handle_list_footnotes(
 
 fn to_roman_numeral(num: usize) -> String {
     let numerals = [
-        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-        (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-        (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
     ];
     let mut result = String::new();
     let mut n = num;
@@ -141,8 +220,20 @@ pub async fn handle_add_endnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     let endnotes = doc.endnotes.get_or_insert_with(Vec::new);
@@ -159,10 +250,17 @@ pub async fn handle_add_endnote(
     doc.updated_at = Utc::now();
 
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "endnote": endnote })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "endnote": endnote }),
+    ))
 }
 
 pub async fn handle_update_endnote(
@@ -173,8 +271,20 @@ pub async fn handle_update_endnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(endnotes) = &mut doc.endnotes {
@@ -188,7 +298,12 @@ pub async fn handle_update_endnote(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -202,8 +317,20 @@ pub async fn handle_delete_endnote(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(endnotes) = &mut doc.endnotes {
@@ -215,7 +342,12 @@ pub async fn handle_delete_endnote(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -230,8 +362,20 @@ pub async fn handle_list_endnotes(
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::notes", None)}),
+                ),
+            ));
+        }
     };
 
     let endnotes = doc.endnotes.unwrap_or_default();

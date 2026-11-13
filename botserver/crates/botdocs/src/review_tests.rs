@@ -60,12 +60,20 @@ fn two_reviewers_finding_the_same_problem_produce_agreement_two() {
     let reviews = vec![
         Review {
             role: ReviewerRole::Editor,
-            findings: vec![finding(Severity::Minor, "clarity", "The conclusion is unclear.")],
+            findings: vec![finding(
+                Severity::Minor,
+                "clarity",
+                "The conclusion is unclear.",
+            )],
             verdict: String::new(),
         },
         Review {
             role: ReviewerRole::Critic,
-            findings: vec![finding(Severity::Critical, "clarity", "The conclusion is unclear.")],
+            findings: vec![finding(
+                Severity::Critical,
+                "clarity",
+                "The conclusion is unclear.",
+            )],
             verdict: String::new(),
         },
     ];
@@ -78,7 +86,10 @@ fn two_reviewers_finding_the_same_problem_produce_agreement_two() {
         Severity::Critical,
         "the more severe report wins"
     );
-    assert_eq!(merged.findings[0].reviewers, vec![ReviewerRole::Editor, ReviewerRole::Critic]);
+    assert_eq!(
+        merged.findings[0].reviewers,
+        vec![ReviewerRole::Editor, ReviewerRole::Critic]
+    );
 }
 
 #[test]
@@ -86,12 +97,20 @@ fn different_problems_stay_separate() {
     let reviews = vec![
         Review {
             role: ReviewerRole::Editor,
-            findings: vec![finding(Severity::Minor, "clarity", "The conclusion is unclear.")],
+            findings: vec![finding(
+                Severity::Minor,
+                "clarity",
+                "The conclusion is unclear.",
+            )],
             verdict: String::new(),
         },
         Review {
             role: ReviewerRole::Critic,
-            findings: vec![finding(Severity::Minor, "evidence", "No source is cited for the figure.")],
+            findings: vec![finding(
+                Severity::Minor,
+                "evidence",
+                "No source is cited for the figure.",
+            )],
             verdict: String::new(),
         },
     ];
@@ -103,12 +122,20 @@ fn wording_differences_still_merge() {
     let reviews = vec![
         Review {
             role: ReviewerRole::Editor,
-            findings: vec![finding(Severity::Minor, "clarity", "The conclusion  is unclear.")],
+            findings: vec![finding(
+                Severity::Minor,
+                "clarity",
+                "The conclusion  is unclear.",
+            )],
             verdict: String::new(),
         },
         Review {
             role: ReviewerRole::Critic,
-            findings: vec![finding(Severity::Minor, "clarity", "the conclusion is unclear")],
+            findings: vec![finding(
+                Severity::Minor,
+                "clarity",
+                "the conclusion is unclear",
+            )],
             verdict: String::new(),
         },
     ];
@@ -138,7 +165,10 @@ fn findings_are_ordered_by_severity_then_agreement() {
     let merged = merge_reviews(&reviews);
     assert_eq!(merged.findings[0].severity, Severity::Critical);
     assert_eq!(merged.findings[1].severity, Severity::Minor);
-    assert_eq!(merged.findings[1].agreement, 2, "the agreed minor outranks the lone one");
+    assert_eq!(
+        merged.findings[1].agreement, 2,
+        "the agreed minor outranks the lone one"
+    );
     assert_eq!(merged.findings[2].agreement, 1);
 }
 
@@ -146,13 +176,20 @@ fn findings_are_ordered_by_severity_then_agreement() {
 fn the_rewrite_prompt_carries_every_correction() {
     let merged = merge_reviews(&[Review {
         role: ReviewerRole::Editor,
-        findings: vec![finding(Severity::Critical, "evidence", "Cite the 2024 figure.")],
+        findings: vec![finding(
+            Severity::Critical,
+            "evidence",
+            "Cite the 2024 figure.",
+        )],
         verdict: String::new(),
     }]);
     let prompt = build_rewrite_prompt("Body text.", &merged.findings);
     assert!(prompt.contains("Cite the 2024 figure."), "{prompt}");
     assert!(prompt.contains("[critical]"), "{prompt}");
-    assert!(prompt.contains("[VERIFY:"), "the rewriter must not invent facts");
+    assert!(
+        prompt.contains("[VERIFY:"),
+        "the rewriter must not invent facts"
+    );
 }
 
 #[test]
@@ -190,8 +227,14 @@ fn an_empty_pair_review_is_reported_rather_than_faked() {
 
 #[test]
 fn punctuation_and_case_do_not_defeat_deduplication() {
-    assert_eq!(dedup_key("The conclusion is unclear."), dedup_key("the conclusion is unclear"));
-    assert_eq!(dedup_key("Cite, the 2024 figure!"), dedup_key("cite the 2024 figure"));
+    assert_eq!(
+        dedup_key("The conclusion is unclear."),
+        dedup_key("the conclusion is unclear")
+    );
+    assert_eq!(
+        dedup_key("Cite, the 2024 figure!"),
+        dedup_key("cite the 2024 figure")
+    );
 }
 
 #[test]
@@ -205,7 +248,11 @@ fn short_words_are_dropped_so_wording_carries_the_key() {
 fn a_fence_stripper_leaves_bare_json_alone() {
     assert_eq!(strip_fence("  {\"a\":1}  "), "{\"a\":1}");
     assert_eq!(strip_fence("```\n{\"a\":1}\n```"), "{\"a\":1}");
-    assert_eq!(strip_fence("```json\n{\"a\":1}"), "{\"a\":1}", "an unclosed fence still parses");
+    assert_eq!(
+        strip_fence("```json\n{\"a\":1}"),
+        "{\"a\":1}",
+        "an unclosed fence still parses"
+    );
 }
 
 #[test]

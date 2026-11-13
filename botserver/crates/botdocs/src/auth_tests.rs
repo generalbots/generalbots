@@ -52,7 +52,8 @@ fn a_request_without_the_extension_is_rejected() {
 fn a_request_with_the_extension_resolves_to_that_owner() {
     let mut extensions = Extensions::new();
     assert!(extensions.insert(user("user-a")).is_none());
-    let resolved = DocUser::from_extensions(&extensions).expect("the inserted identity is readable");
+    let resolved =
+        DocUser::from_extensions(&extensions).expect("the inserted identity is readable");
     assert_eq!(resolved.id(), "user-a");
     assert_eq!(resolved.display_name(), "user-a");
 }

@@ -1,8 +1,8 @@
 //! HTTP surface for pair-of-LLM document review (issue #1458).
 
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -153,10 +153,7 @@ async fn run_reviewers(
         } else {
             StatusCode::BAD_GATEWAY
         };
-        return Err((
-            status,
-            Json(serde_json::json!({ "error": message })),
-        ));
+        return Err((status, Json(serde_json::json!({ "error": message }))));
     }
 
     reviews.sort_by_key(|review| review.role);
@@ -199,7 +196,10 @@ fn model_for(role: ReviewerRole) -> String {
 /// True when the two roles are backed by different models.
 #[must_use]
 pub fn roles_use_distinct_models() -> bool {
-    let mut models: Vec<String> = ReviewerRole::ALL.iter().map(|role| model_for(*role)).collect();
+    let mut models: Vec<String> = ReviewerRole::ALL
+        .iter()
+        .map(|role| model_for(*role))
+        .collect();
     models.sort();
     let count = models.len();
     models.dedup();
@@ -231,7 +231,10 @@ async fn complete(model: &str, system: &str, user: &str) -> Result<String, Strin
     if !key.trim().is_empty() {
         request = request.header("Authorization", format!("Bearer {key}"));
     }
-    let response = request.send().await.map_err(|e| format!("request failed: {e}"))?;
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("request failed: {e}"))?;
     if !response.status().is_success() {
         return Err(format!("provider returned HTTP {}", response.status()));
     }
@@ -246,7 +249,10 @@ async fn complete(model: &str, system: &str, user: &str) -> Result<String, Strin
 }
 
 fn bad_request(message: &str) -> (StatusCode, Json<serde_json::Value>) {
-    (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": message })))
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({ "error": message })),
+    )
 }
 
 fn tracing_warn(message: &str) {
@@ -254,11 +260,12 @@ fn tracing_warn(message: &str) {
 }
 
 /// Convenience wrapper for callers that want the outcome rather than HTTP.
-pub async fn review_document(
-    text: &str,
-    instruction: &str,
-) -> Result<ReviewOutcome, ReviewError> {
-    if std::env::var("LLM_URL").unwrap_or_default().trim().is_empty() {
+pub async fn review_document(text: &str, instruction: &str) -> Result<ReviewOutcome, ReviewError> {
+    if std::env::var("LLM_URL")
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
         return Err(ReviewError::NotConfigured);
     }
     let mut reviews = Vec::new();

@@ -1,14 +1,18 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
     ApplyStyleRequest, CreateStyleRequest, DeleteStyleRequest, ListStylesResponse,
     UpdateStyleRequest,
 };
-use axum::{extract::{Query, State}, http::StatusCode, Json};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_create_style(
     State(state): State<Arc<DocState>>,
@@ -18,8 +22,20 @@ pub async fn handle_create_style(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+                ),
+            ));
+        }
     };
 
     let styles = doc.styles.get_or_insert_with(Vec::new);
@@ -27,10 +43,17 @@ pub async fn handle_create_style(
     doc.updated_at = Utc::now();
 
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+            ),
+        ));
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "style": req.style })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "style": req.style }),
+    ))
 }
 
 pub async fn handle_update_style(
@@ -41,8 +64,20 @@ pub async fn handle_update_style(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(styles) = &mut doc.styles {
@@ -56,7 +91,12 @@ pub async fn handle_update_style(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -70,8 +110,20 @@ pub async fn handle_delete_style(
     let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+                ),
+            ));
+        }
     };
 
     if let Some(styles) = &mut doc.styles {
@@ -80,7 +132,12 @@ pub async fn handle_delete_style(
 
     doc.updated_at = Utc::now();
     if let Err(e) = save_document(&state, &user_id, &doc).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}))));
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+            ),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -95,8 +152,20 @@ pub async fn handle_list_styles(
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+                ),
+            ));
+        }
     };
 
     let styles = doc.styles.unwrap_or_default();
@@ -111,8 +180,20 @@ pub async fn handle_apply_style(
     let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
-        Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)})))),
+        Ok(None) => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Document not found" })),
+            ));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::styles", None)}),
+                ),
+            ));
+        }
     };
 
     let style = doc

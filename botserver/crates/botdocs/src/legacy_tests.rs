@@ -9,10 +9,10 @@ fn the_shared_owner_is_recognised_in_any_case() {
     assert!(is_legacy_owner("Default-User"));
     assert!(is_legacy_owner("  default-user  "));
     assert!(!is_legacy_owner("default-user-2"));
+    assert!(!is_legacy_owner("11111111-1111-1111-1111-111111111111"));
     assert!(!is_legacy_owner(
-        "11111111-1111-1111-1111-111111111111"
+        "local-11111111-1111-1111-1111-111111111111"
     ));
-    assert!(!is_legacy_owner("local-11111111-1111-1111-1111-111111111111"));
     assert!(!is_legacy_owner(""));
 }
 
@@ -46,7 +46,13 @@ fn adopting_a_legacy_object_lands_in_the_install_namespace() {
 fn adoption_never_escapes_the_legacy_prefix() {
     let owner = "9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c";
     assert!(adopt_destination(owner, "users/default-user/other/doc-1.html").is_none());
-    assert!(adopt_destination(owner, "users/22222222-2222-2222-2222-222222222222/docs/a.html").is_none());
+    assert!(
+        adopt_destination(
+            owner,
+            "users/22222222-2222-2222-2222-222222222222/docs/a.html"
+        )
+        .is_none()
+    );
     assert!(adopt_destination(owner, "users/default-user/docs/").is_none());
     assert!(adopt_destination(owner, "users/default-user/docs").is_none());
 }
@@ -59,11 +65,18 @@ fn no_module_but_the_legacy_one_names_the_shared_owner() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut files = Vec::new();
     collect_rust_files(&root, &mut files);
-    assert!(!files.is_empty(), "no sources found under {}", root.display());
+    assert!(
+        !files.is_empty(),
+        "no sources found under {}",
+        root.display()
+    );
 
     let mut offenders = Vec::new();
     for path in files {
-        let name = path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
         if name == "legacy.rs" || name.ends_with("_tests.rs") {
             continue;
         }
@@ -74,7 +87,10 @@ fn no_module_but_the_legacy_one_names_the_shared_owner() {
             offenders.push(format!("{} names the legacy owner", path.display()));
         }
         if text.contains("get_current_user_id") {
-            offenders.push(format!("{} uses the removed constant owner", path.display()));
+            offenders.push(format!(
+                "{} uses the removed constant owner",
+                path.display()
+            ));
         }
     }
 

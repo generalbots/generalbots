@@ -1,11 +1,14 @@
 use super::{empty_fragment, html_escape};
-use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use crate::auth::DocUser;
 use crate::state::DocState;
+use crate::types_core::{
+    DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry,
+    TrackChange,
+};
 use axum::extract::State;
-use axum::{response::Html, Json};
+use axum::{Json, response::Html};
+use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use std::sync::Arc;
-use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry, TrackChange};
 
 pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let doc_id = payload
@@ -14,7 +17,13 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .to_string();
-    let toc: Option<TableOfContents> = serde_json::from_value(payload.get("toc").cloned().unwrap_or(serde_json::Value::Null)).ok();
+    let toc: Option<TableOfContents> = serde_json::from_value(
+        payload
+            .get("toc")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .ok();
     // The toolbar/sidebar buttons post only the live editor HTML, not a
     // persisted TOC: derive one from the headings so the panel has content.
     let toc = match toc {
@@ -56,7 +65,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">Sumário</h3>
 <button class="btn-icon" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"{id}"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">⟳ Atualizar</button>
 </div>
-<div class="dc-panel-body" style="padding:8px;">"##
+<div class="dc-panel-body" style="padding:8px;">"##,
             );
             for entry in &t.entries {
                 let indent = (entry.level as usize) * 16;
@@ -76,23 +85,37 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
             html.push_str("</div></div>");
             Html(html.replace("{id}", &html_escape(&doc_id)))
         }
-        _ => Html(empty_fragment("Nenhum sumário gerado. Use o botão Gerar Sumário para criar automaticamente a partir dos cabeçalhos.")),
+        _ => Html(empty_fragment(
+            "Nenhum sumário gerado. Use o botão Gerar Sumário para criar automaticamente a partir dos cabeçalhos.",
+        )),
     }
 }
 
 pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let comments: Vec<DocumentComment> = serde_json::from_value(payload.get("comments").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let comments: Vec<DocumentComment> = serde_json::from_value(
+        payload
+            .get("comments")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if comments.is_empty() {
         // Keep the panel id: the reply listener replaces #comments-panel and
         // htmx aborts a swap whose target vanished with the empty state.
         return Html(format!(
             r##"<div class="dc-panel" id="comments-panel">{}</div>"##,
-            empty_fragment("Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar.")
+            empty_fragment(
+                "Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar."
+            )
         ));
     }
     let mut body = String::new();
     for c in &comments {
-        let resolved = if c.resolved { r##"<span style="color:#10b981;font-size:11px;background:#064e3b;padding:2px 6px;border-radius:3px;">Resolvido</span>"## } else { r##"<span style="color:#f59e0b;font-size:11px;background:#78350f;padding:2px 6px;border-radius:3px;">Aberto</span>"## };
+        let resolved = if c.resolved {
+            r##"<span style="color:#10b981;font-size:11px;background:#064e3b;padding:2px 6px;border-radius:3px;">Resolvido</span>"##
+        } else {
+            r##"<span style="color:#f59e0b;font-size:11px;background:#78350f;padding:2px 6px;border-radius:3px;">Aberto</span>"##
+        };
         body.push_str(&format!(
             r##"<div class="dc-comment-item" style="padding:10px;border-bottom:1px solid #334155;border-left:3px solid #f59e0b;background:#1e293b50;margin-bottom:4px;border-radius:4px;">
 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -123,7 +146,13 @@ pub async fn handle_track_changes_panel(
     user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
-    let mut changes: Vec<TrackChange> = serde_json::from_value(payload.get("track_changes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut changes: Vec<TrackChange> = serde_json::from_value(
+        payload
+            .get("track_changes")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if changes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             changes = doc.track_changes.unwrap_or_default();
@@ -135,7 +164,9 @@ pub async fn handle_track_changes_panel(
         .and_then(|value| value.as_str())
         .unwrap_or("");
     if changes.is_empty() {
-        return Html(empty_fragment("Nenhuma alteração rastreada. Ative o controle de alterações no menu Revisão."));
+        return Html(empty_fragment(
+            "Nenhuma alteração rastreada. Ative o controle de alterações no menu Revisão.",
+        ));
     }
     let mut html = String::from(
         r##"<div class="dc-panel" id="tc-panel">
@@ -192,14 +223,22 @@ pub async fn handle_footnotes_panel(
     user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
-    let mut notes: Vec<Footnote> = serde_json::from_value(payload.get("footnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut notes: Vec<Footnote> = serde_json::from_value(
+        payload
+            .get("footnotes")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if notes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             notes = doc.footnotes.unwrap_or_default();
         }
     }
     if notes.is_empty() {
-        return Html(empty_fragment("Nenhuma nota de rodapé. Use Inserir > Nota de Rodapé para adicionar referências."));
+        return Html(empty_fragment(
+            "Nenhuma nota de rodapé. Use Inserir > Nota de Rodapé para adicionar referências.",
+        ));
     }
     let mut body = String::new();
     for n in &notes {
@@ -226,14 +265,22 @@ pub async fn handle_endnotes_panel(
     user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
-    let mut notes: Vec<Endnote> = serde_json::from_value(payload.get("endnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut notes: Vec<Endnote> = serde_json::from_value(
+        payload
+            .get("endnotes")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if notes.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             notes = doc.endnotes.unwrap_or_default();
         }
     }
     if notes.is_empty() {
-        return Html(empty_fragment("Nenhuma nota final. Use Inserir > Nota Final para adicionar referências no fim do documento."));
+        return Html(empty_fragment(
+            "Nenhuma nota final. Use Inserir > Nota Final para adicionar referências no fim do documento.",
+        ));
     }
     let mut body = String::new();
     for n in &notes {
@@ -255,7 +302,13 @@ pub async fn handle_styles_panel(
     user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
-    let mut styles: Vec<DocumentStyle> = serde_json::from_value(payload.get("styles").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut styles: Vec<DocumentStyle> = serde_json::from_value(
+        payload
+            .get("styles")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if styles.is_empty() {
         if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             styles = doc.styles.unwrap_or_default();
@@ -264,12 +317,18 @@ pub async fn handle_styles_panel(
     if styles.is_empty() {
         return Html(format!(
             r##"<div class="dc-panel" id="styles-panel">{}</div>"##,
-            empty_fragment("Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação.")
+            empty_fragment(
+                "Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação."
+            )
         ));
     }
     let mut body = String::new();
     for s in &styles {
-        let font_preview = format!("{} {}pt", s.font_family.as_deref().unwrap_or("Arial"), s.font_size.unwrap_or(12.0) as i32);
+        let font_preview = format!(
+            "{} {}pt",
+            s.font_family.as_deref().unwrap_or("Arial"),
+            s.font_size.unwrap_or(12.0) as i32
+        );
         body.push_str(&format!(
             r##"<div class="dc-style-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
@@ -284,7 +343,13 @@ pub async fn handle_styles_panel(
 }
 
 pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let mut outline: Vec<OutlineItem> = serde_json::from_value(payload.get("outline").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut outline: Vec<OutlineItem> = serde_json::from_value(
+        payload
+            .get("outline")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
     if outline.is_empty() {
         outline = payload
             .get("content")
@@ -293,7 +358,9 @@ pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Htm
             .unwrap_or_default();
     }
     if outline.is_empty() {
-        return Html(empty_fragment("Nenhum item de estrutura detectado. Use títulos (H1, H2, H3) para criar uma estrutura hierárquica."));
+        return Html(empty_fragment(
+            "Nenhum item de estrutura detectado. Use títulos (H1, H2, H3) para criar uma estrutura hierárquica.",
+        ));
     }
     let mut body = String::new();
     for o in &outline {
@@ -316,7 +383,10 @@ pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<Str
         .or_else(|| payload.get("id"))
         .and_then(|value| value.as_str())
         .unwrap_or("");
-    let action = payload.get("action").and_then(|v| v.as_str()).unwrap_or("improve");
+    let action = payload
+        .get("action")
+        .and_then(|v| v.as_str())
+        .unwrap_or("improve");
     let prompt = payload.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
         r##"<div class="dc-panel" id="ai-panel" style="padding:16px;background:#1e1b4b;border:1px solid #4338ca;border-radius:8px;">
@@ -375,9 +445,13 @@ fn heading_items(content: &str) -> Vec<OutlineItem> {
         let mut position = 0usize;
         while let Some(start) = content[position..].find(&open) {
             let absolute = position + start;
-            let Some(tag_end) = content[absolute..].find('>') else { break };
+            let Some(tag_end) = content[absolute..].find('>') else {
+                break;
+            };
             let text_start = absolute + tag_end + 1;
-            let Some(text_end) = content[text_start..].find(&close) else { break };
+            let Some(text_end) = content[text_start..].find(&close) else {
+                break;
+            };
             let text = plain_text(&content[text_start..text_start + text_end]);
             if !text.is_empty() {
                 items.push(OutlineItem {

@@ -37,8 +37,7 @@ pub fn pdf_to_editor_html(bytes: &[u8]) -> Result<String, String> {
 
     let text = pdf_extract::extract_text_from_mem(bytes).map_err(|error| {
         log::warn!("docs import: PDF text extraction failed: {error}");
-        "The PDF could not be read: it may be corrupt, truncated or password-protected"
-            .to_string()
+        "The PDF could not be read: it may be corrupt, truncated or password-protected".to_string()
     })?;
 
     let paragraphs = paragraphs_from_text(&text);

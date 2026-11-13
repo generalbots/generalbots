@@ -23,9 +23,9 @@
 
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::Json;
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text, Timestamptz};
 use serde::Serialize;
@@ -82,7 +82,10 @@ fn not_found() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
-fn internal<E: std::fmt::Display>(error: &E, context: &str) -> (StatusCode, Json<serde_json::Value>) {
+fn internal<E: std::fmt::Display>(
+    error: &E,
+    context: &str,
+) -> (StatusCode, Json<serde_json::Value>) {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(serde_json::json!({

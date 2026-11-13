@@ -1,10 +1,10 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
 use crate::types::{GetOutlineRequest, OutlineItem, OutlineResponse};
 use crate::utils::strip_html;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_get_outline(
     State(state): State<Arc<DocState>>,
@@ -18,13 +18,15 @@ pub async fn handle_get_outline(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::structure", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::structure", None)}),
+                ),
+            ));
         }
     };
 

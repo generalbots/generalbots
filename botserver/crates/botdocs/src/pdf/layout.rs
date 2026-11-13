@@ -41,11 +41,22 @@ pub struct Page {
     pub lines: Vec<Line>,
     /// Heading destinations placed on this page: `(anchor, baseline y)`.
     pub anchors: Vec<(String, f32)>,
+    /// Resolved repeating header/footer text for this page.
+    pub header: String,
+    pub footer: String,
+    pub page_no: usize,
+    pub page_count: usize,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct PageFrame {
+    pub header: Option<String>,
+    pub footer: Option<String>,
 }
 
 impl Page {
     pub fn is_empty(&self) -> bool {
-        self.lines.is_empty()
+        self.lines.is_empty() && self.header.trim().is_empty() && self.footer.trim().is_empty()
     }
 
     pub fn text(&self) -> String {
@@ -227,23 +238,29 @@ struct Layouter {
     pages: Vec<Page>,
     current: Page,
     y: f32,
+    top: f32,
+    bottom: f32,
 }
 
 impl Layouter {
     fn new() -> Self {
+        Self::new_with_bounds(PAGE_HEIGHT - MARGIN, MARGIN)
+    }
+
+    fn new_with_bounds(top: f32, bottom: f32) -> Self {
         Self {
             pages: Vec::new(),
             current: Page::default(),
-            y: PAGE_HEIGHT - MARGIN,
+            y: top,
+            top,
+            bottom,
         }
     }
 
     fn new_page(&mut self) {
         let page = std::mem::take(&mut self.current);
-        if !page.is_empty() {
-            self.pages.push(page);
-        }
-        self.y = PAGE_HEIGHT - MARGIN;
+        self.pages.push(page);
+        self.y = self.top;
     }
 
     fn page_break(&mut self) {
@@ -260,7 +277,7 @@ impl Layouter {
         segments: Vec<Segment>,
         link: Option<&str>,
     ) -> f32 {
-        if self.y < MARGIN {
+        if self.y < self.bottom {
             self.new_page();
         }
         let y = self.y;
@@ -318,7 +335,8 @@ impl Layouter {
         if let Some(marker) = style.marker.as_deref() {
             // The separating space is added with the first word, so the
             // marker never yields a double space in the text stream.
-            let width = measure(marker, style.size, style.bold, false) + measure(" ", style.size, style.bold, false);
+            let width = measure(marker, style.size, style.bold, false)
+                + measure(" ", style.size, style.bold, false);
             line.push(segment_for(marker.to_string(), &style, false, false, false));
             line_width += width;
         }
@@ -402,4 +420,31 @@ pub fn layout_pages(blocks: &[Block]) -> Vec<Page> {
         layouter.add_block(block);
     }
     layouter.finish()
+}
+
+/// Paginates blocks and reserves space for repeating header/footer zones.
+/// Tokens `{{page}}`/`{{pages}}` are resolved per page.
+pub fn layout_pages_with_hf(blocks: &[Block], hf: &crate::pdf::HeaderFooter) -> Vec<Page> {
+    let has_header = hf.header.as_deref().is_some_and(|s| !s.trim().is_empty());
+    let has_footer = hf.footer.as_deref().is_some_and(|s| !s.trim().is_empty());
+    let top = PAGE_HEIGHT - MARGIN - if has_header { 18.0 } else { 0.0 };
+    let bottom = MARGIN + if has_footer { 18.0 } else { 0.0 };
+    let mut layouter = Layouter::new_with_bounds(top, bottom);
+    for block in blocks {
+        if matches!(block.kind, BlockKind::PageBreak) {
+            layouter.page_break();
+            continue;
+        }
+        layouter.add_block(block);
+    }
+    let mut pages = layouter.finish();
+    let total = pages.len().max(1);
+    for (idx, page) in pages.iter_mut().enumerate() {
+        let (h, f) = hf.substitute(idx + 1, total);
+        page.header = h;
+        page.footer = f;
+        page.page_no = idx + 1;
+        page.page_count = total;
+    }
+    pages
 }

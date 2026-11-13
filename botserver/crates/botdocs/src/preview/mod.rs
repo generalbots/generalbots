@@ -56,12 +56,7 @@ pub async fn handle_office_preview(
             );
             (StatusCode::NOT_FOUND, "file not found".to_string())
         })?;
-    let extension = query
-        .path
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let extension = query.path.rsplit('.').next().unwrap_or("").to_lowercase();
     let file_name = query.path.rsplit('/').next().unwrap_or(&query.path);
     preview_html(file_name, &extension, &bytes)
         .map(Html)
