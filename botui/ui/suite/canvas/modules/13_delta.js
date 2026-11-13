@@ -2,7 +2,7 @@
 /* #2172/#2175 — apply gb-doc-delta/v1 shape ops to canvas (SVG-like). */
 (function () {
   function getSvgRoot() {
-    return document.querySelector("#canvas svg, #canvasSvg, .canvas-surface svg, svg.canvas-svg");
+    return document.querySelector("#canvas-bg-svg svg, #canvas-bg-svg, #canvas svg, #canvasSvg, .canvas-surface svg, svg.canvas-svg");
   }
   function apply(payload) {
     var svg = getSvgRoot();
