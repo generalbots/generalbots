@@ -150,7 +150,6 @@ pub(super) async fn handle_invoices(
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -178,7 +177,18 @@ pub(super) async fn handle_invoices(
                 billing_invoices::amount_due,
                 billing_invoices::currency,
             ))
-            .load::<(Uuid, String, String, Option<String>, String, NaiveDate, NaiveDate, BigDecimal, BigDecimal, String)>(&mut conn)
+            .load::<(
+                Uuid,
+                String,
+                String,
+                Option<String>,
+                String,
+                NaiveDate,
+                NaiveDate,
+                BigDecimal,
+                BigDecimal,
+                String,
+            )>(&mut conn)
             .ok()
     })
     .await
@@ -232,7 +242,6 @@ pub(super) async fn handle_payments(
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_payments::table
             .filter(billing_payments::branch_id.eq(branch_id))
@@ -259,7 +268,17 @@ pub(super) async fn handle_payments(
                 billing_payments::status,
                 billing_payments::paid_at,
             ))
-            .load::<(Uuid, String, BigDecimal, String, String, Option<String>, Option<String>, String, DateTime<Utc>)>(&mut conn)
+            .load::<(
+                Uuid,
+                String,
+                BigDecimal,
+                String,
+                String,
+                Option<String>,
+                Option<String>,
+                String,
+                DateTime<Utc>,
+            )>(&mut conn)
             .ok()
     })
     .await

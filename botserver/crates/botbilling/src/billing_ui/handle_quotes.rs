@@ -12,7 +12,6 @@ pub(super) async fn handle_quotes(
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let mut db_query = billing_quotes::table
             .filter(billing_quotes::branch_id.eq(branch_id))
@@ -39,7 +38,17 @@ pub(super) async fn handle_quotes(
                 billing_quotes::total,
                 billing_quotes::currency,
             ))
-            .load::<(Uuid, String, String, Option<String>, String, NaiveDate, NaiveDate, BigDecimal, String)>(&mut conn)
+            .load::<(
+                Uuid,
+                String,
+                String,
+                Option<String>,
+                String,
+                NaiveDate,
+                NaiveDate,
+                BigDecimal,
+                String,
+            )>(&mut conn)
             .ok()
     })
     .await
@@ -80,7 +89,10 @@ pub(super) async fn handle_quotes(
         _ => Html(r#"<tr class="empty-row"><td colspan="7" class="empty-state"><div class="empty-icon">Quote</div><p>No quotes yet</p><p class="empty-hint">Create quotes for your prospects</p></td></tr>"#.to_string()),
     }
 }
-pub(super) async fn handle_stats_pending(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
+pub(super) async fn handle_stats_pending(
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
@@ -88,7 +100,6 @@ pub(super) async fn handle_stats_pending(State(state): State<Arc<BillingApiState
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let totals: Vec<BigDecimal> = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -106,7 +117,10 @@ pub(super) async fn handle_stats_pending(State(state): State<Arc<BillingApiState
 
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
-pub(super) async fn handle_revenue_month(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
+pub(super) async fn handle_revenue_month(
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
@@ -114,7 +128,6 @@ pub(super) async fn handle_revenue_month(State(state): State<Arc<BillingApiState
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let now = Utc::now();
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
@@ -135,7 +148,10 @@ pub(super) async fn handle_revenue_month(State(state): State<Arc<BillingApiState
 
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
-pub(super) async fn handle_paid_month(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
+pub(super) async fn handle_paid_month(
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
@@ -143,7 +159,6 @@ pub(super) async fn handle_paid_month(State(state): State<Arc<BillingApiState>>,
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let now = Utc::now();
         let month_start = now.date_naive().with_day(1)?.and_hms_opt(0, 0, 0)?;
@@ -165,7 +180,10 @@ pub(super) async fn handle_paid_month(State(state): State<Arc<BillingApiState>>,
 
     Html(format_currency(result.unwrap_or(0.0), "USD"))
 }
-pub(super) async fn handle_overdue(State(state): State<Arc<BillingApiState>>, headers: HeaderMap) -> impl IntoResponse {
+pub(super) async fn handle_overdue(
+    State(state): State<Arc<BillingApiState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let pool = state.pool.clone();
     let get_default_bot = state.get_default_bot;
 
@@ -173,7 +191,6 @@ pub(super) async fn handle_overdue(State(state): State<Arc<BillingApiState>>, he
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         let totals: Vec<BigDecimal> = billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
@@ -209,14 +226,14 @@ pub(super) async fn handle_billing_search(
         let mut conn = pool.get().ok()?;
         let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
             .unwrap_or_else(|| crate::get_bot_context(&pool, &get_default_bot));
-        if branch_id == Uuid::nil() { return None; }
 
         billing_invoices::table
             .filter(billing_invoices::branch_id.eq(branch_id))
             .filter(
-                billing_invoices::invoice_number.ilike(&search_term)
+                billing_invoices::invoice_number
+                    .ilike(&search_term)
                     .or(billing_invoices::customer_name.ilike(&search_term))
-                    .or(billing_invoices::customer_email.ilike(&search_term))
+                    .or(billing_invoices::customer_email.ilike(&search_term)),
             )
             .order(billing_invoices::created_at.desc())
             .limit(20)
