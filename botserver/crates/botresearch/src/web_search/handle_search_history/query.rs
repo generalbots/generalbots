@@ -1,4 +1,3 @@
-
 /// Normalizes a search query for scraping-friendly engines: strips accents
 /// (DuckDuckGo/Mojeek serve anti-bot challenge pages for %20-encoded or
 /// accented queries) and joins words with '+' like a form submission.
@@ -42,11 +41,30 @@ pub fn clean_query(query: &str) -> String {
         changed = false;
         let lower = text.to_lowercase();
         for prefix in [
-            "what is the ", "what are the ", "what is ", "what are ", "who is ", "who are ",
-            "how many ", "how much ", "when did ", "when was ", "where is ", "where are ",
-            "tell me ", "can you tell me ", "could you tell me ", "do you know ", "please ",
-            "search the web for ", "search web for ", "search for ", "search the web ",
-            "search the internet for ", "look up ", "google ",
+            "what is the ",
+            "what are the ",
+            "what is ",
+            "what are ",
+            "who is ",
+            "who are ",
+            "how many ",
+            "how much ",
+            "when did ",
+            "when was ",
+            "where is ",
+            "where are ",
+            "tell me ",
+            "can you tell me ",
+            "could you tell me ",
+            "do you know ",
+            "please ",
+            "search the web for ",
+            "search web for ",
+            "search for ",
+            "search the web ",
+            "search the internet for ",
+            "look up ",
+            "google ",
         ] {
             if lower.starts_with(prefix) {
                 text = text[prefix.len()..].to_string();
@@ -59,8 +77,12 @@ pub fn clean_query(query: &str) -> String {
         }
         let lower = text.to_lowercase();
         for phrase in [
-            " cite your sources", " cite sources", " give sources", " with sources",
-            " according to the latest official estimate", " according to official sources",
+            " cite your sources",
+            " cite sources",
+            " give sources",
+            " with sources",
+            " according to the latest official estimate",
+            " according to official sources",
         ] {
             if let Some(at) = lower.find(phrase) {
                 text = format!("{}{}", &text[..at], &text[at + phrase.len()..]);
@@ -93,6 +115,9 @@ mod tests {
             super::clean_query("Search the web for the latest virus news."),
             "the latest virus news"
         );
-        assert_eq!(super::clean_query("google ransomware 2026"), "ransomware 2026");
+        assert_eq!(
+            super::clean_query("google ransomware 2026"),
+            "ransomware 2026"
+        );
     }
 }

@@ -11,8 +11,8 @@
 
 use super::{extract_user_from_token, reason_code, unauthorized};
 use axum::http::StatusCode;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use botsecurity_core::verified_jwt::{resolve_saas_jwt_secret, JwtVerifyError};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use botsecurity_core::verified_jwt::{JwtVerifyError, resolve_saas_jwt_secret};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 

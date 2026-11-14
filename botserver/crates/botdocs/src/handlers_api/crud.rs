@@ -1,17 +1,20 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::storage::{
     create_document_with, create_new_document, delete_document_from_drive,
     list_documents_from_drive, load_document_from_drive, save_document_to_drive,
 };
-use crate::types::{CreateDocumentRequest, DocsSaveRequest, DocsSaveResponse, Document, DocumentMetadata, SearchQuery};
+use crate::types::{
+    CreateDocumentRequest, DocsSaveRequest, DocsSaveResponse, Document, DocumentMetadata,
+    SearchQuery,
+};
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::auth::DocUser;
 
 fn reject_current_doc_id(id: Option<&str>) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
     if id == Some("current") {
@@ -28,12 +31,7 @@ fn reject_current_doc_id(id: Option<&str>) -> Result<(), (StatusCode, Json<serde
 /// Resolution of the title stored with a save. The editor autosave sends only
 /// `{id, content}`; an empty title must keep the existing one instead of
 /// renaming the document to "Untitled Document" on every keystroke.
-async fn effective_title(
-    state: &DocState,
-    user_id: &str,
-    doc_id: &str,
-    requested: &str,
-) -> String {
+async fn effective_title(state: &DocState, user_id: &str, doc_id: &str, requested: &str) -> String {
     if !requested.trim().is_empty() {
         return requested.to_string();
     }
@@ -70,7 +68,8 @@ pub async fn handle_docs_save(
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
-    let content = effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
+    let content =
+        effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
 
     // #1138: archive the previous version before overwriting it.
     super::history::capture_snapshot(&state, &doc_id, &title, &content).await;
@@ -78,7 +77,9 @@ pub async fn handle_docs_save(
     if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         ));
     }
 
@@ -108,7 +109,9 @@ pub async fn handle_docs_get_by_id(
         )),
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         )),
     }
 }
@@ -134,7 +137,9 @@ pub async fn handle_create_document(
     {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         ));
     }
 
@@ -204,7 +209,9 @@ pub async fn handle_get_document(
         )),
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         )),
     }
 }
@@ -218,7 +225,8 @@ pub async fn handle_save_document(
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
-    let content = effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
+    let content =
+        effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
 
     // Autosave is the path the in-editor translate/format flows use; without
     // this snapshot the previous version never reached the undo stack and
@@ -228,7 +236,9 @@ pub async fn handle_save_document(
     if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         ));
     }
 
@@ -263,7 +273,9 @@ pub async fn handle_delete_document(
     if let Err(e) = delete_document_from_drive(&state, &user_id, &doc_id).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)}),
+            ),
         ));
     }
 
@@ -295,25 +307,21 @@ pub async fn handle_open_from_drive(
         Err(e) => {
             // The drive error text names the bucket and object path; the client
             // only needs the lookup result. The detail goes to the log.
-            log::warn!("docs editor: drive read of {}/{} failed: {}", req.bucket, req.path, e);
+            log::warn!(
+                "docs editor: drive read of {}/{} failed: {}",
+                req.bucket,
+                req.path,
+                e
+            );
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "File not found in drive" })),
-            ))
+            ));
         }
     };
 
-    let file_name = req
-        .path
-        .rsplit('/')
-        .next()
-        .unwrap_or(&req.path)
-        .to_string();
-    let ext = file_name
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let file_name = req.path.rsplit('/').next().unwrap_or(&req.path).to_string();
+    let ext = file_name.rsplit('.').next().unwrap_or("").to_lowercase();
 
     let content = match ext.as_str() {
         // #2254 — a PDF opened from Drive becomes editable paragraphs.
@@ -333,7 +341,9 @@ pub async fn handle_open_from_drive(
                 log::error!("Failed to convert {} to HTML: {}", req.path, e);
                 return Err((
                     StatusCode::UNPROCESSABLE_ENTITY,
-                    Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None) })),
+                    Json(
+                        serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None) }),
+                    ),
                 ));
             }
         },
@@ -343,8 +353,10 @@ pub async fn handle_open_from_drive(
         _ => {
             return Err((
                 StatusCode::UNPROCESSABLE_ENTITY,
-                Json(serde_json::json!({ "error": format!("Unsupported file type for docs editor: .{ext}") })),
-            ))
+                Json(
+                    serde_json::json!({ "error": format!("Unsupported file type for docs editor: .{ext}") }),
+                ),
+            ));
         }
     };
 

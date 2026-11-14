@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use botlib::traits::DriveRepository;
 
-pub use botlib::db_pool::DbPool;
 use crate::Document;
+pub use botlib::db_pool::DbPool;
 
 /// Per-document undo/redo snapshot stacks (session-lifetime, capped).
 #[derive(Default)]

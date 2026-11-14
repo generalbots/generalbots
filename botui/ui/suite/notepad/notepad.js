@@ -30,11 +30,16 @@ window.GBNotepad = window.GBNotepad || {};
       if (keep && names().indexOf(keep) !== -1) sel.value = keep;
       // A gb-doc-delta may have filled the editor before this boot pass ran;
       // seeding the stored note here would silently discard it.
-      if (ta.dataset.gbDelta !== "1") ta.value = loadIndex()[sel.value] || "";
+      if (ta.dataset.gbDelta !== "1") {
+        ta.value = loadIndex()[sel.value] || "";
+      } else {
+        // Delta content is visible but was never written to the note store.
+        persist();
+      }
     }
     function mark(dirty) { status.textContent = dirty ? "Editing…" : "Saved"; }
 
-    ta.addEventListener("input", function () {
+    function persist() {
       var i = loadIndex();
       if (!current()) return;
       i[current()] = ta.value;
@@ -42,7 +47,10 @@ window.GBNotepad = window.GBNotepad || {};
       mark(true);
       clearTimeout(app._t);
       app._t = setTimeout(function () { mark(false); }, 500);
-    });
+    }
+
+    ta.addEventListener("input", persist);
+    ta.addEventListener("change", persist);
     sel.addEventListener("change", function () { ta.value = loadIndex()[current()] || ""; });
     root.querySelector("#gb-notepad-new").addEventListener("click", function () {
       var name = prompt("Note name:", "note-" + new Date().toISOString().slice(0, 10));

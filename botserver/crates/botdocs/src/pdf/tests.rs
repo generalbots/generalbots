@@ -25,9 +25,19 @@ fn two_page_document_exports_two_pdf_pages() {
     );
 
     let pages = layout_pages(&parse_blocks(&html));
-    assert_eq!(pages.len(), 2, "the page-break marker must start a new page");
-    assert!(pages[0].text().contains("Experi"), "page 1 keeps its section");
-    assert!(pages[1].text().contains("Forma"), "page 2 starts the new section");
+    assert_eq!(
+        pages.len(),
+        2,
+        "the page-break marker must start a new page"
+    );
+    assert!(
+        pages[0].text().contains("Experi"),
+        "page 1 keeps its section"
+    );
+    assert!(
+        pages[1].text().contains("Forma"),
+        "page 2 starts the new section"
+    );
 
     let pdf = html_to_pdf(&html);
     assert_eq!(page_count(&pdf), 2, "the PDF must expose two pages");

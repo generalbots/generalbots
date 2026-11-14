@@ -330,22 +330,38 @@
 <script src="/suite/billing/billing-templates.js?v=1"></script>
 <script>
     (function () {
+        function activateBillingView(view) {
+            if (!view) return;
+            var tab = document.querySelector('.billing-tab[data-view="' + view + '"]');
+            var panel = document.getElementById("billing-" + view + "-view");
+            if (!tab || !panel) return;
+            document.querySelectorAll(".billing-tabs .billing-tab").forEach(function (t) {
+                t.classList.remove("active");
+            });
+            document.querySelectorAll(".billing-view").forEach(function (v) {
+                v.classList.remove("active");
+            });
+            tab.classList.add("active");
+            panel.classList.add("active");
+        }
+
         // Tab switching
-        document.querySelectorAll(".billing-tab").forEach((tab) => {
+        document.querySelectorAll(".billing-tabs .billing-tab").forEach(function (tab) {
             tab.addEventListener("click", function () {
-                document
-                    .querySelectorAll(".billing-tab")
-                    .forEach((t) => t.classList.remove("active"));
-                document
-                    .querySelectorAll(".billing-view")
-                    .forEach((v) => v.classList.remove("active"));
-                this.classList.add("active");
-                const view = this.dataset.view;
-                document
-                    .getElementById(`billing-${view}-view`)
-                    .classList.add("active");
+                activateBillingView(this.dataset.view);
             });
         });
+
+        // Deep-link/view param support for chat side-by-side flows.
+        try {
+            var params = new URLSearchParams(window.location.search || "");
+            var initialView = params.get("view");
+            if (initialView) {
+                activateBillingView(initialView);
+            }
+        } catch (_e) {
+            // Ignore URL parsing issues in restricted environments.
+        }
 
         // New Invoice button
         document

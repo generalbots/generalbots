@@ -58,8 +58,7 @@ pub(super) async fn execute(
                 axum::extract::State(Arc::clone(state)),
                 database_bot_headers(bot_uuid),
                 axum::extract::Path(table),
-                axum::extract::Path(id),
-                axum::extract::Json(data),
+                axum::extract::Json(botdatabase::handlers::UpdateRowRequest { pk_value: id, data }),
             )
             .await
             .map_err(database_error)?;

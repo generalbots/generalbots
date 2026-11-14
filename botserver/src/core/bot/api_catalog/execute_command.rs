@@ -3,6 +3,13 @@ use super::*;
 /// Executes a catalog command in-process against the backend state. Enforces
 /// the RBAC matrix: admin-only commands and admin-only endpoints are denied
 /// to non-admin users.
+///
+/// Consent is approved ONCE, upstream in `handle_api_call`, for the command
+/// the user actually saw (name + params). Every loopback hop here uses
+/// `exec_endpoint_trusted`: a gated hop would raise a *second* consent prompt
+/// for a sub-request the user never reviewed, and the whole command failed
+/// with `consent_required:<id>` even after approval (#2260). RBAC and the
+/// registered-route check still run on every hop.
 pub async fn execute_command(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
@@ -327,7 +334,7 @@ pub async fn execute_command(
                 "use_case".to_string(),
                 Value::String("software_development".to_string()),
             );
-            crate::core::bot::api_exec::exec_endpoint(
+            crate::core::bot::api_exec::exec_endpoint_trusted(
                 state,
                 user_id,
                 Some(bot_uuid),
@@ -344,7 +351,7 @@ pub async fn execute_command(
             if let Some(Value::Object(map)) = obj.get("params") {
                 params = map.clone();
             }
-            crate::core::bot::api_exec::exec_endpoint(
+            crate::core::bot::api_exec::exec_endpoint_trusted(
                 state,
                 user_id,
                 Some(bot_uuid),
@@ -385,11 +392,26 @@ pub async fn execute_command(
             crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, obj).await
         }
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
+        "billing.payment.list" | "billing.payments.list" => list_payments(state, &bot_uuid).await,
+        "billing.quote.list" | "billing.quotes.list" => list_quotes(state, &bot_uuid).await,
         "products.items.list" | "store.catalog.list" => {
             list_products(state, &bot_uuid, str_of("category").as_deref()).await
         }
+        "products.items.create" => create_product_item(state, &bot_uuid, obj).await,
+        "products.items.update" => update_product_item(state, &bot_uuid, obj).await,
         "tickets.list" => list_tickets(state, &bot_uuid).await,
-        "drive.list" => list_drive_files(state, &bot_uuid, str_of("path").as_deref()).await,
+        "drive.list" | "drive.search" => {
+            list_drive_files(
+                state,
+                &bot_uuid,
+                str_of("path").as_deref(),
+                str_of("query")
+                    .or_else(|| str_of("q"))
+                    .or_else(|| str_of("name"))
+                    .as_deref(),
+            )
+            .await
+        }
         "drive.archive" => {
             let source = str_of("source").unwrap_or_default();
             let dest = str_of("destination")
@@ -401,7 +423,10 @@ pub async fn execute_command(
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
-        "tasks.autotask.create" | "tasks.autotask.run" | "automations.create" | "automations.run" => {
+        "tasks.autotask.create"
+        | "tasks.autotask.run"
+        | "automations.create"
+        | "automations.run" => {
             let intent = str_of("intent").unwrap_or_default();
             if intent.trim().is_empty() {
                 return Err(
@@ -433,7 +458,7 @@ pub async fn execute_command(
             // loopback path instead of answering with a deep link.
             if let Some(binding) = crate::apps::commands::verb_endpoint(name) {
                 let mapped = binding.map_params(obj);
-                let result = crate::core::bot::api_exec::exec_endpoint(
+                let result = crate::core::bot::api_exec::exec_endpoint_trusted(
                     state,
                     user_id,
                     Some(bot_uuid),
@@ -461,4 +486,3 @@ pub async fn execute_command(
         }
     }
 }
-

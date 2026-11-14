@@ -356,7 +356,12 @@ pub(crate) async fn handle_api_call(
             true
         }
         Err(e) => {
-            log::warn!("api_call '{name}' failed: {e}");
+            // Keys only: values may carry credentials (a password create).
+            let keys = params
+                .as_object()
+                .map(|map| map.keys().cloned().collect::<Vec<_>>().join(","))
+                .unwrap_or_default();
+            log::warn!("api_call '{name}' failed: {e} (params: [{keys}])");
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
                 session_id.to_string(),

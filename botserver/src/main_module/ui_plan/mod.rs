@@ -46,6 +46,15 @@ pub struct UiStep {
     pub value: Option<String>,
     pub ms: Option<u64>,
     pub cell: Option<String>,
+    /// Fill colour for a `cell` step (`#DC2626` or `red`). Spreadsheets ask
+    /// for colour-coded cells ("negative red, positive green", "one colour
+    /// per subject"); without these fields the plan validator dropped the
+    /// colour and the orchestrator painted nothing (#2260, #2263).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    /// Text colour for a `cell` step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
     /// Menu labels in order for a `menu` step (`["Download", "PDF"]`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<Vec<String>>,

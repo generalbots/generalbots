@@ -7,7 +7,7 @@
 use serde_json::Value;
 
 use super::types::SessionIdentity;
-use super::workspace_progress::{WorkspaceProgress, PHASE_INFRA};
+use super::workspace_progress::{PHASE_INFRA, WorkspaceProgress};
 
 /// Injects the workspace contract for the user's VM when one is running.
 ///
@@ -140,9 +140,16 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      (install, generate, build, test, write). The markers are stripped from \
                      the visible output: they only feed the table. \
                      Files the user names may already be in data/ (fetched from their Drive); \
-                     read them from there. Use `drive_list` to discover files in the bot Drive (newest first). \
+                     read them from there. Use `drive_list` to discover files in the bot Drive (newest first; pass `query` to filter by name/topic). \
                      Use `drive_fetch` to pull a named Drive file into data/ and `drive_save` to publish \
-                     output/ files to the user's Drive under the conversation folder when asked. When the \
+                     output/ files to the user's Drive under the conversation folder when asked. \
+                     When the user asks to open/find/show their last/recent document or a file \"about X\", \
+                     ALWAYS search Drive with `drive_list` (and `drive_fetch` if you need content) and \
+                     NEVER answer with desktop/OS file locations (Windows Recent, Quick access, Word \
+                     Version History, local Downloads/OneDrive paths). To open a document in the Docs \
+                     editor, give the `[name](app://docs?file=<key>&bucket=<bucket>)` link from the \
+                     listing (or built from the file key and bucket); if nothing matches, say so and \
+                     offer to create it or search differently. When the \
                      user asks to save to Google Drive or \
                      OneDrive, call `save_to_external_drive` with \"provider\": \"gdrive\" \
                      or \"onedrive\" (plus optional \"files\" and \"folder\"); it writes \

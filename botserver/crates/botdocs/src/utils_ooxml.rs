@@ -6,7 +6,7 @@
 
 use std::io::{Cursor, Read, Write};
 
-use crate::storage_core::{parse_html_to_paragraphs, ParagraphData};
+use crate::storage_core::{ParagraphData, parse_html_to_paragraphs};
 
 const ODT_MIMETYPE: &str = "application/vnd.oasis.opendocument.text";
 
@@ -61,7 +61,8 @@ const ODT_MANIFEST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 
 pub fn odt_zip_to_html(bytes: &[u8]) -> Result<String, String> {
     let reader = Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(reader).map_err(|e| format!("Failed to open ODT: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(reader).map_err(|e| format!("Failed to open ODT: {e}"))?;
 
     let mut xml = String::new();
     {
@@ -92,10 +93,10 @@ pub fn html_to_odt_zip(title: &str, html: &str) -> Result<Vec<u8>, String> {
     let mut buf = Cursor::new(Vec::new());
     {
         let mut zip = zip::ZipWriter::new(&mut buf);
-        let stored =
-            zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
-        let deflated =
-            zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let stored = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+        let deflated = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
 
         // The mimetype entry must be first and stored (uncompressed).
         zip.start_file("mimetype", stored)

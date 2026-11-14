@@ -121,117 +121,24 @@
         return t.replace(/\.draw$/i, "");
     }
 
-    // #1708 — open a generated .svg as editable canvas elements. Only the
-    // shape vocabulary the canvas models maps over (rect/circle/ellipse/
-    // line/text/polyline/polygon, no gradients/transforms/use/image); when
-    // anything outside that vocabulary appears the original SVG stays as the
-    // non-interactive background so nothing is ever lost or double-drawn.
+    // #2155 — delegate to svg import helper so flowcharts (paths/markers) can
+    // become editable; falls back to background when fidelity would be lost.
     function importSvgAsElements(svgText) {
-        var app = window._canvasApp;
+        if (window.GBCanvasSvgImport && typeof window.GBCanvasSvgImport.importAsElements === "function") {
+            window.GBCanvasSvgImport.importAsElements(svgText, {
+                app: window._canvasApp,
+                bg: document.getElementById("canvas-bg-svg"),
+                setStatus: setStatus,
+            });
+            return;
+        }
+        // Fallback: keep drawing visible even if helper script is missing.
         var bg = document.getElementById("canvas-bg-svg");
-        var doc;
-        try { doc = new DOMParser().parseFromString(svgText, "image/svg+xml"); } catch (e) { doc = null; }
-        var root = doc && doc.documentElement;
-        if (!root || root.nodeName.toLowerCase() !== "svg" || doc.querySelector("parsererror")) {
-            setStatus("Could not read SVG");
-            return;
+        if (bg) bg.innerHTML = svgText;
+        if (window._canvasApp && typeof window._canvasApp.setCanvasBackgroundHidden === "function") {
+            window._canvasApp.setCanvasBackgroundHidden();
         }
-        var keepBackground = function (reason) {
-            if (bg) bg.innerHTML = svgText;
-            if (app && typeof app.setCanvasBackgroundHidden === "function") app.setCanvasBackgroundHidden();
-            setStatus("SVG kept as background — " + reason);
-        };
-        // Gradients/filters/patterns referenced by url(#) cannot be modelled
-        // by the canvas fill/stroke values: keep the original for fidelity.
-        if (/url\s*\(/.test(svgText)) {
-            keepBackground("uses gradients/filters");
-            return;
-        }
-        var MAPPABLE = { rect: 1, circle: 1, ellipse: 1, line: 1, text: 1, polyline: 1, polygon: 1 };
-        var STRUCTURAL = { svg: 1, g: 1, title: 1, desc: 1, defs: 1, style: 1, metadata: 1, switch: 1 };
-        var unsupported = 0;
-        root.querySelectorAll("*").forEach(function (n) {
-            var name = n.nodeName.toLowerCase();
-            if (STRUCTURAL[name]) return;
-            if (!MAPPABLE[name]) unsupported++;
-            if (name === "polygon" && n.getAttribute("fill") && n.getAttribute("fill") !== "none") unsupported++;
-        });
-        if (unsupported > 0) {
-            keepBackground(unsupported + " unsupported element(s)");
-            return;
-        }
-        var num = function (v, d) { var n = parseFloat(v); return isNaN(n) ? (d || 0) : n; };
-        var strokeOf = function (n) { var v = n.getAttribute("stroke"); return v && v !== "none" ? v : "#000000"; };
-        var fillOf = function (n) { var v = n.getAttribute("fill"); return v && v !== "none" ? v : "transparent"; };
-        var swOf = function (n) { return num(n.getAttribute("stroke-width"), 2); };
-        var seed = 0;
-        var out = [];
-        var add = function (type, base) { base.id = "svg" + (++seed) + "_" + Date.now(); base.type = type; out.push(base); };
-        root.querySelectorAll("rect").forEach(function (n) {
-            add("rectangle", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")),
-                width: num(n.getAttribute("width")), height: num(n.getAttribute("height")),
-                stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
-        });
-        root.querySelectorAll("circle").forEach(function (n) {
-            var r = num(n.getAttribute("r"));
-            add("ellipse", { x: num(n.getAttribute("cx")) - r, y: num(n.getAttribute("cy")) - r,
-                width: 2 * r, height: 2 * r, stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
-        });
-        root.querySelectorAll("ellipse").forEach(function (n) {
-            var rx = num(n.getAttribute("rx")), ry = num(n.getAttribute("ry"));
-            add("ellipse", { x: num(n.getAttribute("cx")) - rx, y: num(n.getAttribute("cy")) - ry,
-                width: 2 * rx, height: 2 * ry, stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
-        });
-        root.querySelectorAll("line").forEach(function (n) {
-            var x1 = num(n.getAttribute("x1")), y1 = num(n.getAttribute("y1")),
-                x2 = num(n.getAttribute("x2")), y2 = num(n.getAttribute("y2"));
-            // drawElement and its rotation prelude read x/y/width/height;
-            // x1..y2 stay for exportSvg (#1708).
-            add("line", { x1: x1, y1: y1, x2: x2, y2: y2,
-                x: Math.min(x1, x2), y: Math.min(y1, y2),
-                width: Math.abs(x2 - x1), height: Math.abs(y2 - y1),
-                stroke: strokeOf(n), strokeWidth: swOf(n) });
-        });
-        root.querySelectorAll("text").forEach(function (n) {
-            var fs = num(n.getAttribute("font-size"), 18);
-            var fill = n.getAttribute("fill");
-            var content = (n.textContent || "").trim();
-            // drawElement's rotation prelude reads x/width: text needs a bbox (#1708).
-            add("text", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")) - fs,
-                fontSize: fs, text: content,
-                width: content.length * fs * 0.6, height: fs * 1.4,
-                stroke: fill && fill !== "none" ? fill : "#000000" });
-        });
-        var parsePoints = function (raw) {
-            return (raw || "").trim().split(/[\s,]+/).reduce(function (acc, tok, i, arr) {
-                if (i % 2 === 0) acc.push({ x: num(tok), y: num(arr[i + 1]) });
-                return acc;
-            }, []);
-        };
-        var bboxOfPoints = function (ps) {
-            var xs = ps.map(function (p) { return p.x; });
-            var ys = ps.map(function (p) { return p.y; });
-            var minX = Math.min.apply(Math, xs), maxX = Math.max.apply(Math, xs);
-            var minY = Math.min.apply(Math, ys), maxY = Math.max.apply(Math, ys);
-            return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-        };
-        root.querySelectorAll("polyline").forEach(function (n) {
-            var ps = parsePoints(n.getAttribute("points"));
-            // drawElement has no "polyline" case — pencil draws from points,
-            // but its prelude still needs the bounding box (#1708).
-            add("pencil", Object.assign({ points: ps, stroke: strokeOf(n), strokeWidth: swOf(n) }, bboxOfPoints(ps)));
-        });
-        root.querySelectorAll("polygon").forEach(function (n) {
-            var ps = parsePoints(n.getAttribute("points"));
-            add("pencil", Object.assign({ points: ps, stroke: strokeOf(n), strokeWidth: swOf(n) }, bboxOfPoints(ps)));
-        });
-        if (!out.length) {
-            keepBackground("no mappable shapes");
-            return;
-        }
-        if (app && typeof app.setCanvasElements === "function") app.setCanvasElements(out);
-        if (bg) bg.innerHTML = "";
-        setStatus("Imported " + out.length + " SVG shape(s) — editable");
+        setStatus("SVG kept as background");
     }
 
     function loadDriveDraw() {

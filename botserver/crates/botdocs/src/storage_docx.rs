@@ -234,6 +234,8 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
 }
 
 pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, String> {
+    let (body, header_text, footer_text) =
+        crate::storage_docx_hf::extract_header_footer_zones(html_content);
     let mut docx = Docx::new();
 
     if !title.is_empty() {
@@ -242,10 +244,9 @@ pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, 
         docx = docx.add_paragraph(Paragraph::new());
     }
 
-    let paragraphs = parse_html_to_paragraphs(html_content);
+    let paragraphs = parse_html_to_paragraphs(&body);
     for para_data in paragraphs {
         let mut paragraph = Paragraph::new();
-
         match para_data.style.as_str() {
             "h1" => {
                 paragraph = paragraph
@@ -293,15 +294,15 @@ pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, 
                 paragraph = paragraph.add_run(run);
             }
         }
-
         docx = docx.add_paragraph(paragraph);
     }
+
+    docx = crate::storage_docx_hf::apply_docx_header_footer(docx, header_text, footer_text);
 
     let mut buf = Cursor::new(Vec::new());
     docx.build()
         .pack(&mut buf)
         .map_err(|e| format!("Failed to build DOCX: {e}"))?;
-
     Ok(buf.into_inner())
 }
 

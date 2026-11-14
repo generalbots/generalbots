@@ -133,12 +133,8 @@ pub(super) async fn handle_docs_connection(
                                         serde_json::from_str::<serde_json::Value>(content)
                                     {
                                         if let (Some(to_user), Some(message)) = (
-                                            mention_data
-                                                .get("to_user_id")
-                                                .and_then(|v| v.as_str()),
-                                            mention_data
-                                                .get("message")
-                                                .and_then(|v| v.as_str()),
+                                            mention_data.get("to_user_id").and_then(|v| v.as_str()),
+                                            mention_data.get("message").and_then(|v| v.as_str()),
                                         ) {
                                             let mut mentions = get_mentions().write().await;
                                             let user_mentions =
@@ -276,9 +272,8 @@ pub async fn clear_user_mentions(user_id: &str) {
 pub(super) fn get_random_color() -> String {
     use rand::Rng;
     let colors = [
-        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD",
-        "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA",
-        "#F8C471", "#AED6F1", "#D7BDE2",
+        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+        "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA", "#F8C471", "#AED6F1", "#D7BDE2",
     ];
     let idx = rand::rng().random_range(0..colors.len());
     colors[idx].to_string()

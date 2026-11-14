@@ -411,6 +411,26 @@ function queueOfflineMessage(payload) {
   }
 }
 
+// #2155 UI-REG-01b: recover dead/stuck socket after restore/resume.
+function ensureChatConnection() {
+  if (typeof ChatState === "undefined") return;
+  if (ChatState.botUnavailable || ChatState.botAccess === "auth_required") return;
+  if (!ChatState.currentSessionId || !ChatState.currentBotName) return;
+  var ws = ChatState.ws;
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+  if (ws && ws.readyState === WebSocket.CONNECTING) return;
+  if (typeof connectWebSocket === "function") connectWebSocket();
+}
+
+(function installChatReconnectGuards() {
+  if (window.__gbChatReconnectGuards) return;
+  window.__gbChatReconnectGuards = true;
+  function resume() { setTimeout(ensureChatConnection, 0); }
+  window.addEventListener("online", resume);
+  window.addEventListener("pageshow", resume);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) resume(); });
+})();
+
 window.sendMessage = sendMessage;
 
 // #2360 — retry a failed turn using its original structured payload (text +

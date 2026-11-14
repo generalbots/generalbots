@@ -72,6 +72,8 @@ mod tests {
                 value: None,
                 ms: None,
                 cell: None,
+                background: None,
+                color: None,
                 path: None,
                 params: None,
             }],

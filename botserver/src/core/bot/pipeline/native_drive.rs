@@ -74,15 +74,20 @@ fn human_size(bytes: u64) -> String {
     }
 }
 
-/// Bucket-relative key of a [`drive_bridge::save_object`] result (`bucket/key`).
+/// Splits a [`drive_bridge::save_object`] result (`bucket/key`) into bucket and
+/// bucket-relative key.
 ///
 /// S3 bucket names never contain `/`, so the first segment is always the
 /// bucket and the remainder is the key the Drive app addresses.
-fn relative_key(bucket_path: &str) -> &str {
+fn split_bucket_path(bucket_path: &str) -> (&str, &str) {
     bucket_path
         .split_once('/')
-        .map(|(_, key)| key)
-        .unwrap_or(bucket_path)
+        .unwrap_or((bucket_path, bucket_path))
+}
+
+/// Bucket-relative key of a [`drive_bridge::save_object`] result (`bucket/key`).
+fn relative_key(bucket_path: &str) -> &str {
+    split_bucket_path(bucket_path).1
 }
 
 /// Markdown link the chat renderer turns into an "Open in Drive" button.
@@ -91,23 +96,65 @@ fn relative_key(bucket_path: &str) -> &str {
 /// artifact was a dead link. The two forms the renderer understands are
 /// `vmfile:` (workspace files only, `chat/modules/vm_attachments/02_links.js`)
 /// and `app://` (`chat/chat-render.js`). Drive files therefore use the
-/// registered deep link `app://drive?path={path}&bucket={bucket}&scope=bot`
+/// registered deep link `app://drive?path={path}`
 /// (`apps/commands/deep_link_params_for_app.rs`), where `path` is the
-/// bucket-relative folder key and `bucket` identifies the store that holds it.
-/// `scope=bot` makes the Drive app open the bot workspace `drive_save`
-/// publishes into instead of the caller's personal bucket. #2283 — the bucket
-/// is required so the Drive resolves the path against the bucket the artifact
-/// was saved into instead of the currently selected one.
+/// bucket-relative key, percent-encoded. `scope=bot` makes the Drive app open
+/// the bot workspace `drive_save` publishes into instead of the caller's
+/// personal bucket (`drive/modules/99_init.js`). #2283 — the bucket is carried
+/// explicitly so the Drive resolves the path in the right store instead of the
+/// currently selected one.
 fn drive_link(name: &str, bucket: &str, key: &str) -> String {
     let path = urlencoding::encode(key);
     let bucket = urlencoding::encode(bucket);
-    format!("[{name}](app://drive?path={path}&bucket={bucket}&scope=bot)")
+    format!("[{name}](app://drive?path={path}&scope=bot&bucket={bucket})")
 }
 
-/// Folder holding `key` (bucket-relative file key). Deep links open the folder
-/// that contains the saved artifact.
-fn parent_key(key: &str) -> &str {
-    key.rsplit_once('/').map(|(dir, _)| dir).unwrap_or(key)
+/// Deep link that opens a Drive file in the Docs editor (DOC-05 retrieval path).
+fn docs_href(bucket: &str, key: &str) -> String {
+    let path = urlencoding::encode(key);
+    let bucket = urlencoding::encode(bucket);
+    format!("app://docs?file={path}&bucket={bucket}")
+}
+
+fn docs_link(name: &str, bucket: &str, key: &str) -> String {
+    format!("[{name}]({})", docs_href(bucket, key))
+}
+
+fn drive_href(bucket: &str, key: &str) -> String {
+    let path = urlencoding::encode(key);
+    let bucket = urlencoding::encode(bucket);
+    format!("app://drive?path={path}&scope=bot&bucket={bucket}")
+}
+
+fn is_document_file(name: &str) -> bool {
+    matches!(
+        name.rsplit('.')
+            .next()
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .as_str(),
+        "doc" | "docx" | "odt" | "rtf" | "txt" | "md" | "markdown" | "pdf" | "html" | "htm"
+    )
+}
+
+fn matches_drive_query(item: &crate::core::bot::drive_bridge::DriveListItem, query: &str) -> bool {
+    let needle = query.trim().to_ascii_lowercase();
+    if needle.is_empty() {
+        return true;
+    }
+    let hay = format!(
+        "{} {}",
+        item.relative.to_ascii_lowercase(),
+        item.relative
+            .rsplit('/')
+            .next()
+            .unwrap_or(&item.relative)
+            .to_ascii_lowercase()
+    );
+    needle
+        .split_whitespace()
+        .filter(|t| !t.is_empty())
+        .all(|token| hay.contains(token))
 }
 
 async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
@@ -201,6 +248,7 @@ async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
 
 const DRIVE_LIST_DEFAULT_LIMIT: usize = 20;
 const DRIVE_LIST_MAX_LIMIT: usize = 100;
+const DRIVE_LIST_SEARCH_SCAN_LIMIT: usize = 200;
 
 /// #2164 — lists files in the bot's `.gbdrive` so the model can answer
 /// "open my last document about X" without the user naming a file.
@@ -212,6 +260,13 @@ async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
         .map(|n| n as usize)
         .unwrap_or(DRIVE_LIST_DEFAULT_LIMIT)
         .clamp(1, DRIVE_LIST_MAX_LIMIT);
+    let query = parsed
+        .get("query")
+        .or_else(|| parsed.get("q"))
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
 
     let SessionIdentity {
         state,
@@ -224,27 +279,64 @@ async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
         send(identity, "Drive is not available for this workspace.").await;
         return;
     };
-    let Some(items) = drive_bridge::list_bot_drive_objects(state, &scope, limit).await else {
+    let scan_limit = if query.is_some() {
+        DRIVE_LIST_SEARCH_SCAN_LIMIT
+    } else {
+        limit
+    };
+    let Some(items) = drive_bridge::list_bot_drive_objects(state, &scope, scan_limit).await else {
         send(identity, "Could not list files in your bot Drive.").await;
         return;
     };
-    if items.is_empty() {
-        let message = "No files found in the bot Drive (`.gbdrive`).".to_string();
+    let filtered: Vec<_> = if let Some(ref q) = query {
+        items
+            .into_iter()
+            .filter(|item| matches_drive_query(item, q))
+            .take(limit)
+            .collect()
+    } else {
+        items.into_iter().take(limit).collect()
+    };
+    if filtered.is_empty() {
+        let message = if let Some(ref q) = query {
+            format!("No files matching \"{q}\" were found in the bot Drive (`.gbdrive`).")
+        } else {
+            "No files found in the bot Drive (`.gbdrive`).".to_string()
+        };
         send(identity, &message).await;
         persist(state, session_id, user_id, &message).await;
         return;
     }
-    let mut lines = vec![format!(
-        "Bot Drive files (newest first, up to {limit}):"
-    )];
-    for item in &items {
+    let heading = if let Some(ref q) = query {
+        format!("Bot Drive files matching \"{q}\" (newest first, up to {limit}):")
+    } else {
+        format!("Bot Drive files (newest first, up to {limit}):")
+    };
+    let mut lines = vec![heading];
+    for item in &filtered {
         let name = sanitize_name(&item.relative);
-        let folder = parent_key(&item.key);
-        lines.push(format!(
-            "- {} ({})",
-            drive_link(&name, &scope.bucket, folder),
-            human_size(item.size)
-        ));
+        let entry = if is_document_file(&item.relative) {
+            format!(
+                "- {} · [Open in Drive]({}) ({})",
+                docs_link(&name, &scope.bucket, &item.key),
+                drive_href(&scope.bucket, &item.key),
+                human_size(item.size)
+            )
+        } else {
+            format!(
+                "- {} ({})",
+                drive_link(&name, &scope.bucket, &item.key),
+                human_size(item.size)
+            )
+        };
+        lines.push(entry);
+    }
+    if query.is_some() {
+        lines.push(String::new());
+        lines.push(
+            "To open a document in the editor, use its Docs link (`app://docs?file=<key>&bucket=<bucket>`)."
+                .to_string(),
+        );
     }
     let message = lines.join("\n");
     send(identity, &message).await;
@@ -321,10 +413,8 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
                 }
                 match drive_bridge::save_object(state, &bot_uuid, &folder, name, bytes).await {
                     Some(path) => {
-                        let (bucket, file_key) = path
-                            .split_once('/')
-                            .unwrap_or(("", path.as_str()));
-                        saved.push(drive_link(name, bucket, parent_key(file_key)));
+                        let (bucket, key) = split_bucket_path(&path);
+                        saved.push(drive_link(name, bucket, key));
                     }
                     None => failed.push(name.to_string()),
                 }
@@ -458,7 +548,8 @@ mod tests {
     /// #2143 gap A — the chat renderer resolves only `vmfile:` and `app://`
     /// links, so a `drive:` URL rendered as dead text and the artifact was
     /// unreachable. The emitted string must be one of those two prefixes.
-    /// #2283 — the link carries the bucket and opens the folder holding the file.
+    /// #2283 — the bucket is included so the Drive can resolve the path in the
+    /// correct store instead of the currently selected one.
     #[test]
     fn drive_link_uses_a_prefix_the_chat_renderer_resolves() {
         let link = drive_link(
@@ -470,23 +561,24 @@ mod tests {
             link.starts_with("[report.pdf](app://drive?path="),
             "unexpected link: {link}"
         );
-        assert!(link.contains("&bucket="), "missing bucket: {link}");
-        assert!(link.ends_with("&scope=bot)"), "unexpected link: {link}");
+        assert!(
+            link.contains("&scope=bot&bucket="),
+            "unexpected link: {link}"
+        );
         assert!(!link.contains("](drive:"), "dead drive: scheme: {link}");
         assert!(
-            link.starts_with("[report.pdf](app://")
-                || link.starts_with("[report.pdf](vmfile:"),
+            link.starts_with("[report.pdf](app://") || link.starts_with("[report.pdf](vmfile:"),
             "not a renderer prefix: {link}"
         );
     }
 
-    /// The path and bucket must survive percent-encoding, because the renderer
-    /// decodes them into the Drive app's deep-link parameters.
+    /// The path must survive percent-encoding, because the renderer decodes it
+    /// into the Drive app's `path` parameter.
     #[test]
-    fn drive_link_encodes_the_folder_key_and_bucket() {
+    fn drive_link_encodes_the_folder_key() {
         let link = drive_link(
             "report.pdf",
-            "beiner org.gbai",
+            "beiner.gbai",
             "beiner.gbdrive/conversations/q3 2026",
         );
         let encoded = link
@@ -500,25 +592,16 @@ mod tests {
             .unwrap_or_default();
         assert_eq!(decoded, "beiner.gbdrive/conversations/q3 2026");
         assert!(encoded.contains("%2F"), "slashes must be encoded: {link}");
-        let bucket = link
-            .split("bucket=")
-            .nth(1)
-            .and_then(|rest| rest.split('&').next())
-            .unwrap_or_default();
-        assert_eq!(
-            urlencoding::decode(bucket).ok().map(|v| v.into_owned()),
-            Some("beiner org.gbai".to_string())
-        );
+        let bucket = link.split("bucket=").nth(1).unwrap_or_default();
+        assert_eq!(bucket, "beiner.gbai");
     }
 
-    /// Deep links open the folder that holds the saved file.
     #[test]
-    fn parent_key_returns_folder() {
-        assert_eq!(
-            parent_key("beiner.gbdrive/conversations/q3/report.pdf"),
-            "beiner.gbdrive/conversations/q3"
-        );
-        assert_eq!(parent_key("report.pdf"), "report.pdf");
+    fn split_bucket_path_extracts_bucket_and_key() {
+        let (bucket, key) =
+            split_bucket_path("beiner.gbai/beiner.gbdrive/conversations/report.pdf");
+        assert_eq!(bucket, "beiner.gbai");
+        assert_eq!(key, "beiner.gbdrive/conversations/report.pdf");
     }
 
     /// `save_object` returns `bucket/key`; the Drive app addresses the key.

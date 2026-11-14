@@ -1,31 +1,30 @@
+pub mod modals;
 pub mod panels;
 pub mod sidebars;
 pub mod toolbar;
-pub mod modals;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
+use modals::{
+    handle_ai_modal, handle_comment_reply_modal, handle_compare_modal, handle_endnote_modal,
+    handle_find_replace_modal, handle_footnote_modal, handle_share_modal, handle_style_modal,
+    handle_template_modal, handle_track_changes_modal,
+};
 use panels::{
-    handle_toc_panel, handle_comments_panel, handle_track_changes_panel,
-    handle_footnotes_panel, handle_endnotes_panel, handle_styles_panel,
-    handle_outline_panel, handle_ai_panel as handle_ai_panel_inner,
+    handle_ai_panel as handle_ai_panel_inner, handle_comments_panel, handle_endnotes_panel,
+    handle_footnotes_panel, handle_outline_panel, handle_styles_panel, handle_toc_panel,
+    handle_track_changes_panel,
 };
 use sidebars::{
-    handle_doc_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
-        handle_document_view_by_id,
-    handle_document_view,
-    handle_new_document_view,
+    handle_doc_list_sidebar, handle_document_view, handle_document_view_by_id,
+    handle_new_document_view, handle_recent_sidebar, handle_search_sidebar,
 };
 use toolbar::{
-    handle_ai_form, handle_find_replace_form, handle_print_form,
-    handle_footnote_form, handle_endnote_form, handle_track_changes_form,
-    handle_compare_form, handle_template_form,
-};
-use modals::{
-    handle_share_modal, handle_ai_modal, handle_find_replace_modal,
-    handle_footnote_modal, handle_endnote_modal, handle_track_changes_modal,
-    handle_compare_modal, handle_template_modal, handle_comment_reply_modal,
-    handle_style_modal,
+    handle_ai_form, handle_compare_form, handle_endnote_form, handle_find_replace_form,
+    handle_footnote_form, handle_print_form, handle_template_form, handle_track_changes_form,
 };
 
 pub use botuifragments::ui_fragments::htmx_escape as html_escape;
@@ -40,49 +39,90 @@ pub fn empty_fragment(text: &str) -> String {
 
 pub fn configure() -> Router<std::sync::Arc<crate::state::DocState>> {
     Router::new()
-        .route("/suite/docs/fragments/doc-list", post(handle_doc_list_sidebar))
+        .route(
+            "/suite/docs/fragments/doc-list",
+            post(handle_doc_list_sidebar),
+        )
         .route("/suite/docs/fragments/search", post(handle_search_sidebar))
         .route("/suite/docs/fragments/recent", post(handle_recent_sidebar))
         .route("/suite/docs/fragments/view", post(handle_document_view))
         .route("/suite/docs/fragments/new", get(handle_new_document_view))
-        .route("/suite/docs/fragments/view-by-id", get(handle_document_view_by_id))
+        .route(
+            "/suite/docs/fragments/view-by-id",
+            get(handle_document_view_by_id),
+        )
         .route("/suite/docs/fragments/toc", post(handle_toc_panel))
-        .route("/suite/docs/fragments/comments", post(handle_comments_panel))
-        .route("/suite/docs/fragments/track-changes", post(handle_track_changes_panel))
-        .route("/suite/docs/fragments/footnotes", post(handle_footnotes_panel))
-        .route("/suite/docs/fragments/endnotes", post(handle_endnotes_panel))
+        .route(
+            "/suite/docs/fragments/comments",
+            post(handle_comments_panel),
+        )
+        .route(
+            "/suite/docs/fragments/track-changes",
+            post(handle_track_changes_panel),
+        )
+        .route(
+            "/suite/docs/fragments/footnotes",
+            post(handle_footnotes_panel),
+        )
+        .route(
+            "/suite/docs/fragments/endnotes",
+            post(handle_endnotes_panel),
+        )
         .route("/suite/docs/fragments/styles", post(handle_styles_panel))
         .route("/suite/docs/fragments/outline", post(handle_outline_panel))
         .route("/suite/docs/fragments/ai", post(handle_ai_panel_inner))
         .route("/suite/docs/forms/ai", post(handle_ai_form))
-        .route("/suite/docs/forms/find-replace", post(handle_find_replace_form))
+        .route(
+            "/suite/docs/forms/find-replace",
+            post(handle_find_replace_form),
+        )
         .route("/suite/docs/forms/print", post(handle_print_form))
         .route("/suite/docs/forms/footnote", post(handle_footnote_form))
         .route("/suite/docs/forms/endnote", post(handle_endnote_form))
-        .route("/suite/docs/forms/track-changes", post(handle_track_changes_form))
+        .route(
+            "/suite/docs/forms/track-changes",
+            post(handle_track_changes_form),
+        )
         .route("/suite/docs/forms/compare", post(handle_compare_form))
         .route("/suite/docs/forms/template", post(handle_template_form))
         .route("/suite/docs/modals/share", post(handle_share_modal))
         .route("/suite/docs/modals/ai", post(handle_ai_modal))
-        .route("/suite/docs/modals/find-replace", post(handle_find_replace_modal))
+        .route(
+            "/suite/docs/modals/find-replace",
+            post(handle_find_replace_modal),
+        )
         .route("/suite/docs/modals/footnote", post(handle_footnote_modal))
         .route("/suite/docs/modals/endnote", post(handle_endnote_modal))
-        .route("/suite/docs/modals/track-changes", post(handle_track_changes_modal))
+        .route(
+            "/suite/docs/modals/track-changes",
+            post(handle_track_changes_modal),
+        )
         .route("/suite/docs/modals/compare", post(handle_compare_modal))
         .route("/suite/docs/modals/template", post(handle_template_modal))
-        .route("/suite/docs/modals/comment-reply", post(handle_comment_reply_modal))
+        .route(
+            "/suite/docs/modals/comment-reply",
+            post(handle_comment_reply_modal),
+        )
         .route("/suite/docs/modals/style", post(handle_style_modal))
         .route("/suite/docs/health", get(health))
 }
 
-async fn health() -> &'static str { "ok" }
+async fn health() -> &'static str {
+    "ok"
+}
 
 pub fn render_metadata_card(m: &crate::types_core::DocumentMetadata) -> String {
     let storage = m.storage_type.clone();
     let storage_badge = match storage.as_str() {
-        "drive" => r##"<span style="color:#10b981;font-size:10px;background:#064e3b;padding:2px 6px;border-radius:3px;">☁ Drive</span>"##,
-        "local" => r##"<span style="color:#94a3b8;font-size:10px;background:#1e293b;padding:2px 6px;border-radius:3px;">💾 Local</span>"##,
-        _ => r##"<span style="color:#94a3b8;font-size:10px;background:#1e293b;padding:2px 6px;border-radius:3px;">📄</span>"##,
+        "drive" => {
+            r##"<span style="color:#10b981;font-size:10px;background:#064e3b;padding:2px 6px;border-radius:3px;">☁ Drive</span>"##
+        }
+        "local" => {
+            r##"<span style="color:#94a3b8;font-size:10px;background:#1e293b;padding:2px 6px;border-radius:3px;">💾 Local</span>"##
+        }
+        _ => {
+            r##"<span style="color:#94a3b8;font-size:10px;background:#1e293b;padding:2px 6px;border-radius:3px;">📄</span>"##
+        }
     };
     format!(
         r##"<div class="dc-metadata-card" hx-get="/suite/docs/fragments/view-by-id?id={id}" hx-target="#docs-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">

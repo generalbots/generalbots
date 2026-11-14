@@ -212,10 +212,7 @@ pub fn odt_content_to_html(odt_xml: &str) -> String {
                     html.push_str(&format!("</{tag}>"));
                 }
             } else if tag.starts_with("text:h") {
-                heading_level = tag
-                    .chars()
-                    .find(|c| c.is_ascii_digit())
-                    .unwrap_or('1');
+                heading_level = tag.chars().find(|c| c.is_ascii_digit()).unwrap_or('1');
                 html.push_str(&format!("<h{heading_level}>"));
                 in_text = true;
             } else if tag.starts_with("/text:h") {
@@ -329,8 +326,7 @@ pub fn detect_document_format(content: &[u8]) -> &'static str {
     if content.len() >= 4 {
         if &content[0..4] == b"PK\x03\x04" {
             if content.len() > 30 {
-                let content_str =
-                    String::from_utf8_lossy(&content[0..100.min(content.len())]);
+                let content_str = String::from_utf8_lossy(&content[0..100.min(content.len())]);
                 if content_str.contains("word/") {
                     return "docx";
                 } else if content_str.contains("content.xml") {

@@ -93,14 +93,22 @@
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
-                    <span class="sheet-color gb-cp-wrap" title="Fill color">
-                        <input type="hidden" id="fillColorBtn" value="#ffffff" />
-                        <button type="button" class="gb-cp-trigger" data-gb-color-for="fillColorBtn" title="Fill color" aria-label="Fill color"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg><span class="gb-cp-swatch"></span></button>
-                    </span>
-                    <span class="sheet-color gb-cp-wrap" title="Text color">
-                        <input type="hidden" id="textColorBtn" value="#000000" />
-                        <button type="button" class="gb-cp-trigger" data-gb-color-for="textColorBtn" title="Text color" aria-label="Text color"><span style="font-weight:700;">A</span><span class="gb-cp-swatch"></span></button>
-                    </span>
+                    <label for="fontSizeInput" style="font-size:12px;color:var(--sheet-muted,#94a3b8);">Font size</label>
+                    <input id="fontSizeInput" name="font_size" type="text" inputmode="numeric"
+                           data-gb-field="Font size" aria-label="Font size" title="Font size"
+                           placeholder="11" value="11"
+                           style="width:56px;padding:4px 6px;border:1px solid var(--sheet-border,#334155);border-radius:4px;background:var(--sheet-bg-elevated,#1e293b);color:var(--sheet-fg,#f8fafc);font-size:12px;" />
+                </div>
+                <span class="toolbar-divider"></span>
+                <div class="toolbar-group">
+                    <label class="sheet-color" title="Fill color" aria-label="Fill color">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg>
+                        <input type="color" id="fillColorBtn" title="Fill color" aria-label="Fill color" value="#ffffff" />
+                    </label>
+                    <label class="sheet-color" title="Text color" aria-label="Text color">
+                        <span style="font-weight:700;">A</span>
+                        <input type="color" id="textColorBtn" title="Text color" aria-label="Text color" value="#000000" />
+                    </label>
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
@@ -193,14 +201,12 @@
 <script src="/suite/sheet/js/modules-sheet-advanced/22_panels.js"></script>
 <script src="/suite/sheet/sheet-inline/02_boot.js"></script>
 <script src="/suite/sheet/sheet-inline/03_deeplink.js"></script>
-<script src="/suite/sheet/sheet-inline/04_toolbar_overflow.js"></script>
 <script src="/suite/sheet/sheet-shell.js"></script>
 <script src="/suite/sheet/js/constants/01_constants.js"></script>
 <script src="/suite/sheet/js/constants/02_grid_geometry.js"></script>
 <script src="/suite/sheet/js/constants/03_grid_render.js"></script>
 <script src="/suite/sheet/js/constants/04_grid_editing.js"></script>
 <script src="/suite/sheet/js/constants/05_sheet_api.js"></script>
-<script src="/suite/js/gb-color-picker.js"></script>
 <script src="/suite/sheet/js/constants/06_boot.js"></script>
 
 <script src="/suite/sheet/js/modules-sheet-advanced/23_delta.js"></script>

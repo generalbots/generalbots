@@ -67,7 +67,7 @@ pub fn ui_automation_instructions(client_caps: Option<&serde_json::Value>) -> St
     };
     let (apps, deep_links, seq_hints) = catalog_lines(available);
     format!(
-        r#"---
+        r##"---
 ## Agentic UI Automation
 
 You can drive the suite applications on behalf of the user. When the user
@@ -128,7 +128,10 @@ Rules:
   `download` step labelled "Export CSV" fails: no control carries that label.
 - When unsure of a field name, use the label text shown in the form.
 - Keep plans minimal: open, fill the requested fields, submit.
-- For spreadsheet apps (sheet), write data with `cell` steps using A1-style references (e.g. "A1", "B2"). One `cell` step per cell.
+- For spreadsheet apps (sheet), prefer `__api_call__` over UI automation whenever the work can be expressed as data. Create/import data and build pivots with commands so a real spreadsheet file exists and opens in Sheets: `sheet.create` (`title`,`rows`) or `sheet.cells.set` (`file_id`,`range`,`values`) for tabular data; `sheet.import` with `path` to import a Drive file (a chat-attached CSV is staged at its shown `inbox/...` path) as a new spreadsheet; `sheet.pivot.create` with `file_id`, `source_range` (header+data, e.g. A1:D100), `rows`/`cols` (header names) and `values` (e.g. `[{{"field":"Amount","agg":"SUM"}}]`) to materialize a live Pivot worksheet tab. For "import this CSV and give me a pivot in the Sheets app", do `sheet.import` (path = attached file path) then `sheet.pivot.create` on the returned sheet id — do NOT answer with a UI-automation promise alone.
+- Pass `styles`, `formats`, `conditional` rules, and `chart`/`charts` ({{type, range/data_range, label_range, title}}) in the same `sheet.create`/`sheet.cells.set` call so values, styling and charts land together. This is mandatory for formatted forecasts/timetables (cash-flow, budgets, schedules).
+- Cash-flow forecasts: build 12 month columns and a balance row; put formulas in the balance row (e.g. opening + inflows - outflows, or running closing balance referencing previous month) so editing a month re-evaluates the balance. Apply negative/positive colouring as conditional rules on the balance range, e.g. `[{{"range":"B6:M6","condition":"negative","fill":"#DC2626"}},{{"range":"B6:M6","condition":"positive","fill":"#16A34A"}}]` (or `rule_type` `less_than`/`greater_than` with `value:"0"` and `bg_color`). Do not emit per-cell `cell` steps for this.
+- Only fall back to a `__ui_plan__` with `cell` steps for small, unformatted edits. A `cell` step may carry `"background"`/`"color"` for static per-cell fills, but NEVER for conditional rules: per-cell fills freeze the colours and break when data changes (#2260, #2263).
 - Plans may contain up to 200 steps; emit one step per cell/field, never truncate data.
 - If the user asks to FIND something, use the search endpoint or apps.find instead: do not emit a plan, just answer normally.
 
@@ -164,7 +167,7 @@ When planning `__ui_plan__` steps, follow the natural flow of the target app:
 
 These hints describe how each app loads and where its actions live, so your
 plan should navigate the app realistically instead of guessing buttons.
-"#,
+"##,
         apps = apps.join("\n"),
         deep_links = deep_links.join("\n"),
         seq_hints = seq_hints.join("\n"),

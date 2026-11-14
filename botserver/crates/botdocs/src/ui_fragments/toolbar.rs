@@ -1,10 +1,13 @@
 use super::html_escape;
-use axum::{response::Html, Json};
+use axum::{Json, response::Html};
 use botuifragments::ui_fragments::form_field;
 
 pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let action = payload.get("action").and_then(|v| v.as_str()).unwrap_or("improve");
+    let action = payload
+        .get("action")
+        .and_then(|v| v.as_str())
+        .unwrap_or("improve");
     let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
         r##"<form class="dc-form" hx-post="/api/docs/ai/{action}" hx-vals='{{"document_id":"{id}","action":"{action}","prompt":"{action}"}}' hx-target="#ai-result-modal" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -59,8 +62,14 @@ pub async fn handle_print_form(Json(payload): Json<serde_json::Value>) -> Html<S
 
 pub async fn handle_footnote_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
-    let position = payload.get("position").and_then(|v| v.as_u64()).unwrap_or(0);
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let position = payload
+        .get("position")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let field = form_field(
         "Conteúdo da nota",
         &format!(
@@ -80,7 +89,10 @@ pub async fn handle_footnote_form(Json(payload): Json<serde_json::Value>) -> Htm
 
 pub async fn handle_endnote_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let field = form_field(
         "Conteúdo da nota final",
         &format!(
@@ -99,7 +111,10 @@ pub async fn handle_endnote_form(Json(payload): Json<serde_json::Value>) -> Html
 
 pub async fn handle_track_changes_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let enabled = payload.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+    let enabled = payload
+        .get("enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let label = if enabled { "Desativar" } else { "Ativar" };
     Html(format!(
         r##"<form class="dc-form" hx-post="/api/docs/track-changes/enable" hx-vals='{{"doc_id":"{id}","enabled":{enabled}}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsCloseModal(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -128,7 +143,10 @@ pub async fn handle_compare_form(Json(payload): Json<serde_json::Value>) -> Html
 
 pub async fn handle_template_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let template = payload.get("template").and_then(|v| v.as_str()).unwrap_or("blank");
+    let template = payload
+        .get("template")
+        .and_then(|v| v.as_str())
+        .unwrap_or("blank");
     Html(format!(
         r##"<form class="dc-form" data-template="{template}" onsubmit="return GBDocsApplyTemplate(event, '{id}')" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Modelo

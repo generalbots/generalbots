@@ -1,8 +1,10 @@
 // Web-search HTTP handlers and the provider chain (DuckDuckGo, Wikipedia,
-// Mojeek, TinyFish). Split by responsibility (#1730); the public handlers and
-// the provider entry points keep their paths through the re-exports below.
+// Mojeek, TinyFish, Google News). Split by responsibility (#1730); the public
+// handlers and the provider entry points keep their paths through the
+// re-exports below.
 
 mod duckduckgo;
+mod google_news;
 mod history;
 mod instant;
 mod mojeek;

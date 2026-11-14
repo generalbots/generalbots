@@ -1,17 +1,17 @@
+use crate::auth::DocUser;
 use crate::state::DocState;
+use crate::storage::convert_docx_to_html;
 use crate::storage::{create_new_document, load_document_from_drive, save_document};
 use crate::types::{
     CompareDocumentsRequest, CompareDocumentsResponse, ComparisonSummary, Document,
     DocumentComparison, DocumentDiff,
 };
-use crate::storage::convert_docx_to_html;
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
 use crate::utils_ooxml::odt_zip_to_html;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_import_document(
     State(state): State<Arc<DocState>>,
@@ -20,7 +20,8 @@ pub async fn handle_import_document(
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
     // #2132 — refuse an oversized body before it is buffered.
-    if let Err(error) = upload_policy::check_declared_length(UploadClass::DocumentImport, &headers) {
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::DocumentImport, &headers)
+    {
         return Err(upload_policy::rejection_json(&error, &headers));
     }
 
@@ -62,13 +63,22 @@ pub async fn handle_import_document(
         // #2254 — a PDF is read back into editable paragraphs instead of being
         // rejected as an unsupported format.
         "pdf" => crate::import_pdf::pdf_to_editor_html(&bytes).map_err(|e| {
-            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
         })?,
         "docx" => convert_docx_to_html(&bytes).map_err(|e| {
-            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
         })?,
         "odt" => odt_zip_to_html(&bytes).map_err(|e| {
-            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
         })?,
         "rtf" => rtf_to_html(&String::from_utf8_lossy(&bytes)),
         "html" => String::from_utf8_lossy(&bytes).to_string(),
@@ -81,7 +91,7 @@ pub async fn handle_import_document(
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": format!("Unsupported format: {format}") })),
-            ))
+            ));
         }
     };
 
@@ -103,7 +113,9 @@ pub async fn handle_import_document(
     if let Err(e) = save_document(&state, &user_id, &doc).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)}),
+            ),
         ));
     }
 
@@ -112,7 +124,8 @@ pub async fn handle_import_document(
     // headers/footers, tables and images survive.
     if format == "docx" {
         if let Err(e) =
-            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes, &doc.content).await
+            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes, &doc.content)
+                .await
         {
             log::warn!("docs import: could not store the original DOCX: {e}");
         }
@@ -149,13 +162,15 @@ pub async fn handle_compare_documents(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Original document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)}),
+                ),
+            ));
         }
     };
 
@@ -165,13 +180,15 @@ pub async fn handle_compare_documents(
             return Err((
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({ "error": "Modified document not found" })),
-            ))
+            ));
         }
         Err(e) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)})),
-            ))
+                Json(
+                    serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::import", None)}),
+                ),
+            ));
         }
     };
 

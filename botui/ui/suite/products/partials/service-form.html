@@ -1,5 +1,5 @@
 <!-- Service Form - Products Partial -->
-<form class="product-form" hx-post="/api/products/services" hx-target="#services-table-body" hx-swap="innerHTML" hx-on::after-request="closeProductsModal()">
+<form class="product-form" hx-post="/api/products/services" hx-ext="json-enc" hx-swap="none" hx-disabled-elt="find button[type='submit']" hx-on::after-request="var xhr=event.detail.xhr; if(event.detail.successful){ if(window.showProductsToast){showProductsToast('Service saved','success');} closeProductsModal(); htmx.ajax('GET','/api/ui/products/services',{target:'#services-table-body',swap:'innerHTML'}); } else { if(window.showProductsToast){showProductsToast(window.productsErrorMessage?productsErrorMessage(xhr):'Could not save service');} }">
     <div class="product-form-header">
         <h2 class="product-form-title" data-i18n="products-new-service">New Service</h2>
         <button type="button" class="form-close" onclick="closeProductsModal()" aria-label="Close">

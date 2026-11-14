@@ -216,6 +216,21 @@
       renderSwitcherChips(t.id);
       if (paneSwitchers) paneSwitchers.style.display = "";
     }
+    // A turn may still be streaming while this tab was in the background or
+    // before the pane existed (UI-REG-03). Materialize the in-progress bubble
+    // so the active pane keeps rendering the conversation on switch-back.
+    if (t.streamingContent && msgs) {
+      if (!t.streamingEl || !t.streamingEl.nodeType || !t.streamingEl.parentNode) {
+        var streamDiv = document.createElement("div");
+        streamDiv.className = "message bot";
+        streamDiv.innerHTML = '<div class="message-content bot-message"></div>';
+        msgs.appendChild(streamDiv);
+        t.streamingEl = streamDiv;
+      }
+      var streamBody = t.streamingEl.querySelector(".message-content");
+      if (streamBody) streamBody.textContent = t.streamingContent;
+      msgs.scrollTop = msgs.scrollHeight;
+    }
     MC.activeId = t.id;
   }
 

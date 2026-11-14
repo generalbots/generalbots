@@ -6,8 +6,19 @@ pub(super) async fn handle_products_pricelists(
     Query(query): Query<ProductQuery>,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -36,7 +47,16 @@ pub(super) async fn handle_products_pricelists(
                 price_lists::customer_group,
                 price_lists::is_active,
             ))
-            .load::<(Uuid, String, Option<String>, String, bool, BigDecimal, Option<String>, bool)>(&mut conn)
+            .load::<(
+                Uuid,
+                String,
+                Option<String>,
+                String,
+                bool,
+                BigDecimal,
+                Option<String>,
+                bool,
+            )>(&mut conn)
             .ok()
     })
     .await
@@ -46,14 +66,28 @@ pub(super) async fn handle_products_pricelists(
     match result {
         Some(items) if !items.is_empty() => {
             let mut html = String::new();
-            for (id, name, _desc, currency, is_default, discount, customer_group, is_active) in items {
+            for (id, name, _desc, currency, is_default, discount, customer_group, is_active) in
+                items
+            {
                 let currency = currency;
                 let is_active = is_active;
                 let discount_pct = bd_to_f64(&discount);
-                let discount_str = if discount_pct > 0.0 { format!("{:.1}%", discount_pct) } else { "-".to_string() };
+                let discount_str = if discount_pct > 0.0 {
+                    format!("{:.1}%", discount_pct)
+                } else {
+                    "-".to_string()
+                };
                 let group_str = customer_group.unwrap_or_else(|| "All".to_string());
-                let default_badge = if is_default { "<span class=\"badge badge-primary\">Default</span>" } else { "" };
-                let status_class = if is_active { "status-active" } else { "status-inactive" };
+                let default_badge = if is_default {
+                    "<span class=\"badge badge-primary\">Default</span>"
+                } else {
+                    ""
+                };
+                let status_class = if is_active {
+                    "status-active"
+                } else {
+                    "status-inactive"
+                };
                 let status_text = if is_active { "Active" } else { "Inactive" };
 
                 html.push_str(&format!(
@@ -85,7 +119,8 @@ pub(super) async fn handle_products_pricelists(
             <p>No price lists yet</p>\
             <p class=\"empty-hint\">Create price lists for different customer segments</p>\
             </td>\
-            </tr>".to_string(),
+            </tr>"
+                .to_string(),
         ),
     }
 }
@@ -94,8 +129,19 @@ pub(super) async fn handle_total_products(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -117,8 +163,19 @@ pub(super) async fn handle_total_services(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -140,8 +197,19 @@ pub(super) async fn handle_total_pricelists(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -163,8 +231,19 @@ pub(super) async fn handle_active_products(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().ok()?;
@@ -193,8 +272,19 @@ pub(super) async fn handle_products_search(
     }
 
     let pool = state.pool.clone();
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
+    let branch_id =
+        crate::scope::branch_from_jwt_pool(&headers, &state.pool).unwrap_or_else(|| {
+            let has_token = headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.starts_with("Bearer ") && v.len() > 7)
+                .unwrap_or(false);
+            if has_token {
+                Uuid::nil()
+            } else {
+                get_bot_context(&state.pool, &state.get_default_bot)
+            }
+        });
     let search_term = format!("%{}%", q);
 
     let result = tokio::task::spawn_blocking(move || {

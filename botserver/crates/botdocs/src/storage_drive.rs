@@ -58,11 +58,7 @@ const DOC_META_EXTRAS: [&str; 8] = [
 ];
 
 async fn read_doc_meta(state: &DocState, meta_path: &str) -> serde_json::Value {
-    match state
-        .drive
-        .get_object(&state.bucket_name, meta_path)
-        .await
-    {
+    match state.drive.get_object(&state.bucket_name, meta_path).await {
         Ok(bytes) => String::from_utf8(bytes)
             .ok()
             .and_then(|text| serde_json::from_str(&text).ok())
@@ -138,10 +134,7 @@ async fn save_document_with_extras(
 
     let doc_value = document.and_then(|doc| serde_json::to_value(doc).ok());
     for key in DOC_META_EXTRAS {
-        if let Some(value) = doc_value
-            .as_ref()
-            .and_then(|value| value.get(key))
-        {
+        if let Some(value) = doc_value.as_ref().and_then(|value| value.get(key)) {
             metadata[key] = value.clone();
             continue;
         }
@@ -210,11 +203,7 @@ pub async fn load_document_from_drive(
     let doc_path = format!("{base_path}/{doc_id}.html");
     let meta_path = format!("{base_path}/{doc_id}.meta.json");
 
-    let content = match state
-        .drive
-        .get_object(&state.bucket_name, &doc_path)
-        .await
-    {
+    let content = match state.drive.get_object(&state.bucket_name, &doc_path).await {
         Ok(bytes) => String::from_utf8(bytes).map_err(|e| e.to_string())?,
         Err(_) => return Ok(None),
     };
@@ -280,19 +269,12 @@ pub async fn list_documents_from_drive(
 
     for key in &objects {
         if key.ends_with(".meta.json") {
-            if let Ok(bytes) = state
-                .drive
-                .get_object(&state.bucket_name, key)
-                .await
-            {
+            if let Ok(bytes) = state.drive.get_object(&state.bucket_name, key).await {
                 if let Ok(meta_str) = String::from_utf8(bytes) {
                     if let Ok(meta) = serde_json::from_str::<serde_json::Value>(&meta_str) {
                         let doc_meta = DocumentMetadata {
                             id: meta["id"].as_str().unwrap_or_default().to_string(),
-                            title: meta["title"]
-                                .as_str()
-                                .unwrap_or("Untitled")
-                                .to_string(),
+                            title: meta["title"].as_str().unwrap_or("Untitled").to_string(),
                             owner_id: user_identifier.to_string(),
                             created_at: meta["created_at"]
                                 .as_str()
@@ -327,10 +309,7 @@ pub async fn delete_document_from_drive(
 
     for ext in &[".html", ".docx", ".docx.source.json", ".meta.json"] {
         let path = format!("{base_path}/{doc_id}{ext}");
-        let _ = state
-            .drive
-            .delete_object(&state.bucket_name, &path)
-            .await;
+        let _ = state.drive.delete_object(&state.bucket_name, &path).await;
     }
 
     remove_from_cache(doc_id).await;

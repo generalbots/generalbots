@@ -24,7 +24,10 @@ pub(super) async fn search_duckduckgo(
 
     let response = client
         .get(&url)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         .header("Accept-Language", "en-US,en;q=0.9")
         .header("Sec-Fetch-Mode", "navigate")
         .header("Sec-Fetch-Dest", "document")

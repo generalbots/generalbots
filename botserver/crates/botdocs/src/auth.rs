@@ -27,10 +27,10 @@
 //! here: collaborators are recorded inside the document, not by widening the
 //! path.
 
+use axum::Json;
 use axum::extract::FromRequestParts;
 use axum::http::{Extensions, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 
 use crate::legacy::is_legacy_owner;
 use crate::storage_core::{get_user_docs_path, sanitize_owner};
@@ -54,10 +54,7 @@ impl DocUser {
         let segment = sanitize_owner(&id);
         // An id that sanitises to separators only would build a prefix no
         // verified principal can own, so it is rejected like an empty one.
-        if id.is_empty()
-            || is_legacy_owner(&id)
-            || !segment.chars().any(char::is_alphanumeric)
-        {
+        if id.is_empty() || is_legacy_owner(&id) || !segment.chars().any(char::is_alphanumeric) {
             return None;
         }
         let display_name = display_name.into().trim().to_string();
@@ -90,7 +87,10 @@ impl DocUser {
     /// anonymous fallback for public paths — so a missing *or* unverified
     /// extension must be a rejection, never a default identity.
     pub fn from_extensions(extensions: &Extensions) -> Result<Self, DocAuthError> {
-        extensions.get::<DocUser>().cloned().ok_or(DocAuthError::Unauthenticated)
+        extensions
+            .get::<DocUser>()
+            .cloned()
+            .ok_or(DocAuthError::Unauthenticated)
     }
 }
 

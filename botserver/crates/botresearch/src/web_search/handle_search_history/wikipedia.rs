@@ -6,10 +6,7 @@ use super::super::*;
 /// query string is attached, so request input can only ever become a
 /// percent-encoded query parameter — it cannot choose the destination
 /// (CodeQL rust/request-forgery).
-pub(super) fn wikipedia_search_url(
-    query: &str,
-    max_results: usize,
-) -> Result<url::Url, String> {
+pub(super) fn wikipedia_search_url(query: &str, max_results: usize) -> Result<url::Url, String> {
     const API: &str = "https://en.wikipedia.org/w/api.php";
     let mut url = url::Url::parse(API).map_err(|e| e.to_string())?;
     url.query_pairs_mut()
@@ -51,8 +48,7 @@ pub(super) async fn search_wikipedia(
     let url = wikipedia_search_url(query, max_results)?;
     let response = client.get(url).send().await.map_err(|e| e.to_string())?;
     let body = response.text().await.map_err(|e| e.to_string())?;
-    let parsed: serde_json::Value =
-        serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let parsed: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
     let mut results = Vec::new();
     if let Some(items) = parsed
         .get("query")
@@ -132,7 +128,10 @@ mod tests {
         assert_eq!(url.host_str(), Some("en.wikipedia.org"));
         assert_eq!(url.path(), "/w/api.php");
         let query: Vec<(String, String)> = url.query_pairs().into_owned().collect();
-        assert!(query.contains(&("srsearch".to_string(), "population of Brazil & Chile".to_string())));
+        assert!(query.contains(&(
+            "srsearch".to_string(),
+            "population of Brazil & Chile".to_string()
+        )));
     }
 
     #[test]

@@ -5,24 +5,31 @@
   let menu = null;
 
   function currentSheetId() {
-    var D = window.SheetDefaults;
-    if (D && D.currentSheetId) return D.currentSheetId();
-    if (window.SheetCore && window.SheetCore.currentSheetId) return window.SheetCore.currentSheetId();
-    return window.__SHEET_INITIAL_ID || "current";
+    const loaded = window.__LOADED_SHEET;
+    if (loaded && loaded.id) return String(loaded.id);
+    if (window.SheetCore && typeof window.SheetCore.currentSheetId === "function") {
+      const id = window.SheetCore.currentSheetId();
+      if (id) return String(id);
+    }
+    return window.__SHEET_INITIAL_ID ? String(window.__SHEET_INITIAL_ID) : "";
+  }
+
+  function isExportableId(id) {
+    return !!id && id !== "current" && id !== "loading" && id !== "new";
   }
 
   function currentName() {
-    var D = window.SheetDefaults;
-    var inst = D && D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
-    var scope = inst && inst.body ? inst.body : document;
-    const input = scope.querySelector("#sheetName") || document.getElementById("sheetName");
+    const input = document.getElementById("sheetName");
     if (input && input.value) return input.value.trim();
-    const sheet = (inst && inst.loadedSheet) || window.__LOADED_SHEET;
+    const sheet = window.__LOADED_SHEET;
     return (sheet && sheet.name) || "sheet";
   }
 
   function slug(s) {
-    return s.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "sheet";
+    return String(s || "sheet")
+      .replace(/[^\w\-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "") || "sheet";
   }
 
   function download(blob, filename) {
@@ -30,31 +37,84 @@
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.style.display = "none";
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    // Keep the anchor attached briefly so the browser can process the click
+    // before we remove it and revoke the blob URL.
+    setTimeout(function () {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1500);
   }
 
-  function exportFormat(format, ext, mime) {
+  function readErrorMessage(response) {
+    const ct = (response.headers.get("content-type") || "").toLowerCase();
+    if (ct.indexOf("application/json") !== -1) {
+      return response.json().then(function (body) {
+        if (body && typeof body.error === "string" && body.error) return body.error;
+        return "Export failed";
+      }).catch(function () { return "Export failed"; });
+    }
+    return response.text().then(function (text) {
+      return (text && text.trim()) || "Export failed";
+    }).catch(function () { return "Export failed"; });
+  }
+
+  function authHeaders(extra) {
+    const headers = extra ? Object.assign({}, extra) : {};
+    let token = "";
+    try {
+      if (typeof window.getGBAccessToken === "function") {
+        token = window.getGBAccessToken() || "";
+      }
+      if (!token) {
+        token =
+          localStorage.getItem("gb-access-token") ||
+          sessionStorage.getItem("gb-access-token") ||
+          "";
+      }
+    } catch (e) {
+      token = "";
+    }
+    if (token) headers.Authorization = "Bearer " + token;
+    return headers;
+  }
+
+  function exportFormat(format, ext) {
+    const id = currentSheetId();
+    if (!isExportableId(id)) {
+      showToast("Save or open a sheet before exporting", false);
+      return Promise.resolve();
+    }
     return fetch("/api/sheet/export", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: currentSheetId(), format: format }),
+      headers: authHeaders({
+        "Content-Type": "application/json",
+        "Accept": "application/octet-stream, */*"
+      }),
+      body: JSON.stringify({ id: id, format: format }),
     })
       .then(function (r) {
-        if (!r.ok) throw new Error("export failed");
+        if (!r.ok) {
+          return readErrorMessage(r).then(function (msg) { throw new Error(msg); });
+        }
         return r.blob();
       })
       .then(function (blob) {
-        var filename = slug(currentName()) + "." + ext;
+        if (!blob || blob.size === 0) {
+          throw new Error("Export returned an empty file");
+        }
+        const filename = slug(currentName()) + "." + ext;
         download(blob, filename);
-        // The download anchor is removed immediately, so this toast is the only
-        // confirmation the user (and the UI automation) gets that it worked.
+        // The anchor is removed shortly after the click, so this toast is the
+        // persistent confirmation the user (and the UI automation) can observe.
         showToast("Exported " + filename, true);
       })
-      .catch(function () {
-        showToast("Export failed");
+      .catch(function (err) {
+        const msg = (err && err.message) ? String(err.message) : "Export failed";
+        showToast(msg, false);
       });
   }
 
@@ -96,15 +156,15 @@
       b.addEventListener("click", function () { closeMenu(); fn(); });
       return b;
     };
-    menu.appendChild(item("CSV", function () { exportFormat("csv", "csv", "text/csv"); }));
-    menu.appendChild(item("XLSX", function () { exportFormat("xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }));
-    menu.appendChild(item("Markdown", function () { exportFormat("markdown", "md", "text/markdown"); }));
+    menu.appendChild(item("CSV", function () { exportFormat("csv", "csv"); }));
+    menu.appendChild(item("XLSX", function () { exportFormat("xlsx", "xlsx"); }));
+    menu.appendChild(item("Markdown", function () { exportFormat("markdown", "md"); }));
     // The API already streams real ODF and PDF bytes; the menu offered only
     // CSV/XLSX/Markdown, so those two formats were unreachable from the UI.
-    menu.appendChild(item("ODS", function () { exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); }));
-    menu.appendChild(item("PDF", function () { exportFormat("pdf", "pdf", "application/pdf"); }));
-    menu.appendChild(item("HTML", function () { exportFormat("html", "html", "text/html"); }));
-    menu.appendChild(item("JSON", function () { exportFormat("json", "json", "application/json"); }));
+    menu.appendChild(item("ODS", function () { exportFormat("ods", "ods"); }));
+    menu.appendChild(item("PDF", function () { exportFormat("pdf", "pdf"); }));
+    menu.appendChild(item("HTML", function () { exportFormat("html", "html"); }));
+    menu.appendChild(item("JSON", function () { exportFormat("json", "json"); }));
     document.body.appendChild(menu);
     const rect = anchor.getBoundingClientRect();
     let left = rect.left;
@@ -133,6 +193,7 @@
     const btn = document.createElement("button");
     btn.className = "btn-icon";
     btn.id = "exportSheetBtn";
+    btn.type = "button";
     btn.title = "Export";
     btn.setAttribute("aria-label", "Export");
     btn.style.cssText = "display:inline-flex;align-items:center;gap:4px;";
@@ -150,18 +211,19 @@
     if (right) right.insertBefore(btn, right.firstChild);
 
     document.addEventListener("mousedown", function (e) {
-      if (menu && !menu.contains(e.target) && e.target.id !== "exportSheetBtn") closeMenu();
+      if (menu && !menu.contains(e.target) && e.target.closest("#exportSheetBtn")) return;
+      if (menu && !menu.contains(e.target)) closeMenu();
     }, true);
   }
 
   window.SheetExport = {
-    csv: function () { return exportFormat("csv", "csv", "text/csv"); },
-    xlsx: function () { return exportFormat("xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); },
-    markdown: function () { return exportFormat("markdown", "md", "text/markdown"); },
-    ods: function () { return exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); },
-    pdf: function () { return exportFormat("pdf", "pdf", "application/pdf"); },
-    html: function () { return exportFormat("html", "html", "text/html"); },
-    json: function () { return exportFormat("json", "json", "application/json"); },
+    csv: function () { return exportFormat("csv", "csv"); },
+    xlsx: function () { return exportFormat("xlsx", "xlsx"); },
+    markdown: function () { return exportFormat("markdown", "md"); },
+    ods: function () { return exportFormat("ods", "ods"); },
+    pdf: function () { return exportFormat("pdf", "pdf"); },
+    html: function () { return exportFormat("html", "html"); },
+    json: function () { return exportFormat("json", "json"); },
   };
 
   setTimeout(wire, 0);

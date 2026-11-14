@@ -293,6 +293,16 @@ pub async fn init_database(
                                 &mut conn,
                                 botsampledata::sample::SAMPLE_BRANCH_ID,
                             );
+                            // A suite session token carries no SaaS branch, so
+                            // the Products/Store apps read the global (nil)
+                            // catalog. Seed it in demo environments as well,
+                            // otherwise the UAT grids render "No products yet"
+                            // over an existing catalogue (#2204). Still gated by
+                            // GB_ALLOW_SAMPLEDATA, so production never seeds.
+                            botproducts::seed::seed_default_products(
+                                &mut conn,
+                                uuid::Uuid::nil(),
+                            );
                         } else {
                             info!("botsampledata: product sample-catalog seeding skipped (GB_ALLOW_SAMPLEDATA not set)");
                         }

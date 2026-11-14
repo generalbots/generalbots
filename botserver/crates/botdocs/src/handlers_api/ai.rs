@@ -1,5 +1,7 @@
-use crate::types::{AiRequest, AiResponse, DocsAiRequest, DocsAiResponse, SpellcheckCorrection, SpellcheckResponse};
-use axum::{extract::State, http::StatusCode, Json, response::IntoResponse};
+use crate::types::{
+    AiRequest, AiResponse, DocsAiRequest, DocsAiResponse, SpellcheckCorrection, SpellcheckResponse,
+};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 
 use crate::state::DocState;
@@ -14,7 +16,11 @@ async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, 
     if llm_url.is_empty() || llm_key.is_empty() {
         return Err(None); // LLM not configured — caller falls back
     }
-    let model = if llm_model.is_empty() { "default".to_string() } else { llm_model };
+    let model = if llm_model.is_empty() {
+        "default".to_string()
+    } else {
+        llm_model
+    };
 
     let body = serde_json::json!({
         "model": model,
@@ -126,7 +132,11 @@ pub async fn handle_docs_ai(
             Apply the user's requested edit to the provided text and return ONLY a JSON object \
             with a single key \"response\" containing the resulting text."
         };
-        let instruction = if prompt.trim().is_empty() { command.clone() } else { prompt.clone() };
+        let instruction = if prompt.trim().is_empty() {
+            command.clone()
+        } else {
+            prompt.clone()
+        };
         let user_prompt = if is_translate {
             let lang = if instruction.split_whitespace().count() == 1 {
                 instruction.clone()
@@ -175,7 +185,11 @@ fn fallback_ai(req: &AiRequest) -> AiResponse {
         ),
     };
     AiResponse {
-        result: if note.is_some() { "unavailable".to_string() } else { "success".to_string() },
+        result: if note.is_some() {
+            "unavailable".to_string()
+        } else {
+            "success".to_string()
+        },
         content,
         error: note,
     }
@@ -246,7 +260,10 @@ pub async fn handle_ai_translate(
     Json(req): Json<AiRequest>,
 ) -> Result<Json<AiResponse>, (StatusCode, Json<serde_json::Value>)> {
     let text = text_or_selected(&req);
-    let lang = req.translate_lang.clone().unwrap_or_else(|| "English".to_string());
+    let lang = req
+        .translate_lang
+        .clone()
+        .unwrap_or_else(|| "English".to_string());
     let system = "You are a professional translator. Translate the textual content of the given \
         document into the target language, faithfully preserving tone and meaning. The input may be \
         HTML or markdown: keep every tag, attribute, heading, list, bold/italic marker and overall \
@@ -276,7 +293,10 @@ pub async fn handle_ai_spellcheck(
         text
     };
     if text.trim().is_empty() {
-        return Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: None }));
+        return Ok(Json(SpellcheckResponse {
+            corrections: Vec::new(),
+            error: None,
+        }));
     }
     let system = "You are a spelling and grammar checker. Return ONLY a JSON object with key \
         \"corrections\" containing an array of objects {\"from\": \"<exact original word or phrase>\", \
@@ -289,16 +309,35 @@ pub async fn handle_ai_spellcheck(
             let mut corrections = Vec::new();
             if let Some(arr) = parsed.get("corrections").and_then(|v| v.as_array()) {
                 for item in arr {
-                    let from = item.get("from").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                    let to = item.get("to").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                    let from = item
+                        .get("from")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let to = item
+                        .get("to")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
                     if !from.is_empty() && from != to {
                         corrections.push(SpellcheckCorrection { from, to });
                     }
                 }
             }
-            Ok(Json(SpellcheckResponse { corrections, error: None }))
+            Ok(Json(SpellcheckResponse {
+                corrections,
+                error: None,
+            }))
         }
-        Err(Some(e)) => Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: Some(e) })),
-        Err(None) => Ok(Json(SpellcheckResponse { corrections: Vec::new(), error: Some("LLM not configured".to_string()) })),
+        Err(Some(e)) => Ok(Json(SpellcheckResponse {
+            corrections: Vec::new(),
+            error: Some(e),
+        })),
+        Err(None) => Ok(Json(SpellcheckResponse {
+            corrections: Vec::new(),
+            error: Some("LLM not configured".to_string()),
+        })),
     }
 }

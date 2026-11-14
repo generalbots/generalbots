@@ -82,14 +82,18 @@ impl ReviewerRole {
     #[must_use]
     pub fn system_prompt(self) -> &'static str {
         match self {
-            Self::Editor => "You are a meticulous editor. Report problems with structure, \
+            Self::Editor => {
+                "You are a meticulous editor. Report problems with structure, \
                 clarity, tone, consistency and mechanical correctness. Do not rewrite the \
                 document and do not evaluate whether its claims are true; another reviewer \
-                does that. Reply with JSON only.",
-            Self::Critic => "You are an adversarial reviewer. Look for unsupported claims, \
+                does that. Reply with JSON only."
+            }
+            Self::Critic => {
+                "You are an adversarial reviewer. Look for unsupported claims, \
                 logical gaps, missing caveats, and anything a hostile or expert reader would \
                 object to. Do not rewrite the document and do not comment on style; another \
-                reviewer does that. Reply with JSON only.",
+                reviewer does that. Reply with JSON only."
+            }
         }
     }
 }
@@ -174,7 +178,9 @@ pub enum ReviewError {
 impl std::fmt::Display for ReviewError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NoReviewers(message) => write!(f, "no reviewer produced a usable review: {message}"),
+            Self::NoReviewers(message) => {
+                write!(f, "no reviewer produced a usable review: {message}")
+            }
             Self::NotConfigured => write!(f, "no LLM is configured"),
             Self::Provider(message) => write!(f, "review provider failed: {message}"),
         }
@@ -232,7 +238,11 @@ pub fn parse_review(role: ReviewerRole, raw: &str) -> Review {
         })
         .collect();
 
-    Review { role, findings, verdict: parsed.verdict.trim().to_string() }
+    Review {
+        role,
+        findings,
+        verdict: parsed.verdict.trim().to_string(),
+    }
 }
 
 /// Removes a Markdown code fence, if the whole payload is wrapped in one.
@@ -301,7 +311,11 @@ pub fn merge_reviews(reviews: &[Review]) -> ReviewOutcome {
     });
 
     let agreed = findings.iter().filter(|f| f.agreement > 1).count();
-    ReviewOutcome { findings, agreed, revised_text: String::new() }
+    ReviewOutcome {
+        findings,
+        agreed,
+        revised_text: String::new(),
+    }
 }
 
 /// Builds the user prompt handed to one reviewer.

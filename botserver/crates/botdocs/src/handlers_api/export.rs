@@ -1,17 +1,22 @@
+use crate::auth::DocUser;
 use crate::export_isolation::{html_export_headers, render_html_export, text_export_headers};
 use crate::re_cache::cached_re;
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
-use crate::storage_core::{parse_html_to_paragraphs, ParagraphData, strip_html};
+use crate::storage_core::{ParagraphData, parse_html_to_paragraphs, strip_html};
 use crate::storage_docx_source::DocxFidelity;
 use crate::types::ExportQuery;
 use crate::utils::html_to_markdown;
 use crate::utils_ooxml::html_to_odt_zip;
 use crate::utils_pdf::html_to_pdf;
-use axum::{extract::{Query, State}, http::StatusCode, Json, response::IntoResponse};
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+};
 use docx_rs::{AlignmentType, Docx, Paragraph, Run, RunFonts, Table, TableCell, TableRow};
 use std::sync::Arc;
-use crate::auth::DocUser;
 
 pub async fn handle_export_pdf(
     State(state): State<Arc<DocState>>,
@@ -38,20 +43,27 @@ pub async fn handle_export_docx(
     let user_id = user.id().to_string();
     // The richer builder below stays as the last-resort rebuild; the preserving
     // path is preferred because it keeps the original package.
-    let (docx_bytes, fidelity) =
-        match crate::storage::docx_bytes_with_fidelity(&state, &user_id, &doc.id, &doc.title, &doc.content).await {
-            Ok(result) => result,
-            Err(error) => {
-                log::warn!("docs export: preserving path failed: {error}");
-                let rebuilt = html_to_docx_full(&doc.title, &doc.content).map_err(|e| {
+    let (docx_bytes, fidelity) = match crate::storage::docx_bytes_with_fidelity(
+        &state,
+        &user_id,
+        &doc.id,
+        &doc.title,
+        &doc.content,
+    )
+    .await
+    {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!("docs export: preserving path failed: {error}");
+            let rebuilt = html_to_docx_full(&doc.title, &doc.content).map_err(|e| {
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
                     )
                 })?;
-                (rebuilt, DocxFidelity::Regenerated)
-            }
-        };
+            (rebuilt, DocxFidelity::Regenerated)
+        }
+    };
 
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
@@ -100,7 +112,9 @@ async fn load_export_document(
         )),
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}),
+            ),
         )),
     }
 }
@@ -112,6 +126,7 @@ enum HtmlBlock {
 }
 
 fn html_to_docx_full(title: &str, html: &str) -> Result<Vec<u8>, String> {
+    let (body, header, footer) = crate::storage_docx_hf::extract_header_footer_zones(html);
     let mut docx = Docx::new();
 
     if !title.is_empty() {
@@ -122,7 +137,7 @@ fn html_to_docx_full(title: &str, html: &str) -> Result<Vec<u8>, String> {
         docx = docx.add_paragraph(Paragraph::new());
     }
 
-    for block in split_html_blocks(html) {
+    for block in split_html_blocks(&body) {
         match block {
             HtmlBlock::Table(rows) => {
                 docx = docx.add_table(build_docx_table(&rows));
@@ -133,7 +148,8 @@ fn html_to_docx_full(title: &str, html: &str) -> Result<Vec<u8>, String> {
                 } else {
                     format!("[Image: {alt}]")
                 };
-                docx = docx.add_paragraph(Paragraph::new().add_run(Run::new().add_text(label).italic()));
+                docx = docx
+                    .add_paragraph(Paragraph::new().add_run(Run::new().add_text(label).italic()));
             }
             HtmlBlock::Fragment(fragment) => {
                 for p in parse_html_to_paragraphs(&fragment) {
@@ -142,6 +158,8 @@ fn html_to_docx_full(title: &str, html: &str) -> Result<Vec<u8>, String> {
             }
         }
     }
+
+    docx = crate::storage_docx_hf::apply_docx_header_footer(docx, header, footer);
 
     let mut buf = std::io::Cursor::new(Vec::new());
     docx.build()
@@ -267,7 +285,9 @@ fn build_docx_table(rows: &[Vec<String>]) -> Table {
         .map(|cells| {
             let doc_cells: Vec<TableCell> = cells
                 .iter()
-                .map(|c| TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(c))))
+                .map(|c| {
+                    TableCell::new().add_paragraph(Paragraph::new().add_run(Run::new().add_text(c)))
+                })
                 .collect();
             TableRow::new(doc_cells)
         })

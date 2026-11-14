@@ -7,10 +7,10 @@
 //! compared in constant time, `exp`/`nbf` enforced. A refusal carries a stable
 //! machine-readable code so the client sees why the upgrade was rejected.
 
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
-use botsecurity_core::verified_jwt::{verify_saas_jwt, JwtVerifyError};
+use botsecurity_core::verified_jwt::{JwtVerifyError, verify_saas_jwt};
 
 /// Resolves `(user_id, display_name)` from a **verified** document token.
 ///
@@ -18,7 +18,10 @@ use botsecurity_core::verified_jwt::{verify_saas_jwt, JwtVerifyError};
 /// subject, so a collaborator never gets to choose their own label.
 pub(super) fn extract_user_from_token(token: &str) -> Result<(String, String), JwtVerifyError> {
     let verified = verify_saas_jwt(token)?;
-    let name = verified.email.clone().unwrap_or_else(|| verified.sub.clone());
+    let name = verified
+        .email
+        .clone()
+        .unwrap_or_else(|| verified.sub.clone());
     Ok((verified.sub, name))
 }
 

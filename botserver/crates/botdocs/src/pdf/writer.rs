@@ -5,7 +5,7 @@
 //! positioned independently, which keeps indentation and per-line font sizes
 //! faithful to the block layout.
 
-use super::layout::{Line, Page, MARGIN, PAGE_HEIGHT, PAGE_WIDTH};
+use super::layout::{Line, MARGIN, PAGE_HEIGHT, PAGE_WIDTH, Page};
 
 /// Font resource name per emphasis combination.
 fn font_resource(mono: bool, bold: bool, italic: bool) -> &'static str {
@@ -18,10 +18,8 @@ fn font_resource(mono: bool, bold: bool, italic: bool) -> &'static str {
 }
 
 fn font_object(base_font: &str) -> Vec<u8> {
-    format!(
-        "<< /Type /Font /Subtype /Type1 /BaseFont /{base_font} /Encoding /WinAnsiEncoding >>"
-    )
-    .into_bytes()
+    format!("<< /Type /Font /Subtype /Type1 /BaseFont /{base_font} /Encoding /WinAnsiEncoding >>")
+        .into_bytes()
 }
 
 struct PdfObject {
@@ -161,7 +159,7 @@ pub fn write_pdf(pages: &[Page]) -> Vec<u8> {
             .into_bytes(),
         });
 
-        let stream = build_content_stream(&page.lines);
+        let stream = build_content_stream(page);
         objects.push(PdfObject {
             id: content_id,
             content: build_stream_object(&stream),
@@ -171,17 +169,15 @@ pub fn write_pdf(pages: &[Page]) -> Vec<u8> {
     assemble_pdf(&objects)
 }
 
-fn build_content_stream(lines: &[Line]) -> Vec<u8> {
+fn build_content_stream(page: &Page) -> Vec<u8> {
     let mut ops = String::from("BT\n");
     let mut current_font: Option<(&'static str, u32)> = None;
 
-    for line in lines {
+    for line in &page.lines {
         let size = line.size.max(1.0);
         ops.push_str(&format!("1 0 0 1 {:.1} {:.1} Tm\n", line.x, line.y));
         for segment in &line.segments {
             let resource = font_resource(segment.mono, segment.bold, segment.italic);
-            // Font size is kept as an integer tenths value to avoid printing
-            // long floats in the stream.
             let size_key = (size * 10.0).round() as u32;
             if current_font != Some((resource, size_key)) {
                 ops.push_str(&format!("/{resource} {:.1} Tf\n", size_key as f32 / 10.0));
@@ -191,8 +187,32 @@ fn build_content_stream(lines: &[Line]) -> Vec<u8> {
         }
     }
 
+    // Repeating header/footer zones (#2155 DOC-08): rendered on every page.
+    if !page.header.trim().is_empty() {
+        draw_simple_text(
+            &mut ops,
+            &page.header,
+            MARGIN,
+            PAGE_HEIGHT - MARGIN + 2.0,
+            9.0,
+        );
+    }
+    if !page.footer.trim().is_empty() {
+        draw_simple_text(&mut ops, &page.footer, MARGIN, MARGIN - 14.0, 9.0);
+    }
+
     ops.push_str("ET");
     ops.into_bytes()
+}
+
+fn draw_simple_text(ops: &mut String, text: &str, x: f32, y: f32, size: f32) {
+    let clean: String = text.chars().filter(|c| *c != '\n' && *c != '\r').collect();
+    if clean.trim().is_empty() {
+        return;
+    }
+    ops.push_str(&format!("/F1 {:.1} Tf\n", size));
+    ops.push_str(&format!("1 0 0 1 {:.1} {:.1} Tm\n", x, y));
+    ops.push_str(&format!("({}) Tj\n", pdf_escape(&clean)));
 }
 
 fn build_stream_object(stream: &[u8]) -> Vec<u8> {

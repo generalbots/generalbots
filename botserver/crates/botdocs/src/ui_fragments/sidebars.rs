@@ -1,9 +1,13 @@
 use super::{empty_fragment, err_fragment, html_escape, render_metadata_card};
-use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
-use axum::{extract::{Query, State}, response::Html, Json};
 use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::types_core::DocumentMetadata;
+use axum::{
+    Json,
+    extract::{Query, State},
+    response::Html,
+};
+use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 
 /// Server-rendered document view resolved by id (metadata cards carry only
 /// the id; the full Document is loaded from Drive here).
@@ -32,7 +36,9 @@ pub async fn handle_document_view_by_id(
 
 pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     if items.is_empty() {
-        return Html(empty_fragment("Nenhum documento. Crie um novo para começar."));
+        return Html(empty_fragment(
+            "Nenhum documento. Crie um novo para começar.",
+        ));
     }
     let mut body = String::new();
     for m in &items {
@@ -90,7 +96,10 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
         .get("title")
         .and_then(|v| v.as_str())
         .unwrap_or("Documento sem título");
-    let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let word_count = content.split_whitespace().count();
     Html(format!(

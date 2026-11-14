@@ -73,8 +73,16 @@ pub(super) fn parse_tinyfish_response(body: &str, max_results: usize) -> Vec<Web
     };
     let mut results = Vec::new();
     for item in items.iter().take(max_results) {
-        let title = item.get("title").and_then(|v| v.as_str()).unwrap_or("").trim();
-        let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("").trim();
+        let title = item
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim();
+        let url = item
+            .get("url")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim();
         if title.is_empty() || url.is_empty() {
             continue;
         }
@@ -125,10 +133,7 @@ pub(super) async fn search_tinyfish(
         .timeout(TINYFISH_TIMEOUT)
         .build()
         .map_err(|error| format!("TinyFish client: {error}"))?;
-    let url = format!(
-        "{TINYFISH_ENDPOINT}?query={}",
-        urlencoding::encode(query)
-    );
+    let url = format!("{TINYFISH_ENDPOINT}?query={}", urlencoding::encode(query));
     let response = client
         .get(&url)
         .header("X-API-Key", key)
@@ -148,15 +153,17 @@ pub(super) async fn search_tinyfish(
     if results.is_empty() {
         return Err("TinyFish returned no usable results".to_string());
     }
-    info!("TinyFish search for '{}' returned {} results", query, results.len());
+    info!(
+        "TinyFish search for '{}' returned {} results",
+        query,
+        results.len()
+    );
     Ok(results)
 }
 
 #[cfg(test)]
 mod tinyfish_tests {
-    use super::{
-        parse_tinyfish_response, TinyFishLimiter, TINYFISH_PER_HOUR, TINYFISH_PER_MINUTE,
-    };
+    use super::{parse_tinyfish_response, TinyFishLimiter, TINYFISH_PER_HOUR, TINYFISH_PER_MINUTE};
 
     #[test]
     fn parses_structured_results_and_keeps_the_site_name() {
@@ -206,7 +213,10 @@ mod tinyfish_tests {
         for _ in 0..TINYFISH_PER_MINUTE {
             assert!(limiter.try_acquire());
         }
-        assert!(!limiter.try_acquire(), "the 31st request in a minute must be refused");
+        assert!(
+            !limiter.try_acquire(),
+            "the 31st request in a minute must be refused"
+        );
         assert!(TINYFISH_PER_MINUTE < TINYFISH_PER_HOUR);
     }
 }

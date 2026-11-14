@@ -160,6 +160,36 @@ pub async fn exec_endpoint(
     path_template: &str,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
+    exec_endpoint_gated(state, user_id, bot_uuid, method, path_template, params, true).await
+}
+
+/// Same loopback hop, but for a caller that has ALREADY passed the consent
+/// gate for the command it is executing. A composite verb (one approval, many
+/// endpoints) used to prompt once per sub-request: `sheet.cells.set` passed the
+/// outer gate, then the first `/api/sheet/range` hop raised a brand-new request
+/// and the whole call failed with `consent_required:<id>` (#2260). The
+/// endpoints remain RBAC-checked and registered-route checked — only the
+/// per-hop consent prompt is skipped, because the user approved the command.
+pub async fn exec_endpoint_trusted(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    bot_uuid: Option<Uuid>,
+    method: &str,
+    path_template: &str,
+    params: &serde_json::Map<String, Value>,
+) -> Result<Value, String> {
+    exec_endpoint_gated(state, user_id, bot_uuid, method, path_template, params, false).await
+}
+
+async fn exec_endpoint_gated(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    bot_uuid: Option<Uuid>,
+    method: &str,
+    path_template: &str,
+    params: &serde_json::Map<String, Value>,
+    check_consent: bool,
+) -> Result<Value, String> {
     let method_upper = method.to_uppercase();
     if !matches!(
         method_upper.as_str(),
@@ -186,7 +216,7 @@ pub async fn exec_endpoint(
     }
 
     #[cfg(feature = "consent")]
-    {
+    if check_consent {
         let class = match method_upper.as_str() {
             "GET" => "read",
             "POST" => "create",

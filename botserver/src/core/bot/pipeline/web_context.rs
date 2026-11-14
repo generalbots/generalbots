@@ -127,6 +127,7 @@ pub async fn search_and_inject(
                 "The search failed — answering from what I know.",
             )
             .await;
+            inject_no_sources_notice(messages, "The live web search failed for this request.");
             return Vec::new();
         }
         Err(_) => {
@@ -139,6 +140,7 @@ pub async fn search_and_inject(
                 "The search timed out — answering from what I know.",
             )
             .await;
+            inject_no_sources_notice(messages, "The live web search timed out for this request.");
             return Vec::new();
         }
     };
@@ -151,6 +153,10 @@ pub async fn search_and_inject(
             "No usable sources — answering from what I know.",
         )
         .await;
+        inject_no_sources_notice(
+            messages,
+            "The live web search returned no usable sources for this request.",
+        );
         return Vec::new();
     }
     // Search engines still return removed articles and hub pages. A citation
@@ -167,6 +173,10 @@ pub async fn search_and_inject(
             "No usable sources — answering from what I know.",
         )
         .await;
+        inject_no_sources_notice(
+            messages,
+            "The live web search returned no usable, dated article sources for this request.",
+        );
         return Vec::new();
     }
 
@@ -224,6 +234,25 @@ fn citation_for(result: &botresearch::web_search::WebSearchResult) -> serde_json
         // "every item needs a date" check survives the prose.
         "date": web_sources::item_date(result),
     })
+}
+
+/// #2146 — when the Web switch is on but no trustworthy sources survive,
+/// the model must not answer from memory by inventing headlines, URLs or
+/// dates. This instruction is injected as the freshest system message so the
+/// visible reply is an explicit failure instead of fabricated news.
+fn inject_no_sources_notice(messages: &mut Vec<serde_json::Value>, reason: &str) {
+    messages.push(json!({
+        "role": "system",
+        "content": format!(
+            "{reason}\n\n\
+             WEB SOURCES UNAVAILABLE\n\
+             - Tell the user clearly that current web sources could not be retrieved.\n\
+             - Do NOT invent news items, headlines, outlets, publication dates or URLs.\n\
+             - Do NOT cite or imply sources you do not have.\n\
+             - Offer to try again or suggest a narrower query.\n\
+             - Answer in the language of the user's message."
+        ),
+    }));
 }
 
 #[cfg(test)]

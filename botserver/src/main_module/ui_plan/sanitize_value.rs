@@ -67,6 +67,8 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
         value: None,
         ms: None,
         cell: None,
+        background: None,
+        color: None,
         path: None,
         params: None,
     };
@@ -94,6 +96,12 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
             return Err(format!("Invalid cell reference '{cell}' at step"));
         }
         out.cell = Some(upper);
+    }
+    if let Some(background) = &step.background {
+        out.background = Some(sanitize_color(background)?);
+    }
+    if let Some(color) = &step.color {
+        out.color = Some(sanitize_color(color)?);
     }
     if step.op == UiOp::Cell && out.cell.is_none() {
         return Err("cell step requires a cell reference".to_string());
@@ -148,6 +156,42 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
     }
     Ok(out)
 }
+/// A cell colour from the LLM: `#rgb`/`#rrggbb`/`#rrggbbaa`, a CSS colour
+/// name, or a CSS function (`rgb(...)`, `hsl(...)`). Anything else is a
+/// rejected plan step instead of silently painting an arbitrary string.
+fn sanitize_color(input: &str) -> Result<String, String> {
+    let value = input.trim().to_ascii_lowercase();
+    if value.is_empty() || value.len() > 40 {
+        return Err(format!("Invalid colour '{input}'"));
+    }
+    if let Some(hex) = value.strip_prefix('#') {
+        if hex.len() == 3 || hex.len() == 6 || hex.len() == 8 {
+            if hex.chars().all(|c| c.is_ascii_hexdigit()) {
+                return Ok(value);
+            }
+        }
+        return Err(format!("Invalid colour '{input}'"));
+    }
+    if value.chars().all(|c| c.is_ascii_lowercase()) {
+        return Ok(value);
+    }
+    let functional = value.starts_with("rgb(")
+        || value.starts_with("rgba(")
+        || value.starts_with("hsl(")
+        || value.starts_with("hsla(");
+    if functional
+        && value.ends_with(')')
+        && value.chars().all(|c| {
+            c.is_ascii_digit()
+                || c.is_ascii_lowercase()
+                || matches!(c, '(' | ')' | ',' | '.' | '%' | ' ' | '-')
+        })
+    {
+        return Ok(value);
+    }
+    Err(format!("Invalid colour '{input}'"))
+}
+
 /// Param names are lower-case identifiers (`tab`, `file_id`, `path`).
 fn valid_param_key(key: &str) -> bool {
     !key.is_empty()

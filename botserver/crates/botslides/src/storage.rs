@@ -17,7 +17,9 @@
 //! `legacy/`) with `mc` before deleting it.
 
 use crate::types::{DeckSlideInput, Presentation, PresentationMetadata, PresentationTheme, Slide};
-use crate::utils::{create_content_slide, create_default_theme, create_title_slide, create_blank_slide};
+use crate::utils::{
+    create_blank_slide, create_content_slide, create_default_theme, create_title_slide,
+};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
@@ -311,6 +313,29 @@ fn slide_from_input(input: &DeckSlideInput, theme: &PresentationTheme) -> Slide 
     slide
 }
 
+/// A cover slide built from the first `{title, body}` entry so a deck created
+/// in one call opens with a proper intro instead of a generic content page.
+fn title_slide_from_input(input: &DeckSlideInput, theme: &PresentationTheme) -> Slide {
+    let mut slide = create_title_slide(theme);
+    if let Some(title) = input.title.as_deref() {
+        if let Some(element) = slide.elements.get_mut(0) {
+            element.content.text = Some(title.to_string());
+            element.content.html = Some(format!("<h1>{}</h1>", escape_text(title)));
+        }
+    }
+    if let Some(body) = input.body.as_deref() {
+        if let Some(element) = slide.elements.get_mut(1) {
+            element.content.text = Some(body.to_string());
+            element.content.html = Some(format!("<p>{}</p>", escape_text(body)));
+        }
+    } else if let Some(element) = slide.elements.get_mut(1) {
+        // Drop the placeholder subtitle when the caller only supplied a title.
+        element.content.text = Some(String::new());
+        element.content.html = Some(String::new());
+    }
+    slide
+}
+
 /// Builds a deck from a title and optional `{title, body}` slides without
 /// touching Drive, so the created artifact is testable on its own (#2143).
 pub fn create_presentation_with(
@@ -325,7 +350,14 @@ pub fn create_presentation_with(
     if let Some(inputs) = slides.filter(|inputs| !inputs.is_empty()) {
         deck.slides = inputs
             .iter()
-            .map(|input| slide_from_input(input, &deck.theme))
+            .enumerate()
+            .map(|(index, input)| {
+                if index == 0 {
+                    title_slide_from_input(input, &deck.theme)
+                } else {
+                    slide_from_input(input, &deck.theme)
+                }
+            })
             .collect();
     }
     deck.updated_at = Utc::now();

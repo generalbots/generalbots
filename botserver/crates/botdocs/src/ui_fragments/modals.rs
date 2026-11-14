@@ -1,9 +1,12 @@
 use super::html_escape;
-use axum::{response::Html, Json};
+use axum::{Json, response::Html};
 use botuifragments::ui_fragments::{form_field, modal_body, modal_shell, modal_shell_width};
 
 pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Documento");
+    let title = payload
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Documento");
     let escaped = html_escape(title);
     let body = modal_body(
         "dc",
@@ -69,7 +72,10 @@ pub async fn handle_find_replace_modal(Json(payload): Json<serde_json::Value>) -
 
 pub async fn handle_footnote_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = html_escape(payload.get("id").and_then(|v| v.as_str()).unwrap_or(""));
-    let position = payload.get("position").and_then(|v| v.as_u64()).unwrap_or(0);
+    let position = payload
+        .get("position")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let body = modal_body(
         "dc",
         &format!(
@@ -104,7 +110,10 @@ pub async fn handle_endnote_modal(Json(payload): Json<serde_json::Value>) -> Htm
 
 pub async fn handle_track_changes_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = html_escape(payload.get("id").and_then(|v| v.as_str()).unwrap_or(""));
-    let enabled = payload.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+    let enabled = payload
+        .get("enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let body = modal_body(
         "dc",
         &format!(

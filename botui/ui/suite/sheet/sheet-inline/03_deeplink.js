@@ -52,6 +52,11 @@
       if (nameInput && sheet.name) nameInput.value = sheet.name;
     }).catch(function (err) {
       console.error('Sheet deep-link load error:', err);
+      // #2269 — make a failed deep-link open visible instead of silently leaving
+      // the previous (or empty) state on screen.
+      if (typeof sheetNotify === 'function') {
+        sheetNotify('Could not open the spreadsheet from Drive (' + (err && err.message ? err.message : 'load failed') + ').', true);
+      }
     });
   });
 })();

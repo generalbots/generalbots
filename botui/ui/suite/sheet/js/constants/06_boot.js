@@ -6,29 +6,19 @@
   var colName = D.colName;
   var initSidebar = D.initSidebar;
   var SheetAPI = D.SheetAPI;
+  const VirtualGrid = D.virtualGrid;
 
-  function q(scope, sel) { return scope ? scope.querySelector(sel) : null; }
-
-  function activeGrid(scope) {
-    if (scope) {
-      var wid = D.getSheetWindowId ? D.getSheetWindowId(scope) : null;
-      var inst = wid && D.getSheetInstance ? D.getSheetInstance(wid) : null;
-      if (inst && inst.grid) return inst.grid;
-    }
-    var a = D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
-    return (a && a.grid) || window.SheetVirtualGrid || D.virtualGrid || null;
-  }
-
-  function formatSelectedRange(payload, scope) {
-    var grid = activeGrid(scope);
-    if (!grid) return Promise.resolve(null);
-    var row = grid.selectedRow;
-    var col = grid.selectedCol;
+  // Toolbar format button handlers
+  /* Formats the selected cell with a payload that can carry either a `style`
+     object or a `format` string, then mirrors it in the local cell cache so the
+     grid repaints immediately (#2184). */
+  function formatSelectedRange(payload) {
+    var row = VirtualGrid.selectedRow;
+    var col = VirtualGrid.selectedCol;
     if (row == null || col == null) return Promise.resolve(null);
-    var inst = grid.instance || (D.getActiveSheetInstance ? D.getActiveSheetInstance() : null);
     var body = {
-      sheet_id: D.currentSheetId(inst),
-      worksheet_index: inst && typeof inst.worksheetIndex === "number" ? inst.worksheetIndex : D.WORKSHEET_INDEX,
+      sheet_id: D.currentSheetId(),
+      worksheet_index: D.WORKSHEET_INDEX,
       start_row: row,
       start_col: col,
       end_row: row,
@@ -44,144 +34,206 @@
       .then(function (r) { return r.json(); })
       .then(function () {
         var key = row + "," + col;
-        var existing = grid.cells.get(key) || {};
+        var existing = VirtualGrid.cells.get(key) || {};
         if (payload.format !== undefined) existing.format = payload.format;
-        if (payload.style) existing.style = Object.assign({}, existing.style || {}, payload.style);
-        grid.cells.set(key, existing);
-        grid.lastRenderedRange = null;
-        grid.requestRange();
+        if (payload.style) {
+          existing.style = Object.assign({}, existing.style || {}, payload.style);
+        }
+        VirtualGrid.cells.set(key, existing);
+        VirtualGrid.lastRenderedRange = null;
+        VirtualGrid.requestRange();
       })
-      .catch(function (err) { console.error("[gb-sheet] Failed to save cell format:", err); });
+      .catch(function () {});
   }
 
-  function initToolbar(scope, grid) {
-    var root = scope || document;
-    var g = function () { return grid || activeGrid(root); };
-    var boldBtn = q(root, "#boldBtn");
-    if (boldBtn) boldBtn.addEventListener("click", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ font_weight: "bold" });
-    });
-    var italicBtn = q(root, "#italicBtn");
-    if (italicBtn) italicBtn.addEventListener("click", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ font_style: "italic" });
-    });
-    var underlineBtn = q(root, "#underlineBtn");
-    if (underlineBtn) underlineBtn.addEventListener("click", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ text_decoration: "underline" });
-    });
-    var strikeBtn = q(root, "#strikeBtn");
-    if (strikeBtn) strikeBtn.addEventListener("click", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ text_decoration: "line-through" });
-    });
-    function enhanceColor(id) {
-      var el = q(root, "#" + id);
-      if (!el || !window.GBColorPicker) return el;
-      var trigger = root.querySelector('[data-gb-color-for="' + id + '"]');
-      window.GBColorPicker.enhance(el, { trigger: trigger });
-      return el;
+  function initToolbar() {
+    var boldBtn = document.getElementById("boldBtn");
+    if (boldBtn) {
+      boldBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ font_weight: "bold" });
+      });
     }
-    var fillBtn = enhanceColor("fillColorBtn") || q(root, "#fillColorBtn");
-    if (fillBtn) fillBtn.addEventListener("change", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ background: fillBtn.value });
-    });
-    var textBtn = enhanceColor("textColorBtn") || q(root, "#textColorBtn");
-    if (textBtn) textBtn.addEventListener("change", function (e) {
-      e.preventDefault(); var vg = g(); if (vg) vg.formatSelectedCell({ color: textBtn.value });
-    });
+    var italicBtn = document.getElementById("italicBtn");
+    if (italicBtn) {
+      italicBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ font_style: "italic" });
+      });
+    }
+    var underlineBtn = document.getElementById("underlineBtn");
+    if (underlineBtn) {
+      underlineBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ text_decoration: "underline" });
+      });
+    }
+    var strikeBtn = document.getElementById("strikeBtn");
+    if (strikeBtn) {
+      strikeBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ text_decoration: "line-through" });
+      });
+    }
+    var fontSizeInput = document.getElementById("fontSizeInput");
+    if (fontSizeInput) {
+      var parseFontSize = function (raw) {
+        var text = String(raw == null ? "" : raw).trim().toLowerCase();
+        var m = text.match(/(\d+(?:\.\d+)?)/);
+        if (!m) return null;
+        var n = Math.round(parseFloat(m[1]));
+        if (!isFinite(n) || n < 1 || n > 200) return null;
+        return n;
+      };
+      var applyFontSize = function () {
+        var size = parseFontSize(fontSizeInput.value);
+        if (size == null) return;
+        fontSizeInput.value = String(size);
+        VirtualGrid.formatSelectedCell({ font_size: size });
+      };
+      fontSizeInput.addEventListener("change", applyFontSize);
+      fontSizeInput.addEventListener("blur", applyFontSize);
+      fontSizeInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyFontSize();
+        }
+      });
+    }
+    var fillBtn = document.getElementById("fillColorBtn");
+    if (fillBtn) {
+      fillBtn.addEventListener("change", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ background: fillBtn.value });
+      });
+    }
+    var textBtn = document.getElementById("textColorBtn");
+    if (textBtn) {
+      textBtn.addEventListener("change", function (e) {
+        e.preventDefault();
+        VirtualGrid.formatSelectedCell({ color: textBtn.value });
+      });
+    }
+    // #2184 — alignment belongs to the formatting row of the two-row toolbar.
     Array.prototype.forEach.call(
-      root.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn"),
+      document.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn"),
       function (btn) {
         btn.addEventListener("click", function (e) {
           e.preventDefault();
           var align = btn.getAttribute("data-align") || "left";
-          root.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn")
-            .forEach(function (other) { other.setAttribute("aria-pressed", other === btn ? "true" : "false"); });
-          var vg = g(); if (vg) vg.formatSelectedCell({ text_align: align });
+          document.querySelectorAll("#alignLeftBtn, #alignCenterBtn, #alignRightBtn")
+            .forEach(function (other) {
+              other.setAttribute("aria-pressed", other === btn ? "true" : "false");
+            });
+          VirtualGrid.formatSelectedCell({ text_align: align });
         });
-      }
+      },
     );
-    var NUMBER_FORMATS = { currency: "R$ #,##0.00", percent: "0.00%", decimal: "0.00", general: "" };
+    // #2184 — one-click number formats (currency, percent, decimals, general).
+    var NUMBER_FORMATS = {
+      currency: "R$ #,##0.00",
+      percent: "0.00%",
+      decimal: "0.00",
+      general: "",
+    };
     Array.prototype.forEach.call(
-      root.querySelectorAll("#currencyBtn, #percentBtn, #decimalBtn, #clearFormatBtn"),
+      document.querySelectorAll("#currencyBtn, #percentBtn, #decimalBtn, #clearFormatBtn"),
       function (btn) {
         btn.addEventListener("click", function (e) {
           e.preventDefault();
           var key = btn.getAttribute("data-number-format") || "general";
-          formatSelectedRange({ format: NUMBER_FORMATS[key] || "" }, root);
+          formatSelectedRange({ format: NUMBER_FORMATS[key] || "" });
         });
-      }
+      },
     );
-    var formulaInput = q(root, "#formulaInput");
+    var formulaInput = document.getElementById("formulaInput");
     if (formulaInput) {
       var commitFormula = function () {
         var val = formulaInput.value;
-        var vg = g();
-        if (!vg || vg.selectedRow == null || vg.selectedCol == null) return;
-        var ref = colName(vg.selectedCol) + (vg.selectedRow + 1);
-        SheetAPI.updateCell(ref, val, vg.instance || vg).then(function (res) {
-          if (res && res.success) { vg.lastRenderedRange = null; vg.requestRange(); }
+        if (VirtualGrid.selectedRow == null || VirtualGrid.selectedCol == null) return;
+        var ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+        SheetAPI.updateCell(ref, val).then(function (res) {
+          if (res && res.success) {
+            VirtualGrid.lastRenderedRange = null;
+            VirtualGrid.requestRange();
+          }
         });
       };
       formulaInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") { e.preventDefault(); commitFormula(); }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitFormula();
+        }
       });
+      // Clicking away used to discard the typed value silently.
       formulaInput.addEventListener("change", commitFormula);
     }
   }
   window.initToolbar = initToolbar;
 
   window.addEventListener("resize", function () {
-    var reg = window.__SHEET_INSTANCES__ || {};
-    Object.keys(reg).forEach(function (id) {
-      var g = reg[id] && reg[id].grid;
-      if (g && g.root) { g.updateViewport(); g.lastRenderedRange = null; g.requestRange(); }
-    });
+    if (VirtualGrid.root) {
+      VirtualGrid.updateViewport();
+      VirtualGrid.lastRenderedRange = null;
+      VirtualGrid.requestRange();
+    }
   });
 
-  function initCollab(scope, inst) {
-    if (!window.GBCollab || !inst) return;
+  function initCollab() {
+    if (!window.GBCollab) return;
     window.GBCollab.connect({
       app: "sheet",
-      docId: D.currentSheetId(inst),
-      collaboratorsEl: scope ? scope.querySelector("#collaborators") : null,
+      docId: D.currentSheetId(),
+      collaboratorsEl: document.getElementById("collaborators"),
       opLogUrl: function (docId, since) {
         return "/api/sheet/" + encodeURIComponent(docId) + "/ops?since=" + since;
       },
       opSeqOf: function (op) { return op.seq; },
       onConnect: function () {},
-      onDisconnect: function () { if (window.SheetPresence) window.SheetPresence.clearAll(); },
+      onDisconnect: function () {
+        if (window.SheetPresence) window.SheetPresence.clearAll();
+      },
       onMessage: function (msg) {
         if (!msg || !window.SheetPresence) return;
-        if (msg.msg_type === "cursor" || msg.msg_type === "cell_select") window.SheetPresence.cursor(msg);
+        if (msg.msg_type === "cursor" || msg.msg_type === "cell_select") {
+          window.SheetPresence.cursor(msg);
+        }
       },
       onTyping: function (msg) {
         if (!msg || !window.SheetPresence) return;
         if (msg.msg_type === "typing_start") window.SheetPresence.typing(msg);
         else if (msg.msg_type === "typing_stop") window.SheetPresence.clearTyping(msg.user_id);
       },
-      onPresence: function (users) { if (window.SheetPresence) window.SheetPresence.sync(users); },
+      onPresence: function (users) {
+        if (window.SheetPresence) window.SheetPresence.sync(users);
+      },
       onEdit: function (msg) {
-        var grid = inst.grid; if (!msg || !grid) return;
+        if (!msg) return;
+        // Server-oplog replay (#789): ops from the catch-up endpoint carry the
+        // payload under `payload` plus the assigned `seq`.
         if (msg.payload !== undefined && msg.seq !== undefined) {
-          var pl = msg.payload || {};
+          const pl = msg.payload || {};
           msg.row = pl.row !== undefined ? pl.row : msg.row;
           msg.col = pl.col !== undefined ? pl.col : msg.col;
           msg.content = pl.value !== undefined ? pl.value : msg.content;
         }
-        var row, col;
-        if (msg.row !== undefined && msg.col !== undefined) { row = msg.row; col = msg.col; }
-        else if (msg.position !== undefined) {
-          row = Math.floor(msg.position / grid.totalCols);
-          col = msg.position % grid.totalCols;
-        } else { return; }
-        var key = row + "," + col;
-        var existing = grid.cells.get(key) || {};
-        grid.cells.set(key, Object.assign({}, existing, { value: msg.content }));
-        if (grid.lastRenderedRange) {
-          var parts = grid.lastRenderedRange.split(":");
-          var start = parseInt(parts[0], 10), end = parseInt(parts[1], 10);
+        let row, col;
+        if (msg.row !== undefined && msg.col !== undefined) {
+          row = msg.row; col = msg.col;
+        } else if (msg.position !== undefined) {
+          row = Math.floor(msg.position / VirtualGrid.totalCols);
+          col = msg.position % VirtualGrid.totalCols;
+        } else {
+          return;
+        }
+        const key = row + "," + col;
+        const existing = VirtualGrid.cells.get(key) || {};
+        VirtualGrid.cells.set(key, Object.assign({}, existing, { value: msg.content }));
+        if (VirtualGrid.lastRenderedRange) {
+          const parts = VirtualGrid.lastRenderedRange.split(":");
+          const start = parseInt(parts[0], 10), end = parseInt(parts[1], 10);
           if (row >= start && row < end) {
-            var el = grid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
+            const el = VirtualGrid.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
             if (el) el.textContent = msg.content || "";
           }
         }
@@ -189,85 +241,83 @@
     });
   }
 
-  function initAuth(scope) {
-    if (window.GBAuthGuard) window.GBAuthGuard.injectLoginButton(scope ? scope.querySelector("#gb-auth-button") : null);
+  function initAuth() {
+    if (window.GBAuthGuard) window.GBAuthGuard.injectLoginButton(document.getElementById("gb-auth-button"));
   }
 
   function bootSheet() {
+    // Discover per-window sheet data from __SHEET_DATA_MAP
     var myData = null;
     var myBody = document.currentScript ? document.currentScript.closest('[id^="window-body-"]') : null;
     if (!myBody) {
+      // Fallback: find the visible sheet-content and climb
       var els = document.querySelectorAll('#sheet-content');
       for (var i = 0; i < els.length; i++) {
         var p = els[i].closest('[id^="window-body-"]');
         if (p && p.style.display !== 'none') { myBody = p; break; }
       }
     }
-    var winId = myBody ? (myBody.dataset.windowId || myBody.id.replace("window-body-", "")) : null;
-    if (winId) myData = (window.__SHEET_DATA_MAP || {})[winId];
-    var inst = winId && D.ensureSheetInstance ? D.ensureSheetInstance(winId) : null;
-    if (inst) {
-      if (myData && myData.loadedSheet) inst.loadedSheet = myData.loadedSheet;
-      if (inst.loadedSheet && inst.loadedSheet.id) inst.sheetId = inst.loadedSheet.id;
-      inst.body = myBody;
-      D.setActiveSheetInstance(inst);
+    if (myBody && myBody.dataset.windowId) {
+      myData = (window.__SHEET_DATA_MAP || {})[myBody.dataset.windowId];
     }
 
-    initSidebar(myBody || document);
-    initAuth(myBody || document);
-    initCollab(myBody || document, inst);
-
-    var bootPromise = (inst && inst.bootPromise) || window.__SHEET_BOOT || Promise.resolve();
+    initSidebar();
+    initAuth();
+    initCollab();
+    initToolbar();
+    var bootPromise = window.__SHEET_BOOT || Promise.resolve();
     bootPromise.then(function () {
       var host = myBody ? myBody.querySelector('#sheet-content') : document.getElementById("sheet-content");
-      if (inst && inst.loadError) {
-        if (host && typeof gbSheetShowLoadError === 'function') gbSheetShowLoadError(host, inst.loadError);
-        return;
-      }
-      if (host && window.__SHEET_LOAD_ERROR && !inst) {
-        if (typeof gbSheetShowLoadError === 'function') gbSheetShowLoadError(host, window.__SHEET_LOAD_ERROR);
+      // #2269 — a failed load shows its error instead of a blank, writable grid.
+      if (host && window.__SHEET_LOAD_ERROR) {
+        gbSheetShowLoadError(host, window.__SHEET_LOAD_ERROR);
         return;
       }
       if (host) {
-        var grid = D.createVirtualGrid ? D.createVirtualGrid() : D.virtualGrid;
-        if (inst) { inst.grid = grid; grid.instance = inst; }
-        grid.init(host);
-        initToolbar(myBody || host.parentElement || document, grid);
-        var loaded = (inst && inst.loadedSheet) || (myData && myData.loadedSheet) || window.__LOADED_SHEET;
+        VirtualGrid.init(host);
+        var loaded = myData && myData.loadedSheet ? myData.loadedSheet : window.__LOADED_SHEET;
         if (loaded && loaded.worksheets && loaded.worksheets.length > 0) {
+          // Hydrate the worksheet the user was on; worksheet 0 was shown even
+          // when sheet_active_index pointed at another tab, so edits landed on
+          // a sheet the grid was not displaying.
           var savedIndex = 0;
-          try { savedIndex = parseInt(sessionStorage.getItem("sheet_active_index") || "0", 10) || 0; } catch (_) { savedIndex = 0; }
+          try {
+            savedIndex = parseInt(sessionStorage.getItem("sheet_active_index") || "0", 10) || 0;
+          } catch (_) {
+            savedIndex = 0;
+          }
           if (savedIndex < 0 || savedIndex >= loaded.worksheets.length) savedIndex = 0;
           D.WORKSHEET_INDEX = savedIndex;
-          if (inst) inst.worksheetIndex = savedIndex;
           try { sessionStorage.setItem("sheet_active_index", String(savedIndex)); } catch (_) {}
           var ws = loaded.worksheets[savedIndex];
           if (ws.data) {
-            for (var cellRef in ws.data) { grid.cells.set(cellRef, ws.data[cellRef]); }
+            for (var cellRef in ws.data) {
+              VirtualGrid.cells.set(cellRef, ws.data[cellRef]);
+            }
           }
-          grid.requestSeq++;
-          grid.totalRows = Math.max(grid.totalRows, 50);
-          grid.render();
+          VirtualGrid.requestSeq++;
+          VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, 50);
+          VirtualGrid.render();
         }
         if (window.SheetAdvanced && window.SheetAdvanced.init) {
-          var sid = (inst && inst.sheetId) || (host.dataset.sheetId) ||
-            (loaded && loaded.id) || window.__SHEET_INITIAL_ID || "current";
-          var adv = window.SheetAdvanced.init(host, { sheetId: sid, grid: grid, instance: inst });
-          if (adv) {
-            window.SheetAdvancedInstance = adv;
-            if (inst) inst.advanced = adv;
-          }
+          // "current" here used to overwrite the id of the Drive/manifest
+          // sheet that had just loaded, so every fetch-based control (format,
+          // sort, filter, charts...) mutated a different, blank workbook.
+          var adv = window.SheetAdvanced.init(host, {
+            sheetId: (host.dataset.sheetId || window.__SHEET_INITIAL_ID ||
+              (window.__LOADED_SHEET && window.__LOADED_SHEET.id) || "current")
+          });
+          if (adv) window.SheetAdvancedInstance = adv;
         }
-        window.SheetAPI = SheetAPI;
-        window.SheetVirtualGrid = grid;
-        if (D.setActiveSheetInstance && inst) D.setActiveSheetInstance(inst);
-        var bootCell = (inst && inst.bootCell) || window.__SHEET_BOOT_CELL;
-        if (bootCell && typeof gbSheetGotoCell === 'function') {
-          gbSheetGotoCell(bootCell, inst || grid);
-        }
-        if (inst) inst.bootCell = null;
-        window.__SHEET_BOOT_CELL = null;
       }
+      // A deep link that names a cell (`app://sheet?file_id=…&cell=B7`) lands
+      // on it once the workbook is rendered (#2271).
+      if (window.__SHEET_BOOT_CELL && typeof gbSheetGotoCell === 'function') {
+        gbSheetGotoCell(window.__SHEET_BOOT_CELL);
+      }
+      window.__SHEET_BOOT_CELL = null;
+      window.SheetAPI = SheetAPI;
+      window.SheetVirtualGrid = VirtualGrid;
     });
   }
 

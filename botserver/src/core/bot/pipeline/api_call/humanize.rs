@@ -10,7 +10,7 @@ pub(super) fn humanize_result(name: &str, result: &serde_json::Value) -> String 
         .map(str::trim)
         .filter(|m| !m.is_empty())
     {
-        return message.to_string();
+        return with_deep_link(message.to_string(), result);
     }
     if let Some(items) = result.get("matches").and_then(|m| m.as_array()) {
         let names: Vec<&str> = items
@@ -30,10 +30,48 @@ pub(super) fn humanize_result(name: &str, result: &serde_json::Value) -> String 
             if items.len() == 1 { "" } else { "s" }
         );
     }
+    let deep_link = result
+        .get("deep_link")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if let Some(id) = result.get("id").and_then(|v| v.as_str()) {
+        let base = match name {
+            n if n.starts_with("sheet.") => format!("Spreadsheet ready ({id})."),
+            n if n.starts_with("docs.") => format!("Document ready ({id})."),
+            n if n.starts_with("slides.") => format!("Presentation ready ({id})."),
+            _ => format!("Done ({id})."),
+        };
+        return with_deep_link(base, result);
+    }
+    if !deep_link.is_empty() {
+        let label = result
+            .get("label")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Open");
+        return format!("Done. [{label}]({deep_link})");
+    }
     if let Some(count) = result.get("count").and_then(|c| c.as_u64()) {
         return format!("Done — {count} item{}.", if count == 1 { "" } else { "s" });
     }
     format!("`{name}` finished. Ask me for the details you need and I will show them.")
+}
+
+fn with_deep_link(mut text: String, result: &serde_json::Value) -> String {
+    let Some(link) = result.get("deep_link").and_then(|v| v.as_str()) else {
+        return text;
+    };
+    if text.contains("app://") || link.is_empty() {
+        return text;
+    }
+    let label = result
+        .get("label")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Open in app");
+    if !text.ends_with('.') && !text.ends_with('!') && !text.ends_with('?') {
+        text.push('.');
+    }
+    text.push_str(&format!(" [{label}]({link})"));
+    text
 }
 
 #[cfg(test)]

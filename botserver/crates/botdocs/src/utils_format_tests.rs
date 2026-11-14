@@ -4,7 +4,10 @@ use super::*;
 use chrono::{Duration, TimeZone};
 
 fn at(offset: Duration) -> (DateTime<Utc>, DateTime<Utc>) {
-    let now = Utc.with_ymd_and_hms(2026, 3, 10, 12, 0, 0).single().expect("fixed now");
+    let now = Utc
+        .with_ymd_and_hms(2026, 3, 10, 12, 0, 0)
+        .single()
+        .expect("fixed now");
     (now - offset, now)
 }
 
@@ -24,7 +27,11 @@ fn relative_time_buckets() {
     ];
     for (offset, expected) in cases {
         let (then, now) = at(offset);
-        assert_eq!(format_relative_time_at(then, now), expected, "offset {offset:?}");
+        assert_eq!(
+            format_relative_time_at(then, now),
+            expected,
+            "offset {offset:?}"
+        );
     }
 }
 
@@ -46,7 +53,11 @@ fn truncation_counts_characters_not_bytes() {
         ("ééééééé", 4, "éééé..."),
     ];
     for (text, max, expected) in cases {
-        assert_eq!(truncate_text(text, max), expected, "text {text:?} max {max}");
+        assert_eq!(
+            truncate_text(text, max),
+            expected,
+            "text {text:?} max {max}"
+        );
     }
 }
 
@@ -89,21 +100,24 @@ fn error_payloads_are_json_objects() {
 
 #[test]
 fn document_list_items_carry_a_relative_stamp_and_word_count() {
-    let now = Utc.with_ymd_and_hms(2026, 3, 10, 12, 0, 0).single().expect("fixed now");
+    let now = Utc
+        .with_ymd_and_hms(2026, 3, 10, 12, 0, 0)
+        .single()
+        .expect("fixed now");
     let item = format_document_list_item("doc-1", "Notes", now - Duration::days(60), 12);
     assert_eq!(item["id"], "doc-1");
     assert_eq!(item["title"], "Notes");
     assert_eq!(item["word_count"], 12);
     assert_eq!(item["updated_relative"], "Jan 09, 2026");
-    assert_eq!(
-        item["updated_at"],
-        (now - Duration::days(60)).to_rfc3339()
-    );
+    assert_eq!(item["updated_at"], (now - Duration::days(60)).to_rfc3339());
 }
 
 #[test]
 fn document_content_payload_counts_words_from_markup() {
-    let now = Utc.with_ymd_and_hms(2026, 3, 10, 12, 0, 0).single().expect("fixed now");
+    let now = Utc
+        .with_ymd_and_hms(2026, 3, 10, 12, 0, 0)
+        .single()
+        .expect("fixed now");
     let doc = format_document_content("doc-1", "Notes", "<p>alpha beta</p>", now, now);
     assert_eq!(doc["word_count"], 2);
     assert_eq!(doc["content"], "<p>alpha beta</p>");

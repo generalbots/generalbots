@@ -1,9 +1,12 @@
 use super::html_escape;
-use axum::{response::Html, Json};
+use axum::{Json, response::Html};
 use botuifragments::ui_fragments::form_field;
 
 pub async fn handle_share_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/cursor" hx-vals='{{"presentation_id":"{id}","action":"share"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Email
@@ -24,7 +27,10 @@ pub async fn handle_share_form(Json(payload): Json<serde_json::Value>) -> Html<S
 }
 
 pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let prompt = payload.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/ai" hx-vals='{{"presentation_id":"{id}","prompt":"{prompt}"}}' hx-swap="none" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -72,16 +78,21 @@ pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_insert_element_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     // Each choice button must carry the deck and slide, otherwise the next
     // form has an empty presentation_id and the insert lands on the default
     // deck (or 404s when several decks exist).
     let idx = payload
         .get("slide_index")
         .and_then(|value| {
-            value
-                .as_u64()
-                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+            value.as_u64().or_else(|| {
+                value
+                    .as_str()
+                    .and_then(|text| text.trim().parse::<u64>().ok())
+            })
         })
         .unwrap_or(0);
     let mut html = String::from(
@@ -107,8 +118,14 @@ pub async fn handle_insert_element_form(Json(payload): Json<serde_json::Value>) 
 }
 
 pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"text"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Texto
@@ -130,8 +147,14 @@ pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Htm
 }
 
 pub async fn handle_add_image_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let field = form_field(
         "URL da imagem",
         r#"<input type="url" name="url" placeholder="https://exemplo.com/imagem.jpg" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
@@ -147,8 +170,14 @@ pub async fn handle_add_image_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_add_shape_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"shape"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Forma
@@ -172,8 +201,14 @@ pub async fn handle_add_shape_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_add_chart_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"chart"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Tipo
@@ -199,8 +234,14 @@ pub async fn handle_add_chart_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_add_table_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"table"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -222,8 +263,14 @@ pub async fn handle_add_table_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_notes_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let notes = payload.get("notes").and_then(|v| v.as_str()).unwrap_or("");
     let field = form_field(
         "Notas do apresentador (não visíveis ao público)",
@@ -243,7 +290,10 @@ pub async fn handle_notes_form(Json(payload): Json<serde_json::Value>) -> Html<S
 }
 
 pub async fn handle_background_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/element/update" hx-vals='{{"presentation_id":"{id}","target":"background"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Tipo de fundo
@@ -266,9 +316,18 @@ pub async fn handle_background_form(Json(payload): Json<serde_json::Value>) -> H
 }
 
 pub async fn handle_transition_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
-    let ttype = payload.get("transition_type").and_then(|v| v.as_str()).unwrap_or("none");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let ttype = payload
+        .get("transition_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("none");
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/transition" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","transition_type":"{ttype}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Duração (ms)
@@ -293,8 +352,14 @@ pub async fn handle_transition_form(Json(payload): Json<serde_json::Value>) -> H
 }
 
 pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let atype = payload.get("type").and_then(|v| v.as_str()).unwrap_or("fade_in");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let atype = payload
+        .get("type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("fade_in");
     let element_id = payload
         .get("element_id")
         .and_then(|v| v.as_str())
@@ -302,9 +367,11 @@ pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Ht
     let idx = payload
         .get("slide_index")
         .and_then(|value| {
-            value
-                .as_u64()
-                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+            value.as_u64().or_else(|| {
+                value
+                    .as_str()
+                    .and_then(|text| text.trim().parse::<u64>().ok())
+            })
         })
         .unwrap_or(0);
     Html(format!(
@@ -335,12 +402,16 @@ pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Ht
 }
 
 pub async fn handle_export_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     Html(format!(
         r##"<form class="sl-form" data-presentation-id="{id}" onsubmit="return GBSlidesExport(event)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Formato
 <select name="format" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="pptx">PPTX (PowerPoint)</option>
+<option value="pdf">PDF (um slide por página)</option>
 <option value="odp">ODP (OpenDocument)</option>
 <option value="html">HTML</option>
 <option value="svg">SVG (primeiro slide)</option>
@@ -355,7 +426,10 @@ pub async fn handle_export_form(Json(payload): Json<serde_json::Value>) -> Html<
 }
 
 pub async fn handle_master_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let id = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/theme" hx-vals='{{"presentation_id":"{id}","action":"set_master"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Slide mestre

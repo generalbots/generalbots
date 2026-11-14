@@ -226,28 +226,51 @@
     if (row == null || col == null) return Promise.resolve(null);
     var self = this;
     var inst = self.instance || (D.getActiveSheetInstance && D.getActiveSheetInstance());
+    // #2155 SHEET-09 — apply the style to the WHOLE selection, not just the
+    // anchor cell, so "bold + 16pt across A1:E1" styles every covered cell.
+    var startRow = row;
+    var startCol = col;
+    var endRow = row;
+    var endCol = col;
+    try {
+      var adv = window.SheetAdvanced;
+      var sel = adv && typeof adv.getSelection === "function" ? adv.getSelection() : null;
+      if (sel && typeof sel.startRow === "number" && typeof sel.startCol === "number") {
+        startRow = Math.min(sel.startRow, row);
+        startCol = Math.min(sel.startCol, col);
+        endRow = Math.max(typeof sel.endRow === "number" ? sel.endRow : row, row);
+        endCol = Math.max(typeof sel.endCol === "number" ? sel.endCol : col, col);
+      }
+    } catch (e) { /* selection is optional; fall back to the anchor cell */ }
+    var spanRows = Math.max(endRow - startRow + 1, 1);
+    var spanCols = Math.max(endCol - startCol + 1, 1);
     return fetch("/api/sheet/format", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sheet_id: D.currentSheetId(inst),
         worksheet_index: inst && typeof inst.worksheetIndex === "number" ? inst.worksheetIndex : D.WORKSHEET_INDEX,
-        start_row: row,
-        start_col: col,
-        end_row: row,
-        end_col: col,
+        start_row: startRow,
+        start_col: startCol,
+        end_row: endRow,
+        end_col: endCol,
         style: styleProps
       })
     }).then(function (r) { return r.json(); }).then(function () {
-      // Update local cell data and re-render the cell
-      var key = row + "," + col;
-      var existing = self.cells.get(key) || {};
-      var mergedStyle = Object.assign({}, existing.style || {}, styleProps);
-      existing.style = mergedStyle;
-      self.cells.set(key, existing);
-      // Re-render just this cell
-      var node = self.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
-      if (node) self.applyCellStyle(node, existing);
+      // Update local cell data and re-render every covered cell so a range
+      // format shows immediately instead of only on the anchor cell.
+      for (var r2 = startRow; r2 <= endRow; r2++) {
+        for (var c2 = startCol; c2 <= endCol; c2++) {
+          var key = r2 + "," + c2;
+          var existing = self.cells.get(key) || {};
+          var mergedStyle = Object.assign({}, existing.style || {}, styleProps);
+          existing.style = mergedStyle;
+          self.cells.set(key, existing);
+          var node = self.bodyInner.querySelector('[data-row="' + r2 + '"][data-col="' + c2 + '"]');
+          if (node) self.applyCellStyle(node, existing);
+        }
+      }
+      if (typeof self.render === "function" && (spanRows > 1 || spanCols > 1)) self.render();
     }).catch(function () { return null; });
   };
 

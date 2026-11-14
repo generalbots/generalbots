@@ -16,11 +16,7 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
             }
             let hay = format!("{} {}", cmd.name.to_lowercase(), cmd.summary.to_lowercase());
             let score = score_tokens(&hay, &q);
-            if score > 0 {
-                Some((score, *cmd))
-            } else {
-                None
-            }
+            if score > 0 { Some((score, *cmd)) } else { None }
         })
         .collect();
     scored_cmds.sort_by_key(|a| std::cmp::Reverse(a.0));
@@ -54,11 +50,7 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
         .filter_map(|c| {
             let hay = format!("{} {}", c.name.to_lowercase(), c.summary.to_lowercase());
             let score = score_tokens(&hay, &q);
-            if score > 0 {
-                Some((score, c))
-            } else {
-                None
-            }
+            if score > 0 { Some((score, c)) } else { None }
         })
         .collect();
     scored_dc.sort_by_key(|a| std::cmp::Reverse(a.0));
@@ -91,11 +83,7 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
                 ep.summary.to_lowercase()
             );
             let score = score_tokens(&hay, &q);
-            if score > 0 {
-                Some((score, ep))
-            } else {
-                None
-            }
+            if score > 0 { Some((score, ep)) } else { None }
         })
         .collect();
     // first occurrence wins (curated list precedes the auto inventory)

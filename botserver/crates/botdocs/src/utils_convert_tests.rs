@@ -62,11 +62,17 @@ fn markdown_to_html_covers_blocks_and_inline_runs() {
         ("**bold**", "<strong>bold</strong>"),
         ("*italic*", "<em>italic</em>"),
         ("`code`", "<code>code</code>"),
-        ("[site](https://example.com)", "<a href=\"https://example.com\">site</a>"),
+        (
+            "[site](https://example.com)",
+            "<a href=\"https://example.com\">site</a>",
+        ),
         ("> quoted", "<blockquote>quoted</blockquote>"),
         ("---", "<hr>"),
         ("- a\n- b", "<ul><li>a</li><li>b</li></ul>"),
-        ("- **bold** item", "<ul><li><strong>bold</strong> item</li></ul>"),
+        (
+            "- **bold** item",
+            "<ul><li><strong>bold</strong> item</li></ul>",
+        ),
         ("- a\nplain", "<ul><li>a</li></ul><p>plain</p>"),
         ("", ""),
     ];
@@ -87,7 +93,10 @@ fn fenced_code_keeps_its_body_and_escapes_markup() {
 fn rtf_to_html_tracks_runs_and_control_words() {
     let cases = [
         ("{\\rtf1\\ansi Hello}", "<div>Hello</div>"),
-        ("{\\rtf1 Bold \\b on\\b0  off}", "<div>Bold <strong>on</strong> off</div>"),
+        (
+            "{\\rtf1 Bold \\b on\\b0  off}",
+            "<div>Bold <strong>on</strong> off</div>",
+        ),
         ("{\\rtf1 \\i it\\i0  x}", "<div><em>it</em> x</div>"),
         ("{\\rtf1 \\ul u\\ulnone  x}", "<div><u>u</u> x</div>"),
         ("{\\rtf1 a\\par b}", "<div>a<br>b</div>"),
@@ -133,8 +142,14 @@ fn odt_content_becomes_html_with_matching_tags() {
             "<text:p>a<text:span text:style-name=\"Italic\">b</text:span>c</text:p>",
             "<div><p>a<em>b</em>c</p></div>",
         ),
-        ("<text:p>a<text:line-break/>b</text:p>", "<div><p>a<br>b</p></div>"),
-        ("<text:p>a<text:tab/>b</text:p>", "<div><p>a&nbsp;&nbsp;&nbsp;&nbsp;b</p></div>"),
+        (
+            "<text:p>a<text:line-break/>b</text:p>",
+            "<div><p>a<br>b</p></div>",
+        ),
+        (
+            "<text:p>a<text:tab/>b</text:p>",
+            "<div><p>a&nbsp;&nbsp;&nbsp;&nbsp;b</p></div>",
+        ),
         ("", "<div></div>"),
     ];
     for (odt, expected) in cases {
@@ -147,7 +162,10 @@ fn html_to_odt_content_keeps_styles_and_wraps_paragraphs_once() {
     let odt = html_to_odt_content("<p>Hi</p>");
     assert!(odt.starts_with("<?xml version=\"1.0\""));
     assert!(odt.contains("<text:p>Hi</text:p>"));
-    assert!(!odt.contains("<text:p><text:p>"), "paragraph wrapped twice: {odt}");
+    assert!(
+        !odt.contains("<text:p><text:p>"),
+        "paragraph wrapped twice: {odt}"
+    );
     assert!(odt.ends_with("</office:document-content>"));
 
     let styled = html_to_odt_content("<p><strong>b</strong> <em>i</em></p>");
@@ -174,7 +192,10 @@ fn convert_to_html_dispatches_on_the_detected_format() {
         convert_to_html(b"a < b").expect("txt escapes"),
         "<p>a &lt; b</p>"
     );
-    assert_eq!(convert_to_html(b"# Title").expect("markdown"), "<h1>Title</h1>");
+    assert_eq!(
+        convert_to_html(b"# Title").expect("markdown"),
+        "<h1>Title</h1>"
+    );
     assert_eq!(
         convert_to_html(b"{\\rtf1\\ansi Hi}").expect("rtf"),
         "<div>Hi</div>"
