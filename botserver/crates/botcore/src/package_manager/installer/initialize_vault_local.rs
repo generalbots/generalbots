@@ -263,7 +263,16 @@ VAULT_CACERT={}
         let enable_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
             .and_then(|c| c.env("VAULT_ADDR", vault_addr))
             .and_then(|c| c.env("VAULT_TOKEN", root_token))
-            .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+            .and_then(|c| {
+                // Vault runs over plain HTTP on Windows and no CA file exists;
+                // pointing the CLI at a missing file makes it fail before it
+                // contacts the server.
+                if ca_cert.is_file() {
+                    c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or(""))
+                } else {
+                    Ok(c)
+                }
+            })
             .and_then(|c| c.args(&["secrets", "enable", "-path=secret", "kv-v2"]))
             .and_then(|c| c.execute());
         match enable_result {

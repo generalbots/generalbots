@@ -33,7 +33,8 @@ pub fn reload_master_key_from_vault() {
 /// 1. Cache global (setado via `reload_master_key_from_vault()`)
 /// 2. `MESSAGE_ENCRYPTION_KEY` (hex ou raw string, hasheada para 32 bytes)
 /// 3. `JWT_SECRET` (hasheada para 32 bytes, fallback dev)
-/// 4. Chave aleatória efêmera (log warning)
+/// 4. Vault novamente (pode ter sido semeado depois do boot)
+/// 5. Chave aleatória efêmera (log warning)
 pub fn load_master_encryption_key() -> Vec<u8> {
     // 1. Try cached key first (set by reload_master_key_from_vault)
     if let Ok(guard) = master_key_lock().read() {
@@ -68,7 +69,18 @@ pub fn load_master_encryption_key() -> Vec<u8> {
         }
     }
 
-    // 4. Ephemeral fallback (dev default — no Vault/keys configured)
+    // 4. Vault may have been seeded after `reload_master_key_from_vault()` ran
+    //    at start-up (first boot of a new stack). Ask once more before giving
+    //    up: an ephemeral key makes every stored message unreadable after the
+    //    next restart.
+    reload_master_key_from_vault();
+    if let Ok(guard) = master_key_lock().read() {
+        if let Some(ref key) = *guard {
+            return key.clone();
+        }
+    }
+
+    // 5. Ephemeral fallback (dev default — no Vault/keys configured)
     warn!("No master encryption key available (Vault, MESSAGE_ENCRYPTION_KEY or JWT_SECRET). Using an ephemeral key: stored messages will be unreadable after the next restart.");
     let key: Vec<u8> = rand::random::<[u8; 32]>().to_vec();
     if let Ok(mut guard) = master_key_lock().write() {

@@ -149,9 +149,15 @@ impl PackageManager {
         ];
 
         for (path, kv_pairs) in &defaults {
+            // `-cas=0` writes only when the path has no version yet. Seeding
+            // runs when the probe path is missing, which is also the state of
+            // a stack that was only partly seeded: without check-and-set the
+            // defaults below replaced secrets that already existed there, such
+            // as the LLM endpoint chosen in the first-run wizard.
             let mut args = vec![
                 "kv".to_string(),
                 "put".to_string(),
+                "-cas=0".to_string(),
                 "-tls-skip-verify".to_string(),
                 format!("-address={}", vault_addr),
                 path.to_string(),
@@ -185,7 +191,11 @@ impl PackageManager {
                         info!("Seeded Vault defaults at {}", path);
                     } else {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        warn!("Failed to seed {} in Vault: {}", path, stderr);
+                        if stderr.contains("check-and-set") {
+                            info!("Vault already holds {path}; existing values kept");
+                        } else {
+                            warn!("Failed to seed {path} in Vault: {stderr}");
+                        }
                     }
                 }
                 Err(e) => {
