@@ -250,9 +250,11 @@ pub(super) fn get_work_path_default() -> String {
     // Dev fallback: resolve to an absolute path to avoid CWD-dependent breakage.
     // The path is resolved against the current directory at startup and stored
     // once, so the runtime no longer depends on the process working directory.
+    // `safe_canonicalize` keeps the Windows verbatim prefix (`\\?\`) out of the
+    // result: callers join sub-paths with `/`, which a verbatim path rejects.
     let dev_path = std::path::Path::new("./botserver-stack/data/system/work");
     if dev_path.exists() {
-        std::fs::canonicalize(dev_path)
+        botlib::os::paths::safe_canonicalize(dev_path)
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|_| {
                 std::env::current_dir()

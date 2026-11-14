@@ -94,9 +94,16 @@ pub async fn list_files(
 
 async fn workspace_root(state: Arc<AppState>) -> String {
     if !state.bucket_name.is_empty() {
-        return format!("/tmp/gb-editor/{}", state.bucket_name);
+        let base = std::env::temp_dir().join("gb-editor").join(&state.bucket_name);
+        return base.to_string_lossy().to_string();
     }
-    std::env::var("EDITOR_WORKSPACE").unwrap_or_else(|_| "/tmp/gb-editor/default".to_string())
+    std::env::var("EDITOR_WORKSPACE").unwrap_or_else(|_| {
+        std::env::temp_dir()
+            .join("gb-editor")
+            .join("default")
+            .to_string_lossy()
+            .to_string()
+    })
 }
 
 async fn resolve_path(state: &Arc<AppState>, path: &str) -> String {

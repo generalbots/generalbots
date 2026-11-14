@@ -195,19 +195,21 @@ TALK response
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         debug!("Uploading to {}/{}", bucket, path);
 
-        let temp_path = format!("/tmp/upload_{}", Uuid::new_v4());
-        std::fs::write(&temp_path, content)?;
+        let temp_file = std::env::temp_dir()
+            .join(format!("upload_{}", Uuid::new_v4()));
+        std::fs::write(&temp_file, content)?;
+        let temp_str = temp_file.to_string_lossy();
 
-        let dest_path = format!("local/{}/{}", bucket, path);
+        let dest_path = format!("local/{bucket}/{path}");
         if let Ok(cmd) = SafeCommand::new("mc")
             .and_then(|c| c.arg("cp"))
-            .and_then(|c| c.arg(&temp_path))
+            .and_then(|c| c.arg(temp_str.as_ref()))
             .and_then(|c| c.arg(&dest_path))
         {
             let _ = cmd.execute_async().await;
         }
 
-        let _ = std::fs::remove_file(&temp_path);
+        let _ = std::fs::remove_file(&temp_file);
         Ok(())
     }
 

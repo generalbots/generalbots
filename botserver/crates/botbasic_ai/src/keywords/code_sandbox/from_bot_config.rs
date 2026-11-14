@@ -9,9 +9,15 @@ impl Default for SandboxConfig {
             memory_limit_mb: 256,
             cpu_limit_percent: 50,
             network_enabled: false,
-            work_dir: "/tmp/gb-sandbox".to_string(),
+            work_dir: std::env::temp_dir()
+                .join("gb-sandbox")
+                .to_string_lossy()
+                .to_string(),
             env_vars: HashMap::new(),
-            allowed_paths: vec!["/data".to_string(), "/tmp".to_string()],
+            allowed_paths: vec![
+                "/data".to_string(),
+                std::env::temp_dir().to_string_lossy().to_string(),
+            ],
             python_packages: vec![],
         }
     }

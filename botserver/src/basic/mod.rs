@@ -109,9 +109,6 @@ impl ScriptService {
     pub fn run(&mut self, ast_content: &str) -> Result<Dynamic, Box<EvalAltResult>> {
         self.scope.set_or_push("ROLE", Dynamic::from(self.role.clone()));
         self.scope.set_or_push("role", Dynamic::from(self.role.clone()));
-        if let Err(e) = std::fs::write("/tmp/run_ast_input.txt", ast_content) {
-            log::warn!("Failed to write /tmp/run_ast_input.txt: {}", e);
-        }
         // A tool that reaches the runtime before the compiler pass is still raw
         // BASIC: `DESCRIPTION`/`PARAM` are compile-time metadata and Rhai
         // rejects them ("Expecting ';'"). Strip them here so an uncompiled
@@ -119,10 +116,6 @@ impl ScriptService {
         // already-compiled AST this is a no-op.
         let source = strip_metadata_lines(ast_content);
         let preprocessed = compiler::syntax_transforms::convert_multiword_keywords(&source);
-        if let Err(e) = std::fs::write("/tmp/run_preprocessed.txt", &preprocessed) {
-            log::warn!("Failed to write /tmp/run_preprocessed.txt: {}", e);
-        }
-
         #[cfg(feature = "security")]
         {
             use botsecurity::protection::script_guard::{
@@ -150,10 +143,7 @@ impl ScriptService {
         let ast = match self.engine.compile(&preprocessed) {
             Ok(ast) => ast,
             Err(e) => {
-                if let Err(we) = std::fs::write("/tmp/compile_error.txt", format!("compile error: {}\npreprocessed lines: {}\n", e, preprocessed.lines().count())) {
-                    log::warn!("Failed to write /tmp/compile_error.txt: {}", we);
-                }
-                log::error!("[BASIC_EXEC] Failed to compile AST: {}", e);
+                log::error!("[BASIC_EXEC] Failed to compile AST: {e}");
                 return Err(Box::new(e.into()));
             }
         };
@@ -165,9 +155,6 @@ impl ScriptService {
         user: LocalUserSession,
         ast_content: &str,
     ) -> Result<String, String> {
-        std::fs::write("/tmp/execute_script_debug.txt", format!(
-            "ast_content len={}\nfirst 200: {}\n", ast_content.len(), ast_content.chars().take(200).collect::<String>()
-        )).ok();
         let ast_owned = ast_content.to_string();
         let bot_id = user.bot_id;
         let state_outer = state.clone();
@@ -185,19 +172,10 @@ impl ScriptService {
                 }
             }
             script_service.run(&ast_owned)
-        }).await.map_err(|e| format!("spawn_blocking join error: {}", e))?;
-        std::fs::write("/tmp/run_result.txt", format!("run result: {:?}\n", result)).ok();
+        }).await.map_err(|e| format!("spawn_blocking join error: {e}"))?;
         match result {
-            Ok(result) => {
-                let s = result.to_string();
-                std::fs::write("/tmp/talk_debug.txt", format!("TALK debug: result='{}' len={}\n", s, s.len())).ok();
-                Ok(s)
-            }
-            Err(e) => {
-                let err_str = format!("Script error: {}", e);
-                std::fs::write("/tmp/talk_debug.txt", format!("TALK ERROR: {}\n", err_str)).ok();
-                Err(err_str)
-            }
+            Ok(dynamic) => Ok(dynamic.to_string()),
+            Err(e) => Err(format!("Script error: {e}")),
         }
     }
 
