@@ -102,9 +102,20 @@ impl Default for ProductConfig {
 }
 impl ProductConfig {
     /// Load configuration from .product file
+    ///
+    /// Search order (first hit wins):
+    /// 1. CWD-relative paths (legacy dev layout)
+    /// 2. `BOTSERVER_STACK_PATH` / `GBO_STACK_PATH` (desktop sidecar)
+    /// 3. Next to the running executable (packaged install)
     pub fn load() -> Result<Self, ProductConfigError> {
         #[cfg(feature = "desktop-local")]
-        let paths = [
+        let names: &[&str] = &[".product.desktop-local", ".product"];
+        #[cfg(not(feature = "desktop-local"))]
+        let names: &[&str] = &[".product"];
+
+        // Phase 1: CWD-relative paths (original behaviour).
+        #[cfg(feature = "desktop-local")]
+        let relative: &[&str] = &[
             ".product.desktop-local",
             "./botserver/.product.desktop-local",
             ".product",
@@ -112,26 +123,58 @@ impl ProductConfig {
             "../.product",
         ];
         #[cfg(not(feature = "desktop-local"))]
-        let paths = [".product", "./botserver/.product", "../.product"];
+        let relative: &[&str] = &[".product", "./botserver/.product", "../.product"];
 
-        let mut content = None;
-        for path in &paths {
+        for path in relative {
             if Path::new(path).exists() {
-                content = Some(fs::read_to_string(path).map_err(ProductConfigError::IoError)?);
-                info!("Loaded product configuration from: {}", path);
-                break;
+                let content = fs::read_to_string(path).map_err(ProductConfigError::IoError)?;
+                info!("Loaded product configuration from: {path}");
+                return Self::parse(&content);
             }
         }
 
-        let content = match content {
-            Some(c) => c,
-            None => {
-                warn!("No .product file found, using default configuration");
-                return Ok(Self::default());
+        // Phase 2: inside the stack directory (desktop sidecar sets
+        // BOTSERVER_STACK_PATH; the product file lives at the stack root).
+        let stack = std::env::var("BOTSERVER_STACK_PATH")
+            .or_else(|_| std::env::var("GBO_STACK_PATH"))
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+        if let Some(ref stack_dir) = stack {
+            let base = Path::new(stack_dir);
+            for name in names {
+                let candidate = base.join(name);
+                if candidate.exists() {
+                    let content =
+                        fs::read_to_string(&candidate).map_err(ProductConfigError::IoError)?;
+                    info!(
+                        "Loaded product configuration from stack: {}",
+                        candidate.display()
+                    );
+                    return Self::parse(&content);
+                }
             }
-        };
+        }
 
-        Self::parse(&content)
+        // Phase 3: next to the running executable (packaged MSI/NSIS/deb).
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                for name in names {
+                    let candidate = exe_dir.join(name);
+                    if candidate.exists() {
+                        let content =
+                            fs::read_to_string(&candidate).map_err(ProductConfigError::IoError)?;
+                        info!(
+                            "Loaded product configuration beside executable: {}",
+                            candidate.display()
+                        );
+                        return Self::parse(&content);
+                    }
+                }
+            }
+        }
+
+        warn!("No .product file found, using default configuration");
+        Ok(Self::default())
     }
 
     /// Parse configuration from string content

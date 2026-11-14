@@ -6,8 +6,10 @@ use std::sync::{Arc, Mutex};
 mod bootlog;
 mod paths;
 mod probe;
+mod product;
 
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
+use product::sync_product_file;
 use probe::{
     api_is_answering, clear_pid, decide_start, pid_is_alive, pid_looks_like_botserver,
     port_is_open, record_pid, recorded_pid, terminate_pid, StartDecision, API_PRODUCT_URL,
@@ -136,14 +138,14 @@ impl Sidecar {
         let stack = Self::stack_path();
         std::fs::create_dir_all(&stack)?;
 
+        // Seed or refresh the product file in the stack directory. On an
+        // upgrade the bundled file may carry new apps or keys; compare content
+        // and replace the stale copy, keeping the previous version so the user
+        // can inspect what changed.
         if let Some(ref res) = resource_dir {
             let product_src = res.join(".product.desktop-local");
             let product_dst = stack.join(".product.desktop-local");
-            if product_src.exists() && !product_dst.exists() {
-                if let Err(e) = std::fs::copy(&product_src, &product_dst) {
-                    warn!("Could not copy .product.desktop-local to stack: {e}");
-                }
-            }
+            sync_product_file(&product_src, &product_dst);
         }
 
         // Development runs are built from the checkout, where Tauri's resource
@@ -156,11 +158,7 @@ impl Sidecar {
                 .join("..")
                 .join("botserver")
                 .join(".product.desktop-local");
-            if dev_product.exists() {
-                if let Err(e) = std::fs::copy(&dev_product, &stack_product) {
-                    warn!("Could not seed .product.desktop-local from the checkout: {e}");
-                }
-            }
+            sync_product_file(&dev_product, &stack_product);
         }
 
         // Packaged builds ship the suite next to this executable; the sidecar
@@ -422,4 +420,3 @@ impl Sidecar {
         }
     }
 }
-
