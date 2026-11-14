@@ -1,3 +1,4 @@
+pub mod command_allowlist;
 pub mod command_guard;
 pub mod command_utils;
 pub mod command_validation;

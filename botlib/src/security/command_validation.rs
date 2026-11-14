@@ -5,6 +5,23 @@ use std::sync::LazyLock;
 static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> =
     LazyLock::new(|| HashSet::from([';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0']));
 
+/// On Windows, normalise a program name for allowlist lookup: extract the
+/// file-name component, lower-case it, and strip a single trailing `.exe`.
+/// On non-Windows this just extracts the file-name component unchanged.
+pub fn normalise_command_name(command: &str) -> String {
+    let file_name = std::path::Path::new(command)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(command);
+
+    if cfg!(windows) {
+        let lower = file_name.to_ascii_lowercase();
+        lower.strip_suffix(".exe").unwrap_or(&lower).to_string()
+    } else {
+        file_name.to_string()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandGuardError {
     CommandNotAllowed(String),

@@ -22,30 +22,28 @@ fn test_safe_command_disallowed() {
     assert!(SafeCommand::new("mkfs").is_err());
 }
 
-/// Binaries that must never reach the allowlist: they either open a raw socket
-/// to a remote listener or let a caller rewrite the filesystem. Every one of
-/// them was removed from `ALLOWED_COMMANDS`; these assertions pin that down so
-/// a future entry does not silently reintroduce host command execution.
+/// Binaries that must never reach the cross-platform allowlist: they either
+/// open a raw socket to a remote listener or let a caller rewrite the
+/// filesystem. `initdb` and `pg_ctl` are deliberately allowed on Windows
+/// only (via `WINDOWS_ONLY_COMMANDS`).
 #[test]
 fn dangerous_binaries_stay_out_of_the_allowlist() {
     for binary in [
-        "nc",
-        "netcat",
-        "wget",
-        "dd",
-        "mkfs",
-        "rm",
-        "openssl",
-        "initdb",
-        "pg_ctl",
-        "createdb",
-        "systemctl",
+        "nc", "netcat", "wget", "dd", "mkfs", "rm", "openssl", "createdb", "systemctl",
     ] {
         assert!(
             SafeCommand::new(binary).is_err(),
             "{binary} must not be executable through SafeCommand"
         );
     }
+}
+
+/// `initdb` and `pg_ctl` are in `WINDOWS_ONLY_COMMANDS` — refused on Linux.
+#[cfg(not(windows))]
+#[test]
+fn pg_bootstrap_binaries_refused_on_linux() {
+    assert!(SafeCommand::new("initdb").is_err());
+    assert!(SafeCommand::new("pg_ctl").is_err());
 }
 
 /// `rclone`, `osascript` and `rm` are reachable from the desktop shell, but
@@ -111,4 +109,86 @@ fn sanitize_filename_keeps_only_safe_characters() {
     assert!(!sanitize_filename("../etc/passwd").contains('/'));
     assert!(!sanitize_filename("a;b.txt").contains(';'));
     assert!(!sanitize_filename("a\u{0}b.txt").contains('\u{0}'));
+}
+
+#[test]
+fn normalise_command_name_extracts_file_stem() {
+    use crate::security::command_validation::normalise_command_name;
+    let n = normalise_command_name("/usr/bin/vault");
+    assert_eq!(n, "vault");
+
+    let n2 = normalise_command_name("vault");
+    assert_eq!(n2, "vault");
+}
+
+#[cfg(windows)]
+#[test]
+fn normalise_command_name_strips_exe_on_windows() {
+    use crate::security::command_validation::normalise_command_name;
+    assert_eq!(normalise_command_name("vault.exe"), "vault");
+    assert_eq!(normalise_command_name("Vault.EXE"), "vault");
+    assert_eq!(
+        normalise_command_name("C:\\stack\\bin\\vault\\vault.exe"),
+        "vault"
+    );
+    assert_eq!(normalise_command_name("bad.exe.exe"), "bad.exe");
+}
+
+/// Every `.exe` entry that existed in the old allowlist must still be
+/// accepted after normalisation was introduced.
+#[cfg(windows)]
+#[test]
+fn previous_exe_entries_still_accepted_on_windows() {
+    for exe in [
+        "zitadel.exe",
+        "llama-server.exe",
+        "pg_ctl.exe",
+        "initdb.exe",
+        "psql.exe",
+        "tar.exe",
+    ] {
+        assert!(
+            SafeCommand::new(exe).is_ok(),
+            "{exe} must be accepted on Windows"
+        );
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_full_paths_resolve_against_allowlist() {
+    assert!(SafeCommand::new("C:\\stack\\bin\\vault\\vault.exe").is_ok());
+    assert!(SafeCommand::new("taskkill").is_ok());
+    assert!(SafeCommand::new("taskkill.exe").is_ok());
+    assert!(SafeCommand::new("tasklist.exe").is_ok());
+    assert!(SafeCommand::new("TASKKILL.EXE").is_ok());
+    assert!(SafeCommand::new("initdb.exe").is_ok());
+    assert!(SafeCommand::new("pg_ctl.exe").is_ok());
+    assert!(SafeCommand::new("initdb").is_ok());
+}
+
+#[test]
+fn taskkill_is_in_allowlist() {
+    assert!(SafeCommand::new("taskkill").is_ok());
+    assert!(SafeCommand::new("tasklist").is_ok());
+}
+
+/// Image names used by taskkill /IM are arguments, not commands.
+/// They must NOT be in the cross-platform allowlist.
+#[test]
+fn component_image_names_are_not_commands() {
+    for name in ["qdrant", "caddy", "coredns", "livekit-server", "stalwart-mail"] {
+        assert!(
+            SafeCommand::new(name).is_err(),
+            "{name} should not be in the allowlist (it is a taskkill argument)"
+        );
+    }
+}
+
+/// `zitadel` (bare) is only in `WINDOWS_ONLY_COMMANDS`, not in the
+/// cross-platform list, so it must be rejected on non-Windows.
+#[cfg(not(windows))]
+#[test]
+fn zitadel_bare_rejected_on_linux() {
+    assert!(SafeCommand::new("zitadel").is_err());
 }

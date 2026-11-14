@@ -1,106 +1,12 @@
 pub use super::command_validation::CommandGuardError;
-use super::command_validation::{validate_argument, validate_path};
+use super::command_allowlist::ALLOWED_COMMANDS;
+#[cfg(windows)]
+use super::command_allowlist::WINDOWS_ONLY_COMMANDS;
+use super::command_validation::{normalise_command_name, validate_argument, validate_path};
 use super::utils::get_stack_path;
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::{Child, Output};
-use std::sync::LazyLock;
-
-// Server-side allowlist. Desktop-only binaries (`rclone`, `osascript`, `rm`)
-// are deliberately absent: the desktop shell carries its own guard, and
-// `nc`/`netcat` would turn any caller into a reverse shell.
-static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    HashSet::from([
-        "pdftotext",
-        "pandoc",
-        "nvidia-smi",
-        "powershell",
-        "clamscan",
-        "freshclam",
-        "mc",
-        "ffmpeg",
-        "ffprobe",
-        "convert",
-        "gs",
-        "tesseract",
-        "which",
-        "where",
-        "sh",
-        "bash",
-        "cmd",
-        "pkill",
-        "pgrep",
-        "kill",
-        "fuser",
-        "curl",
-        "tar",
-        "unzip",
-        "pg_dump",
-        "zitadel.exe",
-        "llama-server.exe",
-        "pg_ctl.exe",
-        "initdb.exe",
-        "psql.exe",
-        "pg_isready",
-
-        "docker",
-        "apt-get",
-        "brew",
-        "rustc",
-        "nvcc",
-        "notify-send",
-        "true",
-        "find",
-        "ss",
-        "cargo",
-        "redis-server",
-        "redis-cli",
-        "valkey-cli",
-        "valkey-server",
-        "minio",
-        "chromedriver",
-        "chrome",
-        "chromium",
-        "brave",
-        "diesel",
-        "psql",
-        "forgejo",
-        "forgejo-runner",
-        "incus",
-        "lynis",
-        "rkhunter",
-        "chkrootkit",
-        "suricata",
-        "suricata-update",
-        "maldet",
-        "sudo",
-        "visudo",
-        "id",
-        "netsh",
-        "llama-server",
-        "ollama",
-        "vault",
-        "python",
-        "python3",
-        "python3.11",
-        "python3.12",
-        "tasklist",
-        "tar.exe",
-        "git",
-        // #1955 — the Drive sync manager runs rsync with an explicit argument
-        // list (never a shell) for local-folder mirrors.
-        "rsync",
-        // First-party call sites: filesystem/disk readout (`df`), host
-        // addressing (`ip`), Windows ACL/identity (`icacls`, `whoami`) and the
-        // PostgreSQL dump client that ships with the allowlisted `psql`.
-        "df",
-        "ip",
-        "icacls",
-        "whoami",
-        "pg_dump",
-    ])
-});
 
 pub struct SafeCommand {
     command: String,
@@ -115,12 +21,11 @@ pub struct SafeCommand {
 
 impl SafeCommand {
     pub fn new(command: &str) -> Result<Self, CommandGuardError> {
-        let cmd_name = std::path::Path::new(command)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or(command);
-
-        if !ALLOWED_COMMANDS.contains(cmd_name) {
+        let normalised = normalise_command_name(command);
+        let allowed = ALLOWED_COMMANDS.contains(normalised.as_str());
+        #[cfg(windows)]
+        let allowed = allowed || WINDOWS_ONLY_COMMANDS.contains(normalised.as_str());
+        if !allowed {
             return Err(CommandGuardError::CommandNotAllowed(command.to_string()));
         }
 
@@ -411,6 +316,26 @@ impl SafeCommand {
                 "SYSTEMROOT",
                 std::env::var("SYSTEMROOT").unwrap_or_else(|_| "C:\\Windows".into()),
             );
+
+            // Essential non-secret env vars (prevents `%SystemDrive%` dirs).
+            for var in [
+                "SystemDrive",
+                "ProgramData",
+                "TEMP",
+                "TMP",
+                "APPDATA",
+                "LOCALAPPDATA",
+                "COMSPEC",
+                "PATHEXT",
+                "windir",
+                "NUMBER_OF_PROCESSORS",
+                "PROCESSOR_ARCHITECTURE",
+                "CUDA_PATH",
+            ] {
+                if let Ok(val) = std::env::var(var) {
+                    cmd.env(var, val);
+                }
+            }
         }
 
         #[cfg(not(target_os = "windows"))]
