@@ -160,23 +160,43 @@ pub async fn ensure_llama_servers_running(
     }
 
     info!("Killing existing llama-server processes to restart with correct args...");
-    let pkill_result = SafeCommand::new("sh")
-        .and_then(|c| c.arg("-c"))
-        .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
-
-    match pkill_result {
-        Ok(cmd) => {
-            if let Err(e) = cmd.execute() {
-                log::error!("Failed to execute pkill for llama-server: {e}");
-            } else {
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                info!("Existing llama-server processes terminated");
-            }
+    // Only the llama-server this stack started is restarted: a model server
+    // the user runs from another directory keeps running. `pkill` does not
+    // exist on Windows, so the stack-scoped kill is used there.
+    #[cfg(windows)]
+    {
+        let killed = botcore::bootstrap::bootstrap_utils::kill_stack_component_windows("llm");
+        if killed > 0 {
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            info!("Existing llama-server processes terminated ({killed})");
         }
-        Err(e) => log::error!("Failed to build pkill command: {e}"),
+    }
+    #[cfg(not(windows))]
+    {
+        let pkill_result = SafeCommand::new("sh")
+            .and_then(|c| c.arg("-c"))
+            .and_then(|c| c.trusted_shell_script_arg("pkill llama-server -9; true"));
+        match pkill_result {
+            Ok(cmd) => {
+                if let Err(e) = cmd.execute() {
+                    log::error!("Failed to execute pkill for llama-server: {e}");
+                } else {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    info!("Existing llama-server processes terminated");
+                }
+            }
+            Err(e) => log::error!("Failed to build pkill command: {e}"),
+        }
     }
     let mut tasks = vec![];
     if !llm_running && !llm_model.is_empty() {
+        if !std::path::Path::new(&llm_model_path).exists() {
+            log::error!(
+                "LLM model file not found at {llm_model_path}; cannot start the local LLM server. \
+                 Place the GGUF file there or configure a remote llm-url."
+            );
+            return Ok(());
+        }
         info!("Starting LLM server...");
         let app_state_clone = Arc::clone(&app_state);
         let llm_server_path_clone = llm_server_path.clone();

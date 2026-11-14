@@ -59,6 +59,9 @@ tracing-subscriber = { workspace = true, features = ["fmt", "env-filter", "regis
 uuid = { workspace = true }
 urlencoding = { workspace = true }
 
+[target.'cfg(windows)'.dependencies]
+sysinfo = { workspace = true }
+
 [features]
 default = ["cache", "mail", "tasks", "people", "tickets", "billing", "attendant",
 "calendar", "goals", "canvas", "workspaces", "social", "analytics",

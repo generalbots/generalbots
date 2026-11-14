@@ -2,6 +2,37 @@ use crate::shared::utils::get_stack_path;
 use botlib::security::command_guard::SafeCommand;
 use log::debug;
 
+/// Cross-platform port-listening probe.
+///
+/// On Windows, does a direct TCP connect to `127.0.0.1:<port>` (avoids the
+/// `::1` penalty of `localhost` and the absence of `ss`).
+/// On other platforms, runs `ss -tln` and checks for `:<port>` in the output,
+/// returning `None` when `ss` could not be executed (so callers can
+/// distinguish "tool unavailable" from "port closed").
+fn port_listening(port: u16) -> Option<bool> {
+    #[cfg(windows)]
+    {
+        use std::net::{SocketAddr, TcpStream};
+        use std::time::Duration;
+        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        Some(TcpStream::connect_timeout(&addr, Duration::from_secs(2)).is_ok())
+    }
+
+    #[cfg(not(windows))]
+    {
+        let output = SafeCommand::new("ss")
+            .and_then(|c| c.args(&["-tln"]))
+            .and_then(|c| c.execute());
+        match output {
+            Ok(o) if o.status.success() => {
+                let stdout = String::from_utf8_lossy(&o.stdout);
+                Some(stdout.contains(&format!(":{port}")))
+            }
+            _ => None,
+        }
+    }
+}
+
 /// Check if vault is healthy
 pub fn vault_health_check() -> bool {
     let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
@@ -58,16 +89,8 @@ pub fn vector_db_health_check() -> bool {
         }
     }
 
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":6333") {
-                return true;
-            }
-        }
+    if port_listening(6333) == Some(true) {
+        return true;
     }
 
     false
@@ -75,16 +98,8 @@ pub fn vector_db_health_check() -> bool {
 
 /// Check if Zitadel directory is healthy
 pub fn zitadel_health_check() -> bool {
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if !stdout.contains(":8300") {
-                return false;
-            }
-        }
+    if port_listening(8300) == Some(false) {
+        return false;
     }
 
     let output = SafeCommand::new("curl")
@@ -104,12 +119,12 @@ pub fn zitadel_health_check() -> bool {
         Ok(result) => {
             if result.status.success() {
                 let response = String::from_utf8_lossy(&result.stdout);
-                debug!("Zitadel health check response: {}", response);
+                debug!("Zitadel health check response: {response}");
                 return response.trim() == "ok";
             }
         }
         Err(e) => {
-            debug!("Zitadel health check error: {}", e);
+            debug!("Zitadel health check error: {e}");
         }
     }
 
@@ -134,22 +149,13 @@ pub fn tables_health_check() -> bool {
         return output.status.success();
     }
 
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":5432") {
-                return true;
-            }
-        }
+    if port_listening(5432) == Some(true) {
+        return true;
     }
 
     false
 }
 
-/// Check if MinIO/Drive is healthy
 /// llama.cpp answers /health once the model is loaded (10-20 s on CPU).
 pub fn llm_health_check() -> bool {
     SafeCommand::new("curl")
@@ -176,16 +182,8 @@ pub fn drive_health_check() -> bool {
         }
     }
 
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":9100") {
-                return true;
-            }
-        }
+    if port_listening(9100) == Some(true) {
+        return true;
     }
 
     false
@@ -206,16 +204,8 @@ pub fn alm_health_check() -> bool {
         }
     }
 
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":3000") {
-                return true;
-            }
-        }
+    if port_listening(3000) == Some(true) {
+        return true;
     }
 
     false
@@ -234,7 +224,7 @@ fn alm_ci_pgrep() -> Result<std::process::Output, anyhow::Error> {
     SafeCommand::new("tasklist")
         .and_then(|c| c.args(&["/FI", "IMAGENAME eq forgejo-runner.exe"]))
         .and_then(|c| c.execute())
-        .map_err(|e| anyhow::anyhow!("{}", e))
+        .map_err(|e| anyhow::anyhow!("{e}"))
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -242,5 +232,5 @@ fn alm_ci_pgrep() -> Result<std::process::Output, anyhow::Error> {
     SafeCommand::new("pgrep")
         .and_then(|c| c.args(&["-x", "forgejo-runner"]))
         .and_then(|c| c.execute())
-        .map_err(|e| anyhow::anyhow!("{}", e))
+        .map_err(|e| anyhow::anyhow!("{e}"))
 }

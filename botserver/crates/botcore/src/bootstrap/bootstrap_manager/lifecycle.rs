@@ -25,9 +25,17 @@ impl BootstrapManager {
     pub async fn kill_stack_processes(&self) -> anyhow::Result<()> {
         info!("Killing any existing stack processes...");
 
-        let processes = crate::bootstrap::bootstrap_utils::get_processes_to_kill();
-        for (name, args) in processes {
-            safe_pkill(&[name.as_str()], &args);
+        #[cfg(windows)]
+        {
+            crate::bootstrap::bootstrap_utils::kill_stack_processes_windows();
+        }
+
+        #[cfg(not(windows))]
+        {
+            let processes = crate::bootstrap::bootstrap_utils::get_processes_to_kill();
+            for (name, args) in processes {
+                crate::bootstrap::bootstrap_utils::safe_pkill(&[name.as_str()], &args);
+            }
         }
 
         // Give processes time to terminate
