@@ -41,6 +41,17 @@ pub(super) struct Attempt<'a> {
     pub attempt: usize,
 }
 
+/// Aborts a spawned task when dropped, ensuring the LLM HTTP request and the
+/// process-wide `call_gate` permit are released when the caller's future is
+/// dropped (turn timeout, user Stop, socket closed).
+struct AbortOnDrop(tokio::task::JoinHandle<()>);
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
 pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
     let Attempt {
         sink,
@@ -73,7 +84,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
     let spawn_model = model.to_string();
     let spawn_key = key.to_string();
     let spawn_tools = tools.clone();
-    let _handle = tokio::spawn(async move {
+    let _abort_guard = AbortOnDrop(tokio::spawn(async move {
         if let Err(e) = spawn_llm
             .generate_stream(
                 &spawn_prompt,
@@ -87,7 +98,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         {
             log::error!("LLM stream error: {e}");
         }
-    });
+    }));
 
     if attempt == 0 {
         let mut init_msg = serde_json::json!({

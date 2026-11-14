@@ -515,6 +515,7 @@ pub async fn process_message_internal(
     .is_err()
     {
         botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
+        return Err(super::types::PipelineError::LLM(format!("Turn timed out after {turn_timeout_secs}s")));
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no

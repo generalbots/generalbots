@@ -263,6 +263,9 @@
   // pipeline emits. A server producer therefore reaches the consent UI without
   // a new WebSocket message type.
   function pollPendingBrowser() {
+    if (document.hidden) return;
+    var pc = window.productConfig;
+    if (!pc || pc.agent_backend_unavailable) return;
     var sid = window.ChatState && ChatState.currentSessionId;
     if (!sid) return;
     var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||

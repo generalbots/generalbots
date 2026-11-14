@@ -72,6 +72,17 @@ async fn write_agent_enabled(
 ) {
 }
 
+/// The agent VM is an Incus container. On Windows that backend exists only when
+/// an explicit WSL or remote wrapper is configured (`AGENT_INCUS_BIN`), and the
+/// chat client sends the Agent switch as on by default, so without this check
+/// every turn would try the VM, fail and log. The probe walks PATH, hence the
+/// once-per-process cache.
+#[cfg(all(windows, feature = "agent-vm"))]
+fn agent_backend_available() -> bool {
+    static AVAILABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *AVAILABLE.get_or_init(|| botagent::agent_backend_unavailable().is_none())
+}
+
 /// Resolve the effective agent/VM toggle for this turn and persist explicit
 /// payload values so the session is the single source of truth.
 pub async fn resolve_agent_enabled(
@@ -80,6 +91,11 @@ pub async fn resolve_agent_enabled(
     user_id: Uuid,
     payload: Option<bool>,
 ) -> bool {
+    #[cfg(all(windows, feature = "agent-vm"))]
+    if !agent_backend_available() {
+        return false;
+    }
+
     if let Some(enabled) = payload {
         write_agent_enabled(state, user_id, session_id, enabled).await;
         return enabled;

@@ -221,6 +221,9 @@
   // GB7-20 — the server no longer needs to push over the WebSocket: the action
   // queue is polled and replayed as the same frames the pipeline emits.
   function pollPendingTerminal() {
+    if (document.hidden) return;
+    var pc = window.productConfig;
+    if (!pc || pc.agent_backend_unavailable) return;
     var sid = window.ChatState && ChatState.currentSessionId;
     if (!sid) return;
     var token = (typeof window.getChatAccessToken === "function" && window.getChatAccessToken()) ||
