@@ -282,8 +282,8 @@ cleaned up (`botserver/src/core/bot/pipeline/web_sources.rs`): dead URLs
 (404/410), section/tag hubs (`/tudo-sobre/`, `/tag/`, `/politica/<topic>/`) and
 duplicate stories are removed, and every surviving article is probed once for
 its publish date (`article:published_time`, JSON-LD, `<time>`, `.../YYYY/MM/DD/`
-URLs). The answer contract is one line per item —
-`- **[headline](article_url)** — outlet, published YYYY-MM-DD` — and the same
+URLs). The answer contract is one line per item — the headline in bold,
+linked to the article URL, then `— outlet, published YYYY-MM-DD` — and the same
 sources arrive as citation chips above the answer, each showing the outlet and
 the date.
 
