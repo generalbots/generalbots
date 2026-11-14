@@ -35,17 +35,15 @@ pub(crate) async fn consume_sse_stream(
 
         info!("LLM stream starting for model: {}", model);
 
-    let idle_timeout = std::time::Duration::from_secs(60);
+    // No idle timeout here: the reader side enforces a per-chunk read
+    // timeout (LLM_READ_TIMEOUT_SECS, default 120s) and drops the channel
+    // sender on stall or completion, which causes `recv()` to return `None`.
     const MAX_SSE_LINE_BUFFER: usize = 4 * 1024 * 1024;
     loop {
-            let chunk_result = match tokio::time::timeout(idle_timeout, chunk_rx.recv()).await {
-                Ok(Some(Ok(chunk))) => chunk,
-                Ok(Some(Err(e))) => return Err(format!("Stream error: {}", e).into()),
-                Ok(None) => break,
-                Err(_) => {
-                    log::error!("LLM stream idle timeout (no data received)");
-                    return Err("LLM stream idle timeout".into());
-                }
+            let chunk_result = match chunk_rx.recv().await {
+                Some(Ok(chunk)) => chunk,
+                Some(Err(e)) => return Err(format!("Stream error: {e}").into()),
+                None => break,
             };
             let chunk_str = String::from_utf8_lossy(&chunk_result);
             total_size += chunk_result.len();
@@ -345,6 +343,37 @@ mod sse_tests {
         let parsed = serde_json::from_str::<Value>(tool_call).expect("json");
         assert_eq!(parsed["name"], serde_json::json!("lookup"));
         assert_eq!(parsed["arguments"], serde_json::json!("{\"q\":\"x\"}"));
+    }
+
+    /// Verifies deltas are forwarded while the sender is still open,
+    /// proving concurrent (not buffered-then-consumed) processing.
+    #[tokio::test]
+    async fn deltas_stream_while_sender_is_open() {
+        let (chunk_tx, chunk_rx) = mpsc::channel(16);
+        let (tx, mut rx) = mpsc::channel(64);
+
+        let consumer = tokio::spawn(async move {
+            consume_sse_stream(chunk_rx, tx, "gpt-4o").await
+        });
+
+        // Send a chunk and wait for the delta BEFORE closing the sender.
+        chunk_tx
+            .send(Ok(content_delta("live").as_bytes().to_vec()))
+            .await
+            .expect("send chunk");
+
+        let first = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            rx.recv(),
+        )
+        .await
+        .expect("should not time out")
+        .expect("should receive a delta");
+        assert_eq!(first, "live");
+
+        // Now close the sender and let the consumer finish.
+        drop(chunk_tx);
+        consumer.await.expect("join").expect("consume");
     }
 
     #[tokio::test]

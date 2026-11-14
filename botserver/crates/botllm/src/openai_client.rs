@@ -82,7 +82,7 @@ impl LLMProvider for AzureGPT5Client {
             "{}/openai/responses?api-version={}",
             self.base_url, self.api_version
         );
-        let auth_header = format!("Bearer {}", key);
+        let auth_header = crate::retry::bearer_header(key);
 
         let input_array: Vec<Value> = raw_messages
             .as_array()
@@ -296,8 +296,12 @@ impl OpenAIClient {
             .unwrap_or_else(|| max_output_tokens_for_type(provider_type));
         let rate_limiter = ApiRateLimiter::new(rate_limits);
 
+        // A read timeout, not a total one: a streamed reply is a single HTTP
+        // exchange, so a total timeout cut every generation at 180 s no matter
+        // how steadily tokens were arriving. The overall cap is the pipeline's
+        // turn timeout (`LLM_TURN_TIMEOUT_SECS`).
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(180))
+            .read_timeout(std::time::Duration::from_secs(180))
             .connect_timeout(std::time::Duration::from_secs(30))
             .build()
             .unwrap_or_else(|_| {

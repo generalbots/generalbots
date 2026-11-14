@@ -42,7 +42,7 @@ pub(crate) async fn generate(
         let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
 
         let full_url = format!("{}{}", client.base_url, client.endpoint_path);
-        let auth_header = format!("Bearer {}", key);
+        let auth_header = crate::retry::bearer_header(key);
 
         trace!("LLM Request Details:");
         trace!(" URL: {}", full_url);

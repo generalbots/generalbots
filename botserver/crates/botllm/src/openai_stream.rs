@@ -62,7 +62,7 @@ impl LLMProvider for OpenAIClient {
         }
 
         let full_url = format!("{}{}", self.base_url, self.endpoint_path);
-        let auth_header = format!("Bearer {}", key);
+        let auth_header = crate::retry::bearer_header(key);
 
         trace!("LLM Request Details:");
         trace!(" URL: {}", full_url);
@@ -139,14 +139,12 @@ impl LLMProvider for OpenAIClient {
             }
         }
 
-        let (chunk_tx, chunk_rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, String>>(100000);
-
         // #1393 — serialize calls process-wide and back off properly on 429.
         let _gate = retry::call_gate().acquire().await;
         let max_retries = 3;
-        let mut stream_started = false;
         info!("LLM request URL: {}, body size: {} bytes, stream={}", full_url, request_body.to_string().len(), use_stream);
-        'retry_loop: for attempt in 0..=max_retries {
+        let mut response_ok = None;
+        for attempt in 0..=max_retries {
             let response = match self.client
                 .post(&full_url)
                 .header("Authorization", &auth_header)
@@ -159,18 +157,17 @@ impl LLMProvider for OpenAIClient {
                 .await
             {
                 Ok(r) => r,
-                    Err(e) => {
-                        let err_msg = format!("HTTP error: {:#}", e);
-                        let _ = chunk_tx.send(Err(err_msg.clone())).await;
-                        if attempt < max_retries {
-                            let wait = retry::backoff_ms(attempt);
-                            warn!("LLM generate_stream attempt {} failed (connection): {} — retrying in {:?}", attempt + 1, err_msg, wait);
-                            tokio::time::sleep(wait).await;
-                            continue;
-                        }
-                        log::error!("LLM generate_stream failed after {} attempts: {}", attempt + 1, err_msg);
-                        return Err("LLM stream request failed after retries".into());
+                Err(e) => {
+                    let err_msg = format!("HTTP error: {:#}", e);
+                    if attempt < max_retries {
+                        let wait = retry::backoff_ms(attempt);
+                        warn!("LLM generate_stream attempt {} failed (connection): {} — retrying in {:?}", attempt + 1, err_msg, wait);
+                        tokio::time::sleep(wait).await;
+                        continue;
                     }
+                    log::error!("LLM generate_stream failed after {} attempts: {}", attempt + 1, err_msg);
+                    return Err("LLM stream request failed after retries".into());
+                }
             };
 
             let status = response.status();
@@ -182,7 +179,6 @@ impl LLMProvider for OpenAIClient {
                     .and_then(|v| v.to_str().ok().map(str::to_string));
                 let error_text = response.text().await.unwrap_or_default();
                 warn!("LLM HTTP error body: {}", error_text);
-                let _ = chunk_tx.send(Err(format!("Status {}: {}", status, error_text))).await;
                 if attempt < max_retries && retry::is_retryable_status(status.as_u16()) {
                     let wait = retry::wait_for(status.as_u16(), &error_text, retry_after_hdr.as_deref(), attempt)
                         .min(std::time::Duration::from_secs(8));
@@ -194,81 +190,95 @@ impl LLMProvider for OpenAIClient {
                 return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
             }
 
-            stream_started = true;
+            response_ok = Some(response);
+            break;
+        }
 
-            if !use_stream {
-                let body = response.text().await.map_err(|e| format!("Failed: {}", e))?;
-                if let Ok(val) = serde_json::from_str::<Value>(&body) {
-                    let choice = &val["choices"][0];
-                    if let Some(reasoning) = choice["message"]["reasoning_content"].as_str().or(choice["message"]["reasoning"].as_str()) {
-                        let _ = tx.send(serde_json::json!({"__reasoning__": reasoning}).to_string()).await;
+        let response = response_ok.ok_or("LLM stream request failed to start")?;
+
+        if !use_stream {
+            let body = response.text().await.map_err(|e| format!("Failed: {}", e))?;
+            if let Ok(val) = serde_json::from_str::<Value>(&body) {
+                let choice = &val["choices"][0];
+                if let Some(reasoning) = choice["message"]["reasoning_content"].as_str().or(choice["message"]["reasoning"].as_str()) {
+                    let _ = tx.send(serde_json::json!({"__reasoning__": reasoning}).to_string()).await;
+                }
+                if let Some(content) = choice["message"]["content"].as_str() {
+                    if !content.is_empty() {
+                        let _ = tx.send(content.to_string()).await;
                     }
-                    if let Some(content) = choice["message"]["content"].as_str() {
-                        if !content.is_empty() {
-                            let _ = tx.send(content.to_string()).await;
-                        }
-                    }
-                    if let Some(tcs) = choice["message"]["tool_calls"].as_array() {
-                        for tc in tcs {
-                            if let Some(func) = tc.get("function") {
-                                let args = func["arguments"].as_str().unwrap_or("{}");
-                                let msg = serde_json::json!({"__tool_call__": true, "name": func["name"], "arguments": args});
-                                let _ = tx.send(msg.to_string()).await;
-                            }
+                }
+                if let Some(tcs) = choice["message"]["tool_calls"].as_array() {
+                    for tc in tcs {
+                        if let Some(func) = tc.get("function") {
+                            let args = func["arguments"].as_str().unwrap_or("{}");
+                            let msg = serde_json::json!({"__tool_call__": true, "name": func["name"], "arguments": args});
+                            let _ = tx.send(msg.to_string()).await;
                         }
                     }
                 }
-                return Ok(());
             }
+            return Ok(());
+        }
 
-            let mut stream = response.bytes_stream();
+        // The byte reader and the SSE consumer run concurrently in this task:
+        // deltas reach the caller while the body is still arriving instead of
+        // after the whole response has been buffered. The bounded channel
+        // applies back-pressure to the socket, and dropping this future (turn
+        // timeout, user Stop) tears down both halves and releases `_gate`.
+        let (chunk_tx, chunk_rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, String>>(32);
+        // Per-chunk read timeout: a provider that returns 200 and then stalls
+        // the body used to hang the read forever while holding the
+        // process-wide call_gate, blocking every other LLM call. Prefill on a
+        // CPU-only model can leave the socket silent for minutes before the
+        // first chunk arrives; `LLM_READ_TIMEOUT_SECS` (default 120) is the
+        // operator knob for that case.
+        let read_timeout = std::time::Duration::from_secs(
+            std::env::var("LLM_READ_TIMEOUT_SECS")
+                .ok()
+                .and_then(|value| value.trim().parse::<u64>().ok())
+                .filter(|secs| *secs > 0)
+                .unwrap_or(120),
+        );
+
+        let reader = async {
             use futures_util::StreamExt;
-            // Per-chunk read timeout: a provider that returns 200 and then
-            // stalls the body used to hang this loop forever while holding
-            // the process-wide call_gate, blocking every other LLM call.
-            // Prefill on a CPU-only model can leave the socket silent for
-            // minutes before the first chunk arrives; `LLM_READ_TIMEOUT_SECS`
-            // (default 120) is the operator knob for that case.
-            let read_timeout = std::time::Duration::from_secs(
-                std::env::var("LLM_READ_TIMEOUT_SECS")
-                    .ok()
-                    .and_then(|value| value.trim().parse::<u64>().ok())
-                    .filter(|secs| *secs > 0)
-                    .unwrap_or(120),
-            );
-            loop {
+            let mut stream = response.bytes_stream();
+            let outcome: Result<(), Box<dyn std::error::Error + Send + Sync>> = loop {
                 let next = match tokio::time::timeout(read_timeout, stream.next()).await {
                     Ok(item) => item,
                     Err(_) => {
                         let err_msg = format!("Stream read stalled: no bytes for {read_timeout:?}");
                         log::error!("LLM generate_stream {err_msg}");
-                        return Err(err_msg.into());
+                        break Err(err_msg.into());
                     }
                 };
                 match next {
                     Some(Ok(bytes)) => {
                         if chunk_tx.send(Ok(bytes.to_vec())).await.is_err() {
-                            break 'retry_loop;
+                            break Ok(());
                         }
                     }
                     Some(Err(e)) => {
-                        let err_msg = format!("Stream read error: {}", e);
+                        let err_msg = format!("Stream read error: {e}");
                         let _ = chunk_tx.send(Err(err_msg.clone())).await;
-                        log::error!("LLM generate_stream stream error: {}", err_msg);
-                        return Err(err_msg.into());
+                        log::error!("LLM generate_stream stream error: {err_msg}");
+                        break Err(err_msg.into());
                     }
-                    None => break,
+                    None => break Ok(()),
                 }
-            }
-            break;
-        }
+            };
+            // Closing the channel is what lets the consumer finish, on every
+            // path out of the loop.
+            drop(chunk_tx);
+            outcome
+        };
 
-        if !stream_started {
-            return Err("LLM stream request failed to start".into());
-        }
-        drop(chunk_tx);
+        let consumer = crate::openai_stream_sse::consume_sse_stream(chunk_rx, tx, model);
 
-        crate::openai_stream_sse::consume_sse_stream(chunk_rx, tx, model).await
+        let (reader_result, consumer_result) = tokio::join!(reader, consumer);
+        reader_result?;
+        consumer_result
     }
 
     async fn generate(

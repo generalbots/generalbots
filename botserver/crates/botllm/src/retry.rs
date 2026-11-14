@@ -105,6 +105,21 @@ pub fn call_gate() -> &'static tokio::sync::Semaphore {
     GATE.get_or_init(|| tokio::sync::Semaphore::new(1))
 }
 
+/// `Authorization` value for an OpenAI-compatible endpoint.
+///
+/// Vault seeding stores the literal `none` when no API key is configured. Sent
+/// as a bearer token it is a wrong key, not an absent one: keyless endpoints
+/// (free gateways, a local llama.cpp server) accept an empty token and answer
+/// `401 INVALID_TOKEN` to `Bearer none`.
+pub(crate) fn bearer_header(key: &str) -> String {
+    let key = key.trim();
+    if key.eq_ignore_ascii_case("none") {
+        "Bearer ".to_string()
+    } else {
+        format!("Bearer {key}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -247,5 +262,14 @@ mod tests {
                 "{status} must not be retryable"
             );
         }
+    }
+
+    #[test]
+    fn the_seeded_placeholder_is_not_sent_as_a_key() {
+        assert_eq!(bearer_header("none"), "Bearer ");
+        assert_eq!(bearer_header(" None "), "Bearer ");
+        assert_eq!(bearer_header(""), "Bearer ");
+        assert_eq!(bearer_header("sk-abc"), "Bearer sk-abc");
+        assert_eq!(bearer_header("nonesuch"), "Bearer nonesuch");
     }
 }
