@@ -343,7 +343,6 @@
    - [single.gbui - Simple Chat](./07-user-interface/single-gbui.md)
    - [Console Mode](./07-user-interface/console-mode.md)
    - [First-Run Wizard (Desktop)](./07-user-interface/first-run-wizard.md)
-   - [Windows Desktop Port: Stabilisation Plan](./07-user-interface/windows-desktop-port.md)
    - [Monitoring Dashboard](./07-user-interface/monitoring.md)
    - [HTMX Architecture](./07-user-interface/htmx-architecture.md)
    - [Suite - Full Desktop](./07-user-interface/apps/suite.md)

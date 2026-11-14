@@ -19,6 +19,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | **Containers** | 🧱 Everything runs on **Incus** (`incus` CLI, `images:ubuntu/24.04`). ❌ NEVER document or script `lxc`/`lxd` as the container layer — LXC is not a supported runtime for us (`raw.lxc` in an `incus config set` is an Incus config key and stays). |
 | **License** | The project is **MIT** and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 | **Diesel schema** | 🗄️ `table!`/`joinable!` live ONLY in the `botschema` crate (#1497). NEVER copy a table into a feature crate — re-export `pub use botschema::<table>;`. Change schema via a migration → `diesel migration run` → `diesel print-schema` → update `botschema` → commit. There is no guard script for this today: the rule is enforced in review. |
+| **Plans** | 🗂️ Plans, roadmaps, task lists and status tables are stored as **GitHub issues** — an epic (`type:epic`) with one child issue per phase or workstream, progress tracked in their checklists and comments. ❌ NEVER write a plan as documentation: not in `botbook/`, not in a new `.md` file, not in a README. Documentation describes what the product does today; what we intend to do lives in issues. |
 
 ### Ports (quick reference)
 8080 = botserver API · 3000 = suite · 4000 = cloud · 5000 = login
