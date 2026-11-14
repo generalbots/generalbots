@@ -10,6 +10,7 @@ mod product;
 
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
 use product::sync_product_file;
+use super::no_window::NoConsoleWindow;
 use probe::{
     api_is_answering, clear_pid, decide_start, pid_is_alive, pid_looks_like_botserver,
     port_is_open, record_pid, recorded_pid, terminate_pid, StartDecision, API_PRODUCT_URL,
@@ -227,6 +228,7 @@ impl Sidecar {
         let opened_inode = file_inode(&log_path);
 
         let mut command = Command::new(&path);
+        command.no_console_window();
         #[cfg(target_os = "windows")]
         command.env("PATH", Self::prepare_windows_runtime(&installers)?);
         // The default build carries the `console` feature, so without this flag

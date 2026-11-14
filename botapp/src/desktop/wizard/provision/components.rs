@@ -14,6 +14,7 @@ use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::desktop::i18n;
+use crate::desktop::no_window::NoConsoleWindow;
 use crate::desktop::sidecar::Sidecar;
 
 const API_PRODUCT: &str = "http://127.0.0.1:8080/api/product";
@@ -116,6 +117,7 @@ pub(super) async fn run_components(
     std::fs::create_dir_all(log_path()).map_err(|e| format!("could not create logs: {e}"))?;
 
     let mut command = tokio::process::Command::new(&binary);
+    command.no_console_window();
     #[cfg(target_os = "windows")]
     command.env("PATH", Sidecar::prepare_windows_runtime(&installers)
         .map_err(|e| format!("could not prepare Windows runtime: {e}"))?);

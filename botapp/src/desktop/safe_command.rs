@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Output, Stdio};
 use std::sync::LazyLock;
 
+use super::no_window::NoConsoleWindow;
+
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> =
     LazyLock::new(|| HashSet::from(["rclone", "notify-send", "osascript"]));
 
@@ -83,6 +85,7 @@ impl SafeCommand {
 
     pub fn output(self) -> Result<Output, SafeCommandError> {
         let mut cmd = Command::new(&self.command);
+        cmd.no_console_window();
         cmd.args(&self.args);
 
         if let Some(ref dir) = self.working_dir {
@@ -103,6 +106,7 @@ impl SafeCommand {
 
     pub fn spawn(self) -> Result<Child, SafeCommandError> {
         let mut cmd = Command::new(&self.command);
+        cmd.no_console_window();
         cmd.args(&self.args);
 
         if let Some(ref dir) = self.working_dir {
