@@ -9,6 +9,7 @@ pub mod mfa;
 pub mod password;
 pub mod platform_admin;
 pub mod rate_limiter;
+mod rate_limiter_static;
 pub mod rbac_middleware;
 pub mod saas_jwt_auth;
 pub mod request_limits;
