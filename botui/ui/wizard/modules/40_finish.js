@@ -66,7 +66,12 @@
     var email = document.getElementById("adminEmail");
     var password = document.getElementById("adminPassword");
     if (email) {
-      email.addEventListener("input", function () { draft.admin.email = email.value.trim(); });
+      // The sign-in page only accepts an email address; setup refuses anything
+      // else, so flag it while the user is still typing.
+      email.addEventListener("input", function () {
+        draft.admin.email = email.value.trim();
+        email.setAttribute("aria-invalid", /^[^@\s]+@[^@\s]+$/.test(draft.admin.email) ? "false" : "true");
+      });
     }
     var togglePassword = document.getElementById("toggleAdminPasswordBtn");
     if (togglePassword) {

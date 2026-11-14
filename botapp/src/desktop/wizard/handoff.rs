@@ -5,7 +5,7 @@ use tauri::Manager;
 
 use super::paths::{marker_path, stack_path, workspace_path};
 use super::types::{AdminDraft, FinishRequest};
-use super::window::reveal_suite;
+use super::window::reveal_suite_signed_in;
 
 /// Writes the administrator account the wizard showed on the finish screen.
 /// The login fallback reads this file from the stack directory; the password is
@@ -46,11 +46,31 @@ fn password_record(password: &str, email: &str) -> (String, String) {
     (salt, hash)
 }
 
+/// The sign-in page only accepts an email address, so an administrator saved
+/// under any other identifier (`admin`) could never sign in again.
+fn is_email_like(value: &str) -> bool {
+    match value.split_once('@') {
+        Some((local, domain)) => {
+            !local.is_empty()
+                && !domain.is_empty()
+                && !domain.contains('@')
+                && !value.chars().any(char::is_whitespace)
+        }
+        None => false,
+    }
+}
+
 /// Writes the administrator account from the wizard draft. The accounts step
 /// runs before Finish, so it saves the same file early and signs in with it.
 pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), String> {
     if admin.email.trim().is_empty() || admin.password.is_empty() {
         return Ok(());
+    }
+    if !is_email_like(admin.email.trim()) {
+        return Err(
+            "The administrator email must be an email address, for example admin@localhost."
+                .to_string(),
+        );
     }
     let dir = stack_path().join("conf").join("directory");
     std::fs::create_dir_all(&dir).map_err(|e| format!("create directory config: {e}"))?;
@@ -168,7 +188,13 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
         serde_json::to_string_pretty(&marker).map_err(|e| format!("serialize marker: {e}"))?;
     std::fs::write(marker_path(), raw).map_err(|e| format!("write marker: {e}"))?;
 
-    reveal_suite(app);
+    // The credentials file keeps only a salted digest, so this is the last
+    // moment the password is available for the automatic sign-in.
+    reveal_suite_signed_in(
+        app,
+        request.admin.email.trim().to_string(),
+        request.admin.password.clone(),
+    );
 
     if let Some(wizard) = app.get_webview_window("wizard") {
         if let Err(e) = wizard.close() {
@@ -181,7 +207,18 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
 
 #[cfg(test)]
 mod tests {
-    use super::{merge_env_line, network_mode, resolve_user_id};
+    use super::{is_email_like, merge_env_line, network_mode, resolve_user_id};
+
+    #[test]
+    fn the_administrator_identifier_must_be_an_email() {
+        assert!(is_email_like("admin@localhost"));
+        assert!(is_email_like("ana.silva@example.org"));
+        assert!(!is_email_like("admin"));
+        assert!(!is_email_like("@localhost"));
+        assert!(!is_email_like("admin@"));
+        assert!(!is_email_like("a@b@c"));
+        assert!(!is_email_like("ad min@localhost"));
+    }
 
     #[test]
     fn only_p2p_is_an_opt_in_network_mode() {

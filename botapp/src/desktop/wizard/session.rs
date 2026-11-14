@@ -61,47 +61,20 @@ pub async fn mint_desktop_session() -> Option<String> {
         }
     }
 
+    // Only a file written by an older wizard still carries the password;
+    // current ones keep a salted digest (#2231) and are handled at handoff by
+    // `wait_for_wizard_session`.
     #[derive(serde::Deserialize)]
     struct Credentials {
+        #[serde(default)]
         email: String,
+        #[serde(default)]
         password: String,
     }
 
     let raw = std::fs::read_to_string(admin_credentials_path()).ok()?;
     let credentials: Credentials = serde_json::from_str(&raw).ok()?;
-    if !credentials_usable(&credentials.email, &credentials.password) {
-        return None;
-    }
-
-    let client = reqwest::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(2))
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .ok()?;
-    let response = client
-        .post("http://127.0.0.1:8080/api/auth/login")
-        .json(&serde_json::json!({
-            "email": credentials.email.trim(),
-            "password": credentials.password,
-        }))
-        .send()
-        .await
-        .ok()?;
-    if !response.status().is_success() {
-        warn!(
-            "wizard: desktop session login was refused ({})",
-            response.status()
-        );
-        return None;
-    }
-    let body: serde_json::Value = response.json().await.ok()?;
-    let token = token_from_body(&body)?;
-
-    // Persist the token for future boots.
-    let _ = std::fs::write(
-        desktop_session_path(),
-        serde_json::json!({ "access_token": token }).to_string(),
-    );
+    let token = login_and_cache(&credentials.email, &credentials.password).await?;
 
     // Scrub the plaintext password from admin-credentials.json, keeping the
     // identity fields (email, user_id) that botserver still needs.
@@ -118,6 +91,63 @@ pub async fn mint_desktop_session() -> Option<String> {
     }
 
     Some(token)
+}
+
+/// Signs the administrator in through `/api/auth/login` and caches the token
+/// in `desktop-session.json` for the next boots.
+async fn login_and_cache(email: &str, password: &str) -> Option<String> {
+    if !credentials_usable(email, password) {
+        return None;
+    }
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(2))
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .ok()?;
+    let response = client
+        .post("http://127.0.0.1:8080/api/auth/login")
+        .json(&serde_json::json!({ "email": email.trim(), "password": password }))
+        .send()
+        .await
+        .ok()?;
+    if !response.status().is_success() {
+        warn!(
+            "wizard: desktop session login was refused ({})",
+            response.status()
+        );
+        return None;
+    }
+    let body: serde_json::Value = response.json().await.ok()?;
+    let token = token_from_body(&body)?;
+    let _ = std::fs::write(
+        desktop_session_path(),
+        serde_json::json!({ "access_token": token }).to_string(),
+    );
+    Some(token)
+}
+
+/// Signs in with the administrator the wizard has just created.
+///
+/// `admin-credentials.json` keeps only a salted digest, so the password cannot
+/// be read back from disk. Without this the suite opened on the sign-in page
+/// right after setup and asked for a generated password the user had seen on
+/// one screen. A token cached by an earlier setup is ignored: it belongs to the
+/// administrator of that setup.
+pub(super) async fn wait_for_wizard_session(
+    email: &str,
+    password: &str,
+    attempts: u32,
+) -> Option<String> {
+    for attempt in 0..attempts {
+        if let Some(token) = login_and_cache(email, password).await {
+            return Some(token);
+        }
+        if attempt + 1 < attempts {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+    }
+    warn!("wizard: could not sign the new administrator in; the suite will ask for sign-in");
+    None
 }
 
 /// The sidecar accepts connections shortly after `/api/product` answers, so a

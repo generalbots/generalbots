@@ -339,7 +339,7 @@
         '<p class="note" style="margin:8px 0">' + esc(t("finish.admin-note")) + "</p>" +
         '<div class="field-grid">' +
           '<div class="field"><label for="adminEmail">' + esc(t("finish.email")) + "</label>" +
-            '<input type="text" id="adminEmail" value="' + esc(draft.admin.email) + '" autocomplete="off" /></div>' +
+            '<input type="email" id="adminEmail" value="' + esc(draft.admin.email) + '" autocomplete="off" /></div>' +
           '<div class="field"><label for="adminPassword">' + esc(t("finish.password")) + "</label>" +
             '<div class="inline-row">' +
               '<input type="password" id="adminPassword" readonly autocomplete="new-password" value="' + esc(draft.admin.password) + '" />' +

@@ -3,7 +3,7 @@
 use log::{info, warn};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
-use super::session::{suite_url_with_token, wait_for_desktop_session};
+use super::session::{suite_url_with_token, wait_for_desktop_session, wait_for_wizard_session};
 
 /// Whether the Tauri `devUrl` (the dev server, usually port 3000) should be
 /// used instead of the embedded frontend.
@@ -130,6 +130,16 @@ pub fn reveal_suite(app: &tauri::AppHandle) {
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         let token = wait_for_desktop_session(15).await;
+        reveal_suite_with_token(&handle, token.as_deref());
+    });
+}
+
+/// [`reveal_suite`] for the wizard handoff: signs in with the administrator
+/// account that was just created, while its password is still in memory.
+pub fn reveal_suite_signed_in(app: &tauri::AppHandle, email: String, password: String) {
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let token = wait_for_wizard_session(&email, &password, 15).await;
         reveal_suite_with_token(&handle, token.as_deref());
     });
 }
