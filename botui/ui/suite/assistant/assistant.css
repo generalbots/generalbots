@@ -17,7 +17,14 @@ html, body {
 
 body {
     display: flex;
+    flex-direction: column;
     background: var(--id-paper);
+}
+.gb-app {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* Paper grid (20px at 4%) */
@@ -74,19 +81,12 @@ body::after {
     border-radius: var(--id-radius-sm);
 }
 
-/* ================================================================
-   Sidebar
-   ================================================================ */
+/* == Sidebar ====================================================== */
 .gb-sidebar {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    width: 280px;
-    min-width: 280px;
-    height: 100vh;
-    background: var(--id-surface);
-    border-right: 1px solid var(--id-line);
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    width: 280px; min-width: 280px; height: 100%;
+    background: var(--id-surface); border-right: 1px solid var(--id-line);
     transition: width var(--id-dur-normal) var(--id-ease),
                 min-width var(--id-dur-normal) var(--id-ease);
     overflow: hidden;
@@ -379,7 +379,8 @@ body::after {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    flex: 1;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -402,7 +403,8 @@ body::after {
     .gb-sidebar {
         position: fixed;
         z-index: 100;
-        height: 100vh;
+        height: calc(100vh - 36px);
+        top: 36px;
     }
     .gb-sidebar.collapsed {
         width: 0;

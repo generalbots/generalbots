@@ -114,9 +114,13 @@
     function loadConversation(sessId) {
         A.currentSessionId = sessId;
         renderConversationList();
+        /* Update titlebar with the conversation title */
+        var sess = A.sessions.filter(function (s) { return s.id === sessId; })[0];
+        if (typeof window.gbSetTitlebarTitle === "function") {
+            window.gbSetTitlebarTitle(sess ? sess.title : "");
+        }
         A.loadSessionMessages(sessId).then(function (msgs) {
             A.renderHistory(msgs);
-            /* Reconnect WS to the loaded session */
             A.reconnectWs();
         });
     }

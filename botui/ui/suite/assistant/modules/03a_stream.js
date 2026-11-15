@@ -53,8 +53,8 @@
             pill.style.display = "none";
             pill.textContent = A.t("assistant.scroll-bottom", "Go to end");
             pill.addEventListener("click", function () { A.scrollToBottom(true); });
-            var chatView = document.getElementById("gbChatView");
-            if (chatView) { chatView.appendChild(pill); }
+            var above = document.getElementById("gbDockAbove");
+            if (above) { above.insertBefore(pill, above.firstChild); }
         }
     };
 
@@ -187,19 +187,23 @@
         var empty = document.getElementById("gbEmptyState");
         var conv = document.getElementById("gbConversation");
         var dock = document.getElementById("gbComposerDock");
+        var above = document.getElementById("gbDockAbove");
         if (empty) { empty.style.display = "none"; }
         if (conv) { conv.style.display = ""; }
         if (dock) { dock.style.display = ""; }
+        if (above) { above.style.display = ""; }
     };
 
     A.showEmptyState = function () {
         var empty = document.getElementById("gbEmptyState");
         var conv = document.getElementById("gbConversation");
         var dock = document.getElementById("gbComposerDock");
+        var above = document.getElementById("gbDockAbove");
         var msgs = document.getElementById("gbMessages");
         if (empty) { empty.style.display = ""; }
         if (conv) { conv.style.display = "none"; }
         if (dock) { dock.style.display = "none"; }
+        if (above) { above.style.display = "none"; }
         if (msgs) { msgs.innerHTML = ""; }
         A.hideThinking();
         A.hasUserSent = false;

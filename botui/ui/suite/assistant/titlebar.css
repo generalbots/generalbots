@@ -1,0 +1,120 @@
+/* Titlebar for the undecorated desktop window.
+   No dependency on the assistant shell -- used by assistant.html and login.html.
+   When Tauri is absent the row is a plain header without window buttons. */
+
+.gb-titlebar {
+    position: relative;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 4px 0 12px;
+    background: var(--id-surface, rgba(255,255,255,.9));
+    border-bottom: 1px solid var(--id-line, rgba(229,231,235,.8));
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: var(--id-font-sans, Inter, system-ui, -apple-system, sans-serif);
+    font-size: 12px;
+    color: var(--id-muted, #5f6673);
+}
+
+/* ---- Left: sidebar toggle + wordmark ---- */
+.gb-titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.gb-titlebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--id-text, #4b5563);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+}
+.gb-titlebar-toggle:hover { background: var(--id-fill, rgba(243,244,246,.8)); }
+.gb-titlebar-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--id-accent-text, #b45309);
+    border-radius: 6px;
+}
+.gb-titlebar-wordmark {
+    font-family: var(--id-font-logo, 'Palanquin Dark', sans-serif);
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--id-muted, #5f6673);
+    white-space: nowrap;
+    cursor: default;
+}
+.gb-titlebar-dot { color: var(--id-accent, #f28c28); }
+
+/* ---- Centre: conversation title ---- */
+.gb-titlebar-title {
+    flex: 1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--id-gray-400, #9ca3af);
+    font-size: 12px;
+    pointer-events: none;
+    padding: 0 8px;
+}
+
+/* ---- Right: window control buttons ---- */
+.gb-titlebar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+}
+.gb-titlebar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--id-text, #4b5563);
+    cursor: pointer;
+    padding: 0;
+    transition: background 120ms ease;
+}
+.gb-titlebar-btn:hover { background: var(--id-fill, rgba(243,244,246,.8)); }
+.gb-titlebar-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--id-accent-text, #b45309);
+}
+.gb-titlebar-btn--close:hover {
+    background: #e81123;
+    color: #ffffff;
+}
+
+/* Hidden when not in Tauri */
+.gb-titlebar-controls[hidden] { display: none; }
+
+/* When the titlebar is present, hide the sidebar's own brand row */
+.gb-titlebar ~ .gb-app .gb-sidebar-brand { display: none; }
+
+/* ---- Dark variant for login page ---- */
+.gb-titlebar--dark {
+    background: rgba(11, 11, 18, .85);
+    border-bottom-color: rgba(255,255,255,.08);
+    color: rgba(232,232,238,.6);
+}
+.gb-titlebar--dark .gb-titlebar-toggle { color: rgba(232,232,238,.6); }
+.gb-titlebar--dark .gb-titlebar-toggle:hover { background: rgba(255,255,255,.06); }
+.gb-titlebar--dark .gb-titlebar-wordmark { color: rgba(232,232,238,.5); }
+.gb-titlebar--dark .gb-titlebar-btn { color: rgba(232,232,238,.7); }
+.gb-titlebar--dark .gb-titlebar-btn:hover { background: rgba(255,255,255,.08); }
+.gb-titlebar--dark .gb-titlebar-btn--close:hover { background: #e81123; color: #fff; }

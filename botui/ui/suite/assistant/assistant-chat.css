@@ -351,19 +351,17 @@
 }
 .gb-citation-link:hover { background: var(--id-accent-soft); }
 
-/* ================================================================
-   Scroll-to-bottom pill
-   ================================================================ */
+/* == Area above the docked composer: scroll pill + suggestion chips == */
+.gb-dock-above {
+    flex-shrink: 0; max-width: 760px; margin: 0 auto; width: 100%;
+    padding: 0 var(--id-space-4); display: flex; flex-direction: column;
+    align-items: center; gap: var(--id-space-2); }
+.gb-dock-above:empty { display: none; }
 .gb-scroll-pill {
-    position: absolute; bottom: 80px; left: 50%;
-    transform: translateX(-50%); z-index: 10;
-    padding: var(--id-space-2) var(--id-space-4);
-    background: var(--id-surface-solid); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-pill); box-shadow: var(--id-shadow-float);
-    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
-    color: var(--id-text); cursor: pointer;
-    transition: opacity var(--id-dur-fast) var(--id-ease);
-}
+    padding: var(--id-space-1) var(--id-space-4); background: var(--id-surface-solid);
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-pill);
+    box-shadow: var(--id-shadow-float); font-size: var(--id-text-sm);
+    font-family: var(--id-font-sans); color: var(--id-text); cursor: pointer; }
 .gb-scroll-pill:hover { background: var(--id-fill); }
 
 /* ================================================================
@@ -399,8 +397,8 @@
     background: none; padding: 0; font-size: 14px; line-height: 1;
 }
 .gb-file-chip-remove:hover { color: var(--id-ink); }
-.gb-suggestions-dock { justify-content: flex-start; padding-top: var(--id-space-2); }
-.gb-suggestions-dock:empty { display: none; padding: 0; }
+.gb-suggestions-dock { justify-content: center; }
+.gb-suggestions-dock:empty { display: none; }
 
 /* ================================================================
    Buttons (send / stop / attach)

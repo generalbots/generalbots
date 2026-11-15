@@ -9,6 +9,9 @@
 <link rel="stylesheet" href="/suite/identity/fonts.css" />
 <link rel="stylesheet" href="/suite/identity/tokens.css" />
 
+<!-- Titlebar (standalone, no shell dependency) -->
+<link rel="stylesheet" href="/suite/assistant/titlebar.css" />
+
 <!-- Assistant shell -->
 <link rel="stylesheet" href="/suite/assistant/assistant.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-chat.css" />
@@ -62,6 +65,12 @@
 </head>
 
 <body>
+<!-- Titlebar: built by titlebar.js at the top of body -->
+<script src="/suite/assistant/titlebar.js"></script>
+
+<!-- App body: sidebar + main below the titlebar -->
+<div class="gb-app">
+
 <!-- Sidebar -->
 <aside id="gb-sidebar" class="gb-sidebar" role="navigation" aria-label="Sidebar">
     <div class="gb-sidebar-top">
@@ -171,6 +180,11 @@
             </div>
         </div>
 
+        <!-- Scroll pill + suggestions above the composer -->
+        <div class="gb-dock-above" id="gbDockAbove" style="display:none;">
+            <div class="gb-suggestions gb-suggestions-dock" id="gbSuggestionsDock"></div>
+        </div>
+
         <!-- Docked composer -->
         <div id="gbComposerDock" class="gb-composer-dock" style="display:none;">
             <div class="gb-composer-inner">
@@ -204,7 +218,6 @@
                         </svg>
                     </button>
                 </div>
-                <div class="gb-suggestions gb-suggestions-dock" id="gbSuggestionsDock"></div>
             </div>
         </div>
     </div>
@@ -219,6 +232,7 @@
         <div id="gbSettingsContainer" class="gb-settings-container"></div>
     </div>
 </main>
+</div><!-- .gb-app -->
 
 <!-- Screen-reader announcements -->
 <div id="gbSrLive" class="gb-sr-only" aria-live="polite" role="status"></div>
