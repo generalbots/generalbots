@@ -224,7 +224,6 @@ fn main() {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init());
 
     #[cfg(target_os = "linux")]
     let builder = builder.plugin(desktop::webkit_permissions::plugin());

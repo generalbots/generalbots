@@ -272,8 +272,7 @@ fn stop_windows_stack(stack: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub fn open_folder(app: &tauri::AppHandle, kind: &str) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
+pub fn open_folder(_app: &tauri::AppHandle, kind: &str) -> Result<(), String> {
     let path = match kind {
         "logs" => log_path(),
         "vault" => stack_path().join("conf").join("vault"),
@@ -281,8 +280,7 @@ pub fn open_folder(app: &tauri::AppHandle, kind: &str) -> Result<(), String> {
         _ => stack_path(),
     };
     std::fs::create_dir_all(&path).ok();
-    app.opener()
-        .open_path(path.to_string_lossy().to_string(), None::<&str>)
+    opener::open(path)
         .map_err(|e| crate::desktop::i18n::t_args("folder-open-failed", &[("error", &e.to_string())]))
 }
 
@@ -292,13 +290,11 @@ const ALLOWED_URLS: &[&str] = &[
     "https://www.dropbox.com/developers/apps",
 ];
 
-pub fn open_url(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
+pub fn open_url(_app: &tauri::AppHandle, url: &str) -> Result<(), String> {
     if !ALLOWED_URLS.contains(&url) {
         return Err(crate::desktop::i18n::t("setup-url-not-allowed"));
     }
-    app.opener()
-        .open_url(url, None::<&str>)
+    opener::open(url)
         .map_err(|e| crate::desktop::i18n::t_args("browser-open-failed", &[("error", &e.to_string())]))
 }
 

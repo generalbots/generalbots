@@ -21,9 +21,9 @@ botvideo = { workspace = true }
 tauri = { version = "2.12", features = ["tray-icon", "image-ico", "image-png", "unstable"] }
 tauri-build = "2.6"
 tauri-plugin-dialog = "2.7"
-tauri-plugin-opener = "2.5"
-tauri-plugin-notification = "2.3"
+tauri-plugin-notification = "2.8"
 tauri-plugin-http = "2.8"
+opener = "0.7"
 tauri-plugin-geolocation = "2.3"
 
 # Common

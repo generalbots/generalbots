@@ -38,9 +38,6 @@ ignore = [
     { id = "RUSTSEC-2024-0429", reason = "Unsound Iterator/DoubleEndedIterator impls in glib 0.18 (transitive via the Tauri GTK desktop stack on Linux). Fixed by the GTK4 stack upgrade on the desktop track; no runtime exposure on the server. Accepted 2026-11-06, tracked in #2553." },
     { id = "RUSTSEC-2026-0192", reason = "ttf-parser is unmaintained; used for font metrics in document rendering, no attacker-reachable parser loop of our own. Accepted 2026-11-06, tracked in #2551." },
     { id = "RUSTSEC-2026-0249", reason = "smartstring is unmaintained; used by an office-document crate on the write path. Accepted 2026-11-06, tracked in #2552." },
-    { id = "RUSTSEC-2026-0370", reason = "zvariant is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build, never by botserver. Accepted 2026-11-06, tracked in #2550." },
-    { id = "RUSTSEC-2026-0371", reason = "zbus_names is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #2550." },
-    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #2550." },
 ]
 
 [licenses]

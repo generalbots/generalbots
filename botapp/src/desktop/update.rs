@@ -322,12 +322,9 @@ pub async fn check_release_update() -> Result<ReleaseInfo, String> {
 /// Only URLs under the project's `/releases` path are accepted so a malformed
 /// release payload can never make the shell open an arbitrary address.
 #[tauri::command]
-pub fn open_release_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
-
+pub fn open_release_url(_app: tauri::AppHandle, url: String) -> Result<(), String> {
     let url = release_url_or_page(&url);
-    app.opener()
-        .open_url(url, None::<&str>)
+    opener::open(&url)
         .map_err(|error| format!("could not open the release page: {error}"))
 }
 

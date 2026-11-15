@@ -16,7 +16,6 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # Tauri with mobile features
 tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
-tauri-plugin-opener = { workspace = true }
 tauri-plugin-notification = { workspace = true }
 tauri-plugin-http = { workspace = true }
 tauri-plugin-geolocation = { workspace = true }
