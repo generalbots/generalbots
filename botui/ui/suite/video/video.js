@@ -155,13 +155,17 @@ async function loadAll() {
 
 async function addCamera() {
   const payload = {
-    name: document.getElementById('cameraName').value,
-    rtsp_url: document.getElementById('cameraRtsp').value,
-    location: document.getElementById('cameraLocation').value
+    name: (document.getElementById('cameraName').value || '').trim(),
+    rtsp_url: (document.getElementById('cameraRtsp').value || '').trim(),
+    location: (document.getElementById('cameraLocation').value || '').trim()
   };
 
   if (!payload.name) {
-    showToast('Nome é obrigatório', 'error');
+    showToast('Name is required', 'error');
+    return;
+  }
+  if (!payload.rtsp_url) {
+    showToast('RTSP URL is required', 'error');
     return;
   }
 
@@ -172,14 +176,14 @@ async function addCamera() {
       body: JSON.stringify(payload)
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    showToast('Câmera adicionada com sucesso');
+    showToast('Camera added');
     document.getElementById('addCameraModal').classList.remove('active');
     document.getElementById('cameraName').value = '';
     document.getElementById('cameraRtsp').value = '';
     document.getElementById('cameraLocation').value = '';
     loadCameras();
   } catch (err) {
-    showToast(`Erro ao adicionar câmera: ${err.message}`, 'error');
+    showToast(`Failed to add camera: ${err.message}`, 'error');
   }
 }
 
