@@ -1,0 +1,16 @@
+name,value
+,
+# Default assistant of the government desktop edition: Chat and Drive on the
+# person's own computer.
+#
+# The model endpoint, the model name and the key are chosen in the first-run
+# wizard and kept in the secret store. They are deliberately absent from this
+# file, as are the local model server options, the embedding model and the
+# vector store address: the server has a default for each of them.
+,
+# Language of the assistant: fallback locale for suggestion labels.
+locale,pt-BR
+,
+# Every request is answered by the model. Without this line the response cache
+# is on by default and a repeated question would receive a stored answer.
+llm-cache,false
