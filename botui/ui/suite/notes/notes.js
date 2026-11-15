@@ -47,30 +47,41 @@
         if (n && typeof n.x === "number" && typeof n.y === "number") {
           posStyle = "position:absolute;left:" + n.x + "px;top:" + n.y + "px;width:220px;z-index:" + (10 + i) + ";cursor:grab;";
         }
+        var tsStr = String(n.ts);
+        var notePreview = String(n.text || "").slice(0, 30).replace(/"/g, '&quot;');
         return (
-          '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-i="' + i + '" data-ts="' + n.ts + '">' +
-          '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
+          '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-ts="' + tsStr + '">' +
+          '<textarea data-ts="' + tsStr + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + gbFormatDateTime(new Date(n.ts)) + "</span>" +
-          '<button class="note-del" data-del="' + i + '" title="Delete">✕</button>' +
+          '<button class="note-del" data-del-ts="' + tsStr + '" title="Delete" aria-label="Delete note: ' + escapeHtml(notePreview) + '">✕</button>' +
           "</div>" +
           "</div>"
         );
       })
       .join("");
-    Array.from(board.querySelectorAll("textarea")).forEach(function (ta) {
+    Array.from(board.querySelectorAll("textarea[data-ts]")).forEach(function (ta) {
       ta.addEventListener("input", function () {
+        const key = ta.dataset.ts;
         const list2 = read();
-        list2[parseInt(ta.dataset.i, 10)].text = ta.value;
+        const at = indexOfKey(list2, key);
+        if (at === -1) return; // note removed out of band
+        list2[at].text = ta.value;
         write(list2);
       });
     });
-    Array.from(board.querySelectorAll("[data-del]")).forEach(function (btn) {
+    Array.from(board.querySelectorAll("[data-del-ts]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
-        const list2 = read();
-        list2.splice(parseInt(btn.dataset.del, 10), 1);
-        write(list2);
-        render();
+        const key = btn.dataset.delTs;
+        var question = (window.GBModal && window.GBModal.confirm) ? null : "Delete this note?";
+        if (question && !confirm(question)) return;
+        if (window.GBModal && window.GBModal.confirm) {
+          window.GBModal.confirm("Delete this note?", function () {
+            remove(key);
+          });
+          return;
+        }
+        remove(key);
       });
     });
     Array.from(board.querySelectorAll(".note-card")).forEach(function (card) {
