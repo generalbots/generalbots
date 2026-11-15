@@ -121,13 +121,16 @@ async function loadSettings(){
     var accountEl=document.getElementById('settings-account');
     var badgeEl=document.getElementById('settings-status');
     var syncEl=document.getElementById('settings-sync');
-    if(data&&data.connected){
+    if(!data) return;
+    if(data.connected){
         if(accountEl)accountEl.textContent=data.account||'o365';
-        if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
-        if(syncEl)syncEl.textContent=(data.last_sync?gbFormatDateTime(new Date(data.last_sync)):gbFormatDateTime(new Date()));
+        if(badgeEl){badgeEl.textContent='Connected';badgeEl.className='o365-badge o365-badge-connected';badgeEl.style.display='inline-block'}
+        if(syncEl)syncEl.textContent=(data.last_sync?gbFormatDateTime(new Date(data.last_sync)):'Never');
     }else{
-        if(accountEl)accountEl.textContent='o365';
-        if(badgeEl){badgeEl.textContent='';badgeEl.className='o365-badge';badgeEl.style.display='none'}
+        if(accountEl)accountEl.textContent='Not connected';
+        if(badgeEl){badgeEl.textContent='Not connected';badgeEl.className='o365-badge o365-badge-disconnected';badgeEl.style.display='inline-block'}
+        if(syncEl&&data.last_sync)syncEl.textContent=gbFormatDateTime(new Date(data.last_sync));
+        else if(syncEl)syncEl.textContent='Never';
     }
 }
 
@@ -182,25 +185,31 @@ async function syncNow(){
     showFeedback('Syncing...','success');
     var syncEl=document.getElementById('settings-sync');
     if(syncEl)syncEl.textContent='Syncing...';
-    await apiCall('/api/o365/sync',{method:'POST'});
-    if(syncEl)syncEl.textContent=gbFormatDateTime(new Date());
+    var data=await apiCall('/api/o365/sync',{method:'POST'});
+    if(!data){
+        if(syncEl)syncEl.textContent='Never';
+        return;
+    }
     loadAll();
 }
 
 async function updateSync(type,frequency){
-    await apiCall('/api/o365/settings/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:type,frequency:parseInt(frequency)})});
+    var data=await apiCall('/api/o365/settings/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:type,frequency:parseInt(frequency)})});
+    if(!data) return;
     showFeedback('Sync frequency updated','success');
 }
 
 async function connectAccount(){
     showFeedback('Connecting to o365...','success');
-    await apiCall('/api/o365/connect',{method:'POST'});
+    var data=await apiCall('/api/o365/connect',{method:'POST'});
+    if(!data) return;
     loadAll();
 }
 
 async function disconnectAccount(){
     if(!confirm('Disconnect o365 account?'))return;
-    await apiCall('/api/o365/disconnect',{method:'POST'});
+    var data=await apiCall('/api/o365/disconnect',{method:'POST'});
+    if(!data) return;
     showFeedback('Account disconnected','success');
     loadAll();
 }
