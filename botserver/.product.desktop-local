@@ -11,7 +11,7 @@ name=General Bots
 
 # Always visible: the desktop essentials. Core surfaces (about, admin,
 # settings, auth) are always available without being listed here.
-apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations,docs,sheet,slides,paper,crm,billing,products,tasks,calendar,mail
+apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations,docs,sheet,slides,paper,crm,billing,products,tasks,calendar,mail,campaigns,lists,templates
 
 # Preview applications: revealed only while Preview mode is on. Every registry
 # app not in `apps=` is preview-only, so this list documents the 7.0 split;
