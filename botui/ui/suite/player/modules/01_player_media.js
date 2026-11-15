@@ -1,6 +1,7 @@
     let currentFile = null;
     let currentPlayer = null;
     let currentSlide = 0;
+    let activeBlobUrl = null;
     let totalSlides = 1;
     let driveSource = null;
 
@@ -71,7 +72,9 @@
             }
 
             const blob = await response.blob();
+            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {} activeBlobUrl = null; }
             const url = URL.createObjectURL(blob);
+            activeBlobUrl = url;
 
             if (type === "audio") {
                 showAudioPlayer(url);
@@ -115,7 +118,9 @@
                 throw new Error("this file cannot be previewed in the player");
             }
             const blob = await response.blob();
+            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {} activeBlobUrl = null; }
             const blobUrl = URL.createObjectURL(blob);
+            activeBlobUrl = blobUrl;
             if (type === "image") showImageViewer(blobUrl);
             else if (type === "video") showVideoPlayer(blobUrl);
             else if (type === "audio") showAudioPlayer(blobUrl);
@@ -149,6 +154,27 @@
         document.getElementById("presentation-viewer").classList.add("hidden");
         document.getElementById("empty-state").classList.add("hidden");
         document.getElementById("playback-controls").classList.add("hidden");
+        try {
+            const v = document.getElementById("video-element");
+            if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
+        } catch (e) {}
+        try {
+            const a = document.getElementById("audio-element");
+            if (a) { a.pause(); a.removeAttribute("src"); a.load(); }
+        } catch (e) {}
+        try {
+            const f = document.getElementById("document-frame");
+            if (f && f.src && f.src.startsWith("blob:")) { f.removeAttribute("src"); }
+        } catch (e) {}
+        try {
+            const img = document.getElementById("image-element");
+            if (img && img.src && img.src.startsWith("blob:")) { img.removeAttribute("src"); }
+        } catch (e) {}
+        if (activeBlobUrl) {
+            try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {}
+            activeBlobUrl = null;
+        }
+        currentPlayer = null;
     }
 
     function showVideoPlayer(url) {
