@@ -91,6 +91,14 @@
                     const resp = await fetch("/api/product");
                     if (resp.ok) {
                         window.productConfig = await resp.json();
+                        // Assistant shell redirect: when the product declares
+                        // shell=assistant, the desktop hands off to the new
+                        // assistant shell. This is a no-op until the server
+                        // returns the field.
+                        if (window.productConfig && window.productConfig.shell === "assistant") {
+                            location.replace("/suite/assistant/assistant.html" + location.search);
+                            return;
+                        }
                         // #1433 — honor the .product sidebar switch: sidebar=false
                         // must actually hide the rail on boot (the Settings
                         // toggle shares the same body.sidebar-hidden class).

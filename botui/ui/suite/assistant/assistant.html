@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Assistant</title>
+
+<!-- Identity tokens and fonts -->
+<link rel="stylesheet" href="/suite/identity/fonts.css" />
+<link rel="stylesheet" href="/suite/identity/tokens.css" />
+
+<!-- Assistant shell -->
+<link rel="stylesheet" href="/suite/assistant/assistant.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-chat.css" />
+
+<!-- Security bootstrap: only the token module is needed; the fetch
+     interceptor is omitted because it redirects on 401 from endpoints
+     that do not accept session tokens (e.g. i18n/preference).
+     The assistant shell manages auth headers in 02_api.js instead. -->
+<script src="/suite/js/security-bootstrap/01_tokens.js"></script>
+
+<!-- Assistant i18n dictionaries (local, no server dependency) -->
+<script src="/suite/assistant/i18n/pt-BR.js"></script>
+<script src="/suite/assistant/i18n/en.js"></script>
+
+<!-- Identity accent engine -->
+<script src="/suite/identity/accent.js"></script>
+
+<!-- Markdown renderer -->
+<script src="/suite/js/vendor/marked.min.js"></script>
+
+<script>
+/* Boot: capture token from URL before anything else renders. */
+(function () {
+    "use strict";
+    try {
+        var p = new URLSearchParams(window.location.search);
+        var t = p.get("token");
+        if (t && t.split(".").length !== 3) {
+            localStorage.setItem("gb-access-token", t);
+            var u = new URL(window.location.href);
+            u.searchParams.delete("token");
+            u.searchParams.delete("email");
+            u.searchParams.delete("name");
+            window.history.replaceState({}, "", u.pathname + u.search + u.hash);
+        }
+    } catch (e) { /* storage unavailable */ }
+
+    /* Tauri / sidecar origin: when served by the Tauri asset protocol,
+       all API and WS calls must target the sidecar HTTP server.
+       Preserve any value set before this script (e.g. by the test harness). */
+    if (typeof window.__GB_SERVER_ORIGIN__ === "undefined" || window.__GB_SERVER_ORIGIN__ === null) {
+        var isAsset =
+            window.location.protocol === "tauri:" ||
+            window.location.protocol === "asset:" ||
+            window.location.hostname === "tauri.localhost";
+        window.__GB_SERVER_ORIGIN__ = isAsset ? "http://127.0.0.1:8080" : "";
+    }
+})();
+</script>
+</head>
+
+<body>
+<!-- Sidebar -->
+<aside id="gb-sidebar" class="gb-sidebar" role="navigation" aria-label="Sidebar">
+    <div class="gb-sidebar-top">
+        <div class="gb-sidebar-brand">
+            <span class="gb-wordmark" id="gbWordmark"></span>
+            <button class="gb-btn-icon gb-sidebar-collapse-btn" id="gbSidebarToggle"
+                    aria-label="Toggle sidebar" title="Toggle sidebar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                </svg>
+            </button>
+        </div>
+
+        <button class="gb-new-chat-btn" id="gbNewChat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span data-i18n="assistant.new-chat">New chat</span>
+        </button>
+
+        <div class="gb-sidebar-search" id="gbSearchWrap">
+            <svg class="gb-search-icon" width="14" height="14" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="gbSearchInput" class="gb-search-input"
+                   data-i18n-placeholder="assistant.search" placeholder="Search..." />
+        </div>
+
+        <button class="gb-nav-item" id="gbNavDrive" data-view="drive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span data-i18n="assistant.drive">Drive</span>
+        </button>
+    </div>
+
+    <div class="gb-sidebar-conversations" id="gbConversations">
+        <!-- Conversation list populated by 04_sidebar.js -->
+    </div>
+
+    <div class="gb-sidebar-bottom">
+        <div class="gb-sidebar-user" id="gbUserSection">
+            <div class="gb-user-avatar" id="gbUserAvatar"></div>
+            <span class="gb-user-name" id="gbUserName"></span>
+        </div>
+        <button class="gb-nav-item" id="gbNavSettings" data-view="settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span data-i18n="assistant.settings">Settings</span>
+        </button>
+        <div class="gb-status-line" id="gbStatusLine">
+            <span class="gb-status-dot" id="gbStatusDot"></span>
+            <span class="gb-status-text" id="gbStatusText"></span>
+        </div>
+    </div>
+</aside>
+
+<!-- Main area -->
+<main id="gb-main" class="gb-main">
+    <!-- Chat view (default) -->
+    <div id="gbChatView" class="gb-chat-view gb-view-active">
+        <!-- Empty state -->
+        <div id="gbEmptyState" class="gb-empty-state">
+            <p class="gb-greeting" id="gbGreeting"></p>
+            <div class="gb-composer-card" id="gbComposerCardEmpty">
+                <textarea id="gbInputEmpty" class="gb-input-empty"
+                          data-i18n-placeholder="assistant.placeholder"
+                          placeholder="How can I help you?"
+                          rows="3"></textarea>
+                <div class="gb-composer-card-footer">
+                    <label class="gb-btn-icon gb-attach-btn" id="gbAttachEmpty"
+                           aria-label="Attach file" title="Attach file">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        <input type="file" id="gbFileEmpty" class="gb-file-input" multiple />
+                    </label>
+                    <select id="gbModelPickerEmpty" class="gb-model-picker" aria-label="Model">
+                    </select>
+                    <button class="gb-send-btn" id="gbSendEmpty" aria-label="Send">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="gb-suggestions" id="gbSuggestionsEmpty"></div>
+        </div>
+
+        <!-- Conversation area (hidden until first message) -->
+        <div id="gbConversation" class="gb-conversation" style="display:none;">
+            <div class="gb-messages" id="gbMessages" role="log" aria-live="polite">
+            </div>
+        </div>
+
+        <!-- Docked composer -->
+        <div id="gbComposerDock" class="gb-composer-dock" style="display:none;">
+            <div class="gb-composer-inner">
+                <div class="gb-file-chips" id="gbFileChips"></div>
+                <div class="gb-composer-row">
+                    <label class="gb-btn-icon gb-attach-btn" id="gbAttachDock"
+                           aria-label="Attach file" title="Attach file">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        <input type="file" id="gbFileDock" class="gb-file-input" multiple />
+                    </label>
+                    <textarea id="gbInputDock" class="gb-input-dock"
+                              data-i18n-placeholder="assistant.placeholder"
+                              placeholder="How can I help you?"
+                              rows="1"></textarea>
+                    <select id="gbModelPickerDock" class="gb-model-picker" aria-label="Model">
+                    </select>
+                    <button class="gb-send-btn" id="gbSendDock" aria-label="Send">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                    <button class="gb-stop-btn" id="gbStopBtn" style="display:none;"
+                            aria-label="Stop generating" title="Stop generating">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="gb-suggestions gb-suggestions-dock" id="gbSuggestionsDock"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drive view -->
+    <div id="gbDriveView" class="gb-drive-view" style="display:none;">
+        <div id="gbDriveContainer" class="gb-drive-container"></div>
+    </div>
+
+    <!-- Settings view -->
+    <div id="gbSettingsView" class="gb-settings-view" style="display:none;">
+        <div id="gbSettingsContainer" class="gb-settings-container"></div>
+    </div>
+</main>
+
+<!-- Screen-reader announcements -->
+<div id="gbSrLive" class="gb-sr-only" aria-live="polite" role="status"></div>
+
+<!-- Module scripts (ordered, plain scripts, not ES modules) -->
+<script src="/suite/assistant/modules/01_state.js"></script>
+<script src="/suite/assistant/modules/02_api.js"></script>
+<script src="/suite/assistant/modules/03_render.js"></script>
+<script src="/suite/assistant/modules/04_sidebar.js"></script>
+<script src="/suite/assistant/modules/05_composer.js"></script>
+<script src="/suite/assistant/modules/06_drive.js"></script>
+<script src="/suite/assistant/modules/99_init.js"></script>
+</body>
+</html>
