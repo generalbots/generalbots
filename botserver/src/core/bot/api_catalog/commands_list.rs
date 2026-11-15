@@ -873,12 +873,17 @@ pub fn api_command_instructions(role: &str) -> String {
     let mut lines = Vec::with_capacity(24);
     lines.push("---".to_string());
     lines.push("## API Commands".to_string());
-    lines.push(
+    // #2562 — suppress "or search the web" when the feature is not compiled.
+    let intro = if cfg!(feature = "research") || cfg!(feature = "web-search") {
         "You can call backend commands to read or change business data (fiscal, banking, drive files) \
          or search the web. Answer general-knowledge questions (trivia, definitions, opinions) DIRECTLY \
          with no command."
-            .to_string(),
-    );
+    } else {
+        "You can call backend commands to read or change business data (fiscal, banking, drive files). \
+         Answer general-knowledge questions (trivia, definitions, opinions) DIRECTLY \
+         with no command."
+    };
+    lines.push(intro.to_string());
     lines.push(format!(
         "Your role: {role}. Only issue commands you are allowed to use."
     ));

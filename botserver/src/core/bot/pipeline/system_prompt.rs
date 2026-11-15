@@ -109,7 +109,10 @@ pub(super) fn build(
     // here, after every channel-specific block, so a bot whose own `PROMPT.md`
     // omits it still answers in the user's language.
     let language = response_language_block(&client_locale(client_caps));
-    let blocks = [capability_block(channel, client_caps), language, delivery];
+    // #2562 — inject today's date so authored prompts do not need to hard-code
+    // it and the model does not have to guess or leave `[data]` placeholders.
+    let date = today_block();
+    let blocks = [date, capability_block(channel, client_caps), language, delivery];
     let appended = blocks
         .iter()
         .map(String::as_str)
@@ -135,7 +138,7 @@ pub fn client_locale(client_caps: Option<&serde_json::Value>) -> String {
         .to_string()
 }
 
-/// #2096 — “answer in the user's language”, in the shared builder.
+/// #2096 — "answer in the user's language", in the shared builder.
 ///
 /// Before this block existed the rule lived only in individual bot templates:
 /// a bot shipped without that paragraph answered in the language its prompt was
@@ -161,22 +164,60 @@ pub fn response_language_block(locale: &str) -> String {
     .join("\n")
 }
 
-/// #1939 — “ask, done” delivery policy: produce the artifact the user asked
+/// #1939 — "ask, done" delivery policy: produce the artifact the user asked
 /// for, in that format, using the open-source ecosystem instead of a
 /// hand-rolled substitute. The safety envelope is unchanged: this text only
 /// shapes the plan, every execution still passes the command/path/budget
 /// guards.
+///
+/// #2562 — lines that reference the workspace sandbox or web search are
+/// omitted when the corresponding feature (`agent-vm`, `research`/`web-search`)
+/// is not compiled in, so the model never receives instructions it cannot act on.
 #[must_use]
 pub fn delivery_policy_block() -> String {
-    [
-        "DELIVERY POLICY (ask, done)",
-        "- When the user names a deliverable or file type (pdf, pptx, xlsx, csv, png, zip, .fig, code, …), aim for that exact artifact and leave it where this client can fetch it.",
-        "- Prefer a maintained open-source library or command-line tool that already produces that format. If you are unsure which one is current, search the web first instead of guessing from memory, then use it.",
-        "- Install what the task needs in the sandbox, but keep installs, execution and file writes inside the existing limits (packages allowlist, time and size budgets, path and command guards).",
-        "- Never substitute a different format silently. If the exact format cannot be produced reliably, say so after checking the available open-source paths and offer the closest alternative that you can verify.",
-        "- Deliver quietly: no plan-only replies, no “here is how you would do it” when the work can be done now.",
-    ]
-    .join("\n")
+    let has_vm = cfg!(feature = "agent-vm");
+    let has_web = cfg!(feature = "research") || cfg!(feature = "web-search");
+
+    let mut lines = Vec::with_capacity(6);
+    lines.push("DELIVERY POLICY (ask, done)");
+    lines.push(
+        "- When the user names a deliverable or file type (pdf, pptx, xlsx, csv, png, zip, .fig, code, \u{2026}), aim for that exact artifact and leave it where this client can fetch it.",
+    );
+    if has_web {
+        lines.push(
+            "- Prefer a maintained open-source library or command-line tool that already produces that format. If you are unsure which one is current, search the web first instead of guessing from memory, then use it.",
+        );
+    } else {
+        lines.push(
+            "- Prefer a maintained open-source library or command-line tool that already produces that format.",
+        );
+    }
+    if has_vm {
+        lines.push(
+            "- Install what the task needs in the sandbox, but keep installs, execution and file writes inside the existing limits (packages allowlist, time and size budgets, path and command guards).",
+        );
+    }
+    lines.push(
+        "- Never substitute a different format silently. If the exact format cannot be produced reliably, say so and offer the closest alternative that you can verify.",
+    );
+    lines.push(
+        "- Deliver quietly: no plan-only replies, no \u{201c}here is how you would do it\u{201d} when the work can be done now.",
+    );
+    lines.join("\n")
+}
+
+/// #2562 — inject today's date so authored prompts receive it without
+/// hard-coding and the model never has to guess.  ISO date, weekday and
+/// server local time; the fallback prompt in `prompt.rs` already has the date,
+/// so the block is kept short to avoid doubling it.
+#[must_use]
+fn today_block() -> String {
+    let now = chrono::Local::now();
+    format!(
+        "Today is {} ({}).",
+        now.format("%Y-%m-%d"),
+        now.format("%A"),
+    )
 }
 
 /// #1975 — canvas drawing is a *selective* subsystem prompt: it is appended

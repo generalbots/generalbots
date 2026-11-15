@@ -350,9 +350,11 @@ pub async fn process_message_internal(
     // session-wide switch: it tells the model whether to plan execution or to
     // answer/patch through the catalog, while the guards stay in place.
     // #2239 — when Agent/VM is disabled, never offer or encourage workspace tools.
-    messages.push(serde_json::json!({
-        "role": "system",
-        "content": if !agent_enabled {
+    // #2562 — when `agent-vm` is not compiled, the simpler "answer directly"
+    //         block replaces the full VM-disabled message so the model never
+    //         sees controls or capabilities that do not exist in this build.
+    let turn_instruction = if !agent_enabled {
+        if cfg!(feature = "agent-vm") {
             format!(
                 "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
                  terminal_run, or terminal.exec, and do not assume a workspace/VM is available. \
@@ -362,16 +364,24 @@ pub async fn process_message_internal(
                 super::agent_turn::DISABLED_MESSAGE
             )
         } else {
-            match route.route {
-                crate::core::bot::ws::stream::routing::Route::Agentic => {
-                    "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
-                }
-                crate::core::bot::ws::stream::routing::Route::NonAgentic => {
-                    "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
-                }
-            }
-            .to_string()
+            "THIS TURN: Answer directly using your knowledge and the API command catalog. \
+             Do not reference terminal commands, code execution, sandboxes or file generation."
+                .to_string()
         }
+    } else {
+        match route.route {
+            crate::core::bot::ws::stream::routing::Route::Agentic => {
+                "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
+            }
+            crate::core::bot::ws::stream::routing::Route::NonAgentic => {
+                "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
+            }
+        }
+        .to_string()
+    };
+    messages.push(serde_json::json!({
+        "role": "system",
+        "content": turn_instruction
     }));
 
     // #1670 — structured answers and approved plans shape this turn's prompt.

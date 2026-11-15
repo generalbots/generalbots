@@ -85,12 +85,21 @@ fn agent_backend_available() -> bool {
 
 /// Resolve the effective agent/VM toggle for this turn and persist explicit
 /// payload values so the session is the single source of truth.
+///
+/// #2562 — when the `agent-vm` feature is not compiled in (e.g. gbgov,
+/// chat-only editions), the agent is forced off regardless of what the client
+/// sends, so the model never sees workspace instructions it cannot execute.
 pub async fn resolve_agent_enabled(
     state: &Arc<AppState>,
     session_id: Uuid,
     user_id: Uuid,
     payload: Option<bool>,
 ) -> bool {
+    // No agent-vm feature → no workspace, force off.
+    if !cfg!(feature = "agent-vm") {
+        return false;
+    }
+
     #[cfg(all(windows, feature = "agent-vm"))]
     if !agent_backend_available() {
         return false;
