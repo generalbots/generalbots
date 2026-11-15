@@ -76,10 +76,41 @@
         }
         if (!window.marked) { return escapeHtml(clean); }
         try {
-            return sanitizeHtml(window.marked.parse(clean));
+            return inlineCodeInHtml(sanitizeHtml(window.marked.parse(clean)));
         } catch (e) { return escapeHtml(clean); }
     }
     A.mdToHtml = mdToHtml;
+
+    /* Some models answer with HTML lists and still write `code` spans in
+       them. Markdown is not parsed inside HTML blocks, so the backticks would
+       show: turn those spans into code elements, outside code and pre only. */
+    function inlineCodeInHtml(html) {
+        if (html.indexOf("`") === -1) { return html; }
+        var box = document.createElement("template");
+        box.innerHTML = html;
+        var walker = document.createTreeWalker(box.content, NodeFilter.SHOW_TEXT);
+        var nodes = [];
+        while (walker.nextNode()) {
+            var n = walker.currentNode;
+            if (n.nodeValue.indexOf("`") !== -1 && !n.parentElement.closest("code, pre")) { nodes.push(n); }
+        }
+        nodes.forEach(function (n) {
+            var parts = n.nodeValue.split(/`([^`]+)`/);
+            if (parts.length < 3) { return; }
+            var frag = document.createDocumentFragment();
+            parts.forEach(function (part, i) {
+                if (i % 2 === 1) {
+                    var code = document.createElement("code");
+                    code.textContent = part;
+                    frag.appendChild(code);
+                } else if (part) {
+                    frag.appendChild(document.createTextNode(part));
+                }
+            });
+            n.parentNode.replaceChild(frag, n);
+        });
+        return box.innerHTML;
+    }
 
     /* ================================================================
        Code block enhancement

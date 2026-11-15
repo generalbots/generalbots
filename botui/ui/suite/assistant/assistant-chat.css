@@ -436,7 +436,6 @@
 .gb-drive-container .drive-sidebar { background: var(--id-surface); }
 .gb-settings-view { overflow: auto; padding: var(--id-space-6); }
 .gb-settings-container { max-width: 600px; margin: 0 auto; }
-
 /* ================================================================
    Responsive
    ================================================================ */
