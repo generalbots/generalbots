@@ -37,8 +37,8 @@ pub(super) async fn create_default_organization(client: &ZitadelClient) -> Resul
     }
 }
 pub(super) fn save_setup_credentials(result: &BootstrapResult) {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let creds_path = format!("{}/.gb-setup-credentials", home);
+    let base = dirs::home_dir().unwrap_or_else(|| std::env::temp_dir());
+    let creds_path = base.join(".gb-setup-credentials");
 
     let content = format!(
         r#"# General Bots Initial Setup Credentials
@@ -66,18 +66,32 @@ pub(super) fn save_setup_credentials(result: &BootstrapResult) {
         result.email
     );
 
-    match fs::write(&creds_path, &content) {
-        Ok(_) => {
-            #[cfg(unix)]
-            {
-                if let Err(e) = botlib::os::fs::get_permissions_manager().set_readonly_owner(creds_path.as_ref()) {
-                    warn!("Failed to set file permissions: {}", e);
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        match std::fs::OpenOptions::new().create(true).write(true).truncate(true).mode(0o600).open(&creds_path) {
+            Ok(mut f) => {
+                if let Err(e) = f.write_all(content.as_bytes()) {
+                    log::error!("Failed to write setup credentials: {}", e);
+                } else {
+                    info!("Setup credentials saved to: {}", creds_path.display());
                 }
             }
-            info!("Setup credentials saved to: {}", creds_path);
+            Err(e) => {
+                log::error!("Failed to save setup credentials: {}", e);
+            }
         }
-        Err(e) => {
-            log::error!("Failed to save setup credentials: {}", e);
+    }
+    #[cfg(not(unix))]
+    {
+        match fs::write(&creds_path, &content) {
+            Ok(_) => {
+                info!("Setup credentials saved to: {} (restrict permissions manually on this OS)", creds_path.display());
+            }
+            Err(e) => {
+                log::error!("Failed to save setup credentials: {}", e);
+            }
         }
     }
 }
@@ -92,18 +106,32 @@ pub(super) fn save_admin_pat_token(pat_token: &str) {
 
     let pat_path = pat_dir.join("admin-pat.txt");
 
-    match fs::write(&pat_path, pat_token) {
-        Ok(_) => {
-            #[cfg(unix)]
-            {
-                if let Err(e) = botlib::os::fs::get_permissions_manager().set_readonly_owner(&pat_path) {
-                    warn!("Failed to set PAT file permissions: {}", e);
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        match std::fs::OpenOptions::new().create(true).write(true).truncate(true).mode(0o600).open(&pat_path) {
+            Ok(mut f) => {
+                if let Err(e) = f.write_all(pat_token.as_bytes()) {
+                    log::error!("Failed to save admin PAT token: {}", e);
+                } else {
+                    info!("Admin PAT token saved to: {}", pat_path.display());
                 }
             }
-            info!("Admin PAT token saved to: {}", pat_path.display());
+            Err(e) => {
+                log::error!("Failed to save admin PAT token: {}", e);
+            }
         }
-        Err(e) => {
-            log::error!("Failed to save admin PAT token: {}", e);
+    }
+    #[cfg(not(unix))]
+    {
+        match fs::write(&pat_path, pat_token) {
+            Ok(_) => {
+                info!("Admin PAT token saved to: {} (restrict permissions manually on this OS)", pat_path.display());
+            }
+            Err(e) => {
+                log::error!("Failed to save admin PAT token: {}", e);
+            }
         }
     }
 }
