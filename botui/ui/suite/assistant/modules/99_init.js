@@ -69,6 +69,7 @@
         A.initSearch();
         A.initNavigation();
         A.initUserMenu();
+        if (typeof A.initScroll === "function") { A.initScroll(); }
 
         /* 11. Connect WebSocket (uses the new session) */
         A.connectWs();

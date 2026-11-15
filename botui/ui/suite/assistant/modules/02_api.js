@@ -279,6 +279,14 @@
             return;
         }
 
+        /* Run events (AG-UI protocol): gb_event frames.
+           These carry tool-call progress, run lifecycle, etc. */
+        if (data.gb_event) {
+            /* These are informational in this build: the thinking
+               indicator already covers the turn, so we just note them. */
+            return;
+        }
+
         /* Bot response (streaming or complete) */
         if (data.message_type === 2 || data.type === "bot_response") {
             if (typeof A.onBotMessage === "function") {
@@ -319,6 +327,14 @@
             channel: "web",
             content: text,
             message_type: messageType || 1,
+            /* The gbgov build does not compile vm_exec, agent-workspace,
+               ui-automation or web-search. Without these flags the server
+               defaults agent_enabled and ui_automation to ON and injects
+               agentic/vm_exec/UI-plan instructions into the system prompt,
+               which the model then hallucinates and leaks as raw text. */
+            agent_enabled: false,
+            ui_automation: false,
+            web_search: false,
         };
         if (A.selectedModel) { payload.model_preference = A.selectedModel; }
         if (files && files.length > 0) { payload.files = files; }
@@ -329,8 +345,10 @@
     A.cancelGeneration = function () {
         if (!A.ws || A.ws.readyState !== 1) { return; }
         A.ws.send(JSON.stringify({
-            type: "cancel",
+            type: "run_cancel",
             session_id: A.currentSessionId || A.sessionId || "",
         }));
+        A.isStreaming = false;
+        if (typeof A.onStreamEnd === "function") { A.onStreamEnd(); }
     };
 })();
