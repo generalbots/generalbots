@@ -55,6 +55,13 @@ fn registry_action_names(provider_id: &str) -> Vec<&'static str> {
     Vec::new()
 }
 
+/// A provider is offered to the assistant only when this build can act on it:
+/// without the `integrations` feature no adapter is compiled in, whatever the
+/// seed declares.
+fn offered_to_the_assistant(declared: bool, adapter_present: bool) -> bool {
+    cfg!(feature = "integrations") && (declared || adapter_present)
+}
+
 /// #2048 — the provider badge is derived, never stored.
 ///
 /// The catalog used to carry a hardcoded `status` per seed, which drifted in
@@ -127,7 +134,7 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
         auth: *seed.auth,
         action_count: actions.len(),
         actions,
-        llm_available: seed.llm_available || adapter_present,
+        llm_available: offered_to_the_assistant(seed.llm_available, adapter_present),
         adapter_present,
         adapter_action_count: adapter_actions.len(),
     }
@@ -244,7 +251,10 @@ pub fn llm_search(
             category: seed.category,
             status: derived_status_of(seed),
             action_count: seed.actions.len(),
-            llm_available: seed.llm_available || !registry_action_names(seed.id).is_empty(),
+            llm_available: offered_to_the_assistant(
+                seed.llm_available,
+                !registry_action_names(seed.id).is_empty(),
+            ),
         })
         .collect()
 }
