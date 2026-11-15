@@ -67,7 +67,25 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         urls.len()
     );
 
-    let max_attempts = 12;
+    // #2562 — When nothing listens on the cache port (connection refused), no
+    // amount of retrying will help: the process was never started. Probe the
+    // port once before entering the retry loop so we fail in < 1 s instead of
+    // burning 12 x (3 s connect + 5 s sleep) = ~100 s.
+    let cache_port: u16 = urls
+        .first()
+        .and_then(|u| url::Url::parse(u).ok())
+        .and_then(|u| u.port())
+        .unwrap_or(6379);
+    if !cache_port_open(cache_port) {
+        warn!(
+            "Cache port {} is not accepting connections (connection refused). \
+             Cache functions will be disabled.",
+            cache_port
+        );
+        return None;
+    }
+
+    let max_attempts = 6;
     let mut attempt = 0;
     let mut url_index = 0;
 
@@ -116,10 +134,10 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                 }
                 if attempt < max_attempts {
                     info!(
-                        "Cache connection attempt {}/{} failed: {}. Retrying in 5s...",
+                        "Cache connection attempt {}/{} failed: {}. Retrying in 3s...",
                         attempt, max_attempts, e
                     );
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                     continue;
                 } else {
                     warn!("Cache connection failed after {} attempts: {}. Cache functions will be disabled.", max_attempts, e);
@@ -128,8 +146,8 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
             }
             Err(e) => {
                 if attempt < max_attempts {
-                    info!("Cache connection attempt {}/{} failed with task error: {}. Retrying in 5s...", attempt, max_attempts, e);
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    info!("Cache connection attempt {}/{} failed with task error: {}. Retrying in 3s...", attempt, max_attempts, e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                     continue;
                 } else {
                     warn!("Cache connection failed after {} attempts with task error: {}. Cache functions will be disabled.", max_attempts, e);
@@ -137,5 +155,22 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                 }
             }
         }
+    }
+}
+
+/// Quick TCP probe — returns `true` when the port accepts a connection.
+fn cache_port_open(port: u16) -> bool {
+    let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    std::net::TcpStream::connect_timeout(&address, std::time::Duration::from_millis(500)).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cache_port_open;
+
+    #[test]
+    fn closed_port_returns_false() {
+        // Port 1 is almost certainly not listening on loopback.
+        assert!(!cache_port_open(1));
     }
 }
