@@ -29,7 +29,7 @@ function switchTab(tab,btn){
     document.querySelectorAll('.kyc-tab').forEach(function(t){t.classList.remove('active')});
     document.querySelectorAll('.kyc-panel').forEach(function(p){p.classList.remove('active')});
     if(btn)btn.classList.add('active');
-    var panel=document.getElementById('panel-'+tab);
+    var panel=document.getElementById(tab==='verifications' ? 'panel-verifications' : 'kyc-panel-'+tab);
     if(panel)panel.classList.add('active');
 }
 
@@ -37,10 +37,10 @@ function updateStats(){
     var pending=verifications.filter(function(v){return v.status==='pending'}).length;
     var verified=verifications.filter(function(v){return v.status==='verified'}).length;
     var failed=verifications.filter(function(v){return v.status==='failed'}).length;
-    var elP=document.getElementById('stat-pending');
-    var elV=document.getElementById('stat-verified');
-    var elF=document.getElementById('stat-failed');
-    var elT=document.getElementById('stat-total');
+    var elP=document.getElementById('kyc-stat-pending');
+    var elV=document.getElementById('kyc-stat-verified');
+    var elF=document.getElementById('kyc-stat-failed');
+    var elT=document.getElementById('kyc-stat-total');
     if(elP)elP.textContent=pending;
     if(elV)elV.textContent=verified;
     if(elF)elF.textContent=failed;
@@ -70,7 +70,7 @@ function renderVerifications(){
 }
 
 function renderSignatures(){
-    var tbody=document.getElementById('signatures-tbody');
+    var tbody=document.getElementById('kyc-signatures-tbody');
     if(!tbody)return;
     if(signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="kyc-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=signatures.map(function(s){
@@ -85,7 +85,7 @@ function renderSignatures(){
 }
 
 function renderCertificates(){
-    var grid=document.getElementById('certificates-grid');
+    var grid=document.getElementById('kyc-certificates-grid');
     if(!grid)return;
     if(certificates.length===0){grid.innerHTML='<div class="kyc-empty"><div class="kyc-empty-icon">📜</div><h3>No Certificates</h3><p>No digital certificates found</p></div>';return}
     grid.innerHTML=certificates.map(function(c){
@@ -133,9 +133,9 @@ async function rejectUser(id){
 
 function openSignaturePad(docId){
     selectedSignDoc=docId;
-    var area=document.getElementById('signature-pad-area');
+    var area=document.getElementById('kyc-signature-pad-area');
     if(area)area.style.display='block';
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
     // Make canvas responsive to container width while keeping aspect
     var parent = canvas.parentElement;
@@ -170,7 +170,7 @@ function openSignaturePad(docId){
 }
 
 function clearSignature(){
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';
@@ -180,7 +180,7 @@ function clearSignature(){
 
 async function submitSignature(){
     if(!selectedSignDoc){ showFeedback('No document selected','error'); return; }
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas){ showFeedback('Signature pad not ready','error'); return; }
     if(!canvas.hasDrawn){ showFeedback('Please draw your signature before submitting','error'); return; }
     var signatureData=canvas.toDataURL('image/png');
@@ -192,7 +192,7 @@ async function submitSignature(){
     if(data){
         showFeedback('Document signed','success');
         selectedSignDoc=null;
-        var area=document.getElementById('signature-pad-area');
+        var area=document.getElementById('kyc-signature-pad-area');
         if(area)area.style.display='none';
         loadSignatures();
     }

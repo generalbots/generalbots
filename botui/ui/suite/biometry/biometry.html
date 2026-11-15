@@ -15,8 +15,8 @@
     </header>
 
     <div class="bio-stats">
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-pending-kyc">Pending KYC</span><span class="bio-stat-value yellow" id="stat-pending">0</span></div>
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-verified">Verified</span><span class="bio-stat-value green" id="stat-verified">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-pending-kyc">Pending KYC</span><span class="bio-stat-value yellow" id="bio-stat-pending">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-verified">Verified</span><span class="bio-stat-value green" id="bio-stat-verified">0</span></div>
         <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-liveness-checks">Liveness Checks</span><span class="bio-stat-value blue" id="stat-liveness">0</span></div>
         <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-signatures">Signatures</span><span class="bio-stat-value purple" id="stat-signatures">0</span></div>
     </div>
@@ -62,7 +62,7 @@
             </div>
         </div>
 
-        <div class="bio-panel" id="panel-signatures">
+        <div class="bio-panel" id="bio-panel-signatures">
             <div class="bio-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-documents-awaiting-signature">Documents Awaiting Signature</h3>
@@ -71,11 +71,11 @@
                 <div style="overflow-x:auto">
                     <table class="bio-table">
                         <thead><tr><th data-i18n="auto-document">Document</th><th data-i18n="label-type">Type</th><th data-i18n="auto-signer">Signer</th><th data-i18n="auto-requested">Requested</th><th data-i18n="security-col-action">Action</th></tr></thead>
-                        <tbody id="signatures-tbody"><tr><td colspan="5" class="bio-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
+                        <tbody id="bio-signatures-tbody"><tr><td colspan="5" class="bio-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
                     </table>
                 </div>
             </div>
-            <div id="signature-pad-area" style="margin-top:16px;display:none">
+            <div id="bio-signature-pad-area" style="margin-top:16px;display:none">
                 <div class="bio-table-wrapper">
                     <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                         <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-signature-pad">Signature Pad</h3>
@@ -85,14 +85,14 @@
                         </div>
                     </div>
                     <div style="padding:16px;display:flex;justify-content:center">
-                        <canvas id="signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px;touch-action:none;max-width:100%"></canvas>
+                        <canvas id="bio-signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px;touch-action:none;max-width:100%"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="bio-panel" id="panel-certificates">
-            <div class="bio-grid" id="certificates-grid">
+        <div class="bio-panel" id="bio-panel-certificates">
+            <div class="bio-grid" id="bio-certificates-grid">
                 <div class="bio-empty"><div class="bio-empty-icon">📜</div><h3 data-i18n="auto-loading-certificates">Loading certificates...</h3></div>
             </div>
         </div>

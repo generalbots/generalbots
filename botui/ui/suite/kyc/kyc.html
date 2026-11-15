@@ -3,7 +3,7 @@
 <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/kyc/kyc.js"></script>
 
-<div class="kyc-container">
+<div class="kyc-container" data-gb-app="kyc">
     <header class="kyc-header">
         <h1 data-i18n="auto-kyc-dashboard">KYC Dashboard</h1>
         <div class="kyc-header-actions">
@@ -15,8 +15,8 @@
     </header>
 
     <div class="kyc-stats">
-        <div class="kyc-stat-card"><span class="kyc-stat-label" data-i18n="label-pending">Pending</span><span class="kyc-stat-value yellow" id="stat-pending">0</span></div>
-        <div class="kyc-stat-card"><span class="kyc-stat-label" data-i18n="auto-verified">Verified</span><span class="kyc-stat-value green" id="stat-verified">0</span></div>
+        <div class="kyc-stat-card"><span class="kyc-stat-label" data-i18n="label-pending">Pending</span><span class="kyc-stat-value yellow" id="kyc-stat-pending">0</span></div>
+        <div class="kyc-stat-card"><span class="kyc-stat-label" data-i18n="auto-verified">Verified</span><span class="kyc-stat-value green" id="kyc-stat-verified">0</span></div>
         <div class="kyc-stat-card"><span class="kyc-stat-label" data-i18n="status-failed">Failed</span><span class="kyc-stat-value red" id="stat-failed">0</span></div>
         <div class="kyc-stat-card"><span class="kyc-stat-label">Total</span><span class="kyc-stat-value blue" id="stat-total">0</span></div>
     </div>
@@ -34,7 +34,7 @@
             </div>
         </div>
 
-        <div class="kyc-panel" id="panel-signatures">
+        <div class="kyc-panel" id="kyc-panel-signatures">
             <div class="kyc-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-documents-awaiting-signature">Documents Awaiting Signature</h3>
@@ -43,11 +43,11 @@
                 <div class="kyc-table-scroll" style="overflow-x:auto">
                     <table class="kyc-table">
                         <thead><tr><th data-i18n="auto-document">Document</th><th data-i18n="label-type">Type</th><th data-i18n="auto-requested">Requested</th><th data-i18n="auto-signer">Signer</th><th data-i18n="security-col-action">Action</th></tr></thead>
-                        <tbody id="signatures-tbody"><tr><td colspan="5" class="kyc-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
+                        <tbody id="kyc-signatures-tbody"><tr><td colspan="5" class="kyc-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
                     </table>
                 </div>
             </div>
-            <div id="signature-pad-area" style="margin-top:16px;display:none">
+            <div id="kyc-signature-pad-area" style="margin-top:16px;display:none">
                 <div class="kyc-table-wrapper">
                     <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                         <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-signature-pad">Signature Pad</h3>
@@ -57,14 +57,14 @@
                         </div>
                     </div>
                     <div style="padding:16px;display:flex;justify-content:center">
-                        <canvas id="signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px;touch-action:none;max-width:100%"></canvas>
+                        <canvas id="kyc-signature-canvas" width="500" height="200" style="background:#0f172a;border-radius:8px;touch-action:none;max-width:100%"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="kyc-panel" id="panel-certificates">
-            <div class="kyc-grid" id="certificates-grid">
+        <div class="kyc-panel" id="kyc-panel-certificates">
+            <div class="kyc-grid" id="kyc-certificates-grid">
                 <div class="kyc-empty"><div class="kyc-empty-icon">📜</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-certificate-data">Fetching certificate data</p></div>
             </div>
         </div>

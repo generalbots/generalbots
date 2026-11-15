@@ -21,13 +21,13 @@ function switchTab(tab,btn){
     document.querySelectorAll('.bio-tab').forEach(function(t){t.classList.remove('active')});
     document.querySelectorAll('.bio-panel').forEach(function(p){p.classList.remove('active')});
     if(btn)btn.classList.add('active');
-    var panel=document.getElementById('panel-'+tab);
+    var panelId = (tab==='signatures'||tab==='certificates') ? ('bio-panel-'+tab) : ('panel-'+tab); var panel=document.getElementById(panelId);
     if(panel)panel.classList.add('active');
 }
 
 function updateStats(){
-    var p=document.getElementById('stat-pending');
-    var v=document.getElementById('stat-verified');
+    var p=document.getElementById('bio-stat-pending');
+    var v=document.getElementById('bio-stat-verified');
     var l=document.getElementById('stat-liveness');
     var s=document.getElementById('stat-signatures');
     if(p)p.textContent=state.kyc.filter(function(x){return x.status==='pending'}).length;
@@ -58,7 +58,7 @@ function renderKyc(){
 }
 
 function renderSignatures(){
-    var tbody=document.getElementById('signatures-tbody');
+    var tbody=document.getElementById('bio-signatures-tbody');
     if(!tbody)return;
     if(state.signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="bio-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=state.signatures.map(function(s){
@@ -73,7 +73,7 @@ function renderSignatures(){
 }
 
 function renderCertificates(){
-    var grid=document.getElementById('certificates-grid');
+    var grid=document.getElementById('bio-certificates-grid');
     if(!grid)return;
     if(state.certificates.length===0){grid.innerHTML='<div class="bio-empty"><div class="bio-empty-icon">📜</div><h3>No Certificates</h3><p>No digital certificates found</p></div>';return}
     grid.innerHTML=state.certificates.map(function(c){
@@ -157,9 +157,9 @@ async function rejectUser(id){
 function openSignaturePad(docId){
     state.selectedSignDoc=docId;
     state.hasDrawn = false;
-    var area=document.getElementById('signature-pad-area');
+    var area=document.getElementById('bio-signature-pad-area');
     if(area)area.style.display='block';
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
     var parent = canvas.parentElement;
     if(parent){
@@ -189,7 +189,7 @@ function openSignaturePad(docId){
 }
 
 function clearSignature(){
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -198,7 +198,7 @@ function clearSignature(){
 
 async function submitSignature(){
     if(!state.selectedSignDoc){ showFeedback('No document selected','error'); return; }
-    var canvas=document.getElementById('signature-canvas');
+    var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas){ showFeedback('Signature pad not ready','error'); return; }
     if(!state.hasDrawn){ showFeedback('Please draw your signature before submitting','error'); return; }
     var signatureData=canvas.toDataURL('image/png');
@@ -206,7 +206,7 @@ async function submitSignature(){
     if(data){
         showFeedback('Document signed with biometric attestation','success');
         state.selectedSignDoc=null;
-        var area=document.getElementById('signature-pad-area');
+        var area=document.getElementById('bio-signature-pad-area');
         if(area)area.style.display='none';
         loadSignatures();
     }
