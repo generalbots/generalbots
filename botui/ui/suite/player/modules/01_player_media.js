@@ -333,7 +333,12 @@
 
     function shareFile() {
         if (!currentFile) return;
-        const url = `${window.location.origin}/player?file=${encodeURIComponent(currentFile.path)}`;
+        let url;
+        if (typeof driveSource !== 'undefined' && driveSource && driveSource.bucket && driveSource.path) {
+            url = `${window.location.origin}/player?bucket=${encodeURIComponent(driveSource.bucket)}&path=${encodeURIComponent(driveSource.path)}`;
+        } else {
+            url = `${window.location.origin}/player?path=${encodeURIComponent(currentFile.path || '')}`;
+        }
         navigator.clipboard.writeText(url);
         if (window.GBToasts && typeof window.GBToasts.show === "function") {
             window.GBToasts.show("Share", "Link copied to clipboard!", "success");
