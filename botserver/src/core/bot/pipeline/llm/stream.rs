@@ -269,7 +269,7 @@ async fn stream_llm_response_inner(
                     }
                     {
                         let mut sm = state.session_manager.lock().await;
-                        let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                        let _ = sm.save_message(session_id, user_id, 2, &err_msg, 2);
                         let _ = sm.record_message_model(session_id, llm_model);
                     }
                     return Ok(());
