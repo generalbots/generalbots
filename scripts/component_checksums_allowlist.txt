@@ -5,7 +5,6 @@
 # here, so the list can only shrink. The installer warns for every component in
 # this state and refuses it outright when GB_REQUIRE_CHECKSUMS=1.
 botmodels     bundled by the release job, which verifies SHA256SUMS-pythonbox before packaging; the runtime {tag} URL carries no per-release hash in this file
-email         Stalwart publishes a sigstore bundle (.sigstore.json) instead of a SHA-256; verify with cosign
 libpq_win     EDB's build service serves no checksum file (the .sha256 path answers 403)
 llm           the llama.cpp arm64 archive has no per-asset checksum upstream
 table_editor  NocoDB publishes no release assets at all, so there is no checksum and no Windows build
