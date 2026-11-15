@@ -1,0 +1,74 @@
+/* Assistant shell -- chat background pattern modes.
+   Loaded after assistant.css. Controls .gb-main::before pattern layer. */
+
+/* Pattern modes: none hides the layer; image is the default shipped .png;
+   css replaces the mask with a CSS pattern set by a dynamic <style>. */
+.gb-pattern-none.gb-main::before { display: none; }
+.gb-pattern-image.gb-main::before {
+    -webkit-mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
+    mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
+}
+
+/* == Suggestion chip remove control == */
+.gb-suggestion-remove {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; margin-left: 4px; margin-right: -4px;
+    border-radius: 50%; font-size: 14px; line-height: 1;
+    color: var(--id-gray-400); cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
+}
+.gb-suggestion-remove:hover { background: var(--id-gray-200); color: var(--id-ink); }
+
+/* == Inline conversation rename input == */
+.gb-conv-rename-input {
+    width: 100%; padding: 2px 4px; border: 1px solid var(--id-accent);
+    border-radius: 4px; background: var(--id-surface-solid);
+    font-family: var(--id-font-sans); font-size: var(--id-text-sm);
+    color: var(--id-ink); outline: none;
+}
+
+/* == Inline delete confirmation == */
+.gb-conv-confirm {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px; width: 100%;
+}
+.gb-conv-confirm-text {
+    flex: 1; font-size: var(--id-text-xs); color: var(--id-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gb-conv-confirm-error { color: #dc2626; }
+.gb-conv-confirm-btn {
+    padding: 2px 8px; border: 1px solid var(--id-line);
+    border-radius: 4px; background: var(--id-surface-solid);
+    color: var(--id-text); font-size: var(--id-text-xs);
+    font-family: var(--id-font-sans); cursor: pointer; white-space: nowrap;
+    transition: background var(--id-dur-fast) var(--id-ease);
+}
+.gb-conv-confirm-btn:hover { background: var(--id-fill); }
+.gb-conv-confirm-btn:focus-visible { box-shadow: var(--id-focus); }
+.gb-conv-confirm-danger {
+    color: #dc2626; border-color: rgb(220 38 38/.3);
+}
+.gb-conv-confirm-danger:hover { background: rgb(220 38 38/.06); }
+
+/* == In-page confirmation dialog (replaces confirm/alert) == */
+.gb-inline-dialog {
+    position: fixed; inset: 0; z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+}
+.gb-inline-dialog-backdrop {
+    position: absolute; inset: 0; background: rgb(0 0 0/.3);
+}
+.gb-inline-dialog-box {
+    position: relative; z-index: 1; max-width: 380px; width: 90%;
+    background: var(--id-surface-solid); border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-card); padding: var(--id-space-5);
+    box-shadow: var(--id-shadow-float);
+}
+.gb-inline-dialog-text {
+    font-size: var(--id-text-md); color: var(--id-ink); margin-bottom: var(--id-space-4);
+    line-height: 1.5;
+}
+.gb-inline-dialog-actions {
+    display: flex; gap: var(--id-space-2); justify-content: flex-end;
+}

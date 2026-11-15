@@ -117,6 +117,65 @@
     }
 
     /* -- Appearance -- */
+    var PATTERNS = [
+        { id: "none", css: "" },
+        { id: "dots", css: "background-image:radial-gradient(var(--id-accent) 0.8px, var(--id-paper) 0.8px);background-size:8px 8px;" },
+        { id: "microdots", css: "background:radial-gradient(var(--id-accent) 15%,transparent 16%) 0 0,radial-gradient(var(--id-accent) 15%,transparent 16%) 4px 4px,radial-gradient(var(--pat-accent20) 15%,transparent 20%) 0 1px,radial-gradient(var(--pat-accent20) 15%,transparent 20%) 4px 5px;background-color:var(--id-paper);background-size:8px 8px;" },
+        { id: "grid", css: "background-image:linear-gradient(var(--id-accent) 0.8px,transparent 0.8px),linear-gradient(90deg,var(--id-accent) 0.8px,transparent 0.8px),linear-gradient(var(--id-accent) 0.4px,transparent 0.4px),linear-gradient(90deg,var(--id-accent) 0.4px,var(--id-paper) 0.4px);background-size:40px 40px,40px 40px,8px 8px,8px 8px;background-position:-0.8px -0.8px,-0.8px -0.8px,-0.4px -0.4px,-0.4px -0.4px;" },
+        { id: "blueprint", css: "background-image:repeating-linear-gradient(to right,transparent 0,transparent 1.333px,var(--id-paper) 1.333px,var(--id-paper) 4px,transparent 4px,transparent 5.333px),repeating-linear-gradient(to bottom,transparent 0,transparent 1.333px,var(--id-paper) 1.333px,var(--id-paper) 4px,transparent 4px,transparent 5.333px),linear-gradient(to bottom,var(--id-accent) 0.48px,transparent 0.48px),linear-gradient(to right,var(--id-accent) 0.48px,transparent 0.48px);background-size:100% 100%,100% 100%,16px 16px,16px 16px;background-position:0 0,0 0,0 -0.16px,-0.16px 0;" },
+        { id: "weave", css: "background:radial-gradient(circle,transparent 20%,var(--id-paper) 20%,var(--id-paper) 80%,transparent 80%,transparent),radial-gradient(circle,transparent 20%,var(--id-paper) 20%,var(--id-paper) 80%,transparent 80%,transparent) 15px 15px,linear-gradient(var(--id-accent) 1.2px,transparent 1.2px) 0 -0.6px,linear-gradient(90deg,var(--id-accent) 1.2px,var(--id-paper) 1.2px) -0.6px 0;background-size:30px 30px,30px 30px,15px 15px,15px 15px;" },
+        { id: "mosaic", css: "background-image:repeating-linear-gradient(0deg,transparent,transparent 11px,var(--id-accent) 11px,var(--id-accent) 12px,transparent 12px,transparent 23px,var(--id-accent) 23px,var(--id-accent) 24px),repeating-linear-gradient(90deg,transparent,transparent 11px,var(--id-accent) 11px,var(--id-accent) 12px,transparent 12px,transparent 23px,var(--id-accent) 23px,var(--id-accent) 24px),radial-gradient(circle at 12px 12px,var(--id-accent) 0.96px,transparent 1.46px),radial-gradient(circle at 0px 0px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 24px 0px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 0px 24px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 24px 24px,var(--id-accent) 0.72px,transparent 1.22px);background-size:24px 24px;background-color:var(--id-paper);" },
+    ];
+    /* "image" = the shipped pattern.png (dot composition) */
+    PATTERNS.splice(1, 0, { id: "image", css: "__IMAGE__" });
+
+    function getCurrentPattern() {
+        try { return localStorage.getItem("gb-chat-pattern") || "image"; } catch (e) { return "image"; }
+    }
+    function setCurrentPattern(id) {
+        try { localStorage.setItem("gb-chat-pattern", id); } catch (e) { /* */ }
+    }
+
+    function applyPattern(id) {
+        var main = document.querySelector(".gb-main");
+        if (!main) { return; }
+        /* Reset: remove all pattern overrides, revert to original */
+        main.classList.remove("gb-pattern-none", "gb-pattern-css", "gb-pattern-image");
+        main.style.removeProperty("--gb-pat-css");
+
+        if (id === "none") {
+            main.classList.add("gb-pattern-none");
+        } else if (id === "image") {
+            main.classList.add("gb-pattern-image");
+        } else {
+            var pat = PATTERNS.filter(function (p) { return p.id === id; })[0];
+            if (pat && pat.css) {
+                main.classList.add("gb-pattern-css");
+                main.setAttribute("data-pattern", id);
+                /* Apply via a style element for the pattern pseudo-element */
+                applyPatternCSS(pat.css);
+            }
+        }
+    }
+
+    var patStyleEl = null;
+    function applyPatternCSS(css) {
+        if (!patStyleEl) {
+            patStyleEl = document.createElement("style");
+            patStyleEl.id = "gbPatternStyle";
+            document.head.appendChild(patStyleEl);
+        }
+        /* The accent at 20% alpha for patterns needing it */
+        patStyleEl.textContent =
+            ':root { --pat-accent20: color-mix(in srgb, var(--id-accent) 20%, transparent); }' +
+            '.gb-pattern-css.gb-main::before { ' + css + ' opacity: 0.3; -webkit-mask: none; mask: none; animation: none; background-size: inherit; }';
+    }
+
+    A.bootPattern = function () {
+        var id = getCurrentPattern();
+        applyPattern(id);
+    };
+
     function renderAppearance(panel) {
         var presets = (window.GBIdentity && window.GBIdentity.presets) || [];
         var currentAccent = getComputedStyle(document.documentElement)
@@ -148,21 +207,63 @@
             '</div>' +
             '<p class="gb-set-hint" id="gbAccentHint"></p>' +
         '</div>';
+
+        /* Background pattern chooser */
+        var curPat = getCurrentPattern();
+        html += '<div class="gb-set-card">' +
+            '<h2 class="gb-set-title">' + esc(A.t("settings.bg-label", "Chat background")) + '</h2>' +
+            '<div class="gb-set-bg-grid" id="gbBgGrid">';
+        for (var pi = 0; pi < PATTERNS.length; pi++) {
+            var pat = PATTERNS[pi];
+            var nameKey = "settings.bg-" + pat.id;
+            var name = A.t(nameKey, pat.id);
+            var selCls = pat.id === curPat ? " gb-set-bg-active" : "";
+            html += '<button class="gb-set-bg-tile' + selCls + '" data-pat="' + esc(pat.id) + '" title="' + esc(name) + '">' +
+                '<div class="gb-set-bg-preview" data-pat-id="' + esc(pat.id) + '"></div>' +
+                '<span class="gb-set-bg-name">' + esc(name) + '</span></button>';
+        }
+        html += '</div></div>';
+
         panel.innerHTML = html;
 
-        /* Bind preset clicks */
+        /* Bind accent preset clicks */
         panel.querySelectorAll(".gb-set-swatch").forEach(function (sw) {
             sw.addEventListener("click", function () {
                 applyAccent(sw.getAttribute("data-hex"), panel);
             });
         });
-        /* Bind custom input */
         var customInput = document.getElementById("gbAccentCustom");
         if (customInput) {
             customInput.addEventListener("input", function () {
                 applyAccent(customInput.value, panel);
             });
         }
+
+        /* Apply live pattern previews to tiles */
+        panel.querySelectorAll(".gb-set-bg-preview").forEach(function (div) {
+            var patId = div.getAttribute("data-pat-id");
+            if (!patId || patId === "none") { return; }
+            if (patId === "image") {
+                div.style.cssText = "background:var(--id-accent);opacity:0.25;" +
+                    "-webkit-mask:url(/suite/assistant/pattern.png) center/cover no-repeat;" +
+                    "mask:url(/suite/assistant/pattern.png) center/cover no-repeat;";
+                return;
+            }
+            var pat = PATTERNS.filter(function (p) { return p.id === patId; })[0];
+            if (pat && pat.css) { div.style.cssText = pat.css + "opacity:0.3;"; }
+        });
+
+        /* Bind pattern tile clicks */
+        panel.querySelectorAll(".gb-set-bg-tile").forEach(function (tile) {
+            tile.addEventListener("click", function () {
+                var id = tile.getAttribute("data-pat");
+                setCurrentPattern(id);
+                applyPattern(id);
+                panel.querySelectorAll(".gb-set-bg-tile").forEach(function (t) {
+                    t.classList.toggle("gb-set-bg-active", t.getAttribute("data-pat") === id);
+                });
+            });
+        });
     }
 
     function applyAccent(hex, panel) {

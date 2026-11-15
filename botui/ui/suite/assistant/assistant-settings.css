@@ -251,3 +251,23 @@
 .gb-set-form-actions { display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2); }
 .gb-set-warn { font-size: var(--id-text-sm); color: #b45309; }
 .gb-set-ok { color: #16a34a; }
+
+/* == Background pattern chooser == */
+.gb-set-bg-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: var(--id-space-2);
+}
+.gb-set-bg-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px; border: 2px solid transparent; border-radius: var(--id-radius-sm);
+    background: transparent; cursor: pointer; font-family: var(--id-font-sans);
+    transition: border-color var(--id-dur-fast) var(--id-ease);
+}
+.gb-set-bg-tile:hover { border-color: var(--id-gray-300); }
+.gb-set-bg-active { border-color: var(--id-accent); background: var(--id-accent-soft); }
+.gb-set-bg-preview {
+    width: 64px; height: 40px; border-radius: 4px;
+    border: 1px solid var(--id-line); background: var(--id-paper);
+    overflow: hidden;
+}
+.gb-set-bg-name { font-size: 10px; color: var(--id-muted); text-align: center; }
