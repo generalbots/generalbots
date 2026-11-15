@@ -222,12 +222,10 @@ fn main() {
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());
 
-    let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
-
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init());
     #[cfg(target_os = "linux")]
-    let builder = builder.plugin(desktop::webkit_permissions::plugin());
-
+    { builder = builder.plugin(desktop::webkit_permissions::plugin()); }
     let builder = builder.manage(tray_manager).manage(service_monitor);
 
     #[cfg(feature = "desktop-local")]
