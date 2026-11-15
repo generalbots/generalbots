@@ -74,7 +74,7 @@ pub fn is_desktop_mode() -> bool {
         || std::env::var("GB_DESKTOP_MODE")
             .map(|v| v == "1")
             .unwrap_or(false)
-        || stack_path().join(".product.desktop-local").exists()
+        || stack_path().join(crate::desktop::sidecar::PRODUCT_FILE).exists()
 }
 
 /// First run is the absence of the persisted marker. An existing folder without

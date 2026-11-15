@@ -6,6 +6,15 @@ use log::{info, warn};
 /// previous `dst` is kept as `{dst}.previous` in the same directory so the
 /// user can inspect what changed after an upgrade. A missing `src` is a
 /// no-op; any I/O failure is logged but does not abort the sidecar start.
+/// Name of the product file the shell bundles and keeps in the stack. The
+/// government edition ships its own; every other desktop build ships the
+/// desktop one.
+pub(crate) const PRODUCT_FILE: &str = if cfg!(feature = "gbgov") {
+    ".product.gbgov"
+} else {
+    ".product.desktop-local"
+};
+
 pub(super) fn sync_product_file(src: &std::path::Path, dst: &std::path::Path) {
     if !src.exists() {
         return;

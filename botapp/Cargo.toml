@@ -53,6 +53,8 @@ default = ["desktop"]
 desktop = ["desktop-tray"]
 desktop-tray = []
 desktop-local = []
+# Government desktop edition: the desktop build with its own product file.
+gbgov = ["desktop-local"]
 # #1925: thin client (UI only, remote botserver) and mobile targets — stubs
 thin-client = []
 mobile = []

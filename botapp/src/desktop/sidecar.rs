@@ -10,6 +10,7 @@ mod product;
 
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
 use product::sync_product_file;
+pub(crate) use product::PRODUCT_FILE;
 use super::no_window::NoConsoleWindow;
 use probe::{
     api_is_answering, clear_pid, decide_start, pid_is_alive, pid_looks_like_botserver,
@@ -144,8 +145,8 @@ impl Sidecar {
         // and replace the stale copy, keeping the previous version so the user
         // can inspect what changed.
         if let Some(ref res) = resource_dir {
-            let product_src = res.join(".product.desktop-local");
-            let product_dst = stack.join(".product.desktop-local");
+            let product_src = res.join(PRODUCT_FILE);
+            let product_dst = stack.join(PRODUCT_FILE);
             sync_product_file(&product_src, &product_dst);
         }
 
@@ -153,12 +154,12 @@ impl Sidecar {
         // directory does not contain the product file. Seed the stack from the
         // repository so the desktop-local profile (apps, no auth bypass,
         // taskbar search) is what the sidecar actually loads.
-        let stack_product = stack.join(".product.desktop-local");
+        let stack_product = stack.join(PRODUCT_FILE);
         if !stack_product.exists() {
             let dev_product = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("..")
                 .join("botserver")
-                .join(".product.desktop-local");
+                .join(PRODUCT_FILE);
             sync_product_file(&dev_product, &stack_product);
         }
 
