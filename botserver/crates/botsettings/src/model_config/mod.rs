@@ -113,26 +113,6 @@ const CENTRAL_LLM_PATH: &str = "gbo/llm";
 
 // ── GET /api/llm/config — current model configuration ────────────────────
 
-/// Response shape for `GET /api/llm/config`.
-#[derive(Serialize)]
-struct ModelConfigResponse {
-    mode: &'static str,
-    provider: String,
-    endpoint_host: Option<String>,
-    endpoint_scope: String,
-    model: String,
-    has_key: bool,
-    /// The local inference runtime status.
-    local_runtime: LocalRuntimeStatus,
-}
-
-#[derive(Serialize)]
-struct LocalRuntimeStatus {
-    installed: bool,
-    active_model: Option<String>,
-    runtime_reachable: bool,
-}
-
 async fn handle_get_config(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -149,17 +129,7 @@ async fn handle_get_config(
 
     let mode = infer_mode(&url, &model);
     let (host, scope) = crate::model_config::destination::describe(&url);
-
-    // Local runtime probe: check if the llama-server binary exists and if
-    // the chat-completions port responds.
-    let stack = botcore::shared::utils::get_stack_path();
-    let llama_bin = std::path::PathBuf::from(&stack)
-        .join("bin")
-        .join("llm")
-        .join("bin");
-    let installed = llama_bin.exists()
-        && (llama_bin.join("llama-server").exists()
-            || llama_bin.join("llama-server.exe").exists());
+    let runtime = local_runtime::runtime_status().await;
 
     let active_local_model = if mode == ModelMode::Local {
         let bare = super::on_device_ai::vault_store::bare_name(&model);
@@ -168,30 +138,20 @@ async fn handle_get_config(
         None
     };
 
-    let runtime_reachable = if installed {
-        // Quick probe — no model call, just TCP.
-        tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            tokio::net::TcpStream::connect("127.0.0.1:8081"),
-        )
-        .await
-        .map(|r| r.is_ok())
-        .unwrap_or(false)
-    } else {
-        false
-    };
-
-    Ok(Json(json!(ModelConfigResponse {
-        mode: mode.as_str(),
-        provider,
-        endpoint_host: host,
-        endpoint_scope: scope.as_str().to_string(),
-        model,
-        has_key: !key.trim().is_empty(),
-        local_runtime: LocalRuntimeStatus {
-            installed,
-            active_model: active_local_model,
-            runtime_reachable,
+    Ok(Json(json!({
+        "mode": mode.as_str(),
+        "provider": provider,
+        "endpoint_host": host,
+        "endpoint_scope": scope.as_str(),
+        "model": model,
+        "has_key": !key.trim().is_empty(),
+        "local_runtime": {
+            "installed": runtime.installed,
+            "runtime_reachable": runtime.runtime_reachable,
+            "active_model": active_local_model,
+            "installing": runtime.installing,
+            "install_job": runtime.install_job,
+            "install_info": runtime.install_info,
         },
     })))
 }
@@ -236,6 +196,11 @@ async fn handle_put_config(
 
     match req.mode {
         ModelMode::Local => {
+            // Guard: the inference runtime must be installed.
+            let runtime = local_runtime::runtime_status().await;
+            if !runtime.installed {
+                return Err(api_error(StatusCode::CONFLICT, "runtime_not_installed"));
+            }
             // Activate the specified local model.  The on_device_ai vault_store
             // handles the detailed write (model file + profile + per-bot path).
             let model_id = req.local_model_id.as_deref().unwrap_or("");
@@ -331,14 +296,17 @@ async fn handle_put_config(
         }
     }
 
+    let restart_required = req.mode == ModelMode::Local;
     Ok(Json(json!({
         "ok": true,
         "mode": req.mode.as_str(),
-        "effective_on_next_turn": true,
+        "effective_on_next_turn": !restart_required,
+        "restart_required": restart_required,
     })))
 }
 
 mod test_endpoint;
+mod local_runtime;
 
 // ── GET /api/llm/config/modes — available modes for the edition ──────────
 
@@ -357,12 +325,15 @@ async fn handle_modes(
                     .unwrap_or(false)
             }))
             .unwrap_or(false);
+    let runtime = local_runtime::runtime_status().await;
 
     Ok(Json(json!({
         "modes": [
             {
                 "id": "local",
                 "available": true,
+                "runtime_installed": runtime.installed,
+                "runtime_reachable": runtime.runtime_reachable,
                 "has_downloaded_models": has_local_models,
                 "hardware": {
                     "device": hardware.device,
@@ -370,7 +341,10 @@ async fn handle_modes(
                     "ram_gb": hardware.ram_gb,
                     "backend": hardware.backend,
                 },
-                "note": if hardware.vram_gb == 0 {
+                "install_info": runtime.install_info,
+                "note": if !runtime.installed {
+                    "The inference engine is not installed. Install it first."
+                } else if hardware.vram_gb == 0 {
                     "No GPU detected; the model will run on CPU (slower)."
                 } else {
                     ""
@@ -398,6 +372,9 @@ pub fn configure_routes() -> Router<Arc<AppState>> {
         .route("/api/llm/config", put(handle_put_config))
         .route("/api/llm/config/test", post(test_endpoint::handle_test))
         .route("/api/llm/config/modes", get(handle_modes))
+        .route("/api/llm/runtime/status", get(local_runtime::handle_status))
+        .route("/api/llm/runtime/install", post(local_runtime::handle_install))
+        .route("/api/llm/runtime/jobs/:id", get(local_runtime::handle_job_status))
 }
 
 pub(crate) mod destination;

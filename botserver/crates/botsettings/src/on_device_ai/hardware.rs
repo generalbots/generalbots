@@ -38,15 +38,63 @@ pub(crate) fn probe() -> Hardware {
 
 /// `nvidia-smi --query-gpu=name,memory.total` → `("NVIDIA ...", vram_gb)`.
 fn nvidia_device() -> Option<(String, u16)> {
-    let output = SafeCommand::new("nvidia-smi")
-        .ok()?
+    match run_nvidia_smi("nvidia-smi") {
+        Some(result) => return Some(result),
+        None => log::debug!("[on_device_ai] nvidia-smi (bare name) did not produce a result"),
+    }
+    // On Windows the NVIDIA driver places `nvidia-smi.exe` in System32, but
+    // `SafeCommand::env_clear()` reconstructs a minimal environment that may
+    // not resolve the bare name (observed on RTX 4070 laptop, Windows 11).
+    // Try the canonical path as a fallback.
+    #[cfg(windows)]
+    {
+        let system32 = std::env::var("SYSTEMROOT")
+            .unwrap_or_else(|_| "C:\\Windows".to_string());
+        let full = format!("{system32}\\System32\\nvidia-smi.exe");
+        if std::path::Path::new(&full).exists() {
+            log::debug!("[on_device_ai] trying full path: {full}");
+            match run_nvidia_smi(&full) {
+                Some(result) => return Some(result),
+                None => log::debug!("[on_device_ai] nvidia-smi (full path) did not produce a result"),
+            }
+        }
+    }
+    None
+}
+
+/// Runs `nvidia-smi` (or its full path) and parses the output.
+fn run_nvidia_smi(command: &str) -> Option<(String, u16)> {
+    let cmd = match SafeCommand::new(command) {
+        Ok(c) => c,
+        Err(e) => {
+            log::debug!("[on_device_ai] SafeCommand::new({command}) failed: {e}");
+            return None;
+        }
+    };
+    let cmd = match cmd
         .arg("--query-gpu=name,memory.total")
-        .ok()?
-        .arg("--format=csv,noheader,nounits")
-        .ok()?
-        .execute()
-        .ok()?;
+        .and_then(|c| c.arg("--format=csv,noheader,nounits"))
+    {
+        Ok(c) => c,
+        Err(e) => {
+            log::debug!("[on_device_ai] nvidia-smi arg validation failed: {e}");
+            return None;
+        }
+    };
+    let output = match cmd.execute() {
+        Ok(o) => o,
+        Err(e) => {
+            log::debug!("[on_device_ai] nvidia-smi execute failed: {e}");
+            return None;
+        }
+    };
     if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        log::debug!(
+            "[on_device_ai] nvidia-smi exited {}: {}",
+            output.status,
+            stderr.chars().take(200).collect::<String>()
+        );
         return None;
     }
     parse_nvidia_line(&String::from_utf8_lossy(&output.stdout))
@@ -105,6 +153,24 @@ mod hardware_tests {
     }
 
     #[test]
+    fn parses_laptop_gpu_output() {
+        let parsed = parse_nvidia_line("NVIDIA GeForce RTX 4070 Laptop GPU, 8188\n");
+        assert_eq!(
+            parsed,
+            Some(("NVIDIA GeForce RTX 4070 Laptop GPU".to_string(), 8))
+        );
+    }
+
+    #[test]
+    fn parses_line_with_trailing_whitespace() {
+        let parsed = parse_nvidia_line("  NVIDIA GeForce RTX 3060, 12288  \n\n");
+        assert_eq!(
+            parsed,
+            Some(("NVIDIA GeForce RTX 3060".to_string(), 12))
+        );
+    }
+
+    #[test]
     fn ignores_empty_or_malformed_output() {
         assert_eq!(parse_nvidia_line(""), None);
         assert_eq!(parse_nvidia_line("   \n"), None);
@@ -117,5 +183,4 @@ mod hardware_tests {
     fn models_dir_is_under_the_stack_data_directory() {
         assert!(models_dir().ends_with("data/llm"));
     }
-
 }
