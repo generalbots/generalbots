@@ -23,12 +23,20 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
             c.textContent = h + ":" + m + ":" + s;
         }
         if (d) {
-            var opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-            d.textContent = now.toLocaleDateString("pt-BR", opts);
+            try {
+                var opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+                d.textContent = now.toLocaleDateString(undefined, opts);
+            } catch (e) {
+                d.textContent = now.toDateString();
+            }
         }
     }
     tick();
-    setInterval(tick, 1000);
+    if (window.GBAppLifecycle && GBAppLifecycle.interval) {
+        GBAppLifecycle.interval("timeclock", tick, 1000);
+    } else {
+        setInterval(tick, 1000);
+    }
 
     window.openTcOtModal = function() {
         var m = document.getElementById("tc-ot-modal");
