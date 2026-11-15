@@ -33,18 +33,20 @@
     const list = readInstalled();
     if (list.indexOf(id) === -1) list.push(id);
     writeInstalled(list);
-    // Server-side popularity counter (best-effort).
+    render();
+    // Server-side popularity counter; mark confirmed on success
     fetch("/api/apps/install", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ app_id: id }),
+    }).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
     }).catch(function (err) {
       console.error("[gb-store] App install request failed:", err);
+      if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Install recorded locally; server sync failed.', 'error');
     });
     window.dispatchEvent(new CustomEvent("gb-app-installed", { detail: { id, title } }));
-    // Pin the freshly installed app to the launcher so it's one click away.
     window.dispatchEvent(new CustomEvent("gb-launcher-pin-request", { detail: { kind: "app", appId: id } }));
-    render();
   }
 
   function openApp(app) {
@@ -52,7 +54,10 @@
       window.WindowManager.open(app.id, app.title, "");
       const sep = app.url.indexOf("?") === -1 ? "?" : "&";
       fetch(app.url + sep + "_=" + Date.now())
-        .then(function (r) { return r.text(); })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
         .then(function (html) {
           const body = document.getElementById("window-body-" + app.id);
           if (body && window.WindowManager._injectBodyContent) {
@@ -61,6 +66,7 @@
         })
         .catch(function (err) {
           console.error("[gb-store] Failed to load app content:", err);
+          if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Failed to open app: ' + (err && err.message ? err.message : 'error'), 'error');
         });
     } else {
       window.open(app.url, "_blank", "noopener");
