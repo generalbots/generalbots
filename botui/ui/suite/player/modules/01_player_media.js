@@ -58,9 +58,11 @@
         document.getElementById("btn-add-playlist").disabled = false;
 
         try {
+            const headers = { "Content-Type": "application/json" };
+            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) {}
             const response = await fetch("/api/files/download", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: headers,
                 body: JSON.stringify({ bucket, path }),
             });
 
@@ -92,7 +94,8 @@
         document.getElementById("btn-fullscreen").disabled = false;
         document.getElementById("btn-add-playlist").disabled = false;
 
-        const streamUrl = `/api/player/default/stream/${path}`;
+        const encodedPath = String(path || '').split('/').map(encodeURIComponent).join('/');
+        const streamUrl = `/api/player/default/stream/${encodedPath}`;
         openMedia(streamUrl, type);
     }
 
@@ -303,12 +306,29 @@
         }
     }
 
-    function downloadFile() {
+    async function downloadFile() {
         if (!currentFile) return;
-        const link = document.createElement("a");
-        link.href = `/api/player/default/stream/${currentFile.path}`;
-        link.download = currentFile.name;
-        link.click();
+        try {
+            const encodedPath = String(currentFile.path || '').split('/').map(encodeURIComponent).join('/');
+            const headers = {};
+            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) {}
+            const resp = await fetch(`/api/player/default/stream/${encodedPath}`, { headers });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = currentFile.name || 'download';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            console.error('Download failed:', err);
+            if (window.GBToasts && typeof window.GBToasts.show === 'function') {
+                window.GBToasts.show('Download', 'Download failed: ' + (err.message || err), 'error');
+            }
+        }
     }
 
     function shareFile() {
