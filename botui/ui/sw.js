@@ -6,7 +6,7 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v41";
+var CACHE = "gb-desktop-shell-v42";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
@@ -60,6 +60,11 @@ function isCore(url) {
 self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   if (url.pathname.startsWith("/api/") || e.request.method !== "GET") return;
+  // Inside the desktop application the pages come from the application
+  // itself and are always available. A fetch from this worker cannot reach
+  // them, so its offline fallback answered the splash and the setup pages
+  // with the cached desktop shell. Stay out of the way there.
+  if (self.location.hostname === "tauri.localhost" || self.location.protocol === "tauri:") return;
 
   if (isCore(url)) {
     // Core shell: cache-first (these define the offline shell and are
