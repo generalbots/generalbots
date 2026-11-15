@@ -99,6 +99,15 @@
         app.renderScreen();
       }
     });
+    box.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var historyItem = e.target.closest(".gb-calc-history-item");
+      if (historyItem) {
+        e.preventDefault();
+        app.state.expr += historyItem.getAttribute("data-result");
+        app.renderScreen();
+      }
+    });
   }
 
   function bindToolbar(box) {

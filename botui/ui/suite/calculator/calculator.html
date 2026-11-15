@@ -3,10 +3,10 @@
 <div class="gb-calc" id="gb-calc-root">
     <div class="gb-calc-main">
         <div class="gb-calc-toolbar">
-            <div class="gb-calc-tabs" role="tablist">
-                <button type="button" class="gb-calc-tab active" data-tab="standard" data-i18n="products-pricelist-type-standard">Standard</button>
-                <button type="button" class="gb-calc-tab" data-tab="scientific" data-i18n="auto-scientific">Scientific</button>
-                <button type="button" class="gb-calc-tab" data-tab="convert" data-i18n="crm-convert">Convert</button>
+            <div class="gb-calc-tabs" role="tablist" aria-label="Calculator mode">
+                <button type="button" class="gb-calc-tab active" role="tab" id="gb-tab-standard" aria-controls="gb-panel-standard" aria-selected="true" tabindex="0" data-tab="standard" data-i18n="products-pricelist-type-standard">Standard</button>
+                <button type="button" class="gb-calc-tab" role="tab" id="gb-tab-scientific" aria-controls="gb-panel-scientific" aria-selected="false" tabindex="-1" data-tab="scientific" data-i18n="auto-scientific">Scientific</button>
+                <button type="button" class="gb-calc-tab" role="tab" id="gb-tab-convert" aria-controls="gb-panel-convert" aria-selected="false" tabindex="-1" data-tab="convert" data-i18n="crm-convert">Convert</button>
             </div>
             <div class="gb-calc-tools">
                 <button type="button" class="gb-calc-tool" id="gb-calc-angle" title="Toggle angle unit">DEG</button>
@@ -22,11 +22,11 @@
             <div id="gb-calc-preview" class="gb-calc-preview">&nbsp;</div>
         </div>
 
-        <div id="gb-calc-sci" class="gb-calc-pad gb-calc-sci" hidden></div>
+        <div id="gb-calc-sci" class="gb-calc-pad gb-calc-sci" role="tabpanel" aria-labelledby="gb-tab-scientific" hidden></div>
 
-        <div id="gb-calc-pad" class="gb-calc-pad gb-calc-standard"></div>
+        <div id="gb-calc-pad" class="gb-calc-pad gb-calc-standard" role="tabpanel" aria-labelledby="gb-tab-standard"></div>
 
-        <div id="gb-calc-converter" class="gb-calc-converter" hidden>
+        <div id="gb-calc-converter" class="gb-calc-converter" role="tabpanel" aria-labelledby="gb-tab-convert" hidden>
             <select id="gb-calc-conv-cat" class="gb-calc-select" aria-label="Category"></select>
             <div class="gb-calc-conv-row">
                 <input id="gb-calc-conv-amt" class="gb-calc-input" type="text" value="1" aria-label="Amount" />

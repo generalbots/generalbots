@@ -12,6 +12,14 @@
 
   function buildPad(el, keys) {
     if (!el) return;
+    var ariaMap = {
+      "÷": "divide", "×": "multiply", "−": "-",
+      "⌫": "backspace", "C": "clear", "=": "equals",
+      "√": "square root", "π": "pi", "^": "power",
+      "±": "plus minus", "%": "percent", "(": "left parenthesis", ")": "right parenthesis",
+      "xʸ": "power", "sin⁻¹": "inverse sine", "cos⁻¹": "inverse cosine", "tan⁻¹": "inverse tangent",
+      "x²": "square", "eˣ": "e to the x", "|x|": "absolute value", "1/x": "reciprocal", "n!": "factorial"
+    };
     el.innerHTML = "";
     keys.forEach(function (row) {
       row.forEach(function (key) {
@@ -20,6 +28,10 @@
         btn.className = "gb-calc-key " + key.cls;
         btn.textContent = key.label;
         btn.setAttribute("data-key", key.value);
+        var lbl = key.label || key.value;
+        if (ariaMap[lbl] || (lbl && lbl.length <= 2 && /[^a-zA-Z0-9\s]/.test(lbl))) {
+          btn.setAttribute("aria-label", ariaMap[lbl] || lbl);
+        }
         el.appendChild(btn);
       });
     });
@@ -72,7 +84,10 @@
     var isConv = app.state.tab === "convert";
     var isSci = app.state.tab === "scientific";
     box.querySelectorAll(".gb-calc-tab").forEach(function (tab) {
-      tab.classList.toggle("active", tab.getAttribute("data-tab") === app.state.tab);
+      var isActive = tab.getAttribute("data-tab") === app.state.tab;
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-selected", isActive ? "true" : "false");
+      tab.setAttribute("tabindex", isActive ? "0" : "-1");
     });
     var sci = box.querySelector("#gb-calc-sci");
     var conv = box.querySelector("#gb-calc-converter");
@@ -120,6 +135,9 @@
       var li = document.createElement("li");
       li.className = "gb-calc-history-item";
       li.setAttribute("data-result", item.result);
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.setAttribute("aria-label", "Use result " + item.result + " from " + item.expr);
       var exprLine = document.createElement("span");
       exprLine.className = "h-expr";
       exprLine.textContent = item.expr;
