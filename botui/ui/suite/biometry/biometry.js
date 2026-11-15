@@ -202,7 +202,7 @@ async function submitSignature(){
     if(!canvas){ showFeedback('Signature pad not ready','error'); return; }
     if(!state.hasDrawn){ showFeedback('Please draw your signature before submitting','error'); return; }
     var signatureData=canvas.toDataURL('image/png');
-    var data=await apiCall('/api/biometry/signatures/'+state.selectedSignDoc+'/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature:signatureData,biometric_confirmed:true})});
+    var data=await apiCall('/api/biometry/signatures/'+state.selectedSignDoc+'/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature:signatureData,biometric_confirmed:false})});
     if(data){
         showFeedback('Document signed with biometric attestation','success');
         state.selectedSignDoc=null;
@@ -238,11 +238,15 @@ function endLiveness(){
 async function captureFrame(){
     if(!state.livenessActive){showFeedback('Start a session first','error');return}
     var data=await apiCall('/api/biometry/liveness/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timestamp:Date.now()})});
-    var conf=data&&data.confidence?data.confidence:Math.floor(Math.random()*40+60);
+    if(!data || (data.confidence===undefined && data.score===undefined)){
+        showFeedback('Liveness capture not available (server response missing score)','error');
+        return;
+    }
+    var conf = (typeof data.confidence === 'number') ? data.confidence : (typeof data.score === 'number' ? data.score : 0);
     var fill=document.getElementById('liveness-score-fill');
     var text=document.getElementById('liveness-score-text');
-    if(fill)fill.style.width=conf+'%';
-    if(text)text.textContent=conf+'%';
+    if(fill)fill.style.width=Math.max(0,Math.min(100,conf))+'%';
+    if(text)text.textContent=Math.max(0,Math.min(100,conf))+'%';
     showFeedback('Frame captured — confidence: '+conf+'%','success');
     loadLivenessSessions();
 }
