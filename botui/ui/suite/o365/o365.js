@@ -1,6 +1,6 @@
 if (window.GBAppLifecycle) GBAppLifecycle.begin("o365");
 (function(){
-var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],currentTab:'sharepoint',currentFolder:'root',folderStack:['root']};
+var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],currentTab:'sharepoint',currentFolder:'root',folderStack:[{id:'root',name:'Root'}]};
 
 function showFeedback(msg,type){
     var el=document.getElementById('o365-feedback');
@@ -75,11 +75,11 @@ function renderOneDrive(){
     tbody.innerHTML=state.onedriveFiles.map(function(f){
         var isFolder=(f.type==='folder');
         return '<tr>'
-            +'<td>'+(isFolder?'📁 ':'📄 ')+'<span style="cursor:pointer;color:'+(isFolder?'var(--primary-color,#3b82f6)':'inherit')+'" '+(isFolder?'onclick="window._o365.navigateFolder(\''+f.id+'\')"':'')+'>'+(f.name||'')+'</span></td>'
+            +'<td>'+(isFolder?'📁 ':'📄 ')+'<span style="cursor:pointer;color:'+(isFolder?'var(--primary-color,#3b82f6)':'inherit')+'" '+(isFolder?'onclick="window._o365.navigateFolder(\''+f.id+'\',\''+String(f.name||f.id).replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')"':'')+'>'+(f.name||'')+'</span></td>'
             +'<td><span class="o365-badge '+(f.type||'file')+'">'+(f.type||'file')+'</span></td>'
             +'<td>'+(f.modified||f.last_modified||'')+'</td>'
             +'<td>'+(f.size||f.size_bytes||'--')+'</td>'
-            +'<td>'+(isFolder?'<button class="o365-btn" onclick="window._o365.navigateFolder(\''+f.id+'\')">Open</button>':'<button class="o365-btn" onclick="window._o365.downloadFile(\''+f.id+'\',\''+(String(f.name||'o365-file-'+f.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')">Download</button>')+'</td>'
+            +'<td>'+(isFolder?'<button class="o365-btn" onclick="window._o365.navigateFolder(\''+f.id+'\',\''+String(f.name||f.id).replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')">Open</button>':'<button class="o365-btn" onclick="window._o365.downloadFile(\''+f.id+'\',\''+(String(f.name||'o365-file-'+f.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')">Download</button>')+'</td>'
             +'</tr>';
     }).join('');
     renderBreadcrumb();
@@ -89,8 +89,9 @@ function renderBreadcrumb(){
     var el=document.getElementById('onedrive-breadcrumb');
     if(!el)return;
     el.innerHTML=state.folderStack.map(function(f,i){
-        if(i===state.folderStack.length-1)return '<span class="o365-breadcrumb-current">'+f+'</span>';
-        return '<button class="o365-breadcrumb-item" onclick="window._o365.navigateTo(\''+f+'\','+i+')">'+f+'</button><span class="o365-breadcrumb-sep">/</span>';
+        var name = (typeof f === 'object' && f) ? (f.name || f.id || 'Folder') : String(f);
+        if(i===state.folderStack.length-1)return '<span class="o365-breadcrumb-current">'+name+'</span>';
+        return '<button class="o365-breadcrumb-item" onclick="window._o365.navigateTo('+i+')">'+name+'</button><span class="o365-breadcrumb-sep">/</span>';
     }).join('');
 }
 
@@ -134,14 +135,18 @@ async function loadSettings(){
     }
 }
 
-function navigateFolder(folderId){
-    if(!state.folderStack.includes(folderId))state.folderStack.push(folderId);
+function navigateFolder(folderId, folderName){
+    var name = folderName || folderId;
+    var exists = state.folderStack.find(function(x){ return (typeof x==="object"?x.id:x)===folderId; });
+    if(!exists) state.folderStack.push({id: folderId, name: name});
     loadOneDrive(folderId);
 }
 
-function navigateTo(folderId,index){
-    state.folderStack=state.folderStack.slice(0,index+1);
-    loadOneDrive(folderId);
+function navigateTo(index){
+    state.folderStack = state.folderStack.slice(0, index+1);
+    var cur = state.folderStack[state.folderStack.length-1];
+    var id = (typeof cur==="object") ? cur.id : cur;
+    loadOneDrive(id);
 }
 
 function downloadFile(fileId, fileName){
