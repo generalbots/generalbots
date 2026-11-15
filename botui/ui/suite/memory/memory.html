@@ -81,9 +81,7 @@
 <script src="/suite/memory/memory-state.js?v=1"></script>
 <script src="/suite/memory/memory-modals.js?v=1"></script>
 <script>
-  // #1886 — one editor: Settings → Memory. View/search/export stay local; the
-  // add and manage actions deep-link into Settings (window retarget when the
-  // settings window is already open).
+  // #1886 — manage deep-links to Settings; Add uses the local modal (no capture-phase override).
   (function () {
     "use strict";
     function openSettingsMemory() {
@@ -96,14 +94,6 @@
     var manage = document.getElementById("mem-manage");
     if (manage) {
       manage.addEventListener("click", openSettingsMemory);
-    }
-    var add = document.getElementById("mem-add");
-    if (add) {
-      add.addEventListener("click", function (event) {
-        event.stopPropagation();
-        event.preventDefault();
-        openSettingsMemory();
-      }, true);
     }
   })();
 </script>
