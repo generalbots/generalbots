@@ -40,7 +40,15 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ goal: goal }),
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().catch(function(){return {};}).then(function(body){
+            var msg = (body && (body.error || body.message)) ? String(body.error || body.message) : ('HTTP ' + r.status);
+            throw new Error(msg);
+          });
+        }
+        return r.json();
+      })
       .then(function (plan) {
         const steps = (plan && plan.steps) || [];
         if (stepsBox) {
@@ -56,16 +64,26 @@
         }
         renderHistory();
         if (window.AgentExecutor && steps.length) {
-          // Let the shared executor open each app in sequence.
+          var proceed = true;
+          if (window.GBModal && window.GBModal.confirm) {
+            proceed = window.confirm('Open ' + steps.length + ' app(s) suggested by the plan?');
+          } else {
+            proceed = window.confirm('Open ' + steps.length + ' app(s) suggested by the plan?');
+          }
+          if (!proceed) {
+            if (stepsBox && stepsBox.querySelector('.concierge-empty')) {} 
+            return;
+          }
           steps.forEach(function (s, i) {
             setTimeout(function () {
+              if (!s || !s.app) return;
               window.AgentExecutor.openApp(s.app, s.title || s.action || s.app, s.params || "");
             }, i * 700);
           });
         }
       })
-      .catch(function () {
-        if (stepsBox) stepsBox.innerHTML = '<div class="concierge-empty">Planning failed — check the API.</div>';
+      .catch(function (err) {
+        if (stepsBox) stepsBox.innerHTML = '<div class="concierge-empty">Planning failed: ' + escapeHtml((err && err.message) ? err.message : 'check the API.') + '</div>';
       });
   }
 
