@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use super::types::{AuthMethod, InputType, Risk, Status};
+#[cfg(feature = "integrations")]
+use super::types::Status;
+use super::types::{AuthMethod, InputType, Risk};
 use super::{llm_actions, provider_by_id, search};
 
 #[test]
@@ -102,6 +104,7 @@ fn supported_providers_publish_a_direct_credentials_page() {
     }
 }
 
+#[cfg(feature = "integrations")]
 #[test]
 fn github_and_stripe_flip_llm_available_without_status_drift() {
     // #2048 — the badge is derived: github's adapter answers every advertised
