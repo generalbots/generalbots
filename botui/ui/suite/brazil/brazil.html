@@ -14,30 +14,28 @@
     <h1>Compliance Fiscal Brasileiro</h1>
   </header>
 
-  <nav class="gb-tabs" id="tax-tabs">
-    <button class="gb-tab active" data-tab-trigger="dashboard" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Visão Geral</button>
-    <button class="gb-tab" data-tab-trigger="nfe" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFe</button>
-    <button class="gb-tab" data-tab-trigger="nfse" hx-get="/suite/brazil/fragments/nfse" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFSe</button>
-    <button class="gb-tab" data-tab-trigger="cte" hx-get="/suite/brazil/fragments/cte" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-cte-mdfe">CTe / MDFe</button>
-    <button class="gb-tab" data-tab-trigger="sped" hx-get="/suite/brazil/fragments/sped" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-efd-sped">EFD / SPED</button>
-    <button class="gb-tab" data-tab-trigger="history" hx-get="/suite/brazil/fragments/history" hx-target="#gb-brazil-content" hx-swap="innerHTML">Histórico</button>
-    <button class="gb-tab" data-tab-trigger="validators" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-validadores">Validadores</button>
-    <button class="gb-tab" data-tab-trigger="settings" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Configurações</button>
+  <nav class="gb-tabs" id="tax-tabs" role="tablist" aria-label="Brazil tax sections">
+    <button class="gb-tab active" role="tab" aria-selected="true" aria-controls="gb-brazil-content" data-tab-trigger="dashboard" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Visão Geral</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="nfe" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFe</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="nfse" hx-get="/suite/brazil/fragments/nfse" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFSe</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="cte" hx-get="/suite/brazil/fragments/cte" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-cte-mdfe">CTe / MDFe</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="sped" hx-get="/suite/brazil/fragments/sped" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-efd-sped">EFD / SPED</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="history" hx-get="/suite/brazil/fragments/history" hx-target="#gb-brazil-content" hx-swap="innerHTML">Histórico</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-validators" data-tab-trigger="validators" data-panel="validators" data-i18n="auto-validadores">Validadores</button>
+    <button class="gb-tab" role="tab" aria-selected="false" aria-controls="gb-brazil-content" data-tab-trigger="settings" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Configurações</button>
   </nav>
 
-  <div class="gb-status-bar">
-    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-SP: Operacional</span>
-    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-RJ: Operacional</span>
-    <span class="gb-status-item"><span class="gb-status-dot degraded"></span>SEFAZ-MG: Lentidão</span>
-    <span class="gb-status-item"><span class="gb-status-dot online"></span>SEFAZ-DF: Operacional</span>
-    <span class="gb-status-item"><span class="gb-status-dot online"></span>Certificado A1: Válido até 2027-01-15</span>
+  <div class="gb-status-bar" id="gb-brazil-status" aria-live="polite">
+    <span class="gb-status-item"><span class="gb-status-dot"></span>SEFAZ status: unknown (not fetched)</span>
+    <span class="gb-status-item">Certificate: unknown (not verified)</span>
+    <span class="gb-status-item" id="gb-brazil-status-ts">Last checked: never</span>
   </div>
 
-  <main id="gb-brazil-content" hx-get="/suite/brazil/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
+  <main id="gb-brazil-content" role="tabpanel" aria-labelledby="tax-tabs" hx-get="/suite/brazil/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
     <p class="gb-loading">Carregando visão geral…</p>
   </main>
 
-  <aside class="gb-validators" hidden>
+  <aside class="gb-validators" id="gb-validators" role="tabpanel" aria-labelledby="tax-tabs" hidden>
     <h3>Validador rápido</h3>
     <form hx-post="/api/brazil/forms/validate" hx-swap="outerHTML" hx-target="#gb-validate-result">
       <label>Tipo
