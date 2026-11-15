@@ -5,14 +5,29 @@ use axum::{extract::State, http::HeaderMap, http::StatusCode, Json};
 use botcore::shared::state::AppState;
 use std::sync::Arc;
 
-fn caller_id(headers: &HeaderMap) -> Option<uuid::Uuid> {
-    botcore::shared::tenant::user_id_from_claims(headers)
-        .and_then(|raw| uuid::Uuid::parse_str(&raw).ok())
+/// True when the request carries a signed-in identity: JWT claims, or the
+/// suite session token that the desktop shell and the browser send as a
+/// bearer (it is not a JWT, so it carries no claims).
+fn signed_in(headers: &HeaderMap) -> bool {
+    if botcore::shared::tenant::user_id_from_claims(headers).is_some() {
+        return true;
+    }
+    headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| {
+            value
+                .strip_prefix("Bearer ")
+                .or_else(|| value.strip_prefix("bearer "))
+        })
+        .map(str::trim)
+        .and_then(super::anonymous_auth::resolve_token_user)
+        .is_some()
 }
 
 /// `GET /api/appearance` — `{"accent": "#rrggbb" | null}`.
 pub async fn handle_get_appearance(headers: HeaderMap) -> impl axum::response::IntoResponse {
-    if caller_id(&headers).is_none() {
+    if !signed_in(&headers) {
         return (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({"error": "authentication required"})),
@@ -33,7 +48,7 @@ pub async fn handle_put_appearance(
     headers: HeaderMap,
     Json(body): Json<AccentBody>,
 ) -> impl axum::response::IntoResponse {
-    if caller_id(&headers).is_none() {
+    if !signed_in(&headers) {
         return (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({"error": "authentication required"})),
