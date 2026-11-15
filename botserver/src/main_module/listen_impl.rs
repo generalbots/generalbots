@@ -27,7 +27,19 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
         }
     }
 
-    let ip = if no_security {
+    // A desktop edition is one person's computer: only the shell on the same
+    // machine talks to the server, so it listens on loopback as well. Setting
+    // BOTSERVER_HOST to a non-loopback address opens it to the network on
+    // purpose (sign-in is required in that mode).
+    let desktop_edition = botcore::product::PRODUCT_CONFIG
+        .read()
+        .map(|product| product.edition.as_deref() == Some("desktop"))
+        .unwrap_or(false);
+    let host_is_default = matches!(
+        host.trim(),
+        "" | "127.0.0.1" | "localhost" | "::1" | "[::1]"
+    );
+    let ip = if no_security || (desktop_edition && host_is_default) {
         std::net::IpAddr::from([127, 0, 0, 1])
     } else {
         std::net::IpAddr::from([0, 0, 0, 0])
