@@ -1,6 +1,17 @@
 (function() {
 'use strict';
 if (window.GBAppLifecycle) GBAppLifecycle.begin("lists");
+function escapeHtml(str) {
+    if (str == null) return '';
+    if (window.GBShared && window.GBShared.html && window.GBShared.html.escape) return window.GBShared.html.escape(str);
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return '"' + s.replace(/"/g,'""') + '"';
+}
 let allLists = [];
 let currentFilter = 'all';
 let editingListId = null;
@@ -56,7 +67,7 @@ function hideDeleteModal() { document.getElementById('delete-modal').style.displ
 
 function showImportModal() {
     const sel = document.getElementById('import-target-list');
-    sel.innerHTML = allLists.map(l => '<option value="' + l.id + '">' + l.name + '</option>').join('');
+    sel.innerHTML = allLists.map(l => '<option value="' + escapeHtml(String(l.id || '')) + '">' + escapeHtml(l.name || '') + '</option>').join('');
     document.getElementById('import-modal').style.display = 'flex';
 }
 
@@ -86,20 +97,37 @@ function renderLists(searchQuery) {
         grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-secondary)">No lists found.</div>';
         return;
     }
-    grid.innerHTML = filtered.map(list => '<div class="list-card" onclick="showMembersModal(\'' + list.id + '\')">'
+    grid.innerHTML = filtered.map(list => {
+        const id = String(list.id || '');
+        const name = list.name || 'Unnamed';
+        const type = list.list_type || 'static';
+        return '<div class="list-card" data-action="open" data-id="' + escapeHtml(id) + '">'
         + '<div class="list-card-header">'
-        + '<h3 class="list-card-title">' + (list.name || 'Unnamed') + '</h3>'
-        + '<span class="list-type ' + (list.list_type || 'static') + '">' + (list.list_type || 'static') + '</span>'
+        + '<h3 class="list-card-title">' + escapeHtml(name) + '</h3>'
+        + '<span class="list-type ' + escapeHtml(type) + '">' + escapeHtml(type) + '</span>'
         + '</div>'
         + '<div class="list-stats">'
-        + '<div class="list-stat"><span class="list-stat-value">' + (list.member_count || 0) + '</span><span class="list-stat-label">Members</span></div>'
+        + '<div class="list-stat"><span class="list-stat-value">' + escapeHtml(String(list.member_count || 0)) + '</span><span class="list-stat-label">Members</span></div>'
         + '</div>'
-        + '<div class="list-card-actions" onclick="event.stopPropagation()">'
-        + '<button onclick="showListModal(\'' + list.id + '\')">Edit</button>'
-        + '<button onclick="exportSingleList(\'' + list.id + '\')">Export</button>'
-        + '<button class="danger" onclick="showDeleteModal(\'' + list.id + '\')">Delete</button>'
+        + '<div class="list-card-actions" data-stop="1">'
+        + '<button type="button" data-action="edit" data-id="' + escapeHtml(id) + '">Edit</button>'
+        + '<button type="button" data-action="export" data-id="' + escapeHtml(id) + '">Export</button>'
+        + '<button type="button" class="danger" data-action="delete" data-id="' + escapeHtml(id) + '">Delete</button>'
         + '</div>'
-        + '</div>').join('');
+        + '</div>';
+    }).join('');
+    grid.querySelectorAll('[data-action="open"]').forEach(function(card){
+        card.addEventListener('click', function(){ showMembersModal(this.getAttribute('data-id')); });
+    });
+    grid.querySelectorAll('[data-action="edit"]').forEach(function(btn){
+        btn.addEventListener('click', function(e){ e.stopPropagation(); showListModal(this.getAttribute('data-id')); });
+    });
+    grid.querySelectorAll('[data-action="export"]').forEach(function(btn){
+        btn.addEventListener('click', function(e){ e.stopPropagation(); exportSingleList(this.getAttribute('data-id')); });
+    });
+    grid.querySelectorAll('[data-action="delete"]').forEach(function(btn){
+        btn.addEventListener('click', function(e){ e.stopPropagation(); showDeleteModal(this.getAttribute('data-id')); });
+    });
 }
 
 async function loadLists() {
@@ -124,10 +152,15 @@ async function loadMembers(listId) {
                 return;
             }
             content.innerHTML = members.map(m => '<div class="member-row">'
-                + '<div><div class="member-name">' + (m.name || m.email || 'Unknown') + '</div>'
-                + '<div class="member-email">' + (m.email || '') + '</div></div>'
-                + '<button class="btn-secondary" style="padding:4px 8px;font-size:11px" onclick="removeMember(\'' + listId + '\',\'' + m.id + '\')">Remove</button>'
+                + '<div><div class="member-name">' + escapeHtml(m.name || m.email || 'Unknown') + '</div>'
+                + '<div class="member-email">' + escapeHtml(m.email || '') + '</div></div>'
+                + '<button class="btn-secondary" style="padding:4px 8px;font-size:11px" data-remove-list="' + escapeHtml(String(listId||'')) + '" data-remove-id="' + escapeHtml(String(m.id||'')) + '">Remove</button>'
                 + '</div>').join('');
+            content.querySelectorAll('[data-remove-list]').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    removeMember(this.getAttribute('data-remove-list'), this.getAttribute('data-remove-id'));
+                });
+            });
         }
     } catch (e) { content.innerHTML = '<div style="color:#ef4444">Error loading members.</div>'; }
 }
@@ -170,15 +203,16 @@ async function addMemberToList() {
 }
 
 function exportLists() {
-    const csv = 'Name,Type,Members\n' + allLists.map(l => '"' + (l.name||'') + '","' + (l.list_type||'') + '",' + (l.member_count||0)).join('\n');
+    const csv = 'Name,Type,Members\n' + allLists.map(l => csvCell(l.name||'') + ',' + csvCell(l.list_type||'') + ',' + csvCell(l.member_count||0)).join('\n');
     downloadFile(csv, 'lists-export.csv', 'text/csv');
 }
 
 function exportSingleList(listId) {
     const list = allLists.find(l => l.id === listId);
     if (!list) return;
-    const csv = 'Name,Type,Members\n"' + (list.name||'') + '","' + (list.list_type||'') + '",' + (list.member_count||0);
-    downloadFile(csv, (list.name || 'list') + '.csv', 'text/csv');
+    const csv = 'Name,Type,Members\n' + csvCell(list.name||'') + ',' + csvCell(list.list_type||'') + ',' + csvCell(list.member_count||0);
+    var fname = String(list.name || 'list').replace(/[^a-zA-Z0-9._-]+/g, '_');
+    downloadFile(csv, fname + '.csv', 'text/csv');
 }
 
 function downloadFile(content, filename, mime) {
