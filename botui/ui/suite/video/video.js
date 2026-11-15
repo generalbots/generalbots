@@ -24,6 +24,16 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatTime(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
@@ -46,23 +56,29 @@ function renderCameras(cameras) {
     grid.innerHTML = '<div class="loading">Nenhuma câmera cadastrada</div>';
     return;
   }
-  grid.innerHTML = cameras.map(cam => `
-    <div class="camera-card" data-id="${cam.id}">
+  grid.innerHTML = cameras.map(cam => {
+    const status = (cam.status === 'online') ? 'online' : 'offline';
+    const name = escapeHtml(cam.name || cam.nome || 'Sem nome');
+    const loc = escapeHtml(cam.location || cam.localizacao || '');
+    const lastAlert = escapeHtml(cam.last_alert || cam.ultimo_alerta || '');
+    return `
+    <div class="camera-card" data-id="${escapeHtml(cam.id != null ? String(cam.id) : '')}">
       <div class="camera-preview">
-        ${cam.status === 'online' ? '<span class="live-badge">LIVE</span>' : ''}
-        <span>📷 ${cam.status === 'online' ? 'Feed ao vivo' : 'Offline'}</span>
+        ${status === 'online' ? '<span class="live-badge">LIVE</span>' : ''}
+        <span>📷 ${status === 'online' ? 'Feed ao vivo' : 'Offline'}</span>
       </div>
       <div class="camera-info">
-        <span class="camera-name">${cam.name || cam.nome || 'Sem nome'}</span>
+        <span class="camera-name">${name}</span>
         <span class="camera-status">
-          <span class="status-dot ${cam.status}"></span>
-          ${cam.status === 'online' ? 'Online' : 'Offline'}
+          <span class="status-dot ${status}"></span>
+          ${status === 'online' ? 'Online' : 'Offline'}
         </span>
       </div>
-      ${cam.location || cam.localizacao ? `<div class="camera-location">📍 ${cam.location || cam.localizacao}</div>` : ''}
-      ${cam.last_alert || cam.ultimo_alerta ? `<div class="camera-last-alert">⚠️ ${cam.last_alert || cam.ultimo_alerta}</div>` : ''}
+      ${loc ? `<div class="camera-location">📍 ${loc}</div>` : ''}
+      ${lastAlert ? `<div class="camera-last-alert">⚠️ ${lastAlert}</div>` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderAlerts(alerts) {
@@ -72,16 +88,20 @@ function renderAlerts(alerts) {
     list.innerHTML = '<div class="loading">Nenhum alerta registrado</div>';
     return;
   }
-  list.innerHTML = alerts.map(a => `
+  list.innerHTML = alerts.map(a => {
+    const sev = String(a.severity || a.severidade || 'medium').toLowerCase();
+    const sevSafe = (sev === 'high' || sev === 'low' || sev === 'medium') ? sev : 'medium';
+    return `
     <div class="alert-item">
-      <div class="alert-time">${formatTime(a.timestamp)}</div>
+      <div class="alert-time">${escapeHtml(formatTime(a.timestamp))}</div>
       <div class="alert-content">
-        <div class="alert-camera">${a.camera || a.camera_name || 'Câmera'}</div>
-        <div class="alert-type">${a.type || a.tipo || 'Movimento detectado'}</div>
-        <span class="severity-badge ${a.severity || a.severidade || 'medium'}">${(a.severity || a.severidade || 'medium').toUpperCase()}</span>
+        <div class="alert-camera">${escapeHtml(a.camera || a.camera_name || 'Câmera')}</div>
+        <div class="alert-type">${escapeHtml(a.type || a.tipo || 'Movimento detectado')}</div>
+        <span class="severity-badge ${sevSafe}">${escapeHtml(sevSafe.toUpperCase())}</span>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderAnalytics(analytics) {
