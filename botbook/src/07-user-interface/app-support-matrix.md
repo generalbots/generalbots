@@ -14,17 +14,24 @@ which team.
 | Per-app complexity ceiling | `scripts/app_complexity_budget.toml` |
 | Enforcement | `scripts/product_profile_check.py`, `scripts/app_complexity_budget.py`, registry guard tests |
 
-## The three tiers
+## The build tiers
 
 | Build tier | Profile | Platforms | Support level | Owner | Build root |
 |---|---|---|---|---|---|
 | Desktop-local | `.product.desktop-local` | Linux, Windows, macOS | **GA** | `desktop` | `desktop-local` |
 | Cloud | `.product` | Linux | **Supported** | `platform` | `default` |
+| Government desktop | `.product.gbgov` | Windows | **Preview** | `desktop` | `gbgov` |
 | Everything else | — | any | **Preview / best effort** | `community` | — |
 
 The blessed path is the desktop-local build plus the cloud server build. They
 are the only tiers in the release and test matrix; anything else is community
 or experimental and carries no SLA.
+
+The government desktop tier is the Chat and Drive edition: `chat` and `drive`
+are the only visible apps, every other registry app is hidden, and the agent
+workspace, terminal, database tool, office apps and web lookup are not compiled
+(`cargo build -p botserver --no-default-features --features gbgov`). It is built
+and smoke-tested on Windows by the `gbgov Windows` workflow.
 
 ## Apps per tier
 

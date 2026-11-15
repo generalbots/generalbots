@@ -54,6 +54,13 @@ EXPECTED_ALWAYS = {
 }
 
 
+# A slim edition advertises its own always-visible list instead of the 7.0
+# split above. The government desktop edition ships Chat and Drive only.
+EXPECTED_ALWAYS_BY_PROFILE = {
+    ".product.gbgov": {"chat", "drive"},
+}
+
+
 def registry_ids() -> set[str]:
     ids: set[str] = set()
     for path in REGISTRY.glob("*.rs"):
@@ -146,8 +153,9 @@ def main() -> int:
         for app in sorted(apps - CORE_APPS):
             if app not in classified:
                 errors.append(f"{rel}: registry app `{app}` is not classified")
-        missing_always = sorted(EXPECTED_ALWAYS - set(profile["apps"]))
-        extra_always = sorted(set(profile["apps"]) - EXPECTED_ALWAYS)
+        expected_always = EXPECTED_ALWAYS_BY_PROFILE.get(path.name, EXPECTED_ALWAYS)
+        missing_always = sorted(expected_always - set(profile["apps"]))
+        extra_always = sorted(set(profile["apps"]) - expected_always)
         if missing_always:
             errors.append(f"{rel}: always list is missing {', '.join(missing_always)}")
         if extra_always:
