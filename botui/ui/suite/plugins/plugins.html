@@ -51,34 +51,65 @@
     <div class="container">
         <div class="header">
             <h1 data-i18n="plugins-title">Plugin Manager</h1>
-            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()" data-i18n="plugins-upload-manifest">
+            <button class="btn btn-primary" id="pluginUploadBtn" type="button" data-i18n="plugins-upload-manifest">
                 Upload Manifest
             </button>
-            <input type="file" id="fileInput" class="file-input" accept=".json"
-                   onchange="uploadManifest(this)">
+            <input type="file" id="fileInput" class="file-input" accept=".json">
         </div>
         <div id="plugin-list" hx-get="/api/ui/plugins" hx-trigger="load">
             <div style="text-align:center;padding:40px;color:#888" data-i18n="plugins-loading">Loading plugins...</div>
         </div>
     </div>
     <script>
-        function uploadManifest(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('manifest', file);
-            fetch('/api/ui/plugins/upload', {
-                method: 'POST',
-                body: formData
-            }).then(r => r.text()).then(html => {
-                document.getElementById('plugin-list').outerHTML = html;
-                htmx.process(document.body);
-            }).catch(e => {
-                const prefix = window.gbT ? window.gbT('plugins-upload-failed', 'Upload failed') : 'Upload failed';
-                alert(prefix + ': ' + e.message);
-            });
-            input.value = '';
-        }
+        (function(){
+            function showErr(msg){
+                if(window.GBToasts && typeof window.GBToasts.show === 'function'){
+                    window.GBToasts.show('Plugins', msg, 'error');
+                } else {
+                    console.error('Plugins upload failed:', msg);
+                    var el = document.getElementById('plugin-list');
+                    if(el) {
+                        var notice = document.createElement('div');
+                        notice.className = 'alert alert-warning';
+                        notice.textContent = msg;
+                        el.parentNode.insertBefore(notice, el);
+                        setTimeout(function(){ if(notice.parentNode) notice.parentNode.removeChild(notice); }, 5000);
+                    }
+                }
+            }
+            function uploadManifest(input) {
+                const file = input.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('manifest', file);
+                fetch('/api/ui/plugins/upload', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(r){
+                    if(!r.ok){
+                        return r.text().then(function(t){ throw new Error('HTTP '+r.status + (t?': '+t.slice(0,120):'')); });
+                    }
+                    return r.text();
+                }).then(function(html){
+                    var list = document.getElementById('plugin-list');
+                    if(!list || !html || html.indexOf('id="plugin-list"') < 0){
+                        showErr(window.gbT ? window.gbT('plugins-upload-bad-response','Upload response invalid') : 'Upload response invalid');
+                        return;
+                    }
+                    list.outerHTML = html;
+                    if(window.htmx) htmx.process(document.body);
+                }).catch(function(e){
+                    var prefix = window.gbT ? window.gbT('plugins-upload-failed', 'Upload failed') : 'Upload failed';
+                    showErr(prefix + ': ' + (e && e.message ? e.message : String(e)));
+                }).finally(function(){ input.value = ''; });
+            }
+            var btn = document.getElementById('pluginUploadBtn');
+            var fi = document.getElementById('fileInput');
+            if(btn && fi){
+                btn.addEventListener('click', function(){ fi.click(); });
+                fi.addEventListener('change', function(){ uploadManifest(this); });
+            }
+        })();
     </script>
 </body>
 </html>
