@@ -137,16 +137,36 @@ function openSignaturePad(docId){
     if(area)area.style.display='block';
     var canvas=document.getElementById('signature-canvas');
     if(!canvas)return;
+    // Make canvas responsive to container width while keeping aspect
+    var parent = canvas.parentElement;
+    if(parent){
+        var w = Math.min(parent.clientWidth || 500, 800);
+        canvas.width = Math.max(300, w);
+        canvas.height = 200;
+    }
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.strokeStyle='#f8fafc';
     ctx.lineWidth=2;
     ctx.lineCap='round';
-    canvas.onmousedown=function(e){drawing=true;lastX=e.offsetX;lastY=e.offsetY};
-    canvas.onmousemove=function(e){if(!drawing)return;ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke();lastX=e.offsetX;lastY=e.offsetY};
+    canvas.hasDrawn = false;
+    function getPos(e){
+        var rect = canvas.getBoundingClientRect();
+        var clientX, clientY;
+        if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+        else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+        else { clientX = e.clientX; clientY = e.clientY; }
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+    canvas.onmousedown=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
+    canvas.onmousemove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
     canvas.onmouseup=function(){drawing=false};
     canvas.onmouseleave=function(){drawing=false};
+    canvas.ontouchstart=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
+    canvas.ontouchmove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
+    canvas.ontouchend=function(e){drawing=false; e.preventDefault();};
+    canvas.ontouchcancel=function(){drawing=false;};
 }
 
 function clearSignature(){
@@ -155,12 +175,15 @@ function clearSignature(){
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';
     ctx.fillRect(0,0,canvas.width,canvas.height);
+    canvas.hasDrawn = false;
 }
 
 async function submitSignature(){
-    if(!selectedSignDoc)return;
+    if(!selectedSignDoc){ showFeedback('No document selected','error'); return; }
     var canvas=document.getElementById('signature-canvas');
-    var signatureData=canvas?canvas.toDataURL('image/png'):'';
+    if(!canvas){ showFeedback('Signature pad not ready','error'); return; }
+    if(!canvas.hasDrawn){ showFeedback('Please draw your signature before submitting','error'); return; }
+    var signatureData=canvas.toDataURL('image/png');
     var data=await apiCall('/api/kyc/signatures/'+selectedSignDoc+'/sign',{
         method:'POST',
         headers:{'Content-Type':'application/json'},

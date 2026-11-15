@@ -156,17 +156,36 @@ async function rejectUser(id){
 
 function openSignaturePad(docId){
     state.selectedSignDoc=docId;
+    state.hasDrawn = false;
     var area=document.getElementById('signature-pad-area');
     if(area)area.style.display='block';
     var canvas=document.getElementById('signature-canvas');
     if(!canvas)return;
+    var parent = canvas.parentElement;
+    if(parent){
+        var w = Math.min(parent.clientWidth || 500, 800);
+        canvas.width = Math.max(300, w);
+        canvas.height = 200;
+    }
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.strokeStyle='#f8fafc';ctx.lineWidth=2;ctx.lineCap='round';
-    canvas.onmousedown=function(e){state.drawing=true;state.lastX=e.offsetX;state.lastY=e.offsetY};
-    canvas.onmousemove=function(e){if(!state.drawing)return;ctx.beginPath();ctx.moveTo(state.lastX,state.lastY);ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke();state.lastX=e.offsetX;state.lastY=e.offsetY};
+    function getPos(e){
+        var rect = canvas.getBoundingClientRect();
+        var clientX, clientY;
+        if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+        else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+        else { clientX = e.clientX; clientY = e.clientY; }
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+    canvas.onmousedown=function(e){state.drawing=true; var p=getPos(e); state.lastX=p.x; state.lastY=p.y; state.hasDrawn=true; e.preventDefault();};
+    canvas.onmousemove=function(e){if(!state.drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); state.lastX=p.x; state.lastY=p.y; e.preventDefault();};
     canvas.onmouseup=function(){state.drawing=false};
     canvas.onmouseleave=function(){state.drawing=false};
+    canvas.ontouchstart=function(e){state.drawing=true; var p=getPos(e); state.lastX=p.x; state.lastY=p.y; state.hasDrawn=true; e.preventDefault();};
+    canvas.ontouchmove=function(e){if(!state.drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); state.lastX=p.x; state.lastY=p.y; e.preventDefault();};
+    canvas.ontouchend=function(e){state.drawing=false; e.preventDefault();};
+    canvas.ontouchcancel=function(){state.drawing=false;};
 }
 
 function clearSignature(){
@@ -174,12 +193,15 @@ function clearSignature(){
     if(!canvas)return;
     var ctx=canvas.getContext('2d');
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    state.hasDrawn = false;
 }
 
 async function submitSignature(){
-    if(!state.selectedSignDoc)return;
+    if(!state.selectedSignDoc){ showFeedback('No document selected','error'); return; }
     var canvas=document.getElementById('signature-canvas');
-    var signatureData=canvas?canvas.toDataURL('image/png'):'';
+    if(!canvas){ showFeedback('Signature pad not ready','error'); return; }
+    if(!state.hasDrawn){ showFeedback('Please draw your signature before submitting','error'); return; }
+    var signatureData=canvas.toDataURL('image/png');
     var data=await apiCall('/api/biometry/signatures/'+state.selectedSignDoc+'/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature:signatureData,biometric_confirmed:true})});
     if(data){
         showFeedback('Document signed with biometric attestation','success');
