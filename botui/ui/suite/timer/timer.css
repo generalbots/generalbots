@@ -20,13 +20,13 @@
     cursor: pointer;
     color: var(--text, #1f2430);
 }
-.gb-timer .timer-mode.active { background: #06b6d4; border-color: #06b6d4; color: #fff; }
+.gb-timer .timer-mode.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .gb-timer .timer-display {
     font-size: 72px;
     font-weight: 200;
     font-variant-numeric: tabular-nums;
     letter-spacing: 2px;
-    color: #06b6d4;
+    color: var(--primary);
 }
 .gb-timer .timer-controls { display: flex; gap: 10px; }
 .gb-timer .timer-btn {
@@ -37,15 +37,9 @@
     font-weight: 600;
     cursor: pointer;
 }
-.gb-timer .timer-start { background: #06b6d4; color: #fff; }
-.gb-timer .timer-start.running { background: #ef4444; }
-.gb-timer .timer-reset { background: rgba(0, 0, 0, 0.08); color: var(--text, #1f2430); }
-.gb-timer .timer-label { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; }
-.gb-timer .timer-sessions { font-size: 12px; color: #9ca3af; }
+.gb-timer .timer-start { background: var(--primary); color: #fff; }
+.gb-timer .timer-start.running { background: var(--error); }
+.gb-timer .timer-reset { background: var(--surface-hover, rgba(0,0,0,0.08)); color: var(--text, #1f2430); }
+.gb-timer .timer-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+.gb-timer .timer-sessions { font-size: 12px; color: var(--text-tertiary); }
 
-@media (prefers-color-scheme: dark) {
-    .gb-timer { background: #14161d; color: #e6e8ee; }
-    .gb-timer .timer-mode { border-color: rgba(255, 255, 255, 0.2); color: #e6e8ee; }
-    .gb-timer .timer-reset { background: rgba(255, 255, 255, 0.1); color: #e6e8ee; }
-    .gb-timer .timer-label { color: #aab0bd; }
-}

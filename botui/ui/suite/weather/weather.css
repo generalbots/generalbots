@@ -5,7 +5,7 @@
     height: 100%;
     padding: 18px;
     gap: 14px;
-    background: linear-gradient(160deg, #0ea5e9 0%, #2563eb 100%);
+    background: linear-gradient(160deg, color-mix(in oklab, var(--primary) 65%, var(--info)) 0%, color-mix(in oklab, var(--primary) 85%, #0b3d91) 100%);
     color: #fff;
     overflow-y: auto;
 }
