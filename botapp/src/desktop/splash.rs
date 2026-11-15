@@ -10,13 +10,21 @@ use std::time::{Duration, Instant};
 use super::i18n;
 use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
+/// Whether the splash stays above every other window and takes the focus.
+/// The government edition can spend minutes starting its services, and a
+/// topmost window that cannot be closed gets in the way of everything else
+/// on the computer, so there it is an ordinary window.
+const TOPMOST: bool = !cfg!(feature = "gbgov");
+
 /// Shows the splash window, creating it on demand when the configured window is
 /// not already present (for example in a development run).
 pub fn show(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
         let _ = window.show();
-        let _ = window.set_focus();
-        let _ = window.set_always_on_top(true);
+        if TOPMOST {
+            let _ = window.set_focus();
+        }
+        let _ = window.set_always_on_top(TOPMOST);
         return;
     }
 
@@ -28,7 +36,7 @@ pub fn show(app: &tauri::AppHandle) {
         .resizable(false)
         .decorations(false)
         .transparent(true)
-        .always_on_top(true)
+        .always_on_top(TOPMOST)
         .skip_taskbar(true)
         .center()
         .visible(true);
@@ -59,8 +67,10 @@ pub fn hide(app: &tauri::AppHandle) {
 pub fn raise(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
         let _ = window.show();
-        let _ = window.set_always_on_top(true);
-        let _ = window.set_focus();
+        let _ = window.set_always_on_top(TOPMOST);
+        if TOPMOST {
+            let _ = window.set_focus();
+        }
     }
 }
 

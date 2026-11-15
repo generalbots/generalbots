@@ -187,9 +187,20 @@ fn start_sidecar_and_show(app: &tauri::App) {
                 log::error!("Failed to start botserver sidecar: {e}");
             }
         }
-        let ready = Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
+        // A cold start (services stopped, first run after a reboot) can take
+        // several minutes. Revealing the window before the server answers
+        // showed the bundled page, which cannot reach the API; keep waiting
+        // behind the splash instead.
+        let mut ready = false;
+        for round in 1..=5u32 {
+            ready = Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
+            if ready {
+                break;
+            }
+            log::warn!("botserver has not answered after {}s; still waiting", round * 120);
+        }
         if !ready {
-            log::error!("botserver did not respond within 120s");
+            log::error!("botserver did not respond within 600s");
         }
         desktop::wizard::reveal_suite(&handle);
     });
