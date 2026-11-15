@@ -28,8 +28,7 @@
 
         /* 3. Product config + accent */
         await A.loadProduct();
-        var accent = A.productConfig && A.productConfig.accent;
-        if (accent && window.GBIdentity) { window.GBIdentity.apply(accent); }
+        if (typeof A.restoreAccent === "function") { A.restoreAccent(); }
 
         /* 4. Bot name from URL */
         var pathParts = window.location.pathname.split("/");

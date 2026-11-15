@@ -45,8 +45,8 @@
             loadDrive();
         }
 
-        /* Lazy-load Settings */
-        if (view === "settings" && !settingsLoaded) {
+        /* Settings: always re-render (native, no partial to cache) */
+        if (view === "settings") {
             loadSettings();
         }
     };
@@ -90,29 +90,14 @@
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Load Settings                                                      */
+    /*  Load Settings (native, built in 09_settings.js)                    */
     /* ------------------------------------------------------------------ */
 
     function loadSettings() {
-        var container = document.getElementById("gbSettingsContainer");
-        if (!container) { return; }
-
-        A.apiFetch("/suite/settings/index.html")
-            .then(function (r) {
-                if (!r.ok) { throw new Error("Settings HTML " + r.status); }
-                return r.text();
-            })
-            .then(function (html) {
-                container.innerHTML = html;
-                settingsLoaded = true;
-            })
-            .catch(function (e) {
-                container.innerHTML =
-                    '<p style="padding:24px;color:var(--id-text);">' +
-                    A.t("assistant.settings-error", "Could not load Settings.") +
-                    "</p>";
-                console.error("[assistant] Settings load failed:", e);
-            });
+        if (typeof A.renderSettings === "function") {
+            A.renderSettings();
+            settingsLoaded = true;
+        }
     }
 
     /* ------------------------------------------------------------------ */

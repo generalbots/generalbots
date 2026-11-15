@@ -300,6 +300,7 @@ body::after {
 
 /* Sidebar bottom */
 .gb-sidebar-bottom {
+    position: relative;
     flex-shrink: 0;
     padding: var(--id-space-3) var(--id-space-4);
     border-top: 1px solid var(--id-line-soft);
@@ -413,14 +414,10 @@ body::after {
    User menu (popup from user row)
    ================================================================ */
 .gb-user-menu {
-    display: flex;
-    flex-direction: column;
-    background: var(--id-surface-solid);
-    border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-sm);
-    box-shadow: var(--id-shadow-float);
-    padding: var(--id-space-1);
-    margin-top: var(--id-space-1);
+    display: flex; flex-direction: column;
+    background: var(--id-surface-solid); border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); box-shadow: var(--id-shadow-float);
+    padding: var(--id-space-1); margin-top: var(--id-space-1);
 }
 .gb-user-menu-item {
     display: flex;
