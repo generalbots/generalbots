@@ -6,7 +6,10 @@ window.GBNotepad = window.GBNotepad || {};
   function loadIndex() {
     try { return gbStoreGet(IDX, {}); } catch (e) { return {}; }
   }
-  function saveIndex(i) { try { localStorage.setItem(IDX, JSON.stringify(i)); } catch (e) {} }
+  function saveIndex(i) {
+    try { localStorage.setItem(IDX, JSON.stringify(i)); return true; }
+    catch (e) { console.error("Notepad save failed:", e); return false; }
+  }
 
   app.init = function () {
     var root = document.getElementById("gb-notepad-root") ||
@@ -43,7 +46,12 @@ window.GBNotepad = window.GBNotepad || {};
       var i = loadIndex();
       if (!current()) return;
       i[current()] = ta.value;
-      saveIndex(i);
+      var ok = saveIndex(i);
+      if (!ok) {
+        clearTimeout(app._t);
+        status.textContent = "Save failed (storage full?)";
+        return;
+      }
       mark(true);
       clearTimeout(app._t);
       app._t = setTimeout(function () { mark(false); }, 500);
