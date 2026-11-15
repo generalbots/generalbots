@@ -6,196 +6,195 @@
 <meta name="color-scheme" content="dark"/>
 <title>General Bots</title>
 <style>
+@font-face{font-family:'Fira Sans';font-weight:500;font-style:normal;font-display:swap;
+  src:url("suite/identity/fonts/fira-sans-latin-500-normal.woff2") format("woff2")}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden;background:#05060a;color:#e8e8ee;
-  font-family:Inter,'Segoe UI',system-ui,-apple-system,sans-serif}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0e;
+  font-family:'Fira Sans','Segoe UI',system-ui,-apple-system,sans-serif}
 body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;
-  border-radius:20px;overflow:hidden}
-@font-face{font-family:"Palanquin Dark";font-weight:500;font-display:swap;
-  src:url("suite/identity/fonts/palanquin-dark-latin-500-normal.woff2") format("woff2")}
-.scene{position:relative;flex:1;overflow:hidden;isolation:isolate}
-.scene__texture{position:absolute;inset:0;background:url("splash/space-texture.jpg") center/cover;
-  opacity:.32;mix-blend-mode:lighten;transform:rotate(180deg) scale(1.06);z-index:0}
-.scene__shader{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1}
-.scene__optic{position:absolute;z-index:2;top:50%;left:50%;width:min(52%,380px);aspect-ratio:1;
-  pointer-events:none;transform:translate(-50%,-50%)}
-.scene__gear{position:absolute;top:13%;left:15%;width:63%;height:63%;object-fit:cover;
-  filter:contrast(1.08) brightness(.96)}
-.scene__gear--hi{opacity:.48;mix-blend-mode:screen;filter:brightness(1.18) contrast(1.3) saturate(.8)}
-.scene__flare{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  mix-blend-mode:screen;z-index:4}
-.scene__glass{position:absolute;top:8%;left:10%;width:76%;height:76%;z-index:1;
-  -webkit-mask:url("splash/gear-mask.svg") center/72% 72% no-repeat;
-  mask:url("splash/gear-mask.svg") center/72% 72% no-repeat;
-  backdrop-filter:blur(10px) saturate(1.7) contrast(1.1) brightness(1.05);
-  -webkit-backdrop-filter:blur(10px) saturate(1.7) contrast(1.1) brightness(1.05);
-  background:rgb(180 200 255/.07)}
-.scene__sheen{position:absolute;top:8%;left:10%;width:76%;height:76%;z-index:3;
-  -webkit-mask:url("splash/gear-mask.svg") center/72% 72% no-repeat;
-  mask:url("splash/gear-mask.svg") center/72% 72% no-repeat;
-  background:radial-gradient(circle at 36% 30%,rgb(255 255 255/.22),transparent 44%),
-    linear-gradient(145deg,rgb(255 255 255/.08),rgb(100 130 200/.03) 52%,rgb(255 255 255/.08));
-  mix-blend-mode:screen;pointer-events:none}
-.scene__origin{position:absolute;z-index:5;left:46.6%;top:47.2%;width:1px;height:1px}
-.scene__vignette{position:absolute;inset:0;z-index:6;pointer-events:none;
-  background:radial-gradient(circle at 50% 47%,transparent 18%,rgb(0 0 0/.08) 58%,rgb(0 0 0/.36) 115%)}
-.overlay{position:absolute;bottom:0;left:0;right:0;z-index:10;
-  padding:0 28px 22px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.wordmark{font-family:"Palanquin Dark",sans-serif;font-weight:500;font-size:18px;
-  color:rgb(255 255 255/.55);letter-spacing:-.01em}
-.wordmark-dot{color:rgb(255 255 255/.3)}
-.status{min-height:1.2em;font-size:12px;color:rgb(255 255 255/.4)}
-.progress{width:100%;height:3px;background:rgb(255 255 255/.08);border-radius:999px;overflow:hidden}
-.progress-bar{height:100%;width:0%;background:rgb(255 255 255/.35);border-radius:999px;
-  transition:width 280ms ease}
+  border-radius:20px;overflow:hidden;position:relative}
+.bg{position:absolute;inset:0;z-index:0;
+  background:url("splash/splash-bg.jpg") center/cover no-repeat}
+/* Gradient overlays only where text sits — top-left corner and bottom strip */
+.grad-top{position:absolute;top:0;left:0;right:50%;height:120px;z-index:1;pointer-events:none;
+  background:linear-gradient(160deg,rgb(0 0 0/.52) 0%,rgb(0 0 0/.28) 50%,transparent 100%)}
+.grad-bottom{position:absolute;bottom:0;left:0;right:0;height:140px;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgb(0 0 0/.62) 0%,rgb(0 0 0/.36) 55%,transparent 100%)}
+/* Legal footnotes — top-left */
+.legal{position:absolute;top:16px;left:20px;z-index:10;
+  font-size:9.5px;line-height:1.55;color:rgb(255 255 255/.45);letter-spacing:.01em}
+/* Bottom overlay: split left/right */
+.bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;
+  padding:0 24px 16px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.bottom-left{display:flex;flex-direction:column;gap:2px;max-width:60%}
+.wordmark{font-family:'Fira Sans',sans-serif;font-weight:500;font-size:20px;
+  color:rgb(255 255 255/.72);letter-spacing:-.02em;line-height:1.3}
+.version{font-size:11px;color:rgb(255 255 255/.38);min-height:1em}
+.slogan{font-size:11px;font-style:italic;color:rgb(255 255 255/.42);line-height:1.4}
+.bottom-right{font-size:10px;color:rgb(255 255 255/.35);text-align:right;white-space:nowrap;
+  padding-bottom:26px}
+/* Progress bar strip */
+.progress-strip{position:absolute;bottom:0;left:0;right:0;z-index:20;
+  padding:0 24px 10px;display:flex;align-items:center;gap:8px}
+.spinner{width:14px;height:14px;border:2px solid rgb(255 255 255/.15);
+  border-top-color:rgb(255 255 255/.55);border-radius:50%;flex-shrink:0;
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status{font-size:11px;color:rgb(255 255 255/.42);flex:1;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.bar-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:rgb(255 255 255/.08);z-index:21}
+.bar{height:100%;width:0%;background:rgb(255 255 255/.38);border-radius:0 2px 2px 0;
+  transition:width 600ms cubic-bezier(.22,1,.36,1)}
 @media(prefers-reduced-motion:reduce){
-  .scene__shader{display:none}
-  .progress-bar{transition:none}
+  .spinner{animation:none;border-top-color:rgb(255 255 255/.35)}
+  .bar{transition:none}
 }
 </style>
 </head>
 <body>
-<div class="scene" id="scene">
-  <div class="scene__texture" aria-hidden="true"></div>
-  <canvas class="scene__shader" id="shaderCanvas" aria-hidden="true"></canvas>
-  <div class="scene__optic" aria-hidden="true">
-    <div class="scene__glass"></div>
-    <img class="scene__gear" src="splash/gear-glass.png" alt=""/>
-    <img class="scene__gear scene__gear--hi" src="splash/gear-glass.png" alt=""/>
-    <div class="scene__sheen"></div>
-    <img class="scene__flare" src="splash/flare.png" alt=""/>
-    <span class="scene__origin" id="spectrumOrigin"></span>
+<div class="bg" aria-hidden="true"></div>
+<div class="grad-top" aria-hidden="true"></div>
+<div class="grad-bottom" aria-hidden="true"></div>
+
+<div class="legal" id="legalText"></div>
+
+<div class="bottom">
+  <div class="bottom-left">
+    <div class="wordmark">General Bots</div>
+    <div class="version" id="splashVersion"></div>
+    <div class="slogan" id="sloganText"></div>
   </div>
-  <div class="scene__vignette" aria-hidden="true"></div>
+  <div class="bottom-right">www.pragmatismo.com.br</div>
 </div>
-<div class="overlay">
-  <div class="wordmark" aria-hidden="true">General Bots<span class="wordmark-dot">.</span></div>
+
+<div class="progress-strip">
+  <div class="spinner" id="splashSpinner" aria-hidden="true"></div>
   <div class="status" id="splashStatus" role="status" aria-live="polite" aria-atomic="true"></div>
-  <div class="progress" role="progressbar" id="splashProgress"
-       aria-label="Startup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <div class="progress-bar" id="splashBar"></div>
-  </div>
 </div>
-<script>
-if("serviceWorker"in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})}).catch(function(){})}
-</script>
+<div class="bar-wrap" role="progressbar" id="splashProgress"
+     aria-label="Startup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+  <div class="bar" id="splashBar"></div>
+</div>
+
 <script>
 (function(){
 "use strict";
+if("serviceWorker"in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})}).catch(function(){})}
 document.addEventListener("contextmenu",function(e){e.preventDefault()});
+
 var pt=navigator.language&&navigator.language.toLowerCase().startsWith("pt");
-var L={
-  start:pt?"Iniciando servicos...":"Starting services...",
-  server:pt?"Servidor iniciando...":"Server is starting...",
-  services:pt?"Servicos iniciando...":"Services are starting...",
-  iface:pt?"Carregando interface...":"Loading interface...",
-  workspace:pt?"Preparando area de trabalho...":"Preparing workspace...",
-  vault:pt?"Abrindo cofre de seguranca...":"Opening security vault...",
-  db:pt?"Conectando banco de dados...":"Connecting database...",
-  drive:pt?"Montando armazenamento...":"Mounting storage...",
-  bot:pt?"Carregando assistente...":"Loading assistant...",
-  ready:pt?"Pronto.":"Ready."
-};
-var statusEl=document.getElementById("splashStatus");
+
+/* Legal footnotes */
+var legalEl=document.getElementById("legalText");
+if(legalEl){
+  if(pt){
+    legalEl.innerHTML="Software de código aberto · Licença MIT<br>"
+      +"© General Bots · Pragmatismo<br>"
+      +"Inclui componentes de terceiros sob suas próprias licenças.<br>"
+      +"Fornecido no estado em que se encontra, sem garantias.";
+  }else{
+    legalEl.innerHTML="Open source software · MIT License<br>"
+      +"© General Bots · Pragmatismo<br>"
+      +"Includes third-party components under their own licenses.<br>"
+      +"Provided as is, without warranties.";
+  }
+}
+
+/* Slogan */
+var sloganEl=document.getElementById("sloganText");
+if(sloganEl) sloganEl.textContent="Errar é humano. Assinado, General Bots";
+
+/* Status labels */
+var labels=pt
+  ?["Iniciando serviços...","Abrindo cofre de segurança...","Conectando banco de dados...",
+    "Montando armazenamento...","Carregando assistente...","Preparando área de trabalho..."]
+  :["Starting services...","Opening security vault...","Connecting database...",
+    "Mounting storage...","Loading assistant...","Preparing workspace..."];
+var readyLabel=pt?"Pronto.":"Ready.";
+
+/* Progress state */
 var barEl=document.getElementById("splashBar");
 var progressEl=document.getElementById("splashProgress");
-var progress=0;var stages={health:false,api:false};var timer=null;
-function setProgress(value,text){
-  var next=Math.max(progress,Math.min(100,Math.round(value)));progress=next;
+var statusEl=document.getElementById("splashStatus");
+var spinnerEl=document.getElementById("splashSpinner");
+var currentValue=0;   /* the displayed value */
+var pushedValue=0;    /* highest value pushed externally */
+var fakeValue=0;      /* the fake curve value */
+var done=false;
+var labelIdx=0;
+
+function setBar(value,text){
+  var next=Math.max(currentValue,Math.min(100,Math.round(value)));
+  currentValue=next;
   if(barEl)barEl.style.width=next+"%";
-  if(progressEl){progressEl.setAttribute("aria-valuenow",String(next));progressEl.setAttribute("aria-valuetext",next+"%")}
+  if(progressEl){progressEl.setAttribute("aria-valuenow",String(next));
+    progressEl.setAttribute("aria-valuetext",next+"%")}
   if(text&&statusEl)statusEl.textContent=text;
-  if(next>=100&&timer){clearInterval(timer);timer=null}
+  if(next>=100){
+    done=true;
+    if(spinnerEl)spinnerEl.style.display="none";
+  }
 }
-window.gbSplashProgress=setProgress;
+
+/* Public API: take max of fake and pushed */
+window.gbSplashProgress=function(value,text){
+  pushedValue=Math.max(pushedValue,value);
+  var effective=Math.max(fakeValue,pushedValue);
+  setBar(effective,text||undefined);
+};
+
+/* Version API */
+window.gbSplashVersion=function(text){
+  var el=document.getElementById("splashVersion");
+  if(el)el.textContent=text||"";
+};
+
+/* Fake progress curve */
+var startTime=Date.now();
 var isPreview=false;
 try{isPreview=new URLSearchParams(location.search).get("preview")==="1"}catch(e){}
+
+function fakeProgress(){
+  if(done)return;
+  var elapsed=(Date.now()-startTime)/1000;
+  /* Fast to ~60% in first 6s, then slow asymptote toward 92% */
+  var f;
+  if(elapsed<6){
+    f=elapsed/6*60; /* linear 0->60 in 6s */
+  }else{
+    /* Logarithmic slowdown: 60 + 32*(1 - e^(-(t-6)/20)) */
+    f=60+32*(1-Math.exp(-(elapsed-6)/20));
+  }
+  fakeValue=Math.round(f);
+  var effective=Math.max(fakeValue,pushedValue);
+  /* Pick a label */
+  var li=Math.min(Math.floor(elapsed/2.5),labels.length-1);
+  var label=effective>=100?readyLabel:labels[li];
+  setBar(effective,label);
+}
+
+/* Preview mode: loop through, then reset */
 if(isPreview){
-  var fakeSteps=[[5,L.start],[12,L.vault],[22,L.db],[35,L.drive],[50,L.server],[65,L.services],[78,L.bot],[88,L.iface],[95,L.workspace],[100,L.ready]];
-  var si=0;setProgress(2,L.start);
-  var ft=setInterval(function(){if(si>=fakeSteps.length){si=0;progress=0}setProgress(fakeSteps[si][0],fakeSteps[si][1]);si++},1200);
+  setBar(1,labels[0]);
+  var previewTimer=setInterval(function(){
+    if(done){
+      /* Reset after a pause */
+      setTimeout(function(){
+        currentValue=0;fakeValue=0;pushedValue=0;done=false;startTime=Date.now();
+        if(spinnerEl)spinnerEl.style.display="";
+        setBar(0,labels[0]);
+      },2000);
+      return;
+    }
+    fakeProgress();
+  },400);
 }else{
-  function poll(){
-    if(!stages.health){
-      fetch("http://127.0.0.1:8080/health",{cache:"no-store"}).then(function(r){if(r.ok){stages.health=true;setProgress(40,L.server)}else setProgress(Math.max(progress,10),L.start)}).catch(function(){setProgress(Math.max(progress,5),L.start)});return}
-    if(!stages.api){
-      fetch("http://127.0.0.1:8080/api/product",{cache:"no-store",credentials:"omit"}).then(function(r){if(r.ok){stages.api=true;setProgress(85,L.iface)}else setProgress(55,L.services)}).catch(function(){setProgress(50,L.services)});return}
-    if(progress<95)setProgress(92,L.workspace);
-  }
-  setProgress(2,L.start);poll();timer=setInterval(poll,900);
-}
-/* WebGL shader (ported from PrismShader.tsx) */
-var reducedMotion=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
-var canvas=document.getElementById("shaderCanvas");
-if(canvas&&!reducedMotion){
-  var gl=canvas.getContext("webgl",{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:"high-performance"});
-  if(gl)initShader(gl,canvas);
-}
-function initShader(gl,cv){
-  var VS="attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
-  var FS="precision highp float;uniform vec2 R;uniform vec2 O;uniform float T;uniform float D;"
-+"float h(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}"
-+"float vn(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}"
-+"float bn(vec2 x){return(h(x+vec2(17,31))+h(x+vec2(47,13))+h(x+vec2(71,59))+h(x+vec2(101,7))-2.)*.5;}"
-+"float gr(vec2 x,float t){float f=floor(t*8.);vec2 fp=floor(x*1.15);vec2 gc=floor((x+vec2(.75,1.25))/2.35);"
-+"return bn(fp)*.58+bn(fp+vec2(f*19.,f*31.))*.12+bn(gc+vec2(43,89))*.22+vn(x*.19+vec2(23,61))*.16-.08;}"
-+"vec3 sp(float t){t=clamp(t,0.,1.);"
-+"vec3 v=vec3(.34,.03,.95),b=vec3(.02,.18,1),c=vec3(0,.86,1),g=vec3(.08,1,.16),y=vec3(1,.96,0),o=vec3(1,.32,0),r=vec3(1,.015,0);"
-+"if(t<.17)return mix(v,b,t/.17);if(t<.34)return mix(b,c,(t-.17)/.17);if(t<.51)return mix(c,g,(t-.34)/.17);"
-+"if(t<.68)return mix(g,y,(t-.51)/.17);if(t<.84)return mix(y,o,(t-.68)/.16);return mix(o,r,(t-.84)/.16);}"
-+"void main(){vec2 uv=gl_FragCoord.xy/R;float A=R.x/R.y;vec2 p=vec2((uv.x-.5)*A,uv.y-.5);"
-+"vec2 pr=vec2((O.x-.5)*A,O.y-.5);vec3 col=vec3(0);float al=0.;"
-+"vec2 d=normalize(vec2(.93,-.38));vec2 pe=vec2(-d.y,d.x);vec2 l=p-pr;"
-+"float a=dot(l,d);float ac=dot(l,pe);float M=max(A,1.)*1.42;"
-+"vec2 wd=-d;float wa=dot(l,wd);float wc=dot(l,vec2(-wd.y,wd.x));"
-+"float wm=smoothstep(.002,.026,wa)*(1.-smoothstep(M*.9,M,wa));"
-+"float ic=exp(-abs(wc)*790.);float ig=exp(-abs(wc)*88.)*.42;"
-+"float cm=smoothstep(.02,.14,distance(p,pr));"
-+"float inc=(ic+ig)*wm*cm;col+=vec3(.78,.82,1)*inc;al+=inc*.9;"
-+"float w=.008+a*.205;float bm=smoothstep(.004,.036,a)*(1.-smoothstep(M*.88,M,a));"
-+"float fe=max(.003,w*.16);float em=1.-smoothstep(w-fe,w,abs(ac));"
-+"float bd=ac/max(w,.001)*.5+.5;float na=ac/max(w,.001);"
-+"float sc=.82+.18*exp(-abs(na)*2.4);vec3 spc=sp(bd);"
-+"float sl=dot(spc,vec3(.2126,.7152,.0722));float mr=1.-abs(sl*2.-1.);"
-+"vec2 gp=gl_FragCoord.xy/max(D,1.);float gn=gr(gp,T);"
-+"float gs=mix(.17,.26,mr);float eu=max(.68,1.+gn*gs);"
-+"float sd=.97+vn(vec2(a*290.,na*19.))*.06;"
-+"vec3 s=spc*sc*eu*sd;float ba=bm*em*(.67+min(a,.8)*.28);"
-+"col+=s*ba*1.36;al+=ba;"
-+"float cg=exp(-length(l)*31.)*.68;float cgn=.9+h(gl_FragCoord.xy*.73)*.1;"
-+"col+=vec3(1,.98,.92)*cg*cgn;al+=cg;"
-+"gl_FragColor=vec4(col,clamp(al,0.,.94));}";
-  function cc(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){gl.deleteShader(s);return null}return s}
-  var vs=cc(gl.VERTEX_SHADER,VS),fs=cc(gl.FRAGMENT_SHADER,FS);if(!vs||!fs)return;
-  var pg=gl.createProgram();gl.attachShader(pg,vs);gl.attachShader(pg,fs);gl.linkProgram(pg);
-  if(!gl.getProgramParameter(pg,gl.LINK_STATUS))return;
-  var bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-  var aP=gl.getAttribLocation(pg,"a"),uR=gl.getUniformLocation(pg,"R"),
-      uO=gl.getUniformLocation(pg,"O"),uT=gl.getUniformLocation(pg,"T"),uD=gl.getUniformLocation(pg,"D");
-  var ox={x:.5,y:.5},clk=0,pv=0,dpr=1,fr=0;
-  function rsz(){
-    dpr=Math.min(window.devicePixelRatio||1,2);
-    var w=Math.round(cv.clientWidth*dpr),hh=Math.round(cv.clientHeight*dpr);
-    if(cv.width!==w||cv.height!==hh){cv.width=w;cv.height=hh}
-    var oe=document.getElementById("spectrumOrigin");
-    if(oe){var cb=cv.getBoundingClientRect(),ob=oe.getBoundingClientRect();
-      ox.x=(ob.left+ob.width*.5-cb.left)/cb.width;ox.y=1-(ob.top+ob.height*.5-cb.top)/cb.height}
-  }
-  function ren(now){
-    var dt=pv===0?0:Math.min((now-pv)/1000,.1);pv=now;clk+=dt;rsz();
-    gl.viewport(0,0,cv.width,cv.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-    gl.useProgram(pg);gl.enableVertexAttribArray(aP);gl.bindBuffer(gl.ARRAY_BUFFER,bf);
-    gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);
-    gl.uniform2f(uR,cv.width,cv.height);gl.uniform2f(uO,ox.x,ox.y);
-    gl.uniform1f(uT,clk);gl.uniform1f(uD,dpr);gl.drawArrays(gl.TRIANGLES,0,6);
-    fr=requestAnimationFrame(ren);
-  }
-  fr=requestAnimationFrame(ren);
-  document.addEventListener("visibilitychange",function(){
-    if(document.hidden)cancelAnimationFrame(fr);else{pv=0;fr=requestAnimationFrame(ren)}
-  });
+  setBar(1,labels[0]);
+  var fakeTimer=setInterval(function(){
+    if(done){clearInterval(fakeTimer);return}
+    fakeProgress();
+  },400);
 }
 })();
 </script>
