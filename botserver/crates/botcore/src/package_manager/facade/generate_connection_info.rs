@@ -229,7 +229,22 @@ Store credentials in Vault:
                     if let Some(binary_name) = component.effective_binary_name() {
                         let direct = bin_path.join(&binary_name);
                         let sub = bin_path.join("bin").join(&binary_name);
-                        return direct.exists() || sub.exists();
+                        if direct.exists() || sub.exists() {
+                            return true;
+                        }
+                    }
+                    // #2562 — The cache ships as `valkey-server` on Linux but
+                    // `redis-server.exe` on Windows (Microsoft port). When the
+                    // primary `binary_name` misses, check the name the Windows
+                    // exec command actually references.
+                    if cfg!(target_os = "windows") {
+                        if let Some(alt) = component.windows_binary_name_from_exec() {
+                            let direct = bin_path.join(&alt);
+                            let sub = bin_path.join("bin").join(&alt);
+                            if direct.exists() || sub.exists() {
+                                return true;
+                            }
+                        }
                     }
                 }
                 bin_path.exists()

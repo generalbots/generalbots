@@ -280,6 +280,22 @@ pub fn register_proxy(components: &mut HashMap<String, ComponentConfig>) {
 mod tests {
     use super::*;
 
+    /// #2562 — the cache ships as `valkey-server` (Linux) / `redis-server.exe`
+    /// (Windows). `windows_binary_name_from_exec` must return the Windows name
+    /// so `is_installed` finds the binary even though `binary_name` says valkey.
+    #[test]
+    fn cache_windows_binary_name_resolves_to_redis() {
+        let mut components = HashMap::new();
+        register_cache(&mut components);
+        let cache = components.get("cache").expect("cache component");
+        assert_eq!(cache.binary_name.as_deref(), Some("valkey-server"));
+        assert_eq!(
+            cache.windows_binary_name_from_exec(),
+            Some("redis-server.exe".to_string()),
+            "exec_cmd_windows must reference redis-server.exe"
+        );
+    }
+
     #[test]
     fn tables_probes_initdb_before_creating_the_cluster() {
         let mut components = HashMap::new();
