@@ -2,6 +2,13 @@ use super::*;
 
 impl BootstrapManager {
     pub(super) fn templates_source_dir(&self) -> PathBuf {
+        // Edition builds (gbgov) extract their templates into a dedicated
+        // subtree. When present, it takes priority over the git-cloned
+        // `work/templates` and the in-repo `bottemplates/bots`.
+        let edition = PathBuf::from("work/templates/bots/gbgov");
+        if edition.is_dir() {
+            return edition;
+        }
         let work = PathBuf::from("work/templates");
         if work.is_dir() {
             work
@@ -105,6 +112,24 @@ impl BootstrapManager {
             // Copying the wrapper directory instead produced
             // `{org}.gborg/{name}/…`, which no resolver discovers.
             let target = target_root.join(format!("{bot_name}.gbai"));
+
+            // Edition builds replace the generic assistant: remove what a
+            // template owns (dialog scripts and prompts) so files the edition
+            // no longer ships, such as dropped tools, do not linger. Only
+            // those two folders: knowledge and the person's files under the
+            // same bot are never touched. On a regular build the copy is
+            // additive, which is right for the cloned upstream templates.
+            if cfg!(feature = "gbgov") {
+                for owned in ["gbdialog", "gbot"] {
+                    let stale = target.join(format!("{bot_name}.{owned}"));
+                    if stale.is_dir() {
+                        if let Err(e) = std::fs::remove_dir_all(&stale) {
+                            warn!("Could not clean {}: {e}", stale.display());
+                        }
+                    }
+                }
+            }
+
             if let Err(e) = copy_dir_recursive(&source_dir, &target) {
                 warn!("Failed to copy template {bot_name}: {e}");
                 continue;

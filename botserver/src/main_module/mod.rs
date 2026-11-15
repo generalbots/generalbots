@@ -3,6 +3,7 @@ pub mod auto_service;
 pub mod background;
 pub mod cache;
 pub mod channel_delivery;
+pub mod edition_templates;
 pub mod constants;
 pub mod directory_setup;
 #[cfg(feature = "drive")]

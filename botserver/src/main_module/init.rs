@@ -168,8 +168,16 @@ pub async fn run_bootstrap(
             }
         };
 
-        trace!("Ensuring bot templates repository is up to date...");
-        ensure_templates_repo().await;
+        // Edition builds (gbgov) embed their own templates; skip the network
+        // clone and extract from the binary instead.  Other builds keep the
+        // upstream git flow.
+        if super::edition_templates::has_edition_templates() {
+            trace!("Extracting edition-specific bot templates...");
+            super::edition_templates::extract_edition_templates();
+        } else {
+            trace!("Ensuring bot templates repository is up to date...");
+            ensure_templates_repo().await;
+        }
 
         trace!("Config loaded, syncing templates to database...");
         progress_tx_clone
