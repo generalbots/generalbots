@@ -35,22 +35,28 @@ function updateStats(){
     var ordEl=document.getElementById('stat-orders');
     var lsEl=document.getElementById('stat-low-stock');
     var prEl=document.getElementById('stat-promos');
-    if(revEl)revEl.textContent='$'+state.stock.reduce(function(s,x){return s+(x.revenue||0)},0).toFixed(2);
-    if(ordEl)ordEl.textContent=state.stock.length;
-    if(lsEl)lsEl.textContent=state.stock.filter(function(s){return s.available<=s.min}).length;
-    if(prEl)prEl.textContent=state.promos.filter(function(p){return p.status==='active'}).length;
+    var filteredStock = state.stock;
+    if(state.currentBranch && state.currentBranch !== 'all'){
+        filteredStock = state.stock.filter(function(s){return s.branch_id == state.currentBranch || s.branch_id === state.currentBranch;});
+    }
+    var rev = 0;
+    if(state.topProducts && state.topProducts.length) rev = state.topProducts.reduce(function(s,x){return s + (Number(x.revenue)||0);}, 0);
+    if(revEl)revEl.textContent='$'+rev.toFixed(2);
+    if(ordEl)ordEl.textContent = String(state.stock.length);
+    if(lsEl)lsEl.textContent = String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length);
+    if(prEl)prEl.textContent = String((state.promos||[]).filter(function(p){return p.status==='active'}).length);
 }
 
 function renderDashboard(){
     var tpEl=document.getElementById('top-products-list');
     if(tpEl){
         if(state.topProducts.length===0){tpEl.innerHTML='<div class="retail-empty">No data</div>'}
-        else{tpEl.innerHTML=state.topProducts.slice(0,5).map(function(p){return '<div class="retail-list-row"><span>'+p.name+'</span><span class="retail-list-value">$'+p.revenue.toFixed(2)+'</span></div>'}).join('')}
+        else{tpEl.innerHTML=state.topProducts.slice(0,5).map(function(p){return '<div class="retail-list-row"><span>'+(p.name||'')+'</span><span class="retail-list-value">$'+(Number(p.revenue)||0).toFixed(2)+'</span></div>'}).join('')}
     }
     var bpEl=document.getElementById('branch-performance');
     if(bpEl){
         if(state.branches.length===0){bpEl.innerHTML='<div class="retail-empty">No branches</div>'}
-        else{bpEl.innerHTML=state.branches.map(function(b){return '<div class="retail-list-row"><span>'+b.name+'</span><span class="retail-list-value">$'+b.stock_value+'</span></div>'}).join('')}
+        else{bpEl.innerHTML=state.branches.map(function(b){return '<div class="retail-list-row"><span>'+(b.name||'')+'</span><span class="retail-list-value">$'+(Number(b.stock_value)||0).toFixed(2)+'</span></div>'}).join('')}
     }
     var saEl=document.getElementById('stock-alerts');
     if(saEl){
