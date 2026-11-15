@@ -1,0 +1,90 @@
+name: gbgov Windows
+
+# Build and test of the government desktop edition (branch `gbgov`, #2560):
+# the Chat + Drive profile on Windows. The other workflows run on `main` and
+# on version tags only, so this is the branch's own gate.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["gbgov"]
+    paths-ignore:
+      - "botbook/**"
+      - "**/*.md"
+  pull_request:
+    branches: ["gbgov"]
+    paths-ignore:
+      - "botbook/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gbgov-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GBGOV_FEATURES: gbgov
+
+jobs:
+  build-test:
+    name: Chat + Drive profile (build, tests, smoke)
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install PostgreSQL (libpq for the build, a server for the smoke test)
+        shell: pwsh
+        run: |
+          choco install postgresql16 --no-progress -y --params '/Password:postgres'
+          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Sort-Object Name | Select-Object -Last 1
+          if (-not $pg) { throw "PostgreSQL install directory not found" }
+          "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
+          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: gbgov-windows
+
+      - name: Build botserver (Chat + Drive profile, debug)
+        run: cargo build -p botserver --no-default-features --features ${{ env.GBGOV_FEATURES }}
+
+      - name: Prepare the smoke database
+        shell: pwsh
+        env:
+          PGPASSWORD: postgres
+        run: |
+          $svc = Get-Service -Name "postgresql*" | Select-Object -First 1
+          if ($svc.Status -ne 'Running') { Start-Service $svc.Name; Start-Sleep -Seconds 5 }
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE gb LOGIN PASSWORD 'gb'"
+          psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE DATABASE botserver OWNER gb"
+
+      - name: Smoke test (isolated stack, local mock model)
+        shell: pwsh
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}\gbgov-stack
+          DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+        run: ./scripts/gbgov-smoke.ps1 -Binary target\debug\botserver.exe
+
+      # Includes the guard that pins .product.gbgov to Chat + Drive.
+      - name: Unit tests (botserver, Chat + Drive profile)
+        if: ${{ !cancelled() }}
+        env:
+          AWS_LC_SYS_PREBUILT_NASM: "1"
+        run: cargo test -p botserver --bin botserver --no-default-features --features ${{ env.GBGOV_FEATURES }} --no-fail-fast
+
+      - name: Upload smoke evidence and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gbgov-windows-smoke-${{ github.sha }}
+          path: |
+            botserver-smoke.log
+            botserver-smoke.log.err
+            mock-llm.log
+            mock-llm.log.err
+            smoke-artifacts/**
+          if-no-files-found: warn
