@@ -7,6 +7,13 @@
     // looked broken. List the user's Drive media here and render it ourselves.
     let mediaCache = [];
     let mediaQuery = "";
+    let playerBlobUrl = null;
+    function revokePlayerBlobUrl() {
+        if (playerBlobUrl) {
+            try { URL.revokeObjectURL(playerBlobUrl); } catch (e) {}
+            playerBlobUrl = null;
+        }
+    }
 
     const KIND_BY_EXT = {
         video: ["mp4", "webm", "ogv", "mov", "mkv", "m4v"],
@@ -174,15 +181,16 @@
             const raw = atob(data.content);
             const bytes = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-            const url = URL.createObjectURL(new Blob([bytes]));
+            revokePlayerBlobUrl();
+            playerBlobUrl = URL.createObjectURL(new Blob([bytes]));
             hideAllPlayers();
             currentFile = { path: entry.path, type: entry.kind, name: entry.name };
             document.getElementById("file-name").textContent = entry.name;
             document.getElementById("file-type").textContent = entry.kind;
-            if (entry.kind === "audio") showAudioPlayer(url);
-            else if (entry.kind === "image") showImageViewer(url);
-            else if (entry.kind === "document") showDocumentViewer(url);
-            else showVideoPlayer(url);
+            if (entry.kind === "audio") showAudioPlayer(playerBlobUrl);
+            else if (entry.kind === "image") showImageViewer(playerBlobUrl);
+            else if (entry.kind === "document") showDocumentViewer(playerBlobUrl);
+            else showVideoPlayer(playerBlobUrl);
         } catch (err) {
             console.error("player: media load failed", err);
             showPlayerError(String(err.message || err));
