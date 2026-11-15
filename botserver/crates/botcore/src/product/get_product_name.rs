@@ -130,6 +130,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "logo": c.logo,
             "favicon": c.favicon,
             "primary_color": c.primary_color,
+            "accent": super::appearance::installation_accent(),
             "docs_url": c.docs_url,
             "copyright": c.get_copyright(),
             "search_enabled": c.search_enabled.unwrap_or(false),
