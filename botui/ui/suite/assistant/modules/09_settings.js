@@ -221,43 +221,13 @@
         });
     }
 
-    /* -- Model -- */
+    /* -- Model (delegated to 10_settings_model.js) -- */
     function renderModel(panel) {
-        var modelName = A.defaultModel || A.selectedModel || "";
-        var short = modelName;
-        var slash = short.lastIndexOf("/");
-        if (slash >= 0) { short = short.substring(slash + 1); }
-        var colon = short.indexOf(":");
-        if (colon > 0) { short = short.substring(0, colon); }
-        if (!short) { short = modelName || "—"; }
-
-        var dest = A.destination || {};
-        var scope = dest.scope || "unknown";
-        var host = dest.host || "";
-        var privacyText = "";
-        if (scope === "machine") {
-            privacyText = A.t("settings.model-machine", "Conversations are processed on this computer.");
-        } else if (scope === "network") {
-            privacyText = A.t("settings.model-network", "Conversations are processed on a server in your network") +
-                (host ? " (" + esc(host) + ")." : ".");
-        } else if (scope === "external") {
-            privacyText = '<span class="gb-set-external-warn">' +
-                esc(A.t("settings.model-external",
-                    "What you write and attach is sent outside this computer, to")) +
-                " " + esc(host || A.t("settings.unknown-host", "an external provider")) + ".</span>";
+        if (typeof A.renderModelFull === "function") {
+            A.renderModelFull(panel);
+        } else {
+            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
         }
-
-        panel.innerHTML =
-            '<div class="gb-set-card">' +
-                '<h2 class="gb-set-title">' + esc(A.t("settings.model", "Model")) + '</h2>' +
-                '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.current-model", "Current model")) + '</span>' +
-                    '<span class="gb-set-value gb-set-model-name">' + esc(short) + '</span></div>' +
-                '<p class="gb-set-privacy">' + privacyText + '</p>' +
-                '<p class="gb-set-hint">' +
-                    esc(A.t("settings.model-setup-note", "The model is chosen during setup.")) +
-                '</p>' +
-            '</div>';
     }
 
     /* -- About -- */
