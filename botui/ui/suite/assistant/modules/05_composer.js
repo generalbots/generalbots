@@ -219,20 +219,20 @@
         if (!container) { return; }
         container.innerHTML = "";
         for (var i = 0; i < A.pendingFiles.length; i++) {
-            var chip = document.createElement("span");
-            chip.className = "gb-file-chip";
-            chip.textContent = A.pendingFiles[i].name;
-            var removeBtn = document.createElement("button");
-            removeBtn.className = "gb-file-chip-remove";
-            removeBtn.innerHTML = "&times;";
-            removeBtn.setAttribute("aria-label", A.t("assistant.remove-file", "Remove file"));
-            (function (idx) {
-                removeBtn.addEventListener("click", function () {
-                    A.pendingFiles.splice(idx, 1); renderFileChips();
-                });
-            })(i);
-            chip.appendChild(removeBtn);
-            container.appendChild(chip);
+            if (typeof A.attachCard === "function") {
+                (function (idx) {
+                    var card = A.attachCard(A.pendingFiles[idx], {
+                        removable: true,
+                        onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
+                    });
+                    container.appendChild(card);
+                })(i);
+            } else {
+                var chip = document.createElement("span");
+                chip.className = "gb-file-chip";
+                chip.textContent = A.pendingFiles[i].name;
+                container.appendChild(chip);
+            }
         }
     }
 
@@ -264,6 +264,37 @@
         if (fileEmpty) { fileEmpty.addEventListener("change", function () { handleFileSelect(fileEmpty); }); }
         if (fileDock) { fileDock.addEventListener("change", function () { handleFileSelect(fileDock); }); }
         if (stopBtn) { stopBtn.addEventListener("click", function () { A.cancelGeneration(); }); }
+
+        /* Drag-and-drop onto the docked composer */
+        var composerInner = document.querySelector(".gb-composer-inner");
+        if (composerInner) {
+            ["dragenter","dragover","dragleave","drop"].forEach(function (ev) {
+                composerInner.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); });
+            });
+            composerInner.addEventListener("dragover", function () { composerInner.classList.add("gb-drop-active"); });
+            composerInner.addEventListener("dragleave", function (e) {
+                if (!composerInner.contains(e.relatedTarget)) composerInner.classList.remove("gb-drop-active");
+            });
+            composerInner.addEventListener("drop", function (e) {
+                composerInner.classList.remove("gb-drop-active");
+                var files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files.length) {
+                    for (var d = 0; d < files.length; d++) A.pendingFiles.push(files[d]);
+                    renderFileChips();
+                }
+            });
+        }
+        /* Paste images/files */
+        document.addEventListener("paste", function (e) {
+            var items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (var j = 0; j < items.length; j++) {
+                if (items[j].kind === "file") {
+                    var f = items[j].getAsFile();
+                    if (f) { A.pendingFiles.push(f); renderFileChips(); }
+                }
+            }
+        });
 
         var newChat = document.getElementById("gbNewChat");
         if (newChat) {

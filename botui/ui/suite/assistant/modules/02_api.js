@@ -280,10 +280,11 @@
         }
 
         /* Run events (AG-UI protocol): gb_event frames.
-           These carry tool-call progress, run lifecycle, etc. */
+           Activity events are routed to block renderers. */
         if (data.gb_event) {
-            /* These are informational in this build: the thinking
-               indicator already covers the turn, so we just note them. */
+            if (typeof A.onActivityEvent === "function") {
+                A.onActivityEvent(data);
+            }
             return;
         }
 

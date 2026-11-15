@@ -10,7 +10,8 @@
 .gb-empty-state {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    padding: var(--id-space-6); gap: var(--id-space-5); }
+    padding: var(--id-space-6); gap: var(--id-space-5);
+    position: relative; z-index: 1; }
 .gb-greeting {
     font-family: var(--id-font-display); font-size: var(--id-text-4xl);
     color: var(--id-ink); text-align: center; line-height: 1.2; max-width: 480px; }
@@ -76,7 +77,7 @@
 .gb-conversation {
     flex: 1; overflow-y: auto;
     padding: var(--id-space-6) var(--id-space-4);
-    scroll-behavior: smooth;
+    scroll-behavior: smooth; position: relative; z-index: 1;
 }
 .gb-conversation::-webkit-scrollbar { width: 6px; }
 .gb-conversation::-webkit-scrollbar-track { background: transparent; }
@@ -355,7 +356,7 @@
 .gb-dock-above {
     flex-shrink: 0; max-width: 760px; margin: 0 auto; width: 100%;
     padding: 0 var(--id-space-4); display: flex; flex-direction: column;
-    align-items: center; gap: var(--id-space-2); }
+    align-items: center; gap: var(--id-space-2); position: relative; z-index: 1; }
 .gb-dock-above:empty { display: none; }
 .gb-scroll-pill {
     padding: var(--id-space-1) var(--id-space-4); background: var(--id-surface-solid);
@@ -367,7 +368,7 @@
 /* ================================================================
    Docked composer
    ================================================================ */
-.gb-composer-dock { flex-shrink: 0; padding: 0 var(--id-space-4) var(--id-space-4); }
+.gb-composer-dock { flex-shrink: 0; padding: 0 var(--id-space-4) var(--id-space-4); position: relative; z-index: 1; }
 .gb-composer-inner {
     max-width: 760px; margin: 0 auto;
     background: var(--id-surface); border: 1px solid var(--id-line);

@@ -213,38 +213,12 @@
     }
 
     /* ================================================================
-       Per-message actions (hover)
+       Per-message actions (hover toolbar)
        ================================================================ */
     function addMessageActions(el, content, retryable) {
-        var actions = document.createElement("div");
-        actions.className = "gb-msg-actions";
-        if (content) {
-            var cpBtn = document.createElement("button");
-            cpBtn.className = "gb-msg-action";
-            cpBtn.textContent = A.t("assistant.copy", "Copy");
-            cpBtn.addEventListener("click", function () {
-                navigator.clipboard.writeText(content).then(function () {
-                    cpBtn.textContent = A.t("assistant.copied", "Copied");
-                    setTimeout(function () { cpBtn.textContent = A.t("assistant.copy", "Copy"); }, 1500);
-                });
-            });
-            actions.appendChild(cpBtn);
+        if (typeof A.addMsgToolbar === "function") {
+            A.addMsgToolbar(el, content, retryable);
         }
-        if (retryable) {
-            var rtBtn = document.createElement("button");
-            rtBtn.className = "gb-msg-action gb-msg-retry";
-            rtBtn.textContent = A.t("assistant.retry", "Try again");
-            rtBtn.addEventListener("click", function () {
-                var msgs = document.getElementById("gbMessages");
-                if (!msgs) { return; }
-                var users = msgs.querySelectorAll(".gb-msg-user");
-                var last = users.length ? users[users.length - 1] : null;
-                var text = last ? (last.dataset.originalContent || last.textContent || "").trim() : "";
-                if (text) { A.sendMessage(text); }
-            });
-            actions.appendChild(rtBtn);
-        }
-        el.appendChild(actions);
     }
 
     /* ================================================================
@@ -262,12 +236,19 @@
         bubble.textContent = text;
         el.appendChild(bubble);
         if (files && files.length) {
+            var cards = document.createElement("div");
+            cards.className = "gb-attach-list";
             for (var i = 0; i < files.length; i++) {
-                var chip = document.createElement("span");
-                chip.className = "gb-file-chip-inline";
-                chip.textContent = files[i].name || files[i];
-                bubble.appendChild(chip);
+                if (typeof A.attachCard === "function") {
+                    cards.appendChild(A.attachCard(files[i], { removable: false }));
+                } else {
+                    var chip = document.createElement("span");
+                    chip.className = "gb-file-chip-inline";
+                    chip.textContent = files[i].name || files[i];
+                    cards.appendChild(chip);
+                }
             }
+            el.appendChild(cards);
         }
         document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(false); }
@@ -286,10 +267,22 @@
         var el = document.createElement("div");
         el.className = "gb-msg-assistant";
         var elapsed = A.thinkingElapsed();
-        if (reasoning) { el.insertAdjacentHTML("beforeend", reasoningHtml(reasoning, elapsed)); }
+        /* Use block for thinking/reasoning when available */
+        if (reasoning && typeof A.blockThinking === "function") {
+            el.appendChild(A.blockThinking(elapsed, reasoning));
+        } else if (reasoning) {
+            el.insertAdjacentHTML("beforeend", reasoningHtml(reasoning, elapsed));
+        }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
         if (card) { el.appendChild(card); }
-        if (leaked && !card) { el.insertAdjacentHTML("beforeend", leakedNoticeHtml(raw)); }
+        /* Use block for leaked-markup notice */
+        if (leaked && !card) {
+            if (typeof A.blockNotice === "function") {
+                el.appendChild(A.blockNotice({ summary: { message: raw }, status: "completed" }));
+            } else {
+                el.insertAdjacentHTML("beforeend", leakedNoticeHtml(raw));
+            }
+        }
         var html = mdToHtml(raw);
         if (html && !card && !leaked) {
             var body = document.createElement("div");
@@ -315,6 +308,12 @@
         A.hideThinking();
         var el = document.createElement("div");
         el.className = "gb-msg-assistant";
+        if (typeof A.blockError === "function") {
+            el.appendChild(A.blockError({ summary: { message: text || A.t("assistant.error-generic", "An error occurred.") }, status: "failed" }));
+            document.getElementById("gbMessages").appendChild(el);
+            if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
+            return;
+        }
         var c = document.createElement("div");
         c.className = "gb-error-card";
         c.setAttribute("role", "alert");
@@ -346,8 +345,20 @@
                 bub.className = "gb-msg-user-bubble";
                 bub.textContent = m.content;
                 el.appendChild(bub);
+                /* Attachments from history */
+                if (m.attachments && m.attachments.length && typeof A.attachCard === "function") {
+                    var ac = document.createElement("div");
+                    ac.className = "gb-attach-list";
+                    m.attachments.forEach(function (att) { ac.appendChild(A.attachCard(att, { removable: false })); });
+                    el.appendChild(ac);
+                }
             } else {
                 el.className = "gb-msg-assistant";
+                /* Activities from history */
+                if (m.activities && m.activities.length && typeof A.renderBlockStack === "function") {
+                    var stack = A.renderBlockStack(m.activities);
+                    if (stack) el.appendChild(stack);
+                }
                 var h = mdToHtml(m.content);
                 if (h) {
                     var bd = document.createElement("div");

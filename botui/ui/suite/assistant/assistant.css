@@ -27,42 +27,36 @@ body {
     overflow: hidden;
 }
 
-/* Paper grid (20px at 4%) */
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-        linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);
-    background-size: 20px 20px;
+/* Geometric pattern: accent colour through an alpha mask.
+   The pattern layer sits on .gb-main so it does not cover the sidebar. */
+.gb-main::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(135deg, var(--id-accent-soft), var(--id-accent-light) 50%, var(--id-accent-soft));
+    background-size: 200% 200%;
+    -webkit-mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
+    mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
+    opacity: .18;
+    animation: gb-pattern-drift 30s ease-in-out infinite alternate;
 }
-
-/* Ambient glow */
-body::after {
-    content: "";
-    position: fixed;
-    width: 520px;
-    height: 520px;
-    border-radius: 50%;
-    background: radial-gradient(circle, var(--id-accent-glow), transparent 70%);
-    top: 15%;
-    left: 55%;
-    z-index: 0;
-    pointer-events: none;
-    animation: gb-glow-drift var(--id-dur-glow) var(--id-ease-standard) infinite alternate;
+@keyframes gb-pattern-drift {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
 }
-
-@keyframes gb-glow-drift {
-    0%   { transform: translate(0, 0) scale(1); opacity: .6; }
-    50%  { transform: translate(-80px, 40px) scale(1.1); opacity: .45; }
-    100% { transform: translate(60px, -30px) scale(.95); opacity: .55; }
+/* Legibility: paper gradient over the conversation column */
+.gb-main::after {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(90deg,
+        transparent 0%, var(--id-paper) 10%, var(--id-paper) 90%, transparent 100%);
 }
-
 @media (prefers-reduced-motion: reduce) {
-    body::after { animation: none; opacity: .5; }
+    .gb-main::before { animation: none; }
+}
+@media (max-width: 900px) {
+    /* At narrow viewports the column fills the width: pattern only at edges */
+    .gb-main::after {
+        background: linear-gradient(90deg,
+            transparent 0%, var(--id-paper) 4%, var(--id-paper) 96%, transparent 100%);
+    }
 }
 
 /* Screen-reader only */
