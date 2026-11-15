@@ -113,13 +113,25 @@ A.blockThinking = function (evOrElapsed, reasoning) {
 
 A.blockAttachmentRead = function (ev) {
     var s = ev.summary || ev.data || ev;
-    return block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
+    var el = block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
         summary: s.name || s.file || "", status: mapStatus(ev.status), activityId: ev.id,
         bodyHtml: row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
             (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
             (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#a16207">' + t("Truncado","Truncated") + '</span></div>' : "") });
+    /* Make the block clickable to open the file preview */
+    if (typeof A.makeAttachClickable === "function" && (s.name || s.file)) {
+        var hdr = el.querySelector(".gb-block-header");
+        if (hdr) {
+            hdr.style.cursor = "pointer";
+            hdr.addEventListener("dblclick", function () {
+                A.makeAttachClickable(el, { name: s.name || s.file, size: s.size || s.size_bytes, type: s.type || s.content_type },
+                    { drivePath: s.drive_path || "" });
+            });
+        }
+    }
+    return el;
 };
 
 A.blockDriveList = function (ev) {
@@ -350,6 +362,10 @@ A.attachCard = function (file, opts) {
     }
     card.insertAdjacentHTML("beforeend", html);
     if (opts.onRemove) { var rm = card.querySelector(".gb-attach-remove"); if (rm) rm.addEventListener("click", opts.onRemove); }
+    /* Make clickable for preview (unless removable = composer) */
+    if (typeof A.makeAttachClickable === "function" && !opts.removable) {
+        A.makeAttachClickable(card, file, opts);
+    }
     return card;
 };
 
