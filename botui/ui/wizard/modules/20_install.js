@@ -6,8 +6,6 @@
   var B = App.B, esc = App.esc, t = App.t;
   var state = App.state, draft = App.draft, logLines = App.logLines;
 
-  /* Forwarders resolve the functions defined in sibling modules at call time. */
-
   function render() { return App.render(); }
   function renderFooter() { return App.renderFooter(); }
   function goTo(step) { return App.goTo(step); }
@@ -15,8 +13,20 @@
   function say(text) { return App.say(text); }
   function persistDraft() { return App.persistDraft(); }
 
-  /* The install step owns the installer: it checks the host first, reports
-     every component and keeps the action buttons together. */
+  /* -- per-component timing ------------------------------------------- */
+  var compStartTimes = {};
+
+  function formatDuration(ms) {
+    if (ms == null || ms <= 0) { return ""; }
+    if (ms < 1000) { return ms + "ms"; }
+    if (ms < 60000) { return (ms / 1000).toFixed(1) + "s"; }
+    var m = Math.floor(ms / 60000);
+    var s = Math.round((ms % 60000) / 1000);
+    return m + "m " + s + "s";
+  }
+
+  /* -- install step binding ------------------------------------------- */
+
   function bindInstall() {
     var start = document.getElementById("startSetupBtn");
     if (start) { start.addEventListener("click", startProvisioning); }
@@ -26,6 +36,7 @@
     if (logs) { logs.addEventListener("click", function () { B.openFolder("logs"); }); }
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.addEventListener("click", confirmReset); }
+    bindToggleDetails();
     var recheck = document.getElementById("hostRecheckBtn");
     if (recheck) { recheck.addEventListener("click", function () { checkHost(true); }); }
     var proceed = document.getElementById("hostContinueBtn");
@@ -39,8 +50,6 @@
     var skipAgent = document.getElementById("hostSkipAgentBtn");
     if (skipAgent) {
       skipAgent.addEventListener("click", function () {
-        // Explicit Chat/Drive-only choice: bypass WSL2/agent requirements and
-        // persist so re-runs remember (#1937).
         draft.skip_all_agentic_work = true;
         persistDraft();
         renderHostCheck();
@@ -49,8 +58,6 @@
         }
       });
     }
-    // #1961 — desktop-local opt-in. Checked = agent mode requested (WSL2 must
-    // be ready); unchecked = Chat/Drive only. Persisted like the skip button.
     var agentToggle = document.getElementById("hostAgentToggle");
     if (agentToggle) {
       agentToggle.addEventListener("change", function () {
@@ -74,21 +81,61 @@
     }
   }
 
-  /* ---------------- host prerequisites (#1742) ---------------- */
+  /* -- toggle details (show/hide live output column) ------------------ */
+
+  function bindToggleDetails() {
+    var toggle = document.getElementById("toggleInstallDetails");
+    if (!toggle) { return; }
+    toggle.addEventListener("click", function () {
+      var output = document.getElementById("installOutputCol");
+      var cols = document.getElementById("installColumns");
+      var icon = document.getElementById("toggleDetailsIcon");
+      if (!output || !cols) { return; }
+      var hidden = output.style.display === "none";
+      output.style.display = hidden ? "" : "none";
+      cols.style.gridTemplateColumns = hidden ? "45% 1fr" : "1fr";
+      if (icon) { icon.textContent = hidden ? "▼" : "▶"; }
+      toggle.lastChild.textContent = " " + t(hidden ? "install.hide-details" : "install.show-details");
+    });
+  }
+
+  /* -- host prerequisites --------------------------------------------- */
 
   function hostLocked() { return window.GBWizardHost.locked(state); }
   function syncStartButton() { window.GBWizardHost.syncStartButton(state); }
-  function renderHostCheck() { window.GBWizardHost.render(state); }
+
+  function renderHostCheck() {
+    window.GBWizardHost.render(state);
+    collapseHostIfReady();
+  }
+
+  function collapseHostIfReady() {
+    var details = document.getElementById("hostReadiness");
+    var summary = document.getElementById("hostSummaryText");
+    if (!details || !summary) { return; }
+    var result = state.host.result;
+    var allReady = result && result.status === "ready";
+    var skippedOk = result && result.desktop_ready && result.media_ready &&
+      draft.skip_all_agentic_work;
+    if (state.host.checked && (allReady || skippedOk)) {
+      summary.textContent = result.message || t("host.status-ready");
+      details.removeAttribute("open");
+    } else if (state.host.checked && result) {
+      details.setAttribute("open", "");
+    }
+  }
+
   function checkHost(autoStart) {
     window.GBWizardHost.check(state, autoStart, startProvisioning, say);
   }
 
+  /* -- component template and rendering ------------------------------- */
+
   function componentTemplate(component) {
-    return '<div class="component" data-comp="' + esc(component.id) + '">' +
-      '<span class="dot" aria-hidden="true"></span>' +
-      '<span><span class="card-title" style="font-size:13px">' + esc(component.label) + "</span>" +
-      '<span class="msg" style="display:block">' + esc(t("install.pending")) + '</span></span>' +
-      '<span class="dur"></span></div>';
+    return '<div class="install-step-item" data-comp="' + esc(component.id) + '">' +
+      '<span class="install-step-icon" aria-hidden="true"></span>' +
+      '<span class="install-step-name">' + esc(component.label) + "</span>" +
+      '<span class="install-step-dur"></span></div>';
   }
 
   function renderComponents() {
@@ -101,8 +148,8 @@
   }
 
   function plannedComponents() {
-    return (state.context.components || []).filter(function (component) {
-      return draft.model.mode === "local" || component.id !== "llm";
+    return (state.context.components || []).filter(function (c) {
+      return draft.model.mode === "local" || c.id !== "llm";
     });
   }
 
@@ -110,10 +157,10 @@
     var planned = plannedComponents();
     var ready = 0;
     var failed = 0;
-    planned.forEach(function (component) {
+    planned.forEach(function (c) {
       var entry = null;
       for (var i = 0; i < state.provisioning.components.length; i += 1) {
-        if (state.provisioning.components[i].id === component.id) { entry = state.provisioning.components[i]; }
+        if (state.provisioning.components[i].id === c.id) { entry = state.provisioning.components[i]; }
       }
       if (entry && entry.state === "ready") { ready += 1; }
       if (entry && entry.state === "failed") { failed += 1; }
@@ -125,6 +172,8 @@
     var status = document.getElementById("installStatus");
     if (label) { label.textContent = percent + "%"; }
     if (fill) { fill.style.width = percent + "%"; }
+    var stepCount = document.getElementById("installStepCount");
+    if (stepCount) { stepCount.textContent = t("install.steps-of", { ready: ready, total: planned.length }); }
     if (status) {
       if (state.provisioning.failed || failed) {
         status.textContent = t("install.stopped", { reason: state.provisioning.failed || t("nav.unknown") });
@@ -156,18 +205,39 @@
       logLines.push("[" + event.id + "] " + event.state + " — " + (event.message || event.state));
       if (logLines.length > 200) { logLines.splice(0, logLines.length - 200); }
     }
+    /* Track per-component start time for accurate durations. */
+    if (event.state === "starting" && !compStartTimes[event.id]) {
+      compStartTimes[event.id] = Date.now();
+    }
     if (!node) { return; }
-    var dot = node.querySelector(".dot");
-    dot.className = "dot " + (event.state === "starting" ? "run" : event.state === "ready" ? "ok" : event.state === "failed" ? "err" : "");
-    node.querySelector(".msg").textContent = event.message || event.state;
-    node.querySelector(".dur").textContent = event.elapsed_ms ? (event.elapsed_ms / 1000).toFixed(1) + "s" : "";
+    var icon = node.querySelector(".install-step-icon");
+    var dur = node.querySelector(".install-step-dur");
+    if (event.state === "starting") {
+      icon.innerHTML = '<span class="install-spinner"></span>';
+      node.className = "install-step-item current";
+      if (dur) { dur.textContent = "0s"; }
+    } else if (event.state === "ready") {
+      var elapsed = compStartTimes[event.id] ? Date.now() - compStartTimes[event.id] : event.elapsed_ms;
+      node.className = "install-step-item done";
+      if (dur) { dur.innerHTML = formatDuration(elapsed) + ' <span class="install-step-check">✓</span>'; }
+      icon.textContent = "";
+    } else if (event.state === "failed") {
+      node.className = "install-step-item done";
+      icon.textContent = "✗";
+      icon.style.color = "#b3352a";
+      if (dur) { dur.textContent = ""; }
+    }
     updateInstallProgress();
   }
 
   function renderLog() {
     var pre = document.getElementById("provisionLog");
     if (pre) { pre.textContent = logLines.length ? logLines.slice(-40).join("\n") : t("install.no-output"); }
+    var count = document.getElementById("logLineCount");
+    if (count) { count.textContent = logLines.length + " " + t("install.lines"); }
   }
+
+  /* -- provisioning lifecycle ----------------------------------------- */
 
   function setProvisionUi(running) {
     var cancel = document.getElementById("cancelSetupBtn");
@@ -177,6 +247,7 @@
       state.provisioning.failed = null;
       state.provisioning.startedAt = Date.now();
       state.provisioning.components = [];
+      compStartTimes = {};
     }
     syncStartButton();
     renderFooter();
@@ -199,22 +270,17 @@
   }
 
   function pollStatus() {
-    B.status().then(function (status) {
-      // Keep polling while this page believes setup is running, even if the
-      // first snapshot raced the child and still reported `running: false`.
-      if (!status) {
+    B.status().then(function (s) {
+      if (!s) {
         if (state.provisioning.running) { setTimeout(pollStatus, 700); }
         return;
       }
-      if (status.failed && !status.ready) {
-        showProvisionError(status.failed);
-        return;
-      }
-      (status.components || []).forEach(function (event) {
-        if (event.id !== "__done__") { updateComponent(event); }
+      if (s.failed && !s.ready) { showProvisionError(s.failed); return; }
+      (s.components || []).forEach(function (ev) {
+        if (ev.id !== "__done__") { updateComponent(ev); }
       });
       renderLog();
-      if (status.ready) { handleDone(); return; }
+      if (s.ready) { handleDone(); return; }
       if (state.provisioning.running) { setTimeout(pollStatus, 500); }
     }).catch(function () {
       if (state.provisioning.running) { setTimeout(pollStatus, 900); }
@@ -226,24 +292,17 @@
     if (hostLocked()) {
       if (window.GBWizardHost && window.GBWizardHost.windowsAgentBlocked(state.host.result)) {
         say(t("host.agent-wsl-say"));
-      } else {
-        say(t("host.blocked-say"));
-      }
+      } else { say(t("host.blocked-say")); }
       return;
     }
     setProvisionUi(true);
     renderComponents();
-    var request = {
-      model: draft.model,
-      workspace: draft.workspace,
-      services: draft.services,
-      display_name: draft.display_name,
-      skip_all_agentic_work: draft.skip_all_agentic_work === true
-    };
     pollStatus();
-    B.provision(request).then(function () {
-      handleDone();
-    }).catch(function (e) {
+    B.provision({
+      model: draft.model, workspace: draft.workspace,
+      services: draft.services, display_name: draft.display_name,
+      skip_all_agentic_work: draft.skip_all_agentic_work === true
+    }).then(function () { handleDone(); }).catch(function (e) {
       state.provisioning.running = false;
       state.provisioning.failed = String(e && e.message ? e.message : e);
       showProvisionError(state.provisioning.failed);
@@ -254,16 +313,17 @@
     var box = document.getElementById("provisionError");
     if (box) {
       box.innerHTML = esc(message) +
-        ' <button type="button" class="btn btn-secondary btn-sm" id="retryComponentBtn">' + esc(t("install.retry")) + '</button>';
+        ' <button type="button" class="btn btn-secondary btn-sm" id="retryComponentBtn">' +
+        esc(t("install.retry")) + "</button>";
       var retry = document.getElementById("retryComponentBtn");
-      if (retry) { retry.addEventListener("click", function () { startProvisioning(); }); }
+      if (retry) { retry.addEventListener("click", startProvisioning); }
     }
     setProvisionUi(false);
   }
 
   function markAllReady() {
-    (state.context.components || []).forEach(function (component) {
-      updateComponent({ id: component.id, state: "ready", message: t("install.ready"), elapsed_ms: 0 });
+    (state.context.components || []).forEach(function (c) {
+      updateComponent({ id: c.id, state: "ready", message: t("install.ready"), elapsed_ms: 0 });
     });
     updateInstallProgress();
   }
@@ -274,12 +334,11 @@
       text: t("nav.reset-text", { path: state.context.stack_path }),
       fieldLabel: t("nav.reset-field"),
       confirmLabel: t("nav.reset-confirm"),
-      onConfirm: function (value) {
-        B.resetStack(value).then(function () {
+      onConfirm: function (v) {
+        B.resetStack(v).then(function () {
           state.provisioning.ready = false;
           state.provisioning.components = [];
-          render();
-          say(t("nav.reset-done"));
+          render(); say(t("nav.reset-done"));
         });
       }
     });

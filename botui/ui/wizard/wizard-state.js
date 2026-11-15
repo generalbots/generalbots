@@ -113,6 +113,7 @@
       workspace: { path: "", size: "standard" },
       services: {},
       network: { mode: "p2p" },
+      appearance: { accent: "" },
       // Windows agent mode requires WSL2; Chat/Drive-only users can skip all
       // agent-related setup. Persisted so re-runs remember the choice (#1937).
       skip_all_agentic_work: false

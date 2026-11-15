@@ -60,7 +60,6 @@
       App.showProvisionError(event.message);
       return;
     }
-    logLines.push("[" + event.id + "] " + event.state + " — " + event.message);
     App.updateComponent(event);
     App.renderLog();
     if (event.state === "ready" && event.id === "botserver") { App.say(t("nav.assistant-ready")); }
@@ -87,6 +86,9 @@
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
+        if (saved.appearance && saved.appearance.accent) {
+          draft.appearance = { accent: saved.appearance.accent };
+        }
         if (typeof saved.skip_all_agentic_work === "boolean") {
           draft.skip_all_agentic_work = saved.skip_all_agentic_work;
         } else if (desktopLocalWindows()) {
@@ -101,6 +103,9 @@
         return { id: id, state: "ready", message: "Ready", elapsed_ms: 0 };
       });
       App.ensureAdmin();
+      if (draft.appearance.accent && window.GBIdentity) {
+        window.GBIdentity.apply(draft.appearance.accent);
+      }
       state.step = state.context.resume_step || 1;
       el.root.setAttribute("data-state", "ready");
       if (el.note) {

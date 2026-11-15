@@ -136,10 +136,14 @@
     }, 4000);
     assert(hostChecked, "host readiness reports a result");
     var lit = await waitFor(function () {
-      return document.querySelectorAll("#componentList .dot.ok").length >= 6;
+      var dots = document.querySelectorAll("#componentList .dot.ok");
+      var items = document.querySelectorAll("#componentList .install-step-item.done");
+      return (dots.length + items.length) >= 6;
     }, 12000);
+    var dotCount = document.querySelectorAll("#componentList .dot.ok").length;
+    var itemCount = document.querySelectorAll("#componentList .install-step-item.done").length;
     assert(lit, "components light up green while the installer runs",
-      String(document.querySelectorAll("#componentList .dot.ok").length));
+      String(dotCount + itemCount));
     var provisioned = await waitFor(function () {
       return window.GBWizard.state.provisioning.ready === true;
     }, 12000);

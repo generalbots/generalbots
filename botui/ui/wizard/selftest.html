@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <title>Wizard self-test</title>
   <link rel="icon" type="image/svg+xml" href="/wizard/logo-mark.svg" />
+  <link rel="stylesheet" href="/suite/identity/fonts.css" />
+  <link rel="stylesheet" href="/suite/identity/tokens.css" />
   <link rel="stylesheet" href="/wizard/wizard.css" />
 </head>
 <body>
@@ -58,7 +60,8 @@
 
   <pre id="results" style="position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow:auto;margin:0;padding:12px;background:#08090c;border-top:1px solid #2c313c;font-size:12px;z-index:99">running…</pre>
 
-  <script>try { localStorage.removeItem("gb_wizard_draft_v1"); localStorage.removeItem("gb-locale"); } catch (e) {}</script>
+  <script>try { localStorage.removeItem("gb_wizard_draft_v1"); localStorage.setItem("gb-locale", "en"); } catch (e) {}</script>
+  <script src="/suite/identity/accent.js"></script>
   <script src="/wizard/i18n/en.js"></script>
   <script src="/wizard/i18n/pt-BR.js"></script>
   <script src="/wizard/i18n/es.js"></script>
@@ -73,6 +76,7 @@
   <script src="/wizard/wizard-steps.js"></script>
   <script src="/wizard/wizard-host.js"></script>
   <script src="/wizard/modules/00_core.js"></script>
+  <script src="/wizard/modules/05_accent.js"></script>
   <script src="/wizard/modules/10_render.js"></script>
   <script src="/wizard/modules/20_install.js"></script>
   <script src="/wizard/modules/30_account.js"></script>

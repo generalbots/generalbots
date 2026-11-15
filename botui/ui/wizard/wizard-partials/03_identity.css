@@ -1,0 +1,425 @@
+/*
+ * Identity overlay — applies the edition's visual language to the wizard.
+ *
+ * Imported last so it wins over 01_root.css and 02_model-grid.css.
+ * Uses --id-* tokens from /suite/identity/tokens.css and the fonts
+ * declared in /suite/identity/fonts.css.
+ *
+ * The paper + grid + glow pattern, white-90% panels, Inter everywhere,
+ * accent-derived colours and calm list style are all defined here.
+ */
+
+/* == Remap legacy variables to identity tokens ======================== */
+/* 01_root.css and 02_model-grid.css use --accent / --accent-ink.
+   Remap them so every old reference follows the identity accent. */
+:root {
+  --accent: var(--id-accent);
+  --accent-ink: var(--id-on-accent);
+  --focus: var(--id-focus);
+  --border: var(--id-line);
+  --muted: var(--id-muted);
+  --surface: var(--id-surface);
+  --text: var(--id-ink);
+}
+
+/* == Page shell ======================================================= */
+
+html, body {
+  background: var(--id-paper);
+  color: var(--id-ink);
+  font-family: var(--id-font-sans);
+  font-size: var(--id-text-base);
+  line-height: 1.55;
+}
+
+/* Replace the rainbow line with nothing — the paper+glow is the brand. */
+body::before { display: none; }
+
+/* Paper grid (20px, 4% opacity) and one drifting glow. */
+.wizard::before,
+.wizard::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+.wizard::before {
+  inset: 0;
+  opacity: .04;
+  background-image:
+    linear-gradient(var(--id-gray-500) 1px, transparent 1px),
+    linear-gradient(90deg, var(--id-gray-500) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.wizard::after {
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  top: 18%;
+  right: -80px;
+  background: radial-gradient(circle, var(--id-accent-glow) 0%, transparent 70%);
+  filter: blur(40px);
+  animation: id-glow-drift var(--id-dur-glow) ease-in-out infinite alternate;
+}
+@keyframes id-glow-drift {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(-60px, 40px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wizard::after { animation: none; }
+}
+
+/* All direct children above the backdrop. */
+.wizard > * { position: relative; z-index: 1; }
+
+/* == Rail (light, calm list) ========================================== */
+
+.rail {
+  background: var(--id-surface);
+  border-right: 1px solid var(--id-line);
+  color: var(--id-ink);
+  padding: var(--id-space-6) var(--id-space-5);
+  gap: var(--id-space-5);
+}
+
+.rail-brand {
+  gap: var(--id-space-2);
+}
+.rail-mark {
+  filter: none;
+  height: 24px;
+}
+.rail-wordmark {
+  filter: none;
+  height: 11px;
+}
+
+.rail-steps { gap: 2px; }
+
+.rail-step {
+  color: var(--id-muted);
+  border: none;
+  border-radius: var(--id-radius-sm);
+  padding: 7px 10px;
+  transition: background-color var(--id-dur-fast) var(--id-ease-standard);
+}
+.rail-step .num {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--id-gray-300);
+  background: transparent;
+  color: var(--id-muted);
+}
+.rail-step .name {
+  font-size: var(--id-text-sm);
+  font-weight: 500;
+}
+
+/* Current step */
+.rail-step[aria-current="step"] {
+  color: var(--id-ink);
+  background: var(--id-accent-soft);
+  border-color: transparent;
+}
+.rail-step[aria-current="step"] .num {
+  background: var(--id-accent);
+  border-color: var(--id-accent);
+  color: var(--id-on-accent);
+}
+
+/* Done step */
+.rail-step.done {
+  color: var(--id-text);
+}
+.rail-step.done .num {
+  background: transparent;
+  border-color: var(--id-accent-light);
+  color: var(--id-accent-text);
+}
+
+.rail-note {
+  color: var(--id-muted);
+  font-size: 11px;
+}
+
+/* == Pane ============================================================= */
+
+.pane {
+  background: transparent;
+}
+
+.pane-head {
+  padding: var(--id-space-5) var(--id-space-8) 0;
+}
+
+.pane-lang select {
+  border-radius: var(--id-radius-pill);
+  background: var(--id-surface);
+  border-color: var(--id-line);
+  font-size: var(--id-text-sm);
+}
+.pane-lang select:focus-visible {
+  box-shadow: var(--id-focus);
+}
+
+.step-counter {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--id-accent-text);
+}
+
+.step-heading {
+  font-size: var(--id-text-3xl);
+  font-weight: 700;
+  color: var(--id-ink);
+  font-family: var(--id-font-sans);
+}
+
+.pane-body {
+  padding: var(--id-space-3) var(--id-space-8) var(--id-space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.lead {
+  color: var(--id-text);
+  font-size: var(--id-text-md);
+  line-height: 1.55;
+}
+
+/* == Controls ========================================================= */
+
+.field > label, .field-label {
+  font-size: var(--id-text-sm);
+  font-weight: 600;
+  color: var(--id-ink);
+}
+.field .hint {
+  font-size: var(--id-text-sm);
+  color: var(--id-muted);
+}
+.field input[type="text"],
+.field input[type="password"],
+.field input[type="email"],
+.field input[type="number"],
+.field select {
+  padding: 10px 12px;
+  border-radius: var(--id-radius-control);
+  border: 1px solid var(--id-line);
+  background: var(--id-surface);
+  font-family: var(--id-font-sans);
+  transition: border-color var(--id-dur-fast);
+}
+.field input:focus, .field select:focus {
+  border-color: var(--id-accent);
+  box-shadow: var(--id-focus);
+}
+.field input[aria-invalid="true"] {
+  border-color: #b3352a;
+}
+
+/* Choices and cards */
+.choice {
+  border-radius: var(--id-radius-control);
+  border-color: var(--id-line);
+  background: var(--id-surface);
+  transition: border-color var(--id-dur-fast), box-shadow var(--id-dur-fast);
+}
+.choice:hover { border-color: var(--id-gray-300); }
+.choice.selected {
+  border-color: var(--id-accent);
+  background: var(--id-accent-soft);
+  box-shadow: 0 0 0 1px var(--id-accent);
+}
+.choice input { accent-color: var(--id-accent); }
+
+.card {
+  border: 1px solid var(--id-line);
+  border-radius: var(--id-radius-card);
+  background: var(--id-surface);
+  box-shadow: var(--id-shadow-card);
+  padding: var(--id-space-4) var(--id-space-5);
+}
+.card + .card { margin-top: var(--id-space-3); }
+
+/* Buttons */
+.btn {
+  border-radius: var(--id-radius-control);
+  font-weight: 600;
+  font-family: var(--id-font-sans);
+  transition: background-color var(--id-dur-fast), color var(--id-dur-fast),
+              transform var(--id-dur-fast);
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:focus-visible { box-shadow: var(--id-focus); outline: none; }
+.btn-primary {
+  background: var(--id-accent);
+  color: var(--id-on-accent);
+}
+.btn-primary:hover:not(:disabled) { background: var(--id-accent-hover); }
+.btn-secondary {
+  border-color: var(--id-line);
+  background: transparent;
+  color: var(--id-ink);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--id-fill); }
+.btn-text { color: var(--id-muted); }
+.btn-text:hover { color: var(--id-ink); }
+
+/* Badges */
+.badge {
+  border-radius: var(--id-radius-pill);
+  border-color: var(--id-line);
+  color: var(--id-muted);
+  font-size: 11px;
+}
+.badge.ok { color: #1f7a4d; border-color: rgba(31, 122, 77, 0.35); }
+.badge.run { color: var(--id-accent-text); border-color: var(--id-accent-soft); }
+
+/* Notes */
+.note { font-size: var(--id-text-sm); color: var(--id-muted); }
+
+/* Model cards */
+.model-card {
+  border-radius: var(--id-radius-card);
+  border-color: var(--id-line);
+  background: var(--id-surface);
+  box-shadow: var(--id-shadow-card);
+  transition: border-color var(--id-dur-fast), transform var(--id-dur-fast),
+              box-shadow var(--id-dur-fast);
+}
+.model-card:hover {
+  border-color: var(--id-gray-300);
+  box-shadow: var(--id-shadow-card-hover);
+}
+.model-card.selected {
+  border-color: var(--id-accent);
+  background: var(--id-accent-soft);
+  box-shadow: 0 0 0 1px var(--id-accent);
+}
+
+/* Checkbox accent */
+.checkbox-row input { accent-color: var(--id-accent); }
+
+/* Install step identity is in 04_identity-install.css. */
+
+/* == Footer =========================================================== */
+
+.pane-foot {
+  border-top: 1px solid var(--id-line);
+  background: var(--id-surface);
+  padding: 11px var(--id-space-8);
+}
+.foot-progress {
+  background: var(--id-gray-200);
+}
+.foot-progress-fill {
+  background: var(--id-accent);
+}
+.foot-label { color: var(--id-muted); }
+
+/* == Modal ============================================================ */
+
+.modal {
+  border-radius: var(--id-radius-card);
+  border-color: var(--id-line);
+  box-shadow: var(--id-shadow-float);
+}
+
+/* == Summary & data map =============================================== */
+
+.summary-row {
+  border-bottom-color: var(--id-line);
+}
+.summary-row span:first-child { color: var(--id-muted); }
+
+table.datamap th { color: var(--id-muted); }
+table.datamap th, table.datamap td {
+  border-bottom-color: var(--id-line);
+}
+
+/* == Accent picker ==================================================== */
+
+.accent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--id-space-2);
+  margin-top: var(--id-space-3);
+  align-items: center;
+}
+.accent-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--id-radius-control);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background: var(--swatch-color);
+  transition: border-color var(--id-dur-fast), transform var(--id-dur-fast);
+}
+.accent-swatch:hover {
+  transform: scale(1.1);
+}
+.accent-swatch:focus-visible {
+  outline: 2px solid var(--id-accent-text);
+  outline-offset: 2px;
+}
+.accent-swatch[aria-pressed="true"] {
+  border-color: var(--id-ink);
+  box-shadow: 0 0 0 2px var(--id-surface-solid), 0 0 0 4px var(--id-ink);
+}
+.accent-custom-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--id-space-2);
+  margin-left: var(--id-space-2);
+}
+.accent-custom-input {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--id-line);
+  border-radius: var(--id-radius-control);
+  padding: 2px;
+  cursor: pointer;
+  background: var(--id-surface);
+}
+.accent-custom-input::-webkit-color-swatch-wrapper { padding: 0; }
+.accent-custom-input::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--id-radius-control) - 3px);
+}
+.accent-custom-label {
+  font-size: var(--id-text-sm);
+  color: var(--id-muted);
+}
+
+/* == Welcome greeting in handwritten face ============================== */
+
+.welcome-greeting {
+  font-family: var(--id-font-display);
+  font-size: var(--id-text-3xl);
+  color: var(--id-accent-text);
+  margin: 0 0 var(--id-space-2);
+  line-height: 1.3;
+}
+
+/* == Narrow viewport ================================================== */
+
+@media (max-width: 900px) {
+  .rail {
+    background: var(--id-surface);
+    border-right: 0;
+    border-bottom: 1px solid var(--id-line);
+  }
+  .rail-mark { filter: none; }
+  .rail-wordmark { filter: none; }
+
+  .pane-head { padding: var(--id-space-5) var(--id-space-4) 0; }
+  .pane-body { padding: var(--id-space-3) var(--id-space-4) var(--id-space-5); }
+  .pane-foot { padding: 12px var(--id-space-4); }
+  .step-heading { font-size: var(--id-text-2xl); }
+}

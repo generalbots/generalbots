@@ -176,7 +176,7 @@
           emitLocal("wizard://progress", {
             id: comp.id,
             state: "starting",
-            message: "Starting " + comp.label.toLowerCase() + "…",
+            message: "Installing " + comp.label.toLowerCase() + "…",
             elapsed_ms: now() - mock.startedAt
           });
           i += 1;

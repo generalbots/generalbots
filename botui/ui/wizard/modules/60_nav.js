@@ -71,7 +71,8 @@
       workspace: draft.workspace,
       services: draft.services,
       admin: draft.admin,
-      network: draft.network
+      network: draft.network,
+      appearance: draft.appearance
     }).then(function () {
       say(t("finish.opened"));
     }).catch(function (e) {

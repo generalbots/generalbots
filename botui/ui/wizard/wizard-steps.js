@@ -1,9 +1,6 @@
-/* Step rendering, validation and collection for the first-run wizard.
- * Every user-visible string goes through window.WizardI18n (see wizard-i18n.js);
- * the English dictionary is the fallback for any missing key. */
+/* Step rendering, validation and collection for the first-run wizard. */
 (function () {
   "use strict";
-
   var W = window.GBWizard;
   var I = window.WizardI18n;
   var t = function (key, params) { return I.t(key, params); };
@@ -88,8 +85,10 @@
   }
 
   function renderWelcome(draft, ctx) {
+    var accentHtml = window.GBWizardApp && window.GBWizardApp.accentPickerHtml ? window.GBWizardApp.accentPickerHtml(draft, esc, t) : "";
     return '' +
       '<div class="brand-hero"><img src="/wizard/logo.svg" alt="General Bots" /></div>' +
+      '<p class="welcome-greeting">' + esc(t("welcome.greeting")) + "</p>" +
       '<p class="lead">' + esc(t("welcome.lead")) + "</p>" +
       '<div class="card">' +
         '<p class="note">' + esc(t("welcome.note1")) + "</p>" +
@@ -98,6 +97,7 @@
       '<div class="field-grid" style="margin-top:16px">' +
         '<div class="field"><label for="displayName">' + esc(t("welcome.name-label")) + "</label>" +
           '<input type="text" id="displayName" value="' + esc(draft.display_name) + '" placeholder="' + esc(t("welcome.name-placeholder")) + '" /></div>' +
+        accentHtml +
         '<p class="note">' + esc(t("welcome.workspace")) + " <strong>" + esc(ctx.workspace_path) + "</strong></p>" +
       "</div>";
   }
@@ -246,48 +246,63 @@
       "</div>" +
       '<p class="note">' + esc(t("network.note")) + "</p>";
   }
-
-  /* The Borland-style install screen: one prominent progress bar, then a
-     traffic light per component (yellow = working, green = ready, red = failed). */
   function renderInstall(draft, ctx) {
-    var planned = (ctx.components || []).filter(function (component) {
-      return draft.model.mode === "local" || component.id !== "llm";
+    var planned = (ctx.components || []).filter(function (c) {
+      return draft.model.mode === "local" || c.id !== "llm";
     });
     return '' +
-      '<div class="install-top">' +
-        '<div class="install-head">' +
-          '<span class="install-kicker">' + esc(t("install.title")) + "</span>" +
-          '<span class="install-percent" id="installPercent">0%</span>' +
+      '<p class="lead" style="margin-bottom:14px">' + esc(t("install.desc")) + "</p>" +
+      '<details class="install-host-details" id="hostReadiness" aria-live="polite">' +
+        '<summary class="install-host-summary" id="hostSummaryLine">' +
+          '<span id="hostSummaryText">' + esc(t("host.checking")) + "</span>" +
+          '<span class="badge" id="hostBadge" style="margin-left:8px">' + esc(t("host.checking")) + "</span>" +
+        "</summary>" +
+        '<div class="install-host-body">' +
+          '<div id="hostRows" style="margin-top:8px"></div>' +
+          '<p class="note" id="hostNote" role="status" style="margin:8px 0 0"></p>' +
+          '<label class="inline-row" id="hostAgentToggleRow" hidden style="margin-top:10px;gap:8px;cursor:pointer">' +
+            '<input type="checkbox" id="hostAgentToggle">' +
+            '<span>' + esc(t("host.enable-agent")) + "</span>" +
+          "</label>" +
+          '<div class="inline-row" style="margin-top:10px">' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="hostRecheckBtn">' + esc(t("host.recheck")) + "</button>" +
+            '<button type="button" class="btn btn-primary btn-sm" id="hostContinueBtn" hidden>' + esc(t("host.continue")) + "</button>" +
+            '<button type="button" class="btn btn-secondary btn-sm" id="hostSkipAgentBtn" hidden>' + esc(t("host.skip-agentic")) + "</button>" +
+          "</div>" +
         "</div>" +
-        '<div class="install-bar"><div class="install-bar-fill" id="installFill"></div></div>' +
-        '<p class="install-status" id="installStatus">' + esc(t("install.preparing", { count: planned.length })) + "</p>" +
-      "</div>" +
-      '<div class="card" id="hostReadiness" aria-live="polite" style="margin-bottom:12px">' +
-        '<div class="card-head"><span class="card-title">' + esc(t("host.title")) + "</span>" +
-          '<span class="badge" id="hostBadge">' + esc(t("host.checking")) + "</span></div>" +
-        '<div id="hostRows" style="margin-top:8px"></div>' +
-        '<p class="note" id="hostNote" role="status" style="margin:8px 0 0"></p>' +
-        // #1961 — desktop-local installs start in Chat/Drive mode; the checkbox
-        // is the opt-in that reveals the WSL2/agent requirements.
-        '<label class="inline-row" id="hostAgentToggleRow" hidden style="margin-top:10px;gap:8px;cursor:pointer">' +
-          '<input type="checkbox" id="hostAgentToggle">' +
-          '<span>' + esc(t("host.enable-agent")) + "</span>" +
-        "</label>" +
-        '<div class="inline-row" style="margin-top:10px">' +
-          '<button type="button" class="btn btn-secondary btn-sm" id="hostRecheckBtn">' + esc(t("host.recheck")) + "</button>" +
-          '<button type="button" class="btn btn-primary btn-sm" id="hostContinueBtn" hidden>' + esc(t("host.continue")) + "</button>" +
-          '<button type="button" class="btn btn-secondary btn-sm" id="hostSkipAgentBtn" hidden>' + esc(t("host.skip-agentic")) + "</button>" +
+      "</details>" +
+      '<div class="install-columns" id="installColumns">' +
+        '<div class="install-col-steps">' +
+          '<div class="install-head">' +
+            '<span class="install-kicker" id="installStepCount">' + esc(t("install.steps-of", { ready: 0, total: planned.length })) + "</span>" +
+            '<span class="install-percent" id="installPercent">0%</span>' +
+          "</div>" +
+          '<div class="install-bar"><div class="install-bar-fill" id="installFill"></div></div>' +
+          '<div class="component-board" id="componentList"></div>' +
+        "</div>" +
+        '<div class="install-col-output" id="installOutputCol">' +
+          '<div class="log-header">' +
+            '<span class="log-title">' + esc(t("install.live-output")) + "</span>" +
+            '<span class="log-count" id="logLineCount">0 ' + esc(t("install.lines")) + "</span>" +
+          "</div>" +
+          '<pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre>" +
         "</div>" +
       "</div>" +
-      '<div class="component-board" id="componentList"></div>' +
-      '<div id="provisionError" class="note err" role="status" style="margin-top:10px"></div>' +
-      '<div class="inline-row" style="margin-top:12px">' +
-        '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">' + esc(t("install.start")) + "</button>" +
-        '<button type="button" class="btn btn-secondary btn-sm" id="cancelSetupBtn" disabled>' + esc(t("install.cancel")) + "</button>" +
-        '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">' + esc(t("install.open-logs")) + "</button>" +
-        '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">' + esc(t("install.reset")) + "</button>" +
-      "</div>" +
-      '<details class="details"><summary>' + esc(t("install.output")) + '</summary><pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre></details>";
+      '<div id="provisionError" class="note err" role="status"></div>' +
+      '<p class="install-status" id="installStatus" style="margin-top:4px">' + esc(t("install.preparing", { count: planned.length })) + "</p>" +
+      '<div class="install-footer">' +
+        '<div class="install-footer-left">' +
+          '<button type="button" class="install-toggle-details" id="toggleInstallDetails">' +
+            '<span id="toggleDetailsIcon">&#9660;</span> ' + esc(t("install.hide-details")) +
+          "</button>" +
+        "</div>" +
+        '<div class="install-footer-right">' +
+          '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">' + esc(t("install.start")) + "</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm" id="cancelSetupBtn" disabled>' + esc(t("install.cancel")) + "</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">' + esc(t("install.open-logs")) + "</button>" +
+          '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">' + esc(t("install.reset")) + "</button>" +
+        "</div>" +
+      "</div>";
   }
 
   function renderFinishAccount(draft) {

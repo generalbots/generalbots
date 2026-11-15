@@ -68,6 +68,7 @@
     if (state.step === 1) {
       var name = document.getElementById("displayName");
       if (name) { name.addEventListener("input", function () { draft.display_name = name.value.trim(); }); }
+      if (App.bindAccentPicker) { App.bindAccentPicker(); }
     }
 
     if (state.step === 2) {

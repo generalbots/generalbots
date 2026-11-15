@@ -1,3 +1,5 @@
 /* wizard: ordered partials (issue #1731). Do not reorder, keep @import order. */
 @import url("wizard-partials/01_root.css");
 @import url("wizard-partials/02_model-grid.css");
+@import url("wizard-partials/03_identity.css");
+@import url("wizard-partials/04_identity-install.css");
