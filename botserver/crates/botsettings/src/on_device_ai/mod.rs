@@ -22,10 +22,10 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-mod catalog;
-mod hardware;
+pub(crate) mod catalog;
+pub(crate) mod hardware;
 mod jobs;
-mod vault_store;
+pub(crate) mod vault_store;
 
 use catalog::ModelSpec;
 
