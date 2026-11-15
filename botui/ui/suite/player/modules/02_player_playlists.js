@@ -324,48 +324,65 @@
         loadPlaylists();
     };
 
-    // Auto-advance to the next queue item when the current one ends.
+    // Auto-advance to the next queue item when the current owned media ends.
     document.addEventListener("ended", function (e) {
-        if (e.target && (e.target.tagName === "VIDEO" || e.target.tagName === "AUDIO")) {
-            nextQueueItem();
-        }
+        const t = e.target;
+        if (!t) return;
+        if (!(t.tagName === "VIDEO" || t.tagName === "AUDIO")) return;
+        const playerContainer = document.getElementById("player-container");
+        if (playerContainer && !playerContainer.contains(t)) return;
+        nextQueueItem();
     });
 
-    document.addEventListener("keydown", function (e) {
-        if (!currentPlayer) return;
-
-        switch (e.key) {
-            case " ":
-                e.preventDefault();
-                togglePlayPause();
-                break;
-            case "ArrowLeft":
-                skipBackward();
-                break;
-            case "ArrowRight":
-                skipForward();
-                break;
-            case "ArrowUp":
-                e.preventDefault();
-                setVolume(Math.min(100, currentPlayer.volume * 100 + 10));
-                break;
-            case "ArrowDown":
-                e.preventDefault();
-                setVolume(Math.max(0, currentPlayer.volume * 100 - 10));
-                break;
-            case "f":
-                toggleFullscreen();
-                break;
-            case "m":
-                toggleMute();
-                break;
-            case "Escape":
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                }
-                break;
+    (function () {
+        function onPlayerKeydown(e) {
+            if (!currentPlayer) return;
+            const target = e.target;
+            if (target && typeof target.closest === "function" && target.closest("input, textarea, select, [contenteditable], [contenteditable=\"true\"], [contenteditable=\"\"]")) return;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) return;
+            switch (e.key) {
+                case " ":
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case "ArrowLeft":
+                    skipBackward();
+                    break;
+                case "ArrowRight":
+                    skipForward();
+                    break;
+                case "ArrowUp":
+                    e.preventDefault();
+                    setVolume(Math.min(100, currentPlayer.volume * 100 + 10));
+                    break;
+                case "ArrowDown":
+                    e.preventDefault();
+                    setVolume(Math.max(0, currentPlayer.volume * 100 - 10));
+                    break;
+                case "f":
+                    toggleFullscreen();
+                    break;
+                case "m":
+                    toggleMute();
+                    break;
+                case "Escape":
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    }
+                    break;
+            }
         }
-    });
+        const playerContainer = document.getElementById("player-container");
+        if (playerContainer) {
+            playerContainer.addEventListener("keydown", onPlayerKeydown);
+        } else {
+            document.addEventListener("keydown", function (e) {
+                const playerContainer2 = document.getElementById("player-container");
+                if (playerContainer2 && !playerContainer2.contains(e.target)) return;
+                onPlayerKeydown(e);
+            });
+        }
+    })();
 
     document
         .querySelector(".progress-track")
