@@ -1,0 +1,101 @@
+/*
+ * Identity tokens for the desktop edition.
+ *
+ * Neutrals, radii, shadows, motion, type scale and font stacks are fixed.
+ * Accent tokens have literal defaults (the reference orange family) that
+ * accent.js can override at runtime for any hue the person chooses.
+ *
+ * Prefix: --id-
+ * Light theme only; no dark theme.
+ */
+
+:root {
+
+  /* == Accent (overridden at runtime by accent.js) ===================== */
+  --id-accent: #F28C28;
+  --id-accent-hover: #D4751C;
+  --id-accent-light: #FDB96A;
+  --id-accent-text: #B45309;
+  --id-accent-soft: rgb(242 140 40 / .1);
+  --id-accent-glow: rgb(242 140 40 / .26);
+  --id-on-accent: #ffffff;
+  --id-paper: #FFF8F2;
+
+  /* == Ink & neutrals (fixed) ========================================== */
+  --id-ink: #2C2C2C;
+  --id-text: #4B5563;
+  --id-muted: #5F6673;
+  --id-gray-100: #f3f4f6;
+  --id-gray-200: #e5e7eb;
+  --id-gray-300: #d1d5db;
+  --id-gray-400: #9ca3af;
+  --id-gray-500: #6b7280;
+
+  /* == Surfaces (fixed) ================================================ */
+  --id-surface: rgb(255 255 255 / .9);
+  --id-surface-solid: #ffffff;
+  --id-line: rgb(229 231 235 / .8);
+  --id-line-soft: rgb(243 244 246 / .9);
+  --id-fill: rgb(243 244 246 / .8);
+
+  /* == Font stacks (fixed) ============================================= */
+  --id-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --id-font-logo: 'Palanquin Dark', sans-serif;
+  --id-font-display: 'Sedgwick Ave Display', cursive;
+
+  /* == Type scale (fixed) ============================================== */
+  --id-text-xs: 10px;
+  --id-text-sm: 12px;
+  --id-text-base: 14px;
+  --id-text-md: 15px;
+  --id-text-lg: 16px;
+  --id-text-xl: 17px;
+  --id-text-2xl: 20px;
+  --id-text-3xl: 24px;
+  --id-text-4xl: 32px;
+  --id-text-5xl: 36px;
+
+  /* == Radii (fixed) =================================================== */
+  --id-radius-hero: 24px;
+  --id-radius-card: 20px;
+  --id-radius-panel: 18px;
+  --id-radius-bar: 16px;
+  --id-radius-control: 12px;
+  --id-radius-sm: 8px;
+  --id-radius-pill: 999px;
+
+  /* == Shadows (fixed) ================================================= */
+  --id-shadow-card: 0 1px 2px rgb(0 0 0 / .05);
+  --id-shadow-card-hover: 0 8px 20px -10px rgb(0 0 0 / .12),
+                           0 1px 2px rgb(0 0 0 / .05);
+  --id-shadow-float: 0 10px 15px -3px rgb(0 0 0 / .04),
+                     0 4px 6px -4px rgb(0 0 0 / .04);
+
+  /* == Motion (fixed) ================================================== */
+  --id-ease: cubic-bezier(.22, 1, .36, 1);
+  --id-ease-standard: cubic-bezier(.25, .1, .25, 1);
+  --id-dur-fast: 150ms;
+  --id-dur-normal: 200ms;
+  --id-dur-medium: 350ms;
+  --id-dur-slow: 450ms;
+  --id-dur-glow: 20s;
+
+  /* == Spacing (4px base, fixed) ======================================= */
+  --id-space-1: 4px;
+  --id-space-2: 8px;
+  --id-space-3: 12px;
+  --id-space-4: 16px;
+  --id-space-5: 20px;
+  --id-space-6: 24px;
+  --id-space-8: 32px;
+  --id-space-10: 40px;
+
+  /* == Focus (accent-derived) ========================================== */
+  --id-focus: 0 0 0 2px var(--id-accent-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --id-dur-glow: 0s;
+  }
+}
