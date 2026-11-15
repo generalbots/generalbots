@@ -268,6 +268,17 @@ pub(crate) async fn resolve_bot_llm_provider(
     // #1652/#1653/#1654 — subscription accounts are resolved per user before
     // any HTTP provider is built. `choose_for_request` refuses to fall back
     // when the requested provider is a subscription and no account is linked.
+    #[cfg(not(feature = "agent-vm"))]
+    if matches!(llm_provider.trim(), "claude-code" | "chatgpt-plan") {
+        botlog::safe_info!(
+            "BOT {bot_uuid} user {user_id} session {session_id}: provider [{llm_provider}] needs the agent workspace, which this build does not include"
+        );
+        return Err(
+            "Subscription accounts are not available in this edition. Choose another model in Settings."
+                .to_string(),
+        );
+    }
+    #[cfg(feature = "agent-vm")]
     if crate::core::ai_accounts::is_subscription_provider(&llm_provider) {
         let linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
         let resolved = crate::core::ai_accounts::choose_for_request(

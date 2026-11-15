@@ -23,7 +23,9 @@ pub use botcore::shared;
 pub use botcore::urls;
 
 // These remain as thin re-exports from their own crates
+#[cfg(feature = "agent-vm")]
 pub mod ai_accounts;
+#[cfg(feature = "agent-vm")]
 pub mod ai_accounts_chatgpt;
 pub mod bot;
 pub mod computer_use;

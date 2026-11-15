@@ -131,6 +131,7 @@ pub async fn execute_command(
             );
             Ok(json!({ "provider_count": providers.len(), "providers": providers }))
         }
+        #[cfg(feature = "integrations")]
         "integrations.decline" => {
             // #2061 — the user declined a setup offer; remember it so the
             // assistant does not repeat the offer on every turn.
@@ -423,6 +424,7 @@ pub async fn execute_command(
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
+        #[cfg(feature = "automations")]
         "tasks.autotask.create"
         | "tasks.autotask.run"
         | "automations.create"

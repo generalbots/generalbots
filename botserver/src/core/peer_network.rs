@@ -67,6 +67,7 @@ pub fn persist_network_mode(mode: &str) -> Result<(), String> {
     } else {
         format!("{existing}\n{new_line}\n")
     };
+    #[cfg(unix)]
     let fresh = !env_path.exists();
     std::fs::write(&env_path, updated)
         .map_err(|e| format!("write {}: {e}", env_path.display()))?;

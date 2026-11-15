@@ -19,9 +19,13 @@ pub mod kb;
 pub mod llm;
 pub mod mentions;
 pub mod native_args;
+#[cfg(feature = "integrations")]
 pub mod connector_hints;
+#[cfg(feature = "integrations")]
 pub mod connector_match;
+#[cfg(all(feature = "agent-vm", feature = "drive"))]
 pub mod native_drive;
+#[cfg(all(feature = "agent-vm", feature = "drive"))]
 pub mod native_external_save;
 pub mod native_tools;
 #[cfg(all(feature = "agent-vm", feature = "drive"))]

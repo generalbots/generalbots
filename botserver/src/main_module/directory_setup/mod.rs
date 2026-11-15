@@ -15,7 +15,9 @@ mod bootstrap_admin;
 #[cfg(feature = "directory")]
 mod zitadel;
 
-pub(crate) use bootstrap_admin::{ensure_bootstrap_admin_user, is_bootstrap_admin_identity};
+pub(crate) use bootstrap_admin::ensure_bootstrap_admin_user;
+#[cfg(feature = "agent-vm")]
+pub(crate) use bootstrap_admin::is_bootstrap_admin_identity;
 #[cfg(feature = "directory")]
 pub(crate) use zitadel::{
     bootstrap_directory_admin, default_zitadel_config, init_directory_service,

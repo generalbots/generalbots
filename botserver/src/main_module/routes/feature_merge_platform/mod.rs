@@ -12,6 +12,13 @@ use std::sync::Arc;
 mod channels;
 mod commerce;
 mod governance;
+#[cfg(any(
+    feature = "vibe",
+    feature = "project",
+    feature = "analytics",
+    feature = "sheet",
+    feature = "canvas"
+))]
 mod workspace;
 
 /// Applies the second half of the feature-block merges (legal, compliance,
@@ -27,6 +34,13 @@ pub(super) async fn merge_platform_routers(
     // a build without those features (the default) leaves it untouched.
     let _ = &api_router;
     governance::merge_governance(app_state, sub_router).await;
+    #[cfg(any(
+        feature = "vibe",
+        feature = "project",
+        feature = "analytics",
+        feature = "sheet",
+        feature = "canvas"
+    ))]
     workspace::merge_workspace(app_state, sub_router).await;
     commerce::merge_commerce(app_state, api_router, sub_router).await;
     channels::merge_channels(app_state, sub_router).await;

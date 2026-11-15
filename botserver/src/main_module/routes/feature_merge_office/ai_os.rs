@@ -26,12 +26,18 @@ pub(super) async fn merge_office_ai_os(
 
     // #1613 — conversation-scoped autotasks are part of chat, not of the
     // automations dashboard: they must be present in the desktop edition too.
-    #[cfg(feature = "chat")]
+    // They run in the conversation's workspace, so they need the agent VM.
+    #[cfg(all(feature = "chat", feature = "agent-vm"))]
     {
         crate::main_module::routes::conversation_autotasks::reconcile_on_boot(app_state);
         *api_router = api_router
             .clone()
-            .merge(crate::main_module::routes::conversation_autotasks::router())
+            .merge(crate::main_module::routes::conversation_autotasks::router());
+    }
+    #[cfg(feature = "chat")]
+    {
+        *api_router = api_router
+            .clone()
             .merge(crate::main_module::routes::computer_use_routes::router());
     }
 

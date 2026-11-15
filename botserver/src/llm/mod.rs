@@ -1,6 +1,7 @@
 use std::sync::Arc;
 pub use botllm::*;
 
+#[cfg(feature = "agent-vm")]
 pub mod subscription;
 
 

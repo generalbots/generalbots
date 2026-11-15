@@ -1,4 +1,6 @@
+#[cfg(feature = "agent-vm")]
 pub mod agent_drive;
+#[cfg(feature = "agent-vm")]
 pub mod ai_accounts;
 pub mod anonymous_auth;
 pub mod api_setup;
@@ -12,6 +14,7 @@ pub mod cloud_sso_handler;
 pub mod collab_ops;
 pub mod collab_routes;
 pub mod computer_use_routes;
+#[cfg(feature = "agent-vm")]
 pub mod conversation_autotasks;
 pub mod desktop_status;
 pub mod drive_sync;
@@ -28,6 +31,7 @@ pub mod security_setup;
 pub mod speech_duplex;
 pub mod sub_router;
 pub mod subagents;
+#[cfg(feature = "agent-vm")]
 pub mod subscription_llm;
 pub mod task_progress_ws;
 pub mod unified_search;

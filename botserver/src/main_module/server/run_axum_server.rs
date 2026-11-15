@@ -1,4 +1,5 @@
 use super::*;
+#[cfg(feature = "deployment")]
 use std::net::SocketAddr;
 
 pub async fn run_axum_server(

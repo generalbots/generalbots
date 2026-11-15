@@ -15,6 +15,7 @@ mod parse;
 mod script;
 
 pub use direct::run_tool_exec;
+#[cfg(feature = "agent-vm")]
 pub(crate) use is_placeholder_value::bot_llm_credentials;
 pub use is_placeholder_value::{is_generic_greeting, is_placeholder_value};
 pub use llm_call::run_llm_tool_call;

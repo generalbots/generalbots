@@ -68,6 +68,7 @@ pub(crate) fn bootstrap_admin_identity() -> Option<BootstrapAdminIdentity> {
 
 /// Whether a session identity is the first-run administrator. Used when a
 /// desktop/login path has to create a `users` row on demand.
+#[cfg(feature = "agent-vm")]
 pub(crate) fn is_bootstrap_admin_identity(user_id: uuid::Uuid, email: Option<&str>) -> bool {
     let Some(identity) = bootstrap_admin_identity() else {
         return false;

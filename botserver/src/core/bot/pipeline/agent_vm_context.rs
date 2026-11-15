@@ -7,6 +7,7 @@
 use serde_json::Value;
 
 use super::types::SessionIdentity;
+#[cfg(feature = "agent-vm")]
 use super::workspace_progress::{PHASE_INFRA, WorkspaceProgress};
 
 /// Injects the workspace contract for the user's VM when one is running.
