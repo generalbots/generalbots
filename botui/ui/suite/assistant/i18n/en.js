@@ -57,5 +57,6 @@ window.GBAssistantLocales["en"] = {
     "assistant.consent-deny":     "Deny",
     "assistant.consent-granted":  "Allowed",
     "assistant.consent-denied":   "Denied",
-    "assistant.consent-failed":   "Could not record decision"
+    "assistant.consent-failed":   "Could not record decision",
+    "attach.too-big": "File too large (8 MB per file limit): "
 };

@@ -337,7 +337,7 @@
             web_search: false,
         };
         if (A.selectedModel) { payload.model_preference = A.selectedModel; }
-        if (files && files.length > 0) { payload.files = files; }
+        if (files && files.length > 0) { payload.files = files; payload.file = files[0]; }
         A.ws.send(JSON.stringify(payload));
         return true;
     };

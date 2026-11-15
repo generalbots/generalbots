@@ -137,20 +137,31 @@
     }
 
     /* ---- Send ---- */
+    /* Attachments travel inside the socket frame as base64; a larger file
+       fails the frame and the chat would stay silent. Same limit as the server
+       expects from the existing client. */
+    var MAX_ATTACH_BYTES = 8 * 1024 * 1024;
+
     function doSend(text, messageType) {
-        if (!text || !text.trim()) { return; }
-        text = text.trim();
+        text = (text || "").trim();
+        var files = A.pendingFiles.slice();
+        if (!text && files.length === 0) { return; }
         messageType = messageType || 1;
-        A.renderUserMessage(text);
-        if (A.pendingFiles.length > 0) {
-            encodeAndSend(text, A.pendingFiles.slice(), messageType);
+        var tooBig = files.filter(function (f) { return f.size > MAX_ATTACH_BYTES; });
+        if (tooBig.length) {
+            A.renderError(A.t("attach.too-big", "Arquivo grande demais (limite de 8 MB por arquivo): ") +
+                tooBig.map(function (f) { return f.name; }).join(", "));
+            return;
+        }
+        A.renderUserMessage(text, files);
+        clearInputs();
+        if (files.length > 0) {
             A.pendingFiles = [];
             clearFileChips();
-            clearInputs();
+            encodeAndSend(text, files, messageType);
             return;
         }
         A.sendMessage(text, null, messageType);
-        clearInputs();
     }
 
     function encodeAndSend(text, fileList, messageType) {
@@ -160,9 +171,10 @@
             (function (file) {
                 var reader = new FileReader();
                 reader.onload = function () {
+                    /* The shape the server reads: name + content_base64. */
                     encoded.push({
-                        name: file.name, type: file.type || "application/octet-stream",
-                        data: reader.result.split(",")[1],
+                        name: file.name,
+                        content_base64: String(reader.result).split(",")[1] || "",
                     });
                     remaining--;
                     if (remaining === 0) { A.sendMessage(text, encoded, messageType); }
