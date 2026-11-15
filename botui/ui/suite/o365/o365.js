@@ -79,7 +79,7 @@ function renderOneDrive(){
             +'<td><span class="o365-badge '+(f.type||'file')+'">'+(f.type||'file')+'</span></td>'
             +'<td>'+(f.modified||f.last_modified||'')+'</td>'
             +'<td>'+(f.size||f.size_bytes||'--')+'</td>'
-            +'<td>'+(isFolder?'<button class="o365-btn" onclick="window._o365.navigateFolder(\''+f.id+'\')">Open</button>':'<button class="o365-btn" onclick="window._o365.downloadFile(\''+f.id+'\')">Download</button>')+'</td>'
+            +'<td>'+(isFolder?'<button class="o365-btn" onclick="window._o365.navigateFolder(\''+f.id+'\')">Open</button>':'<button class="o365-btn" onclick="window._o365.downloadFile(\''+f.id+'\',\''+(String(f.name||'o365-file-'+f.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')">Download</button>')+'</td>'
             +'</tr>';
     }).join('');
     renderBreadcrumb();
@@ -144,7 +144,7 @@ function navigateTo(folderId,index){
     loadOneDrive(folderId);
 }
 
-function downloadFile(fileId){
+function downloadFile(fileId, fileName){
     showFeedback('Starting download...','success');
     return fetch('/api/o365/onedrive/download/'+fileId, {
         headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
@@ -155,7 +155,7 @@ function downloadFile(fileId){
         var url=URL.createObjectURL(blob);
         var a=document.createElement('a');
         a.href=url;
-        a.download='o365-file-'+fileId+'.txt';
+        a.download=fileName || ('o365-file-'+fileId);
         document.body.appendChild(a);
         a.click();
         a.remove();
