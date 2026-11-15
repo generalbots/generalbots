@@ -354,9 +354,9 @@
 
 /* == Area above the docked composer: scroll pill + suggestion chips == */
 .gb-dock-above {
-    flex-shrink: 0; max-width: 760px; margin: 0 auto; width: 100%;
-    padding: 0 var(--id-space-4); display: flex; flex-direction: column;
-    align-items: center; gap: var(--id-space-2); position: relative; z-index: 1; }
+    flex-shrink: 0; width: 100%;
+    padding: var(--id-space-2) var(--id-space-4) 0; display: flex; flex-direction: column;
+    align-items: center; gap: var(--id-space-2); position: relative; z-index: 2; }
 .gb-dock-above:empty { display: none; }
 .gb-scroll-pill {
     padding: var(--id-space-1) var(--id-space-4); background: var(--id-surface-solid);
@@ -433,7 +433,7 @@
 /* Drive & Settings */
 .gb-drive-container { flex: 1; overflow: auto; }
 .gb-drive-container .drive-sidebar { background: var(--id-surface); }
-.gb-settings-view { overflow: auto; padding: var(--id-space-6); }
+.gb-settings-view { overflow: auto; padding: var(--id-space-6); position: relative; z-index: 1; }
 .gb-settings-container { max-width: 600px; margin: 0 auto; }
 /* ================================================================
    Responsive

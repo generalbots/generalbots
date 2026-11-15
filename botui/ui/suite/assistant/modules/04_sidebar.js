@@ -10,6 +10,18 @@
         var d = document.createElement("span"); d.textContent = s; return d.innerHTML;
     }
 
+    /** Transform a paperclip-marker title into "Anexo: <filename>". */
+    function formatTitle(title) {
+        if (!title) return A.t("assistant.untitled", "Untitled");
+        var clip = title.match(/^\u{1F4CE}\s*(.+)$/u);
+        if (clip) {
+            var name = clip[1].trim();
+            var label = A.locale && A.locale.startsWith("pt") ? "Anexo" : "Attachment";
+            return label + ": " + name;
+        }
+        return title;
+    }
+
     /* ---- Wordmark ---- */
     A.renderWordmark = function () {
         var el = document.getElementById("gbWordmark");
@@ -78,7 +90,7 @@
 
         var textSpan = document.createElement("span");
         textSpan.className = "gb-conv-item-text";
-        textSpan.textContent = session.title || A.t("assistant.untitled", "Untitled");
+        textSpan.textContent = formatTitle(session.title);
         btn.appendChild(textSpan);
 
         var actions = document.createElement("span");
@@ -117,7 +129,7 @@
         /* Update titlebar with the conversation title */
         var sess = A.sessions.filter(function (s) { return s.id === sessId; })[0];
         if (typeof window.gbSetTitlebarTitle === "function") {
-            window.gbSetTitlebarTitle(sess ? sess.title : "");
+            window.gbSetTitlebarTitle(sess ? formatTitle(sess.title) : "");
         }
         A.loadSessionMessages(sessId).then(function (msgs) {
             A.renderHistory(msgs);
