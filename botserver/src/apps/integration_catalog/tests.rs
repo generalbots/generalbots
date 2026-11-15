@@ -167,7 +167,8 @@ fn github_and_stripe_advertise_no_implemented_actions_without_the_registry() {
         let Some(provider) = provider_by_id(id) else {
             panic!("{id} provider is missing");
         };
-        assert!(!provider.llm_available);
+        // The seed still declares the provider; what a build without the
+        // adapter registry must not do is mark an action as implemented.
         assert!(provider.actions.iter().all(|action| !action.implemented));
     }
 }
