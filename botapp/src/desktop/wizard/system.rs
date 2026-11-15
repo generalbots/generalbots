@@ -70,7 +70,36 @@ pub fn free_bytes(path: &Path) -> u64 {
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+pub fn free_bytes(path: &Path) -> u64 {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut free_bytes_available: u64 = 0;
+    let mut total_bytes: u64 = 0;
+    let mut total_free_bytes: u64 = 0;
+    extern "system" {
+        fn GetDiskFreeSpaceExW(
+            lpDirectoryName: *const u16,
+            lpFreeBytesAvailableToCaller: *mut u64,
+            lpTotalNumberOfBytes: *mut u64,
+            lpTotalNumberOfFreeBytes: *mut u64,
+        ) -> i32;
+    }
+    unsafe {
+        if GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut free_bytes_available,
+            &mut total_bytes,
+            &mut total_free_bytes,
+        ) != 0 {
+            free_bytes_available
+        } else {
+            0
+        }
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 pub fn free_bytes(_path: &Path) -> u64 {
     0
 }
