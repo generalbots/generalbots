@@ -16,23 +16,45 @@ use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 /// on the computer, so there it is an ordinary window.
 const TOPMOST: bool = !cfg!(feature = "gbgov");
 
+/// Splash dimensions: the edition uses a wide animated hero (760x428);
+/// the standard build keeps the square logo (420x420).
+const SPLASH_WIDTH: f64 = if cfg!(feature = "gbgov") { 760.0 } else { 420.0 };
+const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 428.0 } else { 420.0 };
+
+/// Minimum time the splash stays on screen (milliseconds). The edition's hero
+/// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
+const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gbgov") { 6000 } else { 0 };
+
+/// Reads the minimum splash duration from the environment or the compile-time
+/// default.
+fn splash_min_duration() -> Duration {
+    let ms = std::env::var("GB_SPLASH_MIN_MS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(DEFAULT_SPLASH_MIN_MS);
+    Duration::from_millis(ms)
+}
+
 /// Shows the splash window, creating it on demand when the configured window is
 /// not already present (for example in a development run).
 pub fn show(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
+        SPLASH_SHOWN_AT.get_or_init(Instant::now);
         let _ = window.show();
         if TOPMOST {
             let _ = window.set_focus();
         }
         let _ = window.set_always_on_top(TOPMOST);
+        // Resize to the edition dimensions (the conf declares 420x420).
+        let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
+        let _ = window.center();
         return;
     }
 
     let builder = WebviewWindowBuilder::new(app, "splash", WebviewUrl::App("splash.html".into()))
         .title("General Bots")
-        .inner_size(420.0, 420.0)
+        .inner_size(SPLASH_WIDTH, SPLASH_HEIGHT)
         .min_inner_size(320.0, 320.0)
-        .max_inner_size(480.0, 480.0)
         .resizable(false)
         .decorations(false)
         .transparent(true)
@@ -42,13 +64,41 @@ pub fn show(app: &tauri::AppHandle) {
         .visible(true);
 
     match builder.build() {
-        Ok(_) => info!("splash: window created"),
+        Ok(_) => {
+            SPLASH_SHOWN_AT.get_or_init(Instant::now);
+            info!("splash: window created");
+        }
         Err(error) => warn!("splash: could not create the window: {error}"),
     }
 }
 
-/// Hides (closes) the splash window once the real UI is ready.
+/// Records when the splash was first shown, for the minimum-duration gate.
+static SPLASH_SHOWN_AT: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+/// Hides (closes) the splash window once the real UI is ready, respecting the
+/// minimum display duration so the edition's hero animation completes.
 pub fn hide(app: &tauri::AppHandle) {
+    // Callers include the setup code on the main thread, so the minimum
+    // display time is waited on a thread of its own: sleeping here froze the
+    // event loop, and every window with it, for the whole remainder.
+    let min = splash_min_duration();
+    let remaining = SPLASH_SHOWN_AT
+        .get()
+        .map(|shown| min.saturating_sub(shown.elapsed()))
+        .unwrap_or_default();
+    if remaining.is_zero() {
+        close(app);
+        return;
+    }
+    info!("splash: closing in {remaining:?} (minimum display time)");
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(remaining);
+        close(&handle);
+    });
+}
+
+fn close(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
         if let Err(error) = window.close() {
             warn!("splash: could not close the window: {error}");
@@ -134,4 +184,99 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
             std::thread::sleep(BOOT_WATCH_POLL);
         }
     });
+}
+
+/// Parses `GB_SPLASH_PREVIEW`: a number of seconds, or absent/empty.
+pub fn splash_preview_seconds() -> Option<u64> {
+    std::env::var("GB_SPLASH_PREVIEW")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|s| *s > 0)
+}
+
+/// Runs the splash preview loop on an already-shown splash window, feeding
+/// plausible progress every ~700 ms. Does NOT start the sidecar, wizard or
+/// main window. Exits the app when done.
+pub fn run_preview(app: &tauri::AppHandle, seconds: u64) {
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let total = Duration::from_secs(seconds);
+        let step = Duration::from_millis(700);
+        let start = Instant::now();
+        let labels = [
+            "Starting services...",
+            "Loading database...",
+            "Connecting to cache...",
+            "Loading drive...",
+            "Starting identity...",
+            "Loading assistant...",
+            "Preparing workspace...",
+            "Almost ready...",
+        ];
+        let mut idx = 0usize;
+        loop {
+            let elapsed = start.elapsed();
+            if elapsed >= total {
+                break;
+            }
+            let progress = ((elapsed.as_millis() as f64 / total.as_millis() as f64) * 95.0) as u8;
+            let label = labels[idx % labels.len()];
+            if let Some(splash) = handle.get_webview_window("splash") {
+                push_progress(&splash, progress.min(95), label);
+            }
+            idx += 1;
+            std::thread::sleep(step);
+        }
+        if let Some(splash) = handle.get_webview_window("splash") {
+            push_progress(&splash, 100, "Ready");
+        }
+        std::thread::sleep(Duration::from_millis(300));
+        std::process::exit(0);
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_splash_min_matches_feature() {
+        if cfg!(feature = "gbgov") {
+            assert_eq!(DEFAULT_SPLASH_MIN_MS, 6000);
+        } else {
+            assert_eq!(DEFAULT_SPLASH_MIN_MS, 0);
+        }
+    }
+
+    /// Tests the parsing logic that `splash_min_duration` and
+    /// `splash_preview_seconds` share, without touching env vars (which
+    /// race when tests run in parallel).
+    #[test]
+    fn parse_ms_from_string() {
+        let parse = |s: &str| -> Option<u64> { s.trim().parse::<u64>().ok() };
+        assert_eq!(parse("1234"), Some(1234));
+        assert_eq!(parse("  0  "), Some(0));
+        assert_eq!(parse("not-a-number"), None);
+        assert_eq!(parse(""), None);
+    }
+
+    #[test]
+    fn parse_preview_seconds() {
+        let parse = |s: &str| -> Option<u64> {
+            s.trim().parse::<u64>().ok().filter(|v| *v > 0)
+        };
+        assert_eq!(parse("5"), Some(5));
+        assert_eq!(parse("0"), None);
+        assert_eq!(parse("abc"), None);
+        assert_eq!(parse(""), None);
+    }
+
+    #[test]
+    fn splash_dimensions_match_edition() {
+        if cfg!(feature = "gbgov") {
+            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (760.0, 428.0));
+        } else {
+            assert_eq!((SPLASH_WIDTH, SPLASH_HEIGHT), (420.0, 420.0));
+        }
+    }
 }

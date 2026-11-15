@@ -338,6 +338,16 @@ fn main() {
             // extraction and the server stack boot run.
             desktop::splash::show(&app.handle());
 
+            // GB_SPLASH_PREVIEW: show just the splash with simulated progress,
+            // then exit. Does not start the sidecar, wizard or main window, and
+            // does not touch the stack. Safe to run alongside the real app (no
+            // single-instance guard exists).
+            if let Some(seconds) = desktop::splash::splash_preview_seconds() {
+                info!("splash preview mode: {seconds}s");
+                desktop::splash::run_preview(&app.handle(), seconds);
+                return Ok(());
+            }
+
             // #1633 — first run of the self-extracting build provisions the
             // embedded stack before the wizard or the sidecar looks for it.
             if let Err(error) = desktop::payload::extract_if_present() {

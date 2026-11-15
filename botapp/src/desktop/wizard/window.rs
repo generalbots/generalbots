@@ -144,11 +144,17 @@ pub fn reveal_suite_signed_in(app: &tauri::AppHandle, email: String, password: S
     });
 }
 
+/// Whether the main window uses a page-drawn header instead of the native
+/// title bar. The edition draws its own header with drag region, minimise,
+/// maximise and close buttons; other builds keep the OS chrome.
+const CUSTOM_HEADER: bool = cfg!(feature = "gbgov");
+
 fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     let Some(main) = app.get_webview_window("main") else {
         warn!("main window is not available during wizard handoff");
         return;
     };
+    apply_edition_chrome(&main);
     fit_to_screen(&main);
 
     let target = std::env::var("GB_DESKTOP_SUITE_URL")
@@ -258,7 +264,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             warn!("could not recreate the suite window: no suite URL is configured");
             return;
         };
-        match WebviewWindowBuilder::new(
+        let builder = WebviewWindowBuilder::new(
             &handle,
             "main",
             WebviewUrl::External(suite_url_with_token(url, token.as_deref())),
@@ -266,9 +272,14 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         .title("General Bots")
         .inner_size(1340.0, 860.0)
         .min_inner_size(900.0, 560.0)
-        .resizable(true)
-        .build()
-        {
+        .resizable(true);
+        // gbgov: page-drawn header; shadow gives edge resize + rounded corners.
+        let builder = if CUSTOM_HEADER {
+            builder.decorations(false).shadow(true)
+        } else {
+            builder
+        };
+        match builder.build() {
             Ok(_) => {
                 info!("suite window recreated after it was destroyed");
                 // #1830 — same handoff as reveal_suite: the recreated window
@@ -279,6 +290,22 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             Err(e) => warn!("could not recreate the suite window: {e}"),
         }
     });
+}
+
+/// Removes the native title bar on builds that draw their own header.
+///
+/// Called once on the conf-created `main` window and again when the window is
+/// recreated. An undecorated window with `shadow(true)` gets a 1 px border and
+/// rounded corners on Windows 11, and keeps edge resize hit-testing through the
+/// shadow area. The shadow flag is set only in the builder (recreate path);
+/// on the conf-created window the shadow is already present.
+fn apply_edition_chrome(window: &tauri::WebviewWindow) {
+    if !CUSTOM_HEADER {
+        return;
+    }
+    if let Err(e) = window.set_decorations(false) {
+        warn!("could not remove decorations from the main window: {e}");
+    }
 }
 
 /// Keep the assistant window inside the display. The configured 1200x800 does
