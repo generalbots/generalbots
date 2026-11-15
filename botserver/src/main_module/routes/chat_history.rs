@@ -62,6 +62,8 @@ pub fn configure_chat_history_routes() -> Router<Arc<AppState>> {
         )
         .route(
             "/api/chat/history/sessions/:session_id",
-            delete(handle_delete_chat_history_session).put(handle_rename_chat_history_session),
+            delete(handle_delete_chat_history_session)
+                .put(handle_rename_chat_history_session)
+                .patch(handle_rename_chat_history_session),
         )
 }

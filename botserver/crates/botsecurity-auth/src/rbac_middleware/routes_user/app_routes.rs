@@ -7,11 +7,21 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         // Chat history: authenticated users manage their own conversations.
         // PUT was missing, so renaming a conversation was rejected by the
         // default-deny catalogue with 403 before reaching the handler.
+        // #2562 — PATCH added: the assistant sidebar sends PATCH for rename.
         RoutePermission::new("/api/chat/history/**", "GET", ""),
         RoutePermission::new("/api/chat/history/**", "PUT", ""),
+        RoutePermission::new("/api/chat/history/**", "PATCH", ""),
         RoutePermission::new("/api/chat/history/**", "DELETE", ""),
         // #1682 — lock/unlock a conversation behind a PIN.
         RoutePermission::new("/api/chat/history/**", "POST", ""),
+
+        // i18n preference: the POST was in the public routes (GET only), so
+        // setting a locale returned 403 for authenticated users (#2562).
+        RoutePermission::new("/api/i18n/preference", "POST", ""),
+
+        // Appearance: read and change the accent colour after setup.
+        RoutePermission::new("/api/appearance", "GET", ""),
+        RoutePermission::new("/api/appearance", "PUT", ""),
 
         // Drive / Files
         RoutePermission::new("/api/drive/**", "GET", ""),

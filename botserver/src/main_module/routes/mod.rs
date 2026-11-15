@@ -3,6 +3,7 @@ pub mod agent_drive;
 #[cfg(feature = "agent-vm")]
 pub mod ai_accounts;
 pub mod anonymous_auth;
+pub mod appearance;
 pub mod api_setup;
 pub mod bot_tree;
 pub mod catalog;

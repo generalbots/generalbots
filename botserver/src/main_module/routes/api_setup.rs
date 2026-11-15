@@ -22,6 +22,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             get(super::product_handlers::get_product_config),
         )
         .route(
+            "/api/appearance",
+            get(super::appearance::handle_get_appearance)
+                .put(super::appearance::handle_put_appearance),
+        )
+        .route(
             "/api/manifest",
             get(super::product_handlers::get_workspace_manifest),
         )
