@@ -109,7 +109,7 @@
                             "</span>" +
                             '<button class="playlist-row-delete" title="Delete" onclick="event.stopPropagation();deletePlaylist(\'' +
                             p.id +
-                            ')">' + window.GBIcons ? window.GBIcons.html("trash", 14) : "" + '</button>' +
+                            ')">' + (window.GBIcons ? window.GBIcons.html("trash", 14) : "") + '</button>' +
                             "</div>",
                     )
                     .join("");
@@ -130,7 +130,7 @@
                 '<strong>' +
                 escapeHtml(playlist.name) +
                 "</strong>" +
-                '<button class="btn-secondary btn-sm" onclick="renamePlaylist()">' + window.GBIcons ? window.GBIcons.html("pencil", 14) : "" + '</button>' +
+                '<button class="btn-secondary btn-sm" onclick="renamePlaylist()">' + (window.GBIcons ? window.GBIcons.html("pencil", 14) : "") + '</button>' +
                 '<button class="btn-secondary btn-sm" onclick="playPlaylist()">▶ Play</button>' +
                 "</div>" +
                 (playlist.items && playlist.items.length
@@ -150,7 +150,7 @@
                                   "</span>" +
                                   '<button class="playlist-item-remove" onclick="event.stopPropagation();removePlaylistItem(\'' +
                                   item.id +
-                                  ')">' + window.GBIcons ? window.GBIcons.html("close", 14) : "" + '</button>' +
+                                  ')">' + (window.GBIcons ? window.GBIcons.html("close", 14) : "") + '</button>' +
                                   "</div>",
                           )
                           .join("")
