@@ -87,4 +87,88 @@ impl ComponentConfig {
             self.binary_name.clone()
         }
     }
+
+    /// Returns a secondary binary name to check on Windows when the primary
+    /// `binary_name` does not match. The cache ships as `valkey-server` on
+    /// Linux but `redis-server.exe` on Windows (Microsoft port); the
+    /// `exec_cmd_windows` already uses the correct name, so we extract it.
+    pub fn windows_binary_name_from_exec(&self) -> Option<String> {
+        let cmd = self.exec_cmd_windows.as_deref()?;
+        // `start /B {{BIN_PATH}}\\redis-server.exe …`  — find the first
+        // token ending in `.exe` after template expansion markers.
+        cmd.split_whitespace()
+            .find(|token| token.ends_with(".exe"))
+            .and_then(|token| {
+                // Strip path: `{{BIN_PATH}}\\redis-server.exe` → `redis-server.exe`
+                token
+                    .rsplit(|c| c == '\\' || c == '/')
+                    .next()
+            })
+            .map(String::from)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Build a minimal `ComponentConfig` for testing.
+    fn stub(binary_name: Option<&str>, exec_cmd_windows: Option<&str>) -> ComponentConfig {
+        ComponentConfig {
+            name: "test".into(),
+            ports: Vec::new(),
+            dependencies: Vec::new(),
+            linux_packages: Vec::new(),
+            macos_packages: Vec::new(),
+            windows_packages: Vec::new(),
+            download_url: None,
+            binary_name: binary_name.map(String::from),
+            pre_install_cmds_linux: Vec::new(),
+            post_install_cmds_linux: Vec::new(),
+            pre_install_cmds_macos: Vec::new(),
+            post_install_cmds_macos: Vec::new(),
+            pre_install_cmds_windows: Vec::new(),
+            post_install_cmds_windows: Vec::new(),
+            env_vars: HashMap::new(),
+            data_download_list: Vec::new(),
+            exec_cmd: String::new(),
+            check_cmd: String::new(),
+            exec_cmd_windows: exec_cmd_windows.map(String::from),
+            check_cmd_windows: None,
+            container: None,
+        }
+    }
+
+    #[test]
+    fn windows_binary_name_from_cache_exec() {
+        let c = stub(
+            Some("valkey-server"),
+            Some("start /B {{BIN_PATH}}\\redis-server.exe --port 6379"),
+        );
+        assert_eq!(
+            c.windows_binary_name_from_exec(),
+            Some("redis-server.exe".into())
+        );
+    }
+
+    #[test]
+    fn windows_binary_name_from_exec_with_forward_slash() {
+        let c = stub(None, Some("start /B {{BIN_PATH}}/minio.exe server data"));
+        assert_eq!(
+            c.windows_binary_name_from_exec(),
+            Some("minio.exe".into())
+        );
+    }
+
+    #[test]
+    fn windows_binary_name_from_exec_none_when_no_exe() {
+        let c = stub(None, Some("echo hello"));
+        assert_eq!(c.windows_binary_name_from_exec(), None);
+    }
+
+    #[test]
+    fn windows_binary_name_from_exec_none_when_no_cmd() {
+        let c = stub(None, None);
+        assert_eq!(c.windows_binary_name_from_exec(), None);
+    }
 }
