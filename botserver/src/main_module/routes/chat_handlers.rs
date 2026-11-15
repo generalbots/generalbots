@@ -280,6 +280,17 @@ pub async fn handle_chat_models(
         default_model = std::env::var("LLM_MODEL").unwrap_or_default();
     }
 
+    // The endpoint the turn will use: the environment overrides the bot's
+    // configuration, as it does when the provider is built.
+    let endpoint = std::env::var("LLM_URL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| {
+            cfg.get_config(&bot_uuid, "llm-url", Some(""))
+                .unwrap_or_default()
+        });
+    let destination = super::chat_destination::destination_json(&endpoint);
+
     let tier = |id: &str, label: &str, tradeoff: &str| {
         let key = format!("llm-model-{id}");
         let tier_model = cfg
@@ -307,6 +318,7 @@ pub async fn handle_chat_models(
 
     Json(serde_json::json!({
         "default_model": default_model,
+        "destination": destination,
         "tiers": [
             {
                 "id": "auto",

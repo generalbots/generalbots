@@ -7,6 +7,7 @@ pub mod api_setup;
 pub mod bot_tree;
 pub mod catalog;
 pub mod channel_support;
+pub mod chat_destination;
 pub mod chat_handlers;
 pub mod chat_history;
 pub mod chat_history_lock;
