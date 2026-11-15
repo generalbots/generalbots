@@ -205,6 +205,8 @@ mod entries_extra;
 mod ownership;
 
 #[cfg(test)]
+mod gbgov_profile_tests;
+#[cfg(test)]
 mod ownership_guard_tests;
 
 #[cfg(test)]

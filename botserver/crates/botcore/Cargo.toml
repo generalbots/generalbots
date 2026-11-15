@@ -93,6 +93,9 @@ jemalloc = []
 llm = []
 directory = []
 desktop-local = []
+# Government desktop edition: desktop behaviour plus its own product file
+# (`.product.gbgov`).
+gbgov = ["desktop-local"]
 timeseries = []
 weba = []
 automation = []

@@ -1,0 +1,42 @@
+# Product Configuration — Government Desktop Edition (branch gbgov)
+# Loaded first when botserver is compiled with --features gbgov:
+#   cargo build -p botserver --no-default-features --features gbgov
+#
+# The edition is Chat and Drive on the user's own machine. Nothing else is
+# compiled, so every other registry app is listed as hidden: the suite shell
+# refuses it and the launcher never advertises it. Core surfaces (about,
+# settings, sign-in) are always available without being listed.
+
+name=General Bots
+
+# Always visible.
+apps=chat,drive
+
+# No preview tier in this edition.
+preview_apps=
+
+# Hidden: not part of the edition. `sources` is the non-app Data Sources
+# surface and stays hidden with the Research app.
+hidden_apps=analytics,attendant,automations,banking,billing,browser,calculator,calendar,campaigns,canvas,clock,clock-widget,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,integrations,jukebox,kyc,learn,lists,mail,meet,memory,minutes,monitoring,notepad,notes,o365,paper,people,photos,plan,player,plugins,pos,preview,products,project,recycle,research,retail,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vibe,video,vision,weather,workspace
+
+# Chat opens automatically when the suite loads.
+suite_default_app=chat
+
+# Sidebar visible so conversation history is reachable.
+sidebar=true
+
+# The taskbar search box looks across apps the edition does not ship.
+search_enabled=false
+
+# Launcher enabled so the user can switch between Chat and Drive.
+menu_launcher_enabled=true
+
+# Authentication is required: the administrator created by the first-run
+# wizard signs in through /api/auth/login.
+no_security=false
+
+# Default theme
+theme=sentient
+
+# Deployment edition (cloud | desktop | os).
+edition=desktop

@@ -108,24 +108,26 @@ impl ProductConfig {
     /// 2. `BOTSERVER_STACK_PATH` / `GBO_STACK_PATH` (desktop sidecar)
     /// 3. Next to the running executable (packaged install)
     pub fn load() -> Result<Self, ProductConfigError> {
-        #[cfg(feature = "desktop-local")]
-        let names: &[&str] = &[".product.desktop-local", ".product"];
-        #[cfg(not(feature = "desktop-local"))]
-        let names: &[&str] = &[".product"];
+        // The edition's own product file wins over the desktop one, which
+        // wins over the default profile.
+        let mut names: Vec<&str> = Vec::new();
+        if cfg!(feature = "gbgov") {
+            names.push(".product.gbgov");
+        }
+        if cfg!(feature = "desktop-local") {
+            names.push(".product.desktop-local");
+        }
+        names.push(".product");
 
         // Phase 1: CWD-relative paths (original behaviour).
-        #[cfg(feature = "desktop-local")]
-        let relative: &[&str] = &[
-            ".product.desktop-local",
-            "./botserver/.product.desktop-local",
-            ".product",
-            "./botserver/.product",
-            "../.product",
-        ];
-        #[cfg(not(feature = "desktop-local"))]
-        let relative: &[&str] = &[".product", "./botserver/.product", "../.product"];
+        let mut relative: Vec<String> = Vec::new();
+        for name in &names {
+            relative.push((*name).to_string());
+            relative.push(format!("./botserver/{name}"));
+        }
+        relative.push("../.product".to_string());
 
-        for path in relative {
+        for path in &relative {
             if Path::new(path).exists() {
                 let content = fs::read_to_string(path).map_err(ProductConfigError::IoError)?;
                 info!("Loaded product configuration from: {path}");
@@ -141,7 +143,7 @@ impl ProductConfig {
             .filter(|s| !s.trim().is_empty());
         if let Some(ref stack_dir) = stack {
             let base = Path::new(stack_dir);
-            for name in names {
+            for name in &names {
                 let candidate = base.join(name);
                 if candidate.exists() {
                     let content =
@@ -158,7 +160,7 @@ impl ProductConfig {
         // Phase 3: next to the running executable (packaged MSI/NSIS/deb).
         if let Ok(exe) = std::env::current_exe() {
             if let Some(exe_dir) = exe.parent() {
-                for name in names {
+                for name in &names {
                     let candidate = exe_dir.join(name);
                     if candidate.exists() {
                         let content =
