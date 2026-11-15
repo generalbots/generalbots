@@ -64,7 +64,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/find-replace", post(handle_find_replace))
         .route("/api/sheet/print-preview", post(handle_print_preview))
         .route("/api/sheet/load-from-drive", post(handle_load_from_drive))
-        .route("/api/sheet/save", post(handle_save_sheet))
+        .route("/api/sheet/save", post(handle_save_sheet).layer(botsecurity_core::upload_policy::body_limit(botsecurity_core::upload_policy::UploadClass::SpreadsheetImport)))
         .route("/api/sheet/delete", post(handle_delete_sheet))
         .route("/api/sheet/cell", post(handle_update_cell))
         .route("/api/sheet/format", post(handle_format_cells))

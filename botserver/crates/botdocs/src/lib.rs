@@ -65,8 +65,8 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         )
         .route("/api/docs/search", get(handle_search_documents))
         .route("/api/docs/load", get(handle_get_document))
-        .route("/api/docs/save", axum::routing::post(handle_docs_save))
-        .route("/api/docs/autosave", axum::routing::post(handle_autosave))
+        .route("/api/docs/save", axum::routing::post(handle_docs_save).layer(upload_policy::body_limit(upload_policy::UploadClass::DocumentImport)))
+        .route("/api/docs/autosave", axum::routing::post(handle_autosave).layer(upload_policy::body_limit(upload_policy::UploadClass::DocumentImport)))
         .route(
             "/api/docs/history",
             axum::routing::post(handlers_api::history::handle_history),

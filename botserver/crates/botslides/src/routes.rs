@@ -30,7 +30,7 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         .route("/api/slides/list", get(handle_list_presentations::<D>))
         .route("/api/slides/search", get(handle_search_presentations::<D>))
         .route("/api/slides/load", get(handle_load_presentation::<D>))
-        .route("/api/slides/save", post(handle_save_presentation::<D>))
+        .route("/api/slides/save", post(handle_save_presentation::<D>).layer(upload_policy::body_limit(upload_policy::UploadClass::PresentationImport)))
         .route("/api/slides/delete", post(handle_delete_presentation::<D>))
         .route(
             "/api/slides/new",
@@ -61,11 +61,11 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         )
         .route(
             "/api/slides/element/add",
-            post(handle_add_element::<D>),
+            post(handle_add_element::<D>).layer(upload_policy::body_limit(upload_policy::UploadClass::PresentationImport)),
         )
         .route(
             "/api/slides/element/update",
-            post(handle_update_element::<D>),
+            post(handle_update_element::<D>).layer(upload_policy::body_limit(upload_policy::UploadClass::PresentationImport)),
         )
         .route(
             "/api/slides/element/delete",
