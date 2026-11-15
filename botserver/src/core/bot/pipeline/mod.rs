@@ -1,3 +1,4 @@
+pub mod activity;
 pub mod agent_turn;
 pub mod agent_vm_context;
 pub mod api_call;

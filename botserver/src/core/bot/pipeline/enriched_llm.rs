@@ -64,6 +64,29 @@ pub(super) async fn build_and_stream(
     } = *identity;
     let user_query = user_text.to_string();
     let mut messages_val = serde_json::Value::Array(messages.to_vec());
+
+    // #2562 — KB activity: emit only when knowledge bases are active.
+    let kb_active = {
+        let active_kbs = crate::core::bot::kb_context::get_active_kbs(&state.conn, session_id);
+        let active_web = crate::core::bot::kb_context::get_active_websites(&state.conn, session_id);
+        !active_kbs.is_empty() || !active_web.is_empty()
+    };
+    let pre_run = super::event_sink::RunContext::new(&session_id.to_string(), "chat")
+        .with_state(state.clone())
+        .with_scope(bot_uuid, user_id, None);
+    let kb_act = if kb_active {
+        let summary = super::activity::kb_search_summary(&user_query, &[]);
+        let act = super::activity::Activity::started(
+            super::activity::ActivityKind::KbSearch,
+            summary,
+        )
+        .with_run_id(&pre_run.run_id);
+        super::activity::emit_activity(identity.sink, &pre_run, &act).await;
+        Some(act)
+    } else {
+        None
+    };
+
     if tokio::time::timeout(
         std::time::Duration::from_secs(30),
         super::kb::inject_kb(
@@ -79,9 +102,19 @@ pub(super) async fn build_and_stream(
     .await
     .is_err()
     {
+        if let Some(act) = &kb_act {
+            let fail = act.failed("KB search timed out");
+            super::activity::emit_activity(identity.sink, &pre_run, &fail).await;
+        }
         botlog::safe_warn!(
             "ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}"
         );
+    } else if let Some(act) = &kb_act {
+        // Extract results from the injected context for the activity summary.
+        let sources = extract_kb_sources_from_messages(&messages_val);
+        let summary = super::activity::kb_search_summary(&user_query, &sources);
+        let done = act.completed(summary);
+        super::activity::emit_activity(identity.sink, &pre_run, &done).await;
     }
 
     #[cfg(feature = "memory-os")]
@@ -430,4 +463,53 @@ pub(super) async fn respond_in_answer_mode(
         }
     }
     Ok(true)
+}
+
+/// Extracts KB source info from the injected system messages for the activity
+/// summary. The KB module inserts a block starting with
+/// `--- Informacoes de Contexto ---` containing score and document lines.
+fn extract_kb_sources_from_messages(
+    messages: &serde_json::Value,
+) -> Vec<super::activity::KbSource> {
+    let Some(arr) = messages.as_array() else {
+        return Vec::new();
+    };
+    let mut sources = Vec::new();
+    for msg in arr {
+        let content = msg
+            .get("content")
+            .and_then(|c| c.as_str())
+            .unwrap_or("");
+        if !content.contains("Contexto") && !content.contains("Context") {
+            continue;
+        }
+        // Parse lines like: "[Score: 0.87] Document: manual.md\nContent excerpt..."
+        for line in content.lines() {
+            if let Some(rest) = line.strip_prefix("[Score:") {
+                let score = rest
+                    .split(']')
+                    .next()
+                    .and_then(|s| s.trim().parse::<f32>().ok())
+                    .unwrap_or(0.0);
+                let doc = rest
+                    .split("Document:")
+                    .nth(1)
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                let excerpt = content
+                    .lines()
+                    .skip_while(|l| !l.starts_with("[Score:"))
+                    .nth(1)
+                    .unwrap_or("")
+                    .to_string();
+                sources.push(super::activity::KbSource {
+                    document: doc,
+                    excerpt,
+                    score,
+                });
+            }
+        }
+    }
+    sources
 }

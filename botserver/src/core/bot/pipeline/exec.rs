@@ -187,11 +187,82 @@ pub async fn process_message_internal(
         ..*identity
     };
 
+    // Early run context for activity events that fire before the LLM call.
+    let early_run = super::event_sink::RunContext::new(&session_id.to_string(), "chat")
+        .with_scope(bot_uuid, user_id, None)
+        .with_state(state.clone());
+
     // #1641 — store the attachment and turn it into prompt content.
+    // #2562 — emit attachment_read activities around the ingestion.
+    let has_file = parsed.get("file").is_some()
+        || parsed
+            .get("files")
+            .and_then(|v| v.as_array())
+            .is_some_and(|a| !a.is_empty());
+    let file_name = parsed
+        .get("file")
+        .and_then(|f| f.get("name"))
+        .and_then(|n| n.as_str())
+        .unwrap_or("")
+        .to_string();
+    let file_size = parsed
+        .get("file")
+        .and_then(|f| f.get("content_base64"))
+        .and_then(|b| b.as_str())
+        .map(|b| b.len() * 3 / 4)
+        .unwrap_or(0);
+    let attach_activity = if has_file {
+        let summary = super::activity::attachment_summary(
+            &file_name, "", file_size, 0, false, "",
+        );
+        let act = super::activity::Activity::started(
+            super::activity::ActivityKind::AttachmentRead,
+            summary,
+        )
+        .with_run_id(&early_run.run_id);
+        super::activity::emit_activity(sink, &early_run, &act).await;
+        Some(act)
+    } else {
+        None
+    };
+
     let attachment =
         super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
+
+    // Emit the completed/failed attachment activity.
+    if let Some(act) = attach_activity {
+        let drive_path = format!("inbox/{file_name}");
+        let excerpt_chars = attachment_note
+            .as_ref()
+            .map(|n| n.chars().count().min(12000))
+            .unwrap_or(0);
+        let truncated = attachment_note
+            .as_ref()
+            .is_some_and(|n| n.contains("excerpt truncated"));
+        let mime = super::activity::mime_from_name(&file_name);
+        if attachment_note.is_some() || user_text.contains(&format!("inbox/{file_name}")) {
+            let summary = super::activity::attachment_summary(
+                &file_name,
+                &mime,
+                file_size,
+                excerpt_chars,
+                truncated,
+                &drive_path,
+            );
+            let done = act.completed(summary);
+            super::activity::emit_activity(sink, &early_run, &done).await;
+        } else {
+            let reason = if file_size > 12 * 1024 * 1024 {
+                "File exceeds the 8 MB limit"
+            } else {
+                "Could not store or read the file"
+            };
+            let fail = act.failed(reason);
+            super::activity::emit_activity(sink, &early_run, &fail).await;
+        }
+    }
 
     // #1642 — the assistant finally has a writer. An explicit "remember …"
     // turn is persisted to chat_preferences; the prompt already reads that

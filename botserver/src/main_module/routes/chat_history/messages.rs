@@ -15,6 +15,17 @@ use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_p
 struct HistoryMessage {
     role: String,
     content: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    attachments: Vec<HistoryAttachment>,
+}
+
+#[derive(Serialize)]
+struct HistoryAttachment {
+    name: String,
+    #[serde(rename = "type")]
+    mime_type: String,
+    size: usize,
+    drive_path: String,
 }
 
 /// Returns the decrypted messages of one conversation. The session must
@@ -93,12 +104,35 @@ pub async fn handle_chat_history_messages(
         .filter(|(role, content)| {
             (*role == "user" || *role == "assistant") && !content.trim().is_empty()
         })
-        .map(|(role, content)| HistoryMessage { role, content })
+        .map(|(role, content)| {
+            let attachments = if role == "user" {
+                parse_attachment_markers(&content)
+            } else {
+                Vec::new()
+            };
+            HistoryMessage {
+                role,
+                content,
+                attachments,
+            }
+        })
         .collect();
 
     // `limit`/`offset` are expressed in turns (a turn = user + assistant), so
     // compare against the raw row count to decide whether older pages remain.
     let has_more = (offset + limit) * 2 < total;
+
+    // #2562 — the `include_activities` param asks for the persisted run events
+    // (gb.activity custom events) alongside the messages, so a reopened
+    // conversation can show attachments, KB searches and tool runs.
+    let activities = if params
+        .get("include_activities")
+        .is_some_and(|v| v == "1" || v == "true")
+    {
+        load_activities(&state.conn, session_id)
+    } else {
+        Vec::new()
+    };
 
     Ok(Json(serde_json::json!({
         "session_id": session_id,
@@ -106,5 +140,89 @@ pub async fn handle_chat_history_messages(
         "has_more": has_more,
         "offset": offset,
         "limit": limit,
+        "activities": activities,
     })))
+}
+
+/// Loads persisted `gb.activity` events for a session from `run_events`,
+/// merges start/end pairs into one object per activity (with both timestamps
+/// and duration), and returns them ordered by first-seen time.
+fn load_activities(
+    pool: &botcore::shared::utils::DbPool,
+    session_id: Uuid,
+) -> Vec<serde_json::Value> {
+    use diesel::RunQueryDsl;
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("activities: pool error: {e}");
+            return Vec::new();
+        }
+    };
+    let thread = session_id.to_string();
+    let rows: Vec<ActivityRow> = match diesel::sql_query(
+        "SELECT ts::timestamp AS ts, payload \
+         FROM run_events \
+         WHERE thread_id = $1 AND event_type = 'CUSTOM' \
+         ORDER BY seq ASC \
+         LIMIT 400",
+    )
+    .bind::<diesel::sql_types::Text, _>(&thread)
+    .load::<ActivityRow>(&mut conn)
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            log::warn!("activities: query error: {e}");
+            return Vec::new();
+        }
+    };
+    let pairs: Vec<(crate::core::bot::pipeline::activity::Activity, String)> = rows
+        .into_iter()
+        .filter(|r| {
+            r.payload
+                .get("name")
+                .and_then(|n| n.as_str())
+                .is_some_and(|n| n == "gb.activity")
+        })
+        .filter_map(|r| {
+            let inner = r.payload.get("payload")?.clone();
+            let act: crate::core::bot::pipeline::activity::Activity =
+                serde_json::from_value(inner).ok()?;
+            Some((act, r.ts.to_string()))
+        })
+        .collect();
+    crate::core::bot::pipeline::activity::merge_activity_pairs(pairs)
+}
+
+/// Extracts structured attachment info from the `[User attached a file stored
+/// at inbox/fname; ...]` markers in persisted user messages.
+fn parse_attachment_markers(content: &str) -> Vec<HistoryAttachment> {
+    const MARKER: &str = "[User attached a file stored at ";
+    let mut attachments = Vec::new();
+    let mut search = content;
+    while let Some(start) = search.find(MARKER) {
+        let rest = &search[start + MARKER.len()..];
+        let end = rest.find(';').unwrap_or(rest.len());
+        let path = rest[..end].trim();
+        if let Some(name) = path.strip_prefix("inbox/") {
+            let mime = crate::core::bot::pipeline::activity::mime_from_name(name);
+            attachments.push(HistoryAttachment {
+                name: name.to_string(),
+                mime_type: mime,
+                size: 0,
+                drive_path: path.to_string(),
+            });
+        }
+        search = &rest[end..];
+    }
+    attachments
+}
+
+#[derive(diesel::QueryableByName)]
+struct ActivityRow {
+    #[diesel(sql_type = diesel::sql_types::Timestamp)]
+    ts: chrono::NaiveDateTime,
+    #[diesel(sql_type = diesel::sql_types::Jsonb)]
+    payload: serde_json::Value,
 }

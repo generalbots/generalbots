@@ -85,29 +85,55 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
             locked: false,
             lock_pin_hash: None,
         };
+        // #2562 — tool_run activity.
+        let tool_ctx = crate::core::bot::pipeline::event_sink::RunContext::new(
+            &session_id.to_string(),
+            "chat",
+        )
+        .with_state(state.clone())
+        .with_scope(bot_uuid, user_id, None);
+        let tool_act = crate::core::bot::pipeline::activity::Activity::started(
+            crate::core::bot::pipeline::activity::ActivityKind::ToolRun,
+            crate::core::bot::pipeline::activity::tool_run_summary(tool_name, "running"),
+        )
+        .with_run_id(&tool_ctx.run_id);
+        crate::core::bot::pipeline::activity::emit_activity(sink, &tool_ctx, &tool_act).await;
+
         let tool_run = tokio::task::spawn_blocking(move || {
             let mut svc =
                 crate::basic::ScriptService::new(state_for_tool.clone(), session_for_tool);
             svc.load_bot_config_params(&state_for_tool, bot_uuid);
             svc.run(&ast_content).map_err(|e| e.to_string())
         });
-        // The script runs on a blocking task, so the report goes out after it
-        // completes: a failure must reach the chat, not only the log.
-        // Awaited, like the LLM tool-call path already does, so a failure can
-        // be reported to the user instead of only reaching the log. The tool's
-        // own TALK output reaches the sink while the script runs.
-        if let Ok(Err(detail)) = tool_run.await {
-            log::warn!("Tool '{tool_name_clone}' execution error: {detail}");
-            let message =
-                format!("Não consegui executar '{tool_name_clone}'. Tente novamente em instantes.");
-            let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(),
-                session_id.to_string(),
-                user_id.to_string(),
-                &message,
-                channel,
-            );
-            let _ = sink.send_bot_response(&resp).await;
+        match tool_run.await {
+            Ok(Ok(_)) => {
+                let done = tool_act.completed(
+                    crate::core::bot::pipeline::activity::tool_run_summary(tool_name, "ok"),
+                );
+                crate::core::bot::pipeline::activity::emit_activity(sink, &tool_ctx, &done).await;
+            }
+            Ok(Err(detail)) => {
+                let fail = tool_act.failed(&detail);
+                crate::core::bot::pipeline::activity::emit_activity(sink, &tool_ctx, &fail).await;
+
+                log::warn!("Tool '{tool_name_clone}' execution error: {detail}");
+                let message = format!(
+                    "Nao consegui executar '{tool_name_clone}'. Tente novamente em instantes."
+                );
+                let resp = botlib::models::BotResponse::new(
+                    bot_uuid.to_string(),
+                    session_id.to_string(),
+                    user_id.to_string(),
+                    &message,
+                    channel,
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
+            Err(e) => {
+                let fail = tool_act.failed(&e.to_string());
+                crate::core::bot::pipeline::activity::emit_activity(sink, &tool_ctx, &fail).await;
+                log::warn!("Tool '{tool_name_clone}' join error: {e}");
+            }
         }
     }
 }

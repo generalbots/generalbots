@@ -135,6 +135,14 @@ pub(crate) async fn handle_api_call(
         params
     };
 
+    // #2562 — API command activity context.
+    let cmd_run = crate::core::bot::pipeline::event_sink::RunContext::new(
+        &session_id.to_string(),
+        "chat",
+    )
+    .with_state(state.clone())
+    .with_scope(bot_uuid, user_id, None);
+
     #[cfg(feature = "consent")]
     let approved_detail = {
         let app_id = crate::apps::commands::command_by_name(&name)
@@ -150,6 +158,24 @@ pub(crate) async fn handle_api_call(
         )
         .await;
         if !gate.allowed {
+            // #2562 — permission activity: needs_input or denied.
+            let perm_act = crate::core::bot::pipeline::activity::Activity::started(
+                crate::core::bot::pipeline::activity::ActivityKind::Permission,
+                crate::core::bot::pipeline::activity::permission_summary(&name, "pending", gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
+            )
+            .with_run_id(&cmd_run.run_id);
+            if gate.pending_request.is_some() {
+                let waiting = perm_act.needs_input(
+                    crate::core::bot::pipeline::activity::permission_summary(&name, "pending", gate.pending_request.as_ref().map(|r| r.request_id.as_str())),
+                );
+                crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &waiting).await;
+            } else {
+                let denied = perm_act.completed(
+                    crate::core::bot::pipeline::activity::permission_summary(&name, "denied", None),
+                );
+                crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &denied).await;
+            }
+
             let message = match gate.pending_request {
                 Some(ref request) => crate::core::bot::consent_gate::marker_content(request),
                 None => crate::core::bot::consent_gate::deny_message(&app_id),
@@ -162,8 +188,6 @@ pub(crate) async fn handle_api_call(
                 &channel,
             );
             let _ = sink.send_bot_response(&resp).await;
-            // Persist the consent marker (or denial) so a page reload still
-            // renders the interactive card instead of raw JSON.
             {
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &message, 2);
@@ -184,8 +208,48 @@ pub(crate) async fn handle_api_call(
         None => params,
     };
 
+    // #2562 — emit the api_command / drive_list / drive_search activity.
+    let cmd_kind = match name.as_str() {
+        "drive.list" => crate::core::bot::pipeline::activity::ActivityKind::DriveList,
+        "drive.search" => crate::core::bot::pipeline::activity::ActivityKind::DriveSearch,
+        "drive.file" => crate::core::bot::pipeline::activity::ActivityKind::DriveRead,
+        _ => crate::core::bot::pipeline::activity::ActivityKind::ApiCommand,
+    };
+    let cmd_act = crate::core::bot::pipeline::activity::Activity::started(
+        cmd_kind,
+        crate::core::bot::pipeline::activity::api_command_summary(&name, "running"),
+    )
+    .with_run_id(&cmd_run.run_id);
+    crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &cmd_act).await;
+
     match api_catalog::execute_command(state, bot_uuid, user_id, &name, &params).await {
         Ok(result) => {
+            // #2562 — completed activity with the result summary.
+            let done_summary = if cmd_kind == crate::core::bot::pipeline::activity::ActivityKind::DriveList
+                || cmd_kind == crate::core::bot::pipeline::activity::ActivityKind::DriveSearch
+            {
+                let path = params.get("path").and_then(|v| v.as_str()).or_else(|| params.get("query").and_then(|v| v.as_str())).unwrap_or("");
+                let entries: Vec<crate::core::bot::pipeline::activity::DriveEntry> = result
+                    .get("files")
+                    .or_else(|| result.get("results"))
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .take(crate::core::bot::pipeline::activity::MAX_LIST_ENTRIES)
+                            .map(|e| crate::core::bot::pipeline::activity::DriveEntry {
+                                name: e.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string(),
+                                size: e.get("size").and_then(|s| s.as_u64()).unwrap_or(0),
+                                kind: e.get("kind").and_then(|k| k.as_str()).unwrap_or("file").to_string(),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                crate::core::bot::pipeline::activity::drive_list_summary(path, &entries)
+            } else {
+                crate::core::bot::pipeline::activity::api_command_summary(&name, "ok")
+            };
+            let done = cmd_act.completed(done_summary);
+            crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &done).await;
             // #1835 — when the model itself runs web.search, surface its hits
             // as citation chips too, so informational answers show references.
             if name == "web.search" {
@@ -356,7 +420,10 @@ pub(crate) async fn handle_api_call(
             true
         }
         Err(e) => {
-            // Keys only: values may carry credentials (a password create).
+            // #2562 — failed activity.
+            let fail = cmd_act.failed(&e.to_string());
+            crate::core::bot::pipeline::activity::emit_activity(sink, &cmd_run, &fail).await;
+
             let keys = params
                 .as_object()
                 .map(|map| map.keys().cloned().collect::<Vec<_>>().join(","))

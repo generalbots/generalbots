@@ -72,7 +72,7 @@ pub fn enabled() -> bool {
         match std::env::var("GB_RUN_EVENTS").ok().as_deref() {
             Some("1") | Some("true") | Some("yes") => true,
             Some("0") | Some("false") | Some("no") => false,
-            _ => cfg!(feature = "desktop-local"),
+            _ => cfg!(any(feature = "desktop-local", feature = "gbgov")),
         }
     })
 }
