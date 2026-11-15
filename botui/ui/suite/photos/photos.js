@@ -154,23 +154,35 @@
     return String(s).replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootPhotos() {
     const refresh = document.getElementById("photosRefresh");
-    if (refresh) refresh.addEventListener("click", load);
+    if (refresh && !refresh.dataset.gbPhotosInit) {
+      refresh.dataset.gbPhotosInit = "1";
+      refresh.addEventListener("click", load);
+    }
     const close = document.getElementById("photosLbClose");
-    if (close) {
+    if (close && !close.dataset.gbPhotosInit) {
+      close.dataset.gbPhotosInit = "1";
       close.addEventListener("click", function () {
-        document.getElementById("photosLightbox").style.display = "none";
+        const lbEl = document.getElementById("photosLightbox");
+        if (lbEl) lbEl.style.display = "none";
       });
     }
     const lb = document.getElementById("photosLightbox");
-    if (lb) {
+    if (lb && !lb.dataset.gbPhotosInit) {
+      lb.dataset.gbPhotosInit = "1";
       lb.addEventListener("click", function (e) {
         if (e.target === lb) lb.style.display = "none";
       });
     }
     load();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootPhotos, { once: true });
+  } else {
+    bootPhotos();
+  }
 
   window.GBPhotos = { load: load };
 })();

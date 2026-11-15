@@ -176,16 +176,23 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootStore() {
     const search = document.getElementById("storeSearch");
-    if (search) {
+    if (search && !search.dataset.gbStoreInit) {
+      search.dataset.gbStoreInit = "1";
       search.addEventListener("input", function () {
         query = search.value.trim();
         render();
       });
     }
     loadCatalog();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootStore, { once: true });
+  } else {
+    bootStore();
+  }
 
   window.GBAppStore = { loadCatalog: loadCatalog, render: render, install: install, isInstalled: isInstalled };
 })();

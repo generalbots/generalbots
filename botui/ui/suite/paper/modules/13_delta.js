@@ -128,6 +128,14 @@
     if (appRoot && root.innerHTML.trim()) persist(appRoot, root);
   }
 
-  if (window.GBDocDelta) window.GBDocDelta.register("paper", apply);
-  else document.addEventListener("DOMContentLoaded", function(){ if(window.GBDocDelta) window.GBDocDelta.register("paper", apply); });
+  function tryRegisterPaper() {
+    if (window.GBDocDelta) window.GBDocDelta.register("paper", apply);
+  }
+  if (window.GBDocDelta) {
+    tryRegisterPaper();
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryRegisterPaper, { once: true });
+  } else {
+    tryRegisterPaper();
+  }
 })();

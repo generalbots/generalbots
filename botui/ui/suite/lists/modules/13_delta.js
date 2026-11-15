@@ -124,8 +124,14 @@
     }
   }
 
-  if (window.GBDocDelta) window.GBDocDelta.register("lists", apply);
-  else document.addEventListener("DOMContentLoaded", function () {
+  function tryRegisterLists() {
     if (window.GBDocDelta) window.GBDocDelta.register("lists", apply);
-  });
+  }
+  if (window.GBDocDelta) {
+    tryRegisterLists();
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", tryRegisterLists, { once: true });
+  } else {
+    tryRegisterLists();
+  }
 })();
