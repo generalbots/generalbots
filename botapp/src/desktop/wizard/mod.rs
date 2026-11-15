@@ -10,6 +10,7 @@
 //! `progress` (resume marker and context), `session` (desktop sign-in),
 //! `window` (wizard/suite windows) and `handoff` (credentials + completion).
 
+mod appearance;
 mod commands;
 mod handoff;
 mod hostcheck;

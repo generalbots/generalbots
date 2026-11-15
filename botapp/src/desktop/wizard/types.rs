@@ -165,6 +165,17 @@ pub struct FinishRequest {
     /// agent-related setup was intentionally skipped.
     #[serde(default)]
     pub skip_all_agentic_work: bool,
+    /// Look chosen on the first wizard step.
+    #[serde(default)]
+    pub appearance: AppearanceDraft,
+}
+
+/// Appearance chosen in the wizard. `accent` is a `#rrggbb` colour, or empty
+/// to keep the default.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AppearanceDraft {
+    #[serde(default)]
+    pub accent: String,
 }
 
 #[cfg(test)]

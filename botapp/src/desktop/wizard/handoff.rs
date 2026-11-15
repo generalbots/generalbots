@@ -178,6 +178,11 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
         warn!("wizard: could not persist network mode: {e}");
     }
 
+    // The accent picked on the first step; the suite reads it from the stack.
+    if let Err(e) = super::appearance::write_accent(&request.appearance.accent) {
+        warn!("wizard: could not persist the accent: {e}");
+    }
+
     let marker = serde_json::json!({
         "completed_at": chrono::Utc::now().to_rfc3339(),
         "desktop_local": cfg!(feature = "desktop-local"),
