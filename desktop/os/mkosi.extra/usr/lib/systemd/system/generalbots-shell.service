@@ -11,8 +11,9 @@ ConditionPathExists=/opt/general-bots/start.sh
 [Service]
 Type=simple
 # No root, no display manager: run inside a PAM login session so
-# pam_systemd sets up /run/user/… and libseat (via logind) hands the DRM
-# devices to the kiosk user (video/render memberships from sysusers.d).
+# pam_systemd sets up /run/user/<uid> (XDG_RUNTIME_DIR) and libseat (via
+# logind) can hand DRM/render devices to the kiosk user (video/render
+# group memberships from mkosi.extra/etc/sysusers.d/generalbots-kiosk.conf).
 User=gbdesk
 Group=gbdesk
 PAMName=login
@@ -26,16 +27,122 @@ StandardError=journal
 WorkingDirectory=/var/lib/gbdesk
 Environment=HOME=/var/lib/gbdesk
 Environment=WLR_BACKENDS=drm
-# Own DBus session bus for GTK/WebKit, cage as the Wayland kiosk compositor
-# and the General Bots launcher as its single application (the launcher owns
-# the botserver sidecar and the desktop shell). A crash is respawned exactly
-# like a display manager re-spawns a session.
+# ---------------------------------------------------------------------------
+# Kiosk hardening (documented). Each directive below is intentionally explicit.
+# ---------------------------------------------------------------------------
+
+# --- Privilege / execution constraints ---
+# Prevents gaining new privileges via setuid/setgid binaries and similar exec
+# transitions. The kiosk shell must never escalate.
+NoNewPrivileges=yes
+# Blocks creation of SUID/SGID files in this unit's context (defense in depth).
+RestrictSUIDSGID=yes
+# Do not allow ambient capabilities to be inherited; combined with an empty
+# CapabilityBoundingSet below this drops all capabilities for the service.
+# (User service under a non-root user has none in practice, but be explicit.)
+CapabilityBoundingSet=
+
+# --- Filesystem layout ---
+# Root filesystem read-only except explicitly listed write paths.
+ProtectSystem=strict
+# Writable state for the desktop stack, logs, workspace, and provisioned data.
+# /var/lib/gbdesk is the canonical mutable home (WorkingDirectory/Home).
+ReadWritePaths=/var/lib/gbdesk
+# Session runtime dir (XDG_RUNTIME_DIR) created by pam_systemd/logind. Required
+# for Wayland sockets, libseat, and the session bus endpoint used by dbus tools.
+# NOTE: with ProtectHome=tmpfs below, /run/user is hidden; we bind it back.
+ReadWritePaths=/run/user/%U
+# Private /tmp and /var/tmp namespace for this unit.
+PrivateTmp=yes
+# Hide /home, /root, and /run/user behind tmpfs, then expose only what is needed.
+# EXCEPTIONS / explicit binds (see also DeviceAllow and Address Families):
+#   - /run/user/%U is bind-mounted back (RW) for XDG_RUNTIME_DIR, Wayland sockets,
+#     libseat session state, and dbus-run-session session bus artifacts.
+#   - HOME is /var/lib/gbdesk (outside /home); remain writable via ReadWritePaths.
+ProtectHome=tmpfs
+BindPaths=/run/user/%U
+
+# --- Devices ---
+# Isolate most device nodes; allow only what the kiosk needs.
+# EXCEPTIONS (must remain allowed for a graphical Wayland kiosk on DRM/KMS):
+#   - Direct Rendering Manager nodes: /dev/dri/card*, /dev/dri/renderD* (GPU/accel).
+#     cage (wlroots) uses DRM/KMS; gbdesk is in video/render groups (sysusers).
+#   - The active VT nodes referenced by TTYPath (/dev/tty0, /dev/tty1) for session
+#     ownership/tty handling.
+#   - char-drm aggregate allow for flexibility across devices.
+PrivateDevices=yes
+DevicePolicy=closed
+DeviceAllow=/dev/dri rw
+DeviceAllow=/dev/dri/card0 rw
+DeviceAllow=/dev/dri/renderD128 rw
+DeviceAllow=char-drm rw
+DeviceAllow=/dev/tty0 rw
+DeviceAllow=/dev/tty1 rw
+
+# --- Kernel / control surfaces ---
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+
+# --- Namespaces, personality, realtime ---
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictRealtime=yes
+# Limit address families. Typical needs: AF_UNIX (dbus, Wayland sockets),
+# AF_INET/AF_INET6 (networking, provisioning), AF_NETLINK (routing/udev/logind
+# related interactions in some stacks). Adjust only with evidence if a
+# component fails; document changes.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+# --- Syscalls ---
+# Broad but safer baseline for common desktop/session services. May require
+# narrowing exceptions only if profiling shows issues; document any additions.
+# NOTE: this is a pragmatic starting point for cage/dbus-run-session/GTK stack.
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# --- Misc hardening ---
+UMask=0077
+# Do not mount new filesystems in this unit's mount namespace surprises.
+# (Implicit in several settings, but reinforce intent by avoiding writes outside
+# allowed paths; ProtectSystem=strict + ReadWritePaths already constrain.)
+
+# ---------------------------------------------------------------------------
+# Explicit exceptions (do NOT "harden away" without understanding impact):
+# ---------------------------------------------------------------------------
+# 1) DRM/render devices for the Wayland compositor (cage/wlroots) and GPU accel:
+#    /dev/dri/*, char-drm. Required for rendering on KMS/DRM. Without these the
+#    kiosk cannot draw. Keep DeviceAllow entries above in sync with hardware.
+#
+# 2) Session bus / runtime directory:
+#    /run/user/%U (bind-mounted back) and XDG_RUNTIME_DIR semantics provided by
+#    pam_systemd/logind. dbus-run-session starts a session bus for the launcher
+#    and child processes; GTK/WebKit and Wayland clients rely on this. This is
+#    the "session bus" domain for the unit's session.
+#
+# 3) WebKit JIT: MemoryDenyWriteExecute is intentionally NOT set.
+#    Modern WebKitGTK uses JIT compilation which requires memory that is
+#    writable and executable at runtime (W^X trade-off). Enabling MDE breaks
+#    the embedded webview/launcher stack. If you later move the webview into a
+#    separate sandboxed process with an interpreter-free path, revisit MDE there.
+#
+# 4) Network access is allowed (PrivateNetwork=no, default) because the
+#    provisioner/start flow may fetch components on first boot when offline mode
+#    is not enforced; the desktop app also needs network for normal operation.
+#
+# 5) TTY nodes (/dev/tty0,/dev/tty1) for the kiosk VT session.
+# ---------------------------------------------------------------------------
+
+# Own DBus session bus for GTK/WebKit, cage as the Wayland kiosk compositor,
+# and the General Bots launcher as its single application. The launcher starts
+# the botserver sidecar and hosts the desktop webview in the *same* user/session
+# context today (see "Security domain boundary" in desktop/os/README.md).
 ExecStart=/usr/bin/dbus-run-session -- /usr/bin/cage /opt/general-bots/start.sh
 Restart=always
 RestartSec=3
-# Kiosk hardening: the shell has no reason to gain privileges.
-NoNewPrivileges=yes
-RestrictSUIDSGID=yes
 
 [Install]
 WantedBy=multi-user.target

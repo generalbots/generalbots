@@ -1,0 +1,126 @@
+name: Desktop OS hardening (kiosk unit)
+
+# CI gate for the kiosk appliance unit: validates YAML/syntax sanity where
+# practical, runs `systemd-analyze verify` and `systemd-analyze security` on
+# `desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-shell.service`, and
+# fails on regression past a pinned exposure-score target.
+#
+# Patterns mirror `.github/workflows/security.yml`: actions pinned to commit SHAs,
+# least permissions, and (if any tool download were added) checksum verification.
+# Today this job uses tooling present on the GitHub runner (systemd).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/os/**"
+      - ".github/workflows/desktop-os-hardening.yml"
+  pull_request:
+    paths:
+      - "desktop/os/**"
+      - ".github/workflows/desktop-os-hardening.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-os-hardening-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-hardening:
+    name: Validate and score generalbots-shell.service
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Verify workflow YAML parses (PyYAML if available)
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import pathlib
+          import sys
+          try:
+              import yaml  # type: ignore
+          except Exception as e:
+              print('PyYAML not installed; skipping strict YAML parse:', e)
+              sys.exit(0)
+          p = pathlib.Path('.github/workflows/desktop-os-hardening.yml')
+          yaml.safe_load(p.read_text(encoding='utf-8'))
+          print('ok:', p)
+          "
+
+      - name: Basic unit file sanity checks
+        run: |
+          set -euo pipefail
+          unit="desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-shell.service"
+          test -f "$unit"
+          # Must not regress to the old two-line hardening-only state.
+          grep -q '^ProtectSystem=strict' "$unit"
+          grep -q '^PrivateDevices=yes' "$unit"
+          grep -q '^SystemCallFilter=@system-service' "$unit"
+          grep -q '^CapabilityBoundingSet=$' "$unit"
+          grep -q '^RestrictAddressFamilies=' "$unit"
+          # Documented exception: WebKit JIT => do not enforce MDE.
+          if grep -qE '^MemoryDenyWriteExecute=' "$unit"; then
+            echo "::error::MemoryDenyWriteExecute must not be set (WebKit JIT exception)."
+            exit 1
+          fi
+          echo "sanity checks passed"
+
+      - name: systemd-analyze verify (best effort)
+        run: |
+          set -euo pipefail
+          unit="desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-shell.service"
+          if ! command -v systemd-analyze >/dev/null 2>&1; then
+            echo "::warning::systemd-analyze not available; cannot verify unit."
+            exit 0
+          fi
+          # verify may warn about missing files/units in a minimal host context;
+          # treat non-zero as informational unless it is a clear parse error.
+          systemd-analyze verify "$unit" || {
+            rc=$?
+            echo "::warning::systemd-analyze verify exited $rc (may be due to missing runtime deps on runner)."
+          }
+
+      - name: systemd-analyze security and enforce target
+        env:
+          # Regression gate: fail if exposure score is worse than this.
+          # After the hardened unit, the score should be well below this; adjust
+          # downward over time as further isolation (separate sidecar unit) lands.
+          GB_SHELL_SECURITY_MAX_SCORE: "4.0"
+        run: |
+          set -euo pipefail
+          unit="desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-shell.service"
+          if ! command -v systemd-analyze >/dev/null 2>&1; then
+            echo "::error::systemd-analyze is required to enforce the security score gate."
+            exit 1
+          fi
+          report="$(mktemp)"
+          systemd-analyze security --no-pager --offline=yes "$unit" | tee "$report"
+          # Extract the overall exposure line, e.g. "  → Overall exposure level for ...: 2.6 OK 🙂"
+          score="$(python3 -c "
+          import re
+          import sys
+          from pathlib import Path
+          text = Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
+          # Match patterns like 'Overall exposure level ...: 4.2 OK' or '2.6 SAFE'
+          m = re.search(r'Overall exposure level[^:]*:\s*([0-9]+(?:\.[0-9]+)?)', text)
+          if not m:
+              print('could not parse Overall exposure level from systemd-analyze output', file=sys.stderr)
+              sys.exit(2)
+          print(m.group(1))
+          " "$report")"
+          echo "Parsed exposure score: $score"
+          python3 -c "
+          import sys
+          score = float(sys.argv[1])
+          maxs = float(sys.argv[2])
+          if score > maxs:
+              print(f'::error::generalbots-shell.service exposure score {score} exceeds GB_SHELL_SECURITY_MAX_SCORE={maxs}')
+              sys.exit(1)
+          print(f'OK: {score} <= {maxs}')
+          " "$score" "$GB_SHELL_SECURITY_MAX_SCORE"

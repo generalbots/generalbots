@@ -87,6 +87,86 @@ OS screen that can show a brand:
 The PNGs are exported 512 px from the same SVG, with the white variant
 produced by recoloring (alpha preserved) — no third-party art.
 
+## Service hardening (`generalbots-shell.service`)
+
+The kiosk is started by `generalbots-shell.service` (installed from
+`mkosi.extra/usr/lib/systemd/system/generalbots-shell.service`). Hardening is
+applied there with inline comments in the unit; this section is the human
+reference and the place to re-check regressions.
+
+### Directive table (intent and notes)
+
+| Directive | Value / effect | Notes / exceptions |
+|---|---|---|
+| `NoNewPrivileges=` | `yes` | No setuid/setgid privilege gain. |
+| `RestrictSUIDSGID=` | `yes` | No new SUID/SGID files in the unit’s context. |
+| `CapabilityBoundingSet=` | empty | All capabilities dropped (service runs as unprivileged `gbdesk`). |
+| `ProtectSystem=` | `strict` | `/usr`, `/boot`, `/etc` read-only; writes only under `ReadWritePaths`. |
+| `ReadWritePaths=` | `/var/lib/gbdesk`, `/run/user/%U` | Mutable stack/state under `/var/lib/gbdesk`; session runtime dir for XDG/Wayland/dbus artifacts. |
+| `PrivateTmp=` | `yes` | Isolated `/tmp`, `/var/tmp`. |
+| `ProtectHome=` | `tmpfs` | Hides `/home`, `/root`, `/run/user` behind tmpfs; `BindPaths=/run/user/%U` restores the user runtime dir. `HOME=/var/lib/gbdesk` stays outside `/home`. |
+| `BindPaths=` | `/run/user/%U` | Required for `XDG_RUNTIME_DIR`, Wayland sockets, libseat/logind session state, and `dbus-run-session` artifacts. |
+| `PrivateDevices=` | `yes` | Most device nodes hidden. |
+| `DevicePolicy=` | `closed` | Only explicitly allowed devices. |
+| `DeviceAllow=` | `char-drm rw`, `/dev/dri rw`, `/dev/dri/card0 rw`, `/dev/dri/renderD128 rw`, `/dev/tty0 rw`, `/dev/tty1 rw` | **DRM/render (exception):** Wayland compositor (`cage`/wlroots) and GPU accel need DRM/KMS nodes; `gbdesk` is in `video`/`render` groups (`sysusers`). Adjust device names if hardware differs (e.g. other `renderD*`). |
+| `ProtectKernelTunables=` | `yes` | No writes to `/proc/sys`, `/sys` tunables. |
+| `ProtectKernelModules=` | `yes` | No loading modules. |
+| `ProtectKernelLogs=` | `yes` | No access to kernel ring buffer. |
+| `ProtectControlGroups=` | `yes` | cgroup tree read-only. |
+| `ProtectClock=` | `yes` | Clock changes blocked. |
+| `ProtectHostname=` | `yes` | Hostname changes blocked. |
+| `RestrictNamespaces=` | `yes` | Namespace creation restricted. |
+| `LockPersonality=` | `yes` | No personality changes. |
+| `RestrictRealtime=` | `yes` | No realtime scheduling abuse. |
+| `RestrictAddressFamilies=` | `AF_UNIX AF_INET AF_INET6 AF_NETLINK` | **Session/network exceptions:** Unix sockets (dbus, Wayland), TCP/UDP (provisioning/app traffic), netlink (routing/udev/logind-adjacent). Tighten only with measured failures and document why. |
+| `SystemCallFilter=` | `@system-service` | Baseline allowlist for typical system services (cage, dbus-run-session, GTK/WebKit). May need explicit additions if tracing shows denials; record changes in git history and this table. |
+| `SystemCallErrorNumber=` | `EPERM` | Denied syscalls return `EPERM` (clearer than default in practice). |
+| `UMask=` | `0077` | Restrictive file creation mask. |
+
+### Documented exceptions (do not remove without a replacement plan)
+
+1. **DRM/render devices for the Wayland compositor (cage/wlroots) and GPU acceleration.**  
+   Required: `/dev/dri/*`, `char-drm`, and the VT nodes used by the session (`/dev/tty0`, `/dev/tty1`). Removing these prevents graphical output.
+2. **Session bus / runtime directory.**  
+   `pam_systemd` + `logind` provide `/run/user/%U` (`XDG_RUNTIME_DIR`). `dbus-run-session` runs a session bus for the launcher and children; GTK/WebKit and Wayland clients depend on it. The unit bind-mounts `/run/user/%U` back under `ProtectHome=tmpfs`.
+3. **WebKit JIT (no `MemoryDenyWriteExecute`).**  
+   WebKitGTK uses JIT and requires writable+executable memory in practice (W^X trade-off). `MemoryDenyWriteExecute=yes` is **not** set. If the webview moves to a sandboxed helper with a JIT-free path, consider enabling MDE in that narrower domain instead.
+4. **Network access allowed (`PrivateNetwork` not set).**  
+   First-boot provisioning and normal app traffic need network (subject to offline flags elsewhere). Keep unless the deployment model guarantees fully offline operation and the unit is redesigned accordingly.
+5. **TTY ownership.**  
+   `TTYPath=/dev/tty1`, `PAMName=login`, `UtmpIdentifier=tty1` keep the kiosk VT bound to this service.
+
+### Security domain boundary: sidecar vs webview
+
+Today the **botserver sidecar** and the **desktop/webview UI** run in the **same security domain**: the `generalbots-shell.service` unit starts `cage` which runs `/opt/general-bots/start.sh`; that launcher starts the desktop app process (`generalbots`) which, per the desktop sidecar design, manages the botserver sidecar in the same user session/context (see `botapp/src/desktop/sidecar.rs` and `desktop/linux/start.sh`). There is **no separate systemd unit** isolating botserver from the webview process tree in this appliance image.
+
+**Intended direction (documented):** split into distinct security domains, for example:
+- a dedicated service (or hardening profile) for the botserver sidecar with its own `Protect*`, syscall/address-family policy, and no access to the user’s Wayland/DRM seat beyond what is strictly required (ideally none), and
+- a separate service for the compositor + webview with DRM/session-bus access, running with tighter filesystem access.
+
+Until that split lands, treat compromises of the webview/renderer as potentially compromising the sidecar process under the same UID/session constraints of this unit. Changes to enforce separation belong in `desktop/linux/start.sh`, `botapp/**` (sidecar lifecycle), and additional `desktop/os/**` unit files — out of scope for the current hardening-only edit except this documentation.
+
+### Verify and re-run `systemd-analyze security`
+
+On a booted appliance (or in the image environment after install), capture evidence:
+
+```bash
+# Show the unit’s effective properties (includes hardening fields)
+systemctl show generalbots-shell.service > /var/log/generalbots-shell.systemctl-show.txt 2>&1 || true
+
+# Score / analysis (requires systemd-analyze on the target)
+systemd-analyze security generalbots-shell.service | tee /var/log/generalbots-shell.security.txt
+```
+
+If `systemd-analyze` is unavailable in the checked environment, record that in validation notes (e.g. “not present in CI container”). When present, **do not regress** past the agreed target in CI: the `desktop-os-hardening` workflow runs this check and fails if the numeric exposure score is worse than **≤ 4.0** (see `.github/workflows/desktop-os-hardening.yml`, `GB_SHELL_SECURITY_MAX_SCORE`).
+
+To iterate locally against the unit file in the repo:
+
+```bash
+systemd-analyze security desktop/os/mkosi.extra/usr/lib/systemd/system/generalbots-shell.service
+```
+
+
 ## Next hardening steps (mkosi supports all of them)
 
 1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates
