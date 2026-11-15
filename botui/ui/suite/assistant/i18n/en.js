@@ -85,5 +85,22 @@ window.GBAssistantLocales["en"] = {
     "settings.build-date":     "Build date",
     "settings.commit":         "Commit",
     "settings.licence":        "Licence",
-    "settings.open-source":    "Open source"
+    "settings.open-source":    "Open source",
+    "settings.model-switch":   "Change model…",
+    "settings.bg-label":       "Chat background",
+    "settings.bg-none":        "None",
+    "settings.bg-dots":        "Dots",
+    "settings.bg-microdots":   "Micro dots",
+    "settings.bg-bubbles":     "Bubbles",
+    "settings.bg-grid":        "Grid",
+    "settings.bg-blueprint":   "Blueprint",
+    "settings.bg-weave":       "Weave",
+    "settings.bg-mosaic":      "Mosaic",
+    "suggestion.remove":       "Remove suggestion",
+    "attach.open-drive":       "Open in Drive",
+    "attach.preview":          "Preview",
+    "attach.unavailable":      "Content unavailable",
+    "panel.close":             "Close panel",
+    "assistant.cancel":        "Cancel",
+    "assistant.confirm-continue": "Continue?"
 };

@@ -20,13 +20,8 @@
         el.textContent = greeting;
     };
 
-    /* ---- Model picker ---- */
-    A.renderModelPickers = function () {
-        var pickers = document.querySelectorAll(".gb-model-picker");
-        for (var p = 0; p < pickers.length; p++) { renderPicker(pickers[p]); }
-    };
-
-    function shortModelName(model) {
+    /* ---- Model picker (button + menu) ---- */
+    A.shortModelName = function (model) {
         if (!model) { return ""; }
         var s = model;
         var slash = s.lastIndexOf("/");
@@ -34,68 +29,132 @@
         var colon = s.indexOf(":");
         if (colon > 0) { s = s.substring(0, colon); }
         return s;
+    };
+    var shortModelName = A.shortModelName;
+
+    A.renderModelPickers = function () {
+        var pickers = document.querySelectorAll(".gb-model-picker");
+        for (var p = 0; p < pickers.length; p++) { replaceWithButton(pickers[p]); }
+        /* Also update any already-converted buttons */
+        var btns = document.querySelectorAll(".gb-model-btn");
+        for (var b = 0; b < btns.length; b++) { updateBtnLabel(btns[b]); }
+    };
+
+    function updateBtnLabel(btn) {
+        var label = btn.querySelector(".gb-model-btn-label");
+        if (label) { label.textContent = shortModelName(A.selectedModel || A.defaultModel || ""); }
     }
 
-    function renderPicker(select) {
-        select.innerHTML = "";
-        /* Determine distinct models among tiers */
+    function replaceWithButton(select) {
+        if (select.dataset.replaced) { return; }
+        select.dataset.replaced = "1";
+        var btn = document.createElement("button");
+        btn.className = "gb-model-btn";
+        btn.type = "button";
+        var short = shortModelName(A.selectedModel || A.defaultModel || "");
+        btn.innerHTML = '<span class="gb-model-btn-label">' + (short || "Model") + '</span>' +
+            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+        btn.addEventListener("click", function (e) { e.stopPropagation(); toggleModelMenu(btn); });
+        select.style.display = "none";
+        select.parentNode.insertBefore(btn, select.nextSibling);
+    }
+
+    var activeModelMenu = null;
+    function toggleModelMenu(anchor) {
+        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; return; }
+        var menu = document.createElement("div");
+        menu.className = "gb-model-menu";
+        activeModelMenu = menu;
+
+        var dest = A.destination || {};
+        var scopeLabel = "";
+        if (dest.scope === "machine") { scopeLabel = A.t("assistant.on-this-computer", "on this computer"); }
+        else if (dest.scope === "network") { scopeLabel = A.t("assistant.on-your-network", "on your network") + (dest.host ? " (" + dest.host + ")" : ""); }
+        else if (dest.scope === "external") { scopeLabel = A.t("assistant.external", "external") + (dest.host ? ": " + dest.host : ""); }
+
+        /* Current/default model */
+        var currentShort = shortModelName(A.defaultModel || "");
+        var isSelected = !A.selectedModel || A.selectedModel === A.defaultModel;
+        var item0 = document.createElement("button");
+        item0.className = "gb-model-menu-item" + (isSelected ? " active" : "");
+        item0.innerHTML = '<span class="gb-model-menu-name">' + esc(currentShort) + '</span>' +
+            (scopeLabel ? '<span class="gb-model-menu-meta">' + esc(scopeLabel) + '</span>' : '');
+        item0.addEventListener("click", function () { selectModel(A.defaultModel); });
+        menu.appendChild(item0);
+
+        /* Other tiers with different models */
         var distinctModels = [];
         var seen = {};
+        if (A.defaultModel) { seen[A.defaultModel] = true; }
         for (var i = 0; i < A.tiers.length; i++) {
             var m = A.tiers[i].model;
-            if (!seen[m]) { seen[m] = true; distinctModels.push(m); }
+            if (!seen[m] && !A.tiers[i].inherits_default) { seen[m] = true; distinctModels.push(A.tiers[i]); }
         }
-        var singleModel = distinctModels.length <= 1;
-
-        if (singleModel) {
-            /* Show model name as plain text, disable select */
-            var name = shortModelName(A.defaultModel || (A.tiers[0] && A.tiers[0].model) || "");
-            var opt = document.createElement("option");
-            opt.value = A.defaultModel || "";
-            opt.textContent = name;
-            select.appendChild(opt);
-            select.disabled = true;
-            return;
+        for (var j = 0; j < distinctModels.length; j++) {
+            var tier = distinctModels[j];
+            var isAct = A.selectedModel === tier.model;
+            var item = document.createElement("button");
+            item.className = "gb-model-menu-item" + (isAct ? " active" : "");
+            item.innerHTML = '<span class="gb-model-menu-name">' + esc(shortModelName(tier.model)) + '</span>';
+            (function (model) { item.addEventListener("click", function () { selectModel(model); }); })(tier.model);
+            menu.appendChild(item);
         }
 
-        /* Multiple models: "Automatico . <model>" as default, then distinct tiers */
-        var autoLabel = A.t("assistant.auto", "Automatic") +
-            " · " + shortModelName(A.defaultModel);
-        var autoOpt = document.createElement("option");
-        autoOpt.value = A.defaultModel || "";
-        autoOpt.textContent = autoLabel;
-        if (!A.selectedModel || A.selectedModel === A.defaultModel) {
-            autoOpt.selected = true;
-        }
-        select.appendChild(autoOpt);
-
-        for (var j = 0; j < A.tiers.length; j++) {
-            var t = A.tiers[j];
-            if (t.model === A.defaultModel && t.id === "auto") { continue; }
-            if (t.inherits_default) { continue; }
-            var o = document.createElement("option");
-            o.value = t.model;
-            o.textContent = shortModelName(t.model);
-            if (t.model === A.selectedModel) { o.selected = true; }
-            select.appendChild(o);
-        }
-
-        select.disabled = false;
-        select.addEventListener("change", function () {
-            A.selectedModel = select.value;
-            try { localStorage.setItem("gb-model-preference", A.selectedModel); }
-            catch (e) { /* */ }
-            syncPickers(A.selectedModel);
-            A.renderStatus();
+        /* Divider + settings link */
+        var div = document.createElement("div");
+        div.className = "gb-model-menu-divider";
+        menu.appendChild(div);
+        var action = document.createElement("button");
+        action.className = "gb-model-menu-action";
+        action.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09"/></svg>' +
+            '<span>' + esc(A.t("settings.model-switch", "Trocar modelo…")) + '</span>';
+        action.addEventListener("click", function () {
+            closeModelMenu();
+            A.switchView("settings");
+            /* Open the model section after settings renders */
+            setTimeout(function () {
+                var tab = document.querySelector('.gb-set-tab[data-section="model"]');
+                if (tab) { tab.click(); }
+            }, 80);
         });
+        menu.appendChild(action);
+
+        anchor.style.position = "relative";
+        anchor.appendChild(menu);
+
+        document.addEventListener("click", closeModelMenu, { once: true });
+    }
+    function closeModelMenu() {
+        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; }
+    }
+    function selectModel(model) {
+        A.selectedModel = model;
+        try { localStorage.setItem("gb-model-preference", model); } catch (e) { /* */ }
+        A.renderModelPickers();
+        A.renderStatus();
+        closeModelMenu();
     }
 
-    function syncPickers(model) {
-        var pickers = document.querySelectorAll(".gb-model-picker");
-        for (var i = 0; i < pickers.length; i++) { pickers[i].value = model; }
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+    /* ---- Suggestions (max 3, removable, persisted dismissals) ---- */
+    var dismissedKey = "gb-dismissed-suggestions";
+
+    function getDismissed() {
+        try {
+            var raw = localStorage.getItem(dismissedKey);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) { return {}; }
+    }
+    function setDismissed(map) {
+        try { localStorage.setItem(dismissedKey, JSON.stringify(map)); } catch (e) { /* */ }
     }
 
-    /* ---- Suggestions ---- */
+    /* Session-level dismissals (cleared on new conversation) */
+    var sessionDismissed = {};
+
+    A.clearSessionDismissals = function () { sessionDismissed = {}; };
+
     A.onSuggestions = function (suggestions) {
         A.suggestions = suggestions;
         renderSuggestions("gbSuggestionsEmpty", suggestions);
@@ -107,33 +166,71 @@
         if (!container) { return; }
         container.innerHTML = "";
         if (!suggestions || suggestions.length === 0) { return; }
+        var dismissed = getDismissed();
+        var botKey = A.botName || "default";
+        var botDismissed = dismissed[botKey] || [];
+        var visible = [];
         for (var i = 0; i < suggestions.length; i++) {
             var s = suggestions[i];
-            var chip = document.createElement("button");
-            chip.className = "gb-suggestion-chip";
-            chip.textContent = s.text || (typeof s === "string" ? s : "");
-            (function (suggestion) {
-                chip.addEventListener("click", function () {
-                    var text = suggestion.text || (typeof suggestion === "string" ? suggestion : "");
-                    var msgType = 1;
-                    /* Tool exec: message_type 6 */
-                    if (suggestion.action) {
-                        try {
-                            var actionData = typeof suggestion.action === "string"
-                                ? JSON.parse(suggestion.action) : suggestion.action;
-                            if (actionData.type === "invoke_tool" &&
-                                !actionData.prompt_for_params &&
-                                !(Array.isArray(actionData.params) && actionData.params.length)) {
-                                msgType = 6;
-                                text = actionData.tool || text;
-                            }
-                        } catch (e) { /* parse error, send as text */ }
-                    }
-                    doSend(text, msgType);
-                });
-            })(s);
-            container.appendChild(chip);
+            var text = s.text || (typeof s === "string" ? s : "");
+            if (botDismissed.indexOf(text) >= 0) { continue; }
+            if (sessionDismissed[text]) { continue; }
+            visible.push(s);
+            if (visible.length >= 3) { break; }
         }
+        if (visible.length === 0) { return; }
+        for (var v = 0; v < visible.length; v++) {
+            container.appendChild(buildSuggestionChip(visible[v], containerId));
+        }
+    }
+
+    function buildSuggestionChip(suggestion, containerId) {
+        var text = suggestion.text || (typeof suggestion === "string" ? suggestion : "");
+        var chip = document.createElement("button");
+        chip.className = "gb-suggestion-chip";
+
+        var label = document.createElement("span");
+        label.textContent = text;
+        chip.appendChild(label);
+
+        /* Remove (x) control */
+        var rm = document.createElement("span");
+        rm.className = "gb-suggestion-remove";
+        rm.setAttribute("role", "button");
+        rm.setAttribute("aria-label", A.t("suggestion.remove", "Remove suggestion"));
+        rm.innerHTML = "&times;";
+        rm.addEventListener("click", function (e) {
+            e.stopPropagation();
+            sessionDismissed[text] = true;
+            /* Also persist per-bot */
+            var dismissed = getDismissed();
+            var botKey = A.botName || "default";
+            if (!dismissed[botKey]) { dismissed[botKey] = []; }
+            if (dismissed[botKey].indexOf(text) < 0) { dismissed[botKey].push(text); }
+            setDismissed(dismissed);
+            renderSuggestions("gbSuggestionsEmpty", A.suggestions);
+            renderSuggestions("gbSuggestionsDock", A.suggestions);
+        });
+        chip.appendChild(rm);
+
+        chip.addEventListener("click", function () {
+            var msgType = 1;
+            var sendText = text;
+            if (suggestion.action) {
+                try {
+                    var actionData = typeof suggestion.action === "string"
+                        ? JSON.parse(suggestion.action) : suggestion.action;
+                    if (actionData.type === "invoke_tool" &&
+                        !actionData.prompt_for_params &&
+                        !(Array.isArray(actionData.params) && actionData.params.length)) {
+                        msgType = 6;
+                        sendText = actionData.tool || text;
+                    }
+                } catch (e) { /* parse error, send as text */ }
+            }
+            doSend(sendText, msgType);
+        });
+        return chip;
     }
 
     /* ---- Send ---- */
@@ -299,6 +396,7 @@
         var newChat = document.getElementById("gbNewChat");
         if (newChat) {
             newChat.addEventListener("click", function () {
+                A.clearSessionDismissals();
                 A.showEmptyState();
                 A.renderGreeting();
                 A.onSuggestions(A.suggestions);

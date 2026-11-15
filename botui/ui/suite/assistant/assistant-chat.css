@@ -13,8 +13,8 @@
     padding: var(--id-space-6); gap: var(--id-space-5);
     position: relative; z-index: 1; }
 .gb-greeting {
-    font-family: var(--id-font-display); font-size: var(--id-text-4xl);
-    color: var(--id-ink); text-align: center; line-height: 1.2; max-width: 480px; }
+    font-family: var(--id-font-heading); font-size: var(--id-text-4xl);
+    font-weight: 600; color: var(--id-ink); text-align: center; line-height: 1.2; max-width: 480px; }
 .gb-greeting-sub {
     font-size: var(--id-text-md); color: var(--id-muted);
     text-align: center; max-width: 480px; }

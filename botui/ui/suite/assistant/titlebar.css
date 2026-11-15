@@ -47,7 +47,7 @@
     border-radius: 6px;
 }
 .gb-titlebar-wordmark {
-    font-family: var(--id-font-logo, 'Palanquin Dark', sans-serif);
+    font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
     font-weight: 500;
     font-size: 14px;
     color: var(--id-muted, #5f6673);

@@ -137,28 +137,113 @@
         });
     }
 
+    /* ---- Inline rename (edits title in place) ---- */
     function handleRename(sessId, textSpan) {
+        if (textSpan.querySelector("input")) { return; } /* already editing */
         var current = textSpan.textContent;
-        var newName = prompt(A.t("assistant.rename-prompt", "Rename conversation:"), current);
-        if (newName && newName !== current) {
-            A.renameSession(sessId, newName).then(function () {
-                textSpan.textContent = newName;
-            });
+        var input = document.createElement("input");
+        input.type = "text";
+        input.className = "gb-conv-rename-input";
+        input.value = current;
+        textSpan.textContent = "";
+        textSpan.appendChild(input);
+        input.focus();
+        input.select();
+
+        function commit() {
+            var val = input.value.trim();
+            cleanup();
+            if (val && val !== current) {
+                textSpan.textContent = val;
+                A.renameSession(sessId, val);
+            } else {
+                textSpan.textContent = current;
+            }
         }
+        function cleanup() {
+            input.removeEventListener("keydown", onKey);
+            input.removeEventListener("blur", onBlur);
+        }
+        function onKey(e) {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Escape") { e.preventDefault(); cleanup(); textSpan.textContent = current; }
+        }
+        function onBlur() { commit(); }
+        input.addEventListener("keydown", onKey);
+        input.addEventListener("blur", onBlur);
     }
 
+    /* ---- Inline delete confirmation ---- */
     function handleDelete(sessId) {
-        if (!confirm(A.t("assistant.delete-confirm", "Delete this conversation?"))) {
-            return;
+        var row = document.querySelector('[data-session-id="' + sessId + '"]');
+        if (!row) { return; }
+        /* If already showing confirmation, ignore */
+        if (row.querySelector(".gb-conv-confirm")) { return; }
+        var originalHtml = row.innerHTML;
+
+        var bar = document.createElement("div");
+        bar.className = "gb-conv-confirm";
+        bar.innerHTML =
+            '<span class="gb-conv-confirm-text">' + escText(A.t("assistant.delete-confirm", "Delete this conversation?")) + '</span>' +
+            '<button class="gb-conv-confirm-btn gb-conv-confirm-danger" data-act="yes">' + escText(A.t("assistant.delete", "Delete")) + '</button>' +
+            '<button class="gb-conv-confirm-btn" data-act="no">' + escText(A.t("assistant.cancel", "Cancel")) + '</button>';
+        row.innerHTML = "";
+        row.appendChild(bar);
+
+        var cancelBtn = bar.querySelector('[data-act="no"]');
+        if (cancelBtn) { cancelBtn.focus(); }
+
+        function restore() {
+            row.innerHTML = originalHtml;
+            /* Re-bind the click handler */
+            row.addEventListener("click", function () { loadConversation(sessId); });
+            document.removeEventListener("keydown", escHandler);
         }
-        A.deleteSession(sessId).then(function () {
-            if (A.currentSessionId === sessId) {
-                A.currentSessionId = null;
-                A.showEmptyState();
-                if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
-                A.newSession().then(function () { A.reconnectWs(); });
-            }
-            A.refreshSidebar();
+        function escHandler(e) {
+            if (e.key === "Escape") { e.preventDefault(); restore(); }
+        }
+        document.addEventListener("keydown", escHandler);
+
+        bar.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var act = e.target.closest("[data-act]");
+            if (!act) { return; }
+            if (act.getAttribute("data-act") === "no") { restore(); return; }
+            /* Perform delete */
+            act.disabled = true;
+            act.textContent = "...";
+            A.apiFetch(
+                "/api/chat/history/sessions/" + encodeURIComponent(sessId),
+                { method: "DELETE" }
+            ).then(function (r) {
+                if (!r.ok) {
+                    return r.text().then(function (body) {
+                        var reason = "";
+                        try { var j = JSON.parse(body); reason = j.error || j.message || body; } catch (e) { reason = body; }
+                        bar.innerHTML = '<span class="gb-conv-confirm-text gb-conv-confirm-error">' +
+                            escText(reason || "Error " + r.status) + '</span>' +
+                            '<button class="gb-conv-confirm-btn" data-act="no">OK</button>';
+                        bar.querySelector('[data-act="no"]').addEventListener("click", function (ev) {
+                            ev.stopPropagation(); restore();
+                        });
+                    });
+                }
+                document.removeEventListener("keydown", escHandler);
+                if (A.currentSessionId === sessId) {
+                    A.currentSessionId = null;
+                    A.showEmptyState();
+                    if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
+                    A.newSession().then(function () { A.reconnectWs(); });
+                }
+                A.refreshSidebar();
+            }).catch(function (err) {
+                bar.innerHTML = '<span class="gb-conv-confirm-text gb-conv-confirm-error">' +
+                    escText(String(err)) + '</span>' +
+                    '<button class="gb-conv-confirm-btn" data-act="no">OK</button>';
+                bar.querySelector('[data-act="no"]').addEventListener("click", function (ev) {
+                    ev.stopPropagation(); restore();
+                });
+            });
         });
     }
 

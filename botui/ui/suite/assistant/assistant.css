@@ -42,21 +42,21 @@ body {
     0%   { background-position: 0% 50%; }
     100% { background-position: 100% 50%; }
 }
-/* Legibility: paper band sized from the conversation column (760px + 48px
-   each side = 856px), centred, with 160px fade to transparent on each side.
-   On a 1280px-wide main area that leaves ~212px of visible pattern per side. */
+@media (prefers-reduced-motion: reduce) {
+    .gb-main::before { animation: none; }
+}
+/* Paper band: covers only the conversation column width (760 + 24*2 = 808px),
+   short 80px fade each side, ~88% paper so pattern breathes through.
+   Uses the paper colour at 88% alpha via a custom property set by accent.js. */
 .gb-main::after {
     content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
     background: linear-gradient(90deg,
         transparent 0,
-        transparent calc(50% - 588px),
-        var(--id-paper) calc(50% - 428px),
-        var(--id-paper) calc(50% + 428px),
-        transparent calc(50% + 588px),
+        transparent calc(50% - 484px),
+        var(--id-paper-band, var(--id-paper)) calc(50% - 404px),
+        var(--id-paper-band, var(--id-paper)) calc(50% + 404px),
+        transparent calc(50% + 484px),
         transparent 100%);
-}
-@media (prefers-reduced-motion: reduce) {
-    .gb-main::before { animation: none; }
 }
 @media (max-width: 900px) {
     .gb-main::after { background: var(--id-paper); }
@@ -121,8 +121,8 @@ body {
 }
 
 .gb-wordmark {
-    font-family: var(--id-font-logo);
-    font-weight: 500;
+    font-family: var(--id-font-heading);
+    font-weight: 600;
     font-size: var(--id-text-xl);
     color: var(--id-muted);
     user-select: none;
