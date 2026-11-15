@@ -8,6 +8,7 @@ default-members = ["botserver", "botui", "botlib", "botschema"]
 exclude = [
   "3rdparty/docx-rs",
   "3rdparty/umya-spreadsheet",
+  "3rdparty/pdf-extract",
 ]
 members = [
   "botlib",
@@ -374,7 +375,7 @@ zstd = "0.14"
 docx-rs = { path = "3rdparty/docx-rs" }
 ooxmlsdk = { version = "0.15", default-features = false }
 calamine = "0.38"
-pdf-extract = "0.12.1"
+pdf-extract = { path = "3rdparty/pdf-extract" }
 quick-xml = { version = "0.42", features = ["serialize"] }
 rust_xlsxwriter = "0.102"
 umya-spreadsheet = { path = "3rdparty/umya-spreadsheet" }
