@@ -142,6 +142,7 @@
         /* Reset: remove all pattern overrides, revert to original */
         main.classList.remove("gb-pattern-none", "gb-pattern-css", "gb-pattern-image");
         main.style.removeProperty("--gb-pat-css");
+        main.removeAttribute("data-pattern");
 
         if (id === "none") {
             main.classList.add("gb-pattern-none");
@@ -165,10 +166,11 @@
             patStyleEl.id = "gbPatternStyle";
             document.head.appendChild(patStyleEl);
         }
-        /* The accent at 20% alpha for patterns needing it */
+        /* The accent at 20% alpha for patterns needing it.
+           Must NOT override background-size — each pattern defines its own. */
         patStyleEl.textContent =
             ':root { --pat-accent20: color-mix(in srgb, var(--id-accent) 20%, transparent); }' +
-            '.gb-pattern-css.gb-main::before { ' + css + ' opacity: 0.3; -webkit-mask: none; mask: none; animation: none; background-size: inherit; }';
+            '.gb-pattern-css.gb-main::before { background: none; ' + css + ' opacity: 0.15; -webkit-mask: none !important; mask: none !important; animation: none; z-index: 1; pointer-events: none; }';
     }
 
     A.bootPattern = function () {
@@ -244,9 +246,19 @@
             var patId = div.getAttribute("data-pat-id");
             if (!patId || patId === "none") { return; }
             if (patId === "image") {
-                div.style.cssText = "background:var(--id-accent);opacity:0.25;" +
-                    "-webkit-mask:url(/suite/assistant/pattern.png) center/cover no-repeat;" +
-                    "mask:url(/suite/assistant/pattern.png) center/cover no-repeat;";
+                /* The shipped dot composition image is too detailed for a 64x40 tile;
+                   show a suggestive dot cluster as a recognisable preview. */
+                div.style.cssText = "background:" +
+                    "radial-gradient(1.5px 1.5px at 20% 30%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(2px 2px at 55% 20%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(1px 1px at 40% 60%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(2.5px 2.5px at 70% 55%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(1.5px 1.5px at 30% 80%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(1px 1px at 80% 35%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(2px 2px at 15% 55%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(1.5px 1.5px at 60% 75%, var(--id-accent) 60%, transparent 100%)," +
+                    "radial-gradient(1px 1px at 85% 70%, var(--id-accent) 60%, transparent 100%)," +
+                    "var(--id-paper);opacity:0.6;";
                 return;
             }
             var pat = PATTERNS.filter(function (p) { return p.id === patId; })[0];

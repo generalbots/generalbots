@@ -319,18 +319,32 @@ A.onActivityEvent = function (frame) {
     if (!blockEl) return;
     var msgs = document.getElementById("gbMessages");
     if (!msgs) return;
-    /* Find or create the turn's activity stack */
-    var lastChild = msgs.lastElementChild;
-    var stack;
-    if (lastChild && lastChild.classList.contains("gb-block-stack")) {
-        stack = lastChild;
-    } else {
+    /* Find or create the turn's activity stack.
+       The stack may not be the very last child: streaming inserts the answer
+       element (.gb-streaming) after the first activity block, so scan backwards
+       through the last few siblings to find an existing stack. */
+    var stack = null;
+    var children = msgs.children;
+    for (var ci = children.length - 1; ci >= Math.max(0, children.length - 4); ci--) {
+        var ch = children[ci];
+        if (ch.classList.contains("gb-msg-assistant")) {
+            var s = ch.querySelector(".gb-block-stack");
+            if (s) { stack = s; break; }
+        }
+    }
+    if (!stack) {
         stack = document.createElement("div");
         stack.className = "gb-block-stack";
+        /* Insert BEFORE the streaming element if one exists, so blocks group above the answer */
+        var streamingEl = msgs.querySelector(".gb-streaming");
         var turn = document.createElement("div");
         turn.className = "gb-msg-assistant";
         turn.appendChild(stack);
-        msgs.appendChild(turn);
+        if (streamingEl && streamingEl.parentElement === msgs) {
+            msgs.insertBefore(turn, streamingEl);
+        } else {
+            msgs.appendChild(turn);
+        }
     }
     stack.appendChild(blockEl);
     if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }

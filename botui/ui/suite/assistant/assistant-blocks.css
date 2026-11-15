@@ -23,11 +23,13 @@
     background: var(--id-surface-solid);
     border: 1px solid var(--id-line);
     border-radius: 12px;
-    margin: 2px 0;
     overflow: hidden;
 }
-.gb-block + .gb-block { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
-.gb-block:has(+ .gb-block) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+/* Standalone blocks (outside a stack) keep a small margin */
+.gb-msg-assistant > .gb-block { margin: 2px 0; }
+/* Inside a stack: collapse borders, flush against each other */
+.gb-block-stack .gb-block + .gb-block { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
+.gb-block-stack .gb-block:has(+ .gb-block) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .gb-block:hover { box-shadow: 0 1px 4px rgb(0 0 0/.04); }
 
 /* == Header row == */
@@ -127,12 +129,13 @@
 
 /* == Block stack (tight, no indent, no rail) == */
 .gb-block-stack {
-    position: relative; padding-left: 0; margin: 2px 0;
+    position: relative; padding-left: 0; margin: 0;
     display: flex; flex-direction: column; gap: 0;
+    width: 100%; max-width: 760px;
 }
 /* Timeline dots inside the icon wrap — no external rail needed.
    Consecutive cards join (see .gb-block + .gb-block above). */
-.gb-block-stack .gb-block { position: relative; margin: 0; }
+.gb-block-stack .gb-block { position: relative; margin: 0; width: 100%; }
 .gb-block-stack .gb-block + .gb-block { margin-top: -1px; }
 
 /* == Hover actions toolbar == */

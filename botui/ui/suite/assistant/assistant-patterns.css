@@ -8,6 +8,13 @@
     -webkit-mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
     mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
 }
+/* CSS patterns: strip mask and gradient; the dynamic <style> sets the actual background.
+   z-index:1 places the pattern above the paper band (::after, z-index:0) so the
+   pattern is visible across the full area at a subtle opacity. */
+.gb-pattern-css.gb-main::before {
+    -webkit-mask: none !important; mask: none !important;
+    background: none; z-index: 1;
+}
 
 /* == Suggestion chip remove control == */
 .gb-suggestion-remove {
