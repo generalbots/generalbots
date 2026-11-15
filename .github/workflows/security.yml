@@ -46,6 +46,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Pin RustSec advisory DB (checkout + record commit)
+        run: |
+          set -euo pipefail
+          adb_commit="02e2517f457a359fc6d3440ea4560c8ea188fee8"
+          git clone https://github.com/RustSec/advisory-db /tmp/advisory-db
+          git -C /tmp/advisory-db checkout "$adb_commit"
+          echo "RUSTSEC_ADVISORY_DB_PATH=/tmp/advisory-db" >> "$GITHUB_ENV"
+          echo "ADVISORY_DB_COMMIT=$adb_commit" >> "$GITHUB_ENV"
+          {
+            echo "### Advisory DB (pinned)"
+            echo ""
+            echo "- repo: https://github.com/RustSec/advisory-db"
+            echo "- commit: \`$adb_commit\`"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Install cargo-deny 0.20.2 (checksum verified)
         run: |
           set -euo pipefail
@@ -55,6 +69,10 @@ jobs:
           tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
           echo "b329e25933d01c36dd7c47d84ea5716694f9b7caf53a5003d45674703a8ed54a  /tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" | sha256sum -c -
           sudo install -m 0755 "/tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+      - name: Audit report (stale ignores + advisory DB record)
+        run: |
+          set -euo pipefail
+          python3 scripts/audit-report.py --advisory-db-path "${RUSTSEC_ADVISORY_DB_PATH}" --skip-cargo-deny
       - name: Evaluate deny.toml
         # `--all-features` audits the union of every shipping graph
         # (saas, whatsapp, desktop-local, people, billing, kb-extraction).
