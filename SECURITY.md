@@ -226,7 +226,7 @@ advisory still fails the gate.
 
 | Advisory family | Component | Why accepted | Review |
 |-----------------|-----------|--------------|--------|
-| glib iterator unsoundness | glib on the Tauri Linux desktop stack | Desktop-only; no server runtime exposure. Removed by the GTK4 desktop upgrade. | 2027-11-06 |
+| glib iterator unsoundness (RUSTSEC-2024-0429) + proc-macro-error (RUSTSEC-2024-0370) | glib/proc-macro-error via Tauri GTK 0.18 on Linux desktop | Desktop-only; no server runtime exposure. Upstream: gtk-rs resumed and gtk 0.19 exists (glib 0.22); removed when Tauri 2.x bumps to gtk 0.19. Tracked in #2553. | 2027-11-06 |
 | Unmaintained build-time crates | proc-macro-error, ttf-parser, smartstring, zvariant | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
 | Unmaintained Windows cache port | Redis-x64-3.0.504 (microsoftarchive) | Desktop-edition Windows payload only; unmaintained upstream, digest now pinned fail-closed in the release build. Replace with a maintained cache strategy or drop before shipping Windows broadly. | 2027-05-09 |
