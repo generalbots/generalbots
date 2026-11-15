@@ -32,6 +32,7 @@ fn edition_shows_chat_and_drive_only() {
     );
     assert_eq!(config.suite_default_app.as_deref(), Some("chat"));
     assert_eq!(config.edition.as_deref(), Some("desktop"));
+    assert_eq!(config.shell.as_deref(), Some("assistant"));
     assert!(!config.no_security, "the edition requires sign-in");
 }
 

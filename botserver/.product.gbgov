@@ -40,3 +40,6 @@ theme=sentient
 
 # Deployment edition (cloud | desktop | os).
 edition=desktop
+
+# Front end the suite opens (desktop | assistant): the chat-first shell.
+shell=assistant

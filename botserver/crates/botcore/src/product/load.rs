@@ -96,6 +96,7 @@ impl Default for ProductConfig {
             no_security: false,
             shell_mode: false,
             edition: None,
+            shell: None,
             public_base_url: None,
         }
     }
@@ -307,6 +308,14 @@ impl ProductConfig {
                             config.edition = Some(normalized);
                         } else {
                             warn!("Unknown product edition: {}", value);
+                        }
+                    }
+                    "shell" => {
+                        let normalized = value.trim().to_lowercase();
+                        if normalized == "desktop" || normalized == "assistant" {
+                            config.shell = Some(normalized);
+                        } else {
+                            warn!("Unknown product shell: {}", value);
                         }
                     }
                     "public_base_url" => {

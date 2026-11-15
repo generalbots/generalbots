@@ -89,6 +89,11 @@ pub struct ProductConfig {
     /// an edition from flags such as `no_security`.
     pub edition: Option<String>,
 
+    /// Which front end the suite opens: `desktop` (the window-manager
+    /// desktop, the default) or `assistant` (the chat-first shell of the
+    /// government edition). `desktop.html` redirects when it is `assistant`.
+    pub shell: Option<String>,
+
     /// Public base URL used to compose share links (#1863).
     /// When set (or when `PUBLIC_BASE_URL` is present in the environment),
     /// `/api/files/share-link` returns an absolute URL instead of the

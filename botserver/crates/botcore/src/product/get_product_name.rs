@@ -120,6 +120,7 @@ pub fn get_product_config_json() -> serde_json::Value {
         Some(c) => serde_json::json!({
             "name": c.name,
             "edition": edition,
+            "shell": c.shell.as_deref().unwrap_or("desktop"),
             "apps": effective_apps,
             "preview_apps": c.get_preview_apps(),
             "compiled_features": compiled,
@@ -156,6 +157,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "sidebar": null,
             "hidden_apps": Vec::<String>::new(),
             "edition": "cloud",
+            "shell": "desktop",
             "no_security": false,
             "shell_mode": false,
             "public_base_url": get_public_base_url(),
