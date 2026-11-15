@@ -210,6 +210,7 @@ mod tests {
         assert_eq!(mentions[1].id, "");
     }
 
+    #[cfg(feature = "integrations")]
     #[test]
     fn gmail_connection_advertises_its_read_actions() {
         let actions = botintegrations::providers::llm_safe_actions("gmail");
