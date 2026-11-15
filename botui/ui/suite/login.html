@@ -149,5 +149,14 @@
                 });
             })();
         </script>
+        <script>
+            // The desktop shell closes its splash when this fragment appears;
+            // without it the splash covered the sign-in form until it timed out.
+            if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+                try {
+                    history.replaceState(null, "", location.pathname + location.search + "#gb-boot-ready");
+                } catch (e) { /* history unavailable */ }
+            }
+        </script>
     </body>
 </html>

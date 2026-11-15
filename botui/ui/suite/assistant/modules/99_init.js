@@ -6,6 +6,19 @@
 (function () {
     var A = window.GBAssistant;
 
+    /* The desktop shell closes its splash when this fragment appears. It is
+       stamped a few seconds after load as well, so a boot that stops early
+       never leaves the splash in front of the window. */
+    function signalBootReady() {
+        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+            try { window.history.replaceState(null, "", "#gb-boot-ready"); }
+            catch (e) { /* history unavailable */ }
+        }
+    }
+    window.addEventListener("load", function () {
+        window.setTimeout(signalBootReady, 6000);
+    });
+
     document.addEventListener("DOMContentLoaded", async function () {
         /* 1. Locale (before any label is rendered) */
         A.initLocale();
