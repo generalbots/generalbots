@@ -98,25 +98,30 @@
 
         var dockBtn = createToggle("gbComposerDock") ?
             document.querySelector("#gbComposerDock .gb-agent-toggle") : null;
+        var emptyBtn = createToggle("gbComposerCardEmpty") ?
+            document.querySelector("#gbComposerCardEmpty .gb-agent-toggle") : null;
 
         /* When the backend is not available, show the reason on click
            instead of toggling. */
         function handleClick() {
             if (!backendAvailable()) {
-                var reason = unavailableReason() ||
-                    A.t("assistant.agent-unavailable",
-                        "O ambiente de execução não está disponível neste computador.");
-                A.announce(reason);
+                A.announce(A.t("assistant.agent-unavailable",
+                    "Agent mode is not available on this computer."));
                 return;
             }
             A.agentEnabled = !A.agentEnabled;
             writeStored(A.agentEnabled);
             syncUI(dockBtn, A.agentEnabled);
+            syncUI(emptyBtn, A.agentEnabled);
         }
 
         if (dockBtn) {
             dockBtn.addEventListener("click", handleClick);
             syncUI(dockBtn, A.agentEnabled);
+        }
+        if (emptyBtn) {
+            emptyBtn.addEventListener("click", handleClick);
+            syncUI(emptyBtn, A.agentEnabled);
         }
     };
 
@@ -126,5 +131,7 @@
         A.agentEnabled = readStored();
         var btn = document.querySelector("#gbComposerDock .gb-agent-toggle");
         syncUI(btn, A.agentEnabled);
+        var emptyBtn = document.querySelector("#gbComposerCardEmpty .gb-agent-toggle");
+        syncUI(emptyBtn, A.agentEnabled);
     };
 })();
