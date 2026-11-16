@@ -149,5 +149,12 @@ window.GBAssistantLocales["en"] = {
     "drive.rename-exists":     "An item with that name already exists",
     "drive.rename-error":      "Rename failed",
     "drive.download-error":    "Download failed",
-    "drive.preview-error":     "Preview failed"
+    "drive.preview-error":     "Preview failed",
+    "drive.use-in-chat":       "Use in conversation",
+    "drive.fetching":          "Loading file...",
+    "drive.attached":          "File attached to conversation",
+    "drive.my-files":          "My files",
+    "drive.chat-attachments":  "Chat attachments",
+    "drive.storage-unavailable": "Storage is currently unavailable.",
+    "attach.pdf-no-preview":   "PDF preview is not available in this browser."
 };

@@ -83,6 +83,11 @@
                     var msg = (body && (body.message || body.error)) || "HTTP " + r.status;
                     var err = new Error(msg);
                     err.status = r.status;
+                    /* Detect storage-down from common server error patterns */
+                    if (r.status === 502 || r.status === 503 || r.status === 504 ||
+                        (msg && msg.indexOf("onnect") >= 0)) {
+                        err.storageDown = true;
+                    }
                     throw err;
                 });
             }
@@ -91,6 +96,14 @@
             return r.text().then(function (t) {
                 try { return JSON.parse(t); } catch (e) { return t; }
             });
+        }).catch(function (e) {
+            /* Network failures (fetch itself throws): storage likely down */
+            if (!e.status) {
+                e.storageDown = true;
+                e.message = A.t("drive.storage-unavailable",
+                    "O armazenamento está indisponível no momento.");
+            }
+            throw e;
         });
     };
 
@@ -167,6 +180,7 @@
         D.path = path || "";
         D.selected = null;
         D.searching = false;
+        D.inboxMode = false;
         var search = document.getElementById("gbDrvSearchInput");
         if (search) search.value = "";
         D.refreshFiles();
@@ -232,7 +246,9 @@
         });
     }
 
-    /* renderShell lives in 06a_drive_actions.js (D.renderShell) */
+    /* renderShell lives in 06b_drive_shell.js (D.renderShell) */
+    /* loadInboxFiles lives in 06a_drive_actions.js */
+    D.inboxMode = false;
 
     /* ================================================================
        Breadcrumb
@@ -349,8 +365,13 @@
         if (menuBtn) {
             menuBtn.addEventListener("click", function (e) {
                 e.stopPropagation();
+                var ctxOpts = {};
+                if (D.inboxMode) {
+                    ctxOpts.noDelete = true;
+                    ctxOpts.noRename = true;
+                }
                 D.showCtxMenu(e, row.getAttribute("data-path"), row.getAttribute("data-name"),
-                    row.getAttribute("data-is-dir") === "true");
+                    row.getAttribute("data-is-dir") === "true", ctxOpts);
             });
         }
     };

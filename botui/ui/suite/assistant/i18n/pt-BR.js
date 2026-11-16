@@ -149,5 +149,12 @@ window.GBAssistantLocales["pt-BR"] = {
     "drive.rename-exists":     "Já existe um item com esse nome",
     "drive.rename-error":      "Erro ao renomear",
     "drive.download-error":    "Erro ao baixar",
-    "drive.preview-error":     "Erro ao visualizar"
+    "drive.preview-error":     "Erro ao visualizar",
+    "drive.use-in-chat":       "Usar na conversa",
+    "drive.fetching":          "Carregando arquivo...",
+    "drive.attached":          "Arquivo anexado à conversa",
+    "drive.my-files":          "Meus arquivos",
+    "drive.chat-attachments":  "Anexos das conversas",
+    "drive.storage-unavailable": "O armazenamento está indisponível no momento.",
+    "attach.pdf-no-preview":   "A visualização de PDF não está disponível neste navegador."
 };

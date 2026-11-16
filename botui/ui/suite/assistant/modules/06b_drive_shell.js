@@ -24,6 +24,12 @@
                     '<span class="gb-drv-title">Drive</span>' +
                 '</div>' +
             '</div>' +
+            '<div class="gb-drv-tabs" id="gbDrvTabs">' +
+                '<button class="gb-drv-tab active" data-tab="files">' +
+                    D.esc(t("drive.my-files", "Meus arquivos")) + '</button>' +
+                '<button class="gb-drv-tab" data-tab="inbox">' +
+                    D.esc(t("drive.chat-attachments", "Anexos das conversas")) + '</button>' +
+            '</div>' +
             '<div class="gb-drv-breadcrumb" id="gbDrvBreadcrumb"></div>' +
             '<div class="gb-drv-toolbar" id="gbDrvToolbar">' +
                 '<button class="gb-drv-btn gb-drv-btn-accent" id="gbDrvUploadBtn">' +
@@ -48,6 +54,26 @@
             '</div>';
 
         document.getElementById("gbDrvBack").addEventListener("click", function () { A.switchView("chat"); });
+
+        /* Tab switching: Meus arquivos / Anexos das conversas */
+        var tabsEl = document.getElementById("gbDrvTabs");
+        if (tabsEl) {
+            tabsEl.addEventListener("click", function (e) {
+                var tab = e.target.closest("[data-tab]");
+                if (!tab) return;
+                var mode = tab.getAttribute("data-tab");
+                tabsEl.querySelectorAll(".gb-drv-tab").forEach(function (t) {
+                    t.classList.toggle("active", t === tab);
+                });
+                if (mode === "inbox") {
+                    D.loadInboxFiles();
+                } else {
+                    D.scope = "user";
+                    D.path = "";
+                    D.refreshFiles();
+                }
+            });
+        }
 
         var uploadBtn = document.getElementById("gbDrvUploadBtn");
         var fileInput = document.getElementById("gbDrvFileInput");

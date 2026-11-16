@@ -347,3 +347,24 @@
     .gb-drv-size-cell { display: none; }
     .gb-drv-date-cell { display: none; }
 }
+
+/* == Tabs (Meus arquivos / Anexos) ====================================== */
+.gb-drv-tabs {
+    flex-shrink: 0;
+    display: flex; gap: var(--id-space-1);
+    padding: 0 0 var(--id-space-3) 0;
+    border-bottom: 1px solid var(--id-border, #e2e8f0);
+    margin-bottom: var(--id-space-3);
+}
+.gb-drv-tab {
+    background: none; border: none; cursor: pointer;
+    padding: var(--id-space-2) var(--id-space-3);
+    font: inherit; font-size: 0.8125rem; color: var(--id-text-secondary, #64748b);
+    border-radius: var(--id-radius, 6px); transition: background 0.15s, color 0.15s;
+}
+.gb-drv-tab:hover { background: var(--id-surface-hover, #f1f5f9); }
+.gb-drv-tab.active {
+    color: var(--id-accent, #2563eb);
+    font-weight: 600;
+    background: var(--id-accent-bg, rgba(37,99,235,0.08));
+}

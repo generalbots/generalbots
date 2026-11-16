@@ -14,16 +14,24 @@
     var esc = D.esc;
 
     /* ---- Context menu ---- */
-    D.showCtxMenu = function (evt, path, name, isDir) {
+    D.showCtxMenu = function (evt, path, name, isDir, opts) {
         D.closeCtx();
         D.ctxEl = document.createElement("div");
         D.ctxEl.className = "gb-drv-ctx";
+        opts = opts || {};
 
-        var items = [
-            { label: A.t("drive.rename", "Renomear"), icon: "file", action: "rename" },
-            { label: A.t("drive.download", "Baixar"), icon: "download", action: "download" },
-            { label: A.t("drive.delete", "Excluir"), icon: "trash", action: "delete", danger: true }
-        ];
+        var items = [];
+        /* "Usar na conversa" action: attach this file to the chat composer */
+        if (!isDir && !opts.noUseInChat) {
+            items.push({ label: A.t("drive.use-in-chat", "Usar na conversa"), icon: "paperclip", action: "use-in-chat" });
+        }
+        if (!opts.noRename) {
+            items.push({ label: A.t("drive.rename", "Renomear"), icon: "file", action: "rename" });
+        }
+        items.push({ label: A.t("drive.download", "Baixar"), icon: "download", action: "download" });
+        if (!opts.noDelete) {
+            items.push({ label: A.t("drive.delete", "Excluir"), icon: "trash", action: "delete", danger: true });
+        }
 
         var html = "";
         for (var i = 0; i < items.length; i++) {
@@ -52,6 +60,7 @@
             if (action === "rename") startRename(path, name);
             else if (action === "download") downloadFile(path, name);
             else if (action === "delete") confirmDelete(path, name, isDir);
+            else if (action === "use-in-chat") useFileInChat(path, name);
         });
     };
 
@@ -207,6 +216,20 @@
 
     /* ---- Preview (reuses 13_attachpanel.js) ---- */
     D.previewFile = function (path, name) {
+        /* Inbox files use the attachment preview endpoint which knows
+           the bot's Drive layout. Regular files use download-inline. */
+        var isInbox = D.inboxMode || (path && path.indexOf("inbox/") >= 0);
+        if (isInbox && typeof A.makeAttachClickable === "function") {
+            if (typeof A.closeAttachPanel === "function") A.closeAttachPanel();
+            var ghost = document.createElement("div");
+            ghost.style.display = "none";
+            document.body.appendChild(ghost);
+            A.makeAttachClickable(ghost, { name: name, size: 0 },
+                { drivePath: path.indexOf("inbox/") >= 0 ? path : "inbox/" + name });
+            ghost.click();
+            ghost.remove();
+            return;
+        }
         A.apiFetch(D.API + "/download-inline", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -231,6 +254,139 @@
             ghost.remove();
         }).catch(function (e) {
             D.showToast(A.t("drive.preview-error", "Erro ao visualizar") + ": " + (e.message || e), "error");
+        });
+    };
+
+    /* ---- Use file in conversation (item 4) ---- */
+    function useFileInChat(path, name) {
+        var MAX_ATTACH = 8 * 1024 * 1024;
+        D.showToast(A.t("drive.fetching", "Carregando arquivo..."));
+        /* Inbox files use the attachment preview endpoint (which resolves
+           the bot's Drive layout); regular files use download-binary. */
+        var isInbox = D.inboxMode || (path && path.indexOf("inbox/") >= 0);
+        var fetchPromise;
+        if (isInbox) {
+            var inboxName = path.indexOf("inbox/") >= 0
+                ? path.substring(path.indexOf("inbox/") + 6) : name;
+            var url = "/api/chat/attachments/preview?bot=" +
+                encodeURIComponent(A.botName || "default") +
+                "&name=" + encodeURIComponent(inboxName);
+            fetchPromise = A.apiFetch(url);
+        } else {
+            fetchPromise = A.apiFetch(D.API + "/download-binary", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    bucket: D.bucket || undefined,
+                    path: path,
+                    scope: D.scope
+                })
+            });
+        }
+        fetchPromise.then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.blob();
+        }).then(function (blob) {
+            if (blob.size > MAX_ATTACH) {
+                D.showToast(
+                    A.t("attach.too-big", "Arquivo grande demais (limite de 8 MB por arquivo): ") + name,
+                    "error"
+                );
+                return;
+            }
+            var file;
+            try { file = new File([blob], name, { type: blob.type }); }
+            catch (e) { file = blob; file.name = name; file.size = blob.size; }
+            A.pendingFiles.push(file);
+            /* Switch to chat and trigger chip rendering */
+            A.switchView("chat");
+            if (typeof A.initComposer === "function") {
+                /* Re-render file chips in the composer */
+                var container = document.getElementById("gbFileChips");
+                if (container && typeof A.attachCard === "function") {
+                    container.innerHTML = "";
+                    for (var i = 0; i < A.pendingFiles.length; i++) {
+                        (function (idx) {
+                            var card = A.attachCard(A.pendingFiles[idx], {
+                                removable: true,
+                                onRemove: function () {
+                                    A.pendingFiles.splice(idx, 1);
+                                    useFileInChat._renderChips();
+                                }
+                            });
+                            container.appendChild(card);
+                        })(i);
+                    }
+                }
+            }
+            D.showToast(A.t("drive.attached", "Arquivo anexado à conversa"));
+            /* Focus the input */
+            var inp = document.getElementById("gbInputDock") || document.getElementById("gbInputEmpty");
+            if (inp) inp.focus();
+        }).catch(function (e) {
+            D.showToast(A.t("drive.download-error", "Erro ao baixar") + ": " + (e.message || e), "error");
+        });
+    }
+    useFileInChat._renderChips = function () {
+        var container = document.getElementById("gbFileChips");
+        if (!container || typeof A.attachCard !== "function") return;
+        container.innerHTML = "";
+        for (var i = 0; i < A.pendingFiles.length; i++) {
+            (function (idx) {
+                var card = A.attachCard(A.pendingFiles[idx], {
+                    removable: true,
+                    onRemove: function () {
+                        A.pendingFiles.splice(idx, 1);
+                        useFileInChat._renderChips();
+                    }
+                });
+                container.appendChild(card);
+            })(i);
+        }
+    };
+    D.useFileInChat = useFileInChat;
+
+    /* ---- Inbox files (chat attachments from conversation history) ---- */
+    D.loadInboxFiles = function () {
+        D.inboxMode = true;
+        D.showLoading();
+        A.apiFetch("/api/chat/history/sessions?limit=50&bot_name=" +
+            encodeURIComponent(A.botName || "default"))
+        .then(function (r) { return r.ok ? r.json() : { sessions: [] }; })
+        .then(function (data) {
+            var sessions = (data.sessions || []).slice(0, 20);
+            if (!sessions.length) { D.files = []; D.renderFileList(); return; }
+            var seen = {}, allFiles = [], remaining = sessions.length;
+            sessions.forEach(function (s) {
+                var sid = s.session_id || s.id;
+                A.apiFetch("/api/chat/history/sessions/" + encodeURIComponent(sid) +
+                    "/messages?limit=100&offset=0")
+                .then(function (r) { return r.ok ? r.json() : { messages: [] }; })
+                .then(function (d) {
+                    (d.messages || []).forEach(function (m) {
+                        if (m.role !== "user" || !m.attachments) return;
+                        m.attachments.forEach(function (att) {
+                            var key = att.drive_path || att.name;
+                            if (!key || seen[key]) return;
+                            seen[key] = true;
+                            allFiles.push({ name: att.name,
+                                path: att.drive_path || ("inbox/" + att.name),
+                                size: att.size || 0, modified: s.updated_at,
+                                is_dir: false, _inbox: true });
+                        });
+                    });
+                }).catch(function () { /* skip */ })
+                .finally(function () {
+                    remaining--;
+                    if (remaining <= 0) {
+                        D.files = D.sortFiles(allFiles);
+                        D.renderFileList();
+                    }
+                });
+            });
+        }).catch(function (e) {
+            console.error("[drive] inbox list failed:", e);
+            D.showError(e.message);
         });
     };
 
