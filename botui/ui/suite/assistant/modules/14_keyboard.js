@@ -56,13 +56,12 @@
             return;
         }
 
-        /* Ctrl+B — toggle sidebar */
+        /* Ctrl+B — toggle sidebar (works even when an input is focused;
+           the browser's "bold" shortcut is not meaningful here). */
         if (isMod(e) && !e.shiftKey && e.key.toLowerCase() === "b") {
-            if (!isInput) {
-                e.preventDefault();
-                var sideToggle = document.getElementById("gbSidebarToggle");
-                if (sideToggle) { sideToggle.click(); }
-            }
+            e.preventDefault();
+            var sideToggle = document.getElementById("gbSidebarToggle");
+            if (sideToggle) { sideToggle.click(); }
             return;
         }
 

@@ -350,7 +350,11 @@
                 var code = btn.getAttribute("data-lang");
                 A.locale = code;
                 try { localStorage.setItem("gb-locale", code); } catch (e) { /* */ }
-                /* Re-render settings in the new language */
+                /* Re-translate every data-i18n element in the shell, re-render
+                   dynamic components and settings so their labels update. */
+                if (typeof A.translatePage === "function") { A.translatePage(); }
+                if (typeof A.renderStatus === "function") { A.renderStatus(); }
+                if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
                 A.renderSettings();
             });
         });

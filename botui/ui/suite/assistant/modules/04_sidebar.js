@@ -90,7 +90,9 @@
 
         var textSpan = document.createElement("span");
         textSpan.className = "gb-conv-item-text";
-        textSpan.textContent = formatTitle(session.title);
+        var displayTitle = formatTitle(session.title);
+        textSpan.textContent = displayTitle;
+        textSpan.title = displayTitle;
         btn.appendChild(textSpan);
 
         var actions = document.createElement("span");
@@ -248,7 +250,10 @@
                     A.currentSessionId = null;
                     A.showEmptyState();
                     if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
-                    A.newSession().then(function () { A.reconnectWs(); });
+                    A.newSession().then(function () {
+                        A.reconnectWs();
+                        if (typeof A.focusComposer === "function") { A.focusComposer(); }
+                    });
                 }
                 A.refreshSidebar();
             }).catch(function (err) {

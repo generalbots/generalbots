@@ -77,13 +77,18 @@
         }
     } catch (e) { /* storage disabled */ }
 
-    /* ---- accent from server ---- */
+    /* ---- accent: restore from localStorage (user choice) or server ---- */
     (function loadAccent() {
+        var stored = null;
+        try { stored = localStorage.getItem("gb-accent"); } catch (e) { /* */ }
+        if (stored && window.GBIdentity) {
+            window.GBIdentity.apply(stored);
+        }
         var url = (window.__GB_SERVER_ORIGIN__ || "") + "/api/product";
         fetch(url, { credentials: "same-origin" }).then(function (r) {
             return r.ok ? r.json() : null;
         }).then(function (p) {
-            if (p && p.accent && window.GBIdentity) {
+            if (p && p.accent && window.GBIdentity && !stored) {
                 window.GBIdentity.apply(p.accent);
             }
         }).catch(function () { /* keep defaults */ });

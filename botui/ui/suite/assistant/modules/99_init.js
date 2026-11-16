@@ -97,7 +97,9 @@
         }
     });
 
-    /** Translate data-i18n-* attributes on the page. */
+    /** Translate data-i18n-* attributes on the page.
+     *  Exposed as A.translatePage so the language switch can re-translate live. */
+    A.translatePage = translatePage;
     function translatePage() {
         var els = document.querySelectorAll("[data-i18n]");
         for (var i = 0; i < els.length; i++) {
