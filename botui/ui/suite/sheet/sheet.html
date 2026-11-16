@@ -77,7 +77,7 @@
             </div>
             <div class="toolbar-right">
                 <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
-                <button class="btn-icon" id="shareBtn" title="Share" aria-label="Share" hx-post="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Planilha"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" data-i18n-title="action-share">
+                <button class="btn-icon" id="shareBtn" title="Share" aria-label="Share" hx-post="/suite/sheet/modals/share" hx-vals='{"id":"current","name":"Spreadsheet"}' hx-target="#sheet-modal-container" hx-swap="innerHTML" data-i18n-title="action-share">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                 </button>
             </div>
@@ -143,8 +143,8 @@
     <div class="sheet-main">
         <aside class="sheet-sidebar" id="sheet-sidebar" style="width:240px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));display:flex;flex-direction:column;">
             <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));">
-                <button class="sidebar-tab active" data-sidebar-tab="files" data-i18n="sheet-files" style="flex:1;padding:8px;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border:none;cursor:pointer;font-size:12px;">📁 Arquivos</button>
-                <button class="sidebar-tab" data-sidebar-tab="panels" data-i18n="sheet-panels" style="flex:1;padding:8px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-muted, var(--sheet-muted, #94a3b8));border:none;cursor:pointer;font-size:12px;">📊 Painéis</button>
+                <button class="sidebar-tab active" data-sidebar-tab="files" data-i18n="sheet-files" style="flex:1;padding:8px;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border:none;cursor:pointer;font-size:12px;">📁 Files</button>
+                <button class="sidebar-tab" data-sidebar-tab="panels" data-i18n="sheet-panels" style="flex:1;padding:8px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-muted, var(--sheet-muted, #94a3b8));border:none;cursor:pointer;font-size:12px;">📊 Panels</button>
             </div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files"></div>
             <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">

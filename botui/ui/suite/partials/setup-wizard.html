@@ -146,7 +146,7 @@
             <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
             <p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p>
             <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="handleSetupFileSelect(event)" />
-            <button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button>
+            <button type="button" class="setup-btn setup-btn-secondary" data-i18n="setup-select-files" onclick="document.getElementById('setupFileInput').click()">Select Files</button>
           </div>
           <div id="setupFileList" class="setup-file-list"></div>
         </div>

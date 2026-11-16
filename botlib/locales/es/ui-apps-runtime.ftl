@@ -234,3 +234,14 @@ project-name-required = Introduzca un nombre de proyecto
 project-create-failed = Error al crear el proyecto: {error}
 project-task-name-required = Introduzca un nombre de tarea
 project-create-task-failed = Error al crear la tarea
+
+# Office app chrome labels (i18n)
+slides-sorter = Ordenar diapositivas
+docs-files = Archivos
+docs-panels = Paneles
+docs-outline = Esquema
+docs-styles = Estilos
+docs-footnotes = Notas al pie
+docs-endnotes = Notas al final
+docs-toc = Tabla de contenido
+docs-ai-panel = Panel de IA

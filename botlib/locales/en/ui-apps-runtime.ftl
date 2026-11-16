@@ -234,3 +234,14 @@ project-name-required = Please enter a project name
 project-create-failed = Failed to create project: {error}
 project-task-name-required = Please enter a task name
 project-create-task-failed = Failed to create task
+
+# Office app chrome labels (i18n)
+slides-sorter = Slide sorter
+docs-files = Files
+docs-panels = Panels
+docs-outline = Outline
+docs-styles = Styles
+docs-footnotes = Footnotes
+docs-endnotes = Endnotes
+docs-toc = Table of contents
+docs-ai-panel = AI panel

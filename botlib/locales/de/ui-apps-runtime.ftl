@@ -15,3 +15,16 @@ dashboards-height = Höhe
 dashboards-data-source = Datenquelle
 dashboards-x-axis = Feld der X-Achse
 dashboards-y-axis = Y-Achsenfeld
+
+# Office app chrome labels (i18n)
+slides-sorter = Folien sortieren
+docs-files = Dateien
+docs-panels = Bereiche
+docs-outline = Gliederung
+docs-styles = Formatvorlagen
+docs-footnotes = Fußnoten
+docs-endnotes = Endnoten
+docs-toc = Inhaltsverzeichnis
+docs-ai-panel = KI-Bereich
+sheet-files = Dateien
+sheet-panels = Bereiche

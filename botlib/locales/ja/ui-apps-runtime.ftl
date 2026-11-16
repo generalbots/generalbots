@@ -15,3 +15,16 @@ dashboards-height = 高さ
 dashboards-data-source = データソース
 dashboards-x-axis = X軸フィールド
 dashboards-y-axis = Y軸フィールド
+
+# Office app chrome labels (i18n)
+slides-sorter = スライドの並べ替え
+docs-files = ファイル
+docs-panels = パネル
+docs-outline = アウトライン
+docs-styles = スタイル
+docs-footnotes = 脚注
+docs-endnotes = 文末脚注
+docs-toc = 目次
+docs-ai-panel = AIパネル
+sheet-files = ファイル
+sheet-panels = パネル
