@@ -365,7 +365,7 @@ pub async fn create_app_state(
                         })
                     }),
                 };
-                ext.insert_blocking(Arc::new(swap));
+                ext.insert_blocking(swap);
             }
             #[cfg(feature = "monitoring")]
             ext.insert_blocking(tracing_service.clone());
