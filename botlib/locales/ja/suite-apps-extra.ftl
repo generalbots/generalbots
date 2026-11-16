@@ -3,6 +3,7 @@
 
 drive-new-bot = 新しいボット
 drive-upload-folder = フォルダーをアップロード
+drive-take-photo = 写真を撮る
 lists-title = マーケティングリスト
 cancel = キャンセル
 save = 保存

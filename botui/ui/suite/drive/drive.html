@@ -28,6 +28,13 @@
 </svg>
 <span data-i18n="drive-upload">Upload</span>
 </button>
+<button class="btn-secondary-full" id="upload-camera-btn" type="button">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+<circle cx="12" cy="13" r="4"></circle>
+</svg>
+<span data-i18n="drive-take-photo">Take photo</span>
+</button>
 <button class="btn-secondary-full" id="upload-folder-btn">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -263,7 +270,8 @@ Drive
 </div>
 <!-- Hidden file inputs for uploads. The folder input is separate so the
      single/multi-file upload keeps its flat behaviour. -->
-<input type="file" id="file-input" multiple style="display: none" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/*,.csv" capture="environment" />
+<input type="file" id="file-input" multiple style="display: none" accept="image/*,video/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/json,application/zip,.zip,.md" />
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none" />
 <input type="file" id="folder-input" webkitdirectory multiple style="display: none" />
 <!-- Context Menu (dynamically populated by JS) -->
 <div id="context-menu" class="context-menu hidden"></div>

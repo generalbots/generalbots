@@ -122,12 +122,24 @@ function bindUploadButton() {
     }
     fileInput.addEventListener("change", handleFileInputChange);
 
+    var cameraBtn = document.getElementById("upload-camera-btn");
+    if (cameraBtn) cameraBtn.addEventListener("click", triggerCameraUpload);
+    var cameraInput = document.getElementById("camera-input");
+    if (cameraInput) cameraInput.addEventListener("change", handleCameraInputChange);
+
     // #1751 — folder picker is a separate input (never webkitdirectory on
     // #file-input) so flat file selection still uploads as before.
+    // #2510 — hide folder upload on platforms without webkitdirectory support.
     var folderBtn = document.getElementById("upload-folder-btn");
-    if (folderBtn) folderBtn.addEventListener("click", triggerFolderUpload);
     var folderInput = document.getElementById("folder-input");
-    if (folderInput) folderInput.addEventListener("change", handleFolderInputChange);
+    var supportsFolder = typeof document !== "undefined" && "webkitdirectory" in document.createElement("input");
+    if (!supportsFolder) {
+        if (folderBtn) folderBtn.style.display = "none";
+        if (folderInput) folderInput.style.display = "none";
+    } else {
+        if (folderBtn) folderBtn.addEventListener("click", triggerFolderUpload);
+        if (folderInput) folderInput.addEventListener("change", handleFolderInputChange);
+    }
 }
 
 function triggerUpload() {
@@ -135,7 +147,18 @@ function triggerUpload() {
     if (input) input.click();
 }
 
+function triggerCameraUpload() {
+    const input = document.getElementById("camera-input");
+    if (input) input.click();
+}
+
 function handleFileInputChange(e) {
+    const files = e.target.files;
+    if (files && files.length > 0) uploadFiles(Array.from(files));
+    e.target.value = "";
+}
+
+function handleCameraInputChange(e) {
     const files = e.target.files;
     if (files && files.length > 0) uploadFiles(Array.from(files));
     e.target.value = "";

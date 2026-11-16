@@ -3,6 +3,7 @@
 
 drive-new-bot = 새 봇
 drive-upload-folder = 폴더 업로드
+drive-take-photo = 사진 찍기
 lists-title = 마케팅 목록
 cancel = 취소
 save = 저장

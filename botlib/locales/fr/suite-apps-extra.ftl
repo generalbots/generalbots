@@ -3,6 +3,7 @@
 
 drive-new-bot = Nouveau bot
 drive-upload-folder = Importer un dossier
+drive-take-photo = Prendre une photo
 lists-title = Listes marketing
 cancel = Annuler
 save = Enregistrer

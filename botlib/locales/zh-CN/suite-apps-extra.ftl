@@ -3,6 +3,7 @@
 
 drive-new-bot = 新建机器人
 drive-upload-folder = 上传文件夹
+drive-take-photo = 拍照
 lists-title = 营销列表
 cancel = 取消
 save = 保存

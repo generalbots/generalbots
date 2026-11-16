@@ -3,6 +3,7 @@
 
 drive-new-bot = New Bot
 drive-upload-folder = Upload folder
+drive-take-photo = Take photo
 lists-title = Marketing Lists
 cancel = Cancel
 save = Save
