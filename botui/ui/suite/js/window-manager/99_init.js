@@ -30,6 +30,72 @@ if (document.readyState === "loading") {
 // is loaded after this file. Expose the start menu for launchers but do NOT
 // bind Ctrl+K here — command-palette.js handles it with one handler only.
 
+// #2411 — keep shell chrome height and window geometry in sync with the real
+// taskbar/viewport (URL bar, rotation, on-screen keyboard). This makes
+// --gb-chrome-bottom authoritative and reclamps windows on viewport changes.
+(function initViewportShellSync() {
+  function getTaskbarHeight() {
+    var tb = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
+    if (!tb) return 30;
+    var rect = tb.getBoundingClientRect();
+    if (rect && rect.height) return Math.round(rect.height);
+    return 30;
+  }
+
+  function syncChromeBottom() {
+    var h = getTaskbarHeight();
+    try {
+      document.documentElement.style.setProperty("--gb-chrome-bottom", h + "px");
+    } catch (_e) {
+      /* ignore */
+    }
+    return h;
+  }
+
+  function reclampAllWindows() {
+    var wm = window.WindowManager;
+    if (!wm || !Array.isArray(wm.openWindows)) return;
+    wm.openWindows.forEach(function (w) {
+      if (!w || !w.id) return;
+      if (wm.isFullscreen && wm.isFullscreen(w.id)) return;
+      if (typeof wm._clampWindowIntoView === "function") wm._clampWindowIntoView(w.id);
+    });
+  }
+
+  function onViewportChange() {
+    syncChromeBottom();
+    reclampAllWindows();
+  }
+
+  function bindViewportSync() {
+    syncChromeBottom();
+    window.addEventListener("resize", onViewportChange, { passive: true });
+    window.addEventListener("orientationchange", onViewportChange, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onViewportChange, { passive: true });
+      window.visualViewport.addEventListener("scroll", onViewportChange, { passive: true });
+    }
+    var tb = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
+    if (tb && typeof ResizeObserver === "function") {
+      try {
+        var ro = new ResizeObserver(onViewportChange);
+        ro.observe(tb);
+      } catch (_e) {
+        /* ResizeObserver unavailable */
+      }
+    }
+    // Initial post-layout clamp for auto-opened windows.
+    setTimeout(onViewportChange, 0);
+    setTimeout(onViewportChange, 250);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindViewportSync, { once: true });
+  } else {
+    bindViewportSync();
+  }
+})();
+
 // Chat sidebar collapse — the choice is remembered (localStorage) so the
 // sidebar stays collapsed across reloads and app switches. The collapsed
 // rail (51px) keeps the toggle button reachable.

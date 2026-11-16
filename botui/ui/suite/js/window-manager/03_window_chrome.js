@@ -19,33 +19,43 @@
     if (document.body.classList.contains("window-maximized")) return;
     const win = document.getElementById(`window-${id}`);
     if (!win) return;
-    const rect = win.getBoundingClientRect();
     const margin = 8;
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    // #1278 — the real lower bound is the taskbar's top edge, not the
-    // viewport bottom: a window whose footer slides under the taskbar
-    // (e.g. the New Project popup after its content grows) leaves its
-    // primary buttons unclickable. Measure the taskbar when present and
-    // keep windows above it.
-    let bottomBound = vh - margin;
-    const taskbar = document.getElementById("taskbar");
+    const vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+    const offsetTop = (window.visualViewport && window.visualViewport.offsetTop) ? window.visualViewport.offsetTop : 0;
+    // #1278/#2411 — keep windows above the taskbar and within the visible viewport.
+    let bottomBound = vh + offsetTop - margin;
+    const taskbar = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
     if (taskbar) {
       const tb = taskbar.getBoundingClientRect();
-      if (tb.top > 0 && tb.top < vh) bottomBound = tb.top - margin;
+      if (tb.top > 0 && tb.top < vh + offsetTop) bottomBound = Math.min(bottomBound, tb.top - margin);
     }
-    // Already fully inside — nothing to do.
-    if (rect.top >= margin && rect.left >= margin &&
-        rect.bottom <= bottomBound && rect.right <= vw - margin) return;
+    const availH = Math.max(120, bottomBound - margin - offsetTop);
+    const availW = Math.max(160, vw - margin * 2);
+    let rect = win.getBoundingClientRect();
+
+    // Constrain oversized windows so they remain reachable on small/rotated viewports.
+    if (rect.height > availH || rect.width > availW) {
+      if (rect.height > availH) {
+        win.style.height = `${Math.floor(availH)}px`;
+        win.style.maxHeight = `${Math.floor(availH)}px`;
+      }
+      if (rect.width > availW) {
+        win.style.width = `${Math.floor(availW)}px`;
+        win.style.maxWidth = `${Math.floor(availW)}px`;
+      }
+      rect = win.getBoundingClientRect();
+    }
+
     const curTop = parseInt(win.style.top || "0", 10) || 0;
     const curLeft = parseInt(win.style.left || "0", 10) || 0;
     let top = curTop;
     let left = curLeft;
-    if (rect.top < margin) top = curTop + (margin - rect.top);
+    if (rect.top < margin + offsetTop) top = curTop + (margin + offsetTop - rect.top);
     if (rect.left < margin) left = curLeft + (margin - rect.left);
     if (rect.right > vw - margin) left = curLeft - (rect.right - (vw - margin));
     if (rect.bottom > bottomBound) top = curTop - (rect.bottom - bottomBound);
-    win.style.top = `${Math.max(margin, top)}px`;
+    win.style.top = `${Math.max(margin + offsetTop, top)}px`;
     win.style.left = `${Math.max(margin, left)}px`;
   },
 
