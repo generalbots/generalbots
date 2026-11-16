@@ -64,3 +64,11 @@
 .bio-empty h3{font-size:14px;margin:0 0 4px 0;font-weight:600;color:var(--text-primary,#f8fafc)}
 .bio-empty p{margin:0;font-size:12px}
 @media(max-width:900px){.bio-liveness-layout{grid-template-columns:1fr}.bio-stats{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

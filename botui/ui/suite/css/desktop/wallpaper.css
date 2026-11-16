@@ -254,3 +254,11 @@ body[data-wallpaper="coral"] .workspace-v15 {
 .wallpaper-option.active .wallpaper-check {
   opacity: 1;
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

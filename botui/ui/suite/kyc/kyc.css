@@ -73,3 +73,11 @@
 .kyc-form-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--border-color,#334155);margin-top:12px}
 @media(max-width:768px){.kyc-stats{grid-template-columns:1fr 1fr}.kyc-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.kyc-stats{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

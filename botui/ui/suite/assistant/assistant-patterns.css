@@ -79,3 +79,11 @@
 .gb-inline-dialog-actions {
     display: flex; gap: var(--id-space-2); justify-content: flex-end;
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

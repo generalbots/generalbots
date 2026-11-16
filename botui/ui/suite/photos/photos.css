@@ -90,3 +90,11 @@
     .gb-photos .photos-count { color: #aab0bd; }
     .gb-photos .photo-tile { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
