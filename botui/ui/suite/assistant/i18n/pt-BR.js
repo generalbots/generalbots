@@ -54,6 +54,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.error-timeout":            "A solicitação expirou sem resposta.",
     "assistant.open-model-settings":      "Abrir configurações do modelo",
     "assistant.retry":            "Tentar de novo",
+    "assistant.load-error":       "Não foi possível carregar esta conversa.",
     "assistant.scroll-bottom":    "Ir para o fim",
     "assistant.sources":          "Fontes",
     "assistant.details":          "Detalhes",

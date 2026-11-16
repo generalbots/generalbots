@@ -54,6 +54,7 @@ window.GBAssistantLocales["en"] = {
     "assistant.error-timeout":            "The request timed out.",
     "assistant.open-model-settings":      "Open model settings",
     "assistant.retry":            "Try again",
+    "assistant.load-error":       "Could not load this conversation.",
     "assistant.scroll-bottom":    "Go to end",
     "assistant.sources":          "Sources",
     "assistant.details":          "Details",

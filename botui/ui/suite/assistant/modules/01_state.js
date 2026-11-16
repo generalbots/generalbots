@@ -150,6 +150,19 @@ window.GBAssistant = window.GBAssistant || {};
 
     A.handle401 = function (url) {
         if (url && url.indexOf("/api/i18n/") !== -1) { return; }
+        /* Only redirect when there is no token at all (genuine session
+           expiry). A 401 from a specific endpoint while the user holds a
+           valid token means the endpoint rejected it for its own reasons
+           (scope, feature gate, stale session id) — NOT that the person
+           must re-authenticate. Redirecting on background 401s was the
+           root cause of conversations failing to load after a page
+           reload: the messages rendered, then /api/consent/pending
+           returned 401, handle401 navigated to login, and the page
+           reloaded empty. */
+        if (A.getToken()) {
+            console.warn("[assistant] 401 from " + (url || "unknown") + " (token present, not redirecting)");
+            return;
+        }
         A.goToLogin(window.location.href);
     };
 })();

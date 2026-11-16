@@ -134,9 +134,22 @@
         A.loadSessionMessages(sessId).then(function (msgs) {
             A.renderHistory(msgs);
             A.reconnectWs();
+        }).catch(function (err) {
+            console.warn("[assistant] loadConversation failed:", err);
+            showLoadError(sessId);
         });
         /* Narrow viewports: auto-close the slide-over sidebar */
         if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+    }
+
+    function showLoadError(sessId) {
+        A.showConversation();
+        var msgs = document.getElementById("gbMessages"); if (!msgs) return;
+        msgs.innerHTML = '<div class="gb-load-error" role="alert">' +
+            '<span>' + escText(A.t("assistant.load-error", "Could not load this conversation.")) + '</span>' +
+            '<button class="gb-btn-retry">' + escText(A.t("assistant.retry", "Tentar novamente")) + '</button></div>';
+        var btn = msgs.querySelector(".gb-btn-retry");
+        if (btn) btn.addEventListener("click", function () { loadConversation(sessId); });
     }
 
     /* ---- Inline rename (edits title in place) ---- */

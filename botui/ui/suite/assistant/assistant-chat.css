@@ -274,6 +274,23 @@
 .gb-btn-retry { font-weight: 500; }
 .gb-btn-settings { color: var(--id-muted); }
 
+/* Load error (conversation click failure) */
+.gb-load-error {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--id-space-2);
+    padding: var(--id-space-4); margin: var(--id-space-4) auto;
+    max-width: 420px;
+    background: var(--id-surface-solid); border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    font-size: var(--id-text-sm); color: var(--id-muted);
+}
+.gb-load-error .gb-btn-retry {
+    background: none; border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
+    font-size: var(--id-text-xs); color: var(--id-fg);
+    cursor: pointer; transition: background .15s;
+}
+.gb-load-error .gb-btn-retry:hover { background: var(--id-fill); }
+
 /* ================================================================
    Notice card (leaked / unavailable tool)
    ================================================================ */
