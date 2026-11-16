@@ -264,12 +264,39 @@
         var raw = text || "";
         var leaked = typeof A.detectLeakedProtocol === "function"
             ? A.detectLeakedProtocol(raw) : null;
-        var el = document.createElement("div");
-        el.className = "gb-msg-assistant";
+        var msgs = document.getElementById("gbMessages");
+        /* Adopt the current turn's activity stack if one exists (created by
+           onActivityEvent during the same turn). This keeps activities and the
+           thinking block in a single container above the answer text. */
+        var el = null;
+        if (msgs) {
+            var children = msgs.children;
+            for (var ci = children.length - 1; ci >= Math.max(0, children.length - 4); ci--) {
+                var ch = children[ci];
+                if (ch.classList.contains("gb-msg-assistant") && ch.querySelector(".gb-block-stack")) {
+                    el = ch; break;
+                }
+            }
+        }
+        if (!el) {
+            el = document.createElement("div");
+            el.className = "gb-msg-assistant";
+            if (msgs) { msgs.appendChild(el); }
+        }
+        /* Find or create the block stack for this turn */
+        var stack = el.querySelector(".gb-block-stack");
         var elapsed = A.thinkingElapsed();
         /* Use block for thinking/reasoning when available */
         if (reasoning && typeof A.blockThinking === "function") {
-            el.appendChild(A.blockThinking(elapsed, reasoning));
+            var thinkEl = A.blockThinking(elapsed, reasoning);
+            if (stack) {
+                stack.appendChild(thinkEl);
+            } else {
+                stack = document.createElement("div");
+                stack.className = "gb-block-stack";
+                stack.appendChild(thinkEl);
+                el.insertBefore(stack, el.firstChild);
+            }
         } else if (reasoning) {
             el.insertAdjacentHTML("beforeend", reasoningHtml(reasoning, elapsed));
         }
@@ -295,7 +322,6 @@
             el.insertAdjacentHTML("beforeend", citationsHtml(opts.citations));
         }
         addMessageActions(el, raw, !!(opts.retryable || opts.isError));
-        document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };

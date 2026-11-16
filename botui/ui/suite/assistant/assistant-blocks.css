@@ -129,12 +129,14 @@
 
 /* == Block stack (tight, no indent, no rail) == */
 .gb-block-stack {
-    position: relative; padding-left: 0; margin: 0;
+    position: relative; padding-left: 0; margin: 0 0 4px;
     display: flex; flex-direction: column; gap: 0;
-    width: 100%; max-width: 760px;
+    width: 100%;
 }
-/* Timeline dots inside the icon wrap — no external rail needed.
-   Consecutive cards join (see .gb-block + .gb-block above). */
+/* An assistant turn that contains a block stack must take the full column
+   width so every card inside is the same width regardless of text content. */
+.gb-msg-assistant:has(.gb-block-stack) { max-width: 100%; width: 100%; }
+/* Consecutive cards join: shared border, flush left edges, equal width. */
 .gb-block-stack .gb-block { position: relative; margin: 0; width: 100%; }
 .gb-block-stack .gb-block + .gb-block { margin-top: -1px; }
 
