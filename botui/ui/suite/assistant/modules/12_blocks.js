@@ -383,8 +383,9 @@ A.attachCard = function (file, opts) {
         try { thumb.src = URL.createObjectURL(file); } catch (e) { /* */ }
         card.appendChild(thumb);
     }
+    var displayName = truncMiddle(name, 28);
     var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
-    html += '<span class="gb-attach-name">' + esc(truncMiddle(name, 28)) + '</span>';
+    html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
     html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : fmtBytes(size)) + '</span>';
     if (opts.removable !== false) {
         html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';

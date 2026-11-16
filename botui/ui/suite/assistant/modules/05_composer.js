@@ -20,144 +20,7 @@
         el.textContent = greeting;
     };
 
-    /* ---- Model picker (button + menu) ---- */
-    A.shortModelName = function (model) {
-        if (!model) { return ""; }
-        var s = model;
-        /* Strip directory path */
-        var slash = s.lastIndexOf("/");
-        if (slash >= 0) { s = s.substring(slash + 1); }
-        var bslash = s.lastIndexOf("\\");
-        if (bslash >= 0) { s = s.substring(bslash + 1); }
-        /* Strip .gguf extension */
-        if (s.toLowerCase().endsWith(".gguf")) { s = s.substring(0, s.length - 5); }
-        /* Strip quantisation suffix (Q3_K_M, Q4_K_S, Q5_1, etc.) */
-        s = s.replace(/[-_](Q\d[_.]\w{1,4})$/i, "");
-        /* Strip colon tag */
-        var colon = s.indexOf(":");
-        if (colon > 0) { s = s.substring(0, colon); }
-        return s;
-    };
-    /** Full model identifier for tooltips. */
-    A.fullModelName = function (model) {
-        if (!model) { return ""; }
-        var s = model;
-        var slash = s.lastIndexOf("/");
-        if (slash >= 0) { s = s.substring(slash + 1); }
-        var bslash = s.lastIndexOf("\\");
-        if (bslash >= 0) { s = s.substring(bslash + 1); }
-        return s;
-    };
-    var shortModelName = A.shortModelName;
-
-    A.renderModelPickers = function () {
-        var pickers = document.querySelectorAll(".gb-model-picker");
-        for (var p = 0; p < pickers.length; p++) { replaceWithButton(pickers[p]); }
-        /* Also update any already-converted buttons */
-        var btns = document.querySelectorAll(".gb-model-btn");
-        for (var b = 0; b < btns.length; b++) { updateBtnLabel(btns[b]); }
-    };
-
-    function updateBtnLabel(btn) {
-        var label = btn.querySelector(".gb-model-btn-label");
-        if (label) {
-            var raw = A.selectedModel || A.defaultModel || "";
-            label.textContent = shortModelName(raw);
-            btn.title = A.fullModelName(raw);
-        }
-    }
-
-    function replaceWithButton(select) {
-        if (select.dataset.replaced) { return; }
-        select.dataset.replaced = "1";
-        var btn = document.createElement("button");
-        btn.className = "gb-model-btn";
-        btn.type = "button";
-        var short = shortModelName(A.selectedModel || A.defaultModel || "");
-        btn.innerHTML = '<span class="gb-model-btn-label">' + (short || "Model") + '</span>' +
-            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
-        btn.addEventListener("click", function (e) { e.stopPropagation(); toggleModelMenu(btn); });
-        select.style.display = "none";
-        select.parentNode.insertBefore(btn, select.nextSibling);
-    }
-
-    var activeModelMenu = null;
-    function toggleModelMenu(anchor) {
-        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; return; }
-        var menu = document.createElement("div");
-        menu.className = "gb-model-menu";
-        activeModelMenu = menu;
-
-        var dest = A.destination || {};
-        var scopeLabel = "";
-        if (dest.scope === "machine") { scopeLabel = A.t("assistant.on-this-computer", "on this computer"); }
-        else if (dest.scope === "network") { scopeLabel = A.t("assistant.on-your-network", "on your network") + (dest.host ? " (" + dest.host + ")" : ""); }
-        else if (dest.scope === "external") { scopeLabel = A.t("assistant.external", "external") + (dest.host ? ": " + dest.host : ""); }
-
-        /* Current/default model */
-        var currentShort = shortModelName(A.defaultModel || "");
-        var isSelected = !A.selectedModel || A.selectedModel === A.defaultModel;
-        var item0 = document.createElement("button");
-        item0.className = "gb-model-menu-item" + (isSelected ? " active" : "");
-        item0.innerHTML = '<span class="gb-model-menu-name">' + esc(currentShort) + '</span>' +
-            (scopeLabel ? '<span class="gb-model-menu-meta">' + esc(scopeLabel) + '</span>' : '');
-        item0.addEventListener("click", function () { selectModel(A.defaultModel); });
-        menu.appendChild(item0);
-
-        /* Other tiers with different models */
-        var distinctModels = [];
-        var seen = {};
-        if (A.defaultModel) { seen[A.defaultModel] = true; }
-        for (var i = 0; i < A.tiers.length; i++) {
-            var m = A.tiers[i].model;
-            if (!seen[m] && !A.tiers[i].inherits_default) { seen[m] = true; distinctModels.push(A.tiers[i]); }
-        }
-        for (var j = 0; j < distinctModels.length; j++) {
-            var tier = distinctModels[j];
-            var isAct = A.selectedModel === tier.model;
-            var item = document.createElement("button");
-            item.className = "gb-model-menu-item" + (isAct ? " active" : "");
-            item.innerHTML = '<span class="gb-model-menu-name">' + esc(shortModelName(tier.model)) + '</span>';
-            (function (model) { item.addEventListener("click", function () { selectModel(model); }); })(tier.model);
-            menu.appendChild(item);
-        }
-
-        /* Divider + settings link */
-        var div = document.createElement("div");
-        div.className = "gb-model-menu-divider";
-        menu.appendChild(div);
-        var action = document.createElement("button");
-        action.className = "gb-model-menu-action";
-        action.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09"/></svg>' +
-            '<span>' + esc(A.t("settings.model-switch", "Trocar modelo…")) + '</span>';
-        action.addEventListener("click", function () {
-            closeModelMenu();
-            A.switchView("settings");
-            /* Open the model section after settings renders */
-            setTimeout(function () {
-                var tab = document.querySelector('.gb-set-tab[data-section="model"]');
-                if (tab) { tab.click(); }
-            }, 80);
-        });
-        menu.appendChild(action);
-
-        anchor.style.position = "relative";
-        anchor.appendChild(menu);
-
-        document.addEventListener("click", closeModelMenu, { once: true });
-    }
-    function closeModelMenu() {
-        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; }
-    }
-    function selectModel(model) {
-        A.selectedModel = model;
-        try { localStorage.setItem("gb-model-preference", model); } catch (e) { /* */ }
-        A.renderModelPickers();
-        A.renderStatus();
-        closeModelMenu();
-    }
-
-    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    /* Model picker lives in 05b_model_picker.js */
 
     /* ---- Suggestions (max 3, removable, persisted dismissals) ---- */
     var dismissedKey = "gb-dismissed-suggestions";
@@ -278,8 +141,18 @@
         messageType = messageType || 1;
         var tooBig = files.filter(function (f) { return f.size > MAX_ATTACH_BYTES; });
         if (tooBig.length) {
-            A.renderError(A.t("attach.too-big", "Arquivo grande demais (limite de 8 MB por arquivo): ") +
-                tooBig.map(function (f) { return f.name; }).join(", "));
+            var fmtMB = function (b) { return (b / 1048576).toFixed(1) + " MB"; };
+            var names = tooBig.map(function (f) {
+                return f.name + " (" + fmtMB(f.size) + ")";
+            }).join(", ");
+            A.renderError(A.t("attach.too-big",
+                "Arquivo grande demais (limite de 8 MB por arquivo): ") + names);
+            return;
+        }
+        var empty = files.filter(function (f) { return f.size === 0; });
+        if (empty.length) {
+            A.renderError(A.t("attach.empty-file",
+                "Arquivo vazio: ") + empty.map(function (f) { return f.name; }).join(", "));
             return;
         }
         A.renderUserMessage(text, files);
@@ -334,10 +207,51 @@
     }
 
     /* ---- File attachment ---- */
+    function isDuplicate(file) {
+        for (var i = 0; i < A.pendingFiles.length; i++) {
+            if (A.pendingFiles[i].name === file.name &&
+                A.pendingFiles[i].size === file.size) { return true; }
+        }
+        return false;
+    }
+
+    function addDroppedFiles(fileList) {
+        var added = 0;
+        for (var d = 0; d < fileList.length; d++) {
+            if (!isDuplicate(fileList[d])) {
+                A.pendingFiles.push(fileList[d]);
+                added++;
+            }
+        }
+        if (added) { renderFileChips(); }
+    }
+
+    function setupAreaDrop(el) {
+        if (!el) { return; }
+        ["dragenter", "dragover", "dragleave", "drop"].forEach(function (ev) {
+            el.addEventListener(ev, function (e) { e.preventDefault(); });
+        });
+        el.addEventListener("dragenter", function () {
+            el.classList.add("gb-drop-overlay");
+        });
+        el.addEventListener("dragleave", function (e) {
+            if (!el.contains(e.relatedTarget)) {
+                el.classList.remove("gb-drop-overlay");
+            }
+        });
+        el.addEventListener("drop", function (e) {
+            el.classList.remove("gb-drop-overlay");
+            var files = e.dataTransfer && e.dataTransfer.files;
+            if (files && files.length) { addDroppedFiles(files); }
+        });
+    }
+
     function handleFileSelect(input) {
         if (!input.files || input.files.length === 0) { return; }
         for (var i = 0; i < input.files.length; i++) {
-            A.pendingFiles.push(input.files[i]);
+            if (!isDuplicate(input.files[i])) {
+                A.pendingFiles.push(input.files[i]);
+            }
         }
         renderFileChips();
         input.value = "";
@@ -353,6 +267,23 @@
                     var card = A.attachCard(A.pendingFiles[idx], {
                         removable: true,
                         onRemove: function () { A.pendingFiles.splice(idx, 1); renderFileChips(); }
+                    });
+                    /* Keyboard: Delete/Backspace removes this chip */
+                    card.setAttribute("tabindex", "0");
+                    card.addEventListener("keydown", function (e) {
+                        if (e.key === "Delete" || e.key === "Backspace") {
+                            e.preventDefault();
+                            A.pendingFiles.splice(idx, 1);
+                            renderFileChips();
+                            /* Move focus to the next chip or the input. */
+                            var next = container.querySelector(".gb-attach-card");
+                            if (next) { next.focus(); }
+                            else {
+                                var inp = document.getElementById("gbInputDock") ||
+                                          document.getElementById("gbInputEmpty");
+                                if (inp) { inp.focus(); }
+                            }
+                        }
                     });
                     container.appendChild(card);
                 })(i);
@@ -408,20 +339,40 @@
                 composerInner.classList.remove("gb-drop-active");
                 var files = e.dataTransfer && e.dataTransfer.files;
                 if (files && files.length) {
-                    for (var d = 0; d < files.length; d++) A.pendingFiles.push(files[d]);
-                    renderFileChips();
+                    addDroppedFiles(files);
                 }
             });
         }
-        /* Paste images/files */
+
+        /* Full-area drag-and-drop: conversation area and empty state
+           both accept file drops, forwarding them to the composer. A
+           semi-transparent overlay appears so the person sees the target. */
+        setupAreaDrop(document.getElementById("gbConversation"));
+        setupAreaDrop(document.getElementById("gbEmptyState"));
+        setupAreaDrop(document.getElementById("gbChatView"));
+
+        /* Paste images/files + long text → attachment conversion */
+        var PASTE_TEXT_THRESHOLD = 4000;
         document.addEventListener("paste", function (e) {
             var items = e.clipboardData && e.clipboardData.items;
-            if (!items) return;
+            if (!items) { return; }
+            var hasFile = false;
             for (var j = 0; j < items.length; j++) {
                 if (items[j].kind === "file") {
                     var f = items[j].getAsFile();
-                    if (f) { A.pendingFiles.push(f); renderFileChips(); }
+                    if (f) { A.pendingFiles.push(f); hasFile = true; }
                 }
+            }
+            if (hasFile) { renderFileChips(); return; }
+            /* Long text paste: convert to a text-file chip. */
+            var text = e.clipboardData.getData("text/plain");
+            if (text && text.length > PASTE_TEXT_THRESHOLD) {
+                e.preventDefault();
+                var blob = new Blob([text], { type: "text/plain" });
+                var name = A.t("attach.pasted-text", "texto-colado") + ".txt";
+                var file = new File([blob], name, { type: "text/plain" });
+                A.pendingFiles.push(file);
+                renderFileChips();
             }
         });
 
@@ -429,6 +380,8 @@
         if (newChat) {
             newChat.addEventListener("click", function () {
                 A.clearSessionDismissals();
+                A.pendingFiles = [];
+                clearFileChips();
                 A.showEmptyState();
                 A.renderGreeting();
                 A.onSuggestions(A.suggestions);
