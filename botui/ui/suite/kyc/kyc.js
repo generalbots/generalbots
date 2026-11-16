@@ -10,6 +10,13 @@ var drawing=false;
 var lastX=0;
 var lastY=0;
 
+function escapeHtml(str){
+    if(str==null||str==='') return '';
+    var d=document.createElement('div');
+    d.textContent=String(str);
+    return d.innerHTML;
+}
+
 function showFeedback(msg,type){
     var el=document.getElementById('kyc-feedback');
     if(!el){el=document.createElement('div');el.id='kyc-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
@@ -55,11 +62,11 @@ function renderVerifications(){
         var scoreClass=v.liveness_score>=80?'high':v.liveness_score>=50?'medium':'low';
         var statusClass=v.status==='pending'?'pending':v.status==='verified'?'verified':'failed';
         return '<div class="kyc-card">'
-            +'<div class="kyc-card-header"><span class="kyc-card-title">'+(v.user_name||'Unknown')+'</span><span class="kyc-badge '+statusClass+'">'+v.status+'</span></div>'
+            +'<div class="kyc-card-header"><span class="kyc-card-title">'+escapeHtml(v.user_name||'Unknown')+'</span><span class="kyc-badge '+statusClass+'">'+escapeHtml(v.status)+'</span></div>'
             +'<div class="kyc-card-body">'
-            +'<div class="kyc-card-row"><span class="label">Document</span><span>'+(v.document_type||'N/A')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Document #</span><span>'+(v.document_number||'N/A')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Selfie</span><span>'+(v.selfie_status||'N/A')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Document</span><span>'+escapeHtml(v.document_type||'N/A')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Document #</span><span>'+escapeHtml(v.document_number||'N/A')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Selfie</span><span>'+escapeHtml(v.selfie_status||'N/A')+'</span></div>'
             +'<div class="kyc-card-row"><span class="label">Liveness Score</span><span>'+(v.liveness_score!=null?v.liveness_score+'%':'N/A')+'</span></div>'
             +(v.liveness_score!=null?'<div class="kyc-score-bar"><div class="kyc-score-fill '+scoreClass+'" style="width:'+v.liveness_score+'%"></div></div>':'')
             +'</div>'
@@ -75,10 +82,10 @@ function renderSignatures(){
     if(signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="kyc-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=signatures.map(function(s){
         return '<tr>'
-            +'<td>'+(s.document_name||'')+'</td>'
-            +'<td><span class="kyc-badge active">'+(s.document_type||'')+'</span></td>'
-            +'<td>'+(s.requested_at||'')+'</td>'
-            +'<td>'+(s.signer||'')+'</td>'
+            +'<td>'+escapeHtml(s.document_name||'')+'</td>'
+            +'<td><span class="kyc-badge active">'+escapeHtml(s.document_type||'')+'</span></td>'
+            +'<td>'+escapeHtml(s.requested_at||'')+'</td>'
+            +'<td>'+escapeHtml(s.signer||'')+'</td>'
             +'<td><button class="kyc-btn kyc-btn-primary" onclick="window._kyc.openSignaturePad(\''+s.id+'\')">Sign</button></td>'
             +'</tr>';
     }).join('');
@@ -93,12 +100,12 @@ function renderCertificates(){
         var isExpiring=new Date(c.expiry_date)<new Date(Date.now()+30*24*60*60*1000);
         var badgeClass=isExpired?'failed':isExpiring?'expiring':'active';
         return '<div class="kyc-card">'
-            +'<div class="kyc-card-header"><span class="kyc-card-title">'+(c.name||'')+'</span><span class="kyc-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
+            +'<div class="kyc-card-header"><span class="kyc-card-title">'+escapeHtml(c.name||'')+'</span><span class="kyc-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
             +'<div class="kyc-card-body">'
-            +'<div class="kyc-card-row"><span class="label">Issuer</span><span>'+(c.issuer||'')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Serial</span><span>'+(c.serial||'')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Issued</span><span>'+(c.issued_date||'')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Expires</span><span>'+(c.expiry_date||'')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Issuer</span><span>'+escapeHtml(c.issuer||'')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Serial</span><span>'+escapeHtml(c.serial||'')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Issued</span><span>'+escapeHtml(c.issued_date||'')+'</span></div>'
+            +'<div class="kyc-card-row"><span class="label">Expires</span><span>'+escapeHtml(c.expiry_date||'')+'</span></div>'
             +'</div>'
             +'<div class="kyc-card-actions">'
             +'<button class="kyc-btn kyc-btn-primary" onclick="window._kyc.showRenewModal(\''+c.id+'\')">Renew</button>'
