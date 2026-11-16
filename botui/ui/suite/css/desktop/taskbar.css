@@ -11,6 +11,7 @@
 :root {
   /* Single source of truth for every layout rule that must clear the bar. */
   --taskbar-h: 30px;
+  --gb-chrome-bottom: var(--taskbar-h);
   --shell-bg: var(--glass-bg, rgba(20, 22, 35, 0.68));
   --shell-border: var(--glass-border-color, rgba(255, 255, 255, 0.12));
   --shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
@@ -34,11 +35,11 @@
   left: 0;
   right: 0;
   width: 100vw;
-  height: var(--taskbar-h);
+  height: var(--gb-chrome-bottom, var(--taskbar-h));
   display: flex;
   align-items: center;
   justify-content: stretch;
-  padding: 0 6px;
+  padding: 0 6px calc(0px + env(safe-area-inset-bottom, 0px));
   margin: 0;
   background: var(--shell-bg);
   backdrop-filter: var(--shell-blur);
@@ -46,6 +47,7 @@
   border-top: 1px solid var(--shell-border);
   pointer-events: auto;
   z-index: 2000;
+  box-sizing: border-box;
 }
 
 .toolbar-v15 .taskbar-shell {

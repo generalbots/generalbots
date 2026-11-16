@@ -114,7 +114,8 @@
 body.window-maximized .window-element-glass.window-maximized-target,
 body.window-maximized .window-element.window-maximized-target {
   top: 0 !important;
-  height: calc(100vh - var(--taskbar-h, 30px)) !important;
+  height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important;
+  height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important;
   width: 100% !important;
   border-radius: 0 !important;
 }
@@ -143,11 +144,11 @@ body.window-maximized .window-element.window-maximized-target {
     top: 8px !important;
     left: 8px !important;
     width: calc(100vw - 16px);
-    height: calc(100vh - 80px);
-    height: calc(100dvh - 80px);
+    height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px);
+    height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px);
     max-width: calc(100vw - 16px);
-    max-height: calc(100vh - 80px);
-    max-height: calc(100dvh - 80px);
+    max-height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px);
+    max-height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px);
     border-radius: min(var(--win-radius), 12px);
   }
 

@@ -20,7 +20,7 @@
   overflow: hidden;
   background: var(--wall);
   position: relative;
-  padding-bottom: 72px;
+  padding-bottom: calc(var(--gb-chrome-bottom, var(--taskbar-h, 30px)) + env(safe-area-inset-bottom, 0px));
 }
 
 .workspace-v15::before {
