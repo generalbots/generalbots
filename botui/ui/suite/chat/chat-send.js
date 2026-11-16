@@ -449,14 +449,17 @@ window.gbResendChatPayload = function (originalPayload) {
   payload.user_id = ChatState.currentUserId;
   payload.client_id = ChatState.clientId;
   payload.timestamp = new Date().toISOString();
-  try {
-    if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
-      payload.message_id = crypto.randomUUID();
-    } else {
+  // #2361 — preserve the original message_id for idempotency on retries.
+  if (!payload.message_id || typeof payload.message_id !== "string" || payload.message_id === "") {
+    try {
+      if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
+        payload.message_id = crypto.randomUUID();
+      } else {
+        payload.message_id = "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+      }
+    } catch (e) {
       payload.message_id = "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
     }
-  } catch (e) {
-    payload.message_id = "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   }
 
   var text = payload.content || "";
