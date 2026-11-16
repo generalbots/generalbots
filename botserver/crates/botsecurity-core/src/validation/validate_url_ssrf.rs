@@ -41,19 +41,6 @@ pub(crate) fn is_blocked_ip(addr: IpAddr) -> bool {
 /// The reason string is intentionally generic: the host is not echoed back,
 /// because this error can reach an API caller.
 pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
-    validate_url(url)?;
-
-    let url_lower = url.to_lowercase();
-
-    for blocked in SSRF_BLOCKED_HOSTS.iter() {
-        if url_lower.contains(blocked) {
-            return Err(ValidationError::Forbidden {
-                field: "url".to_string(),
-                reason: format!("URL contains blocked host or pattern: {}", blocked),
-            });
-        }
-    }
-
     match super::ssrf_guard::validate_url_ssrf_strict(url) {
         Ok(_) => Ok(()),
         Err(err) => Err(ValidationError::Forbidden {
