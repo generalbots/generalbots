@@ -198,8 +198,8 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          if ! python3 scripts/whats_new.py --file whatsnew.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"; then
-            echo "::warning::whatsnew.md has no section for ${VERSION}; continuing without release notes"
+          if ! python3 scripts/whats_new.py --file NEWS.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"; then
+            echo "::warning::NEWS.md has no section for ${VERSION}; continuing without release notes"
           fi
           {
             echo "### Product release ${VERSION}"

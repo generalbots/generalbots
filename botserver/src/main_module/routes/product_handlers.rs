@@ -4,7 +4,7 @@ use axum::Json;
 ///
 /// The document is embedded with `include_str!`, so an offline desktop shows
 /// the notes for the version it is actually running, never a newer file fetched
-/// from the network. `scripts/whats_new.py` writes the file at release time.
+/// from the network. `scripts/whats_new.py` writes NEWS.md at release time.
 pub async fn get_whats_new() -> impl axum::response::IntoResponse {
     (
         [
@@ -14,7 +14,7 @@ pub async fn get_whats_new() -> impl axum::response::IntoResponse {
             ),
             (axum::http::header::CACHE_CONTROL, "no-cache"),
         ],
-        include_str!("../../../../whatsnew.md"),
+        include_str!("../../../../NEWS.md"),
     )
 }
 

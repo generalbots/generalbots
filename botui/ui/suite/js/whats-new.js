@@ -1,12 +1,12 @@
 /* "What's New" window — desktop only.
  *
  * Opens once per version change, on the first launch after an update. The notes
- * are compiled into the running build (`whatsnew.md` → `/api/whats-new`), so the
+ * are compiled into the running build (`NEWS.md` → `/api/whats-new`), so the
  * window works offline and always matches the version actually installed. The
  * GitHub release body is never used here: it describes the latest release, not
  * the one on this machine.
  *
- * `whatsnew.md` is written by `scripts/whats_new.py` when a release is tagged.
+ * `NEWS.md` is written by `scripts/whats_new.py` when a release is tagged.
  */
 "use strict";
 
@@ -53,7 +53,7 @@
   }
 
   // The release-notes modal renders plain text, so turn the small markdown
-  // subset used by whatsnew.md into something readable without an HTML parser.
+  // subset used by NEWS.md into something readable without an HTML parser.
   function toPlainText(markdown) {
     return String(markdown || "")
       .split(/\r?\n/)

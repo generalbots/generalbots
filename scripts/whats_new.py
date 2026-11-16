@@ -2,7 +2,7 @@
 """What's New generator for the product release line.
 
 The desktop opens a "What's New" window when the running version differs from
-the last version the user has seen.  The window reads ``whatsnew.md``, which is
+the last version the user has seen.  The window reads ``NEWS.md``, which is
 compiled into ``botserver`` and served at ``/api/whats-new``.  This script is
 what writes that file when a release is tagged.
 
@@ -47,7 +47,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-WHATS_NEW = ROOT / "whatsnew.md"
+WHATS_NEW = ROOT / "NEWS.md"
 REPO = os.environ.get("GITHUB_REPOSITORY", "generalbots/generalbots")
 
 HEADER = """# What's New in General Bots
@@ -382,9 +382,9 @@ def command_check(args: argparse.Namespace) -> int:
     version = normalize_version(args.version) if args.version else current_version()
     path = Path(args.file) if args.file else WHATS_NEW
     if section_body(read_text(path), version):
-        print(f"whatsnew.md has a section for v{version}")
+        print(f"NEWS.md has a section for v{version}")
         return 0
-    warn(f"whatsnew.md has no section for v{version}")
+    warn(f"NEWS.md has no section for v{version}")
     return 1
 
 
