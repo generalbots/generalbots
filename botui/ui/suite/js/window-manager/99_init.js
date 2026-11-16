@@ -65,12 +65,18 @@ if (document.readyState === "loading") {
   function onViewportChange() {
     syncChromeBottom();
     reclampAllWindows();
+    // Re-run shortly after layout settles (emulated rotation / toolbar changes).
+    setTimeout(reclampAllWindows, 60);
+    setTimeout(reclampAllWindows, 220);
   }
 
   function bindViewportSync() {
     syncChromeBottom();
     window.addEventListener("resize", onViewportChange, { passive: true });
-    window.addEventListener("orientationchange", onViewportChange, { passive: true });
+    window.addEventListener("orientationchange", function () {
+      setTimeout(onViewportChange, 0);
+      setTimeout(onViewportChange, 120);
+    }, { passive: true });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onViewportChange, { passive: true });
       window.visualViewport.addEventListener("scroll", onViewportChange, { passive: true });
@@ -87,6 +93,7 @@ if (document.readyState === "loading") {
     // Initial post-layout clamp for auto-opened windows.
     setTimeout(onViewportChange, 0);
     setTimeout(onViewportChange, 250);
+    setTimeout(onViewportChange, 800);
   }
 
   if (document.readyState === "loading") {
