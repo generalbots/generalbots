@@ -42,7 +42,7 @@ function updateStats(){
     var rev = 0;
     if(state.topProducts && state.topProducts.length) rev = state.topProducts.reduce(function(s,x){return s + (Number(x.revenue)||0);}, 0);
     if(revEl)revEl.textContent='$'+rev.toFixed(2);
-    if(ordEl)ordEl.textContent = String(state.stock.length);
+    if(ordEl)ordEl.textContent = String(filteredStock.length);
     if(lsEl)lsEl.textContent = String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length);
     if(prEl)prEl.textContent = String((state.promos||[]).filter(function(p){return p.status==='active'}).length);
 }
