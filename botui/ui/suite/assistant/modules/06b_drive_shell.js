@@ -136,8 +136,34 @@
         });
     }
 
+    var MAX_DRIVE_UPLOAD = 20 * 1024 * 1024; /* 20 MB */
+
     D.uploadFiles = function (files) {
         if (!files || !files.length) return;
+        /* Reject files over the limit before starting the upload. */
+        var tooBig = [];
+        var ok = [];
+        for (var fi = 0; fi < files.length; fi++) {
+            if (files[fi].size > MAX_DRIVE_UPLOAD) {
+                tooBig.push(files[fi].name + " (" + D.fmtBytes(files[fi].size) + ")");
+            } else {
+                ok.push(files[fi]);
+            }
+        }
+        if (tooBig.length) {
+            D.showToast(
+                A.t("drive.file-too-big", "Arquivo grande demais (limite de 20 MB): ") + tooBig.join(", "),
+                "error"
+            );
+        }
+        files = ok;
+        if (!files.length) return;
+        /* Track which names already exist so the toast can say "replaced". */
+        var existingNames = {};
+        for (var ei = 0; ei < D.files.length; ei++) {
+            existingNames[(D.files[ei].name || "").toLowerCase()] = true;
+        }
+        var replaced = 0;
         var toast = showUploadToast(files.length);
         var done = 0;
         var failed = 0;
@@ -146,9 +172,12 @@
         (function next(i) {
             if (i >= files.length) {
                 if (failed === 0) {
-                    updateUploadToast(toast, files.length, files.length,
-                        A.t("drive.upload-done", "Envio concluido"));
-                    setTimeout(function () { removeToast(); }, 2000);
+                    var doneMsg = A.t("drive.upload-done", "Envio concluido");
+                    if (replaced > 0) {
+                        doneMsg += " (" + replaced + " " + A.t("drive.replaced", "substituido(s)") + ")";
+                    }
+                    updateUploadToast(toast, files.length, files.length, doneMsg);
+                    setTimeout(function () { removeToast(); }, replaced > 0 ? 4000 : 2000);
                 } else {
                     var label = failures.slice(0, 2).join("; ");
                     updateUploadToast(toast, done, files.length,
@@ -172,6 +201,7 @@
                 });
             }).then(function () {
                 done++;
+                if (existingNames[files[i].name.toLowerCase()]) { replaced++; }
                 next(i + 1);
             }).catch(function (e) {
                 failed++;
@@ -226,8 +256,22 @@
         function cleanup() { wrap.remove(); }
         function commit() {
             var val = input.value.trim();
+            if (!val) {
+                input.classList.add("gb-drv-input-error");
+                input.focus();
+                return;
+            }
+            /* Check for duplicate name */
+            var exists = D.files.some(function (f) {
+                return (f.name || "").toLowerCase() === val.toLowerCase();
+            });
+            if (exists) {
+                D.showToast(A.t("drive.folder-exists", "Já existe um item com esse nome"), "error");
+                input.classList.add("gb-drv-input-error");
+                input.select();
+                return;
+            }
             cleanup();
-            if (!val) return;
             D.req("/createFolder", { method: "POST", body: JSON.stringify({ bucket: D.bucket || undefined, path: D.path || "", name: val, scope: D.scope }) })
                 .then(function () { D.refreshFiles(); })
                 .catch(function (e) { D.showToast(A.t("drive.folder-error", "Erro ao criar pasta") + ": " + (e.message || e), "error"); });

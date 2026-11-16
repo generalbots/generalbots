@@ -125,10 +125,20 @@ A.blockAttachmentRead = function (ev) {
     } else if (isFailed && failReason) {
         failLabel = failReason;
     }
+    /* Completed but no text extracted — file format not readable */
+    var isCompleted = ev.status === "completed";
+    var noTextExtracted = isCompleted && !s.chars_read;
+    var noTextLabel = noTextExtracted
+        ? t("Formato não legível: o texto não pôde ser extraído",
+            "Format not readable: text could not be extracted")
+        : "";
     var el = block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
         summary: s.name || s.file || failLabel || "", status: mapStatus(ev.status), activityId: ev.id,
         bodyHtml: (isFailed && failLabel
                 ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(failLabel) + '</span></div>'
+                : "") +
+            (noTextLabel
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(noTextLabel) + '</span></div>'
                 : "") +
             row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
@@ -323,6 +333,18 @@ A.onActivityEvent = function (frame) {
         if (payload.error) {
             var body = existing.querySelector(".gb-block-body");
             if (body) body.innerHTML = '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#dc2626">' + esc(payload.error) + '</span></div>';
+        }
+        /* Refresh the body on attachment_read completion with the final
+           summary data (chars_read, drive_path, etc.). */
+        if (payload.kind === "attachment_read" && payload.summary &&
+            (payload.status === "completed" || payload.status === "failed")) {
+            var ev2 = { id: payload.id, kind: payload.kind, status: payload.status,
+                summary: payload.summary, data: payload.summary };
+            if (payload.error) ev2.error = payload.error;
+            var fresh = A.blockAttachmentRead(ev2);
+            var freshBody = fresh.querySelector(".gb-block-body");
+            var existBody = existing.querySelector(".gb-block-body");
+            if (freshBody && existBody) existBody.innerHTML = freshBody.innerHTML;
         }
         return;
     }

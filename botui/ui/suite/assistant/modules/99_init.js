@@ -111,5 +111,18 @@
             var pv = A.t(pk, null);
             if (pv && pv !== pk) { phs[j].placeholder = pv; }
         }
+        /* aria-label and title from data-i18n-aria / data-i18n-title */
+        var arias = document.querySelectorAll("[data-i18n-aria]");
+        for (var a = 0; a < arias.length; a++) {
+            var ak = arias[a].getAttribute("data-i18n-aria");
+            var av = A.t(ak, null);
+            if (av && av !== ak) { arias[a].setAttribute("aria-label", av); }
+        }
+        var titles = document.querySelectorAll("[data-i18n-title]");
+        for (var ti = 0; ti < titles.length; ti++) {
+            var tk = titles[ti].getAttribute("data-i18n-title");
+            var tv = A.t(tk, null);
+            if (tv && tv !== tk) { titles[ti].setAttribute("title", tv); }
+        }
     }
 })();

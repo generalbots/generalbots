@@ -133,11 +133,18 @@
     D.showEmpty = function () {
         var list = document.getElementById("gbDrvList");
         if (!list) return;
-        list.innerHTML = '<div class="gb-drv-state">' +
-            I("folder-open", 48) +
-            '<h3>' + esc(A.t("drive.empty-title", "Nenhum arquivo ainda")) + '</h3>' +
-            '<p>' + esc(A.t("drive.empty-desc", "Envie arquivos usando o botão acima ou arraste-os para cá.")) + '</p>' +
-            '</div>';
+        if (D.searching) {
+            list.innerHTML = '<div class="gb-drv-state">' +
+                I("magnifying-glass", 48) +
+                '<h3>' + esc(A.t("drive.search-empty", "Nenhum resultado encontrado")) + '</h3>' +
+                '</div>';
+        } else {
+            list.innerHTML = '<div class="gb-drv-state">' +
+                I("folder-open", 48) +
+                '<h3>' + esc(A.t("drive.empty-title", "Nenhum arquivo ainda")) + '</h3>' +
+                '<p>' + esc(A.t("drive.empty-desc", "Envie arquivos usando o botão acima ou arraste-os para cá.")) + '</p>' +
+                '</div>';
+        }
     };
 
     D.showError = function (msg) {

@@ -192,6 +192,15 @@
     color: var(--id-ink); background: var(--id-surface-solid);
     outline: none;
 }
+.gb-drv-rename-input.gb-drv-input-error {
+    border-color: var(--id-warn, #dc2626);
+    animation: gb-drv-shake 0.3s ease;
+}
+@keyframes gb-drv-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
 
 /* == Context menu ==================================================== */
 .gb-drv-ctx {

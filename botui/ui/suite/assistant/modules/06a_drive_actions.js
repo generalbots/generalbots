@@ -66,6 +66,7 @@
         input.type = "text";
         input.className = "gb-drv-rename-input";
         input.value = original;
+        input.maxLength = 200;
         nameCell.textContent = "";
         nameCell.appendChild(input);
         input.focus();
@@ -73,9 +74,23 @@
 
         function commit() {
             var val = input.value.trim();
+            if (!val || val === original) {
+                cleanup();
+                nameCell.textContent = original;
+                return;
+            }
+            /* Check for duplicate name */
+            var exists = D.files.some(function (f) {
+                return f.path !== path && (f.name || "").toLowerCase() === val.toLowerCase();
+            });
+            if (exists) {
+                D.showToast(A.t("drive.rename-exists", "Já existe um item com esse nome"), "error");
+                input.classList.add("gb-drv-input-error");
+                input.select();
+                return;
+            }
             cleanup();
-            if (val && val !== original) doRename(path, val);
-            else nameCell.textContent = original;
+            doRename(path, val);
         }
         function cleanup() {
             input.removeEventListener("keydown", onKey);
