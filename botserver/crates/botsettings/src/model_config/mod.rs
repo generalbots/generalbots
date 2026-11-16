@@ -138,7 +138,9 @@ async fn handle_get_config(
         None
     };
 
-    Ok(Json(json!({
+    let inconsistent = write_sets::is_inconsistent(&url, &model);
+
+    let mut resp = json!({
         "mode": mode.as_str(),
         "provider": provider,
         "endpoint_host": host,
@@ -153,7 +155,12 @@ async fn handle_get_config(
             "install_job": runtime.install_job,
             "install_info": runtime.install_info,
         },
-    })))
+    });
+    if inconsistent {
+        resp["inconsistent"] = json!(true);
+    }
+
+    Ok(Json(resp))
 }
 
 // ── PUT /api/llm/config — switch the model configuration ─────────────────
@@ -189,20 +196,13 @@ async fn handle_put_config(
         return Err(api_error(StatusCode::SERVICE_UNAVAILABLE, "vault_not_enabled"));
     }
 
-    let mut central: HashMap<String, String> = secrets
-        .get_secret(CENTRAL_LLM_PATH)
-        .await
-        .unwrap_or_default();
-
-    match req.mode {
+    // ── build the write-sets::Target and validate mode-specific fields ──
+    let target = match req.mode {
         ModelMode::Local => {
-            // Guard: the inference runtime must be installed.
             let runtime = local_runtime::runtime_status().await;
             if !runtime.installed {
                 return Err(api_error(StatusCode::CONFLICT, "runtime_not_installed"));
             }
-            // Activate the specified local model.  The on_device_ai vault_store
-            // handles the detailed write (model file + profile + per-bot path).
             let model_id = req.local_model_id.as_deref().unwrap_or("");
             if model_id.is_empty() {
                 return Err(api_error(StatusCode::BAD_REQUEST, "local_model_id_required"));
@@ -213,134 +213,80 @@ async fn handle_put_config(
             if !spec.server_only && !dir.join(spec.file).exists() {
                 return Err(api_error(StatusCode::CONFLICT, "model_not_downloaded"));
             }
-            let profile = match req.local_profile.as_deref() {
-                Some(id) => Some(
-                    local_catalog::find_profile(id)
-                        .ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "unknown_profile"))?,
-                ),
-                None => None,
-            };
-            super::on_device_ai::vault_store::save_choice(&state, spec, profile)
-                .await
-                .map_err(|reason| {
-                    log::error!("[model_config] cannot persist local choice: {reason}");
-                    api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
-                })?;
+            // Write optional profile settings (ctx-size, gpu-layers).
+            if let Some(prof_id) = req.local_profile.as_deref() {
+                let profile = local_catalog::find_profile(prof_id)
+                    .ok_or_else(|| api_error(StatusCode::BAD_REQUEST, "unknown_profile"))?;
+                super::on_device_ai::vault_store::save_profile(&state, profile)
+                    .map_err(|reason| {
+                        log::error!("[model_config] profile write failed: {reason}");
+                        api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
+                    })?;
+            }
+            write_sets::Target::Local { file: spec.file.to_string() }
         }
-
         ModelMode::OwnKey => {
-            let endpoint = req.endpoint.as_deref().unwrap_or("").trim();
-            let model = req.model.as_deref().unwrap_or("").trim();
+            let endpoint = req.endpoint.as_deref().unwrap_or("").trim().to_string();
+            let model = req.model.as_deref().unwrap_or("").trim().to_string();
             if endpoint.is_empty() {
                 return Err(api_error(StatusCode::BAD_REQUEST, "endpoint_required"));
             }
             if model.is_empty() {
                 return Err(api_error(StatusCode::BAD_REQUEST, "model_required"));
             }
-            // Validate URL shape.
-            if reqwest::Url::parse(endpoint).is_err() {
+            if reqwest::Url::parse(&endpoint).is_err() {
                 return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
             }
-            central.insert("url".to_string(), endpoint.to_string());
-            central.insert("model".to_string(), model.to_string());
-            if let Some(key) = &req.api_key {
-                if !key.trim().is_empty() {
-                    central.insert("openai_key".to_string(), key.trim().to_string());
-                }
+            write_sets::Target::OwnKey {
+                endpoint,
+                model,
+                key: req.api_key.clone(),
+                provider: req.provider.clone(),
             }
-            if let Some(prov) = &req.provider {
-                if !prov.trim().is_empty() {
-                    central.insert("provider".to_string(), prov.trim().to_string());
-                } else {
-                    central.remove("provider");
-                }
-            } else {
-                central.remove("provider");
-            }
-            secrets
-                .put_secret(CENTRAL_LLM_PATH, central)
-                .await
-                .map_err(|e| {
-                    log::error!("[model_config] vault write failed: {e}");
-                    api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
-                })?;
-            // Mirror to the per-bot nil path so `get_config` resolves on both
-            // lookup chains.
-            let nil = uuid::Uuid::nil();
-            let bot_path = format!("gbo/{nil}/{nil}/{nil}");
-            let mut per_bot = secrets.get_secret(&bot_path).await.unwrap_or_default();
-            per_bot.insert("llm-url".to_string(), endpoint.to_string());
-            per_bot.insert("llm-model".to_string(), model.to_string());
-            if let Some(key) = &req.api_key {
-                if !key.trim().is_empty() {
-                    per_bot.insert("llm-key".to_string(), key.trim().to_string());
-                }
-            }
-            let _ = secrets.put_secret(&bot_path, per_bot).await;
         }
+        ModelMode::Free => write_sets::Target::Free,
+    };
 
-        ModelMode::Free => {
-            central.insert("url".to_string(), FREE_ENDPOINT.to_string());
-            central.insert("model".to_string(), FREE_MODEL.to_string());
-            central.insert("provider".to_string(), FREE_PROVIDER.to_string());
-            // The free tier is keyless: clear any stored key so it does not
-            // leak from a previous own-key configuration.
-            central.remove("openai_key");
-            secrets
-                .put_secret(CENTRAL_LLM_PATH, central)
-                .await
-                .map_err(|e| {
-                    log::error!("[model_config] vault write failed: {e}");
-                    api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
-                })?;
-        }
-    }
+    // ── compute and persist both maps through the single pure function ───
+    let central: HashMap<String, String> = secrets
+        .get_secret(CENTRAL_LLM_PATH)
+        .await
+        .unwrap_or_default();
+    let nil = uuid::Uuid::nil();
+    let bot_path = format!("gbo/{nil}/{nil}/{nil}");
+    let per_bot: HashMap<String, String> = secrets
+        .get_secret(&bot_path)
+        .await
+        .unwrap_or_default();
 
-    // Hot-swap the provider so the new model takes effect without restarting.
-    let swapped = match req.mode {
-        ModelMode::Local => {
-            // For local mode, the on_device_ai activate path handles the swap.
-            // The vault_store write above already persisted the choice.
-            if let Some(model_id) = req.local_model_id.as_deref() {
-                if let Some(spec) = local_catalog::find(model_id) {
-                    let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
-                        state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
-                    if let Some(swap) = swap {
-                        let url = "http://localhost:8081/v1/chat/completions".to_string();
-                        let model = Some(spec.file.to_string());
-                        (swap.apply)(url, model).await;
-                        true
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-        ModelMode::OwnKey => {
-            let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
-                state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
-            if let Some(swap) = swap {
-                let url = req.endpoint.as_deref().unwrap_or("").to_string();
-                let model = req.model.clone();
-                (swap.apply)(url, model).await;
-                true
-            } else {
-                false
-            }
-        }
-        ModelMode::Free => {
-            let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
-                state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
-            if let Some(swap) = swap {
-                (swap.apply)(FREE_ENDPOINT.to_string(), Some(FREE_MODEL.to_string())).await;
-                true
-            } else {
-                false
-            }
+    let (new_central, new_per_bot) = write_sets::compute(&central, &per_bot, &target);
+
+    secrets
+        .put_secret(CENTRAL_LLM_PATH, new_central.clone())
+        .await
+        .map_err(|e| {
+            log::error!("[model_config] vault write failed: {e}");
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
+        })?;
+    secrets
+        .put_secret(&bot_path, new_per_bot)
+        .await
+        .map_err(|e| {
+            log::error!("[model_config] per-bot vault write failed: {e}");
+            api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
+        })?;
+
+    // ── hot-swap the running provider ───────────────────────────────────
+    let swap_url = new_central.get("url").cloned().unwrap_or_default();
+    let swap_model = new_central.get("model").cloned();
+    let swapped = {
+        let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
+            state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
+        if let Some(swap) = swap {
+            (swap.apply)(swap_url, swap_model).await;
+            true
+        } else {
+            false
         }
     };
     Ok(Json(json!({
@@ -354,6 +300,7 @@ async fn handle_put_config(
 
 mod test_endpoint;
 mod local_runtime;
+pub(crate) mod write_sets;
 
 // ── GET /api/llm/config/modes — available modes for the edition ──────────
 
