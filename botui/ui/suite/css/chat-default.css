@@ -1,0 +1,266 @@
+/*
+ * Chat — Default identity surface.
+ *
+ * The suite chat adopts the assistant module's conversation look: warm paper
+ * canvas, the person's turn as a white hairline card, the assistant's turn as
+ * plain prose on the paper (cards live inside it), pill suggestion chips and a
+ * rounded composer card. Only visual properties are touched — every chat
+ * feature (suggestions, tool buttons / message type 6, streaming, composer
+ * controls, i18n) keeps working because the DOM and JS are untouched.
+ *
+ * Scoped to the Default theme so picking any other theme keeps its own look.
+ * Loaded after chat-modern*.css in desktop.html.
+ */
+
+/* == Conversation tokens ============================================ */
+
+:root[data-theme="default"] #chat-app,
+:root[data-theme="default"] .chat-sidebar {
+    --gb-bg: #FFF8F2;
+    --gb-surface: #FFFFFF;
+    --gb-surface-muted: #F3F4F6;
+    --gb-text: #2C2C2C;
+    --gb-muted: #5F6673;
+    --gb-border: #E5E7EB;
+    --gb-border-soft: #F3F4F6;
+    --gb-border-strong: #D1D5DB;
+    --gb-accent: #F28C28;
+    --gb-accent-soft: rgb(242 140 40 / .1);
+    --gb-shadow-bubble: 0 1px 2px rgb(0 0 0 / .05);
+    --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .04),
+        0 4px 6px -4px rgb(0 0 0 / .04);
+    --gb-focus-ring: 0 0 0 2px #B45309;
+}
+
+:root[data-theme="default"][data-color-scheme="dark"] #chat-app,
+:root[data-theme="default"][data-color-scheme="dark"] .chat-sidebar {
+    --gb-bg: #221F1B;
+    --gb-surface: #262633;
+    --gb-surface-muted: #2A2A36;
+    --gb-text: #E4E4EA;
+    --gb-muted: #808898;
+    --gb-border: rgb(255 255 255 / .1);
+    --gb-border-soft: rgb(255 255 255 / .06);
+    --gb-border-strong: rgb(255 255 255 / .18);
+    --gb-accent: #F28C28;
+    --gb-accent-soft: rgb(242 140 40 / .16);
+    --gb-shadow-bubble: 0 1px 3px rgb(0 0 0 / .3);
+    --gb-shadow-raised: 0 10px 15px -3px rgb(0 0 0 / .3),
+        0 4px 6px -4px rgb(0 0 0 / .2);
+    --gb-focus-ring: 0 0 0 2px #FDB96A;
+}
+
+/* == Type =========================================================== */
+
+:root[data-theme="default"] #chat-app {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+}
+
+:root[data-theme="default"] #chat-app .bot-message h1,
+:root[data-theme="default"] #chat-app .bot-message h2,
+:root[data-theme="default"] #chat-app .bot-message h3,
+:root[data-theme="default"] #chat-app .bot-message h4,
+:root[data-theme="default"] #chat-app .gb-chat-empty-title {
+    font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* == Conversation canvas ============================================ */
+
+:root[data-theme="default"] #chat-app #messages {
+    background: var(--gb-bg);
+    padding: 28px 32px 20px;
+    gap: 20px;
+}
+
+/* Assistant turns are prose on the paper — not another card. */
+:root[data-theme="default"] #chat-app .bot-message {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+:root[data-theme="default"] #chat-app .bot-message,
+:root[data-theme="default"] #chat-app .bot-message p,
+:root[data-theme="default"] #chat-app .bot-message span,
+:root[data-theme="default"] #chat-app .bot-message li,
+:root[data-theme="default"] #chat-app .bot-message strong,
+:root[data-theme="default"] #chat-app .bot-message em,
+:root[data-theme="default"] #chat-app .bot-message h1,
+:root[data-theme="default"] #chat-app .bot-message h2,
+:root[data-theme="default"] #chat-app .bot-message h3,
+:root[data-theme="default"] #chat-app .bot-message h4 {
+    color: var(--gb-text) !important;
+}
+
+:root[data-theme="default"] #chat-app .bot-message a {
+    color: #B45309 !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgb(180 83 9 / .4);
+}
+
+:root[data-theme="default"][data-color-scheme="dark"] #chat-app .bot-message a {
+    color: #FDB96A !important;
+    text-decoration-color: rgb(253 185 106 / .4);
+}
+
+/* The person's turn is the white card with the hairline stroke. */
+:root[data-theme="default"] #chat-app .user-message {
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 18px 18px 8px 18px;
+    box-shadow: var(--gb-shadow-bubble);
+    color: var(--gb-text);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* == Code & tables ================================================== */
+
+:root[data-theme="default"] #chat-app .bot-message pre {
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--gb-text);
+}
+
+:root[data-theme="default"] #chat-app .bot-message :not(pre) > code {
+    background: var(--gb-surface-muted);
+    border: 1px solid var(--gb-border-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--gb-text);
+}
+
+:root[data-theme="default"] #chat-app .bot-message table th {
+    background: var(--gb-surface-muted);
+    border-color: var(--gb-border);
+}
+
+:root[data-theme="default"] #chat-app .bot-message table td {
+    border-color: var(--gb-border);
+}
+
+/* == Message actions ================================================ */
+
+:root[data-theme="default"] #chat-app .tts-speak-btn,
+:root[data-theme="default"] #chat-app .copy-msg-btn {
+    border-color: var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-muted);
+}
+
+:root[data-theme="default"] #chat-app .tts-speak-btn:hover,
+:root[data-theme="default"] #chat-app .copy-msg-btn:hover,
+:root[data-theme="default"] #chat-app .copy-msg-btn.copied {
+    color: #B45309;
+    border-color: rgb(242 140 40 / .45);
+}
+
+/* == Suggestions ==================================================== */
+
+:root[data-theme="default"] #chat-app .suggestion-chip {
+    border: 1px solid var(--gb-border);
+    border-radius: 999px;
+    background: var(--gb-surface);
+    color: var(--gb-muted);
+    font-size: 12px;
+    padding: 8px 16px;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+:root[data-theme="default"] #chat-app .suggestion-chip:hover {
+    background: var(--gb-accent-soft);
+    border-color: var(--gb-accent);
+    color: #B45309;
+}
+
+:root[data-theme="default"][data-color-scheme="dark"] #chat-app .suggestion-chip:hover {
+    color: #FDB96A;
+}
+
+/* == Composer ======================================================= */
+
+:root[data-theme="default"] #chat-app footer {
+    background: var(--gb-bg);
+    padding: 0 32px 20px;
+}
+
+:root[data-theme="default"] #chat-app .input-container {
+    max-width: 760px;
+    margin: 0 auto;
+    width: 100%;
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .05);
+    padding: 8px 10px 8px 8px;
+    transition: border-color 150ms ease, box-shadow 200ms ease;
+}
+
+:root[data-theme="default"] #chat-app .input-container:focus-within {
+    border-color: var(--gb-accent);
+    box-shadow: 0 8px 20px -10px rgb(0 0 0 / .12), 0 1px 2px rgb(0 0 0 / .05);
+}
+
+:root[data-theme="default"] #chat-app #messageInput {
+    color: var(--gb-text) !important;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+:root[data-theme="default"] #chat-app #messageInput::placeholder {
+    color: #9CA3AF;
+}
+
+:root[data-theme="default"] #chat-app #sendBtn {
+    background: var(--gb-accent);
+    color: #FFFFFF;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .08);
+}
+
+:root[data-theme="default"] #chat-app #sendBtn:hover {
+    filter: brightness(1.05);
+}
+
+:root[data-theme="default"] #chat-app .gb-model-picker {
+    color: var(--gb-muted);
+}
+
+/* == Empty state & placeholder ====================================== */
+
+:root[data-theme="default"] #chat-app .gb-chat-empty-title {
+    color: var(--gb-text);
+    font-weight: 600;
+}
+
+:root[data-theme="default"] #chat-app .gb-chat-empty-hint {
+    color: var(--gb-muted);
+}
+
+/* == Reduced motion ================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-theme="default"] #chat-app .suggestion-chip,
+    :root[data-theme="default"] #chat-app .input-container {
+        transition: none;
+    }
+}
+
+/* == Narrow viewports =============================================== */
+
+@media (max-width: 600px) {
+    :root[data-theme="default"] #chat-app #messages {
+        padding: 18px 16px 12px;
+    }
+
+    :root[data-theme="default"] #chat-app footer {
+        padding: 0 16px 14px;
+    }
+}

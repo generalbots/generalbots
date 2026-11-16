@@ -1,12 +1,12 @@
 // Unified Theme Manager - Dropdown only, no light/dark toggle
 const ThemeManager = (() => {
-  let currentThemeId = "mindfulness";
+  let currentThemeId = "default";
   let subscribers = [];
 
   // Bot ID to theme mapping (configured via config.csv theme-base field)
   const botThemeMap = {
-    // Default bot uses the recommended calm workspace theme
-    default: "mindfulness",
+    // Default bot uses the suite identity theme (assistant look, #2567)
+    default: "default",
     // Cristo bot uses typewriter theme (classic typewriter style)
     cristo: "typewriter",
     // Salesianos bot uses light theme with blue accents
@@ -26,6 +26,14 @@ const ThemeManager = (() => {
 
   const themes = [
     {
+      // #2567 — the suite's identity theme: a faithful copy of the assistant
+      // module's look (paper, ink, orange accent, Fira Sans / Inter).
+      id: "default",
+      name: "Default",
+      file: "default.css",
+      category: "recommended",
+    },
+    {
       id: "mindfulness",
       name: "Mindfulness",
       file: "mindfulness.css",
@@ -37,7 +45,6 @@ const ThemeManager = (() => {
     { id: "nord", name: "🧊 Nord", file: "nord.css", category: "fluent" },
     { id: "carbon", name: "🖤 Carbon", file: "carbon.css", category: "fluent" },
     { id: "paper", name: "📄 Paper", file: "paper.css", category: "fluent" },
-    { id: "default", name: "🎨 Default", file: "light.css" },
     { id: "light", name: "☀️ Light", file: "light.css" },
     { id: "minimal-organico", name: "🌿 Minimal Organic", file: "minimal-organico.css", category: "v15" },
     { id: "glass-premium", name: "🪟 Glass Premium", file: "glass-premium.css", category: "v15" },
@@ -337,11 +344,11 @@ const ThemeManager = (() => {
     let saved = localStorage.getItem(`gb-theme-${botId}`);
     if (!saved || !themes.find((t) => t.id === saved)) {
       // No user preference, try bot-specific theme
-      saved = botThemeMap[botId] || "mindfulness";
+      saved = botThemeMap[botId] || "default";
       // Save to localStorage so it persists
       localStorage.setItem(`gb-theme-${botId}`, saved);
     }
-    if (!themes.find((t) => t.id === saved)) saved = "mindfulness";
+    if (!themes.find((t) => t.id === saved)) saved = "default";
     currentThemeId = saved;
     loadTheme(saved);
 

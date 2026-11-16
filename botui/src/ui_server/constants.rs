@@ -15,6 +15,9 @@ pub const SUITE_DIRS: &[&str] = &[
     "public",
     "assets",
     "partials",
+    // #2567 — the shared identity layer (tokens.css, fonts, accent, theme)
+    // consumed by the suite's Default theme and the assistant module.
+    "identity",
     // Core & Support
     "settings",
     "about",

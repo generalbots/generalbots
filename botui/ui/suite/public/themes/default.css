@@ -1,0 +1,212 @@
+/*
+ * Default — the suite's identity theme.
+ *
+ * A faithful copy of the assistant module's look expressed in the classic
+ * suite's theme contract: warm paper (#FFF8F2), ink text, the orange accent
+ * engine, hairline borders, 18-20px panels and the Fira Sans / Inter pairing.
+ * Pure CSS on purpose: every value is literal so the theme also works on
+ * pages that never load /suite/identity/tokens.css.
+ *
+ * Dark surfaces keep the same warmth and accent; they are keyed off
+ * data-color-scheme, which theme-scheme.js derives from this theme.
+ */
+
+:root {
+    /* == Core palette ================================================= */
+    --background: 28 100% 97%; /* #FFF8F2 paper */
+    --foreground: 0 0% 17%; /* #2C2C2C ink */
+    --card: 30 100% 99%; /* #FFFDFB */
+    --card-foreground: 0 0% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
+    --primary: 30 89% 55%; /* #F28C28 accent */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%; /* #F3F4F6 */
+    --secondary-foreground: 0 0% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 219 10% 41%; /* #5F6673 */
+    --accent: 30 100% 94%; /* warm accent-soft wash */
+    --accent-foreground: 26 90% 37%; /* #B45309 */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%; /* #E5E7EB hairline */
+    --input: 0 0% 100%;
+    --ring: 30 89% 55%;
+    --radius: 0.75rem;
+    --chart-1: 30 89% 55%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 199 89% 48%;
+
+    /* == Identity aliases ============================================= */
+    --accent-color: #F28C28;
+    --id-accent: #F28C28;
+    --id-accent-hover: #D4751C;
+    --id-accent-soft: rgb(242 140 40 / .1);
+    --id-paper: #FFF8F2;
+
+    /* == Desktop wallpaper ============================================ */
+    /* Warm paper with the accent glow bleeding from the top corners — the
+       calm surface the assistant conversation sits on. */
+    --wall:
+        radial-gradient(ellipse at 12% 0%, rgb(242 140 40 / .1) 0%, transparent 55%),
+        radial-gradient(ellipse at 88% 8%, rgb(253 185 106 / .14) 0%, transparent 50%),
+        linear-gradient(165deg, #FFF8F2 0%, #FDF4EA 55%, #F7EEE5 100%);
+    --wall-vignette:
+        radial-gradient(ellipse at 50% 110%, rgb(242 140 40 / .07) 0%, transparent 60%);
+
+    /* == Window chrome ================================================ */
+    --win-radius: 20px;
+    --win-border-width: 1px;
+    --win-border-color: rgb(229 231 235 / .9);
+    --win-border-active: #F28C28;
+    --win-bg: rgb(255 255 255 / .92);
+    --win-titlebar-bg: rgb(255 255 255 / .86);
+    --win-titlebar-text: #4B5563;
+    --win-titlebar-sep: rgb(229 231 235 / .8);
+    --win-caption-hover: rgb(242 140 40 / .12);
+    --win-shadow:
+        0 1px 2px rgb(0 0 0 / .05),
+        0 10px 15px -3px rgb(0 0 0 / .04),
+        0 4px 6px -4px rgb(0 0 0 / .04);
+    --win-shadow-active:
+        0 8px 20px -10px rgb(0 0 0 / .12),
+        0 1px 2px rgb(0 0 0 / .05);
+
+    /* == Taskbar / sidebar shell ====================================== */
+    --shell-bg: rgb(255 255 255 / .82);
+    --shell-border: rgb(229 231 235 / .9);
+    --shell-blur: blur(24px) saturate(160%);
+    --glass-bg: rgb(255 255 255 / .82);
+    --glass-border-color: rgb(229 231 235 / .9);
+
+    /* == Sentient bridge (Sheet, Docs, Slides) ======================== */
+    --sentient-bg-primary: #FFF8F2;
+    --sentient-bg-secondary: #FFFDFB;
+    --sentient-bg-tertiary: #F3F4F6;
+    --sentient-bg-hover: rgb(242 140 40 / .1);
+    --sentient-bg-active: rgb(242 140 40 / .16);
+    --sentient-text-primary: #2C2C2C;
+    --sentient-text-secondary: #4B5563;
+    --sentient-text-tertiary: #5F6673;
+    --sentient-text-muted: #9CA3AF;
+    --sentient-accent: #F28C28;
+    --sentient-accent-hover: #D4751C;
+    --sentient-accent-light: rgb(242 140 40 / .1);
+    --sentient-accent-dark: #B45309;
+    --sentient-border: #E5E7EB;
+    --sentient-border-light: #F3F4F6;
+    --sentient-border-accent: rgb(242 140 40 / .3);
+    --sentient-surface: #FFFDFB;
+    --sentient-surface-hover: #FFF8F2;
+    --sentient-surface-active: #FDF0E1;
+    --sentient-surface-elevated: #FFFFFF;
+    --sentient-input-bg: #FFFFFF;
+    --sentient-input-border: #E5E7EB;
+    --sentient-input-focus: #F28C28;
+    --sentient-success: #22C55E;
+    --sentient-success-bg: rgb(34 197 94 / .12);
+    --sentient-warning: #D97706;
+    --sentient-warning-bg: rgb(234 179 8 / .14);
+    --sentient-error: #DC2626;
+    --sentient-error-bg: rgb(220 38 38 / .1);
+    --sentient-font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --sentient-shadow-sm: 0 1px 2px rgb(0 0 0 / .05);
+    --sentient-shadow-md: 0 8px 20px -10px rgb(0 0 0 / .12), 0 1px 2px rgb(0 0 0 / .05);
+    --sentient-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .04), 0 4px 6px -4px rgb(0 0 0 / .04);
+    --sentient-radius: 0.75rem;
+    --sentient-radius-sm: 0.5rem;
+    --sentient-radius-md: 0.75rem;
+    --sentient-radius-lg: 1rem;
+    --sentient-radius-xl: 1.25rem;
+
+    /* == Typography =================================================== */
+    --gb-font-heading: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --gb-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* == Dark surfaces =================================================== */
+/* Same warmth, same accent; only the paper and ink flip. */
+
+:root[data-color-scheme="dark"] {
+    --background: 34 11% 12%;
+    --foreground: 240 12% 91%;
+    --card: 240 15% 17%;
+    --card-foreground: 240 12% 91%;
+    --popover: 240 15% 19%;
+    --popover-foreground: 240 12% 91%;
+    --primary: 30 89% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 15% 21%;
+    --secondary-foreground: 240 12% 91%;
+    --muted: 240 15% 21%;
+    --muted-foreground: 226 11% 56%;
+    --accent: 30 60% 22%;
+    --accent-foreground: 32 96% 72%;
+    --border: 240 12% 26%;
+    --input: 240 15% 19%;
+    --ring: 32 96% 72%;
+    --accent-color: #FDB96A;
+    --id-accent: #F28C28;
+    --id-accent-soft: rgb(242 140 40 / .16);
+    --id-paper: #221F1B;
+    --wall:
+        radial-gradient(ellipse at 12% 0%, rgb(242 140 40 / .12) 0%, transparent 55%),
+        linear-gradient(165deg, #221F1B 0%, #1E1C1A 55%, #1A1917 100%);
+    --wall-vignette:
+        radial-gradient(ellipse at 50% 110%, rgb(242 140 40 / .06) 0%, transparent 60%);
+    --win-border-color: rgb(255 255 255 / .1);
+    --win-border-active: #F28C28;
+    --win-bg: rgb(38 38 51 / .94);
+    --win-titlebar-bg: rgb(38 38 51 / .9);
+    --win-titlebar-text: #A8ADB8;
+    --win-titlebar-sep: rgb(255 255 255 / .1);
+    --win-caption-hover: rgb(255 255 255 / .08);
+    --win-shadow:
+        0 1px 3px rgb(0 0 0 / .3),
+        0 10px 15px -3px rgb(0 0 0 / .3),
+        0 4px 6px -4px rgb(0 0 0 / .2);
+    --win-shadow-active:
+        0 8px 20px -10px rgb(0 0 0 / .5),
+        0 1px 3px rgb(0 0 0 / .3);
+    --shell-bg: rgb(30 30 40 / .84);
+    --shell-border: rgb(255 255 255 / .1);
+    --glass-bg: rgb(30 30 40 / .84);
+    --glass-border-color: rgb(255 255 255 / .1);
+    --sentient-bg-primary: #221F1B;
+    --sentient-bg-secondary: #262633;
+    --sentient-bg-tertiary: #2A2A36;
+    --sentient-bg-hover: rgb(242 140 40 / .16);
+    --sentient-bg-active: rgb(242 140 40 / .24);
+    --sentient-text-primary: #E4E4EA;
+    --sentient-text-secondary: #A8ADB8;
+    --sentient-text-tertiary: #808898;
+    --sentient-text-muted: #6A6A80;
+    --sentient-accent: #F28C28;
+    --sentient-accent-hover: #FDB96A;
+    --sentient-accent-light: rgb(242 140 40 / .16);
+    --sentient-accent-dark: #FDB96A;
+    --sentient-border: rgb(255 255 255 / .1);
+    --sentient-border-light: rgb(255 255 255 / .06);
+    --sentient-border-accent: rgb(242 140 40 / .4);
+    --sentient-surface: #262633;
+    --sentient-surface-hover: #2E2E3E;
+    --sentient-surface-active: #353542;
+    --sentient-surface-elevated: #2A2A36;
+    --sentient-input-bg: #2A2A36;
+    --sentient-input-border: rgb(255 255 255 / .12);
+    --sentient-input-focus: #FDB96A;
+}
+
+/* == Selection & focus ============================================== */
+
+::selection {
+    background: rgb(242 140 40 / .22);
+    color: inherit;
+}
+
+:focus-visible {
+    outline: 2px solid #B45309;
+    outline-offset: 2px;
+}
