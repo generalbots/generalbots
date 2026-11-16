@@ -344,9 +344,11 @@
 
     function exportDashboard() {
         if (currentDashboardId) {
-            window.open(
+            var w = window.open(
                 `/api/dashboards/${currentDashboardId}/export?format=pdf`,
                 "_blank",
+                "noopener,noreferrer",
             );
+            if (w) { try { w.opener = null; } catch (e) {} }
         }
     }

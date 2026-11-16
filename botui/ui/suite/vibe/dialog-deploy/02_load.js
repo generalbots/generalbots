@@ -60,7 +60,7 @@
                 var proto = location.protocol === "https:" ? "https://" : "http://";
                 d.href = proto + (b.domain || "");
                 d.target = "_blank";
-                d.rel = "noopener";
+                d.rel = "noopener noreferrer";
                 d.textContent = (b.verified ? "🔗 " : "⏳ ") + (b.domain || "?");
                 d.style.flex = "1";
                 d.style.minWidth = "180px";

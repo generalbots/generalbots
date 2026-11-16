@@ -158,7 +158,7 @@
             body: "{}",
           })
             .then(function (data) {
-              if (data.url) window.open(data.url, "_blank", "noopener");
+              if (data.url) { var w = window.open(data.url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} } }
               update(provider, data.status || data.state || "connecting", data.message || "");
               if (!pollTimer) pollTimer = setInterval(load, 3000);
             })

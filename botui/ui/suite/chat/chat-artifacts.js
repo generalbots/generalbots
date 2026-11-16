@@ -300,7 +300,7 @@ function openArtifactPanel(content, sourceEl) {
             externalNote.className = "gb-artifact-saved";
             externalNote.href = saved.web_view_link || "#";
             externalNote.target = "_blank";
-            externalNote.rel = "noopener";
+            externalNote.rel = "noopener noreferrer";
             externalNote.textContent =
               "Saved to " +
               (picked === "gdrive" ? "Google Drive" : "OneDrive") +

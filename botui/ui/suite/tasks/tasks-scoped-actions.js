@@ -92,7 +92,8 @@ function onTaskCompleted(data, appUrl) {
 
   if (appUrl) {
     showToast(`App ready! Click to open: ${appUrl}`, "success", 10000, () => {
-      window.open(appUrl, "_blank");
+      const w = window.open(appUrl, "_blank", "noopener,noreferrer");
+      if (w) { try { w.opener = null; } catch (e) {} }
     }, 100);
     addAgentLog("success", `[COMPLETE] Task #${taskId}: ${title}`);
     addAgentLog("success", `[URL] ${appUrl}`);

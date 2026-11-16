@@ -9,7 +9,7 @@
         } else if (window.openDeepLink) {
             window.openDeepLink('integrations', params);
         } else {
-            window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener');
+            var w = window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
         }
         return false;
     };
@@ -23,7 +23,7 @@
         } else if (window.openDeepLink) {
             window.openDeepLink('about', {});
         } else {
-            window.open('/suite/desktop.html?app=about', '_blank', 'noopener');
+            var w = window.open('/suite/desktop.html?app=about', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
         }
         return false;
     };
@@ -63,7 +63,7 @@
             ? window.__gbDirectoryIssuer + (window.__gbDirectoryIssuer.indexOf('/ui') === -1 ? '/ui/console' : '')
             : null;
         if (target) {
-            window.open(target, '_blank', 'noopener');
+            var w = window.open(target, '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
         } else {
             // #1887 — no issuer means the directory address is unavailable.
             // Never deep-link personal security into Administration; say what
@@ -366,7 +366,7 @@
         if (!base) {
             base = (window.location.origin || '').replace(/:(3000|8080)$/, ':4000');
         }
-        window.open(base.replace(/\/$/, '') + '/cloud/billing', '_blank', 'noopener');
+        var w = window.open(base.replace(/\/$/, '') + '/cloud/billing', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
         return false;
     };
 

@@ -137,7 +137,8 @@
           if (window.GBUiOrchestrator) {
             window.GBUiOrchestrator.focusEntity(r);
           } else {
-            window.open(r.url, "_blank");
+            var w = window.open(r.url, "_blank", "noopener,noreferrer");
+            if (w) { try { w.opener = null; } catch (e) {} }
           }
         };
         p.appendChild(item);

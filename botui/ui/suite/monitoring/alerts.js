@@ -159,7 +159,7 @@ async function deleteRule(ruleId) {
 
 function exportHistory() {
     const timeFilter = document.getElementById('history-time-filter').value;
-    window.open(`/api/monitoring/alerts/history/export?range=${timeFilter}`, '_blank');
+    window.open(`/api/monitoring/alerts/history/export?range=${timeFilter}`, '_blank', 'noopener,noreferrer');
 }
 
 // Close modals on escape key

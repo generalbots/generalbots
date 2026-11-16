@@ -85,7 +85,7 @@
           if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Failed to open app: ' + (err && err.message ? err.message : 'error'), 'error');
         });
     } else {
-      window.open(app.url, "_blank", "noopener");
+      var w = window.open(app.url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} }
     }
   }
 

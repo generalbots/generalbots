@@ -113,7 +113,7 @@
     if (n && n.action) {
       try {
         if (typeof n.action === "function") n.action();
-        else if (typeof n.action === "string") window.open(n.action, "_blank");
+        else if (typeof n.action === "string") { var w = window.open(n.action, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} } }
       } catch (e) {}
     }
     dismiss(index);

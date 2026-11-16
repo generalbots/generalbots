@@ -36,7 +36,7 @@
         go.addEventListener("click", navigate);
         var open = D.el("button", "vibe-btn", t("vibe-browser-open-app", "Open app ↗"));
         open.addEventListener("click", function () {
-            if (state.url) window.open(state.url, "_blank", "noopener");
+            if (state.url) { var w = window.open(state.url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} } }
         });
         var shot = D.el("button", "vibe-btn", t("vibe-browser-screenshot", "📸 Screenshot"));
         shot.addEventListener("click", screenshot);

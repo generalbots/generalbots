@@ -52,7 +52,7 @@
 
   function exportData() {
     const timeRange = document.getElementById("time-range").value;
-    window.open(`/api/monitoring/export?range=${timeRange}`, "_blank");
+    window.open(`/api/monitoring/export?range=${timeRange}`, "_blank", "noopener,noreferrer");
   }
 
   // Initialize

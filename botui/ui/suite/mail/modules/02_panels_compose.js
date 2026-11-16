@@ -181,6 +181,7 @@
       var a = document.createElement("a");
       a.href = url;
       a.target = "_blank";
+      a.rel = "noopener noreferrer";
       if (range.collapsed) {
         a.textContent = url;
         range.insertNode(a);
