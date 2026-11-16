@@ -313,15 +313,29 @@
     if (params.get("vmConvId") || params.get("vmPath") || deepLink.vmConvId || deepLink.vmPath) {
       return;
     }
-    var wanted = params.get("id");
+    // Deep links may carry the document id in shell params (__gbAppParams__)
+    // instead of the page URL. Honor it so app://docs?id=<id> opens that doc.
+    var wanted = params.get("id") || deepLink.id || "";
     json("/api/docs/list")
       .then(function (items) {
         return renderSidebar(items).then(function () {
-          if (wanted && items.some(function (item) { return item.id === wanted; })) {
-            return json("/api/docs/load?id=" + encodeURIComponent(wanted)).then(renderView);
+          if (wanted) {
+            return json("/api/docs/load?id=" + encodeURIComponent(wanted))
+              .then(renderView)
+              .catch(function () {
+                // Unknown/unloadable id: do not silently open another document.
+                startBlank();
+                setTitle(window.docsT ? docsT("docs-untitled", "Untitled Document") : "Untitled Document");
+                status(docsT ? docsT("docs-not-found", "Document not found") : "Document not found", true);
+              });
           }
+          // Launcher/default open: start a new document instead of silently
+          // loading the most recently updated one (which would arm autosave on
+          // someone else's draft). Existing documents remain available in the
+          // sidebar.
           if (items.length) {
-            return json("/api/docs/load?id=" + encodeURIComponent(items[0].id)).then(renderView);
+            startBlank();
+            return;
           }
           return json("/api/docs/new").then(renderView);
         });
