@@ -19,29 +19,29 @@
   var gbFormatCurrency = _I.gbFormatCurrency;
 
   // Shared internals for split module (#2305).
-  var _I = window.__GBSharedInternal = window.__GBSharedInternal || {};
-  _I.escapeHtml = escapeHtml;
-  _I.storeGet = storeGet;
-  _I.copyText = copyText;
-  _I.printHtml = printHtml;
-  _I.format = format;
-  _I.read = read;
-  _I.runtimeToken = runtimeToken;
-  _I.token = token;
-  _I.headers = headers;
-  _I.isDesktop = isDesktop;
-  _I.tauriInvoke = tauriInvoke;
-  _I.absoluteUrl = absoluteUrl;
-  _I.notify = notify;
-  _I.anchorDownload = anchorDownload;
-  _I.reportSaved = reportSaved;
-  _I.download = download;
-  _I.saveBlob = saveBlob;
-  _I.gbFormatDate = gbFormatDate;
-  _I.gbFormatTime = gbFormatTime;
-  _I.gbFormatDateTime = gbFormatDateTime;
-  _I.gbFormatNumber = gbFormatNumber;
-  _I.gbFormatCurrency = gbFormatCurrency;
+  _I = window.__GBSharedInternal = window.__GBSharedInternal || {};
+  // Re-export what gb-shared_a.js (if loaded) provided, without referencing
+  // undeclared identifiers that would abort this module and break gbLog.
+  ["escapeHtml","storeGet","copyText","printHtml","format","read","runtimeToken","token","headers","isDesktop","tauriInvoke","absoluteUrl","notify","anchorDownload","reportSaved","download","saveBlob","gbFormatDate","gbFormatTime","gbFormatDateTime","gbFormatNumber","gbFormatCurrency"].forEach(function (k) {
+    if (_I[k] == null) {
+      try { if (typeof eval(k) !== "undefined") _I[k] = eval(k); } catch (_e) {}
+    }
+  });
+  escapeHtml = escapeHtml || _I.escapeHtml;
+  storeGet = storeGet || _I.storeGet;
+  copyText = copyText || _I.copyText;
+  printHtml = printHtml || _I.printHtml;
+  format = format || _I.format;
+  token = token || _I.token;
+  headers = headers || _I.headers;
+  isDesktop = isDesktop || _I.isDesktop;
+  download = download || _I.download;
+  saveBlob = saveBlob || _I.saveBlob;
+  gbFormatDate = gbFormatDate || _I.gbFormatDate;
+  gbFormatTime = gbFormatTime || _I.gbFormatTime;
+  gbFormatDateTime = gbFormatDateTime || _I.gbFormatDateTime;
+  gbFormatNumber = gbFormatNumber || _I.gbFormatNumber;
+  gbFormatCurrency = gbFormatCurrency || _I.gbFormatCurrency;
 
   function gbDebugEnabled() {
     try {

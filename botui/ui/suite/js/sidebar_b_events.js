@@ -51,7 +51,7 @@
   // button; no extra gripper is installed on the bar.
 
   function init() {
-    renderApps();
+    (fns.renderApps || window.renderApps || function(){})();
     refreshUser();
     loadHistory();
   }

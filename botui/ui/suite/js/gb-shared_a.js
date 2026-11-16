@@ -423,4 +423,18 @@
 
   // #2304 — debug logger gated by GB_DEBUG (localStorage "gb-debug"/"GB_DEBUG").
   // console.log is debug-only in suite UI; console.warn/error remain always-on.
+
+  // Export utilities for gb-shared_b.js (split module).
+  var _I = window.__GBSharedInternal = window.__GBSharedInternal || {};
+  [
+    "escapeHtml", "storeGet", "copyText", "legacyCopy", "printHtml", "format", "read",
+    "runtimeToken", "token", "headers", "isDesktop", "tauriInvoke", "absoluteUrl",
+    "notify", "anchorDownload", "reportSaved", "download", "saveBlob", "suiteLocale",
+    "toDate", "resolveLocale", "intlDateTime", "gbFormatDate", "gbFormatTime",
+    "gbFormatDateTime", "gbFormatNumber", "gbFormatCurrency"
+  ].forEach(function (k) {
+    try {
+      if (typeof eval(k) !== "undefined") _I[k] = eval(k);
+    } catch (_e) {}
+  });
 })();

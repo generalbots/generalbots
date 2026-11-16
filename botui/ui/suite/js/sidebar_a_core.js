@@ -398,6 +398,7 @@
 
   // Export internal hooks for split module (sidebar_b_events.js).
   window.__GBSidebarFns = {
+    renderApps: renderApps,
     loadHistory: loadHistory,
     highlightActive: highlightActive,
     openConversation: openConversation,
