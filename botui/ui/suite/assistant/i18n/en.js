@@ -120,7 +120,7 @@ window.GBAssistantLocales["en"] = {
     "assistant.agent-label":    "Agent",
     "assistant.agent-on-tip":   "Agent on: the assistant can run commands on this computer",
     "assistant.agent-off-tip":  "Agent off: the assistant answers with text only",
-    "assistant.agent-unavailable": "The execution environment is not available on this computer. WSL2 with Incus is required. See the documentation to set it up.",
+    "assistant.agent-unavailable": "Agent mode is not yet set up on this computer. Contact support to enable it.",
     "assistant.cancel":        "Cancel",
     "assistant.confirm-continue": "Continue?",
     "drive.back":              "Back",

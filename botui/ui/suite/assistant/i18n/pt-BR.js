@@ -120,7 +120,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.agent-label":    "Agente",
     "assistant.agent-on-tip":   "Agente ativado: o assistente pode executar comandos no computador",
     "assistant.agent-off-tip":  "Agente desativado: o assistente responde apenas com texto",
-    "assistant.agent-unavailable": "O ambiente de execução não está disponível neste computador. É necessário WSL2 com Incus instalado. Consulte a documentação para configurar.",
+    "assistant.agent-unavailable": "O modo agente ainda não está configurado neste computador. Entre em contato com o suporte para ativá-lo.",
     "assistant.cancel":        "Cancelar",
     "assistant.confirm-continue": "Continuar?",
     "drive.back":              "Voltar",
