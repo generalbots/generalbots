@@ -146,6 +146,8 @@
     function loadConversation(sessId) {
         A.currentSessionId = sessId;
         renderConversationList();
+        /* Sync the agent toggle for this conversation's stored state */
+        if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
         /* Update titlebar with the conversation title */
         var sess = A.sessions.filter(function (s) { return s.id === sessId; })[0];
         if (typeof window.gbSetTitlebarTitle === "function") {

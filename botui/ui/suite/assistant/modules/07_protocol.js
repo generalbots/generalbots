@@ -2,11 +2,11 @@
 /**
  * 07_protocol.js - Strip leaked protocol text so nothing raw ever shows.
  *
- * The gbgov build does not compile vm_exec, terminal, research, office or
- * agent-workspace.  When the model hallucinates a tool call for one of
- * those surfaces the server cannot intercept it; the raw JSON or XML tag
- * leaks into the answer text.  This module catches every known marker and
- * replaces it with a quiet notice card -- never with the raw text.
+ * When agent mode is off (or when the model hallucinates a tool call for a
+ * surface that this build does not compile, such as terminal, research or
+ * office), the raw JSON or XML tag leaks into the answer text. This module
+ * catches every known marker and replaces it with a quiet notice card --
+ * never with the raw text.
  *
  * It also strips the consent-request base64 marker (handled separately by
  * 08_consent.js) so no path prints it.

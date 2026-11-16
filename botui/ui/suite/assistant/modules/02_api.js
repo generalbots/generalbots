@@ -402,12 +402,10 @@
             channel: "web",
             content: text,
             message_type: messageType || 1,
-            /* The gbgov build does not compile vm_exec, agent-workspace,
-               ui-automation or web-search. Without these flags the server
-               defaults agent_enabled and ui_automation to ON and injects
-               agentic/vm_exec/UI-plan instructions into the system prompt,
-               which the model then hallucinates and leaks as raw text. */
-            agent_enabled: false,
+            /* Agent mode is off by default; the user enables it via the
+               composer toggle. The server checks the backend at startup
+               and disables agent mode gracefully when unavailable. */
+            agent_enabled: A.agentEnabled || false,
             ui_automation: false,
             web_search: false,
         };

@@ -47,6 +47,9 @@ window.GBAssistant = window.GBAssistant || {};
     /* ---- Suggestions ---- */
     A.suggestions = [];
 
+    /* ---- Agent mode (off by default, remembered per conversation) ---- */
+    A.agentEnabled = false;
+
     /* ---- UI state ---- */
     A.currentView = "chat";
     A.sidebarCollapsed = false;
