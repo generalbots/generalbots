@@ -24,25 +24,42 @@ pub(super) fn turn_timeout_secs() -> u64 {
 }
 
 /// copy only (replay used to show it inside the user's bubble).
-fn display_user_text(text: &str) -> String {
+/// Returns (display_text, attachment_meta) so the save point can encode
+/// the metadata alongside the visible content (#2562).
+fn display_user_text_with_meta(
+    text: &str,
+) -> (String, Vec<super::llm::message_meta::AttachmentInfo>) {
     const MARKER: &str = "[User attached a file stored at inbox/";
     let Some(position) = text.find(MARKER) else {
-        return text.to_string();
+        return (text.to_string(), Vec::new());
     };
     let before = text[..position].trim();
-    if !before.is_empty() {
-        return before.to_string();
-    }
     let file_name = text[position + MARKER.len()..]
         .split(';')
         .next()
         .unwrap_or("")
-        .trim();
-    if file_name.is_empty() {
-        "📎 attachment".to_string()
+        .trim()
+        .to_string();
+    let display = if !before.is_empty() {
+        before.to_string()
+    } else if file_name.is_empty() {
+        "\u{1f4ce} attachment".to_string()
     } else {
-        format!("📎 {file_name}")
-    }
+        format!("\u{1f4ce} {file_name}")
+    };
+    let attachments = if file_name.is_empty() {
+        Vec::new()
+    } else {
+        let drive_path = format!("inbox/{file_name}");
+        let mime = super::activity::mime_from_name(&file_name);
+        vec![super::llm::message_meta::AttachmentInfo {
+            name: file_name,
+            mime_type: mime,
+            size: 0,
+            drive_path,
+        }]
+    };
+    (display, attachments)
 }
 
 pub(super) async fn build_and_stream(
@@ -140,9 +157,19 @@ pub(super) async fn build_and_stream(
     super::connector_hints::inject(state, bot_uuid, user_id, &user_query, &mut messages_val);
 
     if !is_switcher_replay {
-        let display_text = display_user_text(user_text);
+        let (display_text, attach_meta) = display_user_text_with_meta(user_text);
+        // #2562 — encode attachment metadata so a reload shows file chips.
+        let stored_text = if attach_meta.is_empty() {
+            display_text.clone()
+        } else {
+            let meta = super::llm::message_meta::MessageMeta {
+                attachments: attach_meta,
+                ..Default::default()
+            };
+            super::llm::message_meta::encode(&display_text, &meta)
+        };
         let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 1, &display_text, 1);
+        let _ = sm.save_message(session_id, user_id, 1, &stored_text, 1);
         // Name the conversation as soon as it starts, from the user's own
         // words. Only runs while the title is still a placeholder, so a later
         // rename (manual or automatic) is preserved.
