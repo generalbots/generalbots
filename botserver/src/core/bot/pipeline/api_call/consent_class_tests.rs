@@ -1,7 +1,7 @@
 //! Unit tests for `consent_action_class`.
 
 #[cfg(feature = "consent")]
-use super::handle::consent_action_class;
+use super::consent_class::consent_action_class;
 
 #[cfg(feature = "consent")]
 #[test]

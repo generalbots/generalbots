@@ -2,6 +2,7 @@
 //! and command execution with an optional composed answer.
 
 mod args;
+mod consent_class;
 mod handle;
 mod humanize;
 mod parse;
