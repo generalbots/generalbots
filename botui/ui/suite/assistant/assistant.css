@@ -58,7 +58,7 @@ body {
         transparent calc(50% + 484px),
         transparent 100%);
 }
-@media (max-width: 900px) {
+@media (max-width: 960px) {
     .gb-main::after { background: var(--id-paper); }
 }
 
@@ -394,9 +394,9 @@ body {
 }
 
 /* ================================================================
-   Responsive: sidebar overlay on narrow viewports
+   Responsive: sidebar overlay on narrow viewports (< 960px)
    ================================================================ */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
     .gb-sidebar {
         position: fixed;
         z-index: 100;
@@ -406,6 +406,18 @@ body {
     .gb-sidebar.collapsed {
         width: 0;
         min-width: 0;
+    }
+    /* Backdrop behind the slide-over sidebar */
+    .gb-sidebar-backdrop {
+        display: none; position: fixed; inset: 0; z-index: 99;
+        background: rgba(0,0,0,.2);
+    }
+    .gb-sidebar:not(.collapsed) ~ .gb-sidebar-backdrop {
+        display: block;
+    }
+    /* Start collapsed on narrow viewports */
+    .gb-sidebar.gb-sidebar-narrow-default {
+        width: 0; min-width: 0; border-right: none;
     }
 }
 
@@ -441,6 +453,6 @@ body {
    Utility: gutter on the sides
    ================================================================ */
 .gb-main { padding: 0 var(--id-space-4); }
-@media (min-width: 900px) {
+@media (min-width: 960px) {
     .gb-main { padding: 0; }
 }

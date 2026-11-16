@@ -135,6 +135,8 @@
             A.renderHistory(msgs);
             A.reconnectWs();
         });
+        /* Narrow viewports: auto-close the slide-over sidebar */
+        if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
     }
 
     /* ---- Inline rename (edits title in place) ---- */
@@ -373,25 +375,63 @@
     };
 
     /* ---- Sidebar toggle ---- */
+    function isNarrow() { return window.innerWidth <= 960; }
+
+    function collapseSidebar() {
+        var sidebar = document.getElementById("gb-sidebar");
+        if (sidebar) { sidebar.classList.add("collapsed"); }
+        A.sidebarCollapsed = true;
+        var bd = document.getElementById("gbSidebarBackdrop");
+        if (bd) { bd.style.display = "none"; }
+    }
+
+    function expandSidebar() {
+        var sidebar = document.getElementById("gb-sidebar");
+        if (sidebar) { sidebar.classList.remove("collapsed"); }
+        A.sidebarCollapsed = false;
+        if (isNarrow()) {
+            var bd = document.getElementById("gbSidebarBackdrop");
+            if (bd) { bd.style.display = "block"; }
+        }
+    }
+
     A.initSidebarToggle = function () {
         var btn = document.getElementById("gbSidebarToggle");
         if (!btn) { return; }
         btn.addEventListener("click", function () {
-            var sidebar = document.getElementById("gb-sidebar");
-            if (!sidebar) { return; }
-            sidebar.classList.toggle("collapsed");
-            A.sidebarCollapsed = sidebar.classList.contains("collapsed");
+            if (A.sidebarCollapsed) { expandSidebar(); }
+            else { collapseSidebar(); }
         });
+
+        /* Backdrop element for closing on outside click */
+        var bd = document.createElement("div");
+        bd.id = "gbSidebarBackdrop";
+        bd.className = "gb-sidebar-backdrop";
+        bd.style.display = "none";
+        bd.addEventListener("click", collapseSidebar);
+        var app = document.querySelector(".gb-app");
+        if (app) { app.appendChild(bd); }
+
+        /* Expand button (shown when collapsed) */
         var expand = document.createElement("button");
         expand.className = "gb-btn-icon gb-expand-sidebar";
         expand.setAttribute("aria-label", A.t("assistant.expand-sidebar", "Expand sidebar"));
         expand.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
-        expand.addEventListener("click", function () {
-            var sidebar = document.getElementById("gb-sidebar");
-            if (sidebar) { sidebar.classList.remove("collapsed"); }
-            A.sidebarCollapsed = false;
-        });
+        expand.addEventListener("click", expandSidebar);
         var main = document.getElementById("gb-main");
         if (main) { main.insertBefore(expand, main.firstChild); }
+
+        /* Auto-collapse on narrow viewports */
+        if (isNarrow()) { collapseSidebar(); }
+        window.addEventListener("resize", function () {
+            if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+        });
+
+        /* Close sidebar on Esc */
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && !A.sidebarCollapsed && isNarrow()) {
+                collapseSidebar();
+            }
+        });
     };
 })();
