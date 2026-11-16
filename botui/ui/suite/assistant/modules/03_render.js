@@ -115,6 +115,7 @@
             body.innerHTML = html;
             A.enhanceCodeBlocks(body);
             A.highlightCodeBlocks(body);
+            if (typeof A.renderMath === "function") { A.renderMath(body); }
             el.appendChild(body);
         }
         if (opts.citations && opts.citations.length) {
@@ -312,6 +313,7 @@
                     bd.innerHTML = ht;
                     A.enhanceCodeBlocks(bd);
                     A.highlightCodeBlocks(bd);
+                    if (typeof A.renderMath === "function") { A.renderMath(bd); }
                     el.appendChild(bd);
                 }
                 addAssistantActions(el, m.content, false);

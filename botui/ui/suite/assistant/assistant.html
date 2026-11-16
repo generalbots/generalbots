@@ -46,6 +46,10 @@
 <script src="/suite/assistant/vendor/hljs/highlight.min.js"></script>
 <script src="/suite/assistant/vendor/hljs/languages.min.js"></script>
 
+<!-- Math rendering (KaTeX 0.19.1, MIT) -->
+<link rel="stylesheet" href="/suite/assistant/vendor/katex/katex.min.css" />
+<script src="/suite/assistant/vendor/katex/katex.min.js"></script>
+
 <script>
 /* Boot: capture token from URL before anything else renders. */
 (function () {
@@ -260,6 +264,7 @@
 <script src="/suite/assistant/modules/01_state.js"></script>
 <script src="/suite/assistant/modules/02_api.js"></script>
 <script src="/suite/assistant/modules/03c_markdown.js"></script>
+<script src="/suite/assistant/modules/03d_math.js"></script>
 <script src="/suite/assistant/modules/03_render.js"></script>
 <script src="/suite/assistant/modules/03a_stream.js"></script>
 <script src="/suite/assistant/modules/03b_actions.js"></script>
