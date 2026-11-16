@@ -13,5 +13,12 @@
       "purpose": "any"
     }
   ],
-  "scope": "/suite/"
+  "scope": "/suite/",
+  "id": "/suite/desktop.html",
+  "orientation": "natural",
+  "categories": [
+    "productivity",
+    "business"
+  ],
+  "description": "General Bots desktop workspace"
 }

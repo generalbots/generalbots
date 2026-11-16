@@ -6,18 +6,33 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v43";
+var CACHE = "gb-desktop-shell-v44";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
   "/suite/js/security-bootstrap/01_tokens.js?v=6",
   "/suite/js/security-bootstrap/02_interceptors.js?v=6",
   "/suite/js/security-bootstrap/99_init.js?v=6",
+  "/suite/js/window-manager/01_registry.js?v=131",
+  "/suite/js/window-manager/02_class_core.js?v=131",
+  "/suite/js/window-manager/03_window_chrome.js?v=131",
+  "/suite/js/window-manager/04_window_state.js?v=131",
+  "/suite/js/window-manager/05_start_menu.js?v=131",
+  "/suite/js/window-manager/06_deeplinks.js?v=131",
+  "/suite/js/window-manager/07_status.js?v=132",
+  "/suite/js/window-manager/08_fullscreen.js?v=1",
+  "/suite/js/window-manager/99_init.js?v=131",
   "/suite/js/widget-registry.js?v=2",
   "/suite/js/widget-renderer.js?v=2",
   "/suite/js/sidebar.js?v=18",
   "/suite/js/vibe-bridge.js?v=4",
   "/suite/css/desktop/widgets.css?v=1",
+  "/suite/css/desktop/windows.css?v=15",
+  "/suite/css/desktop/taskbar.css?v=4",
+  "/suite/css/desktop/sidebar.css?v=5",
+  "/suite/css/desktop/start-menu.css?v=1",
+  "/suite/css/base.css",
+  "/suite/css/app.css",
 ];
 
 // Install must never fail wholesale: `c.addAll` rejects if ANY core URL
