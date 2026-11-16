@@ -21,12 +21,13 @@
         var container = document.getElementById("gbSettingsContainer");
         if (!container) { return; }
         var sections = [
-            { id: "account",    icon: "user",    key: "settings.account" },
-            { id: "appearance", icon: "palette",  key: "settings.appearance" },
-            { id: "language",   icon: "globe",    key: "settings.language" },
-            { id: "model",      icon: "cpu",      key: "settings.model" },
-            { id: "shortcuts",  icon: "keyboard",  key: "shortcut.title" },
-            { id: "about",      icon: "info",     key: "settings.about" },
+            { id: "account",      icon: "user",     key: "settings.account" },
+            { id: "instructions", icon: "message",  key: "settings.instructions" },
+            { id: "appearance",   icon: "palette",  key: "settings.appearance" },
+            { id: "language",     icon: "globe",    key: "settings.language" },
+            { id: "model",        icon: "cpu",      key: "settings.model" },
+            { id: "shortcuts",    icon: "keyboard", key: "shortcut.title" },
+            { id: "about",        icon: "info",     key: "settings.about" },
         ];
         var nav = '<nav class="gb-set-nav" role="tablist">';
         nav += '<button class="gb-set-back" id="gbSetBack" aria-label="' +
@@ -77,6 +78,7 @@
             cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
             info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
             keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
+            message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
         };
         return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
     }
@@ -89,6 +91,7 @@
         if (!panel) { return; }
         var renderers = {
             account: renderAccount,
+            instructions: renderInstructions,
             appearance: renderAppearance,
             language: renderLanguage,
             model: renderModel,
@@ -136,6 +139,15 @@
             '</div>';
         var btn = document.getElementById("gbSetSignOut");
         if (btn) { btn.addEventListener("click", function () { A.signOut(); }); }
+    }
+
+    /* -- Custom instructions (delegated to 09c_settings_instructions.js) -- */
+    function renderInstructions(panel) {
+        if (typeof A.renderInstructions === "function") {
+            A.renderInstructions(panel);
+        } else {
+            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
+        }
     }
 
     /* -- Appearance (pattern data in 09b_patterns.js) -- */

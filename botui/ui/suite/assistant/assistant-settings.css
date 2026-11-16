@@ -307,3 +307,29 @@
     overflow: hidden;
 }
 .gb-set-bg-name { font-size: 10px; color: var(--id-muted); text-align: center; }
+
+/* ---- Custom instructions ---- */
+.gb-set-textarea {
+    display: block; width: 100%; box-sizing: border-box;
+    padding: 8px 10px; font-size: var(--id-text-sm);
+    font-family: var(--id-font-sans); line-height: 1.5;
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    background: var(--id-paper); color: var(--id-text);
+    resize: vertical; min-height: 60px;
+}
+.gb-set-textarea:focus { outline: none; border-color: var(--id-accent); box-shadow: var(--id-focus); }
+.gb-set-counter { display: block; text-align: right; font-size: 11px; color: var(--id-muted); margin-top: 2px; }
+.gb-set-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gb-set-toggle {
+    appearance: none; -webkit-appearance: none;
+    width: 36px; height: 20px; border-radius: 10px;
+    background: var(--id-gray-300); position: relative; cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease);
+}
+.gb-set-toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: white; transition: transform var(--id-dur-fast) var(--id-ease);
+}
+.gb-set-toggle:checked { background: var(--id-accent); }
+.gb-set-toggle:checked::after { transform: translateX(16px); }

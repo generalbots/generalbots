@@ -53,6 +53,16 @@ pub(super) fn build(
     } else {
         format!("{system_prompt}{memory_block}")
     };
+    // #2561 — per-user custom instructions ("Instruções personalizadas").
+    let custom_block = crate::main_module::routes::custom_instructions::render_for_prompt(
+        &state.conn,
+        user_id,
+    );
+    let system_prompt = if custom_block.is_empty() {
+        system_prompt
+    } else {
+        format!("{system_prompt}{custom_block}")
+    };
     // #1681 — installed Agent Skills packages are advertised as guidance.
     #[cfg(feature = "sources")]
     let skills_block = match state.conn.get() {
