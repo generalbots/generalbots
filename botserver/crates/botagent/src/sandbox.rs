@@ -54,14 +54,8 @@ fn bad_request(msg: &str) -> (StatusCode, String) {
     (StatusCode::BAD_REQUEST, msg.to_string())
 }
 
-/// Minimal denylist for shell payloads (defense in depth alongside the
-/// container isolation).
-pub fn is_dangerous(code: &str) -> bool {
-    let lowered = code.to_lowercase();
-    ["rm -rf /", "mkfs", "dd if=", ":(){ :|:& };:"]
-        .iter()
-        .any(|pattern| lowered.contains(pattern))
-}
+/// Denylist removed (#2366): brittle substring checks are easily bypassed.
+/// Rely on container/sandbox isolation for shell execution safety.
 
 fn interpreter_and_file(language: &str) -> Option<(&'static str, &'static str)> {
     match language {
@@ -174,9 +168,6 @@ pub async fn run_sandbox(
     }
     if body.code.is_empty() || body.code.chars().count() > MAX_CODE_CHARS {
         return Err(bad_request("Code size out of bounds"));
-    }
-    if language == "shell" && is_dangerous(&body.code) {
-        return Err(bad_request("Code rejected by safety policy"));
     }
     let (interpreter, target) =
         interpreter_and_file(&language).ok_or_else(|| bad_request("Unsupported language"))?;
