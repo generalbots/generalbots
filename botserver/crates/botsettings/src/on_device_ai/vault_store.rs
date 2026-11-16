@@ -47,56 +47,69 @@ pub(crate) fn is_loopback(url: &str) -> bool {
     lowered.contains("localhost") || lowered.contains("127.0.0.1") || lowered.contains("[::1]")
 }
 
-/// Persist the model (and optional profile) to Vault. Returns whether the
-/// local chat-completions URL was written as well.
+/// Persist the model (and optional profile) to Vault using the unified
+/// write-sets computation so both maps are always consistent.
 pub(crate) async fn save_choice(
     state: &std::sync::Arc<botcore::shared::state::AppState>,
     spec: &ModelSpec,
     profile: Option<&Profile>,
 ) -> Result<bool, String> {
+    use crate::model_config::write_sets;
+
     let secrets = SecretsManager::get_clone().map_err(|error| format!("vault_unavailable: {error}"))?;
     if !secrets.is_enabled() {
         return Err("vault_not_enabled".to_string());
     }
 
-    let mut central: HashMap<String, String> = secrets
+    let central: HashMap<String, String> = secrets
         .get_secret(CENTRAL_LLM_PATH)
         .await
         .unwrap_or_default();
-    central.insert("model".to_string(), spec.file.to_string());
-    let current_url = central.get("url").cloned().unwrap_or_default();
-    let write_url = current_url.trim().is_empty() || is_loopback(&current_url);
-    if write_url {
-        central.insert("url".to_string(), DEFAULT_LLM_URL.to_string());
-    }
-    secrets
-        .put_secret(CENTRAL_LLM_PATH, central)
-        .await
-        .map_err(|error| format!("vault_write_failed: {error}"))?;
-
     let nil = Uuid::nil();
     let bot_path = format!("gbo/{nil}/{nil}/{nil}");
-    let mut per_bot = secrets.get_secret(&bot_path).await.unwrap_or_default();
-    per_bot.insert("llm-model".to_string(), spec.file.to_string());
+    let per_bot: HashMap<String, String> = secrets
+        .get_secret(&bot_path)
+        .await
+        .unwrap_or_default();
+
+    let target = write_sets::Target::Local { file: spec.file.to_string() };
+    let (new_central, new_per_bot) = write_sets::compute(&central, &per_bot, &target);
+
+    let wrote_url = new_central.get("url").map(|u| u == DEFAULT_LLM_URL).unwrap_or(false);
+
     secrets
-        .put_secret(&bot_path, per_bot)
+        .put_secret(CENTRAL_LLM_PATH, new_central)
+        .await
+        .map_err(|error| format!("vault_write_failed: {error}"))?;
+    secrets
+        .put_secret(&bot_path, new_per_bot)
         .await
         .map_err(|error| format!("vault_write_failed: {error}"))?;
 
     if let Some(profile) = profile {
-        let config = ConfigManager::new(state.conn.clone());
-        let ctx = profile.ctx_size.to_string();
-        for (key, value) in [
-            ("llm-server-ctx-size", ctx.as_str()),
-            ("llm-server-gpu-layers", profile.gpu_layers),
-        ] {
-            config
-                .set_config(&nil, key, value)
-                .map_err(|error| format!("profile_write_failed: {error}"))?;
-        }
+        save_profile(state, profile)?;
     }
 
-    Ok(write_url)
+    Ok(wrote_url)
+}
+
+/// Write performance-profile settings (ctx-size, gpu-layers) to ConfigManager.
+pub(crate) fn save_profile(
+    state: &std::sync::Arc<botcore::shared::state::AppState>,
+    profile: &Profile,
+) -> Result<(), String> {
+    let config = ConfigManager::new(state.conn.clone());
+    let nil = Uuid::nil();
+    let ctx = profile.ctx_size.to_string();
+    for (key, value) in [
+        ("llm-server-ctx-size", ctx.as_str()),
+        ("llm-server-gpu-layers", profile.gpu_layers),
+    ] {
+        config
+            .set_config(&nil, key, value)
+            .map_err(|error| format!("profile_write_failed: {error}"))?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
