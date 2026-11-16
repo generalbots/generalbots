@@ -80,6 +80,15 @@ impl TranslationFile {
         result
     }
 
+    /// Checks whether `key` exists without logging on a miss.
+    ///
+    /// Use this for probes (`has_message`) where a miss is expected and not an
+    /// error — e.g. checking whether literal suggestion text is a translation
+    /// key before deciding to translate it.
+    pub fn contains(&self, key: &str) -> bool {
+        self.messages.contains_key(key)
+    }
+
     /// Every message id defined in this bundle. Used by the i18n API so a key
     /// authored in an `.ftl` file is served to the UI even when the explicit
     /// Rust catalogue has not been updated yet (#1853).
@@ -179,6 +188,11 @@ impl LocaleBundle {
 
     pub fn get_message(&self, key: &str) -> Option<&String> {
         self.translations.get(key)
+    }
+
+    /// Silent key probe: returns `true` when the key exists, without logging.
+    pub fn has_key(&self, key: &str) -> bool {
+        self.translations.contains(key)
     }
 
     pub fn message_ids(&self) -> impl Iterator<Item = &str> {
