@@ -137,6 +137,76 @@ async fn stream_llm_response_inner(
                 .await;
                 let (full_response, mut content_buffer, reasoning_accumulated) = match outcome {
                     AttemptOutcome::Stopped | AttemptOutcome::Capped => return Ok(()),
+                    AttemptOutcome::Failed { code, detail } => {
+                        // #2562 — classified LLM error: send a structured
+                        // error frame so the client renders the right card
+                        // and retry/settings buttons.
+                        log::warn!(
+                            "LLM attempt {}/{} failed: {:?} — {}",
+                            attempt + 1,
+                            LLM_RETRY_MAX,
+                            code,
+                            detail
+                        );
+                        // Retry transient errors before giving up.
+                        if code.is_retryable() && attempt < LLM_RETRY_MAX {
+                            tokio::time::sleep(Duration::from_secs(LLM_RETRY_DELAY)).await;
+                            continue;
+                        }
+                        let safe_msg = code.safe_message();
+                        let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+                        let i18n_key = match code {
+                            super::error_classify::LlmErrorCode::ModelUnreachable => "error-model-unreachable",
+                            super::error_classify::LlmErrorCode::ModelAuth => "error-model-auth",
+                            super::error_classify::LlmErrorCode::ModelRateLimited => "error-model-rate-limited",
+                            super::error_classify::LlmErrorCode::ModelError => "error-model-error",
+                            super::error_classify::LlmErrorCode::Timeout => "error-model-timeout",
+                        };
+                        let msg = {
+                            let translated = botcore::i18n::t(&locale, i18n_key);
+                            if translated.starts_with('[') && translated.ends_with(']') {
+                                safe_msg.to_string()
+                            } else {
+                                translated
+                            }
+                        };
+                        let err_frame = serde_json::json!({
+                            "bot_id": bot_uuid_s,
+                            "user_id": user_id.to_string(),
+                            "session_id": session_id_s,
+                            "channel": "web",
+                            "content": msg,
+                            "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
+                            "is_complete": true,
+                            "is_error": true,
+                            "error": true,
+                            "error_code": code,
+                            "retryable": code.is_retryable(),
+                            "status": "failed",
+                            "turn_status": "failed",
+                            "suggestions": [],
+                            "switchers": [],
+                            "context_length": 0,
+                            "context_max_length": 0,
+                        });
+                        if sink.supports_raw_frames() {
+                            if let Err(error) = sink.send_raw_json(&err_frame).await {
+                                log::error!("LLM error frame not delivered: {error}");
+                            }
+                        } else {
+                            let err_resp = botlib::models::BotResponse::new(
+                                bot_uuid_s,
+                                session_id_s,
+                                user_id.to_string(),
+                                &msg,
+                                "web",
+                            );
+                            if let Err(error) = sink.send_bot_response(&err_resp).await {
+                                log::error!("LLM error response not delivered: {error}");
+                            }
+                        }
+                        return Ok(());
+                    }
                     AttemptOutcome::Completed {
                         full_response,
                         content_buffer,
@@ -444,8 +514,21 @@ async fn stream_llm_response_inner(
                 }
 
                 {
+                    // #2562 — persist reasoning alongside the message so
+                    // a reopened conversation shows the thinking card.
+                    let store_content = if reasoning_accumulated.trim().is_empty() {
+                        full_response.clone()
+                    } else {
+                        super::message_meta::encode(
+                            &full_response,
+                            &super::message_meta::MessageMeta {
+                                reasoning: reasoning_accumulated.trim().to_string(),
+                                ..Default::default()
+                            },
+                        )
+                    };
                     let mut sm = state.session_manager.lock().await;
-                    let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                    let _ = sm.save_message(session_id, user_id, 2, &store_content, 2);
                     let _ = sm.record_message_model(session_id, llm_model);
                 }
                 #[cfg(feature = "memory-os")]

@@ -1,5 +1,17 @@
 use super::*;
 
+/// Strips the `\0GB_META\0{json}` trailer that `message_meta::encode` appends,
+/// returning only the visible content. Legacy messages without the trailer pass
+/// through unchanged.
+fn strip_meta_block(content: &str) -> String {
+    const SEP: &str = "\0GB_META\0";
+    if let Some(pos) = content.find(SEP) {
+        content[..pos].trim_end_matches('\n').to_string()
+    } else {
+        content.to_string()
+    }
+}
+
 impl SessionManager {
     pub fn get_conversation_history(
         &mut self,
@@ -52,10 +64,13 @@ impl SessionManager {
                     if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
                         continue;
                     }
-                    if decrypted.trim().is_empty() {
+                    // #2562 — strip the metadata block (reasoning etc.) so
+                    // the model never sees its own reasoning replayed.
+                    let visible = strip_meta_block(&decrypted);
+                    if visible.trim().is_empty() {
                         continue;
                     }
-                    history.push((role_str, decrypted));
+                    history.push((role_str, visible));
                 }
                 Err(_) => unreadable += 1,
             }
@@ -116,10 +131,12 @@ impl SessionManager {
                     if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
                         continue;
                     }
-                    if decrypted.trim().is_empty() {
+                    // #2562 — strip the metadata block (reasoning etc.)
+                    let visible = strip_meta_block(&decrypted);
+                    if visible.trim().is_empty() {
                         continue;
                     }
-                    history.push((role_str, decrypted));
+                    history.push((role_str, visible));
                 }
                 Err(_) => unreadable += 1,
             }
@@ -127,6 +144,70 @@ impl SessionManager {
         if unreadable > 0 {
             botlog::safe_warn!(
                 "get_conversation_history_paged: {unreadable} message(s) skipped for session {sess_id}"
+            );
+        }
+        Ok(history)
+    }
+
+    /// #2562 — Like `get_conversation_history_paged` but also returns the
+    /// raw `message_index` so the API can pass it to the client for truncation.
+    pub fn get_conversation_history_with_indices(
+        &mut self,
+        sess_id: Uuid,
+        _uid: Uuid,
+        history_limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<(String, String, i32)>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let limit_val = history_limit.unwrap_or(50);
+        let messages = message_history::table
+            .filter(message_history::session_id.eq(sess_id))
+            .order(message_history::message_index.asc())
+            .select((
+                message_history::role,
+                message_history::content_encrypted,
+                message_history::message_index,
+            ))
+            .load::<(i32, String, i32)>(&mut conn)?;
+        let total_messages_needed = (limit_val * 2) as usize;
+        let off_msgs = (offset.unwrap_or(0) * 2) as usize;
+        let end = messages.len().saturating_sub(off_msgs);
+        let start = end.saturating_sub(total_messages_needed);
+        let page_messages: Vec<_> = messages.into_iter().skip(start).take(end - start).collect();
+
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::bot_id)
+            .first(&mut conn)?;
+        let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
+
+        let mut history: Vec<(String, String, i32)> = Vec::new();
+        let mut unreadable = 0usize;
+        for (other_role, content, idx) in page_messages {
+            let role_str = match other_role {
+                1 => "user".to_string(),
+                2 => "assistant".to_string(),
+                3 => "system".to_string(),
+                9 => "episodic".to_string(),
+                _ => "unknown".to_string(),
+            };
+            match decrypt_field(&content, &key_bytes) {
+                Ok(decrypted) => {
+                    if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
+                        continue;
+                    }
+                    let visible = strip_meta_block(&decrypted);
+                    if visible.trim().is_empty() {
+                        continue;
+                    }
+                    history.push((role_str, visible, idx));
+                }
+                Err(_) => unreadable += 1,
+            }
+        }
+        if unreadable > 0 {
+            botlog::safe_warn!(
+                "get_conversation_history_with_indices: {unreadable} message(s) skipped for session {sess_id}"
             );
         }
         Ok(history)
@@ -267,6 +348,43 @@ impl SessionManager {
             "today_sessions": today_count,
             "waiting_for_input": self.waiting_for_input.len()
         }))
+    }
+
+    /// #2562 — Truncates a conversation from `from_index` onward: all messages
+    /// with `message_index >= from_index` are deleted. Ownership is checked
+    /// against `owner_id`. Returns the number of rows deleted, or 0 when the
+    /// session does not exist or belongs to another user.
+    pub fn truncate_from(
+        &mut self,
+        sess_id: Uuid,
+        owner_id: Uuid,
+        from_index: i32,
+    ) -> Result<usize, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let owner: Option<String> = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::user_id)
+            .first(&mut conn)
+            .optional()?;
+        let Some(owner_uuid) = owner else {
+            return Ok(0);
+        };
+        if owner_uuid != owner_id.to_string() {
+            return Ok(0);
+        }
+        let deleted = diesel::delete(
+            message_history::table
+                .filter(message_history::session_id.eq(sess_id))
+                .filter(message_history::message_index.ge(from_index)),
+        )
+        .execute(&mut conn)?;
+        botlog::safe_trace!(
+            "truncate_from: session {} from index {}: deleted {} rows",
+            sess_id,
+            from_index,
+            deleted
+        );
+        Ok(deleted)
     }
 
     /// Deletes one conversation (messages first, then the session row) when it

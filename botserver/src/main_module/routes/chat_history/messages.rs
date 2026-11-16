@@ -15,8 +15,12 @@ use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_p
 struct HistoryMessage {
     role: String,
     content: String,
+    /// The raw database message_index, needed by truncate (#2562).
+    message_index: i32,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     attachments: Vec<HistoryAttachment>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    reasoning: String,
 }
 
 #[derive(Serialize)]
@@ -99,21 +103,52 @@ pub async fn handle_chat_history_messages(
             .map_err(|e| db_error("decrypt history", e))?
     };
 
+    // #2562 — assign a sequential index to visible messages so the
+    // client can reference them in truncation requests.
+    let mut msg_seq: i32 = 0;
     let messages: Vec<HistoryMessage> = history
         .into_iter()
         .filter(|(role, content)| {
             (*role == "user" || *role == "assistant") && !content.trim().is_empty()
         })
         .map(|(role, content)| {
+            // #2562 — decode metadata (reasoning, attachments) from the
+            // stored content so a reopened conversation shows them.
+            let (visible, meta) =
+                crate::core::bot::pipeline::llm::message_meta::decode(&content);
             let attachments = if role == "user" {
-                parse_attachment_markers(&content)
+                if let Some(ref m) = meta {
+                    if !m.attachments.is_empty() {
+                        m.attachments
+                            .iter()
+                            .map(|a| HistoryAttachment {
+                                name: a.name.clone(),
+                                mime_type: a.mime_type.clone(),
+                                size: a.size,
+                                drive_path: a.drive_path.clone(),
+                            })
+                            .collect()
+                    } else {
+                        parse_attachment_markers(visible)
+                    }
+                } else {
+                    parse_attachment_markers(visible)
+                }
             } else {
                 Vec::new()
             };
+            let reasoning = meta
+                .as_ref()
+                .map(|m| m.reasoning.clone())
+                .unwrap_or_default();
+            let idx = msg_seq;
+            msg_seq += 1;
             HistoryMessage {
                 role,
-                content,
+                content: visible.to_string(),
+                message_index: idx,
                 attachments,
+                reasoning,
             }
         })
         .collect();

@@ -154,6 +154,16 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
             .get_first_user_message(session_id)
             .map_err(|e| e.to_string())
     }
+    fn truncate_from(
+        &mut self,
+        session_id: uuid::Uuid,
+        owner_id: uuid::Uuid,
+        from_index: i32,
+    ) -> Result<usize, String> {
+        self.0
+            .truncate_from(session_id, owner_id, from_index)
+            .map_err(|e| e.to_string())
+    }
     fn delete_session(
         &mut self,
         session_id: uuid::Uuid,

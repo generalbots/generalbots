@@ -8,16 +8,18 @@ mod attachment;
 mod manage;
 mod messages;
 mod sessions;
+mod truncate;
 
 pub use attachment::handle_attachment_preview;
 pub use manage::{handle_delete_chat_history_session, handle_rename_chat_history_session};
 pub use messages::handle_chat_history_messages;
 pub use sessions::handle_chat_history_sessions;
+pub use truncate::handle_truncate;
 
 use std::sync::Arc;
 
 use axum::http::StatusCode;
-use axum::routing::{delete, get};
+use axum::routing::{delete, get, post};
 use axum::Router;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
@@ -65,5 +67,9 @@ pub fn configure_chat_history_routes() -> Router<Arc<AppState>> {
             delete(handle_delete_chat_history_session)
                 .put(handle_rename_chat_history_session)
                 .patch(handle_rename_chat_history_session),
+        )
+        .route(
+            "/api/chat/history/sessions/:session_id/truncate",
+            post(handle_truncate),
         )
 }

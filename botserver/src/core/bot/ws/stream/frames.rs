@@ -106,6 +106,29 @@ pub(super) fn final_frame(
     })
 }
 
+/// #2562 — classified LLM error with a stable code for the client.
+pub(super) fn llm_error(
+    turn: &LlmTurn<'_>,
+    code: crate::core::bot::pipeline::llm::error_classify::LlmErrorCode,
+) -> Value {
+    json!({
+        "bot_id": turn.bot_uuid.to_string(),
+        "user_id": turn.user_id.to_string(),
+        "session_id": turn.session_id.to_string(),
+        "channel": "web",
+        "content": code.safe_message(),
+        "message_type": 2, "is_complete": true,
+        "is_error": true,
+        "error": true,
+        "error_code": code,
+        "retryable": code.is_retryable(),
+        "status": "failed",
+        "turn_status": "failed",
+        "suggestions": [], "switchers": [],
+        "context_length": 0, "context_max_length": 0,
+    })
+}
+
 /// Answer emitted when no LLM provider is configured.
 pub(super) fn fallback(turn: &LlmTurn<'_>, content: String) -> Value {
     json!({

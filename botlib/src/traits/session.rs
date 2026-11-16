@@ -131,6 +131,17 @@ pub trait SessionManagerService: Send + Debug {
         Err("delete_session is not supported by this session manager".to_string())
     }
 
+    /// #2562 — Truncates a conversation from a given message index, deleting
+    /// all messages at or after that index. Returns the number of rows removed.
+    fn truncate_from(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _owner_id: uuid::Uuid,
+        _from_index: i32,
+    ) -> Result<usize, String> {
+        Err("truncate_from is not supported by this session manager".to_string())
+    }
+
     /// Renames a conversation when it belongs to `owner_id`. Returns `false`
     /// when the session is missing, owned by someone else, or the title is
     /// empty after trimming.

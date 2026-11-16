@@ -8,7 +8,9 @@ use uuid::Uuid;
 use super::sink::ChannelSink;
 
 mod attempt;
+pub(crate) mod error_classify;
 mod markdown;
+pub(crate) mod message_meta;
 mod stream;
 mod svg_contract;
 
