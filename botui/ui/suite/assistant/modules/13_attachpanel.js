@@ -283,14 +283,14 @@ function bindDownloadButtons(body, name, opts) {
 function downloadAttachment(name, opts) {
     var drivePath = (opts && opts.drivePath) || "";
     if (!drivePath) { return; }
-    /* Inbox files live in the bot's Drive layout; the preview endpoint
-       resolves the correct bucket and prefix. For binary types (PDF,
-       images) it returns raw bytes suitable for download. */
+    /* Inbox files: use the preview endpoint with download=1 to get the
+       original bytes for any file type (the plain preview returns 415
+       for types it cannot render). */
     var isInbox = drivePath.indexOf("inbox/") >= 0;
     var fetchP;
     if (isInbox) {
         var inboxName = drivePath.substring(drivePath.indexOf("inbox/") + 6);
-        var url = A.origin + "/api/chat/attachments/preview?bot=" +
+        var url = A.origin + "/api/chat/attachments/preview?download=1&bot=" +
             encodeURIComponent(A.botName || "default") +
             "&name=" + encodeURIComponent(inboxName);
         fetchP = fetch(url, {

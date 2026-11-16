@@ -274,7 +274,7 @@
         if (isInbox) {
             var inboxName = path.indexOf("inbox/") >= 0
                 ? path.substring(path.indexOf("inbox/") + 6) : name;
-            var previewUrl = "/api/chat/attachments/preview?bot=" +
+            var previewUrl = "/api/chat/attachments/preview?download=1&bot=" +
                 encodeURIComponent(A.botName || "default") +
                 "&name=" + encodeURIComponent(inboxName);
             fetchPromise = A.apiFetch(previewUrl);
