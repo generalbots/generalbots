@@ -151,7 +151,7 @@ inputs — the orchestrator prefers these attributes, falling back to heuristics
 | `botserver/src/core/bot/pipeline/llm.rs` | `__ui_plan__` interception |
 | `botserver/src/main_module/routes/sub_router.rs` | Register search route |
 | `botui/ui/suite/chat/chat-state.js` | `MessageType.UI_ACTION` |
-| `botui/ui/suite/chat/chat-websocket.js` | Route type 9 → orchestrator |
+| `botui/ui/suite/chat/chat-websocket_a.js` | Route type 9 → orchestrator |
 | `botui/ui/suite/js/ui-orchestrator.js` | **New** — animated driver |
 | `botui/ui/suite/js/gb-search.js` | **New** — universal search UI |
 | `botui/ui/suite/desktop.html` | Search bar + scripts |

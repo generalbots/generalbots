@@ -155,7 +155,7 @@ emitted from `botserver/src/core/bot/pipeline/llm/stream.rs`.
 
 The frontend consumes it in two places:
 
-- `botui/ui/suite/chat/chat-websocket.js` — on `UI_ACTION` with a `plan`, calls
+- `botui/ui/suite/chat/chat-websocket_a.js` — on `UI_ACTION` with a `plan`, calls
   `window.GBUiOrchestrator.executePlan(data.plan)`;
 - `botui/ui/suite/js/ui-orchestrator/99_execute.js` — refuses any app not in
   `window.APPS_REGISTRY`, runs one plan at a time, chains steps, and aborts the

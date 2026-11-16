@@ -143,7 +143,7 @@ test("ISSUE #2354: model output is sanitized before any bubble innerHTML", funct
   assert(sanitize.indexOf("javascript|vbscript|livescript") !== -1 ||
     sanitize.indexOf("javascript") !== -1, "javascript: URLs not blocked");
 
-  var message = readFile("chat/messages/50_message.js");
+  var message = readFile("chat/messages/50_message_a_helpers.js");
   assert(message.indexOf("parsed = GBSanitize.html(parsed)") !== -1,
     "completed-message path is unsanitized");
   var stream = readFile("chat/messages/70_stream.js");

@@ -3,7 +3,7 @@
  * `menu` walks a label path (Download → PDF) because one click cannot open a
  * submenu; `download` presses an export control and proves an artefact
  * appeared instead of trusting the click. Kept in its own module so
- * 02_steps.js stays under the size limit.
+ * 02_steps_a.js/02_steps_b.js stay under the size limit (#2305).
  */
 (function (window, document) {
   "use strict";

@@ -59,7 +59,7 @@
         "issue": "#1637",
         "tests": [
           "botserver/src/core/bot/pipeline/enriched_llm.rs",
-          "botui/ui/suite/chat/chat-init.js",
+          "botui/ui/suite/chat/chat-init_a.js",
           "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: Fast -> reflection/beam-free returned FAST-TIER-OK; Quality -> cohere/north-mini-code:free returned QUALITY-TIER-OK; server logged each tier's model. Balanced falls back to the default and is disabled. Screenshot /tmp/gb7_47_tiers.png.",

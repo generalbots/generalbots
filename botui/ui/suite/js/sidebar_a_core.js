@@ -396,56 +396,12 @@
   }
   window.updateLoginButton = refreshUser;
 
-  // ── Events from the chat app ──
-  window.addEventListener("gb-chat-session-changed", function (e) {
-    var sid = e && e.detail && e.detail.session_id ? String(e.detail.session_id) : "";
-    if (sid) highlightActive(sid);
-    loadHistory();
-  });
-
-  window.addEventListener("gb-chat-message-sent", function () {
-    clearTimeout(window.__gbSidebarRefreshTimer);
-    window.__gbSidebarRefreshTimer = setTimeout(loadHistory, 1500);
-  });
-
-  var toggleBtn = document.querySelector(".chat-sidebar-toggle");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", loadHistory);
-  }
-
-  // Delegated: the rail is re-rendered by sidebar-sections on boot and after
-  // workspace changes, which replaces the button node and drops listeners
-  // bound to the original instance ("New Conversation" did nothing).
-  document.addEventListener("click", function (e) {
-    if (e.target && e.target.closest && e.target.closest("#sidebarNewChatBtn")) {
-      newConversation();
-    }
-  });
-
-  // Expose for programmatic use (taskbar, collapsed icons, other apps).
-  window.GBSidebar = {
+  // Export internal hooks for split module (sidebar_b_events.js).
+  window.__GBSidebarFns = {
     loadHistory: loadHistory,
+    highlightActive: highlightActive,
     openConversation: openConversation,
     newConversation: newConversation,
-    refreshUser: refreshUser,
+    refreshUser: refreshUser
   };
-
-  // #1299 — Home app removed: the welcome-only window added no capability
-  // beyond the command palette it advertised.
-
-  // ── Init ────────────────────────────────────────────────────────
-  // Sidebar visibility is toggled by the existing .chat-sidebar-toggle
-  // button; no extra gripper is installed on the bar.
-
-  function init() {
-    renderApps();
-    refreshUser();
-    loadHistory();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
 })();

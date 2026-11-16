@@ -266,7 +266,7 @@ body.window-maximized .window-element.window-maximized-target {
 
 /* ── #1849 live window status bar contract ─────────────────────────────
    Renderer sink: state LED + primary, progress, metrics, selection,
-   connection, title. See js/window-manager/07_status.js. */
+   connection, title. See js/window-manager/07_status_a_core.js. */
 .window-statusbar {
   gap: 6px;
   overflow: hidden;
