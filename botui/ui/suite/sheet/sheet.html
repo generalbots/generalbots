@@ -101,14 +101,16 @@
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
-                    <label class="sheet-color" title="Fill color" aria-label="Fill color">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg>
-                        <input type="color" id="fillColorBtn" title="Fill color" aria-label="Fill color" value="#ffffff" />
-                    </label>
-                    <label class="sheet-color" title="Text color" aria-label="Text color">
-                        <span style="font-weight:700;">A</span>
-                        <input type="color" id="textColorBtn" title="Text color" aria-label="Text color" value="#000000" />
-                    </label>
+                    <input type="hidden" id="fillColorBtn" value="#ffffff" />
+                    <button type="button" class="gb-cp-trigger sheet-color-trigger" data-gb-color-for="fillColorBtn" title="Fill color" aria-label="Fill color">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"/><path d="M7 11V5a2 2 0 0 1 4 0v6"/></svg>
+                        <span class="gb-cp-swatch"></span>
+                    </button>
+                    <input type="hidden" id="textColorBtn" value="#000000" />
+                    <button type="button" class="gb-cp-trigger sheet-color-trigger" data-gb-color-for="textColorBtn" title="Text color" aria-label="Text color">
+                        <span style="font-weight:700;" aria-hidden="true">A</span>
+                        <span class="gb-cp-swatch"></span>
+                    </button>
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
@@ -172,6 +174,7 @@
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
 <script src="/suite/js/collab-comments/01_helpers.js"></script>
+<script src="/suite/js/gb-color-picker.js"></script>
 <script src="/suite/js/collab-comments/02_data.js"></script>
 <script src="/suite/js/collab-comments/99_panel.js"></script>
 <script src="/suite/js/auth-guard.js"></script>

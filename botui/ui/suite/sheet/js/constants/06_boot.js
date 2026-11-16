@@ -102,17 +102,19 @@
     }
     var fillBtn = document.getElementById("fillColorBtn");
     if (fillBtn) {
-      fillBtn.addEventListener("change", function (e) {
-        e.preventDefault();
-        VirtualGrid.formatSelectedCell({ background: fillBtn.value });
-      });
+      var fillTrigger = document.querySelector('[data-gb-color-for="fillColorBtn"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(fillBtn, { trigger: fillTrigger, title: "Fill color" });
+      var applyFill = function () { VirtualGrid.formatSelectedCell({ background: fillBtn.value }); };
+      fillBtn.addEventListener("gb-color-commit", applyFill);
+      fillBtn.addEventListener("change", function () { if (!fillBtn._gbColorEnhanced) applyFill(); });
     }
     var textBtn = document.getElementById("textColorBtn");
     if (textBtn) {
-      textBtn.addEventListener("change", function (e) {
-        e.preventDefault();
-        VirtualGrid.formatSelectedCell({ color: textBtn.value });
-      });
+      var textTrigger = document.querySelector('[data-gb-color-for="textColorBtn"]');
+      if (window.GBColorPicker) window.GBColorPicker.enhance(textBtn, { trigger: textTrigger, title: "Text color" });
+      var applyText = function () { VirtualGrid.formatSelectedCell({ color: textBtn.value }); };
+      textBtn.addEventListener("gb-color-commit", applyText);
+      textBtn.addEventListener("change", function () { if (!textBtn._gbColorEnhanced) applyText(); });
     }
     // #2184 — alignment belongs to the formatting row of the two-row toolbar.
     Array.prototype.forEach.call(
