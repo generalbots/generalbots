@@ -141,7 +141,11 @@ impl LLMProvider for OpenAIClient {
 
         // #1393 — serialize calls process-wide and back off properly on 429.
         let _gate = retry::call_gate().acquire().await;
-        let max_retries = 3;
+        // Interactive chat: keep total 5xx wait under ~15s.
+        // Inner retries: 2 attempts (1 retry) x ~2s backoff = ~2s.
+        // Outer retries: 3 attempts x (2s + 2s delay) = ~12s total.
+        // Auth errors (401/403) are not retried (is_retryable_status false).
+        let max_retries = 1;
         info!("LLM request URL: {}, body size: {} bytes, stream={}", full_url, request_body.to_string().len(), use_stream);
         let mut response_ok = None;
         for attempt in 0..=max_retries {

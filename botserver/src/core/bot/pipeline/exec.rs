@@ -230,19 +230,40 @@ pub async fn process_message_internal(
         super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
+    let media_fail_reason = attachment.media_fail_reason;
 
     // Emit the completed/failed attachment activity.
     if let Some(act) = attach_activity {
         let drive_path = format!("inbox/{file_name}");
+        // Count only the actual extracted text (delimited by the BEGIN/END
+        // ATTACHMENT markers), not the wrapper instructions sent to the model.
+        // Without this, unsupported formats report chars_read = wrapper length
+        // and the step card does not show the "format not readable" warning.
         let excerpt_chars = attachment_note
             .as_ref()
-            .map(|n| n.chars().count().min(12000))
+            .and_then(|n| {
+                let marker = format!("--- BEGIN ATTACHMENT {file_name} ---\n");
+                n.find(&marker).map(|start| {
+                    let content_start = start + marker.len();
+                    let end_marker = format!("\n--- END ATTACHMENT {file_name} ---");
+                    let end = n[content_start..].find(&end_marker)
+                        .map(|e| content_start + e)
+                        .unwrap_or(n.len());
+                    n[content_start..end].chars().count().min(12000)
+                })
+            })
             .unwrap_or(0);
         let truncated = attachment_note
             .as_ref()
             .is_some_and(|n| n.contains("excerpt truncated"));
         let mime = super::activity::mime_from_name(&file_name);
-        if attachment_note.is_some() || user_text.contains(&format!("inbox/{file_name}")) {
+        if let Some(reason) = media_fail_reason {
+            // #2561 — the file was stored but its media content could not be
+            // read (e.g. no image reader installed). Emit as failed with the
+            // reason code so the interface can show it.
+            let fail = act.failed(reason);
+            super::activity::emit_activity(sink, &early_run, &fail).await;
+        } else if attachment_note.is_some() || user_text.contains(&format!("inbox/{file_name}")) {
             let summary = super::activity::attachment_summary(
                 &file_name,
                 &mime,

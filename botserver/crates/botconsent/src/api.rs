@@ -76,8 +76,10 @@ fn jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
     let claims = jwt_claims(headers)?;
     for key in ["user_id", "sub", "uid"] {
         if let Some(raw) = claims.get(key).and_then(|v| v.as_str()) {
-            if let Ok(id) = Uuid::parse_str(raw) {
-                return Some(id);
+            if !raw.is_empty() {
+                return Some(Uuid::parse_str(raw).unwrap_or_else(|_| {
+                    Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{raw}").as_bytes())
+                }));
             }
         }
     }
@@ -115,7 +117,18 @@ fn opaque_session_user_id(pool: &crate::DbPool, token: &str) -> Option<Uuid> {
     claims
         .get("user_id")
         .and_then(|value| value.as_str())
-        .and_then(|value| Uuid::parse_str(value).ok())
+        .and_then(|value| {
+            // The auth middleware maps ANY non-UUID user_id to
+            // UUIDv5("zitadel:{id}") — local admin IDs, Zitadel numeric
+            // IDs, etc.  The same mapping here makes the consent surface
+            // accept the suite session token (#2562).
+            Some(Uuid::parse_str(value).unwrap_or_else(|_| {
+                Uuid::new_v5(
+                    &Uuid::NAMESPACE_DNS,
+                    format!("zitadel:{value}").as_bytes(),
+                )
+            }))
+        })
 }
 
 fn require_consent_user(
@@ -284,11 +297,21 @@ pub async fn resolve_consent(
     let outcome = match enforce::resolve(&service, &parsed.request_id, parsed.decision, user_id).await {
         Ok(o) => o,
         Err(e) => {
-            tracing::error!("consent resolve failed: {e}");
+            // #2561 — return a machine-readable code so the UI can show a
+            // specific message and unlock the composer.
+            let code = if e.contains("expired") {
+                "expired"
+            } else {
+                "not_found"
+            };
+            tracing::error!("consent resolve failed ({code}): {e}");
             if is_hx_request(&headers) {
-                return Ok(Html(cards::summary_card_html("error")).into_response());
+                return Ok(Html(cards::summary_card_html(code)).into_response());
             }
-            return Err((StatusCode::NOT_FOUND, "Consent request not found".to_string()));
+            return Ok(Json(serde_json::json!({
+                "error": code,
+                "message": "Consent request not found or expired",
+            })).into_response());
         }
     };
 

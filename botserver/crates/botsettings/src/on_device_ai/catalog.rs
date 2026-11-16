@@ -25,6 +25,10 @@ pub(crate) struct ModelSpec {
     pub sha256: &'static str,
     /// The bundled server-class model: never recommended for a workstation.
     pub server_only: bool,
+    /// SPDX licence identifier shown in the UI.
+    pub licence: &'static str,
+    /// Host where the file is downloaded from (shown in the UI).
+    pub source_host: &'static str,
 }
 
 /// `Active`, `Downloaded`, `Downloading` or `Available` — exactly one per row.
@@ -47,6 +51,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Qwen3.5-9B-Q4_K_M.gguf",
         sha256: "",
         server_only: false,
+        licence: "Apache-2.0",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "qwen3.5-14b-q4km",
@@ -59,6 +65,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Qwen3.5-14B-Q4_K_M.gguf",
         sha256: "",
         server_only: false,
+        licence: "Apache-2.0",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "qwen3.8-27b-q3kxl",
@@ -71,6 +79,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Qwen3.8-27B-Q3_K_XL.gguf",
         sha256: "",
         server_only: false,
+        licence: "Apache-2.0",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "qwen3.8-27b-udq4kxl",
@@ -83,6 +93,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Qwen3.8-27B-UD-Q4_K_XL.gguf",
         sha256: "",
         server_only: false,
+        licence: "Apache-2.0",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "qwen3.8-27b-q6",
@@ -95,6 +107,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Qwen3.8-27B-Q6_K.gguf",
         sha256: "",
         server_only: false,
+        licence: "Apache-2.0",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "llama-3.3-70b-q4km",
@@ -107,6 +121,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Llama-3.3-70B-Instruct-Q4_K_M.gguf",
         sha256: "",
         server_only: false,
+        licence: "Llama-3.3",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "llama-3.3-70b-q5km",
@@ -119,6 +135,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "Llama-3.3-70B-Instruct-Q5_K_M.gguf",
         sha256: "",
         server_only: false,
+        licence: "Llama-3.3",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "gpt-oss-120b-mxfp4",
@@ -131,6 +149,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "gpt-oss-120b-mxfp4-00001-of-00002.gguf",
         sha256: "",
         server_only: false,
+        licence: "MIT",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "gpt-oss-120b-q6",
@@ -143,6 +163,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "gpt-oss-120b-Q6_K.gguf",
         sha256: "",
         server_only: false,
+        licence: "MIT",
+        source_host: "huggingface.co",
     },
     ModelSpec {
         id: "deepseek-v3-bundled",
@@ -155,6 +177,8 @@ pub(crate) const CATALOG: &[ModelSpec] = &[
         file: "deepseek-v3-q4.gguf",
         sha256: "",
         server_only: true,
+        licence: "MIT",
+        source_host: "",
     },
 ];
 
@@ -220,6 +244,21 @@ pub(crate) fn recommended(vram_gb: u16, ram_gb: u64) -> &'static ModelSpec {
 
 pub(crate) fn fits(spec: &ModelSpec, vram_gb: u16, ram_gb: u64) -> bool {
     spec.min_vram_gb <= effective_budget_gb(vram_gb, ram_gb)
+}
+
+/// Three-tier fit verdict. Rule: a model's file size plus ~2 GB context overhead
+/// against available memory. "comfortable" = budget >= min_vram * 1.25,
+/// "tight" = budget >= min_vram, "wont_run" = budget < min_vram.
+pub(crate) fn fit_verdict(spec: &ModelSpec, vram_gb: u16, ram_gb: u64) -> &'static str {
+    let budget = effective_budget_gb(vram_gb, ram_gb);
+    let comfortable_threshold = spec.min_vram_gb.saturating_add(spec.min_vram_gb / 4);
+    if budget >= comfortable_threshold {
+        "comfortable"
+    } else if budget >= spec.min_vram_gb {
+        "tight"
+    } else {
+        "wont_run"
+    }
 }
 
 /// Status precedence: active beats downloaded, downloaded beats a running

@@ -8,8 +8,12 @@ use uuid::Uuid;
 use super::sink::ChannelSink;
 
 mod attempt;
+pub(crate) mod error_classify;
 mod markdown;
+pub(crate) mod message_meta;
 mod stream;
+mod stream_errors;
+mod stream_tools;
 mod svg_contract;
 
 pub use stream::stream_llm_response;
@@ -58,8 +62,8 @@ fn is_web_channel(sink: &dyn ChannelSink) -> bool {
     sink.channel_type() == "web"
 }
 
-const LLM_RETRY_MAX: usize = 3;
-const LLM_RETRY_DELAY: u64 = 3;
+const LLM_RETRY_MAX: usize = 2;
+const LLM_RETRY_DELAY: u64 = 2;
 
 /// The notice a user sees when every streaming attempt comes back empty.
 ///

@@ -116,7 +116,7 @@ pub(super) async fn run(
             .generate_stream(
                 &prompt_clone,
                 &messages_clone,
-                stream_tx,
+                stream_tx.clone(),
                 &llm_model_clone,
                 &llm_key_clone,
                 tools_arg.as_ref(),
@@ -124,6 +124,11 @@ pub(super) async fn run(
             .await
         {
             log::error!("LLM stream error: {}", e);
+            // #2562 — propagate the error through the channel so the
+            // turn can send a classified error frame to the client.
+            let sentinel =
+                crate::core::bot::pipeline::llm::error_classify::sentinel_message(&e.to_string());
+            let _ = stream_tx.send(sentinel).await;
         } else {
             log::info!("LLM spawn task completed successfully");
         }
@@ -159,6 +164,21 @@ pub(super) async fn run(
             chunk = stream_rx.recv() => {
                 match chunk {
                     Some(chunk) => {
+                        // #2562 — detect error sentinel from the LLM task.
+                        if let Some(err_msg) =
+                            crate::core::bot::pipeline::llm::error_classify::parse_sentinel(&chunk)
+                        {
+                            let code =
+                                crate::core::bot::pipeline::llm::error_classify::classify(err_msg);
+                            let err_resp = frames::llm_error(turn, code);
+                            let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
+                            return TurnResult {
+                                final_content: String::new(),
+                                reasoning: reasoning_accumulated,
+                                full_response: String::new(),
+                                capped: false,
+                            };
+                        }
                         if chunk.contains("\"__reasoning__\"") {
                             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&chunk) {
                                 if let Some(r) = val.get("__reasoning__").and_then(|v| v.as_str()) {
@@ -256,7 +276,7 @@ pub(super) async fn run(
                                         .generate_stream(
                                             &prompt2,
                                             &steered,
-                                            steer_tx,
+                                            steer_tx.clone(),
                                             &model2,
                                             &key2,
                                             tools2.as_ref(),
@@ -264,6 +284,8 @@ pub(super) async fn run(
                                         .await
                                     {
                                         log::error!("LLM stream error after steering: {}", e);
+                                        let sentinel = crate::core::bot::pipeline::llm::error_classify::sentinel_message(&e.to_string());
+                                        let _ = steer_tx.send(sentinel).await;
                                     }
                                 });
                                 continue;

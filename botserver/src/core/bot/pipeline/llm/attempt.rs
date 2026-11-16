@@ -14,6 +14,11 @@ pub(super) enum AttemptOutcome {
     Stopped,
     /// The per-run cap was hit and reported; the run ends.
     Capped,
+    /// The LLM provider returned an error (classified for the client).
+    Failed {
+        code: super::error_classify::LlmErrorCode,
+        detail: String,
+    },
     /// The stream finished; the reply is ready for the caller.
     Completed {
         full_response: String,
@@ -89,7 +94,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             .generate_stream(
                 &spawn_prompt,
                 &spawn_messages,
-                retry_tx,
+                retry_tx.clone(),
                 &spawn_model,
                 &spawn_key,
                 spawn_tools.as_ref(),
@@ -97,6 +102,11 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             .await
         {
             log::error!("LLM stream error: {e}");
+            // #2562 — send the error through the channel so the attempt
+            // loop can classify it and report to the client, instead of
+            // silently producing an empty response.
+            let sentinel = super::error_classify::sentinel_message(&e.to_string());
+            let _ = retry_tx.send(sentinel).await;
         }
     }));
 
@@ -146,6 +156,14 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             chunk = retry_rx.recv() => {
                 match chunk {
                     Some(chunk) => {
+                        // #2562 — detect error sentinel from the LLM task.
+                        if let Some(err_msg) = super::error_classify::parse_sentinel(&chunk) {
+                            let code = super::error_classify::classify(err_msg);
+                            return AttemptOutcome::Failed {
+                                code,
+                                detail: err_msg.to_string(),
+                            };
+                        }
                         if chunk.contains("\"__reasoning__\"") {
                             if let Ok(val) = serde_json::from_str::<serde_json::Value>(&chunk) {
                                 if let Some(r) = val.get("__reasoning__").and_then(|v| v.as_str()) {

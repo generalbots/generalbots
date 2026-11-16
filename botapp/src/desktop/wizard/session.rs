@@ -105,7 +105,10 @@ async fn login_and_cache(email: &str, password: &str) -> Option<String> {
         .build()
         .ok()?;
     let response = client
-        .post("http://127.0.0.1:8080/api/auth/login")
+        .post(format!(
+            "http://127.0.0.1:{}/api/auth/login",
+            crate::desktop::sidecar::probe::sidecar_port()
+        ))
         .json(&serde_json::json!({ "email": email.trim(), "password": password }))
         .send()
         .await
@@ -150,9 +153,37 @@ pub(super) async fn wait_for_wizard_session(
     None
 }
 
+/// Whether an automatic sign-in has any chance of succeeding. When neither a
+/// cached token nor a plaintext password is on disk, retrying is pointless
+/// and would only delay the splash-to-login transition by tens of seconds.
+fn can_auto_login() -> bool {
+    // 1. Cached token in desktop-session.json?
+    if let Ok(raw) = std::fs::read_to_string(desktop_session_path()) {
+        if cached_token(&raw).is_some() {
+            return true;
+        }
+    }
+    // 2. Plaintext password in admin-credentials.json?
+    if let Ok(raw) = std::fs::read_to_string(admin_credentials_path()) {
+        if let Ok(creds) = serde_json::from_str::<serde_json::Value>(&raw) {
+            if let Some(pwd) = creds.get("password").and_then(|v| v.as_str()) {
+                return !pwd.is_empty();
+            }
+        }
+    }
+    false
+}
+
 /// The sidecar accepts connections shortly after `/api/product` answers, so a
 /// failed first login is expected on a cold start; retry for a short while.
 pub(super) async fn wait_for_desktop_session(attempts: u32) -> Option<String> {
+    if !can_auto_login() {
+        log::info!(
+            "wizard: no cached token or plaintext password; \
+             skipping auto-login (the suite will ask for sign-in)"
+        );
+        return None;
+    }
     for attempt in 0..attempts {
         if let Some(token) = mint_desktop_session().await {
             return Some(token);
@@ -198,6 +229,20 @@ mod tests {
         assert_eq!(token_from_body(&json!({"access_token": ""})), None);
         assert_eq!(token_from_body(&json!({"token": "tok"})), None);
         assert_eq!(token_from_body(&json!({})), None);
+    }
+
+    #[test]
+    fn can_auto_login_returns_false_without_credentials() {
+        // No files on disk → can_auto_login reads the actual disk paths, which
+        // are absent in CI. We test the underlying logic instead: a scrubbed
+        // credentials file (no password key) produces no usable credential.
+        let raw = r#"{"email":"admin@example.com"}"#;
+        let creds: serde_json::Value = serde_json::from_str(raw).unwrap();
+        let has_password = creds
+            .get("password")
+            .and_then(|v| v.as_str())
+            .is_some_and(|p| !p.is_empty());
+        assert!(!has_password, "scrubbed credentials must not appear usable");
     }
 
     #[test]

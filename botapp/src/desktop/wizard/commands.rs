@@ -115,7 +115,10 @@ pub async fn wizard_finish(app: tauri::AppHandle, request: FinishRequest) -> Res
     provision::finish(app, request).await
 }
 
-const API_BASE: &str = "http://127.0.0.1:8080";
+fn api_base() -> String {
+    let port = crate::desktop::sidecar::probe::sidecar_port();
+    format!("http://127.0.0.1:{port}")
+}
 
 async fn api_login(admin: &super::AdminDraft) -> Result<String, String> {
     if admin.email.trim().is_empty() || admin.password.is_empty() {
@@ -126,7 +129,7 @@ async fn api_login(admin: &super::AdminDraft) -> Result<String, String> {
         .build()
         .map_err(|e| format!("HTTP client: {e}"))?;
     let response = client
-        .post(format!("{API_BASE}/api/auth/login"))
+        .post(format!("{}/api/auth/login", api_base()))
         .json(&serde_json::json!({
             "email": admin.email.trim(),
             "password": admin.password,
@@ -168,7 +171,7 @@ async fn api_request(
         .build()
         .map_err(|e| format!("HTTP client: {e}"))?;
     let mut request = client
-        .request(method, format!("{API_BASE}{path}"))
+        .request(method, format!("{}{path}", api_base()))
         .bearer_auth(token);
     if let Some(payload) = body {
         request = request.json(&payload);

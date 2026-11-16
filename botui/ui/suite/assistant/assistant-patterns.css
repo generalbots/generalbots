@@ -43,7 +43,7 @@
     flex: 1; font-size: var(--id-text-xs); color: var(--id-text);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.gb-conv-confirm-error { color: #dc2626; }
+.gb-conv-confirm-error { color: var(--id-danger); }
 .gb-conv-confirm-btn {
     padding: 2px 8px; border: 1px solid var(--id-line);
     border-radius: 4px; background: var(--id-surface-solid);
@@ -54,9 +54,9 @@
 .gb-conv-confirm-btn:hover { background: var(--id-fill); }
 .gb-conv-confirm-btn:focus-visible { box-shadow: var(--id-focus); }
 .gb-conv-confirm-danger {
-    color: #dc2626; border-color: rgb(220 38 38/.3);
+    color: var(--id-danger); border-color: var(--id-danger-line);
 }
-.gb-conv-confirm-danger:hover { background: rgb(220 38 38/.06); }
+.gb-conv-confirm-danger:hover { background: var(--id-danger-soft); }
 
 /* == In-page confirmation dialog (replaces confirm/alert) == */
 .gb-inline-dialog {
@@ -64,7 +64,7 @@
     display: flex; align-items: center; justify-content: center;
 }
 .gb-inline-dialog-backdrop {
-    position: absolute; inset: 0; background: rgb(0 0 0/.3);
+    position: absolute; inset: 0; background: var(--id-overlay);
 }
 .gb-inline-dialog-box {
     position: relative; z-index: 1; max-width: 380px; width: 90%;

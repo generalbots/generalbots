@@ -321,6 +321,7 @@ impl SafeCommand {
             for var in [
                 "SystemDrive",
                 "ProgramData",
+                "ProgramFiles",
                 "TEMP",
                 "TMP",
                 "APPDATA",

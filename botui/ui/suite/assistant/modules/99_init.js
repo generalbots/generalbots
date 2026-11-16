@@ -70,6 +70,7 @@
         A.initNavigation();
         A.initUserMenu();
         if (typeof A.initScroll === "function") { A.initScroll(); }
+        if (typeof A.initExportActions === "function") { A.initExportActions(); }
 
         /* 11. Connect WebSocket (uses the new session) */
         A.connectWs();
@@ -97,7 +98,9 @@
         }
     });
 
-    /** Translate data-i18n-* attributes on the page. */
+    /** Translate data-i18n-* attributes on the page.
+     *  Exposed as A.translatePage so the language switch can re-translate live. */
+    A.translatePage = translatePage;
     function translatePage() {
         var els = document.querySelectorAll("[data-i18n]");
         for (var i = 0; i < els.length; i++) {
@@ -110,6 +113,19 @@
             var pk = phs[j].getAttribute("data-i18n-placeholder");
             var pv = A.t(pk, null);
             if (pv && pv !== pk) { phs[j].placeholder = pv; }
+        }
+        /* aria-label and title from data-i18n-aria / data-i18n-title */
+        var arias = document.querySelectorAll("[data-i18n-aria]");
+        for (var a = 0; a < arias.length; a++) {
+            var ak = arias[a].getAttribute("data-i18n-aria");
+            var av = A.t(ak, null);
+            if (av && av !== ak) { arias[a].setAttribute("aria-label", av); }
+        }
+        var titles = document.querySelectorAll("[data-i18n-title]");
+        for (var ti = 0; ti < titles.length; ti++) {
+            var tk = titles[ti].getAttribute("data-i18n-title");
+            var tv = A.t(tk, null);
+            if (tv && tv !== tk) { titles[ti].setAttribute("title", tv); }
         }
     }
 })();

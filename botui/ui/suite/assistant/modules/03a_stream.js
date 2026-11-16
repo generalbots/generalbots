@@ -63,6 +63,8 @@
        ================================================================ */
     var thinkingTimer = null;
     var thinkingStartTime = 0;
+    var thinkingWatchdog = null;
+    var THINKING_TIMEOUT_S = 90;
 
     A.showThinking = function () {
         if (!A.isStreaming && !document.getElementById("gbThinking")) {
@@ -85,6 +87,19 @@
                 var elapsedEl = el.querySelector(".gb-thinking-elapsed");
                 if (elapsedEl) { elapsedEl.textContent = secs + " s"; }
             }, 1000);
+            // Safety watchdog: if no server frame arrives within the timeout,
+            // replace the indicator with a timeout error card (#2562).
+            if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); }
+            thinkingWatchdog = setTimeout(function () {
+                if (document.getElementById("gbThinking")) {
+                    A.hideThinking();
+                    if (typeof A.renderErrorCode === "function") {
+                        A.renderErrorCode("timeout",
+                            A.t("assistant.error.timeout",
+                                "The server did not respond in time."));
+                    }
+                }
+            }, THINKING_TIMEOUT_S * 1000);
         }
     };
 
@@ -92,6 +107,7 @@
         var el = document.getElementById("gbThinking");
         if (el) { el.remove(); }
         if (thinkingTimer) { clearInterval(thinkingTimer); thinkingTimer = null; }
+        if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); thinkingWatchdog = null; }
     };
 
     A.thinkingElapsed = function () {
@@ -167,6 +183,24 @@
     A._finalizeStreaming = finalizeStreaming;
 
     A.endStream = function () {
+        /* When cancelled with partial content, keep the text on screen
+           by promoting the streaming element to a normal assistant
+           message.  We do a final render, strip the streaming markers,
+           and add the action toolbar, so the partial behaves like any
+           other assistant message. */
+        var partial = A.streamingContent || "";
+        var partialR = A.streamingReasoning || "";
+        if (partial && A.streamingEl) {
+            renderStreamContent(); /* flush the last frame */
+            A.streamingEl.classList.remove("gb-streaming");
+            A.streamingEl.removeAttribute("aria-busy");
+            A.streamingEl.dataset.originalContent = partial;
+            A.streamingEl.dataset.originalReasoning = partialR;
+            if (typeof A.addAssistantToolbar === "function") {
+                A.addAssistantToolbar(A.streamingEl, partial, false);
+            }
+            A.streamingEl = null;
+        }
         finalizeStreaming();
         A.streamingContent = "";
         A.streamingReasoning = "";
@@ -207,6 +241,13 @@
         if (msgs) { msgs.innerHTML = ""; }
         A.hideThinking();
         A.hasUserSent = false;
+        A.greetingReceived = false;
+        // Clear streaming leftovers so a suggestions-only frame from the new
+        // session does not pick up the previous conversation's last answer.
+        A.streamingContent = "";
+        A.streamingReasoning = "";
+        A._greetingBuffer = "";
+        A.lastCompletedContent = "";
         var sub = document.getElementById("gbGreetingSub");
         if (sub) { sub.textContent = ""; }
     };

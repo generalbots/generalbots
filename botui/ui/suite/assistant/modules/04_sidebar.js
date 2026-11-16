@@ -90,7 +90,9 @@
 
         var textSpan = document.createElement("span");
         textSpan.className = "gb-conv-item-text";
-        textSpan.textContent = formatTitle(session.title);
+        var displayTitle = formatTitle(session.title);
+        textSpan.textContent = displayTitle;
+        textSpan.title = displayTitle;
         btn.appendChild(textSpan);
 
         var actions = document.createElement("span");
@@ -117,6 +119,24 @@
             handleDelete(session.id);
         });
         actions.appendChild(deleteBtn);
+
+        /* Export Markdown */
+        if (typeof A.exportConversation === "function") {
+            var exportBtn = document.createElement("button");
+            exportBtn.className = "gb-conv-action-btn";
+            exportBtn.setAttribute("aria-label", A.t("assistant.export", "Export"));
+            exportBtn.title = A.t("assistant.export", "Exportar");
+            exportBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+            exportBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                /* Load this conversation and export it */
+                var sid = session.id;
+                A.currentSessionId = sid;
+                A.exportConversation();
+            });
+            actions.appendChild(exportBtn);
+        }
+
         btn.appendChild(actions);
 
         btn.addEventListener("click", function () { loadConversation(session.id); });
@@ -134,7 +154,22 @@
         A.loadSessionMessages(sessId).then(function (msgs) {
             A.renderHistory(msgs);
             A.reconnectWs();
+        }).catch(function (err) {
+            console.warn("[assistant] loadConversation failed:", err);
+            showLoadError(sessId);
         });
+        /* Narrow viewports: auto-close the slide-over sidebar */
+        if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+    }
+
+    function showLoadError(sessId) {
+        A.showConversation();
+        var msgs = document.getElementById("gbMessages"); if (!msgs) return;
+        msgs.innerHTML = '<div class="gb-load-error" role="alert">' +
+            '<span>' + escText(A.t("assistant.load-error", "Could not load this conversation.")) + '</span>' +
+            '<button class="gb-btn-retry">' + escText(A.t("assistant.retry", "Tentar novamente")) + '</button></div>';
+        var btn = msgs.querySelector(".gb-btn-retry");
+        if (btn) btn.addEventListener("click", function () { loadConversation(sessId); });
     }
 
     /* ---- Inline rename (edits title in place) ---- */
@@ -233,7 +268,10 @@
                     A.currentSessionId = null;
                     A.showEmptyState();
                     if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
-                    A.newSession().then(function () { A.reconnectWs(); });
+                    A.newSession().then(function () {
+                        A.reconnectWs();
+                        if (typeof A.focusComposer === "function") { A.focusComposer(); }
+                    });
                 }
                 A.refreshSidebar();
             }).catch(function (err) {
@@ -322,76 +360,64 @@
         }, { once: true });
     }
 
-    /* ---- Status line ---- */
-    A.renderStatus = function () {
-        var textEl = document.getElementById("gbStatusText");
-        if (!textEl) { return; }
-
-        /* Find the display name of the current model */
-        var modelName = A.defaultModel || A.selectedModel || "";
-        /* Shorten long model IDs: after the last slash or colon */
-        var short = modelName;
-        var slashIdx = short.lastIndexOf("/");
-        if (slashIdx >= 0) { short = short.substring(slashIdx + 1); }
-        var colonIdx = short.indexOf(":");
-        if (colonIdx > 0) { short = short.substring(0, colonIdx); }
-        if (!short) { short = modelName; }
-
-        var dest = A.destination;
-        if (!dest || !dest.scope || dest.scope === "unknown") {
-            textEl.textContent = short;
-            textEl.className = "gb-status-text";
-            return;
-        }
-
-        var scope = dest.scope;
-        var host = dest.host || "";
-        var label = "";
-        var isExternal = false;
-
-        if (scope === "machine") {
-            label = short + " · " + A.t("assistant.on-this-computer", "on this computer");
-        } else if (scope === "network") {
-            label = short + " · " + A.t("assistant.on-your-network", "on your network") +
-                (host ? " (" + host + ")" : "");
-        } else if (scope === "external") {
-            isExternal = true;
-            label = short + " · " + A.t("assistant.external", "external") +
-                (host ? ": " + host : "");
-        } else {
-            label = short;
-        }
-
-        if (isExternal) {
-            textEl.innerHTML =
-                '<svg class="gb-status-external-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-                '<span class="gb-status-external">' + escText(label) + '</span>';
-        } else {
-            textEl.textContent = label;
-            textEl.className = "gb-status-text";
-        }
-    };
-
     /* ---- Sidebar toggle ---- */
+    function isNarrow() { return window.innerWidth <= 960; }
+
+    function collapseSidebar() {
+        var sidebar = document.getElementById("gb-sidebar");
+        if (sidebar) { sidebar.classList.add("collapsed"); }
+        A.sidebarCollapsed = true;
+        var bd = document.getElementById("gbSidebarBackdrop");
+        if (bd) { bd.style.display = "none"; }
+    }
+
+    function expandSidebar() {
+        var sidebar = document.getElementById("gb-sidebar");
+        if (sidebar) { sidebar.classList.remove("collapsed"); }
+        A.sidebarCollapsed = false;
+        if (isNarrow()) {
+            var bd = document.getElementById("gbSidebarBackdrop");
+            if (bd) { bd.style.display = "block"; }
+        }
+    }
+
     A.initSidebarToggle = function () {
         var btn = document.getElementById("gbSidebarToggle");
         if (!btn) { return; }
         btn.addEventListener("click", function () {
-            var sidebar = document.getElementById("gb-sidebar");
-            if (!sidebar) { return; }
-            sidebar.classList.toggle("collapsed");
-            A.sidebarCollapsed = sidebar.classList.contains("collapsed");
+            if (A.sidebarCollapsed) { expandSidebar(); }
+            else { collapseSidebar(); }
         });
+
+        /* Backdrop element for closing on outside click */
+        var bd = document.createElement("div");
+        bd.id = "gbSidebarBackdrop";
+        bd.className = "gb-sidebar-backdrop";
+        bd.style.display = "none";
+        bd.addEventListener("click", collapseSidebar);
+        var app = document.querySelector(".gb-app");
+        if (app) { app.appendChild(bd); }
+
+        /* Expand button (shown when collapsed) */
         var expand = document.createElement("button");
         expand.className = "gb-btn-icon gb-expand-sidebar";
         expand.setAttribute("aria-label", A.t("assistant.expand-sidebar", "Expand sidebar"));
         expand.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
-        expand.addEventListener("click", function () {
-            var sidebar = document.getElementById("gb-sidebar");
-            if (sidebar) { sidebar.classList.remove("collapsed"); }
-            A.sidebarCollapsed = false;
-        });
+        expand.addEventListener("click", expandSidebar);
         var main = document.getElementById("gb-main");
         if (main) { main.insertBefore(expand, main.firstChild); }
+
+        /* Auto-collapse on narrow viewports */
+        if (isNarrow()) { collapseSidebar(); }
+        window.addEventListener("resize", function () {
+            if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+        });
+
+        /* Close sidebar on Esc */
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && !A.sidebarCollapsed && isNarrow()) {
+                collapseSidebar();
+            }
+        });
     };
 })();

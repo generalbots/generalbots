@@ -26,6 +26,7 @@ mod server;
 #[cfg(feature = "digest")]
 pub mod settings_digest;
 mod shutdown;
+mod staged_model_choice;
 pub mod state_builder;
 mod types;
 pub mod ui_plan;

@@ -111,12 +111,33 @@
             method: "POST",
             body: JSON.stringify({ request_id: requestId, decision: decision })
         }).then(function (r) {
-            if (!r.ok) { throw new Error("HTTP " + r.status); }
+            return r.json().then(function (body) { return { status: r.status, body: body }; });
+        }).then(function (res) {
+            if (res.body && res.body.error) {
+                // #2561 — expired or unknown request: show a clear message
+                // and release the composer so the conversation is not stuck.
+                swapExpired(card, res.body.error);
+                return;
+            }
             swapOutcome(card, decision, true);
             resumeAfterGrant(decision);
         }).catch(function () {
-            swapOutcome(card, decision, false);
+            swapExpired(card, "error");
         });
+    }
+
+    function swapExpired(card, code) {
+        var label = code === "expired"
+            ? A.t("assistant.consent-expired", "Este pedido expirou")
+            : A.t("assistant.consent-expired", "Este pedido expirou");
+        card.classList.add("gb-consent-resolved");
+        card.innerHTML =
+            '<div class="gb-consent-outcome">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                    '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' +
+                '</svg>' +
+                '<span>' + escHtml(label) + '</span>' +
+            '</div>';
     }
 
     function swapOutcome(card, decision, ok) {

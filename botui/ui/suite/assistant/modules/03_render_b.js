@@ -1,16 +1,30 @@
 "use strict";
-/* Split from 03_render.js for #2305 (450-line limit). */
+/**
+ * 03_render.js - Message rendering, WS handler, history replay.
+ * Sanitizer, markdown, code blocks and citations in 03c_markdown.js.
+ * Streaming/scroll/thinking in 03a_stream.js.
+ * Per-message actions in 03b_actions.js.
+ */
+
 (function () {
-  var A = window.GBAssistant;
-  if (!A) return;
+    var A = window.GBAssistant;
+    var DEDUP_WINDOW = 60000;
+    /** True after the first user message is sent in this session. */
+    A.hasUserSent = false;
+    /** At most one frame per empty-state cycle is treated as a greeting. */
+    A.greetingReceived = false;
 
     /* ================================================================
        User message
        ================================================================ */
     A.renderUserMessage = function (text, files) {
         A.hasUserSent = true;
+        /* Reset dedup so an identical reply to a new question is not dropped. */
+        A.lastCompletedContent = "";
+        A.lastCompletedTime = 0;
         A.showConversation();
         A.hideThinking();
+        hideDockSuggestions();
         var el = document.createElement("div");
         el.className = "gb-msg-user";
         el.dataset.originalContent = text;
@@ -33,6 +47,11 @@
             }
             el.appendChild(cards);
         }
+        addUserActions(el, text);
+        /* #2562 — assign a sequential index for truncation. Count existing
+           visible messages to get the next index. */
+        var allMsgs = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
+        el.dataset.messageIndex = String(allMsgs.length);
         document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(false); }
     };
@@ -48,9 +67,7 @@
         var leaked = typeof A.detectLeakedProtocol === "function"
             ? A.detectLeakedProtocol(raw) : null;
         var msgs = document.getElementById("gbMessages");
-        /* Adopt the current turn's activity stack if one exists (created by
-           onActivityEvent during the same turn). This keeps activities and the
-           thinking block in a single container above the answer text. */
+        /* Adopt the current turn's activity stack if one exists */
         var el = null;
         if (msgs) {
             var children = msgs.children;
@@ -69,7 +86,6 @@
         /* Find or create the block stack for this turn */
         var stack = el.querySelector(".gb-block-stack");
         var elapsed = A.thinkingElapsed();
-        /* Use block for thinking/reasoning when available */
         if (reasoning && typeof A.blockThinking === "function") {
             var thinkEl = A.blockThinking(elapsed, reasoning);
             if (stack) {
@@ -81,30 +97,40 @@
                 el.insertBefore(stack, el.firstChild);
             }
         } else if (reasoning) {
-            el.insertAdjacentHTML("beforeend", reasoningHtml(reasoning, elapsed));
+            el.insertAdjacentHTML("beforeend", A.reasoningHtml(reasoning, elapsed));
         }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
         if (card) { el.appendChild(card); }
-        /* Use block for leaked-markup notice */
         if (leaked && !card) {
             if (typeof A.blockNotice === "function") {
                 el.appendChild(A.blockNotice({ summary: { message: raw }, status: "completed" }));
             } else {
-                el.insertAdjacentHTML("beforeend", leakedNoticeHtml(raw));
+                el.insertAdjacentHTML("beforeend", A.leakedNoticeHtml(raw));
             }
         }
-        var html = mdToHtml(raw);
+        var html = A.mdToHtml(raw);
         if (html && !card && !leaked) {
             var body = document.createElement("div");
             body.className = "gb-msg-body";
             body.innerHTML = html;
-            enhanceCodeBlocks(body);
+            A.enhanceCodeBlocks(body);
+            A.highlightCodeBlocks(body);
+            if (typeof A.renderMath === "function") { A.renderMath(body); }
             el.appendChild(body);
         }
         if (opts.citations && opts.citations.length) {
-            el.insertAdjacentHTML("beforeend", citationsHtml(opts.citations));
+            el.insertAdjacentHTML("beforeend", A.citationsHtml(opts.citations));
         }
-        addMessageActions(el, raw, !!(opts.retryable || opts.isError));
+        el.dataset.originalContent = raw;
+        el.dataset.originalReasoning = reasoning || "";
+        /* #2562 — index for truncation. */
+        if (!el.dataset.messageIndex) {
+            var allLive = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
+            for (var mi = 0; mi < allLive.length; mi++) {
+                if (allLive[mi] === el) { el.dataset.messageIndex = String(mi); break; }
+            }
+        }
+        addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };
@@ -128,10 +154,71 @@
         c.setAttribute("role", "alert");
         c.innerHTML =
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-            '<span>' + escapeHtml(text || A.t("assistant.error-generic", "An error occurred.")) + '</span>';
+            '<span>' + A.escapeHtml(text || A.t("assistant.error-generic", "An error occurred.")) + '</span>';
         el.appendChild(c);
-        addMessageActions(el, null, true);
+        addAssistantActions(el, null, true);
         document.getElementById("gbMessages").appendChild(el);
+        if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
+    };
+
+    /* ================================================================
+       Classified error card (#2562)
+       ================================================================ */
+    A.renderErrorCode = function (code, fallbackMsg) {
+        A.showConversation();
+        A.hideThinking();
+        A._finalizeStreaming();
+        var msgs = document.getElementById("gbMessages");
+        var el = document.createElement("div");
+        el.className = "gb-msg-assistant";
+
+        var i18nMap = {
+            model_unreachable: "assistant.error-model-unreachable",
+            model_auth:        "assistant.error-model-auth",
+            model_rate_limited:"assistant.error-model-rate-limited",
+            model_error:       "assistant.error-model-error",
+            timeout:           "assistant.error-timeout",
+        };
+        var key = i18nMap[code] || "assistant.error-generic";
+        var msg = A.t(key, fallbackMsg || A.t("assistant.error-generic", "An error occurred."));
+
+        var card = document.createElement("div");
+        card.className = "gb-error-card";
+        card.setAttribute("role", "alert");
+        card.innerHTML =
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+            '<span>' + A.escapeHtml(msg) + '</span>';
+        el.appendChild(card);
+
+        /* Action buttons */
+        var bar = document.createElement("div");
+        bar.className = "gb-error-actions";
+        /* Retry */
+        var retryBtn = document.createElement("button");
+        retryBtn.className = "gb-btn-retry";
+        retryBtn.textContent = A.t("assistant.retry", "Tentar novamente");
+        retryBtn.addEventListener("click", function () {
+            var all = msgs.querySelectorAll(".gb-msg-user");
+            var last = all.length ? all[all.length - 1] : null;
+            if (last) {
+                el.remove();
+                A.sendMessage(last.dataset.originalContent || "");
+            }
+        });
+        bar.appendChild(retryBtn);
+        /* Settings link for auth/unreachable */
+        if (code === "model_unreachable" || code === "model_auth") {
+            var settingsBtn = document.createElement("button");
+            settingsBtn.className = "gb-btn-settings";
+            settingsBtn.textContent = A.t("assistant.open-model-settings", "Abrir configurações do modelo");
+            settingsBtn.addEventListener("click", function () {
+                if (typeof A.openSettings === "function") { A.openSettings("model"); }
+            });
+            bar.appendChild(settingsBtn);
+        }
+        el.appendChild(bar);
+
+        msgs.appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
     };
 
@@ -144,45 +231,124 @@
         msgs.innerHTML = "";
         if (!messages || messages.length === 0) { A.showEmptyState(); return; }
         A.showConversation();
+        for (var h = 0; h < messages.length; h++) {
+            if (messages[h].role === "user") { A.hasUserSent = true; break; }
+        }
+        /* #2562 — merge activities from _lastHistoryActivities into messages.
+           Each activity has a message_index; group them by the preceding
+           assistant message index. */
+        var activities = A._lastHistoryActivities || [];
+        if (activities.length) {
+            var assistantIndices = [];
+            for (var ai = 0; ai < messages.length; ai++) {
+                if (messages[ai].role === "assistant") { assistantIndices.push(ai); }
+            }
+            /* Assign activities to the first assistant message for now */
+            if (assistantIndices.length && !messages[assistantIndices[0]].activities) {
+                for (var aj = 0; aj < assistantIndices.length; aj++) {
+                    messages[assistantIndices[aj]].activities = [];
+                }
+                activities.forEach(function (act) {
+                    /* Best-effort: put activities with the last assistant message */
+                    var target = assistantIndices[assistantIndices.length - 1];
+                    if (act.message_index != null) {
+                        for (var ak = 0; ak < assistantIndices.length; ak++) {
+                            if (assistantIndices[ak] >= act.message_index) {
+                                target = assistantIndices[ak]; break;
+                            }
+                        }
+                    }
+                    if (messages[target]) {
+                        messages[target].activities = messages[target].activities || [];
+                        messages[target].activities.push(act);
+                    }
+                });
+            }
+        }
         for (var i = 0; i < messages.length; i++) {
             var m = messages[i];
             var el = document.createElement("div");
             if (m.role === "user") {
                 el.className = "gb-msg-user";
                 el.dataset.originalContent = m.content || "";
+                if (m.message_index != null) { el.dataset.messageIndex = String(m.message_index); }
                 var bub = document.createElement("div");
                 bub.className = "gb-msg-user-bubble";
                 bub.textContent = m.content;
                 el.appendChild(bub);
-                /* Attachments from history */
                 if (m.attachments && m.attachments.length && typeof A.attachCard === "function") {
                     var ac = document.createElement("div");
                     ac.className = "gb-attach-list";
                     m.attachments.forEach(function (att) { ac.appendChild(A.attachCard(att, { removable: false })); });
                     el.appendChild(ac);
                 }
+                addUserActions(el, m.content || "");
             } else {
                 el.className = "gb-msg-assistant";
-                /* Activities from history */
+                el.dataset.originalContent = m.content || "";
+                el.dataset.originalReasoning = m.reasoning || "";
+                el.dataset.messageIndex = String(i);
+                /* #2562 — reconstruct the activity step cards from history */
                 if (m.activities && m.activities.length && typeof A.renderBlockStack === "function") {
-                    var stack = A.renderBlockStack(m.activities);
-                    if (stack) el.appendChild(stack);
+                    var stk = A.renderBlockStack(m.activities);
+                    if (stk) { el.appendChild(stk); }
                 }
-                var h = mdToHtml(m.content);
-                if (h) {
+                /* #2562 — reasoning (thinking card) from history */
+                if (m.reasoning && typeof A.blockThinking === "function") {
+                    var thinkStack = el.querySelector(".gb-block-stack");
+                    var thinkEl = A.blockThinking(null, m.reasoning);
+                    if (thinkStack) {
+                        thinkStack.appendChild(thinkEl);
+                    } else {
+                        thinkStack = document.createElement("div");
+                        thinkStack.className = "gb-block-stack";
+                        thinkStack.appendChild(thinkEl);
+                        el.insertBefore(thinkStack, el.firstChild);
+                    }
+                }
+                var ht = A.mdToHtml(m.content);
+                if (ht) {
                     var bd = document.createElement("div");
                     bd.className = "gb-msg-body";
-                    bd.innerHTML = h;
-                    enhanceCodeBlocks(bd);
+                    bd.innerHTML = ht;
+                    A.enhanceCodeBlocks(bd);
+                    A.highlightCodeBlocks(bd);
+                    if (typeof A.renderMath === "function") { A.renderMath(bd); }
                     el.appendChild(bd);
                 }
-                addMessageActions(el, m.content, false);
+                addAssistantActions(el, m.content, false);
             }
             msgs.appendChild(el);
         }
         A.scrollToBottom(false);
+        hideDockSuggestions();
         if (typeof A.reviveConsentCards === "function") { A.reviveConsentCards(msgs); }
     };
+
+    /* ================================================================
+       Per-message action hooks (delegated to 03b_actions.js)
+       ================================================================ */
+    function addAssistantActions(el, content, retryable) {
+        if (typeof A.addAssistantToolbar === "function") {
+            A.addAssistantToolbar(el, content, retryable);
+        } else if (typeof A.addMsgToolbar === "function") {
+            A.addMsgToolbar(el, content, retryable);
+        }
+    }
+    function addUserActions(el, content) {
+        if (typeof A.addUserToolbar === "function") {
+            A.addUserToolbar(el, content);
+        }
+    }
+
+    /* ================================================================
+       Suggestion chips: hide in dock once conversation has messages
+       ================================================================ */
+    function hideDockSuggestions() {
+        var dock = document.getElementById("gbSuggestionsDock");
+        if (dock) { dock.innerHTML = ""; }
+    }
+    A._hideDockSuggestions = hideDockSuggestions;
 
     /* ================================================================
        WS message handler
@@ -194,16 +360,36 @@
         if (typeof A.onConsentFrame === "function") { A.onConsentFrame(data); }
         var isError = !!(data.is_error || data.error || data.status === "failed" ||
             data.turn_status === "failed" || data.turn_status === "error");
+        /* Suppress ALL frames that arrive after a cancel so the partial text
+           the person already saw stays on screen and the composer is not
+           re-locked by a late streaming chunk (#2562). The flag is set by
+           cancelGeneration and expires after 5 s. */
+        if (A._cancelledAt && (Date.now() - A._cancelledAt) < 5000) {
+            if (isComplete) {
+                A._cancelledAt = 0;
+                A._finalizeStreaming();
+                A.hideThinking();
+            }
+            return;
+        }
         if (data.thinking && !content && !reasoning) { A.showThinking(); return; }
         if (!isComplete && (content || reasoning)) {
+            if (!A.hasUserSent && !A.greetingReceived) {
+                A._greetingBuffer = (A._greetingBuffer || "") + (content || ""); return;
+            }
             A.hideThinking();
             if (!A.isStreaming) { A.startStream(); }
             A.appendStream(content, reasoning);
             return;
         }
         if (isComplete) {
-            var fc = content || A.streamingContent || "";
+            var fc = content || A.streamingContent || A._greetingBuffer || "";
             var fr = reasoning || A.streamingReasoning || "";
+            // Clear streaming leftovers so a subsequent complete frame (e.g.
+            // suggestions-only) does not re-render the same answer (#2562).
+            A.streamingContent = "";
+            A.streamingReasoning = "";
+            A._greetingBuffer = "";
             if (!fc && !fr && !A.isStreaming) { return; }
             var now = Date.now();
             if (fc && fc === A.lastCompletedContent && (now - A.lastCompletedTime) < DEDUP_WINDOW) {
@@ -212,14 +398,11 @@
             A.lastCompletedContent = fc;
             A.lastCompletedTime = now;
             A._finalizeStreaming();
-            /* Greeting from start.bas: a bot completion before any user
-               turn.  Show it as the hero's secondary line, not in the
-               transcript; the empty state stays visible with its chips. */
-            if (!A.hasUserSent && fc && !A.isStreaming) {
+            if (!A.hasUserSent && !A.greetingReceived && fc && !A.isStreaming) {
+                A.greetingReceived = true;
                 A.hideThinking();
                 var sub = document.getElementById("gbGreetingSub");
                 if (sub) { sub.textContent = fc.replace(/<[^>]*>/g, "").trim(); }
-                /* Show suggestions that came with the greeting */
                 if (data.suggestions && data.suggestions.length) {
                     A.suggestions = data.suggestions;
                     if (typeof A.onSuggestions === "function") { A.onSuggestions(data.suggestions); }
@@ -227,10 +410,18 @@
                 return;
             }
             if (fc || fr) {
-                A.renderAssistantMessage(fc, fr, {
-                    citations: data.citations,
-                    retryable: !!(data.retryable || isError), isError: isError
-                });
+                /* #2562 — classified error from the server: show the
+                   right error card instead of rendering as a normal message. */
+                if (isError && data.error_code) {
+                    A.renderErrorCode(data.error_code, fc);
+                } else {
+                    A.renderAssistantMessage(fc, fr, {
+                        citations: data.citations,
+                        retryable: !!(data.retryable || isError), isError: isError
+                    });
+                }
+            } else if (isError) {
+                A.renderErrorCode(data.error_code || "model_error", data.content || "");
             }
             if (data.suggestions && data.suggestions.length) {
                 A.suggestions = data.suggestions;

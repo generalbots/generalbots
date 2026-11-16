@@ -5,6 +5,7 @@ pub mod ai_accounts;
 pub mod anonymous_auth;
 pub mod appearance;
 pub mod api_setup;
+pub mod custom_instructions;
 pub mod bot_tree;
 pub mod catalog;
 pub mod channel_support;

@@ -17,7 +17,9 @@ use crate::desktop::i18n;
 use crate::desktop::no_window::NoConsoleWindow;
 use crate::desktop::sidecar::Sidecar;
 
-const API_PRODUCT: &str = "http://127.0.0.1:8080/api/product";
+fn api_product() -> String {
+    crate::desktop::sidecar::probe::api_product_url()
+}
 
 /// Cap for the forwarded stderr text, and how much of the tail is kept.
 const STDERR_MAX_BYTES: usize = 8000;
@@ -313,7 +315,7 @@ pub(super) async fn start_assistant(
     // A cold first boot runs migrations, seeds the vault and starts every
     // service; 120 s was too tight and the wizard declared the assistant dead
     // while it was still starting.
-    if Sidecar::wait_for_api(API_PRODUCT, 300).await {
+    if Sidecar::wait_for_api(&api_product(), 300).await {
         // The identity provider's OAuth client is created by the assistant
         // during its first boot. Until that file exists the auth service cannot
         // initialise and the suite's sign-in answers 500. This is the single
@@ -344,7 +346,7 @@ pub(super) async fn start_assistant(
             if let Err(e) = sidecar.start(resource_dir.clone()) {
                 log::warn!("could not restart the assistant: {e}");
             } else {
-                let _ = Sidecar::wait_for_api(API_PRODUCT, 180).await;
+                let _ = Sidecar::wait_for_api(&api_product(), 180).await;
             }
         }
         progress(
@@ -378,7 +380,7 @@ pub(super) async fn start_assistant(
         progress(app, state, "botserver", "failed", &reason, 0);
         return Err(reason);
     }
-    if Sidecar::wait_for_api(API_PRODUCT, 180).await {
+    if Sidecar::wait_for_api(&api_product(), 180).await {
         progress(
             app,
             state,

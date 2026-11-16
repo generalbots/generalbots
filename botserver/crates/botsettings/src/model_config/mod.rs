@@ -296,12 +296,59 @@ async fn handle_put_config(
         }
     }
 
-    let restart_required = req.mode == ModelMode::Local;
+    // Hot-swap the provider so the new model takes effect without restarting.
+    let swapped = match req.mode {
+        ModelMode::Local => {
+            // For local mode, the on_device_ai activate path handles the swap.
+            // The vault_store write above already persisted the choice.
+            if let Some(model_id) = req.local_model_id.as_deref() {
+                if let Some(spec) = local_catalog::find(model_id) {
+                    let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
+                        state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
+                    if let Some(swap) = swap {
+                        let url = "http://localhost:8081/v1/chat/completions".to_string();
+                        let model = Some(spec.file.to_string());
+                        (swap.apply)(url, model).await;
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        ModelMode::OwnKey => {
+            let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
+                state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
+            if let Some(swap) = swap {
+                let url = req.endpoint.as_deref().unwrap_or("").to_string();
+                let model = req.model.clone();
+                (swap.apply)(url, model).await;
+                true
+            } else {
+                false
+            }
+        }
+        ModelMode::Free => {
+            let swap: Option<std::sync::Arc<super::on_device_ai::LlmHotSwap>> =
+                state.extensions.get::<super::on_device_ai::LlmHotSwap>().await;
+            if let Some(swap) = swap {
+                (swap.apply)(FREE_ENDPOINT.to_string(), Some(FREE_MODEL.to_string())).await;
+                true
+            } else {
+                false
+            }
+        }
+    };
     Ok(Json(json!({
         "ok": true,
         "mode": req.mode.as_str(),
-        "effective_on_next_turn": !restart_required,
-        "restart_required": restart_required,
+        "effective_on_next_turn": true,
+        "restart_required": !swapped,
+        "provider_swapped": swapped,
     })))
 }
 
@@ -338,6 +385,9 @@ async fn handle_modes(
                 "hardware": {
                     "device": hardware.device,
                     "vram_gb": hardware.vram_gb,
+                    "vram_free_gb": hardware.vram_free_gb,
+                    "driver": hardware.driver,
+                    "cuda_usable": hardware.cuda_usable,
                     "ram_gb": hardware.ram_gb,
                     "backend": hardware.backend,
                 },

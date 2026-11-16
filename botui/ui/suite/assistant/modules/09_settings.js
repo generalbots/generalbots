@@ -21,11 +21,13 @@
         var container = document.getElementById("gbSettingsContainer");
         if (!container) { return; }
         var sections = [
-            { id: "account",    icon: "user",    key: "settings.account" },
-            { id: "appearance", icon: "palette",  key: "settings.appearance" },
-            { id: "language",   icon: "globe",    key: "settings.language" },
-            { id: "model",      icon: "cpu",      key: "settings.model" },
-            { id: "about",      icon: "info",     key: "settings.about" },
+            { id: "account",      icon: "user",     key: "settings.account" },
+            { id: "instructions", icon: "message",  key: "settings.instructions" },
+            { id: "appearance",   icon: "palette",  key: "settings.appearance" },
+            { id: "language",     icon: "globe",    key: "settings.language" },
+            { id: "model",        icon: "cpu",      key: "settings.model" },
+            { id: "shortcuts",    icon: "keyboard", key: "shortcut.title" },
+            { id: "about",        icon: "info",     key: "settings.about" },
         ];
         var nav = '<nav class="gb-set-nav" role="tablist">';
         nav += '<button class="gb-set-back" id="gbSetBack" aria-label="' +
@@ -75,6 +77,8 @@
             globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
             cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
             info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+            keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
+            message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
         };
         return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
     }
@@ -87,13 +91,34 @@
         if (!panel) { return; }
         var renderers = {
             account: renderAccount,
+            instructions: renderInstructions,
             appearance: renderAppearance,
             language: renderLanguage,
             model: renderModel,
+            shortcuts: renderShortcuts,
             about: renderAbout,
         };
         var fn = renderers[id];
-        if (fn) { fn(panel); } else { panel.innerHTML = ""; }
+        if (fn) {
+            /* Show a loading indicator; the renderer replaces it. */
+            panel.innerHTML = '<div class="gb-set-loading">' +
+                '<span class="gb-set-loading-dot"></span>' +
+                esc(A.t("assistant.connecting", "Loading...")) + '</div>';
+            try { fn(panel); } catch (e) {
+                panel.innerHTML = sectionError(e);
+            }
+        } else {
+            panel.innerHTML = "";
+        }
+    }
+
+    function sectionError(e) {
+        var msg = e && e.message ? e.message : String(e);
+        return '<div class="gb-set-error">' +
+            '<p>' + esc(msg) + '</p>' +
+            '<button class="gb-set-btn-sm" onclick="' +
+            "var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();" +
+            '">' + esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
     }
 
     /* -- Account -- */
@@ -116,74 +141,68 @@
         if (btn) { btn.addEventListener("click", function () { A.signOut(); }); }
     }
 
-    /* -- Appearance -- */
-    var PATTERNS = [
-        { id: "none", css: "" },
-        { id: "dots", css: "background-image:radial-gradient(var(--id-accent) 0.8px, var(--id-paper) 0.8px);background-size:8px 8px;" },
-        { id: "microdots", css: "background:radial-gradient(var(--id-accent) 15%,transparent 16%) 0 0,radial-gradient(var(--id-accent) 15%,transparent 16%) 4px 4px,radial-gradient(var(--pat-accent20) 15%,transparent 20%) 0 1px,radial-gradient(var(--pat-accent20) 15%,transparent 20%) 4px 5px;background-color:var(--id-paper);background-size:8px 8px;" },
-        { id: "grid", css: "background-image:linear-gradient(var(--id-accent) 0.8px,transparent 0.8px),linear-gradient(90deg,var(--id-accent) 0.8px,transparent 0.8px),linear-gradient(var(--id-accent) 0.4px,transparent 0.4px),linear-gradient(90deg,var(--id-accent) 0.4px,var(--id-paper) 0.4px);background-size:40px 40px,40px 40px,8px 8px,8px 8px;background-position:-0.8px -0.8px,-0.8px -0.8px,-0.4px -0.4px,-0.4px -0.4px;" },
-        { id: "blueprint", css: "background-image:repeating-linear-gradient(to right,transparent 0,transparent 1.333px,var(--id-paper) 1.333px,var(--id-paper) 4px,transparent 4px,transparent 5.333px),repeating-linear-gradient(to bottom,transparent 0,transparent 1.333px,var(--id-paper) 1.333px,var(--id-paper) 4px,transparent 4px,transparent 5.333px),linear-gradient(to bottom,var(--id-accent) 0.48px,transparent 0.48px),linear-gradient(to right,var(--id-accent) 0.48px,transparent 0.48px);background-size:100% 100%,100% 100%,16px 16px,16px 16px;background-position:0 0,0 0,0 -0.16px,-0.16px 0;" },
-        { id: "weave", css: "background:radial-gradient(circle,transparent 20%,var(--id-paper) 20%,var(--id-paper) 80%,transparent 80%,transparent),radial-gradient(circle,transparent 20%,var(--id-paper) 20%,var(--id-paper) 80%,transparent 80%,transparent) 15px 15px,linear-gradient(var(--id-accent) 1.2px,transparent 1.2px) 0 -0.6px,linear-gradient(90deg,var(--id-accent) 1.2px,var(--id-paper) 1.2px) -0.6px 0;background-size:30px 30px,30px 30px,15px 15px,15px 15px;" },
-        { id: "mosaic", css: "background-image:repeating-linear-gradient(0deg,transparent,transparent 11px,var(--id-accent) 11px,var(--id-accent) 12px,transparent 12px,transparent 23px,var(--id-accent) 23px,var(--id-accent) 24px),repeating-linear-gradient(90deg,transparent,transparent 11px,var(--id-accent) 11px,var(--id-accent) 12px,transparent 12px,transparent 23px,var(--id-accent) 23px,var(--id-accent) 24px),radial-gradient(circle at 12px 12px,var(--id-accent) 0.96px,transparent 1.46px),radial-gradient(circle at 0px 0px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 24px 0px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 0px 24px,var(--id-accent) 0.72px,transparent 1.22px),radial-gradient(circle at 24px 24px,var(--id-accent) 0.72px,transparent 1.22px);background-size:24px 24px;background-color:var(--id-paper);" },
-    ];
-    /* "image" = the shipped pattern.png (dot composition) */
-    PATTERNS.splice(1, 0, { id: "image", css: "__IMAGE__" });
-
-    function getCurrentPattern() {
-        try { return localStorage.getItem("gb-chat-pattern") || "image"; } catch (e) { return "image"; }
-    }
-    function setCurrentPattern(id) {
-        try { localStorage.setItem("gb-chat-pattern", id); } catch (e) { /* */ }
-    }
-
-    function applyPattern(id) {
-        var main = document.querySelector(".gb-main");
-        if (!main) { return; }
-        /* Reset: remove all pattern overrides, revert to original */
-        main.classList.remove("gb-pattern-none", "gb-pattern-css", "gb-pattern-image");
-        main.style.removeProperty("--gb-pat-css");
-        main.removeAttribute("data-pattern");
-
-        if (id === "none") {
-            main.classList.add("gb-pattern-none");
-        } else if (id === "image") {
-            main.classList.add("gb-pattern-image");
+    /* -- Custom instructions (delegated to 09c_settings_instructions.js) -- */
+    function renderInstructions(panel) {
+        if (typeof A.renderInstructions === "function") {
+            A.renderInstructions(panel);
         } else {
-            var pat = PATTERNS.filter(function (p) { return p.id === id; })[0];
-            if (pat && pat.css) {
-                main.classList.add("gb-pattern-css");
-                main.setAttribute("data-pattern", id);
-                /* Apply via a style element for the pattern pseudo-element */
-                applyPatternCSS(pat.css);
-            }
+            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
         }
     }
 
-    var patStyleEl = null;
-    function applyPatternCSS(css) {
-        if (!patStyleEl) {
-            patStyleEl = document.createElement("style");
-            patStyleEl.id = "gbPatternStyle";
-            document.head.appendChild(patStyleEl);
-        }
-        /* The accent at 20% alpha for patterns needing it.
-           Must NOT override background-size — each pattern defines its own. */
-        patStyleEl.textContent =
-            ':root { --pat-accent20: color-mix(in srgb, var(--id-accent) 20%, transparent); }' +
-            '.gb-pattern-css.gb-main::before { background: none; ' + css + ' opacity: 0.15; -webkit-mask: none !important; mask: none !important; animation: none; z-index: 1; pointer-events: none; }';
-    }
-
-    A.bootPattern = function () {
-        var id = getCurrentPattern();
-        applyPattern(id);
-    };
+    /* -- Appearance (pattern data in 09b_patterns.js) -- */
+    var PATTERNS = A._patterns || [];
+    var getCurrentPattern = A._getCurrentPattern || function () { return "image"; };
+    var setCurrentPattern = A._setCurrentPattern || function () {};
+    var applyPattern = A._applyPattern || function () {};
 
     function renderAppearance(panel) {
         var presets = (window.GBIdentity && window.GBIdentity.presets) || [];
         var currentAccent = getComputedStyle(document.documentElement)
             .getPropertyValue("--id-accent").trim().toUpperCase();
+
+        /* Theme selector */
+        var curTheme = window.GBTheme ? window.GBTheme.get() : "system";
+        var themeOpts = [
+            { id: "light", key: "settings.theme-light" },
+            { id: "dark", key: "settings.theme-dark" },
+            { id: "system", key: "settings.theme-system" },
+        ];
         var html = '<div class="gb-set-card">' +
             '<h2 class="gb-set-title">' + esc(A.t("settings.appearance", "Appearance")) + '</h2>' +
+            '<p class="gb-set-desc">' + esc(A.t("settings.theme-label", "Theme")) + '</p>' +
+            '<div class="gb-set-theme-row" id="gbThemeRow">';
+        for (var ti = 0; ti < themeOpts.length; ti++) {
+            var to = themeOpts[ti];
+            var tActive = to.id === curTheme ? " active" : "";
+            html += '<button class="gb-set-lang-btn gb-set-theme-btn' + tActive +
+                '" data-theme="' + to.id + '">' + esc(A.t(to.key, to.id)) + '</button>';
+        }
+        html += '</div></div>';
+
+        /* Text size selector */
+        var curSize = window.GBTextSize ? window.GBTextSize.get() : "default";
+        var sizeOpts = [
+            { id: "small", key: "settings.text-small" },
+            { id: "default", key: "settings.text-default" },
+            { id: "large", key: "settings.text-large" },
+            { id: "xlarge", key: "settings.text-xlarge" },
+        ];
+        html += '<div class="gb-set-card">' +
+            '<p class="gb-set-desc">' + esc(A.t("settings.text-size-label", "Text size")) + '</p>' +
+            '<div class="gb-set-theme-row" id="gbSizeRow">';
+        for (var si = 0; si < sizeOpts.length; si++) {
+            var so = sizeOpts[si];
+            var sActive = so.id === curSize ? " active" : "";
+            html += '<button class="gb-set-lang-btn gb-set-size-btn' + sActive +
+                '" data-size="' + so.id + '">' + esc(A.t(so.key, so.id)) + '</button>';
+        }
+        html += '</div>' +
+            '<p class="gb-set-hint">' + esc(A.t("settings.text-size-hint", "Ctrl+= / Ctrl+- / Ctrl+0")) + '</p>' +
+            '</div>';
+
+        /* Accent colour */
+        html += '<div class="gb-set-card">' +
             '<p class="gb-set-desc">' + esc(A.t("settings.accent-label", "Accent colour")) + '</p>' +
             '<div class="gb-set-presets" id="gbAccentPresets">';
         for (var i = 0; i < presets.length; i++) {
@@ -227,6 +246,28 @@
         html += '</div></div>';
 
         panel.innerHTML = html;
+
+        /* Bind theme selector */
+        panel.querySelectorAll(".gb-set-theme-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var theme = btn.getAttribute("data-theme");
+                if (window.GBTheme) { window.GBTheme.set(theme); }
+                panel.querySelectorAll(".gb-set-theme-btn").forEach(function (b) {
+                    b.classList.toggle("active", b.getAttribute("data-theme") === theme);
+                });
+            });
+        });
+
+        /* Bind text size selector */
+        panel.querySelectorAll(".gb-set-size-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var size = btn.getAttribute("data-size");
+                if (window.GBTextSize) { window.GBTextSize.set(size); }
+                panel.querySelectorAll(".gb-set-size-btn").forEach(function (b) {
+                    b.classList.toggle("active", b.getAttribute("data-size") === size);
+                });
+            });
+        });
 
         /* Bind accent preset clicks */
         panel.querySelectorAll(".gb-set-swatch").forEach(function (sw) {
@@ -328,7 +369,11 @@
                 var code = btn.getAttribute("data-lang");
                 A.locale = code;
                 try { localStorage.setItem("gb-locale", code); } catch (e) { /* */ }
-                /* Re-render settings in the new language */
+                /* Re-translate every data-i18n element in the shell, re-render
+                   dynamic components and settings so their labels update. */
+                if (typeof A.translatePage === "function") { A.translatePage(); }
+                if (typeof A.renderStatus === "function") { A.renderStatus(); }
+                if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
                 A.renderSettings();
             });
         });
@@ -337,10 +382,36 @@
     /* -- Model (delegated to 10_settings_model.js) -- */
     function renderModel(panel) {
         if (typeof A.renderModelFull === "function") {
-            A.renderModelFull(panel);
+            /* renderModelFull is async; catch rejections so they show in-panel */
+            Promise.resolve(A.renderModelFull(panel)).catch(function (e) {
+                panel.innerHTML = sectionError(e);
+            });
         } else {
             panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
         }
+    }
+
+    /* -- Keyboard shortcuts -- */
+    function renderShortcuts(panel) {
+        var isMac = /mac/i.test(navigator.platform || "");
+        var mod = isMac ? "⌘" : "Ctrl";
+        var shortcuts = [
+            [mod + "+Shift+O", "shortcut.new-chat"],
+            [mod + "+K", "shortcut.search"],
+            [mod + "+B", "shortcut.sidebar"],
+            [mod + "+,", "shortcut.settings"],
+            ["Esc", "shortcut.stop"],
+            ["↑", "shortcut.edit-last"],
+        ];
+        var html = '<div class="gb-set-card"><h2 class="gb-set-title">' +
+            esc(A.t("shortcut.title", "Keyboard shortcuts")) + '</h2>' +
+            '<ul class="gb-shortcut-list">';
+        for (var i = 0; i < shortcuts.length; i++) {
+            html += '<li><span>' + esc(A.t(shortcuts[i][1], shortcuts[i][1])) +
+                '</span><kbd>' + esc(shortcuts[i][0]) + '</kbd></li>';
+        }
+        html += '</ul></div>';
+        panel.innerHTML = html;
     }
 
     /* -- About -- */
@@ -375,22 +446,12 @@
             '</div>';
     }
 
-    /* ================================================================
-       Accent boot: restore from server or localStorage
-       ================================================================ */
+    /* Accent boot: restore from server or localStorage */
     A.restoreAccent = function () {
-        /* Server value (from /api/product) takes priority */
         var serverAccent = A.productConfig && A.productConfig.accent;
-        if (serverAccent && window.GBIdentity) {
-            window.GBIdentity.apply(serverAccent);
-            return;
-        }
-        /* Fall back to localStorage */
-        try {
-            var stored = localStorage.getItem("gb-accent");
-            if (stored && window.GBIdentity) {
-                window.GBIdentity.apply(stored);
-            }
+        if (serverAccent && window.GBIdentity) { window.GBIdentity.apply(serverAccent); return; }
+        try { var stored = localStorage.getItem("gb-accent");
+            if (stored && window.GBIdentity) { window.GBIdentity.apply(stored); }
         } catch (e) { /* */ }
     };
 })();

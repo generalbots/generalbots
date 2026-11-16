@@ -15,8 +15,12 @@ use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_p
 struct HistoryMessage {
     role: String,
     content: String,
+    /// The raw database message_index, needed by truncate (#2562).
+    message_index: i32,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     attachments: Vec<HistoryAttachment>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    reasoning: String,
 }
 
 #[derive(Serialize)]
@@ -93,27 +97,57 @@ pub async fn handle_chat_history_messages(
         sm.count_conversation_messages(session_id).unwrap_or(0)
     };
 
-    let history = {
+    // #2562 — use the raw variant so metadata (reasoning, attachments) is
+    // still present for decoding.  The model-facing `get_conversation_history`
+    // strips the trailer; here we need it intact.
+    let raw_history = {
         let mut sm = state.session_manager.lock().await;
-        sm.get_conversation_history_paged(session_id, user_uuid, Some(limit), Some(offset))
+        sm.get_conversation_history_raw(session_id, user_uuid, Some(limit), Some(offset))
             .map_err(|e| db_error("decrypt history", e))?
     };
 
-    let messages: Vec<HistoryMessage> = history
+    let mut msg_seq: i32 = 0;
+    let messages: Vec<HistoryMessage> = raw_history
         .into_iter()
-        .filter(|(role, content)| {
-            (*role == "user" || *role == "assistant") && !content.trim().is_empty()
-        })
-        .map(|(role, content)| {
+        .filter(|(role, _content, _idx)| *role == "user" || *role == "assistant")
+        .map(|(role, raw_content, _db_idx)| {
+            // Decode metadata (reasoning, attachments) from the raw stored
+            // content.  The separator is stripped, returning visible text.
+            let (visible, meta) =
+                crate::core::bot::pipeline::llm::message_meta::decode(&raw_content);
             let attachments = if role == "user" {
-                parse_attachment_markers(&content)
+                if let Some(ref m) = meta {
+                    if !m.attachments.is_empty() {
+                        m.attachments
+                            .iter()
+                            .map(|a| HistoryAttachment {
+                                name: a.name.clone(),
+                                mime_type: a.mime_type.clone(),
+                                size: a.size,
+                                drive_path: a.drive_path.clone(),
+                            })
+                            .collect()
+                    } else {
+                        parse_attachment_markers(visible)
+                    }
+                } else {
+                    parse_attachment_markers(visible)
+                }
             } else {
                 Vec::new()
             };
+            let reasoning = meta
+                .as_ref()
+                .map(|m| m.reasoning.clone())
+                .unwrap_or_default();
+            let idx = msg_seq;
+            msg_seq += 1;
             HistoryMessage {
                 role,
-                content,
+                content: visible.to_string(),
+                message_index: idx,
                 attachments,
+                reasoning,
             }
         })
         .collect();

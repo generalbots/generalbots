@@ -123,8 +123,20 @@ pub async fn process_llm_response(
             }
 
             {
+                // #2562 — persist reasoning alongside the message.
+                let store_content = if result.reasoning.trim().is_empty() {
+                    result.full_response.clone()
+                } else {
+                    crate::core::bot::pipeline::llm::message_meta::encode(
+                        &result.full_response,
+                        &crate::core::bot::pipeline::llm::message_meta::MessageMeta {
+                            reasoning: result.reasoning.trim().to_string(),
+                            ..Default::default()
+                        },
+                    )
+                };
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &result.full_response, 2);
+                let _ = sm.save_message(session_id, user_id, 2, &store_content, 2);
             }
 
             // #1948 — title the conversation from its first request with a

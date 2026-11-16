@@ -9,14 +9,23 @@ use super::Sidecar;
 use log::warn;
 use std::path::PathBuf;
 
-/// The assistant's readiness endpoint on the sidecar port.
-pub(crate) const API_PRODUCT_URL: &str = "http://127.0.0.1:8080/api/product";
-
-/// Path part of [`API_PRODUCT_URL`], used by the synchronous probe.
+/// Path part of the product endpoint, used by the synchronous probe.
 const API_PRODUCT_PATH: &str = "/api/product";
 
-/// Port the sidecar listens on (`botserver`'s default).
-pub(crate) const SIDECAR_PORT: u16 = 8080;
+/// Port the sidecar listens on. Defaults to 8080; overridden by the
+/// `GB_SIDECAR_PORT` environment variable (used by the test rig to run
+/// the real app against an isolated server instance).
+pub(crate) fn sidecar_port() -> u16 {
+    std::env::var("GB_SIDECAR_PORT")
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(8080)
+}
+
+/// The assistant's readiness endpoint on the sidecar port.
+pub(crate) fn api_product_url() -> String {
+    format!("http://127.0.0.1:{}{API_PRODUCT_PATH}", sidecar_port())
+}
 
 /// Where the pid of the sidecar this app spawned is recorded, so a later app
 /// run (or the wizard) can identify an assistant it did not spawn itself
@@ -200,7 +209,8 @@ fn http_status_is_success(response: &str) -> bool {
 pub(super) fn api_is_answering() -> bool {
     use std::io::{Read, Write};
 
-    let address = std::net::SocketAddr::from(([127, 0, 0, 1], SIDECAR_PORT));
+    let port = sidecar_port();
+    let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
     let mut stream = match std::net::TcpStream::connect_timeout(
         &address,
         std::time::Duration::from_millis(500),
@@ -212,7 +222,7 @@ pub(super) fn api_is_answering() -> bool {
     let _ = stream.set_read_timeout(timeout);
     let _ = stream.set_write_timeout(timeout);
     let request = format!(
-        "GET {API_PRODUCT_PATH} HTTP/1.1\r\nHost: 127.0.0.1:{SIDECAR_PORT}\r\nConnection: close\r\n\r\n"
+        "GET {API_PRODUCT_PATH} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
     );
     if stream.write_all(request.as_bytes()).is_err() {
         return false;
@@ -227,7 +237,7 @@ pub(super) fn api_is_answering() -> bool {
 /// Whether something already holds the sidecar port.
 pub(super) fn port_is_open() -> bool {
     std::net::TcpStream::connect_timeout(
-        &std::net::SocketAddr::from(([127, 0, 0, 1], SIDECAR_PORT)),
+        &std::net::SocketAddr::from(([127, 0, 0, 1], sidecar_port())),
         std::time::Duration::from_millis(300),
     )
     .is_ok()

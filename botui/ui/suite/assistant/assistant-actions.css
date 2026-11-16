@@ -1,0 +1,115 @@
+/* Per-message action toolbar, inline edit, syntax highlighting.
+   Split from assistant-chat.css to stay under 450 lines each. */
+
+/* ================================================================
+   Per-message action toolbar (hover / focus)
+   ================================================================ */
+.gb-msg-toolbar {
+    display: flex; gap: var(--id-space-1);
+    margin-top: var(--id-space-1);
+    opacity: 0; transition: opacity var(--id-dur-fast) var(--id-ease);
+}
+/* Always visible on the last assistant message */
+.gb-msg-assistant:last-child .gb-msg-toolbar { opacity: 1; }
+.gb-msg-assistant:hover .gb-msg-toolbar,
+.gb-msg-assistant:focus-within .gb-msg-toolbar { opacity: 1; }
+.gb-msg-user:hover .gb-msg-toolbar,
+.gb-msg-user:focus-within .gb-msg-toolbar { opacity: 1; }
+.gb-msg-toolbar-user { justify-content: flex-end; }
+.gb-msg-toolbar-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; font-size: var(--id-text-xs);
+    font-family: var(--id-font-sans); border: 1px solid var(--id-line);
+    border-radius: 4px; background: var(--id-surface-solid);
+    color: var(--id-text); cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease);
+}
+.gb-msg-toolbar-btn:hover { background: var(--id-fill); }
+.gb-msg-toolbar-btn:focus-visible {
+    outline: 2px solid var(--id-accent); outline-offset: 1px;
+}
+.gb-toolbar-label { font-weight: 500; }
+.gb-msg-retry { color: var(--id-accent-text); }
+
+/* ================================================================
+   Inline edit (user message)
+   ================================================================ */
+.gb-msg-user-bubble.gb-editing {
+    padding: var(--id-space-2);
+}
+.gb-edit-area {
+    width: 100%; border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); padding: var(--id-space-2);
+    font-family: var(--id-font-sans); font-size: var(--id-text-md);
+    color: var(--id-ink); background: var(--id-surface);
+    resize: vertical; outline: none; line-height: 1.6;
+}
+.gb-edit-area:focus { border-color: var(--id-accent); }
+.gb-edit-bar {
+    display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2);
+    justify-content: flex-end;
+}
+.gb-edit-save {
+    padding: var(--id-space-1) var(--id-space-3);
+    border: none; border-radius: var(--id-radius-sm);
+    background: var(--id-accent); color: var(--id-on-accent);
+    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    cursor: pointer;
+}
+.gb-edit-save:hover { background: var(--id-accent-hover); }
+.gb-edit-cancel {
+    padding: var(--id-space-1) var(--id-space-3);
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    background: var(--id-surface-solid); color: var(--id-text);
+    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    cursor: pointer;
+}
+.gb-edit-cancel:hover { background: var(--id-fill); }
+
+/* ================================================================
+   Deprecated (kept for compat with 12_blocks.js retry button)
+   ================================================================ */
+.gb-msg-actions {
+    display: flex; gap: var(--id-space-1);
+    margin-top: var(--id-space-1);
+    opacity: 0; transition: opacity var(--id-dur-fast) var(--id-ease);
+}
+.gb-msg-assistant:hover .gb-msg-actions,
+.gb-msg-assistant:focus-within .gb-msg-actions { opacity: 1; }
+.gb-msg-action {
+    padding: 2px 8px; font-size: var(--id-text-xs);
+    font-family: var(--id-font-sans); border: 1px solid var(--id-line);
+    border-radius: 4px; background: var(--id-surface-solid);
+    color: var(--id-text); cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease);
+}
+.gb-msg-action:hover { background: var(--id-fill); }
+
+/* ================================================================
+   Syntax highlighting theme (highlight.js, identity-aware)
+   Based on the accent colour tokens; AA contrast on both backgrounds.
+   ================================================================ */
+.gb-msg-assistant pre code.hljs {
+    background: transparent; padding: 0;
+}
+.hljs { color: var(--id-ink); }
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type {
+    color: var(--id-hl-keyword); font-weight: 600; }
+.hljs-string, .hljs-template-variable, .hljs-addition {
+    color: var(--id-hl-string); }
+.hljs-comment, .hljs-quote, .hljs-meta {
+    color: var(--id-hl-comment); font-style: italic; }
+.hljs-number, .hljs-literal, .hljs-regexp, .hljs-symbol {
+    color: var(--id-hl-number); }
+.hljs-title, .hljs-section, .hljs-name {
+    color: var(--id-hl-function); }
+.hljs-attr, .hljs-attribute, .hljs-variable {
+    color: var(--id-hl-attr); }
+.hljs-deletion { color: var(--id-hl-deletion); background: var(--id-hl-deletion-bg); }
+.hljs-addition { background: var(--id-hl-addition-bg); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+.hljs-params { color: var(--id-ink); }
+.hljs-tag { color: var(--id-hl-tag); }
+.hljs-tag .hljs-name { color: var(--id-hl-function); }
+.hljs-tag .hljs-attr { color: var(--id-hl-attr); }

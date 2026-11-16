@@ -62,9 +62,11 @@ pub(crate) fn context() -> WizardContext {
         workspace_path: workspace_path().to_string_lossy().to_string(),
         log_path: log_path().to_string_lossy().to_string(),
         platform: std::env::consts::OS.to_string(),
-        api_base: "http://127.0.0.1:8080".to_string(),
-        redirect_uri: "http://127.0.0.1:8080/api/integrations/oauth/{provider}/callback"
-            .to_string(),
+        api_base: format!("http://127.0.0.1:{}", crate::desktop::sidecar::probe::sidecar_port()),
+        redirect_uri: format!(
+            "http://127.0.0.1:{}/api/integrations/oauth/{{provider}}/callback",
+            crate::desktop::sidecar::probe::sidecar_port()
+        ),
         resume_step,
         completed_components: progress.completed,
         components: components(),

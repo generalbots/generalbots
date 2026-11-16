@@ -167,7 +167,7 @@ impl I18nBundle {
     pub fn has_message(&self, key: &str) -> bool {
         self.bundles
             .get(&self.fallback.to_string())
-            .is_some_and(|bundle| bundle.get_message(key).is_some())
+            .is_some_and(|bundle| bundle.has_key(key))
     }
 
     pub fn available_locales(&self) -> Vec<String> {

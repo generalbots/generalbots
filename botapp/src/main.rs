@@ -180,7 +180,8 @@ fn start_sidecar_and_show(app: &tauri::App) {
         // A previous run may have left the sidecar alive (for example when the
         // window was closed without a graceful exit). Reuse it instead of
         // starting a second listener on the same port.
-        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 5).await;
+        let product_url = desktop::sidecar::probe::api_product_url();
+        let already_running = Sidecar::wait_for_api(&product_url, 5).await;
         if !already_running {
             let sidecar = handle.state::<Sidecar>().inner().clone();
             if let Err(e) = sidecar.start(resource_dir.clone()) {
@@ -193,7 +194,7 @@ fn start_sidecar_and_show(app: &tauri::App) {
         // behind the splash instead.
         let mut ready = false;
         for round in 1..=5u32 {
-            ready = Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
+            ready = Sidecar::wait_for_api(&desktop::sidecar::probe::api_product_url(), 120).await;
             if ready {
                 break;
             }

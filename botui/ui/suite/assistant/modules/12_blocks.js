@@ -113,9 +113,34 @@ A.blockThinking = function (evOrElapsed, reasoning) {
 
 A.blockAttachmentRead = function (ev) {
     var s = ev.summary || ev.data || ev;
+    var isFailed = ev.status === "failed";
+    var failReason = isFailed ? (ev.error || "") : "";
+    /* #2561 — show a clear reason when image reading is not installed */
+    var failLabel = "";
+    if (failReason === "image_reader_unavailable") {
+        failLabel = t(
+            "Não foi possível ler a imagem: a leitura de imagens não está instalada",
+            "Could not read the image: image reading is not installed"
+        );
+    } else if (isFailed && failReason) {
+        failLabel = failReason;
+    }
+    /* Completed but no text extracted — file format not readable */
+    var isCompleted = ev.status === "completed";
+    var noTextExtracted = isCompleted && !s.chars_read;
+    var noTextLabel = noTextExtracted
+        ? t("Formato não legível: o texto não pôde ser extraído",
+            "Format not readable: text could not be extracted")
+        : "";
     var el = block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
-        summary: s.name || s.file || "", status: mapStatus(ev.status), activityId: ev.id,
-        bodyHtml: row(t("Arquivo","File"), s.name||s.file) +
+        summary: s.name || s.file || failLabel || "", status: mapStatus(ev.status), activityId: ev.id,
+        bodyHtml: (isFailed && failLabel
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(failLabel) + '</span></div>'
+                : "") +
+            (noTextLabel
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(noTextLabel) + '</span></div>'
+                : "") +
+            row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
             (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
@@ -309,6 +334,18 @@ A.onActivityEvent = function (frame) {
             var body = existing.querySelector(".gb-block-body");
             if (body) body.innerHTML = '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#dc2626">' + esc(payload.error) + '</span></div>';
         }
+        /* Refresh the body on attachment_read completion with the final
+           summary data (chars_read, drive_path, etc.). */
+        if (payload.kind === "attachment_read" && payload.summary &&
+            (payload.status === "completed" || payload.status === "failed")) {
+            var ev2 = { id: payload.id, kind: payload.kind, status: payload.status,
+                summary: payload.summary, data: payload.summary };
+            if (payload.error) ev2.error = payload.error;
+            var fresh = A.blockAttachmentRead(ev2);
+            var freshBody = fresh.querySelector(".gb-block-body");
+            var existBody = existing.querySelector(".gb-block-body");
+            if (freshBody && existBody) existBody.innerHTML = freshBody.innerHTML;
+        }
         return;
     }
     /* New activity: render and append to the current turn's stack */
@@ -368,14 +405,20 @@ A.attachCard = function (file, opts) {
         try { thumb.src = URL.createObjectURL(file); } catch (e) { /* */ }
         card.appendChild(thumb);
     }
+    var displayName = truncMiddle(name, 28);
     var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
-    html += '<span class="gb-attach-name">' + esc(truncMiddle(name, 28)) + '</span>';
-    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : fmtBytes(size)) + '</span>';
+    html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
+    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
     if (opts.removable !== false) {
         html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';
     }
     card.insertAdjacentHTML("beforeend", html);
     if (opts.onRemove) { var rm = card.querySelector(".gb-attach-remove"); if (rm) rm.addEventListener("click", opts.onRemove); }
+    /* Auto-detect drivePath from history attachment objects. */
+    if (!opts.drivePath && file && typeof file === "object" && !(file instanceof File)) {
+        var dp = file.drive_path || file.drivePath || (file.name ? "inbox/" + file.name : "");
+        if (dp) { opts = Object.assign({}, opts, { drivePath: dp }); }
+    }
     /* Make clickable for preview (unless removable = composer) */
     if (typeof A.makeAttachClickable === "function" && !opts.removable) {
         A.makeAttachClickable(card, file, opts);

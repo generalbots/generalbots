@@ -82,7 +82,7 @@
 .gb-conversation::-webkit-scrollbar { width: 6px; }
 .gb-conversation::-webkit-scrollbar-track { background: transparent; }
 .gb-conversation::-webkit-scrollbar-thumb {
-    background: var(--id-gray-300); border-radius: 3px;
+    background: var(--id-scrollbar-thumb); border-radius: 3px;
 }
 .gb-messages {
     max-width: 760px; margin: 0 auto;
@@ -133,6 +133,14 @@
 .gb-msg-assistant h3 { font-size: var(--id-text-lg); }
 .gb-msg-assistant ul, .gb-msg-assistant ol { margin: .4em 0 .6em 1.4em; }
 .gb-msg-assistant li { margin-bottom: .2em; }
+.gb-msg-assistant hr {
+    border: none; border-top: 1px solid var(--id-line);
+    margin: .8em 0;
+}
+.gb-msg-assistant ul ul, .gb-msg-assistant ul ol,
+.gb-msg-assistant ol ul, .gb-msg-assistant ol ol {
+    margin-top: .2em; margin-bottom: .2em;
+}
 .gb-msg-assistant a {
     color: var(--id-accent-text); text-decoration: underline;
     text-underline-offset: 2px;
@@ -239,37 +247,49 @@
     border-radius: var(--id-radius-sm); max-height: 200px; overflow-y: auto;
 }
 
-/* ================================================================
-   Per-message actions (hover)
-   ================================================================ */
-.gb-msg-actions {
-    display: flex; gap: var(--id-space-1);
-    margin-top: var(--id-space-1);
-    opacity: 0; transition: opacity var(--id-dur-fast) var(--id-ease);
-}
-.gb-msg-assistant:hover .gb-msg-actions,
-.gb-msg-assistant:focus-within .gb-msg-actions { opacity: 1; }
-.gb-msg-action {
-    padding: 2px 8px; font-size: var(--id-text-xs);
-    font-family: var(--id-font-sans); border: 1px solid var(--id-line);
-    border-radius: 4px; background: var(--id-surface-solid);
-    color: var(--id-text); cursor: pointer;
-    transition: background var(--id-dur-fast) var(--id-ease);
-}
-.gb-msg-action:hover { background: var(--id-fill); }
-.gb-msg-retry { color: var(--id-accent-text); }
+/* Toolbar, edit and highlight styles in assistant-actions.css */
 
 /* ================================================================
    Error card
    ================================================================ */
 .gb-error-card {
     display: flex; align-items: flex-start; gap: var(--id-space-2);
-    background: var(--id-surface-solid); border: 1px solid rgb(239 68 68 / .3);
+    background: var(--id-surface-solid); border: 1px solid var(--id-danger-line);
     border-radius: var(--id-radius-sm);
     padding: var(--id-space-3) var(--id-space-4);
-    color: #b91c1c; font-size: var(--id-text-sm);
+    color: var(--id-danger-text); font-size: var(--id-text-sm);
 }
-.gb-error-card svg { flex-shrink: 0; color: #ef4444; margin-top: 1px; }
+.gb-error-card svg { flex-shrink: 0; color: var(--id-danger-icon); margin-top: 1px; }
+.gb-error-actions {
+    display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2);
+    padding-left: var(--id-space-1);
+}
+.gb-error-actions button {
+    background: none; border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
+    font-size: var(--id-text-xs); color: var(--id-fg);
+    cursor: pointer; transition: background .15s;
+}
+.gb-error-actions button:hover { background: var(--id-fill); }
+.gb-btn-retry { font-weight: 500; }
+.gb-btn-settings { color: var(--id-muted); }
+
+/* Load error (conversation click failure) */
+.gb-load-error {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--id-space-2);
+    padding: var(--id-space-4); margin: var(--id-space-4) auto;
+    max-width: 420px;
+    background: var(--id-surface-solid); border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    font-size: var(--id-text-sm); color: var(--id-muted);
+}
+.gb-load-error .gb-btn-retry {
+    background: none; border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
+    font-size: var(--id-text-xs); color: var(--id-fg);
+    cursor: pointer; transition: background .15s;
+}
+.gb-load-error .gb-btn-retry:hover { background: var(--id-fill); }
 
 /* ================================================================
    Notice card (leaked / unavailable tool)
@@ -438,7 +458,7 @@
 /* ================================================================
    Responsive
    ================================================================ */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
     .gb-greeting { font-size: var(--id-text-3xl); }
 }
 @media (max-width: 600px) {
@@ -447,3 +467,20 @@
     .gb-empty-state { padding: var(--id-space-4); }
     .gb-msg-user, .gb-msg-assistant { max-width: 95%; }
 }
+/* Reconnect banner */
+.gb-reconnect-banner {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+    padding: 6px 16px; font-size: var(--id-text-sm);
+    color: var(--id-warn-text); background: var(--id-warn-bg);
+    border-radius: var(--id-radius-sm); margin: 0 auto 4px; max-width: 680px; width: 100%;
+}
+.gb-reconnect-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--id-warn); animation: gb-pulse 1.5s infinite;
+}
+@media (prefers-reduced-motion: reduce) { .gb-reconnect-pulse { animation: none; } }
+@keyframes gb-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+/* Keyboard shortcut list in Settings */
+.gb-shortcut-list { list-style: none; padding: 0; margin: 0; }
+.gb-shortcut-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--id-line); font-size: var(--id-text-sm); }
+.gb-shortcut-list kbd { font-family: var(--id-font-mono, monospace); font-size: 11px; background: var(--id-surface-alt, #f1f5f9); border: 1px solid var(--id-line); border-radius: 4px; padding: 1px 6px; }
