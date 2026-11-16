@@ -446,6 +446,14 @@
             '</div>';
     }
 
+    /* ================================================================
+       Open settings to a specific section (e.g. from error card)
+       ================================================================ */
+    A.openSettings = function (section) {
+        if (section) { currentSection = section; }
+        A.switchView("settings");
+    };
+
     /* Accent boot: restore from server or localStorage */
     A.restoreAccent = function () {
         var serverAccent = A.productConfig && A.productConfig.accent;

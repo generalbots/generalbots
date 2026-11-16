@@ -30,6 +30,8 @@ var T = {"pt-BR":{
   runtimeNotInstalled:"O motor de inferência local não está instalado.",
   runtimeNotReachable:"O motor de inferência local não está respondendo.",
   restartNeeded:"Ativado. Reinicie o aplicativo para usar o novo modelo.",
+  inconsistent:"A configuração do modelo está inconsistente.",
+  restoreFree:"Restaurar modelo gratuito",
   freeNote:"Tudo que você escrever e anexar é enviado a %h.",
   noModels:"Nenhum modelo local disponível.",
   comfortable:"confortável nesta máquina",tight:"apertado nesta máquina",
@@ -60,6 +62,8 @@ en:{
   runtimeNotInstalled:"The local inference engine is not installed.",
   runtimeNotReachable:"The local inference engine is not responding.",
   restartNeeded:"Activated. Restart the app to use the new model.",
+  inconsistent:"The model configuration is inconsistent.",
+  restoreFree:"Restore free model",
   freeNote:"Everything you write and attach is sent to %h.",
   noModels:"No local models available.",
   comfortable:"comfortable for this machine",tight:"tight for this machine",
@@ -104,6 +108,7 @@ function inlineConfirm(text, onYes) {
 /* state — exposed through A._modelShared for the split local-models module */
 var cfg = null, modes = null, localModels = null, readOnly = false;
 var cfgError = null;
+var pendingStatus = null; /* {html, isOk} shown after the next re-render */
 A._modelShared = {
   get cfg() { return cfg; },
   get localModels() { return localModels; },
@@ -167,6 +172,15 @@ function renderFull(panel) {
   }
   html += '</div>';
 
+  /* Inconsistent state banner */
+  if (cfg && cfg.inconsistent) {
+    html += '<div class="gb-set-card gb-set-warn-card">' +
+      '<p class="gb-set-warn">' + esc(t("inconsistent")) + '</p>' +
+      '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbRestoreFree">' +
+      esc(t("restoreFree")) + '</button>' +
+      '<div id="gbRestoreMsg"></div></div>';
+  }
+
   /* Mode cards — always shown unless read-only (admin restriction) */
   if (!readOnly) {
     html += '<h3 class="gb-set-section-title">' + esc(t("where")) + '</h3>';
@@ -177,7 +191,12 @@ function renderFull(panel) {
     html += '</div>';
   }
 
+  if (pendingStatus) {
+    html += '<div class="gb-set-card" id="gbModelStatus">' + pendingStatus.html + '</div>';
+    pendingStatus = null;
+  }
   panel.innerHTML = html;
+  bindRestoreButton();
   if (!readOnly) { bindModeCards(panel); }
 }
 
@@ -208,6 +227,43 @@ function modeCard(id, currentMode) {
     '<span class="gb-set-mode-label">' + esc(label) + '</span>' +
     (sel ? '<span class="gb-badge gb-badge-active">' + esc(t("active")) + '</span>' : '') +
     '</button>';
+}
+
+function bindRestoreButton() {
+  var btn = document.getElementById("gbRestoreFree");
+  if (!btn) { return; }
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    doSwitchMode({ mode: "free" }, document.getElementById("gbRestoreMsg"), btn);
+  });
+}
+
+/** Shared PUT /api/llm/config handler for free, own_key and restore. */
+function doSwitchMode(body, msgEl, disableBtn) {
+  if (disableBtn) { disableBtn.disabled = true; }
+  A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify(body) })
+    .then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+    })
+    .then(function (res) {
+      var d = res.data;
+      if (!res.ok || d.error) {
+        if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>'; }
+        if (disableBtn) { disableBtn.disabled = false; }
+        return;
+      }
+      if (d.restart_required) {
+        pendingStatus = { html: '<p class="gb-set-hint">' + esc(t("restartNeeded")) + '</p>' };
+      } else {
+        var label = d.provider_swapped ? t("swapped") : t("saved");
+        pendingStatus = { html: '<p class="gb-set-hint gb-set-ok">' + esc(label) + '</p>' };
+      }
+      refreshAfterChange();
+    })
+    .catch(function (e) {
+      if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+      if (disableBtn) { disableBtn.disabled = false; }
+    });
 }
 
 function bindModeCards(panel) {
@@ -286,18 +342,11 @@ function doSaveOwnKey() {
   var md = document.getElementById("gbOwnModel").value.trim();
   var key = document.getElementById("gbOwnKey").value;
   var msg = document.getElementById("gbOwnMsg"); if (!msg) return;
+  var saveBtn = document.getElementById("gbOwnSave");
   var host = ""; try { host = new URL(ep).hostname; } catch(e) { host = ep; }
-  inlineConfirm(t("confirmExt").replace("%h", host), async function () {
+  inlineConfirm(t("confirmExt").replace("%h", host), function () {
     var body = { mode: "own_key", endpoint: ep, model: md }; if (key) body.api_key = key;
-    try {
-      var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify(body) });
-      var d = await r.json();
-      if (d.ok) {
-        var label = d.provider_swapped ? t("swapped") : t("saved");
-        msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(label) + '</p>';
-        refreshAfterChange();
-      } else { msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>'; }
-    } catch (e) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+    doSwitchMode(body, msg, saveBtn);
     var keyEl = document.getElementById("gbOwnKey"); if (keyEl) keyEl.value = "";
   });
 }
@@ -314,20 +363,18 @@ function renderFreeDetail(el) {
   var saveBtn = document.getElementById("gbFreeSave");
   if (saveBtn) {
     saveBtn.addEventListener("click", function() {
-      inlineConfirm(t("confirmExt").replace("%h", host), async function () {
-        var msg = document.getElementById("gbFreeMsg");
-        try {
-          var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify({ mode: "free" }) });
-          var d = await r.json();
-          if (d.ok) { var lb = d.provider_swapped ? t("swapped") : t("saved"); if (msg) msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(lb) + '</p>'; refreshAfterChange(); }
-          else { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error||"Error") + '</p>'; }
-        } catch (e) { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+      inlineConfirm(t("confirmExt").replace("%h", host), function () {
+        doSwitchMode({ mode: "free" }, document.getElementById("gbFreeMsg"), saveBtn);
       });
     });
   }
 }
 
 async function refreshAfterChange() {
-  await A.loadModels(); A.renderModelPickers(); A.renderStatus();
+  if (typeof A.loadModels === "function") { await A.loadModels(); }
+  if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
+  if (typeof A.renderStatus === "function") { A.renderStatus(); }
+  var panel = document.getElementById("gbSetPanel");
+  if (panel) { A.renderModelFull(panel); }
 }
 })();

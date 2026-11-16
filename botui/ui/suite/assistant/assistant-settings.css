@@ -258,6 +258,7 @@
 .gb-set-input:focus { border-color: var(--id-accent); }
 .gb-set-form-actions { display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2); }
 .gb-set-warn { font-size: var(--id-text-sm); color: var(--id-warn-text); }
+.gb-set-warn-card { border-left: 3px solid var(--id-warn-text); }
 .gb-set-ok { color: var(--id-success-text); }
 
 /* == Section loading & error states ================================ */
