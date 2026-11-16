@@ -375,6 +375,9 @@
             type: "run_cancel",
             session_id: A.currentSessionId || A.sessionId || "",
         }));
+        /* Suppress the server's post-cancel completion frame ("Stopped.")
+           so the partial text the person already sees stays on screen. */
+        A._cancelledAt = Date.now();
         A.isStreaming = false;
         if (typeof A.onStreamEnd === "function") { A.onStreamEnd(); }
     };

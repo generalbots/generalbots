@@ -167,6 +167,24 @@
     A._finalizeStreaming = finalizeStreaming;
 
     A.endStream = function () {
+        /* When cancelled with partial content, keep the text on screen
+           by promoting the streaming element to a normal assistant
+           message.  We do a final render, strip the streaming markers,
+           and add the action toolbar, so the partial behaves like any
+           other assistant message. */
+        var partial = A.streamingContent || "";
+        var partialR = A.streamingReasoning || "";
+        if (partial && A.streamingEl) {
+            renderStreamContent(); /* flush the last frame */
+            A.streamingEl.classList.remove("gb-streaming");
+            A.streamingEl.removeAttribute("aria-busy");
+            A.streamingEl.dataset.originalContent = partial;
+            A.streamingEl.dataset.originalReasoning = partialR;
+            if (typeof A.addAssistantToolbar === "function") {
+                A.addAssistantToolbar(A.streamingEl, partial, false);
+            }
+            A.streamingEl = null;
+        }
         finalizeStreaming();
         A.streamingContent = "";
         A.streamingReasoning = "";
