@@ -2,6 +2,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("biometry");
 (function(){
 var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc:null,signaturePad:null,drawing:false,lastX:0,lastY:0,livenessActive:false};
 
+function escapeHtml(str){
+    if(str==null||str==='') return '';
+    var d=document.createElement('div');
+    d.textContent=String(str);
+    return d.innerHTML;
+}
 function showFeedback(msg,type){
     var el=document.getElementById('bio-feedback');
     if(!el){el=document.createElement('div');el.id='bio-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
@@ -45,9 +51,9 @@ function renderKyc(){
         return '<div class="bio-card">'
             +'<div class="bio-card-header"><span class="bio-card-title">'+(v.user_name||'Unknown')+'</span><span class="bio-badge '+(v.status||'pending')+'">'+v.status+'</span></div>'
             +'<div class="bio-card-body">'
-            +'<div class="bio-card-row"><span>Document</span><span>'+(v.document_type||'N/A')+'</span></div>'
-            +'<div class="bio-card-row"><span>Doc #</span><span>'+(v.document_number||'N/A')+'</span></div>'
-            +'<div class="bio-card-row"><span>Selfie</span><span>'+(v.selfie_status||'N/A')+'</span></div>'
+            +'<div class="bio-card-row"><span>Document</span><span>'+escapeHtml(v.document_type||'N/A')+'</span></div>'
+            +'<div class="bio-card-row"><span>Doc #</span><span>'+escapeHtml(v.document_number||'N/A')+'</span></div>'
+            +'<div class="bio-card-row"><span>Selfie</span><span>'+escapeHtml(v.selfie_status||'N/A')+'</span></div>'
             +'<div class="bio-card-row"><span>Liveness</span><span>'+(v.liveness_score!=null?v.liveness_score+'%':'N/A')+'</span></div>'
             +(v.liveness_score!=null?'<div class="bio-score-bar"><div class="bio-score-fill '+scoreClass+'" style="width:'+v.liveness_score+'%"></div></div>':'')
             +'</div>'
@@ -63,10 +69,10 @@ function renderSignatures(){
     if(state.signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="bio-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=state.signatures.map(function(s){
         return '<tr>'
-            +'<td>'+(s.document_name||'')+'</td>'
-            +'<td><span class="bio-badge active">'+(s.document_type||'')+'</span></td>'
-            +'<td>'+(s.signer||'')+'</td>'
-            +'<td>'+(s.requested_at||'')+'</td>'
+            +'<td>'+escapeHtml(s.document_name||'')+'</td>'
+            +'<td><span class="bio-badge active">'+escapeHtml(s.document_type||'')+'</span></td>'
+            +'<td>'+escapeHtml(s.signer||'')+'</td>'
+            +'<td>'+escapeHtml(s.requested_at||'')+'</td>'
             +'<td><button class="bio-btn bio-btn-primary" onclick="window._bio.openSignaturePad(\''+s.id+'\')">Sign</button></td>'
             +'</tr>';
     }).join('');
@@ -83,10 +89,10 @@ function renderCertificates(){
         return '<div class="bio-card">'
             +'<div class="bio-card-header"><span class="bio-card-title">'+(c.name||'')+'</span><span class="bio-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
             +'<div class="bio-card-body">'
-            +'<div class="bio-card-row"><span>Issuer</span><span>'+(c.issuer||'')+'</span></div>'
-            +'<div class="bio-card-row"><span>Serial</span><span>'+(c.serial||'')+'</span></div>'
-            +'<div class="bio-card-row"><span>Issued</span><span>'+(c.issued_date||'')+'</span></div>'
-            +'<div class="bio-card-row"><span>Expires</span><span>'+(c.expiry_date||'')+'</span></div>'
+            +'<div class="bio-card-row"><span>Issuer</span><span>'+escapeHtml(c.issuer||'')+'</span></div>'
+            +'<div class="bio-card-row"><span>Serial</span><span>'+escapeHtml(c.serial||'')+'</span></div>'
+            +'<div class="bio-card-row"><span>Issued</span><span>'+escapeHtml(c.issued_date||'')+'</span></div>'
+            +'<div class="bio-card-row"><span>Expires</span><span>'+escapeHtml(c.expiry_date||'')+'</span></div>'
             +'</div>'
             +'<div class="bio-card-actions">'
             +'<button class="bio-btn bio-btn-primary" onclick="window._bio.renewCertificate(\''+c.id+'\')">Renew</button>'
@@ -100,12 +106,12 @@ function renderAudit(){
     if(state.audit.length===0){tbody.innerHTML='<tr><td colspan="6" class="bio-empty">No audit entries</td></tr>';return}
     tbody.innerHTML=state.audit.map(function(a){
         return '<tr>'
-            +'<td>'+(a.timestamp||'')+'</td>'
-            +'<td>'+(a.user||'')+'</td>'
-            +'<td>'+(a.action||'')+'</td>'
-            +'<td><span class="bio-badge '+(a.result==='success'?'active':'failed')+'">'+a.result+'</span></td>'
-            +'<td>'+(a.ip||'')+'</td>'
-            +'<td style="font-size:11px;color:var(--text-secondary)">'+(a.details||'')+'</td>'
+            +'<td>'+escapeHtml(a.timestamp||'')+'</td>'
+            +'<td>'+escapeHtml(a.user||'')+'</td>'
+            +'<td>'+escapeHtml(a.action||'')+'</td>'
+            +'<td><span class="bio-badge '+(a.result==='success'?'active':'failed')+'">'+escapeHtml(a.result)+'</span></td>'
+            +'<td>'+escapeHtml(a.ip||'')+'</td>'
+            +'<td style="font-size:11px;color:var(--text-secondary)">'+escapeHtml(a.details||'')+'</td>'
             +'</tr>';
     }).join('');
 }
