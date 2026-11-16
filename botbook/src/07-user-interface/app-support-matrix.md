@@ -28,10 +28,12 @@ are the only tiers in the release and test matrix; anything else is community
 or experimental and carries no SLA.
 
 The government desktop tier is the Chat and Drive edition: `chat` and `drive`
-are the only visible apps, every other registry app is hidden, and the agent
-workspace, terminal, database tool, office apps and web lookup are not compiled
-(`cargo build -p botserver --no-default-features --features gbgov`). It is built
-and smoke-tested on Windows by the `gbgov Windows` workflow.
+are the only visible apps, every other registry app is hidden, and the terminal,
+database tool, office apps and web lookup are not compiled. The agent workspace
+(`agent-vm`) is compiled but on Windows the Incus backend is unavailable
+without a WSL2 wrapper; agent mode is disabled gracefully at runtime.
+Build: `cargo build -p botserver --no-default-features --features gbgov`. It is
+built and smoke-tested on Windows by the `gbgov Windows` workflow.
 
 ## Apps per tier
 

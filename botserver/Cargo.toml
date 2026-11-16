@@ -238,6 +238,11 @@ gbgov = [
     "settings",
     # Consent cards: the assistant asks before it acts through an API.
     "consent",
+    # Agent workspace: per-user Incus container for code execution,
+    # file generation and subscription AI accounts. On Windows the
+    # backend is unavailable without a WSL2/Incus wrapper; the server
+    # detects this at startup and disables agent mode gracefully.
+    "agent-vm",
     "embed-ui",
     # Infrastructure the two apps rely on; `botcore/default` is deliberately
     # not enabled, so each botcore capability is named here.
@@ -249,6 +254,7 @@ gbgov = [
     "botcore/security",
     "botcore/settings",
     "botcore/automation",
+    "botcore/agent-vm",
     "botcore/gbgov",
     "botdrive/desktop-local",
 ]

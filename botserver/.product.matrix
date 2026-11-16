@@ -55,7 +55,7 @@ apps=chat,drive,about,settings
 preview=
 hidden=analytics,attendant,automations,banking,billing,browser,calculator,calendar,campaigns,canvas,clock,clock-widget,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,integrations,jukebox,kyc,learn,lists,mail,meet,memory,minutes,monitoring,notepad,notes,o365,paper,people,photos,plan,player,plugins,pos,preview,products,project,recycle,research,retail,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vibe,video,vision,weather,workspace
 deprecated=
-note=Government desktop edition (branch gbgov): Chat and Drive only, nothing else compiled.
+note=Government desktop edition (branch gbgov): Chat and Drive with the agent workspace (agent-vm). On Windows the Incus backend is unavailable without WSL2; agent mode is disabled gracefully.
 [tier everything-else]
 product=-
 level=preview

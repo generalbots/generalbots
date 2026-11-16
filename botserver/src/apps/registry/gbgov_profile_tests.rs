@@ -1,9 +1,10 @@
 //! Guard for the government desktop edition's product file (#2560).
 //!
-//! The edition ships Chat and Drive only. Every other registry app has to be
-//! listed as hidden in `.product.gbgov`: an app that is neither always visible
-//! nor hidden is treated as a preview app, and the edition has no preview
-//! tier. A new registry app therefore fails here until the file names it.
+//! The edition ships Chat and Drive with the agent workspace (agent-vm).
+//! Every other registry app has to be listed as hidden in `.product.gbgov`: an
+//! app that is neither always visible nor hidden is treated as a preview app,
+//! and the edition has no preview tier. A new registry app therefore fails here
+//! until the file names it.
 
 use super::all_apps;
 use botcore::product::ProductConfig;
