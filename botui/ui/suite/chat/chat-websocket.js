@@ -4,9 +4,17 @@ var CHAT_FRIENDLY_ERRORS = {
   "WebSocket connection failed": "Connection lost. Trying to reconnect...",
 };
 
+function chatFriendlyError(message) {
+  if (typeof gbT !== "function") return CHAT_FRIENDLY_ERRORS[message] || message;
+  if (message === "Disconnected from chat server") return gbT("chat-disconnected-reconnecting", "Chat disconnected. Reconnecting...");
+  if (message === "Failed to connect to chat server") return gbT("chat-connect-retrying", "Could not reach the chat server. Retrying...");
+  if (message === "WebSocket connection failed") return gbT("chat-connection-lost", "Connection lost. Trying to reconnect...");
+  return CHAT_FRIENDLY_ERRORS[message] || message;
+}
+
 function notify(message, type) {
   type = type || "info";
-  var friendly = CHAT_FRIENDLY_ERRORS[message] || message;
+  var friendly = chatFriendlyError(message);
   if (window.GBAlerts) {
     if (type === "error") {
       window.GBAlerts.warning("Chat", friendly);

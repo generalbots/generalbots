@@ -24,15 +24,17 @@ function shouldCollapseUserMessage(text) {
 function collapseUserMessageIfNeeded(div, text) {
   var textBox = div && div.querySelector(".gb-message-text");
   if (!textBox || !shouldCollapseUserMessage(text)) return;
+  var showMoreLabel = (typeof gbT === "function") ? gbT("chat-show-more", "Show more") : "Show more";
+  var showLessLabel = (typeof gbT === "function") ? gbT("chat-show-less", "Show less") : "Show less";
   var toggle = document.createElement("button");
   toggle.type = "button";
   toggle.className = "gb-message-toggle";
-  toggle.textContent = "Show more";
+  toggle.textContent = showMoreLabel;
   toggle.setAttribute("aria-expanded", "false");
   textBox.classList.add("gb-message-collapsed");
   toggle.addEventListener("click", function () {
     var collapsed = textBox.classList.toggle("gb-message-collapsed");
-    toggle.textContent = collapsed ? "Show more" : "Show less";
+    toggle.textContent = collapsed ? showMoreLabel : showLessLabel;
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
   });
   textBox.parentNode.insertBefore(toggle, textBox.nextSibling);
@@ -40,14 +42,18 @@ function collapseUserMessageIfNeeded(div, text) {
 
 function renderToolExecHeader(toolExec) {
   if (!toolExec) return "";
-  var name = String(toolExec.tool_name || toolExec.name || toolExec.label || "tool");
+  var toolLabel = (typeof gbT === "function") ? gbT("chat-tool", "tool") : "tool";
+  var toolResultLabel = (typeof gbT === "function") ? gbT("chat-tool-result", "Tool result") : "Tool result";
+  var paramLabel = (typeof gbT === "function") ? gbT("chat-param", "param") : "param";
+  var paramsLabel = (typeof gbT === "function") ? gbT("chat-params", "params") : "params";
+  var name = String(toolExec.tool_name || toolExec.name || toolExec.label || toolLabel);
   var desc = String(toolExec.tool_description || toolExec.description || "");
   var icon = String(toolExec.tool_icon || "").trim();
   var params = toolExec.tool_params || toolExec.params;
   var metaParts = [];
   if (icon) metaParts.push(icon);
   if (Array.isArray(params) && params.length) {
-    metaParts.push(params.length + " param" + (params.length === 1 ? "" : "s"));
+    metaParts.push(params.length + " " + (params.length === 1 ? paramLabel : paramsLabel));
   }
   var detail = desc || metaParts.join(" · ");
   if (window.ChatCodeUX && typeof window.ChatCodeUX.toolCardHtml === "function") {
@@ -56,7 +62,7 @@ function renderToolExecHeader(toolExec) {
       tool_name: name,
       status: "done",
       argsDetail: detail,
-      summary: "Tool result",
+      summary: toolResultLabel,
     });
   }
   function esc(v) {
@@ -72,7 +78,7 @@ function renderToolExecHeader(toolExec) {
     '<div class="gb-tool-info">' +
     '<div class="gb-tool-name">' + esc(name) + '</div>' +
     (detail ? '<div class="gb-tool-args">' + esc(detail) + '</div>' : '') +
-    '<div class="gb-tool-summary">Tool result</div>' +
+    '<div class="gb-tool-summary">' + esc(toolResultLabel) + '</div>' +
     '</div></div>';
 }
 
@@ -229,10 +235,11 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
           : "Uploaded file";
         restored.appendChild(desc);
         if (/(\.docx|\.xlsx|\.pptx|\.pdf|\.png|\.jpe?g|\.gif|\.webp|\.txt|\.md|\.csv|\.json|\.log)$/i.test(singleName)) {
+          var previewLabel = (typeof gbT === "function") ? gbT("chat-preview", "Preview") : "Preview";
           var previewButton = document.createElement("button");
           previewButton.type = "button";
           previewButton.className = "gb-attachment-btn";
-          previewButton.textContent = "Preview";
+          previewButton.textContent = previewLabel;
           previewButton.addEventListener("click", function () {
             toggleUserAttachmentPreview(restored, singleName);
           });
@@ -348,9 +355,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
       var retryBtn = document.createElement("button");
       retryBtn.type = "button";
       retryBtn.className = "gb-retry-btn";
-      retryBtn.textContent = (window.i18n && typeof window.i18n.t === "function" && window.i18n.t("chat-retry") !== "chat-retry")
-        ? window.i18n.t("chat-retry")
-        : "Retry";
+      retryBtn.textContent = (typeof gbT === "function") ? gbT("chat-retry", "Retry") : "Retry";
       retryBtn.addEventListener("click", function () {
         var sourceUser = null;
         var prev = div.previousElementSibling;
@@ -396,7 +401,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
     if (artifact) {
       var artifactBtn = document.createElement("button");
       artifactBtn.className = "gb-artifact-btn";
-      artifactBtn.textContent = "Open as document";
+      artifactBtn.textContent = (typeof gbT === "function") ? gbT("chat-open-as-document", "Open as document") : "Open as document";
       artifactBtn.addEventListener("click", function () {
         var msgContent = div.querySelector(".message-content");
         openArtifactPanel(content, msgContent);

@@ -8,22 +8,27 @@ function renderInlineArtifact(html, titleOverride) {
   title.className = "gb-inline-artifact-title";
   title.textContent = titleOverride || inlineArtifactTitle(html);
   head.appendChild(title);
+  var expandLabel = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
+  var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
+  var previewLabel = (typeof gbT === "function") ? gbT("chat-preview", "Preview") : "Preview";
   var expand = document.createElement("button");
   expand.type = "button";
   expand.className = "gb-inline-artifact-btn";
-  expand.textContent = "Expand";
+  expand.textContent = expandLabel;
   expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
     // #2099 — expand opens the artifact over the whole pane; the bubble's 80%
     // cap no longer applies because the box leaves `.message`.
     if (window.GBArtifactOverlay) {
       window.GBArtifactOverlay.toggle(box, expand, {
-        label: title.textContent || "Preview",
+        label: title.textContent || previewLabel,
       });
       return;
     }
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = expanded ? collapseLabel : expandLabel;
+    expand.setAttribute("aria-expanded", expanded ? "true" : "false");
   });
   head.appendChild(expand);
   var frame = document.createElement("iframe");
@@ -80,10 +85,13 @@ function toggleUserAttachmentPreview(chip, name) {
   title.textContent = name;
   head.appendChild(title);
 
+  var expandLabel = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
+  var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
+  var closePreviewLabel = (typeof gbT === "function") ? gbT("chat-close-preview", "Close preview") : "Close preview";
   var expand = document.createElement("button");
   expand.type = "button";
   expand.className = "gb-attachment-inline-btn";
-  expand.textContent = "Expand";
+  expand.textContent = expandLabel;
   expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
     // #2099 — same modal layer as the other inline previews.
@@ -92,14 +100,16 @@ function toggleUserAttachmentPreview(chip, name) {
       return;
     }
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = expanded ? collapseLabel : expandLabel;
+    expand.setAttribute("aria-expanded", expanded ? "true" : "false");
   });
   head.appendChild(expand);
 
   var close = document.createElement("button");
   close.type = "button";
   close.className = "gb-attachment-inline-btn";
-  close.setAttribute("aria-label", "Close preview");
+  close.setAttribute("aria-label", closePreviewLabel);
   close.textContent = "×";
   close.addEventListener("click", function () {
     if (window.GBArtifactOverlay) window.GBArtifactOverlay.close(box);
@@ -151,7 +161,7 @@ function toggleUserAttachmentPreview(chip, name) {
       if (!box.isConnected) return;
       var note = document.createElement("div");
       note.className = "gb-attachment-inline-note";
-      note.textContent = "Could not load the preview.";
+      note.textContent = (typeof gbT === "function") ? gbT("chat-preview-load-failed", "Could not load the preview.") : "Could not load the preview.";
       body.appendChild(note);
     });
 }

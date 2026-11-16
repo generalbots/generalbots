@@ -13,13 +13,15 @@
     var label = img.getAttribute("alt") || "Image";
     var note = document.createElement("span");
     note.className = "gb-image-fallback";
-    note.textContent = label + " — image unavailable";
+    var unavailable = (typeof gbT === "function") ? gbT("chat-image-unavailable", "image unavailable") : "image unavailable";
+    var openLabel = (typeof gbT === "function") ? gbT("chat-open", "Open") : "Open";
+    note.textContent = label + " — " + unavailable;
     if (/^https?:\/\//i.test(src) || src.charAt(0) === "/") {
       var link = document.createElement("a");
       link.href = src;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "Open";
+      link.textContent = openLabel;
       note.appendChild(document.createTextNode(" "));
       note.appendChild(link);
     }
