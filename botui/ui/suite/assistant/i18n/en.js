@@ -97,6 +97,7 @@ window.GBAssistantLocales["en"] = {
     "settings.bg-blueprint":   "Blueprint",
     "settings.bg-weave":       "Weave",
     "settings.bg-mosaic":      "Mosaic",
+    "settings.retry":          "Try again",
     "suggestion.remove":       "Remove suggestion",
     "attach.open-drive":       "Open in Drive",
     "attach.preview":          "Preview",

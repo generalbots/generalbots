@@ -93,7 +93,26 @@
             about: renderAbout,
         };
         var fn = renderers[id];
-        if (fn) { fn(panel); } else { panel.innerHTML = ""; }
+        if (fn) {
+            /* Show a loading indicator; the renderer replaces it. */
+            panel.innerHTML = '<div class="gb-set-loading">' +
+                '<span class="gb-set-loading-dot"></span>' +
+                esc(A.t("assistant.connecting", "Loading...")) + '</div>';
+            try { fn(panel); } catch (e) {
+                panel.innerHTML = sectionError(e);
+            }
+        } else {
+            panel.innerHTML = "";
+        }
+    }
+
+    function sectionError(e) {
+        var msg = e && e.message ? e.message : String(e);
+        return '<div class="gb-set-error">' +
+            '<p>' + esc(msg) + '</p>' +
+            '<button class="gb-set-btn-sm" onclick="' +
+            "var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();" +
+            '">' + esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
     }
 
     /* -- Account -- */
@@ -337,7 +356,10 @@
     /* -- Model (delegated to 10_settings_model.js) -- */
     function renderModel(panel) {
         if (typeof A.renderModelFull === "function") {
-            A.renderModelFull(panel);
+            /* renderModelFull is async; catch rejections so they show in-panel */
+            Promise.resolve(A.renderModelFull(panel)).catch(function (e) {
+                panel.innerHTML = sectionError(e);
+            });
         } else {
             panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
         }
