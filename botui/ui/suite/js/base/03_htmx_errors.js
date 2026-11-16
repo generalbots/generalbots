@@ -2,7 +2,6 @@
   "use strict";
 
   if (window.__GB_HTMX_ERRORS_INSTALLED__) return;
-  window.__GB_HTMX_ERRORS_INSTALLED__ = true;
 
   var htmxRetryConfig = {
     maxRetries: 3,
@@ -248,73 +247,91 @@
     }
   }
 
-  document.body.addEventListener("htmx:beforeRequest", function (e) {
-    var target = e.detail && e.detail.target;
-    if (target && target.id === "main-content") {
-      try {
-        target.setAttribute("aria-busy", "true");
-      } catch (err) {}
-      announceToScreenReader("Loading content...");
-    }
-  });
+  function install() {
+    if (window.__GB_HTMX_ERRORS_INSTALLED__) return;
+    if (!document.body) return;
+    window.__GB_HTMX_ERRORS_INSTALLED__ = true;
 
-  document.body.addEventListener("htmx:afterSwap", function (e) {
-    var target = e.detail && e.detail.target;
-    if (target && target.id === "main-content") {
-      try {
-        target.setAttribute("aria-busy", "false");
-        target.focus();
-      } catch (err) {}
-      announceToScreenReader("Content loaded");
-    }
-  });
+    document.body.addEventListener("htmx:beforeRequest", function (e) {
+      var target = e.detail && e.detail.target;
+      if (target && target.id === "main-content") {
+        try {
+          target.setAttribute("aria-busy", "true");
+        } catch (err) {}
+        announceToScreenReader("Loading content...");
+      }
+    });
 
-  document.body.addEventListener("htmx:responseError", function (e) {
-    var detail = e.detail || {};
-    e.__gbHtmxErrorHandled = true;
-    handleFailure(detail, { kind: "response" });
-  });
+    document.body.addEventListener("htmx:afterSwap", function (e) {
+      var target = e.detail && e.detail.target;
+      if (target && target.id === "main-content") {
+        try {
+          target.setAttribute("aria-busy", "false");
+          target.focus();
+        } catch (err) {}
+        announceToScreenReader("Content loaded");
+      }
+    });
 
-  document.body.addEventListener("htmx:timeout", function (e) {
-    var detail = e.detail || {};
-    e.__gbHtmxErrorHandled = true;
-    handleFailure(detail, { kind: "timeout" });
-  });
+    document.body.addEventListener("htmx:responseError", function (e) {
+      if (e.__gbHtmxErrorHandled) return;
+      var detail = e.detail || {};
+      e.__gbHtmxErrorHandled = true;
+      handleFailure(detail, { kind: "response" });
+    });
 
-  document.body.addEventListener("htmx:sendError", function (e) {
-    var detail = e.detail || {};
-    e.__gbHtmxErrorHandled = true;
-    handleFailure(detail, { kind: "network" });
-  });
+    document.body.addEventListener("htmx:timeout", function (e) {
+      if (e.__gbHtmxErrorHandled) return;
+      var detail = e.detail || {};
+      e.__gbHtmxErrorHandled = true;
+      handleFailure(detail, { kind: "timeout" });
+    });
 
-  document.body.addEventListener("htmx:afterRequest", function (e) {
-    var detail = e.detail || {};
-    if (detail.successful) {
-      htmxRetryConfig.retryCount.delete(getRetryKey(detail));
-      clearBusy(detail);
-    }
-  });
+    document.body.addEventListener("htmx:sendError", function (e) {
+      if (e.__gbHtmxErrorHandled) return;
+      var detail = e.detail || {};
+      e.__gbHtmxErrorHandled = true;
+      handleFailure(detail, { kind: "network" });
+    });
 
-  document.body.addEventListener("click", function (e) {
-    var btn = e.target && e.target.closest ? e.target.closest("[data-gb-htmx-retry='1']") : null;
-    if (!btn) return;
-    var container = btn.closest(".error-state");
-    var target = container && container.parentElement ? container.parentElement : null;
-    if (!target) return;
-    btn.disabled = true;
-    btn.textContent = "Retrying...";
-    var detail = target.__gbHtmxRetryDetail;
-    if (detail && detail.elt && typeof htmx !== "undefined") {
-      try {
-        htmx.trigger(detail.elt, "htmx:trigger");
-        return;
-      } catch (err) {}
-    }
-    var triggers = target.querySelectorAll("[hx-get], [hx-head]");
-    if (triggers.length > 0 && typeof htmx !== "undefined") {
-      try { htmx.trigger(triggers[0], "htmx:trigger"); return; } catch (err) {}
-    }
-    var activeApp = document.querySelector(".app-item.active");
-    if (activeApp) activeApp.click();
-  });
+    document.body.addEventListener("htmx:afterRequest", function (e) {
+      var detail = e.detail || {};
+      if (detail.successful) {
+        htmxRetryConfig.retryCount.delete(getRetryKey(detail));
+        clearBusy(detail);
+      }
+    });
+
+    document.body.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest("[data-gb-htmx-retry='1']") : null;
+      if (!btn) return;
+      var container = btn.closest(".error-state");
+      var target = container && container.parentElement ? container.parentElement : null;
+      if (!target) return;
+      btn.disabled = true;
+      btn.textContent = "Retrying...";
+      var detail = target.__gbHtmxRetryDetail;
+      if (detail && detail.elt && typeof htmx !== "undefined") {
+        try {
+          htmx.trigger(detail.elt, "htmx:trigger");
+          return;
+        } catch (err) {}
+      }
+      var triggers = target.querySelectorAll("[hx-get], [hx-head]");
+      if (triggers.length > 0 && typeof htmx !== "undefined") {
+        try { htmx.trigger(triggers[0], "htmx:trigger"); return; } catch (err) {}
+      }
+      var activeApp = document.querySelector(".app-item.active");
+      if (activeApp) activeApp.click();
+    });
+  }
+
+  if (document.body) {
+    install();
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", install, { once: true });
+  } else {
+    // Body not yet parsed but readyState is not loading in some cases; retry shortly.
+    setTimeout(install, 0);
+  }
 })();

@@ -22,10 +22,10 @@
     htmx.config.defaultSettleDelay = 100;
     htmx.config.timeout = 10000;
 
-    // Handle errors globally
+    // Generic HTMX error UX is handled globally by js/base/03_htmx_errors.js
+    // (#2334). Keep a debug trace here without duplicating user-facing toasts.
     document.body.addEventListener("htmx:responseError", (event) => {
       console.error("HTMX Error:", event.detail);
-      showNotification("Connection error. Please try again.", "error");
     });
 
     // Handle before swap to prevent errors when target doesn't exist
