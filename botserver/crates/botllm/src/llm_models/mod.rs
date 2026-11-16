@@ -24,20 +24,33 @@ pub trait ModelHandler: Send + Sync {
     }
 }
 
+/// Default handler that also extracts `<think>…</think>` blocks, so local
+/// models whose name does not match any known family still get reasoning
+/// separated from the answer (#2562).
 #[derive(Debug)]
 pub struct PassthroughHandler;
 
 impl ModelHandler for PassthroughHandler {
-    fn is_analysis_complete(&self, _buffer: &str) -> bool {
-        true
+    fn is_analysis_complete(&self, buffer: &str) -> bool {
+        // The passthrough handler always considers the analysis "complete"
+        // once a closing tag appears, or immediately when there is no tag.
+        !buffer.contains("<think>") || buffer.contains("</think>")
     }
 
     fn process_content(&self, content: &str) -> String {
-        content.to_string()
+        qwen::split_think_blocks(content).0
     }
 
-    fn has_analysis_markers(&self, _buffer: &str) -> bool {
-        false
+    fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {
+        qwen::stream_think_blocks(chunk, state)
+    }
+
+    fn has_analysis_markers(&self, buffer: &str) -> bool {
+        buffer.contains("<think>")
+    }
+
+    fn skip_reasoning_content(&self) -> bool {
+        true
     }
 }
 
@@ -90,8 +103,35 @@ mod tests {
     }
 
     #[test]
-    fn unknown_models_still_pass_through() {
+    fn unknown_models_extract_think_blocks() {
         let handler = get_handler("some-unreleased-model");
-        assert_eq!(handler.process_content("<think>x</think>y"), "<think>x</think>y");
+        // #2562 — the passthrough handler now strips `<think>` blocks so local
+        // models that emit inline reasoning get thinking cards.
+        assert_eq!(handler.process_content("<think>x</think>y"), "y");
+    }
+
+    #[test]
+    fn passthrough_streaming_handles_split_tags() {
+        let handler = get_handler("some-unreleased-model");
+        let mut state = String::new();
+        let first = handler.process_content_streaming("Hello<thin", &mut state);
+        assert_eq!(first.content, "Hello");
+        let second = handler.process_content_streaming("k>reason</think>Done", &mut state);
+        assert_eq!(second.content, "Done");
+        assert!(second.reasoning.contains("reason"));
+    }
+
+    #[test]
+    fn passthrough_streaming_buffers_full_think_block() {
+        let handler = get_handler("some-unreleased-model");
+        let mut state = String::new();
+        let r1 = handler.process_content_streaming("<think>Step 1. ", &mut state);
+        assert!(r1.content.is_empty());
+        assert_eq!(r1.reasoning, "Step 1. ");
+        let r2 = handler.process_content_streaming("Step 2. ", &mut state);
+        assert!(r2.content.is_empty());
+        assert_eq!(r2.reasoning, "Step 2. ");
+        let r3 = handler.process_content_streaming("</think>Final.", &mut state);
+        assert_eq!(r3.content, "Final.");
     }
 }

@@ -12,12 +12,12 @@ use super::{ModelHandler, ProcessedChunk};
 const OPEN: &str = "<think>";
 const CLOSE: &str = "</think>";
 
-/// Splits `<think>` reasoning out of a Qwen answer.
+/// Splits `<think>` reasoning out of a model answer.
 ///
 /// Returns `(answer, reasoning)`. An unterminated block — which happens when a
 /// response is cut off mid-reasoning — is treated as reasoning too, so a
 /// truncated answer never leaks the model's private chain of thought.
-fn split_think_blocks(content: &str) -> (String, String) {
+pub(super) fn split_think_blocks(content: &str) -> (String, String) {
     let mut answer = String::new();
     let mut reasoning = String::new();
     let mut rest = content;
@@ -40,6 +40,59 @@ fn split_think_blocks(content: &str) -> (String, String) {
     answer.push_str(rest);
 
     (answer.trim().to_string(), reasoning.trim().to_string())
+}
+
+/// Processes a streaming chunk: splits `<think>` blocks, holds back partial
+/// tags across chunk boundaries, returns the content and reasoning for this
+/// chunk.  Shared by QwenHandler and PassthroughHandler (#2562).
+///
+/// When the accumulated buffer contains an open `<think>` without a matching
+/// `</think>`, the entire buffer is held back and the new chunk's text is
+/// emitted as reasoning. Once the closing tag arrives the answer text after
+/// the block is emitted as content.
+///
+/// The `state` buffer format: when inside a think block, state holds the
+/// entire accumulated text (including `<think>`). The caller must NOT clear
+/// state between calls.
+pub(super) fn stream_think_blocks(chunk: &str, state: &mut String) -> ProcessedChunk {
+    state.push_str(chunk);
+
+    let has_open = state.contains(OPEN);
+    let has_close = state.contains(CLOSE);
+
+    if has_open && !has_close {
+        // Mid-reasoning: the new chunk is reasoning text. Emit it as
+        // reasoning so the client sees a live thinking card. Keep the
+        // full buffer so the closing tag can be detected later.
+        //
+        // The chunk itself is the reasoning delta (the caller accumulates).
+        // Strip any `<think>` prefix from the chunk in case this is the
+        // first chunk that contains the opening tag.
+        let delta = chunk.replace(OPEN, "");
+        return ProcessedChunk {
+            content: String::new(),
+            reasoning: delta,
+        };
+    }
+
+    // The close tag is present or there is no open tag: process normally.
+    let (answer, reasoning) = split_think_blocks(state);
+    state.clear();
+
+    match pending_tag(&answer) {
+        Some(pending) => {
+            let keep_from = answer.len() - pending.len();
+            state.push_str(&answer[keep_from..]);
+            ProcessedChunk {
+                content: answer[..keep_from].to_string(),
+                reasoning,
+            }
+        }
+        None => ProcessedChunk {
+            content: answer,
+            reasoning,
+        },
+    }
 }
 
 /// Longest proper prefix of `tag` that `text` ends with, if any.
@@ -85,27 +138,7 @@ impl ModelHandler for QwenHandler {
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {
-        state.push_str(chunk);
-        let (answer, reasoning) = split_think_blocks(state);
-        state.clear();
-
-        // A marker split across SSE chunk boundaries must not be emitted as
-        // answer text, so a trailing partial tag stays in the state buffer for
-        // the next chunk to complete.
-        match pending_tag(&answer) {
-            Some(pending) => {
-                let keep_from = answer.len() - pending.len();
-                state.push_str(&answer[keep_from..]);
-                ProcessedChunk {
-                    content: answer[..keep_from].to_string(),
-                    reasoning,
-                }
-            }
-            None => ProcessedChunk {
-                content: answer,
-                reasoning,
-            },
-        }
+        stream_think_blocks(chunk, state)
     }
 }
 
@@ -184,5 +217,34 @@ mod tests {
         assert_eq!(chunk.content, "Hello");
         assert!(chunk.reasoning.is_empty());
         assert!(state.is_empty());
+    }
+
+    #[test]
+    fn streaming_buffers_reasoning_across_many_chunks() {
+        // Simulates a mock that streams word by word with <think> in the first chunk
+        let mut state = String::new();
+
+        let r1 = stream_think_blocks("<think> ", &mut state);
+        assert!(r1.content.is_empty(), "no content while inside think block");
+        assert_eq!(r1.reasoning, " ");
+
+        let r2 = stream_think_blocks("Step one. ", &mut state);
+        assert!(r2.content.is_empty());
+        assert_eq!(r2.reasoning, "Step one. ");
+
+        let r3 = stream_think_blocks("</think>Answer here.", &mut state);
+        assert_eq!(r3.content, "Answer here.");
+        // The final reasoning is the full block content from split_think_blocks
+        assert!(r3.reasoning.contains("Step one."));
+        assert!(state.is_empty());
+    }
+
+    #[test]
+    fn streaming_unclosed_think_at_end_emits_no_content() {
+        let mut state = String::new();
+        let r1 = stream_think_blocks("<think>partial", &mut state);
+        assert!(r1.content.is_empty());
+        assert_eq!(r1.reasoning, "partial");
+        assert!(!state.is_empty());
     }
 }
