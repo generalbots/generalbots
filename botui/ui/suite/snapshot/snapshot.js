@@ -21,11 +21,12 @@
       dlBtn.disabled = !has;
       img.hidden = !has;
     }
-    function toast(msg) {
+    function toast(msg, type) {
+      var kind = type || "info";
       if (window.GBToasts && window.GBToasts.show) {
-        window.GBToasts.show("Snapshot", msg, "error");
+        window.GBToasts.show("Snapshot", msg, kind);
       } else {
-        console.warn("Snapshot:", msg);
+        console[kind === "error" ? "error" : "log"]("Snapshot:", msg);
       }
     }
 
@@ -55,7 +56,7 @@
         if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) {
           // user cancelled - silent
         } else {
-          toast((e && e.message) ? e.message : "Capture failed");
+          toast((e && e.message) ? e.message : "Capture failed", "error");
           console.error("Snapshot capture failed:", e);
         }
       } finally {
@@ -71,13 +72,9 @@
       try {
         var blob = await (await fetch(dataUrl)).blob();
         await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        toast("Copied to clipboard");
-        // Change toast type to success if possible
-        if (window.GBToasts && window.GBToasts.show) {
-          window.GBToasts.show("Snapshot", "Copied to clipboard", "success");
-        }
+        toast("Copied to clipboard", "success");
       } catch (e) {
-        toast("Copy failed: clipboard or permissions not available");
+        toast("Copy failed: clipboard or permissions not available", "error");
         console.error("Snapshot copy failed:", e);
       }
     });
@@ -90,7 +87,7 @@
         a.download = "snapshot-" + Date.now() + ".png";
         a.click();
       } catch (e) {
-        toast("Download failed");
+        toast("Download failed", "error");
         console.error("Snapshot download failed:", e);
       }
     });

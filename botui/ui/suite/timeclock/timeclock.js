@@ -2,14 +2,41 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
 "use strict";
 
 (function() {
-    function activateTab(btn) {
-        document.querySelectorAll("[data-tab-trigger]").forEach(function(b) {
-            b.classList.toggle("active", b === btn);
+    function getTabs() {
+        return Array.prototype.slice.call(document.querySelectorAll('.tc-tabs [data-tab-trigger]'));
+    }
+    function activateTab(btn, focus) {
+        var tabs = getTabs();
+        tabs.forEach(function(b) {
+            var isActive = b === btn;
+            b.classList.toggle("active", isActive);
+            b.setAttribute("aria-selected", isActive ? "true" : "false");
+            b.tabIndex = isActive ? 0 : -1;
         });
+        var panel = document.getElementById("tc-content");
+        if (panel && btn && btn.id) panel.setAttribute("aria-labelledby", btn.id);
+        if (focus && btn) btn.focus();
     }
     document.body.addEventListener("click", function(e) {
-        var t = e.target.closest("[data-tab-trigger]");
-        if (t) activateTab(t);
+        var t = e.target.closest(".tc-tabs [data-tab-trigger]");
+        if (t) activateTab(t, false);
+    });
+    document.body.addEventListener("keydown", function(e) {
+        var current = e.target.closest(".tc-tabs [data-tab-trigger]");
+        if (!current) return;
+        var tabs = getTabs();
+        var idx = tabs.indexOf(current);
+        if (idx === -1) return;
+        var next = null;
+        if (e.key === "ArrowRight") next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === "ArrowLeft") next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === "Home") next = tabs[0];
+        else if (e.key === "End") next = tabs[tabs.length - 1];
+        if (next) {
+            e.preventDefault();
+            next.click();
+            activateTab(next, true);
+        }
     });
 
     function tick() {

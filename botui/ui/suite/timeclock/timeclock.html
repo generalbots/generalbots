@@ -19,19 +19,19 @@
         <div class="tc-clock-zone" id="tc-zone" aria-live="polite" data-i18n-aria-label="timeclock-timezone"></div>
     </div>
 
-    <nav class="tc-tabs">
-        <button class="tc-tab active" data-tab-trigger="dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="goals-dashboard">Dashboard</button>
-        <button class="tc-tab" data-tab-trigger="records" hx-get="/suite/timeclock/fragments/records" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-records">Records</button>
-        <button class="tc-tab" data-tab-trigger="overtime" hx-get="/suite/timeclock/fragments/overtime" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-overtime">Overtime</button>
-        <button class="tc-tab" data-tab-trigger="justifications" hx-get="/suite/timeclock/fragments/justifications" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-justifications">Justifications</button>
-        <button class="tc-tab" data-tab-trigger="schedule" hx-get="/suite/timeclock/fragments/schedule" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-schedule">Schedule</button>
-        <button class="tc-tab" data-tab-trigger="holidays" hx-get="/suite/timeclock/fragments/holidays" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-holidays">Holidays</button>
-        <button class="tc-tab" data-tab-trigger="team" hx-get="/suite/timeclock/fragments/team" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-team">Team</button>
-        <button class="tc-tab" data-tab-trigger="audit" hx-get="/suite/timeclock/fragments/audit" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-audit">Audit</button>
-        <button class="tc-tab" data-tab-trigger="reports" hx-get="/suite/timeclock/fragments/reports" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-reports">Reports</button>
+    <nav class="tc-tabs" role="tablist" aria-label="Time clock sections">
+        <button type="button" class="tc-tab active" role="tab" id="tc-tab-dashboard" aria-selected="true" aria-controls="tc-content" tabindex="0" data-tab-trigger="dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="goals-dashboard">Dashboard</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-records" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="records" hx-get="/suite/timeclock/fragments/records" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-records">Records</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-overtime" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="overtime" hx-get="/suite/timeclock/fragments/overtime" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-overtime">Overtime</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-justifications" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="justifications" hx-get="/suite/timeclock/fragments/justifications" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-justifications">Justifications</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-schedule" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="schedule" hx-get="/suite/timeclock/fragments/schedule" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-schedule">Schedule</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-holidays" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="holidays" hx-get="/suite/timeclock/fragments/holidays" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-holidays">Holidays</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-team" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="team" hx-get="/suite/timeclock/fragments/team" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-team">Team</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-audit" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="audit" hx-get="/suite/timeclock/fragments/audit" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-tab-audit">Audit</button>
+        <button type="button" class="tc-tab" role="tab" id="tc-tab-reports" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="reports" hx-get="/suite/timeclock/fragments/reports" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-reports">Reports</button>
     </nav>
 
-    <div class="tc-content" id="tc-content" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
+    <div class="tc-content" id="tc-content" role="tabpanel" aria-live="polite" aria-labelledby="tc-tab-dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
         <p class="tc-loading" data-i18n="timeclock-loading-panel">Loading dashboard…</p>
     </div>
 </div>
