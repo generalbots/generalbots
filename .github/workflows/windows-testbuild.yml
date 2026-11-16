@@ -7,10 +7,25 @@ name: Windows test build
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/windows-testbuild.yml"
+      - "botagent/**"
+      - "botvibe/**"
+      - "botserver/**"
+      - "botui/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
   push:
     branches: ["main"]
     paths:
       - ".github/workflows/windows-testbuild.yml"
+      - "botagent/**"
+      - "botvibe/**"
+      - "botserver/**"
+      - "botui/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
 
 permissions:
   contents: read
@@ -54,6 +69,9 @@ jobs:
       - uses: ./.github/actions/rust-setup
         with:
           cache-scope: testbuild-windows
+
+      - name: Type-check botagent and botvibe (Windows gate)
+        run: cargo check -p botagent -p botvibe
 
       - name: Build botserver (desktop-local, debug)
         env:
