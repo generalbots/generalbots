@@ -77,15 +77,26 @@
 
     /* ---- JSON request via A.apiFetch ---- */
     D.req = function (path, opts) {
+        /* Add a 10 s abort timeout so the UI does not hang when storage is
+           unreachable and the server takes a long time to respond. */
+        var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 10000) : null;
+        if (ctrl) {
+            opts = Object.assign({}, opts || {});
+            opts.signal = ctrl.signal;
+        }
         return A.apiFetch(API + path, opts).then(function (r) {
+            if (timer) clearTimeout(timer);
             if (!r.ok) {
                 return r.json().catch(function () { return {}; }).then(function (body) {
                     var msg = (body && (body.message || body.error)) || "HTTP " + r.status;
                     var err = new Error(msg);
                     err.status = r.status;
                     /* Detect storage-down from common server error patterns */
-                    if (r.status === 502 || r.status === 503 || r.status === 504 ||
-                        (msg && msg.indexOf("onnect") >= 0)) {
+                    if (r.status >= 500 ||
+                        (msg && (msg.indexOf("onnect") >= 0 ||
+                                 msg.indexOf("storage") >= 0 ||
+                                 msg.indexOf("list objects") >= 0))) {
                         err.storageDown = true;
                     }
                     throw err;
@@ -97,11 +108,15 @@
                 try { return JSON.parse(t); } catch (e) { return t; }
             });
         }).catch(function (e) {
-            /* Network failures (fetch itself throws): storage likely down */
+            if (timer) clearTimeout(timer);
+            /* Network failures (fetch itself throws) or abort: storage likely
+               down. Wrap in a new Error because native errors (AbortError)
+               have a read-only message property. */
             if (!e.status) {
-                e.storageDown = true;
-                e.message = A.t("drive.storage-unavailable",
-                    "O armazenamento está indisponível no momento.");
+                var wrapped = new Error(A.t("drive.storage-unavailable",
+                    "O armazenamento está indisponível no momento."));
+                wrapped.storageDown = true;
+                throw wrapped;
             }
             throw e;
         });

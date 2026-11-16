@@ -283,11 +283,27 @@ function bindDownloadButtons(body, name, opts) {
 function downloadAttachment(name, opts) {
     var drivePath = (opts && opts.drivePath) || "";
     if (!drivePath) { return; }
-    A.apiFetch("/api/files/download-binary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: drivePath, scope: "bot" })
-    }).then(function (r) {
+    /* Inbox files live in the bot's Drive layout; the preview endpoint
+       resolves the correct bucket and prefix. For binary types (PDF,
+       images) it returns raw bytes suitable for download. */
+    var isInbox = drivePath.indexOf("inbox/") >= 0;
+    var fetchP;
+    if (isInbox) {
+        var inboxName = drivePath.substring(drivePath.indexOf("inbox/") + 6);
+        var url = A.origin + "/api/chat/attachments/preview?bot=" +
+            encodeURIComponent(A.botName || "default") +
+            "&name=" + encodeURIComponent(inboxName);
+        fetchP = fetch(url, {
+            headers: A.getToken() ? { "Authorization": "Bearer " + A.getToken() } : {}
+        });
+    } else {
+        fetchP = A.apiFetch("/api/files/download-binary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: drivePath, scope: "bot" })
+        });
+    }
+    fetchP.then(function (r) {
         if (!r.ok) { throw new Error("HTTP " + r.status); }
         return r.blob();
     }).then(function (blob) {

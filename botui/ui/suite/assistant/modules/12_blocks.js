@@ -408,12 +408,17 @@ A.attachCard = function (file, opts) {
     var displayName = truncMiddle(name, 28);
     var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
     html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
-    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : fmtBytes(size)) + '</span>';
+    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
     if (opts.removable !== false) {
         html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';
     }
     card.insertAdjacentHTML("beforeend", html);
     if (opts.onRemove) { var rm = card.querySelector(".gb-attach-remove"); if (rm) rm.addEventListener("click", opts.onRemove); }
+    /* Auto-detect drivePath from history attachment objects. */
+    if (!opts.drivePath && file && typeof file === "object" && !(file instanceof File)) {
+        var dp = file.drive_path || file.drivePath || (file.name ? "inbox/" + file.name : "");
+        if (dp) { opts = Object.assign({}, opts, { drivePath: dp }); }
+    }
     /* Make clickable for preview (unless removable = composer) */
     if (typeof A.makeAttachClickable === "function" && !opts.removable) {
         A.makeAttachClickable(card, file, opts);

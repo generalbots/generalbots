@@ -261,17 +261,23 @@
     function useFileInChat(path, name) {
         var MAX_ATTACH = 8 * 1024 * 1024;
         D.showToast(A.t("drive.fetching", "Carregando arquivo..."));
-        /* Inbox files use the attachment preview endpoint (which resolves
-           the bot's Drive layout); regular files use download-binary. */
+        /* Inbox files live in the bot's Drive layout (resolved by the server
+           via bot_drive_location). The generic /api/files/download-binary with
+           scope "bot" does NOT resolve that layout, so inbox downloads must
+           use the preview endpoint that does (/api/chat/attachments/preview).
+           For binary types (PDF, images) it returns raw bytes; for text/office
+           types it returns HTML, but the blob still works as a chat attachment
+           since the server re-reads the inbox copy on send. User-scope files
+           use the standard download-binary endpoint. */
         var isInbox = D.inboxMode || (path && path.indexOf("inbox/") >= 0);
         var fetchPromise;
         if (isInbox) {
             var inboxName = path.indexOf("inbox/") >= 0
                 ? path.substring(path.indexOf("inbox/") + 6) : name;
-            var url = "/api/chat/attachments/preview?bot=" +
+            var previewUrl = "/api/chat/attachments/preview?bot=" +
                 encodeURIComponent(A.botName || "default") +
                 "&name=" + encodeURIComponent(inboxName);
-            fetchPromise = A.apiFetch(url);
+            fetchPromise = A.apiFetch(previewUrl);
         } else {
             fetchPromise = A.apiFetch(D.API + "/download-binary", {
                 method: "POST",
