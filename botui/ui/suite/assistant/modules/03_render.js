@@ -19,6 +19,9 @@
        ================================================================ */
     A.renderUserMessage = function (text, files) {
         A.hasUserSent = true;
+        /* Reset dedup so an identical reply to a new question is not dropped. */
+        A.lastCompletedContent = "";
+        A.lastCompletedTime = 0;
         A.showConversation();
         A.hideThinking();
         hideDockSuggestions();
