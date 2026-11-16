@@ -112,7 +112,7 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootConcierge() {
     const input = document.getElementById("conciergeGoal");
     const btn = document.getElementById("conciergeRun");
     if (input) {
@@ -122,7 +122,12 @@
     }
     if (btn) btn.addEventListener("click", function () { if (input) run(input.value); });
     renderHistory();
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootConcierge, { once: true });
+  } else {
+    bootConcierge();
+  }
 
   window.GBConcierge = { run: run };
 })();

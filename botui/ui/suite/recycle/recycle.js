@@ -136,13 +136,18 @@
     return String(s).replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function bootRecycle() {
     const emptyBtn = document.getElementById("recycleEmpty");
     if (emptyBtn) emptyBtn.addEventListener("click", empty);
     const refresh = document.getElementById("recycleRefresh");
     if (refresh) refresh.addEventListener("click", load);
     load();
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootRecycle, { once: true });
+  } else {
+    bootRecycle();
+  }
 
   window.addEventListener("localeChanged", load);
 
