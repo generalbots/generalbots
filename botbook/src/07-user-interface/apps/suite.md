@@ -61,6 +61,7 @@ The Suite adapts to any screen size:
 
 ### Theme Support
 
+- **Default** — the suite's identity theme: warm paper surface, orange accent, hairline borders and the Fira Sans / Inter pair, matching the assistant module's look. It is selected out of the box; chat keeps its full feature set (suggestions, tool buttons, streaming) on the same conversation surface.
 - Light and dark mode
 - Custom color schemes via `.gbtheme`
 - Automatic system preference detection
