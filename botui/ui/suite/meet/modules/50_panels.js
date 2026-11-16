@@ -114,6 +114,6 @@
     };
 
     window.showNotification = function(message) {
-        console.log('Notification:', message);
+        gbLog.debug('Notification:', message);
     };
 })();

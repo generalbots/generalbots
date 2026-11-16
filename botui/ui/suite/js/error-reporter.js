@@ -45,7 +45,7 @@
             if (!response.ok) {
                 console.warn('[ErrorReporter] Failed to send errors:', response.status);
             } else {
-                console.log('[ErrorReporter] Sent', errorsToReport.length, 'errors to server');
+                gbLog.debug('[ErrorReporter] Sent', errorsToReport.length, 'errors to server');
             }
         } catch (e) {
             console.warn('[ErrorReporter] Failed to send errors:', e.message);
@@ -108,7 +108,7 @@
         });
     }
 
-    console.log('[ErrorReporter] Client-side error reporting initialized');
+    gbLog.debug('[ErrorReporter] Client-side error reporting initialized');
 
     window.NavigationLogger = {
         log: function(from, to, method) {
@@ -158,7 +158,7 @@
             window.NavigationLogger.log(fromHash || 'home', toHash, 'hashchange');
         });
 
-        console.log('[NavigationLogger] Navigation tracking initialized');
+        gbLog.debug('[NavigationLogger] Navigation tracking initialized');
     }
 
     if (document.readyState === 'loading') {

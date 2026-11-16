@@ -27,7 +27,7 @@ const ProgressPanel = {
     // This prevents the "2 receivers" problem where manifest_update goes to one connection
     // while the browser UI is listening on another
 
-    console.log("[ProgressPanel] Using singleton WebSocket for task:", taskId);
+    gbLog.debug("[ProgressPanel] Using singleton WebSocket for task:", taskId);
 
     // Create bound handler that filters for our task
     this._boundHandler = (data) => {
@@ -41,10 +41,10 @@ const ProgressPanel = {
     // Register with the global singleton WebSocket
     if (typeof registerTaskProgressHandler === "function") {
       registerTaskProgressHandler(this._boundHandler);
-      console.log("[ProgressPanel] Registered with singleton WebSocket");
+      gbLog.debug("[ProgressPanel] Registered with singleton WebSocket");
     } else {
       // Fallback: wait for tasks.js to load and retry
-      console.log(
+      gbLog.debug(
         "[ProgressPanel] Waiting for tasks.js singleton to be available...",
       );
       setTimeout(() => this.connectWebSocket(taskId), 500);

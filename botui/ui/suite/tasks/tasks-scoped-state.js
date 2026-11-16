@@ -39,7 +39,7 @@ if (tasksWindow) {
   // Check if tasks app was just loaded
   if (evt.detail.target && evt.detail.target.id === "main-content") {
     if (document.getElementById("window-tasks") && document.getElementById("window-tasks").querySelector(".tasks-app")) {
-      console.log(
+      gbLog.debug(
         "[Tasks] Detected tasks app loaded via HTMX, initializing...",
       );
       initTasksApp();
@@ -56,14 +56,14 @@ function initTasksApp() {
   ) {
     initWebSocket();
   } else {
-    console.log("[Tasks] WebSocket already connected, skipping init");
+    gbLog.debug("[Tasks] WebSocket already connected, skipping init");
   }
   setupEventListeners();
   setupKeyboardShortcuts();
   setupIntentInputHandlers();
   setupHtmxListeners();
   scrollAgentLogToBottom();
-  console.log("[Tasks] Initialized");
+  gbLog.debug("[Tasks] Initialized");
 }
 
 // Helper to find pending manifest by normalized ID
@@ -91,7 +91,7 @@ if (tasksWindow) {
       (target.id === "task-detail-content" ||
         target.closest("#task-detail-content"))
     ) {
-      console.log(
+      gbLog.debug(
         "[HTMX] Task detail content loaded, checking for pending manifest updates",
         "\n  selectedTaskId:",
         TasksState.selectedTaskId,
@@ -101,7 +101,7 @@ if (tasksWindow) {
       // Check if there's a pending manifest update for the selected task
       const pending = findPendingManifest(TasksState.selectedTaskId);
       if (pending) {
-        console.log(
+        gbLog.debug(
           "[HTMX] Applying pending manifest for task:",
           TasksState.selectedTaskId,
           "from key:",
@@ -115,7 +115,7 @@ if (tasksWindow) {
           );
         }, 50);
       } else {
-        console.log("[HTMX] No pending manifest found for selected task");
+        gbLog.debug("[HTMX] No pending manifest found for selected task");
       }
     }
   }, 100);
@@ -236,13 +236,13 @@ function startTaskPolling(taskId) {
   let pollCount = 0;
   const maxPolls = 180; // 3 minutes at 1 second intervals
 
-  console.log(`[POLL] Starting polling for task ${taskId}`);
+  gbLog.debug(`[POLL] Starting polling for task ${taskId}`);
 
   pollingInterval = setInterval(async () => {
     pollCount++;
 
     if (pollCount > maxPolls) {
-      console.log(`[POLL] Max polls reached for task ${taskId}`);
+      gbLog.debug(`[POLL] Max polls reached for task ${taskId}`);
       stopTaskPolling();
       errorFloatingProgress("Task timed out");
       return;
@@ -260,7 +260,7 @@ function startTaskPolling(taskId) {
       }
 
       const task = await response.json();
-      console.log(
+      gbLog.debug(
         `[POLL] Task ${taskId} status: ${task.status}, progress: ${task.progress || 0}%`,
       );
 
@@ -324,7 +324,7 @@ function initWebSocket() {
   if (window._taskProgressWsConnection) {
     const state = window._taskProgressWsConnection.readyState;
     if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
-      console.log(
+      gbLog.debug(
         "[Tasks WS] Global WebSocket already connected/connecting, reusing",
       );
       // Just update local reference
@@ -336,7 +336,7 @@ function initWebSocket() {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}/ws/task-progress`;
 
-  console.log("[Tasks WS] Creating SINGLETON WebSocket connection to:", wsUrl);
+  gbLog.debug("[Tasks WS] Creating SINGLETON WebSocket connection to:", wsUrl);
 
   try {
     const ws = new WebSocket(wsUrl);
@@ -344,15 +344,15 @@ function initWebSocket() {
     TasksState.wsConnection = ws;
 
     ws.onopen = function () {
-      console.log("[Tasks WS] WebSocket connected successfully (singleton)");
+      gbLog.debug("[Tasks WS] WebSocket connected successfully (singleton)");
       addAgentLog("info", "[SYSTEM] Connected to task orchestrator");
     };
 
     ws.onmessage = function (event) {
-      console.log("[Tasks WS] Raw message received:", event.data);
+      gbLog.debug("[Tasks WS] Raw message received:", event.data);
       try {
         const data = JSON.parse(event.data);
-        console.log("[Tasks WS] Parsed message:", data.type, data);
+        gbLog.debug("[Tasks WS] Parsed message:", data.type, data);
         handleWebSocketMessage(data);
 
         // Also forward to any registered handlers (e.g., ProgressPanel)
@@ -369,7 +369,7 @@ function initWebSocket() {
     };
 
     ws.onclose = function (event) {
-      console.log(
+      gbLog.debug(
         "[Tasks WS] WebSocket disconnected, code:",
         event.code,
         "reason:",
@@ -391,7 +391,7 @@ function initWebSocket() {
 // Register a handler to receive WebSocket messages (for ProgressPanel etc.)
 function registerTaskProgressHandler(handler) {
   window._taskProgressWsHandlers.add(handler);
-  console.log(
+  gbLog.debug(
     "[Tasks WS] Registered handler, total:",
     window._taskProgressWsHandlers.size,
   );
@@ -400,7 +400,7 @@ function registerTaskProgressHandler(handler) {
 // Unregister a handler
 function unregisterTaskProgressHandler(handler) {
   window._taskProgressWsHandlers.delete(handler);
-  console.log(
+  gbLog.debug(
     "[Tasks WS] Unregistered handler, total:",
     window._taskProgressWsHandlers.size,
   );

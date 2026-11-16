@@ -19,7 +19,7 @@
   function init() {
     loadObjectives();
     bindEvents();
-    console.log("Goals module initialized");
+    gbLog.debug("Goals module initialized");
   }
 
   function bindEvents() {

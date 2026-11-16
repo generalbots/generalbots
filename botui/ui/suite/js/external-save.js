@@ -43,7 +43,7 @@ window.GBExternalSave = (function () {
   function toast(title, message, kind) {
     if (window.GBToasts && GBToasts.show) GBToasts.show(title, message, kind || "success");
     else if (window.showToast) window.showToast(message, kind || "success");
-    else if (window.console) console.log(title + ": " + message);
+    else if (window.console) gbLog.debug(title + ": " + message);
   }
 
   function icon(name) {

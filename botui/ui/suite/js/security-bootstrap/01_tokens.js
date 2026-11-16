@@ -17,7 +17,7 @@
   "use strict";
   var N = (document.__gb_mod_security_bootstrap = {});
   var S = (N.s = { _accessToken: null, _refreshToken: null, _tokenExpires: null, _sessionId: null, _userData: null });
-   console.log("[GBSecurity] Loading...");
+   gbLog.debug("[GBSecurity] Loading...");
 
   // SECURITY: Tokens stored in closure variables instead of
   // localStorage/sessionStorage to prevent XSS-based exfiltration
@@ -112,7 +112,7 @@
     refreshTokenFromStorage: async function () {
       var refreshToken = S._refreshToken || sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
       if (!refreshToken) {
-        console.log("[GBSecurity] No refresh token found, skipping refresh");
+        gbLog.debug("[GBSecurity] No refresh token found, skipping refresh");
         return false;
       }
       try {
@@ -136,7 +136,7 @@
             data.expires_in || null,
             true,
           );
-          console.log("[GBSecurity] Token refreshed successfully after page load");
+          gbLog.debug("[GBSecurity] Token refreshed successfully after page load");
           return true;
         }
         console.warn("[GBSecurity] Refresh response missing access_token");
@@ -234,7 +234,7 @@
         !localStorage.getItem("management_token") &&
         !sessionStorage.getItem("gb-access-token")
       ) {
-        console.log("[GBSecurity] No token anywhere — skipping 401 (fresh visit)");
+        gbLog.debug("[GBSecurity] No token anywhere — skipping 401 (fresh visit)");
         return;
       }
 
@@ -253,7 +253,7 @@
           /\/api\/product/.test(url) ||
           /\/api\/bot\/public/.test(url))
       ) {
-        console.log("[GBSecurity] Skipping 401 redirect for cosmetic endpoint:", url);
+        gbLog.debug("[GBSecurity] Skipping 401 redirect for cosmetic endpoint:", url);
         return;
       }
 

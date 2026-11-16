@@ -88,7 +88,7 @@
       else if (type === "error") window.GBAlerts.error("Goals", message);
       else window.GBAlerts.info("Goals", message);
     } else {
-      console.log(`[${type}] ${message}`);
+      gbLog.debug(`[${type}] ${message}`);
     }
   }
 

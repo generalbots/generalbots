@@ -26,7 +26,7 @@
 
   // Only render UI if this is the selected task (use normalized comparison)
   if (normalizedSelectedId !== normalizedTaskId) {
-    console.log(
+    gbLog.debug(
       "[Manifest] Storing manifest but not rendering - not selected task",
       "\n  taskId:",
       normalizedTaskId,
@@ -38,13 +38,13 @@
 
   // Try multiple selectors to find the progress log element
   let progressLog = document.getElementById(`progress-log-${taskId}`);
-  console.log(
+  gbLog.debug(
     "[MANIFEST] Looking for progress-log-" + taskId + ", found:",
     !!progressLog,
   );
   if (!progressLog) {
     progressLog = document.getElementById("window-tasks").querySelector(".taskmd-progress-content");
-    console.log(
+    gbLog.debug(
       "[MANIFEST] Looking for .taskmd-progress-content, found:",
       !!progressLog,
     );
@@ -78,7 +78,7 @@
   pendingManifestUpdates.delete(normalizedTaskId);
 
   if (!manifest || !manifest.sections) {
-    console.log("[Manifest] No sections in manifest, skipping render");
+    gbLog.debug("[Manifest] No sections in manifest, skipping render");
     return;
   }
 
@@ -101,12 +101,12 @@
   // Clear any "progress-empty" placeholder first
   const emptyPlaceholder = progressLog.querySelector(".progress-empty");
   if (emptyPlaceholder) {
-    console.log("[Manifest] Removing progress-empty placeholder");
+    gbLog.debug("[Manifest] Removing progress-empty placeholder");
     emptyPlaceholder.remove();
   }
 
   let tree = progressLog.querySelector(".taskmd-tree");
-  console.log("[Manifest] Existing tree found:", !!tree);
+  gbLog.debug("[Manifest] Existing tree found:", !!tree);
 
   // Check if we need to rebuild the tree (structure changed significantly)
   let shouldRebuild = !tree;
@@ -148,7 +148,7 @@
       (existingItems.length === 0 && newItemCount > 0) ||
       !namesMatch
     ) {
-      console.log(
+      gbLog.debug(
         "[Manifest] Structure changed significantly, REBUILDING tree",
         "\n  existing sections:",
         existingSections.length,
@@ -172,9 +172,9 @@
   try {
     if (shouldRebuild) {
       // Full rebuild - create the tree structure from scratch
-      console.log("[Manifest] === REBUILDING TREE FROM SCRATCH ===");
+      gbLog.debug("[Manifest] === REBUILDING TREE FROM SCRATCH ===");
       const treeHTML = buildProgressTreeHTML(manifest, totalSteps);
-      console.log(
+      gbLog.debug(
         "[Manifest] Tree HTML length:",
         treeHTML.length,
         "sections:",
@@ -192,7 +192,7 @@
       const expandedCount = progressLog.querySelectorAll(".expanded").length;
       const childCount = progressLog.querySelectorAll(".tree-child").length;
       const itemCount = progressLog.querySelectorAll(".tree-item").length;
-      console.log(
+      gbLog.debug(
         "[Manifest] Tree rebuilt:",
         expandedCount,
         "expanded,",
@@ -205,9 +205,9 @@
       scrollToRunningItem(progressLog);
     } else {
       // Incremental update - only update what changed (no flicker)
-      console.log("[Manifest] Updating tree in place");
+      gbLog.debug("[Manifest] Updating tree in place");
       updateProgressTreeInPlace(tree, manifest, totalSteps);
-      console.log("[Manifest] Tree updated successfully");
+      gbLog.debug("[Manifest] Tree updated successfully");
       // Auto-scroll to running item
       scrollToRunningItem(progressLog);
     }

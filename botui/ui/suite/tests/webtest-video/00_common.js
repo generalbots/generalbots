@@ -52,7 +52,7 @@ function startServer() {
         res.end(data);
       });
     });
-    srv.listen(PORT, () => { console.log("[server] http://localhost:" + PORT); resolve(srv); });
+    srv.listen(PORT, () => { gbLog.debug("[server] http://localhost:" + PORT); resolve(srv); });
   });
 }
 

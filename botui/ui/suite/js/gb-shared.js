@@ -421,6 +421,36 @@
     }
   }
 
+  // #2304 — debug logger gated by GB_DEBUG (localStorage "gb-debug"/"GB_DEBUG").
+  // console.log is debug-only in suite UI; console.warn/error remain always-on.
+  function gbDebugEnabled() {
+    try {
+      var v = localStorage.getItem("gb-debug");
+      if (v == null) v = localStorage.getItem("GB_DEBUG");
+      return v === "1" || v === "true" || v === "on" || v === "yes";
+    } catch (e) {
+      return false;
+    }
+  }
+  var gbLog = {
+    debug: function () {
+      if (!gbDebugEnabled()) return;
+      if (console && console.debug) return console.debug.apply(console, arguments);
+      if (console && console.log) return console.log.apply(console, arguments);
+    },
+    info: function () {
+      if (console && console.info) return console.info.apply(console, arguments);
+      if (console && console.log) return console.log.apply(console, arguments);
+    },
+    warn: function () {
+      if (console && console.warn) return console.warn.apply(console, arguments);
+    },
+    error: function () {
+      if (console && console.error) return console.error.apply(console, arguments);
+    },
+    isDebugEnabled: gbDebugEnabled,
+  };
+
   var html = { escape: escapeHtml };
   var auth = { token: token, headers: headers };
   var downloadKit = { download: download, saveBlob: saveBlob, isDesktop: isDesktop };
@@ -431,8 +461,10 @@
     auth: auth,
     download: download,
     saveBlob: saveBlob,
-    storeGet: storeGet
+    storeGet: storeGet,
+    log: gbLog,
   };
+  window.gbLog = gbLog;
   window.gbStoreGet = storeGet;
   window.gbCopyText = copyText;
   window.gbFormat = format;

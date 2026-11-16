@@ -98,7 +98,7 @@
         renderRecentDocuments(items);
       })
       .catch(function () {
-        console.log("Using placeholder recent documents");
+        gbLog.debug("Using placeholder recent documents");
       });
   }
 

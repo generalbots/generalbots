@@ -49,7 +49,7 @@ function showNotification(message, type) {
     else if (type === "warning") window.GBAlerts.warning("Admin", message);
     else window.GBAlerts.info("Admin", message);
   } else {
-    console.log(`[${type}] ${message}`);
+    gbLog.debug(`[${type}] ${message}`);
   }
 }
 

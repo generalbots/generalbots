@@ -171,7 +171,7 @@
                         llmAssistConfig = await configResponse.json();
                     }
                 } catch (e) {
-                    console.log("LLM config not available, using defaults");
+                    gbLog.debug("LLM config not available, using defaults");
                 }
 
                 // Load real insights using LLM Assist APIs

@@ -394,7 +394,7 @@ function playCompletionSound() {
       osc2.stop(audioCtx.currentTime + 0.3);
     }, 150);
   } catch (e) {
-    console.log("[Tasks] Could not play completion sound:", e);
+    gbLog.debug("[Tasks] Could not play completion sound:", e);
   }
 }
 

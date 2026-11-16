@@ -120,7 +120,7 @@ document.body.addEventListener("htmx:afterRequest", function (evt) {
     try {
       var response = JSON.parse(xhr.responseText);
       if (response.success && response.task_id) {
-        console.log("[TASK] Created task:", response.task_id);
+        gbLog.debug("[TASK] Created task:", response.task_id);
 
         intentResult.innerHTML =
           '<span class="intent-success">✓ Task created - running...</span>';

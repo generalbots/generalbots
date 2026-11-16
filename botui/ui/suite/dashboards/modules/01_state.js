@@ -31,7 +31,7 @@
     loadDashboards();
     loadDataSources();
     bindEvents();
-    console.log("Dashboards module initialized");
+    gbLog.debug("Dashboards module initialized");
   }
 
   function bindEvents() {

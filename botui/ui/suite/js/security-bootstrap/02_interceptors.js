@@ -27,7 +27,7 @@
         localStorage.getItem("management_token") || null;
       if (storedAccess) {
         S._accessToken = storedAccess;
-        console.log("[GBSecurity] Access token restored from sessionStorage/localStorage");
+        gbLog.debug("[GBSecurity] Access token restored from sessionStorage/localStorage");
       }
       var storedRefresh = sessionStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
       if (storedRefresh) {
@@ -40,7 +40,7 @@
       var localToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
       if (localToken && localToken !== storedAccess) {
         S._accessToken = localToken;
-        console.log("[GBSecurity] Promoted localStorage token over stale sessionStorage copy");
+        gbLog.debug("[GBSecurity] Promoted localStorage token over stale sessionStorage copy");
       }
       // Also check token expiry from sessionStorage
       var storedExpires = sessionStorage.getItem(AUTH_KEYS.TOKEN_EXPIRES);
@@ -51,7 +51,7 @@
           // If already expired, refresh immediately
           if (Date.now() > expires) {
             S._accessToken = null;
-            console.log("[GBSecurity] Stored token expired, will refresh");
+            gbLog.debug("[GBSecurity] Stored token expired, will refresh");
           }
         }
       }
@@ -62,8 +62,8 @@
       this.initAuthEventHandlers();
 
       this.initialized = true;
-      console.log("[GBSecurity] Security bootstrap initialized");
-      console.log(
+      gbLog.debug("[GBSecurity] Security bootstrap initialized");
+      gbLog.debug(
         "[GBSecurity] Token in memory:",
         S._accessToken ? S._accessToken.substring(0, 20) + "..." : "NONE",
       );
@@ -74,7 +74,7 @@
       // This ensures we have a fresh access token even if the stored one
       // is expired or about to expire.
       if (S._refreshToken && !S._accessToken) {
-        console.log("[GBSecurity] No access token, attempting refresh...");
+        gbLog.debug("[GBSecurity] No access token, attempting refresh...");
         setTimeout(function () {
           self.refreshTokenFromStorage();
         }, 100);
@@ -98,7 +98,7 @@
         var token = self.getToken();
         var sessionId = self.getSessionId();
 
-        console.log(
+        gbLog.debug(
           "[GBSecurity] htmx:configRequest for:",
           event.detail.path,
           "token:",
@@ -116,14 +116,14 @@
             "[GBSecurity] NO TOKEN - request will be unauthenticated",
           );
         } else if (!sameOrigin) {
-          console.log("[GBSecurity] Authorization header skipped for cross-origin request");
+          gbLog.debug("[GBSecurity] Authorization header skipped for cross-origin request");
         } else if (!event.detail.headers["Authorization"]) {
           event.detail.headers["Authorization"] = "Bearer " + token;
-          console.log("[GBSecurity] Authorization header added");
+          gbLog.debug("[GBSecurity] Authorization header added");
         } else {
           // Token exists but the header is already attached (previous pass)
           // — the request is authenticated, not anonymous.
-          console.log("[GBSecurity] Authorization header already present");
+          gbLog.debug("[GBSecurity] Authorization header already present");
         }
         if (sessionId && sameOrigin) {
           event.detail.headers["X-Session-ID"] = sessionId;
@@ -136,7 +136,7 @@
         }
       });
 
-      console.log("[GBSecurity] HTMX interceptor registered");
+      gbLog.debug("[GBSecurity] HTMX interceptor registered");
     },
 
     initFetchInterceptor: function () {
@@ -148,7 +148,7 @@
         init = init || {};
         init.headers = init.headers || {};
 
-        console.log(
+        gbLog.debug(
           "[GBSecurity] fetch intercepted:",
           url,
           "token:",
@@ -201,7 +201,7 @@
           });
       };
 
-      console.log("[GBSecurity] Fetch interceptor registered");
+      gbLog.debug("[GBSecurity] Fetch interceptor registered");
     }
   });
 })(window, document);

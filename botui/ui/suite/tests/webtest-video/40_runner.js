@@ -18,9 +18,9 @@ async function main(TESTS) {
   const browser = await chromium.launch({ headless: true });
   const results = [];
 
-  console.log("\n" + "=".repeat(60));
-  console.log("GB7+BBSIA VIDEO EVIDENCE — " + TESTS.length + " tests");
-  console.log("=".repeat(60) + "\n");
+  gbLog.debug("\n" + "=".repeat(60));
+  gbLog.debug("GB7+BBSIA VIDEO EVIDENCE — " + TESTS.length + " tests");
+  gbLog.debug("=".repeat(60) + "\n");
 
   for (const tc of TESTS) {
     const ctx = await browser.newContext({
@@ -44,8 +44,8 @@ async function main(TESTS) {
       try { fs.renameSync(path.join(VIDEOS_DIR, unnamed[0]), path.join(VIDEOS_DIR, tc.id + ".webm")); } catch(e){}
     }
 
-    console.log(`[${res.pass?"PASS":"FAIL"}] ${tc.id}: ${tc.title} (${(dur/1000).toFixed(1)}s)`);
-    if (!res.pass) console.log(`       ${res.detail}`);
+    gbLog.debug(`[${res.pass?"PASS":"FAIL"}] ${tc.id}: ${tc.title} (${(dur/1000).toFixed(1)}s)`);
+    if (!res.pass) gbLog.debug(`       ${res.detail}`);
     results.push({ id: tc.id, title: tc.title, desc: tc.desc, pass: res.pass, detail: res.detail, dur });
   }
 
@@ -54,10 +54,10 @@ async function main(TESTS) {
 
   fs.writeFileSync(GALLERY_PATH, gallery(results));
   const p = results.filter(r=>r.pass).length, f = results.length - p;
-  console.log("\n" + "=".repeat(60));
-  console.log(`TOTAL: ${results.length} | PASS: ${p} | FAIL: ${f}`);
-  console.log("=".repeat(60));
-  console.log("\nGallery: " + GALLERY_PATH);
+  gbLog.debug("\n" + "=".repeat(60));
+  gbLog.debug(`TOTAL: ${results.length} | PASS: ${p} | FAIL: ${f}`);
+  gbLog.debug("=".repeat(60));
+  gbLog.debug("\nGallery: " + GALLERY_PATH);
 
   require("child_process").exec(`start "" "${GALLERY_PATH}"`);
   process.exit(f > 0 ? 1 : 0);

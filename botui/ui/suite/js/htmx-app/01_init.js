@@ -209,7 +209,7 @@
     }
 
     // Debug logging
-    console.log("handleWebSocketMessage called with:", { messageType, message });
+    gbLog.debug("handleWebSocketMessage called with:", { messageType, message });
 
     // Hide initial loading overlay when first bot message arrives
     if (window.hideLoadingOverlay) {
@@ -238,7 +238,7 @@
         addSuggestion(message.text);
         break;
       case "change_theme":
-        console.log("Processing change_theme event, not appending to chat");
+        gbLog.debug("Processing change_theme event, not appending to chat");
         if (message.data) {
           ThemeManager.setThemeFromServer(message.data);
         }
@@ -246,10 +246,10 @@
       default:
         // Only append unknown message types to chat if they have text content
         if (message.text || message.content) {
-          console.log("Unknown message type, treating as chat message:", messageType);
+          gbLog.debug("Unknown message type, treating as chat message:", messageType);
           appendMessage(message);
         } else {
-          console.log("Unknown message type:", messageType, message);
+          gbLog.debug("Unknown message type:", messageType, message);
         }
     }
   }
@@ -364,7 +364,7 @@
 
     S.reconnectAttempts++;
     setTimeout(() => {
-      console.log(`Reconnection attempt ${S.reconnectAttempts}...`);
+      gbLog.debug(`Reconnection attempt ${S.reconnectAttempts}...`);
       htmx.trigger(document.body, "htmx:wsReconnect");
     }, config.reconnectDelay);
   }

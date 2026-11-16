@@ -87,7 +87,7 @@
         };
 
         state.signalingSocket.onclose = function() {
-            console.log('Signaling socket closed');
+            gbLog.debug('Signaling socket closed');
         };
 
         state.signalingSocket.onerror = function(err) {

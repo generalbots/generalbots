@@ -109,7 +109,7 @@ const ThemeManager = (() => {
     link.href = `/suite/public/themes/${theme.file}?v=2`;
     link.onload = () => {
       if (document.getElementById("theme-css") !== link) return;
-      console.log("✓ Theme loaded:", theme.name);
+      gbLog.debug("✓ Theme loaded:", theme.name);
       currentThemeId = id;
       const botId = getCurrentBotId();
       localStorage.setItem(`gb-theme-${botId}`, id);
@@ -271,7 +271,7 @@ const ThemeManager = (() => {
           );
         }
 
-        console.log("✓ Theme colors applied:", {
+        gbLog.debug("✓ Theme colors applied:", {
           bg: background,
           primary: primary,
         });
@@ -352,7 +352,7 @@ const ThemeManager = (() => {
       container.appendChild(createDropdown());
     }
 
-    console.log("✓ Theme Manager initialized");
+    gbLog.debug("✓ Theme Manager initialized");
   }
 
   function setThemeFromServer(data) {
@@ -406,7 +406,7 @@ const ThemeManager = (() => {
       try {
         const data = JSON.parse(savedTheme);
         setThemeFromServer(data);
-        console.log(`✓ Theme loaded from localStorage for ${botId}`);
+        gbLog.debug(`✓ Theme loaded from localStorage for ${botId}`);
       } catch (e) {
         console.warn("Failed to load saved theme:", e);
       }

@@ -192,7 +192,7 @@
 
   // Main initialization
   function init() {
-    console.log("Initializing HTMX application...");
+    gbLog.debug("Initializing HTMX application...");
 
     // Initialize HTMX
     initHTMX();
@@ -212,7 +212,7 @@
     // Set initial active nav based on hash or default to chat
     updateActiveNav(window.location.hash || "#chat");
 
-    console.log("HTMX application initialized");
+    gbLog.debug("HTMX application initialized");
   }
 
   // Wait for DOM and HTMX to be ready

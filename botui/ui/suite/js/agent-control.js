@@ -139,7 +139,7 @@ const AgentControl = (() => {
     if (window.GBToasts && window.GBToasts.show) {
       window.GBToasts.show(title, message, kind);
     } else if (window.console) {
-      window.console.log("[" + title + "] " + message);
+      window.gbLog.debug("[" + title + "] " + message);
     }
   }
 

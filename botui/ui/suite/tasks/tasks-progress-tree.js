@@ -40,7 +40,7 @@ function buildProgressTreeHTML(manifest, totalSteps) {
     const sectionItemCount =
       (section.items?.length || 0) + (section.item_groups?.length || 0);
 
-    console.log(
+    gbLog.debug(
       "[BUILD_TREE] Section:",
       section.name,
       "| status:",
@@ -63,7 +63,7 @@ function buildProgressTreeHTML(manifest, totalSteps) {
 
     // Children (e.g., "Database Schema Design" under "Database & Models")
     if (section.children && section.children.length > 0) {
-      console.log(
+      gbLog.debug(
         "[BUILD_TREE]   -> Adding",
         section.children.length,
         "children to section",
@@ -77,7 +77,7 @@ function buildProgressTreeHTML(manifest, totalSteps) {
 
         const childItemCount =
           (child.item_groups?.length || 0) + (child.items?.length || 0);
-        console.log(
+        gbLog.debug(
           "[BUILD_TREE]     Child:",
           child.name,
           "| status:",
@@ -102,7 +102,7 @@ function buildProgressTreeHTML(manifest, totalSteps) {
           ...(child.items || []),
         ];
         if (childItems.length > 0) {
-          console.log(
+          gbLog.debug(
             "[BUILD_TREE]       -> Adding",
             childItems.length,
             "items to child",
@@ -180,7 +180,7 @@ function updateProgressTreeInPlace(tree, manifest, totalSteps) {
           sectionEl = el;
           // Update the data-section-id to the new ID for future lookups
           sectionEl.setAttribute("data-section-id", section.id);
-          console.log(
+          gbLog.debug(
             "[Manifest] Found section by name, updated ID:",
             section.name,
             "->",
@@ -193,7 +193,7 @@ function updateProgressTreeInPlace(tree, manifest, totalSteps) {
 
     // If section still doesn't exist, create it dynamically (new section arrived!)
     if (!sectionEl) {
-      console.log("[Manifest] Creating new section:", section.name);
+      gbLog.debug("[Manifest] Creating new section:", section.name);
       const rawStatus = section.status || "Pending";
       const statusClass = rawStatus.toLowerCase();
       const globalCurrent =
@@ -289,7 +289,7 @@ function updateChildInPlace(sectionEl, child) {
         childEl = el;
         // Update the data-child-id to the new ID for future lookups
         childEl.setAttribute("data-child-id", child.id);
-        console.log(
+        gbLog.debug(
           "[Manifest] Found child by name, updated ID:",
           child.name,
           "->",
@@ -312,7 +312,7 @@ function updateChildInPlace(sectionEl, child) {
       (child.item_groups?.length || 0) + (child.items?.length || 0) > 0;
     const shouldExpand = true; // Always expand new children for visibility
 
-    console.log(
+    gbLog.debug(
       "[Manifest] Creating new child:",
       child.name,
       "status:",

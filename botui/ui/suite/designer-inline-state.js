@@ -152,7 +152,7 @@
 
         // Initialize
         function initDesigner() {
-            console.log('initDesigner called');
+            gbLog.debug('initDesigner called');
             initDragAndDrop();
             initCanvasInteraction();
             initKeyboardShortcuts();
@@ -170,7 +170,7 @@
         // Also run when HTMX swaps content
         document.body.addEventListener('htmx:afterSwap', (e) => {
             if (e.detail.target.id === 'main-content') {
-                console.log('htmx:afterSwap detected for main-content');
+                gbLog.debug('htmx:afterSwap detected for main-content');
                 initDesigner();
             }
         });
@@ -197,7 +197,7 @@
                 }
             }
 
-            console.log('loadFromUrlParams called:', { bucket, path, hash: window.location.hash, search: window.location.search });
+            gbLog.debug('loadFromUrlParams called:', { bucket, path, hash: window.location.hash, search: window.location.search });
 
             if (bucket && path) {
                 const fileName = path.split('/').pop() || 'dialog.bas';
@@ -220,7 +220,7 @@
 
                     const data = await response.json();
                     const content = data.content || '';
-                    console.log('Loaded .bas content:', content.substring(0, 200) + '...');
+                    gbLog.debug('Loaded .bas content:', content.substring(0, 200) + '...');
 
                     // Parse BASIC code and create nodes
                     parseBasicCodeToNodes(content);
@@ -239,7 +239,7 @@
 
         // Parse BASIC code and create visual nodes
         function parseBasicCodeToNodes(content) {
-            console.log('parseBasicCodeToNodes called');
+            gbLog.debug('parseBasicCodeToNodes called');
             state.nodes.clear();
             state.connections = [];
             state.nextNodeId = 1;
@@ -318,27 +318,27 @@
 
                         yPos += 100;
                         nodeCount++;
-                        console.log('Created node:', nodeType, fields);
+                        gbLog.debug('Created node:', nodeType, fields);
                     }
                 }
             }
 
-            console.log(`Parsed ${nodeCount} nodes from BASIC code`);
+            gbLog.debug(`Parsed ${nodeCount} nodes from BASIC code`);
             updateStatusBar();
             saveToHistory();
         }
 
         // Initialize canvas with loaded nodes from server (called by HTMX response)
         function initializeCanvas() {
-            console.log('initializeCanvas called');
+            gbLog.debug('initializeCanvas called');
             const canvasLoaded = document.querySelector('.canvas-loaded');
             if (!canvasLoaded) {
-                console.log('No canvas-loaded element found');
+                gbLog.debug('No canvas-loaded element found');
                 return;
             }
 
             const content = canvasLoaded.dataset.content || '';
-            console.log('Canvas content from server:', content.substring(0, 100));
+            gbLog.debug('Canvas content from server:', content.substring(0, 100));
 
             // Remove the server-rendered container and parse content client-side
             canvasLoaded.remove();

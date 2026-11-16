@@ -16,7 +16,7 @@ function refreshMetrics() {
 
 function updateChartType(chart, type) {
     // This would update the chart visualization type
-    console.log(`Updating ${chart} chart to ${type} type`);
+    gbLog.debug(`Updating ${chart} chart to ${type} type`);
     // Implementation depends on charting library
 }
 

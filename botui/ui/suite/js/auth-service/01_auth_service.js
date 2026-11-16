@@ -81,7 +81,7 @@
         } else if (expiresMs > 0) {
           this.refreshToken();
         } else {
-          console.log(
+          gbLog.debug(
             "[AuthService] Token already expired at startup, clearing auth (no redirect)",
           );
           this.clearAuth();
@@ -94,7 +94,7 @@
     // This ensures ALL fetch, XHR, and HTMX requests get auth headers automatically.
     setupInterceptors() {
       // Interceptors handled by security-bootstrap.js
-      console.log("[AuthService] Fetch interceptors delegated to GBSecurity");
+      gbLog.debug("[AuthService] Fetch interceptors delegated to GBSecurity");
     }
 
     async login(email, password, remember) {

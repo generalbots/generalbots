@@ -194,5 +194,5 @@ document.querySelectorAll(".chart-btn").forEach((btn) => {
 
 // Initialize
 (function(){ var __cb = () => {
-    console.log("Analytics Dashboard initialized");
+    gbLog.debug("Analytics Dashboard initialized");
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();

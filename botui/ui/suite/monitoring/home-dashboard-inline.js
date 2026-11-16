@@ -11,7 +11,7 @@
                         }
                     });
                 } catch (e) {
-                    console.log('Service status update:', e);
+                    gbLog.debug('Service status update:', e);
                 }
             }
         });

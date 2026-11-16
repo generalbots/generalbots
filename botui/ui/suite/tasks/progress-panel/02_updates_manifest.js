@@ -136,11 +136,11 @@ Object.assign(ProgressPanel, {
   },
 
   viewDetails(sectionId) {
-    console.log("View details for section:", sectionId);
+    gbLog.debug("View details for section:", sectionId);
   },
 
   viewChildDetails(childId) {
-    console.log("View details for child:", childId);
+    gbLog.debug("View details for child:", childId);
   },
 
   escapeHtml(text) {
@@ -172,7 +172,7 @@ Object.assign(ProgressPanel, {
     ) {
       unregisterTaskProgressHandler(this._boundHandler);
       this._boundHandler = null;
-      console.log("[ProgressPanel] Unregistered from singleton WebSocket");
+      gbLog.debug("[ProgressPanel] Unregistered from singleton WebSocket");
     }
     // Don't close the singleton connection - other components may be using it
     this.wsConnection = null;

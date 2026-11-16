@@ -44,7 +44,7 @@
 
         if (!response.ok) {
           if (response.status === 401) {
-            console.log(
+            gbLog.debug(
               "[AuthService] fetchCurrentUser got 401, clearing auth (no redirect)",
             );
             this.clearAuth();

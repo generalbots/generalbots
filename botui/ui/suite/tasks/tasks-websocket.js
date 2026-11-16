@@ -1,15 +1,15 @@
 
 function handleWebSocketMessage(data) {
-  console.log("[Tasks WS] handleWebSocketMessage called with type:", data.type);
+  gbLog.debug("[Tasks WS] handleWebSocketMessage called with type:", data.type);
 
   switch (data.type) {
     case "connected":
-      console.log("[Tasks WS] Connected to task progress stream");
+      gbLog.debug("[Tasks WS] Connected to task progress stream");
       addAgentLog("info", "[SYSTEM] Task progress stream connected");
       break;
 
     case "task_started":
-      console.log("[Tasks WS] TASK_STARTED:", data.message);
+      gbLog.debug("[Tasks WS] TASK_STARTED:", data.message);
       addAgentLog("accent", `[TASK] Started: ${data.message}`);
       // Update terminal in detail panel
       updateDetailTerminal(data.task_id, data.message, "started");
@@ -21,7 +21,7 @@ function handleWebSocketMessage(data) {
       break;
 
     case "task_progress":
-      console.log(
+      gbLog.debug(
         "[Tasks WS] TASK_PROGRESS - step:",
         data.step,
         "message:",
@@ -31,7 +31,7 @@ function handleWebSocketMessage(data) {
 
       // Auto-select this task if none selected
       if (data.task_id && !TasksState.selectedTaskId) {
-        console.log(
+        gbLog.debug(
           "[Tasks WS] Auto-selecting task from progress:",
           data.task_id,
         );
@@ -59,7 +59,7 @@ function handleWebSocketMessage(data) {
       break;
 
     case "task_completed":
-      console.log("[Tasks WS] TASK_COMPLETED:", data.message);
+      gbLog.debug("[Tasks WS] TASK_COMPLETED:", data.message);
       addAgentLog("success", `[COMPLETE] ${data.message}`);
 
       // Extract app_url from details if present
@@ -103,7 +103,7 @@ function handleWebSocketMessage(data) {
       break;
 
     case "task_error":
-      console.log("[Tasks WS] TASK_ERROR:", data.error || data.message);
+      gbLog.debug("[Tasks WS] TASK_ERROR:", data.error || data.message);
       addAgentLog("error", `[ERROR] ${data.error || data.message}`);
       updateDetailTerminal(data.task_id, data.error || data.message, "error");
       onTaskFailed(data, data.error);
@@ -135,11 +135,11 @@ function handleWebSocketMessage(data) {
     case "llm_stream":
       // Don't show raw LLM stream in terminal - it contains HTML/code garbage
       // Progress is shown via manifest_update events instead
-      console.log("[Tasks WS] LLM streaming...");
+      gbLog.debug("[Tasks WS] LLM streaming...");
       break;
 
     case "llm_generating":
-      console.log("[Tasks WS] LLM_GENERATING:", data.message);
+      gbLog.debug("[Tasks WS] LLM_GENERATING:", data.message);
       addAgentLog("info", `[AI] ${data.message}`);
       // Update STATUS section with AI progress
       updateStatusFromProgress(data.message, "llm_generating");
@@ -148,7 +148,7 @@ function handleWebSocketMessage(data) {
       break;
 
     case "llm_complete":
-      console.log("[Tasks WS] LLM_COMPLETE:", data.message);
+      gbLog.debug("[Tasks WS] LLM_COMPLETE:", data.message);
       addAgentLog("success", `[AI] ${data.message}`);
       // Update STATUS section
       updateStatusFromProgress(data.message, "llm_complete");
@@ -157,7 +157,7 @@ function handleWebSocketMessage(data) {
       break;
 
     case "manifest_update":
-      console.log(
+      gbLog.debug(
         "[Tasks WS] *** MANIFEST_UPDATE RECEIVED ***",
         "\n  task_id:",
         data.task_id,
@@ -175,7 +175,7 @@ function handleWebSocketMessage(data) {
       );
       // Auto-select task if none selected or if this is a new running task
       if (data.task_id && !TasksState.selectedTaskId) {
-        console.log("[Tasks WS] Auto-selecting task:", data.task_id);
+        gbLog.debug("[Tasks WS] Auto-selecting task:", data.task_id);
         TasksState.selectedTaskId = data.task_id;
         loadTaskDetails(data.task_id);
       }
@@ -221,7 +221,7 @@ function handleWebSocketMessage(data) {
       break;
 
     default:
-      console.log(
+      gbLog.debug(
         "[Tasks WS] Unhandled message type:",
         data.type,
         "\n  step:",

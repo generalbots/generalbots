@@ -18,7 +18,7 @@
                     );
 
                     ws.onopen = () => {
-                        console.log(
+                        gbLog.debug(
                             "WebSocket connected for attendant:",
                             currentAttendantId,
                         );
@@ -30,12 +30,12 @@
 
                     ws.onmessage = (event) => {
                         const data = JSON.parse(event.data);
-                        console.log("WebSocket message received:", data);
+                        gbLog.debug("WebSocket message received:", data);
                         handleWebSocketMessage(data);
                     };
 
                     ws.onclose = () => {
-                        console.log("WebSocket disconnected");
+                        gbLog.debug("WebSocket disconnected");
                         attemptReconnect();
                     };
 
@@ -52,7 +52,7 @@
                 if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                     reconnectAttempts++;
                     setTimeout(() => {
-                        console.log(
+                        gbLog.debug(
                             `Reconnecting... attempt ${reconnectAttempts}`,
                         );
                         connectWebSocket();
@@ -65,7 +65,7 @@
 
                 switch (msgType) {
                     case "connected":
-                        console.log("WebSocket connected:", data.message);
+                        gbLog.debug("WebSocket connected:", data.message);
                         reconnectAttempts = 0;
                         break;
                     case "new_conversation":
@@ -132,7 +132,7 @@
                         }
                         break;
                     default:
-                        console.log(
+                        gbLog.debug(
                             "Unknown WebSocket message type:",
                             msgType,
                             data,
@@ -163,7 +163,7 @@
                     oscillator.stop(audioContext.currentTime + 0.3);
                 } catch (e) {
                     // Audio not available
-                    console.log("Could not play notification sound");
+                    gbLog.debug("Could not play notification sound");
                 }
             }
 

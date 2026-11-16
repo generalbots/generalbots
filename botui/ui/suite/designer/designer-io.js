@@ -234,7 +234,7 @@ async function loadFromUrlParams() {
     }
   }
 
-  console.log('loadFromUrlParams called:', { bucket, path, hash: window.location.hash, search: window.location.search });
+  gbLog.debug('loadFromUrlParams called:', { bucket, path, hash: window.location.hash, search: window.location.search });
 
   if (bucket && path) {
     const fileName = path.split('/').pop() || 'dialog.bas';
@@ -256,7 +256,7 @@ async function loadFromUrlParams() {
 
       const data = await response.json();
       const content = data.content || '';
-      console.log('Loaded .bas content:', content.substring(0, 200) + '...');
+      gbLog.debug('Loaded .bas content:', content.substring(0, 200) + '...');
 
       parseBasicCodeToNodes(content);
       updateStatusBar();
@@ -273,7 +273,7 @@ async function loadFromUrlParams() {
 }
 
 function parseBasicCodeToNodes(content) {
-  console.log('parseBasicCodeToNodes called');
+  gbLog.debug('parseBasicCodeToNodes called');
   state.nodes.clear();
   state.connections = [];
   state.nextNodeId = 1;
@@ -351,26 +351,26 @@ function parseBasicCodeToNodes(content) {
 
         yPos += 100;
         nodeCount++;
-        console.log('Created node:', nodeType, fields);
+        gbLog.debug('Created node:', nodeType, fields);
       }
     }
   }
 
-  console.log(`Parsed ${nodeCount} nodes from BASIC code`);
+  gbLog.debug(`Parsed ${nodeCount} nodes from BASIC code`);
   updateStatusBar();
   saveToHistory();
 }
 
 function initializeCanvas() {
-  console.log('initializeCanvas called');
+  gbLog.debug('initializeCanvas called');
   const canvasLoaded = document.querySelector('.canvas-loaded');
   if (!canvasLoaded) {
-    console.log('No canvas-loaded element found');
+    gbLog.debug('No canvas-loaded element found');
     return;
   }
 
   const content = canvasLoaded.dataset.content || '';
-  console.log('Canvas content from server:', content.substring(0, 100));
+  gbLog.debug('Canvas content from server:', content.substring(0, 100));
 
   canvasLoaded.remove();
   parseBasicCodeToNodes(content);

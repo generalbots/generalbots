@@ -88,7 +88,7 @@ const AgentExecutor = (() => {
     if (window.GBToasts) {
       window.GBToasts.show(title, msg, kind);
     } else {
-      console.log("[" + title + "] " + msg);
+      gbLog.debug("[" + title + "] " + msg);
     }
   }
 

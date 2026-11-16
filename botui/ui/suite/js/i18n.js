@@ -53,7 +53,7 @@
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
-        console.log(`i18n: Cache check for ${locale}: age=${Math.round(age/1000)}s, valid=${age < CACHE_TTL_MS}, keys=${Object.keys(data || {}).length}`);
+        gbLog.debug(`i18n: Cache check for ${locale}: age=${Math.round(age/1000)}s, valid=${age < CACHE_TTL_MS}, keys=${Object.keys(data || {}).length}`);
         if (age < CACHE_TTL_MS) {
           return data;
         }
@@ -80,7 +80,7 @@
 
   async function fetchTranslations(locale) {
     try {
-      console.log(`i18n: Fetching translations for locale: ${locale}`);
+      gbLog.debug(`i18n: Fetching translations for locale: ${locale}`);
       const response = await fetch(`/api/i18n/${locale}`, {
         headers: { Accept: "application/json" },
       });
@@ -90,7 +90,7 @@
       }
 
       const result = await response.json();
-      console.log(`i18n: Loaded ${Object.keys(result.translations || {}).length} translations for ${locale}`);
+      gbLog.debug(`i18n: Loaded ${Object.keys(result.translations || {}).length} translations for ${locale}`);
       return result.translations || {};
     } catch (e) {
       console.error(`i18n: Failed to fetch translations for ${locale}`, e);
@@ -99,16 +99,16 @@
   }
 
   async function loadTranslations(locale) {
-    console.log(`i18n: loadTranslations called for locale: ${locale}`);
+    gbLog.debug(`i18n: loadTranslations called for locale: ${locale}`);
     const cached = getCachedTranslations(locale);
     if (cached) {
-      console.log(`i18n: Using cached translations for ${locale}`);
+      gbLog.debug(`i18n: Using cached translations for ${locale}`);
       translations = cached;
       currentLocale = locale;
       return true;
     }
 
-    console.log(`i18n: Cache miss, fetching from API for ${locale}`);
+    gbLog.debug(`i18n: Cache miss, fetching from API for ${locale}`);
     const fetched = await fetchTranslations(locale);
     if (fetched && Object.keys(fetched).length > 0) {
       translations = fetched;
@@ -315,9 +315,9 @@
   }
 
   async function init() {
-    console.log("i18n: Initialization started");
+    gbLog.debug("i18n: Initialization started");
     if (isInitialized) {
-      console.log("i18n: Already initialized, skipping");
+      gbLog.debug("i18n: Already initialized, skipping");
       return;
     }
 
@@ -365,7 +365,7 @@
     if (!locale) {
       locale = detectBrowserLocale();
     }
-    console.log(`i18n: Detected locale: ${locale}`);
+    gbLog.debug(`i18n: Detected locale: ${locale}`);
     await loadTranslations(locale);
 
     const lang = currentLocale.split("-")[0];
@@ -373,7 +373,7 @@
     document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
     isInitialized = true;
-    console.log(`i18n: Initialization complete, current locale: ${currentLocale}`);
+    gbLog.debug(`i18n: Initialization complete, current locale: ${currentLocale}`);
 
     // Late-binding consumers (sidebar sections, generated chips) render their
     // own DOM and cannot be reached by data-i18n attributes. Announce that
@@ -424,7 +424,7 @@
         localStorage.removeItem(key);
       }
     });
-    console.log("i18n: Cleared all translation caches");
+    gbLog.debug("i18n: Cleared all translation caches");
   }
 
   window.i18n = {

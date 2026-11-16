@@ -18,7 +18,7 @@ function errorFloatingProgress(errorMessage) {
 function updateActivityMetrics(activity) {
   // Activity metrics are now shown in terminal output
   if (!activity) return;
-  console.log("[Tasks] Activity update:", activity);
+  gbLog.debug("[Tasks] Activity update:", activity);
 }
 
 function logFinalStats(activity) {
@@ -28,7 +28,7 @@ function logFinalStats(activity) {
     stats += ` - ${activity.files_created.length} files`;
   if (activity.bytes_processed)
     stats += ` - ${Math.round(activity.bytes_processed / 1024)}KB`;
-  console.log("[Tasks]", stats);
+  gbLog.debug("[Tasks]", stats);
 }
 
 function addLLMStreamOutput(text) {
@@ -175,7 +175,7 @@ function selectTask(taskId) {
   // Check if we have a pending manifest update for this task
   const pending = findPendingManifest(taskId);
   if (pending) {
-    console.log(
+    gbLog.debug(
       "[selectTask] Found pending manifest for task:",
       taskId,
       "from key:",
@@ -261,7 +261,7 @@ function loadTaskDetails(taskId) {
 
   // Prevent multiple simultaneous loads of the same task
   if (TasksState.loadingTaskId === taskId) {
-    console.log("[LOAD] Already loading task:", taskId);
+    gbLog.debug("[LOAD] Already loading task:", taskId);
     return;
   }
 
@@ -382,7 +382,7 @@ function addTaskCardToList(taskId, title, status) {
     taskList.classList.contains("htmx-swapping") ||
     taskList.classList.contains("htmx-settling")
   ) {
-    console.log("[TASK] Skipping card insert - list is being swapped");
+    gbLog.debug("[TASK] Skipping card insert - list is being swapped");
     return;
   }
 

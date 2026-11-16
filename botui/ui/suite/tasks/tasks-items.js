@@ -188,14 +188,14 @@ function updateDetailTerminal(taskId, message, step, activity) {
   }
 
   if (!terminalOutput) {
-    console.log("[Terminal] No terminal element found for task:", taskId);
+    gbLog.debug("[Terminal] No terminal element found for task:", taskId);
     return;
   }
 
   // Ensure message is a string
   const messageStr =
     typeof message === "string" ? message : JSON.stringify(message) || "";
-  console.log(
+  gbLog.debug(
     "[Terminal] Adding line to terminal:",
     messageStr.substring(0, 50),
   );
@@ -424,7 +424,7 @@ function updateDetailProgress(taskId, current, total, percent) {
 // Legacy functions kept for compatibility but now do nothing
 function showFloatingProgress(taskName) {
   // Progress now shown in detail panel terminal
-  console.log("[Tasks] Progress:", taskName);
+  gbLog.debug("[Tasks] Progress:", taskName);
 }
 
 function updateFloatingProgressBar(
@@ -444,7 +444,7 @@ function updateFloatingProgressBar(
 
 function completeFloatingProgress(message, activity, appUrl) {
   // Completion now shown in detail panel
-  console.log("[Tasks] Complete:", message);
+  gbLog.debug("[Tasks] Complete:", message);
 }
 
 function closeFloatingProgress() {

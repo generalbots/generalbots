@@ -59,7 +59,7 @@
         return originalSend.apply(this, arguments);
       };
 
-      console.log("[GBSecurity] XHR interceptor registered");
+      gbLog.debug("[GBSecurity] XHR interceptor registered");
     },
 
     initAuthEventHandlers: function () {
@@ -92,11 +92,11 @@
           return;
         }
 
-        console.log(
+        gbLog.debug(
           "[GBSecurity] Unauthorized response, dispatching expired event",
         );
         if (window.__BOT_IS_PUBLIC__ === false) {
-        console.log("[GBSecurity] Private bot — suppressing auth:expired dispatch");
+        gbLog.debug("[GBSecurity] Private bot — suppressing auth:expired dispatch");
         return;
       }
       window.dispatchEvent(
@@ -127,11 +127,11 @@
         // away from a private bot's desktop — stale tokens just
         // mean the user sees empty grids, not a loop.
         if (window.__BOT_IS_PUBLIC__ === true) {
-          console.log("[GBSecurity] Bot is public, skipping auth redirect");
+          gbLog.debug("[GBSecurity] Bot is public, skipping auth redirect");
           return;
         }
         if (window.__BOT_IS_PUBLIC__ === false) {
-          console.log("[GBSecurity] Bot is private, skipping auth redirect (desktop handles auth)");
+          gbLog.debug("[GBSecurity] Bot is private, skipping auth redirect (desktop handles auth)");
           return;
         }
 
@@ -139,7 +139,7 @@
         // many 401s arrived.  The bot-public check resolves once; we
         // act exactly once on its outcome.
         if (_expiredDebounce) {
-          console.log("[GBSecurity] Expired event already queued, dropping duplicate");
+          gbLog.debug("[GBSecurity] Expired event already queued, dropping duplicate");
           return;
         }
         _expiredDebounce = true;
@@ -147,7 +147,7 @@
         // If public status not yet known, wait for checkBotPublicStatus
         if (window.__BOT_IS_PUBLIC__ === undefined &&
             window.__checkBotPublicStatusPromise) {
-          console.log(
+          gbLog.debug(
             "[GBSecurity] Public status still loading, waiting...",
           );
           var timer = setTimeout(function () {
@@ -161,7 +161,7 @@
           window.__checkBotPublicStatusPromise.then(function () {
             clearTimeout(timer);
             if (window.__BOT_IS_PUBLIC__ === true || window.__BOT_IS_PUBLIC__ === false) {
-              console.log(
+              gbLog.debug(
                 "[GBSecurity] Bot public status resolved, skipping auth redirect",
               );
               return;
@@ -176,12 +176,12 @@
         }
 
         if (window.__BOT_IS_PUBLIC__ === false) {
-          console.log(
+          gbLog.debug(
             "[GBSecurity] Bot is private, skipping expired redirect (desktop handles auth)",
           );
           return;
         }
-        console.log(
+        gbLog.debug(
           "[GBSecurity] Auth expired, clearing tokens and redirecting",
         );
         self.clearTokens();
@@ -200,13 +200,13 @@
             data.expiresIn,
             data.persistent !== false,
           );
-          console.log("[GBSecurity] Tokens stored after login");
+          gbLog.debug("[GBSecurity] Tokens stored after login");
         }
       });
 
       window.addEventListener("gb:auth:logout", function () {
         self.clearTokens();
-        console.log("[GBSecurity] Tokens cleared after logout");
+        gbLog.debug("[GBSecurity] Tokens cleared after logout");
       });
     }
   });
@@ -287,7 +287,7 @@
 
   window.addEventListener("storage", function (event) {
     if (event.key === LOGOUT_SIGNAL_KEY && event.newValue) {
-      console.log("[GBSecurity] Logout signal detected from another tab");
+      gbLog.debug("[GBSecurity] Logout signal detected from another tab");
       GBSecurity.clearTokens();
       forceRedirectToLogin();
     }
