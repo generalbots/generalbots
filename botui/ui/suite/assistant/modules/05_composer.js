@@ -24,10 +24,28 @@
     A.shortModelName = function (model) {
         if (!model) { return ""; }
         var s = model;
+        /* Strip directory path */
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
+        var bslash = s.lastIndexOf("\\");
+        if (bslash >= 0) { s = s.substring(bslash + 1); }
+        /* Strip .gguf extension */
+        if (s.toLowerCase().endsWith(".gguf")) { s = s.substring(0, s.length - 5); }
+        /* Strip quantisation suffix (Q3_K_M, Q4_K_S, Q5_1, etc.) */
+        s = s.replace(/[-_](Q\d[_.]\w{1,4})$/i, "");
+        /* Strip colon tag */
         var colon = s.indexOf(":");
         if (colon > 0) { s = s.substring(0, colon); }
+        return s;
+    };
+    /** Full model identifier for tooltips. */
+    A.fullModelName = function (model) {
+        if (!model) { return ""; }
+        var s = model;
+        var slash = s.lastIndexOf("/");
+        if (slash >= 0) { s = s.substring(slash + 1); }
+        var bslash = s.lastIndexOf("\\");
+        if (bslash >= 0) { s = s.substring(bslash + 1); }
         return s;
     };
     var shortModelName = A.shortModelName;
@@ -42,7 +60,11 @@
 
     function updateBtnLabel(btn) {
         var label = btn.querySelector(".gb-model-btn-label");
-        if (label) { label.textContent = shortModelName(A.selectedModel || A.defaultModel || ""); }
+        if (label) {
+            var raw = A.selectedModel || A.defaultModel || "";
+            label.textContent = shortModelName(raw);
+            btn.title = A.fullModelName(raw);
+        }
     }
 
     function replaceWithButton(select) {
@@ -158,7 +180,11 @@
     A.onSuggestions = function (suggestions) {
         A.suggestions = suggestions;
         renderSuggestions("gbSuggestionsEmpty", suggestions);
-        renderSuggestions("gbSuggestionsDock", suggestions);
+        /* Dock suggestions belong to the empty state; hide once conversation
+           has at least one message. They reappear on new conversation. */
+        if (!A.hasUserSent) {
+            renderSuggestions("gbSuggestionsDock", suggestions);
+        }
     };
 
     function renderSuggestions(containerId, suggestions) {
@@ -243,6 +269,12 @@
         text = (text || "").trim();
         var files = A.pendingFiles.slice();
         if (!text && files.length === 0) { return; }
+        /* Block sends while streaming (message would be lost). */
+        if (A.isStreaming) {
+            A.announce(A.t("assistant.wait-response",
+                "Aguarde a resposta terminar"));
+            return;
+        }
         messageType = messageType || 1;
         var tooBig = files.filter(function (f) { return f.size > MAX_ATTACH_BYTES; });
         if (tooBig.length) {

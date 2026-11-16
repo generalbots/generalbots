@@ -1,7 +1,9 @@
 "use strict";
 /**
- * 03_render.js - Sanitizer, markdown, message rendering, WS handler.
- * Streaming/scroll/thinking in 03a_stream.js (loaded after).
+ * 03_render.js - Message rendering, WS handler, history replay.
+ * Sanitizer, markdown, code blocks and citations in 03c_markdown.js.
+ * Streaming/scroll/thinking in 03a_stream.js.
+ * Per-message actions in 03b_actions.js.
  */
 
 (function () {
@@ -13,221 +15,13 @@
     A.greetingReceived = false;
 
     /* ================================================================
-       Sanitizer (template-based, mirrors legacy GBSanitize)
-       ================================================================ */
-    var DROP = "script,style,iframe,frame,frameset,object,embed,applet,link,meta,base,form,input,textarea,select,option,button,foreignObject,use,set";
-    var URI_ATTRS = ["href","src","xlink:href","action","formaction","poster","background","data","srcset","srcdoc"];
-
-    function uriAllowed(val) {
-        var v = String(val == null ? "" : val).replace(/[\u0000-  ]/g, "").toLowerCase();
-        if (!v) { return true; }
-        if (/^(javascript|vbscript|livescript):/.test(v)) { return false; }
-        if (v.indexOf("data:") === 0) {
-            return /^data:image\/(png|jpe?g|gif|webp|bmp)[;,]/.test(v);
-        }
-        return true;
-    }
-
-    function sanitizeHtml(input) {
-        var tpl = document.createElement("template");
-        tpl.innerHTML = String(input == null ? "" : input);
-        var rm = tpl.content.querySelectorAll(DROP);
-        for (var i = 0; i < rm.length; i++) {
-            if (rm[i].parentNode) { rm[i].parentNode.removeChild(rm[i]); }
-        }
-        var all = tpl.content.querySelectorAll("*");
-        for (var j = 0; j < all.length; j++) {
-            var el = all[j];
-            var attrs = Array.prototype.slice.call(el.attributes);
-            for (var k = 0; k < attrs.length; k++) {
-                var n = attrs[k].name.toLowerCase();
-                if (n.indexOf("on") === 0) { el.removeAttribute(attrs[k].name); continue; }
-                if (URI_ATTRS.indexOf(n) !== -1 && !uriAllowed(attrs[k].value)) {
-                    el.removeAttribute(attrs[k].name);
-                }
-            }
-            if (el.tagName && el.tagName.toLowerCase() === "a") {
-                el.setAttribute("rel", "noopener noreferrer");
-                el.setAttribute("target", "_blank");
-            }
-        }
-        return tpl.innerHTML;
-    }
-    A.sanitizeHtml = sanitizeHtml;
-
-    /* ================================================================
-       Markdown
-       ================================================================ */
-    if (window.marked) {
-        window.marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
-    }
-
-    function escapeHtml(s) {
-        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-    A.escapeHtml = escapeHtml;
-
-    function mdToHtml(text) {
-        if (!text) { return ""; }
-        var clean = typeof A.cleanProtocol === "function" ? A.cleanProtocol(text) : text;
-        if (typeof A.consentStripMarker === "function") {
-            clean = A.consentStripMarker(clean);
-        }
-        if (!window.marked) { return escapeHtml(clean); }
-        try {
-            return inlineCodeInHtml(sanitizeHtml(window.marked.parse(clean)));
-        } catch (e) { return escapeHtml(clean); }
-    }
-    A.mdToHtml = mdToHtml;
-
-    /* Some models answer with HTML lists and still write `code` spans in
-       them. Markdown is not parsed inside HTML blocks, so the backticks would
-       show: turn those spans into code elements, outside code and pre only. */
-    function inlineCodeInHtml(html) {
-        if (html.indexOf("`") === -1) { return html; }
-        var box = document.createElement("template");
-        box.innerHTML = html;
-        var walker = document.createTreeWalker(box.content, NodeFilter.SHOW_TEXT);
-        var nodes = [];
-        while (walker.nextNode()) {
-            var n = walker.currentNode;
-            if (n.nodeValue.indexOf("`") !== -1 && !n.parentElement.closest("code, pre")) { nodes.push(n); }
-        }
-        nodes.forEach(function (n) {
-            var parts = n.nodeValue.split(/`([^`]+)`/);
-            if (parts.length < 3) { return; }
-            var frag = document.createDocumentFragment();
-            parts.forEach(function (part, i) {
-                if (i % 2 === 1) {
-                    var code = document.createElement("code");
-                    code.textContent = part;
-                    frag.appendChild(code);
-                } else if (part) {
-                    frag.appendChild(document.createTextNode(part));
-                }
-            });
-            n.parentNode.replaceChild(frag, n);
-        });
-        return box.innerHTML;
-    }
-
-    /* ================================================================
-       Code block enhancement
-       ================================================================ */
-    function enhanceCodeBlocks(container) {
-        var pres = container.querySelectorAll("pre");
-        for (var i = 0; i < pres.length; i++) {
-            if (pres[i].querySelector(".gb-code-header")) { continue; }
-            var code = pres[i].querySelector("code");
-            var lc = code ? (code.className || "") : "";
-            var lm = lc.match(/language-(\w+)/);
-            var lang = lm ? lm[1] : "";
-
-            var hdr = document.createElement("div");
-            hdr.className = "gb-code-header";
-            var lbl = document.createElement("span");
-            lbl.className = "gb-code-lang";
-            lbl.textContent = lang || "code";
-            hdr.appendChild(lbl);
-
-            var cpBtn = document.createElement("button");
-            cpBtn.className = "gb-code-copy";
-            cpBtn.textContent = A.t("assistant.copy", "Copy");
-            (function (pre, btn) {
-                btn.addEventListener("click", function () {
-                    var c = pre.querySelector("code");
-                    navigator.clipboard.writeText(c ? c.textContent : pre.textContent).then(function () {
-                        btn.textContent = A.t("assistant.copied", "Copied");
-                        setTimeout(function () { btn.textContent = A.t("assistant.copy", "Copy"); }, 1500);
-                    });
-                });
-            })(pres[i], cpBtn);
-            hdr.appendChild(cpBtn);
-
-            var wrBtn = document.createElement("button");
-            wrBtn.className = "gb-code-wrap";
-            wrBtn.textContent = A.t("assistant.wrap", "Wrap");
-            (function (pre, btn) {
-                btn.addEventListener("click", function () {
-                    pre.classList.toggle("gb-code-wrapped");
-                    btn.textContent = pre.classList.contains("gb-code-wrapped")
-                        ? A.t("assistant.nowrap", "No wrap") : A.t("assistant.wrap", "Wrap");
-                });
-            })(pres[i], wrBtn);
-            hdr.appendChild(wrBtn);
-            pres[i].insertBefore(hdr, pres[i].firstChild);
-        }
-    }
-    A.enhanceCodeBlocks = enhanceCodeBlocks;
-
-    /* ================================================================
-       Reasoning disclosure
-       ================================================================ */
-    function reasoningHtml(text, elapsed) {
-        if (!text) { return ""; }
-        var summary = elapsed > 0
-            ? escapeHtml(A.t("assistant.thought-for", "Thought for")) + " " + elapsed + " s"
-            : escapeHtml(A.t("assistant.reasoning", "Reasoning"));
-        return '<details class="gb-reasoning"><summary>' +
-            '<svg class="gb-reasoning-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>' +
-            '<span>' + summary + '</span></summary>' +
-            '<div class="gb-reasoning-body">' + escapeHtml(text) + '</div></details>';
-    }
-    A.reasoningHtml = reasoningHtml;
-
-    /* ================================================================
-       Notice card (leaked/unavailable tool)
-       ================================================================ */
-    function leakedNoticeHtml(raw) {
-        var msg = A.t("assistant.tool-unavailable", "Tool unavailable in this edition");
-        return '<div class="gb-notice-card">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-            '<span>' + escapeHtml(msg) + '</span>' +
-            '<details class="gb-notice-raw"><summary>' +
-                escapeHtml(A.t("assistant.details", "Details")) +
-            '</summary><pre>' + escapeHtml(raw) + '</pre></details></div>';
-    }
-
-    /* ================================================================
-       Citations / sources
-       ================================================================ */
-    function citationsHtml(citations) {
-        if (!citations || !citations.length) { return ""; }
-        var items = "";
-        for (var i = 0; i < citations.length; i++) {
-            var c = citations[i];
-            var title = c.title || c.name || c.source || ("Source " + (i + 1));
-            var url = c.url || c.link || "";
-            if (url) {
-                items += '<a class="gb-citation-link" href="' + escapeHtml(url) +
-                    '" target="_blank" rel="noopener noreferrer">' + escapeHtml(title) + '</a>';
-            } else {
-                items += '<span class="gb-citation-item">' + escapeHtml(title) + '</span>';
-            }
-        }
-        return '<details class="gb-citations"><summary>' +
-            escapeHtml(A.t("assistant.sources", "Sources")) +
-            ' (' + citations.length + ')</summary>' +
-            '<div class="gb-citations-list">' + items + '</div></details>';
-    }
-
-    /* ================================================================
-       Per-message actions (hover toolbar)
-       ================================================================ */
-    function addMessageActions(el, content, retryable) {
-        if (typeof A.addMsgToolbar === "function") {
-            A.addMsgToolbar(el, content, retryable);
-        }
-    }
-
-    /* ================================================================
        User message
        ================================================================ */
     A.renderUserMessage = function (text, files) {
         A.hasUserSent = true;
         A.showConversation();
         A.hideThinking();
+        hideDockSuggestions();
         var el = document.createElement("div");
         el.className = "gb-msg-user";
         el.dataset.originalContent = text;
@@ -250,6 +44,7 @@
             }
             el.appendChild(cards);
         }
+        addUserActions(el, text);
         document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(false); }
     };
@@ -265,9 +60,7 @@
         var leaked = typeof A.detectLeakedProtocol === "function"
             ? A.detectLeakedProtocol(raw) : null;
         var msgs = document.getElementById("gbMessages");
-        /* Adopt the current turn's activity stack if one exists (created by
-           onActivityEvent during the same turn). This keeps activities and the
-           thinking block in a single container above the answer text. */
+        /* Adopt the current turn's activity stack if one exists */
         var el = null;
         if (msgs) {
             var children = msgs.children;
@@ -286,7 +79,6 @@
         /* Find or create the block stack for this turn */
         var stack = el.querySelector(".gb-block-stack");
         var elapsed = A.thinkingElapsed();
-        /* Use block for thinking/reasoning when available */
         if (reasoning && typeof A.blockThinking === "function") {
             var thinkEl = A.blockThinking(elapsed, reasoning);
             if (stack) {
@@ -298,30 +90,32 @@
                 el.insertBefore(stack, el.firstChild);
             }
         } else if (reasoning) {
-            el.insertAdjacentHTML("beforeend", reasoningHtml(reasoning, elapsed));
+            el.insertAdjacentHTML("beforeend", A.reasoningHtml(reasoning, elapsed));
         }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
         if (card) { el.appendChild(card); }
-        /* Use block for leaked-markup notice */
         if (leaked && !card) {
             if (typeof A.blockNotice === "function") {
                 el.appendChild(A.blockNotice({ summary: { message: raw }, status: "completed" }));
             } else {
-                el.insertAdjacentHTML("beforeend", leakedNoticeHtml(raw));
+                el.insertAdjacentHTML("beforeend", A.leakedNoticeHtml(raw));
             }
         }
-        var html = mdToHtml(raw);
+        var html = A.mdToHtml(raw);
         if (html && !card && !leaked) {
             var body = document.createElement("div");
             body.className = "gb-msg-body";
             body.innerHTML = html;
-            enhanceCodeBlocks(body);
+            A.enhanceCodeBlocks(body);
+            A.highlightCodeBlocks(body);
             el.appendChild(body);
         }
         if (opts.citations && opts.citations.length) {
-            el.insertAdjacentHTML("beforeend", citationsHtml(opts.citations));
+            el.insertAdjacentHTML("beforeend", A.citationsHtml(opts.citations));
         }
-        addMessageActions(el, raw, !!(opts.retryable || opts.isError));
+        el.dataset.originalContent = raw;
+        el.dataset.originalReasoning = reasoning || "";
+        addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };
@@ -345,9 +139,9 @@
         c.setAttribute("role", "alert");
         c.innerHTML =
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-            '<span>' + escapeHtml(text || A.t("assistant.error-generic", "An error occurred.")) + '</span>';
+            '<span>' + A.escapeHtml(text || A.t("assistant.error-generic", "An error occurred.")) + '</span>';
         el.appendChild(c);
-        addMessageActions(el, null, true);
+        addAssistantActions(el, null, true);
         document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
     };
@@ -374,35 +168,62 @@
                 bub.className = "gb-msg-user-bubble";
                 bub.textContent = m.content;
                 el.appendChild(bub);
-                /* Attachments from history */
                 if (m.attachments && m.attachments.length && typeof A.attachCard === "function") {
                     var ac = document.createElement("div");
                     ac.className = "gb-attach-list";
                     m.attachments.forEach(function (att) { ac.appendChild(A.attachCard(att, { removable: false })); });
                     el.appendChild(ac);
                 }
+                addUserActions(el, m.content || "");
             } else {
                 el.className = "gb-msg-assistant";
-                /* Activities from history */
+                el.dataset.originalContent = m.content || "";
                 if (m.activities && m.activities.length && typeof A.renderBlockStack === "function") {
-                    var stack = A.renderBlockStack(m.activities);
-                    if (stack) el.appendChild(stack);
+                    var stk = A.renderBlockStack(m.activities);
+                    if (stk) { el.appendChild(stk); }
                 }
-                var h = mdToHtml(m.content);
-                if (h) {
+                var ht = A.mdToHtml(m.content);
+                if (ht) {
                     var bd = document.createElement("div");
                     bd.className = "gb-msg-body";
-                    bd.innerHTML = h;
-                    enhanceCodeBlocks(bd);
+                    bd.innerHTML = ht;
+                    A.enhanceCodeBlocks(bd);
+                    A.highlightCodeBlocks(bd);
                     el.appendChild(bd);
                 }
-                addMessageActions(el, m.content, false);
+                addAssistantActions(el, m.content, false);
             }
             msgs.appendChild(el);
         }
         A.scrollToBottom(false);
+        hideDockSuggestions();
         if (typeof A.reviveConsentCards === "function") { A.reviveConsentCards(msgs); }
     };
+
+    /* ================================================================
+       Per-message action hooks (delegated to 03b_actions.js)
+       ================================================================ */
+    function addAssistantActions(el, content, retryable) {
+        if (typeof A.addAssistantToolbar === "function") {
+            A.addAssistantToolbar(el, content, retryable);
+        } else if (typeof A.addMsgToolbar === "function") {
+            A.addMsgToolbar(el, content, retryable);
+        }
+    }
+    function addUserActions(el, content) {
+        if (typeof A.addUserToolbar === "function") {
+            A.addUserToolbar(el, content);
+        }
+    }
+
+    /* ================================================================
+       Suggestion chips: hide in dock once conversation has messages
+       ================================================================ */
+    function hideDockSuggestions() {
+        var dock = document.getElementById("gbSuggestionsDock");
+        if (dock) { dock.innerHTML = ""; }
+    }
+    A._hideDockSuggestions = hideDockSuggestions;
 
     /* ================================================================
        WS message handler
@@ -416,7 +237,6 @@
             data.turn_status === "failed" || data.turn_status === "error");
         if (data.thinking && !content && !reasoning) { A.showThinking(); return; }
         if (!isComplete && (content || reasoning)) {
-            /* Pre-user greeting frames: buffer silently, never open the conversation. */
             if (!A.hasUserSent && !A.greetingReceived) {
                 A._greetingBuffer = (A._greetingBuffer || "") + (content || ""); return;
             }
@@ -437,13 +257,11 @@
             A.lastCompletedContent = fc;
             A.lastCompletedTime = now;
             A._finalizeStreaming();
-            /* Greeting: one frame per empty-state cycle → hero subtitle. */
             if (!A.hasUserSent && !A.greetingReceived && fc && !A.isStreaming) {
                 A.greetingReceived = true;
                 A.hideThinking();
                 var sub = document.getElementById("gbGreetingSub");
                 if (sub) { sub.textContent = fc.replace(/<[^>]*>/g, "").trim(); }
-                /* Show suggestions that came with the greeting */
                 if (data.suggestions && data.suggestions.length) {
                     A.suggestions = data.suggestions;
                     if (typeof A.onSuggestions === "function") { A.onSuggestions(data.suggestions); }

@@ -247,25 +247,7 @@
     border-radius: var(--id-radius-sm); max-height: 200px; overflow-y: auto;
 }
 
-/* ================================================================
-   Per-message actions (hover)
-   ================================================================ */
-.gb-msg-actions {
-    display: flex; gap: var(--id-space-1);
-    margin-top: var(--id-space-1);
-    opacity: 0; transition: opacity var(--id-dur-fast) var(--id-ease);
-}
-.gb-msg-assistant:hover .gb-msg-actions,
-.gb-msg-assistant:focus-within .gb-msg-actions { opacity: 1; }
-.gb-msg-action {
-    padding: 2px 8px; font-size: var(--id-text-xs);
-    font-family: var(--id-font-sans); border: 1px solid var(--id-line);
-    border-radius: 4px; background: var(--id-surface-solid);
-    color: var(--id-text); cursor: pointer;
-    transition: background var(--id-dur-fast) var(--id-ease);
-}
-.gb-msg-action:hover { background: var(--id-fill); }
-.gb-msg-retry { color: var(--id-accent-text); }
+/* Toolbar, edit and highlight styles in assistant-actions.css */
 
 /* ================================================================
    Error card
