@@ -49,9 +49,21 @@ function switchTab(tab,btn){
     }
 }
 
+function getFilteredStock(){
+    if(!state.currentBranch || state.currentBranch === 'all') return state.stock || [];
+    return (state.stock || []).filter(function(s){ return String(s.branch_id) === String(state.currentBranch); });
+}
+
+function getFilteredBranches(){
+    if(!state.currentBranch || state.currentBranch === 'all') return state.branches || [];
+    return (state.branches || []).filter(function(b){ return String(b.id) === String(state.currentBranch) || String(b.code) === String(state.currentBranch); });
+}
+
 function filterBranch(branchId){
     state.currentBranch=branchId;
     loadStock();
+    updateStats();
+    renderDashboard();
 }
 
 function updateStats(){
@@ -59,32 +71,41 @@ function updateStats(){
     var ordEl=document.getElementById('stat-orders');
     var lsEl=document.getElementById('stat-low-stock');
     var prEl=document.getElementById('stat-promos');
-    var filteredStock = state.stock;
-    if(state.currentBranch && state.currentBranch !== 'all'){
-        filteredStock = state.stock.filter(function(s){return s.branch_id == state.currentBranch || s.branch_id === state.currentBranch;});
-    }
+    var filteredStock = getFilteredStock();
+
     var rev = 0;
-    if(state.topProducts && state.topProducts.length) rev = state.topProducts.reduce(function(s,x){return s + (Number(x.revenue)||0);}, 0);
-    if(revEl)revEl.textContent='$'+rev.toFixed(2);
-    if(ordEl)ordEl.textContent = String(filteredStock.length);
-    if(lsEl)lsEl.textContent = String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length);
-    if(prEl)prEl.textContent = String((state.promos||[]).filter(function(p){return p.status==='active'}).length);
+    var hasOrders = false;
+    var orders = 0;
+    if(state.topProducts && state.topProducts.length){
+        state.topProducts.forEach(function(x){
+            rev += (Number(x.revenue) || 0);
+            var o = (x.orders != null ? x.orders : (x.units_sold != null ? x.units_sold : (x.sales_count != null ? x.sales_count : null)));
+            if (o != null && !isNaN(Number(o))) { hasOrders = true; orders += Number(o); }
+        });
+    }
+    // Fallback: if no top-product revenue data, don't fabricate revenue from stock; keep 0.00
+    if(revEl) revEl.textContent='$'+(Number(rev)||0).toFixed(2);
+    // Orders: prefer real order counts; never count stock SKUs as "orders"
+    if(ordEl) ordEl.textContent = hasOrders ? String(Math.round(orders)) : '—';
+    if(lsEl) lsEl.textContent = String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length);
+    if(prEl) prEl.textContent = String((state.promos||[]).filter(function(p){return p.status==='active'}).length);
 }
 
 function renderDashboard(){
     var tpEl=document.getElementById('top-products-list');
     if(tpEl){
-        if(state.topProducts.length===0){tpEl.innerHTML='<div class="retail-empty">No data</div>'}
+        if(!state.topProducts || state.topProducts.length===0){tpEl.innerHTML='<div class="retail-empty">No data</div>'}
         else{tpEl.innerHTML=state.topProducts.slice(0,5).map(function(p){return '<div class="retail-list-row"><span>'+escapeHtml(p.name||'')+'</span><span class="retail-list-value">$'+escapeHtml((Number(p.revenue)||0).toFixed(2))+'</span></div>'}).join('')}
     }
     var bpEl=document.getElementById('branch-performance');
     if(bpEl){
-        if(state.branches.length===0){bpEl.innerHTML='<div class="retail-empty">No branches</div>'}
-        else{bpEl.innerHTML=state.branches.map(function(b){return '<div class="retail-list-row"><span>'+escapeHtml(b.name||'')+'</span><span class="retail-list-value">$'+escapeHtml((Number(b.stock_value)||0).toFixed(2))+'</span></div>'}).join('')}
+        var branches = getFilteredBranches();
+        if(!branches.length){bpEl.innerHTML='<div class="retail-empty">No branches</div>'}
+        else{bpEl.innerHTML=branches.map(function(b){return '<div class="retail-list-row"><span>'+escapeHtml(b.name||'')+'</span><span class="retail-list-value">$'+escapeHtml((Number(b.stock_value)||0).toFixed(2))+'</span></div>'}).join('')}
     }
     var saEl=document.getElementById('stock-alerts');
     if(saEl){
-        var lowStock=state.stock.filter(function(s){return Number(s.available||0)<=Number(s.min||0)});
+        var lowStock=getFilteredStock().filter(function(s){return Number(s.available||0)<=Number(s.min||0)});
         if(lowStock.length===0){saEl.innerHTML='<div class="retail-empty">All stock OK</div>'}
         else{saEl.innerHTML=lowStock.slice(0,5).map(function(s){return '<div class="retail-list-row"><span>'+escapeHtml(s.product||'')+' ('+escapeHtml(s.sku||'')+')</span><span class="retail-list-value retail-alert">'+escapeHtml(String(s.available||0))+' left</span></div>'}).join('')}
     }
