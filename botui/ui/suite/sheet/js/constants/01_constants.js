@@ -216,6 +216,13 @@
   D.rowIdx = rowIdx;
   D.parseCellRef = parseCellRef;
   D.initSidebar = initSidebar;
+  D.getSheetWindowId = getSheetWindowId;
+  D.getSheetInstance = getSheetInstance;
+  D.getActiveSheetInstance = getActiveSheetInstance;
+  D.setActiveSheetInstance = setActiveSheetInstance;
+  D.ensureSheetInstance = ensureSheetInstance;
+  D.qInSheet = qInSheet;
+  D.qAllInSheet = qAllInSheet;
 
   // Active-grid compatibility shim (#2270): modules read window.SheetVirtualGrid.
   try {

@@ -46,9 +46,15 @@
 
   D.createVirtualGrid = function () {
     var g = freshGridState();
-    var p = D.GridProto;
-    for (var k in p) {
-      if (Object.prototype.hasOwnProperty.call(p, k)) g[k] = p[k];
+    var src = D.virtualGrid || {};
+    // Copy all currently-defined grid methods (including ones added later by
+    // render/editing modules on the default grid instance).
+    for (var k in src) {
+      if (typeof src[k] === "function") g[k] = src[k];
+    }
+    var p = D.GridProto || {};
+    for (var k2 in p) {
+      if (typeof p[k2] === "function" && !g[k2]) g[k2] = p[k2];
     }
     return g;
   };
@@ -210,4 +216,5 @@
   for (var _k in VirtualGrid) {
     if (typeof VirtualGrid[_k] === "function") D.GridProto[_k] = VirtualGrid[_k];
   }
+  // Do not force global active grid here; per-window init/activation controls it.
 })();
