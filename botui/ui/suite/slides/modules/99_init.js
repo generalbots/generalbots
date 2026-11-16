@@ -84,8 +84,9 @@ function loadDeckById(id) {
 // unsaved deck (persisted only on first save) so no shared "current" object
 // is ever written.
 function loadNewBlankDeck() {
-  var id = (window.getSlidesPresentationId && window.getSlidesPresentationId()) ||
-    ('deck-' + Date.now().toString(36));
+  var id = (window.crypto && typeof window.crypto.randomUUID === "function")
+    ? window.crypto.randomUUID()
+    : "deck-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   pointDeckAt(id);
   if (!window.htmx) return;
   var qs = 'id=' + encodeURIComponent(id) + '&new=1';
