@@ -45,6 +45,10 @@
             el.appendChild(cards);
         }
         addUserActions(el, text);
+        /* #2562 — assign a sequential index for truncation. Count existing
+           visible messages to get the next index. */
+        var allMsgs = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
+        el.dataset.messageIndex = String(allMsgs.length);
         document.getElementById("gbMessages").appendChild(el);
         if (!A.isUserScrolledUp()) { A.scrollToBottom(false); }
     };
@@ -115,6 +119,13 @@
         }
         el.dataset.originalContent = raw;
         el.dataset.originalReasoning = reasoning || "";
+        /* #2562 — index for truncation. */
+        if (!el.dataset.messageIndex) {
+            var allLive = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
+            for (var mi = 0; mi < allLive.length; mi++) {
+                if (allLive[mi] === el) { el.dataset.messageIndex = String(mi); break; }
+            }
+        }
         addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
@@ -147,6 +158,67 @@
     };
 
     /* ================================================================
+       Classified error card (#2562)
+       ================================================================ */
+    A.renderErrorCode = function (code, fallbackMsg) {
+        A.showConversation();
+        A.hideThinking();
+        A._finalizeStreaming();
+        var msgs = document.getElementById("gbMessages");
+        var el = document.createElement("div");
+        el.className = "gb-msg-assistant";
+
+        var i18nMap = {
+            model_unreachable: "assistant.error-model-unreachable",
+            model_auth:        "assistant.error-model-auth",
+            model_rate_limited:"assistant.error-model-rate-limited",
+            model_error:       "assistant.error-model-error",
+            timeout:           "assistant.error-timeout",
+        };
+        var key = i18nMap[code] || "assistant.error-generic";
+        var msg = A.t(key, fallbackMsg || A.t("assistant.error-generic", "An error occurred."));
+
+        var card = document.createElement("div");
+        card.className = "gb-error-card";
+        card.setAttribute("role", "alert");
+        card.innerHTML =
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+            '<span>' + A.escapeHtml(msg) + '</span>';
+        el.appendChild(card);
+
+        /* Action buttons */
+        var bar = document.createElement("div");
+        bar.className = "gb-error-actions";
+        /* Retry */
+        var retryBtn = document.createElement("button");
+        retryBtn.className = "gb-btn-retry";
+        retryBtn.textContent = A.t("assistant.retry", "Tentar novamente");
+        retryBtn.addEventListener("click", function () {
+            var all = msgs.querySelectorAll(".gb-msg-user");
+            var last = all.length ? all[all.length - 1] : null;
+            if (last) {
+                el.remove();
+                A.sendMessage(last.dataset.originalContent || "");
+            }
+        });
+        bar.appendChild(retryBtn);
+        /* Settings link for auth/unreachable */
+        if (code === "model_unreachable" || code === "model_auth") {
+            var settingsBtn = document.createElement("button");
+            settingsBtn.className = "gb-btn-settings";
+            settingsBtn.textContent = A.t("assistant.open-model-settings", "Abrir configurações do modelo");
+            settingsBtn.addEventListener("click", function () {
+                if (typeof A.openSettings === "function") { A.openSettings("model"); }
+            });
+            bar.appendChild(settingsBtn);
+        }
+        el.appendChild(bar);
+
+        msgs.appendChild(el);
+        if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
+    };
+
+    /* ================================================================
        History replay
        ================================================================ */
     A.renderHistory = function (messages) {
@@ -158,12 +230,44 @@
         for (var h = 0; h < messages.length; h++) {
             if (messages[h].role === "user") { A.hasUserSent = true; break; }
         }
+        /* #2562 — merge activities from _lastHistoryActivities into messages.
+           Each activity has a message_index; group them by the preceding
+           assistant message index. */
+        var activities = A._lastHistoryActivities || [];
+        if (activities.length) {
+            var assistantIndices = [];
+            for (var ai = 0; ai < messages.length; ai++) {
+                if (messages[ai].role === "assistant") { assistantIndices.push(ai); }
+            }
+            /* Assign activities to the first assistant message for now */
+            if (assistantIndices.length && !messages[assistantIndices[0]].activities) {
+                for (var aj = 0; aj < assistantIndices.length; aj++) {
+                    messages[assistantIndices[aj]].activities = [];
+                }
+                activities.forEach(function (act) {
+                    /* Best-effort: put activities with the last assistant message */
+                    var target = assistantIndices[assistantIndices.length - 1];
+                    if (act.message_index != null) {
+                        for (var ak = 0; ak < assistantIndices.length; ak++) {
+                            if (assistantIndices[ak] >= act.message_index) {
+                                target = assistantIndices[ak]; break;
+                            }
+                        }
+                    }
+                    if (messages[target]) {
+                        messages[target].activities = messages[target].activities || [];
+                        messages[target].activities.push(act);
+                    }
+                });
+            }
+        }
         for (var i = 0; i < messages.length; i++) {
             var m = messages[i];
             var el = document.createElement("div");
             if (m.role === "user") {
                 el.className = "gb-msg-user";
                 el.dataset.originalContent = m.content || "";
+                if (m.message_index != null) { el.dataset.messageIndex = String(m.message_index); }
                 var bub = document.createElement("div");
                 bub.className = "gb-msg-user-bubble";
                 bub.textContent = m.content;
@@ -178,9 +282,25 @@
             } else {
                 el.className = "gb-msg-assistant";
                 el.dataset.originalContent = m.content || "";
+                el.dataset.originalReasoning = m.reasoning || "";
+                el.dataset.messageIndex = String(i);
+                /* #2562 — reconstruct the activity step cards from history */
                 if (m.activities && m.activities.length && typeof A.renderBlockStack === "function") {
                     var stk = A.renderBlockStack(m.activities);
                     if (stk) { el.appendChild(stk); }
+                }
+                /* #2562 — reasoning (thinking card) from history */
+                if (m.reasoning && typeof A.blockThinking === "function") {
+                    var thinkStack = el.querySelector(".gb-block-stack");
+                    var thinkEl = A.blockThinking(null, m.reasoning);
+                    if (thinkStack) {
+                        thinkStack.appendChild(thinkEl);
+                    } else {
+                        thinkStack = document.createElement("div");
+                        thinkStack.className = "gb-block-stack";
+                        thinkStack.appendChild(thinkEl);
+                        el.insertBefore(thinkStack, el.firstChild);
+                    }
                 }
                 var ht = A.mdToHtml(m.content);
                 if (ht) {
@@ -269,10 +389,18 @@
                 return;
             }
             if (fc || fr) {
-                A.renderAssistantMessage(fc, fr, {
-                    citations: data.citations,
-                    retryable: !!(data.retryable || isError), isError: isError
-                });
+                /* #2562 — classified error from the server: show the
+                   right error card instead of rendering as a normal message. */
+                if (isError && data.error_code) {
+                    A.renderErrorCode(data.error_code, fc);
+                } else {
+                    A.renderAssistantMessage(fc, fr, {
+                        citations: data.citations,
+                        retryable: !!(data.retryable || isError), isError: isError
+                    });
+                }
+            } else if (isError) {
+                A.renderErrorCode(data.error_code || "model_error", data.content || "");
             }
             if (data.suggestions && data.suggestions.length) {
                 A.suggestions = data.suggestions;

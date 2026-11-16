@@ -260,6 +260,19 @@
     color: #b91c1c; font-size: var(--id-text-sm);
 }
 .gb-error-card svg { flex-shrink: 0; color: #ef4444; margin-top: 1px; }
+.gb-error-actions {
+    display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2);
+    padding-left: var(--id-space-1);
+}
+.gb-error-actions button {
+    background: none; border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm); padding: var(--id-space-1) var(--id-space-3);
+    font-size: var(--id-text-xs); color: var(--id-fg);
+    cursor: pointer; transition: background .15s;
+}
+.gb-error-actions button:hover { background: var(--id-fill); }
+.gb-btn-retry { font-weight: 500; }
+.gb-btn-settings { color: var(--id-muted); }
 
 /* ================================================================
    Notice card (leaked / unavailable tool)

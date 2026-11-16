@@ -3,12 +3,12 @@
  * 03b_actions.js - Per-message action toolbars.
  *
  * Assistant messages: Copy (markdown source), Regenerate.
- * User messages: Copy, Edit (inline editor, resend as new turn).
+ * User messages: Copy, Edit (inline editor, resend from that point).
  *
- * Server limitation: the WS protocol has no "regenerate" or "edit-and-
- * resend-from-here" command. Regenerate resends the same user text as
- * a new turn and removes the old answer from the DOM (the history still
- * holds it). Edit sends the edited text as a new turn.
+ * #2562 — Regenerate and Edit now truncate the server-side history so a
+ * reload shows exactly what the person last saw: Regenerate drops the
+ * last assistant message and re-asks; Edit drops from the edited user
+ * message onward and sends the edited text.
  */
 
 (function () {
@@ -17,9 +17,22 @@
     function pt() { return A.locale && A.locale.startsWith("pt"); }
     function t(ptT, enT) { return pt() ? ptT : enT; }
 
+    /** Returns the visible message index (matching the history API response)
+     *  for truncation. Uses the data attribute set during history render,
+     *  or falls back to counting DOM siblings. */
+    function msgIndex(el) {
+        if (el.dataset && el.dataset.messageIndex != null) {
+            return parseInt(el.dataset.messageIndex, 10);
+        }
+        var all = document.querySelectorAll("#gbMessages > .gb-msg-user, #gbMessages > .gb-msg-assistant");
+        for (var i = 0; i < all.length; i++) {
+            if (all[i] === el) { return i; }
+        }
+        return -1;
+    }
+
     /* ================================================================
        Assistant toolbar: Copy + Regenerate
-       On hover / focus, and always visible on the LAST assistant msg.
        ================================================================ */
     A.addAssistantToolbar = function (el, content, retryable) {
         var tb = document.createElement("div");
@@ -62,10 +75,19 @@
             if (!lastUser) { return; }
             var userText = (lastUser.dataset.originalContent || lastUser.textContent || "").trim();
             if (!userText) { return; }
+            /* The assistant message index in the stored history */
+            var idx = msgIndex(el);
             /* Remove this assistant message from DOM */
             el.remove();
-            /* Resend as a new turn */
-            if (typeof A.sendMessage === "function") {
+            /* Truncate server history from this message onward, then resend */
+            if (idx >= 0 && typeof A.truncateHistory === "function") {
+                var sid = A.currentSessionId || A.sessionId || "";
+                A.truncateHistory(sid, idx).then(function () {
+                    if (typeof A.sendMessage === "function") {
+                        A.sendMessage(userText);
+                    }
+                });
+            } else if (typeof A.sendMessage === "function") {
                 A.sendMessage(userText);
             }
         });
@@ -124,7 +146,6 @@
         var bubble = msgEl.querySelector(".gb-msg-user-bubble");
         if (!bubble) { return; }
         var original = msgEl.dataset.originalContent || bubble.textContent || "";
-        var savedHtml = bubble.innerHTML;
 
         bubble.innerHTML = "";
         bubble.classList.add("gb-editing");
@@ -160,13 +181,25 @@
         function save() {
             var edited = area.value.trim();
             if (!edited) { cancel(); return; }
+            /* #2562 — truncate from this user message onward, then send
+               the edited text. This makes the reload match the screen. */
+            var idx = msgIndex(msgEl);
             bubble.classList.remove("gb-editing");
             bubble.innerHTML = "";
             bubble.textContent = edited;
             msgEl.dataset.originalContent = edited;
-            /* Send as a new turn (server has no edit-and-resend) */
-            if (typeof A.sendMessage === "function") {
-                A.renderUserMessage(edited, []);
+            /* Remove all messages after this one (including responses) */
+            while (msgEl.nextElementSibling) {
+                msgEl.nextElementSibling.remove();
+            }
+            if (idx >= 0 && typeof A.truncateHistory === "function") {
+                var sid = A.currentSessionId || A.sessionId || "";
+                A.truncateHistory(sid, idx).then(function () {
+                    if (typeof A.sendMessage === "function") {
+                        A.sendMessage(edited);
+                    }
+                });
+            } else if (typeof A.sendMessage === "function") {
                 A.sendMessage(edited);
             }
         }

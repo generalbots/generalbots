@@ -140,14 +140,40 @@
             var r = await A.apiFetch(
                 "/api/chat/history/sessions/" +
                     encodeURIComponent(sessId) +
-                    "/messages?limit=500&offset=0"
+                    "/messages?limit=500&offset=0&include_activities=1"
             );
             if (!r.ok) { return []; }
             var data = await r.json();
+            /* #2562 — stash activities so renderHistory can show step cards. */
+            A._lastHistoryActivities = data.activities || [];
             return data.messages || [];
         } catch (e) {
             console.warn("[assistant] messages fetch failed:", e);
             return [];
+        }
+    };
+
+    /** #2562 — Truncate history from a given message index (for regenerate/edit). */
+    A.truncateHistory = async function (sessId, fromIndex) {
+        try {
+            var r = await A.apiFetch(
+                "/api/chat/history/sessions/" +
+                    encodeURIComponent(sessId) +
+                    "/truncate",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ from_index: fromIndex }),
+                }
+            );
+            if (!r.ok) {
+                console.warn("[assistant] truncate failed:", r.status);
+                return false;
+            }
+            return true;
+        } catch (e) {
+            console.warn("[assistant] truncate error:", e);
+            return false;
         }
     };
 
