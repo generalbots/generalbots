@@ -178,5 +178,17 @@ window.GBAssistantLocales["pt-BR"] = {
     "settings.text-size-hint": "Ctrl+= / Ctrl+- / Ctrl+0",
     "shortcut.text-increase":  "Aumentar texto",
     "shortcut.text-decrease":  "Diminuir texto",
-    "shortcut.text-reset":     "Texto padrão"
+    "shortcut.text-reset":     "Texto padrão",
+    "settings.instructions":   "Instruções personalizadas",
+    "settings.instructions-desc": "Diga ao assistente sobre você e como deseja que ele responda.",
+    "settings.instructions-enabled": "Ativar instruções personalizadas",
+    "settings.instructions-about": "O que o assistente deve saber sobre você?",
+    "settings.instructions-response": "Como o assistente deve responder?",
+    "settings.save":           "Salvar",
+    "assistant.export":        "Exportar",
+    "assistant.export-md":     "Exportar Markdown",
+    "assistant.print":         "Imprimir / PDF",
+    "feedback.good":           "Boa resposta",
+    "feedback.bad":            "Resposta ruim",
+    "feedback.comment":        "O que poderia melhorar?"
 };

@@ -99,6 +99,11 @@
         tb.appendChild(regen);
 
         el.appendChild(tb);
+
+        /* Feedback (thumbs up/down) */
+        if (typeof A.addFeedbackButtons === "function") {
+            A.addFeedbackButtons(el);
+        }
     };
 
     /* ================================================================

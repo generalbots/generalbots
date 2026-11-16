@@ -178,5 +178,17 @@ window.GBAssistantLocales["en"] = {
     "settings.text-size-hint": "Ctrl+= / Ctrl+- / Ctrl+0",
     "shortcut.text-increase":  "Increase text size",
     "shortcut.text-decrease":  "Decrease text size",
-    "shortcut.text-reset":     "Reset text size"
+    "shortcut.text-reset":     "Reset text size",
+    "settings.instructions":   "Custom instructions",
+    "settings.instructions-desc": "Tell the assistant about yourself and how you want it to respond.",
+    "settings.instructions-enabled": "Enable custom instructions",
+    "settings.instructions-about": "What should the assistant know about you?",
+    "settings.instructions-response": "How should the assistant respond?",
+    "settings.save":           "Save",
+    "assistant.export":        "Export",
+    "assistant.export-md":     "Export Markdown",
+    "assistant.print":         "Print / PDF",
+    "feedback.good":           "Good answer",
+    "feedback.bad":            "Bad answer",
+    "feedback.comment":        "What could be better?"
 };
