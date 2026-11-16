@@ -29,7 +29,7 @@ env:
 
 jobs:
   build-test:
-    name: Chat + Drive profile (build, tests, smoke)
+    name: Chat + Drive + agent-vm profile (build, tests, smoke)
     runs-on: windows-latest
     timeout-minutes: 150
     steps:

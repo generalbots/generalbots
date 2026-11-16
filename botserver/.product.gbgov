@@ -2,10 +2,12 @@
 # Loaded first when botserver is compiled with --features gbgov:
 #   cargo build -p botserver --no-default-features --features gbgov
 #
-# The edition is Chat and Drive on the user's own machine. Nothing else is
-# compiled, so every other registry app is listed as hidden: the suite shell
-# refuses it and the launcher never advertises it. Core surfaces (about,
-# settings, sign-in) are always available without being listed.
+# The edition is Chat and Drive on the user's own machine, with the agent
+# workspace (agent-vm) compiled in. On Windows the Incus backend is unavailable
+# without a WSL2 wrapper; agent mode is disabled gracefully at runtime. Every
+# other registry app is listed as hidden: the suite shell refuses it and the
+# launcher never advertises it. Core surfaces (about, settings, sign-in) are
+# always available without being listed.
 
 name=General Bots
 

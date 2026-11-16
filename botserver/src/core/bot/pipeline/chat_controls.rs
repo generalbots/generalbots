@@ -86,9 +86,10 @@ fn agent_backend_available() -> bool {
 /// Resolve the effective agent/VM toggle for this turn and persist explicit
 /// payload values so the session is the single source of truth.
 ///
-/// #2562 — when the `agent-vm` feature is not compiled in (e.g. gbgov,
-/// chat-only editions), the agent is forced off regardless of what the client
-/// sends, so the model never sees workspace instructions it cannot execute.
+/// When the `agent-vm` feature is not compiled in, the agent is forced off
+/// regardless of what the client sends. On Windows with `agent-vm` compiled
+/// in, the backend availability check forces off when Incus is unreachable
+/// (no WSL2 or no AGENT_INCUS_BIN wrapper).
 pub async fn resolve_agent_enabled(
     state: &Arc<AppState>,
     session_id: Uuid,
