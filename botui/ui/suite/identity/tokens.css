@@ -90,8 +90,134 @@
   --id-space-8: 32px;
   --id-space-10: 40px;
 
+  /* == Semantic colours (fixed per theme) =============================== */
+  --id-danger: #dc2626;
+  --id-danger-text: #b91c1c;
+  --id-danger-soft: rgb(220 38 38 / .06);
+  --id-danger-line: rgb(220 38 38 / .3);
+  --id-danger-icon: #ef4444;
+  --id-success: #22c55e;
+  --id-success-text: #16a34a;
+  --id-success-soft: rgb(34 197 94 / .06);
+  --id-success-line: rgb(34 197 94 / .25);
+  --id-warn: #d97706;
+  --id-warn-text: #92400e;
+  --id-warn-soft: rgb(234 179 8 / .08);
+  --id-warn-bg: #fef3c7;
+  --id-overlay: rgb(0 0 0 / .3);
+  --id-overlay-heavy: rgb(0 0 0 / .7);
+
+  /* == Syntax highlighting ============================================ */
+  --id-hl-keyword: var(--id-accent-text, #6366f1);
+  --id-hl-string: #059669;
+  --id-hl-comment: var(--id-gray-400);
+  --id-hl-number: #d97706;
+  --id-hl-function: #2563eb;
+  --id-hl-attr: #0d9488;
+  --id-hl-tag: #dc2626;
+  --id-hl-deletion: #dc2626;
+  --id-hl-deletion-bg: rgb(239 68 68 / .08);
+  --id-hl-addition-bg: rgb(5 150 105 / .08);
+
+  /* == Scrollbar ====================================================== */
+  --id-scrollbar-thumb: var(--id-gray-300);
+
+  /* == Text-size scale (overridden by theme.js) ======================= */
+  --id-scale: 1;
+
   /* == Focus (accent-derived) ========================================== */
   --id-focus: 0 0 0 2px var(--id-accent-text);
+}
+
+/* == Dark theme ======================================================= */
+/* Explicit dark */
+:root[data-theme="dark"] {
+  --id-ink: #e4e4ea;
+  --id-text: #a8adb8;
+  --id-muted: #808898;
+  --id-gray-100: #2a2a36;
+  --id-gray-200: #353542;
+  --id-gray-300: #45455a;
+  --id-gray-400: #6a6a80;
+  --id-gray-500: #8888a0;
+  --id-surface: rgb(36 36 48 / .92);
+  --id-surface-solid: #262633;
+  --id-line: rgb(255 255 255 / .1);
+  --id-line-soft: rgb(255 255 255 / .06);
+  --id-fill: rgb(255 255 255 / .06);
+  --id-shadow-card: 0 1px 3px rgb(0 0 0 / .3);
+  --id-shadow-card-hover: 0 8px 20px -10px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .3);
+  --id-shadow-float: 0 10px 15px -3px rgb(0 0 0 / .3), 0 4px 6px -4px rgb(0 0 0 / .2);
+  --id-danger: #f87171;
+  --id-danger-text: #fca5a5;
+  --id-danger-soft: rgb(220 38 38 / .12);
+  --id-danger-line: rgb(220 38 38 / .4);
+  --id-danger-icon: #f87171;
+  --id-success: #4ade80;
+  --id-success-text: #86efac;
+  --id-success-soft: rgb(34 197 94 / .12);
+  --id-success-line: rgb(34 197 94 / .35);
+  --id-warn: #fbbf24;
+  --id-warn-text: #fde68a;
+  --id-warn-soft: rgb(234 179 8 / .15);
+  --id-warn-bg: rgb(120 80 10 / .3);
+  --id-overlay: rgb(0 0 0 / .5);
+  --id-overlay-heavy: rgb(0 0 0 / .8);
+  --id-hl-string: #34d399;
+  --id-hl-number: #fbbf24;
+  --id-hl-function: #60a5fa;
+  --id-hl-attr: #2dd4bf;
+  --id-hl-tag: #f87171;
+  --id-hl-deletion: #f87171;
+  --id-hl-deletion-bg: rgb(239 68 68 / .15);
+  --id-hl-addition-bg: rgb(5 150 105 / .15);
+  --id-scrollbar-thumb: var(--id-gray-400);
+}
+
+/* System preference: dark when no explicit theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --id-ink: #e4e4ea;
+    --id-text: #a8adb8;
+    --id-muted: #808898;
+    --id-gray-100: #2a2a36;
+    --id-gray-200: #353542;
+    --id-gray-300: #45455a;
+    --id-gray-400: #6a6a80;
+    --id-gray-500: #8888a0;
+    --id-surface: rgb(36 36 48 / .92);
+    --id-surface-solid: #262633;
+    --id-line: rgb(255 255 255 / .1);
+    --id-line-soft: rgb(255 255 255 / .06);
+    --id-fill: rgb(255 255 255 / .06);
+    --id-shadow-card: 0 1px 3px rgb(0 0 0 / .3);
+    --id-shadow-card-hover: 0 8px 20px -10px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .3);
+    --id-shadow-float: 0 10px 15px -3px rgb(0 0 0 / .3), 0 4px 6px -4px rgb(0 0 0 / .2);
+    --id-danger: #f87171;
+    --id-danger-text: #fca5a5;
+    --id-danger-soft: rgb(220 38 38 / .12);
+    --id-danger-line: rgb(220 38 38 / .4);
+    --id-danger-icon: #f87171;
+    --id-success: #4ade80;
+    --id-success-text: #86efac;
+    --id-success-soft: rgb(34 197 94 / .12);
+    --id-success-line: rgb(34 197 94 / .35);
+    --id-warn: #fbbf24;
+    --id-warn-text: #fde68a;
+    --id-warn-soft: rgb(234 179 8 / .15);
+    --id-warn-bg: rgb(120 80 10 / .3);
+    --id-overlay: rgb(0 0 0 / .5);
+    --id-overlay-heavy: rgb(0 0 0 / .8);
+    --id-hl-string: #34d399;
+    --id-hl-number: #fbbf24;
+    --id-hl-function: #60a5fa;
+    --id-hl-attr: #2dd4bf;
+    --id-hl-tag: #f87171;
+    --id-hl-deletion: #f87171;
+    --id-hl-deletion-bg: rgb(239 68 68 / .15);
+    --id-hl-addition-bg: rgb(5 150 105 / .15);
+    --id-scrollbar-thumb: var(--id-gray-400);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -86,6 +86,76 @@
   /* ---- derivation ---- */
 
   var INK = "#2C2C2C";
+  var DARK_PAPER = "#1c1c28";
+  var DARK_INK = "#e4e4ea";
+
+  function isDark() {
+    return document.documentElement.getAttribute("data-theme") === "dark" ||
+      (document.documentElement.getAttribute("data-theme") !== "light" &&
+       window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }
+
+  function deriveDark(hex) {
+    var rgb = hexToRgb(hex);
+    var oklch = rgbToOklch(rgb[0], rgb[1], rgb[2]);
+    var L = oklch.L, C = oklch.C, H = oklch.H;
+
+    /* accent — boost lightness slightly for visibility on dark surfaces */
+    var accentL = Math.min(L + 0.05, 0.82);
+    var accentC = C * 1.05;
+    var accent = oklchToHex(accentL, accentC, H);
+
+    /* hover — lighter on dark */
+    var hoverL = accentL + 0.06;
+    var hover = oklchToHex(hoverL, accentC * 0.95, H - 2);
+
+    /* light — a muted tint */
+    var lightL = L * 0.55 + 0.2;
+    var lightC = C * 0.5;
+    var light = oklchToHex(lightL, lightC, H + 10);
+
+    /* paper — the dark background (fixed, not accent-derived in dark) */
+    var paper = DARK_PAPER;
+
+    /* text — lighten until contrast >= 4.5:1 on dark paper */
+    var paperLum = relLumHex(paper);
+    var textL = L + 0.15;
+    var textC = C * 0.7;
+    var textH = H;
+    var textHex = accent;
+    for (var i = 0; i < 80; i += 1) {
+      textL += 0.006;
+      textC = Math.max(textC - 0.0003, 0.02);
+      var candidate = oklchToHex(textL, textC, textH);
+      var cr = contrastRatio(relLumHex(candidate), paperLum);
+      if (cr >= 4.5) { textHex = candidate; break; }
+      textHex = candidate;
+    }
+
+    var r8 = Math.round(rgb[0] * 255);
+    var g8 = Math.round(rgb[1] * 255);
+    var b8 = Math.round(rgb[2] * 255);
+    var soft = "rgb(" + r8 + " " + g8 + " " + b8 + " / .15)";
+    var glow = "rgb(" + r8 + " " + g8 + " " + b8 + " / .3)";
+
+    /* on-accent — white or dark ink, whichever has more contrast */
+    var accentRgb = hexToRgb(accent);
+    var accentLum = relLum(accentRgb[0], accentRgb[1], accentRgb[2]);
+    var crWhite = contrastRatio(1, accentLum);
+    var crInk = contrastRatio(relLumHex(INK), accentLum);
+    var onAccent = crWhite >= crInk ? "#ffffff" : INK;
+
+    return {
+      accent: accent.toUpperCase(),
+      accentHover: hover.toUpperCase(),
+      accentLight: light.toUpperCase(),
+      accentText: textHex.toUpperCase(),
+      accentSoft: soft,
+      accentGlow: glow,
+      onAccent: onAccent,
+      paper: paper.toUpperCase()
+    };
+  }
 
   function derive(hex) {
     hex = hex.replace(/\s/g, "");
@@ -163,7 +233,7 @@
   /* ---- apply to document ---- */
 
   function apply(hex) {
-    var d = derive(hex);
+    var d = isDark() ? deriveDark(hex) : derive(hex);
     var s = document.documentElement.style;
     s.setProperty("--id-accent", d.accent);
     s.setProperty("--id-accent-hover", d.accentHover);
@@ -196,20 +266,24 @@
   /* ---- validate ---- */
 
   function validate(hex) {
-    var d = derive(hex);
+    var d = isDark() ? deriveDark(hex) : derive(hex);
+    var ink = isDark() ? DARK_INK : INK;
     return {
       accentOnPaper: contrastPair(d.accent, d.paper),
       accentTextOnPaper: contrastPair(d.accentText, d.paper),
       onAccentOnAccent: contrastPair(d.onAccent, d.accent),
       hoverOnPaper: contrastPair(d.accentHover, d.paper),
-      inkOnPaper: contrastPair(INK, d.paper)
+      inkOnPaper: contrastPair(ink, d.paper)
     };
   }
 
   window.GBIdentity = {
     derive: derive,
+    deriveDark: deriveDark,
+    isDark: isDark,
     apply: apply,
     presets: presets,
-    validate: validate
+    validate: validate,
+    contrastPair: contrastPair
   };
 })();
