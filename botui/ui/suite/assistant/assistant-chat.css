@@ -82,7 +82,7 @@
 .gb-conversation::-webkit-scrollbar { width: 6px; }
 .gb-conversation::-webkit-scrollbar-track { background: transparent; }
 .gb-conversation::-webkit-scrollbar-thumb {
-    background: var(--id-gray-300); border-radius: 3px;
+    background: var(--id-scrollbar-thumb); border-radius: 3px;
 }
 .gb-messages {
     max-width: 760px; margin: 0 auto;
@@ -254,12 +254,12 @@
    ================================================================ */
 .gb-error-card {
     display: flex; align-items: flex-start; gap: var(--id-space-2);
-    background: var(--id-surface-solid); border: 1px solid rgb(239 68 68 / .3);
+    background: var(--id-surface-solid); border: 1px solid var(--id-danger-line);
     border-radius: var(--id-radius-sm);
     padding: var(--id-space-3) var(--id-space-4);
-    color: #b91c1c; font-size: var(--id-text-sm);
+    color: var(--id-danger-text); font-size: var(--id-text-sm);
 }
-.gb-error-card svg { flex-shrink: 0; color: #ef4444; margin-top: 1px; }
+.gb-error-card svg { flex-shrink: 0; color: var(--id-danger-icon); margin-top: 1px; }
 .gb-error-actions {
     display: flex; gap: var(--id-space-2); margin-top: var(--id-space-2);
     padding-left: var(--id-space-1);
@@ -471,12 +471,12 @@
 .gb-reconnect-banner {
     display: flex; align-items: center; gap: 8px; justify-content: center;
     padding: 6px 16px; font-size: var(--id-text-sm);
-    color: var(--id-warn, #92400e); background: var(--id-warn-bg, #fef3c7);
+    color: var(--id-warn-text); background: var(--id-warn-bg);
     border-radius: var(--id-radius-sm); margin: 0 auto 4px; max-width: 680px; width: 100%;
 }
 .gb-reconnect-pulse {
     width: 8px; height: 8px; border-radius: 50%;
-    background: var(--id-warn, #d97706); animation: gb-pulse 1.5s infinite;
+    background: var(--id-warn); animation: gb-pulse 1.5s infinite;
 }
 @media (prefers-reduced-motion: reduce) { .gb-reconnect-pulse { animation: none; } }
 @keyframes gb-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }

@@ -218,8 +218,8 @@
     transition: background var(--id-dur-fast) var(--id-ease);
 }
 .gb-drv-ctx-item:hover { background: var(--id-fill); }
-.gb-drv-ctx-danger { color: #dc2626; }
-.gb-drv-ctx-danger:hover { background: rgb(220 38 38 / .06); }
+.gb-drv-ctx-danger { color: var(--id-danger); }
+.gb-drv-ctx-danger:hover { background: var(--id-danger-soft); }
 
 /* == Inline delete confirmation ====================================== */
 .gb-drv-confirm {
@@ -240,9 +240,9 @@
 }
 .gb-drv-confirm-btn:hover { background: var(--id-fill); }
 .gb-drv-confirm-danger {
-    border-color: rgb(220 38 38 / .3); color: #dc2626;
+    border-color: var(--id-danger-line); color: var(--id-danger);
 }
-.gb-drv-confirm-danger:hover { background: rgb(220 38 38 / .06); }
+.gb-drv-confirm-danger:hover { background: var(--id-danger-soft); }
 
 /* == States ========================================================== */
 .gb-drv-state {
@@ -327,7 +327,7 @@
     color: var(--id-ink); max-width: 460px; text-align: center;
     animation: gb-drv-toast-in .2s ease;
 }
-.gb-drv-toast-error { border-color: rgb(239 68 68 / .4); color: #b91c1c; }
+.gb-drv-toast-error { border-color: var(--id-danger-line); color: var(--id-danger-text); }
 @keyframes gb-drv-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 @media (prefers-reduced-motion: reduce) {
     .gb-drv-toast { animation: none; }

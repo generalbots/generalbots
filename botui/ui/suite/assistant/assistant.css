@@ -62,6 +62,9 @@ body {
     .gb-main::after { background: var(--id-paper); }
 }
 
+/* Selection */
+::selection { background: var(--id-accent-soft); color: var(--id-ink); }
+
 /* Screen-reader only */
 .gb-sr-only {
     position: absolute; width: 1px; height: 1px;
@@ -230,7 +233,7 @@ body {
     padding: 0 var(--id-space-3);
 }
 .gb-sidebar-conversations::-webkit-scrollbar { width: 4px; }
-.gb-sidebar-conversations::-webkit-scrollbar-thumb { background: var(--id-gray-300); border-radius: 2px; }
+.gb-sidebar-conversations::-webkit-scrollbar-thumb { background: var(--id-scrollbar-thumb); border-radius: 2px; }
 
 .gb-conv-group-label {
     font-size: var(--id-text-xs);
@@ -349,8 +352,8 @@ body {
     background: var(--id-gray-300);
     flex-shrink: 0;
 }
-.gb-status-dot.connected { background: #22c55e; }
-.gb-status-dot.error { background: #ef4444; }
+.gb-status-dot.connected { background: var(--id-success); }
+.gb-status-dot.error { background: var(--id-danger-icon); }
 .gb-status-text {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -410,7 +413,7 @@ body {
     /* Backdrop behind the slide-over sidebar */
     .gb-sidebar-backdrop {
         display: none; position: fixed; inset: 0; z-index: 99;
-        background: rgba(0,0,0,.2);
+        background: var(--id-overlay);
     }
     .gb-sidebar:not(.collapsed) ~ .gb-sidebar-backdrop {
         display: block;
@@ -446,8 +449,8 @@ body {
     text-align: left;
 }
 .gb-user-menu-item:hover { background: var(--id-fill); }
-.gb-user-menu-danger { color: #dc2626; }
-.gb-user-menu-danger:hover { background: rgb(220 38 38 / .08); }
+.gb-user-menu-danger { color: var(--id-danger); }
+.gb-user-menu-danger:hover { background: var(--id-danger-soft); }
 
 /* ================================================================
    Utility: gutter on the sides
