@@ -14,6 +14,7 @@
             playerBlobUrl = null;
         }
     }
+    window.revokePlayerBlobUrl = revokePlayerBlobUrl;
 
     const KIND_BY_EXT = {
         video: ["mp4", "webm", "ogv", "mov", "mkv", "m4v"],
@@ -181,12 +182,16 @@
             const raw = atob(data.content);
             const bytes = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+            hideAllPlayers();
             revokePlayerBlobUrl();
             playerBlobUrl = URL.createObjectURL(new Blob([bytes]));
-            hideAllPlayers();
+            // keep in sync with shared tracker so hideAllPlayers()/switches revoke it
+            if (typeof activeBlobUrl !== "undefined") activeBlobUrl = playerBlobUrl;
             currentFile = { path: entry.path, type: entry.kind, name: entry.name };
-            document.getElementById("file-name").textContent = entry.name;
-            document.getElementById("file-type").textContent = entry.kind;
+            var nameEl = document.getElementById("file-name");
+            var typeEl = document.getElementById("file-type");
+            if (nameEl) nameEl.textContent = entry.name;
+            if (typeEl) typeEl.textContent = entry.kind;
             if (entry.kind === "audio") showAudioPlayer(playerBlobUrl);
             else if (entry.kind === "image") showImageViewer(playerBlobUrl);
             else if (entry.kind === "document") showDocumentViewer(playerBlobUrl);

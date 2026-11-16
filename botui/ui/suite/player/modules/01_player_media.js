@@ -174,6 +174,9 @@
             try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {}
             activeBlobUrl = null;
         }
+        if (typeof window.revokePlayerBlobUrl === "function") {
+            try { window.revokePlayerBlobUrl(); } catch (e) {}
+        }
         currentPlayer = null;
     }
 
