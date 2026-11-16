@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="/suite/identity/fonts.css" />
 <link rel="stylesheet" href="/suite/identity/tokens.css" />
 
+<!-- Theme + text-size: apply before first paint to avoid flash -->
+<script src="/suite/identity/theme.js"></script>
+<script src="/suite/identity/textsize.js"></script>
+
 <!-- Titlebar (standalone, no shell dependency) -->
 <link rel="stylesheet" href="/suite/assistant/titlebar.css" />
 
@@ -261,11 +265,13 @@
 <script src="/suite/assistant/modules/07_protocol.js"></script>
 <script src="/suite/assistant/modules/08_consent.js"></script>
 <script src="/suite/assistant/modules/04_sidebar.js"></script>
+<script src="/suite/assistant/modules/04b_status.js"></script>
 <script src="/suite/assistant/modules/05b_model_picker.js"></script>
 <script src="/suite/assistant/modules/05_composer.js"></script>
 <script src="/suite/assistant/modules/06_drive.js"></script>
 <script src="/suite/assistant/modules/06a_drive_actions.js"></script>
 <script src="/suite/assistant/modules/06b_drive_shell.js"></script>
+<script src="/suite/assistant/modules/09b_patterns.js"></script>
 <script src="/suite/assistant/modules/09_settings.js"></script>
 <script src="/suite/assistant/modules/10_settings_model.js"></script>
 <script src="/suite/assistant/modules/12_blocks.js"></script>

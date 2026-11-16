@@ -165,5 +165,18 @@ window.GBAssistantLocales["pt-BR"] = {
     "shortcut.settings":       "Configurações",
     "shortcut.stop":           "Parar geração",
     "shortcut.edit-last":      "Editar última mensagem",
-    "shortcut.title":          "Atalhos de teclado"
+    "shortcut.title":          "Atalhos de teclado",
+    "settings.theme-label":    "Tema",
+    "settings.theme-light":    "Claro",
+    "settings.theme-dark":     "Escuro",
+    "settings.theme-system":   "Sistema",
+    "settings.text-size-label":"Tamanho do texto",
+    "settings.text-small":     "Pequeno",
+    "settings.text-default":   "Padrão",
+    "settings.text-large":     "Grande",
+    "settings.text-xlarge":    "Muito grande",
+    "settings.text-size-hint": "Ctrl+= / Ctrl+- / Ctrl+0",
+    "shortcut.text-increase":  "Aumentar texto",
+    "shortcut.text-decrease":  "Diminuir texto",
+    "shortcut.text-reset":     "Texto padrão"
 };

@@ -165,5 +165,18 @@ window.GBAssistantLocales["en"] = {
     "shortcut.settings":       "Settings",
     "shortcut.stop":           "Stop generating",
     "shortcut.edit-last":      "Edit last message",
-    "shortcut.title":          "Keyboard shortcuts"
+    "shortcut.title":          "Keyboard shortcuts",
+    "settings.theme-label":    "Theme",
+    "settings.theme-light":    "Light",
+    "settings.theme-dark":     "Dark",
+    "settings.theme-system":   "System",
+    "settings.text-size-label":"Text size",
+    "settings.text-small":     "Small",
+    "settings.text-default":   "Default",
+    "settings.text-large":     "Large",
+    "settings.text-xlarge":    "Very large",
+    "settings.text-size-hint": "Ctrl+= / Ctrl+- / Ctrl+0",
+    "shortcut.text-increase":  "Increase text size",
+    "shortcut.text-decrease":  "Decrease text size",
+    "shortcut.text-reset":     "Reset text size"
 };
