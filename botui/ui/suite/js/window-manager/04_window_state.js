@@ -204,6 +204,9 @@
       header.removeEventListener("pointermove", onMove);
       header.removeEventListener("pointerup", onUp);
       header.removeEventListener("pointercancel", onUp);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
     };
 
     const onDown = (e) => {
@@ -224,9 +227,13 @@
       initialTop = parseInt(el.style.top || 0, 10);
       document.body.style.userSelect = "none";
       try { header.setPointerCapture(e.pointerId); } catch (_e) {}
+      // Listen on header and document for robustness (synthetic events may not honor capture).
       header.addEventListener("pointermove", onMove);
       header.addEventListener("pointerup", onUp);
       header.addEventListener("pointercancel", onUp);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
     };
 
     const onMove = (e) => {
@@ -235,12 +242,11 @@
       if (!canFreeDrag()) { endDrag(); return; }
       const nx = Math.max(-200, initialLeft + e.clientX - startX);
       const ny = Math.max(0, initialTop + e.clientY - startY);
+      // Apply immediately for deterministic behavior; rAF keeps last value consistent.
+      el.style.left = `${nx}px`;
+      el.style.top = `${ny}px`;
       if (moveRaf) cancelAnimationFrame(moveRaf);
-      moveRaf = requestAnimationFrame(() => {
-        moveRaf = 0;
-        el.style.left = `${nx}px`;
-        el.style.top = `${ny}px`;
-      });
+      moveRaf = requestAnimationFrame(() => { moveRaf = 0; });
     };
 
     const onUp = (e) => {
