@@ -334,9 +334,166 @@ function docsApplyBlockStyle(tag) {
   docsFormat("formatBlock", "<" + tag + ">");
 }
 
+function docsNormalizeLegacyFontSize(article, ptValue) {
+  if (!article) return;
+  var markerSizes = {"7":1,"xxx-large":1,"48px":1,"36pt":1,"xx-large":1,"x-large":1,"-webkit-xxx-large":1};
+  var fonts = article.querySelectorAll('font[size]');
+  for (var i = 0; i < fonts.length; i++) {
+    var f = fonts[i];
+    var sz = f.getAttribute('size');
+    if (sz !== '7' && !markerSizes[sz]) continue;
+    var span = document.createElement('span');
+    // preserve existing inline styles if font was oddly wrapped
+    if (f.getAttribute('style')) span.setAttribute('style', f.getAttribute('style'));
+    span.style.fontSize = ptValue + "pt";
+    if (f.color && !span.style.color) span.style.color = f.color;
+    if (f.face && !span.style.fontFamily) span.style.fontFamily = f.face;
+    while (f.firstChild) span.appendChild(f.firstChild);
+    if (f.parentNode) f.parentNode.replaceChild(span, f);
+  }
+  // some browsers with styleWithCSS may create spans with very-large font-size for size 7
+  var spans = article.querySelectorAll('span[style*="font-size"]');
+  for (var j = 0; j < spans.length; j++) {
+    var sp = spans[j];
+    var fs = sp.style.fontSize || "";
+    if (markerSizes[fs] || fs === "xxx-large" || fs === "48px" || fs === "36pt") {
+      sp.style.fontSize = ptValue + "pt";
+    }
+  }
+}
+
 function docsApplyFontSize(value) {
   if (!value) return;
-  docsFormat("fontSize", String(value));
+  var raw = String(value).replace(/pt$/i, "").trim();
+  var n = parseFloat(raw);
+  if (!isFinite(n) || n <= 0) return;
+  n = Math.round(n * 100) / 100;
+  var article = getActiveArticle();
+  if (!article) return;
+  article.focus();
+  var sel = window.getSelection ? window.getSelection() : null;
+  if (!sel || sel.rangeCount === 0) return;
+  var range = sel.getRangeAt(0);
+  if (range.collapsed) {
+    var sizeInput0 = document.getElementById("docFontSize") || (document.querySelector("#window-body-docs #docFontSize"));
+    if (sizeInput0) sizeInput0.value = String(n);
+    return;
+  }
+  // If selection is fully inside a single element, style it directly to avoid nesting churn.
+  try {
+    var anc = range.commonAncestorContainer;
+    var el = anc && anc.nodeType === 1 ? anc : (anc ? anc.parentNode : null);
+    if (el && el !== article && article.contains(el)) {
+      var er = document.createRange();
+      er.selectNodeContents(el);
+      if (range.compareBoundaryPoints(Range.START_TO_START, er) >= 0 &&
+          range.compareBoundaryPoints(Range.END_TO_END, er) <= 0) {
+        el.style.fontSize = n + "pt";
+        var sizeInput1 = document.getElementById("docFontSize") || (document.querySelector("#window-body-docs #docFontSize"));
+        if (sizeInput1) sizeInput1.value = String(n);
+        article.dispatchEvent(new Event("input", { bubbles: true }));
+        docsSyncFormatState();
+        return;
+      }
+    }
+  } catch (e0) {}
+  var span = document.createElement('span');
+  span.style.fontSize = n + "pt";
+  try {
+    range.surroundContents(span);
+  } catch (e) {
+    try {
+      var contents = range.extractContents();
+      span.appendChild(contents);
+      range.insertNode(span);
+    } catch (e2) {
+      return;
+    }
+  }
+  // Remove legacy <font size> wrappers that may still exist inside selection.
+  try {
+    var fonts = span.querySelectorAll('font[size]');
+    for (var i = 0; i < fonts.length; i++) {
+      var f = fonts[i];
+      var inner = document.createElement('span');
+      if (f.getAttribute('style')) inner.setAttribute('style', f.getAttribute('style'));
+      if (f.face && !inner.style.fontFamily) inner.style.fontFamily = f.face;
+      if (f.color && !inner.style.color) inner.style.color = f.color;
+      while (f.firstChild) inner.appendChild(f.firstChild);
+      if (f.parentNode) f.parentNode.replaceChild(inner, f);
+    }
+  } catch (e3) {}
+  try {
+    var nr = document.createRange();
+    nr.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(nr);
+  } catch (e4) {}
+  var sizeInput = document.getElementById("docFontSize") || (document.querySelector("#window-body-docs #docFontSize"));
+  if (sizeInput) sizeInput.value = String(n);
+  article.dispatchEvent(new Event("input", { bubbles: true }));
+  docsSyncFormatState();
+}
+
+function docsApplyFontFamily(value) {
+  if (!value) return;
+  var article = getActiveArticle();
+  if (!article) return;
+  article.focus();
+  // Apply via CSS span wrapper for consistent, non-legacy behavior.
+  try {
+    var sel = window.getSelection ? window.getSelection() : null;
+    if (!sel || sel.rangeCount === 0) return;
+    var range = sel.getRangeAt(0);
+    if (range.collapsed) return;
+    // If selection is fully inside a single element, style it directly.
+    try {
+      var anc = range.commonAncestorContainer;
+      var el = anc && anc.nodeType === 1 ? anc : (anc ? anc.parentNode : null);
+      if (el && el !== article && article.contains(el)) {
+        var er = document.createRange();
+        er.selectNodeContents(el);
+        if (range.compareBoundaryPoints(Range.START_TO_START, er) >= 0 &&
+            range.compareBoundaryPoints(Range.END_TO_END, er) <= 0) {
+          el.style.fontFamily = value;
+          article.dispatchEvent(new Event("input", { bubbles: true }));
+          docsSyncFormatState();
+          return;
+        }
+      }
+    } catch (e0) {}
+    var span = document.createElement('span');
+    span.style.fontFamily = value;
+    try {
+      range.surroundContents(span);
+    } catch (e2) {
+      var contents = range.extractContents();
+      if (!contents || !contents.childNodes || !contents.childNodes.length) return;
+      span.appendChild(contents);
+      range.insertNode(span);
+    }
+    // Clean nested legacy font tags if any
+    try {
+      var fonts = span.querySelectorAll('font[face]');
+      for (var i = 0; i < fonts.length; i++) {
+        var f = fonts[i];
+        var inner = document.createElement('span');
+        if (f.getAttribute('style')) inner.setAttribute('style', f.getAttribute('style'));
+        if (f.size && !inner.style.fontSize) inner.style.fontSize = '';
+        if (f.color && !inner.style.color) inner.style.color = f.color;
+        while (f.firstChild) inner.appendChild(f.firstChild);
+        if (f.parentNode) f.parentNode.replaceChild(inner, f);
+      }
+    } catch (e4) {}
+    var nr = document.createRange();
+    nr.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(nr);
+  } catch (e3) {
+    return;
+  }
+  article.dispatchEvent(new Event("input", { bubbles: true }));
+  docsSyncFormatState();
 }
 
 /* Highlights the controls that match the current selection (bold button lit
@@ -401,6 +558,7 @@ window.docsFormat = docsFormat;
 window.docsSyncFormatState = docsSyncFormatState;
 window.docsApplyBlockStyle = docsApplyBlockStyle;
 window.docsApplyFontSize = docsApplyFontSize;
+window.docsApplyFontFamily = docsApplyFontFamily;
 
 function insertHeaderFooterZone(kind) {
   var article = getActiveArticle();

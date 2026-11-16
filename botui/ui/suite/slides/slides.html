@@ -84,17 +84,19 @@
                     <button class="btn-icon" id="slAlignRightBtn" data-slides-align="right" title="Align right" aria-label="Align right"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg></button>
                 </div>
                 <span class="toolbar-divider"></span>
-                <div class="toolbar-group">
-                    <select class="sl-select" id="slFontSize" title="Font size" aria-label="Font size">
-                        <option value="">Size</option>
-                        <option value="12">12</option>
-                        <option value="14">14</option>
-                        <option value="18">18</option>
-                        <option value="24">24</option>
-                        <option value="32">32</option>
-                        <option value="40">40</option>
-                        <option value="54">54</option>
+                <div class="toolbar-group slides-font-controls">
+                    <select class="sl-select sl-font-family" id="slFontFamily" title="Font family" aria-label="Font family" data-i18n-title="slides-font-family" data-i18n-aria-label="slides-font-family">
+                        <option value="">Font</option>
+                        <option value="Arial, Helvetica, sans-serif">Arial</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                        <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+                        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="system-ui, -apple-system, sans-serif">System</option>
                     </select>
+                    <input class="sl-select sl-font-size" id="slFontSize" type="text" inputmode="decimal" title="Font size" aria-label="Font size" placeholder="18" data-i18n-title="slides-font-size" data-i18n-aria-label="slides-font-size" style="width:64px;" />
                     <span class="sl-color gb-cp-wrap" title="Text colour">
                         <input type="hidden" id="slTextColor" value="#f8fafc" />
                         <button type="button" class="gb-cp-trigger" data-gb-color-for="slTextColor" title="Text colour" aria-label="Text colour"><span style="font-weight:700;">A</span><span class="gb-cp-swatch"></span></button>

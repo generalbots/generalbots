@@ -150,6 +150,7 @@ function docsInit() {
     AI: DocumentAIDriver,
     insertPageBreak: insertPageBreak,
     applyBlockStyle: docsApplyBlockStyle,
+    applyFontFamily: (typeof docsApplyFontFamily === "function" ? docsApplyFontFamily : (window.docsApplyFontFamily || null)),
     applyFontSize: docsApplyFontSize,
     format: docsFormat,
     openHeaderFooterModal: openHeaderFooterModal,

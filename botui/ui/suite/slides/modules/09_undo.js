@@ -51,6 +51,9 @@
     if (Object.prototype.hasOwnProperty.call(style, "font_size")) {
       el.style.fontSize = (style.font_size === null || style.font_size === undefined || style.font_size === "") ? "" : (style.font_size + "px");
     }
+    if (Object.prototype.hasOwnProperty.call(style, "font_family")) {
+      el.style.fontFamily = style.font_family || "";
+    }
   }
   function readStyle(el, keys) {
     var out = {};
@@ -63,6 +66,8 @@
       else if (k === "font_size") {
         var v = parseFloat(el.style.fontSize);
         out.font_size = isFinite(v) ? v : null;
+      } else if (k === "font_family") {
+        out.font_family = el.style.fontFamily || "";
       }
     });
     return out;

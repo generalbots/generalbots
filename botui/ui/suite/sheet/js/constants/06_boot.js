@@ -120,7 +120,7 @@
         var text = String(raw == null ? "" : raw).trim().toLowerCase();
         var m = text.match(/(\d+(?:\.\d+)?)/);
         if (!m) return null;
-        var n = Math.round(parseFloat(m[1]));
+        var n = Math.round(parseFloat(m[1]) * 100) / 100;
         if (!isFinite(n) || n < 1 || n > 200) return null;
         return n;
       };
@@ -137,6 +137,13 @@
           e.preventDefault();
           applyFontSize();
         }
+      });
+    }
+    var fontFamilySelect = byId("fontFamilySelect");
+    if (fontFamilySelect) {
+      fontFamilySelect.addEventListener("change", function () {
+        var g = gridFn();
+        if (g && g.formatSelectedCell) g.formatSelectedCell({ font_family: fontFamilySelect.value || "" });
       });
     }
     var fillBtn = byId("fillColorBtn");

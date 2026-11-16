@@ -92,10 +92,23 @@
                     <button class="btn-icon" id="strikeBtn" title="Strikethrough" data-i18n-title="sheet-strikethrough" type="button"><s>S</s></button>
                 </div>
                 <span class="toolbar-divider"></span>
-                <div class="toolbar-group">
-                    <label for="fontSizeInput" style="font-size:12px;color:var(--sheet-muted,#94a3b8);">Font size</label>
-                    <input id="fontSizeInput" name="font_size" type="text" inputmode="numeric"
+                <div class="toolbar-group sheet-font-controls">
+                    <label for="fontFamilySelect" class="sr-only" data-i18n="sheet-font-family">Font family</label>
+                    <select id="fontFamilySelect" class="sheet-select sheet-font-family" title="Font family" aria-label="Font family" data-i18n-title="sheet-font-family" data-i18n-aria-label="sheet-font-family">
+                        <option value="">Default</option>
+                        <option value="Arial, Helvetica, sans-serif">Arial</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                        <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+                        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="system-ui, -apple-system, sans-serif">System</option>
+                    </select>
+                    <label for="fontSizeInput" class="sr-only" data-i18n="sheet-font-size">Font size</label>
+                    <input id="fontSizeInput" name="font_size" type="text" inputmode="decimal"
                            data-gb-field="Font size" aria-label="Font size" title="Font size"
+                           data-i18n-aria-label="sheet-font-size" data-i18n-title="sheet-font-size"
                            placeholder="11" value="11"
                            style="width:56px;padding:4px 6px;border:1px solid var(--sheet-border,#334155);border-radius:4px;background:var(--sheet-bg-elevated,#1e293b);color:var(--sheet-fg,#f8fafc);font-size:12px;" />
                 </div>

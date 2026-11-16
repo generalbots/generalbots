@@ -25,15 +25,18 @@
                         <option value="blockquote">Quote</option>
                         <option value="pre">Code</option>
                     </select>
-                    <select class="docs-select docs-select-size" id="docFontSize" title="Font size" aria-label="Font size" onchange="window.DocsEditor && window.DocsEditor.applyFontSize(this.value)">
-                        <option value="">Size</option>
-                        <option value="2">10 pt</option>
-                        <option value="3">12 pt</option>
-                        <option value="4">14 pt</option>
-                        <option value="5">18 pt</option>
-                        <option value="6">24 pt</option>
-                        <option value="7">36 pt</option>
+                    <select class="docs-select docs-font-family" id="docFontFamily" title="Font family" aria-label="Font family" data-i18n-title="docs-font-family" data-i18n-aria-label="docs-font-family" onchange="window.DocsEditor && window.DocsEditor.applyFontFamily(this.value)">
+                        <option value="">Font</option>
+                        <option value="Arial, Helvetica, sans-serif">Arial</option>
+                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                        <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+                        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+                        <option value="'Courier New', Courier, monospace">Courier New</option>
+                        <option value="system-ui, -apple-system, sans-serif">System</option>
                     </select>
+                    <input class="docs-select docs-select-size" id="docFontSize" type="text" inputmode="decimal" title="Font size" aria-label="Font size" placeholder="12 pt" data-i18n-title="docs-font-size" data-i18n-aria-label="docs-font-size" style="width:72px;" onchange="window.DocsEditor && window.DocsEditor.applyFontSize(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.DocsEditor && window.DocsEditor.applyFontSize(this.value);}" />
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">

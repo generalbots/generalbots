@@ -23,6 +23,7 @@
     if (style.color) el.style.color = style.color;
     if (style.fill) el.style.background = style.fill;
     if (style.font_size) el.style.fontSize = style.font_size + "px";
+    if (style.font_family !== undefined) el.style.fontFamily = style.font_family || "";
   }
 
   function applyLocalOnly(style) {
@@ -42,6 +43,8 @@
       else if (k === "font_size") {
         var v = parseFloat(el.style.fontSize);
         before[k] = isFinite(v) ? v : null;
+      } else if (k === "font_family") {
+        before[k] = el.style.fontFamily || "";
       } else {
         before[k] = null;
       }
@@ -159,10 +162,24 @@
 
     var size = document.getElementById("slFontSize");
     if (size) {
-      size.addEventListener("change", function () {
-        var value = parseFloat(size.value);
-        if (!value) return;
+      var applySize = function () {
+        var raw = String(size.value || "").replace(/[^0-9.]/g, "");
+        var value = parseFloat(raw);
+        if (!isFinite(value) || value <= 0) return;
+        value = Math.round(value * 100) / 100;
+        size.value = String(value);
         persist({ font_size: value });
+      };
+      size.addEventListener("change", applySize);
+      size.addEventListener("blur", applySize);
+      size.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); applySize(); }
+      });
+    }
+    var family = document.getElementById("slFontFamily");
+    if (family) {
+      family.addEventListener("change", function () {
+        persist({ font_family: family.value || "" });
       });
     }
 
