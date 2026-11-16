@@ -235,9 +235,23 @@ pub async fn process_message_internal(
     // Emit the completed/failed attachment activity.
     if let Some(act) = attach_activity {
         let drive_path = format!("inbox/{file_name}");
+        // Count only the actual extracted text (delimited by the BEGIN/END
+        // ATTACHMENT markers), not the wrapper instructions sent to the model.
+        // Without this, unsupported formats report chars_read = wrapper length
+        // and the step card does not show the "format not readable" warning.
         let excerpt_chars = attachment_note
             .as_ref()
-            .map(|n| n.chars().count().min(12000))
+            .and_then(|n| {
+                let marker = format!("--- BEGIN ATTACHMENT {file_name} ---\n");
+                n.find(&marker).map(|start| {
+                    let content_start = start + marker.len();
+                    let end_marker = format!("\n--- END ATTACHMENT {file_name} ---");
+                    let end = n[content_start..].find(&end_marker)
+                        .map(|e| content_start + e)
+                        .unwrap_or(n.len());
+                    n[content_start..end].chars().count().min(12000)
+                })
+            })
             .unwrap_or(0);
         let truncated = attachment_note
             .as_ref()
