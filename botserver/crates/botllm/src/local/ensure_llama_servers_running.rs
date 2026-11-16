@@ -151,15 +151,27 @@ pub async fn ensure_llama_servers_running(
     } else {
         is_server_running(&embedding_url).await
     };
+    // If both are already up but point at local (loopback) endpoints we manage,
+    // restart them so new config (e.g. llm-server-gpu-layers) is applied (#2558).
+    let llm_is_local = !llm_url.starts_with("https://") && is_loopback_url(&llm_url);
+    let embedding_is_local = !embedding_url.starts_with("https://") && is_loopback_url(&embedding_url);
     if llm_running && embedding_running {
-        info!("Both LLM and Embedding servers are already running");
-        if !embedding_model.is_empty() {
-            set_embedding_server_ready(true);
+        if llm_is_local || embedding_is_local {
+            info!("Servers already running locally; restarting to apply current config (gpu-layers etc.)");
+        } else {
+            info!("Both LLM and Embedding servers are already running");
+            if !embedding_model.is_empty() {
+                set_embedding_server_ready(true);
+            }
+            return Ok(());
         }
-        return Ok(());
+    } else if llm_running && llm_is_local {
+        info!("LLM server already running locally; restarting to apply current config");
+    } else if embedding_running && embedding_is_local {
+        info!("Embedding server already running locally; restarting to apply current config");
     }
 
-    info!("Killing existing llama-server processes to restart with correct args...");
+    info!("Killing existing llama-server processes to restart/apply config...");
     // Only the llama-server this stack started is restarted: a model server
     // the user runs from another directory keeps running. `pkill` does not
     // exist on Windows, so the stack-scoped kill is used there.
