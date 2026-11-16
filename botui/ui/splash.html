@@ -86,6 +86,15 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
 <script>
 (function(){
 "use strict";
+/* Signal the Rust shell that the page has painted its first frame.
+   The shell polls the URL fragment to start the minimum-duration timer
+   from the moment the user can actually see the splash, not from when
+   the WebView object was created. */
+requestAnimationFrame(function(){
+  requestAnimationFrame(function(){
+    try{history.replaceState(null,"","#splash-painted")}catch(e){}
+  });
+});
 if("serviceWorker"in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})}).catch(function(){})}
 document.addEventListener("contextmenu",function(e){e.preventDefault()});
 

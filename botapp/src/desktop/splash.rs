@@ -38,8 +38,8 @@ fn splash_min_duration() -> Duration {
 /// Shows the splash window, creating it on demand when the configured window is
 /// not already present (for example in a development run).
 pub fn show(app: &tauri::AppHandle) {
+    let window_created_at = Instant::now();
     if let Some(window) = app.get_webview_window("splash") {
-        SPLASH_SHOWN_AT.get_or_init(Instant::now);
         let _ = window.show();
         if TOPMOST {
             let _ = window.set_focus();
@@ -49,6 +49,7 @@ pub fn show(app: &tauri::AppHandle) {
         let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
         let _ = window.center();
         push_version(&window);
+        watch_splash_painted(app, window_created_at);
         return;
     }
 
@@ -66,16 +67,66 @@ pub fn show(app: &tauri::AppHandle) {
 
     match builder.build() {
         Ok(win) => {
-            SPLASH_SHOWN_AT.get_or_init(Instant::now);
             push_version(&win);
             info!("splash: window created");
+            watch_splash_painted(app, window_created_at);
         }
         Err(error) => warn!("splash: could not create the window: {error}"),
     }
 }
 
-/// Records when the splash was first shown, for the minimum-duration gate.
+/// Records when the splash page has actually painted (not when the window
+/// object was created). The minimum-duration gate in `hide()` measures from
+/// this instant so that the 10 s minimum counts from visible content, not
+/// from process start.
 static SPLASH_SHOWN_AT: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+/// Fragment the splash page stamps into its URL when it has finished the
+/// first paint. The page sets `location.hash = '#splash-painted'` in its
+/// `requestAnimationFrame` callback.
+const SPLASH_PAINTED_FRAGMENT: &str = "splash-painted";
+
+/// Polls the splash window URL for the painted fragment and records the
+/// paint instant in `SPLASH_SHOWN_AT`. Falls back to a deadline: if the
+/// page never signals (broken load), the timer starts after 3 s regardless.
+fn watch_splash_painted(app: &tauri::AppHandle, created_at: Instant) {
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let deadline = created_at + Duration::from_secs(3);
+        loop {
+            if SPLASH_SHOWN_AT.get().is_some() {
+                return;
+            }
+            if let Some(splash) = handle.get_webview_window("splash") {
+                if let Ok(url) = splash.url() {
+                    if url.as_str().contains(SPLASH_PAINTED_FRAGMENT) {
+                        let now = Instant::now();
+                        SPLASH_SHOWN_AT.get_or_init(|| now);
+                        info!(
+                            "splash: page painted ({:?} after window creation)",
+                            now.duration_since(created_at)
+                        );
+                        return;
+                    }
+                }
+            } else {
+                // Splash was closed before it painted.
+                return;
+            }
+            if Instant::now() >= deadline {
+                let now = Instant::now();
+                SPLASH_SHOWN_AT.get_or_init(|| now);
+                info!(
+                    "splash: paint signal deadline reached ({:?} after creation); \
+                     starting the minimum timer now",
+                    now.duration_since(created_at)
+                );
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    });
+}
 
 /// Hides (closes) the splash window once the real UI is ready, respecting the
 /// minimum display duration so the edition's hero animation completes.
@@ -86,8 +137,15 @@ pub fn hide(app: &tauri::AppHandle) {
     let min = splash_min_duration();
     let remaining = SPLASH_SHOWN_AT
         .get()
-        .map(|shown| min.saturating_sub(shown.elapsed()))
-        .unwrap_or_default();
+        .map(|shown| {
+            let elapsed = shown.elapsed();
+            info!("splash: ready; painted {elapsed:?} ago, minimum {min:?}");
+            min.saturating_sub(elapsed)
+        })
+        .unwrap_or_else(|| {
+            info!("splash: ready before the page painted; closing immediately");
+            Duration::ZERO
+        });
     if remaining.is_zero() {
         close(app);
         return;
@@ -281,6 +339,25 @@ mod tests {
         assert_eq!(parse("0"), None);
         assert_eq!(parse("abc"), None);
         assert_eq!(parse(""), None);
+    }
+
+    /// #2561 — the minimum timer must start from the page-painted instant,
+    /// not from window creation. This test verifies the pure timing rule:
+    /// given a `SPLASH_SHOWN_AT` set N ms ago and a 10 s minimum, the
+    /// remaining wait is `max(0, 10000 - N)`.
+    #[test]
+    fn minimum_duration_measured_from_painted_instant() {
+        let min = Duration::from_millis(10_000);
+        // Painted 2 s ago: 8 s remain.
+        let painted_2s_ago = Instant::now() - Duration::from_millis(2_000);
+        let remaining = min.saturating_sub(painted_2s_ago.elapsed());
+        assert!(remaining >= Duration::from_millis(7_500), "expected ~8s remaining, got {remaining:?}");
+        assert!(remaining <= Duration::from_millis(8_500));
+
+        // Painted 12 s ago: 0 s remain.
+        let painted_12s_ago = Instant::now() - Duration::from_millis(12_000);
+        let remaining = min.saturating_sub(painted_12s_ago.elapsed());
+        assert!(remaining.is_zero(), "expected zero remaining, got {remaining:?}");
     }
 
     #[test]
