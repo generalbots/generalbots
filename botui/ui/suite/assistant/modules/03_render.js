@@ -67,11 +67,17 @@
         var leaked = typeof A.detectLeakedProtocol === "function"
             ? A.detectLeakedProtocol(raw) : null;
         var msgs = document.getElementById("gbMessages");
-        /* Adopt the current turn's activity stack if one exists */
+        /* Adopt the current turn's activity stack if one exists.
+           Only look AFTER the last user message so we never adopt a
+           previous turn's element (the cause of the linearity bug). */
         var el = null;
         if (msgs) {
             var children = msgs.children;
-            for (var ci = children.length - 1; ci >= Math.max(0, children.length - 4); ci--) {
+            var lastUserIdx = -1;
+            for (var ui = children.length - 1; ui >= 0; ui--) {
+                if (children[ui].classList.contains("gb-msg-user")) { lastUserIdx = ui; break; }
+            }
+            for (var ci = children.length - 1; ci > lastUserIdx && ci >= Math.max(0, children.length - 4); ci--) {
                 var ch = children[ci];
                 if (ch.classList.contains("gb-msg-assistant") && ch.querySelector(".gb-block-stack")) {
                     el = ch; break;

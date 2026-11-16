@@ -356,13 +356,12 @@ A.onActivityEvent = function (frame) {
     if (!blockEl) return;
     var msgs = document.getElementById("gbMessages");
     if (!msgs) return;
-    /* Find or create the turn's activity stack.
-       The stack may not be the very last child: streaming inserts the answer
-       element (.gb-streaming) after the first activity block, so scan backwards
-       through the last few siblings to find an existing stack. */
-    var stack = null;
-    var children = msgs.children;
-    for (var ci = children.length - 1; ci >= Math.max(0, children.length - 4); ci--) {
+    /* Find or create the turn's activity stack (only after the last
+       user message to avoid adopting a previous turn's stack). */
+    var stack = null, children = msgs.children;
+    var lastUserIdx = -1;
+    for (var ui = children.length - 1; ui >= 0; ui--) { if (children[ui].classList.contains("gb-msg-user")) { lastUserIdx = ui; break; } }
+    for (var ci = children.length - 1; ci > lastUserIdx && ci >= Math.max(0, children.length - 4); ci--) {
         var ch = children[ci];
         if (ch.classList.contains("gb-msg-assistant")) {
             var s = ch.querySelector(".gb-block-stack");
