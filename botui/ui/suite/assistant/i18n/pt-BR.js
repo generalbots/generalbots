@@ -85,5 +85,22 @@ window.GBAssistantLocales["pt-BR"] = {
     "settings.build-date":     "Data de compilação",
     "settings.commit":         "Commit",
     "settings.licence":        "Licença",
-    "settings.open-source":    "Código aberto"
+    "settings.open-source":    "Código aberto",
+    "settings.model-switch":   "Trocar modelo…",
+    "settings.bg-label":       "Fundo do chat",
+    "settings.bg-none":        "Nenhum",
+    "settings.bg-dots":        "Pontos",
+    "settings.bg-microdots":   "Micropontos",
+    "settings.bg-bubbles":     "Bolhas",
+    "settings.bg-grid":        "Grade",
+    "settings.bg-blueprint":   "Planta",
+    "settings.bg-weave":       "Tecido",
+    "settings.bg-mosaic":      "Mosaico",
+    "suggestion.remove":       "Remover sugestão",
+    "attach.open-drive":       "Abrir no Drive",
+    "attach.preview":          "Visualizar",
+    "attach.unavailable":      "Conteúdo não disponível",
+    "panel.close":             "Fechar painel",
+    "assistant.cancel":        "Cancelar",
+    "assistant.confirm-continue": "Continuar?"
 };

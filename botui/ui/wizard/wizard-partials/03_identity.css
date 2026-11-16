@@ -397,11 +397,12 @@ table.datamap th, table.datamap td {
   color: var(--id-muted);
 }
 
-/* == Welcome greeting in handwritten face ============================== */
+/* == Welcome greeting ================================================= */
 
 .welcome-greeting {
-  font-family: var(--id-font-display);
+  font-family: var(--id-font-heading);
   font-size: var(--id-text-3xl);
+  font-weight: 600;
   color: var(--id-accent-text);
   margin: 0 0 var(--id-space-2);
   line-height: 1.3;

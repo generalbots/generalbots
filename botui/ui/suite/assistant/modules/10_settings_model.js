@@ -63,6 +63,32 @@ function t(key) {
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
 }
 
+/* ---- In-page confirm (replaces window.confirm) ---- */
+function inlineConfirm(text, onYes) {
+  var overlay = document.createElement("div");
+  overlay.className = "gb-inline-dialog";
+  var A2 = window.GBAssistant;
+  var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue?") : "OK";
+  var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
+  overlay.innerHTML =
+    '<div class="gb-inline-dialog-backdrop"></div>' +
+    '<div class="gb-inline-dialog-box">' +
+      '<div class="gb-inline-dialog-text">' + esc(text) + '</div>' +
+      '<div class="gb-inline-dialog-actions">' +
+        '<button class="gb-set-btn-sm" data-act="no">' + esc(noLabel) + '</button>' +
+        '<button class="gb-set-btn-sm gb-set-btn-accent" data-act="yes">' + esc(yesLabel) + '</button>' +
+      '</div></div>';
+  document.body.appendChild(overlay);
+  var noBtn = overlay.querySelector('[data-act="no"]');
+  if (noBtn) noBtn.focus();
+  function close() { overlay.remove(); document.removeEventListener("keydown", escH); }
+  function escH(e) { if (e.key === "Escape") { e.preventDefault(); close(); } }
+  document.addEventListener("keydown", escH);
+  overlay.querySelector(".gb-inline-dialog-backdrop").addEventListener("click", close);
+  overlay.querySelector('[data-act="no"]').addEventListener("click", close);
+  overlay.querySelector('[data-act="yes"]').addEventListener("click", function () { close(); onYes(); });
+}
+
 /* state */
 var cfg = null, modes = null, localModels = null, readOnly = false;
 
@@ -236,7 +262,7 @@ function bindModelActions(container) {
       var sz = btn.getAttribute("data-size");
       var repo = btn.getAttribute("data-repo");
       var host = "huggingface.co"; try { host = new URL("https://"+repo.split("/")[0]).hostname || repo; } catch(e) { host = repo; }
-      if (confirm(t("confirmDl").replace("%s",sz).replace("%h",host))) doDownload(id);
+      inlineConfirm(t("confirmDl").replace("%s",sz).replace("%h",host), function() { doDownload(id); });
     });
   });
   container.querySelectorAll("[data-cancel]").forEach(function(btn) {
@@ -339,23 +365,22 @@ async function doTestEndpoint() {
   } catch (e) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
 }
 
-async function doSaveOwnKey() {
+function doSaveOwnKey() {
   var ep = document.getElementById("gbOwnEndpoint").value.trim();
   var md = document.getElementById("gbOwnModel").value.trim();
   var key = document.getElementById("gbOwnKey").value;
   var msg = document.getElementById("gbOwnMsg"); if (!msg) return;
-  /* Confirm external */
   var host = ""; try { host = new URL(ep).hostname; } catch(e) { host = ep; }
-  if (!confirm(t("confirmExt").replace("%h", host))) return;
-  var body = { mode: "own_key", endpoint: ep, model: md }; if (key) body.api_key = key;
-  try {
-    var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify(body) });
-    var d = await r.json();
-    if (d.ok) { msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(t("saved")) + '</p>'; refreshAfterChange(); }
-    else { msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>'; }
-  } catch (e) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
-  /* Clear key from DOM */
-  var keyEl = document.getElementById("gbOwnKey"); if (keyEl) keyEl.value = "";
+  inlineConfirm(t("confirmExt").replace("%h", host), async function () {
+    var body = { mode: "own_key", endpoint: ep, model: md }; if (key) body.api_key = key;
+    try {
+      var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify(body) });
+      var d = await r.json();
+      if (d.ok) { msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(t("saved")) + '</p>'; refreshAfterChange(); }
+      else { msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>'; }
+    } catch (e) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+    var keyEl = document.getElementById("gbOwnKey"); if (keyEl) keyEl.value = "";
+  });
 }
 
 /* ---- Free detail ---- */
@@ -369,15 +394,16 @@ function renderFreeDetail(el) {
     '<div id="gbFreeMsg"></div>';
   var saveBtn = document.getElementById("gbFreeSave");
   if (saveBtn) {
-    saveBtn.addEventListener("click", async function() {
-      if (!confirm(t("confirmExt").replace("%h", host))) return;
-      var msg = document.getElementById("gbFreeMsg");
-      try {
-        var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify({ mode: "free" }) });
-        var d = await r.json();
-        if (d.ok) { if (msg) msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(t("saved")) + '</p>'; refreshAfterChange(); }
-        else { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error||"Error") + '</p>'; }
-      } catch (e) { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+    saveBtn.addEventListener("click", function() {
+      inlineConfirm(t("confirmExt").replace("%h", host), async function () {
+        var msg = document.getElementById("gbFreeMsg");
+        try {
+          var r = await A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify({ mode: "free" }) });
+          var d = await r.json();
+          if (d.ok) { if (msg) msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(t("saved")) + '</p>'; refreshAfterChange(); }
+          else { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error||"Error") + '</p>'; }
+        } catch (e) { if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+      });
     });
   }
 }

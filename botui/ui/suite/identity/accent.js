@@ -173,6 +173,10 @@
     s.setProperty("--id-accent-glow", d.accentGlow);
     s.setProperty("--id-on-accent", d.onAccent);
     s.setProperty("--id-paper", d.paper);
+    /* Paper band at 88% opacity for the conversation column overlay */
+    var pRgb = hexToRgb(d.paper);
+    var pr = Math.round(pRgb[0] * 255), pg = Math.round(pRgb[1] * 255), pb = Math.round(pRgb[2] * 255);
+    s.setProperty("--id-paper-band", "rgba(" + pr + "," + pg + "," + pb + ",.88)");
     return d;
   }
 

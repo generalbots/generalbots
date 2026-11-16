@@ -23,7 +23,7 @@ const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 428.0 } else { 420.0 };
 
 /// Minimum time the splash stays on screen (milliseconds). The edition's hero
 /// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
-const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gbgov") { 6000 } else { 0 };
+const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gbgov") { 10000 } else { 0 };
 
 /// Reads the minimum splash duration from the environment or the compile-time
 /// default.
@@ -48,6 +48,7 @@ pub fn show(app: &tauri::AppHandle) {
         // Resize to the edition dimensions (the conf declares 420x420).
         let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
         let _ = window.center();
+        push_version(&window);
         return;
     }
 
@@ -64,8 +65,9 @@ pub fn show(app: &tauri::AppHandle) {
         .visible(true);
 
     match builder.build() {
-        Ok(_) => {
+        Ok(win) => {
             SPLASH_SHOWN_AT.get_or_init(Instant::now);
+            push_version(&win);
             info!("splash: window created");
         }
         Err(error) => warn!("splash: could not create the window: {error}"),
@@ -128,6 +130,16 @@ pub fn raise(app: &tauri::AppHandle) {
 const BOOT_READY_FRAGMENT: &str = "gb-boot-ready";
 const BOOT_WATCH_POLL: Duration = Duration::from_millis(400);
 const BOOT_WATCH_DEADLINE: Duration = Duration::from_millis(45_000);
+
+fn push_version(splash: &WebviewWindow) {
+    let version = env!("CARGO_PKG_VERSION");
+    // The page detects the locale itself; pass the bare number and let JS format.
+    let script = format!(
+        "if(typeof window.gbSplashVersion==='function'){{var pt=navigator.language&&navigator.language.toLowerCase().startsWith('pt');window.gbSplashVersion((pt?'Vers\\u00e3o ':'Version ')+{});}}",
+        json!(version)
+    );
+    let _ = splash.eval(&script);
+}
 
 fn push_progress(splash: &WebviewWindow, value: u8, text: &str) {
     let script = format!(
@@ -242,7 +254,7 @@ mod tests {
     #[test]
     fn default_splash_min_matches_feature() {
         if cfg!(feature = "gbgov") {
-            assert_eq!(DEFAULT_SPLASH_MIN_MS, 6000);
+            assert_eq!(DEFAULT_SPLASH_MIN_MS, 10000);
         } else {
             assert_eq!(DEFAULT_SPLASH_MIN_MS, 0);
         }

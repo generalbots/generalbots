@@ -35,28 +35,31 @@ body {
     background-size: 200% 200%;
     -webkit-mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
     mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
-    opacity: .18;
+    opacity: .32;
     animation: gb-pattern-drift 30s ease-in-out infinite alternate;
 }
 @keyframes gb-pattern-drift {
     0%   { background-position: 0% 50%; }
     100% { background-position: 100% 50%; }
 }
-/* Legibility: paper gradient over the conversation column */
-.gb-main::after {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: linear-gradient(90deg,
-        transparent 0%, var(--id-paper) 10%, var(--id-paper) 90%, transparent 100%);
-}
 @media (prefers-reduced-motion: reduce) {
     .gb-main::before { animation: none; }
 }
+/* Paper band: covers only the conversation column width (760 + 24*2 = 808px),
+   short 80px fade each side, ~88% paper so pattern breathes through.
+   Uses the paper colour at 88% alpha via a custom property set by accent.js. */
+.gb-main::after {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: linear-gradient(90deg,
+        transparent 0,
+        transparent calc(50% - 484px),
+        var(--id-paper-band, var(--id-paper)) calc(50% - 404px),
+        var(--id-paper-band, var(--id-paper)) calc(50% + 404px),
+        transparent calc(50% + 484px),
+        transparent 100%);
+}
 @media (max-width: 900px) {
-    /* At narrow viewports the column fills the width: pattern only at edges */
-    .gb-main::after {
-        background: linear-gradient(90deg,
-            transparent 0%, var(--id-paper) 4%, var(--id-paper) 96%, transparent 100%);
-    }
+    .gb-main::after { background: var(--id-paper); }
 }
 
 /* Screen-reader only */
@@ -118,8 +121,8 @@ body {
 }
 
 .gb-wordmark {
-    font-family: var(--id-font-logo);
-    font-weight: 500;
+    font-family: var(--id-font-heading);
+    font-weight: 600;
     font-size: var(--id-text-xl);
     color: var(--id-muted);
     user-select: none;

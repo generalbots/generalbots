@@ -40,8 +40,8 @@
 
   /* == Font stacks (fixed) ============================================= */
   --id-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --id-font-logo: 'Palanquin Dark', sans-serif;
-  --id-font-display: 'Sedgwick Ave Display', cursive;
+  --id-font-heading: 'Fira Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --id-font-logo: 'Fira Sans', system-ui, sans-serif;
 
   /* == Type scale (fixed) ============================================== */
   --id-text-xs: 10px;

@@ -26,9 +26,10 @@
         /* 2. Translate static data-i18n elements */
         translatePage();
 
-        /* 3. Product config + accent */
+        /* 3. Product config + accent + pattern */
         await A.loadProduct();
         if (typeof A.restoreAccent === "function") { A.restoreAccent(); }
+        if (typeof A.bootPattern === "function") { A.bootPattern(); }
 
         /* 4. Bot name from URL */
         var pathParts = window.location.pathname.split("/");
