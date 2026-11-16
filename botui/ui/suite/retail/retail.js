@@ -1,6 +1,18 @@
 (function(){
 if (window.GBAppLifecycle) GBAppLifecycle.begin("retail");
-var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all',editingBranchId:null};
+var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all',editingBranchId:null,editingPromoId:null};
+
+function escapeHtml(value){
+    if (window.GBShared && window.GBShared.html && typeof window.GBShared.html.escape === 'function') {
+        return window.GBShared.html.escape(value);
+    }
+    return String(value == null ? '' : value)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
 
 function showFeedback(msg,type){
     var el=document.getElementById('retail-feedback');
@@ -51,18 +63,18 @@ function renderDashboard(){
     var tpEl=document.getElementById('top-products-list');
     if(tpEl){
         if(state.topProducts.length===0){tpEl.innerHTML='<div class="retail-empty">No data</div>'}
-        else{tpEl.innerHTML=state.topProducts.slice(0,5).map(function(p){return '<div class="retail-list-row"><span>'+(p.name||'')+'</span><span class="retail-list-value">$'+(Number(p.revenue)||0).toFixed(2)+'</span></div>'}).join('')}
+        else{tpEl.innerHTML=state.topProducts.slice(0,5).map(function(p){return '<div class="retail-list-row"><span>'+escapeHtml(p.name||'')+'</span><span class="retail-list-value">$'+escapeHtml((Number(p.revenue)||0).toFixed(2))+'</span></div>'}).join('')}
     }
     var bpEl=document.getElementById('branch-performance');
     if(bpEl){
         if(state.branches.length===0){bpEl.innerHTML='<div class="retail-empty">No branches</div>'}
-        else{bpEl.innerHTML=state.branches.map(function(b){return '<div class="retail-list-row"><span>'+(b.name||'')+'</span><span class="retail-list-value">$'+(Number(b.stock_value)||0).toFixed(2)+'</span></div>'}).join('')}
+        else{bpEl.innerHTML=state.branches.map(function(b){return '<div class="retail-list-row"><span>'+escapeHtml(b.name||'')+'</span><span class="retail-list-value">$'+escapeHtml((Number(b.stock_value)||0).toFixed(2))+'</span></div>'}).join('')}
     }
     var saEl=document.getElementById('stock-alerts');
     if(saEl){
-        var lowStock=state.stock.filter(function(s){return s.available<=s.min});
+        var lowStock=state.stock.filter(function(s){return Number(s.available||0)<=Number(s.min||0)});
         if(lowStock.length===0){saEl.innerHTML='<div class="retail-empty">All stock OK</div>'}
-        else{saEl.innerHTML=lowStock.slice(0,5).map(function(s){return '<div class="retail-list-row"><span>'+s.product+' ('+s.sku+')</span><span class="retail-list-value retail-alert">'+s.available+' left</span></div>'}).join('')}
+        else{saEl.innerHTML=lowStock.slice(0,5).map(function(s){return '<div class="retail-list-row"><span>'+escapeHtml(s.product||'')+' ('+escapeHtml(s.sku||'')+')</span><span class="retail-list-value retail-alert">'+escapeHtml(String(s.available||0))+' left</span></div>'}).join('')}
     }
 }
 
@@ -71,35 +83,41 @@ function renderBranches(){
     if(!tbody)return;
     if(state.branches.length===0){tbody.innerHTML='<tr><td colspan="7" class="retail-empty">No branches configured</td></tr>';return}
     tbody.innerHTML=state.branches.map(function(b){
+        var status = (b.status==='active')?'active':'inactive';
+        var badge = (status==='active')?'active':'inactive';
         return '<tr>'
-            +'<td>'+b.code+'</td>'
-            +'<td>'+b.name+'</td>'
-            +'<td>'+b.address+'</td>'
-            +'<td>'+b.manager+'</td>'
-            +'<td>$'+b.stock_value+'</td>'
-            +'<td><span class="retail-badge '+(b.status==='active'?'active':'inactive')+'">'+b.status+'</span></td>'
-            +'<td><button class="retail-btn" onclick="window._retail.editBranch(\''+b.id+'\')">Edit</button></td>'
+            +'<td>'+escapeHtml(b.code||'')+'</td>'
+            +'<td>'+escapeHtml(b.name||'')+'</td>'
+            +'<td>'+escapeHtml(b.address||'')+'</td>'
+            +'<td>'+escapeHtml(b.manager||'')+'</td>'
+            +'<td>$'+escapeHtml(String(b.stock_value||''))+'</td>'
+            +'<td><span class="retail-badge '+badge+'">'+escapeHtml(status)+'</span></td>'
+            +'<td><button class="retail-btn" type="button" data-retail-edit-branch="'+escapeHtml(String(b.id==null?'':b.id))+'">Edit</button></td>'
             +'</tr>';
     }).join('');
+    tbody.querySelectorAll('[data-retail-edit-branch]').forEach(function(btn){
+        btn.addEventListener('click', function(){ editBranch(this.getAttribute('data-retail-edit-branch')); });
+    });
 }
 
 function renderStock(){
     var tbody=document.getElementById('stock-tbody');
     if(!tbody)return;
     var filtered=state.stock;
-    if(state.currentBranch!=='all')filtered=filtered.filter(function(s){return s.branch_id==state.currentBranch});
+    if(state.currentBranch!=='all')filtered=filtered.filter(function(s){return String(s.branch_id)==String(state.currentBranch)});
     if(filtered.length===0){tbody.innerHTML='<tr><td colspan="8" class="retail-empty">No stock entries</td></tr>';return}
     tbody.innerHTML=filtered.map(function(s){
-        var status=s.available<=0?'out':s.available<=s.min?'low':'in';
+        var avail = Number(s.available||0), min = Number(s.min||0);
+        var status=avail<=0?'out':avail<=min?'low':'in';
         return '<tr>'
-            +'<td>'+s.sku+'</td>'
-            +'<td>'+s.product+'</td>'
-            +'<td>'+s.branch_name+'</td>'
-            +'<td>'+s.on_hand+'</td>'
-            +'<td>'+s.reserved+'</td>'
-            +'<td>'+s.available+'</td>'
-            +'<td>'+s.min+'</td>'
-            +'<td><span class="retail-badge '+status+'">'+status+'</span></td>'
+            +'<td>'+escapeHtml(s.sku||'')+'</td>'
+            +'<td>'+escapeHtml(s.product||'')+'</td>'
+            +'<td>'+escapeHtml(s.branch_name||'')+'</td>'
+            +'<td>'+escapeHtml(String(s.on_hand==null?'':s.on_hand))+'</td>'
+            +'<td>'+escapeHtml(String(s.reserved==null?'':s.reserved))+'</td>'
+            +'<td>'+escapeHtml(String(s.available==null?'':s.available))+'</td>'
+            +'<td>'+escapeHtml(String(s.min==null?'':s.min))+'</td>'
+            +'<td><span class="retail-badge '+escapeHtml(status)+'">'+escapeHtml(status)+'</span></td>'
             +'</tr>';
     }).join('');
 }
@@ -109,13 +127,14 @@ function renderPromos(){
     if(!tbody)return;
     if(state.promos.length===0){tbody.innerHTML='<tr><td colspan="6" class="retail-empty">No active promotions</td></tr>';return}
     tbody.innerHTML=state.promos.map(function(p){
+        var status = (p.status==='active')?'active':'inactive';
         return '<tr>'
-            +'<td>'+p.name+'</td>'
-            +'<td>'+p.type+'</td>'
-            +'<td>'+p.discount+'</td>'
-            +'<td>'+p.valid_from+'</td>'
-            +'<td>'+p.valid_to+'</td>'
-            +'<td><span class="retail-badge '+(p.status==='active'?'active':'inactive')+'">'+p.status+'</span></td>'
+            +'<td>'+escapeHtml(p.name||'')+'</td>'
+            +'<td>'+escapeHtml(p.type||'')+'</td>'
+            +'<td>'+escapeHtml(String(p.discount==null?'':p.discount))+'</td>'
+            +'<td>'+escapeHtml(String(p.valid_from==null?'':p.valid_from))+'</td>'
+            +'<td>'+escapeHtml(String(p.valid_to==null?'':p.valid_to))+'</td>'
+            +'<td><span class="retail-badge '+status+'">'+escapeHtml(status)+'</span></td>'
             +'</tr>';
     }).join('');
 }
@@ -125,14 +144,15 @@ function renderSuppliers(){
     if(!tbody)return;
     if(state.suppliers.length===0){tbody.innerHTML='<tr><td colspan="6" class="retail-empty">No suppliers</td></tr>';return}
     tbody.innerHTML=state.suppliers.map(function(s){
-        var stars='★'.repeat(Math.round(s.rating||0))+'☆'.repeat(5-Math.round(s.rating||0));
+        var rating = Math.max(0, Math.min(5, Math.round(Number(s.rating||0))));
+        var stars='★'.repeat(rating)+'☆'.repeat(5-rating);
         return '<tr>'
-            +'<td>'+s.cnpj+'</td>'
-            +'<td>'+s.name+'</td>'
-            +'<td>'+s.contact+'</td>'
-            +'<td>'+s.email+'</td>'
-            +'<td>'+s.lead_time_days+' days</td>'
-            +'<td><span style="color:#fbbf24">'+stars+'</span></td>'
+            +'<td>'+escapeHtml(s.cnpj||'')+'</td>'
+            +'<td>'+escapeHtml(s.name||'')+'</td>'
+            +'<td>'+escapeHtml(s.contact||'')+'</td>'
+            +'<td>'+escapeHtml(s.email||'')+'</td>'
+            +'<td>'+escapeHtml(String(s.lead_time_days==null?'':s.lead_time_days))+' days</td>'
+            +'<td><span style="color:#fbbf24">'+escapeHtml(stars)+'</span></td>'
             +'</tr>';
     }).join('');
 }
@@ -143,7 +163,7 @@ function renderPricing(){
     var rules=state.branches.flatMap(function(b){return b.pricing_rules||[]});
     if(rules.length===0){grid.innerHTML='<div class="retail-empty"><div class="retail-empty-icon">💲</div><h3>No Pricing Rules</h3><p>Configure price tiers and branch-specific pricing</p></div>';return}
     grid.innerHTML=rules.map(function(r){
-        return '<div class="retail-card"><h4>'+r.name+'</h4><div class="retail-list-row"><span>Margin</span><span>'+r.margin+'%</span></div><div class="retail-list-row"><span>Min Margin</span><span>'+r.min_margin+'%</span></div><div class="retail-list-row"><span>Markup</span><span>'+r.markup+'×</span></div></div>';
+        return '<div class="retail-card"><h4>'+escapeHtml(r.name||'')+'</h4><div class="retail-list-row"><span>Margin</span><span>'+escapeHtml(String(r.margin==null?'':r.margin))+'%</span></div><div class="retail-list-row"><span>Min Margin</span><span>'+escapeHtml(String(r.min_margin==null?'':r.min_margin))+'%</span></div><div class="retail-list-row"><span>Markup</span><span>'+escapeHtml(String(r.markup==null?'':r.markup))+'×</span></div></div>';
     }).join('');
 }
 

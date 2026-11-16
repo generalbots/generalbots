@@ -2,6 +2,18 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("o365");
 (function(){
 var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],currentTab:'sharepoint',currentFolder:'root',folderStack:[{id:'root',name:'Root'}]};
 
+function escapeHtml(value){
+    if (window.GBShared && window.GBShared.html && typeof window.GBShared.html.escape === 'function') {
+        return window.GBShared.html.escape(value);
+    }
+    return String(value == null ? '' : value)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
+
 function showFeedback(msg,type){
     var el=document.getElementById('o365-feedback');
     if(!el){el=document.createElement('div');el.id='o365-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
@@ -42,11 +54,11 @@ function renderSharePoint(){
     if(state.sharepointSites.length===0){grid.innerHTML='<div class="o365-empty"><div class="o365-empty-icon">📁</div><h3>No SP Sites</h3><p>Connect your o365 account to access SP</p></div>';return}
     grid.innerHTML=state.sharepointSites.map(function(s){
         return '<div class="o365-card">'
-            +'<div class="o365-card-header"><span class="o365-card-icon">📁</span><span class="o365-card-title">'+(s.site_name||s.name||'')+'</span></div>'
+            +'<div class="o365-card-header"><span class="o365-card-icon">📁</span><span class="o365-card-title">'+escapeHtml(s.site_name||s.name||'')+'</span></div>'
             +'<div class="o365-card-body">'
-            +'<div class="o365-card-row"><span class="label">List</span><span style="font-size:12px">'+(s.list_name||'')+'</span></div>'
-            +'<div class="o365-card-row"><span class="label">Items</span><span>'+(s.item_count||0)+'</span></div>'
-            +'<div class="o365-card-row"><span class="label">Last Modified</span><span>'+(s.last_modified||'')+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">List</span><span style="font-size:12px">'+escapeHtml(s.list_name||'')+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">Items</span><span>'+escapeHtml(String(s.item_count||0))+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">Last Modified</span><span>'+escapeHtml(s.last_modified||'')+'</span></div>'
             +'</div>'
             +'</div>';
     }).join('');
@@ -58,12 +70,12 @@ function renderCalendar(){
     if(state.calendarEvents.length===0){grid.innerHTML='<div class="o365-empty"><div class="o365-empty-icon">📅</div><h3>No Upcoming Events</h3><p>No meetings scheduled</p></div>';return}
     grid.innerHTML=state.calendarEvents.map(function(e){
         return '<div class="o365-card">'
-            +'<div class="o365-card-header"><span class="o365-card-icon">📅</span><span class="o365-card-title">'+(e.subject||'')+'</span></div>'
+            +'<div class="o365-card-header"><span class="o365-card-icon">📅</span><span class="o365-card-title">'+escapeHtml(e.subject||'')+'</span></div>'
             +'<div class="o365-card-body">'
-            +'<div class="o365-card-row"><span class="label">Start</span><span>'+(e.start||'')+'</span></div>'
-            +'<div class="o365-card-row"><span class="label">End</span><span>'+(e.end||'')+'</span></div>'
-            +'<div class="o365-card-row"><span class="label">Location</span><span>'+(e.location||'Online')+'</span></div>'
-            +'<div class="o365-card-row"><span class="label">Attendees</span><span>'+(e.attendees||0)+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">Start</span><span>'+escapeHtml(e.start||'')+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">End</span><span>'+escapeHtml(e.end||'')+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">Location</span><span>'+escapeHtml(e.location||'Online')+'</span></div>'
+            +'<div class="o365-card-row"><span class="label">Attendees</span><span>'+escapeHtml(String(e.attendees||0))+'</span></div>'
             +'</div></div>';
     }).join('');
 }
@@ -74,15 +86,39 @@ function renderOneDrive(){
     if(state.onedriveFiles.length===0){tbody.innerHTML='<tr><td colspan="5" class="o365-empty">No files found</td></tr>';return}
     tbody.innerHTML=state.onedriveFiles.map(function(f){
         var isFolder=(f.type==='folder');
+        var safeId = String(f.id == null ? '' : f.id);
+        var safeName = String(f.name == null ? '' : f.name);
+        var safeType = String(f.type == null ? 'file' : f.type).replace(/[^a-zA-Z0-9_-]/g,'');
+        var nameCell = isFolder
+            ? '<button type="button" class="o365-link-btn" data-o365-nav-id="'+escapeHtml(safeId)+'" data-o365-nav-name="'+escapeHtml(safeName)+'">'+escapeHtml(safeName)+'</button>'
+            : '<span>'+escapeHtml(safeName)+'</span>';
+        var actionCell = isFolder
+            ? '<button class="o365-btn" type="button" data-o365-nav-id="'+escapeHtml(safeId)+'" data-o365-nav-name="'+escapeHtml(safeName)+'">Open</button>'
+            : '<button class="o365-btn" type="button" data-o365-dl-id="'+escapeHtml(safeId)+'" data-o365-dl-name="'+escapeHtml(safeName)+'">Download</button>';
         return '<tr>'
-            +'<td>'+(isFolder?'📁 ':'📄 ')+'<span style="cursor:pointer;color:'+(isFolder?'var(--primary-color,#3b82f6)':'inherit')+'" '+(isFolder?'onclick="window._o365.navigateFolder(\''+f.id+'\',\''+String(f.name||f.id).replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')"':'')+'>'+(f.name||'')+'</span></td>'
-            +'<td><span class="o365-badge '+(f.type||'file')+'">'+(f.type||'file')+'</span></td>'
-            +'<td>'+(f.modified||f.last_modified||'')+'</td>'
-            +'<td>'+(f.size||f.size_bytes||'--')+'</td>'
-            +'<td>'+(isFolder?'<button class="o365-btn" onclick="window._o365.navigateFolder(\''+f.id+'\',\''+String(f.name||f.id).replace(/\\/g,'\\\\').replace(/\'/g,"\\'")+'\')">Open</button>':'<button class="o365-btn" onclick="window._o365.downloadFile(\''+f.id+'\',\''+(String(f.name||'o365-file-'+f.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))+'\')">Download</button>')+'</td>'
+            +'<td>'+(isFolder?'📁 ':'📄 ')+nameCell+'</td>'
+            +'<td><span class="o365-badge '+escapeHtml(safeType)+'">'+escapeHtml(safeType)+'</span></td>'
+            +'<td>'+escapeHtml(String(f.modified||f.last_modified||''))+'</td>'
+            +'<td>'+escapeHtml(String(f.size||f.size_bytes||'--'))+'</td>'
+            +'<td>'+actionCell+'</td>'
             +'</tr>';
     }).join('');
+    bindOneDriveActions(tbody);
     renderBreadcrumb();
+}
+
+function bindOneDriveActions(root){
+    if (!root) return;
+    root.querySelectorAll('[data-o365-nav-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            navigateFolder(this.getAttribute('data-o365-nav-id') || '', this.getAttribute('data-o365-nav-name') || '');
+        });
+    });
+    root.querySelectorAll('[data-o365-dl-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            downloadFile(this.getAttribute('data-o365-dl-id') || '', this.getAttribute('data-o365-dl-name') || '');
+        });
+    });
 }
 
 function renderBreadcrumb(){
@@ -90,9 +126,15 @@ function renderBreadcrumb(){
     if(!el)return;
     el.innerHTML=state.folderStack.map(function(f,i){
         var name = (typeof f === 'object' && f) ? (f.name || f.id || 'Folder') : String(f);
-        if(i===state.folderStack.length-1)return '<span class="o365-breadcrumb-current">'+name+'</span>';
-        return '<button class="o365-breadcrumb-item" onclick="window._o365.navigateTo('+i+')">'+name+'</button><span class="o365-breadcrumb-sep">/</span>';
+        if(i===state.folderStack.length-1)return '<span class="o365-breadcrumb-current">'+escapeHtml(String(name))+'</span>';
+        return '<button type="button" class="o365-breadcrumb-item" data-o365-bc-index="'+i+'">'+escapeHtml(String(name))+'</button><span class="o365-breadcrumb-sep">/</span>';
     }).join('');
+    el.querySelectorAll('[data-o365-bc-index]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var idx = parseInt(this.getAttribute('data-o365-bc-index'), 10);
+            if (!isNaN(idx)) navigateTo(idx);
+        });
+    });
 }
 
 async function loadSharePoint(){
