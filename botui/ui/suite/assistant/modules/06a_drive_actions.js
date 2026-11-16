@@ -20,7 +20,7 @@
         container.innerHTML =
             '<div class="gb-drv-header">' +
                 '<div class="gb-drv-header-left">' +
-                    '<button class="gb-drv-back" id="gbDrvBack">' + I("caret-right", 14) +
+                    '<button class="gb-drv-back" id="gbDrvBack">' + I("caret-left", 14) +
                     ' <span>' + D.esc(t("drive.back", "Voltar")) + '</span></button>' +
                     '<span class="gb-drv-title">Drive</span>' +
                 '</div>' +
@@ -201,13 +201,44 @@
     }
     function removeToast() { var el = document.getElementById("gbDrvUploadToast"); if (el) el.remove(); }
 
-    /* ---- Create folder ---- */
+    /* ---- Create folder (inline field) ---- */
     D.createFolderPrompt = function () {
-        var name = prompt(A.t("drive.folder-prompt", "Nome da nova pasta:"));
-        if (!name || !name.trim()) return;
-        D.req("/createFolder", { method: "POST", body: JSON.stringify({ bucket: D.bucket || undefined, path: D.path || "", name: name.trim(), scope: D.scope }) })
-            .then(function () { D.refreshFiles(); })
-            .catch(function (e) { alert(A.t("drive.folder-error", "Erro ao criar pasta") + ": " + (e.message || e)); });
+        var toolbar = document.getElementById("gbDrvToolbar");
+        if (!toolbar || toolbar.querySelector(".gb-drv-inline-input")) return;
+        var wrap = document.createElement("div");
+        wrap.className = "gb-drv-inline-input";
+        var input = document.createElement("input");
+        input.type = "text";
+        input.className = "gb-drv-rename-input";
+        input.placeholder = A.t("drive.folder-prompt", "Nome da nova pasta");
+        input.setAttribute("aria-label", A.t("drive.folder-prompt", "Nome da nova pasta"));
+        wrap.appendChild(input);
+        var ok = document.createElement("button");
+        ok.className = "gb-drv-btn gb-drv-btn-accent gb-drv-btn-sm";
+        ok.textContent = "OK";
+        wrap.appendChild(ok);
+        var cancel = document.createElement("button");
+        cancel.className = "gb-drv-btn gb-drv-btn-sm";
+        cancel.textContent = A.t("assistant.cancel", "Cancelar");
+        wrap.appendChild(cancel);
+        toolbar.appendChild(wrap);
+        input.focus();
+
+        function cleanup() { wrap.remove(); }
+        function commit() {
+            var val = input.value.trim();
+            cleanup();
+            if (!val) return;
+            D.req("/createFolder", { method: "POST", body: JSON.stringify({ bucket: D.bucket || undefined, path: D.path || "", name: val, scope: D.scope }) })
+                .then(function () { D.refreshFiles(); })
+                .catch(function (e) { D.showToast(A.t("drive.folder-error", "Erro ao criar pasta") + ": " + (e.message || e), "error"); });
+        }
+        ok.addEventListener("click", commit);
+        cancel.addEventListener("click", cleanup);
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Escape") { e.preventDefault(); cleanup(); }
+        });
     };
 
     /* ---- Context menu ---- */
@@ -301,7 +332,7 @@
             })
         }).then(function () { D.refreshFiles(); })
           .catch(function (e) {
-              alert(A.t("drive.rename-error", "Erro ao renomear") + ": " + (e.message || e));
+              D.showToast(A.t("drive.rename-error", "Erro ao renomear") + ": " + (e.message || e), "error");
               D.refreshFiles();
           });
     }
@@ -330,7 +361,7 @@
                 URL.revokeObjectURL(url);
             }
         }).catch(function (e) {
-            alert(A.t("drive.download-error", "Erro ao baixar") + ": " + (e.message || e));
+            D.showToast(A.t("drive.download-error", "Erro ao baixar") + ": " + (e.message || e), "error");
         });
     }
 
@@ -412,7 +443,7 @@
             ghost.click();
             ghost.remove();
         }).catch(function (e) {
-            alert(A.t("drive.preview-error", "Erro ao visualizar") + ": " + (e.message || e));
+            D.showToast(A.t("drive.preview-error", "Erro ao visualizar") + ": " + (e.message || e), "error");
         });
     };
 

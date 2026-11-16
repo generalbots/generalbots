@@ -29,6 +29,18 @@
     };
     var esc = D.esc;
 
+    /* Non-blocking toast (replaces native alert) */
+    D.showToast = function (msg, type) {
+        var el = document.getElementById("gbDrvToast");
+        if (el) el.remove();
+        el = document.createElement("div");
+        el.id = "gbDrvToast";
+        el.className = "gb-drv-toast" + (type === "error" ? " gb-drv-toast-error" : "");
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(function () { el.remove(); }, 5000);
+    };
+
     D.fmtBytes = function (b) {
         if (!b || b <= 0) return "";
         if (b < 1024) return b + " B";
@@ -247,8 +259,22 @@
         var list = document.getElementById("gbDrvList");
         if (!list) return;
         D.renderBreadcrumb();
-        /* Update column headers */
+
+        /* Detect whether any file has a usable date */
+        var hasAnyDate = false;
+        for (var d = 0; d < D.files.length; d++) {
+            if (D.files[d].modified) { hasAnyDate = true; break; }
+        }
+        D.hasDateColumn = hasAnyDate;
+
+        /* Toggle date column visibility */
         var header = document.getElementById("gbDrvColHeader");
+        var container = document.getElementById("gbDriveContainer");
+        if (container) {
+            container.classList.toggle("gb-drv-no-date", !hasAnyDate);
+        }
+
+        /* Update column headers */
         if (header) {
             var btns = header.querySelectorAll("[data-col]");
             for (var j = 0; j < btns.length; j++) {
@@ -275,7 +301,7 @@
                 '<div class="gb-drv-name-cell">' + D.fileIcon(name, isDir) +
                 '<span class="gb-drv-name-text">' + esc(name) + '</span></div>' +
                 '<div class="gb-drv-size-cell">' + (isDir ? "" : D.fmtBytes(f.size)) + '</div>' +
-                '<div class="gb-drv-date-cell">' + D.fmtDate(f.modified) + '</div>' +
+                (hasAnyDate ? '<div class="gb-drv-date-cell">' + D.fmtDate(f.modified) + '</div>' : '') +
                 '<div class="gb-drv-action-cell">' +
                 '<button class="gb-drv-row-menu" aria-label="Menu" title="Menu">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>' +

@@ -112,6 +112,14 @@
     border-bottom: 1px solid var(--id-line);
     flex-shrink: 0;
 }
+/* Hide the date column when no file has a date */
+.gb-drv-no-date .gb-drv-col-header {
+    grid-template-columns: minmax(0, 1fr) 80px 36px;
+}
+.gb-drv-no-date .gb-drv-col-btn[data-col="modified"] { display: none; }
+.gb-drv-no-date .gb-drv-row {
+    grid-template-columns: minmax(0, 1fr) 80px 36px;
+}
 .gb-drv-col-btn {
     border: none; background: transparent;
     font-size: var(--id-text-xs); font-weight: 600;
@@ -289,10 +297,44 @@
     color: var(--id-accent-text); padding: var(--id-space-4);
 }
 
+/* == Inline folder input ============================================= */
+.gb-drv-inline-input {
+    display: flex; align-items: center; gap: var(--id-space-1);
+    flex: 1; min-width: 0;
+}
+.gb-drv-inline-input .gb-drv-rename-input {
+    max-width: 220px; flex: 1; min-width: 0;
+}
+.gb-drv-btn-sm { padding: var(--id-space-1) var(--id-space-2); }
+
+/* == Toast (non-blocking error/info) ================================= */
+.gb-drv-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 400;
+    padding: var(--id-space-2) var(--id-space-4);
+    border-radius: var(--id-radius-card); box-shadow: var(--id-shadow-float);
+    font-size: var(--id-text-sm); font-family: var(--id-font-sans);
+    background: var(--id-surface-solid); border: 1px solid var(--id-line);
+    color: var(--id-ink); max-width: 460px; text-align: center;
+    animation: gb-drv-toast-in .2s ease;
+}
+.gb-drv-toast-error { border-color: rgb(239 68 68 / .4); color: #b91c1c; }
+@keyframes gb-drv-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+    .gb-drv-toast { animation: none; }
+}
+
 /* == Responsive ====================================================== */
-@media (max-width: 600px) {
+@media (max-width: 760px) {
     .gb-drv-col-header, .gb-drv-row {
         grid-template-columns: minmax(0, 1fr) 70px 36px;
     }
+    .gb-drv-date-cell { display: none; }
+}
+@media (max-width: 600px) {
+    .gb-drv-col-header, .gb-drv-row {
+        grid-template-columns: minmax(0, 1fr) 36px;
+    }
+    .gb-drv-size-cell { display: none; }
     .gb-drv-date-cell { display: none; }
 }
