@@ -900,23 +900,38 @@ pub fn api_command_instructions(role: &str) -> String {
     lines.push("  NEVER invent a REST path: only paths returned by `api.find` are registered. When a curated command below covers the request, call it directly.".to_string());
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
+    // #2561 — the gbgov edition has no billing, banking, tax, vibe, tasks or
+    // integrations; listing those commands made the model call them and trigger
+    // consent prompts / errors for tools that do not exist.
+    let prompt_commands: &[&str] = if cfg!(feature = "gbgov") {
+        &[
+            "apps.find",
+            "api.find",
+            "api.exec",
+            "drive.list",
+            "drive.search",
+            "settings.read",
+        ]
+    } else {
+        &[
+            "apps.find",
+            "api.find",
+            "api.exec",
+            "tasks.autotask.create",
+            "tasks.autotask.list",
+            "vibe.project.change",
+            "integrations.actions.list",
+            "service.tax",
+            "banking.diagnosis",
+            "drive.list",
+            "products.items.list",
+            "billing.invoice.list",
+            "billing.payment.list",
+            "billing.quote.list",
+        ]
+    };
     lines.push("Common commands you may call directly:".to_string());
-    for name in [
-        "apps.find",
-        "api.find",
-        "api.exec",
-        "tasks.autotask.create",
-        "tasks.autotask.list",
-        "vibe.project.change",
-        "integrations.actions.list",
-        "service.tax",
-        "banking.diagnosis",
-        "drive.list",
-        "products.items.list",
-        "billing.invoice.list",
-        "billing.payment.list",
-        "billing.quote.list",
-    ] {
+    for name in prompt_commands {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
                 .params
@@ -930,15 +945,21 @@ pub fn api_command_instructions(role: &str) -> String {
             ));
         }
     }
-    lines.push(
+    let rules = if cfg!(feature = "gbgov") {
+        "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
+         commands to the user. Discovery: api.find matches command NAMES and SUMMARIES by keyword, not \
+         free-form intent, so search with domain words such as 'drive', 'files', 'settings' \
+         rather than the user's own phrasing. When the command is listed above, call it directly by name \
+         instead of searching."
+    } else {
         "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
          commands to the user. Discovery: api.find matches command NAMES and SUMMARIES by keyword, not \
          free-form intent, so search with domain words such as 'task', 'automation', 'drive', 'invoice' \
          rather than the user's own phrasing. When the command is listed above, call it directly by name \
          instead of searching. To build a new automation from a plain-language request, call \
          tasks.autotask.create with the request as the intent parameter."
-            .to_string(),
-    );
+    };
+    lines.push(rules.to_string());
     lines.join("\n")
 }
 /// Shared keyword scorer: how many query tokens appear in the haystack.

@@ -148,10 +148,12 @@ pub(crate) async fn handle_api_call(
         let app_id = crate::apps::commands::command_by_name(&name)
             .map(|c| c.app.to_string())
             .unwrap_or_else(|| name.clone());
+        // #2561 — read-only commands get "read" class (auto-grantable).
+        let action_class = consent_action_class(&name);
         let gate = crate::core::bot::consent_gate::check_with_context(
             user_id,
             &app_id,
-            "update",
+            action_class,
             serde_json::json!({ "command": name, "params": params }),
             Some(session_id.to_string()),
             crate::core::bot::runs::bus::bus().current_run_id(&session_id.to_string()),
@@ -439,5 +441,18 @@ pub(crate) async fn handle_api_call(
             let _ = sink.send_bot_response(&resp).await;
             true
         }
+    }
+}
+
+/// Derives the consent action class from a command name: read-only verbs
+/// → `"read"`, destructive → `"delete"`, everything else → `"update"`.
+#[cfg(feature = "consent")]
+pub(super) fn consent_action_class(name: &str) -> &'static str {
+    let verb = name.rsplit('.').next().unwrap_or(name);
+    match verb {
+        "find" | "list" | "search" | "get" | "status" | "read" | "dashboard"
+        | "diagnosis" | "stats" | "open" => "read",
+        "delete" | "batch_delete" | "revoke" => "delete",
+        _ => "update",
     }
 }
