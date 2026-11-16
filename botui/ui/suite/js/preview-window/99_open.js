@@ -6,7 +6,8 @@
   var byId = N.byId;
   var MAX_POLLS = N.MAX_POLLS;
   var status = N.status;
-  var token = N.token;
+  var authHeaders = N.authHeaders;
+  var fetchPreviewFile = N.fetchPreviewFile;
   var fileUrl = N.fileUrl;
   var mimeOf = N.mimeOf;
   var signatureOf = N.signatureOf;
@@ -32,19 +33,13 @@
       status("Stopped watching", "warn");
       return;
     }
-    var headers = {};
-    var t = token();
-    if (t) headers.Authorization = "Bearer " + t;
-    fetch(fileUrl(state.conversation, state.path), { headers: headers })
-      .then(function (res) {
-        if (res.status === 404) {
-          status("Waiting for the file…", "busy");
-          return null;
-        }
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.arrayBuffer().then(function (buffer) {
-          return { bytes: new Uint8Array(buffer), mime: mimeOf(state.path) };
-        });
+    fetchPreviewFile(state.conversation, state.path)
+      .then(function (bytes) {
+        return { bytes: bytes, mime: mimeOf(state.path) };
+      })
+      .catch(function (err) {
+        if (err && /HTTP 404/.test(String(err.message || ""))) return null;
+        throw err;
       })
       .then(function (data) {
         if (!data) return;
@@ -79,21 +74,14 @@
   function saveToDrive() {
     if (!state.conversation || !state.path) return;
     status("Saving to Drive…", "busy");
-    var headers = {};
-    var t = token();
-    if (t) headers.Authorization = "Bearer " + t;
-    fetch(fileUrl(state.conversation, state.path), { headers: headers })
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.arrayBuffer();
-      })
-      .then(function (buffer) {
+    var headers = authHeaders ? authHeaders() : {};
+    fetchPreviewFile(state.conversation, state.path)
+      .then(function (bytes) {
         var name = String(state.path).split("/").pop() || "file";
-        var writeHeaders = { "Content-Type": "application/json" };
-        if (t) writeHeaders.Authorization = "Bearer " + t;
+        var writeHeaders = authHeaders ? authHeaders({ "Content-Type": "application/json" }) : { "Content-Type": "application/json" };
         // The user-scope default bucket (`user-<id>`) may not exist; ask the
         // drive API for a bucket this caller can actually write to.
-        return fetch("/api/files/buckets", { headers: headers })
+        return fetch("/api/files/buckets", { headers: headers, credentials: "same-origin" })
           .then(function (r) { return r.ok ? r.json() : []; })
           .catch(function () { return []; })
           .then(function (list) {
@@ -105,13 +93,14 @@
               names.filter(function (n) { return /\.gbai$/.test(n); })[0] || names[0];
             var body = {
               path: name,
-              content: bytesToBase64(new Uint8Array(buffer)),
+              content: bytesToBase64(bytes),
               scope: "user",
             };
             if (bucket) body.bucket = bucket;
             return fetch("/api/files/write", {
               method: "POST",
               headers: writeHeaders,
+              credentials: "same-origin",
               body: JSON.stringify(body),
             });
           });
@@ -131,13 +120,12 @@
   function shareFile() {
     if (!state.conversation || !state.path) return;
     status("Creating share link…", "busy");
-    var headers = { "Content-Type": "application/json" };
-    var t = token();
-    if (t) headers.Authorization = "Bearer " + t;
+    var headers = authHeaders ? authHeaders({ "Content-Type": "application/json" }) : { "Content-Type": "application/json" };
     var name = String(state.path).split("/").pop() || "file";
     fetch("/api/agent/drive/share", {
       method: "POST",
       headers: headers,
+      credentials: "same-origin",
       body: JSON.stringify({ conversation_id: state.conversation, file: "output/" + name }),
     })
       .then(function (res) {
@@ -189,18 +177,33 @@
           window.GBShared.download(url, downloadName);
           return;
         }
-        var link = document.createElement("a");
-        link.href = url;
-        link.download = downloadName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        fetchPreviewFile(state.conversation, state.path).then(function (bytes) {
+          var blob = new Blob([bytes], { type: mimeOf(state.path) });
+          var blobUrl = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 15000);
+        }).catch(function (err) {
+          status("Download failed: " + err.message, "error");
+        });
       };
     }
     if (open) {
       open.disabled = !url;
       open.onclick = function () {
-        if (url) window.open(url, "_blank", "noopener");
+        if (!url) return;
+        fetchPreviewFile(state.conversation, state.path).then(function (bytes) {
+          var blob = new Blob([bytes], { type: mimeOf(state.path) });
+          var blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, "_blank", "noopener");
+          setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+        }).catch(function (err) {
+          status("Open failed: " + err.message, "error");
+        });
       };
     }
   }

@@ -268,8 +268,8 @@ window.GBExternalSave = (function () {
       encodeURIComponent(path) +
       "&raw=1";
     var value = token();
-    if (value) url += "&access_token=" + encodeURIComponent(value);
-    return fetch(url).then(function (res) {
+    var headers = value ? { Authorization: "Bearer " + value } : {};
+    return fetch(url, { headers: headers, credentials: "same-origin" }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status + " reading " + path);
       return res.arrayBuffer();
     });

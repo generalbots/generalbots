@@ -23,9 +23,9 @@ function loadDriveFileIntoEditor(linkParams) {
     var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
     if (typeof ensureDocArticle === 'function') ensureDocArticle();
     var url = '/api/agent/vm/file?conversation_id=' + encodeURIComponent(vmConvId) +
-      '&path=' + encodeURIComponent(vmPath) + '&preview=1' +
-      (token ? '&access_token=' + encodeURIComponent(token) : '');
-    fetch(url)
+      '&path=' + encodeURIComponent(vmPath) + '&preview=1';
+    var headers = token ? { Authorization: 'Bearer ' + token } : {};
+    fetch(url, { headers: headers, credentials: 'same-origin' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
       .then(function (html) {
         var scope = document.querySelector('[id^="window-body-docs"]') || document;

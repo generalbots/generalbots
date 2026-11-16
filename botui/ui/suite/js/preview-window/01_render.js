@@ -45,15 +45,13 @@
   }
 
   function fileUrl(conversation, path) {
-    var url =
+    return (
       "/api/agent/vm/file?conversation_id=" +
       encodeURIComponent(conversation) +
       "&path=" +
       encodeURIComponent(path) +
-      "&raw=1";
-    var t = token();
-    if (t) url += "&access_token=" + encodeURIComponent(t);
-    return url;
+      "&raw=1"
+    );
   }
 
   function mimeOf(path) {
@@ -106,6 +104,25 @@
       }
       state.objectUrl = null;
     }
+  }
+
+  function authHeaders(base) {
+    var headers = Object.assign({}, base || {});
+    var t = token();
+    if (t) headers.Authorization = "Bearer " + t;
+    return headers;
+  }
+
+  function fetchPreviewFile(conversation, path) {
+    return fetch(fileUrl(conversation, path), {
+      headers: authHeaders(),
+      credentials: "same-origin",
+    }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.arrayBuffer().then(function (buffer) {
+        return new Uint8Array(buffer);
+      });
+    });
   }
 
   function textPreview(bytes, mime) {
@@ -226,12 +243,19 @@
         window.GBShared.download(downloadUrl, downloadName);
         return;
       }
-      var link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = downloadName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      fetchPreviewFile(state.conversation, state.path).then(function (bytes) {
+        var blob = new Blob([bytes], { type: mimeOf(state.path) });
+        var blobUrl = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = downloadName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 15000);
+      }).catch(function (err) {
+        status("Download failed: " + err.message, "error");
+      });
     };
     meta.appendChild(name);
     meta.appendChild(size);
@@ -255,6 +279,8 @@
   N.state = state;
   N.byId = byId;
   N.token = token;
+  N.authHeaders = authHeaders;
+  N.fetchPreviewFile = fetchPreviewFile;
   N.fileUrl = fileUrl;
   N.mimeOf = mimeOf;
   N.status = status;
