@@ -149,9 +149,10 @@ impl SessionManager {
         Ok(history)
     }
 
-    /// #2562 — Like `get_conversation_history_paged` but also returns the
-    /// raw `message_index` so the API can pass it to the client for truncation.
-    pub fn get_conversation_history_with_indices(
+    /// #2562 — Returns raw decrypted messages (metadata trailers intact) plus
+    /// the DB `message_index`.  The history API handler decodes reasoning and
+    /// attachments itself; the model-facing methods strip metadata.
+    pub fn get_conversation_history_raw(
         &mut self,
         sess_id: Uuid,
         _uid: Uuid,
@@ -196,18 +197,20 @@ impl SessionManager {
                     if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
                         continue;
                     }
+                    // Return raw content — the caller decodes meta itself.
+                    // Still skip empty visible text.
                     let visible = strip_meta_block(&decrypted);
                     if visible.trim().is_empty() {
                         continue;
                     }
-                    history.push((role_str, visible, idx));
+                    history.push((role_str, decrypted, idx));
                 }
                 Err(_) => unreadable += 1,
             }
         }
         if unreadable > 0 {
             botlog::safe_warn!(
-                "get_conversation_history_with_indices: {unreadable} message(s) skipped for session {sess_id}"
+                "get_conversation_history_raw: {unreadable} message(s) skipped for session {sess_id}"
             );
         }
         Ok(history)
@@ -246,7 +249,9 @@ impl SessionManager {
         let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
         for content in rows {
             match decrypt_field(&content, &key_bytes) {
-                Ok(decrypted) if !decrypted.trim().is_empty() => return Ok(Some(decrypted)),
+                Ok(decrypted) if !decrypted.trim().is_empty() => {
+                    return Ok(Some(strip_meta_block(&decrypted)));
+                }
                 Ok(_) => continue,
                 // Ciphertext would surface as the session title in the UI; an
                 // unreadable title is better than a wall of base64.

@@ -131,6 +131,20 @@ pub trait SessionManagerService: Send + Debug {
         Err("delete_session is not supported by this session manager".to_string())
     }
 
+    /// #2562 — Returns raw decrypted messages (with metadata trailers intact)
+    /// plus the DB `message_index`, so the history API can decode reasoning and
+    /// attachments itself.  The model-facing methods strip metadata; this one
+    /// does not.
+    fn get_conversation_history_raw(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _user_id: uuid::Uuid,
+        _limit: Option<i64>,
+        _offset: Option<i64>,
+    ) -> Result<Vec<(String, String, i32)>, String> {
+        Err("get_conversation_history_raw is not supported by this session manager".to_string())
+    }
+
     /// #2562 — Truncates a conversation from a given message index, deleting
     /// all messages at or after that index. Returns the number of rows removed.
     fn truncate_from(

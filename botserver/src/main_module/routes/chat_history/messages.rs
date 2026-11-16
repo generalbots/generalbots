@@ -97,25 +97,24 @@ pub async fn handle_chat_history_messages(
         sm.count_conversation_messages(session_id).unwrap_or(0)
     };
 
-    let history = {
+    // #2562 — use the raw variant so metadata (reasoning, attachments) is
+    // still present for decoding.  The model-facing `get_conversation_history`
+    // strips the trailer; here we need it intact.
+    let raw_history = {
         let mut sm = state.session_manager.lock().await;
-        sm.get_conversation_history_paged(session_id, user_uuid, Some(limit), Some(offset))
+        sm.get_conversation_history_raw(session_id, user_uuid, Some(limit), Some(offset))
             .map_err(|e| db_error("decrypt history", e))?
     };
 
-    // #2562 — assign a sequential index to visible messages so the
-    // client can reference them in truncation requests.
     let mut msg_seq: i32 = 0;
-    let messages: Vec<HistoryMessage> = history
+    let messages: Vec<HistoryMessage> = raw_history
         .into_iter()
-        .filter(|(role, content)| {
-            (*role == "user" || *role == "assistant") && !content.trim().is_empty()
-        })
-        .map(|(role, content)| {
-            // #2562 — decode metadata (reasoning, attachments) from the
-            // stored content so a reopened conversation shows them.
+        .filter(|(role, _content, _idx)| *role == "user" || *role == "assistant")
+        .map(|(role, raw_content, _db_idx)| {
+            // Decode metadata (reasoning, attachments) from the raw stored
+            // content.  The separator is stripped, returning visible text.
             let (visible, meta) =
-                crate::core::bot::pipeline::llm::message_meta::decode(&content);
+                crate::core::bot::pipeline::llm::message_meta::decode(&raw_content);
             let attachments = if role == "user" {
                 if let Some(ref m) = meta {
                     if !m.attachments.is_empty() {

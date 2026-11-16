@@ -154,6 +154,17 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
             .get_first_user_message(session_id)
             .map_err(|e| e.to_string())
     }
+    fn get_conversation_history_raw(
+        &mut self,
+        session_id: uuid::Uuid,
+        user_id: uuid::Uuid,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<(String, String, i32)>, String> {
+        self.0
+            .get_conversation_history_raw(session_id, user_id, limit, offset)
+            .map_err(|e| e.to_string())
+    }
     fn truncate_from(
         &mut self,
         session_id: uuid::Uuid,
