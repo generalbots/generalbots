@@ -8,7 +8,142 @@ function chatNotice(message, type) {
     window.GBToasts.show("Chat", message, type || "info");
     return;
   }
-  console.info(message);
+  if (window.gbLog && typeof window.gbLog.info === "function") {
+    window.gbLog.info(message);
+    return;
+  }
+}
+
+function gbChatText(key, fallback) {
+  return typeof gbT === "function" ? gbT(key, fallback) : fallback;
+}
+
+function getChatMessageText(div) {
+  if (!div) return "";
+  if (div.dataset && typeof div.dataset.originalContent === "string" && div.dataset.originalContent) {
+    return div.dataset.originalContent;
+  }
+  var textEl = div.querySelector(".gb-message-text");
+  if (textEl) return (textEl.innerText || textEl.textContent || "").trim();
+  var content = div.querySelector(".message-content");
+  return (content ? (content.innerText || content.textContent || "") : (div.innerText || div.textContent || "")).trim();
+}
+
+function getPreviousUserMessage(div) {
+  if (!div) return null;
+  var prev = div.previousElementSibling;
+  while (prev) {
+    if (prev.classList && prev.classList.contains("message") && prev.classList.contains("user")) return prev;
+    prev = prev.previousElementSibling;
+  }
+  var msgs = document.querySelectorAll("#messages .message.user");
+  return msgs.length ? msgs[msgs.length - 1] : null;
+}
+
+function gbChatConfirm(message, title, onConfirm) {
+  if (window.GBModal && typeof window.GBModal.confirm === "function") {
+    try {
+      window.GBModal.confirm(message, title || gbChatText("chat-confirm-title", "Confirm"), function () { onConfirm && onConfirm(); });
+      return;
+    } catch (e) {}
+  }
+  // No native confirm() fallback per suite policy (#2297/#1395).
+  chatNotice(gbChatText("chat-confirm-unavailable", "Confirmation unavailable"), "warning");
+}
+
+function attachMessageActions(div, sender, content) {
+  if (!div || !div.classList || !div.classList.contains("message")) return;
+  if (div.querySelector(".message-actions")) return;
+  var text = (typeof content === "string" && content.trim()) ? content : getChatMessageText(div);
+  var bar = document.createElement("div");
+  bar.className = "message-actions";
+  bar.setAttribute("role", "toolbar");
+  bar.setAttribute("aria-label", gbChatText("chat-message-actions", "Message actions"));
+
+  function makeBtn(action, label, handler) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "message-action-btn message-action-" + action;
+    b.textContent = label;
+    b.title = label;
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      handler(b);
+    });
+    bar.appendChild(b);
+    return b;
+  }
+
+  makeBtn("copy", gbChatText("chat-copy", "Copy"), function (btn) {
+    var t = getChatMessageText(div) || text || "";
+    gbCopyText(t).then(function (ok) {
+      if (ok) {
+        chatNotice(gbChatText("chat-message-copied", "Message copied"), "success");
+        btn.dataset.copied = "1";
+        setTimeout(function(){ try{ delete btn.dataset.copied; }catch(e){} }, 1200);
+      } else {
+        chatNotice(gbChatText("chat-copy-failed", "Copy failed"), "warning");
+      }
+    });
+  });
+
+  makeBtn("edit", gbChatText("chat-edit", "Edit"), function () {
+    var t = getChatMessageText(div) || text || "";
+    if (!t) return;
+    var input = document.getElementById("messageInput");
+    if (input) {
+      input.value = t;
+      try { input.focus(); } catch (e) {}
+      try { input.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
+    } else {
+      chatNotice(gbChatText("chat-edit-unavailable", "Composer unavailable"), "warning");
+    }
+  });
+
+  makeBtn("regenerate", gbChatText("chat-regenerate", "Regenerate"), function () {
+    var sourceUser = sender === "user" ? div : getPreviousUserMessage(div);
+    if (!sourceUser) {
+      chatNotice(gbChatText("chat-regenerate-no-source", "No previous user message to regenerate"), "warning");
+      return;
+    }
+    var payload = sourceUser._gbRetryPayload || null;
+    if (payload && typeof window.gbResendChatPayload === "function") {
+      window.gbResendChatPayload(payload);
+      return;
+    }
+    var t = getChatMessageText(sourceUser).replace(/(?:^|\n)📎\s+[^\n]+$/gm, "").trim();
+    if (t && typeof window.sendMessage === "function") {
+      window.sendMessage(t);
+    } else {
+      chatNotice(gbChatText("chat-regenerate-unavailable", "Cannot regenerate this turn"), "warning");
+    }
+  });
+
+  makeBtn("delete", gbChatText("chat-delete", "Delete"), function () {
+    gbChatConfirm(
+      gbChatText("chat-delete-message-confirm", "Delete this message from the conversation?"),
+      gbChatText("chat-delete-title", "Delete message"),
+      function () {
+        if (div && div.parentNode) div.parentNode.removeChild(div);
+        // best-effort local transcript cleanup; server-side per-message delete endpoint may not exist
+        if (window.ChatState && div.dataset && div.dataset.messageId) {
+          try {
+            if (Array.isArray(ChatState.localMessages)) {
+              ChatState.localMessages = ChatState.localMessages.filter(function (m) { return m && m.id !== div.dataset.messageId; });
+            }
+          } catch (e) {}
+        }
+        if (typeof updateScrollButton === "function") try { updateScrollButton(); } catch (e) {}
+      }
+    );
+  });
+
+  // Prefer placing actions inside message-content for layout; fallback to bubble.
+  var host = div.querySelector(".message-content") || div;
+  host.appendChild(bar);
 }
 // #1797 — long user turns start collapsed so a pasted essay does not push the
 // whole conversation off screen. Small turns are untouched.
@@ -270,7 +405,6 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
       );
       messages.appendChild(div);
       stampMessage();
-      if (content && content.trim() !== "") div.appendChild(createCopyButton(content));
       if (ChatState.isUserAtBottom && !ChatState.suppressPersist) scrollToBottom(false);
       if (!ChatState.suppressPersist) stickToBottom(1400);
       return;
@@ -283,7 +417,6 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
       div.querySelector(".message-content").appendChild(renderInlineArtifact(content));
       messages.appendChild(div);
       stampMessage();
-      if (content && content.trim() !== "") div.appendChild(createCopyButton(content));
       if (ChatState.isUserAtBottom && !ChatState.suppressPersist) scrollToBottom(false);
       return;
     }
@@ -304,10 +437,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
     parsed = renderDeepLinks(parsed);
     if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + renderToolExecHeader(toolExecMeta) + parsed + "</div>";
-    if (content && content.trim() !== "") {
-      div.appendChild(createCopyButton(content));
-      div.appendChild(createSpeakButton(content));
-    }
+
   }
 
   messages.appendChild(div);
@@ -416,6 +546,8 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
   // jump. Follow the live edge only when the reader is already there; otherwise
   // leave the scroll alone and let the jump-to-bottom button advertise the new
   // message. `undefined` (first message of a session) counts as at-bottom.
+  attachMessageActions(div, sender, content);
+
   if (ChatState.isUserAtBottom !== false && !ChatState.suppressPersist) {
     scrollToBottom(false);
     stickToBottom(sender === "user" ? 300 : 1400);

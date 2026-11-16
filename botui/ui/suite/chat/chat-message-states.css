@@ -564,3 +564,42 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* #2343 — per-message action bar (Copy/Edit/Regenerate/Delete) */
+.message { position: relative; }
+.message .message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+}
+.message:hover .message-actions,
+.message:focus-within .message-actions,
+.message .message-actions:focus-within {
+  opacity: 1;
+  visibility: visible;
+}
+.message-action-btn {
+  appearance: none;
+  border: 1px solid var(--border, #334155);
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  color: var(--text-secondary, #cbd5e1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.message-action-btn:hover,
+.message-action-btn:focus-visible {
+  color: var(--text, #f8fafc);
+  border-color: var(--accent, #3b82f6);
+  outline: none;
+}
+.message-action-btn[data-copied="1"] {
+  border-color: var(--success, #22c55e);
+  color: var(--success, #22c55e);
+}
