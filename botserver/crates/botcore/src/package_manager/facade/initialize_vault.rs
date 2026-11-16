@@ -42,7 +42,10 @@ impl PackageManager {
             .as_str()
             .context("No root token in output")?;
 
-        let unseal_keys_file = PathBuf::from("/tmp/vault-unseal-keys");
+        let unseal_keys_file = std::env::temp_dir().join(format!(
+            "vault-unseal-keys-{}",
+            std::process::id()
+        ));
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
@@ -54,13 +57,22 @@ impl PackageManager {
                 );
             }
         }
-        std::fs::write(&unseal_keys_file, &unseal_content)?;
-
         #[cfg(unix)]
         {
-            let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
+            use std::io::Write;
+            use std::os::unix::fs::OpenOptionsExt;
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .mode(0o600)
+                .open(&unseal_keys_file)?;
+            f.write_all(unseal_content.as_bytes())?;
         }
-
+        #[cfg(not(unix))]
+        {
+            std::fs::write(&unseal_keys_file, &unseal_content)?;
+        }
         info!("Created {}", unseal_keys_file.display());
 
         let env_file = PathBuf::from(".env");
@@ -71,7 +83,6 @@ impl PackageManager {
 
         if env_file.exists() {
             let existing = std::fs::read_to_string(&env_file)?;
-
             if existing.contains("VAULT_ADDR=") {
                 warn!(".env already contains VAULT_ADDR, not overwriting");
             } else {
@@ -81,8 +92,27 @@ impl PackageManager {
                 info!("Appended Vault config to .env");
             }
         } else {
-            std::fs::write(&env_file, env_content.trim_start())?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                let mut f = std::fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .mode(0o600)
+                    .open(&env_file)?;
+                use std::io::Write;
+                f.write_all(env_content.trim_start().as_bytes())?;
+            }
+            #[cfg(not(unix))]
+            {
+                std::fs::write(&env_file, env_content.trim_start())?;
+            }
             info!("Created .env with Vault config");
+        }
+        #[cfg(unix)]
+        {
+            let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&env_file);
         }
 
         for i in 0..3 {
@@ -105,6 +135,7 @@ impl PackageManager {
             }
         }
 
+        let _ = std::fs::remove_file(&unseal_keys_file);
         info!("Vault initialized and unsealed successfully");
         Ok(())
     }
