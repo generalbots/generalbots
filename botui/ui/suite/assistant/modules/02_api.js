@@ -375,10 +375,12 @@
             type: "run_cancel",
             session_id: A.currentSessionId || A.sessionId || "",
         }));
-        /* Suppress the server's post-cancel completion frame ("Stopped.")
-           so the partial text the person already sees stays on screen. */
+        /* Optimistic cancel: restore the composer immediately.  Late frames
+           from the model are suppressed by the _cancelledAt guard in
+           onBotMessage so they cannot re-lock the composer (#2562). */
         A._cancelledAt = Date.now();
         A.isStreaming = false;
+        A.hideThinking();
         if (typeof A.onStreamEnd === "function") { A.onStreamEnd(); }
     };
 })();

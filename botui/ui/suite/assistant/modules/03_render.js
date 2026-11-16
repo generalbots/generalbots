@@ -355,13 +355,16 @@
         if (typeof A.onConsentFrame === "function") { A.onConsentFrame(data); }
         var isError = !!(data.is_error || data.error || data.status === "failed" ||
             data.turn_status === "failed" || data.turn_status === "error");
-        /* Suppress the server's post-cancel completion frame (typically
-           "Stopped.") so the partial text the person saw stays on screen.
-           The flag is set by cancelGeneration and expires after 5 s. */
-        if (isComplete && A._cancelledAt && (Date.now() - A._cancelledAt) < 5000) {
-            A._cancelledAt = 0;
-            A._finalizeStreaming();
-            A.hideThinking();
+        /* Suppress ALL frames that arrive after a cancel so the partial text
+           the person already saw stays on screen and the composer is not
+           re-locked by a late streaming chunk (#2562). The flag is set by
+           cancelGeneration and expires after 5 s. */
+        if (A._cancelledAt && (Date.now() - A._cancelledAt) < 5000) {
+            if (isComplete) {
+                A._cancelledAt = 0;
+                A._finalizeStreaming();
+                A.hideThinking();
+            }
             return;
         }
         if (data.thinking && !content && !reasoning) { A.showThinking(); return; }

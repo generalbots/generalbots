@@ -79,7 +79,12 @@
             var idx = msgIndex(el);
             /* Remove this assistant message from DOM */
             el.remove();
-            /* Truncate server history from this message onward, then resend */
+            /* Truncate server history from this message onward, then resend.
+               Clear the dedup state first: a regenerated response often has
+               the same content and must not be silently dropped (#2562). */
+            A.lastCompletedContent = "";
+            A.lastCompletedTime = 0;
+            A.showThinking();
             if (idx >= 0 && typeof A.truncateHistory === "function") {
                 var sid = A.currentSessionId || A.sessionId || "";
                 A.truncateHistory(sid, idx).then(function () {
@@ -192,6 +197,11 @@
             while (msgEl.nextElementSibling) {
                 msgEl.nextElementSibling.remove();
             }
+            /* Clear the dedup state: the re-sent text may generate the
+               same content and must not be silently dropped (#2562). */
+            A.lastCompletedContent = "";
+            A.lastCompletedTime = 0;
+            A.showThinking();
             if (idx >= 0 && typeof A.truncateHistory === "function") {
                 var sid = A.currentSessionId || A.sessionId || "";
                 A.truncateHistory(sid, idx).then(function () {
