@@ -239,3 +239,24 @@ test("ISSUE #1638: search walks nested keys, not only top-level folders", functi
   assert(src.indexOf("key.rsplit('/').next()") !== -1, "nested key names are not inspected");
   assert(src.indexOf("build_file_list_items(&prefix") === -1, "the collapsing listing helper is still used");
 });
+
+
+test("ISSUE #2417: quicknote removes inline handlers/native dialogs and keeps note→AI→action flow", function () {
+  var html = readFile("paper/quicknote.html");
+  assert(html.indexOf('gb-modal.js') === -1, "gb-modal script must not be injected in quicknote fragment");
+  assert(!/\son[a-z]+=/.test(html), "quicknote must not use inline event handler attributes");
+  assert(html.indexOf('data-action="process-notes"') !== -1, "process-notes action missing");
+  assert(html.indexOf('data-action="show-history"') !== -1, "history action missing");
+  assert(html.indexOf('data-action="clear-note"') !== -1, "clear action missing");
+  assert(html.indexOf('data-action="execute-all-actions"') !== -1, "execute-all-actions action missing");
+  var ed = readFile("paper/quicknote-editor_a.js") + "\n" + readFile("paper/quicknote-editor_b.js");
+  assert(ed.indexOf("sanitizeNoteHtml") !== -1, "note HTML sanitization missing");
+  assert(ed.indexOf("sanitizePastedHtml") !== -1, "pasted HTML sanitization missing");
+  assert(ed.indexOf("processNotes") !== -1, "processNotes flow missing");
+  assert(ed.indexOf("showResults") !== -1, "AI results rendering missing");
+  assert(ed.indexOf("executeAllActions") !== -1, "action execution missing");
+  assert(ed.indexOf("window.GBModal") !== -1, "GBModal fallback/usage missing");
+  assert(!/\balert\s*\(/.test(ed.replace(/GBModal\.alert/g, "")), "native alert() must not be used");
+  assert(!/\bconfirm\s*\(/.test(ed.replace(/GBModal\.confirm/g, "")), "native confirm() must not be used");
+  assert(!/\bprompt\s*\(/.test(ed.replace(/GBModal\.prompt/g, "")), "native prompt() must not be used");
+});

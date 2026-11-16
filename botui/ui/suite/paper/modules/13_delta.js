@@ -1,6 +1,18 @@
 "use strict";
 /* #2172/#2175 — gb-doc-delta for paper (block model). */
 (function () {
+  function escText(v) {
+    if (window.GBShared && window.GBShared.html && typeof window.GBShared.html.escape === "function") {
+      return window.GBShared.html.escape(v);
+    }
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   // Markdown-lite → blocks. Only the constructs the plan prompt promises:
   // '# '/'## ' headings, '- ' bullets, '1. ' numbered items, blank-line
   // paragraphs, **bold**.
@@ -12,7 +24,8 @@
       var trimmed = line.trim();
       if (!trimmed) { closeList(); return; }
       var bold = function (value) {
-        return value.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+        var escaped = escText(value);
+        return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
       };
       if (/^#{1,3}\s+/.test(trimmed)) {
         closeList();

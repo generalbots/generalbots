@@ -756,7 +756,7 @@
     "HARDCODED|No shared files|botui/ui/suite/drive/modules/05_files_lists.js",
     "HARDCODED|No shared folders yet|botui/ui/suite/drive/modules/06_render.js",
     "HARDCODED|No skills imported|botui/ui/suite/settings/settings-skills.js",
-    "HARDCODED|No specific actions detected. Try being more explicit with tasks, dates, or email mentions.|botui/ui/suite/paper/quicknote-editor.js",
+    "HARDCODED|No specific actions detected. Try being more explicit with tasks, dates, or email mentions.|botui/ui/suite/paper/quicknote-editor_a.js",
     "HARDCODED|No starred files|botui/ui/suite/drive/modules/05_files_lists.js",
     "HARDCODED|No statements generated.|botui/ui/suite/banking/modules/04_pix_statements.js",
     "HARDCODED|No steps found.|botui/ui/suite/concierge/concierge.js",
