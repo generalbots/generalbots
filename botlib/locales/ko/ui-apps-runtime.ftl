@@ -18,6 +18,10 @@ dashboards-y-axis = Y축 필드
 
 # Office app chrome labels (i18n)
 slides-sorter = 슬라이드 정렬
+slides-title = 슬라이드
+slides-undo-save-style-failed = 스타일 변경을 저장할 수 없습니다
+slides-undo-delete-failed = 삭제를 저장할 수 없습니다
+slides-undo-restore-failed = 요소를 복원할 수 없습니다
 docs-files = 파일
 docs-panels = 패널
 docs-outline = 개요

@@ -18,6 +18,10 @@ dashboards-y-axis = Y 轴字段
 
 # Office app chrome labels (i18n)
 slides-sorter = 幻灯片排序
+slides-title = 幻灯片
+slides-undo-save-style-failed = 无法保存样式更改
+slides-undo-delete-failed = 无法保存删除操作
+slides-undo-restore-failed = 无法恢复元素
 docs-files = 文件
 docs-panels = 面板
 docs-outline = 大纲

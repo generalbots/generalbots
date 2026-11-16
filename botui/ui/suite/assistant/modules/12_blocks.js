@@ -389,7 +389,11 @@ A.addMsgToolbar = function (el, content, retryable) {
     if (content) {
         var cp = document.createElement("button"); cp.className = "gb-msg-toolbar-btn"; cp.title = t("Copiar","Copy");
         cp.innerHTML = I("copy", 14);
-        cp.addEventListener("click", function () { navigator.clipboard.writeText(content).catch(function () {}); });
+        cp.addEventListener("click", function () {
+            navigator.clipboard.writeText(content).catch(function (err) {
+                console.warn("[assistant] toolbar copy failed", err);
+            });
+        });
         tb.appendChild(cp);
     }
     if (retryable) {

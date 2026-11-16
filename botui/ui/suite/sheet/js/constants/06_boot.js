@@ -43,7 +43,9 @@
         VirtualGrid.lastRenderedRange = null;
         VirtualGrid.requestRange();
       })
-      .catch(function () {});
+      .catch(function (err) {
+        console.warn("[sheet] format apply failed", err);
+      });
   }
 
   function initToolbar() {

@@ -215,12 +215,18 @@
             container.requestFullscreen().then(() => {
                 container.classList.add('fullscreen');
                 icon.textContent = '⛶';
-            }).catch(() => { });
+            }).catch(function (err) {
+                // Best-effort: browser may deny fullscreen (gesture/policy); projector stays usable.
+                console.debug("[projector] requestFullscreen denied", err);
+            });
         } else {
             document.exitFullscreen().then(() => {
                 container.classList.remove('fullscreen');
                 icon.textContent = '⛶';
-            }).catch(() => { });
+            }).catch(function (err) {
+                // Best-effort: exit may fail if not in fullscreen; state is non-critical.
+                console.debug("[projector] exitFullscreen failed", err);
+            });
         }
     }
 
@@ -261,7 +267,10 @@
             navigator.share({
                 title: document.getElementById('projector-title').textContent,
                 url: projectorState.source
-            }).catch(() => { });
+            }).catch(function (err) {
+                // Best-effort: user cancel/unsupported share target is expected.
+                console.debug("[projector] share dismissed", err);
+            });
         } else {
             navigator.clipboard.writeText(window.location.origin + projectorState.source).then(() => {
                 flashStatus('Link copied to clipboard!');

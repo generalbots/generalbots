@@ -66,5 +66,8 @@ function loadBotConfig() {
         if (logoSvg) logoSvg.style.display = "none";
       }
     })
-    .catch(function () {});
+    .catch(function (err) {
+      // Best-effort: bot theme config is optional; defaults remain usable.
+      console.debug("[chat-theme] could not load bot config", err);
+    });
 }

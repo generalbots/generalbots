@@ -136,6 +136,7 @@ sheet-italic = Italic
 sheet-underline = Underline
 sheet-strikethrough = Strikethrough
 sheet-merge-cells = Merge Cells
+sheet-merge-refresh-failed = Could not refresh sheet after merge
 sheet-pivot-table = Pivot Table
 sheet-ai-assistant = AI Assistant
 sheet-insert-chart = Insert Chart
@@ -237,6 +238,10 @@ project-create-task-failed = Failed to create task
 
 # Office app chrome labels (i18n)
 slides-sorter = Slide sorter
+slides-title = Slides
+slides-undo-save-style-failed = Could not save style change
+slides-undo-delete-failed = Could not save deletion
+slides-undo-restore-failed = Could not restore element
 docs-files = Files
 docs-panels = Panels
 docs-outline = Outline

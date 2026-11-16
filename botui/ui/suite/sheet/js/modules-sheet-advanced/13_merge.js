@@ -164,7 +164,13 @@
           window.SheetCore.rehydrateGrid();
         }
       })
-      .catch(function () {});
+      .catch(function (err) {
+        console.warn("[sheet-merge] reload after merge/unmerge failed", err);
+        var msg = err && err.message
+          ? err.message
+          : (typeof gbT === "function" ? gbT("sheet-merge-refresh-failed", "Could not refresh sheet after merge") : "Could not refresh sheet after merge");
+        showToast(msg, false);
+      });
   }
 
   function showToast(msg, isError) {

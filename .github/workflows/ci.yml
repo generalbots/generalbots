@@ -272,6 +272,16 @@ jobs:
           python3 scripts/check_target_blank.py --self-test
           python3 scripts/check_target_blank.py --check
 
+      # #2333 — empty promise `.catch(...) {}` handlers discard rejections
+      # with no log, UI feedback or recovery (the promise-shaped half of the
+      # silent-failure epidemic). Best-effort suppressions must carry a comment
+      # and debug log; mutating operations must report failure.
+      - name: Empty promise catch guard (#2333)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_empty_promise_catches.py --self-test
+          python3 scripts/check_empty_promise_catches.py --check
+
       # #2310 — one corrupt localStorage key used to throw inside the desktop
       # boot chain and leave the user with no way to clear it. Every JSON read
       # must go through gbStoreGet(), which self-heals and logs the dropped key.

@@ -78,7 +78,16 @@
         element_id: el.dataset.id,
         style: style
       })
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.warn("[slides-undo] failed to persist style update", err);
+      if (window.GBToasts && window.GBToasts.show) {
+        window.GBToasts.show(
+          typeof gbT === "function" ? gbT("slides-title", "Slides") : "Slides",
+          typeof gbT === "function" ? gbT("slides-undo-save-style-failed", "Could not save style change") : "Could not save style change",
+          "warning"
+        );
+      }
+    });
   }
 
   function rgbToHex(rgb) {
@@ -173,7 +182,16 @@
         slide_index: action.slideIndex,
         element_id: action.elementId
       })
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.warn("[slides-undo] failed to persist delete", err);
+      if (window.GBToasts && window.GBToasts.show) {
+        window.GBToasts.show(
+          typeof gbT === "function" ? gbT("slides-title", "Slides") : "Slides",
+          typeof gbT === "function" ? gbT("slides-undo-delete-failed", "Could not save deletion") : "Could not save deletion",
+          "warning"
+        );
+      }
+    });
   }
   async function applyRestoreAction(action) {
     // Ask server to re-add element, then refresh canvas from server state by reloading deck view.
@@ -181,7 +199,16 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(action.payload)
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.warn("[slides-undo] failed to restore element", err);
+      if (window.GBToasts && window.GBToasts.show) {
+        window.GBToasts.show(
+          typeof gbT === "function" ? gbT("slides-title", "Slides") : "Slides",
+          typeof gbT === "function" ? gbT("slides-undo-restore-failed", "Could not restore element") : "Could not restore element",
+          "warning"
+        );
+      }
+    });
     // Re-render current slide to get canonical element DOM/bindings.
     if (window.htmx) {
       var slide = action.slideIndex;

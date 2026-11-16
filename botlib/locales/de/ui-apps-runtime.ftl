@@ -18,6 +18,10 @@ dashboards-y-axis = Y-Achsenfeld
 
 # Office app chrome labels (i18n)
 slides-sorter = Folien sortieren
+slides-title = Folien
+slides-undo-save-style-failed = Stiländerung konnte nicht gespeichert werden
+slides-undo-delete-failed = Löschung konnte nicht gespeichert werden
+slides-undo-restore-failed = Element konnte nicht wiederhergestellt werden
 docs-files = Dateien
 docs-panels = Bereiche
 docs-outline = Gliederung

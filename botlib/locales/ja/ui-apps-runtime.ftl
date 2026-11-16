@@ -18,6 +18,10 @@ dashboards-y-axis = Y軸フィールド
 
 # Office app chrome labels (i18n)
 slides-sorter = スライドの並べ替え
+slides-title = スライド
+slides-undo-save-style-failed = スタイルの変更を保存できませんでした
+slides-undo-delete-failed = 削除を保存できませんでした
+slides-undo-restore-failed = 要素を復元できませんでした
 docs-files = ファイル
 docs-panels = パネル
 docs-outline = アウトライン

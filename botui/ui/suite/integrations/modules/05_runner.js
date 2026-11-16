@@ -224,7 +224,10 @@
         if (!article || !runButton) return;
         event.preventDefault();
         execute(article, runButton.dataset.providerSlug || "", runButton.dataset.runAction || "", form)
-            .catch(function () {});
+            .catch(function (err) {
+                // Best-effort safety net: execute() reports failures; unexpected throws are logged.
+                console.warn("[integrations-runner] unexpected execute failure", err);
+            });
     }
 
     namespace.installActionRunner = function () {

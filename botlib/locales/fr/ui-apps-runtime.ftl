@@ -18,6 +18,10 @@ dashboards-y-axis = Champ de l'axe Y
 
 # Office app chrome labels (i18n)
 slides-sorter = Trier les diapositives
+slides-title = Diapositives
+slides-undo-save-style-failed = Impossible d’enregistrer la modification de style
+slides-undo-delete-failed = Impossible d’enregistrer la suppression
+slides-undo-restore-failed = Impossible de restaurer l’élément
 docs-files = Fichiers
 docs-panels = Panneaux
 docs-outline = Plan

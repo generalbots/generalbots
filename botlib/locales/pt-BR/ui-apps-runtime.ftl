@@ -135,6 +135,7 @@ sheet-italic = Itálico
 sheet-underline = Sublinhado
 sheet-strikethrough = Tachado
 sheet-merge-cells = Mesclar Células
+sheet-merge-refresh-failed = Não foi possível atualizar a planilha após mesclar
 sheet-pivot-table = Tabela Dinâmica
 sheet-ai-assistant = Assistente de IA
 sheet-insert-chart = Inserir Gráfico
@@ -236,6 +237,10 @@ project-create-task-failed = Falha ao criar a tarefa
 
 # Office app chrome labels (i18n)
 slides-sorter = Organizar slides
+slides-title = Slides
+slides-undo-save-style-failed = Não foi possível salvar a alteração de estilo
+slides-undo-delete-failed = Não foi possível salvar a exclusão
+slides-undo-restore-failed = Não foi possível restaurar o elemento
 docs-files = Arquivos
 docs-panels = Painéis
 docs-outline = Estrutura
