@@ -84,7 +84,7 @@
     .plan-cta:hover { background: var(--accent-dim); border-color: var(--accent); }
 
     /* ── Tier table ── */
-    .tier-table-wrap { overflow-x: auto; padding: 0 2rem 1.5rem; }
+    .tier-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 2rem 1.5rem; max-width: 100%; }
     .tier-table { width: 100%; border-collapse: collapse; min-width: 720px; }
     .tier-table th {
       text-align: left; font-size: .65rem; font-weight: 700;

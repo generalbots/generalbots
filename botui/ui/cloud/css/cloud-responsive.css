@@ -1,0 +1,33 @@
+/* Cloud responsive baseline (#2420): shared breakpoints 1024/768/560/400.
+   Loaded by every cloud page; keeps cloud distinct from suite shell. */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, video, canvas, svg { max-width: 100%; }
+.mgmt-main, .mgmt-content, .mgmt-split-right, .machines-page, .print3d-page { min-width: 0; max-width: 100%; }
+
+@media (max-width: 1024px) {
+  .mgmt-split-right { padding: 32px 24px; }
+}
+
+@media (max-width: 768px) {
+  .mgmt-split-right { padding: 24px 16px; }
+  .mgmt-topbar { flex-wrap: wrap; gap: 0.75rem; }
+  .mgmt-topbar-actions { flex-wrap: wrap; }
+  .tier-table-wrap, .table-wrap, .overflow-x-auto, div[style*="overflow-x:auto"], div[style*="overflow-x: auto"] {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 560px) {
+  .mgmt-split-right { padding: 16px 12px; }
+  .plans-grid, .store-plans-grid, .machine-tiers-grid, .machines-hero-stats { grid-template-columns: 1fr !important; }
+  .mgmt-section-header { flex-wrap: wrap; gap: 0.5rem; }
+  .tier-table-wrap { padding-left: 0.75rem; padding-right: 0.75rem; }
+  input, select, textarea { font-size: 16px; }
+  .btn, button, [role="button"], a.btn { min-height: 44px; }
+}
+
+@media (max-width: 400px) {
+  .mgmt-topbar { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .tier-table-wrap { padding-left: 0.5rem; padding-right: 0.5rem; }
+}
