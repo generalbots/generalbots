@@ -293,7 +293,13 @@ function rebuildAppsRegistry() {
         if (catalogApps[c].id === a.id && catalogApps[c].compiled === false) return;
       }
     }
-    if (catalogLoaded && !isCoreAppId(a.id) && String(a.id).indexOf("vibe") !== 0) return;
+    // Keep embedded apps when the catalog omits them but the product explicitly
+    // enables/previews them, so shipped tiles still resolve (e.g. integrations).
+    // If product config hasn't loaded yet we can't confirm exclusion — keep the
+    // embedded tile so it remains resolvable; a later rebuild will filter it.
+    var productKnown = !!(window.productConfig && (window.productConfig.apps || window.productConfig.preview_apps));
+    if (catalogLoaded && !isCoreAppId(a.id) && String(a.id).indexOf("vibe") !== 0 &&
+        !(productKnown ? (productAppIds[a.id] === true || !!productPreviewIds[a.id]) : true)) return;
     var preview = isPreviewId(a.id);
     if (preview && !previewOn) return;
     a.preview = preview;
@@ -320,6 +326,17 @@ function rebuildAppsRegistry() {
       sessionStorage.getItem("gb-access-token")
     );
   } catch (e) {}
+  // Authenticated suite sessions may use cookie/session flows without exposing
+  // a token in gb-access-token/GBSecurity; keep privileged apps when an active
+  // non-public user session is present so the desktop can open them.
+  if (!authenticated && !noSecurityBuild) {
+    try {
+      if (window.__BOT_IS_PUBLIC__ !== true) {
+        var sess = JSON.parse(localStorage.getItem("gb_chat_default") || sessionStorage.getItem("gb_chat_default") || "null");
+        if (sess && (sess.user_id || sess.userId)) authenticated = true;
+      }
+    } catch (e) {}
+  }
   if (!authenticated && !noSecurityBuild) {
     // Anonymous visitors get the conversation only: no Drive, no workspace
     // shell, no admin surface (the APIs already answer 401).
