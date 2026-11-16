@@ -5,59 +5,51 @@
  */
 (function () {
 var A = window.GBAssistant;
-function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function fmtBytes(b) { if (!b) return "0 B"; if (b < 1024) return b + " B"; if (b < 1048576) return (b/1024).toFixed(1) + " KB"; if (b < 1073741824) return (b/1048576).toFixed(1) + " MB"; return (b/1073741824).toFixed(1) + " GB"; }
-function fmtSpeed(bps) { if (!bps) return ""; return fmtBytes(bps) + "/s"; }
-function fmtEta(s) { if (!s && s !== 0) return ""; if (s < 60) return s + "s"; if (s < 3600) return Math.floor(s/60) + "m " + (s%60) + "s"; return Math.floor(s/3600) + "h " + Math.floor((s%3600)/60) + "m"; }
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmtBytes(b){if(!b)return"0 B";if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";if(b<1073741824)return(b/1048576).toFixed(1)+" MB";return(b/1073741824).toFixed(1)+" GB";}
+function fmtSpeed(bps){return bps?fmtBytes(bps)+"/s":"";}
+function fmtEta(s){if(!s&&s!==0)return"";if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m "+(s%60)+"s";return Math.floor(s/3600)+"h "+Math.floor((s%3600)/60)+"m";}
 var jobPollers = {};
-var T = {
-  "pt-BR": {
-    now: "Agora", where: "Onde o assistente pensa",
-    local: "Neste computador", own: "Servidor da sua organização ou chave", free: "Modelo gratuito hospedado",
-    hw: "Placa: %d, memória: %v GB VRAM, %r GB RAM",
-    active: "Em uso", downloaded: "Baixado", downloading: "Baixando...", available: "Disponível",
-    use: "Usar este", install: "Instalar", remove: "Remover", cancel: "Cancelar",
-    installable: "Modelos que você pode instalar",
-    installed: "Modelos instalados",
-    confirmDl: "Este modelo tem %s e será baixado de %h pela internet. Continuar?",
-    confirmExt: "O que você escrever e anexar será enviado a %h, fora deste computador. Continuar?",
-    endpoint: "URL do endpoint", model: "Modelo", key: "Chave de API",
-    keyStored: "chave armazenada", test: "Testar", save: "Salvar",
-    testOk: "Alcançável, latência %ms ms", testFail: "Falha: %e",
-    saved: "Salvo. Vale a partir da próxima mensagem.",
-    errAdmin: "Somente o administrador pode alterar o modelo.",
-    runtimeNotInstalled: "O motor de inferência local não está instalado. Ativar um modelo local requer reiniciar o aplicativo.",
-    runtimeNotReachable: "O motor de inferência local não está respondendo.",
-    restartNeeded: "Ativado. O aplicativo precisa ser reiniciado para usar o novo modelo.",
-    freeNote: "Tudo que você escrever e anexar é enviado a %h.",
-    noModels: "Nenhum modelo local disponível.",
-    fits: "cabe nesta máquina", nofit: "não cabe (precisa %v GB)",
-    serverOnly: "apenas servidor",
-  },
-  en: {
-    now: "Now", where: "Where the assistant thinks",
-    local: "On this computer", own: "Your organization's server or provider key", free: "Free hosted model",
-    hw: "Device: %d, memory: %v GB VRAM, %r GB RAM",
-    active: "Active", downloaded: "Downloaded", downloading: "Downloading...", available: "Available",
-    use: "Use this", install: "Install", remove: "Remove", cancel: "Cancel",
-    installable: "Models you can install",
-    installed: "Installed models",
-    confirmDl: "This model is %s and will be downloaded from %h over the internet. Continue?",
-    confirmExt: "What you write and attach will be sent to %h, outside this computer. Continue?",
-    endpoint: "Endpoint URL", model: "Model", key: "API key",
-    keyStored: "key stored", test: "Test", save: "Save",
-    testOk: "Reachable, latency %ms ms", testFail: "Failed: %e",
-    saved: "Saved. Takes effect from the next message.",
-    errAdmin: "Only the administrator can change the model.",
-    runtimeNotInstalled: "The local inference engine is not installed. Activating a local model requires restarting the app.",
-    runtimeNotReachable: "The local inference engine is not responding.",
-    restartNeeded: "Activated. The app needs to restart to use the new model.",
-    freeNote: "Everything you write and attach is sent to %h.",
-    noModels: "No local models available.",
-    fits: "fits this machine", nofit: "does not fit (needs %v GB)",
-    serverOnly: "server only",
-  }
-};
+var T = {"pt-BR":{
+  now:"Agora",where:"Onde o assistente pensa",local:"Neste computador",
+  own:"Servidor da sua organização ou chave",free:"Modelo gratuito hospedado",
+  hw:"Placa: %d, memória: %v GB VRAM, %r GB RAM",
+  active:"Em uso",downloaded:"Baixado",downloading:"Baixando...",available:"Disponível",
+  use:"Usar este",install:"Instalar",remove:"Remover",cancel:"Cancelar",
+  installable:"Modelos que você pode instalar",installed:"Modelos instalados",
+  confirmDl:"Este modelo tem %s e será baixado de %h pela internet. Continuar?",
+  confirmExt:"O que você escrever e anexar será enviado a %h, fora deste computador. Continuar?",
+  endpoint:"URL do endpoint",model:"Modelo",key:"Chave de API",
+  keyStored:"chave armazenada",test:"Testar",save:"Salvar",
+  testOk:"Alcançável, latência %ms ms",testFail:"Falha: %e",
+  saved:"Salvo. Vale a partir da próxima mensagem.",
+  errAdmin:"Somente o administrador pode alterar o modelo.",
+  runtimeNotInstalled:"O motor de inferência local não está instalado.",
+  runtimeNotReachable:"O motor de inferência local não está respondendo.",
+  restartNeeded:"Ativado. Reinicie o aplicativo para usar o novo modelo.",
+  freeNote:"Tudo que você escrever e anexar é enviado a %h.",
+  noModels:"Nenhum modelo local disponível.",
+  fits:"cabe nesta máquina",nofit:"não cabe (precisa %v GB)",serverOnly:"apenas servidor"},
+en:{
+  now:"Now",where:"Where the assistant thinks",local:"On this computer",
+  own:"Your organization’s server or provider key",free:"Free hosted model",
+  hw:"Device: %d, memory: %v GB VRAM, %r GB RAM",
+  active:"Active",downloaded:"Downloaded",downloading:"Downloading...",available:"Available",
+  use:"Use this",install:"Install",remove:"Remove",cancel:"Cancel",
+  installable:"Models you can install",installed:"Installed models",
+  confirmDl:"This model is %s and will be downloaded from %h over the internet. Continue?",
+  confirmExt:"What you write and attach will be sent to %h, outside this computer. Continue?",
+  endpoint:"Endpoint URL",model:"Model",key:"API key",
+  keyStored:"key stored",test:"Test",save:"Save",
+  testOk:"Reachable, latency %ms ms",testFail:"Failed: %e",
+  saved:"Saved. Takes effect from the next message.",
+  errAdmin:"Only the administrator can change the model.",
+  runtimeNotInstalled:"The local inference engine is not installed.",
+  runtimeNotReachable:"The local inference engine is not responding.",
+  restartNeeded:"Activated. Restart the app to use the new model.",
+  freeNote:"Everything you write and attach is sent to %h.",
+  noModels:"No local models available.",
+  fits:"fits this machine",nofit:"does not fit (needs %v GB)",serverOnly:"server only"}};
 function t(key) {
   var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en";
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
@@ -91,52 +83,74 @@ function inlineConfirm(text, onYes) {
 
 /* state */
 var cfg = null, modes = null, localModels = null, readOnly = false;
+var cfgError = null;
 
-A.renderModelFull = async function (panel) {
+A.renderModelFull = function (panel) {
   readOnly = false;
-  /* Fetch config; 404 = API not deployed yet, 401/403 = not admin */
-  try {
-    var r = await A.apiFetch("/api/llm/config");
-    if (r.status === 401 || r.status === 403) { readOnly = true; renderReadOnly(panel); return; }
-    if (!r.ok) { renderReadOnly(panel); return; }
-    cfg = await r.json();
-  } catch (e) { renderReadOnly(panel); return; }
-  try {
-    var r2 = await A.apiFetch("/api/llm/config/modes");
-    if (r2.ok) modes = (await r2.json()).modes || [];
-  } catch (e) { modes = []; }
-  renderFull(panel);
+  cfgError = null;
+  cfg = null;
+  modes = [];
+
+  /* Chain with .then() — avoids async/await edge cases in WebView2. */
+  return A.apiFetch("/api/llm/config").then(function (r) {
+    if (r.status === 401 || r.status === 403) { readOnly = true; return null; }
+    if (r.ok) { return r.json(); }
+    cfgError = "HTTP " + r.status; return null;
+  }).catch(function (e) { cfgError = e.message || String(e); return null;
+  }).then(function (cfgData) {
+    if (cfgData) { cfg = cfgData; }
+    if (readOnly) { return null; }
+    return A.apiFetch("/api/llm/config/modes").then(function (r2) {
+      if (r2.ok) { return r2.json(); }
+      return null;
+    }).catch(function () { return null; });
+  }).then(function (modesData) {
+    if (modesData) { modes = modesData.modes || modesData || []; }
+    return A.apiFetch("/api/llm/runtime/status").then(function (r3) {
+      if (r3.ok) { return r3.json(); }
+      return null;
+    }).catch(function () { return null; });
+  }).then(function (runtimeData) {
+    if (runtimeData && cfg && !cfg.local_runtime) { cfg.local_runtime = runtimeData; }
+    renderFull(panel);
+  }).catch(function (e) {
+    cfgError = cfgError || (e.message || String(e));
+    renderFull(panel);
+  });
 };
 
-function renderReadOnly(panel) {
-  /* Fallback: show the old read-only card using /api/chat/models data */
-  var modelName = A.defaultModel || A.selectedModel || "";
-  var short = modelName;
-  var sl = short.lastIndexOf("/"); if (sl >= 0) short = short.substring(sl+1);
-  var co = short.indexOf(":"); if (co > 0) short = short.substring(0, co);
-  if (!short) short = modelName || "—";
-  var dest = A.destination || {}; var scope = dest.scope || "unknown"; var host = dest.host || "";
-  var priv = "";
-  if (scope === "machine") priv = esc(t("now")) + ": " + esc(A.t("settings.model-machine",""));
-  else if (scope === "network") priv = esc(A.t("settings.model-network","")) + (host ? " (" + esc(host) + ")." : ".");
-  else if (scope === "external") priv = '<span class="gb-set-external-warn">' + esc(A.t("settings.model-external","")) + " " + esc(host) + ".</span>";
-  var hint = readOnly ? '<p class="gb-set-hint gb-set-warn">' + esc(t("errAdmin")) + '</p>' : '';
-  panel.innerHTML = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(A.t("settings.model","Model")) + '</h2>' +
-    '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span><span class="gb-set-value gb-set-model-name">' + esc(short) + '</span></div>' +
-    '<p class="gb-set-privacy">' + priv + '</p>' + hint + '</div>';
-}
-
 function renderFull(panel) {
-  var html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
-    '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
-    '<span class="gb-set-value gb-set-model-name">' + esc(shortName(cfg.model)) + '</span></div>' +
-    destLine(cfg.endpoint_scope, cfg.endpoint_host) + '</div>';
-  html += '<h3 class="gb-set-section-title">' + esc(t("where")) + '</h3>';
-  html += '<div class="gb-set-modes" id="gbModelModes">';
-  html += modeCard("local"); html += modeCard("own_key"); html += modeCard("free");
+  /* Current model summary card */
+  var modelName = cfg ? cfg.model : (A.defaultModel || A.selectedModel || "");
+  var scope = cfg ? cfg.endpoint_scope : (A.destination && A.destination.scope || "");
+  var host = cfg ? cfg.endpoint_host : (A.destination && A.destination.host || "");
+  var currentMode = cfg ? (cfg.mode || "") : "";
+
+  var html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>';
+  html += '<div class="gb-set-field"><span class="gb-set-label">' +
+    esc(A.t("settings.current-model","")) + '</span>' +
+    '<span class="gb-set-value gb-set-model-name">' + esc(shortName(modelName)) + '</span></div>';
+  html += destLine(scope, host);
+  if (readOnly) {
+    html += '<p class="gb-set-hint gb-set-warn">' + esc(t("errAdmin")) + '</p>';
+  }
+  if (cfgError) {
+    html += '<p class="gb-set-hint gb-set-warn">' + esc(cfgError) + '</p>';
+  }
   html += '</div>';
+
+  /* Mode cards — always shown unless read-only (admin restriction) */
+  if (!readOnly) {
+    html += '<h3 class="gb-set-section-title">' + esc(t("where")) + '</h3>';
+    html += '<div class="gb-set-modes" id="gbModelModes">';
+    html += modeCard("local", currentMode);
+    html += modeCard("own_key", currentMode);
+    html += modeCard("free", currentMode);
+    html += '</div>';
+  }
+
   panel.innerHTML = html;
-  bindModeCards(panel);
+  if (!readOnly) { bindModeCards(panel); }
 }
 
 function shortName(m) { if (!m) return "—"; var s=m; var i=s.lastIndexOf("/"); if(i>=0)s=s.substring(i+1); var c=s.indexOf(":"); if(c>0)s=s.substring(0,c); return s||m; }
@@ -148,14 +162,23 @@ function destLine(scope, host) {
   return '';
 }
 
-function modeCard(id) {
-  var sel = cfg && cfg.mode === id;
+function modeCard(id, currentMode) {
+  var sel = currentMode === id;
   var cls = "gb-set-mode-card" + (sel ? " gb-set-mode-active" : "");
   var label = t(id === "own_key" ? "own" : id);
   var modeData = modes && modes.find(function(m){return m.id===id});
   var avail = !modeData || modeData.available !== false;
+  /* Icon per mode */
+  var icons = {
+    local: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+    own_key: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    free: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
+  };
+  var icon = icons[id] || "";
   return '<button class="' + cls + '" data-mode="' + id + '"' + (avail ? '' : ' disabled') + '>' +
+    icon +
     '<span class="gb-set-mode-label">' + esc(label) + '</span>' +
+    (sel ? '<span class="gb-badge gb-badge-active">' + esc(t("active")) + '</span>' : '') +
     '</button>';
 }
 
@@ -186,8 +209,42 @@ function renderModeDetail(panel, mode) {
 }
 
 function renderLocalDetail(el) {
-  el.innerHTML = '<p class="gb-set-desc">' + esc(t("local")) + '</p><div id="gbLocalContent"><p class="gb-set-hint">' + esc(A.t("assistant.connecting","Loading...")) + '</p></div>';
+  el.innerHTML = '<p class="gb-set-desc">' + esc(t("local")) + '</p>' +
+    '<div id="gbLocalContent"><p class="gb-set-hint">' +
+    esc(A.t("assistant.connecting","Loading...")) + '</p></div>';
   loadLocalModels(el);
+}
+
+/* Install button for the local runtime engine. */
+function renderInstallButton(container) {
+  var btnId = "gbInstallRuntime";
+  container.innerHTML += '<div style="margin-top:12px">' +
+    '<button class="gb-set-btn-sm gb-set-btn-accent" id="' + btnId + '">' +
+    esc(A.locale && A.locale.startsWith("pt")
+      ? "Instalar o motor local"
+      : "Install the local engine") +
+    '</button><div id="gbInstallMsg"></div></div>';
+  var btn = document.getElementById(btnId);
+  if (btn) {
+    btn.addEventListener("click", function () {
+      btn.disabled = true;
+      btn.textContent = A.locale && A.locale.startsWith("pt") ? "Instalando..." : "Installing...";
+      A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
+        return r.json();
+      }).then(function (d) {
+        var msg = document.getElementById("gbInstallMsg");
+        if (d && d.job_id) {
+          if (msg) { msg.innerHTML = '<p class="gb-set-hint">Job: ' + esc(d.job_id) + '</p>'; }
+          startJobPoller(d.job_id);
+        } else if (d && d.error) {
+          if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error) + '</p>'; }
+        }
+      }).catch(function (e) {
+        var msg = document.getElementById("gbInstallMsg");
+        if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+      });
+    });
+  }
 }
 
 async function loadLocalModels(el) {
@@ -202,8 +259,11 @@ async function loadLocalModels(el) {
   var html = '<p class="gb-set-desc" style="font-size:12px">' +
     esc(t("hw").replace("%d",hw.device||"?").replace("%v",String(hw.vram_gb||0)).replace("%r",String(hw.ram_gb||0))) + '</p>';
   var lr = cfg && cfg.local_runtime;
-  if (lr && !lr.installed) html += '<p class="gb-set-warn">' + esc(t("runtimeNotInstalled")) + '</p>';
-  else if (lr && !lr.runtime_reachable) html += '<p class="gb-set-warn">' + esc(t("runtimeNotReachable")) + '</p>';
+  if (lr && !lr.installed) {
+    html += '<p class="gb-set-warn">' + esc(t("runtimeNotInstalled")) + '</p>';
+  } else if (lr && !lr.runtime_reachable) {
+    html += '<p class="gb-set-warn">' + esc(t("runtimeNotReachable")) + '</p>';
+  }
   /* Installed models */
   var installed = [], available = [];
   (localModels.tiers || []).forEach(function(tier) {
@@ -222,6 +282,8 @@ async function loadLocalModels(el) {
   }
   html += '<div id="gbLocalMsg"></div>';
   container.innerHTML = html;
+  /* Show install button when runtime is not installed */
+  if (lr && !lr.installed) { renderInstallButton(container); }
   bindModelActions(container);
 }
 
