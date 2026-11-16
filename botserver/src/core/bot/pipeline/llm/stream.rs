@@ -7,10 +7,7 @@ use super::super::api_call::handle_api_call;
 use super::super::types::{LlmTarget, PipelineResult, SessionIdentity};
 use super::attempt::{stream_attempt, Attempt, AttemptOutcome};
 use super::markdown::convert_markdown;
-use super::{
-    get_session_tools_with_timeout, is_web_channel, llm_empty_message, LLM_RETRY_DELAY,
-    LLM_RETRY_MAX,
-};
+use super::{get_session_tools_with_timeout, is_web_channel, LLM_RETRY_DELAY, LLM_RETRY_MAX};
 
 pub async fn stream_llm_response(
     identity: &SessionIdentity<'_>,
@@ -138,9 +135,6 @@ async fn stream_llm_response_inner(
                 let (full_response, mut content_buffer, reasoning_accumulated) = match outcome {
                     AttemptOutcome::Stopped | AttemptOutcome::Capped => return Ok(()),
                     AttemptOutcome::Failed { code, detail } => {
-                        // #2562 — classified LLM error: send a structured
-                        // error frame so the client renders the right card
-                        // and retry/settings buttons.
                         log::warn!(
                             "LLM attempt {}/{} failed: {:?} — {}",
                             attempt + 1,
@@ -148,63 +142,11 @@ async fn stream_llm_response_inner(
                             code,
                             detail
                         );
-                        // Retry transient errors before giving up.
                         if code.is_retryable() && attempt < LLM_RETRY_MAX {
                             tokio::time::sleep(Duration::from_secs(LLM_RETRY_DELAY)).await;
                             continue;
                         }
-                        let safe_msg = code.safe_message();
-                        let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
-                        let i18n_key = match code {
-                            super::error_classify::LlmErrorCode::ModelUnreachable => "error-model-unreachable",
-                            super::error_classify::LlmErrorCode::ModelAuth => "error-model-auth",
-                            super::error_classify::LlmErrorCode::ModelRateLimited => "error-model-rate-limited",
-                            super::error_classify::LlmErrorCode::ModelError => "error-model-error",
-                            super::error_classify::LlmErrorCode::Timeout => "error-model-timeout",
-                        };
-                        let msg = {
-                            let translated = botcore::i18n::t(&locale, i18n_key);
-                            if translated.starts_with('[') && translated.ends_with(']') {
-                                safe_msg.to_string()
-                            } else {
-                                translated
-                            }
-                        };
-                        let err_frame = serde_json::json!({
-                            "bot_id": bot_uuid_s,
-                            "user_id": user_id.to_string(),
-                            "session_id": session_id_s,
-                            "channel": "web",
-                            "content": msg,
-                            "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
-                            "is_complete": true,
-                            "is_error": true,
-                            "error": true,
-                            "error_code": code,
-                            "retryable": code.is_retryable(),
-                            "status": "failed",
-                            "turn_status": "failed",
-                            "suggestions": [],
-                            "switchers": [],
-                            "context_length": 0,
-                            "context_max_length": 0,
-                        });
-                        if sink.supports_raw_frames() {
-                            if let Err(error) = sink.send_raw_json(&err_frame).await {
-                                log::error!("LLM error frame not delivered: {error}");
-                            }
-                        } else {
-                            let err_resp = botlib::models::BotResponse::new(
-                                bot_uuid_s,
-                                session_id_s,
-                                user_id.to_string(),
-                                &msg,
-                                "web",
-                            );
-                            if let Err(error) = sink.send_bot_response(&err_resp).await {
-                                log::error!("LLM error response not delivered: {error}");
-                            }
-                        }
+                        super::stream_errors::send_classified_error(sink, identity, code).await;
                         return Ok(());
                     }
                     AttemptOutcome::Completed {
@@ -298,45 +240,7 @@ async fn stream_llm_response_inner(
                         "LLM empty response after {} retries, sending fallback",
                         LLM_RETRY_MAX
                     );
-                    let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
-                    let err_msg = llm_empty_message(&locale);
-                    // #2360 — terminal failure after retries: emit explicit
-                    // structured error flags so the client can mark this turn
-                    // retryable without matching prose.
-                    let err_frame = serde_json::json!({
-                        "bot_id": bot_uuid_s,
-                        "user_id": user_id.to_string(),
-                        "session_id": session_id_s,
-                        "channel": "web",
-                        "content": err_msg,
-                        "message_type": botlib::message_types::MessageType::BOT_RESPONSE,
-                        "is_complete": true,
-                        "is_error": true,
-                        "error": true,
-                        "retryable": true,
-                        "status": "failed",
-                        "turn_status": "failed",
-                        "suggestions": [],
-                        "switchers": [],
-                        "context_length": 0,
-                        "context_max_length": 0,
-                    });
-                    if sink.supports_raw_frames() {
-                        if let Err(error) = sink.send_raw_json(&err_frame).await {
-                            log::error!("empty-response notice not delivered: {error}");
-                        }
-                    } else {
-                        let err_resp = botlib::models::BotResponse::new(
-                            &bot_uuid_s,
-                            &session_id_s,
-                            user_id.to_string(),
-                            &err_msg,
-                            "web",
-                        );
-                        if let Err(error) = sink.send_bot_response(&err_resp).await {
-                            log::error!("empty-response notice not delivered: {error}");
-                        }
-                    }
+                    super::stream_errors::send_empty_response_error(sink, identity).await;
                     {
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
@@ -423,92 +327,29 @@ async fn stream_llm_response_inner(
                             let _ = sink.send_bot_response(&final_resp).await;
                         }
                     } else {
-                        // Execute every __tool_call__ JSON object in the reply,
-                        // not only the first: parallel calls (e.g. two media
-                        // items classified in one turn) must each run with
-                        // their own arguments.
-                        let call_chunks: Vec<&str> = full_response
-                            .split('\n')
-                            .filter(|c| c.contains("\"__tool_call__\":"))
-                            .collect();
-                        let tool_output = if call_chunks.len() > 1 {
-                            log::info!("Executing {} parallel tool calls", call_chunks.len());
-                            let mut parts = Vec::new();
-                            for call_chunk in call_chunks {
-                                parts.push(
-                                    super::super::tool_exec::run_llm_tool_call(
-                                        identity, rx, call_chunk, user_text,
-                                    )
-                                    .await,
-                                );
+                        match super::stream_tools::execute_and_prepare_followup(
+                            identity,
+                            rx,
+                            &full_response,
+                            user_text,
+                            messages,
+                            tool_depth,
+                            MAX_TOOL_FOLLOWUPS,
+                        )
+                        .await?
+                        {
+                            Some(follow_messages) => {
+                                return Box::pin(stream_llm_response_inner(
+                                    identity,
+                                    rx,
+                                    &follow_messages,
+                                    user_text,
+                                    model_preference,
+                                    tool_depth + 1,
+                                ))
+                                .await;
                             }
-                            parts.join("\n\n")
-                        } else {
-                            super::super::tool_exec::run_llm_tool_call(
-                                identity,
-                                rx,
-                                &full_response,
-                                user_text,
-                            )
-                            .await
-                        };
-                        if tool_depth < MAX_TOOL_FOLLOWUPS && !tool_output.trim().is_empty() {
-                            // Keep the follow-up inside a sane prompt budget;
-                            // a runaway listing must not crowd out the answer.
-                            let follow_output: String = tool_output.chars().take(12_000).collect();
-                            let mut follow_messages = messages.clone();
-                            // #1701 — a message sent while the step runs is
-                            // honored at the step boundary in THIS path too
-                            // (web chat streams through the pipeline, so the
-                            // ws-loop steering queue alone was dead code).
-                            if let Some(steer) =
-                                crate::core::bot::runs::bus::bus().take_steering(&session_id_s)
-                            {
-                                botlog::safe_warn!(
-                                    "steering applied before follow-up (session {}, {} chars)",
-                                    session_id_s,
-                                    steer.chars().count()
-                                );
-                                let notice = serde_json::json!({
-                                    "type": "gb.steer",
-                                    "session_id": session_id_s,
-                                    "message": steer,
-                                });
-                                let _ = sink.send_raw_json(&notice).await;
-                                if let Some(items) = follow_messages.as_array_mut() {
-                                    items.push(serde_json::json!({
-                                        "role": "user",
-                                        "content": crate::core::bot::runs::steering::instruction(&steer),
-                                    }));
-                                }
-                            }
-                            if let Some(items) = follow_messages.as_array_mut() {
-                                items.push(serde_json::json!({
-                                    "role": "assistant",
-                                    "content": full_response,
-                                }));
-                                items.push(serde_json::json!({
-                                    "role": "user",
-                                    "content": format!(
-                                        "The tool finished with this result:\n\n{follow_output}\n\nAnswer the user's original request now using this result. Do not call another tool unless it is strictly necessary."
-                                    ),
-                                }));
-                            }
-                            log::info!(
-                                "tool follow-up: depth {}/{} after {} bytes of tool output",
-                                tool_depth + 1,
-                                MAX_TOOL_FOLLOWUPS,
-                                tool_output.len()
-                            );
-                            return Box::pin(stream_llm_response_inner(
-                                identity,
-                                rx,
-                                &follow_messages,
-                                user_text,
-                                model_preference,
-                                tool_depth + 1,
-                            ))
-                            .await;
+                            None => {}
                         }
                     }
                 }

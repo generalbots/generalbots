@@ -12,6 +12,8 @@ pub(crate) mod error_classify;
 mod markdown;
 pub(crate) mod message_meta;
 mod stream;
+mod stream_errors;
+mod stream_tools;
 mod svg_contract;
 
 pub use stream::stream_llm_response;
