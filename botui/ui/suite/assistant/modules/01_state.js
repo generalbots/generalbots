@@ -150,15 +150,27 @@ window.GBAssistant = window.GBAssistant || {};
 
     A.handle401 = function (url) {
         if (url && url.indexOf("/api/i18n/") !== -1) { return; }
-        /* Only redirect when there is no token at all (genuine session
-           expiry). A 401 from a specific endpoint while the user holds a
-           valid token means the endpoint rejected it for its own reasons
-           (scope, feature gate, stale session id) — NOT that the person
-           must re-authenticate. Redirecting on background 401s was the
-           root cause of conversations failing to load after a page
-           reload: the messages rendered, then /api/consent/pending
-           returned 401, handle401 navigated to login, and the page
-           reloaded empty. */
+        /* Auth-critical endpoints: a 401 from these means the token
+           itself is invalid (expired or tampered), not a scope issue.
+           Clear the token and redirect to sign-in. */
+        var isCritical = url && (
+            url.indexOf("/api/auth") === 0 ||
+            url.indexOf("/api/chat/history") === 0
+        );
+        if (isCritical) {
+            var keys = ["gb-access-token", "management_token"];
+            for (var i = 0; i < keys.length; i++) {
+                try { localStorage.removeItem(keys[i]); } catch (e) { /* */ }
+            }
+            try { sessionStorage.removeItem("gb-access-token"); } catch (e) { /* */ }
+            try { sessionStorage.setItem("gb-session-expired", "1"); } catch (e) { /* */ }
+            A.goToLogin(window.location.href);
+            return;
+        }
+        /* Background 401s while the user holds a valid token are NOT
+           session expiry: the endpoint rejected it for its own reasons
+           (scope, feature gate, stale session id). Redirecting on these
+           was the root cause of conversations failing to load. */
         if (A.getToken()) {
             console.warn("[assistant] 401 from " + (url || "unknown") + " (token present, not redirecting)");
             return;

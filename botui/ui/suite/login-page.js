@@ -63,6 +63,20 @@
     var toggle = document.getElementById("pwToggle");
     if (toggle) { toggle.setAttribute("aria-label", t.showPw); }
 
+    /* ---- session-expired notice from the assistant ---- */
+    try {
+        if (sessionStorage.getItem("gb-session-expired") === "1") {
+            sessionStorage.removeItem("gb-session-expired");
+            var expMsg = lang === "pt"
+                ? "Sua sessão expirou. Entre novamente."
+                : "Your session expired. Please sign in again.";
+            if (subtitle) {
+                subtitle.textContent = expMsg;
+                subtitle.style.color = "var(--id-warn, #92400e)";
+            }
+        }
+    } catch (e) { /* storage disabled */ }
+
     /* ---- accent from server ---- */
     (function loadAccent() {
         var url = (window.__GB_SERVER_ORIGIN__ || "") + "/api/product";

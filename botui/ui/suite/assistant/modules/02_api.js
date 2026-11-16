@@ -5,8 +5,8 @@
 
 (function () {
     var A = window.GBAssistant;
-    var MAX_RECONNECT = 30;
     var BASE_DELAY = 1000;
+    var MAX_DELAY = 15000;
 
     /* ------------------------------------------------------------------ */
     /*  REST helpers                                                       */
@@ -242,14 +242,23 @@
         catch (e) { scheduleReconnect(); return; }
 
         A.ws.onopen = function () {
+            var wasReconnect = A.reconnectAttempts > 0;
             A.wsConnected = true;
             A.reconnectAttempts = 0;
             updateStatus("connected");
-            A.announce(A.t("assistant.connected", "Connected"));
+            if (wasReconnect) {
+                A.announce(A.t("assistant.reconnected", "Connection restored"));
+            } else {
+                A.announce(A.t("assistant.connected", "Connected"));
+            }
         };
         A.ws.onclose = function () {
             A.wsConnected = false;
             updateStatus("disconnected");
+            /* If streaming was in progress, finalize with partial content. */
+            if (A.isStreaming && typeof A.endStream === "function") {
+                A.endStream();
+            }
             scheduleReconnect();
         };
         A.ws.onerror = function () {
@@ -272,12 +281,28 @@
     };
 
     function scheduleReconnect() {
-        if (A.reconnectAttempts >= MAX_RECONNECT) { return; }
-        var delay = Math.min(BASE_DELAY * Math.pow(1.5, A.reconnectAttempts), 30000);
+        /* Never give up: exponential back-off 1 → 2 → 4 → 8 → 15 s cap. */
+        var delay = Math.min(BASE_DELAY * Math.pow(2, Math.min(A.reconnectAttempts, 10)), MAX_DELAY);
         A.reconnectAttempts++;
         clearTimeout(A.reconnectTimer);
         A.reconnectTimer = setTimeout(function () { A.connectWs(); }, delay);
     }
+
+    /* Reconnect immediately when the window regains focus. */
+    window.addEventListener("focus", function () {
+        if (!A.wsConnected && (!A.ws || A.ws.readyState > 1)) {
+            clearTimeout(A.reconnectTimer);
+            A.reconnectAttempts = 0;
+            A.connectWs();
+        }
+    });
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && !A.wsConnected && (!A.ws || A.ws.readyState > 1)) {
+            clearTimeout(A.reconnectTimer);
+            A.reconnectAttempts = 0;
+            A.connectWs();
+        }
+    });
 
     function updateStatus(state) {
         var dot = document.getElementById("gbStatusDot");
@@ -285,6 +310,29 @@
             dot.className = "gb-status-dot" +
                 (state === "connected" ? " connected" : "") +
                 (state === "error" ? " error" : "");
+        }
+        /* Reconnecting banner: shown above the composer when disconnected,
+           hides automatically when the socket reconnects. */
+        showReconnectBanner(state !== "connected");
+    }
+
+    var reconnectBannerEl = null;
+    function showReconnectBanner(show) {
+        if (show && !reconnectBannerEl) {
+            reconnectBannerEl = document.createElement("div");
+            reconnectBannerEl.id = "gbReconnectBanner";
+            reconnectBannerEl.className = "gb-reconnect-banner";
+            reconnectBannerEl.setAttribute("role", "status");
+            reconnectBannerEl.innerHTML =
+                '<span class="gb-reconnect-pulse" aria-hidden="true"></span>' +
+                '<span>' + A.escapeHtml(A.t("assistant.reconnecting", "Reconectando…")) + '</span>';
+            var dock = document.getElementById("gbDockAbove") ||
+                       document.getElementById("gbComposerDock");
+            if (dock) { dock.parentNode.insertBefore(reconnectBannerEl, dock); }
+        }
+        if (!show && reconnectBannerEl) {
+            reconnectBannerEl.remove();
+            reconnectBannerEl = null;
         }
     }
 
