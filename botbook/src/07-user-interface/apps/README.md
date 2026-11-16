@@ -29,7 +29,26 @@ split lives in the app registry (`launcher_visibility` in
 mirrors it — see [Product configuration](../../12-ecosystem-reference/README.md#preview_apps)
 for how to promote or hide an app.
 
+### App manifest consistency
+
+Three manifests must stay in sync: the window-manager registry
+(`botui/ui/suite/js/window-manager/01_registry.js`), the product lists in
+`botserver/.product` (`apps`, `preview_apps`, `hidden_apps`), and the `hxGet`
+targets under `botui/ui/suite/`. Run the checker before editing any of them:
+
+```bash
+node scripts/check-app-manifest.mjs
+```
+
+It fails on drift (unclassified registered apps, listed ids with no launcher
+tile, missing `hxGet` files, or duplicate classifications) and CI runs it on
+every PR that touches `.product*`, `01_registry.js`, `suite/*/*.html`, or
+`botserver/src/apps/`. Core surfaces (`about`, `admin`, `settings`, `auth`) are
+always available without being listed in `apps=`.
+
 ---
+
+
 
 ## The stable apps
 

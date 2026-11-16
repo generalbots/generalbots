@@ -313,6 +313,15 @@ jobs:
           python3 scripts/check_security_directives.py --check
           python3 scripts/check_security_directives.py --self-test
 
+      # #2545 — the three app manifests must agree: every APPS_REGISTRY id is
+      # classified in .product (apps/preview/hidden or core), every listed id
+      # has a launcher tile, and every hxGet target exists. Prevents silent
+      # drift between the window-manager registry and the shipped product.
+      - name: App manifest consistency (#2545)
+        run: |
+          set -euo pipefail
+          node scripts/check-app-manifest.mjs
+
       # #2103 — Cargo.toml is the single source of truth for the product
       # version. Every other version-bearing file must agree with it, and the
       # simulated-tag selftest proves `sync` writes the tag it is given.
