@@ -58,6 +58,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.consent-granted":  "Permitido",
     "assistant.consent-denied":   "Negado",
     "assistant.consent-failed":   "Não foi possível registrar a decisão",
+    "assistant.consent-expired":  "Este pedido expirou",
     "attach.too-big": "Arquivo grande demais (limite de 8 MB por arquivo): ",
     "settings.back":           "Voltar à conversa",
     "settings.account":        "Conta",

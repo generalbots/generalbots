@@ -284,11 +284,21 @@ pub async fn resolve_consent(
     let outcome = match enforce::resolve(&service, &parsed.request_id, parsed.decision, user_id).await {
         Ok(o) => o,
         Err(e) => {
-            tracing::error!("consent resolve failed: {e}");
+            // #2561 — return a machine-readable code so the UI can show a
+            // specific message and unlock the composer.
+            let code = if e.contains("expired") {
+                "expired"
+            } else {
+                "not_found"
+            };
+            tracing::error!("consent resolve failed ({code}): {e}");
             if is_hx_request(&headers) {
-                return Ok(Html(cards::summary_card_html("error")).into_response());
+                return Ok(Html(cards::summary_card_html(code)).into_response());
             }
-            return Err((StatusCode::NOT_FOUND, "Consent request not found".to_string()));
+            return Ok(Json(serde_json::json!({
+                "error": code,
+                "message": "Consent request not found or expired",
+            })).into_response());
         }
     };
 

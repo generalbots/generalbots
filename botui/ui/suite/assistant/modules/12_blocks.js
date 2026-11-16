@@ -113,9 +113,24 @@ A.blockThinking = function (evOrElapsed, reasoning) {
 
 A.blockAttachmentRead = function (ev) {
     var s = ev.summary || ev.data || ev;
+    var isFailed = ev.status === "failed";
+    var failReason = isFailed ? (ev.error || "") : "";
+    /* #2561 — show a clear reason when image reading is not installed */
+    var failLabel = "";
+    if (failReason === "image_reader_unavailable") {
+        failLabel = t(
+            "Não foi possível ler a imagem: a leitura de imagens não está instalada",
+            "Could not read the image: image reading is not installed"
+        );
+    } else if (isFailed && failReason) {
+        failLabel = failReason;
+    }
     var el = block({ icon: "paperclip", title: t("Leitura de anexo","Attachment read"),
-        summary: s.name || s.file || "", status: mapStatus(ev.status), activityId: ev.id,
-        bodyHtml: row(t("Arquivo","File"), s.name||s.file) +
+        summary: s.name || s.file || failLabel || "", status: mapStatus(ev.status), activityId: ev.id,
+        bodyHtml: (isFailed && failLabel
+                ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:var(--id-warn,#a16207)">' + esc(failLabel) + '</span></div>'
+                : "") +
+            row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
             (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
