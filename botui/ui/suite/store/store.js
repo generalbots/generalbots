@@ -31,10 +31,12 @@
 
   function install(id, title) {
     const list = readInstalled();
-    if (list.indexOf(id) === -1) list.push(id);
-    writeInstalled(list);
+    if (list.indexOf(id) === -1) {
+      list.push(id);
+      writeInstalled(list);
+    }
     render();
-    // Server-side popularity counter; mark confirmed on success
+    // Server-side popularity counter; best-effort sync
     fetch("/api/apps/install", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,10 +45,24 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
     }).catch(function (err) {
       console.error("[gb-store] App install request failed:", err);
-      if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Install recorded locally; server sync failed.', 'error');
+      if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Install saved locally; server sync failed.', 'error');
     });
     window.dispatchEvent(new CustomEvent("gb-app-installed", { detail: { id, title } }));
     window.dispatchEvent(new CustomEvent("gb-launcher-pin-request", { detail: { kind: "app", appId: id } }));
+  }
+
+  function uninstall(id, title) {
+    const list = readInstalled().filter(function (x) { return x !== id; });
+    writeInstalled(list);
+    render();
+    fetch("/api/apps/uninstall", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: id }),
+    }).catch(function (err) {
+      console.error("[gb-store] App uninstall request failed:", err);
+    });
+    window.dispatchEvent(new CustomEvent("gb-app-uninstalled", { detail: { id, title } }));
   }
 
   function openApp(app) {
@@ -154,9 +170,9 @@
           '<div class="store-app-desc">' + escapeHtml(a.description || "") + "</div>" +
           '<div class="store-card-actions">' +
           (installed
-            ? '<button class="store-install-btn installed">Installed</button>'
-            : '<button class="store-install-btn" data-install="' + a.id + '">Install</button>') +
-          '<button class="store-open-btn" data-open="' + a.id + '">Open</button>' +
+            ? '<button class="store-install-btn installed" data-uninstall="' + escapeHtml(a.id) + '" title="Click to uninstall">Installed</button>'
+            : '<button class="store-install-btn" data-install="' + escapeHtml(a.id) + '">Install</button>') +
+          '<button class="store-open-btn" data-open="' + escapeHtml(a.id) + '">Open</button>' +
           '<span class="store-installs">' + (count || "") + (count ? " installs" : "") + "</span>" +
           "</div>" +
           "</div>"
@@ -168,6 +184,13 @@
         const id = btn.dataset.install;
         const app = catalog.find(function (a) { return a.id === id; });
         if (app) install(id, app.title);
+      });
+    });
+    Array.from(grid.querySelectorAll("[data-uninstall]")).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const id = btn.dataset.uninstall;
+        const app = catalog.find(function (a) { return a.id === id; });
+        uninstall(id, app ? app.title : id);
       });
     });
     Array.from(grid.querySelectorAll("[data-open]")).forEach(function (btn) {
@@ -200,5 +223,5 @@
     bootStore();
   }
 
-  window.GBAppStore = { loadCatalog: loadCatalog, render: render, install: install, isInstalled: isInstalled };
+  window.GBAppStore = { loadCatalog: loadCatalog, render: render, install: install, uninstall: uninstall, isInstalled: isInstalled };
 })();
