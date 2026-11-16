@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 mod bootlog;
 mod paths;
-mod probe;
+pub(crate) mod probe;
 mod product;
 
 use bootlog::{file_inode, log_was_recreated, write_boot_banner};
@@ -13,9 +13,9 @@ use product::sync_product_file;
 pub(crate) use product::PRODUCT_FILE;
 use super::no_window::NoConsoleWindow;
 use probe::{
-    api_is_answering, clear_pid, decide_start, pid_is_alive, pid_looks_like_botserver,
-    port_is_open, record_pid, recorded_pid, terminate_pid, StartDecision, API_PRODUCT_URL,
-    SIDECAR_PORT,
+    api_is_answering, api_product_url, clear_pid, decide_start, pid_is_alive,
+    pid_looks_like_botserver, port_is_open, record_pid, recorded_pid, sidecar_port,
+    terminate_pid, StartDecision,
 };
 
 /// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
@@ -120,12 +120,13 @@ impl Sidecar {
                 return Ok(());
             }
             StartDecision::AttachApi => {
-                info!("an assistant is already serving {API_PRODUCT_URL}; attaching to it");
+                info!("an assistant is already serving {}; attaching to it", api_product_url());
                 return Ok(());
             }
             StartDecision::AttachPort => {
+                let port = sidecar_port();
                 info!(
-                    "port {SIDECAR_PORT} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
+                    "port {port} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
                 );
                 return Ok(());
             }
@@ -381,8 +382,9 @@ impl Sidecar {
                 info!("Stopping the attached botserver sidecar (pid {pid})...");
                 stopped = terminate_pid(pid);
             } else {
+                let port = sidecar_port();
                 info!(
-                    "recorded sidecar pid {pid} is not serving port {SIDECAR_PORT}; nothing to stop"
+                    "recorded sidecar pid {pid} is not serving port {port}; nothing to stop"
                 );
             }
         }

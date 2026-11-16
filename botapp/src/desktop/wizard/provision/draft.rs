@@ -3,7 +3,10 @@
 use super::super::{draft_path, stack_path, ProvisionRequest};
 use log::{info, warn};
 
-const API_BOTS: &str = "http://127.0.0.1:8080/api/bots/list";
+fn api_base() -> String {
+    let port = crate::desktop::sidecar::probe::sidecar_port();
+    format!("http://127.0.0.1:{port}")
+}
 
 pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
     let services: std::collections::HashMap<&str, serde_json::Value> = request
@@ -63,7 +66,7 @@ pub(super) async fn apply_integrations(request: &ProvisionRequest) {
             return;
         }
     };
-    let bot_id = match client.get(API_BOTS).send().await {
+    let bot_id = match client.get(format!("{}/api/bots/list", api_base())).send().await {
         Ok(response) if response.status().is_success() => {
             let bots: serde_json::Value = response.json().await.unwrap_or_default();
             bots.as_array()
@@ -92,7 +95,7 @@ pub(super) async fn apply_integrations(request: &ProvisionRequest) {
             continue;
         }
         let url =
-            format!("http://127.0.0.1:8080/api/bots/{bot_id}/integrations/oauth/{provider}/client");
+            format!("{}/api/bots/{bot_id}/integrations/oauth/{provider}/client", api_base());
         let body = serde_json::json!({
             "client_id": service.client_id,
             "client_secret": if service.client_secret.is_empty() {

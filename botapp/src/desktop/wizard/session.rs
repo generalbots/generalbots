@@ -105,7 +105,10 @@ async fn login_and_cache(email: &str, password: &str) -> Option<String> {
         .build()
         .ok()?;
     let response = client
-        .post("http://127.0.0.1:8080/api/auth/login")
+        .post(format!(
+            "http://127.0.0.1:{}/api/auth/login",
+            crate::desktop::sidecar::probe::sidecar_port()
+        ))
         .json(&serde_json::json!({ "email": email.trim(), "password": password }))
         .send()
         .await

@@ -117,7 +117,8 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 /// Default entry point for packaged desktop builds: the sidecar serves both the
 /// suite and `/api`, so the page and the API share one origin.
 fn sidecar_suite_url() -> Option<tauri::Url> {
-    tauri::Url::parse("http://127.0.0.1:8080/suite/desktop.html").ok()
+    let port = crate::desktop::sidecar::probe::sidecar_port();
+    tauri::Url::parse(&format!("http://127.0.0.1:{port}/suite/desktop.html")).ok()
 }
 
 /// Re-navigates the hidden suite window to its entry point and reveals it.
@@ -187,6 +188,9 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     // a window created with visible:false never changes the URL. Reveal the
     // window first (the always-on-top splash stays above it) before navigating.
     let _ = main.show();
+    if crate::desktop::splash::is_test_rig() {
+        crate::desktop::splash::park_offscreen(&main);
+    }
     let url = suite_url_with_token(url, token);
     if let Err(e) = main.navigate(url.clone()) {
         warn!("could not navigate the suite window: {e}");

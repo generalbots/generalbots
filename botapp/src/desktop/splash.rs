@@ -25,6 +25,21 @@ const SPLASH_HEIGHT: f64 = if cfg!(feature = "gbgov") { 428.0 } else { 420.0 };
 /// animation needs at least 6 s; overridable with `GB_SPLASH_MIN_MS`.
 const DEFAULT_SPLASH_MIN_MS: u64 = if cfg!(feature = "gbgov") { 10000 } else { 0 };
 
+/// Whether the app is running under the test rig. Windows are positioned far
+/// off-screen so the WebView2 engine still renders (DevTools screenshots
+/// capture the render tree) but nothing appears on the owner's desktop.
+pub(crate) fn is_test_rig() -> bool {
+    std::env::var("GB_TEST_RIG").as_deref() == Ok("1")
+}
+
+/// Moves a window far off-screen and hides it from the taskbar, so it renders
+/// content without being visible.
+pub(crate) fn park_offscreen(window: &WebviewWindow) {
+    let _ = window.set_position(tauri::LogicalPosition::new(-10000.0, -10000.0));
+    let _ = window.set_skip_taskbar(true);
+    let _ = window.set_always_on_top(false);
+}
+
 /// Reads the minimum splash duration from the environment or the compile-time
 /// default.
 fn splash_min_duration() -> Duration {
@@ -39,31 +54,45 @@ fn splash_min_duration() -> Duration {
 /// not already present (for example in a development run).
 pub fn show(app: &tauri::AppHandle) {
     let window_created_at = Instant::now();
+    let rig = is_test_rig();
     if let Some(window) = app.get_webview_window("splash") {
         let _ = window.show();
-        if TOPMOST {
-            let _ = window.set_focus();
+        if rig {
+            park_offscreen(&window);
+        } else {
+            if TOPMOST {
+                let _ = window.set_focus();
+            }
+            let _ = window.set_always_on_top(TOPMOST);
         }
-        let _ = window.set_always_on_top(TOPMOST);
         // Resize to the edition dimensions (the conf declares 420x420).
         let _ = window.set_size(tauri::LogicalSize::new(SPLASH_WIDTH, SPLASH_HEIGHT));
-        let _ = window.center();
+        if !rig {
+            let _ = window.center();
+        }
         push_version(&window);
         watch_splash_painted(app, window_created_at);
         return;
     }
 
-    let builder = WebviewWindowBuilder::new(app, "splash", WebviewUrl::App("splash.html".into()))
+    let mut builder = WebviewWindowBuilder::new(app, "splash", WebviewUrl::App("splash.html".into()))
         .title("General Bots")
         .inner_size(SPLASH_WIDTH, SPLASH_HEIGHT)
         .min_inner_size(320.0, 320.0)
         .resizable(false)
         .decorations(false)
         .transparent(true)
-        .always_on_top(TOPMOST)
         .skip_taskbar(true)
-        .center()
         .visible(true);
+    if rig {
+        builder = builder
+            .always_on_top(false)
+            .position(-10000.0, -10000.0);
+    } else {
+        builder = builder
+            .always_on_top(TOPMOST)
+            .center();
+    }
 
     match builder.build() {
         Ok(win) => {
@@ -177,9 +206,13 @@ fn close(app: &tauri::AppHandle) {
 pub fn raise(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("splash") {
         let _ = window.show();
-        let _ = window.set_always_on_top(TOPMOST);
-        if TOPMOST {
-            let _ = window.set_focus();
+        if is_test_rig() {
+            park_offscreen(&window);
+        } else {
+            let _ = window.set_always_on_top(TOPMOST);
+            if TOPMOST {
+                let _ = window.set_focus();
+            }
         }
     }
 }
