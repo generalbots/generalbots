@@ -52,10 +52,21 @@ fn display_user_text_with_meta(
     } else {
         let drive_path = format!("inbox/{file_name}");
         let mime = super::activity::mime_from_name(&file_name);
+        // Parse "size=NNN" from the marker when present (added in #2562).
+        let rest = &text[position + MARKER.len()..];
+        let size: u64 = rest
+            .find("size=")
+            .and_then(|s| {
+                rest[s + 5..]
+                    .split(|c: char| !c.is_ascii_digit())
+                    .next()
+                    .and_then(|d| d.parse().ok())
+            })
+            .unwrap_or(0);
         vec![super::llm::message_meta::AttachmentInfo {
             name: file_name,
             mime_type: mime,
-            size: 0,
+            size,
             drive_path,
         }]
     };

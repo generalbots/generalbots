@@ -173,7 +173,8 @@ async fn ingest_single_attachment(
         // inbox path into tool calls (classify_media). The bare "📎 name" line
         // alone left every web upload without a path, so media tools never ran.
         user_text = format!(
-            "{user_text}\n\n[User attached a file stored at inbox/{fname}; the upload was staged for the bot]\n📎 {fname}"
+            "{user_text}\n\n[User attached a file stored at inbox/{fname}; size={}; the upload was staged for the bot]\n📎 {fname}",
+            data.len()
         );
         attachment_note = Some(match excerpt {
             Some(text) => format!(
