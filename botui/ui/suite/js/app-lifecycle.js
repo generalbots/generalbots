@@ -23,6 +23,21 @@
     registry[appId] = { intervals: [], timeouts: [], sockets: [], cleanups: [] };
   }
 
+  // #2404 — a closed window must tear its timers down. The window manager
+  // dispatches `gb-window-close` with the window id, which is the app id for
+  // the normal (deduplicated) window and `appId-<suffix>` for a forced-new
+  // instance, so match both shapes against the registered buckets.
+  if (!window.__gbLifecycleCloseBound) {
+    window.__gbLifecycleCloseBound = true;
+    document.addEventListener("gb-window-close", function (event) {
+      var id = event && event.detail && event.detail.id;
+      if (!id) return;
+      Object.keys(registry).forEach(function (appId) {
+        if (appId === id || id.indexOf(appId + "-") === 0) cleanup(appId);
+      });
+    });
+  }
+
   window.GBAppLifecycle = {
     begin: function (appId) {
       cleanup(appId);

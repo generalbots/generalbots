@@ -1,13 +1,13 @@
 <link rel="stylesheet" href="/suite/notepad/notepad.css?v=1" />
 <div class="gb-notepad" id="gb-notepad-root">
     <div class="gb-notepad-bar">
-        <span class="gb-notepad-title" data-i18n="auto-notepad">Notepad</span>
+        <span class="gb-notepad-title" data-i18n="notepad-title">Notepad</span>
         <select id="gb-notepad-files" class="gb-notepad-select" aria-label="Note"></select>
         <button type="button" class="gb-notepad-btn" id="gb-notepad-new">New</button>
         <button type="button" class="gb-notepad-btn warn" id="gb-notepad-del" data-i18n="action-delete">Delete</button>
     </div>
-    <textarea id="gb-notepad-text" class="gb-notepad-text" spellcheck="false" data-gb-field="text" placeholder="Plain notes, saved locally…"></textarea>
-    <div class="gb-notepad-foot"><span id="gb-notepad-status" data-i18n="canvas-saved">Saved</span></div>
+    <textarea id="gb-notepad-text" class="gb-notepad-text" spellcheck="false" data-gb-field="text" placeholder="Plain notes, saved locally…" data-i18n-placeholder="notepad-placeholder"></textarea>
+    <div class="gb-notepad-foot"><span id="gb-notepad-status" role="status" aria-live="polite" aria-atomic="true" data-i18n="canvas-saved">Saved</span></div>
 </div>
 <script src="/suite/notepad/notepad.js?v=2"></script>
 <script src="/suite/notepad/modules/13_delta.js?v=4"></script>

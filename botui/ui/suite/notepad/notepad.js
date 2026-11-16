@@ -40,7 +40,14 @@ window.GBNotepad = window.GBNotepad || {};
         persist();
       }
     }
-    function mark(dirty) { status.textContent = dirty ? "Editing…" : "Saved"; }
+    function t(key, fallback) {
+      return window.gbT ? window.gbT(key, fallback) : fallback;
+    }
+    function mark(dirty) {
+      status.textContent = dirty
+        ? t("notepad-editing", "Editing…")
+        : t("canvas-saved", "Saved");
+    }
 
     function persist() {
       var i = loadIndex();
@@ -49,7 +56,7 @@ window.GBNotepad = window.GBNotepad || {};
       var ok = saveIndex(i);
       if (!ok) {
         clearTimeout(app._t);
-        status.textContent = "Save failed (storage full?)";
+        status.textContent = t("notepad-save-failed", "Not saved — storage full");
         return;
       }
       mark(true);
@@ -61,7 +68,7 @@ window.GBNotepad = window.GBNotepad || {};
     ta.addEventListener("change", persist);
     sel.addEventListener("change", function () { ta.value = loadIndex()[current()] || ""; });
     root.querySelector("#gb-notepad-new").addEventListener("click", function () {
-      var name = prompt("Note name:", "note-" + new Date().toISOString().slice(0, 10));
+      var name = prompt(t("notepad-new-name", "Note name:"), "note-" + new Date().toISOString().slice(0, 10));
       if (!name) return;
       var i = loadIndex();
       if (i[name] === undefined) { i[name] = ""; saveIndex(i); }
@@ -69,14 +76,23 @@ window.GBNotepad = window.GBNotepad || {};
     });
     root.querySelector("#gb-notepad-del").addEventListener("click", function () {
       if (!current()) return;
-      if (!confirm("Delete note '" + current() + "'?")) return;
-      var i = loadIndex(); delete i[current()]; saveIndex(i); renderList(names()[0] || "");
+      if (!confirm(t("notepad-delete-confirm", "Delete this note?") + " " + current())) return;
+      var i = loadIndex(); delete i[current()]; saveIndex(i);
+      var next = names()[0] || "";
+      renderList(next);
+      try { localStorage.setItem("gb-notepad-last", next); } catch (e) { console.error("Notepad save failed:", e); }
     });
 
     if (!names().length) {
-      var i = loadIndex(); i["welcome"] = "Welcome to Notepad.\nEverything is stored locally per user."; saveIndex(i);
+      var i = loadIndex(); i["welcome"] = t("notepad-welcome", "Welcome to Notepad.\nEverything is stored locally per user."); saveIndex(i);
     }
-    renderList(localStorage.getItem("gb-notepad-last") || names()[0]);
+    // #2394: a deleted note must not stay the remembered selection.
+    var last = localStorage.getItem("gb-notepad-last");
+    if (last && names().indexOf(last) === -1) {
+      last = names()[0];
+      try { localStorage.setItem("gb-notepad-last", last); } catch (e) { console.error("Notepad save failed:", e); }
+    }
+    renderList(last || names()[0]);
     sel.addEventListener("change", function () { try { localStorage.setItem("gb-notepad-last", sel.value); } catch (e) {} });
   };
 })(window.GBNotepad);
