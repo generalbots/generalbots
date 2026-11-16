@@ -282,7 +282,10 @@ impl DownloadCache {
 
     pub fn verify_checksum(&self, filename: &str, expected_sha256: &str) -> Result<bool> {
         if expected_sha256.is_empty() {
-            return Ok(true);
+            return Err(anyhow::anyhow!(
+                "checksum required but missing for {} (refusing to treat empty sha256 as verified)",
+                filename
+            ));
         }
 
         let cached_path = self.cache_dir.join(filename);
