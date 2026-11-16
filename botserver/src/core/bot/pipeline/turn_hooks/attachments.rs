@@ -14,6 +14,9 @@ use super::media::describe_media_locally;
 pub(crate) struct AttachmentResult {
     pub user_text: String,
     pub note: Option<String>,
+    /// When set, the attachment was stored but its media content could not be
+    /// read; the value is a short reason code (e.g. `image_reader_unavailable`).
+    pub media_fail_reason: Option<&'static str>,
 }
 
 /// Stores a base64 attachment under `inbox/` and produces the system block
@@ -53,6 +56,7 @@ pub(crate) async fn ingest_attachment(
         } else {
             Some(notes.join("\n\n"))
         },
+        media_fail_reason: None,
     }
 }
 
@@ -69,6 +73,7 @@ async fn ingest_single_attachment(
         return AttachmentResult {
             user_text,
             note: attachment_note,
+            media_fail_reason: None,
         };
     };
     let fname = file
@@ -84,6 +89,7 @@ async fn ingest_single_attachment(
         return AttachmentResult {
             user_text,
             note: attachment_note,
+            media_fail_reason: None,
         };
     }
     // #1947 — the composer sends attachments inline as base64. A file that is
@@ -101,6 +107,7 @@ async fn ingest_single_attachment(
         return AttachmentResult {
             user_text,
             note: attachment_note,
+            media_fail_reason: None,
         };
     }
     let data = match base64::engine::general_purpose::STANDARD.decode(b64) {
@@ -113,6 +120,7 @@ async fn ingest_single_attachment(
             return AttachmentResult {
                 user_text,
                 note: attachment_note,
+                media_fail_reason: None,
             };
         }
     };
@@ -152,11 +160,14 @@ async fn ingest_single_attachment(
         );
     }
     // Media analysis runs after the file is reachable in the inbox.
-    let media_note = if media && excerpt.is_none() {
+    // #2561 — the gbgov edition ships without the BotModels media service;
+    // skip the request entirely to avoid a connection-refused delay.
+    let media_note = if media && excerpt.is_none() && !cfg!(feature = "gbgov") {
         describe_media_locally(state, bot_uuid, &fname, &data).await
     } else {
         None
     };
+    let mut media_fail_reason: Option<&'static str> = None;
     if stored {
         // The pipeline detects a staged upload by this marker and injects its
         // inbox path into tool calls (classify_media). The bare "📎 name" line
@@ -169,17 +180,29 @@ async fn ingest_single_attachment(
                 "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
             ),
             None if media => media_note.unwrap_or_else(|| {
-                let agent_on = parsed
-                    .get("agent_enabled")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(true);
+                // #2561 — determine whether any image-processing path is
+                // actually available before telling the model it can use one.
+                let has_vm = cfg!(feature = "agent-vm");
+                let agent_on = has_vm
+                    && parsed
+                        .get("agent_enabled")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
                 if agent_on {
                     format!(
                         "The user attached the media file '{fname}' (stored at inbox/{fname}). Local transcription (BotModels) is unavailable, but the Agent/VM is enabled for this conversation: you may process the file from the VM (reachable at inbox/{fname}) to extract its content. Do not invent what it shows; only report what the VM actually extracts."
                     )
                 } else {
+                    media_fail_reason = Some("image_reader_unavailable");
+                    let kind = super::media::media_kind(&fname).unwrap_or("media");
                     format!(
-                        "The user attached the media file '{fname}' (stored at inbox/{fname}). Local transcription is unavailable and the Agent/VM is disabled, so you cannot read its pixels or audio. Answer only from the user's text and say plainly that you cannot see the file's content. Never invent what it shows."
+                        "The user attached the {kind} file '{fname}' (stored at inbox/{fname}). \
+                         Image reading is not available in this installation and the current model \
+                         does not receive images. Tell the user in one or two sentences that you \
+                         cannot see the file's visual content because image reading is not installed, \
+                         and suggest they describe what is in the {kind} if they need help with it. \
+                         Do NOT call any tool or command to look for the file. \
+                         Never invent what it shows."
                     )
                 }
             }),
@@ -191,5 +214,6 @@ async fn ingest_single_attachment(
     AttachmentResult {
         user_text,
         note: attachment_note,
+        media_fail_reason,
     }
 }
