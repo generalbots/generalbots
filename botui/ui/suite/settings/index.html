@@ -23,7 +23,7 @@
             );
         }
         // #2334 — global HTMX error UX must exist on standalone pages too.
-        if (!window.GBToasts) files.push("/suite/js/gb-toasts.js?v=1");
+        if (!window.GBToasts) files.push("/suite/js/gb-toasts.js?v=3");
         if (!window.__GB_HTMX_ERRORS_INSTALLED__) files.push("/suite/js/base/03_htmx_errors.js?v=3");
         (function loadNext(index) {
             if (index >= files.length) return;

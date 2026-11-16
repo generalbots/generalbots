@@ -14,11 +14,56 @@ const GBToasts = (() => {
   function init() {
     if (initialized) return;
     initialized = true;
+    ensureAnnouncers();
     try {
       notifications = gbStoreGet(STORAGE_KEY, []);
     } catch (e) {
       notifications = [];
     }
+  }
+
+  function ensureAnnouncers() {
+    if (!document || !document.body) return null;
+    var polite = document.getElementById("gb-toast-live-polite");
+    if (!polite) {
+      polite = document.createElement("div");
+      polite.id = "gb-toast-live-polite";
+      polite.className = "sr-only";
+      polite.setAttribute("role", "status");
+      polite.setAttribute("aria-live", "polite");
+      polite.setAttribute("aria-atomic", "true");
+      document.body.appendChild(polite);
+    }
+    var assertive = document.getElementById("gb-toast-live-assertive");
+    if (!assertive) {
+      assertive = document.createElement("div");
+      assertive.id = "gb-toast-live-assertive";
+      assertive.className = "sr-only";
+      assertive.setAttribute("role", "alert");
+      assertive.setAttribute("aria-live", "assertive");
+      assertive.setAttribute("aria-atomic", "true");
+      document.body.appendChild(assertive);
+    }
+    return { polite: polite, assertive: assertive };
+  }
+
+  function announceToast(title, message, kind) {
+    var regions = ensureAnnouncers();
+    if (!regions) return;
+    var text = [title, message].filter(Boolean).join(": ").trim();
+    if (!text) return;
+    var target = kind === "error" ? regions.assertive : regions.polite;
+    var other = kind === "error" ? regions.polite : regions.assertive;
+    try { other.textContent = ""; } catch (e) {}
+    try {
+      target.textContent = "";
+      setTimeout(function () {
+        try { target.textContent = text; } catch (e) {}
+        setTimeout(function () {
+          try { if (target.textContent === text) target.textContent = ""; } catch (e) {}
+        }, 1500);
+      }, 20);
+    } catch (e) {}
   }
 
   function persist() {
@@ -28,6 +73,7 @@ const GBToasts = (() => {
   }
 
   function show(title, message, kind, options) {
+    if (!initialized) init();
     kind = kind || "info";
     options = (options && typeof options === "object") ? options : {};
     const appId = options.appId || options.app || null;
@@ -37,6 +83,11 @@ const GBToasts = (() => {
     const toast = document.createElement("div");
     toast.id = id;
     toast.className = "gb-toast gb-toast-" + kind;
+    if (kind === "error") {
+      toast.setAttribute("role", "alert");
+    } else {
+      toast.setAttribute("role", "status");
+    }
     var actionHtml = "";
     if (appId) {
       actionHtml = '<button class="gb-toast-action" data-app="' + esc(appId) + '">' + esc(label) + "</button>";
@@ -47,6 +98,7 @@ const GBToasts = (() => {
       actionHtml +
       '<button class="gb-toast-close" title="' + esc(tr("toast-dismiss", "Dismiss")) + '">✕</button>';
     document.body.appendChild(toast);
+    announceToast(title, message, kind);
     const closeBtn = toast.querySelector(".gb-toast-close");
     if (closeBtn) closeBtn.addEventListener("click", () => dismiss(toast));
     const actionBtn = toast.querySelector(".gb-toast-action");
