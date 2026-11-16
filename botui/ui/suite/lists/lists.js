@@ -15,6 +15,7 @@ function csvCell(v) {
 let allLists = [];
 let currentFilter = 'all';
 let editingListId = null;
+let membersListId = null;
 
 function showListModal(listId) {
     const modal = document.getElementById('list-modal');
@@ -49,12 +50,13 @@ function hideListModal() {
 function showMembersModal(listId) {
     const modal = document.getElementById('members-modal');
     const list = allLists.find(l => l.id === listId);
+    membersListId = listId || null;
     document.getElementById('members-modal-title').textContent = (list ? list.name : 'List') + ' Members';
     modal.style.display = 'flex';
     loadMembers(listId);
 }
 
-function hideMembersModal() { document.getElementById('members-modal').style.display = 'none'; }
+function hideMembersModal() { membersListId = null; document.getElementById('members-modal').style.display = 'none'; }
 
 function showDeleteModal(listId) {
     const list = allLists.find(l => l.id === listId);
@@ -131,14 +133,24 @@ function renderLists(searchQuery) {
 }
 
 async function loadLists() {
+    const grid = document.getElementById('listsList');
     try {
         const resp = await fetch('/api/crm/lists');
         if (resp.ok) {
             allLists = await resp.json();
             if (!Array.isArray(allLists)) allLists = [];
             renderLists();
+        } else {
+            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">Failed to load lists. <button type="button" id="lists-retry-btn" style="margin-left:8px;">Retry</button></div>';
+            var btn = document.getElementById('lists-retry-btn');
+            if (btn) btn.addEventListener('click', loadLists);
         }
-    } catch (e) { console.error('loadLists:', e); }
+    } catch (e) {
+        console.error('loadLists:', e);
+        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">Failed to load lists. <button type="button" id="lists-retry-btn" style="margin-left:8px;">Retry</button></div>';
+        var btn2 = document.getElementById('lists-retry-btn');
+        if (btn2) btn2.addEventListener('click', loadLists);
+    }
 }
 
 async function loadMembers(listId) {
@@ -172,34 +184,45 @@ async function deleteList(listId) {
             allLists = allLists.filter(l => l.id !== listId);
             renderLists();
             hideDeleteModal();
+        } else {
+            const msg = await resp.text().catch(function(){return '';});
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', msg || ('Delete failed (' + resp.status + ')'), 'error');
         }
-    } catch (e) { console.error('deleteList:', e); }
+    } catch (e) { console.error('deleteList:', e); if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', 'Delete failed', 'error'); }
 }
 
 async function removeMember(listId, contactId) {
     try {
-        await fetch('/api/crm/lists/' + listId + '/members/' + contactId, { method: 'DELETE' });
+        const resp = await fetch('/api/crm/lists/' + listId + '/members/' + contactId, { method: 'DELETE' });
+        if (!resp.ok) {
+            const msg = await resp.text().catch(function(){return '';});
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', msg || ('Request failed (' + resp.status + ')'), 'error');
+            return;
+        }
         loadMembers(listId);
-    } catch (e) { console.error('removeMember:', e); }
+    } catch (e) { console.error('removeMember:', e); if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', 'Remove failed', 'error'); }
 }
 
 async function addMemberToList() {
     const input = document.getElementById('add-member-search');
     const email = input.value.trim();
     if (!email) return;
-    const modal = document.getElementById('members-modal');
-    const title = document.getElementById('members-modal-title').textContent;
-    const listId = allLists.find(l => title.includes(l.name))?.id;
-    if (!listId) return;
+    const listId = membersListId;
+    if (!listId) { if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', 'No list selected', 'error'); return; }
     try {
-        await fetch('/api/crm/lists/' + listId + '/members', {
+        const resp = await fetch('/api/crm/lists/' + listId + '/members', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email })
         });
+        if (!resp.ok) {
+            const msg = await resp.text().catch(function(){return '';});
+            if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', msg || ('Request failed (' + resp.status + ')'), 'error');
+            return;
+        }
         input.value = '';
         loadMembers(listId);
-    } catch (e) { console.error('addMember:', e); }
+    } catch (e) { console.error('addMember:', e); if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', 'Add failed', 'error'); }
 }
 
 function exportLists() {
@@ -233,17 +256,22 @@ function processImport() {
     const reader = new FileReader();
     reader.onload = async function(e) {
         const lines = e.target.result.split('\n').filter(l => l.trim());
+        var added = 0, failed = 0;
         for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
             if (cols[0]) {
-                await fetch('/api/crm/lists/' + listId + '/members', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: cols[0], email: cols[1] || '' })
-                });
+                try {
+                    const resp = await fetch('/api/crm/lists/' + listId + '/members', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: cols[0], email: cols[1] || '' })
+                    });
+                    if (resp.ok) added++; else failed++;
+                } catch (err) { failed++; }
             }
         }
         hideImportModal();
+        if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Lists', 'Imported ' + added + (failed ? ', failed ' + failed : ''), failed ? 'error' : 'success');
         loadMembers(listId);
     };
     reader.readAsText(file);
