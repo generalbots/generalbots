@@ -70,6 +70,7 @@
         A.initNavigation();
         A.initUserMenu();
         if (typeof A.initScroll === "function") { A.initScroll(); }
+        if (typeof A.initExportActions === "function") { A.initExportActions(); }
 
         /* 11. Connect WebSocket (uses the new session) */
         A.connectWs();
