@@ -83,13 +83,17 @@ fileInput.addEventListener('change', (e) => {
   if (e.target.files.length) handleFile(e.target.files[0]);
 });
 
+function t(key, fallback) {
+  return window.gbT ? window.gbT(key, fallback) : fallback;
+}
+
 function handleFile(file) {
   if (!file.type.startsWith('image/')) {
-    showToast('Tipo de arquivo inválido', 'error');
+    showToast(t('vision-invalid-file-type', 'Invalid file type'), 'error');
     return;
   }
   if (file.size > 10 * 1024 * 1024) {
-    showToast('Arquivo muito grande (máx. 10MB)', 'error');
+    showToast(t('vision-file-too-large', 'File too large (max. 10MB)'), 'error');
     return;
   }
   selectedFile = file;

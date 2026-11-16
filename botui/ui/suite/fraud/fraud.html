@@ -48,7 +48,7 @@
           </div>
         </div>
         <div id="transactionsTableContainer">
-          <div class="loading">Carregando...</div>
+          <div class="loading" role="status" aria-live="polite" data-i18n="status-loading">Carregando...</div>
         </div>
       </div>
     </div>
@@ -60,7 +60,7 @@
           <button class="btn btn-primary btn-sm" id="btnAddRule2">+ Adicionar</button>
         </div>
         <div id="rulesTableContainer">
-          <div class="loading">Carregando...</div>
+          <div class="loading" role="status" aria-live="polite" data-i18n="status-loading">Carregando...</div>
         </div>
       </div>
     </div>
@@ -72,7 +72,7 @@
           <button class="btn btn-primary btn-sm" id="btnAddBlocklist">+ Adicionar</button>
         </div>
         <div id="blocklistTableContainer">
-          <div class="loading">Carregando...</div>
+          <div class="loading" role="status" aria-live="polite" data-i18n="status-loading">Carregando...</div>
         </div>
       </div>
     </div>
@@ -84,7 +84,7 @@
           <button class="btn btn-primary btn-sm" id="btnGerarRelatorio">Gerar Relatório</button>
         </div>
         <div id="reportsContainer">
-          <div class="loading">Carregando...</div>
+          <div class="loading" role="status" aria-live="polite" data-i18n="status-loading">Carregando...</div>
         </div>
       </div>
     </div>
@@ -125,8 +125,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-close="ruleModal">Cancelar</button>
-        <button class="btn btn-primary" id="btnSaveRule">Salvar</button>
+        <button class="btn btn-secondary" data-close="ruleModal" data-i18n="action-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveRule" data-i18n="action-save">Salvar</button>
       </div>
     </div>
   </div>
@@ -156,7 +156,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-close="blocklistModal">Cancelar</button>
+        <button class="btn btn-secondary" data-close="blocklistModal" data-i18n="action-cancel">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveBlocklist">Adicionar</button>
       </div>
     </div>

@@ -29,8 +29,8 @@
         '</div>' +
         '<div class="plan-modal-footer">' +
           '<button class="plan-btn plan-btn-secondary" id="plan-comment" onclick="openPlanTaskComments(\'' + task.id + '\', \'' + (task.title || "").replace(/'/g, "\\'") + '\')">' + (window.GBIcons ? window.GBIcons.html("chat", 14) : "") + '</button>' +
-          '<button class="plan-btn plan-btn-secondary" id="plan-cancel">Cancelar</button>' +
-          '<button class="plan-btn plan-btn-primary" id="plan-save">Salvar</button>' +
+          '<button class="plan-btn plan-btn-secondary" id="plan-cancel" data-i18n="action-cancel">' + (window.gbT ? window.gbT("action-cancel", "Cancel") : "Cancel") + '</button>' +
+          '<button class="plan-btn plan-btn-primary" id="plan-save" data-i18n="action-save">' + (window.gbT ? window.gbT("action-save", "Save") : "Save") + '</button>' +
         '</div>' +
       '</div>';
     function close() { modal.innerHTML = ""; }
@@ -227,13 +227,13 @@
         Store.data.id = DEFAULT_PLAN_ID;
         Store.notify();
         Store.data.tasks.forEach(function (t) { syncTaskToBackend(t, "create"); });
-        (window.GBModal||{alert:alert}).alert("Plano importado com " + Store.data.tasks.length + " tarefa(s).");
+        (window.GBModal||{alert:alert}).alert((window.gbT ? window.gbT("plan-import-success", "Plan imported with {count} task(s).") : "Plan imported with {count} task(s).").replace("{count}", Store.data.tasks.length));
       } else {
-        (window.GBModal||{alert:alert}).alert("Arquivo de plano inválido.");
+        (window.GBModal||{alert:alert}).alert(window.gbT ? window.gbT("plan-invalid-file", "Invalid plan file.") : "Invalid plan file.");
       }
     } catch (err) {
       console.error(err);
-      (window.GBModal||{alert:alert}).alert("Arquivo inválido.");
+      (window.GBModal||{alert:alert}).alert(window.gbT ? window.gbT("plan-invalid-file", "Invalid plan file.") : "Invalid plan file.");
     }
     e.target.value = "";
   }

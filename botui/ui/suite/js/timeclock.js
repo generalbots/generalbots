@@ -22,10 +22,14 @@
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function uid() { return "tc_" + Math.random().toString(36).slice(2, 12) + "_" + Date.now().toString(36); }
 
+  function tcT(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   function clockIn(opts) {
     const entries = readArr(STORAGE_KEY);
     const lastOpen = entries.find(e => e.userId === opts.userId && !e.clockOut);
-    if (lastOpen) return { ok: false, msg: "Já existe um ponto aberto", entry: lastOpen };
+    if (lastOpen) return { ok: false, msg: tcT("timeclock-open-entry-exists", "There is already an open clock-in"), entry: lastOpen };
     const entry = {
       id: uid(),
       userId: opts.userId || "anon",
@@ -45,7 +49,7 @@
   function clockOut(opts) {
     const entries = readArr(STORAGE_KEY);
     const lastOpen = entries.find(e => e.userId === opts.userId && !e.clockOut);
-    if (!lastOpen) return { ok: false, msg: "Nenhum ponto aberto" };
+    if (!lastOpen) return { ok: false, msg: tcT("timeclock-no-open-entry", "No open clock-in") };
     lastOpen.clockOut = new Date().toISOString();
     writeArr(STORAGE_KEY, entries);
     return { ok: true, entry: lastOpen };
@@ -54,9 +58,9 @@
   function startBreak(opts) {
     const entries = readArr(STORAGE_KEY);
     const open = entries.find(e => e.userId === opts.userId && !e.clockOut);
-    if (!open) return { ok: false, msg: "Nenhum ponto aberto" };
+    if (!open) return { ok: false, msg: tcT("timeclock-no-open-entry", "No open clock-in") };
     if (open.breaks && open.breaks.length && !open.breaks[open.breaks.length - 1].end) {
-      return { ok: false, msg: "Já existe um intervalo aberto" };
+      return { ok: false, msg: tcT("timeclock-break-open", "There is already an open break") };
     }
     if (!open.breaks) open.breaks = [];
     open.breaks.push({ start: new Date().toISOString(), end: null });
@@ -67,9 +71,9 @@
   function endBreak(opts) {
     const entries = readArr(STORAGE_KEY);
     const open = entries.find(e => e.userId === opts.userId && !e.clockOut);
-    if (!open || !open.breaks || !open.breaks.length) return { ok: false, msg: "Nenhum intervalo aberto" };
+    if (!open || !open.breaks || !open.breaks.length) return { ok: false, msg: tcT("timeclock-no-open-break", "No open break") };
     const last = open.breaks[open.breaks.length - 1];
-    if (last.end) return { ok: false, msg: "Intervalo já encerrado" };
+    if (last.end) return { ok: false, msg: tcT("timeclock-break-ended", "Break already ended") };
     last.end = new Date().toISOString();
     writeArr(STORAGE_KEY, entries);
     return { ok: true };

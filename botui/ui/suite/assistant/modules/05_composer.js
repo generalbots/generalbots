@@ -246,7 +246,7 @@
         messageType = messageType || 1;
         var tooBig = files.filter(function (f) { return f.size > MAX_ATTACH_BYTES; });
         if (tooBig.length) {
-            A.renderError(A.t("attach.too-big", "Arquivo grande demais (limite de 8 MB por arquivo): ") +
+            A.renderError(A.t("attach.too-big", "File too large (8 MB limit per file): ") +
                 tooBig.map(function (f) { return f.name; }).join(", "));
             return;
         }

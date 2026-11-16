@@ -198,7 +198,7 @@
           el("td", null, [
             el("button", {
               class: "plan-row-del",
-              onclick: function (ev) { ev.stopPropagation(); if (confirm("Excluir tarefa?")) Store.removeTask(t.id); }
+              onclick: function (ev) { ev.stopPropagation(); if (confirm(window.gbT ? window.gbT("plan-confirm-delete-task", "Delete task?") : "Delete task?")) Store.removeTask(t.id); }
             }, "×")
           ])
         ]);

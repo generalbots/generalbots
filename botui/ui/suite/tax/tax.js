@@ -62,6 +62,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
+function t(key, fallback) {
+  return window.gbT ? window.gbT(key, fallback) : fallback;
+}
+
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
@@ -92,7 +96,7 @@ function getStatusBadge(status) {
 function renderNfeTable(data) {
   const container = document.getElementById('nfeTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">📄</span><span>Nenhuma NFe encontrada</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">📄</span><span>' + t('tax-empty-nfe', 'No NF-e found') + '</span></div>';
     return;
   }
   container.innerHTML = `
@@ -124,7 +128,7 @@ function renderNfeTable(data) {
 function renderNfseTable(data) {
   const container = document.getElementById('nfseTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">📋</span><span>Nenhuma NFSe encontrada</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">📋</span><span>' + t('tax-empty-nfse', 'No NFS-e found') + '</span></div>';
     return;
   }
   container.innerHTML = `
@@ -156,7 +160,7 @@ function renderNfseTable(data) {
 function renderCteTable(data) {
   const container = document.getElementById('cteTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">🚛</span><span>Nenhum CT-e encontrado</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">🚛</span><span>' + t('tax-empty-cte', 'No CT-e found') + '</span></div>';
     return;
   }
   container.innerHTML = `
@@ -278,11 +282,11 @@ async function postNfe() {
       body: JSON.stringify(payload)
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    showToast('NFe emitida com sucesso');
+    showToast(t('tax-nfe-issued', 'NF-e issued successfully'));
     document.getElementById('nfeModal').classList.remove('active');
     loadAll();
   } catch (err) {
-    showToast(`Erro ao emitir NFe: ${err.message}`, 'error');
+    showToast(t('tax-error-emit-nfe', 'Error issuing NF-e') + ': ' + err.message, 'error');
   }
 }
 
@@ -302,11 +306,11 @@ async function postNfse() {
       body: JSON.stringify(payload)
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    showToast('NFSe emitida com sucesso');
+    showToast(t('tax-nfse-issued', 'NFS-e issued successfully'));
     document.getElementById('nfseModal').classList.remove('active');
     loadAll();
   } catch (err) {
-    showToast(`Erro ao emitir NFSe: ${err.message}`, 'error');
+    showToast(t('tax-error-emit-nfse', 'Error issuing NFS-e') + ': ' + err.message, 'error');
   }
 }
 
@@ -328,11 +332,11 @@ async function postCte() {
       body: JSON.stringify(payload)
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    showToast('CT-e emitido com sucesso');
+    showToast(t('tax-cte-issued', 'CT-e issued successfully'));
     document.getElementById('cteModal').classList.remove('active');
     loadAll();
   } catch (err) {
-    showToast(`Erro ao emitir CT-e: ${err.message}`, 'error');
+    showToast(t('tax-error-emit-cte', 'Error issuing CT-e') + ': ' + err.message, 'error');
   }
 }
 
@@ -340,10 +344,11 @@ async function gerarSped(tipo) {
   try {
     const resp = await fetch(`${API_BASE}/sped/${tipo}`, { method: 'POST' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    showToast(`SPED ${tipo === 'contribuicoes' ? 'Contribuições' : 'Fiscal'} gerado com sucesso`);
+    var spedName = tipo === 'contribuicoes' ? t('tax-sped-contributions', 'Contributions') : t('tax-sped-fiscal', 'Fiscal');
+    showToast(t('tax-sped-generated', 'SPED {name} generated successfully').replace('{name}', spedName));
     loadSpedStatus();
   } catch (err) {
-    showToast(`Erro ao gerar SPED: ${err.message}`, 'error');
+    showToast(t('tax-error-generate-sped', 'Error generating SPED') + ': ' + err.message, 'error');
   }
 }
 
@@ -359,7 +364,7 @@ async function downloadSped(tipo) {
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {
-    showToast(`Erro ao baixar SPED: ${err.message}`, 'error');
+    showToast(t('tax-error-download-sped', 'Error downloading SPED') + ': ' + err.message, 'error');
   }
 }
 

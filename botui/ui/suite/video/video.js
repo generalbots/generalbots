@@ -159,7 +159,7 @@ async function loadAlerts() {
     state.alerts = Array.isArray(data) ? data : (data.items || data.data || []);
     renderAlerts(state.alerts);
   } catch (err) {
-    console.error('Erro ao carregar alertas:', err);
+    console.error('Failed to load alerts:', err);
     renderAlerts([]);
   }
 }
