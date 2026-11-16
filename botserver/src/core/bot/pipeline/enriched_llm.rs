@@ -54,7 +54,7 @@ fn display_user_text_with_meta(
         let mime = super::activity::mime_from_name(&file_name);
         // Parse "size=NNN" from the marker when present (added in #2562).
         let rest = &text[position + MARKER.len()..];
-        let size: u64 = rest
+        let size: usize = rest
             .find("size=")
             .and_then(|s| {
                 rest[s + 5..]

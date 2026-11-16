@@ -17,13 +17,58 @@ fn escape_preview_text(input: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// `GET /api/chat/attachments/preview?bot=&name=`
+/// Guess the MIME content type from a file extension.
+fn mime_from_ext(ext: &str) -> &'static str {
+    match ext {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
+        "txt" | "log" | "md" => "text/plain; charset=utf-8",
+        "csv" => "text/csv; charset=utf-8",
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "html" | "htm" => "text/html; charset=utf-8",
+        "css" => "text/css",
+        "js" => "application/javascript",
+        "zip" => "application/zip",
+        "gz" | "gzip" => "application/gzip",
+        "tar" => "application/x-tar",
+        "7z" => "application/x-7z-compressed",
+        "rar" => "application/vnd.rar",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "ogg" => "audio/ogg",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        "avi" => "video/x-msvideo",
+        _ => "application/octet-stream",
+    }
+}
+
+/// `GET /api/chat/attachments/preview?bot=&name=[&download=1]`
 ///
 /// User uploads are staged in the bot's Drive `inbox/`. Callers authenticate
 /// with `Authorization: Bearer <token>` or the `gb-access-token` cookie. The
 /// legacy `access_token` query parameter is still accepted for compatibility
 /// but clients must not send it (URLs leak into history/logs). Office packages
 /// are converted to sanitized, script-free HTML with `office_html`.
+///
+/// When `download=1` is present the endpoint returns the **original bytes** of
+/// any stored attachment with the correct MIME type and a safe
+/// `Content-Disposition: attachment` header, bypassing the preview conversion.
+/// This allows "Baixar" and "Usar na conversa" to work for every file type the
+/// person owns, not only the ones the preview renderer supports.
 pub async fn handle_attachment_preview(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -126,6 +171,41 @@ pub async fn handle_attachment_preview(
         })?;
 
     let extension = name.rsplit('.').next().unwrap_or("").to_lowercase();
+
+    // When download=1 is set, return the original bytes for any file type.
+    let is_download = params
+        .get("download")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    if is_download {
+        let ct = mime_from_ext(&extension);
+        // RFC 6266: use a safe ASCII fallback in filename and put the
+        // UTF-8 name in filename*.
+        let ascii_name: String = name
+            .chars()
+            .map(|c| if c.is_ascii_graphic() && c != '"' && c != '\\' { c } else { '_' })
+            .collect();
+        let disposition = format!(
+            "attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded}",
+            encoded = urlencoding::encode(&name)
+        );
+        return axum::response::Response::builder()
+            .header(axum::http::header::CONTENT_TYPE, ct)
+            .header(axum::http::header::CONTENT_DISPOSITION, disposition)
+            .header(axum::http::header::CACHE_CONTROL, "no-store")
+            .header(
+                axum::http::header::CONTENT_SECURITY_POLICY,
+                "default-src 'none'",
+            )
+            .body(axum::body::Body::from(bytes))
+            .map_err(|error| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("response: {error}"),
+                )
+            });
+    }
+
     let (content_type, body, sandboxed) = match extension.as_str() {
         "docx" | "xlsx" | "pptx" => {
             let html = botcore::kb::document_processor::office_html(&name, &bytes)
