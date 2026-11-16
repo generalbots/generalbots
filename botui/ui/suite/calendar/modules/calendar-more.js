@@ -90,6 +90,32 @@
             });
         }
 
+        // Robust delegation: injected desktop windows and late template
+        // hydration can leave direct bindings unattached. Keep "New event"
+        // and day-view controls working regardless of bind timing.
+        if (!window.__calDelegatedEventsBound) {
+            window.__calDelegatedEventsBound = true;
+            document.addEventListener('click', function (e) {
+                var newBtn = e.target && e.target.closest ? e.target.closest('#new-event-btn') : null;
+                if (newBtn) {
+                    e.preventDefault();
+                    openEventModal();
+                    return;
+                }
+                var dayBtn = e.target && e.target.closest ? e.target.closest('[data-view="day"]') : null;
+                if (dayBtn) {
+                    var dayView = document.getElementById('day-view');
+                    if (dayView && (dayView.classList.contains('hidden') || window.getComputedStyle(dayView).display === 'none')) {
+                        document.querySelectorAll('.view-btn').forEach(function (b) { b.classList.remove('active'); });
+                        dayBtn.classList.add('active');
+                        CS.currentView = 'day';
+                        renderCurrentView();
+                        loadEvents();
+                    }
+                }
+            }, true);
+        }
+
         document.querySelectorAll('.close-modal').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 var modal = e.target.closest('.modal') || document.getElementById('event-modal');
