@@ -5,6 +5,27 @@ const API_BASE = '/api/vision';
 let currentTab = 'ocr';
 let selectedFile = null;
 
+function escapeHtml(value) {
+  if (window.GBShared && window.GBShared.html && typeof window.GBShared.html.escape === 'function') {
+    return window.GBShared.html.escape(value);
+  }
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function clampConfidence(value) {
+  let confidence = Number(value);
+  if (!Number.isFinite(confidence)) confidence = 0;
+  if (confidence > 0 && confidence <= 1) confidence *= 100;
+  if (confidence < 0) confidence = 0;
+  if (confidence > 100) confidence = 100;
+  return confidence;
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -95,8 +116,9 @@ async function analyzeImage(file) {
       reader.readAsDataURL(file);
     });
   } catch (err) {
-    resultsBody.innerHTML = `<div class="empty-state">Erro na análise: ${err.message}</div>`;
-    showToast(`Erro na análise: ${err.message}`, 'error');
+    const msg = err && err.message ? String(err.message) : 'Analysis failed';
+    resultsBody.innerHTML = `<div class="empty-state">${escapeHtml('Error during analysis: ' + msg)}</div>`;
+    showToast(`Analysis error: ${msg}`, 'error');
     progressBar.classList.remove('active');
     return;
   }
@@ -116,8 +138,9 @@ async function analyzeImage(file) {
     renderResults(data);
     loadHistory();
   } catch (err) {
-    resultsBody.innerHTML = `<div class="empty-state">Erro na análise: ${err.message}</div>`;
-    showToast(`Erro na análise: ${err.message}`, 'error');
+    const msg = err && err.message ? String(err.message) : 'Analysis failed';
+    resultsBody.innerHTML = `<div class="empty-state">${escapeHtml('Error during analysis: ' + msg)}</div>`;
+    showToast(`Analysis error: ${msg}`, 'error');
   } finally {
     progressBar.classList.remove('active');
   }
@@ -128,31 +151,31 @@ function renderResults(data) {
   const items = data.results || data.items || data.detections ||
     (Array.isArray(data.labels) ? data.labels.map(label => ({
       label,
-      confidence: Number(data.confidence || 0) * 100
+      confidence: Number(data.confidence || 0)
     })) : []);
 
   if (!items.length) {
-    resultsBody.innerHTML = '<div class="empty-state">Nenhum resultado encontrado</div>';
+    resultsBody.innerHTML = '<div class="empty-state">No results found</div>';
     return;
   }
 
   resultsBody.innerHTML = items.map(item => {
-    let confidence = Number(item.confidence || item.confianca || 0);
-    if (confidence > 0 && confidence <= 1) confidence *= 100;
+    const confidence = clampConfidence(item.confidence != null ? item.confidence : item.confianca);
     const confClass = getConfidenceClass(confidence);
     const label = item.label || item.text || item.nome || item.type || item.tipo || 'Item';
     const details = item.details || item.detalhes || item.bounding_box || '';
+    const detailsText = details ? (typeof details === 'string' ? details : JSON.stringify(details)) : '';
 
     return `
       <div class="result-item">
         <div class="result-label">
-          <span>${label}</span>
+          <span>${escapeHtml(label)}</span>
           <span class="result-confidence">${confidence.toFixed(1)}%</span>
         </div>
         <div class="confidence-bar">
           <div class="confidence-fill ${confClass}" style="width:${confidence}%"></div>
         </div>
-        ${details ? `<div class="result-details">${typeof details === 'string' ? details : JSON.stringify(details)}</div>` : ''}
+        ${detailsText ? `<div class="result-details">${escapeHtml(detailsText)}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -167,29 +190,34 @@ async function loadHistory() {
     const items = Array.isArray(data) ? data : (data.items || data.data || []);
     renderHistory(items);
   } catch (err) {
-    historyList.innerHTML = '<div class="empty-state">Erro ao carregar histórico</div>';
+    historyList.innerHTML = '<div class="empty-state">Could not load history</div>';
   }
 }
 
 function renderHistory(items) {
   const historyList = document.getElementById('historyList');
   if (!items.length) {
-    historyList.innerHTML = '<div class="empty-state">Nenhum item no histórico</div>';
+    historyList.innerHTML = '<div class="empty-state">No history items</div>';
     return;
   }
   historyList.innerHTML = items.map(item => {
-    const type = item.analysis_type || item.tipo || currentTab;
+    const type = String(item.analysis_type || item.tipo || currentTab || '');
     const time = item.created_at || item.timestamp || '';
-    const count = item.results_count || item.total || 0;
-    const timeStr = time ? new Date(time).toLocaleString('pt-BR') : '-';
+    const count = Number(item.results_count || item.total || 0);
+    const safeCount = Number.isFinite(count) && count >= 0 ? count : 0;
+    let timeStr = '-';
+    if (time) {
+      const d = new Date(time);
+      timeStr = isNaN(d.getTime()) ? String(time) : d.toLocaleString();
+    }
 
     return `
       <div class="history-item">
-        <div class="history-thumb">${getTabIcon(type)}</div>
+        <div class="history-thumb">${escapeHtml(getTabIcon(type))}</div>
         <div class="history-info">
-          <div class="history-type">${getTabLabel(type)}</div>
-          <div class="history-time">${timeStr}</div>
-          <div class="history-count">${count} resultado(s)</div>
+          <div class="history-type">${escapeHtml(getTabLabel(type))}</div>
+          <div class="history-time">${escapeHtml(timeStr)}</div>
+          <div class="history-count">${escapeHtml(String(safeCount))} result(s)</div>
         </div>
       </div>
     `;
@@ -197,7 +225,7 @@ function renderHistory(items) {
 }
 
 document.getElementById('btnClearResults').addEventListener('click', () => {
-  document.getElementById('resultsBody').innerHTML = '<div class="empty-state">Envie uma imagem para analisar</div>';
+  document.getElementById('resultsBody').innerHTML = '<div class="empty-state">Upload an image to analyze</div>';
   document.getElementById('resultsArea').style.display = 'none';
   selectedFile = null;
   fileInput.value = '';
