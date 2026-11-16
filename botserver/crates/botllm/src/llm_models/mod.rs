@@ -38,7 +38,7 @@ impl ModelHandler for PassthroughHandler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        qwen::split_think_blocks(content).0
+        qwen::split_think_blocks(content).0.trim().to_string()
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {

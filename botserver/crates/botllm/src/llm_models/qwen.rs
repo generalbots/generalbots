@@ -28,7 +28,11 @@ pub(super) fn split_think_blocks(content: &str) -> (String, String) {
         match after.find(CLOSE) {
             Some(end) => {
                 reasoning.push_str(&after[..end]);
-                rest = &after[end + CLOSE.len()..];
+                // Strip at most the newline(s) directly after </think> so the
+                // answer text does not start with a blank line, but spaces and
+                // other whitespace (which may be meaningful formatting) survive.
+                let after_close = &after[end + CLOSE.len()..];
+                rest = after_close.trim_start_matches(|c: char| c == '\n' || c == '\r');
             }
             None => {
                 reasoning.push_str(after);
@@ -39,7 +43,9 @@ pub(super) fn split_think_blocks(content: &str) -> (String, String) {
     }
     answer.push_str(rest);
 
-    (answer.trim().to_string(), reasoning.trim().to_string())
+    // Return raw text: callers that want trimmed ends (non-streaming) do it
+    // themselves.  Streaming must preserve inter-chunk whitespace byte-for-byte.
+    (answer, reasoning)
 }
 
 /// Processes a streaming chunk: splits `<think>` blocks, holds back partial
@@ -134,7 +140,7 @@ impl ModelHandler for QwenHandler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        split_think_blocks(content).0
+        split_think_blocks(content).0.trim().to_string()
     }
 
     fn process_content_streaming(&self, chunk: &str, state: &mut String) -> ProcessedChunk {
@@ -246,5 +252,88 @@ mod tests {
         assert!(r1.content.is_empty());
         assert_eq!(r1.reasoning, "partial");
         assert!(!state.is_empty());
+    }
+
+    // --- Whitespace-preservation tests (#2562 space-stripping fix) ---
+
+    #[test]
+    fn streaming_chunks_at_spaces_reassemble_exactly() {
+        let original = "This is a plain text answer with spaces";
+        let chunks = ["This ", "is ", "a ", "plain ", "text ", "answer ", "with ", "spaces"];
+        let mut state = String::new();
+        let mut assembled = String::new();
+        for chunk in &chunks {
+            let r = stream_think_blocks(chunk, &mut state);
+            assembled.push_str(&r.content);
+        }
+        assert_eq!(assembled, original);
+    }
+
+    #[test]
+    fn streaming_chunks_at_newlines_reassemble_exactly() {
+        let original = "Line one\nLine two\n\n# Heading\nParagraph";
+        let chunks = ["Line one\n", "Line two\n", "\n# Heading\n", "Paragraph"];
+        let mut state = String::new();
+        let mut assembled = String::new();
+        for chunk in &chunks {
+            let r = stream_think_blocks(chunk, &mut state);
+            assembled.push_str(&r.content);
+        }
+        assert_eq!(assembled, original);
+    }
+
+    #[test]
+    fn streaming_space_a_b_space_newline_heading() {
+        // Exact chunks from the requirement: " a", "b ", "\n\n# T"
+        let mut state = String::new();
+        let mut assembled = String::new();
+        for chunk in [" a", "b ", "\n\n# T"] {
+            let r = stream_think_blocks(chunk, &mut state);
+            assembled.push_str(&r.content);
+        }
+        assert_eq!(assembled, " ab \n\n# T");
+    }
+
+    #[test]
+    fn streaming_think_block_then_text_starting_with_space() {
+        // Think block split across chunks, answer starts with a space.
+        let mut state = String::new();
+        let r1 = stream_think_blocks("<think>reason", &mut state);
+        assert!(r1.content.is_empty());
+        let r2 = stream_think_blocks("ing</think> The answer", &mut state);
+        assert_eq!(r2.content, " The answer", "leading space must survive");
+        assert!(r2.reasoning.contains("reasoning"));
+    }
+
+    #[test]
+    fn streaming_no_think_block_is_byte_for_byte() {
+        let chunks = ["Hello ", "world! ", "No tags."];
+        let mut state = String::new();
+        let mut assembled = String::new();
+        for chunk in &chunks {
+            let r = stream_think_blocks(chunk, &mut state);
+            assembled.push_str(&r.content);
+        }
+        assert_eq!(assembled, "Hello world! No tags.");
+    }
+
+    #[test]
+    fn newlines_after_close_tag_are_stripped_once() {
+        let (answer, _) = split_think_blocks("<think>r</think>\n\nThe answer");
+        assert_eq!(answer, "The answer");
+    }
+
+    #[test]
+    fn space_after_close_tag_is_preserved() {
+        let (answer, _) = split_think_blocks("<think>r</think> The answer");
+        assert_eq!(answer, " The answer");
+    }
+
+    #[test]
+    fn non_streaming_process_content_trims_final_answer() {
+        let handler = QwenHandler;
+        // Non-streaming path may trim the final answer's ends.
+        assert_eq!(handler.process_content("<think>r</think>\n\n The answer "), "The answer");
+        assert_eq!(handler.process_content("  Plain answer  "), "Plain answer");
     }
 }
