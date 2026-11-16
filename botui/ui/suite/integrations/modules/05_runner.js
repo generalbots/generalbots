@@ -1,14 +1,17 @@
 "use strict";
 
-// Action runner (#939 wave): execute an implemented provider action from the
-// provider detail panel and inspect the redacted outcome. Delegated events
-// keep this module independent from the render pipeline.
+// Action runner (#939/#2352): execute implemented provider actions from the
+// provider detail panel with local run history, re-run, diff, safe outcome
+// rendering, and automation prefill. Delegated events keep this independent
+// from the render pipeline.
 
 (function (namespace) {
     var RUN_DELEGATED = false;
+    var HISTORY_LIMIT = 5;
+    var BODY_PREVIEW_CHARS = 2000;
 
     function findRoot(node) {
-        return node.closest ? node.closest("[data-integrations-app]") : null;
+        return node && node.closest ? node.closest("[data-integrations-app]") : null;
     }
 
     function providerFor(root, slug) {
@@ -36,6 +39,111 @@
         }).filter(function (param) { return param.name; });
     }
 
+    function historyKey(providerSlug, actionKey) {
+        return "gb-integrations-run-history:" + String(providerSlug || "") + ":" + String(actionKey || "");
+    }
+
+    function readHistory(providerSlug, actionKey) {
+        try {
+            var raw = sessionStorage.getItem(historyKey(providerSlug, actionKey));
+            var parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (_e) {
+            return [];
+        }
+    }
+
+    function writeHistory(providerSlug, actionKey, runs) {
+        try {
+            sessionStorage.setItem(historyKey(providerSlug, actionKey), JSON.stringify((runs || []).slice(0, HISTORY_LIMIT)));
+        } catch (_e) {
+            // sessionStorage may be unavailable/full; history is best-effort.
+        }
+    }
+
+    function stringifyData(data) {
+        try {
+            if (typeof data === "string") return data;
+            return JSON.stringify(data, null, 2);
+        } catch (_e) {
+            return String(data);
+        }
+    }
+
+    function summarizeDiff(previous, current) {
+        if (!previous) return "No previous run to compare.";
+        var lines = [];
+        if ((previous.summary || "") !== (current.summary || "")) {
+            lines.push("Summary changed.");
+            lines.push("- " + String(previous.summary || "(empty)"));
+            lines.push("+ " + String(current.summary || "(empty)"));
+        } else {
+            lines.push("Summary unchanged.");
+        }
+        var prevBody = stringifyData(previous.data);
+        var currBody = stringifyData(current.data);
+        if (prevBody === currBody) {
+            lines.push("Response body unchanged.");
+            return lines.join("\n");
+        }
+        var prevLines = prevBody.split("\n");
+        var currLines = currBody.split("\n");
+        var max = Math.max(prevLines.length, currLines.length);
+        var shown = 0;
+        for (var i = 0; i < max && shown < 12; i += 1) {
+            var a = prevLines[i];
+            var b = currLines[i];
+            if (a === b) continue;
+            if (a !== undefined) { lines.push("- " + a); shown += 1; }
+            if (shown >= 12) break;
+            if (b !== undefined) { lines.push("+ " + b); shown += 1; }
+        }
+        if (shown >= 12) lines.push("… diff truncated");
+        return lines.join("\n");
+    }
+
+    function historyMarkup(providerSlug, actionKey, selectedIndex) {
+        var runs = readHistory(providerSlug, actionKey);
+        if (!runs.length) {
+            return '<div class="integrations-run-history" data-run-history><p class="integrations-readonly-note">No previous runs in this session.</p></div>';
+        }
+        var selected = typeof selectedIndex === "number" ? selectedIndex : 0;
+        if (selected < 0 || selected >= runs.length) selected = 0;
+        var current = runs[selected] || null;
+        var previous = runs[selected + 1] || null;
+        var body = current ? stringifyData(current.data) : "";
+        var truncated = body.length > BODY_PREVIEW_CHARS;
+        var preview = truncated ? body.slice(0, BODY_PREVIEW_CHARS) + "\n… response truncated" : body;
+        var items = runs.map(function (run, index) {
+            var when = run.at ? new Date(run.at).toLocaleTimeString() : "run";
+            var label = when + " — " + String(run.summary || "Outcome").slice(0, 80);
+            return '<li><button type="button" class="integrations-button integrations-button-subtle" data-run-history-select="' + index + '"' +
+                (index === selected ? ' aria-current="true"' : '') + '>' + namespace.escapeHtml(label) + '</button> ' +
+                '<button type="button" class="integrations-button integrations-button-subtle" data-run-rerun="' + index + '">Re-run</button></li>';
+        }).join("");
+        var diff = current ? summarizeDiff(previous, current) : "";
+        return '<div class="integrations-run-history" data-run-history data-history-selected="' + selected + '">' +
+            '<div class="integrations-run-history-head"><strong>Run history</strong><span class="integrations-readonly-note">Last ' + runs.length + ' in this session</span></div>' +
+            '<ul class="integrations-run-history-list">' + items + '</ul>' +
+            (current ? '<div class="integrations-run-outcome-view" data-run-outcome-view>' +
+                '<p class="integrations-run-summary">' + namespace.escapeHtml(current.summary || "") +
+                (current.truncated === true ? ' <span class="integrations-pill">Truncated</span>' : '') + '</p>' +
+                '<div class="integrations-run-actions"><button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-body>Show response body</button>' +
+                ' <button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-diff>Diff vs previous</button></div>' +
+                '<pre class="integrations-run-data" data-run-body hidden>' + namespace.escapeHtml(preview) + '</pre>' +
+                '<pre class="integrations-run-data" data-run-diff hidden>' + namespace.escapeHtml(diff) + '</pre>' +
+                (truncated ? '<p class="integrations-readonly-note">Large response body hidden by default and previewed.</p>' : '') +
+            '</div>' : '') +
+            '</div>';
+    }
+
+    function renderOutcomeArea(article, providerSlug, actionKey, selectedIndex) {
+        var outcomeNode = article.querySelector("[data-run-outcome]");
+        if (!outcomeNode) return;
+        outcomeNode.innerHTML = historyMarkup(providerSlug, actionKey, selectedIndex);
+        outcomeNode.hidden = false;
+    }
+
     function runnerMarkup(actionKey, params) {
         var inputs = params.map(function (param) {
             var id = "run-" + actionKey.replace(/\./g, "-") + "-" + param.name;
@@ -57,13 +165,14 @@
             '<p class="integrations-inline-progress" data-run-progress hidden role="status" aria-live="polite">Running against the live provider...</p>' +
             '<div class="integrations-run-actions">' +
             '<button class="integrations-button" type="submit">Execute</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="save-run-as-automation">Save as automation</button>' +
             '<button class="integrations-button integrations-button-subtle" type="button" data-action="close-runner">Close</button>' +
             '</div></form>' +
             '<div class="integrations-run-outcome" data-run-outcome hidden role="status" aria-live="polite" aria-atomic="true"></div>' +
             '</div>';
     }
 
-    function toggleRunner(article, actionKey, params) {
+    function toggleRunner(article, actionKey, params, providerSlug) {
         var existing = article.querySelector("[data-runner]");
         if (existing) {
             existing.remove();
@@ -72,6 +181,7 @@
         article.insertAdjacentHTML("beforeend", runnerMarkup(actionKey, params));
         var runner = article.querySelector("[data-runner]");
         runner.hidden = false;
+        renderOutcomeArea(article, providerSlug, actionKey, 0);
         var firstInput = runner.querySelector("input, textarea");
         if (firstInput) firstInput.focus();
     }
@@ -85,7 +195,7 @@
             if (input.dataset.kind === "json") {
                 try {
                     params[input.dataset.runParam] = JSON.parse(value);
-                } catch (error) {
+                } catch (_error) {
                     invalid = input.dataset.runParam + " must be valid JSON";
                 }
                 return;
@@ -95,23 +205,24 @@
         return { params: params, invalid: invalid };
     }
 
-    function outcomeMarkup(outcome) {
-        var payload;
-        try {
-            payload = JSON.stringify(outcome.data, null, 2);
-        } catch (error) {
-            payload = String(outcome.data);
-        }
-        return '<p class="integrations-run-summary">' + namespace.escapeHtml(outcome.summary || "") +
-            (outcome.truncated === true ? ' <span class="integrations-pill">Truncated</span>' : "") +
-            '</p><pre class="integrations-run-data">' + namespace.escapeHtml(payload) + "</pre>";
+    function fillFormParams(form, params) {
+        if (!form || !params || typeof params !== "object") return;
+        Array.prototype.forEach.call(form.querySelectorAll("[data-run-param]"), function (input) {
+            var name = input.dataset.runParam;
+            if (!(name in params)) return;
+            var value = params[name];
+            if (input.dataset.kind === "json") {
+                try { input.value = JSON.stringify(value, null, 2); } catch (_e) { input.value = String(value); }
+            } else {
+                input.value = value == null ? "" : String(value);
+            }
+        });
     }
 
     async function execute(article, providerSlug, actionKey, form) {
         var rootNode = findRoot(article);
         var errorNode = form.querySelector("[data-run-error]");
         var progressNode = form.querySelector("[data-run-progress]");
-        var outcomeNode = article.querySelector("[data-run-outcome]");
         errorNode.hidden = true;
         progressNode.hidden = false;
 
@@ -135,31 +246,18 @@
 
         try {
             var requestUrl = "/api/bots/" + encodeURIComponent(botId) + "/integration-actions/invoke";
-            var requestBody = {
-                provider: providerSlug,
-                action: actionKey,
-                params: collected.params,
-            };
+            var requestBody = { provider: providerSlug, action: actionKey, params: collected.params };
             var payload;
             if (namespace && typeof namespace.fetchJson === "function") {
                 payload = await namespace.fetchJson(requestUrl, { method: "POST", body: requestBody });
             } else {
                 var headers = { "Content-Type": "application/json" };
                 var token = (namespace && typeof namespace.currentToken === "function") ? namespace.currentToken() : "";
-                if (token) {
-                    headers["Authorization"] = "Bearer " + token;
-                }
+                if (token) headers["Authorization"] = "Bearer " + token;
                 var csrf = (namespace && typeof namespace.csrfToken === "function") ? namespace.csrfToken() : "";
-                if (!csrf) {
-                    throw new Error("CSRF token is missing. Reload the page and try again.");
-                }
+                if (!csrf) throw new Error("CSRF token is missing. Reload the page and try again.");
                 headers["X-CSRF-Token"] = csrf;
-                var response = await fetch(requestUrl, {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: headers,
-                    body: JSON.stringify(requestBody),
-                });
+                var response = await fetch(requestUrl, { method: "POST", credentials: "same-origin", headers: headers, body: JSON.stringify(requestBody) });
                 payload = await response.json().catch(function () { return null; });
                 if (!response.ok) {
                     var err = new Error("request failed");
@@ -176,20 +274,61 @@
                 if (rootNode) namespace.announce(rootNode, "Action failed: " + (detail || "no outcome returned"));
                 return;
             }
-            outcomeNode.innerHTML = outcomeMarkup(payload.outcome);
-            outcomeNode.hidden = false;
+            var runs = readHistory(providerSlug, actionKey);
+            runs.unshift({
+                at: Date.now(),
+                summary: payload.outcome.summary || "",
+                truncated: payload.outcome.truncated === true,
+                data: payload.outcome.data,
+                params: collected.params,
+            });
+            writeHistory(providerSlug, actionKey, runs);
+            renderOutcomeArea(article, providerSlug, actionKey, 0);
             if (rootNode) namespace.announce(rootNode, "Action completed: " + (payload.outcome.summary || "outcome available"));
         } catch (error) {
             progressNode.hidden = true;
             var detailText = error && error.body && (error.body.detail || error.body.error || error.body.message);
             errorNode.textContent = detailText || (error && error.message ? error.message : "Network error while calling the connector.");
             errorNode.hidden = false;
-            if (rootNode) namespace.announce(rootNode, "Action failed: " + (detailText || error.message || "network error"));
+            if (rootNode) namespace.announce(rootNode, "Action failed: " + (detailText || (error && error.message) || "network error"));
         }
     }
 
+    function prefillAutomation(root, providerSlug, actionKey, params) {
+        if (!root) return;
+        var tab = root.querySelector('[data-tab="automations"]');
+        if (tab) tab.click();
+        var form = root.querySelector("[data-automation-form]");
+        if (!form) return;
+        form.hidden = false;
+        var providerSelect = form.querySelector("[data-automation-provider]");
+        if (providerSelect && providerSelect.dataset.loaded !== "1" && namespace.fillAutomationProviderSelect) {
+            namespace.fillAutomationProviderSelect(providerSelect);
+        }
+        if (providerSelect) {
+            providerSelect.value = providerSlug;
+            providerSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        var actionSelect = form.querySelector("[data-automation-action]");
+        if (actionSelect) {
+            actionSelect.value = actionKey;
+            if (!actionSelect.value) {
+                // best effort: match by suffix or label
+                for (var i = 0; i < actionSelect.options.length; i += 1) {
+                    if (actionSelect.options[i].value === actionKey) { actionSelect.selectedIndex = i; break; }
+                }
+            }
+        }
+        var paramsField = form.querySelector('[name="params"]');
+        if (paramsField) {
+            try { paramsField.value = Object.keys(params || {}).length ? JSON.stringify(params, null, 2) : ""; } catch (_e) { paramsField.value = ""; }
+        }
+        namespace.announce(root, "Automation form prefilled from runner");
+        if (providerSelect) providerSelect.focus();
+    }
+
     function onDelegatedClick(event) {
-        var target = event.target.closest ? event.target : null;
+        var target = event.target && event.target.closest ? event.target : null;
         if (!target) return;
         var runButton = target.closest("[data-run-action]");
         if (runButton) {
@@ -202,7 +341,7 @@
             var action = actionFor(provider, actionKey);
             if (!action) return;
             event.preventDefault();
-            toggleRunner(article, actionKey, normalizeParams(action));
+            toggleRunner(article, actionKey, normalizeParams(action), providerSlug);
             return;
         }
         var closeButton = target.closest('[data-action="close-runner"]');
@@ -212,20 +351,74 @@
                 var panel = holder.querySelector("[data-runner]");
                 if (panel) panel.remove();
             }
+            return;
+        }
+        var saveButton = target.closest('[data-action="save-run-as-automation"]');
+        if (saveButton) {
+            var article2 = saveButton.closest(".integrations-action");
+            var root2 = findRoot(saveButton);
+            var runBtn = article2 && article2.querySelector("[data-run-action]");
+            var form = article2 && article2.querySelector("[data-run-form]");
+            if (!article2 || !root2 || !runBtn || !form) return;
+            var collected = collectParams(form);
+            if (collected.invalid) {
+                var errNode = form.querySelector("[data-run-error]");
+                if (errNode) { errNode.textContent = collected.invalid; errNode.hidden = false; }
+                return;
+            }
+            prefillAutomation(root2, runBtn.dataset.providerSlug || "", runBtn.dataset.runAction || "", collected.params);
+            return;
+        }
+        var histSelect = target.closest("[data-run-history-select]");
+        if (histSelect) {
+            var article3 = histSelect.closest(".integrations-action");
+            var runBtn3 = article3 && article3.querySelector("[data-run-action]");
+            if (!article3 || !runBtn3) return;
+            renderOutcomeArea(article3, runBtn3.dataset.providerSlug || "", runBtn3.dataset.runAction || "", parseInt(histSelect.getAttribute("data-run-history-select"), 10) || 0);
+            return;
+        }
+        var rerun = target.closest("[data-run-rerun]");
+        if (rerun) {
+            var article4 = rerun.closest(".integrations-action");
+            var runBtn4 = article4 && article4.querySelector("[data-run-action]");
+            var form4 = article4 && article4.querySelector("[data-run-form]");
+            if (!article4 || !runBtn4 || !form4) return;
+            var idx = parseInt(rerun.getAttribute("data-run-rerun"), 10) || 0;
+            var runs = readHistory(runBtn4.dataset.providerSlug || "", runBtn4.dataset.runAction || "");
+            var run = runs[idx];
+            if (run && run.params) fillFormParams(form4, run.params);
+            form4.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+            return;
+        }
+        var toggleBody = target.closest("[data-run-toggle-body]");
+        if (toggleBody) {
+            var view = toggleBody.closest(".integrations-run-outcome-view") || toggleBody.closest("[data-run-history]");
+            var body = view && view.querySelector("[data-run-body]");
+            if (!body) return;
+            body.hidden = !body.hidden;
+            toggleBody.textContent = body.hidden ? "Show response body" : "Hide response body";
+            return;
+        }
+        var toggleDiff = target.closest("[data-run-toggle-diff]");
+        if (toggleDiff) {
+            var view2 = toggleDiff.closest(".integrations-run-outcome-view") || toggleDiff.closest("[data-run-history]");
+            var diffEl = view2 && view2.querySelector("[data-run-diff]");
+            if (!diffEl) return;
+            diffEl.hidden = !diffEl.hidden;
+            toggleDiff.textContent = diffEl.hidden ? "Diff vs previous" : "Hide diff";
+            return;
         }
     }
 
     function onDelegatedSubmit(event) {
         var form = event.target;
-        if (!form.matches || !form.matches("[data-run-form]")) return;
+        if (!form || !form.matches || !form.matches("[data-run-form]")) return;
         var article = form.closest(".integrations-action");
-        var button = event.submitter || form.querySelector('button[type="submit"]');
         var runButton = article && article.querySelector("[data-run-action]");
         if (!article || !runButton) return;
         event.preventDefault();
         execute(article, runButton.dataset.providerSlug || "", runButton.dataset.runAction || "", form)
             .catch(function (err) {
-                // Best-effort safety net: execute() reports failures; unexpected throws are logged.
                 console.warn("[integrations-runner] unexpected execute failure", err);
             });
     }

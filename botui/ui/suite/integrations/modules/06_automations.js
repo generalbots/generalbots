@@ -63,6 +63,9 @@
         }).join("");
     }
 
+    namespace.fillAutomationProviderSelect = fillProviderSelect;
+    namespace.syncAutomationActions = syncActions;
+
     async function loadAutomations(view, statusNode) {
         view.setAttribute("aria-busy", "true");
         if (!botId()) {
@@ -85,18 +88,36 @@
         }
     }
 
+    function fmtTime(value) {
+        if (!value) return "";
+        try { return String(value).replace("T", " ").slice(0, 16); } catch (_e) { return String(value); }
+    }
+
     function rowMarkup(item) {
         var checked = item.enabled === true ? " checked" : "";
-        return '<article class="integrations-automation" data-automation-id="' + namespace.escapeHtml(item.id) + '">' +
-            '<div class="integrations-automation-head"><strong>' +
-            namespace.escapeHtml(item.provider_slug + "." + item.action_key.split(".").slice(1).join(".") || item.action_key) +
-            '</strong><label class="integrations-automation-toggle"><input type="checkbox" data-automation-toggle' + checked + '> enabled</label></div>' +
-            '<p class="integrations-run-summary">' + namespace.escapeHtml(item.schedule) +
-            (item.last_run_at ? ' · last run ' + namespace.escapeHtml(String(item.last_run_at).replace("T", " ").slice(0, 16)) : ' · never run') +
-            '</p>' +
-            (item.last_outcome ? '<p class="integrations-automation-outcome">' + namespace.escapeHtml(item.last_outcome) + '</p>' : "") +
-            '<div class="integrations-run-actions"><button class="integrations-button integrations-button-subtle" type="button" data-action="delete-automation">Delete</button></div>' +
-            '</article>';
+        var providerSlug = item.provider_slug || item.provider || "";
+        var actionKey = item.action_key || item.action || "";
+        var title = (providerSlug && actionKey) ? (providerSlug + "." + String(actionKey).split(".").slice(1).join(".") || actionKey) : (actionKey || providerSlug || "Automation");
+        var nextRun = item.next_run_at || item.next_run || "";
+        var lastRun = item.last_run_at || item.last_ran_at || "";
+        var lastStatus = item.last_run_status || item.last_status || "";
+        var runCount = (item.run_count !== undefined && item.run_count !== null) ? item.run_count : "";
+        var lastOutcome = item.last_outcome || item.last_result || item.last_error || "";
+        var params = item.params || item.parameters || {};
+        var meta = [];
+        meta.push("Schedule: " + String(item.schedule || "—"));
+        meta.push(nextRun ? ("next " + fmtTime(nextRun)) : "next run unavailable");
+        meta.push(lastRun ? ("last " + fmtTime(lastRun)) : "never run");
+        if (lastStatus) meta.push("status " + String(lastStatus));
+        if (runCount !== "") meta.push(String(runCount) + " runs");
+        return '<article class="integrations-automation" data-automation-id="' + namespace.escapeHtml(item.id || "") + '" data-provider="' + namespace.escapeHtml(providerSlug) + '" data-action-key="' + namespace.escapeHtml(actionKey) + '" data-params="' + namespace.escapeHtml(JSON.stringify(params)) + '">' +
+            '<div class="integrations-automation-head"><strong>' + namespace.escapeHtml(title) + '</strong><label class="integrations-automation-toggle"><input type="checkbox" data-automation-toggle' + checked + '> enabled</label></div>' +
+            '<p class="integrations-run-summary">' + namespace.escapeHtml(meta.join(" · ")) + '</p>' +
+            (lastOutcome ? '<details class="integrations-automation-log"><summary>Last outcome</summary><pre class="integrations-run-data">' + namespace.escapeHtml(typeof lastOutcome === "string" ? lastOutcome : JSON.stringify(lastOutcome, null, 2)) + '</pre></details>' : '<p class="integrations-readonly-note">No run log available yet.</p>') +
+            '<div class="integrations-run-actions">' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="run-automation-now">Run now</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="delete-automation">Delete</button>' +
+            '</div></article>';
     }
 
     function confirmWithModal(message) {
@@ -142,6 +163,31 @@
         }
     }
 
+    async function runAutomationNow(app, article) {
+        if (!app || !article) return;
+        var provider = article.dataset.provider || "";
+        var actionKey = article.dataset.actionKey || "";
+        var params = {};
+        try { params = JSON.parse(article.dataset.params || "{}") || {}; } catch (_e) { params = {}; }
+        if (!botId() || !provider || !actionKey) {
+            namespace.announce(app, "Cannot run automation: missing provider, action, or workspace context.");
+            return;
+        }
+        namespace.announce(app, "Running automation now...");
+        try {
+            await namespace.fetchJson("/api/bots/" + encodeURIComponent(botId()) + "/integration-actions/invoke", {
+                method: "POST",
+                body: { provider: provider, action: actionKey, params: params }
+            });
+            namespace.announce(app, "Automation run completed.");
+            var view = app.querySelector("[data-automations-view]");
+            loadAutomations(view, app.querySelector("[data-automation-status]"));
+        } catch (error) {
+            var detail = error && error.body && (error.body.detail || error.body.error || error.body.message);
+            namespace.announce(app, "Automation run failed: " + (detail || (error && error.message) || "request failed"));
+        }
+    }
+
     function onDelegatedClick(event) {
         var target = event.target;
         if (!target || !target.closest) return;
@@ -159,6 +205,12 @@
         }
         if (target.matches('[data-action="cancel-automation"]')) {
             app.querySelector("[data-automation-form]").hidden = true;
+            return;
+        }
+        var runNowButton = target.closest('[data-action="run-automation-now"]');
+        if (runNowButton && app.contains(runNowButton)) {
+            var runArticle = runNowButton.closest("[data-automation-id]");
+            if (runArticle) { event.preventDefault(); void runAutomationNow(app, runArticle); }
             return;
         }
         var deleteButton = target.closest('[data-action="delete-automation"]');
