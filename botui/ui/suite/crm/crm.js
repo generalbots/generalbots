@@ -12,6 +12,24 @@
             var view = this.dataset.view;
             var panel = document.getElementById('crm-' + view + '-view');
             if (panel) panel.classList.add('active');
+            // #2356: load/refresh grid data when switching views so HTMX-rendered
+            // rows reflect current records (opportunities/deals/contacts/accounts).
+            if (typeof window.reloadCrmGrid === 'function' && ['deals', 'opportunities', 'contacts', 'accounts'].indexOf(view) !== -1) {
+                window.reloadCrmGrid(view);
+            } else if (window.htmx) {
+                var bodyId = ({
+                    opportunities: 'opportunities-table-body',
+                    deals: 'deals-table-body',
+                    contacts: 'contacts-table-body',
+                    accounts: 'accounts-table-body',
+                    campaigns: 'crmCampaignsList',
+                    quotes: 'crmQuotesList'
+                })[view];
+                if (bodyId) {
+                    var target = document.getElementById(bodyId);
+                    if (target) htmx.trigger(target, 'load');
+                }
+            }
         });
     });
 
