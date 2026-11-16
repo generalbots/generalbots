@@ -253,10 +253,18 @@ async fn fetch_into(
         .connect_timeout(Duration::from_secs(30))
         .build()
         .map_err(|error| DownloadError::Failed(format!("http_client_failed: {error}")))?;
-    let url = format!(
-        "https://huggingface.co/{}/resolve/main/{}",
-        spec.repo, spec.file
-    );
+    // Test-only: `GB_MODEL_DOWNLOAD_BASE` overrides the base URL so the
+    // download flow can be proved with a local HTTP server and a stand-in file.
+    // Inert in production (never set in .env or .product).
+    let base = std::env::var("GB_MODEL_DOWNLOAD_BASE").unwrap_or_default();
+    let url = if base.is_empty() {
+        format!(
+            "https://huggingface.co/{}/resolve/main/{}",
+            spec.repo, spec.file
+        )
+    } else {
+        format!("{}/{}", base.trim_end_matches('/'), spec.file)
+    };
     let mut request = client.get(&url);
     if resume_from > 0 {
         request = request.header(reqwest::header::RANGE, format!("bytes={resume_from}-"));

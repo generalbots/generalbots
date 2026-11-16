@@ -14,6 +14,9 @@ use std::path::{Path, PathBuf};
 pub(crate) struct Hardware {
     pub device: String,
     pub vram_gb: u16,
+    pub vram_free_gb: u16,
+    pub driver: String,
+    pub cuda_usable: bool,
     pub ram_gb: u64,
     pub backend: &'static str,
 }
@@ -21,31 +24,43 @@ pub(crate) struct Hardware {
 pub(crate) fn probe() -> Hardware {
     let ram_gb = system_ram_gb();
     match nvidia_device() {
-        Some((device, vram_gb)) => Hardware {
-            device,
-            vram_gb,
+        Some(gpu) => Hardware {
+            device: gpu.name,
+            vram_gb: gpu.vram_total_gb,
+            vram_free_gb: gpu.vram_free_gb,
+            driver: gpu.driver,
+            cuda_usable: true,
             ram_gb,
             backend: "cuda",
         },
         None => Hardware {
             device: "CPU only".to_string(),
             vram_gb: 0,
+            vram_free_gb: 0,
+            driver: String::new(),
+            cuda_usable: false,
             ram_gb,
             backend: "cpu",
         },
     }
 }
 
-/// `nvidia-smi --query-gpu=name,memory.total` → `("NVIDIA ...", vram_gb)`.
-fn nvidia_device() -> Option<(String, u16)> {
+pub(crate) struct GpuInfo {
+    pub name: String,
+    pub vram_total_gb: u16,
+    pub vram_free_gb: u16,
+    pub driver: String,
+}
+
+/// Queries `nvidia-smi` for the first GPU's name, VRAM and driver version.
+fn nvidia_device() -> Option<GpuInfo> {
     match run_nvidia_smi("nvidia-smi") {
         Some(result) => return Some(result),
         None => log::debug!("[on_device_ai] nvidia-smi (bare name) did not produce a result"),
     }
     // On Windows the NVIDIA driver places `nvidia-smi.exe` in System32, but
     // `SafeCommand::env_clear()` reconstructs a minimal environment that may
-    // not resolve the bare name (observed on RTX 4070 laptop, Windows 11).
-    // Try the canonical path as a fallback.
+    // not resolve the bare name. Try the canonical path as a fallback.
     #[cfg(windows)]
     {
         let system32 = std::env::var("SYSTEMROOT")
@@ -55,66 +70,92 @@ fn nvidia_device() -> Option<(String, u16)> {
             log::debug!("[on_device_ai] trying full path: {full}");
             match run_nvidia_smi(&full) {
                 Some(result) => return Some(result),
-                None => log::debug!("[on_device_ai] nvidia-smi (full path) did not produce a result"),
+                None => log::warn!("[on_device_ai] nvidia-smi present at {full} but probe failed (NVML init error — check ProgramFiles env var)"),
             }
+        } else {
+            log::warn!("[on_device_ai] GPU probe: nvidia-smi.exe not found at {full}");
         }
     }
+    #[cfg(not(windows))]
+    log::warn!("[on_device_ai] GPU probe: nvidia-smi not found in PATH");
     None
 }
 
 /// Runs `nvidia-smi` (or its full path) and parses the output.
-fn run_nvidia_smi(command: &str) -> Option<(String, u16)> {
+fn run_nvidia_smi(command: &str) -> Option<GpuInfo> {
     let cmd = match SafeCommand::new(command) {
         Ok(c) => c,
         Err(e) => {
-            log::debug!("[on_device_ai] SafeCommand::new({command}) failed: {e}");
+            log::warn!("[on_device_ai] GPU probe: SafeCommand::new({command}) rejected: {e}");
             return None;
         }
     };
     let cmd = match cmd
-        .arg("--query-gpu=name,memory.total")
+        .arg("--query-gpu=name,memory.total,memory.free,driver_version")
         .and_then(|c| c.arg("--format=csv,noheader,nounits"))
     {
         Ok(c) => c,
         Err(e) => {
-            log::debug!("[on_device_ai] nvidia-smi arg validation failed: {e}");
+            log::warn!("[on_device_ai] GPU probe: nvidia-smi arg validation failed: {e}");
             return None;
         }
     };
     let output = match cmd.execute() {
         Ok(o) => o,
         Err(e) => {
-            log::debug!("[on_device_ai] nvidia-smi execute failed: {e}");
+            log::warn!("[on_device_ai] GPU probe: nvidia-smi execute failed: {e}");
             return None;
         }
     };
     if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        log::debug!(
-            "[on_device_ai] nvidia-smi exited {}: {}",
-            output.status,
+        let detail = if !stdout.trim().is_empty() {
+            stdout.chars().take(200).collect::<String>()
+        } else {
             stderr.chars().take(200).collect::<String>()
+        };
+        log::warn!(
+            "[on_device_ai] GPU probe: nvidia-smi exited {}: {}",
+            output.status,
+            detail,
         );
         return None;
     }
     parse_nvidia_line(&String::from_utf8_lossy(&output.stdout))
 }
 
-/// First GPU line → device name and whole-GB VRAM. Pure, so it is unit-tested
-/// against the exact `nvidia-smi` output shape.
-pub(crate) fn parse_nvidia_line(stdout: &str) -> Option<(String, u16)> {
+/// Parse `nvidia-smi` CSV output with 4 fields:
+/// `name, memory.total, memory.free, driver_version`.
+/// Falls back to 2-field format (name, memory.total) for compatibility.
+pub(crate) fn parse_nvidia_line(stdout: &str) -> Option<GpuInfo> {
     let line = stdout.lines().map(str::trim).find(|line| !line.is_empty())?;
-    let (name, memory) = line.rsplit_once(',')?;
-    let name = name.trim();
+    let fields: Vec<&str> = line.split(',').map(str::trim).collect();
+    if fields.len() < 2 {
+        return None;
+    }
+    let name = fields[0];
     if name.is_empty() {
         return None;
     }
-    let total_mb: f64 = memory.trim().parse().ok()?;
+    let total_mb: f64 = fields[1].parse().ok()?;
     if !total_mb.is_finite() || total_mb <= 0.0 {
         return None;
     }
-    let vram_gb = (total_mb / 1024.0).round().clamp(1.0, f64::from(u16::MAX)) as u16;
-    Some((name.to_string(), vram_gb))
+    let vram_total_gb = (total_mb / 1024.0).round().clamp(1.0, f64::from(u16::MAX)) as u16;
+    let vram_free_gb = fields
+        .get(2)
+        .and_then(|s| s.parse::<f64>().ok())
+        .filter(|v| v.is_finite() && *v >= 0.0)
+        .map(|mb| (mb / 1024.0).round().clamp(0.0, f64::from(u16::MAX)) as u16)
+        .unwrap_or(0);
+    let driver = fields.get(3).unwrap_or(&"").to_string();
+    Some(GpuInfo {
+        name: name.to_string(),
+        vram_total_gb,
+        vram_free_gb,
+        driver,
+    })
 }
 
 fn system_ram_gb() -> u64 {
@@ -147,36 +188,50 @@ mod hardware_tests {
     use super::{models_dir, parse_nvidia_line};
 
     #[test]
-    fn parses_the_nvidia_smi_csv_line() {
-        let parsed = parse_nvidia_line("NVIDIA GeForce RTX 4090, 24564\n");
-        assert_eq!(parsed, Some(("NVIDIA GeForce RTX 4090".to_string(), 24)));
+    fn parses_four_field_nvidia_smi_csv() {
+        let gpu = parse_nvidia_line("NVIDIA GeForce RTX 4070 Laptop GPU, 8188, 4401, 621.14\n")
+            .expect("should parse");
+        assert_eq!(gpu.name, "NVIDIA GeForce RTX 4070 Laptop GPU");
+        assert_eq!(gpu.vram_total_gb, 8);
+        assert_eq!(gpu.vram_free_gb, 4);
+        assert_eq!(gpu.driver, "621.14");
     }
 
     #[test]
-    fn parses_laptop_gpu_output() {
-        let parsed = parse_nvidia_line("NVIDIA GeForce RTX 4070 Laptop GPU, 8188\n");
-        assert_eq!(
-            parsed,
-            Some(("NVIDIA GeForce RTX 4070 Laptop GPU".to_string(), 8))
-        );
+    fn parses_desktop_gpu_full_output() {
+        let gpu = parse_nvidia_line("NVIDIA GeForce RTX 4090, 24564, 22000, 555.42\n")
+            .expect("should parse");
+        assert_eq!(gpu.name, "NVIDIA GeForce RTX 4090");
+        assert_eq!(gpu.vram_total_gb, 24);
+        assert_eq!(gpu.vram_free_gb, 21);
+        assert_eq!(gpu.driver, "555.42");
+    }
+
+    #[test]
+    fn parses_legacy_two_field_output() {
+        let gpu = parse_nvidia_line("NVIDIA GeForce RTX 3060, 12288\n")
+            .expect("should parse");
+        assert_eq!(gpu.name, "NVIDIA GeForce RTX 3060");
+        assert_eq!(gpu.vram_total_gb, 12);
+        assert_eq!(gpu.vram_free_gb, 0);
+        assert_eq!(gpu.driver, "");
     }
 
     #[test]
     fn parses_line_with_trailing_whitespace() {
-        let parsed = parse_nvidia_line("  NVIDIA GeForce RTX 3060, 12288  \n\n");
-        assert_eq!(
-            parsed,
-            Some(("NVIDIA GeForce RTX 3060".to_string(), 12))
-        );
+        let gpu = parse_nvidia_line("  NVIDIA GeForce RTX 3060, 12288, 10000, 530.00  \n\n")
+            .expect("should parse");
+        assert_eq!(gpu.name, "NVIDIA GeForce RTX 3060");
+        assert_eq!(gpu.vram_total_gb, 12);
     }
 
     #[test]
     fn ignores_empty_or_malformed_output() {
-        assert_eq!(parse_nvidia_line(""), None);
-        assert_eq!(parse_nvidia_line("   \n"), None);
-        assert_eq!(parse_nvidia_line("no comma here"), None);
-        assert_eq!(parse_nvidia_line("GPU, not-a-number"), None);
-        assert_eq!(parse_nvidia_line("GPU, 0"), None);
+        assert!(parse_nvidia_line("").is_none());
+        assert!(parse_nvidia_line("   \n").is_none());
+        assert!(parse_nvidia_line("no comma here").is_none());
+        assert!(parse_nvidia_line("GPU, not-a-number").is_none());
+        assert!(parse_nvidia_line("GPU, 0").is_none());
     }
 
     #[test]

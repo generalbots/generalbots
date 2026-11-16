@@ -1,8 +1,8 @@
 //! Pure tier/model selection tests for the on-device catalogue (#2109).
 
 use super::{
-    catalog, effective_budget_gb, find, fits, profiles, recommended, row_status, tier_groups,
-    STATUS_ACTIVE, STATUS_AVAILABLE, STATUS_DOWNLOADED, STATUS_DOWNLOADING,
+    catalog, effective_budget_gb, find, fit_verdict, fits, profiles, recommended, row_status,
+    tier_groups, STATUS_ACTIVE, STATUS_AVAILABLE, STATUS_DOWNLOADED, STATUS_DOWNLOADING,
 };
 
 #[test]
@@ -58,6 +58,11 @@ fn every_catalogue_entry_is_addressable_and_labelled() {
         assert!(!spec.name.is_empty());
         assert!(!spec.file.ends_with('/'));
         assert!(spec.size_bytes > 0);
+        assert!(!spec.licence.is_empty(), "missing licence for {}", spec.id);
+        // server_only entries may have no source_host
+        if !spec.server_only {
+            assert!(!spec.source_host.is_empty(), "missing source_host for {}", spec.id);
+        }
     }
     assert!(find("does-not-exist").is_none());
 }
@@ -68,6 +73,17 @@ fn status_precedence_is_active_then_downloaded_then_downloading() {
     assert_eq!(row_status(false, true, true), STATUS_DOWNLOADED);
     assert_eq!(row_status(false, false, true), STATUS_DOWNLOADING);
     assert_eq!(row_status(false, false, false), STATUS_AVAILABLE);
+}
+
+#[test]
+fn fit_verdict_three_tiers() {
+    let spec = find("qwen3.5-9b-q4km").expect("catalogue entry");
+    // 8 GB min, comfortable threshold = 10 GB
+    assert_eq!(fit_verdict(spec, 12, 16), "comfortable");
+    assert_eq!(fit_verdict(spec, 8, 16), "tight");
+    assert_eq!(fit_verdict(spec, 0, 4), "wont_run");
+    // CPU-only with enough RAM is comfortable
+    assert_eq!(fit_verdict(spec, 0, 32), "comfortable");
 }
 
 #[test]

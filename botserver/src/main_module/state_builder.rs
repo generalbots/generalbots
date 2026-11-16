@@ -439,6 +439,19 @@ pub async fn create_app_state(
             let ext = botcore::shared::state::Extensions::new();
             #[cfg(feature = "llm")]
             ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
+            #[cfg(feature = "llm")]
+            {
+                let dyn_provider = Arc::clone(&dynamic_llm_provider);
+                let swap = botsettings::on_device_ai::LlmHotSwap {
+                    apply: Box::new(move |url, model| {
+                        let provider = Arc::clone(&dyn_provider);
+                        Box::pin(async move {
+                            provider.update_from_config(&url, model, None, None).await;
+                        })
+                    }),
+                };
+                ext.insert_blocking(Arc::new(swap));
+            }
             #[cfg(feature = "monitoring")]
             ext.insert_blocking(tracing_service.clone());
             ext

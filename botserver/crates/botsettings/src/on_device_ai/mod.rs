@@ -90,6 +90,7 @@ async fn list_models(
         "active_model": vault_store::bare_name(&configured),
         "recommended": recommended.id,
         "recommended_fits": catalog::fits(recommended, probe.vram_gb, probe.ram_gb),
+        "recommended_verdict": catalog::fit_verdict(recommended, probe.vram_gb, probe.ram_gb),
         "models_dir": dir.to_string_lossy(),
         "free_bytes": hardware::free_bytes_for(&dir),
         "tiers": tiers,
@@ -125,8 +126,11 @@ fn model_row(
         "active": active,
         "downloaded": downloaded,
         "fits": catalog::fits(spec, probe.vram_gb, probe.ram_gb),
+        "fit_verdict": catalog::fit_verdict(spec, probe.vram_gb, probe.ram_gb),
         "checksum_pinned": !spec.sha256.is_empty(),
         "server_only": spec.server_only,
+        "licence": spec.licence,
+        "source_host": spec.source_host,
     })
 }
 
@@ -231,13 +235,54 @@ async fn activate(
             log::error!("[on_device_ai] cannot persist choice: {reason}");
             error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
         })?;
+
+    // Hot-swap the LLM provider so the model activates without an app restart.
+    let swapped = hot_swap_provider(&state, spec).await;
+    if !swapped {
+        log::info!("[on_device_ai] provider hot-swap skipped (DynamicLLMProvider not available); restart required");
+    }
     Ok(Json(json!({
         "active": spec.file,
         "profile": profile.map(|profile| profile.id),
         "restarted": false,
-        "restart_required": true,
+        "restart_required": !swapped,
+        "provider_swapped": swapped,
         "url_written": url_written,
     })))
+}
+
+/// Attempt to hot-swap the LLM provider at runtime.
+///
+/// The swap uses `LlmHotSwap`, a type-erased callback registered by the server
+/// init code in `state.extensions`. This avoids a compile-time dependency on
+/// `botllm` from `botsettings`.
+async fn hot_swap_provider(state: &Arc<AppState>, spec: &ModelSpec) -> bool {
+    let swap: Option<Arc<LlmHotSwap>> = state.extensions.get::<LlmHotSwap>().await;
+    let Some(swap) = swap else {
+        return false;
+    };
+    let url = "http://localhost:8081/v1/chat/completions".to_string();
+    let model = if spec.file.is_empty() {
+        None
+    } else {
+        Some(spec.file.to_string())
+    };
+    (swap.apply)(url, model).await;
+    log::info!(
+        "[on_device_ai] provider hot-swapped to model {}",
+        spec.file
+    );
+    true
+}
+
+/// Type-erased callback for swapping the LLM provider at runtime.
+/// Registered once by server init; consumed by the activate endpoint.
+pub struct LlmHotSwap {
+    pub apply: Box<
+        dyn Fn(String, Option<String>) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+            + Send
+            + Sync,
+    >,
 }
 
 async fn list_profiles(
