@@ -62,14 +62,36 @@ if (document.readyState === "loading") {
     });
   }
 
+  function keepFocusedVisible() {
+    try {
+      var ae = document.activeElement;
+      if (!ae || ae === document.body || ae === document.documentElement) return;
+      var tag = (ae.tagName || "").toLowerCase();
+      if (tag !== "input" && tag !== "textarea" && tag !== "select" && !ae.isContentEditable) return;
+      if (typeof ae.scrollIntoView === "function") {
+        ae.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    } catch (_e) {}
+  }
+
   function reclampSoon() {
     reclampAllWindows();
+    keepFocusedVisible();
     [0, 60, 120, 220, 400, 700, 1100].forEach(function (ms) {
-      setTimeout(reclampAllWindows, ms);
+      setTimeout(function () {
+        reclampAllWindows();
+        keepFocusedVisible();
+      }, ms);
     });
     if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(reclampAllWindows);
-      requestAnimationFrame(function () { requestAnimationFrame(reclampAllWindows); });
+      requestAnimationFrame(function () {
+        reclampAllWindows();
+        keepFocusedVisible();
+        requestAnimationFrame(function () {
+          reclampAllWindows();
+          keepFocusedVisible();
+        });
+      });
     }
   }
 

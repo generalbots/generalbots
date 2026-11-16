@@ -179,41 +179,80 @@
   _makeDraggable(el) {
     const header = el.querySelector(".window-header-glass") || el.querySelector(".window-header");
     if (!header) return;
-    let isDragging = false, startX, startY, initialLeft, initialTop;
+    let isDragging = false, startX, startY, initialLeft, initialTop, activePointerId = null, moveRaf = 0;
+
+    const isCompactSurface = () => {
+      // #2410: phone/compact surfaces keep sheet geometry pinned.
+      return window.innerWidth < 768;
+    };
+
+    const canFreeDrag = () => {
+      // #2410: compact phone surfaces must not free-drag; tablet/coarse-pointer
+      // surfaces (>=768px) still allow pointer-driven drag per acceptance.
+      return !isCompactSurface();
+    };
+
+    const endDrag = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; }
+      document.body.style.userSelect = "";
+      if (activePointerId != null) {
+        try { header.releasePointerCapture(activePointerId); } catch (_e) {}
+      }
+      activePointerId = null;
+      header.removeEventListener("pointermove", onMove);
+      header.removeEventListener("pointerup", onUp);
+      header.removeEventListener("pointercancel", onUp);
+    };
 
     const onDown = (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       if (e.target.closest(".window-dot") || e.target.closest("button")) return;
-      // Dragging a maximized window is nonsensical (it fills the screen),
-      // so restore it to its previous size/position first — standard
-      // desktop behavior.
       const id = el.id.replace("window-", "");
+      this.focus(id);
+      if (!canFreeDrag()) return;
       // #2104 — a fullscreen window owns the screen: no drag, no restore.
       if (this.isFullscreen && this.isFullscreen(id)) return;
       const wd = this.openWindows.find((w) => w.id === id);
       if (wd && wd.isMaximized && !wd.noMaximize) this.toggleMaximize(id);
+      // Re-read after possible restore.
       isDragging = true;
+      activePointerId = e.pointerId;
       startX = e.clientX; startY = e.clientY;
       initialLeft = parseInt(el.style.left || 0, 10);
       initialTop = parseInt(el.style.top || 0, 10);
-      this.focus(id);
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
+      document.body.style.userSelect = "none";
+      try { header.setPointerCapture(e.pointerId); } catch (_e) {}
+      header.addEventListener("pointermove", onMove);
+      header.addEventListener("pointerup", onUp);
+      header.addEventListener("pointercancel", onUp);
     };
+
     const onMove = (e) => {
       if (!isDragging) return;
-      requestAnimationFrame(() => {
-        el.style.left = `${Math.max(-200, initialLeft + e.clientX - startX)}px`;
-        el.style.top = `${Math.max(0, initialTop + e.clientY - startY)}px`;
+      if (e.pointerId !== activePointerId) return;
+      if (!canFreeDrag()) { endDrag(); return; }
+      const nx = Math.max(-200, initialLeft + e.clientX - startX);
+      const ny = Math.max(0, initialTop + e.clientY - startY);
+      if (moveRaf) cancelAnimationFrame(moveRaf);
+      moveRaf = requestAnimationFrame(() => {
+        moveRaf = 0;
+        el.style.left = `${nx}px`;
+        el.style.top = `${ny}px`;
       });
     };
-    const onUp = () => {
-      isDragging = false;
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+
+    const onUp = (e) => {
+      if (e && activePointerId != null && e.pointerId !== activePointerId) return;
+      endDrag();
     };
-    header.addEventListener("mousedown", onDown);
+
+    header.style.touchAction = "none";
+    header.addEventListener("pointerdown", onDown);
     header.addEventListener("dblclick", (e) => {
       if (e.target.closest(".window-dot") || e.target.closest("button")) return;
+      if (!canFreeDrag()) return;
       const id = el.id.replace("window-", "");
       // #2104 — double-click must not maximize (and so shrink) a fullscreen
       // window; Escape/F11 leave fullscreen instead.
@@ -221,7 +260,11 @@
       const wd = this.openWindows.find((w) => w.id === id);
       if (wd && !wd.noMaximize) this.toggleMaximize(id);
     });
-    el.addEventListener("mousedown", () => this.focus(el.id.replace("window-", "")));
+    // Focus on pointer interaction without preventing app click handlers.
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      this.focus(el.id.replace("window-", ""));
+    }, true);
   },
 
   _makeResizable(el) {
@@ -234,7 +277,11 @@
       el.style.overflow = "hidden";
       return;
     }
-    el.style.resize = "both";
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const compact = window.innerWidth < 768;
+    // #2410: avoid browser-native resizer on compact/coarse-touch surfaces;
+    // fine pointer desktop keeps native behavior.
+    el.style.resize = (compact || coarse) ? "none" : "both";
     // Only the inner .window-body scrolls. Making the window element itself
     // `overflow: auto` produced a second, outer scrollbar (title bar and
     // body scrolling together) whenever content exceeded the frame height.
