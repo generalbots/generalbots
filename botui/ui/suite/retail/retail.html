@@ -7,13 +7,13 @@
     <header class="retail-header">
         <h1 data-i18n="auto-retail-management">Retail Management</h1>
         <div class="retail-header-actions">
-            <select class="retail-branch-select" id="retail-branch-filter" onchange="window._retail.filterBranch(this.value)">
+            <select class="retail-branch-select" id="retail-branch-filter" data-retail-filter="branch">
                 <option value="all" data-i18n="auto-all-branches">All Branches</option>
                 <option value="1" data-i18n="auto-branch-1-downtown">Branch 1 — Downtown</option>
                 <option value="2" data-i18n="auto-branch-2-mall">Branch 2 — Mall</option>
                 <option value="3" data-i18n="auto-branch-3-outlet">Branch 3 — Outlet</option>
             </select>
-            <button class="retail-btn" onclick="window._retail.loadAll()">
+            <button type="button" class="retail-btn" data-retail-action="load-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
                 Refresh
             </button>
@@ -27,17 +27,17 @@
         <div class="retail-stat-card"><span class="retail-stat-label" data-i18n="auto-active-promotions">Active Promotions</span><span class="retail-stat-value purple" id="stat-promos">0</span></div>
     </div>
 
-    <nav class="retail-tabs">
-        <button class="retail-tab active" data-tab="dashboard" onclick="window._retail.switchTab('dashboard',this)" data-i18n="goals-dashboard">Dashboard</button>
-        <button class="retail-tab" data-tab="branches" onclick="window._retail.switchTab('branches',this)" data-i18n="auto-branches">Branches</button>
-        <button class="retail-tab" data-tab="stock" onclick="window._retail.switchTab('stock',this)" data-i18n="products-stock">Stock</button>
-        <button class="retail-tab" data-tab="pricing" onclick="window._retail.switchTab('pricing',this)" data-i18n="auto-pricing">Pricing</button>
-        <button class="retail-tab" data-tab="promotions" onclick="window._retail.switchTab('promotions',this)" data-i18n="auto-promotions">Promotions</button>
-        <button class="retail-tab" data-tab="suppliers" onclick="window._retail.switchTab('suppliers',this)" data-i18n="auto-suppliers">Suppliers</button>
+    <nav class="retail-tabs" role="tablist" aria-label="Retail sections">
+        <button type="button" id="retail-tab-dashboard" class="retail-tab active" role="tab" aria-selected="true" aria-controls="panel-dashboard" tabindex="0" data-tab="dashboard" data-i18n="goals-dashboard">Dashboard</button>
+        <button type="button" id="retail-tab-branches" class="retail-tab" role="tab" aria-selected="false" aria-controls="panel-branches" tabindex="-1" data-tab="branches" data-i18n="auto-branches">Branches</button>
+        <button type="button" id="retail-tab-stock" class="retail-tab" role="tab" aria-selected="false" aria-controls="panel-stock" tabindex="-1" data-tab="stock" data-i18n="products-stock">Stock</button>
+        <button type="button" id="retail-tab-pricing" class="retail-tab" role="tab" aria-selected="false" aria-controls="panel-pricing" tabindex="-1" data-tab="pricing" data-i18n="auto-pricing">Pricing</button>
+        <button type="button" id="retail-tab-promotions" class="retail-tab" role="tab" aria-selected="false" aria-controls="panel-promotions" tabindex="-1" data-tab="promotions" data-i18n="auto-promotions">Promotions</button>
+        <button type="button" id="retail-tab-suppliers" class="retail-tab" role="tab" aria-selected="false" aria-controls="panel-suppliers" tabindex="-1" data-tab="suppliers" data-i18n="auto-suppliers">Suppliers</button>
     </nav>
 
     <div class="retail-content">
-        <div class="retail-panel active" id="panel-dashboard">
+        <div class="retail-panel active" id="panel-dashboard" role="tabpanel" aria-labelledby="retail-tab-dashboard">
             <div class="retail-grid" id="dashboard-grid">
                 <div class="retail-card">
                     <h3 data-i18n="auto-top-products">Top Products</h3>
@@ -54,11 +54,11 @@
             </div>
         </div>
 
-        <div class="retail-panel" id="panel-branches">
+        <div class="retail-panel" id="panel-branches" role="tabpanel" aria-labelledby="retail-tab-branches" hidden>
             <div class="retail-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-store-branches">Store Branches</h3>
-                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreateBranch()" data-i18n="auto-new-branch">+ New Branch</button>
+                    <button type="button" class="retail-btn retail-btn-primary" data-retail-action="show-create-branch" data-i18n="auto-new-branch">+ New Branch</button>
                 </div>
                 <div style="overflow-x:auto">
                     <table class="retail-table">
@@ -69,10 +69,10 @@
             </div>
         </div>
 
-        <div class="retail-panel" id="panel-stock">
+        <div class="retail-panel" id="panel-stock" role="tabpanel" aria-labelledby="retail-tab-stock" hidden>
             <div class="retail-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="stock-search" placeholder="Search SKU or product..." oninput="window._retail.searchStock(this.value)">
+                <input type="text" id="stock-search" placeholder="Search SKU or product..." data-retail-input="stock-search">
             </div>
             <div class="retail-table-wrapper">
                 <table class="retail-table">
@@ -82,17 +82,17 @@
             </div>
         </div>
 
-        <div class="retail-panel" id="panel-pricing">
+        <div class="retail-panel" id="panel-pricing" role="tabpanel" aria-labelledby="retail-tab-pricing" hidden>
             <div class="retail-grid" id="pricing-grid">
                 <div class="retail-empty"><div class="retail-empty-icon">💲</div><h3 data-i18n="auto-loading-pricing-rules">Loading pricing rules...</h3></div>
             </div>
         </div>
 
-        <div class="retail-panel" id="panel-promotions">
+        <div class="retail-panel" id="panel-promotions" role="tabpanel" aria-labelledby="retail-tab-promotions" hidden>
             <div class="retail-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-active-promotions">Active Promotions</h3>
-                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreatePromo()" data-i18n="auto-new-promotion">+ New Promotion</button>
+                    <button type="button" class="retail-btn retail-btn-primary" data-retail-action="show-create-promo" data-i18n="auto-new-promotion">+ New Promotion</button>
                 </div>
                 <table class="retail-table">
                     <thead><tr><th data-i18n="label-name">Name</th><th data-i18n="label-type">Type</th><th data-i18n="billing-discount">Discount</th><th data-i18n="products-col-valid-from">Valid From</th><th data-i18n="products-col-valid-to">Valid To</th><th data-i18n="label-status">Status</th></tr></thead>
@@ -101,11 +101,11 @@
             </div>
         </div>
 
-        <div class="retail-panel" id="panel-suppliers">
+        <div class="retail-panel" id="panel-suppliers" role="tabpanel" aria-labelledby="retail-tab-suppliers" hidden>
             <div class="retail-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-suppliers">Suppliers</h3>
-                    <button class="retail-btn retail-btn-primary" onclick="window._retail.showCreateSupplier()" data-i18n="auto-new-supplier">+ New Supplier</button>
+                    <button type="button" class="retail-btn retail-btn-primary" data-retail-action="show-create-supplier" data-i18n="auto-new-supplier">+ New Supplier</button>
                 </div>
                 <table class="retail-table">
                     <thead><tr><th>CNPJ</th><th data-i18n="label-name">Name</th><th data-i18n="billing-contact">Contact</th><th data-i18n="attendant-channel-email">Email</th><th data-i18n="auto-lead-time">Lead Time</th><th data-i18n="sources-prompt-rating">Rating</th></tr></thead>
@@ -118,7 +118,7 @@
 
 <div id="retailBranchModal" class="retail-modal" style="display:none">
     <div class="retail-modal-dialog">
-        <header class="retail-modal-header"><h2 data-i18n="auto-branch">Branch</h2><button onclick="window._retail.closeModal('retailBranchModal')">&times;</button></header>
+        <header class="retail-modal-header"><h2 data-i18n="auto-branch">Branch</h2><button data-retail-close="'retailBranchModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitBranch(event)">
             <label><span data-i18n="research-code">Code</span><input type="text" id="branchCode" placeholder="e.g. BR-01"></label>
             <label><span data-i18n="label-name">Name</span><input type="text" id="branchName" required placeholder="Downtown"></label>
@@ -127,7 +127,7 @@
             <label>Stock value (R$)<input type="number" id="branchStock" step="0.01" min="0" value="0"></label>
             <label>Status<select id="branchStatus"><option value="active" data-i18n="label-active">Active</option><option value="inactive" data-i18n="label-inactive">Inactive</option></select></label>
             <div style="display:flex;gap:8px;margin-top:12px">
-                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailBranchModal')" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="retail-btn" data-retail-close="'retailBranchModal')" data-i18n="action-cancel">Cancel</button>
                 <button type="submit" class="retail-btn retail-btn-primary" data-i18n="action-save">Save</button>
             </div>
         </form>
@@ -136,7 +136,7 @@
 
 <div id="retailPromoModal" class="retail-modal" style="display:none">
     <div class="retail-modal-dialog">
-        <header class="retail-modal-header"><h2 data-i18n="auto-promotion">Promotion</h2><button onclick="window._retail.closeModal('retailPromoModal')">&times;</button></header>
+        <header class="retail-modal-header"><h2 data-i18n="auto-promotion">Promotion</h2><button data-retail-close="'retailPromoModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitPromo(event)">
             <label><span data-i18n="label-name">Name</span><input type="text" id="promoName" required></label>
             <label>Type<select id="promoType"><option value="percent" data-i18n="auto-percent">Percent</option><option value="fixed" data-i18n="auto-fixed">Fixed</option><option value="bogo" data-i18n="auto-bogo">BOGO</option></select></label>
@@ -145,7 +145,7 @@
             <label><span data-i18n="auto-valid-to">Valid to</span><input type="date" id="promoTo"></label>
             <label>Status<select id="promoStatus"><option value="active" data-i18n="label-active">Active</option><option value="paused" data-i18n="tasks-status-paused">Paused</option></select></label>
             <div style="display:flex;gap:8px;margin-top:12px">
-                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailPromoModal')" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="retail-btn" data-retail-close="'retailPromoModal')" data-i18n="action-cancel">Cancel</button>
                 <button type="submit" class="retail-btn retail-btn-primary" data-i18n="action-save">Save</button>
             </div>
         </form>
@@ -154,7 +154,7 @@
 
 <div id="retailSupplierModal" class="retail-modal" style="display:none">
     <div class="retail-modal-dialog">
-        <header class="retail-modal-header"><h2 data-i18n="auto-supplier">Supplier</h2><button onclick="window._retail.closeModal('retailSupplierModal')">&times;</button></header>
+        <header class="retail-modal-header"><h2 data-i18n="auto-supplier">Supplier</h2><button data-retail-close="'retailSupplierModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitSupplier(event)">
             <label>CNPJ<input type="text" id="supplierCnpj"></label>
             <label><span data-i18n="label-name">Name</span><input type="text" id="supplierName" required></label>
@@ -163,7 +163,7 @@
             <label><span data-i18n="auto-lead-time-days">Lead time (days)</span><input type="number" id="supplierLead" min="0" value="0"></label>
             <label><span data-i18n="auto-rating-0-5">Rating (0-5)</span><input type="number" id="supplierRating" step="0.1" min="0" max="5" value="0"></label>
             <div style="display:flex;gap:8px;margin-top:12px">
-                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailSupplierModal')" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="retail-btn" data-retail-close="'retailSupplierModal')" data-i18n="action-cancel">Cancel</button>
                 <button type="submit" class="retail-btn retail-btn-primary" data-i18n="action-save">Save</button>
             </div>
         </form>

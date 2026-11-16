@@ -30,11 +30,23 @@ async function apiCall(url,options){
 
 function switchTab(tab,btn){
     state.currentTab=tab;
-    document.querySelectorAll('.retail-tab').forEach(function(t){t.classList.remove('active')});
-    document.querySelectorAll('.retail-panel').forEach(function(p){p.classList.remove('active')});
-    if(btn)btn.classList.add('active');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.retail-tabs [role="tab"], .retail-tabs .retail-tab'));
+    tabs.forEach(function(t){
+        var active = t === btn;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+        t.tabIndex = active ? 0 : -1;
+    });
+    document.querySelectorAll('.retail-panel').forEach(function(p){
+        p.classList.remove('active');
+        p.hidden = true;
+    });
     var panel=document.getElementById('panel-'+tab);
-    if(panel)panel.classList.add('active');
+    if(panel){
+        panel.classList.add('active');
+        panel.hidden = false;
+        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
+    }
 }
 
 function filterBranch(branchId){
@@ -256,8 +268,65 @@ async function submitSupplier(e){
     if(res){closeModal('retailSupplierModal');showFeedback('Supplier created','success');loadSuppliers();}
 }
 
+function bindDelegated(){
+    var root = document.querySelector('[data-gb-app="retail"]') || document;
+    if (root.__retailBound) return;
+    root.__retailBound = true;
+    root.addEventListener('click', function(e){
+        var tab = e.target.closest('.retail-tabs [data-tab]');
+        if (tab) { switchTab(tab.getAttribute('data-tab'), tab); return; }
+        var btn = e.target.closest('[data-retail-action]');
+        if (btn) {
+            var action = btn.getAttribute('data-retail-action');
+            if (action === 'load-all') loadAll();
+            else if (action === 'show-create-branch') showCreateBranch();
+            else if (action === 'show-create-promo') showCreatePromo();
+            else if (action === 'show-create-supplier') showCreateSupplier();
+            return;
+        }
+        var closeBtn = e.target.closest('[data-retail-close]');
+        if (closeBtn) {
+            var id = closeBtn.getAttribute('data-retail-close');
+            if (id) closeModal(id.replace(/[')"]/g,'').trim());
+        }
+    });
+    root.addEventListener('change', function(e){
+        var sel = e.target.closest('[data-retail-filter="branch"]');
+        if (sel) filterBranch(sel.value);
+    });
+    root.addEventListener('input', function(e){
+        var inp = e.target.closest('[data-retail-input="stock-search"]');
+        if (inp) searchStock(inp.value);
+    });
+    document.addEventListener('keydown', function(e){
+        var tab = e.target.closest('.retail-tabs [data-tab]');
+        if (!tab) return;
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.retail-tabs [data-tab]'));
+        var idx = tabs.indexOf(tab);
+        if (idx === -1) return;
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) {
+            e.preventDefault();
+            switchTab(next.getAttribute('data-tab'), next);
+            next.focus();
+        }
+    });
+}
+
 function loadAll(){loadBranches();loadStock();loadPromos();loadSuppliers();loadTopProducts();renderPricing()}
 
+function init(){
+    bindDelegated();
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.retail-tabs [data-tab]'));
+    var active = tabs.filter(function(t){ return t.classList.contains('active') || t.getAttribute('aria-selected') === 'true'; })[0] || tabs[0];
+    if (active) switchTab(active.getAttribute('data-tab') || 'dashboard', active);
+    loadAll();
+}
+
 window._retail={switchTab:switchTab,filterBranch:filterBranch,searchStock:searchStock,showCreateBranch:showCreateBranch,showCreatePromo:showCreatePromo,showCreateSupplier:showCreateSupplier,editBranch:editBranch,loadAll:loadAll,submitBranch:submitBranch,submitPromo:submitPromo,submitSupplier:submitSupplier,openModal:openModal,closeModal:closeModal};
-loadAll();
+init();
 })();

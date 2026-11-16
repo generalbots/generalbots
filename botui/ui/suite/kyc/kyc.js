@@ -33,11 +33,24 @@ async function apiCall(url,options){
 
 function switchTab(tab,btn){
     currentTab=tab;
-    document.querySelectorAll('.kyc-tab').forEach(function(t){t.classList.remove('active')});
-    document.querySelectorAll('.kyc-panel').forEach(function(p){p.classList.remove('active')});
-    if(btn)btn.classList.add('active');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.kyc-tabs [role="tab"]'));
+    tabs.forEach(function(t){
+        var active = t === btn;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+        t.tabIndex = active ? 0 : -1;
+    });
+    document.querySelectorAll('.kyc-panel').forEach(function(p){
+        p.classList.remove('active');
+        p.hidden = true;
+    });
     var panel=document.getElementById(tab==='verifications' ? 'panel-verifications' : 'kyc-panel-'+tab);
-    if(panel)panel.classList.add('active');
+    if(panel){
+        panel.classList.add('active');
+        panel.hidden = false;
+        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
+    }
+    if (btn && btn.focus) { /* focus managed by caller when keyboard */ }
 }
 
 function updateStats(){
@@ -61,17 +74,18 @@ function renderVerifications(){
     grid.innerHTML=verifications.map(function(v){
         var scoreClass=v.liveness_score>=80?'high':v.liveness_score>=50?'medium':'low';
         var statusClass=v.status==='pending'?'pending':v.status==='verified'?'verified':'failed';
+        var id = escapeHtml(String(v.id == null ? '' : v.id));
         return '<div class="kyc-card">'
-            +'<div class="kyc-card-header"><span class="kyc-card-title">'+escapeHtml(v.user_name||'Unknown')+'</span><span class="kyc-badge '+statusClass+'">'+escapeHtml(v.status)+'</span></div>'
+            +'<div class="kyc-card-header"><span class="kyc-card-title">'+escapeHtml(v.user_name||'Unknown')+'</span><span class="kyc-badge '+statusClass+'">'+escapeHtml(String(v.status||''))+'</span></div>'
             +'<div class="kyc-card-body">'
             +'<div class="kyc-card-row"><span class="label">Document</span><span>'+escapeHtml(v.document_type||'N/A')+'</span></div>'
             +'<div class="kyc-card-row"><span class="label">Document #</span><span>'+escapeHtml(v.document_number||'N/A')+'</span></div>'
             +'<div class="kyc-card-row"><span class="label">Selfie</span><span>'+escapeHtml(v.selfie_status||'N/A')+'</span></div>'
-            +'<div class="kyc-card-row"><span class="label">Liveness Score</span><span>'+(v.liveness_score!=null?v.liveness_score+'%':'N/A')+'</span></div>'
-            +(v.liveness_score!=null?'<div class="kyc-score-bar"><div class="kyc-score-fill '+scoreClass+'" style="width:'+v.liveness_score+'%"></div></div>':'')
+            +'<div class="kyc-card-row"><span class="label">Liveness Score</span><span>'+escapeHtml(v.liveness_score!=null?String(v.liveness_score)+'%':'N/A')+'</span></div>'
+            +(v.liveness_score!=null?'<div class="kyc-score-bar"><div class="kyc-score-fill '+scoreClass+'" style="width:'+escapeHtml(String(Number(v.liveness_score)||0))+'%"></div></div>':'')
             +'</div>'
             +'<div class="kyc-card-actions">'
-            +(v.status==='pending'?'<button class="kyc-btn kyc-btn-success" onclick="window._kyc.verifyUser(\''+v.id+'\')">Approve</button><button class="kyc-btn kyc-btn-danger" onclick="window._kyc.rejectUser(\''+v.id+'\')">Reject</button>':'')
+            +(v.status==='pending'?'<button type="button" class="kyc-btn kyc-btn-success" data-kyc-action="verify" data-kyc-id="'+id+'">Approve</button><button type="button" class="kyc-btn kyc-btn-danger" data-kyc-action="reject" data-kyc-id="'+id+'">Reject</button>':'')
             +'</div></div>';
     }).join('');
 }
@@ -81,12 +95,13 @@ function renderSignatures(){
     if(!tbody)return;
     if(signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="kyc-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=signatures.map(function(s){
+        var id = escapeHtml(String(s.id == null ? '' : s.id));
         return '<tr>'
             +'<td>'+escapeHtml(s.document_name||'')+'</td>'
             +'<td><span class="kyc-badge active">'+escapeHtml(s.document_type||'')+'</span></td>'
             +'<td>'+escapeHtml(s.requested_at||'')+'</td>'
             +'<td>'+escapeHtml(s.signer||'')+'</td>'
-            +'<td><button class="kyc-btn kyc-btn-primary" onclick="window._kyc.openSignaturePad(\''+s.id+'\')">Sign</button></td>'
+            +'<td><button type="button" class="kyc-btn kyc-btn-primary" data-kyc-action="open-signature" data-kyc-id="'+id+'">Sign</button></td>'
             +'</tr>';
     }).join('');
 }
@@ -99,6 +114,7 @@ function renderCertificates(){
         var isExpired=new Date(c.expiry_date)<new Date();
         var isExpiring=new Date(c.expiry_date)<new Date(Date.now()+30*24*60*60*1000);
         var badgeClass=isExpired?'failed':isExpiring?'expiring':'active';
+        var id = escapeHtml(String(c.id == null ? '' : c.id));
         return '<div class="kyc-card">'
             +'<div class="kyc-card-header"><span class="kyc-card-title">'+escapeHtml(c.name||'')+'</span><span class="kyc-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
             +'<div class="kyc-card-body">'
@@ -108,7 +124,7 @@ function renderCertificates(){
             +'<div class="kyc-card-row"><span class="label">Expires</span><span>'+escapeHtml(c.expiry_date||'')+'</span></div>'
             +'</div>'
             +'<div class="kyc-card-actions">'
-            +'<button class="kyc-btn kyc-btn-primary" onclick="window._kyc.showRenewModal(\''+c.id+'\')">Renew</button>'
+            +'<button type="button" class="kyc-btn kyc-btn-primary" data-kyc-action="renew-modal" data-kyc-id="'+id+'">Renew</button>'
             +'</div></div>';
     }).join('');
 }
@@ -225,8 +241,56 @@ async function renewCertificate(){
 function showModal(id){var el=document.getElementById(id);if(el)el.classList.add('visible')}
 function hideModal(id){var el=document.getElementById(id);if(el)el.classList.remove('visible')}
 
+function bindDelegated(){
+    var root = document.querySelector('[data-gb-app="kyc"]') || document;
+    if (root.__kycBound) return;
+    root.__kycBound = true;
+    root.addEventListener('click', function(e){
+        var btn = e.target.closest('[data-kyc-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-kyc-action');
+        var id = btn.getAttribute('data-kyc-id');
+        if (action === 'verify') verifyUser(id);
+        else if (action === 'reject') rejectUser(id);
+        else if (action === 'open-signature') openSignaturePad(id);
+        else if (action === 'renew-modal') showRenewModal(id);
+        else if (action === 'refresh-all') loadAll();
+        else if (action === 'refresh-signatures') loadSignatures();
+        else if (action === 'clear-signature') clearSignature();
+        else if (action === 'submit-signature') submitSignature();
+        else if (action === 'hide-modal') hideModal(btn.getAttribute('data-kyc-modal') || 'renew-modal');
+        else if (action === 'renew-cert') renewCertificate();
+    });
+    document.addEventListener('keydown', function(e){
+        var tab = e.target.closest('.kyc-tabs [role="tab"]');
+        if (!tab) return;
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.kyc-tabs [role="tab"]'));
+        var idx = tabs.indexOf(tab);
+        if (idx === -1) return;
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) {
+            e.preventDefault();
+            var nextTab = next.getAttribute('data-tab');
+            switchTab(nextTab, next);
+            next.focus();
+        }
+    });
+}
+
 function loadAll(){loadVerifications();loadSignatures();loadCertificates()}
 
+function init(){
+    bindDelegated();
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.kyc-tabs [role="tab"]'));
+    var active = tabs.filter(function(t){ return t.classList.contains('active') || t.getAttribute('aria-selected') === 'true'; })[0] || tabs[0];
+    if (active) switchTab(active.getAttribute('data-tab') || 'verifications', active);
+    loadAll();
+}
+
 window._kyc={switchTab:switchTab,verifyUser:verifyUser,rejectUser:rejectUser,openSignaturePad:openSignaturePad,clearSignature:clearSignature,submitSignature:submitSignature,showRenewModal:showRenewModal,renewCertificate:renewCertificate,showModal:showModal,hideModal:hideModal,loadVerifications:loadVerifications,loadSignatures:loadSignatures,loadCertificates:loadCertificates,loadAll:loadAll};
-loadAll();
+init();
 })();

@@ -30,11 +30,23 @@ async function apiCall(url,options){
 
 function switchTab(tab,btn){
     state.currentTab=tab;
-    document.querySelectorAll('.o365-tab').forEach(function(t){t.classList.remove('active')});
-    document.querySelectorAll('.o365-panel').forEach(function(p){p.classList.remove('active')});
-    if(btn)btn.classList.add('active');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.o365-tabs [role="tab"], .o365-tabs .o365-tab'));
+    tabs.forEach(function(t){
+        var active = t === btn;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+        t.tabIndex = active ? 0 : -1;
+    });
+    document.querySelectorAll('.o365-panel').forEach(function(p){
+        p.classList.remove('active');
+        p.hidden = true;
+    });
     var panel=document.getElementById('panel-'+tab);
-    if(panel)panel.classList.add('active');
+    if(panel){
+        panel.classList.add('active');
+        panel.hidden = false;
+        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
+    }
 }
 
 function updateStats(){
@@ -264,8 +276,55 @@ async function disconnectAccount(){
 function showModal(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
 function hideModal(id){var el=document.getElementById(id);if(el)el.style.display='none'}
 
+function bindDelegated(){
+    var root = document.querySelector('[data-gb-app="o365"]') || document;
+    if (root.__o365Bound) return;
+    root.__o365Bound = true;
+    root.addEventListener('click', function(e){
+        var tab = e.target.closest('.o365-tabs [data-tab]');
+        if (tab) { switchTab(tab.getAttribute('data-tab'), tab); return; }
+        var btn = e.target.closest('[data-o365-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-o365-action');
+        if (action === 'load-all') loadAll();
+        else if (action === 'show-create-meeting') showCreateMeeting();
+        else if (action === 'sync-now') syncNow();
+        else if (action === 'hide-modal') hideModal(btn.getAttribute('data-o365-modal') || 'meeting-modal');
+        else if (action === 'create-meeting') createMeeting();
+    });
+    root.addEventListener('change', function(e){
+        var sel = e.target.closest('[data-o365-sync]');
+        if (sel) updateSync(sel.getAttribute('data-o365-sync'), sel.value);
+    });
+    document.addEventListener('keydown', function(e){
+        var tab = e.target.closest('.o365-tabs [data-tab]');
+        if (!tab) return;
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.o365-tabs [data-tab]'));
+        var idx = tabs.indexOf(tab);
+        if (idx === -1) return;
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) {
+            e.preventDefault();
+            switchTab(next.getAttribute('data-tab'), next);
+            next.focus();
+        }
+    });
+}
+
 function loadAll(){loadSharePoint();loadCalendar();loadOneDrive('root');loadTeams();loadSettings()}
 
+function init(){
+    bindDelegated();
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.o365-tabs [data-tab]'));
+    var active = tabs.filter(function(t){ return t.classList.contains('active') || t.getAttribute('aria-selected') === 'true'; })[0] || tabs[0];
+    if (active) switchTab(active.getAttribute('data-tab') || 'sharepoint', active);
+    loadAll();
+}
+
 window._o365={switchTab:switchTab,navigateFolder:navigateFolder,navigateTo:navigateTo,downloadFile:downloadFile,showCreateMeeting:showCreateMeeting,createMeeting:createMeeting,syncNow:syncNow,updateSync:updateSync,connectAccount:connectAccount,disconnectAccount:disconnectAccount,showModal:showModal,hideModal:hideModal,loadAll:loadAll};
-loadAll();
+init();
 })();

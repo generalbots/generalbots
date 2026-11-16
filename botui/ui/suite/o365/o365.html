@@ -7,7 +7,7 @@
     <header class="o365-header">
         <h1 data-i18n="auto-o365-integration">o365 Integration</h1>
         <div class="o365-header-actions">
-            <button class="o365-btn" onclick="window._o365.loadAll()">
+            <button type="button" class="o365-btn" data-o365-action="load-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
                 Refresh
             </button>
@@ -21,25 +21,25 @@
         <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="auto-chats">Chats</span><span class="o365-stat-value orange" id="stat-teams">0</span></div>
     </div>
 
-    <nav class="o365-tabs">
-        <button class="o365-tab active" data-tab="sharepoint" onclick="window._o365.switchTab('sharepoint',this)">SP</button>
-        <button class="o365-tab" data-tab="calendar" onclick="window._o365.switchTab('calendar',this)" data-i18n="calendar-title">Calendar</button>
-        <button class="o365-tab" data-tab="onedrive" onclick="window._o365.switchTab('onedrive',this)" data-i18n="drive-title">Drive</button>
-        <button class="o365-tab" data-tab="settings" onclick="window._o365.switchTab('settings',this)" data-i18n="workspace-settings">Settings</button>
+    <nav class="o365-tabs" role="tablist" aria-label="O365 sections">
+        <button type="button" id="o365-tab-sharepoint" class="o365-tab active" role="tab" aria-selected="true" aria-controls="panel-sharepoint" tabindex="0" data-tab="sharepoint">SP</button>
+        <button type="button" id="o365-tab-calendar" class="o365-tab" role="tab" aria-selected="false" aria-controls="panel-calendar" tabindex="-1" data-tab="calendar" data-i18n="calendar-title">Calendar</button>
+        <button type="button" id="o365-tab-onedrive" class="o365-tab" role="tab" aria-selected="false" aria-controls="panel-onedrive" tabindex="-1" data-tab="onedrive" data-i18n="drive-title">Drive</button>
+        <button type="button" id="o365-tab-settings" class="o365-tab" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1" data-tab="settings" data-i18n="workspace-settings">Settings</button>
     </nav>
 
     <div class="o365-content">
-        <div class="o365-panel active" id="panel-sharepoint">
+        <div class="o365-panel active" id="panel-sharepoint" role="tabpanel" aria-labelledby="o365-tab-sharepoint">
             <div class="o365-grid" id="sharepoint-grid">
                 <div class="o365-empty"><div class="o365-empty-icon">📁</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-sp-sites">Fetching SP sites</p></div>
             </div>
             <div id="sharepoint-items" style="margin-top:16px"></div>
         </div>
 
-        <div class="o365-panel" id="panel-calendar">
+        <div class="o365-panel" id="panel-calendar" role="tabpanel" aria-labelledby="o365-tab-calendar" hidden>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
                 <h3 style="font-size:16px;font-weight:600;margin:0" data-i18n="auto-upcoming-meetings">Upcoming Meetings</h3>
-                <button class="o365-btn o365-btn-primary" onclick="window._o365.showCreateMeeting()">
+                <button type="button" class="o365-btn o365-btn-primary" data-o365-action="show-create-meeting">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Create Meeting
                 </button>
@@ -49,9 +49,9 @@
             </div>
         </div>
 
-        <div class="o365-panel" id="panel-onedrive">
+        <div class="o365-panel" id="panel-onedrive" role="tabpanel" aria-labelledby="o365-tab-onedrive" hidden>
             <div class="o365-breadcrumb" id="onedrive-breadcrumb">
-                <button class="o365-breadcrumb-item" onclick="window._o365.navigateFolder('root')" data-i18n="auto-root">Root</button>
+                <button type="button" class="o365-breadcrumb-item" data-o365-nav-id="root" data-o365-nav-name="Root" data-i18n="auto-root">Root</button>
             </div>
             <div class="o365-table-wrapper">
                 <table class="o365-table">
@@ -61,7 +61,7 @@
             </div>
         </div>
 
-        <div class="o365-panel" id="panel-settings">
+        <div class="o365-panel" id="panel-settings" role="tabpanel" aria-labelledby="o365-tab-settings" hidden>
             <div class="o365-settings-card">
                 <h3 data-i18n="auto-account-status">Account Status</h3>
                 <div class="o365-settings-row">
@@ -72,14 +72,14 @@
                 </div>
                 <div class="o365-settings-row">
                     <div><div class="o365-settings-label" data-i18n="auto-last-sync-2">Last Sync</div><div class="o365-settings-desc" id="settings-sync" data-i18n="auto-never">Never</div></div>
-                    <button class="o365-btn" onclick="window._o365.syncNow()" data-i18n="auto-sync-now">Sync Now</button>
+                    <button type="button" class="o365-btn" data-o365-action="sync-now" data-i18n="auto-sync-now">Sync Now</button>
                 </div>
             </div>
             <div class="o365-settings-card">
                 <h3 data-i18n="auto-sync-frequency">Sync Frequency</h3>
                 <div class="o365-settings-row">
                     <div><div class="o365-settings-label" data-i18n="auto-calendar-sync">Calendar Sync</div><div class="o365-settings-desc" data-i18n="auto-sync-calendar-events">Sync calendar events</div></div>
-                    <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._o365.updateSync('calendar',this.value)">
+                    <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="calendar">
                         <option value="5" data-i18n="auto-every-5-min">Every 5 min</option>
                         <option value="15" selected data-i18n="auto-every-15-min">Every 15 min</option>
                         <option value="30" data-i18n="auto-every-30-min">Every 30 min</option>
@@ -88,7 +88,7 @@
                 </div>
                 <div class="o365-settings-row">
                     <div><div class="o365-settings-label" data-i18n="auto-drive-sync">Drive Sync</div><div class="o365-settings-desc" data-i18n="auto-sync-drive-files">Sync Drive files</div></div>
-                    <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" onchange="window._o365.updateSync('onedrive',this.value)">
+                    <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="onedrive">
                         <option value="5" data-i18n="auto-every-5-min">Every 5 min</option>
                         <option value="15" data-i18n="auto-every-15-min">Every 15 min</option>
                         <option value="30" selected data-i18n="auto-every-30-min">Every 30 min</option>
@@ -106,20 +106,20 @@
     </div>
 </div>
 
-<div class="o365-modal-overlay" id="meeting-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
+<div class="o365-modal-overlay" id="meeting-modal" role="dialog" aria-modal="true" aria-label="Create Meeting" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
     <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:500px">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
             <h3 style="font-size:15px;font-weight:600;margin:0" data-i18n="auto-create-meeting">Create Meeting</h3>
-            <button style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" onclick="window._o365.hideModal('meeting-modal')">&times;</button>
+            <button type="button" style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" data-o365-action="hide-modal" data-o365-modal="meeting-modal" aria-label="Close">&times;</button>
         </div>
         <div style="padding:16px">
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="tickets-subject">Subject</label><input type="text" id="meeting-subject" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="action-start">Start</label><input type="datetime-local" id="meeting-start" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px">End</label><input type="datetime-local" id="meeting-end" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
-            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="calendar-event-attendees">Attendees</label><input type="text" id="meeting-attendees" placeholder="email1, email2" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="tickets-subject" for="meeting-subject">Subject</label><input type="text" id="meeting-subject" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="action-start" for="meeting-start">Start</label><input type="datetime-local" id="meeting-start" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" for="meeting-end">End</label><input type="datetime-local" id="meeting-end" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
+            <div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:6px" data-i18n="calendar-event-attendees" for="meeting-attendees">Attendees</label><input type="text" id="meeting-attendees" placeholder="email1, email2" style="width:100%;padding:8px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px"></div>
             <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--border-color,#334155);margin-top:12px">
-                <button class="o365-btn" onclick="window._o365.hideModal('meeting-modal')" data-i18n="action-cancel">Cancel</button>
-                <button class="o365-btn o365-btn-primary" onclick="window._o365.createMeeting()" data-i18n="action-create">Create</button>
+                <button type="button" class="o365-btn" data-o365-action="hide-modal" data-o365-modal="meeting-modal" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="o365-btn o365-btn-primary" data-o365-action="create-meeting" data-i18n="action-create">Create</button>
             </div>
         </div>
     </div>

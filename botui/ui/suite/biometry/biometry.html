@@ -7,7 +7,7 @@
     <header class="bio-header">
         <h1 data-i18n="auto-biometry-digital-identity">Biometry & Digital Identity</h1>
         <div class="bio-header-actions">
-            <button class="bio-btn" onclick="window._bio.loadAll()">
+            <button type="button" class="bio-btn" data-bio-action="refresh-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
                 Refresh
             </button>
@@ -21,22 +21,22 @@
         <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-signatures">Signatures</span><span class="bio-stat-value purple" id="stat-signatures">0</span></div>
     </div>
 
-    <nav class="bio-tabs">
-        <button class="bio-tab active" data-tab="kyc" onclick="window._bio.switchTab('kyc',this)">KYC</button>
-        <button class="bio-tab" data-tab="liveness" onclick="window._bio.switchTab('liveness',this)" data-i18n="auto-liveness">Liveness</button>
-        <button class="bio-tab" data-tab="signatures" onclick="window._bio.switchTab('signatures',this)" data-i18n="auto-signatures">Signatures</button>
-        <button class="bio-tab" data-tab="certificates" onclick="window._bio.switchTab('certificates',this)" data-i18n="learn-certificates">Certificates</button>
-        <button class="bio-tab" data-tab="audit" onclick="window._bio.switchTab('audit',this)" data-i18n="settings-audit">Audit Log</button>
+    <nav class="bio-tabs" role="tablist" aria-label="Biometry sections">
+        <button type="button" id="bio-tab-kyc" class="bio-tab active" role="tab" aria-selected="true" aria-controls="panel-kyc" tabindex="0" data-tab="kyc">KYC</button>
+        <button type="button" id="bio-tab-liveness" class="bio-tab" role="tab" aria-selected="false" aria-controls="panel-liveness" tabindex="-1" data-tab="liveness" data-i18n="auto-liveness">Liveness</button>
+        <button type="button" id="bio-tab-signatures" class="bio-tab" role="tab" aria-selected="false" aria-controls="bio-panel-signatures" tabindex="-1" data-tab="signatures" data-i18n="auto-signatures">Signatures</button>
+        <button type="button" id="bio-tab-certificates" class="bio-tab" role="tab" aria-selected="false" aria-controls="bio-panel-certificates" tabindex="-1" data-tab="certificates" data-i18n="learn-certificates">Certificates</button>
+        <button type="button" id="bio-tab-audit" class="bio-tab" role="tab" aria-selected="false" aria-controls="panel-audit" tabindex="-1" data-tab="audit" data-i18n="settings-audit">Audit Log</button>
     </nav>
 
     <div class="bio-content">
-        <div class="bio-panel active" id="panel-kyc">
+        <div class="bio-panel active" id="panel-kyc" role="tabpanel" aria-labelledby="bio-tab-kyc">
             <div class="bio-grid" id="kyc-grid">
                 <div class="bio-empty"><div class="bio-empty-icon">🔍</div><h3 data-i18n="auto-loading-kyc">Loading KYC...</h3><p data-i18n="auto-fetching-identity-verifications">Fetching identity verifications</p></div>
             </div>
         </div>
 
-        <div class="bio-panel" id="panel-liveness">
+        <div class="bio-panel" id="panel-liveness" role="tabpanel" aria-labelledby="bio-tab-liveness" hidden>
             <div class="bio-liveness-layout">
                 <div class="bio-liveness-card">
                     <h3 data-i18n="auto-active-liveness-session">Active Liveness Session</h3>
@@ -45,9 +45,9 @@
                         <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                     <div class="bio-liveness-actions">
-                        <button class="bio-btn bio-btn-primary" onclick="window._bio.startLiveness()">Start Session</button>
-                        <button class="bio-btn" onclick="window._bio.captureFrame()">Capture Frame</button>
-                        <button class="bio-btn bio-btn-danger" onclick="window._bio.endLiveness()">End</button>
+                        <button type="button" class="bio-btn bio-btn-primary" data-bio-action="start-liveness">Start Session</button>
+                        <button type="button" class="bio-btn" data-bio-action="capture-frame">Capture Frame</button>
+                        <button type="button" class="bio-btn bio-btn-danger" data-bio-action="end-liveness">End</button>
                     </div>
                     <div class="bio-liveness-score">
                         <span>Confidence</span>
@@ -62,11 +62,11 @@
             </div>
         </div>
 
-        <div class="bio-panel" id="bio-panel-signatures">
+        <div class="bio-panel" id="bio-panel-signatures" role="tabpanel" aria-labelledby="bio-tab-signatures" hidden>
             <div class="bio-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-documents-awaiting-signature">Documents Awaiting Signature</h3>
-                    <button class="bio-btn" onclick="window._bio.loadSignatures()" data-i18n="action-refresh">Refresh</button>
+                    <button type="button" class="bio-btn" data-bio-action="refresh-signatures" data-i18n="action-refresh">Refresh</button>
                 </div>
                 <div style="overflow-x:auto">
                     <table class="bio-table">
@@ -80,8 +80,8 @@
                     <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                         <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-signature-pad">Signature Pad</h3>
                         <div style="display:flex;gap:8px">
-                            <button class="bio-btn" onclick="window._bio.clearSignature()" data-i18n="action-clear">Clear</button>
-                            <button class="bio-btn bio-btn-primary" onclick="window._bio.submitSignature()" data-i18n="auto-submit-signature">Submit Signature</button>
+                            <button type="button" class="bio-btn" data-bio-action="clear-signature" data-i18n="action-clear">Clear</button>
+                            <button type="button" class="bio-btn bio-btn-primary" data-bio-action="submit-signature" data-i18n="auto-submit-signature">Submit Signature</button>
                         </div>
                     </div>
                     <div style="padding:16px;display:flex;justify-content:center">
@@ -91,13 +91,13 @@
             </div>
         </div>
 
-        <div class="bio-panel" id="bio-panel-certificates">
+        <div class="bio-panel" id="bio-panel-certificates" role="tabpanel" aria-labelledby="bio-tab-certificates" hidden>
             <div class="bio-grid" id="bio-certificates-grid">
                 <div class="bio-empty"><div class="bio-empty-icon">📜</div><h3 data-i18n="auto-loading-certificates">Loading certificates...</h3></div>
             </div>
         </div>
 
-        <div class="bio-panel" id="panel-audit">
+        <div class="bio-panel" id="panel-audit" role="tabpanel" aria-labelledby="bio-tab-audit" hidden>
             <div class="bio-table-wrapper">
                 <table class="bio-table">
                     <thead><tr><th data-i18n="auto-timestamp">Timestamp</th><th data-i18n="start-menu-user">User</th><th data-i18n="security-col-action">Action</th><th data-i18n="auto-result">Result</th><th>IP</th><th data-i18n="label-details">Details</th></tr></thead>

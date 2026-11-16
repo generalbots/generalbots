@@ -24,11 +24,24 @@ async function apiCall(url,options){
 
 function switchTab(tab,btn){
     state.currentTab=tab;
-    document.querySelectorAll('.bio-tab').forEach(function(t){t.classList.remove('active')});
-    document.querySelectorAll('.bio-panel').forEach(function(p){p.classList.remove('active')});
-    if(btn)btn.classList.add('active');
-    var panelId = (tab==='signatures'||tab==='certificates') ? ('bio-panel-'+tab) : ('panel-'+tab); var panel=document.getElementById(panelId);
-    if(panel)panel.classList.add('active');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.bio-tabs [role="tab"]'));
+    tabs.forEach(function(t){
+        var active = t === btn;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+        t.tabIndex = active ? 0 : -1;
+    });
+    document.querySelectorAll('.bio-panel').forEach(function(p){
+        p.classList.remove('active');
+        p.hidden = true;
+    });
+    var panelId = (tab==='signatures'||tab==='certificates') ? ('bio-panel-'+tab) : ('panel-'+tab);
+    var panel=document.getElementById(panelId);
+    if(panel){
+        panel.classList.add('active');
+        panel.hidden = false;
+        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
+    }
 }
 
 function updateStats(){
@@ -48,17 +61,18 @@ function renderKyc(){
     if(state.kyc.length===0){grid.innerHTML='<div class="bio-empty"><div class="bio-empty-icon">🔍</div><h3>No Verifications</h3><p>No pending KYC verifications</p></div>';return}
     grid.innerHTML=state.kyc.map(function(v){
         var scoreClass=v.liveness_score>=80?'high':v.liveness_score>=50?'medium':'low';
+        var id = escapeHtml(String(v.id == null ? '' : v.id));
         return '<div class="bio-card">'
-            +'<div class="bio-card-header"><span class="bio-card-title">'+(v.user_name||'Unknown')+'</span><span class="bio-badge '+(v.status||'pending')+'">'+v.status+'</span></div>'
+            +'<div class="bio-card-header"><span class="bio-card-title">'+escapeHtml(v.user_name||'Unknown')+'</span><span class="bio-badge '+escapeHtml(String(v.status||'pending'))+'">'+escapeHtml(String(v.status||''))+'</span></div>'
             +'<div class="bio-card-body">'
             +'<div class="bio-card-row"><span>Document</span><span>'+escapeHtml(v.document_type||'N/A')+'</span></div>'
             +'<div class="bio-card-row"><span>Doc #</span><span>'+escapeHtml(v.document_number||'N/A')+'</span></div>'
             +'<div class="bio-card-row"><span>Selfie</span><span>'+escapeHtml(v.selfie_status||'N/A')+'</span></div>'
-            +'<div class="bio-card-row"><span>Liveness</span><span>'+(v.liveness_score!=null?v.liveness_score+'%':'N/A')+'</span></div>'
-            +(v.liveness_score!=null?'<div class="bio-score-bar"><div class="bio-score-fill '+scoreClass+'" style="width:'+v.liveness_score+'%"></div></div>':'')
+            +'<div class="bio-card-row"><span>Liveness</span><span>'+escapeHtml(v.liveness_score!=null?String(v.liveness_score)+'%':'N/A')+'</span></div>'
+            +(v.liveness_score!=null?'<div class="bio-score-bar"><div class="bio-score-fill '+scoreClass+'" style="width:'+escapeHtml(String(Number(v.liveness_score)||0))+'%"></div></div>':'')
             +'</div>'
             +'<div class="bio-card-actions">'
-            +(v.status==='pending'?'<button class="bio-btn bio-btn-success" onclick="window._bio.verifyUser(\''+v.id+'\')">Approve</button><button class="bio-btn bio-btn-danger" onclick="window._bio.rejectUser(\''+v.id+'\')">Reject</button>':'')
+            +(v.status==='pending'?'<button type="button" class="bio-btn bio-btn-success" data-bio-action="verify" data-bio-id="'+id+'">Approve</button><button type="button" class="bio-btn bio-btn-danger" data-bio-action="reject" data-bio-id="'+id+'">Reject</button>':'')
             +'</div></div>';
     }).join('');
 }
@@ -68,12 +82,13 @@ function renderSignatures(){
     if(!tbody)return;
     if(state.signatures.length===0){tbody.innerHTML='<tr><td colspan="5" class="bio-empty">No documents awaiting signature</td></tr>';return}
     tbody.innerHTML=state.signatures.map(function(s){
+        var id = escapeHtml(String(s.id == null ? '' : s.id));
         return '<tr>'
             +'<td>'+escapeHtml(s.document_name||'')+'</td>'
             +'<td><span class="bio-badge active">'+escapeHtml(s.document_type||'')+'</span></td>'
             +'<td>'+escapeHtml(s.signer||'')+'</td>'
             +'<td>'+escapeHtml(s.requested_at||'')+'</td>'
-            +'<td><button class="bio-btn bio-btn-primary" onclick="window._bio.openSignaturePad(\''+s.id+'\')">Sign</button></td>'
+            +'<td><button type="button" class="bio-btn bio-btn-primary" data-bio-action="open-signature" data-bio-id="'+id+'">Sign</button></td>'
             +'</tr>';
     }).join('');
 }
@@ -86,8 +101,9 @@ function renderCertificates(){
         var isExpired=new Date(c.expiry_date)<new Date();
         var isExpiring=new Date(c.expiry_date)<new Date(Date.now()+30*24*60*60*1000);
         var badgeClass=isExpired?'failed':isExpiring?'expiring':'active';
+        var id = escapeHtml(String(c.id == null ? '' : c.id));
         return '<div class="bio-card">'
-            +'<div class="bio-card-header"><span class="bio-card-title">'+(c.name||'')+'</span><span class="bio-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
+            +'<div class="bio-card-header"><span class="bio-card-title">'+escapeHtml(c.name||'')+'</span><span class="bio-badge '+badgeClass+'">'+(isExpired?'Expired':isExpiring?'Expiring':'Active')+'</span></div>'
             +'<div class="bio-card-body">'
             +'<div class="bio-card-row"><span>Issuer</span><span>'+escapeHtml(c.issuer||'')+'</span></div>'
             +'<div class="bio-card-row"><span>Serial</span><span>'+escapeHtml(c.serial||'')+'</span></div>'
@@ -95,7 +111,7 @@ function renderCertificates(){
             +'<div class="bio-card-row"><span>Expires</span><span>'+escapeHtml(c.expiry_date||'')+'</span></div>'
             +'</div>'
             +'<div class="bio-card-actions">'
-            +'<button class="bio-btn bio-btn-primary" onclick="window._bio.renewCertificate(\''+c.id+'\')">Renew</button>'
+            +'<button type="button" class="bio-btn bio-btn-primary" data-bio-action="renew-cert" data-bio-id="'+id+'">Renew</button>'
             +'</div></div>';
     }).join('');
 }
@@ -121,7 +137,7 @@ function renderLivenessSessions(){
     if(!el)return;
     if(state.livenessSessions.length===0){el.innerHTML='<div class="bio-empty">No sessions yet</div>';return}
     el.innerHTML=state.livenessSessions.map(function(s){
-        return '<div class="bio-list-row"><span>'+s.user+'</span><span class="bio-list-value">'+s.confidence+'%</span></div>';
+        return '<div class="bio-list-row"><span>'+escapeHtml(String(s.user == null ? '' : s.user))+'</span><span class="bio-list-value">'+escapeHtml(String(s.confidence == null ? 0 : s.confidence))+'%</span></div>';
     }).join('');
 }
 
@@ -257,8 +273,56 @@ async function captureFrame(){
     loadLivenessSessions();
 }
 
+function bindDelegated(){
+    var root = document.querySelector('[data-gb-app="biometry"]') || document;
+    if (root.__bioBound) return;
+    root.__bioBound = true;
+    root.addEventListener('click', function(e){
+        var btn = e.target.closest('[data-bio-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-bio-action');
+        var id = btn.getAttribute('data-bio-id');
+        if (action === 'verify') verifyUser(id);
+        else if (action === 'reject') rejectUser(id);
+        else if (action === 'open-signature') openSignaturePad(id);
+        else if (action === 'renew-cert') renewCertificate(id);
+        else if (action === 'refresh-all') loadAll();
+        else if (action === 'refresh-signatures') loadSignatures();
+        else if (action === 'clear-signature') clearSignature();
+        else if (action === 'submit-signature') submitSignature();
+        else if (action === 'start-liveness') startLiveness();
+        else if (action === 'capture-frame') captureFrame();
+        else if (action === 'end-liveness') endLiveness();
+    });
+    document.addEventListener('keydown', function(e){
+        var tab = e.target.closest('.bio-tabs [role="tab"]');
+        if (!tab) return;
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('.bio-tabs [role="tab"]'));
+        var idx = tabs.indexOf(tab);
+        if (idx === -1) return;
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) {
+            e.preventDefault();
+            switchTab(next.getAttribute('data-tab'), next);
+            next.focus();
+        }
+    });
+}
+
 function loadAll(){loadKyc();loadSignatures();loadCertificates();loadAudit();loadLivenessSessions()}
 
+function init(){
+    bindDelegated();
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.bio-tabs [role="tab"]'));
+    var active = tabs.filter(function(t){ return t.classList.contains('active') || t.getAttribute('aria-selected') === 'true'; })[0] || tabs[0];
+    if (active) switchTab(active.getAttribute('data-tab') || 'kyc', active);
+    loadAll();
+}
+
 window._bio={switchTab:switchTab,verifyUser:verifyUser,rejectUser:rejectUser,openSignaturePad:openSignaturePad,clearSignature:clearSignature,submitSignature:submitSignature,renewCertificate:renewCertificate,startLiveness:startLiveness,endLiveness:endLiveness,captureFrame:captureFrame,loadAll:loadAll};
-loadAll();
+init();
 })();

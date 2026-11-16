@@ -7,7 +7,7 @@
     <header class="kyc-header">
         <h1 data-i18n="auto-kyc-dashboard">KYC Dashboard</h1>
         <div class="kyc-header-actions">
-            <button class="kyc-btn" onclick="window._kyc.loadAll()">
+            <button type="button" class="kyc-btn" data-kyc-action="refresh-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
                 Refresh
             </button>
@@ -21,24 +21,24 @@
         <div class="kyc-stat-card"><span class="kyc-stat-label">Total</span><span class="kyc-stat-value blue" id="stat-total">0</span></div>
     </div>
 
-    <nav class="kyc-tabs">
-        <button class="kyc-tab active" data-tab="verifications" onclick="window._kyc.switchTab('verifications',this)" data-i18n="auto-verifications">Verifications</button>
-        <button class="kyc-tab" data-tab="signatures" onclick="window._kyc.switchTab('signatures',this)" data-i18n="auto-signatures">Signatures</button>
-        <button class="kyc-tab" data-tab="certificates" onclick="window._kyc.switchTab('certificates',this)" data-i18n="learn-certificates">Certificates</button>
+    <nav class="kyc-tabs" role="tablist" aria-label="KYC sections">
+        <button type="button" id="kyc-tab-verifications" class="kyc-tab active" role="tab" aria-selected="true" aria-controls="panel-verifications" tabindex="0" data-tab="verifications" data-i18n="auto-verifications">Verifications</button>
+        <button type="button" id="kyc-tab-signatures" class="kyc-tab" role="tab" aria-selected="false" aria-controls="kyc-panel-signatures" tabindex="-1" data-tab="signatures" data-i18n="auto-signatures">Signatures</button>
+        <button type="button" id="kyc-tab-certificates" class="kyc-tab" role="tab" aria-selected="false" aria-controls="kyc-panel-certificates" tabindex="-1" data-tab="certificates" data-i18n="learn-certificates">Certificates</button>
     </nav>
 
     <div class="kyc-content">
-        <div class="kyc-panel active" id="panel-verifications">
+        <div class="kyc-panel active" id="panel-verifications" role="tabpanel" aria-labelledby="kyc-tab-verifications">
             <div class="kyc-grid" id="verifications-grid">
                 <div class="kyc-empty"><div class="kyc-empty-icon">🔍</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-verification-data">Fetching verification data</p></div>
             </div>
         </div>
 
-        <div class="kyc-panel" id="kyc-panel-signatures">
+        <div class="kyc-panel" id="kyc-panel-signatures" role="tabpanel" aria-labelledby="kyc-tab-signatures" hidden>
             <div class="kyc-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-documents-awaiting-signature">Documents Awaiting Signature</h3>
-                    <button class="kyc-btn" onclick="window._kyc.loadSignatures()" data-i18n="action-refresh">Refresh</button>
+                    <button type="button" class="kyc-btn" data-kyc-action="refresh-signatures" data-i18n="action-refresh">Refresh</button>
                 </div>
                 <div class="kyc-table-scroll" style="overflow-x:auto">
                     <table class="kyc-table">
@@ -52,8 +52,8 @@
                     <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
                         <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-signature-pad">Signature Pad</h3>
                         <div style="display:flex;gap:8px">
-                            <button class="kyc-btn" onclick="window._kyc.clearSignature()" data-i18n="action-clear">Clear</button>
-                            <button class="kyc-btn kyc-btn-primary" onclick="window._kyc.submitSignature()" data-i18n="auto-submit-signature">Submit Signature</button>
+                            <button type="button" class="kyc-btn" data-kyc-action="clear-signature" data-i18n="action-clear">Clear</button>
+                            <button type="button" class="kyc-btn kyc-btn-primary" data-kyc-action="submit-signature" data-i18n="auto-submit-signature">Submit Signature</button>
                         </div>
                     </div>
                     <div style="padding:16px;display:flex;justify-content:center">
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <div class="kyc-panel" id="kyc-panel-certificates">
+        <div class="kyc-panel" id="kyc-panel-certificates" role="tabpanel" aria-labelledby="kyc-tab-certificates" hidden>
             <div class="kyc-grid" id="kyc-certificates-grid">
                 <div class="kyc-empty"><div class="kyc-empty-icon">📜</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-certificate-data">Fetching certificate data</p></div>
             </div>
@@ -71,19 +71,19 @@
     </div>
 </div>
 
-<div class="kyc-modal-overlay" id="renew-modal">
+<div class="kyc-modal-overlay" id="renew-modal" role="dialog" aria-modal="true" aria-label="Renew Certificate">
     <div class="kyc-modal">
         <div class="kyc-modal-header">
             <h3 data-i18n="auto-renew-certificate">Renew Certificate</h3>
-            <button class="kyc-modal-close" onclick="window._kyc.hideModal('renew-modal')">&times;</button>
+            <button type="button" class="kyc-modal-close" data-kyc-action="hide-modal" data-kyc-modal="renew-modal" aria-label="Close">&times;</button>
         </div>
         <div class="kyc-modal-body">
             <div class="kyc-form-group">
-                <label data-i18n="auto-certificate-id">Certificate ID</label>
+                <label data-i18n="auto-certificate-id" for="renew-cert-id">Certificate ID</label>
                 <input type="text" id="renew-cert-id" readonly>
             </div>
             <div class="kyc-form-group">
-                <label data-i18n="auto-validity-period-days">Validity Period (days)</label>
+                <label data-i18n="auto-validity-period-days" for="renew-validity">Validity Period (days)</label>
                 <select id="renew-validity">
                     <option value="30">30 days</option>
                     <option value="90" selected>90 days</option>
@@ -92,8 +92,8 @@
                 </select>
             </div>
             <div class="kyc-form-actions">
-                <button class="kyc-btn" onclick="window._kyc.hideModal('renew-modal')" data-i18n="action-cancel">Cancel</button>
-                <button class="kyc-btn kyc-btn-primary" onclick="window._kyc.renewCertificate()" data-i18n="auto-renew">Renew</button>
+                <button type="button" class="kyc-btn" data-kyc-action="hide-modal" data-kyc-modal="renew-modal" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="kyc-btn kyc-btn-primary" data-kyc-action="renew-cert" data-i18n="auto-renew">Renew</button>
             </div>
         </div>
     </div>
