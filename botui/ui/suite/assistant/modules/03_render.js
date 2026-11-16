@@ -200,9 +200,16 @@
         retryBtn.addEventListener("click", function () {
             var all = msgs.querySelectorAll(".gb-msg-user");
             var last = all.length ? all[all.length - 1] : null;
-            if (last) {
-                el.remove();
-                A.sendMessage(last.dataset.originalContent || "");
+            if (!last) { return; }
+            var text = (last.dataset.originalContent || "").trim();
+            if (!text) { return; }
+            el.remove();
+            A.lastCompletedContent = "";
+            A.lastCompletedTime = 0;
+            A.showThinking();
+            if (!A.sendMessage(text)) {
+                A.hideThinking();
+                A.renderErrorCode("model_unreachable");
             }
         });
         bar.appendChild(retryBtn);
