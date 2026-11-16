@@ -386,6 +386,7 @@
                 A.renderGreeting();
                 A.onSuggestions(A.suggestions);
                 A.newSession().then(function () {
+                    if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
                     A.reconnectWs();
                     A.refreshSidebar();
                 });

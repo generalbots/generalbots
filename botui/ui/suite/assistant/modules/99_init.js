@@ -65,6 +65,7 @@
 
         /* 10. Bind events */
         A.initComposer();
+        if (typeof A.initAgentToggle === "function") { A.initAgentToggle(); }
         A.initSidebarToggle();
         A.initSearch();
         A.initNavigation();

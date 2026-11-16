@@ -448,6 +448,33 @@
     padding: 4px 8px; cursor: pointer; max-width: 140px; outline: none;
 }
 .gb-model-picker:focus { border-color: var(--id-accent); }
+
+/* Agent toggle */
+.gb-agent-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    border: 1px solid var(--id-line); border-radius: var(--id-radius-sm);
+    background: var(--id-surface-solid); color: var(--id-text-secondary);
+    font-family: var(--id-font-sans); font-size: var(--id-text-xs);
+    padding: 4px 8px; cursor: pointer; flex-shrink: 0;
+    transition: background var(--id-dur-fast) var(--id-ease),
+                color var(--id-dur-fast) var(--id-ease),
+                border-color var(--id-dur-fast) var(--id-ease);
+    outline: none; line-height: 1;
+}
+.gb-agent-toggle:hover { border-color: var(--id-accent); color: var(--id-text); }
+.gb-agent-toggle:focus-visible { border-color: var(--id-accent); box-shadow: 0 0 0 2px var(--id-accent-muted); }
+.gb-agent-toggle.gb-agent-on {
+    background: var(--id-accent); color: var(--id-on-accent);
+    border-color: var(--id-accent);
+}
+.gb-agent-toggle.gb-agent-on:hover { background: var(--id-accent-hover); }
+.gb-agent-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+.gb-agent-label { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-agent-toggle { transition: none; }
+}
+
 .gb-attach-btn { cursor: pointer; }
 
 /* Drive & Settings */
