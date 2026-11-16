@@ -159,15 +159,24 @@ pub async fn create_app_state(
     // there left the first run with a dead assistant; single-user mode does not
     // need the directory, so boot continues without it.
     let (auth_service, zitadel_config) = {
+        // GBO_SKIP_DIRECTORY_WAIT: when set, the server does not wait for the
+        // identity provider to appear. Desktop/single-user installs that sign
+        // in through admin-credentials.json do not need it, and the 180 s poll
+        // loop delays cold start for no benefit.
+        let skip_directory_wait = std::env::var("GBO_SKIP_DIRECTORY_WAIT")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+        let max_attempts: u32 = if skip_directory_wait { 2 } else { 360 };
+
         // The identity provider writes conf/system/directory_config.json as its
         // last provisioning step; boot can land a fraction of a second earlier
         // and would then run without the auth service (desktop sign-in failed
         // with 500). Give the file a short window to appear before giving up.
-        let mut attempt = 0;
+        let mut attempt: u32 = 0;
         loop {
             match init_directory_service().await {
                 Ok((service, config)) => break (Some(service), config),
-                Err(e) if attempt < 360 => {
+                Err(e) if attempt < max_attempts => {
                     attempt += 1;
                     if attempt == 1 {
                         log::warn!("Directory service not ready ({e}); waiting for it");
