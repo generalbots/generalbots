@@ -183,7 +183,7 @@
         <td>${escapeHtml(c.to_number || '-')}</td>
         <td><span class="status-badge">${escapeHtml(c.status)}</span></td>
         <td>${c.duration_sec == null ? '-' : c.duration_sec + 's'}</td>
-        <td style="color:var(--muted)">${new Date(c.created_at).toLocaleString()}</td>
+        <td style="color:var(--muted)">${new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(new Date(c.created_at))}</td>
       </tr>`).join('');
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">' + gbT('cloud-bindings-calls-error', 'Could not load calls.') + '</td></tr>';

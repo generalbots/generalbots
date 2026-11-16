@@ -31,7 +31,7 @@ let currentPlan = 'free';
 function fmtDate(value) {
   return window.i18n && window.i18n.formatDate
     ? window.i18n.formatDate(value, { dateStyle: 'medium' })
-    : new Date(value).toLocaleDateString();
+    : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }
 
 async function loadServices(token) {

@@ -63,8 +63,8 @@
 
   function fmtTick(v) {
     const n = Number(v) || 0;
-    if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
-    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    if (Math.abs(n) >= 1000) return gbFormatNumber(n, { maximumFractionDigits: 1 });
+    return gbFormatNumber(n, { maximumFractionDigits: 2 });
   }
 
   function drawYAxis(svgParts, pad, plotH, max, w) {

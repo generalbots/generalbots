@@ -24,15 +24,16 @@
     var dateEl = host.querySelector(".gb-widget-clock-date");
     if (!timeEl || !dateEl) return;
     var now = new Date();
-    timeEl.textContent = now.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    dateEl.textContent = now.toLocaleDateString([], {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
+    if (typeof gbFormatTime === "function") {
+      timeEl.textContent = gbFormatTime(now, { hour: "2-digit", minute: "2-digit" });
+    } else {
+      timeEl.textContent = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(now);
+    }
+    if (typeof gbFormatDate === "function") {
+      dateEl.textContent = gbFormatDate(now, { weekday: "short", day: "numeric", month: "short" });
+    } else {
+      dateEl.textContent = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" }).format(now);
+    }
   }
 
   function stop(host) {

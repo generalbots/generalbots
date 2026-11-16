@@ -9,7 +9,7 @@ const state = {
   sped: { contrib: null, fiscal: null }
 };
 
-document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR', {
+document.getElementById('currentDate').textContent = gbFormatDate(new Date(), { locale: 'pt-BR',
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
@@ -70,12 +70,12 @@ function showToast(message, type = 'success') {
 }
 
 function formatCurrency(value) {
-  return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return gbFormatCurrency(value, 'BRL', 'pt-BR');
 }
 
 function formatDateTime(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('pt-BR');
+  return gbFormatDateTime(new Date(dateStr), { locale: 'pt-BR' });
 }
 
 function getStatusBadge(status) {

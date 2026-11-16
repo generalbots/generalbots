@@ -58,7 +58,7 @@ window.CampStudio.preview = {
       '<div class="wa-header">📱 WhatsApp</div>' +
       '<div class="wa-bubble">' +
       (html || '<p style="color:#94a3b8;margin:0;">Your message will appear here</p>') +
-      '<div class="wa-time">' + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + "</div>" +
+      '<div class="wa-time">' + gbFormatTime(new Date(), { hour: "2-digit", minute: "2-digit" }) + "</div>" +
       "</div></div>";
     frame.innerHTML = "";
     frame.appendChild(el);

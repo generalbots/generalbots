@@ -29,7 +29,7 @@ function renderInvoices(invoices) {
     <div class="invoice-card">
       <div class="invoice-info">
         <h3>${escapeHtml(inv.number || 'Invoice')}</h3>
-        <p>${new Date(inv.created_at).toLocaleDateString()} · <span class="invoice-status ${inv.status}">${inv.status}</span></p>
+        <p>${typeof gbFormatDate === 'function' ? gbFormatDate(inv.created_at) : new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(inv.created_at))} · <span class="invoice-status ${inv.status}">${inv.status}</span></p>
       </div>
       <div style="text-align:right">
         <div class="invoice-amount">$${((inv.amount || 0) / 100).toFixed(2)}</div>

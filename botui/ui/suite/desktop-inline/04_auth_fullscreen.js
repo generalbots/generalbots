@@ -442,7 +442,7 @@
                     const formatted = window.GBDateTime
                         ? window.GBDateTime.now()
                         : {
-                              time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                              time: gbFormatTime(now, { hour: "2-digit", minute: "2-digit" }),
                               date: gbFormatDate(now),
                           };
                     if (timeEl) timeEl.textContent = formatted.time;

@@ -58,7 +58,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
   }
   function uid() { return "t_" + Math.random().toString(36).slice(2, 10); }
   function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
-  function fmtDate(ts) { if (!ts) return "—"; const d = new Date(ts); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+  function fmtDate(ts) { if (!ts) return "—"; const d = new Date(ts); return gbFormatDate(d, { locale: "pt-BR", day: "2-digit", month: "short" }); }
   function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 

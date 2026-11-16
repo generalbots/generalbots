@@ -7,7 +7,7 @@ const { fetchApi, esc } = app;
 async function loadPayroll() {
   const data = await fetchApi('/payroll');
   const items = data.items || [];
-  const fmt = n => (parseFloat(n) || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' });
+  const fmt = n => gbFormatCurrency(parseFloat(n) || 0, 'BRL');
   document.getElementById('payrollBody').innerHTML = items.length ? items.map(r => `
     <tr>
       <td>${esc(r.period_label)}</td>
@@ -23,7 +23,7 @@ async function loadPayroll() {
 async function loadBenefits() {
   const data = await fetchApi('/benefits');
   const items = data.items || [];
-  const fmt = n => (parseFloat(n) || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' });
+  const fmt = n => gbFormatCurrency(parseFloat(n) || 0, 'BRL');
   document.getElementById('benefitsBody').innerHTML = items.length ? items.map(b => `
     <tr>
       <td>${esc(b.plan)}</td>

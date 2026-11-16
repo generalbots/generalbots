@@ -53,7 +53,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
         if (d) {
             try {
                 var opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-                d.textContent = now.toLocaleDateString(undefined, opts);
+                d.textContent = gbFormatDate(now, opts);
             } catch (e) {
                 d.textContent = now.toDateString();
             }

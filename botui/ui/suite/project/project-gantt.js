@@ -65,13 +65,13 @@ function ganttRenderHeader(range, pxPerDay, zoom) {
     } else if (zoom === "month") {
       var mEnd = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) / 86400000;
       widthDays = mEnd - cursor;
-      label = d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+      label = gbFormatDate(d, { locale: "en-US", month: "short", year: "numeric", timeZone: "UTC" });
     } else if (zoom === "week") {
       widthDays = 7;
       label = "Wk " + ganttDateFromDay(cursor);
     } else {
       widthDays = 1;
-      label = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }) + " " + d.getUTCDate();
+      label = gbFormatDate(d, { locale: "en-US", weekday: "short", timeZone: "UTC" }) + " " + d.getUTCDate();
     }
 
     var remaining = end - cursor + 1;

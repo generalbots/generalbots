@@ -33,12 +33,12 @@ function showToast(message, type = 'success') {
 }
 
 function formatCurrency(value) {
-  return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return gbFormatCurrency(value, 'BRL', 'pt-BR');
 }
 
 function formatDateTime(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('pt-BR');
+  return gbFormatDateTime(new Date(dateStr), { locale: 'pt-BR' });
 }
 
 function getRiskClass(score) {

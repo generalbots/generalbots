@@ -163,7 +163,7 @@
   function exportMarkdown(meeting) {
     const m = meeting;
     let md = "# " + m.title + "\n\n";
-    md += "**Data:** " + new Date(m.date).toLocaleString("pt-BR") + "\n";
+    md += "**Data:** " + gbFormatDateTime(new Date(m.date), { locale: "pt-BR" }) + "\n";
     md += "**Local:** " + (m.location || "—") + "\n";
     md += "**Organizador:** " + m.organizer + "\n";
     md += "**Duração:** " + Math.floor(m.duration / 60) + " minutos\n\n";
@@ -179,12 +179,12 @@
     }
     if (m.notes && m.notes.length) {
       md += "## Notas\n\n";
-      m.notes.forEach(n => { md += "- **" + new Date(n.timestamp).toLocaleTimeString("pt-BR") + "** [" + n.author + "]: " + n.text + "\n"; });
+      m.notes.forEach(n => { md += "- **" + gbFormatTime(new Date(n.timestamp), { locale: "pt-BR" }) + "** [" + n.author + "]: " + n.text + "\n"; });
       md += "\n";
     }
     if (m.decisions && m.decisions.length) {
       md += "## Decisões\n\n";
-      m.decisions.forEach(d => { md += "- " + d.text + " _(" + d.madeBy + ", " + new Date(d.madeAt).toLocaleString("pt-BR") + ")_\n"; });
+      m.decisions.forEach(d => { md += "- " + d.text + " _(" + d.madeBy + ", " + gbFormatDateTime(new Date(d.madeAt), { locale: "pt-BR" }) + ")_\n"; });
       md += "\n";
     }
     if (m.actionItems && m.actionItems.length) {
@@ -192,7 +192,7 @@
       md += "| Responsável | Ação | Prazo | Status |\n";
       md += "|---|---|---|---|\n";
       m.actionItems.forEach(a => {
-        const due = a.when ? new Date(a.when).toLocaleDateString("pt-BR") : "—";
+        const due = a.when ? gbFormatDate(new Date(a.when), { locale: "pt-BR" }) : "—";
         const status = a.status === "completed" ? "✅ Concluído" : "🟡 Aberto";
         md += "| " + a.who + " | " + a.what + " | " + due + " | " + status + " |\n";
       });

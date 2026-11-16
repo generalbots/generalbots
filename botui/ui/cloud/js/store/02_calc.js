@@ -80,7 +80,7 @@ function calcUpdate() {
   if (bonus) {
     bonus.style.display = freeMsgs > 0 ? '' : 'none';
     const msgsEl = document.getElementById('calc-whatsapp-msgs');
-    if (msgsEl) msgsEl.textContent = freeMsgs.toLocaleString();
+    if (msgsEl) msgsEl.textContent = (typeof gbFormatNumber === 'function') ? gbFormatNumber(freeMsgs) : new Intl.NumberFormat(undefined).format(freeMsgs);
   }
 
   const totalEl = document.getElementById('calc-total');

@@ -12,7 +12,7 @@ var _projectInfoTarget = null;
 // Formats a token count with thousands separators (e.g. 12,345).
 function fmtTokens(n) {
     n = Number(n || 0);
-    return n.toLocaleString ? n.toLocaleString("en-US") : String(n);
+    return n.toLocaleString ? gbFormatNumber(n, {}, "en-US") : String(n);
 }
 
 function projectInfoHtml(p) {

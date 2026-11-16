@@ -27,7 +27,7 @@ function attachMessageTimestamp(message, ts) {
   if (!then || isNaN(then)) return;
   message.setAttribute("data-ts", String(then));
   try {
-    message.dataset.time = new Date(then).toLocaleTimeString([], {
+    message.dataset.time = gbFormatTime(new Date(then), {
       hour: "2-digit",
       minute: "2-digit",
     });

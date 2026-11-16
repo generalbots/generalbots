@@ -175,7 +175,7 @@
       wind: wx.current.wind_speed_10m,
       daily: (wx.daily && wx.daily.time || []).map(function (day, i) {
         return {
-          day: new Date(day).toLocaleDateString([], { weekday: "short" }),
+          day: gbFormatDate(new Date(day), { weekday: "short" }),
           emoji: emojiFor((wx.daily.weather_code || [])[i]),
           max: (wx.daily.temperature_2m_max || [])[i],
           min: (wx.daily.temperature_2m_min || [])[i],

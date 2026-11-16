@@ -78,24 +78,24 @@
     if (format === "currency") {
       const n = parseFloat(v.replace(/[R$\s.]/g, "").replace(",", "."));
       if (isNaN(n)) return v;
-      return n.toLocaleString(loc, { style: "currency", currency: "BRL" });
+      return gbFormatCurrency(n, "BRL", loc);
     }
     if (format === "date") {
       const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
       if (m) {
         const yr = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
-        return new Date(yr, parseInt(m[2], 10) - 1, parseInt(m[1], 10)).toLocaleDateString(loc, { day: "2-digit", month: "2-digit", year: "numeric" });
+        return gbFormatDate(new Date(yr, parseInt(m[2], 10) - 1, parseInt(m[1], 10)), { locale: loc, day: "2-digit", month: "2-digit", year: "numeric" });
       }
     }
     if (format === "percentage") {
       const n = parseFloat(v.replace("%", ""));
       if (isNaN(n)) return v;
-      return n.toLocaleString(loc, { style: "percent", minimumFractionDigits: 2 });
+      return gbFormatNumber(n, { style: "percent", minimumFractionDigits: 2 }, loc);
     }
     if (format === "number") {
       const n = parseFloat(v.replace(/\./g, "").replace(",", "."));
       if (isNaN(n)) return v;
-      return n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return gbFormatNumber(n, { minimumFractionDigits: 2, maximumFractionDigits: 2 }, loc);
     }
     if (format === "phone") {
       const d = v.replace(/\D/g, "");

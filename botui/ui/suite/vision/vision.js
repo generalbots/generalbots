@@ -208,7 +208,7 @@ function renderHistory(items) {
     let timeStr = '-';
     if (time) {
       const d = new Date(time);
-      timeStr = isNaN(d.getTime()) ? String(time) : d.toLocaleString();
+      timeStr = isNaN(d.getTime()) ? String(time) : gbFormatDateTime(d);
     }
 
     return `

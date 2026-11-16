@@ -185,7 +185,7 @@
                 if (diff < 60) return "Just now";
                 if (diff < 3600) return `${Math.floor(diff / 60)} min`;
                 if (diff < 86400)
-                    return date.toLocaleTimeString([], {
+                    return gbFormatTime(date, {
                         hour: "2-digit",
                         minute: "2-digit",
                     });

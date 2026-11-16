@@ -66,7 +66,7 @@
 
   function clock(updatedAt) {
     if (!updatedAt) return "an earlier visit";
-    return new Date(updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return gbFormatTime(new Date(updatedAt), { hour: "2-digit", minute: "2-digit" });
   }
 
   // Cached data stays on screen only with its age and a retry control.

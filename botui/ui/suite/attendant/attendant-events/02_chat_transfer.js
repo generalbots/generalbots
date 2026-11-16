@@ -36,7 +36,7 @@
                 const container = document.getElementById("chatMessages");
                 const timeStr = time
                     ? formatTime(time)
-                    : new Date().toLocaleTimeString([], {
+                    : gbFormatTime(new Date(), {
                           hour: "2-digit",
                           minute: "2-digit",
                       });

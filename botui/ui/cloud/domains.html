@@ -140,7 +140,7 @@
           return;
         }
         tbody.innerHTML = data.domains.map(d => {
-          const created = new Date(d.created_at).toLocaleString();
+          const created = new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(new Date(d.created_at));
           const botIdShort = d.bot_id ? d.bot_id.substring(0, 8) + '...' : '-';
           const orgIdShort = d.org_id ? d.org_id.substring(0, 8) + '...' : '-';
           const branchIdShort = d.branch_id ? d.branch_id.substring(0, 8) + '...' : '-';

@@ -48,7 +48,7 @@ function formatTime(dateStr) {
   if (diffMin < 60) return `${diffMin} ${t('video-min-ago', 'min ago')}`;
   const diffH = Math.floor(diffMin / 60);
   if (diffH < 24) return `${diffH} ${t('video-hour-ago', 'h ago')}`;
-  return d.toLocaleDateString();
+  return gbFormatDate(d);
 }
 
 function renderCameras(cameras) {

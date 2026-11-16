@@ -103,7 +103,7 @@ Object.assign(app, {
     },
 
     fmtBRL(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); },
-    fmtDate(s) { try { return new Date(s).toLocaleString('pt-BR'); } catch { return s; } },
+    fmtDate(s) { try { return gbFormatDateTime(new Date(s), { locale: 'pt-BR' }); } catch { return s; } },
     esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 });
 

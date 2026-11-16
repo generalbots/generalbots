@@ -24,7 +24,7 @@ function init() {
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    paperDate.textContent = now.toLocaleDateString(undefined, options);
+    paperDate.textContent = gbFormatDate(now, options);
 }
 
 function setupEventListeners() {

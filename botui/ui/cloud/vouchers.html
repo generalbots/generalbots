@@ -103,7 +103,7 @@
   function fmtDate(value) {
     return window.i18n && window.i18n.formatDate
       ? window.i18n.formatDate(value, { dateStyle: 'short', timeStyle: 'short' })
-      : new Date(value).toLocaleString();
+      : new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
   }
 
   async function loadVouchers() {

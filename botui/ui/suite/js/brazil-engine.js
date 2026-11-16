@@ -253,7 +253,7 @@
   }
 
   function formatBRL(value) {
-    return parseFloat(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return gbFormatCurrency(parseFloat(value), "BRL", "pt-BR");
   }
 
   function parseBRL(value) {

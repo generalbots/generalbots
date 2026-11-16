@@ -55,4 +55,26 @@
     window.i18n.formatCurrency = formatCurrency;
     window.i18n.formatRelativeTime = formatRelativeTime;
   }
+
+  // #2329 central formatter module: raw Intl locale formatting is allowed here.
+  if (!window.gbFormatNumber) {
+    window.gbFormatNumber = function (value, options, locale) {
+      var loc = locale || (options && options.locale) || activeLocale();
+      var opts = options ? Object.assign({}, options) : undefined;
+      if (opts) delete opts.locale;
+      return formatNumber(value, opts);
+    };
+  }
+  if (!window.gbFormatCurrency) {
+    window.gbFormatCurrency = function (value, currency, locale) {
+      try {
+        return new Intl.NumberFormat(locale || activeLocale(), {
+          style: "currency",
+          currency: currency || "USD",
+        }).format(typeof value === "number" ? value : Number(value));
+      } catch (e) {
+        return String(value);
+      }
+    };
+  }
 })();

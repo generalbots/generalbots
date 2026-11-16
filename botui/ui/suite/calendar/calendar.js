@@ -99,7 +99,7 @@
         const year = CS.currentDate.getFullYear();
         const month = CS.currentDate.getMonth();
 
-        CS.miniCalTitle.textContent = new Date(year, month).toLocaleDateString('en-US', {
+        CS.miniCalTitle.textContent = gbFormatDate(new Date(year, month), { locale: 'en-US',
             month: 'long',
             year: 'numeric'
         });
@@ -169,7 +169,7 @@
         const dayName = document.getElementById('day-view-name');
         const dayNumber = document.getElementById('day-view-number');
 
-        if (dayName) dayName.textContent = CS.selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+        if (dayName) dayName.textContent = gbFormatDate(CS.selectedDate, { locale: 'en-US', weekday: 'long' });
         if (dayNumber) {
             dayNumber.textContent = CS.selectedDate.getDate();
             const today = new Date();
@@ -206,7 +206,7 @@
 
             html += `
                 <div class="week-day-header">
-                    <span class="day-name">${day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                    <span class="day-name">${gbFormatDate(day, { locale: 'en-US', weekday: 'short' })}</span>
                     <span class="day-number ${isToday ? 'today' : ''}">${day.getDate()}</span>
                 </div>
             `;
@@ -286,7 +286,7 @@
         let title = '';
         switch (CS.currentView) {
             case 'day':
-                title = CS.selectedDate.toLocaleDateString('en-US', {
+                title = gbFormatDate(CS.selectedDate, { locale: 'en-US',
                     weekday: 'long',
                     month: 'long',
                     day: 'numeric',
@@ -298,13 +298,13 @@
                 const weekEnd = new Date(weekStart);
                 weekEnd.setDate(weekStart.getDate() + 6);
                 if (weekStart.getMonth() === weekEnd.getMonth()) {
-                    title = `${weekStart.toLocaleDateString('en-US', { month: 'long' })} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+                    title = `${gbFormatDate(weekStart, { locale: 'en-US', month: 'long' })} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
                 } else {
-                    title = `${weekStart.toLocaleDateString('en-US', { month: 'short' })} ${weekStart.getDate()} - ${weekEnd.toLocaleDateString('en-US', { month: 'short' })} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+                    title = `${gbFormatDate(weekStart, { locale: 'en-US', month: 'short' })} ${weekStart.getDate()} - ${gbFormatDate(weekEnd, { locale: 'en-US', month: 'short' })} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
                 }
                 break;
             case 'month':
-                title = CS.currentDate.toLocaleDateString('en-US', {
+                title = gbFormatDate(CS.currentDate, { locale: 'en-US',
                     month: 'long',
                     year: 'numeric'
                 });

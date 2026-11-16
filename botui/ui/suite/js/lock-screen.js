@@ -60,8 +60,8 @@ const LockScreen = (() => {
     const now = new Date();
     const timeEl = document.getElementById("gbLockTime");
     const dateEl = document.getElementById("gbLockDate");
-    if (timeEl) timeEl.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    if (dateEl) dateEl.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+    if (timeEl) timeEl.textContent = gbFormatTime(now, { hour: "2-digit", minute: "2-digit" });
+    if (dateEl) dateEl.textContent = gbFormatDate(now, { weekday: "long", month: "long", day: "numeric" });
   }
 
   return { init, lock, isLocked };

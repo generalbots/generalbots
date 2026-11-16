@@ -322,18 +322,20 @@
       });
   }
 
-  /* #2329 — the suite's one date/time formatter.
+  /* #2329 — suite-wide date/time/number formatters.
    *
-   * Unprefixed `toLocaleDateString()` / `toLocaleString()` render in whatever
-   * locale the *browser* reports, so the same record reads 01/02/2026 to one
-   * collaborator and 02/01/2026 to another. These delegate to GBDateTime, which
-   * honours the format preference saved in Settings -> Language, and fall back
-   * to the suite locale. Numbers are a different concern: `value.toLocaleString()`
-   * on a number is number grouping, not a date.
+   * Raw locale-formatting API calls outside formatter modules make the same
+   * record render differently per browser/collaborator. These helpers use the
+   * suite locale (gb-locale / i18n / navigator) and GBDateTime preferences by
+   * default; callers may pass explicit Intl options and/or locale overrides.
+   * Raw Intl formatting is intentionally centralized in formatter modules.
    */
   function suiteLocale() {
     try {
-      return localStorage.getItem("gb-locale") || navigator.language || "en";
+      return (window.i18n && typeof window.i18n.getLocale === "function" && window.i18n.getLocale()) ||
+        localStorage.getItem("gb-locale") ||
+        navigator.language ||
+        "en";
     } catch (e) {
       return "en";
     }
@@ -343,36 +345,80 @@
     return value instanceof Date ? value : new Date(value);
   }
 
-  function gbFormatDate(value) {
+  function resolveLocale(opts) {
+    if (opts && opts.locale) return opts.locale;
+    return suiteLocale();
+  }
+
+  function intlDateTime(value, opts, kind) {
     var date = toDate(value);
     if (!date || isNaN(date.getTime())) return "";
-    if (window.GBDateTime) return window.GBDateTime.formatDate(date);
+    var o = opts ? Object.assign({}, opts) : {};
+    var loc = o.locale;
+    delete o.locale;
+    var hasOpts = Object.keys(o).length > 0;
+    if (!hasOpts && !loc) {
+      if (window.GBDateTime) {
+        if (kind === "time") return window.GBDateTime.formatTime(date);
+        if (kind === "datetime") return window.GBDateTime.formatDateTime(date);
+        return window.GBDateTime.formatDate(date);
+      }
+      if (kind === "time") o = { hour: "2-digit", minute: "2-digit" };
+      else if (kind === "datetime") o = { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" };
+      else o = { year: "numeric", month: "2-digit", day: "2-digit" };
+    } else if (!hasOpts) {
+      if (kind === "time") o = { hour: "2-digit", minute: "2-digit" };
+      else if (kind === "datetime") o = { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" };
+      else o = { year: "numeric", month: "2-digit", day: "2-digit" };
+    }
     try {
-      return new Intl.DateTimeFormat(suiteLocale(), {
-        year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(date);
+      return new Intl.DateTimeFormat(loc || suiteLocale(), o).format(date);
     } catch (e) {
+      if (kind === "time") return date.toTimeString().slice(0, 5);
+      if (kind === "datetime") return date.toDateString() + " " + date.toTimeString().slice(0, 5);
       return date.toDateString();
     }
   }
 
-  function gbFormatTime(value) {
+  function gbFormatDate(value, opts) {
+    return intlDateTime(value, opts, "date");
+  }
+
+  function gbFormatTime(value, opts) {
+    return intlDateTime(value, opts, "time");
+  }
+
+  function gbFormatDateTime(value, opts) {
+    if (opts && Object.keys(opts).length > 0) return intlDateTime(value, opts, "datetime");
     var date = toDate(value);
     if (!date || isNaN(date.getTime())) return "";
-    if (window.GBDateTime) return window.GBDateTime.formatTime(date);
+    if (window.GBDateTime) return window.GBDateTime.formatDateTime(date);
+    return intlDateTime(value, opts, "datetime");
+  }
+
+  function gbFormatNumber(value, opts, locale) {
+    var n = typeof value === "number" ? value : Number(value);
+    if (!isFinite(n)) return String(value == null ? "" : value);
+    var loc = locale || (opts && opts.locale) || suiteLocale();
+    var o = opts ? Object.assign({}, opts) : {};
+    delete o.locale;
     try {
-      return new Intl.DateTimeFormat(suiteLocale(), {
-        hour: "2-digit", minute: "2-digit",
-      }).format(date);
+      return new Intl.NumberFormat(loc, o).format(n);
     } catch (e) {
-      return date.toTimeString().slice(0, 5);
+      return String(n);
     }
   }
 
-  function gbFormatDateTime(value) {
-    var date = toDate(value);
-    if (!date || isNaN(date.getTime())) return "";
-    return gbFormatDate(date) + " " + gbFormatTime(date);
+  function gbFormatCurrency(value, currency, locale) {
+    var n = typeof value === "number" ? value : Number(value);
+    if (!isFinite(n)) n = 0;
+    var loc = locale || suiteLocale();
+    var cur = currency || "USD";
+    try {
+      return new Intl.NumberFormat(loc, { style: "currency", currency: cur }).format(n);
+    } catch (e) {
+      return String(n);
+    }
   }
 
   var html = { escape: escapeHtml };
@@ -393,6 +439,8 @@
   window.gbFormatDate = gbFormatDate;
   window.gbFormatTime = gbFormatTime;
   window.gbFormatDateTime = gbFormatDateTime;
+  window.gbFormatNumber = gbFormatNumber;
+  window.gbFormatCurrency = gbFormatCurrency;
   window.gbPrintHtml = printHtml;
   window.GBShared.copyText = copyText;
   window.GBShared.format = format;
@@ -400,6 +448,8 @@
   window.GBShared.formatDate = gbFormatDate;
   window.GBShared.formatTime = gbFormatTime;
   window.GBShared.formatDateTime = gbFormatDateTime;
+  window.GBShared.formatNumber = gbFormatNumber;
+  window.GBShared.formatCurrency = gbFormatCurrency;
   window.GBDownload = window.GBDownload || downloadKit;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);

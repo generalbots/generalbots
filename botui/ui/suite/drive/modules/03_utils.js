@@ -47,7 +47,7 @@ function formatFileSize(bytes) {
 function formatDate(dateStr) {
     if (!dateStr) return "";
     const d = new Date(dateStr);
-    return d.toLocaleDateString(undefined, {
+    return gbFormatDate(d, {
         year: "numeric",
         month: "short",
         day: "numeric",
