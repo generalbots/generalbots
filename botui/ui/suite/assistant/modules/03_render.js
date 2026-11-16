@@ -7,10 +7,10 @@
 (function () {
     var A = window.GBAssistant;
     var DEDUP_WINDOW = 60000;
-    /** True after the first user message is sent in this session.
-     *  A bot completion that arrives before any user turn is a greeting
-     *  from start.bas — it goes into the hero subtitle, not the transcript. */
+    /** True after the first user message is sent in this session. */
     A.hasUserSent = false;
+    /** At most one frame per empty-state cycle is treated as a greeting. */
+    A.greetingReceived = false;
 
     /* ================================================================
        Sanitizer (template-based, mirrors legacy GBSanitize)
@@ -361,6 +361,9 @@
         msgs.innerHTML = "";
         if (!messages || messages.length === 0) { A.showEmptyState(); return; }
         A.showConversation();
+        for (var h = 0; h < messages.length; h++) {
+            if (messages[h].role === "user") { A.hasUserSent = true; break; }
+        }
         for (var i = 0; i < messages.length; i++) {
             var m = messages[i];
             var el = document.createElement("div");
@@ -413,14 +416,19 @@
             data.turn_status === "failed" || data.turn_status === "error");
         if (data.thinking && !content && !reasoning) { A.showThinking(); return; }
         if (!isComplete && (content || reasoning)) {
+            /* Pre-user greeting frames: buffer silently, never open the conversation. */
+            if (!A.hasUserSent && !A.greetingReceived) {
+                A._greetingBuffer = (A._greetingBuffer || "") + (content || ""); return;
+            }
             A.hideThinking();
             if (!A.isStreaming) { A.startStream(); }
             A.appendStream(content, reasoning);
             return;
         }
         if (isComplete) {
-            var fc = content || A.streamingContent || "";
+            var fc = content || A.streamingContent || A._greetingBuffer || "";
             var fr = reasoning || A.streamingReasoning || "";
+            A._greetingBuffer = "";
             if (!fc && !fr && !A.isStreaming) { return; }
             var now = Date.now();
             if (fc && fc === A.lastCompletedContent && (now - A.lastCompletedTime) < DEDUP_WINDOW) {
@@ -429,10 +437,9 @@
             A.lastCompletedContent = fc;
             A.lastCompletedTime = now;
             A._finalizeStreaming();
-            /* Greeting from start.bas: a bot completion before any user
-               turn.  Show it as the hero's secondary line, not in the
-               transcript; the empty state stays visible with its chips. */
-            if (!A.hasUserSent && fc && !A.isStreaming) {
+            /* Greeting: one frame per empty-state cycle → hero subtitle. */
+            if (!A.hasUserSent && !A.greetingReceived && fc && !A.isStreaming) {
+                A.greetingReceived = true;
                 A.hideThinking();
                 var sub = document.getElementById("gbGreetingSub");
                 if (sub) { sub.textContent = fc.replace(/<[^>]*>/g, "").trim(); }

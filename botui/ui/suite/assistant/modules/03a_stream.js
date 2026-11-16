@@ -207,6 +207,7 @@
         if (msgs) { msgs.innerHTML = ""; }
         A.hideThinking();
         A.hasUserSent = false;
+        A.greetingReceived = false;
         var sub = document.getElementById("gbGreetingSub");
         if (sub) { sub.textContent = ""; }
     };

@@ -133,6 +133,14 @@
 .gb-msg-assistant h3 { font-size: var(--id-text-lg); }
 .gb-msg-assistant ul, .gb-msg-assistant ol { margin: .4em 0 .6em 1.4em; }
 .gb-msg-assistant li { margin-bottom: .2em; }
+.gb-msg-assistant hr {
+    border: none; border-top: 1px solid var(--id-line);
+    margin: .8em 0;
+}
+.gb-msg-assistant ul ul, .gb-msg-assistant ul ol,
+.gb-msg-assistant ol ul, .gb-msg-assistant ol ol {
+    margin-top: .2em; margin-bottom: .2em;
+}
 .gb-msg-assistant a {
     color: var(--id-accent-text); text-decoration: underline;
     text-underline-offset: 2px;
@@ -438,7 +446,7 @@
 /* ================================================================
    Responsive
    ================================================================ */
-@media (max-width: 900px) {
+@media (max-width: 960px) {
     .gb-greeting { font-size: var(--id-text-3xl); }
 }
 @media (max-width: 600px) {
