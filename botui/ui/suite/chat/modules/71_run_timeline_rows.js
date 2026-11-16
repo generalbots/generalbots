@@ -155,7 +155,7 @@
         if (state === "succeeded") {
             entry.collapsed = true;
             entry.card.classList.add("collapsed");
-            entry.toggle.textContent = "Expand";
+            entry.toggle.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
             entry.toggle.setAttribute("aria-expanded", "false");
         } else {
             entry.card.classList.add("expanded");

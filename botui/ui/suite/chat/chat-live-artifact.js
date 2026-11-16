@@ -364,7 +364,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     var expand = document.createElement("button");
     expand.type = "button";
     expand.className = "gb-attachment-inline-btn";
-    expand.textContent = "Expand";
+    expand.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
     expand.setAttribute("aria-expanded", "false");
     // #2099 — expanding opens the preview in a modal layer instead of only
     // growing it inside the 80% bubble. The box itself is portaled, so the
@@ -375,8 +375,8 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
         return;
       }
       box.classList.toggle("expanded");
-      expand.textContent = box.classList.contains("expanded")
-        ? "Collapse" : "Expand";
+      var expanded = box.classList.contains("expanded");
+      expand.textContent = (typeof gbT === "function") ? gbT(expanded ? "chat-collapse" : "chat-expand", expanded ? "Collapse" : "Expand") : (expanded ? "Collapse" : "Expand");
     });
     head.appendChild(expand);
     var body = document.createElement("div");

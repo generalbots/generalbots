@@ -302,7 +302,7 @@ function sendMessage(messageContent, extra) {
       }
       if (pending.attempts >= 3) {
         ChatState.pendingSend = null;
-        notify("Message not delivered — reconnecting", "error");
+        notify((typeof gbT === "function") ? gbT("chat-message-not-delivered", "Message not delivered — reconnecting") : "Message not delivered — reconnecting", "error");
         return;
       }
       ChatState.pendingSend = {
@@ -318,7 +318,10 @@ function sendMessage(messageContent, extra) {
     // GB7-15: the attachment leaves the composer with a visible outcome
     // instead of silently disappearing.
     if (files.length) {
-      notify((files.length === 1 ? "Attachment sent: " : "Attachments sent: ") + fileNames, "success");
+      var attachSent = (typeof gbT === "function")
+        ? (files.length === 1 ? gbT("chat-attachment-sent", "Attachment sent: ") : gbT("chat-attachments-sent", "Attachments sent: "))
+        : (files.length === 1 ? "Attachment sent: " : "Attachments sent: ");
+      notify(attachSent + fileNames, "success");
     }
     if (fileInput) { fileInput.value = ""; }
     var chip = document.getElementById("fileChip");
@@ -362,20 +365,20 @@ function sendMessage(messageContent, extra) {
       finalSend();
     }).catch(function (error) {
       if (activeChip) activeChip.textContent = "⚠ Could not read " + error.message;
-      notify("Could not read an attachment. Attach it again.", "error");
+      notify((typeof gbT === "function") ? gbT("chat-attachment-read-failed", "Could not read an attachment. Attach it again.") : "Could not read an attachment. Attach it again.", "error");
     });
   } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
     finalSend();
   } else if (files.length) {
     // #1275 — reconnect may still be in flight; read every attachment now
     // and queue the send for the reopened socket.
-    notify("Connection is back shortly — attachment queued", "info");
+    notify((typeof gbT === "function") ? gbT("chat-attachment-queued", "Connection is back shortly — attachment queued") : "Connection is back shortly — attachment queued", "info");
     readAttachments(files).then(function (attachments) {
       payload.files = attachments;
       payload.file = attachments[0];
       queueOfflineMessage(payload);
     }).catch(function () {
-      notify("Could not read an attachment. Attach it again.", "error");
+      notify((typeof gbT === "function") ? gbT("chat-attachment-read-failed", "Could not read an attachment. Attach it again.") : "Could not read an attachment. Attach it again.", "error");
     });
   } else {
     // #1275 — a server restart kills the socket while the user keeps

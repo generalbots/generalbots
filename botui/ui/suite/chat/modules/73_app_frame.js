@@ -47,7 +47,7 @@
         var expand = document.createElement("button");
         expand.type = "button";
         expand.className = "gb-app-btn";
-        expand.textContent = "Expand";
+        expand.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
         var stop = document.createElement("button");
         stop.type = "button";
         stop.className = "gb-app-btn";

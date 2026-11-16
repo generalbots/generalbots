@@ -84,7 +84,7 @@ window.GBArtifactOverlay = window.GBArtifactOverlay || (function () {
     overlay.className = "gb-artifact-overlay";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
-    overlay.setAttribute("aria-label", options.label || "Expanded preview");
+    overlay.setAttribute("aria-label", options.label || ((typeof gbT === "function") ? gbT("chat-expanded-preview", "Expanded preview") : "Expanded preview"));
     overlay.tabIndex = -1;
     var frame = document.createElement("div");
     frame.className = "gb-artifact-overlay-frame";
@@ -148,7 +148,7 @@ window.GBArtifactOverlay = window.GBArtifactOverlay || (function () {
     close(box);
     box.classList.remove("expanded");
     if (button) {
-      button.textContent = "Expand";
+      button.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
       button.setAttribute("aria-expanded", "false");
     }
   }
@@ -165,7 +165,7 @@ window.GBArtifactOverlay = window.GBArtifactOverlay || (function () {
     options = options || {};
     box.classList.add("expanded");
     if (button) {
-      button.textContent = "Collapse";
+      button.textContent = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
       button.setAttribute("aria-expanded", "true");
     }
     open(box, {
@@ -174,7 +174,7 @@ window.GBArtifactOverlay = window.GBArtifactOverlay || (function () {
       onClose: function () {
         box.classList.remove("expanded");
         if (button) {
-          button.textContent = "Expand";
+          button.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
           button.setAttribute("aria-expanded", "false");
         }
       },

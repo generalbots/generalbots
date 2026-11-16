@@ -9,7 +9,7 @@ function queueOfflineMessage(payload) {
   if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
   ChatState.offlineQueue.push(payload);
   if (ChatState.offlineQueue.length > 50) ChatState.offlineQueue.shift();
-  notify("Reconnecting — your message will be sent when the connection is back.", "info");
+  notify((typeof gbT === "function") ? gbT("chat-reconnecting-queued", "Reconnecting — your message will be sent when the connection is back.") : "Reconnecting — your message will be sent when the connection is back.", "info");
   if (typeof updateConnectionStatus === "function") updateConnectionStatus("connecting");
   if (ChatState.reconnectAttempts >= ChatState.maxReconnectAttempts) {
     // Reconnect budget was exhausted before the user tried to send: restart
@@ -92,7 +92,7 @@ window.gbResendChatPayload = function (originalPayload) {
       }
       if (pending.attempts >= 3) {
         ChatState.pendingSend = null;
-        notify("Message not delivered — reconnecting", "error");
+        notify((typeof gbT === "function") ? gbT("chat-message-not-delivered", "Message not delivered — reconnecting") : "Message not delivered — reconnecting", "error");
         return;
       }
       ChatState.pendingSend = {
@@ -105,7 +105,9 @@ window.gbResendChatPayload = function (originalPayload) {
       ChatState.offlineQueue.push(sentPayload);
       if (typeof connectWebSocket === "function") connectWebSocket();
     }, 6000);
-    if (window.GBTurn) GBTurn.start(text || (hasFiles ? "Retrying attachment" : "Retry"));
+    var retryText = (typeof gbT === "function") ? gbT("chat-retry", "Retry") : "Retry";
+    var retryingAttachmentText = (typeof gbT === "function") ? gbT("chat-retrying-attachment", "Retrying attachment") : "Retrying attachment";
+    if (window.GBTurn) GBTurn.start(text || (hasFiles ? retryingAttachmentText : retryText));
     else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
   }
 
@@ -124,7 +126,8 @@ window.ChatSend.sendStructured = function (detail) {
   if (detail.action === "approve_plan") {
     var steps = Array.isArray(detail.steps) ? detail.steps : [];
     var titles = steps.map(function (step) { return step.title || ""; }).filter(Boolean);
-    sendMessage("Approved plan: " + titles.join(" → "), {
+    var approvedPrefix = (typeof gbT === "function") ? gbT("chat-approved-plan", "Approved plan: ") : "Approved plan: ";
+    sendMessage(approvedPrefix + titles.join(" → "), {
       plan_approval: { surface_id: detail.surface_id || null, steps: steps },
     });
     return;

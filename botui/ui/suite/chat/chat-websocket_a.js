@@ -169,10 +169,11 @@ function showAuthRequired(botName) {
   if (statusEl) {
     statusEl.title = "Sign in at " + login;
   }
+  var privateMsg = (typeof gbT === "function") ? gbT("chat-bot-private-signin", "This bot is private — sign in to continue") : "This bot is private — sign in to continue";
   if (window.GBAppLifecycle) {
-    GBAppLifecycle.setState("error", "This bot is private. Sign in to continue.");
+    GBAppLifecycle.setState("error", privateMsg);
   }
-  notify("This bot is private — sign in to continue", "error");
+  notify(privateMsg, "error");
   console.warn("[WS] bot '" + botName + "' is private; WebSocket not attempted");
 }
 
@@ -204,7 +205,7 @@ function showProbeError(botName) {
       var link = document.createElement("button");
       link.type = "button";
       link.className = "gb-state-retry";
-      link.textContent = "Retry";
+      link.textContent = (typeof gbT === "function") ? gbT("chat-retry", "Retry") : "Retry";
       link.style.marginLeft = "8px";
       link.onclick = retryProbe;
       stateMsg.appendChild(link);
@@ -218,7 +219,7 @@ function showProbeError(botName) {
     var retry = document.createElement("button");
     retry.type = "button";
     retry.className = "gb-state-retry";
-    retry.textContent = "Retry";
+    retry.textContent = (typeof gbT === "function") ? gbT("chat-retry", "Retry") : "Retry";
     retry.onclick = retryProbe;
     msg.appendChild(retry);
     box.appendChild(msg);

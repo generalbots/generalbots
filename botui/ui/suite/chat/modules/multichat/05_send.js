@@ -39,7 +39,7 @@
       if (ack.attempts >= 2) {
         t.pendingAck = null;
         if (typeof notify === "function") {
-          notify("Message not delivered — reconnecting. Please try again.", "error");
+          notify((typeof gbT === "function") ? gbT("chat-message-not-delivered", "Message not delivered — reconnecting") : "Message not delivered — reconnecting", "error");
         }
         return;
       }
@@ -145,7 +145,7 @@
           dispatch();
         })
         .catch(function () {
-          notify("Could not read an attachment. Attach it again.", "error");
+          notify((typeof gbT === "function") ? gbT("chat-attachment-read-failed", "Could not read an attachment. Attach it again.") : "Could not read an attachment. Attach it again.", "error");
         });
     } else {
       dispatch();

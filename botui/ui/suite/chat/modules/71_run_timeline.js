@@ -155,7 +155,7 @@
         var toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "run-toggle";
-        toggle.textContent = "Collapse";
+        toggle.textContent = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
         toggle.setAttribute("aria-expanded", "true");
 
         var stop = document.createElement("button");
@@ -291,7 +291,9 @@
         toggle.addEventListener("click", function () {
             entry.collapsed = !entry.collapsed;
             card.classList.toggle("collapsed", entry.collapsed);
-            toggle.textContent = entry.collapsed ? "Expand" : "Collapse";
+            var expandLabel = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
+            var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
+            toggle.textContent = entry.collapsed ? expandLabel : collapseLabel;
             toggle.setAttribute("aria-expanded", entry.collapsed ? "false" : "true");
         });
 

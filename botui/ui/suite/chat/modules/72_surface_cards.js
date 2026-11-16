@@ -139,8 +139,9 @@
             return;
         }
         if (typeof window.sendMessage === "function") {
+            var approvedPrefix = (typeof gbT === "function") ? gbT("chat-approved-plan", "Approved plan: ") : "Approved plan: ";
             var text = detail.action === "approve_plan"
-                ? "Approved plan: " + (detail.steps || []).map(function (step) { return step.title; }).join(" → ")
+                ? approvedPrefix + (detail.steps || []).map(function (step) { return step.title; }).join(" → ")
                 : "Answers: " + JSON.stringify(detail.values || {});
             window.sendMessage(text);
         }

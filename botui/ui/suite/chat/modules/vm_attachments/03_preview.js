@@ -61,7 +61,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
   var expand = document.createElement("button");
   expand.type = "button";
   expand.className = "gb-attachment-inline-btn";
-  expand.textContent = "Expand";
+  expand.textContent = (typeof gbT === "function") ? gbT("chat-expand", "Expand") : "Expand";
   expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
     if (window.GBArtifactOverlay) {
@@ -69,7 +69,8 @@ function vmToggleInlinePreview(card, url, path, convId) {
       return;
     }
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = (typeof gbT === "function") ? gbT(expanded ? "chat-collapse" : "chat-expand", expanded ? "Collapse" : "Expand") : (expanded ? "Collapse" : "Expand");
   });
   head.appendChild(expand);
 
