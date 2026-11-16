@@ -145,96 +145,111 @@ function openOrder(plan) {
       <ul style="list-style:none;margin-top:.5rem">${plan.specs.map(s=>`<li style="font-size:.82rem;color:var(--muted);padding:.1rem 0">• ${esc(s)}</li>`).join('')}</ul>
     </div>
     <div class="form-group">
-      <label class="form-label">Name this service (optional)</label>
-      <input id="order-name" class="form-control" type="text" placeholder="e.g. WhatsApp Bot Server">
-    </div>`;
+      <label class="form-label">${gbT('cloud-store-service-name', 'Name this service (optional)')}</label>
+      <input id="order-name" class="form-control" type="text" placeholder="${gbT('cloud-store-service-name-placeholder', 'e.g. WhatsApp Bot Server')}">
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.75rem">${gbT('cloud-store-no-auto-provision', 'Automatic purchase and provisioning are not available in this environment. Contact sales to complete this request; no charge or provisioning is started here.')}</p>`;
   document.getElementById('purchase-modal').classList.add('open');
+  resetConfirmButton();
 }
 
 async function confirmOrder() {
   if (!selectedPlan) return;
   const btn = document.getElementById('modal-confirm-btn');
-  btn.textContent = gbT('cloud-store-processing', 'Processing…');
-  btn.disabled = true;
-  // Simulate provisioning
-  await new Promise(r => setTimeout(r, 1200));
-  btn.textContent = gbT('cloud-store-confirm-purchase', 'Confirm & Purchase');
-  btn.disabled = false;
-  hideModal();
-  showToast(gbT('cloud-store-provisioned', '✅ {name} provisioned! Check My Services.', { name: selectedPlan.name }));
+  if (btn) {
+    btn.textContent = gbT('cloud-store-contact-sales', 'Contact sales');
+    btn.disabled = false;
+  }
+  openSalesContact(gbT('cloud-store-purchase-request', 'Purchase request'), selectedPlan && selectedPlan.name ? String(selectedPlan.name) : '');
 }
 
-function hideModal() { document.getElementById('purchase-modal').classList.remove('open'); }
+function hideModal() {
+  document.getElementById('purchase-modal').classList.remove('open');
+  resetConfirmButton();
+}
 
 // ── Domain helpers ──
 let domainTimer;
 function domainSearchDebounce() { clearTimeout(domainTimer); domainTimer = setTimeout(searchDomain, 600); }
 
-function searchDomain() {
+async function searchDomain() {
   const q = document.getElementById('domain-input')?.value?.trim();
   if (!q) return;
   const res = document.getElementById('domain-result');
   if (!res) return;
-  // Simulate availability check
-  const available = Math.random() > 0.3;
   const domain = q.includes('.') ? q : q + '.com';
   res.innerHTML = `
-    <div style="background:var(--card);border:1px solid ${available?'rgba(0,212,170,.3)':'rgba(255,107,107,.3)'};border-radius:var(--radius);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
-      <span style="font-size:1.5rem">${available?'✅':'❌'}</span>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
+      <span style="font-size:1.5rem" aria-hidden="true">ℹ️</span>
       <div style="flex:1">
         <div style="font-size:1rem;font-weight:700;color:var(--text)">${esc(domain)}</div>
-        <div style="font-size:.82rem;color:var(--muted)">${available ? gbT('cloud-store-domain-available', 'Available — register now!') : gbT('cloud-store-domain-taken', 'Not available. Try another extension.')}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${gbT('cloud-store-domain-unsupported', 'Automated availability checks are not available in this environment. Contact sales to check availability and register this domain.')}</div>
       </div>
-      ${available?`<button class="btn btn-primary btn-sm" onclick="orderDomainName('${esc(domain)}')">${gbT('cloud-store-domain-register', 'Register $21.99/yr')}</button>`:''}
+      <button class="btn btn-secondary btn-sm" onclick="openSalesContact(gbT('cloud-store-domain-sales-subject', 'Domain registration request'), '${esc(domain)}')">${gbT('cloud-store-contact-sales', 'Contact sales')}</button>
     </div>`;
+  try {
+    const r = await fetch(`/api/store/domain/check?name=${encodeURIComponent(domain)}`, { credentials: 'include' });
+    if (r.ok) {
+      const data = await r.json().catch(() => null);
+      if (data && data.status === 'unsupported') {
+        return;
+      }
+    }
+  } catch (_e) {
+    // Keep honest unsupported state when backend check is unavailable.
+  }
+}
+
+function openSalesContact(subject, detail) {
+  selectedPlan = null;
+  const text = detail ? `${subject}: ${detail}` : subject;
+  document.getElementById('modal-title').textContent = gbT('cloud-store-contact-sales', 'Contact sales');
+  document.getElementById('modal-body').innerHTML = `
+    <p style="color:var(--muted);margin-bottom:.75rem">${gbT('cloud-store-sales-unavailable', 'This item cannot be purchased automatically yet. Our team can confirm availability and fulfillment.')}</p>
+    <div style="background:var(--bg3);border-radius:8px;padding:1rem;border:1px solid var(--border)">
+      <div style="font-size:.82rem;color:var(--text);font-weight:600;margin-bottom:.25rem">${esc(subject)}</div>
+      <div style="font-size:.82rem;color:var(--muted);word-break:break-word">${esc(detail || '')}</div>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.75rem">${gbT('cloud-store-sales-next', 'Use your sales/support channel to request this item. No purchase or provisioning was started.')}</p>`;
+  document.getElementById('purchase-modal').classList.add('open');
+  const btn = document.getElementById('modal-confirm-btn');
+  if (btn) {
+    btn.textContent = gbT('cloud-store-close', 'Close');
+    btn.disabled = false;
+    btn.onclick = function () { hideModal(); resetConfirmButton(); };
+  }
+}
+
+function resetConfirmButton() {
+  const btn = document.getElementById('modal-confirm-btn');
+  if (!btn) return;
+  btn.textContent = gbT('cloud-store-confirm-purchase', 'Confirm & Purchase');
+  btn.disabled = false;
+  btn.onclick = confirmOrder;
 }
 
 function orderDomain(ext) {
-  selectedPlan = { name: `Domain ${ext}`, amount: TLD_PRICES.find(t=>t.ext===ext)?.price?.replace('$','') || '21.99', currency:'$', period:'yr', specs:[`${ext} domain`,'Free WHOIS privacy','Managed DNS'] };
-  document.getElementById('modal-title').textContent = gbT('cloud-store-register-domain-ext', 'Register {ext} Domain', { ext: ext });
-  document.getElementById('modal-body').innerHTML = `
-    <div class="form-group"><label class="form-label">${gbT('cloud-store-domain-name', 'Domain Name')}</label><input id="order-domain" class="form-control" type="text" placeholder="${ext.replace('.','')}.com"></div>
-    <p style="font-size:.82rem;color:var(--muted)">${gbT('cloud-store-domain-includes', 'Includes free WHOIS privacy, managed DNS and auto-renew.')}</p>`;
-  document.getElementById('purchase-modal').classList.add('open');
+  openSalesContact(gbT('cloud-store-domain-sales-subject', 'Domain registration request'), `.${String(ext || '').replace(/^\./, '')}`);
 }
 
 function orderDomainName(domain) {
-  const ext = '.' + domain.split('.').pop();
-  const p = PRODUCT_MAP['domain-' + ext.replace('.', '')];
-  const price = p ? parseFloat(p.price).toFixed(2) : '21.99';
-  selectedPlan = { name: domain, amount: price, currency: '$', period: 'yr', specs:['Free WHOIS privacy','Managed DNS'] };
-  document.getElementById('modal-title').textContent = gbT('cloud-store-register-domain', 'Register {domain}', { domain: domain });
-  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Register <strong style="color:var(--text)">${esc(domain)}</strong> for $${price}/yr including free WHOIS privacy.</p>`;
-  document.getElementById('purchase-modal').classList.add('open');
+  openSalesContact(gbT('cloud-store-domain-sales-subject', 'Domain registration request'), String(domain || ''));
 }
 
 // ── Number search ──
 function searchNumbers() {
-  const country = document.getElementById('ns-country').value;
   const tbody = document.getElementById('number-tbody');
-  const mockNumbers = [
-    `+1 415-555-0101`, `+1 415-555-0182`, `+1 415-555-0207`,
-    `+1 650-555-0143`, `+1 650-555-0167`,
-  ];
-  const p = PRODUCT_MAP['number-local'];
-  const price = p ? parseFloat(p.price).toFixed(2) : '5.99';
-  tbody.innerHTML = mockNumbers.map(n => `
+  if (!tbody) return;
+  tbody.innerHTML = `
     <tr>
-      <td style="font-family:monospace;font-size:.9rem">${n}</td>
-      <td>${gbT('cloud-store-number-country', 'United States')}</td>
-      <td><span class="badge badge-active">${gbT('cloud-store-number-features', 'SMS + Voice')}</span></td>
-      <td>$${price}/mo</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="orderNumber('${n}')">${gbT('cloud-store-buy', 'Buy')}</button></td>
-    </tr>`).join('');
+      <td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">
+        ${gbT('cloud-store-numbers-unsupported', 'Live number inventory is not available in this environment. No numbers are shown or sold automatically.')}
+        <div style="margin-top:.75rem"><button class="btn btn-secondary btn-sm" onclick="openSalesContact(gbT('cloud-store-number-sales-subject', 'Virtual number request'), document.getElementById('ns-country')?.value || '')">${gbT('cloud-store-contact-sales', 'Contact sales')}</button></div>
+      </td>
+    </tr>`;
 }
 
-
 function orderNumber(number) {
-  const p = PRODUCT_MAP['number-local'];
-  const price = p ? parseFloat(p.price).toFixed(2) : '5.99';
-  selectedPlan = { name:'Virtual Number', amount: price, currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
-  document.getElementById('modal-title').textContent = gbT('cloud-store-order-number', 'Order Number {number}', { number: number });
-  document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $${price}/mo with SMS + Voice capabilities.</p>`;
-  document.getElementById('purchase-modal').classList.add('open');
+  openSalesContact(gbT('cloud-store-number-sales-subject', 'Virtual number request'), String(number || ''));
 }
 
