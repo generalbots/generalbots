@@ -221,4 +221,14 @@
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); }
         });
     }
+
+    /** Edit the last user message (called by Up arrow in an empty composer). */
+    A.editLastMessage = function () {
+        var msgs = document.getElementById("gbMessages");
+        if (!msgs) { return; }
+        var userEls = msgs.querySelectorAll(".gb-msg-user");
+        if (userEls.length === 0) { return; }
+        var last = userEls[userEls.length - 1];
+        if (!A.isStreaming) { startEdit(last); }
+    };
 })();

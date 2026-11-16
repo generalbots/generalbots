@@ -25,6 +25,7 @@
             { id: "appearance", icon: "palette",  key: "settings.appearance" },
             { id: "language",   icon: "globe",    key: "settings.language" },
             { id: "model",      icon: "cpu",      key: "settings.model" },
+            { id: "shortcuts",  icon: "keyboard",  key: "shortcut.title" },
             { id: "about",      icon: "info",     key: "settings.about" },
         ];
         var nav = '<nav class="gb-set-nav" role="tablist">';
@@ -75,6 +76,7 @@
             globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
             cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
             info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+            keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
         };
         return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
     }
@@ -90,6 +92,7 @@
             appearance: renderAppearance,
             language: renderLanguage,
             model: renderModel,
+            shortcuts: renderShortcuts,
             about: renderAbout,
         };
         var fn = renderers[id];
@@ -363,6 +366,29 @@
         } else {
             panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
         }
+    }
+
+    /* -- Keyboard shortcuts -- */
+    function renderShortcuts(panel) {
+        var isMac = /mac/i.test(navigator.platform || "");
+        var mod = isMac ? "⌘" : "Ctrl";
+        var shortcuts = [
+            [mod + "+Shift+O", "shortcut.new-chat"],
+            [mod + "+K", "shortcut.search"],
+            [mod + "+B", "shortcut.sidebar"],
+            [mod + "+,", "shortcut.settings"],
+            ["Esc", "shortcut.stop"],
+            ["↑", "shortcut.edit-last"],
+        ];
+        var html = '<div class="gb-set-card"><h2 class="gb-set-title">' +
+            esc(A.t("shortcut.title", "Keyboard shortcuts")) + '</h2>' +
+            '<ul class="gb-shortcut-list">';
+        for (var i = 0; i < shortcuts.length; i++) {
+            html += '<li><span>' + esc(A.t(shortcuts[i][1], shortcuts[i][1])) +
+                '</span><kbd>' + esc(shortcuts[i][0]) + '</kbd></li>';
+        }
+        html += '</ul></div>';
+        panel.innerHTML = html;
     }
 
     /* -- About -- */

@@ -156,5 +156,14 @@ window.GBAssistantLocales["en"] = {
     "drive.my-files":          "My files",
     "drive.chat-attachments":  "Chat attachments",
     "drive.storage-unavailable": "Storage is currently unavailable.",
-    "attach.pdf-no-preview":   "PDF preview is not available in this browser."
+    "attach.pdf-no-preview":   "PDF preview is not available in this browser.",
+    "assistant.reconnecting":  "Reconnecting…",
+    "assistant.reconnected":   "Connection restored",
+    "shortcut.new-chat":       "New chat",
+    "shortcut.search":         "Search",
+    "shortcut.sidebar":        "Toggle sidebar",
+    "shortcut.settings":       "Settings",
+    "shortcut.stop":           "Stop generating",
+    "shortcut.edit-last":      "Edit last message",
+    "shortcut.title":          "Keyboard shortcuts"
 };

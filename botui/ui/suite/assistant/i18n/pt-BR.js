@@ -156,5 +156,14 @@ window.GBAssistantLocales["pt-BR"] = {
     "drive.my-files":          "Meus arquivos",
     "drive.chat-attachments":  "Anexos das conversas",
     "drive.storage-unavailable": "O armazenamento está indisponível no momento.",
-    "attach.pdf-no-preview":   "A visualização de PDF não está disponível neste navegador."
+    "attach.pdf-no-preview":   "A visualização de PDF não está disponível neste navegador.",
+    "assistant.reconnecting":  "Reconectando…",
+    "assistant.reconnected":   "Conexão restabelecida",
+    "shortcut.new-chat":       "Nova conversa",
+    "shortcut.search":         "Pesquisar",
+    "shortcut.sidebar":        "Alternar barra lateral",
+    "shortcut.settings":       "Configurações",
+    "shortcut.stop":           "Parar geração",
+    "shortcut.edit-last":      "Editar última mensagem",
+    "shortcut.title":          "Atalhos de teclado"
 };
