@@ -10,6 +10,15 @@
             </div>
             <div class="toolbar-center">
                 <div class="toolbar-group">
+                    <button class="btn-icon" id="slidesUndoBtn" title="Undo" aria-label="Undo" data-i18n-title="action-undo" data-i18n-aria-label="action-undo" type="button" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                    </button>
+                    <button class="btn-icon" id="slidesRedoBtn" title="Redo" aria-label="Redo" data-i18n-title="action-redo" data-i18n-aria-label="action-redo" type="button" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+                    </button>
+                </div>
+                <span class="toolbar-divider"></span>
+                <div class="toolbar-group">
                     <button class="btn-icon" id="newSlideBtn" hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="New Slide">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"></rect><line x1="12" y1="6" x2="12" y2="18"></line><line x1="6" y1="12" x2="18" y2="12"></line></svg>
                     </button>
@@ -190,6 +199,7 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/07_presenter.js"></script>
 <script src="/suite/js/gb-color-picker.js"></script>
     <script src="/suite/slides/modules/08_toolbar.js"></script>
+    <script src="/suite/slides/modules/09_undo.js"></script>
 <script src="/suite/slides/modules/13_delta.js?v=3"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>

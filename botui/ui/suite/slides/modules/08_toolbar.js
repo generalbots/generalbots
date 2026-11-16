@@ -31,10 +31,35 @@
     applyLocal(el, style);
   }
 
+  function readCurrentStyle(el, keys) {
+    var before = {};
+    keys.forEach(function (k) {
+      if (k === "font_weight") before[k] = el.style.fontWeight || "normal";
+      else if (k === "font_style") before[k] = el.style.fontStyle || "normal";
+      else if (k === "text_align") before[k] = el.style.textAlign || "left";
+      else if (k === "color") before[k] = el.style.color || "";
+      else if (k === "fill") before[k] = el.style.background || "";
+      else if (k === "font_size") {
+        var v = parseFloat(el.style.fontSize);
+        before[k] = isFinite(v) ? v : null;
+      } else {
+        before[k] = null;
+      }
+    });
+    return before;
+  }
+
   function persist(style) {
     var el = selectedElement();
     if (!el) return;
+    var keys = Object.keys(style || {});
+    var before = readCurrentStyle(el, keys);
     applyLocal(el, style);
+    var after = {};
+    keys.forEach(function (k) { after[k] = style[k]; });
+    if (window.SlidesUndo && typeof window.SlidesUndo.recordStyleChange === "function") {
+      window.SlidesUndo.recordStyleChange(el.dataset.id, before, after);
+    }
     var canvas = document.getElementById("slide-canvas");
     var slide = canvas ? parseInt(canvas.dataset.slideId, 10) || 0 : 0;
     fetch("/api/slides/element/update", {

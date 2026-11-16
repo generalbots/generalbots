@@ -108,6 +108,10 @@ SlideCanvas.deleteElement = function (el) {
   var slide = this.canvas ? this.canvas.dataset.slideId : "0";
   var deck = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "";
   var elementId = el.dataset.id;
+  var slideIndex = parseInt(slide, 10) || 0;
+  if (window.SlidesUndo && typeof window.SlidesUndo.recordDelete === "function" && !(window.SlidesUndo.isApplying && window.SlidesUndo.isApplying())) {
+    window.SlidesUndo.recordDelete(elementId, el, slideIndex);
+  }
   el.remove();
   this.selectedId = null;
   var rg = document.getElementById("rotation-group");
@@ -119,7 +123,7 @@ SlideCanvas.deleteElement = function (el) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       presentation_id: deck,
-      slide_index: parseInt(slide, 10) || 0,
+      slide_index: slideIndex,
       element_id: elementId
     })
   }).catch(function (err) {
