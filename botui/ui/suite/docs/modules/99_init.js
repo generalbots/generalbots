@@ -3,16 +3,18 @@
 
 // Issue #720: when opened from the Drive app (?file=...&bucket=...), load the
 // document content from the drive and render it into the editor.
-function loadDriveFileIntoEditor() {
+function loadDriveFileIntoEditor(linkParams) {
   // Top-level navigation carries the args in the URL; a window opened by the
-  // desktop shell (Drive "Open", deep link) receives them only via
-  // window.__gbAppParams__ (the shell URL has no query string of its own).
+  // desktop shell (Drive "Open", deep link) receives them via the gb:deep-link
+  // event or window.__gbAppParams__. The event params must win on re-target so
+  // a shared/stale __gbAppParams__ from another app cannot hijack this window.
+  var eventParams = linkParams || null;
   var params = new URLSearchParams(window.location.search);
   var gp = window.__gbAppParams__ || {};
-  var file = params.get('file') || gp.file;
-  var bucket = params.get('bucket') || gp.bucket;
-  var vmConvId = params.get('vmConvId') || gp.vmConvId;
-  var vmPath = params.get('vmPath') || gp.vmPath;
+  var file = (eventParams && eventParams.file) || (!eventParams && params.get('file')) || (!eventParams && gp.file);
+  var bucket = (eventParams && eventParams.bucket) || (!eventParams && params.get('bucket')) || (!eventParams && gp.bucket);
+  var vmConvId = (eventParams && eventParams.vmConvId) || (!eventParams && params.get('vmConvId')) || (!eventParams && gp.vmConvId);
+  var vmPath = (eventParams && eventParams.vmPath) || (!eventParams && params.get('vmPath')) || (!eventParams && gp.vmPath);
 
   // #2184 — VM mode: open an agent-workspace office file directly in the
   // editor without a prior publish to Drive. Fetch the server-converted
@@ -183,7 +185,7 @@ function docsInit() {
     document.addEventListener("gb:deep-link", function (event) {
       var appId = (event.detail || {}).appId || "";
       if (appId === "docs" || appId.indexOf("docs-") === 0) {
-        loadDriveFileIntoEditor();
+        loadDriveFileIntoEditor((event.detail || {}).params || null);
       }
     });
   }
