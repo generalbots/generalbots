@@ -1,0 +1,189 @@
+/* Sign-in page — identity design, light theme.
+   Loaded by login.html; identity tokens are imported first. */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: var(--id-paper, #FFF8F2);
+    color: var(--id-ink, #2C2C2C);
+    font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
+    font-size: var(--id-text-base, 14px);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* == Main area: centre the card ====================================== */
+.gb-login-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--id-space-4, 16px);
+}
+
+/* == Card ============================================================ */
+.gb-login-card {
+    width: min(380px, calc(100vw - 48px));
+    padding: var(--id-space-8, 32px);
+    background: var(--id-surface-solid, #fff);
+    border: 1px solid var(--id-line, rgba(229,231,235,.8));
+    border-radius: var(--id-radius-card, 20px);
+    box-shadow: var(--id-shadow-card, 0 1px 2px rgba(0,0,0,.05));
+}
+
+/* -- Wordmark -- */
+.gb-login-wordmark {
+    font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
+    font-weight: 600;
+    font-size: var(--id-text-3xl, 24px);
+    color: var(--id-ink, #2C2C2C);
+    margin-bottom: var(--id-space-1, 4px);
+}
+.gb-login-dot {
+    color: var(--id-accent, #F28C28);
+}
+
+/* -- Subtitle -- */
+.gb-login-subtitle {
+    font-size: var(--id-text-sm, 12px);
+    color: var(--id-muted, #5F6673);
+    margin-bottom: var(--id-space-6, 24px);
+}
+
+/* == Form ============================================================ */
+.gb-login-field {
+    margin-bottom: var(--id-space-4, 16px);
+}
+.gb-login-field label {
+    display: block;
+    font-size: var(--id-text-sm, 12px);
+    font-weight: 500;
+    color: var(--id-text, #4B5563);
+    margin-bottom: var(--id-space-1, 4px);
+}
+
+.gb-login-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--id-gray-300, #d1d5db);
+    border-radius: var(--id-radius-sm, 8px);
+    background: var(--id-surface-solid, #fff);
+    color: var(--id-ink, #2C2C2C);
+    font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
+    font-size: var(--id-text-base, 14px);
+    transition: border-color var(--id-dur-fast, 150ms) var(--id-ease-standard);
+    outline: none;
+}
+.gb-login-field input::placeholder {
+    color: var(--id-gray-400, #9ca3af);
+}
+.gb-login-field input:focus {
+    border-color: var(--id-accent, #F28C28);
+    box-shadow: 0 0 0 3px var(--id-accent-soft, rgba(242,140,40,.1));
+}
+.gb-login-field input.gb-login-input-error {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,.08);
+}
+
+/* -- Password wrapper with toggle -- */
+.gb-login-pw-wrap {
+    position: relative;
+}
+.gb-login-pw-wrap input {
+    padding-right: 42px;
+}
+.gb-login-pw-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--id-radius-sm, 8px);
+    background: transparent;
+    color: var(--id-gray-400, #9ca3af);
+    cursor: pointer;
+    transition: color var(--id-dur-fast, 150ms) var(--id-ease-standard);
+}
+.gb-login-pw-toggle:hover {
+    color: var(--id-text, #4B5563);
+}
+.gb-login-pw-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--id-focus, 0 0 0 2px #b45309);
+}
+
+/* -- Submit button -- */
+.gb-login-submit {
+    width: 100%;
+    margin-top: var(--id-space-4, 16px);
+    padding: 11px 16px;
+    border: none;
+    border-radius: var(--id-radius-sm, 8px);
+    background: var(--id-accent, #F28C28);
+    color: var(--id-on-accent, #fff);
+    font-family: var(--id-font-heading, 'Fira Sans', sans-serif);
+    font-weight: 600;
+    font-size: var(--id-text-md, 15px);
+    cursor: pointer;
+    transition: background var(--id-dur-fast, 150ms) var(--id-ease-standard);
+}
+.gb-login-submit:hover {
+    background: var(--id-accent-hover, #D4751C);
+}
+.gb-login-submit:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--id-accent-glow, rgba(242,140,40,.26));
+}
+.gb-login-submit:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+/* -- Error message -- */
+.gb-login-error {
+    display: none;
+    margin-top: var(--id-space-3, 12px);
+    padding: var(--id-space-3, 12px);
+    border-radius: var(--id-radius-sm, 8px);
+    background: rgba(220, 38, 38, .06);
+    border: 1px solid rgba(220, 38, 38, .18);
+    color: #b91c1c;
+    font-size: var(--id-text-sm, 12px);
+    line-height: 1.5;
+}
+.gb-login-error a {
+    color: #b91c1c;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* == Responsive: small window ======================================= */
+@media (max-width: 480px) {
+    .gb-login-card {
+        padding: var(--id-space-6, 24px) var(--id-space-4, 16px);
+        border-radius: var(--id-radius-panel, 18px);
+    }
+}
+
+/* == Reduced motion ================================================= */
+@media (prefers-reduced-motion: reduce) {
+    .gb-login-field input,
+    .gb-login-submit,
+    .gb-login-pw-toggle {
+        transition: none;
+    }
+}

@@ -1,159 +1,66 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Sign in — General Bots</title>
+        <title>Entrar — General Bots</title>
+        <link rel="stylesheet" href="/suite/identity/fonts.css" />
+        <link rel="stylesheet" href="/suite/identity/tokens.css" />
         <link rel="stylesheet" href="/suite/assistant/titlebar.css" />
-        <link rel="stylesheet" href="/suite/css/app.css" />
-        <link rel="stylesheet" href="/suite/css/base.css" />
-        <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
-        <style>
-            html, body { height: 100%; margin: 0; }
-            body {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: var(--bg, #0b0b12);
-                color: var(--fg, #e8e8ee);
-                font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-            }
-            .card {
-                width: min(360px, calc(100vw - 48px));
-                padding: 28px;
-                border: 1px solid rgba(255, 255, 255, .1);
-                border-radius: 14px;
-                background: rgba(255, 255, 255, .03);
-                box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
-            }
-            /* The shared suite stylesheet also defines `.card` for light
-               surfaces (`color: hsl(var(--card-foreground))`). This sign-in
-               card sits on the dark theme background, so pin readable text
-               colours here instead of inheriting the light-surface pair. */
-            main.card { color: #e8e8ee; }
-            .card h1 { margin: 0 0 4px; font-size: 1.3rem; }
-            .card p { margin: 0 0 20px; font-size: .85rem; opacity: .7; }
-            label { display: block; margin: 12px 0 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
-            input {
-                width: 100%;
-                box-sizing: border-box;
-                padding: 11px 13px;
-                border-radius: 8px;
-                border: 1px solid rgba(255, 255, 255, .16);
-                background: rgba(0, 0, 0, .25);
-                color: inherit;
-                font: inherit;
-            }
-            input:focus { outline: none; border-color: #3b82f6; }
-            button {
-                width: 100%;
-                margin-top: 18px;
-                padding: 11px 14px;
-                border: 0;
-                border-radius: 8px;
-                background: #2563eb;
-                color: #fff;
-                font: inherit;
-                font-weight: 600;
-                cursor: pointer;
-            }
-            button:disabled { opacity: .55; cursor: default; }
-            .error {
-                display: none;
-                margin-top: 14px;
-                padding: 9px 11px;
-                border-radius: 8px;
-                background: rgba(220, 38, 38, .14);
-                border: 1px solid rgba(220, 38, 38, .35);
-                color: #fca5a5;
-                font-size: .8rem;
-            }
-        </style>
+        <link rel="stylesheet" href="/suite/login-page.css" />
     </head>
     <body>
+        <script src="/suite/identity/accent.js"></script>
         <script src="/suite/assistant/titlebar.js"></script>
-        <main class="card">
-            <form id="login-form" autocomplete="on">
-                <h1>General Bots</h1>
-                <p data-i18n="auto-sign-in-with-the-local-administrator-account">Sign in with the local administrator account.</p>
-                <label for="login-email" data-i18n="attendant-channel-email">Email</label>
-                <input id="login-email" name="email" type="email" autocomplete="username" required />
-                <label for="login-password" data-i18n="dashboards-password">Password</label>
-                <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-                <button id="login-btn" type="submit" data-i18n="auth-sign-in-link">Sign in</button>
-                <div class="error" id="login-error" role="alert"></div>
-            </form>
+        <main class="gb-login-main">
+            <div class="gb-login-card" role="main">
+                <div class="gb-login-wordmark">
+                    General Bots<span class="gb-login-dot">.</span>
+                </div>
+                <p class="gb-login-subtitle" id="loginSubtitle"></p>
+                <form id="login-form" autocomplete="on" novalidate>
+                    <div class="gb-login-field">
+                        <label for="login-email" id="labelEmail"></label>
+                        <input id="login-email" name="email" type="email"
+                               autocomplete="username" required
+                               placeholder="admin@localhost" />
+                    </div>
+                    <div class="gb-login-field">
+                        <label for="login-password" id="labelPassword"></label>
+                        <div class="gb-login-pw-wrap">
+                            <input id="login-password" name="password"
+                                   type="password" autocomplete="current-password"
+                                   required />
+                            <button type="button" class="gb-login-pw-toggle"
+                                    id="pwToggle" aria-label="Show password"
+                                    tabindex="0">
+                                <svg id="pwIconShow" class="gb-login-pw-icon" width="18" height="18"
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg id="pwIconHide" class="gb-login-pw-icon" width="18" height="18"
+                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" style="display:none">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button id="login-btn" type="submit" class="gb-login-submit">
+                        <span id="loginBtnText"></span>
+                    </button>
+                    <div class="gb-login-error" id="login-error" role="alert"
+                         aria-live="polite"></div>
+                </form>
+            </div>
         </main>
+        <script src="/suite/login-page.js"></script>
         <script>
-            (function () {
-                "use strict";
-                var params = new URLSearchParams(window.location.search);
-                var target = params.get("return_to") || params.get("redirect") || "/suite/desktop.html";
-                // Never bounce back to the login page itself.
-                if (/\/(login|signup)(\?|$)/.test(target)) { target = "/suite/desktop.html"; }
-
-                function redirect(token, email) {
-                    try {
-                        localStorage.setItem("gb-access-token", token);
-                        localStorage.setItem("gb-user-data", JSON.stringify({
-                            id: email || "admin",
-                            name: (email || "admin").split("@")[0],
-                            email: email || ""
-                        }));
-                        sessionStorage.removeItem("gb-signed-out");
-                    } catch (e) { /* storage disabled: the server still has the session */ }
-                    var url = target + (target.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(token);
-                    window.location.replace(url);
-                }
-
-                // A valid session skips the form.
-                var existing = "";
-                try { existing = localStorage.getItem("gb-access-token") || ""; } catch (e) { /* ignore */ }
-                if (existing) {
-                    fetch("/api/auth/me", { headers: { Authorization: "Bearer " + existing } })
-                        .then(function (r) { return r.ok ? r.json() : null; })
-                        .then(function (me) {
-                            if (me && !me.is_anonymous) { redirect(existing, me.email || ""); }
-                        })
-                        .catch(function () { /* fall through to the form */ });
-                }
-
-                document.getElementById("login-form").addEventListener("submit", function (event) {
-                    event.preventDefault();
-                    var btn = document.getElementById("login-btn");
-                    var err = document.getElementById("login-error");
-                    var email = document.getElementById("login-email").value.trim();
-                    var password = document.getElementById("login-password").value;
-                    btn.disabled = true;
-                    btn.textContent = "Signing in…";
-                    err.style.display = "none";
-                    fetch("/api/auth/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: email, password: password })
-                    }).then(function (response) {
-                        return response.text().then(function (text) {
-                            var data = {};
-                            try { data = JSON.parse(text); } catch (e) { data = { error: text }; }
-                            if (!response.ok) { throw new Error(data.error || data.detail || "Sign in failed"); }
-                            return data;
-                        });
-                    }).then(function (data) {
-                        var token = data.access_token || data.token;
-                        if (!token) { throw new Error("The server did not return a session token"); }
-                        redirect(token, data.email || email);
-                    }).catch(function (error) {
-                        err.textContent = error.message || String(error);
-                        err.style.display = "block";
-                        btn.disabled = false;
-                        btn.textContent = "Sign in";
-                    });
-                });
-            })();
-        </script>
-        <script>
-            // The desktop shell closes its splash when this fragment appears;
-            // without it the splash covered the sign-in form until it timed out.
+            /* Signal the Tauri splash to close. */
             if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
                 try {
                     history.replaceState(null, "", location.pathname + location.search + "#gb-boot-ready");
