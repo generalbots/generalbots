@@ -276,7 +276,7 @@ pub(super) async fn run(
                                         .generate_stream(
                                             &prompt2,
                                             &steered,
-                                            steer_tx,
+                                            steer_tx.clone(),
                                             &model2,
                                             &key2,
                                             tools2.as_ref(),
@@ -284,6 +284,8 @@ pub(super) async fn run(
                                         .await
                                     {
                                         log::error!("LLM stream error after steering: {}", e);
+                                        let sentinel = crate::core::bot::pipeline::llm::error_classify::sentinel_message(&e.to_string());
+                                        let _ = steer_tx.send(sentinel).await;
                                     }
                                 });
                                 continue;
