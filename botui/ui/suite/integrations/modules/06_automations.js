@@ -111,14 +111,21 @@
 
     async function deleteAutomation(app, article, id, button) {
         if (!app || !article || !id || !button) return;
-        if (button.disabled || button.dataset.deleting === "1") return;
+        if (button.disabled || button.dataset.deleting) return;
+
+        button.dataset.deleting = "pending";
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
 
         var confirmed = await confirmWithModal("Delete this automation?");
-        if (!confirmed) return;
+        if (!confirmed) {
+            button.disabled = false;
+            delete button.dataset.deleting;
+            button.removeAttribute("aria-busy");
+            return;
+        }
 
-        button.disabled = true;
         button.dataset.deleting = "1";
-        button.setAttribute("aria-busy", "true");
 
         try {
             await namespace.fetchJson(base() + "/" + encodeURIComponent(id), { method: "DELETE" });
