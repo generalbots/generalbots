@@ -380,6 +380,10 @@
         if (isComplete) {
             var fc = content || A.streamingContent || A._greetingBuffer || "";
             var fr = reasoning || A.streamingReasoning || "";
+            // Clear streaming leftovers so a subsequent complete frame (e.g.
+            // suggestions-only) does not re-render the same answer (#2562).
+            A.streamingContent = "";
+            A.streamingReasoning = "";
             A._greetingBuffer = "";
             if (!fc && !fr && !A.isStreaming) { return; }
             var now = Date.now();
