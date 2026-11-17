@@ -49,9 +49,34 @@
   // The fragment routes (/suite/docs/fragments/*) are proxied to botserver,
   // which rejects a token-less call with 401/403 — so the docs app could never
   // list or open a document. Same header the other docs calls already send.
+  function docsAccessToken() {
+    var token = "";
+    try {
+      if (typeof window.getGBAccessToken === "function") token = window.getGBAccessToken() || "";
+    } catch (e) {}
+    if (!token) {
+      try {
+        if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
+          token = window.GBSecurity.getToken() || "";
+        }
+      } catch (e) {}
+    }
+    if (!token) {
+      try {
+        token =
+          window.localStorage.getItem("gb-access-token") ||
+          window.sessionStorage.getItem("gb-access-token") ||
+          window.localStorage.getItem("gb_token") ||
+          window.sessionStorage.getItem("gb_token") ||
+          "";
+      } catch (e) {}
+    }
+    return token || "";
+  }
+
   function docsAuthHeaders(extra) {
     var headers = Object.assign({}, extra || {});
-    var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
+    var token = docsAccessToken();
     if (token) headers.Authorization = "Bearer " + token;
     return headers;
   }
@@ -216,7 +241,7 @@
     if (!input || !article) return;
     fetch("/api/docs/save", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: docsAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         id: activeDocId(),
         title: input.value,

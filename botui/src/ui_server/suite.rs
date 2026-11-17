@@ -8,9 +8,9 @@ use serde::Deserialize;
 use std::fs;
 
 use crate::shared::AppState;
-use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
+use crate::ui_server::constants::get_ui_root;
 use crate::ui_server::suite_ops::remove_section;
 
 #[derive(Deserialize)]
@@ -119,28 +119,100 @@ pub async fn index(
         .and_then(|_| path_parts.get(2))
         .copied()
         .filter(|part| !part.is_empty() && !part.contains('.'));
-    let mut bot_name = suite_app.map(|s| s.to_string()).or_else(|| {
-        path_parts
-            .iter()
-            .rev()
-            .find(|part| {
-                !part.is_empty()
-                    && **part != "chat"
-                    && **part != "app"
-                    && **part != "ws"
-                    && **part != "ui"
-                    && **part != "api"
-                    && **part != "auth"
-                    && **part != "suite"
-                    && **part != "cloud"
-                    // A static asset is never a bot name. `.html` matters most:
-                    // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
-                    // which failed the suite-dir check and 303-redirected the whole
-                    // app to the login page (#2151).
-                    && !part.contains('.')
-            })
-            .map(|s| s.to_string())
-    });
+    const SUITE_APP_SEGMENTS: &[&str] = &[
+        "drive",
+        "chat",
+        "tasks",
+        "admin",
+        "mail",
+        "calendar",
+        "meet",
+        "docs",
+        "sheet",
+        "slides",
+        "paper",
+        "research",
+        "learn",
+        "analytics",
+        "dashboards",
+        "monitoring",
+        "governance",
+        "people",
+        "crm",
+        "tickets",
+        "billing",
+        "products",
+        "video",
+        "player",
+        "canvas",
+        "social",
+        "project",
+        "goals",
+        "workspace",
+        "designer",
+        "vibe",
+        "integrations",
+        "erp",
+        "fraud",
+        "attendant",
+        "banking",
+        "biometry",
+        "brazil",
+        "browser",
+        "campaigns",
+        "compliance",
+        "database",
+        "desktop",
+        "email",
+        "handoff",
+        "hr",
+        "itsm",
+        "kyc",
+        "lists",
+        "o365",
+        "minutes",
+        "plan",
+        "plugins",
+        "pos",
+        "retail",
+        "sales",
+        "tax",
+        "templates",
+        "templates-app",
+        "terminal",
+        "timeclock",
+        "tools",
+        "vision",
+        "sources",
+        "settings",
+        "about",
+    ];
+    let mut bot_name = suite_app
+        .filter(|s| !SUITE_APP_SEGMENTS.contains(s))
+        .map(|s| s.to_string())
+        .or_else(|| {
+            path_parts
+                .iter()
+                .rev()
+                .find(|part| {
+                    !part.is_empty()
+                        && **part != "chat"
+                        && **part != "app"
+                        && **part != "ws"
+                        && **part != "ui"
+                        && **part != "api"
+                        && **part != "auth"
+                        && **part != "suite"
+                        && **part != "cloud"
+                        && !SUITE_APP_SEGMENTS.contains(part)
+                        // A static asset is never a bot name. `.html` matters most:
+                        // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
+                        // which failed the suite-dir check and 303-redirected the whole
+                        // app to the login page (#2151).
+                        && !part.contains('.')
+                })
+                .map(|s| s.to_string())
+        });
 
     // If no bot in URL path and we have a domain, resolve it. Platform
     // subdomains ({bot}.{GB_PLATFORM_DOMAIN}) resolve locally with no API

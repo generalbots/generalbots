@@ -1,7 +1,7 @@
 use axum::{
     extract::{
-        ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade},
         OriginalUri, Query, State,
+        ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
@@ -137,6 +137,92 @@ async fn handle_api_ws_proxy(
     debug!("[API_WS_PROXY:{path}] Proxy connection closed");
 }
 
+fn normalize_ws_bot_name(name: &str) -> String {
+    const APP_ROUTES: &[&str] = &[
+        "chat",
+        "app",
+        "ws",
+        "cloud",
+        "suite",
+        "ui",
+        "api",
+        "auth",
+        "desktop",
+        "sources",
+        "integrations",
+        "settings",
+        "admin",
+        "wizard",
+        "login",
+        "signup",
+        "drive",
+        "tasks",
+        "mail",
+        "calendar",
+        "meet",
+        "docs",
+        "sheet",
+        "slides",
+        "paper",
+        "research",
+        "learn",
+        "analytics",
+        "dashboards",
+        "monitoring",
+        "governance",
+        "people",
+        "crm",
+        "tickets",
+        "billing",
+        "products",
+        "video",
+        "player",
+        "canvas",
+        "social",
+        "project",
+        "goals",
+        "workspace",
+        "designer",
+        "vibe",
+        "erp",
+        "fraud",
+        "attendant",
+        "banking",
+        "biometry",
+        "brazil",
+        "browser",
+        "campaigns",
+        "compliance",
+        "database",
+        "email",
+        "handoff",
+        "hr",
+        "itsm",
+        "kyc",
+        "lists",
+        "o365",
+        "minutes",
+        "plan",
+        "plugins",
+        "pos",
+        "retail",
+        "sales",
+        "tax",
+        "templates",
+        "templates-app",
+        "terminal",
+        "timeclock",
+        "tools",
+        "vision",
+        "about",
+    ];
+    if name.is_empty() || APP_ROUTES.contains(&name) || name.contains('.') {
+        "default".to_string()
+    } else {
+        name.to_string()
+    }
+}
+
 pub async fn ws_proxy(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
@@ -144,7 +230,7 @@ pub async fn ws_proxy(
     Query(params): Query<WsQuery>,
 ) -> impl IntoResponse {
     let path_parts: Vec<&str> = uri.path().split('/').collect();
-    let bot_name = params
+    let raw_bot_name = params
         .bot_name
         .filter(|name| name != "ws" && !name.is_empty())
         .or_else(|| {
@@ -160,6 +246,7 @@ pub async fn ws_proxy(
                 .map(|s| s.to_string())
         })
         .unwrap_or_else(|| "default".to_string());
+    let bot_name = normalize_ws_bot_name(&raw_bot_name);
 
     let params_with_bot = WsQuery {
         bot_name: Some(bot_name),
