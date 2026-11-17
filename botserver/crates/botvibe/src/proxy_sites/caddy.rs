@@ -2,6 +2,7 @@
 
 use super::*;
 use botsecurity_core::path_guard::{PathGuard, PathGuardConfig};
+use std::path::{Path, PathBuf};
 
 /// Websites root INSIDE the proxy container (matches prod layout). Production
 /// site dirs stay `{root}/{slug}`; the test environment appends `-test`
