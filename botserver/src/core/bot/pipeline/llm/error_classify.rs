@@ -65,6 +65,12 @@ pub fn classify(error: &str) -> LlmErrorCode {
         || lower.contains("tls")
         || lower.contains("ssl")
         || lower.contains("certificate")
+        // reqwest on Windows reports a refused connection only as "error
+        // sending request for url (...)", and the provider gives up with
+        // "failed after retries" (it retries connection failures only): a
+        // stopped local engine must read as unreachable, not as a model error.
+        || lower.contains("error sending request")
+        || lower.contains("failed after retries")
     {
         return LlmErrorCode::ModelUnreachable;
     }
@@ -113,6 +119,18 @@ mod tests {
     fn classify_connection_refused() {
         assert_eq!(
             classify("error sending request: connection refused"),
+            LlmErrorCode::ModelUnreachable
+        );
+    }
+
+    #[test]
+    fn classify_a_stopped_local_engine() {
+        assert_eq!(
+            classify("HTTP error: error sending request for url (http://localhost:8081/v1/chat/completions)"),
+            LlmErrorCode::ModelUnreachable
+        );
+        assert_eq!(
+            classify("LLM stream request failed after retries"),
             LlmErrorCode::ModelUnreachable
         );
     }
