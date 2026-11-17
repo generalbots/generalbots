@@ -199,6 +199,19 @@
     --sentient-input-focus: #FDB96A;
 }
 
+/* == One accent, no per-app hues =================================== */
+/* app-identity.css (#1952) paints a per-app hairline and corner wash on every
+   app surface. The identity is a single-accent system, so under Default those
+   surfaces drop the hue and let the identity accent carry the state. Launcher
+   tiles keep their hue notch: they are navigation, not surfaces. */
+
+:root[data-theme="default"] [data-gb-app] {
+    --gb-identity-line: transparent;
+    --gb-identity-wash: transparent;
+    --gb-identity-accent: var(--text);
+    --gb-identity-tint: var(--border);
+}
+
 /* == Selection & focus ============================================== */
 
 ::selection {

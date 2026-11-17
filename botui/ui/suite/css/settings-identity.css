@@ -1,0 +1,335 @@
+/*
+ * Settings — identity surface for the Default theme (#2567, WS2).
+ *
+ * The suite Settings screen keeps every feature (identity, security, language,
+ * appearance, integrations, ledger, nav registry); this sheet moves its surface
+ * to the assistant Settings look: 236px quiet nav, accent-tint active row,
+ * 16px hairline cards, 10px controls and prose-weight type.
+ *
+ * Colours come from the derived suite tokens (--bg/--surface/--border/--text)
+ * and hsl(--primary), so light and dark schemes are covered by one sheet. This
+ * also repairs the classic `.nav-item.active { background: var(--primary) }`
+ * rule, which received the raw HSL triple and rendered no background at all
+ * (the active row's white label was invisible on the sidebar).
+ */
+
+:root[data-theme="default"] .settings-layout,
+:root[data-theme="default"] .settings-container {
+    --settings-accent: hsl(var(--primary, 30 89% 55%));
+    --settings-accent-soft: color-mix(in srgb, var(--settings-accent) 10%, transparent);
+    --settings-accent-softer: color-mix(in srgb, var(--settings-accent) 6%, transparent);
+    --settings-accent-ink: color-mix(in srgb, var(--settings-accent) 72%, var(--text, #2c2c2c));
+    grid-template-columns: 236px 1fr;
+    font-family: var(--id-font-sans, "Inter", "Fira Sans", system-ui, -apple-system, sans-serif);
+    color: var(--text);
+}
+
+/* == Sidebar ========================================================= */
+:root[data-theme="default"] .settings-sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .settings-header {
+    padding: 20px 18px 12px;
+    margin-bottom: 0;
+    border-bottom: none;
+    gap: 10px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .settings-header svg {
+    color: var(--settings-accent);
+}
+
+:root[data-theme="default"] .settings-nav {
+    padding: 4px 10px;
+}
+
+:root[data-theme="default"] .nav-item {
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    gap: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+}
+
+:root[data-theme="default"] .nav-item:hover {
+    background: var(--settings-accent-softer);
+    color: var(--text);
+}
+
+:root[data-theme="default"] .nav-item.active {
+    background: var(--settings-accent-soft);
+    color: var(--settings-accent-ink);
+    font-weight: 600;
+}
+
+:root[data-theme="default"] .nav-item.active svg {
+    color: inherit;
+}
+
+:root[data-theme="default"] .nav-divider {
+    margin-top: 6px;
+    padding: 12px 10px 6px;
+    border-top: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .nav-divider span {
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .settings-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .back-link {
+    font-size: 13px;
+    color: var(--text-secondary);
+    gap: 6px;
+}
+
+:root[data-theme="default"] .back-link:hover {
+    color: var(--settings-accent-ink);
+}
+
+/* == Main column ===================================================== */
+:root[data-theme="default"] .settings-main {
+    padding: 24px 28px 32px;
+    max-width: 880px;
+}
+
+:root[data-theme="default"] .section-header {
+    margin-bottom: 20px;
+}
+
+:root[data-theme="default"] .section-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .section-header .subtitle {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+:root[data-theme="default"] .settings-main a,
+:root[data-theme="default"] .section-header a {
+    color: var(--settings-accent-ink);
+    text-decoration-color: color-mix(in srgb, var(--settings-accent) 45%, transparent);
+    text-underline-offset: 2px;
+}
+
+/* == Cards =========================================================== */
+:root[data-theme="default"] .setting-card,
+:root[data-theme="default"] .workspace-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: none;
+}
+
+:root[data-theme="default"] .workspace-card {
+    max-width: none;
+    padding: 16px 18px;
+}
+
+:root[data-theme="default"] .workspace-card-head h2,
+:root[data-theme="default"] .card-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .workspace-line,
+:root[data-theme="default"] .card-header p,
+:root[data-theme="default"] .setting-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .workspace-badge {
+    background: var(--settings-accent-soft);
+    border-color: color-mix(in srgb, var(--settings-accent) 30%, transparent);
+    color: var(--settings-accent-ink);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+:root[data-theme="default"] .setting-row {
+    padding: 12px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+:root[data-theme="default"] .setting-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* == Form controls =================================================== */
+:root[data-theme="default"] .form-group {
+    margin-bottom: 16px;
+}
+
+:root[data-theme="default"] .form-group label {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+:root[data-theme="default"] .form-group input,
+:root[data-theme="default"] .form-group select,
+:root[data-theme="default"] .form-group textarea,
+:root[data-theme="default"] .settings-main input[type="text"],
+:root[data-theme="default"] .settings-main input[type="email"],
+:root[data-theme="default"] .settings-main input[type="password"],
+:root[data-theme="default"] .settings-main select,
+:root[data-theme="default"] .settings-main textarea {
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--text);
+    box-shadow: none;
+}
+
+:root[data-theme="default"] .form-group input:focus,
+:root[data-theme="default"] .form-group select:focus,
+:root[data-theme="default"] .form-group textarea:focus,
+:root[data-theme="default"] .settings-main input:focus,
+:root[data-theme="default"] .settings-main select:focus,
+:root[data-theme="default"] .settings-main textarea:focus {
+    outline: none;
+    border-color: var(--settings-accent);
+    box-shadow: 0 0 0 3px var(--settings-accent-soft);
+}
+
+/* == Buttons ========================================================= */
+:root[data-theme="default"] .settings-main .btn-primary,
+:root[data-theme="default"] .settings-main button[type="submit"]:not(.btn-secondary):not(.btn-danger),
+:root[data-theme="default"] .settings-main .save-btn {
+    background: var(--settings-accent);
+    border-color: var(--settings-accent);
+    border-radius: 10px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+:root[data-theme="default"] .settings-main .btn-primary:hover {
+    background: color-mix(in srgb, var(--settings-accent) 88%, #000);
+    border-color: transparent;
+}
+
+:root[data-theme="default"] .settings-main .btn-secondary,
+:root[data-theme="default"] .settings-main .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+:root[data-theme="default"] .settings-main .btn-secondary:hover,
+:root[data-theme="default"] .settings-main .btn-outline:hover {
+    background: var(--settings-accent-softer);
+    border-color: color-mix(in srgb, var(--settings-accent) 35%, var(--border));
+    color: var(--settings-accent-ink);
+}
+
+/* == Choice surfaces (language, theme, model) ======================= */
+:root[data-theme="default"] .language-option,
+:root[data-theme="default"] .theme-option,
+:root[data-theme="default"] .model-option {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+:root[data-theme="default"] .language-option:hover:not(.disabled),
+:root[data-theme="default"] .theme-option:hover,
+:root[data-theme="default"] .model-option:hover {
+    border-color: color-mix(in srgb, var(--settings-accent) 45%, var(--border));
+    background: var(--settings-accent-softer);
+}
+
+:root[data-theme="default"] .language-option.active,
+:root[data-theme="default"] .theme-option.active,
+:root[data-theme="default"] .model-option.active {
+    border-color: var(--settings-accent);
+    background: var(--settings-accent-soft);
+    color: var(--settings-accent-ink);
+}
+
+/* == Switches ======================================================== */
+:root[data-theme="default"] .settings-main .switch input:checked + .slider,
+:root[data-theme="default"] .settings-main .toggle input:checked + .slider {
+    background: var(--settings-accent);
+}
+
+:root[data-theme="default"] .settings-main .switch .slider:before,
+:root[data-theme="default"] .settings-main .toggle .slider:before {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+}
+
+/* == Dialogs ========================================================= */
+:root[data-theme="default"] dialog.modal {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+}
+
+:root[data-theme="default"] dialog.modal .modal-header {
+    border-bottom: 1px solid var(--border);
+}
+
+:root[data-theme="default"] dialog.modal .modal-footer {
+    background: transparent;
+    border-top: 1px solid var(--border);
+}
+
+/* == Scrollbars ====================================================== */
+:root[data-theme="default"] .settings-main::-webkit-scrollbar {
+    width: 8px;
+}
+
+:root[data-theme="default"] .settings-main::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text) 16%, transparent);
+    border-radius: 999px;
+}
+
+:root[data-theme="default"] .settings-main::-webkit-scrollbar-track {
+    background: transparent;
+}

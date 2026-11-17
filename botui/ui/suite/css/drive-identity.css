@@ -1,0 +1,389 @@
+/*
+ * Drive — identity surface for the Default theme (#2567, WS3).
+ *
+ * The full-featured suite Drive keeps every screen and flow; this sheet maps its
+ * chrome onto the assistant Drive surface: paper/ink surfaces, hairline borders,
+ * the orange accent used as a tint instead of a solid block, 10-12px controls,
+ * quiet uppercase list headers and prose-weight type.
+ *
+ * Only variables the suite theme derives (--bg/--surface/--border/--text) and the
+ * hsl(--primary) triple are used, so the skin follows light and dark schemes
+ * without a second copy. `--id-*` values are read when /suite/identity/tokens.css
+ * is loaded and fall back to the theme values otherwise.
+ */
+
+:root[data-theme="default"] #drive-app {
+    --drive-card-radius: 12px;
+    --drive-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+    --drive-shadow-md:
+        0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --drive-accent: hsl(var(--primary, 30 89% 55%));
+    --drive-accent-soft: color-mix(in srgb, var(--drive-accent) 10%, transparent);
+    --drive-accent-softer: color-mix(in srgb, var(--drive-accent) 6%, transparent);
+    --drive-accent-ink: color-mix(in srgb, var(--drive-accent) 72%, var(--text, #2c2c2c));
+    font-family: var(--id-font-sans, "Inter", "Fira Sans", system-ui, -apple-system, sans-serif);
+    background: var(--bg);
+}
+
+/* == Sidebar ========================================================= */
+:root[data-theme="default"] .drive-sidebar {
+    width: 232px;
+    min-width: 232px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .drive-sidebar-header {
+    padding: 20px 18px 12px;
+    border-bottom: none;
+}
+
+:root[data-theme="default"] .drive-sidebar-header h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .drive-sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 12px 12px;
+}
+
+:root[data-theme="default"] .btn-primary-full,
+:root[data-theme="default"] .btn-secondary-full {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    box-shadow: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+:root[data-theme="default"] .btn-primary-full {
+    background: var(--drive-accent);
+    border: 1px solid var(--drive-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+:root[data-theme="default"] .btn-primary-full:hover {
+    background: color-mix(in srgb, var(--drive-accent) 88%, #000);
+    border-color: transparent;
+}
+
+:root[data-theme="default"] .btn-secondary-full {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+:root[data-theme="default"] .btn-secondary-full:hover {
+    background: var(--drive-accent-softer);
+    border-color: color-mix(in srgb, var(--drive-accent) 35%, var(--border));
+    color: var(--drive-accent-ink);
+}
+
+/* == Sidebar navigation ============================================== */
+:root[data-theme="default"] .drive-nav {
+    padding: 4px 8px 8px;
+}
+
+:root[data-theme="default"] .drive-nav-item {
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+}
+
+:root[data-theme="default"] .drive-nav-item:hover {
+    background: var(--drive-accent-softer);
+    color: var(--text);
+}
+
+:root[data-theme="default"] .drive-nav-item.active {
+    background: var(--drive-accent-soft);
+    color: var(--drive-accent-ink);
+    font-weight: 600;
+}
+
+/* == Storage meter =================================================== */
+:root[data-theme="default"] .drive-storage {
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .storage-bar {
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+:root[data-theme="default"] .storage-fill {
+    border-radius: 999px;
+    background: var(--drive-accent);
+}
+
+:root[data-theme="default"] .storage-text,
+:root[data-theme="default"] .storage-detail {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+:root[data-theme="default"] .storage-refresh {
+    border-radius: 8px;
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .storage-refresh:hover {
+    background: var(--drive-accent-softer);
+    color: var(--drive-accent-ink);
+}
+
+/* == Top tabs ======================================================== */
+:root[data-theme="default"] .drive-top-tabs {
+    height: 46px;
+    padding: 0 20px;
+    gap: 2px;
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+}
+
+:root[data-theme="default"] .top-tab {
+    padding: 0 12px;
+    gap: 7px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 8px 8px 0 0;
+    border-bottom: 2px solid transparent;
+}
+
+:root[data-theme="default"] .top-tab:hover {
+    background: var(--drive-accent-softer);
+    color: var(--text);
+}
+
+:root[data-theme="default"] .top-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--drive-accent);
+    font-weight: 600;
+}
+
+:root[data-theme="default"] .top-tab.active svg {
+    color: var(--drive-accent);
+}
+
+/* == Toolbar ========================================================= */
+:root[data-theme="default"] .drive-toolbar {
+    padding: 10px 20px;
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+}
+
+:root[data-theme="default"] .drive-breadcrumb {
+    padding: 2px 0;
+    background: transparent;
+    border-radius: 8px;
+    gap: 2px;
+}
+
+:root[data-theme="default"] .breadcrumb-item {
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .breadcrumb-item:hover {
+    background: var(--drive-accent-soft);
+    color: var(--drive-accent-ink);
+}
+
+:root[data-theme="default"] .breadcrumb-current {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .search-box,
+:root[data-theme="default"] .drive-search {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+:root[data-theme="default"] .search-box:focus-within,
+:root[data-theme="default"] .drive-search:focus-within {
+    border-color: color-mix(in srgb, var(--drive-accent) 55%, var(--border));
+    background: var(--bg);
+}
+
+:root[data-theme="default"] .search-box input,
+:root[data-theme="default"] .drive-search input {
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+}
+
+:root[data-theme="default"] .search-box svg,
+:root[data-theme="default"] .drive-search svg {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .drive-toolbar-right .btn-icon,
+:root[data-theme="default"] .view-toggle-btn {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .drive-toolbar-right .btn-icon:hover,
+:root[data-theme="default"] .view-toggle-btn:hover {
+    background: var(--drive-accent-softer);
+    color: var(--drive-accent-ink);
+}
+
+:root[data-theme="default"] .view-toggle-btn.active {
+    background: var(--drive-accent-soft);
+    border-color: color-mix(in srgb, var(--drive-accent) 30%, transparent);
+    color: var(--drive-accent-ink);
+}
+
+/* == File list ======================================================= */
+:root[data-theme="default"] .drive-content {
+    padding: 6px 20px 28px;
+}
+
+:root[data-theme="default"] .file-list-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+:root[data-theme="default"] .file-list-item,
+:root[data-theme="default"] .drive-file-item {
+    padding: 11px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+:root[data-theme="default"] .file-list-item:hover,
+:root[data-theme="default"] .drive-file-item:hover {
+    background: var(--drive-accent-softer);
+}
+
+:root[data-theme="default"] .file-list-item.selected,
+:root[data-theme="default"] .drive-file-item.selected {
+    background: var(--drive-accent-soft);
+    box-shadow: inset 2px 0 0 var(--drive-accent);
+}
+
+:root[data-theme="default"] .file-list-name,
+:root[data-theme="default"] .file-col.file-name-col {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .file-col.file-modified-col,
+:root[data-theme="default"] .file-col.file-size-col {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+/* Grid cards */
+:root[data-theme="default"] .file-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--drive-card-radius);
+    box-shadow: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+:root[data-theme="default"] .file-card:hover {
+    border-color: color-mix(in srgb, var(--drive-accent) 40%, var(--border));
+    background: var(--drive-accent-softer);
+}
+
+:root[data-theme="default"] .file-card.selected {
+    border-color: var(--drive-accent);
+    background: var(--drive-accent-soft);
+}
+
+/* == Dialogs, menus, preview ========================================= */
+:root[data-theme="default"] .modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--drive-shadow-md);
+}
+
+:root[data-theme="default"] .modal-header h2,
+:root[data-theme="default"] .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+:root[data-theme="default"] .context-menu {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--drive-shadow-md);
+    padding: 6px;
+}
+
+:root[data-theme="default"] .context-menu-item {
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+:root[data-theme="default"] .context-menu-item:hover {
+    background: var(--drive-accent-soft);
+    color: var(--drive-accent-ink);
+}
+
+:root[data-theme="default"] .drive-preview,
+:root[data-theme="default"] .preview-panel {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+}
+
+:root[data-theme="default"] #drive-app ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+:root[data-theme="default"] #drive-app ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text) 16%, transparent);
+    border-radius: 999px;
+}
+
+:root[data-theme="default"] #drive-app ::-webkit-scrollbar-track {
+    background: transparent;
+}

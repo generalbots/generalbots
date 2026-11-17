@@ -50,6 +50,16 @@
     --gb-focus-ring: 0 0 0 2px #FDB96A;
 }
 
+/* == Centred conversation column ==================================== */
+/* The assistant conversation is a 760px column centred in the window; the
+   classic chat stretched its turns to the full window width. Padding (instead
+   of a wrapper element) keeps the scroll container and every child untouched. */
+
+:root[data-theme="default"] #chat-app #messages {
+    padding-left: max(24px, calc((100% - 760px) / 2));
+    padding-right: max(24px, calc((100% - 760px) / 2));
+}
+
 /* == Type =========================================================== */
 
 :root[data-theme="default"] #chat-app {
@@ -70,7 +80,10 @@
 
 :root[data-theme="default"] #chat-app #messages {
     background: var(--gb-bg);
-    padding: 28px 32px 20px;
+    /* Vertical only: the horizontal padding comes from the centred column rule
+       above, which a shorthand would overwrite. */
+    padding-top: 28px;
+    padding-bottom: 20px;
     gap: 20px;
 }
 
@@ -148,6 +161,47 @@
 }
 
 /* == Message actions ================================================ */
+/* Assistant keeps the row of actions out of the way until the turn is hovered
+   or focused; otherwise the copy row adds 32px of dead height to every bubble
+   (the person's "Hello" card measured 84px for one line of text). */
+
+:root[data-theme="default"] #chat-app .message-actions {
+    height: 0;
+    margin: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease, height 120ms ease;
+}
+
+:root[data-theme="default"] #chat-app .message:hover .message-actions,
+:root[data-theme="default"] #chat-app .message:focus-within .message-actions {
+    height: auto;
+    margin-top: 6px;
+    opacity: 1;
+    overflow: visible;
+    pointer-events: auto;
+}
+
+/* == Autotask status ================================================ */
+/* The chip ships with the `hidden` attribute, but `display:flex` beat it and
+   painted an empty green strip across the top of the conversation. */
+
+:root[data-theme="default"] #chat-app .gb-autotask-status[hidden] {
+    display: none !important;
+}
+
+:root[data-theme="default"] #chat-app .gb-autotask-status {
+    border-color: var(--gb-border);
+    background: var(--gb-surface);
+    border-radius: 10px;
+}
+
+:root[data-theme="default"] #chat-app .gb-autotask-dot,
+:root[data-theme="default"] #chat-app .gb-autotask-status .gb-spinner {
+    background: var(--gb-accent);
+}
+
 
 :root[data-theme="default"] #chat-app .tts-speak-btn,
 :root[data-theme="default"] #chat-app .copy-msg-btn {
