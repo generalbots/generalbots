@@ -10,16 +10,18 @@
     var HISTORY_LIMIT = 5;
     var BODY_PREVIEW_CHARS = 2000;
 
+    function t(key, fallback, params) {
+        return typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
+    }
+
     function findRoot(node) {
         return node && node.closest ? node.closest("[data-integrations-app]") : null;
     }
-
     function providerFor(root, slug) {
         var state = namespace.getState(root);
         if (!state || !state.providerMap) return null;
         return state.providerMap.get(slug) || null;
     }
-
     function actionFor(provider, key) {
         if (!provider || !Array.isArray(provider.actions)) return null;
         for (var index = 0; index < provider.actions.length; index += 1) {
@@ -27,7 +29,6 @@
         }
         return null;
     }
-
     function normalizeParams(action) {
         var raw = Array.isArray(action.params) ? action.params : [];
         return raw.map(function (param) {
@@ -38,11 +39,9 @@
             };
         }).filter(function (param) { return param.name; });
     }
-
     function historyKey(providerSlug, actionKey) {
         return "gb-integrations-run-history:" + String(providerSlug || "") + ":" + String(actionKey || "");
     }
-
     function readHistory(providerSlug, actionKey) {
         try {
             var raw = sessionStorage.getItem(historyKey(providerSlug, actionKey));
@@ -71,19 +70,19 @@
     }
 
     function summarizeDiff(previous, current) {
-        if (!previous) return "No previous run to compare.";
+        if (!previous) return t("integrations-runner-no-previous", "No previous run to compare.");
         var lines = [];
         if ((previous.summary || "") !== (current.summary || "")) {
-            lines.push("Summary changed.");
-            lines.push("- " + String(previous.summary || "(empty)"));
-            lines.push("+ " + String(current.summary || "(empty)"));
+            lines.push(t("integrations-runner-summary-changed", "Summary changed."));
+            lines.push("- " + String(previous.summary || t("integrations-runner-empty", "(empty)")));
+            lines.push("+ " + String(current.summary || t("integrations-runner-empty", "(empty)")));
         } else {
-            lines.push("Summary unchanged.");
+            lines.push(t("integrations-runner-summary-unchanged", "Summary unchanged."));
         }
         var prevBody = stringifyData(previous.data);
         var currBody = stringifyData(current.data);
         if (prevBody === currBody) {
-            lines.push("Response body unchanged.");
+            lines.push(t("integrations-runner-body-unchanged", "Response body unchanged."));
             return lines.join("\n");
         }
         var prevLines = prevBody.split("\n");
@@ -98,14 +97,15 @@
             if (shown >= 12) break;
             if (b !== undefined) { lines.push("+ " + b); shown += 1; }
         }
-        if (shown >= 12) lines.push("… diff truncated");
+        if (shown >= 12) lines.push(t("integrations-runner-diff-truncated", "… diff truncated"));
         return lines.join("\n");
     }
 
     function historyMarkup(providerSlug, actionKey, selectedIndex) {
         var runs = readHistory(providerSlug, actionKey);
         if (!runs.length) {
-            return '<div class="integrations-run-history" data-run-history><p class="integrations-readonly-note">No previous runs in this session.</p></div>';
+            return '<div class="integrations-run-history" data-run-history><p class="integrations-readonly-note">' +
+                namespace.escapeHtml(t("integrations-runner-no-history", "No previous runs in this session.")) + '</p></div>';
         }
         var selected = typeof selectedIndex === "number" ? selectedIndex : 0;
         if (selected < 0 || selected >= runs.length) selected = 0;
@@ -113,26 +113,33 @@
         var previous = runs[selected + 1] || null;
         var body = current ? stringifyData(current.data) : "";
         var truncated = body.length > BODY_PREVIEW_CHARS;
-        var preview = truncated ? body.slice(0, BODY_PREVIEW_CHARS) + "\n… response truncated" : body;
+        var preview = truncated
+            ? body.slice(0, BODY_PREVIEW_CHARS) + "\n… " + t("integrations-runner-response-truncated", "response truncated")
+            : body;
         var items = runs.map(function (run, index) {
-            var when = run.at ? new Date(run.at).toLocaleTimeString() : "run";
-            var label = when + " — " + String(run.summary || "Outcome").slice(0, 80);
+            var when = run.at ? new Date(run.at).toLocaleTimeString() : t("integrations-runner-run-label", "run");
+            var label = when + " — " + String(run.summary || t("integrations-runner-outcome", "Outcome")).slice(0, 80);
             return '<li><button type="button" class="integrations-button integrations-button-subtle" data-run-history-select="' + index + '"' +
                 (index === selected ? ' aria-current="true"' : '') + '>' + namespace.escapeHtml(label) + '</button> ' +
-                '<button type="button" class="integrations-button integrations-button-subtle" data-run-rerun="' + index + '">Re-run</button></li>';
+                '<button type="button" class="integrations-button integrations-button-subtle" data-run-rerun="' + index + '">' +
+                namespace.escapeHtml(t("integrations-runner-rerun", "Re-run with same params")) + '</button></li>';
         }).join("");
         var diff = current ? summarizeDiff(previous, current) : "";
         return '<div class="integrations-run-history" data-run-history data-history-selected="' + selected + '">' +
-            '<div class="integrations-run-history-head"><strong>Run history</strong><span class="integrations-readonly-note">Last ' + runs.length + ' in this session</span></div>' +
+            '<div class="integrations-run-history-head"><strong>' + namespace.escapeHtml(t("integrations-runner-history-title", "Run history")) + '</strong>' +
+            '<span class="integrations-readonly-note">' + namespace.escapeHtml(t("integrations-runner-history-count", "Last { $count } in this session", { count: runs.length })) + '</span></div>' +
             '<ul class="integrations-run-history-list">' + items + '</ul>' +
             (current ? '<div class="integrations-run-outcome-view" data-run-outcome-view>' +
                 '<p class="integrations-run-summary">' + namespace.escapeHtml(current.summary || "") +
-                (current.truncated === true ? ' <span class="integrations-pill">Truncated</span>' : '') + '</p>' +
-                '<div class="integrations-run-actions"><button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-body>Show response body</button>' +
-                ' <button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-diff>Diff vs previous</button></div>' +
+                (current.truncated === true ? ' <span class="integrations-pill">' + namespace.escapeHtml(t("integrations-runner-truncated", "Truncated")) + '</span>' : '') + '</p>' +
+                '<div class="integrations-run-actions"><button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-body>' +
+                namespace.escapeHtml(t("integrations-runner-show-body", "Show response body")) + '</button>' +
+                ' <button type="button" class="integrations-button integrations-button-subtle" data-run-toggle-diff>' +
+                namespace.escapeHtml(t("integrations-runner-show-diff", "Diff vs previous")) + '</button></div>' +
                 '<pre class="integrations-run-data" data-run-body hidden>' + namespace.escapeHtml(preview) + '</pre>' +
                 '<pre class="integrations-run-data" data-run-diff hidden>' + namespace.escapeHtml(diff) + '</pre>' +
-                (truncated ? '<p class="integrations-readonly-note">Large response body hidden by default and previewed.</p>' : '') +
+                (truncated ? '<p class="integrations-readonly-note">' +
+                    namespace.escapeHtml(t("integrations-runner-body-hidden-note", "Large response body hidden by default and previewed.")) + '</p>' : '') +
             '</div>' : '') +
             '</div>';
     }
@@ -151,7 +158,8 @@
                 return '<label class="integrations-run-field" for="' + id + '">' +
                     namespace.escapeHtml(param.name + (param.required ? " *" : "")) +
                     '<textarea id="' + id + '" data-run-param="' + namespace.escapeHtml(param.name) +
-                    '" data-kind="json" rows="4" placeholder=\'{ "example": true }\'></textarea></label>';
+                    '" data-kind="json" rows="4" placeholder=\'' +
+                    namespace.escapeHtml(t("integrations-runner-json-placeholder", "{ \"example\": true }")) + '\'></textarea></label>';
             }
             return '<label class="integrations-run-field" for="' + id + '">' +
                 namespace.escapeHtml(param.name + (param.required ? " *" : "")) +
@@ -162,11 +170,14 @@
             '<form data-run-form novalidate>' +
             '<div class="integrations-run-grid">' + inputs + '</div>' +
             '<p class="integrations-inline-error" data-run-error hidden role="alert"></p>' +
-            '<p class="integrations-inline-progress" data-run-progress hidden role="status" aria-live="polite">Running against the live provider...</p>' +
+            '<p class="integrations-inline-progress" data-run-progress hidden role="status" aria-live="polite">' +
+            namespace.escapeHtml(t("integrations-runner-running", "Running against the live provider...")) + '</p>' +
             '<div class="integrations-run-actions">' +
-            '<button class="integrations-button" type="submit">Execute</button>' +
-            '<button class="integrations-button integrations-button-subtle" type="button" data-action="save-run-as-automation">Save as automation</button>' +
-            '<button class="integrations-button integrations-button-subtle" type="button" data-action="close-runner">Close</button>' +
+            '<button class="integrations-button" type="submit">' + namespace.escapeHtml(t("integrations-runner-execute", "Execute")) + '</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="save-run-as-automation">' +
+            namespace.escapeHtml(t("integrations-runner-save-automation", "Save as automation")) + '</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="close-runner">' +
+            namespace.escapeHtml(t("action-close", "Close")) + '</button>' +
             '</div></form>' +
             '<div class="integrations-run-outcome" data-run-outcome hidden role="status" aria-live="polite" aria-atomic="true"></div>' +
             '</div>';
@@ -196,7 +207,7 @@
                 try {
                     params[input.dataset.runParam] = JSON.parse(value);
                 } catch (_error) {
-                    invalid = input.dataset.runParam + " must be valid JSON";
+                    invalid = t("integrations-runner-json-invalid", "{ $field } must be valid JSON", { field: input.dataset.runParam });
                 }
                 return;
             }
@@ -231,16 +242,16 @@
             progressNode.hidden = true;
             errorNode.textContent = collected.invalid;
             errorNode.hidden = false;
-            if (rootNode) namespace.announce(rootNode, "Action cannot run: " + collected.invalid);
+            if (rootNode) namespace.announce(rootNode, t("integrations-runner-cannot-run", "Action cannot run: { $detail }", { detail: collected.invalid }));
             return;
         }
 
         var botId = (namespace.context && namespace.context.botId) || "";
         if (!botId) {
             progressNode.hidden = true;
-            errorNode.textContent = "Open this app inside a bot workspace to run actions.";
+            errorNode.textContent = t("integrations-runner-need-workspace", "Open this app inside a bot workspace to run actions.");
             errorNode.hidden = false;
-            if (rootNode) namespace.announce(rootNode, "Action cannot run: open a bot workspace first");
+            if (rootNode) namespace.announce(rootNode, t("integrations-runner-need-workspace", "Open this app inside a bot workspace to run actions."));
             return;
         }
 
@@ -255,12 +266,12 @@
                 var token = (namespace && typeof namespace.currentToken === "function") ? namespace.currentToken() : "";
                 if (token) headers["Authorization"] = "Bearer " + token;
                 var csrf = (namespace && typeof namespace.csrfToken === "function") ? namespace.csrfToken() : "";
-                if (!csrf) throw new Error("CSRF token is missing. Reload the page and try again.");
+                if (!csrf) throw new Error(t("integrations-runner-csrf-missing", "CSRF token is missing. Reload the page and try again."));
                 headers["X-CSRF-Token"] = csrf;
                 var response = await fetch(requestUrl, { method: "POST", credentials: "same-origin", headers: headers, body: JSON.stringify(requestBody) });
                 payload = await response.json().catch(function () { return null; });
                 if (!response.ok) {
-                    var err = new Error("request failed");
+                    var err = new Error(t("integrations-runner-request-failed", "request failed"));
                     err.status = response.status;
                     err.body = payload;
                     throw err;
@@ -269,9 +280,10 @@
             progressNode.hidden = true;
             if (!payload || payload.outcome === undefined) {
                 var detail = payload && (payload.detail || payload.error || payload.message);
-                errorNode.textContent = detail || "Action did not return an outcome.";
+                var noOutcome = detail || t("integrations-runner-no-outcome", "Action did not return an outcome.");
+                errorNode.textContent = noOutcome;
                 errorNode.hidden = false;
-                if (rootNode) namespace.announce(rootNode, "Action failed: " + (detail || "no outcome returned"));
+                if (rootNode) namespace.announce(rootNode, t("integrations-runner-failed", "Action failed: { $detail }", { detail: noOutcome }));
                 return;
             }
             var runs = readHistory(providerSlug, actionKey);
@@ -284,13 +296,14 @@
             });
             writeHistory(providerSlug, actionKey, runs);
             renderOutcomeArea(article, providerSlug, actionKey, 0);
-            if (rootNode) namespace.announce(rootNode, "Action completed: " + (payload.outcome.summary || "outcome available"));
+            if (rootNode) namespace.announce(rootNode, t("integrations-runner-completed", "Action completed: { $summary }", { summary: payload.outcome.summary || t("integrations-runner-outcome", "Outcome") }));
         } catch (error) {
             progressNode.hidden = true;
             var detailText = error && error.body && (error.body.detail || error.body.error || error.body.message);
-            errorNode.textContent = detailText || (error && error.message ? error.message : "Network error while calling the connector.");
+            var message = detailText || (error && error.message ? error.message : t("integrations-runner-network-error", "Network error while calling the connector."));
+            errorNode.textContent = message;
             errorNode.hidden = false;
-            if (rootNode) namespace.announce(rootNode, "Action failed: " + (detailText || (error && error.message) || "network error"));
+            if (rootNode) namespace.announce(rootNode, t("integrations-runner-failed", "Action failed: { $detail }", { detail: message }));
         }
     }
 
@@ -323,7 +336,7 @@
         if (paramsField) {
             try { paramsField.value = Object.keys(params || {}).length ? JSON.stringify(params, null, 2) : ""; } catch (_e) { paramsField.value = ""; }
         }
-        namespace.announce(root, "Automation form prefilled from runner");
+        namespace.announce(root, t("integrations-runner-prefilled", "Automation form prefilled from runner"));
         if (providerSelect) providerSelect.focus();
     }
 
@@ -396,7 +409,9 @@
             var body = view && view.querySelector("[data-run-body]");
             if (!body) return;
             body.hidden = !body.hidden;
-            toggleBody.textContent = body.hidden ? "Show response body" : "Hide response body";
+            toggleBody.textContent = body.hidden
+                ? t("integrations-runner-show-body", "Show response body")
+                : t("integrations-runner-hide-body", "Hide response body");
             return;
         }
         var toggleDiff = target.closest("[data-run-toggle-diff]");
@@ -405,8 +420,9 @@
             var diffEl = view2 && view2.querySelector("[data-run-diff]");
             if (!diffEl) return;
             diffEl.hidden = !diffEl.hidden;
-            toggleDiff.textContent = diffEl.hidden ? "Diff vs previous" : "Hide diff";
-            return;
+            toggleDiff.textContent = diffEl.hidden
+                ? t("integrations-runner-show-diff", "Diff vs previous")
+                : t("integrations-runner-hide-diff", "Hide diff");
         }
     }
 

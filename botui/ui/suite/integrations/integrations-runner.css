@@ -1,0 +1,86 @@
+/* #2352 — action runner history strip and per-automation run log. */
+
+.integrations-run-history {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    border-radius: 10px;
+}
+
+.integrations-run-history-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.integrations-run-history-list {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.integrations-run-history-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.integrations-run-history-list [aria-current="true"] {
+    outline: 2px solid var(--integrations-accent, #2563eb);
+    outline-offset: 1px;
+}
+
+.integrations-run-outcome-view {
+    border-top: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    padding-top: 0.5rem;
+}
+
+.integrations-run-outcome-view .integrations-run-data[hidden],
+.integrations-automation-log .integrations-run-data[hidden] {
+    display: none;
+}
+
+.integrations-automation-log {
+    margin: 0.4rem 0 0.6rem;
+    font-size: 0.82rem;
+}
+
+.integrations-automation-log summary {
+    cursor: pointer;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.integrations-automation-log ol,
+.integrations-automation-log ul {
+    list-style: none;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.integrations-automation-log li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.integrations-automation .integrations-run-actions {
+    flex-wrap: wrap;
+}
+
+.integrations-automation .integrations-run-actions button[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
