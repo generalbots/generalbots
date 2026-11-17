@@ -186,7 +186,7 @@
                 id="scroll-top-btn"
                 onclick="scrollToTop()"
                 title="Scroll to top"
-            >
+             aria-label="Scroll to top">
                 <svg
                     width="16"
                     height="16"
@@ -203,7 +203,7 @@
                 id="scroll-bottom-btn"
                 onclick="scrollToBottom()"
                 title="Scroll to bottom (auto-scroll)"
-            >
+             aria-label="Scroll to bottom (auto-scroll)">
                 <svg
                     width="16"
                     height="16"
@@ -222,7 +222,7 @@
     <div class="log-detail-panel" id="log-detail-panel">
         <div class="panel-header">
             <h4 data-i18n="auto-log-details">Log Details</h4>
-            <button class="close-btn" onclick="closeLogDetail()">
+            <button class="close-btn" onclick="closeLogDetail()" aria-label="Close">
                 <svg
                     width="18"
                     height="18"
@@ -253,7 +253,7 @@
             class="log-expand"
             onclick="expandLog(this)"
             title="View details"
-        >
+         aria-label="View details">
             <svg
                 width="14"
                 height="14"

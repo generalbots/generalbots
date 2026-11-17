@@ -260,7 +260,7 @@
     <!-- Contact Detail Panel (slides in from right) -->
     <div class="contact-panel" id="contact-panel">
         <div class="panel-header">
-            <button class="close-btn" onclick="closeContactPanel()">
+            <button class="close-btn" onclick="closeContactPanel()" aria-label="Close">
                 <svg
                     width="20"
                     height="20"
@@ -274,7 +274,7 @@
                 </svg>
             </button>
             <div class="panel-actions">
-                <button class="icon-btn" title="Edit" onclick="editContact()">
+                <button class="icon-btn" title="Edit" onclick="editContact()" aria-label="Edit">
                     <svg
                         width="18"
                         height="18"
@@ -295,7 +295,7 @@
                     class="icon-btn"
                     title="Delete"
                     onclick="deleteContact()"
-                >
+                 aria-label="Delete">
                     <svg
                         width="18"
                         height="18"
@@ -323,7 +323,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 id="modal-title" data-i18n="people-add-contact">Add Contact</h2>
-            <button class="close-btn" onclick="closeModal()">
+            <button class="close-btn" onclick="closeModal()" aria-label="Close">
                 <svg
                     width="20"
                     height="20"

@@ -94,7 +94,7 @@
     <div class="service-detail-panel" id="service-detail-panel">
         <div class="panel-header">
             <h3 id="detail-service-name" data-i18n="auto-service-details">Service Details</h3>
-            <button class="close-btn" onclick="closeServiceDetail()">
+            <button class="close-btn" onclick="closeServiceDetail()" aria-label="Close">
                 <svg
                     width="20"
                     height="20"
@@ -204,7 +204,7 @@
                 class="card-btn"
                 onclick="viewServiceDetails('service-id')"
                 title="Details"
-            >
+             aria-label="Details">
                 <svg
                     width="16"
                     height="16"
@@ -223,7 +223,7 @@
                 class="card-btn"
                 onclick="viewServiceLogs('service-id')"
                 title="Logs"
-            >
+             aria-label="Logs">
                 <svg
                     width="16"
                     height="16"

@@ -75,15 +75,15 @@ Delete </button>
 </div> <div class="list-box-content" id="available-permissions" role="status" aria-live="polite">
 <div class="loading-state" role="status"><div class="spinner"></div></div> </div>
 </div> <div class="transfer-buttons">
-<button class="transfer-btn" onclick="assignSelected()" title="Assign selected permissions"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="transfer-btn" onclick="assignSelected()" title="Assign selected permissions" aria-label="Assign selected permissions"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <polyline points="9 18 15 12 9 6"></polyline> </svg>
-</button> <button class="transfer-btn" onclick="assignAll()" title="Assign all permissions">
+</button> <button class="transfer-btn" onclick="assignAll()" title="Assign all permissions" aria-label="Assign all permissions">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <polyline points="13 17 18 12 13 7"></polyline>
 <polyline points="6 17 11 12 6 7"></polyline> </svg>
-</button> <button class="transfer-btn" onclick="removeSelected()" title="Remove selected permissions">
+</button> <button class="transfer-btn" onclick="removeSelected()" title="Remove selected permissions" aria-label="Remove selected permissions">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <polyline points="15 18 9 12 15 6"></polyline>
 </svg> </button>
-<button class="transfer-btn" onclick="removeAll()" title="Remove all permissions"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="transfer-btn" onclick="removeAll()" title="Remove all permissions" aria-label="Remove all permissions"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <polyline points="18 17 13 12 18 7"></polyline> <polyline points="11 17 6 12 11 7"></polyline>
 </svg> </button>
 </div> <div class="list-box assigned-box">
@@ -194,7 +194,7 @@ Export </button>
 </div> </div>
 </dialog> <dialog id="add-group-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="auto-assign-role-to-groups">Assign Role to Groups</h2> <button class="close-btn" onclick="this.closest('dialog').close()">
+<h2 data-i18n="auto-assign-role-to-groups">Assign Role to Groups</h2> <button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Action">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>

@@ -204,7 +204,7 @@ Upload Evidence </button>
 <select class="log-filter" id="logCategory" onchange="filterLogs()"> <option value="all" data-i18n="products-cat-all">All Categories</option>
 <option value="access" data-i18n="auto-access-events">Access Events</option> <option value="changes" data-i18n="auto-configuration-changes">Configuration Changes</option>
 <option value="security" data-i18n="auto-security-events">Security Events</option> <option value="compliance" data-i18n="auto-compliance-events">Compliance Events</option>
-</select> <button class="btn-icon" onclick="exportAuditLog()">
+</select> <button class="btn-icon" onclick="exportAuditLog()" aria-label="Action">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
 </svg> </button>

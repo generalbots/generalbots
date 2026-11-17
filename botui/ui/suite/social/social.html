@@ -144,17 +144,17 @@
                     <span data-i18n="social-whats-on-mind">What's on your mind?</span>
                 </div>
                 <div class="composer-actions">
-                    <button class="composer-btn" title="Add image" onclick="event.stopPropagation();showNewPostModal()">
+                    <button class="composer-btn" title="Add image" onclick="event.stopPropagation();showNewPostModal()" aria-label="Add image">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
                     </button>
-                    <button class="composer-btn" title="Schedule post" onclick="event.stopPropagation();showNewPostModal()">
+                    <button class="composer-btn" title="Schedule post" onclick="event.stopPropagation();showNewPostModal()" aria-label="Schedule post">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                         </svg>
                     </button>
-                    <button class="composer-btn" title="Analytics" onclick="event.stopPropagation();showAnalytics()">
+                    <button class="composer-btn" title="Analytics" onclick="event.stopPropagation();showAnalytics()" aria-label="Analytics">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                         </svg>
@@ -245,17 +245,17 @@
             </div>
             <div class="modal-footer">
                 <div class="post-tools">
-                    <button type="button" class="tool-btn" title="Add image" onclick="addPostImage()">
+                    <button type="button" class="tool-btn" title="Add image" onclick="addPostImage()" aria-label="Add image">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
                     </button>
-                    <button type="button" class="tool-btn" title="Add poll" onclick="togglePollCreator()">
+                    <button type="button" class="tool-btn" title="Add poll" onclick="togglePollCreator()" aria-label="Add poll">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                         </svg>
                     </button>
-                    <button type="button" class="tool-btn" title="Schedule" onclick="schedulePost()">
+                    <button type="button" class="tool-btn" title="Schedule" onclick="schedulePost()" aria-label="Schedule">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                         </svg>

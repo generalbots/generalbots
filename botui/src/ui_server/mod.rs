@@ -38,6 +38,7 @@ use tower::Layer;
 use tower_http::services::{ServeDir, ServeFile};
 #[cfg(not(feature = "embed-ui"))]
 use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::compression::CompressionLayer;
 
 use crate::shared::AppState;
 #[cfg(not(feature = "embed-ui"))]
@@ -55,6 +56,7 @@ use botsecurity_core::headers::with_security_headers;
 /// output (report-only CSP, TLS-gated HSTS).
 fn harden(router: Router) -> Router {
     with_security_headers(router, security_headers::ui_security_headers_config())
+        .layer(CompressionLayer::new())
         .layer(axum::middleware::from_fn(security_headers::ui_header_policy))
 }
 

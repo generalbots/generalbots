@@ -21,11 +21,11 @@ hx-trigger="change" hx-target="#groups-grid"
 hx-swap="innerHTML"> <option value="" data-i18n="auto-all-visibility">All Visibility</option>
 <option value="public" data-i18n="label-public">Public</option> <option value="private" data-i18n="label-private">Private</option>
 <option value="hidden" data-i18n="auto-hidden">Hidden</option> </select>
-<div class="view-toggle"> <button class="view-btn active" onclick="setView('grid', this)" title="Grid view">
+<div class="view-toggle"> <button class="view-btn active" onclick="setView('grid', this)" title="Grid view" aria-label="Grid view">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <rect x="3" y="3" width="7" height="7"></rect>
 <rect x="14" y="3" width="7" height="7"></rect> <rect x="14" y="14" width="7" height="7"></rect>
 <rect x="3" y="14" width="7" height="7"></rect> </svg>
-</button> <button class="view-btn" onclick="setView('list', this)" title="List view">
+</button> <button class="view-btn" onclick="setView('list', this)" title="List view" aria-label="List view">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="8" y1="6" x2="21" y2="6"></line>
 <line x1="8" y1="12" x2="21" y2="12"></line> <line x1="8" y1="18" x2="21" y2="18"></line>
 <line x1="3" y1="6" x2="3.01" y2="6"></line> <line x1="3" y1="12" x2="3.01" y2="12"></line>
@@ -56,7 +56,7 @@ hx-swap="innerHTML"> </div>
 </div> 
 <!-- Create Group Modal --> <dialog id="create-group-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="auto-create-new-group">Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
+<h2 data-i18n="auto-create-new-group">Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()" aria-label="Action">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -87,7 +87,7 @@ hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) { document
 </dialog> 
 <!-- Add Member Modal --> <dialog id="add-member-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="auto-add-members">Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()">
+<h2 data-i18n="auto-add-members">Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()" aria-label="Action">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -113,7 +113,7 @@ hx-swap="innerHTML"> </div>
 </dialog> 
 <!-- Send Invite Modal --> <dialog id="send-invite-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="auto-send-invites">Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()">
+<h2 data-i18n="auto-send-invites">Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()" aria-label="Action">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -130,7 +130,7 @@ hx-swap="none" hx-on::after-request="if(event.detail.successful) { document.getE
 </dialog> 
 <!-- Delete Group Modal --> <dialog id="delete-group-modal" class="modal modal-small">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="auto-delete-group">Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()">
+<h2 data-i18n="auto-delete-group">Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()" aria-label="Action">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
