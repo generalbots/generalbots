@@ -79,3 +79,16 @@ chat-bot-private-signin = 此机器人为私有 — 请登录以继续
 chat-approved-plan = 已批准的计划：
 chat-retrying-attachment = 正在重试附件
 chat-expanded-preview = 展开的预览
+
+# #2362 — chat code/artifact control labels
+chat-code-show-all = Show all
+chat-code-lines = lines
+chat-artifact-save-drive = Save to Drive
+chat-artifact-download-svg = Download SVG
+chat-artifact-download-png = Download PNG
+chat-artifact-open-canvas = Open in Canvas
+chat-artifact-folder = Folder (optional)
+chat-artifact-kind-markdown = Markdown document
+chat-artifact-kind-html = HTML page
+chat-artifact-kind-code = Code
+chat-artifact-words = words

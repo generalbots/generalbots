@@ -160,27 +160,41 @@ function openArtifactPanel(content, sourceEl) {
         : window.GBArtifacts.escapeHtml(body);
     preview = '<pre class="gb-artifact-code"><code>' + highlighted + "</code></pre>";
   }
+  var t = function (k, fb) { return (typeof gbT === "function") ? gbT(k, fb) : fb; };
+  var copyLabel = t("action-copy", "Copy");
+  var closeLabel = t("action-close", "Close");
+  var saveLabel = t("chat-artifact-save-drive", "Save to Drive");
+  var downloadLabel = t("action-download", "Download");
+  var downloadSvgLabel = t("chat-artifact-download-svg", "Download SVG");
+  var downloadPngLabel = t("chat-artifact-download-png", "Download PNG");
+  var openCanvasLabel = t("chat-artifact-open-canvas", "Open in Canvas");
+  var folderLabel = t("chat-artifact-folder", "Folder (optional)");
+  var kindLabel = kind === "markdown" ? t("chat-artifact-kind-markdown", "Markdown document")
+    : kind === "html" ? t("chat-artifact-kind-html", "HTML page")
+    : t("chat-artifact-kind-code", "Code");
+  var wordsLabel = t("chat-artifact-words", "words");
+
   panel.innerHTML =
     '<div class="gb-artifact-header">' +
     '<span class="gb-artifact-title">' +
     window.GBArtifacts.escapeHtml(title) +
     "</span>" +
     '<div class="gb-artifact-actions">' +
-    '<input class="gb-artifact-folder" type="text" placeholder="Folder (optional)" aria-label="Drive folder" />' +
-    '<button class="gb-artifact-copy" title="Copy">Copy</button>' +
+    '<input class="gb-artifact-folder" type="text" placeholder="' + window.GBArtifacts.escapeHtml(folderLabel) + '" aria-label="' + window.GBArtifacts.escapeHtml(folderLabel) + '" />' +
+    '<button class="gb-artifact-copy" title="' + window.GBArtifacts.escapeHtml(copyLabel) + '">' + window.GBArtifacts.escapeHtml(copyLabel) + '</button>' +
     (isSvg
-      ? '<button class="gb-artifact-download-svg" title="Download the drawing as SVG">Download SVG</button>' +
-        '<button class="gb-artifact-download-png" title="Download the drawing as PNG (2x)">Download PNG</button>'
-      : '<button class="gb-artifact-download" title="Download this artifact">Download</button>') +
-    (isSvg ? '<button class="gb-artifact-open-canvas" title="Open in Canvas">Open in Canvas</button>' : "") +
-    '<button class="gb-artifact-save" title="Save to Drive">Save</button>' +
-    '<button class="gb-artifact-close" title="Close">Close</button>' +
+      ? '<button class="gb-artifact-download-svg" title="' + window.GBArtifacts.escapeHtml(downloadSvgLabel) + '">' + window.GBArtifacts.escapeHtml(downloadSvgLabel) + '</button>' +
+        '<button class="gb-artifact-download-png" title="' + window.GBArtifacts.escapeHtml(downloadPngLabel) + '">' + window.GBArtifacts.escapeHtml(downloadPngLabel) + '</button>'
+      : '<button class="gb-artifact-download" title="' + window.GBArtifacts.escapeHtml(downloadLabel) + '">' + window.GBArtifacts.escapeHtml(downloadLabel) + '</button>') +
+    (isSvg ? '<button class="gb-artifact-open-canvas" title="' + window.GBArtifacts.escapeHtml(openCanvasLabel) + '">' + window.GBArtifacts.escapeHtml(openCanvasLabel) + '</button>' : "") +
+    '<button class="gb-artifact-save" title="' + window.GBArtifacts.escapeHtml(saveLabel) + '">' + window.GBArtifacts.escapeHtml(saveLabel) + '</button>' +
+    '<button class="gb-artifact-close" title="' + window.GBArtifacts.escapeHtml(closeLabel) + '">' + window.GBArtifacts.escapeHtml(closeLabel) + '</button>' +
     "</div></div>" +
     '<div class="gb-artifact-sub">' +
-    (kind === "markdown" ? "Markdown document" : kind === "html" ? "HTML page" : "Code") +
+    kindLabel +
     " · " +
     window.GBArtifacts.wordCount(body) +
-    " words</div>" +
+    " " + wordsLabel + "</div>" +
     '<div class="gb-artifact-body">' +
     preview +
     "</div>";

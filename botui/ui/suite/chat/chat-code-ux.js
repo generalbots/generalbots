@@ -148,14 +148,19 @@
             // One enormous line wraps into dozens of visual rows, so length
             // counts as much as the line count when deciding to collapse.
             var collapsible = lines > COLLAPSE_AFTER_LINES || text.length > 900;
+            var copyLabel = (typeof gbT === "function") ? gbT("action-copy", "Copy") : "Copy";
+            var copiedLabel = (typeof gbT === "function") ? gbT("chat-copied", "Copied") : "Copied";
+            var showAllLabel = (typeof gbT === "function") ? gbT("chat-code-show-all", "Show all") : "Show all";
+            var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
+            var linesLabel = (typeof gbT === "function") ? gbT("chat-code-lines", "lines") : "lines";
             pre.innerHTML =
                 '<div class="gb-code-head">' +
                 '<span class="gb-code-lang">' + escapeHtml(lang || "code") + "</span>" +
-                '<span class="gb-code-count">' + lines + " lines</span>" +
+                '<span class="gb-code-count">' + lines + " " + escapeHtml(linesLabel) + "</span>" +
                 (collapsible
-                    ? '<button type="button" class="gb-code-toggle">Show all</button>'
+                    ? '<button type="button" class="gb-code-toggle">' + escapeHtml(showAllLabel) + '</button>'
                     : "") +
-                '<button type="button" class="gb-code-copy">Copy</button>' +
+                '<button type="button" class="gb-code-copy">' + escapeHtml(copyLabel) + '</button>' +
                 "</div>" +
                 '<code class="gb-code-body">' + body + "</code>";
             if (collapsible) {
@@ -163,18 +168,18 @@
                 var toggle = pre.querySelector(".gb-code-toggle");
                 toggle.addEventListener("click", function () {
                     var collapsed = pre.classList.toggle("gb-code-collapsed");
-                    this.textContent = collapsed ? "Show all" : "Collapse";
+                    this.textContent = collapsed ? showAllLabel : collapseLabel;
                 });
             }
             var copy = pre.querySelector(".gb-code-copy");
             copy.addEventListener("click", function () {
                 var src = this.parentElement.nextElementSibling.textContent;
+                var btn = this;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(src).then(function () {
-                        this.textContent = "Copied";
-                        var btn = this;
-                        setTimeout(function () { btn.textContent = "Copy"; }, 1500);
-                    }.bind(this), function () {});
+                        btn.textContent = copiedLabel;
+                        setTimeout(function () { btn.textContent = copyLabel; }, 1500);
+                    }, function () {});
                 }
             });
         }
@@ -190,13 +195,15 @@
         if (content.classList.contains("gb-long-handled")) return;
         if (content.scrollHeight <= 480) return;
         content.classList.add("gb-long-handled", "gb-long-collapsed");
+        var showAllLabel = (typeof gbT === "function") ? gbT("chat-code-show-all", "Show all") : "Show all";
+        var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";
         var toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "gb-long-toggle";
-        toggle.textContent = "Show all";
+        toggle.textContent = showAllLabel;
         toggle.addEventListener("click", function () {
             var collapsed = content.classList.toggle("gb-long-collapsed");
-            this.textContent = collapsed ? "Show all" : "Collapse";
+            this.textContent = collapsed ? showAllLabel : collapseLabel;
         });
         container.appendChild(toggle);
     }

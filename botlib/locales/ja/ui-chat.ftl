@@ -79,3 +79,16 @@ chat-bot-private-signin = このボットは非公開です — 続行するに�
 chat-approved-plan = 承認されたプラン: 
 chat-retrying-attachment = 添付ファイルを再試行中
 chat-expanded-preview = 拡大プレビュー
+
+# #2362 — chat code/artifact control labels
+chat-code-show-all = Show all
+chat-code-lines = lines
+chat-artifact-save-drive = Save to Drive
+chat-artifact-download-svg = Download SVG
+chat-artifact-download-png = Download PNG
+chat-artifact-open-canvas = Open in Canvas
+chat-artifact-folder = Folder (optional)
+chat-artifact-kind-markdown = Markdown document
+chat-artifact-kind-html = HTML page
+chat-artifact-kind-code = Code
+chat-artifact-words = words

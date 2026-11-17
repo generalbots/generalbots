@@ -79,3 +79,16 @@ chat-bot-private-signin = Dieser Bot ist privat — melden Sie sich an, um fortz
 chat-approved-plan = Genehmigter Plan: 
 chat-retrying-attachment = Anhang wird erneut gesendet
 chat-expanded-preview = Erweiterte Vorschau
+
+# #2362 — chat code/artifact control labels
+chat-code-show-all = Show all
+chat-code-lines = lines
+chat-artifact-save-drive = Save to Drive
+chat-artifact-download-svg = Download SVG
+chat-artifact-download-png = Download PNG
+chat-artifact-open-canvas = Open in Canvas
+chat-artifact-folder = Folder (optional)
+chat-artifact-kind-markdown = Markdown document
+chat-artifact-kind-html = HTML page
+chat-artifact-kind-code = Code
+chat-artifact-words = words

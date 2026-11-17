@@ -79,3 +79,16 @@ chat-bot-private-signin = 이 봇은 비공개입니다 — 계속하려면 로�
 chat-approved-plan = 승인된 계획: 
 chat-retrying-attachment = 첨부 파일 다시 시도 중
 chat-expanded-preview = 확장된 미리보기
+
+# #2362 — chat code/artifact control labels
+chat-code-show-all = Show all
+chat-code-lines = lines
+chat-artifact-save-drive = Save to Drive
+chat-artifact-download-svg = Download SVG
+chat-artifact-download-png = Download PNG
+chat-artifact-open-canvas = Open in Canvas
+chat-artifact-folder = Folder (optional)
+chat-artifact-kind-markdown = Markdown document
+chat-artifact-kind-html = HTML page
+chat-artifact-kind-code = Code
+chat-artifact-words = words
