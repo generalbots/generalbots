@@ -2,7 +2,7 @@
         <div class="ai-panel hidden" id="ai-panel">
             <div class="ai-panel-header">
                 <h3 data-i18n="paper-ai-assistant">AI Assistant</h3>
-                <button class="btn-icon" id="close-ai-panel">
+                <button class="btn-icon" id="close-ai-panel" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close">
                     <svg
                         width="16"
                         height="16"
@@ -10,6 +10,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
+                        aria-hidden="true"
                     >
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -159,6 +160,9 @@
                             class="btn-icon"
                             id="copy-ai-response"
                             title="Copy"
+                            aria-label="Copy"
+                            data-i18n-title="action-copy"
+                            data-i18n-aria-label="action-copy"
                         >
                             <svg
                                 width="14"
@@ -184,7 +188,10 @@
                         <button
                             class="btn-icon"
                             id="insert-ai-response"
-                            title="Insert"
+                            title="Insert AI response"
+                            aria-label="Insert AI response"
+                            data-i18n-title="paper-insert-ai-response"
+                            data-i18n-aria-label="paper-insert-ai-response"
                         >
                             <svg
                                 width="14"
@@ -201,7 +208,10 @@
                         <button
                             class="btn-icon"
                             id="replace-ai-response"
-                            title="Replace Selection"
+                            title="Replace selection"
+                            aria-label="Replace selection"
+                            data-i18n-title="paper-replace-selection"
+                            data-i18n-aria-label="paper-replace-selection"
                         >
                             <svg
                                 width="14"

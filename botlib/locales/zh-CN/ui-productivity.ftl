@@ -314,3 +314,6 @@ calendar-next-month = 下个月
 calendar-prev-period = 上一周期
 calendar-next-period = 下一周期
 calendar-add-calendar = 添加日历
+paper-toggle-sidebar = 切换侧边栏
+paper-insert-ai-response = 插入 AI 回复
+paper-replace-selection = 替换所选内容

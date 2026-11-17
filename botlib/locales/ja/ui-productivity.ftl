@@ -314,3 +314,6 @@ calendar-next-month = 次の月
 calendar-prev-period = 前の期間
 calendar-next-period = 次の期間
 calendar-add-calendar = カレンダーを追加
+paper-toggle-sidebar = サイドバーを切り替え
+paper-insert-ai-response = AIの回答を挿入
+paper-replace-selection = 選択範囲を置換

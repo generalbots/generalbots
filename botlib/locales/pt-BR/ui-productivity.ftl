@@ -314,3 +314,6 @@ calendar-next-month = Próximo mês
 calendar-prev-period = Período anterior
 calendar-next-period = Próximo período
 calendar-add-calendar = Adicionar calendário
+paper-toggle-sidebar = Alternar barra lateral
+paper-insert-ai-response = Inserir resposta da IA
+paper-replace-selection = Substituir seleção

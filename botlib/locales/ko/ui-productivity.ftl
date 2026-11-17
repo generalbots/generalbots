@@ -314,3 +314,6 @@ calendar-next-month = 다음 달
 calendar-prev-period = 이전 기간
 calendar-next-period = 다음 기간
 calendar-add-calendar = 캘린더 추가
+paper-toggle-sidebar = 사이드바 전환
+paper-insert-ai-response = AI 응답 삽입
+paper-replace-selection = 선택 항목 바꾸기
