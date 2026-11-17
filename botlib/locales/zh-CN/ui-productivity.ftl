@@ -330,3 +330,4 @@ paper-underline = 下划线
 paper-strikethrough = 删除线
 products-view-grid = 网格视图
 products-view-list = 列表视图
+sheet-freeze-panes = 冻结窗格

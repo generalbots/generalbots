@@ -330,3 +330,4 @@ paper-underline = Underline
 paper-strikethrough = Strikethrough
 products-view-grid = Grid view
 products-view-list = List view
+sheet-freeze-panes = Freeze panes

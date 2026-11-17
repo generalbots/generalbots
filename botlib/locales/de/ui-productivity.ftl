@@ -330,3 +330,4 @@ paper-underline = Unterstrichen
 paper-strikethrough = Durchgestrichen
 products-view-grid = Rasteransicht
 products-view-list = Listenansicht
+sheet-freeze-panes = Bereiche fixieren

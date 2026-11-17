@@ -330,3 +330,4 @@ paper-underline = 밑줄
 paper-strikethrough = 취소선
 products-view-grid = 격자 보기
 products-view-list = 목록 보기
+sheet-freeze-panes = 틀 고정

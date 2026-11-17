@@ -330,3 +330,4 @@ paper-underline = Subrayado
 paper-strikethrough = Tachado
 products-view-grid = Vista de cuadrícula
 products-view-list = Vista de lista
+sheet-freeze-panes = Congelar paneles
