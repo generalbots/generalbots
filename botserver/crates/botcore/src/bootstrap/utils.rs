@@ -25,12 +25,45 @@ pub fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
 }
 
 /// Safe wrapper around shell command execution
+#[cfg(target_os = "windows")]
 pub fn safe_sh_command(script: &str) -> Option<std::process::Output> {
-    SafeCommand::new("sh")
+    let cmd = match SafeCommand::new("cmd")
+        .and_then(|c| c.arg("/C").and_then(|c| c.trusted_shell_script_arg(script)))
+    {
+        Ok(cmd) => cmd,
+        Err(e) => {
+            log::error!("safe_sh_command: failed to build cmd command: {e}");
+            return None;
+        }
+    };
+    match cmd.execute() {
+        Ok(output) => Some(output),
+        Err(e) => {
+            log::error!("safe_sh_command: execution failed: {e}");
+            None
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn safe_sh_command(script: &str) -> Option<std::process::Output> {
+    let cmd = match SafeCommand::new("sh")
         .and_then(|c| c.arg("-c"))
         .and_then(|c| c.trusted_shell_script_arg(script))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
+    {
+        Ok(cmd) => cmd,
+        Err(e) => {
+            log::error!("safe_sh_command: failed to build sh command: {e}");
+            return None;
+        }
+    };
+    match cmd.execute() {
+        Ok(output) => Some(output),
+        Err(e) => {
+            log::error!("safe_sh_command: execution failed: {e}");
+            None
+        }
+    }
 }
 
 /// Safe wrapper around curl command
@@ -63,7 +96,10 @@ pub fn vault_health_check() -> bool {
         info!("VAULT_ADDR not set, skipping Vault health check");
         return false;
     }
-    let health_url = format!("{}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200", vault_addr);
+    let health_url = format!(
+        "{}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200",
+        vault_addr
+    );
     let stack_path = crate::shared::utils::get_stack_path();
     let client_cert = std::path::Path::new(&format!(
         "{}/conf/system/certificates/botserver/client.crt",

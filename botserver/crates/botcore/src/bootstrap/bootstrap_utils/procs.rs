@@ -208,7 +208,11 @@ fn kill_stack_scoped(stack_bin: &str) -> usize {
 #[cfg(windows)]
 pub fn kill_stack_component_windows(component_dir: &str) -> usize {
     let stack_bin = resolve_stack_bin_dir();
-    let fragment = format!("{}{component_dir}{}", std::path::MAIN_SEPARATOR, std::path::MAIN_SEPARATOR);
+    let fragment = format!(
+        "{}{component_dir}{}",
+        std::path::MAIN_SEPARATOR,
+        std::path::MAIN_SEPARATOR
+    );
     kill_stack_scoped_by_subdir(&stack_bin, &fragment)
 }
 
@@ -281,7 +285,7 @@ pub fn safe_sh_command(command: &str) -> String {
     match sh_exec(command) {
         Ok(output) => String::from_utf8_lossy(&output.stdout).to_string(),
         Err(e) => {
-            debug!("Shell command not available (expected on some platforms): {e}");
+            error!("Shell command not available (expected on some platforms): {e}");
             String::new()
         }
     }
