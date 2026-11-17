@@ -13,8 +13,7 @@
   function t(key, fallback) {
     return window.gbT ? window.gbT(key, fallback) : fallback;
   }
-  var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app",
-    "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin", "wizard"];
+  var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app", "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin", "wizard", "browser", "terminal", "drive", "docs", "sheet", "slides", "paper", "notepad", "notes", "minutes", "tasks", "mail", "calendar", "meet", "research", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "campaigns", "compliance", "database", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "timeclock", "tools", "vision", "about", "assistant", "audit", "automations", "calculator", "clock", "concierge", "editor", "jukebox", "memory", "photos", "recycle", "snapshot", "store", "timer", "weather", "widgets"];
 
   var FALLBACK_APPS = {
     chat: {
