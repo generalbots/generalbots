@@ -119,7 +119,15 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> Result<SecurityCompone
                         manager.with_blacklist_store(store)
                     }
                     None => {
-                        info!("JWT Manager using in-memory token blacklist (no cache client)");
+                        // SECURITY (#2390): without a shared cache client, revoked
+                        // tokens are tracked only in this process's memory. They
+                        // survive neither a restart nor propagation to other
+                        // instances, so logout/session-kill silently no-ops
+                        // cluster-wide. Treat this as a degraded, non-production
+                        // state and make it loud rather than a single info! line.
+                        error!(
+                            "JWT Manager using IN-MEMORY token blacklist (no cache client) —                              token revocation does NOT survive restarts or propagate to other                              instances. This is only acceptable for single-node dev; production                              must configure the cache client."
+                        );
                         manager
                     }
                 }
