@@ -319,6 +319,38 @@ pub async fn start(app_state: Arc<AppState>, pool: DbPool) {
         .and_then(|v| v.parse().ok())
         .filter(|v| *v >= 5)
         .unwrap_or(DEFAULT_MONITOR_SECS);
+
+    // The monitor is only useful when the ALM (Forgejo) it pulls from is
+    // actually reachable. In local dev the ALM container is usually absent,
+    // so attempting the clone/provision loop every tick only spams the log
+    // with "repository not found" warnings and never succeeds.
+    let (alm_base, alm_token, _) = botcoresecrets::alm_config();
+    if alm_base.is_empty() || alm_token.is_empty() {
+        log::info!("[git_monitor] ALM not configured (secret/gbo/alm) — monitor disabled");
+        return;
+    }
+    let health_url = format!("{}/api/v1/version", alm_base.trim_end_matches('/'));
+    let reachable = if let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))
+        .build()
+    {
+        client
+            .get(&health_url)
+            .send()
+            .await
+            .map(|resp| resp.status().is_success() || resp.status().as_u16() < 500)
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    if !reachable {
+        log::info!(
+            "[git_monitor] ALM at {} is not reachable — monitor disabled",
+            alm_base
+        );
+        return;
+    }
+
     register_hooks(pool.clone(), app_state.clone());
     tokio::spawn(async move {
         log::info!(

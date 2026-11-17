@@ -214,7 +214,7 @@ mod add_error;
 mod validate_required;
 mod required;
 mod ssrf_allowlist;
-mod ssrf_fetch;
+pub mod ssrf_fetch;
 mod ssrf_guard;
 mod validate_url_ssrf;
 
