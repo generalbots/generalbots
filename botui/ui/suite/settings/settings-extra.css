@@ -1,0 +1,79 @@
+/* Settings → Custom instructions, Keyboard shortcuts, Text size (#2568). */
+#instructions-section .instr-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted, #8b93a7);
+    margin: 12px 0 6px;
+}
+
+#instructions-section .instr-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border, #262b36);
+    border-radius: 8px;
+    background: var(--surface, transparent);
+    color: inherit;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+#instructions-section .instr-counter {
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-muted, #8b93a7);
+    margin-top: 4px;
+}
+
+#instructions-section .instr-actions {
+    margin-top: 14px;
+}
+
+#shortcuts-section .sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#shortcuts-section .sc-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border, #262b36);
+    vertical-align: middle;
+}
+
+#shortcuts-section .sc-table td:first-child {
+    width: 190px;
+    white-space: nowrap;
+}
+
+#shortcuts-section kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--border, #262b36);
+    border-radius: 5px;
+    background: rgba(127, 127, 127, 0.08);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+
+#appearance-section .ts-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#appearance-section .ts-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border, #262b36);
+    border-radius: 8px;
+    background: var(--surface, transparent);
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#appearance-section .ts-btn-active {
+    border-color: var(--accent, #7c9cff);
+    box-shadow: 0 0 0 1px var(--accent, #7c9cff) inset;
+}

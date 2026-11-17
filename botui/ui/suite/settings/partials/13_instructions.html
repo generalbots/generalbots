@@ -1,0 +1,51 @@
+<!-- Settings → Custom instructions (#2568). Same per-user text the assistant
+     shell edits: what the assistant should know about you and how it should
+     respond, capped at 1500 characters each, plus an enable toggle. Persisted
+     through GET/PUT /api/settings/custom-instructions. -->
+<section id="instructions-section" class="settings-section">
+    <div class="section-header">
+        <h1 data-i18n="instr-title">Custom instructions</h1>
+        <p class="subtitle" data-i18n="instr-subtitle">
+            Tell the assistant about yourself and how you want it to respond.
+        </p>
+    </div>
+
+    <div class="setting-card">
+        <div class="setting-row">
+            <div class="setting-info">
+                <span class="setting-title" data-i18n="instr-enabled">Enable custom instructions</span>
+                <span class="setting-desc" data-i18n="instr-enabled-desc">
+                    When off, the assistant answers without these instructions.
+                </span>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" id="instr-enabled" aria-label="Enable custom instructions">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="setting-card" id="instr-fields">
+        <label class="instr-label" for="instr-about" data-i18n="instr-about">
+            What should the assistant know about you?
+        </label>
+        <textarea id="instr-about" class="instr-textarea" rows="4" maxlength="1500"
+            data-i18n-placeholder="instr-about-placeholder"
+            placeholder="Role, language, context, preferences…"></textarea>
+        <span class="instr-counter" id="instr-about-count">0 / 1500</span>
+
+        <label class="instr-label" for="instr-response" data-i18n="instr-response">
+            How should the assistant respond?
+        </label>
+        <textarea id="instr-response" class="instr-textarea" rows="4" maxlength="1500"
+            data-i18n-placeholder="instr-response-placeholder"
+            placeholder="Tone, level of detail, format…"></textarea>
+        <span class="instr-counter" id="instr-response-count">0 / 1500</span>
+
+        <div class="instr-actions">
+            <button type="button" class="btn-primary btn-sm" id="instr-save"
+                data-i18n="instr-save">Save</button>
+        </div>
+        <div class="note" id="instr-status" role="status" aria-live="polite" aria-atomic="true"></div>
+    </div>
+</section>

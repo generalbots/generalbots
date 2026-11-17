@@ -68,6 +68,17 @@
                 </svg>
                 <span data-i18n="settings-security">Security</span>
             </a>
+            <!-- #2568 — Custom instructions: the same per-user text the
+                 assistant shell edits. Scoped by the authenticated user. -->
+            <a href="#instructions" class="nav-item"
+                onclick="showSection('instructions', this); window.loadInstructionsPanel && window.loadInstructionsPanel()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    <line x1="8" y1="9" x2="16" y2="9"></line>
+                    <line x1="8" y1="13" x2="13" y2="13"></line>
+                </svg>
+                <span data-i18n="instr-title">Custom instructions</span>
+            </a>
             <a href="#appearance" class="nav-item" onclick="showSection('appearance', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5"></circle>
@@ -321,6 +332,19 @@
                 </svg>
                 <span data-i18n="nav-about">About</span>
             </a>
+            <!-- #2568 — Keyboard shortcuts: reference list for the bindings the
+                 classic shell actually implements (same list as the ? overlay). -->
+            <a href="#shortcuts" class="nav-item" onclick="showSection('shortcuts', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                    <line x1="6" y1="10" x2="6" y2="10"></line>
+                    <line x1="10" y1="10" x2="10" y2="10"></line>
+                    <line x1="14" y1="10" x2="14" y2="10"></line>
+                    <line x1="18" y1="10" x2="18" y2="10"></line>
+                    <line x1="7" y1="14" x2="17" y2="14"></line>
+                </svg>
+                <span data-i18n="a11y-keyboard-shortcuts">Keyboard shortcuts</span>
+            </a>
             <a href="#versions" class="nav-item" onclick="showSection('versions', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -365,6 +389,8 @@
              to the version information, not inside Appearance. -->
         <div hx-get="/suite/settings/partials/10_system.html" hx-trigger="load" hx-swap="outerHTML"></div>
         <div hx-get="/suite/settings/partials/12_model.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <div hx-get="/suite/settings/partials/13_instructions.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <div hx-get="/suite/settings/partials/14_shortcuts.html" hx-trigger="load" hx-swap="outerHTML"></div>
     </main>
 </div>
 
@@ -377,11 +403,14 @@
 <link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" />
 <link rel="stylesheet" href="/suite/settings/settings-on-device-ai.css" />
 <link rel="stylesheet" href="/suite/settings/settings-model.css" />
+<link rel="stylesheet" href="/suite/settings/settings-extra.css" />
 <link rel="stylesheet" href="/suite/css/settings-identity.css?v=1" />
 <script src="/suite/settings/settings-workspace-card.js?v=1"></script>
 <script src="/suite/js/gb-datetime.js?v=3"></script>
 <script src="/suite/settings/settings-nav.js?v=1"></script>
 <script src="/suite/settings/settings-model.js?v=1"></script>
+<script src="/suite/settings/settings-instructions.js?v=1"></script>
+<script src="/suite/settings/settings-textsize.js?v=1"></script>
 
 <!-- Sidebar overlay for mobile -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSettingsSidebar()"></div>

@@ -799,6 +799,23 @@ Settings → Model. It talks to `/api/llm/config`, `/api/llm/config/modes` and
 `/api/llm/config/test`; all three are administrator-gated server-side, so a
 non-administrator sees the read-only notice instead of the controls.
 
+**Custom instructions** (every user):
+- What the assistant should know about you, and how it should respond (1500
+  characters each)
+- An enable toggle — off means the assistant answers without them
+- Saved through `GET`/`PUT /api/settings/custom-instructions`, scoped to the
+  signed-in user
+
+**Keyboard shortcuts:** the reference list of the bindings the suite actually
+implements (`Ctrl+K` command palette, `Ctrl+,` privacy, `/` focus chat,
+`Shift+?` help overlay, `Esc`, Drive selection keys). Shortcuts are ignored
+while a field has focus.
+
+**Appearance → Text size:** Small / Default / Large / Extra large. The choice
+lives in `localStorage` under `gb-text-size` and is the same key the assistant
+shell uses, so it carries across both shells; `Ctrl+=`, `Ctrl+-` and `Ctrl+0`
+also work.
+
 ---
 
 ## Part XV: Keyboard Shortcuts Reference

@@ -1,0 +1,50 @@
+<!-- Settings → Keyboard shortcuts (#2568). Lists only the bindings the classic
+     shell actually implements (suite/js/accessibility.js and the Drive module);
+     the same list the "?" help overlay shows. Labels reuse the existing
+     a11y-shortcut-* catalogue keys so the two surfaces never drift. -->
+<section id="shortcuts-section" class="settings-section">
+    <div class="section-header">
+        <h1 data-i18n="a11y-keyboard-shortcuts">Keyboard shortcuts</h1>
+        <p class="subtitle" data-i18n="sc-subtitle">
+            Press Shift + ? anywhere in the suite to open this list.
+        </p>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2 data-i18n="sc-group-general">General</h2>
+        </div>
+        <table class="sc-table">
+            <tbody>
+                <tr><td><kbd>Ctrl + K</kbd></td><td data-i18n="a11y-shortcut-command-palette">Command palette</td></tr>
+                <tr><td><kbd>Ctrl + ,</kbd></td><td data-i18n="a11y-shortcut-privacy">Privacy settings</td></tr>
+                <tr><td><kbd>/</kbd></td><td data-i18n="a11y-shortcut-focus-chat">Focus chat input</td></tr>
+                <tr><td><kbd>Shift + ?</kbd></td><td data-i18n="a11y-shortcut-show-help">Show this help</td></tr>
+                <tr><td><kbd>Escape</kbd></td><td data-i18n="a11y-shortcut-escape">Close modal / clear selection</td></tr>
+                <tr><td><kbd>PageUp / PageDown</kbd></td><td data-i18n="a11y-shortcut-scroll-history">Scroll chat history</td></tr>
+                <tr><td><kbd>Tab</kbd></td><td data-i18n="a11y-shortcut-navigate">Navigate between elements</td></tr>
+                <tr><td><kbd>Enter</kbd></td><td data-i18n="a11y-shortcut-activate">Activate focused element</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2 data-i18n="sc-group-drive">Drive</h2>
+        </div>
+        <table class="sc-table">
+            <tbody>
+                <tr><td><kbd>Delete</kbd></td><td data-i18n="a11y-shortcut-delete-files">Delete selected files (Drive)</td></tr>
+                <tr><td><kbd>Ctrl + A</kbd></td><td data-i18n="a11y-shortcut-select-all">Select all files (Drive)</td></tr>
+                <tr><td><kbd>Ctrl + C / X / V</kbd></td><td data-i18n="a11y-shortcut-clipboard">Copy / Cut / Paste files</td></tr>
+                <tr><td><kbd>Backspace</kbd></td><td data-i18n="a11y-shortcut-navigate-up">Navigate up in Drive</td></tr>
+                <tr><td><kbd>F2</kbd></td><td data-i18n="a11y-shortcut-rename">Rename selected file</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="note" data-i18n="sc-note">
+        Shortcuts are ignored while you are typing in a field, so they never
+        interrupt a message or a form.
+    </p>
+</section>

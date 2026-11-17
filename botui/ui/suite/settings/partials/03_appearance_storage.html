@@ -17,6 +17,18 @@
                 <div class="theme-grid" id="settings-theme-grid"></div>
             </div>
 
+            <!-- Text size (#2568) — same control the assistant shell offers
+                 under Appearance. settings-textsize.js shares the gb-text-size
+                 key with it; Ctrl+= / Ctrl+- / Ctrl+0 also work there. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2 data-i18n="ts-title">Text size</h2>
+                    <p data-i18n="ts-desc">Choose how large text appears across the suite</p>
+                </div>
+                <div class="ts-row" id="settings-textsize-row" role="radiogroup"
+                    data-i18n-aria-label="ts-title" aria-label="Text size"></div>
+            </div>
+
             <div class="setting-card">
                 <div class="card-header">
                     <h2 data-i18n="auto-desktop-wallpaper">Desktop Wallpaper</h2>
