@@ -28,7 +28,9 @@
             document.addEventListener('keydown', function(e) {
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                     e.preventDefault();
-                    saveEditorFile();
+                    // #2282 — pass the focused element so Save resolves THIS
+                    // editor window's file context when several are open.
+                    saveEditorFile(e.target);
                 }
             });
         function showMagicPanel() {

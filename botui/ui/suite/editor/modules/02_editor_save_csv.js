@@ -24,6 +24,12 @@
 
         // #2282 — resolve the editor window root and its Drive file context so
         // two editor windows keep independent file contexts.
+        // Each window re-runs this module, so currentScript is that window's
+        // own body; it is the last fallback when no event element is passed.
+        var __editorModuleRoot = (function () {
+            var s = document.currentScript;
+            return s && s.closest ? s.closest('[id^="window-body-"]') : null;
+        })();
         function gbEditorResolveRoot(el) {
             var node = el && el.nodeType ? el : (el && el.target ? el.target : null);
             if (node && node.closest) {
@@ -35,7 +41,7 @@
                 var aw = ae.closest('[id^="window-body-"]');
                 if (aw) return aw;
             }
-            return document;
+            return __editorModuleRoot || document;
         }
         function gbEditorFileCtx(root) {
             root = root || document;

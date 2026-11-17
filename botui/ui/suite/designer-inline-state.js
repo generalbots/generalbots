@@ -175,18 +175,20 @@
             }
         });
 
-        // Load file from URL parameters (when opening .bas from drive)
+        // #2282 — Drive passes file context on the window body; accept URL/hash for direct opens.
         async function loadFromUrlParams() {
-            // Parameters can be in query string OR in hash fragment (after #designer?)
-            let bucket = null;
-            let path = null;
+            const ctx = (typeof window.gbDesignerFileCtx === 'function')
+                ? window.gbDesignerFileCtx() : { bucket: null, path: null };
+            let bucket = ctx.bucket || null;
+            let path = ctx.path || null;
 
-            // First try query string
-            const queryParams = new URLSearchParams(window.location.search);
-            bucket = queryParams.get('bucket');
-            path = queryParams.get('path');
-
-            // If not found, try hash fragment (e.g., /#designer?bucket=x&path=y)
+            // Direct app opens carry the context in the query string OR in the
+            // hash fragment (e.g. /#designer?bucket=x&path=y).
+            if (!bucket || !path) {
+                const queryParams = new URLSearchParams(window.location.search);
+                bucket = bucket || queryParams.get('bucket');
+                path = path || queryParams.get('path');
+            }
             if (!bucket || !path) {
                 const hash = window.location.hash;
                 const hashQueryIndex = hash.indexOf('?');

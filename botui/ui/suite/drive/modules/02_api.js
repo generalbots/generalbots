@@ -181,16 +181,39 @@ async function previewFile(path, bucket) {
     }
 }
 
-    function stampWindowFileCtx(winId, bucket, path, scope) {
-    var ctx = { bucket: bucket || "", path: path || "", scope: scope || "bot" };
-    window.__GB_WINDOW_FILE_CTX = window.__GB_WINDOW_FILE_CTX || {};
-    window.__GB_WINDOW_FILE_CTX[winId] = ctx;
+// #2282 — bind a Drive file to ONE app window. The context lives in a
+// per-window map and in data attributes on that window's body; the old page
+// globals (__EDITOR_FILE_PATH, __CANVAS_FILE_BUCKET, …) are deliberately NOT
+// written here because a second open would clobber the first window's target.
+// The apps still read those globals as a fallback for direct app opens.
+function stampWindowBodyFileCtx(winId, ctx) {
     var body = document.getElementById("window-body-" + winId);
     if (body) {
         body.dataset.gbFileBucket = ctx.bucket;
         body.dataset.gbFilePath = ctx.path;
         body.dataset.gbFileScope = ctx.scope;
     }
+}
+
+// Open an editor app with its context scoped to the new window. `ctxMapName`
+// is the app-specific registry (__EDITOR_FILE_CTX, __CANVAS_FILE_CTX, …);
+// `afterInject` runs once the app fragment has been mounted (photo editor).
+function openDriveEditorWindow(winId, fileName, htmlUrl, bucket, path, scope, ctxMapName, afterInject) {
+    var ctx = { bucket: bucket || "", path: path || "", scope: scope || "bot" };
+    window.__GB_WINDOW_FILE_CTX = window.__GB_WINDOW_FILE_CTX || {};
+    window.__GB_WINDOW_FILE_CTX[winId] = ctx;
+    if (ctxMapName) {
+        window[ctxMapName] = window[ctxMapName] || {};
+        window[ctxMapName][winId] = ctx;
+    }
+    window.WindowManager.open(winId, fileName, "");
+    // open() creates the window body; stamp after it exists so the attributes
+    // stay on this window even when another editor is opened later.
+    stampWindowBodyFileCtx(winId, ctx);
+    fetch(htmlUrl).then(function (r) { return r.text(); }).then(function (html) {
+        window.WindowManager._injectBodyContent(winId, html);
+        if (typeof afterInject === "function") afterInject();
+    });
     return ctx;
 }
 
@@ -276,75 +299,39 @@ async function openFile(path, bucket) {
         }
         if (app === "designer" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Script";
-            var ts = Date.now();
-            var winId = "designer-" + ts;
-            window.__EDITOR_FILE_BUCKET = resolvedBucket;
-            window.__EDITOR_FILE_PATH = path;
-            window.__EDITOR_FILE_SCOPE = currentScope;
-            window.__EDITOR_BOOT = Promise.resolve();
-            window.WindowManager.open(winId, fileName, "");
-            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
-            fetch("/suite/designer.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent(winId, html);
-            });
+            // #2282 — context is bound to this window only (no page globals).
+            openDriveEditorWindow("designer-" + Date.now(), fileName,
+                "/suite/designer.html", resolvedBucket, path, currentScope, null);
             return;
         }
         if (app === "canvas" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Canvas";
-            var ts = Date.now();
-            var winId = "canvas-" + ts;
-            // #2282 — per-window canvas context (globals clobbered by next open)
-            window.__CANVAS_FILE_CTX = window.__CANVAS_FILE_CTX || {};
-            window.__CANVAS_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
-            window.__CANVAS_FILE_BUCKET = resolvedBucket;
-            window.__CANVAS_FILE_PATH = path;
-            window.__CANVAS_FILE_SCOPE = currentScope;
-            var folder = path.indexOf("/") === -1 ? "" : path.substring(0, path.lastIndexOf("/"));
-            window.__CANVAS_FOLDER = folder;
-            window.WindowManager.open(winId, fileName, "");
-            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
-            fetch("/suite/canvas/canvas.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent(winId, html);
-            });
+            openDriveEditorWindow("canvas-" + Date.now(), fileName,
+                "/suite/canvas/canvas.html", resolvedBucket, path, currentScope, "__CANVAS_FILE_CTX");
             return;
         }
         if (app === "photo-editor" && window.WindowManager) {
             // #1306 — image files open the Photo Editor as an APP WINDOW:
             // never window.open, never a raw fragment navigation.
             var fileName = path.split("/").pop() || "Photo";
-            var ts = Date.now();
-            var winId = "photo-editor-" + ts;
-            window.__PHOTO_FILE_CTX = window.__PHOTO_FILE_CTX || {};
-            window.__PHOTO_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
-            window.__PHOTO_FILE_BUCKET = resolvedBucket;
-            window.__PHOTO_FILE_PATH = path;
-            window.__PHOTO_FILE_SCOPE = currentScope;
-            window.__PHOTO_BOOT = Promise.resolve();
-            window.WindowManager.open(winId, fileName, "");
-            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
-            fetch("/suite/photos/photos-editor.html").then(function (r) { return r.text(); }).then(function (html) {
-                window.WindowManager._injectBodyContent(winId, html);
-                if (window.GBPhotoEditor && typeof window.GBPhotoEditor.init === "function") {
-                    window.GBPhotoEditor.init(winId);
-                }
-            });
+            var winId = "photo-editor-" + Date.now();
+            openDriveEditorWindow(winId, fileName,
+                "/suite/photos/photos-editor.html", resolvedBucket, path, currentScope,
+                "__PHOTO_FILE_CTX", function () {
+                    if (window.GBPhotoEditor && typeof window.GBPhotoEditor.init === "function") {
+                        window.GBPhotoEditor.init(winId);
+                    }
+                });
             return;
         }
         if (app === "editor" && window.WindowManager) {
             var fileName = path.split("/").pop() || "Untitled";
-            var ts = Date.now();
-            var winId = "editor-" + ts;
-            window.__EDITOR_FILE_CTX = window.__EDITOR_FILE_CTX || {};
-            window.__EDITOR_FILE_CTX[winId] = { bucket: resolvedBucket, path: path, scope: currentScope };
-            window.__EDITOR_FILE_BUCKET = resolvedBucket;
-            window.__EDITOR_FILE_PATH = path;
-            window.__EDITOR_FILE_SCOPE = currentScope;
-            window.__EDITOR_BOOT = Promise.resolve();
-            window.WindowManager.open(winId, fileName, "");
-            stampWindowFileCtx(winId, resolvedBucket, path, currentScope);
-            fetch("/suite/editor.html").then(function(r){return r.text();}).then(function(html){
-                window.WindowManager._injectBodyContent(winId, html);
-            });
+            var winId = "editor-" + Date.now();
+            openDriveEditorWindow(winId, fileName,
+                "/suite/editor.html", resolvedBucket, path, currentScope, "__EDITOR_FILE_CTX");
+            // Per-window boot gate; the global kept for direct-app backward compat.
+            window.__EDITOR_BOOTS = window.__EDITOR_BOOTS || {};
+            window.__EDITOR_BOOTS[winId] = Promise.resolve();
             return;
         }
         // PDFs and unknown types have no app window; the Drive preview modal

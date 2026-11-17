@@ -19,25 +19,28 @@
         }
         if (__editorBootRoot) __editorBootRoot.__monacoEditorInstance = null;
 
+        // #2282 — capture THIS window's root and context once. A second editor
+        // opened later must not redirect this window's async content load.
+        var editorRoot = __editorBootRoot || document;
+        var editorCtx = __editorBootCtx();
         (function() {
-            var ctx = __editorBootCtx();
-            var filePath = ctx.path || '';
+            var filePath = editorCtx.path || '';
             if (filePath) {
                 var fileName = filePath.split('/').pop();
-                var root = __editorBootRoot || document;
-                var fnEl = root.querySelector ? root.querySelector('#editor-filename') : document.getElementById('editor-filename');
-                var fpEl = root.querySelector ? root.querySelector('#editor-filepath') : document.getElementById('editor-filepath');
+                var fnEl = editorRoot.querySelector ? editorRoot.querySelector('#editor-filename') : document.getElementById('editor-filename');
+                var fpEl = editorRoot.querySelector ? editorRoot.querySelector('#editor-filepath') : document.getElementById('editor-filepath');
                 if (fnEl) fnEl.textContent = fileName;
                 if (fpEl) fpEl.textContent = filePath;
             }
         })();
 
-        var editorBootPromise = window.__EDITOR_BOOT || Promise.resolve();
+        var editorWinId = editorRoot && editorRoot.id ? editorRoot.id.replace('window-body-', '') : '';
+        var boots = window.__EDITOR_BOOTS || {};
+        var editorBootPromise = (editorWinId && boots[editorWinId]) || window.__EDITOR_BOOT || Promise.resolve();
         editorBootPromise.then(function() {
-            var ctx = __editorBootCtx();
-            var filePath = ctx.path || '';
-            var bucket = ctx.bucket || '';
-            var scope = ctx.scope || 'bot';
+            var filePath = editorCtx.path || '';
+            var bucket = editorCtx.bucket || '';
+            var scope = editorCtx.scope || 'bot';
             if (filePath) {
                 var isCsv = filePath.toLowerCase().endsWith('.csv');
                 var pathParts = filePath.split('/');
@@ -52,13 +55,12 @@
                     if (data.content) {
                         var decoded = atob(data.content);
                         if (isCsv) {
-                            switchToCsvMode(decoded, __editorBootRoot);
+                            switchToCsvMode(decoded, editorRoot);
                         } else {
-                            var root = __editorBootRoot || document;
-                            var ta = root.querySelector ? root.querySelector('#text-editor') : document.getElementById('text-editor');
+                            var ta = editorRoot.querySelector ? editorRoot.querySelector('#text-editor') : document.getElementById('text-editor');
                             if (ta) {
                                 ta.value = decoded;
-                                var mi = (__editorBootRoot && __editorBootRoot.__monacoEditorInstance) || window.monacoEditorInstance;
+                                var mi = (editorRoot && editorRoot.__monacoEditorInstance) || window.monacoEditorInstance;
                                 if (mi) mi.setValue(decoded);
                             }
                         }
