@@ -5,7 +5,7 @@
   function grid(){return _I.grid?_I.grid():null;}
   var wsIndex=_I.wsIndex, apply=_I.apply, patchRender=_I.patchRender, colWidth=_I.colWidth, rowHeight=_I.rowHeight;
   var colX=_I.colX, rowTop=_I.rowTop, rowAt=_I.rowAt, computeVisibleColRange=_I.computeVisibleColRange;
-  var wireDragResize=_I.wireDragResize, setColWidth=_I.setColWidth, setRowHeight=_I.setRowHeight, persistResize=_I.persistResize;
+  var wireDragResize=_I.wireDragResize;
   var totalColWidth=_I.totalColWidth, charsToPx=_I.charsToPx, pointsToPx=_I.pointsToPx, colPxToChars=_I.colPxToChars, rowPxToPoints=_I.rowPxToPoints;
 
   function wire() {
@@ -203,6 +203,9 @@
   }
 
   _I.wireDragResize = wireDragResize;
+  _I.setColWidth = setColWidth;
+  _I.setRowHeight = setRowHeight;
+  _I.persistResize = persistResize;
 
   window.SheetWidths = {
     apply: wire,
