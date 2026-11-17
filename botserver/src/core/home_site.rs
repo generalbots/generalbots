@@ -30,7 +30,13 @@ impl HomeSite {
     }
 
     /// Build an unsigned site skeleton.
-    pub fn new(name: impl Into<String>, owner_node_id: Uuid, title: impl Into<String>, body: impl Into<String>, created_at: u64) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        owner_node_id: Uuid,
+        title: impl Into<String>,
+        body: impl Into<String>,
+        created_at: u64,
+    ) -> Self {
         let name = name.into();
         let host = Self::host_for(&name);
         Self {

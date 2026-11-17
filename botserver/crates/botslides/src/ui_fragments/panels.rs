@@ -1,19 +1,43 @@
 use super::{empty_fragment, html_escape};
-use crate::auth::{SlidesUser, SlidesUnauthorized};
-use axum::{extract::State, response::Html, Json};
-use std::sync::Arc;
+use crate::auth::{SlidesUnauthorized, SlidesUser};
 use crate::types::Slide;
 use crate::SlidesState;
+use axum::{extract::State, response::Html, Json};
+use std::sync::Arc;
 
 pub async fn handle_theme_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let name = payload.get("theme_name").and_then(|v| v.as_str()).unwrap_or("Default");
-    let primary = payload.get("primary").and_then(|v| v.as_str()).unwrap_or("#3b82f6");
-    let secondary = payload.get("secondary").and_then(|v| v.as_str()).unwrap_or("#10b981");
-    let accent = payload.get("accent").and_then(|v| v.as_str()).unwrap_or("#f59e0b");
-    let bg = payload.get("background").and_then(|v| v.as_str()).unwrap_or("#0f172a");
-    let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("#f8fafc");
-    let heading_font = payload.get("heading_font").and_then(|v| v.as_str()).unwrap_or("Arial");
-    let body_font = payload.get("body_font").and_then(|v| v.as_str()).unwrap_or("Helvetica");
+    let name = payload
+        .get("theme_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Default");
+    let primary = payload
+        .get("primary")
+        .and_then(|v| v.as_str())
+        .unwrap_or("#3b82f6");
+    let secondary = payload
+        .get("secondary")
+        .and_then(|v| v.as_str())
+        .unwrap_or("#10b981");
+    let accent = payload
+        .get("accent")
+        .and_then(|v| v.as_str())
+        .unwrap_or("#f59e0b");
+    let bg = payload
+        .get("background")
+        .and_then(|v| v.as_str())
+        .unwrap_or("#0f172a");
+    let text = payload
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("#f8fafc");
+    let heading_font = payload
+        .get("heading_font")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Arial");
+    let body_font = payload
+        .get("body_font")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Helvetica");
     Html(format!(
         r##"<div class="sl-panel" id="theme-panel" style="padding:16px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -47,9 +71,18 @@ pub async fn handle_theme_panel(Json(payload): Json<serde_json::Value>) -> Html<
 }
 
 pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let current = payload.get("current_slide").and_then(|v| v.as_u64()).unwrap_or(0);
-    let total = payload.get("total_slides").and_then(|v| v.as_u64()).unwrap_or(0);
+    let pid = payload
+        .get("presentation_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let current = payload
+        .get("current_slide")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let total = payload
+        .get("total_slides")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let notes = payload.get("notes").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
         r##"<div class="sl-panel" id="presenter-panel" style="padding:16px;background:#0f172a;border:1px solid #4338ca;border-radius:8px;">
@@ -91,7 +124,10 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
         .and_then(|v| v.as_str())
         .unwrap_or("");
     let mut slides: Vec<Slide> = serde_json::from_value(
-        payload.get("slides").cloned().unwrap_or(serde_json::Value::Null),
+        payload
+            .get("slides")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
     )
     .unwrap_or_default();
     if slides.is_empty() {
@@ -113,8 +149,14 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
         pid = html_escape(pid)
     );
     for (i, slide) in slides.iter().enumerate() {
-        let bg = slide.background.color.clone().unwrap_or_else(|| "#0f172a".to_string());
-        let text = slide.elements.iter()
+        let bg = slide
+            .background
+            .color
+            .clone()
+            .unwrap_or_else(|| "#0f172a".to_string());
+        let text = slide
+            .elements
+            .iter()
             .find_map(|e| e.content.text.clone())
             .unwrap_or_default();
         let truncated = text.chars().take(60).collect::<String>();

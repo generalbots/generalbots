@@ -3,9 +3,9 @@ use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::types_core::DocumentMetadata;
 use axum::{
-    Json,
     extract::{Query, State},
     response::Html,
+    Json,
 };
 use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 

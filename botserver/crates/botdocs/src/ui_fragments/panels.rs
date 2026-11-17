@@ -6,7 +6,7 @@ use crate::types_core::{
     TrackChange,
 };
 use axum::extract::State;
-use axum::{Json, response::Html};
+use axum::{response::Html, Json};
 use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use std::sync::Arc;
 
@@ -104,9 +104,7 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
         // htmx aborts a swap whose target vanished with the empty state.
         return Html(format!(
             r##"<div class="dc-panel" id="comments-panel">{}</div>"##,
-            empty_fragment(
-                "No comments. Add annotations to the selected text to start reviewing."
-            )
+            empty_fragment("No comments. Add annotations to the selected text to start reviewing.")
         ));
     }
     let mut body = String::new();

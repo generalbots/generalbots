@@ -17,7 +17,7 @@ use axum::response::{Html, IntoResponse, Response};
 use axum::Json;
 
 use super::html_escape;
-use crate::auth::{SlidesUser, SlidesUnauthorized};
+use crate::auth::{SlidesUnauthorized, SlidesUser};
 use crate::storage::DriveOps;
 use crate::types::Presentation;
 use crate::SlidesState;
@@ -35,8 +35,23 @@ async fn serve_ui_asset(path: &str) -> Option<Response> {
     let ext = ext.to_ascii_lowercase();
     if !matches!(
         ext.as_str(),
-        "html" | "css" | "js" | "mjs" | "json" | "svg" | "png" | "jpg" | "jpeg" | "gif"
-            | "webp" | "ico" | "woff" | "woff2" | "ttf" | "map" | "txt"
+        "html"
+            | "css"
+            | "js"
+            | "mjs"
+            | "json"
+            | "svg"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "ico"
+            | "woff"
+            | "woff2"
+            | "ttf"
+            | "map"
+            | "txt"
     ) {
         return None;
     }
@@ -124,25 +139,31 @@ pub(super) async fn load_or_blank<D: DriveOps>(
 ) -> Result<Presentation, String> {
     let requested = id.trim();
     if requested.is_empty() || requested == "new" || requested == "current" {
-        return Ok(blank_presentation(user_id, &uuid::Uuid::new_v4().to_string()));
+        return Ok(blank_presentation(
+            user_id,
+            &uuid::Uuid::new_v4().to_string(),
+        ));
     }
     match state.drive.as_ref() {
-        Some(drive) => match crate::storage::load_presentation_by_id(drive, user_id, requested).await {
-            Ok(presentation) => Ok(presentation),
-            Err(_) if transient_new => Ok(blank_presentation(user_id, requested)),
-            Err(_) => Err("Deck not found".to_string()),
-        },
+        Some(drive) => {
+            match crate::storage::load_presentation_by_id(drive, user_id, requested).await {
+                Ok(presentation) => Ok(presentation),
+                Err(_) if transient_new => Ok(blank_presentation(user_id, requested)),
+                Err(_) => Err("Deck not found".to_string()),
+            }
+        }
         None if transient_new => Ok(blank_presentation(user_id, requested)),
         None => Err("Deck not found".to_string()),
     }
 }
 
 fn thumbnails_html(pres: &Presentation) -> Html<String> {
-    let mut html = String::from(
-        r#"<div style="display:flex;flex-direction:column;gap:8px;padding:8px;">"#,
-    );
+    let mut html =
+        String::from(r#"<div style="display:flex;flex-direction:column;gap:8px;padding:8px;">"#);
     if pres.slides.is_empty() {
-        html.push_str(&super::empty_fragment("No slides. Add a slide to get started."));
+        html.push_str(&super::empty_fragment(
+            "No slides. Add a slide to get started.",
+        ));
     }
     let total = pres.slides.len();
     for (index, slide) in pres.slides.iter().enumerate() {
@@ -204,7 +225,10 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
                 .and_then(|value| value.parse::<usize>().ok())
                 .unwrap_or(0);
             match load_or_blank(&state, user_id, &id, transient_new).await {
-                Ok(pres) => Html(super::sidebars::render_presentation_view(&pres, requested_slide)),
+                Ok(pres) => Html(super::sidebars::render_presentation_view(
+                    &pres,
+                    requested_slide,
+                )),
                 Err(message) => Html(super::err_fragment(&message)),
             }
         }
@@ -217,11 +241,9 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         }
         "fragments/presentation-list" => {
             let items = match state.drive.as_ref() {
-                Some(drive) => {
-                    crate::storage::list_presentations_from_drive(drive, user_id)
+                Some(drive) => crate::storage::list_presentations_from_drive(drive, user_id)
                     .await
-                    .unwrap_or_default()
-                }
+                    .unwrap_or_default(),
                 None => Vec::new(),
             };
             super::sidebars::handle_presentation_list_sidebar(Json(items)).await
