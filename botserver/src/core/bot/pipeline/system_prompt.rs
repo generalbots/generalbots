@@ -158,14 +158,23 @@ pub fn client_locale(client_caps: Option<&serde_json::Value>) -> String {
 /// several of them at once.
 #[must_use]
 pub fn response_language_block(locale: &str) -> String {
-    let hint = if locale.trim().is_empty() {
-        "the user's language".to_string()
-    } else {
-        format!("the user's language (client locale hint: {locale})")
-    };
+    let locale = locale.trim();
+    if locale.is_empty() {
+        return [
+            "RESPONSE LANGUAGE".to_string(),
+            "- Always answer in the user's language: reply in the language of the user's message, not the language this prompt is written in.".to_string(),
+            "- When the user's message is too short to tell (a number, a link, a single command), infer the language from context.".to_string(),
+            "- Never translate code, identifiers, file paths, shell commands, SQL, API field names or URLs.".to_string(),
+            "- Follow the user's explicit request to switch language for the rest of the conversation, and keep it until they switch again.".to_string(),
+            "- Format dates, numbers and currency for that locale instead of assuming MM/DD/YYYY or `1,234.56`.".to_string(),
+        ]
+        .join("\n");
+    }
     [
         "RESPONSE LANGUAGE".to_string(),
-        format!("- Always answer in {hint}: reply in the language of the user's message, not the language this prompt is written in."),
+        format!(
+            "- Always answer in the user's language (client locale hint: {locale}): reply in the language of the user's message, not the language this prompt is written in."
+        ),
         "- When the user's message is too short to tell (a number, a link, a single command), use the client locale hint above.".to_string(),
         "- Never translate code, identifiers, file paths, shell commands, SQL, API field names or URLs.".to_string(),
         "- Follow the user's explicit request to switch language for the rest of the conversation, and keep it until they switch again.".to_string(),
