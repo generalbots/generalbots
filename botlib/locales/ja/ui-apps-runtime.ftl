@@ -38,3 +38,4 @@ docs-font-family = フォント
 docs-font-size = フォントサイズ
 slides-font-family = フォント
 slides-font-size = フォントサイズ
+docs-no-documents-yet = まだドキュメントがありません。+ 新規 をクリックしてください。

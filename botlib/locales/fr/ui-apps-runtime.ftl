@@ -38,3 +38,4 @@ docs-font-family = Police
 docs-font-size = Taille de police
 slides-font-family = Police
 slides-font-size = Taille de police
+docs-no-documents-yet = Aucun document pour l’instant. Cliquez sur + Nouveau.

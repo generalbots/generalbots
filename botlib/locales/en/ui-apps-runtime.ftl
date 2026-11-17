@@ -256,3 +256,4 @@ docs-font-family = Font family
 docs-font-size = Font size
 slides-font-family = Font family
 slides-font-size = Font size
+docs-no-documents-yet = No documents yet. Click + New.

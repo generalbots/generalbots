@@ -38,3 +38,4 @@ docs-font-family = Schriftart
 docs-font-size = Schriftgröße
 slides-font-family = Schriftart
 slides-font-size = Schriftgröße
+docs-no-documents-yet = Noch keine Dokumente. Klicken Sie auf + Neu.

@@ -38,3 +38,4 @@ docs-font-family = 글꼴
 docs-font-size = 글꼴 크기
 slides-font-family = 글꼴
 slides-font-size = 글꼴 크기
+docs-no-documents-yet = 아직 문서가 없습니다. + 새로 만들기를 클릭하세요.

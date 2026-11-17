@@ -256,3 +256,4 @@ docs-font-family = Familia de fuente
 docs-font-size = Tamaño de fuente
 slides-font-family = Familia de fuente
 slides-font-size = Tamaño de fuente
+docs-no-documents-yet = Aún no hay documentos. Haz clic en + Nuevo.

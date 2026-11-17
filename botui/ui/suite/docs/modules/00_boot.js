@@ -123,8 +123,13 @@
     var host = document.getElementById("sidebar-files");
     if (!host) return Promise.resolve();
     if (!items.length) {
+      var emptyMsg = (typeof docsT === "function")
+        ? docsT("docs-no-documents-yet", "No documents yet. Click + New.")
+        : "No documents yet. Click + New.";
       host.innerHTML =
-        '<div style="padding:14px;color:#94a3b8;font-size:12px;">No documents yet. Click + Novo.</div>';
+        '<div style="padding:14px;color:#94a3b8;font-size:12px;">' +
+        escapeHtml(emptyMsg) +
+        "</div>";
       return Promise.resolve();
     }
     return fetch("/suite/docs/fragments/doc-list", {

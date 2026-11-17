@@ -38,3 +38,4 @@ docs-font-family = 字体
 docs-font-size = 字号
 slides-font-family = 字体
 slides-font-size = 字号
+docs-no-documents-yet = 还没有文档。点击 + 新建。
