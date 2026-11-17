@@ -5,7 +5,7 @@ use super::*;
 /// resolved, so it is a typo rather than a capability.
 #[test]
 fn every_binding_names_a_curated_verb() {
-    for binding in VERB_ENDPOINTS {
+    for binding in verb_endpoints() {
         assert!(
             command_by_name(binding.verb).is_some(),
             "{} is not a curated command",
@@ -17,7 +17,7 @@ fn every_binding_names_a_curated_verb() {
 #[test]
 fn verb_bindings_are_unique() {
     let mut seen = std::collections::HashSet::new();
-    for binding in VERB_ENDPOINTS {
+    for binding in verb_endpoints() {
         assert!(
             seen.insert(binding.verb),
             "duplicate binding {}",
@@ -28,7 +28,7 @@ fn verb_bindings_are_unique() {
 
 #[test]
 fn renames_are_well_formed() {
-    for binding in VERB_ENDPOINTS {
+    for binding in verb_endpoints() {
         for (from, to) in binding.renames {
             assert!(!from.is_empty(), "{} has an empty rename", binding.verb);
             assert!(!to.is_empty(), "{} renames {from} to nothing", binding.verb);
@@ -81,7 +81,7 @@ fn every_bound_path_is_a_registered_route() {
     let routes: Vec<(&str, &str)> = crate::core::bot::endpoint_inventory::all_routes()
         .map(|route| (route.method, route.path))
         .collect();
-    for binding in VERB_ENDPOINTS {
+    for binding in verb_endpoints() {
         assert!(
             routes
                 .iter()
