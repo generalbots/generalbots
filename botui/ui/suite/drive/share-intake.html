@@ -59,6 +59,14 @@
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
     function fmtBytes(n){ if(!n) return "0 B"; var u=["B","KB","MB","GB"]; var i=0; while(n>=1024 && i<u.length-1){n/=1024;i++;} return (i? n.toFixed(1):n)+" "+u[i]; }
     function setStatus(msg, cls){ statusEl.className = "status " + (cls||""); statusEl.textContent = msg||""; }
+    function readFileAsBase64(file){
+      return new Promise(function(resolve,reject){
+        var r=new FileReader();
+        r.onload=function(){ var res=r.result||""; var i=String(res).indexOf(","); resolve(i>=0?String(res).slice(i+1):""); };
+        r.onerror=function(){ reject(r.error||new Error("read failed")); };
+        r.readAsDataURL(file);
+      });
+    }
 
     async function loadShared() {
       try {
@@ -95,27 +103,20 @@
 
     async function uploadOne(file) {
       var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
-      var form = new FormData();
-      form.append("file", file, file.name);
-      form.append("path", "");
-      form.append("bucket", "");
-      form.append("scope", "user");
-      var headers = {};
+      var headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = "Bearer " + token;
-      // Try common drive upload endpoints.
-      var endpoints = ["/api/drive/upload", "/api/files/upload", "/api/drive/upload-binary"];
-      var lastErr = null;
-      for (var i=0;i<endpoints.length;i++) {
-        try {
-          var res = await fetch(endpoints[i], { method: "POST", headers: headers, body: form });
-          if (res.ok) return { ok: true, endpoint: endpoints[i] };
-          lastErr = new Error(endpoints[i] + ": HTTP " + res.status);
-          if (res.status === 404 || res.status === 405) continue;
-          var txt = await res.text().catch(function(){return "";});
-          lastErr = new Error(endpoints[i] + ": " + res.status + " " + txt.slice(0,120));
-        } catch (e) { lastErr = e; }
+      var scope = sessionStorage.getItem("drive-scope") || "user";
+      var content = await readFileAsBase64(file);
+      var res = await fetch("/api/files/write", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ bucket: "", path: file.name, content: content, scope: scope })
+      });
+      if (!res.ok) {
+        var txt = await res.text().catch(function(){ return ""; });
+        throw new Error("HTTP " + res.status + (txt ? ": " + txt.slice(0,120) : ""));
       }
-      throw lastErr || new Error("Upload failed");
+      return { ok: true };
     }
 
     async function saveAll() {
@@ -130,14 +131,17 @@
         catch(e){ fail++; console.warn("Share upload failed", e); }
       }
       progressEl.textContent = "";
-      if (fail === 0) setStatus("Saved " + ok + " file" + (ok===1?"":"s") + " to Drive.", "ok");
-      else setStatus("Saved " + ok + " file(s), " + fail + " failed. You can retry from Drive.", "err");
-      try {
-        var cache = await caches.open(SHARE_CACHE);
-        var keys = await cache.keys();
-        await Promise.all(keys.map(function(r){return cache.delete(r);}));
-      } catch(_){}
-      saveBtn.disabled = false;
+      if (fail === 0) {
+        setStatus("Saved " + ok + " file" + (ok===1?"":"s") + " to Drive.", "ok");
+        try {
+          var cache = await caches.open(SHARE_CACHE);
+          var keys = await cache.keys();
+          await Promise.all(keys.map(function(r){return cache.delete(r);}));
+        } catch(_){}
+      } else {
+        setStatus("Saved " + ok + " file(s), " + fail + " failed. You can retry.", "err");
+      }
+      saveBtn.disabled = fail === 0;
     }
 
     saveBtn.addEventListener("click", saveAll);
