@@ -100,6 +100,9 @@ fn client_can_act(client_caps: Option<&Value>) -> bool {
                 value.eq_ignore_ascii_case("gb.basic.v1")
                     || value.eq_ignore_ascii_case("actions")
                     || value.eq_ignore_ascii_case("tools")
+                    // The suite/assistant chat advertises UI automation under this
+                    // surface (#1691); it is an execution surface, not just text.
+                    || value.eq_ignore_ascii_case("ui_plan")
             })
         })
 }
