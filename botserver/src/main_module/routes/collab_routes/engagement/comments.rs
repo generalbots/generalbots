@@ -1,4 +1,4 @@
-use super::*;
+use super::super::*;
 
 /// `DELETE /api/collab/comments/:id` — soft-delete (author or admin only).
 pub async fn delete_comment(
@@ -30,7 +30,11 @@ pub async fn delete_comment(
     };
 
     if changed == 0 {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-comment-not-found"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-comment-not-found",
+        ));
     }
 
     if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {
@@ -60,7 +64,11 @@ pub async fn toggle_reaction(
     let locale = request_locale.locale();
     let emoji = req.emoji.trim().to_string();
     if emoji.is_empty() || emoji.chars().count() > 8 {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-emoji"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-emoji",
+        ));
     }
     let uid = collab_user_id(&user);
     let mut conn = state
@@ -185,7 +193,11 @@ pub async fn resolve_comment(
     };
 
     if changed == 0 {
-        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-comment-resolve-forbidden"));
+        return Err(err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-collab-comment-resolve-forbidden",
+        ));
     }
     botlog::safe_info!(
         "collab comment {} set resolved={} by {uid}",
@@ -221,7 +233,11 @@ pub async fn mark_comments_read(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let uid = collab_user_id(&user);
     let mut conn = state
@@ -254,7 +270,11 @@ pub async fn unread_count(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
+        return Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-collab-invalid-resource",
+        ));
     }
     let uid = collab_user_id(&user);
     let ty_prefix = if params.include_children {
@@ -297,178 +317,4 @@ pub async fn unread_count(
     .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(serde_json::json!({ "count": row.count })))
-}
-
-/// `POST /api/collab/presence` — heartbeat with optional typing flag.
-pub async fn update_presence(
-    State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
-    request_locale: botcore::i18n::RequestLocale,
-    Json(req): Json<PresenceBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let locale = request_locale.locale();
-    if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
-    }
-    let uid = collab_user_id(&user);
-    let name = collab_user_name(&user);
-    let typing = req.typing.unwrap_or(false);
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    diesel::sql_query(
-        "INSERT INTO collab_presence (resource_type, resource_id, user_id, user_name, last_seen, typing) \
-         VALUES ($1, $2, $3, $4, NOW(), $5) \
-         ON CONFLICT (resource_type, resource_id, user_id) \
-         DO UPDATE SET last_seen = NOW(), typing = $5, user_name = $4",
-    )
-    .bind::<Text, _>(&req.resource_type)
-    .bind::<Text, _>(&req.resource_id)
-    .bind::<Text, _>(&uid)
-    .bind::<Text, _>(&name)
-    .bind::<Bool, _>(typing)
-    .execute(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    Ok(Json(serde_json::json!({ "success": true })))
-}
-
-/// `GET /api/collab/presence?resource_type=&resource_id=` — who is active
-/// (heartbeat within the last 60 seconds) on the resource.
-pub async fn list_presence(
-    State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
-    Query(params): Query<CommentQuery>,
-    request_locale: botcore::i18n::RequestLocale,
-) -> Result<Json<Vec<PresenceItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let locale = request_locale.locale();
-    if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
-    }
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    let rows = diesel::sql_query(
-        "SELECT user_id, user_name, typing, last_seen FROM collab_presence \
-         WHERE resource_type = $1 AND resource_id = $2 \
-           AND last_seen > NOW() - INTERVAL '60 seconds' \
-         ORDER BY typing DESC, last_seen DESC",
-    )
-    .bind::<Text, _>(&params.resource_type)
-    .bind::<Text, _>(&params.resource_id)
-    .load::<PresenceRow>(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    let items: Vec<PresenceItem> = rows
-        .into_iter()
-        .map(|r| PresenceItem {
-            user_id: r.user_id,
-            user_name: r.user_name,
-            typing: r.typing,
-            last_seen: r.last_seen.to_rfc3339(),
-        })
-        .collect();
-
-    Ok(Json(items))
-}
-
-/// `GET /api/activity?resource_type=&resource_id=&limit=&before=` — audit
-/// timeline for a resource, newest first, cursor-paginated on `created_at`.
-pub async fn list_activity(
-    State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
-    Query(params): Query<ActivityQuery>,
-    request_locale: botcore::i18n::RequestLocale,
-) -> Result<Json<Vec<ActivityItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let locale = request_locale.locale();
-    if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
-    }
-    let limit = params.limit.unwrap_or(50).clamp(1, 200);
-    let before = params
-        .before
-        .as_deref()
-        .map(|s| chrono::DateTime::parse_from_rfc3339(s).map(|d| d.with_timezone(&chrono::Utc)))
-        .transpose()
-        .map_err(|_| err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-cursor"))?;
-
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    // A NULL `before` means "start from the newest"; the single 4-bind query
-    // keeps both cases type-compatible with diesel.
-    let rows = diesel::sql_query(
-        "SELECT id::text, actor_id, actor_name, action, payload, created_at \
-         FROM collab_activity \
-         WHERE resource_type = $1 AND resource_id = $2 \
-           AND ($3::timestamptz IS NULL OR created_at < $3) \
-         ORDER BY created_at DESC LIMIT $4",
-    )
-    .bind::<Text, _>(&params.resource_type)
-    .bind::<Text, _>(&params.resource_id)
-    .bind::<Nullable<Timestamptz>, _>(before)
-    .bind::<BigInt, _>(limit)
-    .load::<ActivityRow>(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    let items: Vec<ActivityItem> = rows
-        .into_iter()
-        .map(|r| ActivityItem {
-            id: r.id,
-            actor_id: r.actor_id,
-            actor_name: r.actor_name,
-            action: r.action,
-            payload: serde_json::from_str(&r.payload).unwrap_or(serde_json::Value::Null),
-            created_at: r.created_at.to_rfc3339(),
-        })
-        .collect();
-
-    Ok(Json(items))
-}
-
-/// `POST /api/activity` — record an audit event from a frontend mutation
-/// (edit/share/restore/transfer). The actor is always resolved server-side;
-/// `action` is restricted to a small allow-list.
-pub async fn record_activity_event(
-    State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
-    request_locale: botcore::i18n::RequestLocale,
-    Json(req): Json<RecordActivityBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let locale = request_locale.locale();
-    if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
-    }
-    const ALLOWED: &[&str] = &[
-        "create", "edit", "comment", "delete", "resolve", "reopen", "reaction", "share", "restore",
-        "transfer",
-    ];
-    if !ALLOWED.contains(&req.action.as_str()) {
-        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-action"));
-    }
-
-    let actor_id = collab_user_id(&user);
-    let actor_name = collab_user_name(&user);
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    record_activity(
-        &mut conn,
-        &actor_id,
-        &actor_name,
-        &req.resource_type,
-        &req.resource_id,
-        &req.action,
-        &req.payload,
-    );
-
-    Ok(Json(serde_json::json!({ "success": true })))
 }
