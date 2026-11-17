@@ -1,5 +1,5 @@
 <!-- Invoice Form - Billing Partial -->
-<form class="invoice-form" hx-post="/api/billing/invoices" hx-target="#invoices-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
+<form class="invoice-form" hx-post="/api/billing/invoices" hx-target="#invoices-table-body" hx-swap="innerHTML" hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful) closeBillingModal()">
     <div class="invoice-form-header">
         <h2 class="invoice-form-title" data-i18n="billing-new-invoice">New Invoice</h2>
         <button type="button" class="form-close" onclick="closeBillingModal()" aria-label="Close">

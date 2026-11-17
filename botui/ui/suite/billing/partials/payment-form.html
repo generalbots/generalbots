@@ -1,5 +1,5 @@
 <!-- Payment Form - Billing Partial -->
-<form class="invoice-form" hx-post="/api/billing/payments" hx-target="#payments-table-body" hx-swap="innerHTML" hx-on::after-request="closeBillingModal()">
+<form class="invoice-form" hx-post="/api/billing/payments" hx-target="#payments-table-body" hx-swap="innerHTML" hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful) closeBillingModal()">
     <div class="invoice-form-header">
         <h2 class="invoice-form-title" data-i18n="billing-record-payment">Record Payment</h2>
         <button type="button" class="form-close" onclick="closeBillingModal()">
