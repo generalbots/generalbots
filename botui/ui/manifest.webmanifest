@@ -5,13 +5,26 @@
   "start_url": "/",
   "scope": "/",
   "share_target": {
-    "action": "/",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
+    "action": "/share-intake",
+    "method": "POST",
+    "enctype": "multipart/form-data",
     "params": {
       "title": "title",
       "text": "text",
-      "url": "url"
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": [
+            "image/*",
+            "video/*",
+            "audio/*",
+            "application/pdf",
+            "text/*",
+            "application/*"
+          ]
+        }
+      ]
     }
   },
   "display": "standalone",

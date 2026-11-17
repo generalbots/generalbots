@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared to Drive — General Bots</title>
+  <link rel="stylesheet" href="/suite/identity/fonts.css">
+  <link rel="stylesheet" href="/suite/identity/tokens.css">
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); background: var(--bg, #0b1220); color: var(--text, #e5e7eb); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 40px; }
+    h1 { font-size: 1.4rem; margin: 0 0 8px; }
+    .muted { color: var(--text-muted, #94a3b8); margin: 0 0 16px; }
+    .card { background: var(--surface, #111827); border: 1px solid var(--border, #334155); border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .file-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border, #334155); border-radius: 8px; }
+    .file-name { font-weight: 600; word-break: break-word; }
+    .file-meta { color: var(--text-muted, #94a3b8); font-size: 0.9rem; white-space: nowrap; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    button, .btn { appearance: none; border: 1px solid var(--border, #334155); background: var(--surface-2, #1f2937); color: inherit; padding: 10px 14px; border-radius: 8px; cursor: pointer; font: inherit; min-height: 44px; }
+    .primary { background: var(--accent, #2563eb); border-color: transparent; color: #fff; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status { margin-top: 12px; min-height: 1.5em; }
+    .ok { color: #22c55e; }
+    .err { color: #f87171; }
+    .progress { font-size: 0.95rem; color: var(--text-muted, #94a3b8); }
+    a { color: var(--accent, #60a5fa); }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1 data-i18n="drive-share-intake-title">Save shared files to Drive</h1>
+    <p class="muted" id="intro">Review the shared items below, then save them to your Drive.</p>
+    <section class="card" aria-labelledby="files-heading">
+      <h2 id="files-heading" style="font-size:1rem;margin:0 0 10px;">Shared items</h2>
+      <ul id="file-list" class="file-list"><li class="muted">Loading shared items…</li></ul>
+      <div id="text-share" class="muted" style="margin-top:10px;display:none;"></div>
+      <div class="actions">
+        <button id="save-btn" class="primary" type="button" disabled>Save to Drive</button>
+        <a class="btn" href="/drive">Open Drive</a>
+      </div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="progress" class="progress" aria-live="polite"></div>
+    </section>
+  </main>
+  <script>
+  (function () {
+    var SHARE_CACHE = "gb-share-inbox-v1";
+    var META_KEY = "/__gb_share__/meta";
+    var listEl = document.getElementById("file-list");
+    var statusEl = document.getElementById("status");
+    var progressEl = document.getElementById("progress");
+    var saveBtn = document.getElementById("save-btn");
+    var textEl = document.getElementById("text-share");
+    var meta = null;
+    var fileBlobs = [];
+
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+    function fmtBytes(n){ if(!n) return "0 B"; var u=["B","KB","MB","GB"]; var i=0; while(n>=1024 && i<u.length-1){n/=1024;i++;} return (i? n.toFixed(1):n)+" "+u[i]; }
+    function setStatus(msg, cls){ statusEl.className = "status " + (cls||""); statusEl.textContent = msg||""; }
+
+    async function loadShared() {
+      try {
+        if (!("caches" in window)) throw new Error("Cache API unavailable");
+        var cache = await caches.open(SHARE_CACHE);
+        var metaRes = await cache.match(new Request(META_KEY));
+        if (!metaRes) { listEl.innerHTML = '<li class="muted">No shared files were found. You can still open Drive and upload manually.</li>'; return; }
+        meta = await metaRes.json();
+        if ((meta.text || meta.url) && !(meta.files && meta.files.length)) {
+          textEl.style.display = "block";
+          textEl.textContent = [meta.title, meta.text, meta.url].filter(Boolean).join(" — ");
+        }
+        if (!meta.files || !meta.files.length) {
+          listEl.innerHTML = '<li class="muted">No files were shared. ' + ((meta.url||meta.text) ? 'Shared text/link shown above.' : '') + '</li>';
+          return;
+        }
+        for (var i=0;i<meta.files.length;i++) {
+          var f = meta.files[i];
+          var res = await cache.match(new Request(f.key));
+          var blob = res ? await res.blob() : null;
+          fileBlobs.push(blob ? new File([blob], f.name, { type: f.type || blob.type || "application/octet-stream" }) : null);
+        }
+        listEl.innerHTML = meta.files.map(function(f, i){
+          var ok = !!fileBlobs[i];
+          return '<li class="file-item"><span class="file-name">'+esc(f.name||('file-'+(i+1)))+'</span><span class="file-meta">'+esc(fmtBytes(f.size||0))+(ok?'':' • unavailable')+'</span></li>';
+        }).join("");
+        saveBtn.disabled = fileBlobs.filter(Boolean).length === 0;
+        if (saveBtn.disabled) setStatus("Shared files could not be read. Open Drive to upload manually.", "err");
+      } catch (e) {
+        listEl.innerHTML = '<li class="muted">Could not read shared items.</li>';
+        setStatus("Unable to access shared items: " + (e && e.message ? e.message : e), "err");
+      }
+    }
+
+    async function uploadOne(file) {
+      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var form = new FormData();
+      form.append("file", file, file.name);
+      form.append("path", "");
+      form.append("bucket", "");
+      form.append("scope", "user");
+      var headers = {};
+      if (token) headers["Authorization"] = "Bearer " + token;
+      // Try common drive upload endpoints.
+      var endpoints = ["/api/drive/upload", "/api/files/upload", "/api/drive/upload-binary"];
+      var lastErr = null;
+      for (var i=0;i<endpoints.length;i++) {
+        try {
+          var res = await fetch(endpoints[i], { method: "POST", headers: headers, body: form });
+          if (res.ok) return { ok: true, endpoint: endpoints[i] };
+          lastErr = new Error(endpoints[i] + ": HTTP " + res.status);
+          if (res.status === 404 || res.status === 405) continue;
+          var txt = await res.text().catch(function(){return "";});
+          lastErr = new Error(endpoints[i] + ": " + res.status + " " + txt.slice(0,120));
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error("Upload failed");
+    }
+
+    async function saveAll() {
+      var files = fileBlobs.filter(Boolean);
+      if (!files.length) return;
+      saveBtn.disabled = true;
+      setStatus("", "");
+      var ok = 0, fail = 0;
+      for (var i=0;i<files.length;i++) {
+        progressEl.textContent = "Uploading " + (i+1) + " of " + files.length + ": " + files[i].name;
+        try { await uploadOne(files[i]); ok++; }
+        catch(e){ fail++; console.warn("Share upload failed", e); }
+      }
+      progressEl.textContent = "";
+      if (fail === 0) setStatus("Saved " + ok + " file" + (ok===1?"":"s") + " to Drive.", "ok");
+      else setStatus("Saved " + ok + " file(s), " + fail + " failed. You can retry from Drive.", "err");
+      try {
+        var cache = await caches.open(SHARE_CACHE);
+        var keys = await cache.keys();
+        await Promise.all(keys.map(function(r){return cache.delete(r);}));
+      } catch(_){}
+      saveBtn.disabled = false;
+    }
+
+    saveBtn.addEventListener("click", saveAll);
+    loadShared();
+  })();
+  </script>
+</body>
+</html>

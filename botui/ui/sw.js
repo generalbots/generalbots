@@ -6,7 +6,7 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v45";
+var CACHE = "gb-desktop-shell-v46";
 var CORE = [
   "/suite/desktop.html",
   // Boot-critical inline layout partials (first paint, auth gate, base layout).
@@ -93,8 +93,47 @@ function isCore(url) {
   });
 }
 
+var SHARE_CACHE = "gb-share-inbox-v1";
+var SHARE_META_KEY = "/__gb_share__/meta";
+var SHARE_FILE_PREFIX = "/__gb_share__/file/";
+
+async function storeSharedPayload(request) {
+  try {
+    var form = await request.formData();
+    var files = form.getAll("files");
+    var meta = {
+      title: form.get("title") || "",
+      text: form.get("text") || "",
+      url: form.get("url") || "",
+      ts: Date.now(),
+      files: []
+    };
+    var cache = await caches.open(SHARE_CACHE);
+    var existing = await cache.keys();
+    await Promise.all(existing.map(function (req) { return cache.delete(req); }));
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f || typeof f.name === "undefined") continue;
+      var key = SHARE_FILE_PREFIX + i;
+      meta.files.push({ key: key, name: f.name, type: f.type || "application/octet-stream", size: f.size || 0 });
+      await cache.put(new Request(key), new Response(f, { headers: { "Content-Type": f.type || "application/octet-stream" } }));
+    }
+    await cache.put(new Request(SHARE_META_KEY), new Response(JSON.stringify(meta), { headers: { "Content-Type": "application/json" } }));
+    return Response.redirect("/suite/drive/share-intake.html?shared=1", 303);
+  } catch (err) {
+    return Response.redirect("/suite/drive/share-intake.html?shared=0", 303);
+  }
+}
+
 self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
+
+  // #2510 — Web Share Target (POST multipart) for files shared into the PWA.
+  if (e.request.method === "POST" && url.pathname === "/share-intake") {
+    e.respondWith(storeSharedPayload(e.request));
+    return;
+  }
+
   if (url.pathname.startsWith("/api/") || e.request.method !== "GET") return;
   // Inside the desktop application the pages come from the application
   // itself and are always available. A fetch from this worker cannot reach
