@@ -62,9 +62,8 @@ impl PackageManager {
             use std::io::Write;
             use std::os::unix::fs::OpenOptionsExt;
             let mut f = std::fs::OpenOptions::new()
-                .create(true)
+                .create_new(true)
                 .write(true)
-                .truncate(true)
                 .mode(0o600)
                 .open(&unseal_keys_file)?;
             f.write_all(unseal_content.as_bytes())?;
@@ -86,9 +85,22 @@ impl PackageManager {
             if existing.contains("VAULT_ADDR=") {
                 warn!(".env already contains VAULT_ADDR, not overwriting");
             } else {
-                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-                use std::io::Write;
-                file.write_all(env_content.as_bytes())?;
+                #[cfg(unix)]
+                {
+                    use std::io::Write;
+                    use std::os::unix::fs::OpenOptionsExt;
+                    let mut file = std::fs::OpenOptions::new()
+                        .append(true)
+                        .mode(0o600)
+                        .open(&env_file)?;
+                    file.write_all(env_content.as_bytes())?;
+                }
+                #[cfg(not(unix))]
+                {
+                    use std::io::Write;
+                    let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
+                    file.write_all(env_content.as_bytes())?;
+                }
                 info!("Appended Vault config to .env");
             }
         } else {
@@ -230,14 +242,57 @@ impl PackageManager {
                     .filter(|line| !line.starts_with("VAULT_ADDR=") && !line.starts_with("VAULT_TOKEN="))
                     .collect::<Vec<_>>()
                     .join("\n");
-                std::fs::write(&env_file, format!("{}\n{}", updated.trim(), env_content))?;
+                #[cfg(unix)]
+                {
+                    use std::io::Write;
+                    use std::os::unix::fs::OpenOptionsExt;
+                    let mut f = std::fs::OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .truncate(true)
+                        .mode(0o600)
+                        .open(&env_file)?;
+                    f.write_all(format!("{}\n{}", updated.trim(), env_content).as_bytes())?;
+                }
+                #[cfg(not(unix))]
+                {
+                    std::fs::write(&env_file, format!("{}\n{}", updated.trim(), env_content))?;
+                }
             } else {
-                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-
-                file.write_all(env_content.as_bytes())?;
+                #[cfg(unix)]
+                {
+                    use std::io::Write;
+                    use std::os::unix::fs::OpenOptionsExt;
+                    let mut file = std::fs::OpenOptions::new()
+                        .append(true)
+                        .mode(0o600)
+                        .open(&env_file)?;
+                    file.write_all(env_content.as_bytes())?;
+                }
+                #[cfg(not(unix))]
+                {
+                    use std::io::Write;
+                    let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
+                    file.write_all(env_content.as_bytes())?;
+                }
             }
         } else {
-            std::fs::write(&env_file, env_content.trim_start())?;
+            #[cfg(unix)]
+            {
+                use std::io::Write;
+                use std::os::unix::fs::OpenOptionsExt;
+                let mut f = std::fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .mode(0o600)
+                    .open(&env_file)?;
+                f.write_all(env_content.trim_start().as_bytes())?;
+            }
+            #[cfg(not(unix))]
+            {
+                std::fs::write(&env_file, env_content.trim_start())?;
+            }
         }
 
         info!("Generated .env with Vault config from container {}", container_name);
