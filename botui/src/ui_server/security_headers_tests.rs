@@ -7,14 +7,21 @@
 //! exercised against a 404, a 500 and a 401, because a header layer that only
 //! decorates 200s is the classic regression: the error page is what an attacker
 //! reads.
+//!
+//! Production terminates TLS at the proxy, so `send()` forwards
+//! `X-Forwarded-Proto: https`; `send_plain()` covers the local-HTTP case where
+//! HSTS must be withheld (#2376).
 
 use super::*;
-use axum::http::{Request, StatusCode};
+use axum::http::{HeaderMap, Request, StatusCode};
+use botsecurity_core::headers::{hsts_enabled, SecurityHeadersConfig};
 use tower::ServiceExt;
 
-/// The six headers IMP-09 requires on every response.
+/// The six headers IMP-09 requires on every response. On the browser-facing
+/// ports CSP is report-only so the inline-handler ratchet can finish without
+/// breaking the app (#2376).
 const REQUIRED: [&str; 6] = [
-    "content-security-policy",
+    "content-security-policy-report-only",
     "strict-transport-security",
     "x-frame-options",
     "x-content-type-options",
@@ -22,22 +29,38 @@ const REQUIRED: [&str; 6] = [
     "permissions-policy",
 ];
 
-async fn send(router: Router, path: &str) -> (StatusCode, axum::http::HeaderMap) {
-    let request = Request::builder()
-        .uri(path)
+async fn send_with_proto(router: Router, path: &str, https: bool) -> (StatusCode, HeaderMap) {
+    let mut builder = Request::builder().uri(path);
+    if https {
+        builder = builder.header("x-forwarded-proto", "https");
+    }
+    let request = builder
         .body(axum::body::Body::empty())
         .expect("test request is well formed");
     let response = router.oneshot(request).await.expect("router answers");
     (response.status(), response.headers().clone())
 }
 
-fn assert_all_six(headers: &axum::http::HeaderMap, context: &str) {
+/// Simulates the production path: Caddy terminates TLS and forwards HTTPS.
+async fn send(router: Router, path: &str) -> (StatusCode, HeaderMap) {
+    send_with_proto(router, path, true).await
+}
+
+/// Simulates local development: plain HTTP, no TLS hop anywhere.
+async fn send_plain(router: Router, path: &str) -> (StatusCode, HeaderMap) {
+    send_with_proto(router, path, false).await
+}
+
+fn header(headers: &HeaderMap, name: &str) -> &str {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+}
+
+fn assert_all_six(headers: &HeaderMap, context: &str) {
     for name in REQUIRED {
-        let value = headers
-            .get(name)
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default();
-        assert!(!value.is_empty(), "{name} missing from {context}");
+        assert!(!header(headers, name).is_empty(), "{name} missing from {context}");
     }
 }
 
@@ -167,13 +190,69 @@ async fn a_200_carries_every_header() {
     assert_all_six(&headers, "200");
 }
 
+#[tokio::test]
+async fn csp_is_report_only_never_enforced() {
+    for (_, headers) in [
+        send(configure_router(), "/favicon.ico").await,
+        send(configure_cloud_router(), "/store").await,
+        send(configure_login_router(), "/").await,
+    ] {
+        assert!(
+            header(&headers, "content-security-policy-report-only").contains("default-src 'self'"),
+            "report-only CSP must carry the shared policy"
+        );
+        assert!(
+            header(&headers, "content-security-policy").is_empty(),
+            "an enforcing CSP would blank the inline-handler suite"
+        );
+    }
+}
+
+#[tokio::test]
+async fn hsts_is_only_sent_on_tls_responses() {
+    let (_, tls) = send(error_shapes(), "/ok").await;
+    assert!(!header(&tls, "strict-transport-security").is_empty());
+    let (_, plain) = send_plain(error_shapes(), "/ok").await;
+    assert!(
+        header(&plain, "strict-transport-security").is_empty(),
+        "plain HTTP must not pin the host to HTTPS"
+    );
+    // The remaining five headers still apply on local HTTP.
+    for name in REQUIRED {
+        if name != "strict-transport-security" {
+            assert!(!header(&plain, name).is_empty(), "{name} missing on plain HTTP");
+        }
+    }
+}
+
+#[tokio::test]
+async fn frame_and_sensor_policy_match_the_project_baseline() {
+    let (_, headers) = send(configure_router(), "/favicon.ico").await;
+    assert_eq!(header(&headers, "x-frame-options"), "SAMEORIGIN");
+    assert_eq!(header(&headers, "x-content-type-options"), "nosniff");
+    assert_eq!(
+        header(&headers, "referrer-policy"),
+        "strict-origin-when-cross-origin"
+    );
+    let policy = header(&headers, "permissions-policy");
+    // geolocation is fully disabled; camera/microphone stay delegated to
+    // (self) so chat voice, camera capture and Meet keep working (#1691).
+    for directive in [
+        "geolocation=()",
+        "camera=(self)",
+        "microphone=(self)",
+    ] {
+        assert!(policy.contains(directive), "permissions-policy missing {directive}");
+    }
+}
+
 #[test]
 fn hsts_can_be_turned_off_for_plain_http_local_dev() {
-    // `harden()` reads `GB_SECURITY_HSTS`; the parser is shared with botserver
-    // and tested there. Here we only pin that the layer honours a disabled
-    // HSTS config, which is what the env flag produces.
+    // `ui_security_headers_config()` reads `GB_SECURITY_HSTS`; the parser is
+    // shared with botserver and tested there. Here we only pin that the
+    // config honours a disabled HSTS setting, which is what the env flag does.
     let config = SecurityHeadersConfig::from_env();
-    if botsecurity_core::headers::hsts_enabled() {
+    if hsts_enabled() {
         assert!(config.strict_transport_security.is_some());
     } else {
         assert!(config.strict_transport_security.is_none());

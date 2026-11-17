@@ -3,6 +3,7 @@ pub mod cloud;
 pub mod constants;
 pub mod login;
 pub mod proxy;
+pub mod security_headers;
 pub mod suite;
 pub mod suite_ops;
 pub mod tls_policy;
@@ -42,15 +43,19 @@ use crate::shared::AppState;
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::SUITE_DIRS;
 use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
-use botsecurity_core::headers::{with_security_headers, SecurityHeadersConfig};
+use botsecurity_core::headers::with_security_headers;
 
-/// Applies the shared IMP-09 header layer (botserver uses the same one).
+/// Applies the shared IMP-09 header layer (botserver uses the same one), then
+/// the BotUI-only rollout rules from `security_headers`.
 ///
 /// Must be the last thing done to a router: axum only layers routes that
 /// already exist, and wrapping the finished router is what puts the headers on
-/// fallbacks, static files and error responses as well as on 200s.
+/// fallbacks, static files and error responses as well as on 200s. The
+/// BotUI middleware is outermost so it can post-process the shared layer's
+/// output (report-only CSP, TLS-gated HSTS).
 fn harden(router: Router) -> Router {
-    with_security_headers(router, SecurityHeadersConfig::from_env())
+    with_security_headers(router, security_headers::ui_security_headers_config())
+        .layer(axum::middleware::from_fn(security_headers::ui_header_policy))
 }
 
 fn create_api_router() -> Router<AppState> {
