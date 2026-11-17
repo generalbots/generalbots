@@ -180,7 +180,7 @@ Settings </button>
 <div class="invoice-item"> <div class="invoice-info">
 <span class="invoice-id">INV-2025-0122</span> <span class="invoice-date">Jan 21, 2025</span>
 </div> <div class="invoice-amount">$247.50</div>
-<span class="invoice-status paid" data-i18n="billing-paid">Paid</span> <button class="btn-icon" onclick="downloadInvoice('INV-2025-0122')">
+<span class="invoice-status paid" data-i18n="billing-paid">Paid</span> <button class="btn-icon" onclick="downloadInvoice('INV-2025-0122')" aria-label="Download invoice">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
 </svg> </button>
@@ -188,21 +188,21 @@ Settings </button>
 <div class="invoice-info"> <span class="invoice-id">INV-2024-1221</span>
 <span class="invoice-date">Dec 21, 2024</span> </div>
 <div class="invoice-amount">$198.00</div> <span class="invoice-status paid" data-i18n="billing-paid">Paid</span>
-<button class="btn-icon" onclick="downloadInvoice('INV-2024-1221')"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+<button class="btn-icon" onclick="downloadInvoice('INV-2024-1221')" aria-label="Download invoice"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline>
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
 </button> </div>
 <div class="invoice-item"> <div class="invoice-info">
 <span class="invoice-id">INV-2024-1121</span> <span class="invoice-date">Nov 21, 2024</span>
 </div> <div class="invoice-amount">$185.25</div>
-<span class="invoice-status paid" data-i18n="billing-paid">Paid</span> <button class="btn-icon" onclick="downloadInvoice('INV-2024-1121')">
+<span class="invoice-status paid" data-i18n="billing-paid">Paid</span> <button class="btn-icon" onclick="downloadInvoice('INV-2024-1121')" aria-label="Download invoice">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
 </svg> </button>
 </div> </div>
 </div> <div class="card alerts-activity">
 <div class="card-header"> <h2 data-i18n="auto-billing-alerts">Billing Alerts</h2>
-<button class="btn-secondary btn-sm" onclick="configureAlerts()"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+<button class="btn-secondary btn-sm" onclick="configureAlerts()" aria-label="Configure alerts"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path> <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
 </svg> Configure
 </button> </div>
@@ -212,7 +212,7 @@ Settings </button>
 <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
 </div> <div class="alert-content">
 <span class="alert-title">Storage approaching 70%</span> <span class="alert-time">2 hours ago</span>
-</div> <button class="btn-icon dismiss" onclick="dismissAlert(this)">
+</div> <button class="btn-icon dismiss" onclick="dismissAlert(this)" aria-label="Dismiss">
 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -222,7 +222,7 @@ Settings </button>
 </svg> </div>
 <div class="alert-content"> <span class="alert-title" data-i18n="auto-invoice-generated-for-january">Invoice generated for January</span>
 <span class="alert-time">1 day ago</span> </div>
-<button class="btn-icon dismiss" onclick="dismissAlert(this)"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+<button class="btn-icon dismiss" onclick="dismissAlert(this)" aria-label="Dismiss"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="alert-item success">
@@ -231,7 +231,7 @@ Settings </button>
 </svg> </div>
 <div class="alert-content"> <span class="alert-title" data-i18n="billing-payment-desc">Payment received</span>
 <span class="alert-time">3 days ago</span> </div>
-<button class="btn-icon dismiss" onclick="dismissAlert(this)"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+<button class="btn-icon dismiss" onclick="dismissAlert(this)" aria-label="Dismiss"> <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> </div>
