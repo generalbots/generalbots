@@ -288,7 +288,7 @@ pub fn desired_from_config(
     let bare = model_file.rsplit(['/', '\\']).next().unwrap_or(model_file);
     let model_path = format!("{stack}/data/llm/{bare}");
     if !std::path::Path::new(&model_path).exists() { return None; }
-    let server_dir = format!("{stack}/bin/llm/bin");
+    let server_dir = format!("{stack}/bin/llm");
     let gpu = match gpu_layers.trim() {
         "" | "auto" => String::new(),
         other => other.to_string(),

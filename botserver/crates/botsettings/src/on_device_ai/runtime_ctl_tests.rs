@@ -32,7 +32,7 @@ fn build_args_matches_package_manager_line() {
     let d = DesiredRuntime {
         model_file: "model.gguf".into(),
         model_path: "/data/llm/model.gguf".into(),
-        server_dir: "/bin/llm/bin".into(),
+        server_dir: "/bin/llm".into(),
         gpu_layers: String::new(),
         ctx_size: "8192".into(),
     };
@@ -54,7 +54,7 @@ fn build_args_includes_gpu_layers_when_explicit() {
     let d = DesiredRuntime {
         model_file: "model.gguf".into(),
         model_path: "/data/llm/model.gguf".into(),
-        server_dir: "/bin/llm/bin".into(),
+        server_dir: "/bin/llm".into(),
         gpu_layers: "0".into(),
         ctx_size: "8192".into(),
     };
