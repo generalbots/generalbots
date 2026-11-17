@@ -306,3 +306,5 @@ db-database = Database
 db-empty-query = Execute a query to see results
 db-insert = Insert
 db-select-table = Select a table
+tasks-load-error = 작업을 불러오지 못했습니다.
+tasks-sign-in-to-load = 작업을 불러오려면 로그인하세요.

@@ -306,3 +306,5 @@ db-database = Database
 db-empty-query = Execute a query to see results
 db-insert = Insert
 db-select-table = Select a table
+tasks-load-error = Could not load tasks.
+tasks-sign-in-to-load = Sign in to load tasks.

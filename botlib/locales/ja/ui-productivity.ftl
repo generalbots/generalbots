@@ -306,3 +306,5 @@ db-database = Database
 db-empty-query = Execute a query to see results
 db-insert = Insert
 db-select-table = Select a table
+tasks-load-error = タスクを読み込めませんでした。
+tasks-sign-in-to-load = タスクを読み込むにはサインインしてください。

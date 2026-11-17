@@ -150,6 +150,14 @@
 
   function onHtmxAfterRequest(evt) {
     if (!evt || !evt.detail) return;
+    if (isTaskListRequest(evt)) {
+      var status = evt.detail.xhr && typeof evt.detail.xhr.status === "number" ? evt.detail.xhr.status : 0;
+      var failed = evt.detail.successful === false || status >= 400 || status === 0;
+      if (failed) {
+        showTaskListError(byId("task-list"), status);
+        return;
+      }
+    }
     var elt = evt.detail.elt;
     if (elt && elt.id === "pending-fill-form" && evt.detail.successful) {
       if (typeof htmx !== "undefined" && htmx.trigger) htmx.trigger(document.body, "taskCreated");
@@ -201,6 +209,34 @@
     }
   }
 
+  function taskListErrorMessage(status) {
+    var t = (typeof window.gbT === "function") ? window.gbT : function (_k, fallback) { return fallback; };
+    if (status === 401 || status === 403) {
+      return t("tasks-sign-in-to-load", "Sign in to load tasks.");
+    }
+    return t("tasks-load-error", "Could not load tasks.");
+  }
+
+  function showTaskListError(target, status) {
+    if (!target) return;
+    var message = taskListErrorMessage(status);
+    target.setAttribute("aria-busy", "false");
+    target.innerHTML =
+      '<div class="loading-state" role="alert" aria-live="assertive">' +
+      '<p>' + escapeText(message) + '</p>' +
+      '</div>';
+  }
+
+  function isTaskListRequest(evt) {
+    if (!evt || !evt.detail) return false;
+    var target = evt.detail.target || evt.detail.elt;
+    var pathInfo = evt.detail.pathInfo || {};
+    var requestPath = pathInfo.requestPath || pathInfo.path || "";
+    if (target && target.id === "task-list") return true;
+    if (target && target.closest && target.closest("#task-list")) return true;
+    return requestPath.indexOf("/api/ui/tasks") !== -1;
+  }
+
   function onHtmxAfterSwap(evt) {
     if (!evt || !evt.detail || !evt.detail.target) return;
     if (evt.detail.target.id !== "task-list") return;
@@ -210,6 +246,12 @@
     if (taskList && emptyState) {
       emptyState.style.display = taskList.querySelector(".task-card") ? "none" : "flex";
     }
+  }
+
+  function onHtmxResponseError(evt) {
+    if (!isTaskListRequest(evt)) return;
+    var status = evt.detail.xhr && typeof evt.detail.xhr.status === "number" ? evt.detail.xhr.status : 0;
+    showTaskListError(byId("task-list"), status);
   }
 
   window.showNewIntentModal = showNewIntentModal;
@@ -223,6 +265,7 @@
 
   document.addEventListener("htmx:afterRequest", onHtmxAfterRequest);
   document.addEventListener("htmx:afterSwap", onHtmxAfterSwap);
+  document.addEventListener("htmx:responseError", onHtmxResponseError);
   document.body.addEventListener("taskCreated", updateFilterCounts);
 
   function init() {
