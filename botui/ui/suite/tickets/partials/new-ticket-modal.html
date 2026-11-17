@@ -5,7 +5,7 @@
              response is a ticket object, so swap nothing and refresh the
              list instead of dumping raw JSON into the table body. -->
         <form class="ticket-form" hx-ext="json-enc" hx-post="/api/tickets" hx-swap="none"
-              hx-on::after-request="closeTicketsModal(); if (window.refreshTicketsList) window.refreshTicketsList();">
+              hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful){closeTicketsModal(); if (window.refreshTicketsList) window.refreshTicketsList();}">
             <div class="ticket-form-header">
                 <h2 class="ticket-form-title" data-i18n="tickets-new-case">New Support Case</h2>
                 <button type="button" class="form-close" onclick="closeTicketsModal()" aria-label="Close">

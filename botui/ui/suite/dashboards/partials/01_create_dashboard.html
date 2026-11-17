@@ -27,7 +27,7 @@
                 hx-post="/api/dashboards"
                 hx-target="#dashboards-grid"
                 hx-swap="innerHTML"
-                hx-on::after-request="closeCreateDashboardModal()"
+                hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful) closeCreateDashboardModal()"
             >
                 <div class="form-group">
                     <label for="dashboardName" data-i18n="dashboards-name"

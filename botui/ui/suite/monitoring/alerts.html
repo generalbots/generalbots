@@ -229,7 +229,7 @@
               hx-post="/api/monitoring/alerts/rules"
               hx-target="#rules-grid"
               hx-swap="innerHTML"
-              hx-on::after-request="closeCreateAlertModal()">
+              hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful) closeCreateAlertModal()">
             <div class="modal-body">
                 <div class="form-section">
                     <h4 data-i18n="settings-basic-info">Basic Information</h4>
