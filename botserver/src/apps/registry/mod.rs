@@ -242,6 +242,7 @@ mod launcher_split_guard_tests {
         "tasks",
         "calendar",
         "mail",
+        "preview",
     ];
 
     /// #2097 — apps the launcher lists only while Preview mode is on.

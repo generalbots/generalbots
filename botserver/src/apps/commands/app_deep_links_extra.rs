@@ -156,6 +156,19 @@ pub static APP_DEEP_LINKS_EXTRA: &[(&str, &[DeepLinkParam])] = &[
             example: "Sao%20Paulo",
         }],
     ),
+    ("notepad", &[]),
+    ("preview", &[
+        DeepLinkParam {
+            key: "file",
+            description: "file name or path",
+            example: "output/report.pdf",
+        },
+        DeepLinkParam {
+            key: "bucket",
+            description: "optional bucket",
+            example: "default.gbai",
+        },
+    ]),
 ];
 
 /// Every declared deep-link table, core first.

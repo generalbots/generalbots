@@ -310,7 +310,7 @@ pub fn prompt_block(results: &[WebSearchResult]) -> String {
          - List at least 5 items when 5 or more article sources are provided; \
          otherwise list every article source provided. Never invent items, \
          headlines, outlets, dates or URLs to reach a count.\n\
-         - Order newest first when dates are available, one per topic. Never \
+         - Order newest first when dates are available, one per topic. never \
          repeat a headline or a URL.\n\
          - Every item is ONE line in this exact shape: \
          `- **[headline](ARTICLE_URL)** — outlet, published YYYY-MM-DD`.\n\
