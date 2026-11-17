@@ -29,7 +29,11 @@ impl ComponentDownload {
             (
                 self.url_win.as_deref().unwrap_or(&self.url),
                 self.filename_win.as_deref().unwrap_or(&self.filename),
-                if self.url_win.is_some() { &self.sha256_win } else { &self.sha256 },
+                if self.url_win.is_some() {
+                    &self.sha256_win
+                } else {
+                    &self.sha256
+                },
             )
         } else if aarch64 && self.url_arm64.is_some() {
             (
@@ -148,8 +152,14 @@ mod tests {
     #[test]
     fn sha256_for_url_resolves_each_variant() {
         let c = component();
-        assert_eq!(c.sha256_for_url("https://example.com/llama-x86.zip"), Some("x86"));
-        assert_eq!(c.sha256_for_url("https://example.com/llama-win.zip"), Some("win"));
+        assert_eq!(
+            c.sha256_for_url("https://example.com/llama-x86.zip"),
+            Some("x86")
+        );
+        assert_eq!(
+            c.sha256_for_url("https://example.com/llama-win.zip"),
+            Some("win")
+        );
         assert_eq!(
             c.sha256_for_url("https://example.com/llama-arm64.tar.gz"),
             Some("arm")
