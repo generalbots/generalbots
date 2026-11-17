@@ -12,6 +12,8 @@
 
 Drive is your personal cloud storage within General Bots Suite. Upload, organize, and share files with a familiar interface. Built with HTMX for smooth interactions and MinIO for reliable object storage.
 
+Under the **Default** theme Drive wears the assistant identity: paper and ink surfaces, hairline borders, the orange accent used as a tint for the active view and selections, quiet uppercase column headers and 10–12px controls. Every existing flow — tabs, breadcrumb, upload, grid/list, preview, versions, comments, offline sync — is unchanged.
+
 ---
 
 ## Features

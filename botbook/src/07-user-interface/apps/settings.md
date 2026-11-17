@@ -10,6 +10,8 @@
 
 Settings is the user preferences application in General Bots Suite. Manage your profile, security credentials, appearance, notifications, and third-party integrations. Settings gives you full control over how the platform looks, feels, and behaves across all your sessions.
 
+Under the **Default** theme Settings uses the assistant identity: a quiet 236px section rail with the active row tinted in the accent, hairline cards with 16px corners, 10px form controls with an accent focus ring, and the accent as the primary action. The section registry, security panels, integrations, ledger and admin screens are unchanged.
+
 ---
 
 ## Features
