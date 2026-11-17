@@ -350,5 +350,5 @@ impl PlanManager {
 }
 
 #[cfg(test)]
-#[path = "../plans_tests.rs"]
+#[path = "../plans_tests/mod.rs"]
 mod plans_tests;
