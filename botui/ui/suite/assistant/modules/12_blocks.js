@@ -274,7 +274,7 @@ A.blockError = function (ev) {
     var s = ev.summary || ev.data || ev;
     return block({ icon: "warning-circle", title: t("Erro","Error"),
         summary: s.message || s.error || "", status: "failed", activityId: ev.id,
-        footerHtml: '<button class="gb-set-btn-sm gb-msg-retry" onclick="(function(){var A=GBAssistant,u=document.querySelectorAll(\'#gbMessages .gb-msg-user\'),l=u[u.length-1];if(!l)return;var t=(l.dataset.originalContent||\'\').trim();if(!t)return;this.closest(\'.gb-msg-assistant\').remove();A.lastCompletedContent=\'\';A.lastCompletedTime=0;A.showThinking();if(!A.sendMessage(t)){A.hideThinking();A.renderErrorCode(\'model_unreachable\');}}).call(this)">' +
+        footerHtml: '<button class="gb-set-btn-sm gb-msg-retry" onclick="GBAssistant.regenerateFrom(this.closest(\'.gb-msg-assistant\'))">' +
             esc(t("Tentar de novo","Try again")) + '</button>' });
 };
 
@@ -436,13 +436,8 @@ A.addMsgToolbar = function (el, content, retryable) {
     }
     if (retryable) {
         var rt = document.createElement("button"); rt.className = "gb-msg-toolbar-btn"; rt.title = t("Tentar de novo","Try again");
-        rt.innerHTML = I("arrows-clockwise", 14); rt.addEventListener("click", function () {
-            var u = document.querySelectorAll("#gbMessages .gb-msg-user"), l = u[u.length-1];
-            var txt = l && (l.dataset.originalContent||l.textContent||"").trim();
-            if (!txt) return;
-            el.remove(); A.lastCompletedContent = ""; A.lastCompletedTime = 0; A.showThinking();
-            if (!A.sendMessage(txt)) { A.hideThinking(); A.renderErrorCode("model_unreachable"); }
-        }); tb.appendChild(rt);
+        rt.innerHTML = I("arrows-clockwise", 14);
+        rt.addEventListener("click", function () { A.regenerateFrom(el); }); tb.appendChild(rt);
     }
     el.appendChild(tb);
 };
