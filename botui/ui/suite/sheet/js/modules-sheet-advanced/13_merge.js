@@ -2,6 +2,17 @@
 /* Sheet advanced module: 13_merge — merge/unmerge the real selection and render merged regions */
 
 (function () {
+  function showToast(msg, ok) {
+    if (window.GBToasts && typeof window.GBToasts.show === "function") {
+      window.GBToasts.show("Sheets", msg, ok === false ? "error" : "info");
+      return;
+    }
+    if (typeof window.showToast === "function") {
+      window.showToast(msg, ok);
+      return;
+    }
+    console.info(msg);
+  }
   let wrapped = false;
 
   function grid() {
