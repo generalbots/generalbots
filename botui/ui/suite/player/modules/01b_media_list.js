@@ -139,6 +139,7 @@
 
     async function loadMediaList() {
         const list = document.getElementById("file-list");
+        const recent = document.getElementById("recent-files");
         try {
             const response = await fetch("/api/files/list?scope=user&_=" + Date.now(), {
                 headers: playerAuthHeaders(),
@@ -157,11 +158,16 @@
                 .filter(function (f) { return f.kind && f.path; });
             renderMediaList();
         } catch (err) {
+            const msg = err && err.message ? String(err.message) : String(err || "");
+            const needsSignIn = msg.indexOf("401") !== -1 || msg.indexOf("403") !== -1;
+            const display = needsSignIn
+                ? "Sign in to view your Drive media."
+                : "Could not load your Drive media (" + playerEscape(msg) + "). Check that Drive is connected and retry.";
             if (list) {
-                list.innerHTML =
-                    '<div class="empty-message">Could not load your Drive media (' +
-                    playerEscape(err.message) +
-                    '). Check that Drive is connected and retry.</div>';
+                list.innerHTML = '<div class="empty-message" role="alert" aria-live="assertive">' + display + "</div>";
+            }
+            if (recent) {
+                recent.innerHTML = '<div class="empty-message" role="alert" aria-live="assertive">' + (needsSignIn ? "Sign in to view recent media." : "Could not load recent media.") + "</div>";
             }
         }
     }
