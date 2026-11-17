@@ -120,3 +120,8 @@ app-weather-name = 天气
 app-weather-desc = 任意城市的当前天气和预报。
 app-recycle-name = 回收站
 app-recycle-desc = 从 Drive 恢复或永久删除已删除的文件。
+
+# Timer modes (#2542)
+timer-mode-focus = 专注
+timer-mode-short-break = 短休息
+timer-mode-long-break = 长休息

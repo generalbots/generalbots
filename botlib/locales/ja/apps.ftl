@@ -120,3 +120,8 @@ app-weather-name = 天気
 app-weather-desc = 任意の都市の現在の天気と予報。
 app-recycle-name = ゴミ箱
 app-recycle-desc = Drive で削除したファイルを復元または完全削除します。
+
+# Timer modes (#2542)
+timer-mode-focus = 集中
+timer-mode-short-break = 短い休憩
+timer-mode-long-break = 長い休憩

@@ -120,3 +120,8 @@ app-weather-name = Météo
 app-weather-desc = Conditions actuelles et prévisions pour n'importe quelle ville.
 app-recycle-name = Corbeille
 app-recycle-desc = Restaurez ou supprimez définitivement les fichiers mis à la corbeille dans Drive.
+
+# Timer modes (#2542)
+timer-mode-focus = Concentration
+timer-mode-short-break = Pause courte
+timer-mode-long-break = Pause longue

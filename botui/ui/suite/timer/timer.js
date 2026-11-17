@@ -41,9 +41,9 @@
       if (lbl) return lbl;
       if (btn.getAttribute('data-label')) return btn.getAttribute('data-label');
     }
-    if (min === 5) return (window.gbT ? window.gbT('auto-short-break', 'Short Break') : 'Short Break');
-    if (min === 15) return (window.gbT ? window.gbT('auto-long-break', 'Long Break') : 'Long Break');
-    return (window.gbT ? window.gbT('auto-focus', 'Focus') : 'Focus');
+    if (min === 5) return (window.gbT ? window.gbT('timer-mode-short-break', 'Short Break') : 'Short Break');
+    if (min === 15) return (window.gbT ? window.gbT('timer-mode-long-break', 'Long Break') : 'Long Break');
+    return (window.gbT ? window.gbT('timer-mode-focus', 'Focus') : 'Focus');
   }
 
   function setMode(min, labelIgnored) {

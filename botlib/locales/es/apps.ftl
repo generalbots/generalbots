@@ -118,3 +118,8 @@ app-weather-name = Clima
 app-weather-desc = Condiciones actuales y pronóstico para cualquier ciudad.
 app-recycle-name = Papelera
 app-recycle-desc = Restaura o elimina definitivamente archivos de la papelera de Drive.
+
+# Timer modes (#2542)
+timer-mode-focus = Enfoque
+timer-mode-short-break = Descanso corto
+timer-mode-long-break = Descanso largo

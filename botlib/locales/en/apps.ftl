@@ -120,3 +120,8 @@ app-weather-name = Weather
 app-weather-desc = Current conditions and forecast for any city.
 app-recycle-name = Recycle Bin
 app-recycle-desc = Restore or permanently delete trashed files from Drive.
+
+# Timer modes (#2542)
+timer-mode-focus = Focus
+timer-mode-short-break = Short Break
+timer-mode-long-break = Long Break

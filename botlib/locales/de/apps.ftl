@@ -120,3 +120,8 @@ app-weather-name = Wetter
 app-weather-desc = Aktuelle Bedingungen und Vorhersage für jede Stadt.
 app-recycle-name = Papierkorb
 app-recycle-desc = Gelöschte Dateien aus Drive wiederherstellen oder endgültig löschen.
+
+# Timer modes (#2542)
+timer-mode-focus = Fokus
+timer-mode-short-break = Kurze Pause
+timer-mode-long-break = Lange Pause

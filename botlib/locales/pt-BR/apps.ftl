@@ -118,3 +118,8 @@ app-weather-name = Clima
 app-weather-desc = Condições atuais e previsão para qualquer cidade.
 app-recycle-name = Lixeira
 app-recycle-desc = Restaure ou exclua permanentemente arquivos da lixeira do Drive.
+
+# Timer modes (#2542)
+timer-mode-focus = Foco
+timer-mode-short-break = Pausa curta
+timer-mode-long-break = Pausa longa
