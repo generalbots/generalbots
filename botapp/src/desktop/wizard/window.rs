@@ -116,9 +116,23 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 
 /// Default entry point for packaged desktop builds: the sidecar serves both the
 /// suite and `/api`, so the page and the API share one origin.
+/// Page the main window opens on the sidecar. The edition goes straight to the
+/// assistant shell: opening the legacy desktop page first painted it for a
+/// moment before it handed over (it reads the product config, then redirects).
+const SUITE_ENTRY_PATH: &str = if cfg!(feature = "gbgov") {
+    "/suite/assistant/assistant.html"
+} else {
+    "/suite/desktop.html"
+};
+
+/// Whether the main window must be on screen before it can navigate. Only
+/// WebKitGTK needs this (#1919); elsewhere the window stays hidden until the
+/// navigation has landed, so the bundled start page is never seen.
+const SHOW_BEFORE_NAVIGATE: bool = cfg!(target_os = "linux");
+
 fn sidecar_suite_url() -> Option<tauri::Url> {
     let port = crate::desktop::sidecar::probe::sidecar_port();
-    tauri::Url::parse(&format!("http://127.0.0.1:{port}/suite/desktop.html")).ok()
+    tauri::Url::parse(&format!("http://127.0.0.1:{port}{SUITE_ENTRY_PATH}")).ok()
 }
 
 /// Re-navigates the hidden suite window to its entry point and reveals it.
@@ -187,7 +201,9 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     // #1919 — WebKitGTK does not realise a hidden webview, so navigate() on
     // a window created with visible:false never changes the URL. Reveal the
     // window first (the always-on-top splash stays above it) before navigating.
-    let _ = main.show();
+    if SHOW_BEFORE_NAVIGATE {
+        let _ = main.show();
+    }
     if crate::desktop::splash::is_test_rig() {
         crate::desktop::splash::park_offscreen(&main);
     }
