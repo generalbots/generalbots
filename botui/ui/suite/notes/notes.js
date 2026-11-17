@@ -22,7 +22,7 @@
   }
 
   function render() {
-    const board = document.getElementById("notesBoard");
+    const board = document.getElementById("notesBoard") || document.getElementById("notes-list") || document.querySelector(".notes-list.notes-board, .notes-list#gb-notes .notes-board, #gb-notes .notes-list");
     if (!board) return;
     const list = read();
     const count = document.getElementById("notesCount");
@@ -49,8 +49,9 @@
         }
         var tsStr = String(n.ts);
         var notePreview = String(n.text || "").slice(0, 30).replace(/"/g, '&quot;');
+        var deltaAttr = n && n._deltaId ? ' data-delta-id="' + escapeHtml(String(n._deltaId)) + '"' : '';
         return (
-          '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-ts="' + tsStr + '">' +
+          '<div class="note-card" style="background:' + n.color + ';' + posStyle + '" data-ts="' + tsStr + '"' + deltaAttr + '>' +
           '<textarea data-ts="' + tsStr + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + gbFormatDateTime(new Date(n.ts)) + "</span>" +

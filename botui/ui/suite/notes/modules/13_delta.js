@@ -21,6 +21,22 @@
     return isNaN(direct) ? null : direct;
   }
 
+  function tagCard(key, opId) {
+    if (!opId || key == null) return;
+    try {
+      var list = (typeof gbStoreGet === "function") ? gbStoreGet("gb-sticky-notes", []) : [];
+      var changed = false;
+      for (var i = 0; i < list.length; i++) {
+        if (String(list[i].ts) === String(key)) { list[i]._deltaId = opId; changed = true; break; }
+      }
+      if (changed) localStorage.setItem("gb-sticky-notes", JSON.stringify(list));
+    } catch (e) {}
+    try {
+      var card = document.querySelector('#notesBoard .note-card[data-ts="' + String(key) + '"], .notes-list .note-card[data-ts="' + String(key) + '"]');
+      if (card) card.setAttribute("data-delta-id", String(opId));
+    } catch (e) {}
+  }
+
   function apply(payload) {
     var notes = window.GBNotes;
     if (!notes) return;
@@ -29,11 +45,15 @@
       if (op.op === "add_note") {
         var key = notes.add(textOf(op));
         if (op.id) keyByOpId[op.id] = key;
+        tagCard(key, op.id);
         return;
       }
       if (op.op === "patch_note") {
         var patchKey = resolveKey(op.id);
-        if (patchKey !== null) notes.patch(patchKey, textOf(op));
+        if (patchKey !== null) {
+          notes.patch(patchKey, textOf(op));
+          tagCard(patchKey, op.id);
+        }
         return;
       }
       if (op.op === "delete_note") {
