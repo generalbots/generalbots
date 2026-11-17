@@ -250,7 +250,10 @@ pub async fn execute_extract(
             if zip_file.is_dir() {
                 continue;
             }
-            let name = zip_file.name().to_string();
+            let name = zip_file
+                .name()
+                .map_err(|e| format!("Invalid ZIP entry name: {e}"))?
+                .to_string();
             let dest_path = join_destination(destination, &name)?;
             let remaining = MAX_EXTRACT_TOTAL_BYTES.saturating_sub(total_bytes);
             if remaining == 0 {
