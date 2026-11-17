@@ -54,3 +54,7 @@ player-playlist-renamed = 재생목록 이름이 변경됨
 player-playlist-item-added = 재생목록에 추가됨
 player-playlist-item-removed = 재생목록에서 삭제됨
 player-playlist-error = 재생목록을 로드하지 못했습니다.
+player-sign-in-drive-media = Drive 미디어를 보려면 로그인하세요.
+player-sign-in-recent-media = 최근 미디어를 보려면 로그인하세요.
+player-load-drive-media-error = Drive 미디어를 불러올 수 없습니다.
+player-load-recent-media-error = 최근 미디어를 불러올 수 없습니다.

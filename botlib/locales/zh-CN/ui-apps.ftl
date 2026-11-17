@@ -54,3 +54,7 @@ player-playlist-renamed = 播放列表已重命名
 player-playlist-item-added = 已添加到播放列表
 player-playlist-item-removed = 已从播放列表中删除
 player-playlist-error = 无法加载播放列表
+player-sign-in-drive-media = 登录以查看您的云端硬盘媒体。
+player-sign-in-recent-media = 登录以查看最近的媒体。
+player-load-drive-media-error = 无法加载您的云端硬盘媒体。
+player-load-recent-media-error = 无法加载最近的媒体。

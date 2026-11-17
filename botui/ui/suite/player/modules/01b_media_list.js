@@ -160,14 +160,22 @@
         } catch (err) {
             const msg = err && err.message ? String(err.message) : String(err || "");
             const needsSignIn = msg.indexOf("401") !== -1 || msg.indexOf("403") !== -1;
+            const t = typeof window.gbT === "function" ? window.gbT : function (_k, fallback) { return fallback; };
             const display = needsSignIn
-                ? "Sign in to view your Drive media."
-                : "Could not load your Drive media (" + playerEscape(msg) + "). Check that Drive is connected and retry.";
+                ? playerEscape(t("player-sign-in-drive-media", "Sign in to view your Drive media."))
+                : playerEscape(t("player-load-drive-media-error", "Could not load your Drive media.")) + " (" + playerEscape(msg) + ")";
             if (list) {
                 list.innerHTML = '<div class="empty-message" role="alert" aria-live="assertive">' + display + "</div>";
             }
             if (recent) {
-                recent.innerHTML = '<div class="empty-message" role="alert" aria-live="assertive">' + (needsSignIn ? "Sign in to view recent media." : "Could not load recent media.") + "</div>";
+                recent.innerHTML =
+                    '<div class="empty-message" role="alert" aria-live="assertive">' +
+                    playerEscape(
+                        needsSignIn
+                            ? t("player-sign-in-recent-media", "Sign in to view recent media.")
+                            : t("player-load-recent-media-error", "Could not load recent media.")
+                    ) +
+                    "</div>";
             }
         }
     }

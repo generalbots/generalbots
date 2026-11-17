@@ -54,3 +54,7 @@ player-playlist-renamed = プレイリストの名前が変更されました
 player-playlist-item-added = プレイリストに追加されました
 player-playlist-item-removed = プレイリストから削除されました
 player-playlist-error = プレイリストのロードに失敗しました
+player-sign-in-drive-media = Drive のメディアを表示するにはサインインしてください。
+player-sign-in-recent-media = 最近のメディアを表示するにはサインインしてください。
+player-load-drive-media-error = Drive のメディアを読み込めませんでした。
+player-load-recent-media-error = 最近のメディアを読み込めませんでした。

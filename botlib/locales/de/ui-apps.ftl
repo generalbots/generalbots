@@ -54,3 +54,7 @@ player-playlist-renamed = Playlist umbenannt
 player-playlist-item-added = Zur Playlist hinzugefügt
 player-playlist-item-removed = Aus der Playlist entfernt
 player-playlist-error = Playlists konnten nicht geladen werden
+player-sign-in-drive-media = Melden Sie sich an, um Ihre Drive-Medien anzuzeigen.
+player-sign-in-recent-media = Melden Sie sich an, um aktuelle Medien anzuzeigen.
+player-load-drive-media-error = Ihre Drive-Medien konnten nicht geladen werden.
+player-load-recent-media-error = Aktuelle Medien konnten nicht geladen werden.

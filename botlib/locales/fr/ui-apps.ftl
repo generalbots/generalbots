@@ -54,3 +54,7 @@ player-playlist-renamed = Liste de lecture renommée
 player-playlist-item-added = Ajouté à la playlist
 player-playlist-item-removed = Supprimé de la playlist
 player-playlist-error = Échec du chargement des listes de lecture
+player-sign-in-drive-media = Connectez-vous pour voir vos médias Drive.
+player-sign-in-recent-media = Connectez-vous pour voir les médias récents.
+player-load-drive-media-error = Impossible de charger vos médias Drive.
+player-load-recent-media-error = Impossible de charger les médias récents.

@@ -126,3 +126,7 @@ billing-valid-until = Valid Until *
 erp-gl = GL
 erp-inventory = Inventory
 erp-procurement = Procurement
+player-sign-in-drive-media = Sign in to view your Drive media.
+player-sign-in-recent-media = Sign in to view recent media.
+player-load-drive-media-error = Could not load your Drive media.
+player-load-recent-media-error = Could not load recent media.

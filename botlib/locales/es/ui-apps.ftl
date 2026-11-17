@@ -126,3 +126,7 @@ billing-valid-until = Válido hasta *
 erp-gl = Mayor
 erp-inventory = Inventario
 erp-procurement = Compras
+player-sign-in-drive-media = Inicia sesión para ver tu contenido multimedia de Drive.
+player-sign-in-recent-media = Inicia sesión para ver el contenido multimedia reciente.
+player-load-drive-media-error = No se pudo cargar tu contenido multimedia de Drive.
+player-load-recent-media-error = No se pudo cargar el contenido multimedia reciente.
