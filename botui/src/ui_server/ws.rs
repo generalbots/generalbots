@@ -215,6 +215,8 @@ fn normalize_ws_bot_name(name: &str) -> String {
         "tools",
         "vision",
         "about",
+        "notepad",
+        "notes",
     ];
     if name.is_empty() || APP_ROUTES.contains(&name) || name.contains('.') {
         "default".to_string()

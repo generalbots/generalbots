@@ -186,6 +186,8 @@ pub async fn index(
         "sources",
         "settings",
         "about",
+        "notepad",
+        "notes",
     ];
     let mut bot_name = suite_app
         .filter(|s| !SUITE_APP_SEGMENTS.contains(s))
@@ -240,6 +242,8 @@ pub async fn index(
         "sheet",
         "slides",
         "paper",
+        "notepad",
+        "notes",
         "research",
         "learn",
         "analytics",
@@ -316,6 +320,8 @@ pub async fn index(
         "sheet",
         "slides",
         "paper",
+        "notepad",
+        "notes",
         "research",
         "learn",
         "analytics",
