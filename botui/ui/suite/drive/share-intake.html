@@ -114,7 +114,10 @@
       });
       if (!res.ok) {
         var txt = await res.text().catch(function(){ return ""; });
-        throw new Error("HTTP " + res.status + (txt ? ": " + txt.slice(0,120) : ""));
+        var msg = "";
+        try { msg = (JSON.parse(txt)||{}).message || ""; } catch(_){}
+        if (res.status === 401 || res.status === 403) throw new Error(msg || "Sign in required to save files to Drive.");
+        throw new Error(msg || ("HTTP " + res.status + (txt ? ": " + txt.slice(0,120) : "")));
       }
       return { ok: true };
     }
