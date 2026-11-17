@@ -198,26 +198,25 @@ enum Probe {
 /// when the page self-describes as a section index. A bot challenge or a
 /// network error is not evidence that the article does not exist, so the hit
 /// stays and simply carries no date.
-async fn probe(client: &reqwest::Client, result: &mut WebSearchResult) -> Probe {
-    let mut response = match client.get(&result.url).send().await {
-        Ok(response) => response,
+async fn probe(result: &mut WebSearchResult) -> Probe {
+    // SSRF-safe fetch (#2378): route through the shared outbound policy so
+    // search-result URLs cannot target loopback/private/metadata addresses.
+    let policy = botsecurity_core::validation::ssrf_fetch::FetchPolicy::default()
+        .with_max_bytes(PROBE_PREFIX_BYTES)
+        .with_timeout(PROBE_TIMEOUT)
+        .with_user_agent(USER_AGENT);
+    let fetched = match botsecurity_core::validation::ssrf_fetch::fetch_user_url(&result.url, &policy).await {
+        Ok(f) => f,
         Err(_) => return Probe::Keep,
     };
-    let status = response.status().as_u16();
+    let status = fetched.status;
     if matches!(status, 404 | 410) {
         return Probe::Dead;
     }
     if !(200..300).contains(&status) {
         return Probe::Keep;
     }
-    let mut body = String::new();
-    while body.len() < PROBE_PREFIX_BYTES {
-        match response.chunk().await {
-            Ok(Some(chunk)) => body.push_str(&String::from_utf8_lossy(&chunk)),
-            Ok(None) => break,
-            Err(_) => break,
-        }
-    }
+    let body = fetched.text();
     let date = date_from_markup(&body)
         .or_else(|| date_from_url(&result.url))
         .or_else(|| date_from_text(&result.snippet));
@@ -255,24 +254,9 @@ pub async fn refine(results: Vec<WebSearchResult>) -> Vec<WebSearchResult> {
         return kept;
     }
 
-    let client = match reqwest::Client::builder()
-        .timeout(PROBE_TIMEOUT)
-        .user_agent(USER_AGENT)
-        .build()
-    {
-        Ok(client) => client,
-        Err(error) => {
-            log::debug!("web context: probe client unavailable: {error}");
-            return kept;
-        }
-    };
-
-    let probes = kept.into_iter().map(|mut result| {
-        let client = client.clone();
-        async move {
-            let outcome = probe(&client, &mut result).await;
-            (result, outcome)
-        }
+    let probes = kept.into_iter().map(|mut result| async move {
+        let outcome = probe(&mut result).await;
+        (result, outcome)
     });
     let probed = futures::future::join_all(probes).await;
 
