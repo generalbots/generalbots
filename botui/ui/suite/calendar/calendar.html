@@ -8,7 +8,7 @@
     <aside class="calendar-sidebar" id="calendar-sidebar">
         <div class="sidebar-header">
             <h2 data-i18n="nav-calendar">Calendar</h2>
-            <button class="btn-icon" id="toggle-cal-sidebar" title="Collapse">
+            <button class="btn-icon" id="toggle-cal-sidebar" title="Collapse sidebar" aria-label="Collapse sidebar" data-i18n-title="calendar-collapse-sidebar" data-i18n-aria-label="calendar-collapse-sidebar">
                 <svg
                     width="18"
                     height="18"
@@ -16,6 +16,7 @@
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
+                    aria-hidden="true"
                 >
                     <polyline points="11 17 6 12 11 7"></polyline>
                 </svg>
@@ -47,7 +48,7 @@
         <!-- Mini Calendar -->
         <div class="mini-calendar" id="mini-calendar">
             <div class="mini-calendar-header">
-                <button class="btn-icon-sm" id="prev-month">
+                <button class="btn-icon-sm" id="prev-month" title="Previous month" aria-label="Previous month" data-i18n-title="calendar-prev-month" data-i18n-aria-label="calendar-prev-month">
                     <svg
                         width="14"
                         height="14"
@@ -55,6 +56,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
+                        aria-hidden="true"
                     >
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
@@ -62,7 +64,7 @@
                 <span class="mini-calendar-title" id="mini-cal-title"
                      data-i18n="auto-january-2025">January 2025</span
                 >
-                <button class="btn-icon-sm" id="next-month">
+                <button class="btn-icon-sm" id="next-month" title="Next month" aria-label="Next month" data-i18n-title="calendar-next-month" data-i18n-aria-label="calendar-next-month">
                     <svg
                         width="14"
                         height="14"
@@ -70,6 +72,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
+                        aria-hidden="true"
                     >
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
@@ -97,7 +100,10 @@
                 <h3 data-i18n="calendar-my-calendars">My Calendars</h3>
                 <button
                     class="btn-icon-sm"
-                    title="Add Calendar"
+                    title="Add calendar"
+                    aria-label="Add calendar"
+                    data-i18n-title="calendar-add-calendar"
+                    data-i18n-aria-label="calendar-add-calendar"
                     hx-get="/api/ui/calendar/calendars/new"
                     hx-target="#calendar-modal-content"
                 >
@@ -207,7 +213,9 @@
                     class="btn-icon-sm"
                     id="edit-event"
                     title="Edit"
+                    aria-label="Edit"
                     data-i18n-title="action-edit"
+                    data-i18n-aria-label="action-edit"
                 >
                     <svg
                         width="14"
@@ -229,7 +237,9 @@
                     class="btn-icon-sm"
                     id="delete-event"
                     title="Delete"
+                    aria-label="Delete"
                     data-i18n-title="action-delete"
+                    data-i18n-aria-label="action-delete"
                 >
                     <svg
                         width="14"
@@ -245,7 +255,7 @@
                         ></path>
                     </svg>
                 </button>
-                <button class="btn-icon-sm close-popup">
+                <button class="btn-icon-sm close-popup" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close">
                     <svg
                         width="14"
                         height="14"
@@ -253,6 +263,7 @@
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
+                        aria-hidden="true"
                     >
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -342,6 +353,10 @@
             <button
                 type="button"
                 class="btn-icon close-modal"
+                title="Close"
+                aria-label="Close"
+                data-i18n-title="action-close"
+                data-i18n-aria-label="action-close"
                 onclick="document.getElementById('ical-import-modal').classList.add('hidden')"
             >
                 <svg
@@ -351,6 +366,7 @@
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
+                    aria-hidden="true"
                 >
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
