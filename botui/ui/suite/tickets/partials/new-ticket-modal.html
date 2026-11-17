@@ -67,7 +67,7 @@
                 <label class="form-label" for="ticket-description" data-i18n="tickets-description">Description</label>
                 <textarea id="ticket-description" name="description" class="form-textarea" required rows="5" placeholder="Describe the issue in detail..." data-i18n-placeholder="tickets-description-placeholder" hx-post="/api/ui/tickets/ai-suggest" hx-trigger="blur delay:500ms" hx-target="#ai-suggestions"></textarea>
             </div>
-            <div id="ai-suggestions" class="ai-suggestions"></div>
+            <div id="ai-suggestions" class="ai-suggestions" role="status" aria-live="polite" aria-atomic="true"></div>
             <div class="form-actions">
                 <button type="button" class="form-btn secondary" onclick="closeTicketsModal()" data-i18n="common-cancel">Cancel</button>
                 <button type="submit" class="form-btn primary" data-i18n="tickets-create-case">Create Case</button>

@@ -27,6 +27,7 @@
             <input type="text"
                    placeholder="Search users..."
                    aria-label="Search users"
+                   data-i18n-aria-label="forms-a11y-search-users"
                    name="q"
                    autocomplete="off"
                    hx-get="/api/directory/users/search"
@@ -37,6 +38,7 @@
         <div class="filters">
             <select name="role"
                     aria-label="Filter by role"
+                    data-i18n-aria-label="forms-a11y-filter-users-role"
                     hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
@@ -49,6 +51,7 @@
             </select>
             <select name="status"
                     aria-label="Filter by status"
+                    data-i18n-aria-label="forms-a11y-filter-users-status"
                     hx-get="/api/directory/users/list"
                     hx-trigger="change"
                     hx-target="#users-table-body"
@@ -68,7 +71,7 @@
             <thead>
                 <tr>
                     <th>
-                        <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" aria-label="Select all users">
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" aria-label="Select all users" data-i18n-aria-label="forms-a11y-select-all-users">
                     </th>
                     <th data-i18n="start-menu-user">User</th>
                     <th data-i18n="attendant-channel-email">Email</th>
@@ -260,8 +263,8 @@
 <link rel="stylesheet" href="/suite/admin/users-inline/02_users_panel.css">
 <link rel="stylesheet" href="/suite/admin/users-inline/03_users_states.css">
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script></script>
     function toggleSelectAll(checkbox) {
         const checkboxes = document.querySelectorAll('#users-table-body input[type="checkbox"]');

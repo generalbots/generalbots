@@ -27,6 +27,7 @@
                 <input type="text"
                        placeholder="Search products, services..."
                        aria-label="Search products and services"
+                       data-i18n-aria-label="forms-a11y-search-products"
                        data-i18n-placeholder="products-search-placeholder"
                        autocomplete="off"
                        hx-get="/api/ui/products/search"
@@ -104,7 +105,7 @@
     <div id="products-catalog-view" class="products-view active">
         <div class="products-list-header">
             <div class="list-filters">
-                <select aria-label="Filter products by category" hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="category">
+                <select aria-label="Filter products by category" data-i18n-aria-label="forms-a11y-filter-products-category" hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="category">
                     <option value="all" data-i18n="products-cat-all">All Categories</option>
                     <option value="software" data-i18n="products-cat-software">Software</option>
                     <option value="hardware" data-i18n="products-cat-hardware">Hardware</option>
@@ -113,7 +114,7 @@
                     <option value="training" data-i18n="products-cat-training">Training</option>
                     <option value="support" data-i18n="products-cat-support">Support</option>
                 </select>
-                <select aria-label="Filter products by status" hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="status">
+                <select aria-label="Filter products by status" data-i18n-aria-label="forms-a11y-filter-products-status" hx-get="/api/ui/products/items" hx-trigger="change" hx-target="#products-grid" hx-include="this" name="status">
                     <option value="active" data-i18n="products-status-active">Active</option>
                     <option value="all" data-i18n="products-status-all">All</option>
                     <option value="inactive" data-i18n="products-status-inactive">Inactive</option>
@@ -146,7 +147,7 @@
     <div id="products-services-view" class="products-view">
         <div class="products-list-header">
             <div class="list-filters">
-                <select aria-label="Filter services by type" hx-get="/api/ui/products/services" hx-trigger="change" hx-target="#services-table-body" hx-include="this" name="type">
+                <select aria-label="Filter services by type" data-i18n-aria-label="forms-a11y-filter-services-type" hx-get="/api/ui/products/services" hx-trigger="change" hx-target="#services-table-body" hx-include="this" name="type">
                     <option value="all" data-i18n="products-type-all">All Types</option>
                     <option value="hourly" data-i18n="products-type-hourly">Hourly</option>
                     <option value="fixed" data-i18n="products-type-fixed">Fixed Price</option>
@@ -181,7 +182,7 @@
     <div id="products-pricelists-view" class="products-view">
         <div class="products-list-header">
             <div class="list-filters">
-                <select aria-label="Filter price lists by currency" hx-get="/api/ui/products/pricelists" hx-trigger="change" hx-target="#pricelists-table-body" hx-include="this" name="currency">
+                <select aria-label="Filter price lists by currency" data-i18n-aria-label="forms-a11y-filter-pricelists-currency" hx-get="/api/ui/products/pricelists" hx-trigger="change" hx-target="#pricelists-table-body" hx-include="this" name="currency">
                     <option value="all" data-i18n="products-currency-all">All Currencies</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>

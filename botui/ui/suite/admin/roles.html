@@ -13,13 +13,13 @@ Create Role </button>
 </div> </div>
 <div class="roles-layout"> <div class="roles-sidebar">
 <div class="sidebar-header"> <h3 data-i18n="auto-roles">Roles</h3>
-<div class="role-filters"> <select id="role-type-filter" aria-label="Filter role type" onchange="filterRoles(this.value)">
+<div class="role-filters"> <select id="role-type-filter" aria-label="Filter role type" data-i18n-aria-label="forms-a11y-filter-role-type" onchange="filterRoles(this.value)">
 <option value="all" data-i18n="auto-all-roles">All Roles</option> <option value="system" data-i18n="auto-system-roles">System Roles</option>
 <option value="custom" data-i18n="auto-custom-roles">Custom Roles</option> </select>
 </div> </div>
 <div class="search-box"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-</svg> <input type="text" placeholder="Search roles..." aria-label="Search roles" name="q" autocomplete="off" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
+</svg> <input type="text" placeholder="Search roles..." aria-label="Search roles" data-i18n-aria-label="forms-a11y-search-roles" name="q" autocomplete="off" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
 </div> <div class="roles-list" id="roles-list" role="status" aria-live="polite" hx-get="/api/rbac/roles" hx-trigger="load" hx-swap="innerHTML">
 <div class="loading-state" role="status"> <div class="spinner"></div>
 </div> </div>
@@ -61,8 +61,8 @@ Delete </button>
 <div class="list-box available-box"> <div class="list-box-header">
 <span data-i18n="auto-available-permissions">Available Permissions</span> <span class="count" id="available-count">0</span>
 </div> <div class="list-box-search">
-<input type="text" placeholder="Filter available..." aria-label="Filter available permissions" onkeyup="filterAvailable(this.value)"> </div>
-<div class="category-filter"> <select aria-label="Filter available permissions by category" onchange="filterByCategory(this.value, 'available')">
+<input type="text" placeholder="Filter available..." aria-label="Filter available permissions" data-i18n-aria-label="forms-a11y-filter-available-permissions" onkeyup="filterAvailable(this.value)"> </div>
+<div class="category-filter"> <select aria-label="Filter available permissions by category" data-i18n-aria-label="forms-a11y-filter-available-permissions-category" onchange="filterByCategory(this.value, 'available')">
 <option value="" data-i18n="products-cat-all">All Categories</option> <option value="admin" data-i18n="settings-administration">Administration</option>
 <option value="compliance" data-i18n="learn-compliance">Compliance</option> <option value="security" data-i18n="learn-security">Security</option>
 <option value="mail" data-i18n="email-title">Mail</option> <option value="calendar" data-i18n="calendar-title">Calendar</option>
@@ -89,9 +89,9 @@ Delete </button>
 </div> <div class="list-box assigned-box">
 <div class="list-box-header"> <span data-i18n="auto-assigned-permissions">Assigned Permissions</span>
 <span class="count" id="assigned-count">0</span> </div>
-<div class="list-box-search"> <input type="text" placeholder="Filter assigned..." aria-label="Filter assigned permissions" onkeyup="filterAssigned(this.value)">
+<div class="list-box-search"> <input type="text" placeholder="Filter assigned..." aria-label="Filter assigned permissions" data-i18n-aria-label="forms-a11y-filter-assigned-permissions" onkeyup="filterAssigned(this.value)">
 </div> <div class="category-filter">
-<select aria-label="Filter assigned permissions by category" onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
+<select aria-label="Filter assigned permissions by category" data-i18n-aria-label="forms-a11y-filter-assigned-permissions-category" onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
 <option value="admin" data-i18n="settings-administration">Administration</option> <option value="compliance" data-i18n="learn-compliance">Compliance</option>
 <option value="security" data-i18n="learn-security">Security</option> <option value="mail" data-i18n="email-title">Mail</option>
 <option value="calendar" data-i18n="calendar-title">Calendar</option> <option value="drive" data-i18n="drive-title">Drive</option>
@@ -183,7 +183,7 @@ Export </button>
 </svg> </button>
 </div> <div class="modal-body">
 <div class="form-group"> <label for="user-search" data-i18n="auto-search-users">Search Users</label>
-<input type="text" id="user-search" placeholder="Type to search users..." aria-label="Search users" autocomplete="off" hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
+<input type="text" id="user-search" placeholder="Type to search users..." aria-label="Search users" data-i18n-aria-label="forms-a11y-search-users" autocomplete="off" hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
 <div class="search-results" id="user-search-results" role="status" aria-live="polite"> <p class="empty-text" data-i18n="auto-type-to-search-for-users">Type to search for users</p>
 </div> <div class="selected-items" id="selected-users" aria-live="polite">
 </div> <div class="form-group">
@@ -199,7 +199,7 @@ Export </button>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <div class="modal-body"> <div class="form-group">
-<label for="group-search" data-i18n="auto-search-groups">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." aria-label="Search groups" autocomplete="off" hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
+<label for="group-search" data-i18n="auto-search-groups">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." aria-label="Search groups" data-i18n-aria-label="forms-a11y-search-groups" autocomplete="off" hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
 </div> <div class="search-results" id="group-search-results" role="status" aria-live="polite">
 <p class="empty-text" data-i18n="auto-type-to-search-for-groups">Type to search for groups</p> </div>
 <div class="selected-items" id="selected-groups" aria-live="polite"> </div>

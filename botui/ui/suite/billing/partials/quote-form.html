@@ -72,9 +72,9 @@
             </div>
             <div id="quote-line-items">
                 <div class="line-item" data-index="0">
-                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
-                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity">
-                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+                    <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
+                    <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
                     <span class="line-item-total">$0.00</span>
                     <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -170,9 +170,9 @@
         newItem.className = 'line-item';
         newItem.dataset.index = quoteLineItemIndex;
         newItem.innerHTML = `
-            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description">
-            <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity">
-            <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price">
+            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+            <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
+            <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
             <span class="line-item-total">$0.00</span>
             <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
