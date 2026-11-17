@@ -1,0 +1,42 @@
+<!-- Settings → Model. Same surface the assistant shell exposes: where the bot
+     thinks (this machine / your organization's server or provider key / free
+     hosted model), plus the endpoint, model and key form. Admin-only: the
+     /api/llm/config routes repeat the gate server-side (#2568). -->
+<section id="model-section" class="settings-section" data-admin-only="true">
+    <div class="section-header">
+        <h1 data-i18n="mdl-title">Model</h1>
+        <p class="subtitle" data-i18n="mdl-subtitle">
+            Where the bot thinks. Choose a model that runs on this machine, your own
+            provider endpoint, or the free hosted model.
+        </p>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2 data-i18n="mdl-current">Current model</h2>
+            <span class="subtitle" id="mdl-provider" role="status" aria-live="polite" aria-atomic="true"></span>
+        </div>
+        <div class="mdl-current">
+            <strong id="mdl-model-name">—</strong>
+            <span class="mdl-muted" id="mdl-scope"></span>
+        </div>
+        <div class="mdl-muted" id="mdl-host"></div>
+        <div class="mdl-inconsistent" id="mdl-inconsistent" hidden>
+            <p class="mdl-warn" data-i18n="mdl-inconsistent">
+                The model configuration is inconsistent.
+            </p>
+            <button type="button" class="btn-secondary btn-sm" id="mdl-restore-free"
+                data-i18n="mdl-restore-free">Restore free model</button>
+        </div>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2 data-i18n="mdl-where">Where the bot thinks</h2>
+        </div>
+        <div class="mdl-modes" id="mdl-modes" role="tablist"></div>
+        <div class="mdl-detail" id="mdl-detail"></div>
+    </div>
+
+    <div class="note" id="mdl-status" role="status" aria-live="polite" aria-atomic="true"></div>
+</section>

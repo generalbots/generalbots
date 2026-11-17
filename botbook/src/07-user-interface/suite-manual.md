@@ -787,6 +787,18 @@ Sources is your library of prompts, templates, tools, and AI models. Find and us
 - Calendar sync
 - Cloud storage
 
+**Model** (administrators):
+- Where the bot thinks — on this computer, your own OpenAI-compatible
+  endpoint, or the free hosted model
+- Endpoint URL, model name and API key, with a **Test** button before saving
+- Switching to a local model is done on the **On-device AI** page; the Model
+  page shows which local model is active
+
+The Model page is the same surface the assistant shell exposes under
+Settings → Model. It talks to `/api/llm/config`, `/api/llm/config/modes` and
+`/api/llm/config/test`; all three are administrator-gated server-side, so a
+non-administrator sees the read-only notice instead of the controls.
+
 ---
 
 ## Part XV: Keyboard Shortcuts Reference
