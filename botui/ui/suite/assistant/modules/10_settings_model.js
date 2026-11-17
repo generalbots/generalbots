@@ -33,7 +33,7 @@ var T = {"pt-BR":{
   inconsistent:"A configuração do modelo está inconsistente.",
   restoreFree:"Restaurar modelo gratuito",
   freeNote:"Tudo que você escrever e anexar é enviado a %h.",
-  noModels:"Nenhum modelo local disponível.",
+  noModels:"No local models available.",
   comfortable:"confortável nesta máquina",tight:"apertado nesta máquina",
   wontRun:"não roda (precisa de %v GB)",
   fits:"cabe nesta máquina",nofit:"não cabe (precisa %v GB)",serverOnly:"apenas servidor",
