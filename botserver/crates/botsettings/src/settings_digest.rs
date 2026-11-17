@@ -107,7 +107,15 @@ pub fn timezone_offset_minutes(timezone: &str) -> i32 {
         "Europe/London" => 0,
         "Europe/Paris" => 60,
         "Asia/Tokyo" => 540,
-        _ => parse_numeric_offset(timezone).unwrap_or(0),
+        other => match parse_numeric_offset(other) {
+            Some(offset) => offset,
+            None => {
+                log::warn!(
+                    "timezone_offset_minutes: unknown timezone {other:?}, defaulting to UTC"
+                );
+                0
+            }
+        },
     }
 }
 
