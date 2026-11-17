@@ -254,3 +254,55 @@ meet-meeting-title = 会議のタイトル
 meet-meeting-code = 会議コード
 meet-meeting-link = ミーティングリンク
 meet-send-invite = 招待を送信する
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = タイトルのない目標
+tasks-detail-goal-progress = 目標の進捗
+tasks-detail-current-value = 現在の値
+tasks-detail-target-value = 目標値
+tasks-detail-percent = 進捗
+tasks-detail-no-actions = アクションはまだありません
+tasks-detail-pending-info = 不足している情報
+tasks-detail-scheduler-info = スケジューラの情報
+tasks-detail-monitor-info = モニターの情報
+tasks-detail-unavailable = 利用できません
+tasks-detail-load-failed = 目標の詳細を読み込めませんでした
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = 行を挿入
+db-insert-into = 挿入先
+db-provide-value = 少なくとも1つの値を入力してください
+db-insert-failed = 挿入に失敗しました
+db-confirm-title = 確認
+db-confirm-accept = 確認
+db-confirm-delete = この行を削除しますか？
+db-confirm-drop = テーブルを削除
+db-delete-failed = 削除に失敗しました
+db-drop-failed = テーブルの削除に失敗しました
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

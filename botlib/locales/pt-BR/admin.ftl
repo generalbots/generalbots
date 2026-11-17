@@ -569,3 +569,39 @@ admin-dns = DNS
 
 nav-about = Sobre
 nav-organizations = Organizações
+
+
+# ── #2307 Users & Groups dialogs / status regions ──────────────────
+admin-add-user = Adicionar usuário
+admin-add-group = Adicionar grupo
+admin-search-users = Buscar usuários...
+admin-search-groups = Buscar grupos...
+admin-confirm-title = Confirmar ação
+admin-confirm-accept = Confirmar
+admin-col-user = Usuário
+admin-col-email = E-mail
+admin-col-organization = Organização
+admin-col-roles = Funções
+admin-col-status = Status
+admin-col-actions = Ações
+admin-status-active = Ativo
+admin-status-inactive = Inativo
+admin-action-edit = Editar
+admin-action-delete = Excluir
+admin-view-members = Ver membros
+admin-members-suffix = membros
+admin-creating = Criando…
+admin-user-created = Usuário criado e adicionado à organização
+admin-group-created = Grupo criado com sucesso
+admin-user-deleted = Usuário excluído
+admin-group-deleted = Grupo excluído
+admin-member-removed = Membro removido
+admin-confirm-delete-user = Excluir este usuário?
+admin-confirm-delete-group = Excluir este grupo?
+admin-confirm-remove-member = Remover membro?
+admin-failed-load-users = Falha ao carregar usuários.
+admin-failed-load-groups = Falha ao carregar grupos.
+admin-failed-create-user = Falha ao criar usuário.
+admin-failed-create-group = Falha ao criar grupo.
+admin-no-users = Nenhum usuário encontrado
+admin-no-groups = Nenhum grupo encontrado

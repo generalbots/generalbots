@@ -254,3 +254,55 @@ meet-meeting-title = 회의 제목
 meet-meeting-code = 회의 코드
 meet-meeting-link = 회의 링크
 meet-send-invite = 초대장 보내기
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = 제목 없는 목표
+tasks-detail-goal-progress = 목표 진행률
+tasks-detail-current-value = 현재 값
+tasks-detail-target-value = 목표 값
+tasks-detail-percent = 진행률
+tasks-detail-no-actions = 아직 작업이 없습니다
+tasks-detail-pending-info = 누락된 정보
+tasks-detail-scheduler-info = 스케줄러 정보
+tasks-detail-monitor-info = 모니터 정보
+tasks-detail-unavailable = 사용할 수 없음
+tasks-detail-load-failed = 목표 세부 정보를 불러올 수 없습니다
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = 행 삽입
+db-insert-into = 삽입 대상
+db-provide-value = 값을 하나 이상 입력하세요
+db-insert-failed = 삽입 실패
+db-confirm-title = 확인
+db-confirm-accept = 확인
+db-confirm-delete = 이 행을 삭제하시겠습니까?
+db-confirm-drop = 테이블 삭제
+db-delete-failed = 삭제 실패
+db-drop-failed = 테이블 삭제 실패
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

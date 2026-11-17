@@ -13,6 +13,11 @@
 <script src="/suite/js/collab-comments/02_data.js"></script>
 <script src="/suite/js/collab-comments/99_panel.js"></script>
 <script src="/suite/tasks/tasks-scoped-state.js?v=1"></script>
+<!-- #2307 — the goal/pending/scheduler/monitor detail handlers live in the
+     split tasks-toasts modules; they were never included by any page, so
+     selectGoal() & co. were undefined and the panel could not render. -->
+<script src="/suite/tasks/tasks-toasts_a.js?v=1"></script>
+<script src="/suite/tasks/tasks-toasts_b.js?v=1"></script>
 <script src="/suite/tasks/tasks-websocket.js?v=1"></script>
 <script src="/suite/tasks/tasks-scoped-selection.js?v=1"></script>
 <script src="/suite/tasks/tasks-progress-tree.js?v=1"></script>
@@ -129,7 +134,55 @@ and monitors work across all apps.
 </div>
 <!-- Dynamic detail content -->
 <div id="task-detail-content" style="display: none" hx-get="" hx-trigger="taskSelected from:div" hx-swap="innerHTML" role="region" aria-live="polite" aria-label="Task details" data-i18n-aria-label="tasks-detail-region">
-<!-- Loaded via HTMX when task selected -->
+<!-- #2307 — stable detail panel ids. tasks-toasts_b.js writes into these;
+     without them every fetch handler died on null.textContent. -->
+<div class="task-detail-rich" id="gb-task-detail-panel">
+<div class="detail-header-rich">
+<h3 class="detail-title-rich" id="detail-title" role="status" aria-live="polite" data-i18n="tasks-detail-untitled-goal">Untitled Goal</h3>
+<span class="status-badge-rich" id="detail-status-text" role="status" aria-live="polite">—</span>
+</div>
+<div class="detail-section-box">
+<div class="section-label" data-i18n="label-type">Type</div>
+<div class="status-text" id="detail-priority-text" role="status" aria-live="polite">—</div>
+<div class="section-label" data-i18n="label-description">Description</div>
+<div class="status-text" id="detail-description" role="status" aria-live="polite"></div>
+</div>
+<div class="detail-section-box" id="goal-progress-section" style="display: none">
+<div class="section-label" data-i18n="tasks-detail-goal-progress">Goal progress</div>
+<div class="progress-bar-rich" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-i18n-aria-label="tasks-detail-goal-progress">
+<div class="progress-fill-rich" id="goal-progress-fill" style="width: 0%"></div>
+</div>
+<div class="progress-info-rich">
+<span><span data-i18n="tasks-detail-current-value">Current value</span>: <strong id="goal-current-value" role="status" aria-live="polite">0</strong></span>
+<span><span data-i18n="tasks-detail-target-value">Target value</span>: <strong id="goal-target-value" role="status" aria-live="polite">0</strong></span>
+<span><span data-i18n="tasks-detail-percent">Progress</span>: <strong id="goal-percent" role="status" aria-live="polite">0</strong>%</span>
+</div>
+<div class="status-text" id="goal-last-action" role="status" aria-live="polite" data-i18n="tasks-detail-no-actions">No actions yet</div>
+</div>
+<div class="detail-section-box" id="pending-fill-section" style="display: none">
+<div class="section-label" data-i18n="tasks-detail-pending-info">Missing information</div>
+<div class="status-text" id="pending-reason" role="status" aria-live="polite"></div>
+<form id="pending-fill-form">
+<input type="hidden" id="pending-fill-id" name="id" />
+<p class="status-text" id="pending-fill-label" role="status" aria-live="polite"></p>
+<input type="text" id="pending-fill-value" name="value" class="db-input" />
+<button type="submit" class="btn-primary" data-i18n="action-save">Save</button>
+</form>
+</div>
+<div class="detail-section-box" id="scheduler-info-section" style="display: none">
+<div class="section-label" data-i18n="tasks-detail-scheduler-info">Scheduler information</div>
+<div class="status-text" id="scheduler-cron" role="status" aria-live="polite"></div>
+<div class="status-text" id="scheduler-next" role="status" aria-live="polite"></div>
+<div class="status-text" id="scheduler-file" role="status" aria-live="polite"></div>
+</div>
+<div class="detail-section-box" id="monitor-info-section" style="display: none">
+<div class="section-label" data-i18n="tasks-detail-monitor-info">Monitor information</div>
+<div class="status-text" id="monitor-target" role="status" aria-live="polite"></div>
+<div class="status-text" id="monitor-interval" role="status" aria-live="polite"></div>
+<div class="status-text" id="monitor-last-check" role="status" aria-live="polite"></div>
+<div class="status-text" id="monitor-last-value" role="status" aria-live="polite"></div>
+</div>
+</div>
 </div>
 </aside>
 </main>

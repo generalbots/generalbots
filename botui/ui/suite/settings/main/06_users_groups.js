@@ -1,4 +1,7 @@
-/* Settings module 06: user and group management. */
+/* Settings module 06a: shared helpers, user management and session logout.
+   #2307 — all DOM access is null-safe: a missing id degrades to a status
+   message instead of throwing and killing the rest of the callback.
+   Shared helpers are published on S._ugCommon for 06_groups.js. */
 (function (window) {
   "use strict";
   var S = window.__GBSettingsMain;
@@ -10,408 +13,328 @@
   var debounce = S.debounce;
   var showToast = S.showToast;
   var usersData = [];
-  var groupsData = [];
+  var pendingConfirm = null;
 
-function initUserManagement() {
-  var addUserBtn = document.getElementById("add-user-btn");
-  if (addUserBtn) addUserBtn.addEventListener("click", openAddUserDialog);
-  var userSearchInput = document.getElementById("user-search");
-  if (userSearchInput) {
-    userSearchInput.addEventListener(
-      "input",
-      debounce(function () {
-        loadUsers(this.value);
-      }, 300),
-    );
+  function t(key, fallback, params) {
+    return typeof window.gbT === "function"
+      ? window.gbT(key, fallback, params)
+      : fallback;
   }
-  var addUserForm = document.getElementById("add-user-form");
-  if (addUserForm) addUserForm.addEventListener("submit", handleAddUser);
-}
 
-function initGroupManagement() {
-  var addGroupBtn = document.getElementById("add-group-btn");
-  if (addGroupBtn) addGroupBtn.addEventListener("click", openAddGroupDialog);
-  var groupSearchInput = document.getElementById("group-search");
-  if (groupSearchInput) {
-    groupSearchInput.addEventListener(
-      "input",
-      debounce(function () {
-        loadGroups(this.value);
-      }, 300),
-    );
+  function byId(id) {
+    return document.getElementById(id);
   }
-  var addGroupForm = document.getElementById("add-group-form");
-  if (addGroupForm) addGroupForm.addEventListener("submit", handleAddGroup);
-}
 
-function loadUsers(search) {
-  var container = document.getElementById("users-list");
-  if (!container) return;
-  container.setAttribute("aria-busy", "true");
-  container.innerHTML =
-    '<div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
-  var params = new URLSearchParams();
-  params.append("per_page", "50");
-  if (search) params.append("search", search);
-  if (S.currentOrgId) params.append("organization_id", S.currentOrgId);
-  var token = getAuthToken();
-  fetch(apiUrl(API_ENDPOINTS.USERS_LIST) + "?" + params.toString(), {
-    headers: { Authorization: "Bearer " + token },
-  })
-    .then(function (r) {
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    })
-    .then(function (data) {
-      usersData = data.users || [];
-      renderUsers(container);
-      container.setAttribute("aria-busy", "false");
-    })
-    .catch(function () {
-      container.setAttribute("aria-busy", "false");
-      container.innerHTML =
-        '<div class="error-state" role="alert" aria-live="assertive"><p>Failed to load users.</p></div>';
-    });
-}
-
-function renderUsers(container) {
-  if (usersData.length === 0) {
-    container.innerHTML =
-      '<div class="empty-state"><p>No users found</p></div>';
-    return;
+  function setStatus(id, message, isError) {
+    var el = byId(id);
+    if (!el) return;
+    el.textContent = message || "";
+    el.setAttribute("role", isError ? "alert" : "status");
+    el.setAttribute("aria-live", isError ? "assertive" : "polite");
   }
-  var html =
-    '<table class="data-table users-table"><thead><tr><th>User</th><th>Email</th><th>Organization</th><th>Roles</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-  usersData.forEach(function (user) {
-    var initials = getInitials(user.username || user.email);
-    var displayName = user.display_name || user.username || user.email;
-    var isActive =
-      user.state === "active" || user.state === "USER_STATE_ACTIVE";
-    var roles = (user.roles || []).join(", ") || "user";
-    var orgId = user.organization_id || "-";
-    html += "<tr>";
-    html +=
-      '<td class="user-cell"><div class="user-avatar">' +
-      initials +
-      '</div><div class="user-info"><span class="user-name">' +
-      escapeHtml(displayName) +
-      '</span><span class="user-username">@' +
-      escapeHtml(user.username || "") +
-      "</span></div></td>";
-    html += "<td>" + escapeHtml(user.email || "") + "</td>";
-    html += "<td>" + escapeHtml(orgId) + "</td>";
-    html += "<td>" + escapeHtml(roles) + "</td>";
-    html +=
-      '<td><span class="status-badge ' +
-      (isActive ? "status-active" : "status-inactive") +
-      '">' +
-      (isActive ? "Active" : "Inactive") +
-      "</span></td>";
-    html += '<td class="actions-cell">';
-    html +=
-      '<button class="btn-icon" onclick="SettingsModule.editUser(\'' +
-      user.id +
-      '\')" title="Edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
-    html +=
-      '<button class="btn-icon btn-danger" onclick="SettingsModule.deleteUser(\'' +
-      user.id +
-      '\')" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
-    html += "</td></tr>";
-  });
-  html += "</tbody></table>";
-  container.innerHTML = html;
-}
 
-function loadGroups(search) {
-  var container = document.getElementById("groups-list");
-  if (!container) return;
-  container.setAttribute("aria-busy", "true");
-  container.innerHTML =
-    '<div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
-  var params = new URLSearchParams();
-  params.append("per_page", "50");
-  if (search) params.append("search", search);
-  var token = getAuthToken();
-  fetch(apiUrl(API_ENDPOINTS.GROUPS_LIST) + "?" + params.toString(), {
-    headers: { Authorization: "Bearer " + token },
-  })
-    .then(function (r) {
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    })
-    .then(function (data) {
-      groupsData = data.groups || [];
-      renderGroups(container);
-      container.setAttribute("aria-busy", "false");
-    })
-    .catch(function () {
-      container.setAttribute("aria-busy", "false");
-      container.innerHTML =
-        '<div class="error-state" role="alert" aria-live="assertive"><p>Failed to load groups.</p></div>';
-    });
-}
-
-function renderGroups(container) {
-  if (groupsData.length === 0) {
-    container.innerHTML =
-      '<div class="empty-state"><p>No groups found</p></div>';
-    return;
+  function fieldValue(form, name) {
+    if (!form || !form.elements) return null;
+    var field = form.elements[name];
+    if (!field || field.value === undefined || field.value === null) return null;
+    return String(field.value).trim();
   }
-  var html = '<div class="groups-grid">';
-  groupsData.forEach(function (group) {
-    html += '<div class="group-card" data-group-id="' + group.id + '">';
-    html +=
-      '<div class="group-header"><h3 class="group-name">' +
-      escapeHtml(group.name) +
-      '</h3><span class="member-count">' +
-      (group.member_count || 0) +
-      " members</span></div>";
-    if (group.description)
-      html +=
-        '<p class="group-description">' +
-        escapeHtml(group.description) +
-        "</p>";
-    html += '<div class="group-actions">';
-    html +=
-      '<button class="btn-secondary btn-sm" onclick="SettingsModule.viewGroupMembers(\'' +
-      group.id +
-      "')\">View Members</button>";
-    html +=
-      '<button class="btn-icon" onclick="SettingsModule.editGroup(\'' +
-      group.id +
-      '\')" title="Edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
-    html +=
-      '<button class="btn-icon btn-danger" onclick="SettingsModule.deleteGroup(\'' +
-      group.id +
-      '\')" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
-    html += "</div></div>";
-  });
-  html += "</div>";
-  container.innerHTML = html;
-}
 
-function openAddUserDialog() {
-  var dialog = document.getElementById("add-user-dialog");
-  if (dialog) dialog.showModal();
-}
-
-function closeAddUserDialog() {
-  var dialog = document.getElementById("add-user-dialog");
-  if (dialog) {
-    dialog.close();
-    var f = document.getElementById("add-user-form");
-    if (f) f.reset();
+  function openDialog(id) {
+    var dialog = byId(id);
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    if (!dialog.open) dialog.showModal();
   }
-}
 
-function openAddGroupDialog() {
-  var dialog = document.getElementById("add-group-dialog");
-  if (dialog) dialog.showModal();
-}
-
-function closeAddGroupDialog() {
-  var dialog = document.getElementById("add-group-dialog");
-  if (dialog) {
-    dialog.close();
-    var f = document.getElementById("add-group-form");
-    if (f) f.reset();
+  function closeDialog(id) {
+    var dialog = byId(id);
+    if (dialog && dialog.open && typeof dialog.close === "function") {
+      dialog.close();
+    }
   }
-}
 
-function handleAddUser(e) {
-  e.preventDefault();
-  var form = e.target,
-    btn = form.querySelector('button[type="submit"]'),
-    orig = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Creating...";
+  function parseResponse(response) {
+    if (!response.ok) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        var message =
+          (body && (body.error || body.message)) ||
+          "HTTP " + response.status;
+        throw new Error(message);
+      });
+    }
+    return response.json().catch(function () { return {}; });
+  }
 
-  var userData = {
-    username: form.username.value,
-    email: form.email.value,
-    password: form.password ? form.password.value : null,
-    first_name: form.first_name.value,
-    last_name: form.last_name.value,
-    role: form.role ? form.role.value : "user",
-    organization_id:
-      S.currentOrgId ||
-      (form.organization_id ? form.organization_id.value : null),
-    roles: form.roles ? [form.roles.value] : ["user"],
+  function askConfirm(message, onYes) {
+    var dialog = byId("gb-confirm-dialog");
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    var messageEl = byId("gb-confirm-message");
+    if (messageEl) messageEl.textContent = message;
+    pendingConfirm = onYes;
+    if (!dialog.open) dialog.showModal();
+  }
+
+  function bindConfirmDialog() {
+    var dialog = byId("gb-confirm-dialog");
+    if (!dialog || dialog.dataset.gb2307Bound) return;
+    dialog.dataset.gb2307Bound = "1";
+    var cancel = byId("gb-confirm-cancel");
+    var accept = byId("gb-confirm-accept");
+    if (cancel) {
+      cancel.addEventListener("click", function () {
+        pendingConfirm = null;
+        if (dialog.open) dialog.close();
+      });
+    }
+    if (accept) {
+      accept.addEventListener("click", function () {
+        var action = pendingConfirm;
+        pendingConfirm = null;
+        if (dialog.open) dialog.close();
+        if (typeof action === "function") action();
+      });
+    }
+  }
+
+  function loadingMarkup() {
+    return '<div class="loading-state" role="status" aria-live="polite">' +
+      '<div class="spinner" aria-hidden="true"></div><p>' +
+      escapeHtml(t("admin-loading", "Loading…")) + "</p></div>";
+  }
+
+  function errorMarkup(message) {
+    return '<div class="error-state" role="alert" aria-live="assertive"><p>' +
+      escapeHtml(message) + "</p></div>";
+  }
+
+  function resetForm(id) {
+    var form = byId(id);
+    if (form && typeof form.reset === "function") form.reset();
+  }
+
+  function withSubmitState(form, busy, original) {
+    var button = form ? form.querySelector('button[type="submit"]') : null;
+    if (!button) return;
+    button.disabled = busy;
+    button.textContent = busy ? t("admin-creating", "Creating…") : original;
+  }
+
+  S._ugCommon = {
+    t: t,
+    byId: byId,
+    setStatus: setStatus,
+    fieldValue: fieldValue,
+    openDialog: openDialog,
+    closeDialog: closeDialog,
+    parseResponse: parseResponse,
+    askConfirm: askConfirm,
+    bindConfirmDialog: bindConfirmDialog,
+    loadingMarkup: loadingMarkup,
+    errorMarkup: errorMarkup,
+    resetForm: resetForm,
+    withSubmitState: withSubmitState,
+    showToast: showToast,
+    escapeHtml: escapeHtml,
+    apiUrl: apiUrl,
+    getAuthToken: getAuthToken,
+    API_ENDPOINTS: API_ENDPOINTS,
   };
 
-  fetch(apiUrl(API_ENDPOINTS.USERS_CREATE), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + getAuthToken(),
-    },
-    body: JSON.stringify(userData),
-  })
-    .then(function (r) {
-      if (!r.ok)
-        return r.json().then(function (err) {
-          throw new Error(err.error || "Failed");
-        });
-      return r.json();
+  function initUserManagement() {
+    bindConfirmDialog();
+    var addUserBtn = byId("add-user-btn");
+    if (addUserBtn) addUserBtn.addEventListener("click", openAddUserDialog);
+    var userSearchInput = byId("user-search");
+    if (userSearchInput) {
+      userSearchInput.addEventListener(
+        "input",
+        debounce(function () { loadUsers(this.value); }, 300),
+      );
+    }
+    var addUserForm = byId("add-user-form");
+    if (addUserForm) addUserForm.addEventListener("submit", handleAddUser);
+    // The HTMX list loader was removed with the old admin partial; the JS
+    // module is now the only owner of the users list.
+    loadUsers();
+  }
+
+  function loadUsers(search) {
+    var container = byId("users-list");
+    if (!container) return;
+    container.setAttribute("aria-busy", "true");
+    container.innerHTML = loadingMarkup();
+    var params = new URLSearchParams();
+    params.append("per_page", "50");
+    if (search) params.append("search", search);
+    if (S.currentOrgId) params.append("organization_id", S.currentOrgId);
+    fetch(apiUrl(API_ENDPOINTS.USERS_LIST) + "?" + params.toString(), {
+      headers: { Authorization: "Bearer " + getAuthToken() },
     })
-    .then(function () {
-      showToast("User created and added to organization", "success");
-      closeAddUserDialog();
-      loadUsers();
-    })
-    .catch(function (e) {
-      showToast(e.message, "error");
-    })
-    .finally(function () {
-      btn.disabled = false;
-      btn.textContent = orig;
+      .then(function (r) { return parseResponse(r); })
+      .then(function (data) {
+        usersData = data && Array.isArray(data.users) ? data.users : [];
+        renderUsers(container);
+        container.setAttribute("aria-busy", "false");
+      })
+      .catch(function () {
+        container.setAttribute("aria-busy", "false");
+        container.innerHTML = errorMarkup(
+          t("admin-failed-load-users", "Failed to load users."),
+        );
+      });
+  }
+
+  function renderUsers(container) {
+    if (!container) return;
+    if (usersData.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>' +
+        escapeHtml(t("admin-no-users", "No users found")) + "</p></div>";
+      return;
+    }
+    var keys = [
+      "admin-col-user", "admin-col-email", "admin-col-organization",
+      "admin-col-roles", "admin-col-status", "admin-col-actions",
+    ];
+    var labels = ["User", "Email", "Organization", "Roles", "Status", "Actions"];
+    var html = '<table class="data-table users-table"><thead><tr>';
+    keys.forEach(function (key, i) {
+      html += "<th>" + escapeHtml(t(key, labels[i])) + "</th>";
     });
-}
-
-function handleAddGroup(e) {
-  e.preventDefault();
-  var form = e.target,
-    btn = form.querySelector('button[type="submit"]'),
-    orig = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Creating...";
-  var groupData = {
-    name: form.name.value,
-    description: form.description ? form.description.value : "",
-  };
-  fetch(apiUrl(API_ENDPOINTS.GROUPS_CREATE), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + getAuthToken(),
-    },
-    body: JSON.stringify(groupData),
-  })
-    .then(function (r) {
-      if (!r.ok)
-        return r.json().then(function (err) {
-          throw new Error(err.error || "Failed");
-        });
-      return r.json();
-    })
-    .then(function () {
-      showToast("Group created successfully", "success");
-      closeAddGroupDialog();
-      loadGroups();
-    })
-    .catch(function (e) {
-      showToast(e.message, "error");
-    })
-    .finally(function () {
-      btn.disabled = false;
-      btn.textContent = orig;
+    html += "</tr></thead><tbody>";
+    usersData.forEach(function (user) {
+      if (!user) return;
+      var initials = escapeHtml(getInitials(user.username || user.email));
+      var name = user.display_name || user.username || user.email || "";
+      var active = user.state === "active" || user.state === "USER_STATE_ACTIVE";
+      var roles = (Array.isArray(user.roles) ? user.roles : []).join(", ") || "user";
+      var status = active
+        ? t("admin-status-active", "Active")
+        : t("admin-status-inactive", "Inactive");
+      var edit = escapeHtml(t("admin-action-edit", "Edit"));
+      var del = escapeHtml(t("admin-action-delete", "Delete"));
+      var id = escapeHtml(user.id || "");
+      html += "<tr>";
+      html += '<td class="user-cell"><div class="user-avatar">' + initials +
+        '</div><div class="user-info"><span class="user-name">' +
+        escapeHtml(name) + '</span><span class="user-username">@' +
+        escapeHtml(user.username || "") + "</span></div></td>";
+      html += "<td>" + escapeHtml(user.email || "") + "</td>";
+      html += "<td>" + escapeHtml(user.organization_id || "-") + "</td>";
+      html += "<td>" + escapeHtml(roles) + "</td>";
+      html += '<td><span class="status-badge ' +
+        (active ? "status-active" : "status-inactive") + '">' +
+        escapeHtml(status) + "</span></td>";
+      html += '<td class="actions-cell">';
+      html += '<button class="btn-icon" title="' + edit +
+        '" onclick="SettingsModule.editUser(\'' + id +
+        '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>';
+      html += '<button class="btn-icon btn-danger" title="' + del +
+        '" onclick="SettingsModule.deleteUser(\'' + id +
+        '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>';
+      html += "</td></tr>";
     });
-}
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  }
 
-function editUser(userId) {
-  var user = usersData.find(function (u) {
-    return u.id === userId;
-  });
-  if (!user) return;
-  var d = document.getElementById("edit-user-dialog");
-  if (d) d.showModal();
-}
+  function openAddUserDialog() {
+    resetForm("add-user-form");
+    setStatus("add-user-status", "");
+    openDialog("create-user-modal");
+  }
 
-function deleteUser(userId) {
-  if (!confirm("Delete this user?")) return;
-  fetch(apiUrl(API_ENDPOINTS.USERS_DELETE.replace(":user_id", userId)), {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + getAuthToken() },
-  })
-    .then(function (r) {
-      if (!r.ok) throw new Error("Failed");
-      showToast("User deleted", "success");
-      loadUsers();
-    })
-    .catch(function (e) {
-      showToast(e.message, "error");
-    });
-}
+  function closeAddUserDialog() {
+    closeDialog("create-user-modal");
+    resetForm("add-user-form");
+    setStatus("add-user-status", "");
+  }
 
-function editGroup(groupId) {
-  var group = groupsData.find(function (g) {
-    return g.id === groupId;
-  });
-  if (!group) return;
-  var d = document.getElementById("edit-group-dialog");
-  if (d) d.showModal();
-}
-
-function deleteGroup(groupId) {
-  if (!confirm("Delete this group?")) return;
-  fetch(apiUrl(API_ENDPOINTS.GROUPS_DELETE.replace(":group_id", groupId)), {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + getAuthToken() },
-  })
-    .then(function (r) {
-      if (!r.ok) throw new Error("Failed");
-      showToast("Group deleted", "success");
-      loadGroups();
-    })
-    .catch(function (e) {
-      showToast(e.message, "error");
-    });
-}
-
-function viewGroupMembers(groupId) {
-  var d = document.getElementById("group-members-dialog");
-  if (d) d.showModal();
-}
-
-function removeGroupMember(groupId, userId) {
-  if (!confirm("Remove member?")) return;
-  fetch(
-    apiUrl(API_ENDPOINTS.GROUPS_REMOVE_MEMBER.replace(":group_id", groupId)),
-    {
+  function handleAddUser(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    var form = event ? event.target : null;
+    if (!form) return;
+    var submit = form.querySelector('button[type="submit"]');
+    var original = submit ? submit.textContent : "";
+    withSubmitState(form, true, original);
+    setStatus("add-user-status", "");
+    var payload = {
+      username: fieldValue(form, "username"),
+      email: fieldValue(form, "email"),
+      display_name: fieldValue(form, "display_name"),
+      password: fieldValue(form, "password"),
+      role: fieldValue(form, "role") || "user",
+      organization_id: S.currentOrgId || fieldValue(form, "organization_id"),
+    };
+    fetch(apiUrl(API_ENDPOINTS.USERS_CREATE), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + getAuthToken(),
       },
-      body: JSON.stringify({ user_id: userId }),
-    },
-  )
-    .then(function (r) {
-      if (!r.ok) throw new Error("Failed");
-      showToast("Member removed", "success");
-      loadGroups();
+      body: JSON.stringify(payload),
     })
-    .catch(function (e) {
-      showToast(e.message, "error");
-    });
-}
+      .then(function (r) { return parseResponse(r); })
+      .then(function () {
+        var ok = t("admin-user-created", "User created and added to organization");
+        setStatus("add-user-status", ok);
+        showToast(ok, "success");
+        closeAddUserDialog();
+        loadUsers();
+      })
+      .catch(function (error) {
+        var message = error && error.message
+          ? error.message
+          : t("admin-failed-create-user", "Failed to create user.");
+        setStatus("add-user-status", message, true);
+      })
+      .finally(function () { withSubmitState(form, false, original); });
+  }
 
-function handleLogout() {
-  var token = getAuthToken();
-  if (token)
-    fetch(API_ENDPOINTS.LOGOUT, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token },
-    }).catch(function (err) {
-      /* Best-effort server logout; local session is cleared below regardless. */
-      console.debug("[gb-settings] Server logout request failed:", err);
+  function editUser(userId) {
+    var user = usersData.find(function (u) { return u && u.id === userId; });
+    if (!user) return;
+    openDialog("edit-user-dialog");
+  }
+
+  function deleteUser(userId) {
+    askConfirm(t("admin-confirm-delete-user", "Delete this user?"), function () {
+      fetch(apiUrl(API_ENDPOINTS.USERS_DELETE.replace(":user_id", userId)), {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + getAuthToken() },
+      })
+        .then(function (r) { return parseResponse(r); })
+        .then(function () {
+          showToast(t("admin-user-deleted", "User deleted"), "success");
+          loadUsers();
+        })
+        .catch(function (error) { showToast(error.message, "error"); });
     });
-  localStorage.removeItem("gb-access-token");
-  localStorage.removeItem("gb-refresh-token");
-  localStorage.removeItem("gb-token-expires");
-  localStorage.removeItem("gb-user-data");
-  window.location.href = window.GB_LOGIN_URL || "/login";
-}
+  }
+
+  function handleLogout() {
+    var token = getAuthToken();
+    if (token) {
+      fetch(API_ENDPOINTS.LOGOUT, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      }).catch(function (err) {
+        /* Best-effort server logout; local session is cleared below. */
+        console.debug("[gb-settings] Server logout request failed:", err);
+      });
+    }
+    localStorage.removeItem("gb-access-token");
+    localStorage.removeItem("gb-refresh-token");
+    localStorage.removeItem("gb-token-expires");
+    localStorage.removeItem("gb-user-data");
+    window.location.href = window.GB_LOGIN_URL || "/login";
+  }
 
   S.initUserManagement = initUserManagement;
-  S.initGroupManagement = initGroupManagement;
   S.loadUsers = loadUsers;
-  S.loadGroups = loadGroups;
   S.editUser = editUser;
   S.deleteUser = deleteUser;
-  S.editGroup = editGroup;
-  S.deleteGroup = deleteGroup;
-  S.viewGroupMembers = viewGroupMembers;
-  S.removeGroupMember = removeGroupMember;
+  S.openAddUserDialog = openAddUserDialog;
+  S.closeAddUserDialog = closeAddUserDialog;
+  S.handleAddUser = handleAddUser;
   S.handleLogout = handleLogout;
 })(window);

@@ -254,3 +254,55 @@ meet-meeting-title = Titel der Besprechung
 meet-meeting-code = Besprechungscode
 meet-meeting-link = Link zum Treffen
 meet-send-invite = Einladung senden
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = Unbenanntes Ziel
+tasks-detail-goal-progress = Ziel-Fortschritt
+tasks-detail-current-value = Aktueller Wert
+tasks-detail-target-value = Zielwert
+tasks-detail-percent = Fortschritt
+tasks-detail-no-actions = Noch keine Aktionen
+tasks-detail-pending-info = Fehlende Informationen
+tasks-detail-scheduler-info = Planerinformationen
+tasks-detail-monitor-info = Monitorinformationen
+tasks-detail-unavailable = Nicht verfügbar
+tasks-detail-load-failed = Zieldetails konnten nicht geladen werden
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = Zeile einfügen
+db-insert-into = Einfügen in
+db-provide-value = Geben Sie mindestens einen Wert an
+db-insert-failed = Einfügen fehlgeschlagen
+db-confirm-title = Bestätigen
+db-confirm-accept = Bestätigen
+db-confirm-delete = Diese Zeile löschen?
+db-confirm-drop = Tabelle löschen
+db-delete-failed = Löschen fehlgeschlagen
+db-drop-failed = Löschen der Tabelle fehlgeschlagen
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

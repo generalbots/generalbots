@@ -254,3 +254,55 @@ meet-meeting-title = Titre de la réunion
 meet-meeting-code = Code de réunion
 meet-meeting-link = Lien de réunion
 meet-send-invite = Envoyer une invitation
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = Objectif sans titre
+tasks-detail-goal-progress = Progression de l'objectif
+tasks-detail-current-value = Valeur actuelle
+tasks-detail-target-value = Valeur cible
+tasks-detail-percent = Progression
+tasks-detail-no-actions = Aucune action pour l'instant
+tasks-detail-pending-info = Informations manquantes
+tasks-detail-scheduler-info = Informations du planificateur
+tasks-detail-monitor-info = Informations du moniteur
+tasks-detail-unavailable = Indisponible
+tasks-detail-load-failed = Impossible de charger les détails de l'objectif
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = Insérer une ligne
+db-insert-into = Insérer dans
+db-provide-value = Fournissez au moins une valeur
+db-insert-failed = Échec de l'insertion
+db-confirm-title = Confirmer
+db-confirm-accept = Confirmer
+db-confirm-delete = Supprimer cette ligne ?
+db-confirm-drop = Supprimer la table
+db-delete-failed = Échec de la suppression
+db-drop-failed = Échec de la suppression de la table
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

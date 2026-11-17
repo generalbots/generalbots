@@ -254,3 +254,55 @@ meet-meeting-title = Título da Reunião
 meet-meeting-code = Código da Reunião
 meet-meeting-link = Link da Reunião
 meet-send-invite = Enviar Convite
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = Meta sem título
+tasks-detail-goal-progress = Progresso da meta
+tasks-detail-current-value = Valor atual
+tasks-detail-target-value = Valor alvo
+tasks-detail-percent = Progresso
+tasks-detail-no-actions = Nenhuma ação ainda
+tasks-detail-pending-info = Informações pendentes
+tasks-detail-scheduler-info = Informações do agendador
+tasks-detail-monitor-info = Informações do monitor
+tasks-detail-unavailable = Indisponível
+tasks-detail-load-failed = Não foi possível carregar os detalhes da meta
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = Inserir linha
+db-insert-into = Inserir em
+db-provide-value = Informe pelo menos um valor
+db-insert-failed = Falha ao inserir
+db-confirm-title = Confirmar
+db-confirm-accept = Confirmar
+db-confirm-delete = Excluir esta linha?
+db-confirm-drop = Excluir tabela
+db-delete-failed = Falha ao excluir
+db-drop-failed = Falha ao excluir tabela
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

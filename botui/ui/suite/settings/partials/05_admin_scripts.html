@@ -8,19 +8,21 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2 data-i18n="auto-user-management">User Management</h2>
-                    <button class="btn-primary btn-sm"
-                        onclick="document.getElementById('create-user-modal').showModal()">
+                    <input type="search" id="user-search" class="db-input" autocomplete="off"
+                        data-i18n-placeholder="admin-search-users" placeholder="Search users..." />
+                    <!-- #2307 — the click handler is bound by main/06_users_groups.js. -->
+                    <button type="button" class="btn-primary btn-sm" id="add-user-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add User
+                        <span data-i18n="admin-add-user">Add User</span>
                     </button>
                 </div>
-                <div hx-get="/api/admin/users" hx-trigger="load" hx-swap="innerHTML">
-                    <div class="loading-state">
-                        <div class="spinner"></div>
+                <div id="users-list" class="users-list" role="status" aria-live="polite">
+                    <div class="loading-state" role="status" aria-live="polite">
+                        <div class="spinner" aria-hidden="true"></div>
                         <p data-i18n="auto-loading-users">Loading users...</p>
                     </div>
                 </div>
@@ -37,19 +39,21 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2 data-i18n="auto-group-management">Group Management</h2>
-                    <button class="btn-primary btn-sm"
-                        onclick="document.getElementById('create-group-modal').showModal()">
+                    <input type="search" id="group-search" class="db-input" autocomplete="off"
+                        data-i18n-placeholder="admin-search-groups" placeholder="Search groups..." />
+                    <!-- #2307 — bound by main/06_users_groups.js. -->
+                    <button type="button" class="btn-primary btn-sm" id="add-group-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Add Group
+                        <span data-i18n="admin-add-group">Add Group</span>
                     </button>
                 </div>
-                <div hx-get="/api/admin/groups" hx-trigger="load" hx-swap="innerHTML">
-                    <div class="loading-state">
-                        <div class="spinner"></div>
+                <div id="groups-list" class="groups-list" role="status" aria-live="polite">
+                    <div class="loading-state" role="status" aria-live="polite">
+                        <div class="spinner" aria-hidden="true"></div>
                         <p data-i18n="auto-loading-groups">Loading groups...</p>
                     </div>
                 </div>
@@ -210,7 +214,8 @@
         <script src="/suite/settings/main/03_oauth.js?v=4"></script>
         <script src="/suite/settings/main/04_current_user.js?v=4"></script>
         <script src="/suite/settings/main/05_ui_bindings.js?v=4"></script>
-        <script src="/suite/settings/main/06_users_groups.js?v=4"></script>
+        <script src="/suite/settings/main/06_users_groups.js?v=5"></script>
+        <script src="/suite/settings/main/06_groups.js?v=1"></script>
         <script src="/suite/settings/main/07_appearance.js?v=4"></script>
         <script src="/suite/settings/main/08_preview.js?v=5"></script>
         <script src="/suite/settings/main/99_init.js?v=4"></script>

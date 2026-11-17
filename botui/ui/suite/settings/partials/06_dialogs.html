@@ -11,8 +11,9 @@
                 </svg>
             </button>
         </div>
-        <form hx-post="/api/users/create" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-user-modal').close(); showToast('User created successfully'); }">
+        <!-- #2307 — JS-driven (main/06_users_groups.js) so validation errors
+             render in the dialog instead of firing an unhandled request. -->
+        <form id="add-user-form">
             <div class="form-group">
                 <label data-i18n="dashboards-username">Username</label>
                 <input type="text" name="username" required placeholder="username" autocomplete="username">
@@ -37,10 +38,12 @@
                     <option value="viewer" data-i18n="auto-viewer">Viewer</option>
                 </select>
             </div>
+            <!-- #2307 — inline, null-safe feedback instead of a native alert. -->
+            <div id="add-user-status" class="form-status" role="status" aria-live="polite"></div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary"
                     onclick="document.getElementById('create-user-modal').close()" data-i18n="action-cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="auto-create-user">Create User</button>
+                <button type="submit" class="btn-primary" data-i18n="admin-create-user">Create User</button>
             </div>
         </form>
     </div>
@@ -58,8 +61,10 @@
                 </svg>
             </button>
         </div>
-        <form hx-post="/api/groups/create" hx-swap="none"
-            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
+        <!-- #2307 — JS-driven (main/06_users_groups.js). The old hx-post hit
+             /api/groups/create, which is not a registered route; apiUrl() in
+             01_state.js resolves GROUPS_CREATE to /api/directory/groups/create. -->
+        <form id="add-group-form">
             <div class="form-group">
                 <label data-i18n="label-group-name">Group Name</label>
                 <input type="text" name="name" required placeholder="Engineering Team">
@@ -68,10 +73,11 @@
                 <label data-i18n="label-description">Description</label>
                 <textarea name="description" placeholder="Group description..." rows="3"></textarea>
             </div>
+            <div id="add-group-status" class="form-status" role="status" aria-live="polite"></div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary"
                     onclick="document.getElementById('create-group-modal').close()" data-i18n="action-cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="auto-create-group">Create Group</button>
+                <button type="submit" class="btn-primary" data-i18n="admin-create-group">Create Group</button>
             </div>
         </form>
     </div>
@@ -182,5 +188,21 @@
                 <button type="submit" class="btn-primary" data-i18n="settings-add-webhook">Add Webhook</button>
             </div>
         </form>
+    </div>
+</dialog>
+
+<!-- #2307 — shared confirmation dialog. Replaces native confirm() so the
+     Users & Groups actions work in the desktop shell and can be translated. -->
+<dialog id="gb-confirm-dialog" class="modal" role="alertdialog"
+    aria-labelledby="gb-confirm-title" aria-describedby="gb-confirm-message">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="gb-confirm-title" data-i18n="admin-confirm-title">Confirm action</h2>
+        </div>
+        <p id="gb-confirm-message" class="confirm-message" role="status" aria-live="polite"></p>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="gb-confirm-cancel" data-i18n="action-cancel">Cancel</button>
+            <button type="button" class="btn-primary btn-danger" id="gb-confirm-accept" data-i18n="admin-confirm-accept">Confirm</button>
+        </div>
     </div>
 </dialog>

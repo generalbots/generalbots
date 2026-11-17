@@ -241,11 +241,11 @@ if (typeof taskStyleElement === "undefined") {
 // =============================================================================
 
 function getTasksRoot() {
-  return document.getElementById("window-tasks") || document;
+  return document.querySelector(".tasks-app") || document.body || document;
 }
 
 function ensureTaskDetailVisible() {
-  const empty = document.getElementById("task-detail-empty") || document.getElementById("detail-empty");
+  const empty = document.getElementById("detail-empty");
   const content = document.getElementById("task-detail-content");
   if (empty) empty.style.display = "none";
   if (content) content.style.display = "block";

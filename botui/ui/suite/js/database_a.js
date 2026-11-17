@@ -9,6 +9,31 @@ const DB = {
     init: function () {
         this.refreshSchema();
         this._bindKeyboard();
+        this._ensureInsertButton();
+    },
+
+    // #2307 — the legacy partial never shipped an "Insert" opener, so the
+    // showInsertDialog() handler was unreachable. Create the button at runtime.
+    _ensureInsertButton: function () {
+        if (document.getElementById('dbInsertBtn')) return;
+        var host = document.querySelector('.botcoder-db-main > div') ||
+            document.querySelector('.botcoder-grid-toolbar') ||
+            document.querySelector('.botcoder-db-main');
+        if (!host) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'dbInsertBtn';
+        btn.className = 'botcoder-btn botcoder-btn-primary';
+        btn.setAttribute('data-i18n', 'db-insert-row');
+        btn.textContent = this.t('db-insert-row', 'Insert row');
+        btn.addEventListener('click', () => this.showInsertDialog());
+        host.appendChild(btn);
+    },
+
+    t: function (key, fallback, params) {
+        return typeof window.gbT === 'function'
+            ? window.gbT(key, fallback, params)
+            : fallback;
     },
 
     _bindKeyboard: function () {
@@ -39,21 +64,19 @@ const DB = {
     },
 
     toggleSidebar: function () {
-        const sidebar = document.getElementById('dbSidebar') || document.querySelector('.botcoder-db-sidebar');
+        const sidebar = document.querySelector('.botcoder-db-sidebar');
         if (!sidebar) return;
         sidebar.classList.toggle('collapsed');
     },
 
+    // The legacy partial has no tab panels; drive them by data attribute so
+    // hosts that do ship tabs keep working without hard-coded ids.
     switchTab: function (tab) {
-        const tabData = document.getElementById('dbTabData');
-        const tabStructure = document.getElementById('dbTabStructure');
-        const tabSql = document.getElementById('dbTabSql');
-        if (!tabData || !tabStructure || !tabSql) return;
         this.activeTab = tab;
         document.querySelectorAll('.db-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-        tabData.style.display = tab === 'data' ? '' : 'none';
-        tabStructure.style.display = tab === 'structure' ? '' : 'none';
-        tabSql.style.display = tab === 'sql' ? '' : 'none';
+        document.querySelectorAll('[data-db-panel]').forEach(panel => {
+            panel.style.display = panel.dataset.dbPanel === tab ? '' : 'none';
+        });
     },
 
     refreshSchema: async function () {
@@ -101,6 +124,7 @@ const DB = {
     selectTable: async function (name) {
         this.currentTable = name;
         this.currentPage = 1;
+        this._ensureInsertButton();
         const tableName = document.getElementById('dbTableName');
         if (tableName) tableName.textContent = name;
         this._renderTableList();
@@ -193,8 +217,22 @@ const DB = {
         }
     },
 
+    // #2307 — the host partial does not ship a structure container; create one
+    // on demand instead of reading a permanently-null id.
+    _ensureStructurePanel: function () {
+        const existing = document.getElementById('dbStructure');
+        if (existing) return existing;
+        const host = document.querySelector('.botcoder-db-main');
+        if (!host) return null;
+        const container = document.createElement('div');
+        container.id = 'dbStructure';
+        container.className = 'botcoder-db-structure';
+        host.appendChild(container);
+        return container;
+    },
+
     _renderStructure: function (tableName) {
-        const container = document.getElementById('dbStructure');
+        const container = this._ensureStructurePanel();
         if (!container) return;
         const table = this.schema.find(t => t.name === tableName);
 

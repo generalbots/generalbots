@@ -254,3 +254,55 @@ meet-meeting-title = 会议标题
 meet-meeting-code = 会议代码
 meet-meeting-link = 会议链接
 meet-send-invite = 发送邀请
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = 未命名目标
+tasks-detail-goal-progress = 目标进度
+tasks-detail-current-value = 当前值
+tasks-detail-target-value = 目标值
+tasks-detail-percent = 进度
+tasks-detail-no-actions = 尚无操作
+tasks-detail-pending-info = 缺失信息
+tasks-detail-scheduler-info = 计划程序信息
+tasks-detail-monitor-info = 监控信息
+tasks-detail-unavailable = 不可用
+tasks-detail-load-failed = 无法加载目标详情
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = 插入行
+db-insert-into = 插入到
+db-provide-value = 请至少提供一个值
+db-insert-failed = 插入失败
+db-confirm-title = 确认
+db-confirm-accept = 确认
+db-confirm-delete = 删除此行？
+db-confirm-drop = 删除表
+db-delete-failed = 删除失败
+db-drop-failed = 删除表失败
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table

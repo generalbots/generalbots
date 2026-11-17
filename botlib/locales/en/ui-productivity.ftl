@@ -254,3 +254,55 @@ meet-meeting-title = Meeting Title
 meet-meeting-code = Meeting Code
 meet-meeting-link = Meeting Link
 meet-send-invite = Send Invite
+
+# ── #2307 Tasks goal/monitor detail panel ──────────────────────────
+tasks-detail-untitled-goal = Untitled Goal
+tasks-detail-goal-progress = Goal progress
+tasks-detail-current-value = Current value
+tasks-detail-target-value = Target value
+tasks-detail-percent = Progress
+tasks-detail-no-actions = No actions yet
+tasks-detail-pending-info = Missing information
+tasks-detail-scheduler-info = Scheduler information
+tasks-detail-monitor-info = Monitor information
+tasks-detail-unavailable = Unavailable
+tasks-detail-load-failed = Unable to load goal details
+
+
+# ── #2307 Database insert/confirm dialogs ──────────────────────────
+db-insert-row = Insert row
+db-insert-into = Insert into
+db-provide-value = Provide at least one value
+db-insert-failed = Insert failed
+db-confirm-title = Confirm
+db-confirm-accept = Confirm
+db-confirm-delete = Delete this row?
+db-confirm-drop = Drop table
+db-delete-failed = Delete failed
+db-drop-failed = Drop failed
+
+# Tasks detail view (#2307)
+tasks-detail-type-goal = Goal
+tasks-detail-status-pending = Pending
+tasks-detail-pending-title = Pending items
+tasks-detail-required-reason = A reason is required.
+tasks-detail-type-scheduler = Scheduler
+tasks-detail-type-monitor = Monitor
+tasks-detail-last-action = Last action
+tasks-detail-next-run = Next run
+tasks-detail-file = File
+tasks-detail-interval = Interval
+tasks-detail-last-check = Last check
+tasks-detail-last-value = Last value
+tasks-detail-progress = Progress
+tasks-detail-app = App
+tasks-detail-field = Field
+tasks-detail-reason = Reason
+tasks-detail-cron = Cron
+
+# Database dialog copy (#2307)
+db-error = Error
+db-database = Database
+db-empty-query = Execute a query to see results
+db-insert = Insert
+db-select-table = Select a table
