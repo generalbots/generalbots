@@ -25,19 +25,24 @@
 |                                                                             |
 \*****************************************************************************/
 
-use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use std::sync::Arc;
+use botbasic_types::UserSession;
 use flate2::read::GzDecoder;
 use log::trace;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 use tar::Archive;
+use uuid::Uuid;
 use zip::{write::FileOptions, ZipArchive, ZipWriter};
 
 use crate::keywords::file_ops::basic_io::execute_read;
+
+const MAX_EXTRACT_ENTRIES: usize = 10_000;
+const MAX_EXTRACT_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_EXTRACT_ENTRY_BYTES: u64 = 256 * 1024 * 1024;
 
 pub async fn execute_compress(
     state: &Arc<dyn BasicRuntime>,
@@ -51,7 +56,7 @@ pub async fn execute_compress(
     };
 
     let temp_dir = std::env::temp_dir();
-    let archive_path = temp_dir.join(archive_name);
+    let archive_path = temp_dir.join(safe_archive_filename(archive_name)?);
     let file = File::create(&archive_path)?;
     let mut zip = ZipWriter::new(file);
 
@@ -76,7 +81,8 @@ pub async fn execute_compress(
     let key = loc.key_for(archive_name);
 
     client
-        .put_object(&bucket_name, &key, archive_content, None).await
+        .put_object(&bucket_name, &key, archive_content, None)
+        .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
     fs::remove_file(&archive_path).ok();
@@ -108,6 +114,101 @@ pub fn has_tar_gz_extension(archive: &str) -> bool {
     false
 }
 
+fn safe_archive_filename(name: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed.contains('\0') {
+        return Err("Invalid archive name".into());
+    }
+    let path = Path::new(trimmed);
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid archive name")?;
+    if file_name == "." || file_name == ".." {
+        return Err("Invalid archive name".into());
+    }
+    if file_name.chars().any(|c| matches!(c, '/' | '\\')) {
+        return Err("Invalid archive name".into());
+    }
+    Ok(file_name.to_string())
+}
+
+fn validate_relative_path(input: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    if input.is_empty() || input.contains('\0') {
+        return Err("Invalid path".into());
+    }
+    let path = Path::new(input);
+    if path.is_absolute() {
+        return Err("Absolute paths are not allowed".into());
+    }
+    let mut parts: Vec<String> = Vec::new();
+    for component in path.components() {
+        match component {
+            Component::Normal(part) => {
+                let s = part.to_str().ok_or("Invalid path")?;
+                if s.is_empty() || s == "." || s == ".." {
+                    return Err("Invalid path".into());
+                }
+                parts.push(s.to_string());
+            }
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                return Err("Path traversal is not allowed".into());
+            }
+        }
+    }
+    if parts.is_empty() {
+        return Err("Invalid path".into());
+    }
+    Ok(parts.join("/"))
+}
+
+fn join_destination(
+    destination: &str,
+    entry_name: &str,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let safe_entry = validate_relative_path(entry_name)?;
+    let dest = destination.trim().trim_matches('/');
+    if dest.is_empty() {
+        return Ok(safe_entry);
+    }
+    let safe_dest = validate_relative_path(dest)?;
+    Ok(format!("{safe_dest}/{safe_entry}"))
+}
+
+fn read_limited<R: Read>(
+    reader: &mut R,
+    max_bytes: u64,
+    remaining_total: u64,
+) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let limit = max_bytes.min(remaining_total);
+    let mut buf = Vec::new();
+    let mut limited = reader.take(limit.saturating_add(1));
+    limited.read_to_end(&mut buf)?;
+    if (buf.len() as u64) > limit {
+        return Err("Archive entry exceeds allowed size".into());
+    }
+    Ok(buf)
+}
+
+struct TempExtractDir {
+    path: PathBuf,
+}
+
+impl TempExtractDir {
+    fn new() -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let path = std::env::temp_dir().join(format!("gb-extract-{}", Uuid::new_v4()));
+        fs::create_dir_all(&path)?;
+        Ok(Self { path })
+    }
+}
+
+impl Drop for TempExtractDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
 pub async fn execute_extract(
     state: &Arc<dyn BasicRuntime>,
     user: &UserSession,
@@ -121,6 +222,7 @@ pub async fn execute_extract(
         botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
     let bucket_name = loc.bucket.clone();
+    let safe_archive = safe_archive_filename(archive)?;
     let archive_key = loc.key_for(archive);
 
     let data = client
@@ -128,56 +230,83 @@ pub async fn execute_extract(
         .await
         .map_err(|e| format!("S3 get failed: {e}"))?;
 
-    let temp_dir = std::env::temp_dir();
-    let archive_path = temp_dir.join(archive);
+    let temp_dir = TempExtractDir::new()?;
+    let archive_path = temp_dir.path.join(&safe_archive);
     fs::write(&archive_path, &data)?;
 
     let mut extracted_files = Vec::new();
+    let mut total_bytes: u64 = 0;
+    let mut entries: usize = 0;
 
     if has_zip_extension(archive) {
         let file = File::open(&archive_path)?;
         let mut zip = ZipArchive::new(file)?;
 
         for i in 0..zip.len() {
+            if entries >= MAX_EXTRACT_ENTRIES {
+                return Err("Archive contains too many entries".into());
+            }
             let mut zip_file = zip.by_index(i)?;
-            let file_name = zip_file.name().map(|n| n.to_string()).unwrap_or_default();
+            if zip_file.is_dir() {
+                continue;
+            }
+            let name = zip_file.name().to_string();
+            let dest_path = join_destination(destination, &name)?;
+            let remaining = MAX_EXTRACT_TOTAL_BYTES.saturating_sub(total_bytes);
+            if remaining == 0 {
+                return Err("Archive exceeds allowed total size".into());
+            }
+            let content = read_limited(&mut zip_file, MAX_EXTRACT_ENTRY_BYTES, remaining)?;
+            total_bytes = total_bytes.saturating_add(content.len() as u64);
+            entries += 1;
 
-            let mut content = Vec::new();
-            zip_file.read_to_end(&mut content)?;
+            let dest_key = loc.key_for(&dest_path);
+            client
+                .put_object(&bucket_name, &dest_key, content, None)
+                .await
+                .map_err(|e| format!("S3 put failed: {e}"))?;
 
-let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
-
-        let dest_key = loc.key_for(&dest_path);
-        client
-            .put_object(&bucket_name, &dest_key, content, None).await
-            .map_err(|e| format!("S3 put failed: {e}"))?;
-
-        extracted_files.push(dest_path);
-    }
+            extracted_files.push(dest_path);
+        }
     } else if has_tar_gz_extension(archive) {
         let file = File::open(&archive_path)?;
         let decoder = GzDecoder::new(file);
         let mut tar = Archive::new(decoder);
 
         for entry in tar.entries()? {
+            if entries >= MAX_EXTRACT_ENTRIES {
+                return Err("Archive contains too many entries".into());
+            }
             let mut entry = entry?;
+            let header = entry.header();
+            let entry_type = header.entry_type();
+            if entry_type.is_dir() {
+                continue;
+            }
+            if !(entry_type.is_file() || entry_type.is_contiguous()) {
+                continue;
+            }
             let file_name = entry.path()?.to_string_lossy().to_string();
-
-            let mut content = Vec::new();
-            entry.read_to_end(&mut content)?;
-
-            let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
+            let dest_path = join_destination(destination, &file_name)?;
+            let remaining = MAX_EXTRACT_TOTAL_BYTES.saturating_sub(total_bytes);
+            if remaining == 0 {
+                return Err("Archive exceeds allowed total size".into());
+            }
+            let content = read_limited(&mut entry, MAX_EXTRACT_ENTRY_BYTES, remaining)?;
+            total_bytes = total_bytes.saturating_add(content.len() as u64);
+            entries += 1;
 
             let dest_key = loc.key_for(&dest_path);
-        client
-            .put_object(&bucket_name, &dest_key, content, None).await
-            .map_err(|e| format!("S3 put failed: {e}"))?;
+            client
+                .put_object(&bucket_name, &dest_key, content, None)
+                .await
+                .map_err(|e| format!("S3 put failed: {e}"))?;
 
-        extracted_files.push(dest_path);
+            extracted_files.push(dest_path);
         }
-        }
-
-        fs::remove_file(&archive_path).ok();
+    } else {
+        return Err("Unsupported archive format".into());
+    }
 
     trace!("EXTRACT successful: {} files", extracted_files.len());
     Ok(extracted_files)
