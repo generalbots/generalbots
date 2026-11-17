@@ -202,6 +202,8 @@
     });
   }
 
+  _I.wireDragResize = wireDragResize;
+
   window.SheetWidths = {
     apply: wire,
     colWidth: colWidth,

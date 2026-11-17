@@ -236,7 +236,7 @@
   var _I = window.__SheetWidths = window.__SheetWidths || {};
   _I.grid = grid; _I.wsIndex = wsIndex; _I.apply = apply; _I.patchRender = patchRender;
   _I.colWidth = colWidth; _I.rowHeight = rowHeight; _I.colX = colX; _I.rowTop = rowTop; _I.rowAt = rowAt;
-  _I.computeVisibleColRange = computeVisibleColRange; _I.wireDragResize = wireDragResize;
+  _I.computeVisibleColRange = computeVisibleColRange;
   _I.setColWidth = setColWidth; _I.setRowHeight = setRowHeight; _I.persistResize = persistResize;
   _I.totalColWidth = totalColWidth; _I.charsToPx = charsToPx; _I.pointsToPx = pointsToPx;
   _I.colPxToChars = colPxToChars; _I.rowPxToPoints = rowPxToPoints; _I.sheetId = sheetId;
