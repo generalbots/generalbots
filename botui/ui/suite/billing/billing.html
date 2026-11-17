@@ -80,7 +80,7 @@
                 id="billing-new-invoice"
                 hx-get="/suite/billing/partials/invoice-form.html"
                 hx-target="#billing-modal-content"
-                hx-on::after-request="openBillingModal()"
+                onclick="openBillingModal()"
             >
                 <svg
                     width="16"
@@ -142,7 +142,7 @@
                 class="btn-primary"
                 hx-get="/suite/billing/partials/payment-form.html"
                 hx-target="#billing-modal-content"
-                hx-on::after-request="openBillingModal()"
+                onclick="openBillingModal()"
             >
                 <svg
                     width="16"
@@ -214,7 +214,7 @@
                 class="btn-primary"
                 hx-get="/suite/billing/partials/quote-form.html"
                 hx-target="#billing-modal-content"
-                hx-on::after-request="openBillingModal()"
+                onclick="openBillingModal()"
             >
                 <svg
                     width="16"
@@ -369,7 +369,15 @@
             // Ignore URL parsing issues in restricted environments.
         }
 
-        // New Invoice button uses declarative htmx attributes.
+        // Open modal when form content is loaded into the billing modal.
+        function openBillingModalOnLoad(e) {
+            if (!e.detail || !e.detail.target) return;
+            if (e.detail.target.id === "billing-modal-content") {
+                openBillingModal();
+            }
+        }
+        document.body.addEventListener("htmx:afterSwap", openBillingModalOnLoad);
+        document.body.addEventListener("htmx:afterSettle", openBillingModalOnLoad);
 
         // Modal functions
         window.openBillingModal = function () {
