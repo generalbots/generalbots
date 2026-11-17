@@ -92,3 +92,6 @@ chat-artifact-kind-markdown = Markdown document
 chat-artifact-kind-html = HTML page
 chat-artifact-kind-code = Code
 chat-artifact-words = words
+
+# #2362 — attachment action label
+chat-open-in-app = Open in app

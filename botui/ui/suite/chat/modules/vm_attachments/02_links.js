@@ -23,16 +23,22 @@ function vmOfficeAppAvailable(app) {
 // and hydration card paths cannot drift apart again (#1834).
 function vmAttachmentButtons(path) {
   var app = vmOfficeAppFor(path);
+  var t = function (k, fb) { return (typeof gbT === "function") ? gbT(k, fb) : fb; };
+  var esc = (typeof vmEscapeHtml === "function") ? vmEscapeHtml : function (x) { return String(x == null ? "" : x); };
+  var openLabel = t("chat-open-in-app", "Open in app");
+  var previewLabel = t("chat-preview", "Preview");
+  var downloadLabel = t("action-download", "Download");
+  var saveLabel = t("action-save", "Save");
   var open =
     app && vmOfficeAppAvailable(app)
-      ? '<button type="button" class="gb-attachment-btn gb-attachment-open" title="Open in app">Open in app</button>'
+      ? '<button type="button" class="gb-attachment-btn gb-attachment-open" title="' + esc(openLabel) + '">' + esc(openLabel) + '</button>'
       : "";
   return (
-    '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
+    '<button type="button" class="gb-attachment-btn gb-attachment-preview">' + esc(previewLabel) + '</button>' +
     open +
-    '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
+    '<button type="button" class="gb-attachment-btn gb-attachment-download">' + esc(downloadLabel) + '</button>' +
     (vmAgentDriveEnabled()
-      ? '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>'
+      ? '<button type="button" class="gb-attachment-btn gb-attachment-save">' + esc(saveLabel) + '</button>'
       : "")
   );
 }
