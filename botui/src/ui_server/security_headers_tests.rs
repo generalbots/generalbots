@@ -51,7 +51,7 @@ async fn send_plain(router: Router, path: &str) -> (StatusCode, HeaderMap) {
     send_with_proto(router, path, false).await
 }
 
-fn header(headers: &HeaderMap, name: &str) -> &str {
+fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
     headers
         .get(name)
         .and_then(|value| value.to_str().ok())

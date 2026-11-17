@@ -360,7 +360,7 @@ pub async fn health_check(
 }
 
 #[derive(serde::Deserialize)]
-struct HealthQuery {
+pub(crate) struct HealthQuery {
     deep: Option<u8>,
 }
 
