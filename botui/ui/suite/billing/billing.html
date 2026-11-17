@@ -75,7 +75,13 @@
                     hx-target="#billing-search-results"
                 />
             </div>
-            <button class="btn-primary" id="billing-new-invoice">
+            <button
+                class="btn-primary"
+                id="billing-new-invoice"
+                hx-get="/suite/billing/partials/invoice-form.html"
+                hx-target="#billing-modal-content"
+                hx-on::after-request="openBillingModal()"
+            >
                 <svg
                     width="16"
                     height="16"
@@ -363,18 +369,7 @@
             // Ignore URL parsing issues in restricted environments.
         }
 
-        // New Invoice button
-        document
-            .getElementById("billing-new-invoice")
-            .addEventListener("click", function () {
-                htmx.ajax(
-                    "GET",
-                    "/suite/billing/partials/invoice-form.html",
-                    "#billing-modal-content",
-                ).then(() => {
-                    openBillingModal();
-                });
-            });
+        // New Invoice button uses declarative htmx attributes.
 
         // Modal functions
         window.openBillingModal = function () {
