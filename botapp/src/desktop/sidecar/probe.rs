@@ -9,8 +9,13 @@ use super::Sidecar;
 use log::warn;
 use std::path::PathBuf;
 
-/// Path part of the product endpoint, used by the synchronous probe.
+/// Path part of the product endpoint, used by the wizard and as a legacy
+/// fallback for servers that expose neither `/ready` nor `/health`.
 const API_PRODUCT_PATH: &str = "/api/product";
+/// Dependency-aware readiness endpoint added in #2385.
+const READY_PATH: &str = "/ready";
+/// Fast liveness endpoint, used when the running server predates `/ready`.
+const HEALTH_PATH: &str = "/health";
 
 /// Port the sidecar listens on. Defaults to 8080; overridden by the
 /// `GB_SIDECAR_PORT` environment variable (used by the test rig to run
@@ -22,7 +27,7 @@ pub(crate) fn sidecar_port() -> u16 {
         .unwrap_or(8080)
 }
 
-/// The assistant's readiness endpoint on the sidecar port.
+/// The assistant's product endpoint on the sidecar port (wizard use).
 pub(crate) fn api_product_url() -> String {
     format!("http://127.0.0.1:{}{API_PRODUCT_PATH}", sidecar_port())
 }
@@ -189,49 +194,62 @@ pub(super) fn decide_start(
     }
 }
 
-/// Parses the status line of an HTTP response.
-fn http_status_is_success(response: &str) -> bool {
-    let Some(status_line) = response.lines().next() else {
-        return false;
-    };
-    let mut parts = status_line.split_whitespace();
-    let _version = parts.next();
-    match parts.next().and_then(|code| code.parse::<u16>().ok()) {
-        Some(code) => (200..300).contains(&code),
-        None => false,
-    }
+/// Parses the status code of an HTTP response.
+fn status_code(response: &str) -> Option<u16> {
+    let status_line = response.lines().next()?;
+    status_line.split_whitespace().nth(1)?.parse().ok()
 }
 
-/// Synchronous `/api/product` probe used before spawning (#2023).
+fn is_success_code(code: Option<u16>) -> bool {
+    code.is_some_and(|code| (200..300).contains(&code))
+}
+
+/// Pure readiness decision: `/ready` is authoritative, `/health` is the
+/// fallback for an older server that does not expose it yet, and `/api/product`
+/// covers servers that expose neither. A 503 from `/ready` is never masked.
+fn readiness_decision(ready: Option<u16>, health: Option<u16>, product: Option<u16>) -> bool {
+    if is_success_code(ready) {
+        return true;
+    }
+    if ready == Some(503) {
+        return false;
+    }
+    is_success_code(health) || is_success_code(product)
+}
+
+/// One raw loopback GET, returning the status code when a response arrives.
 ///
 /// Deliberately raw `std::net`: `Sidecar::start` is called from synchronous
 /// setup paths, and a loopback GET of one small document needs no runtime.
-pub(super) fn api_is_answering() -> bool {
+fn http_get_status(path: &str) -> Option<u16> {
     use std::io::{Read, Write};
 
     let port = sidecar_port();
     let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
-    let mut stream = match std::net::TcpStream::connect_timeout(
-        &address,
-        std::time::Duration::from_millis(500),
-    ) {
-        Ok(stream) => stream,
-        Err(_) => return false,
-    };
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&address, std::time::Duration::from_millis(500))
+            .ok()?;
     let timeout = Some(std::time::Duration::from_millis(1500));
     let _ = stream.set_read_timeout(timeout);
     let _ = stream.set_write_timeout(timeout);
-    let request = format!(
-        "GET {API_PRODUCT_PATH} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
-    );
-    if stream.write_all(request.as_bytes()).is_err() {
-        return false;
-    }
+    let request =
+        format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).ok()?;
     let mut buffer = [0u8; 128];
-    match stream.read(&mut buffer) {
-        Ok(read) if read > 0 => http_status_is_success(&String::from_utf8_lossy(&buffer[..read])),
-        _ => false,
+    let read = stream.read(&mut buffer).ok()?;
+    if read == 0 {
+        return None;
     }
+    status_code(&String::from_utf8_lossy(&buffer[..read]))
+}
+
+/// Synchronous readiness probe used before spawning (#2023, #2385).
+pub(super) fn api_is_answering() -> bool {
+    readiness_decision(
+        http_get_status(READY_PATH),
+        http_get_status(HEALTH_PATH),
+        http_get_status(API_PRODUCT_PATH),
+    )
 }
 
 /// Whether something already holds the sidecar port.
@@ -262,12 +280,39 @@ mod tests {
 
     #[test]
     fn only_a_2xx_status_line_counts_as_ready() {
-        assert!(http_status_is_success("HTTP/1.1 200 OK\r\ncontent-length: 12\r\n"));
-        assert!(http_status_is_success("HTTP/1.0 204 No Content\r\n"));
-        assert!(!http_status_is_success("HTTP/1.1 500 Internal Server Error\r\n"));
-        assert!(!http_status_is_success("HTTP/1.1 404 Not Found\r\n"));
-        assert!(!http_status_is_success(""));
-        assert!(!http_status_is_success("not http at all"));
+        assert_eq!(
+            status_code("HTTP/1.1 200 OK\r\ncontent-length: 12\r\n"),
+            Some(200)
+        );
+        assert_eq!(status_code("HTTP/1.0 204 No Content\r\n"), Some(204));
+        assert_eq!(
+            status_code("HTTP/1.1 503 Service Unavailable\r\n"),
+            Some(503)
+        );
+        assert_eq!(status_code(""), None);
+        assert_eq!(status_code("not http at all"), None);
+        assert!(is_success_code(Some(200)));
+        assert!(is_success_code(Some(204)));
+        assert!(!is_success_code(Some(503)));
+        assert!(!is_success_code(Some(404)));
+        assert!(!is_success_code(None));
+    }
+
+    #[test]
+    fn ready_is_authoritative_and_503_is_never_masked() {
+        assert!(readiness_decision(Some(200), None, None));
+        assert!(readiness_decision(Some(204), None, None));
+        assert!(!readiness_decision(Some(503), Some(200), Some(200)));
+    }
+
+    #[test]
+    fn health_and_product_are_fallbacks_when_ready_is_unavailable() {
+        assert!(readiness_decision(None, Some(200), None));
+        assert!(readiness_decision(Some(404), Some(204), None));
+        assert!(readiness_decision(Some(500), Some(200), None));
+        assert!(readiness_decision(None, None, Some(200)));
+        assert!(!readiness_decision(None, Some(503), Some(200)));
+        assert!(!readiness_decision(None, None, None));
     }
 
     #[test]

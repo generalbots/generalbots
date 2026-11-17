@@ -12,6 +12,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
         // return `peer_network_disabled` until GB_PEER_NETWORK opts in.
         .merge(super::peer_network::configure_peer_routes())
         .route("/health", get(crate::health_check_simple))
+        .route("/ready", get(crate::main_module::health_ready))
         .route(ApiUrls::HEALTH, get(crate::health_check))
         .route(
             "/api/config/reload",
