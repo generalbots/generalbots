@@ -4,10 +4,11 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::Json;
 use botcore::shared::state::AppState;
+use diesel::prelude::*;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use super::{bearer_user, db_error, HandlerError};
+use super::{HandlerError, bearer_user, db_error};
 
 #[derive(Deserialize)]
 struct RenameSessionBody {
@@ -64,5 +65,46 @@ pub async fn handle_delete_chat_history_session(
     Ok(Json(serde_json::json!({
         "deleted": true,
         "session_id": session_id,
+    })))
+}
+
+/// Clears all messages from one conversation while keeping the session row.
+/// Equivalent to truncating from the first visible message.
+pub async fn handle_clear_chat_history_session(
+    State(state): State<Arc<AppState>>,
+    Path(session_id): Path<Uuid>,
+    request: axum::extract::Request,
+) -> Result<Json<serde_json::Value>, HandlerError> {
+    let user_uuid = bearer_user(&request)?;
+
+    let owner = {
+        let mut sm = state.session_manager.lock().await;
+        sm.get_session_by_id(session_id)
+            .map_err(|e| db_error("load session", e))?
+    };
+    let Some(sess) = owner else {
+        return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
+    };
+    if sess.user_id.to_string() != user_uuid.to_string() {
+        return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
+    }
+
+    let deleted = {
+        let mut conn = state
+            .conn
+            .get()
+            .map_err(|e| db_error("pool", e.to_string()))?;
+        diesel::delete(
+            botschema::message_history::table
+                .filter(botschema::message_history::session_id.eq(session_id)),
+        )
+        .execute(&mut conn)
+        .map_err(|e| db_error("clear messages", e.to_string()))?
+    };
+
+    Ok(Json(serde_json::json!({
+        "cleared": true,
+        "session_id": session_id,
+        "deleted_count": deleted,
     })))
 }

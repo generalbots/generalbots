@@ -1,0 +1,66 @@
+/* #2344 conversation header in chat app */
+.gb-chat-conversation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 4px 12px;
+  border-bottom: 1px solid var(--gb-border, rgba(255,255,255,0.08));
+}
+.gb-chat-conversation-title-wrap { flex: 1; min-width: 0; }
+.gb-chat-conversation-title {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.gb-chat-conversation-title:hover,
+.gb-chat-conversation-title:focus {
+  border-color: var(--gb-border, rgba(255,255,255,0.15));
+  outline: none;
+}
+.gb-chat-conversation-menu-wrap { position: relative; }
+.gb-chat-conversation-menu-btn {
+  background: transparent;
+  border: 1px solid var(--gb-border, rgba(255,255,255,0.12));
+  color: inherit;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.gb-chat-conversation-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 220px;
+  background: var(--gb-surface, #1e1f22);
+  border: 1px solid var(--gb-border, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.gb-chat-conversation-menu[hidden] { display: none; }
+.gb-chat-conversation-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+.gb-chat-conversation-menu button:hover {
+  background: rgba(255,255,255,0.06);
+}
+.gb-chat-conversation-menu button.danger { color: #ff6b6b; }
