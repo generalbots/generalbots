@@ -22,31 +22,19 @@ pub fn escape_html(s: &str) -> String {
 /// Validates a webhook URL. HTTPS is required in production; private/local
 /// destinations are always rejected to prevent SSRF.
 pub fn validate_webhook_url(url: &str) -> Result<(), &'static str> {
-    if url.trim().is_empty() {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
         return Err("Webhook URL is required");
     }
     let is_prod = std::env::var("GB_ENV")
         .map(|v| v == "production")
         .unwrap_or(false);
-    if is_prod && !url.starts_with("https://") {
+    if is_prod && !trimmed.starts_with("https://") {
         return Err("Webhook URL must use HTTPS in production");
     }
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("Webhook URL must start with http:// or https://");
-    }
-    let forbidden = [
-        "localhost",
-        "127.0.0.1",
-        "0.0.0.0",
-        "::1",
-        "169.254.",
-        "10.",
-        "192.168.",
-    ];
-    if forbidden.iter().any(|f| url.contains(f)) {
-        return Err("Webhook URL cannot point to localhost or private networks");
-    }
-    Ok(())
+    botsecurity_core::validation::validate_url_ssrf_strict(trimmed)
+        .map(|_| ())
+        .map_err(|_| "Webhook URL cannot point to localhost or private networks")
 }
 
 pub fn parse_events(raw: Option<&str>) -> serde_json::Value {
