@@ -19,6 +19,16 @@
   const inFlight = new Set();
   const objectUrls = new Map(); // path -> blob URL for grid/thumb
 
+  // gbT with an authored fallback. Interpolate params ourselves when the
+  // catalogue has not loaded yet so counts never flash raw "{count}" text.
+  function t(key, fallback, params) {
+    const raw = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (!params) return raw;
+    return String(raw).replace(/\{\s*\$?(\w+)\s*\}/g, function (_, name) {
+      return Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : "";
+    });
+  }
+
   function authHeaders() {
     const headers = { "Content-Type": "application/json" };
     try {
@@ -77,7 +87,8 @@
     loadQueue = [];
     activeLoads = 0;
     inFlight.clear();
-    grid.innerHTML = '<div class="photos-empty" role="status" aria-live="polite">Loading your images from Drive…</div>';
+    grid.innerHTML = '<div class="photos-empty" role="status" aria-live="polite">' +
+      escapeHtml(t("photos-loading", "Loading your images from Drive…")) + "</div>";
     const count = document.getElementById("photosCount");
     if (count) count.textContent = "";
 
@@ -95,11 +106,16 @@
           return f && !f.is_dir && IMG_EXT.test(f.name || f.path || "");
         });
         if (!images.length) {
-          grid.innerHTML = '<div class="photos-empty" role="status" aria-live="polite">No images found in your Drive yet. Upload some and refresh.</div>';
+          grid.innerHTML = '<div class="photos-empty" role="status" aria-live="polite">' +
+            escapeHtml(t("photos-empty", "No images found in your Drive yet. Upload some and refresh.")) + "</div>";
           return;
         }
         allImages = images;
-        if (count) count.textContent = images.length + " photo" + (images.length === 1 ? "" : "s");
+        if (count) {
+          count.textContent = images.length === 1
+            ? t("photos-count-one", "1 photo", { count: 1 })
+            : t("photos-count-many", "{count} photos", { count: images.length });
+        }
         renderNextPage();
       })
       .catch(function (err) {
@@ -141,7 +157,9 @@
     const btn = document.createElement("button");
     btn.className = "photos-retry";
     btn.type = "button";
-    btn.textContent = "Load more (" + (allImages.length - renderedCount) + " remaining)";
+    btn.textContent = t("photos-load-more", "Load more ({remaining} remaining)", {
+      remaining: allImages.length - renderedCount,
+    });
     btn.addEventListener("click", function () { renderNextPage(); });
     wrap.appendChild(btn);
     grid.appendChild(wrap);
@@ -239,7 +257,6 @@
         img.alt = name;
         img.src = url;
         tile.appendChild(img);
-        tile.dataset.url = url;
         tile.dataset.loaded = "1";
       } else {
         revokeUrlFor(path);
@@ -247,7 +264,8 @@
     } catch (err) {
       if (tile.isConnected && !tile.dataset.warned) {
         tile.dataset.warned = "1";
-        tile.title = (tile.getAttribute("title") || path) + " — preview unavailable";
+        const label = tile.getAttribute("title") || path;
+        tile.title = t("photos-preview-unavailable", "{name} — preview unavailable", { name: label });
         tile.innerHTML = '<div class="photo-tile-placeholder" aria-hidden="true">' + (window.GBIcons ? window.GBIcons.html("image", 26) : "🖼") + '</div>';
       }
     } finally {
@@ -264,7 +282,7 @@
     if (!lightbox || !img) return;
     const path = (tile && tile.getAttribute("data-path")) || (file && file.path) || "";
     const name = (file && file.name) || path;
-    const existing = tile && tile.dataset.url ? tile.dataset.url : (path ? objectUrls.get(path) : null);
+    const existing = path ? objectUrls.get(path) : null;
     try {
       if (existing) {
         img.src = existing;
@@ -276,7 +294,7 @@
       }
       lightbox.style.display = "flex";
     } catch (_) {
-      renderError(new Error("This image could not be loaded from Drive."));
+      renderError(new Error(t("photos-load-failed", "This image could not be loaded from Drive.")));
     }
   }
 
@@ -284,13 +302,12 @@
     teardownObserver();
     const grid = document.getElementById("photosGrid");
     if (!grid) return;
-    const msg = (err && err.message) ? err.message : "Could not reach your Drive.";
+    const msg = (err && err.message) ? err.message : t("photos-drive-error", "Could not reach your Drive.");
     grid.innerHTML =
       '<div class="photos-empty photos-error" role="alert">' +
       "<p>" + escapeHtml(msg) + "</p>" +
-      '<p class="photos-hint">Connect a Drive to see your images here. ' +
-      'If your Drive is connected, try refreshing.</p>' +
-      '<button class="photos-retry" id="photosRetry" type="button">Retry</button>' +
+      '<p class="photos-hint">' + escapeHtml(t("photos-error-hint", "Connect a Drive to see your images here. If your Drive is connected, try refreshing.")) + "</p>" +
+      '<button class="photos-retry" id="photosRetry" type="button">' + escapeHtml(t("photos-retry", "Retry")) + "</button>" +
       "</div>";
     const retry = document.getElementById("photosRetry");
     if (retry) retry.addEventListener("click", load);
@@ -309,6 +326,8 @@
   }
 
   function bootPhotos() {
+    const lbImg = document.getElementById("photosLbImg");
+    if (lbImg) lbImg.alt = t("photos-preview-alt", "Preview");
     const refresh = document.getElementById("photosRefresh");
     if (refresh && !refresh.dataset.gbPhotosInit) {
       refresh.dataset.gbPhotosInit = "1";

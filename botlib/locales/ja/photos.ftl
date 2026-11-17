@@ -1,0 +1,14 @@
+# Photos gallery (#2413)
+photos-title = 写真
+photos-refresh = 更新
+photos-preview-alt = プレビュー
+photos-loading = Drive から画像を読み込み中…
+photos-empty = Drive に画像が見つかりません。アップロードして更新してください。
+photos-count-one = { $count } 枚の写真
+photos-count-many = { $count } 枚の写真
+photos-load-more = さらに読み込む（残り { $remaining } 件）
+photos-preview-unavailable = { $name } — プレビューを表示できません
+photos-load-failed = この画像を Drive から読み込めませんでした。
+photos-drive-error = Drive に接続できませんでした。
+photos-error-hint = Drive を接続すると、ここに画像が表示されます。接続済みの場合は更新してください。
+photos-retry = 再試行
