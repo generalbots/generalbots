@@ -87,4 +87,3 @@ pub(crate) async fn exec_with_wake_events(
         Err((status, error)) => Err((status.as_u16(), error)),
     }
 }
-
