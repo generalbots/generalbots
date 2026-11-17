@@ -3,74 +3,16 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
-use axum::routing::{get, post};
-use axum::{Extension, Json, Router};
-use futures_util::StreamExt;
-use serde::Deserialize;
-use uuid::Uuid;
+use axum::{Extension, Json};
+use futures_util::{SinkExt, StreamExt};
 
 use crate::security::auth_api::types::AuthenticatedUser;
 
-use super::{sanitize_container_cwd, TerminalManager};
-use botcore::shared::utils::DbPool;
+use super::super::sanitize_container_cwd;
+use super::authz;
+use super::{CreateTerminalRequest, KillTerminalRequest, TerminalRouterState};
 
-#[derive(Deserialize)]
-pub struct CreateTerminalRequest {
-    #[serde(default)]
-    pub cwd: Option<String>,
-    #[serde(default)]
-    pub shell: Option<String>,
-    /// Optional project VM container to exec into (e.g. `calculator-prod`).
-    /// When set the shell runs inside that container via `incus exec`.
-    #[serde(default)]
-    pub container: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct KillTerminalRequest {
-    pub id: String,
-}
-
-pub struct TerminalRouterState {
-    pub manager: Arc<TerminalManager>,
-    pub pool: DbPool,
-}
-
-pub fn configure_terminal_routes(pool: DbPool) -> Router {
-    let manager = Arc::new(TerminalManager::new());
-    Router::new()
-        .route("/api/terminal/create", post(create_terminal))
-        .route("/api/terminal/list", get(list_terminals))
-        .route("/api/terminal/kill", post(kill_terminal))
-        .route("/api/terminal/ws", get(terminal_ws))
-        .with_state(Arc::new(TerminalRouterState { manager, pool }))
-}
-
-/// Routes for builds without the `terminal` feature.
-///
-/// The API fallback answered a generic `{"error":"not_found"}`, which the
-/// terminal client rendered as "Terminal session failed: not_found" (#1841).
-/// Advertising the missing capability with an actionable message is better
-/// than pretending the route never existed.
-pub fn configure_unavailable_terminal_routes() -> Router {
-    Router::new()
-        .route("/api/terminal/create", post(terminal_unavailable))
-        .route("/api/terminal/list", get(terminal_unavailable))
-        .route("/api/terminal/kill", post(terminal_unavailable))
-        .route("/api/terminal/ws", get(terminal_unavailable))
-}
-
-async fn terminal_unavailable() -> impl IntoResponse {
-    (
-        axum::http::StatusCode::SERVICE_UNAVAILABLE,
-        Json(serde_json::json!({
-            "error": "terminal_unavailable",
-            "message": "Terminal is not available in this build. Install a build with the terminal feature (the desktop edition includes it) and try again."
-        })),
-    )
-}
-
-async fn create_terminal(
+pub(super) async fn create_terminal(
     State(state): State<Arc<TerminalRouterState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateTerminalRequest>,
@@ -121,7 +63,7 @@ async fn create_terminal(
     // production infrastructure.
     let is_own_agent_vm = agent_vm.as_deref() == Some(container.as_str());
     if !is_own_agent_vm {
-        if let Err(e) = authorize_project_container(&state.pool, user.user_id, &container) {
+        if let Err(e) = authz::authorize_project_container(&state.pool, user.user_id, &container) {
             botlog::safe_warn!("terminal create forbidden (user {}): {e}", user.user_id);
             return (
                 axum::http::StatusCode::FORBIDDEN,
@@ -211,12 +153,14 @@ async fn create_terminal(
     (code, body)
 }
 
-async fn list_terminals(State(state): State<Arc<TerminalRouterState>>) -> impl IntoResponse {
+pub(super) async fn list_terminals(
+    State(state): State<Arc<TerminalRouterState>>,
+) -> impl IntoResponse {
     state.manager.reap();
     Json(serde_json::json!({ "terminals": state.manager.list_sessions() }))
 }
 
-async fn kill_terminal(
+pub(super) async fn kill_terminal(
     State(state): State<Arc<TerminalRouterState>>,
     Json(req): Json<KillTerminalRequest>,
 ) -> impl IntoResponse {
@@ -235,7 +179,7 @@ async fn kill_terminal(
     }
 }
 
-async fn terminal_ws(
+pub(super) async fn terminal_ws(
     State(state): State<Arc<TerminalRouterState>>,
     Query(query): Query<std::collections::HashMap<String, String>>,
     ws: WebSocketUpgrade,
@@ -253,8 +197,8 @@ async fn terminal_ws(
     ws.on_upgrade(move |socket| terminal_ws_loop(socket, session))
 }
 
-async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSession>) {
-    send_history(&session, &mut socket).await;
+async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::super::TerminalSession>) {
+    authz::send_history(&session, &mut socket).await;
     let mut events_rx = session.events.subscribe();
     loop {
         tokio::select! {
@@ -267,7 +211,7 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
                         }
                         // xterm.js sends `resize <cols> <rows>`; forward it to
                         // the PTY instead of feeding it to the shell.
-                        if let Some((cols, rows)) = parse_resize(&text) {
+                        if let Some((cols, rows)) = authz::parse_resize(&text) {
                             session.resize(cols, rows);
                             continue;
                         }
@@ -299,153 +243,6 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
                 }
             }
         }
-    }
-}
-
-/// SECURITY gate for container attachment: the requested container must be a
-/// `vm_instances` row for a project the caller can access (direct or group
-/// membership with at least the `viewer` role).
-fn authorize_project_container(
-    pool: &DbPool,
-    user_id: Uuid,
-    container: &str,
-) -> Result<(), String> {
-    use diesel::prelude::*;
-    if container.is_empty()
-        || !container
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-')
-    {
-        return Err("Invalid container name".to_string());
-    }
-    let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
-    #[derive(diesel::QueryableByName)]
-    struct UuidCell {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        value: Uuid,
-    }
-    let project_id: Option<UuidCell> =
-        diesel::sql_query("SELECT project_id AS value FROM vm_instances WHERE container_name = $1")
-            .bind::<diesel::sql_types::Text, _>(container)
-            .get_result::<UuidCell>(&mut conn)
-            .optional()
-            .map_err(|e| format!("vm lookup: {e}"))?;
-    let project_id = match project_id {
-        Some(row) => row.value,
-        None => {
-            return Err(format!(
-                "container '{container}' is not a project VM — only project VMs can be attached"
-            ));
-        }
-    };
-    if !project_role_at_least_viewer(&mut conn, user_id, project_id)? {
-        return Err("you do not have access to this project's VM".to_string());
-    }
-    Ok(())
-}
-
-/// Resolves whether the caller holds at least the `viewer` role on the
-/// project that owns the VM (direct membership or via an active group).
-fn project_role_at_least_viewer(
-    conn: &mut diesel::r2d2::PooledConnection<
-        diesel::r2d2::ConnectionManager<diesel::PgConnection>,
-    >,
-    user_id: Uuid,
-    project_id: Uuid,
-) -> Result<bool, String> {
-    use diesel::prelude::*;
-    if user_id == Uuid::nil() {
-        return Ok(false);
-    }
-    #[derive(diesel::QueryableByName)]
-    struct RoleCell {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        value: String,
-    }
-    let direct: Option<RoleCell> = diesel::sql_query(
-        "SELECT role AS value FROM project_members WHERE project_id = $1 AND user_id = $2",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(project_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .get_result::<RoleCell>(conn)
-    .optional()
-    .map_err(|e| format!("project role lookup: {e}"))?;
-    if let Some(role) = direct {
-        return Ok(is_viewer_or_above(&role.value));
-    }
-    let groups: Vec<RoleCell> = diesel::sql_query(
-        "SELECT g.name AS value FROM rbac_user_groups ug \
-         JOIN rbac_groups g ON g.id = ug.group_id \
-         WHERE ug.user_id = $1 AND g.is_active = true",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .load::<RoleCell>(conn)
-    .map_err(|e| format!("user groups lookup: {e}"))?;
-    for group in groups {
-        let group_role: Option<RoleCell> = diesel::sql_query(
-            "SELECT role AS value FROM project_members \
-             WHERE project_id = $1 AND group_name = $2",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(project_id)
-        .bind::<diesel::sql_types::Text, _>(&group.value)
-        .get_result::<RoleCell>(conn)
-        .optional()
-        .map_err(|e| format!("group role lookup: {e}"))?;
-        if let Some(role) = group_role {
-            if is_viewer_or_above(&role.value) {
-                return Ok(true);
-            }
-        }
-    }
-    // Mirror the Vibe project RBAC semantics: an authenticated user with no
-    // explicit membership on the project is treated as a viewer there (the
-    // run/files endpoints resolve to the default `Viewer` role), so the
-    // Terminal must grant the same access — otherwise a user who can already
-    // Run a project's VM gets a 403 from its own companion terminal. The
-    // container is still restricted to `vm_instances` rows, so infra
-    // containers (tables, vault, system) remain unreachable.
-    Ok(true)
-}
-
-fn is_viewer_or_above(role: &str) -> bool {
-    matches!(
-        role.to_ascii_lowercase().as_str(),
-        "viewer" | "developer" | "admin" | "owner"
-    )
-}
-
-/// Parses an xterm.js resize control message: `resize <cols> <rows>`.
-fn parse_resize(text: &str) -> Option<(u16, u16)> {
-    let rest = text.strip_prefix("resize ")?;
-    let mut parts = rest.split_whitespace();
-    let cols: u16 = parts.next()?.parse().ok()?;
-    let rows: u16 = parts.next()?.parse().ok()?;
-    Some((cols, rows))
-}
-
-async fn send_history(session: &Arc<super::TerminalSession>, socket: &mut WebSocket) {
-    for line in session.history() {
-        let payload = serde_json::json!({ "type": "output", "data": line.data });
-        if socket
-            .send(Message::Text(payload.to_string()))
-            .await
-            .is_err()
-        {
-            break;
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_resize_accepts_valid_and_rejects_garbage() {
-        assert_eq!(parse_resize("resize 120 40"), Some((120, 40)));
-        assert_eq!(parse_resize("resize 0 0"), Some((0, 0)));
-        assert_eq!(parse_resize("resize nope 40"), None);
-        assert_eq!(parse_resize("echo hi"), None);
     }
 }
 
