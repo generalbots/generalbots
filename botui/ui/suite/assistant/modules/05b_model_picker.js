@@ -109,6 +109,8 @@
             menu.appendChild(item);
         }
 
+        addSwitchEntries(menu, dest);
+
         var div = document.createElement("div");
         div.className = "gb-model-menu-divider";
         menu.appendChild(div);
@@ -129,6 +131,76 @@
         anchor.style.position = "relative";
         anchor.appendChild(menu);
         document.addEventListener("click", closeModelMenu, { once: true });
+    }
+
+    /* ---- Switch entries: the models installed on this computer and the
+       free hosted model. Picking one does the same switch as Settings >
+       Modelo; the menu never changes the model silently. ---- */
+    function tr(ptT, enT) { return A.locale && A.locale.startsWith("pt") ? ptT : enT; }
+
+    function menuEntry(menu, name, meta, onPick) {
+        var item = document.createElement("button");
+        item.className = "gb-model-menu-item";
+        item.innerHTML = '<span class="gb-model-menu-name">' + esc(name) + '</span>' +
+            '<span class="gb-model-menu-meta">' + esc(meta) + '</span>';
+        item.addEventListener("click", function (e) { e.stopPropagation(); onPick(); });
+        var divider = menu.querySelector(".gb-model-menu-divider");
+        if (divider) { menu.insertBefore(item, divider); } else { menu.appendChild(item); }
+    }
+
+    function addSwitchEntries(menu, dest) {
+        if (dest.scope === "machine" || dest.scope === "network") {
+            menuEntry(menu, tr("Modelo gratuito", "Free model"),
+                tr("hospedado fora deste computador", "hosted outside this computer"),
+                function () { switchTo({ mode: "free" }); });
+        }
+        A.apiFetch("/api/llm/local/models").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+            if (!data || activeModelMenu !== menu) { return; }
+            var current = A.fullModelName(A.defaultModel || "");
+            (data.tiers || []).forEach(function (tier) {
+                (tier.models || []).forEach(function (m) {
+                    if (!m.downloaded || m.file === current) { return; }
+                    menuEntry(menu, m.name, tr("neste computador", "on this computer"),
+                        function () { switchTo({ local: m.id }); });
+                });
+            });
+        }).catch(function () { /* the menu keeps what it has */ });
+    }
+
+    function setPickersBusy(on) {
+        var btns = document.querySelectorAll(".gb-model-btn");
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].disabled = on;
+            var label = btns[i].querySelector(".gb-model-btn-label");
+            if (label && on) { label.textContent = tr("Trocando o modelo...", "Switching the model..."); }
+        }
+    }
+
+    function switchTo(target) {
+        closeModelMenu();
+        var shared = A._modelShared || {};
+        function run() {
+            setPickersBusy(true);
+            var req = target.local
+                ? A.apiFetch("/api/llm/local/activate", { method: "POST", body: JSON.stringify({ model_id: target.local }) })
+                : A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify({ mode: target.mode }) });
+            req.then(function (r) {
+                return r.json().catch(function () { return { error: "http_" + r.status }; })
+                    .then(function (d) { return r.ok && !d.error ? "" : (d.error || "http_" + r.status); });
+            }).catch(function () { return "unreachable"; }).then(function (failure) {
+                return A.loadModels().then(function () {
+                    setPickersBusy(false);
+                    A.renderModelPickers();
+                    if (typeof A.renderStatus === "function") { A.renderStatus(); }
+                    if (failure && shared.showFailure) { shared.showFailure(failure); }
+                });
+            });
+        }
+        if (target.mode === "free" && shared.inlineConfirm) {
+            shared.inlineConfirm(shared.t("confirmExt").replace("%h", shared.t("freeHost")), run);
+        } else {
+            run();
+        }
     }
 
     function closeModelMenu() {

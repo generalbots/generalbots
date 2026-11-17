@@ -99,6 +99,15 @@
             try {
                 A.selectedModel = localStorage.getItem("gb-model-preference");
             } catch (e) { /* ignore */ }
+            /* A remembered choice is kept only while it is still on offer:
+               after the model in use changes (Settings > Modelo), the old
+               name must not stay on the status line nor go out with a turn. */
+            var offered = A.selectedModel === data.default_model ||
+                A.tiers.some(function (tier) { return tier.model === A.selectedModel; });
+            if (A.selectedModel && !offered) {
+                A.selectedModel = null;
+                try { localStorage.removeItem("gb-model-preference"); } catch (e) { /* ignore */ }
+            }
             if (!A.selectedModel && data.default_model) {
                 A.selectedModel = data.default_model;
             }

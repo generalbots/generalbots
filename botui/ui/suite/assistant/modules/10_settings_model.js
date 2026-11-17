@@ -158,7 +158,12 @@ A._modelShared = {
   errText: errText,
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
-  refreshAfterChange: function () { refreshAfterChange(); }
+  refreshAfterChange: function () { return refreshAfterChange(); },
+  /* A switch asked from the chat's model menu failed: Modelo opens with the reason. */
+  showFailure: function (code) {
+    pendingStatus = { html: '<p class="gb-set-warn">' + esc(errText(code)) + '</p>' };
+    if (typeof A.openSettings === "function") { A.openSettings("model"); }
+  }
 };
 
 A.renderModelFull = function (panel) {
