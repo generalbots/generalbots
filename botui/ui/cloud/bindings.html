@@ -73,7 +73,8 @@
         <!-- Recent calls -->
         <div class="card">
           <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-bindings-calls-title">Recent Calls</h2>
-          <div style="overflow-x:auto">
+          <p class="table-scroll-hint" data-i18n="mobile-table-scroll-hint">Swipe sideways to see all columns</p>
+          <div class="cloud-table-scroll" role="region" tabindex="0" data-i18n-aria-label="mobile-table-scroll-label" aria-label="Scrollable data table">
             <table class="calls-table">
               <thead>
                 <tr><th data-i18n="cloud-bindings-col-direction">Direction</th><th data-i18n="cloud-bindings-col-from">From</th><th data-i18n="cloud-bindings-col-to">To</th><th data-i18n="cloud-bindings-col-status">Status</th><th data-i18n="cloud-bindings-col-duration">Duration</th><th data-i18n="cloud-bindings-col-date">Date</th></tr>

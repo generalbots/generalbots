@@ -36,16 +36,17 @@
     .card > p{font-size:.85rem;color:var(--muted);margin-bottom:24px}
 
     .form-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-    @media (max-width: 520px){.form-row{grid-template-columns:1fr;gap:12px}}
+    @media (max-width: 560px){.form-row{grid-template-columns:1fr;gap:12px}}
     .form-group{display:flex;flex-direction:column;gap:6px}
     .form-label{font-size:.75rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
-    .form-input{width:100%;padding:12px 14px;font-size:.9rem;font-family:inherit;
+    /* 16px minimum stops iOS Safari auto-zooming the viewport on input focus. */
+    .form-input{width:100%;min-height:44px;padding:12px 14px;font-size:16px;font-family:inherit;
       border:1.5px solid var(--input-border);border-radius:7px;background:var(--input-bg);
       color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
     .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
     .form-input::placeholder{color:var(--placeholder)}
 
-    .btn{width:100%;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
+    .btn{width:100%;min-height:44px;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
       border:none;border-radius:7px;cursor:pointer;transition:opacity .15s,transform .1s;
       background:#0a0a0e;color:#fff;margin-top:4px}
     [data-theme="dark"] .btn{background:#0a0a0e;color:#fff}
@@ -96,7 +97,7 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="login-email" data-i18n="login-label-email">Email</label>
-          <input id="login-email" class="form-input" type="email" placeholder="you@company.com" data-i18n-placeholder="login-placeholder-email" required autocomplete="email">
+          <input id="login-email" class="form-input" type="email" placeholder="you@company.com" data-i18n-placeholder="login-placeholder-email" required autocomplete="email" inputmode="email">
         </div>
         <div class="form-group">
           <label class="form-label" for="login-password" data-i18n="login-label-password">Password</label>

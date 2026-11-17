@@ -34,7 +34,8 @@
         <button class="cat-pill" onclick="filterInv(this,'overdue')" data-i18n="cloud-invoices-filter-overdue">Overdue</button>
       </div>
 
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
+      <p class="table-scroll-hint" data-i18n="mobile-table-scroll-hint">Swipe sideways to see all columns</p>
+      <div class="cloud-table-scroll" role="region" tabindex="0" data-i18n-aria-label="mobile-table-scroll-label" aria-label="Scrollable data table" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
         <table class="invoice-table">
           <thead>
             <tr>

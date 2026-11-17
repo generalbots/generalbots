@@ -38,17 +38,22 @@
     .card > p{font-size:.78rem;color:var(--muted);margin-bottom:14px}
 
     .form-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-    @media (max-width: 520px){.form-row{grid-template-columns:1fr;gap:12px}}
+    @media (max-width: 560px){
+      .form-row{grid-template-columns:1fr;gap:12px}
+      .plan-chooser{flex-direction:column}
+      .plan-option{min-height:44px}
+    }
     .form-group{display:flex;flex-direction:column;gap:4px}
     .form-label{font-size:.7rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.04em}
-    .form-input{width:100%;padding:10px 12px;font-size:.85rem;font-family:inherit;
+    /* 16px minimum stops iOS Safari auto-zooming the viewport on input focus. */
+    .form-input{width:100%;min-height:44px;padding:10px 12px;font-size:16px;font-family:inherit;
       border:1.5px solid var(--input-border);border-radius:7px;background:var(--input-bg);
       color:var(--fg);transition:border-color .15s,box-shadow .15s;outline:none}
     .form-input:focus{border-color:#0077b6;box-shadow:0 0 0 3px rgba(0,119,182,.15)}
     .form-input::placeholder{color:var(--placeholder)}
     .form-help{font-size:.62rem;color:var(--muted);margin-top:1px}
 
-    .btn{width:100%;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
+    .btn{width:100%;min-height:44px;padding:10px 14px;font-size:.85rem;font-weight:700;font-family:inherit;
       border:none;border-radius:7px;cursor:pointer;transition:opacity .15s,transform .1s;
       background:#0a0a0e;color:#fff;margin-top:4px}
     [data-theme="dark"] .btn{background:#0a0a0e;color:#fff}
@@ -117,21 +122,21 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="signup-name" data-i18n="signup-label-name">Name</label>
-          <input id="signup-name" class="form-input" type="text" name="name" placeholder="Full name" data-i18n-placeholder="signup-placeholder-name">
+          <input id="signup-name" class="form-input" type="text" name="name" placeholder="Full name" data-i18n-placeholder="signup-placeholder-name" autocomplete="name">
         </div>
         <div class="form-group">
           <label class="form-label" for="signup-botname" data-i18n="signup-label-bot-name">Bot Name</label>
-          <input id="signup-botname" class="form-input" type="text" name="bot_name" required placeholder="e.g. MyAssistant" data-i18n-placeholder="signup-placeholder-bot-name">
+          <input id="signup-botname" class="form-input" type="text" name="bot_name" required placeholder="e.g. MyAssistant" data-i18n-placeholder="signup-placeholder-bot-name" autocomplete="off">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="signup-email" data-i18n="signup-label-email">Email</label>
-          <input id="signup-email" class="form-input" type="email" name="email" required placeholder="you@example.com" data-i18n-placeholder="signup-placeholder-email">
+          <input id="signup-email" class="form-input" type="email" name="email" required placeholder="you@example.com" data-i18n-placeholder="signup-placeholder-email" autocomplete="email" inputmode="email">
         </div>
         <div class="form-group">
           <label class="form-label" for="signup-password" data-i18n="signup-label-password">Password</label>
-          <input id="signup-password" class="form-input" type="password" name="password" required minlength="8" placeholder="At least 8 chars" data-i18n-placeholder="signup-placeholder-password">
+          <input id="signup-password" class="form-input" type="password" name="password" required minlength="8" placeholder="At least 8 chars" data-i18n-placeholder="signup-placeholder-password" autocomplete="new-password">
         </div>
       </div>
 

@@ -4,6 +4,16 @@ html, body { max-width: 100%; overflow-x: hidden; }
 img, video, canvas, svg { max-width: 100%; }
 .mgmt-main, .mgmt-content, .mgmt-split-right, .machines-page, .print3d-page { min-width: 0; max-width: 100%; }
 
+/* Wide data tables scroll inside their own labelled region, never the page.
+   Markup pairs this with role="region" tabindex="0" and a translated aria-label. */
+.cloud-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+}
+.table-scroll-hint { display: none; font-size: .75rem; color: var(--muted); margin: 0 0 .5rem; }
+
 @media (max-width: 1024px) {
   .mgmt-split-right { padding: 32px 24px; }
 }
@@ -12,6 +22,11 @@ img, video, canvas, svg { max-width: 100%; }
   .mgmt-split-right { padding: 24px 16px; }
   .mgmt-topbar { flex-wrap: wrap; gap: 0.75rem; }
   .mgmt-topbar-actions { flex-wrap: wrap; }
+  /* Action rows / toolbars wrap instead of squeezing their buttons. */
+  .mgmt-section-header, .filter-bar, .cat-pills, .plan-info-card,
+  .llm-connect-actions, .card-actions, .actions-cell {
+    flex-wrap: wrap;
+  }
   .tier-table-wrap, .table-wrap, .overflow-x-auto, div[style*="overflow-x:auto"], div[style*="overflow-x: auto"] {
     max-width: 100%;
     -webkit-overflow-scrolling: touch;
@@ -25,6 +40,7 @@ img, video, canvas, svg { max-width: 100%; }
   .tier-table-wrap { padding-left: 0.75rem; padding-right: 0.75rem; }
   input, select, textarea { font-size: 16px; }
   .btn, button, [role="button"], a.btn { min-height: 44px; }
+  .table-scroll-hint { display: block; }
 }
 
 @media (max-width: 400px) {
