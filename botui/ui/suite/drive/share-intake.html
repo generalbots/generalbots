@@ -31,11 +31,12 @@
 <body>
   <main class="wrap">
     <h1 data-i18n="drive-share-intake-title">Save shared files to Drive</h1>
-    <p class="muted" id="intro">Review the shared items below, then save them to your Drive.</p>
+    <p class="muted" id="intro">Review the shared items below, then save them to your Drive. You may need to sign in before saving.</p>
     <section class="card" aria-labelledby="files-heading">
       <h2 id="files-heading" style="font-size:1rem;margin:0 0 10px;">Shared items</h2>
       <ul id="file-list" class="file-list"><li class="muted">Loading shared items…</li></ul>
       <div id="text-share" class="muted" style="margin-top:10px;display:none;"></div>
+      <p id="auth-hint" class="muted" style="margin-top:10px;">If saving fails, sign in to General Bots and try again. Shared files are stored temporarily in this browser until saved or cleared.</p>
       <div class="actions">
         <button id="save-btn" class="primary" type="button" disabled>Save to Drive</button>
         <a class="btn" href="/drive">Open Drive</a>
