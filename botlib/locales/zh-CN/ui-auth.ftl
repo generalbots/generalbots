@@ -114,3 +114,4 @@ auth-password-updated = 您的密码已更新。您现在可以使用新密码�
 auth-invalid-token = 链接无效或过期
 auth-invalid-token-desc = 此密码重置链接无效或已过期。请索取一份新的。
 auth-request-new-link = 请求新链接
+auth-session-expired = Your session has expired. Please log in again.

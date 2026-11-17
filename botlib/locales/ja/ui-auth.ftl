@@ -114,3 +114,4 @@ auth-password-updated = パスワードが更新されました。新しいパ�
 auth-invalid-token = リンクが無効または期限切れです
 auth-invalid-token-desc = このパスワード リセット リンクは無効であるか、有効期限が切れています。新しいものをリクエストしてください。
 auth-request-new-link = 新しいリンクをリクエスト
+auth-session-expired = Your session has expired. Please log in again.
