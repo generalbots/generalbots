@@ -41,3 +41,10 @@ drive-trash = Lixeira
 drive-loading-storage = Carregando armazenamento...
 drive-storage-used = { $used } de { $total } usado
 drive-empty-folder = Esta pasta está vazia
+
+# Drive → Use in chat (#2568)
+drive-use-in-chat = Usar na conversa
+drive-use-in-chat-preparing = Preparando %n…
+drive-use-in-chat-attached = Arquivo anexado à conversa: %n
+drive-use-in-chat-failed = Não foi possível anexar o arquivo à conversa.
+drive-use-in-chat-timeout = Abra a conversa para anexar o arquivo.

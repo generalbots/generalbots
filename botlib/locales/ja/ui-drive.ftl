@@ -41,3 +41,10 @@ drive-trash = ゴミ箱
 drive-loading-storage = ストレージを読み込み中...
 drive-storage-used = { $total }中{ $used }が使用されました
 drive-empty-folder = このフォルダは空です
+
+# Drive → Use in chat (#2568)
+drive-use-in-chat = 会話で使用
+drive-use-in-chat-preparing = %n を準備中…
+drive-use-in-chat-attached = 会話に添付しました: %n
+drive-use-in-chat-failed = ファイルを会話に添付できませんでした。
+drive-use-in-chat-timeout = ファイルを添付するには会話を開いてください。

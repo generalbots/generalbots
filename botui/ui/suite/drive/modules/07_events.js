@@ -232,7 +232,11 @@ function showContextMenu(x, y, path, type, bucket) {
         duplicate: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
         paste: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>',
         ai: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1-4-4 4 4 0 0 1 4-4 4 4 0 0 1 4-4z"></path><path d="M12 6v12M6 12h12"></path></svg>',
+        chat: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
     };
+    var useInChatLabel = window.gbT
+        ? window.gbT("drive-use-in-chat", "Use in chat")
+        : "Use in chat";
     var hideMenu = "document.getElementById('context-menu').style.display='none';";
     var hasClipboard = clipboardFiles.length > 0;
     var isStarred = (window._starredPaths && window._starredPaths[path]) ||
@@ -248,6 +252,7 @@ function showContextMenu(x, y, path, type, bucket) {
         : '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.openFile(\'' + ep + '\', \'' + eb + '\')">' + icons.open + '<span>Open</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.previewFile(\'' + ep + '\', \'' + eb + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Preview</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.downloadFile(\'' + ep + '\', \'' + eb + '\')">' + icons.download + '<span>Download</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.useInChat(\'' + ep + '\', \'' + eb + '\')">' + icons.chat + '<span>' + useInChatLabel + '</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.shareFile(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.link + '<span>Share link</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyLink(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.link + '<span>Copy link</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.toggleStar(\'' + ep + '\', \'' + (eb || currentBucket) + '\', ' + (isStarred ? "false" : "true") + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span>' + (isStarred ? "Remove from starred" : "Add to starred") + '</span></div>'

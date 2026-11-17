@@ -41,3 +41,10 @@ drive-trash = Trash
 drive-loading-storage = Loading storage...
 drive-storage-used = { $used } of { $total } used
 drive-empty-folder = This folder is empty
+
+# Drive → Use in chat (#2568)
+drive-use-in-chat = Use in chat
+drive-use-in-chat-preparing = Preparing %n…
+drive-use-in-chat-attached = Attached to the conversation: %n
+drive-use-in-chat-failed = Could not attach the file to the conversation.
+drive-use-in-chat-timeout = Open the chat to attach the file.

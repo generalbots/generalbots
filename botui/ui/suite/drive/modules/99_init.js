@@ -95,6 +95,7 @@ window.DriveModule = {
     selectAll: selectAll,
     clearSelection: clearSelection,
     downloadFile: downloadFile,
+    useInChat: useInChat,
     downloadSelected: downloadSelected,
     previewFile: previewFile,
     toggleStar: toggleStar,

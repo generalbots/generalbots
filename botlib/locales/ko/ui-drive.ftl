@@ -41,3 +41,10 @@ drive-trash = 휴지통
 drive-loading-storage = 저장공간 로드 중...
 drive-storage-used = { $total } 중 { $used } 사용됨
 drive-empty-folder = 이 폴더는 비어 있습니다.
+
+# Drive → Use in chat (#2568)
+drive-use-in-chat = 대화에서 사용
+drive-use-in-chat-preparing = %n 준비 중…
+drive-use-in-chat-attached = 대화에 첨부했습니다: %n
+drive-use-in-chat-failed = 파일을 대화에 첨부하지 못했습니다.
+drive-use-in-chat-timeout = 파일을 첨부하려면 대화를 여세요.

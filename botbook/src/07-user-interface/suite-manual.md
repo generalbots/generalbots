@@ -159,6 +159,7 @@ Drive is your file storage - like Google Drive or OneDrive. Store documents, ima
 **Right-click menu options:**
 - 📂 Open
 - ⬇️ Download
+- 💬 Use in chat — attach the file to the conversation, which opens Chat if it is closed
 - ✏️ Rename
 - 📋 Copy
 - 📁 Move to...

@@ -41,3 +41,10 @@ drive-trash = 垃圾
 drive-loading-storage = 正在加载存储...
 drive-storage-used = 已使用 { $total } 中的{ $used }
 drive-empty-folder = 该文件夹是空的
+
+# Drive → Use in chat (#2568)
+drive-use-in-chat = 在对话中使用
+drive-use-in-chat-preparing = 正在准备 %n…
+drive-use-in-chat-attached = 已附加到对话：%n
+drive-use-in-chat-failed = 无法将文件附加到对话。
+drive-use-in-chat-timeout = 请打开对话以附加文件。
