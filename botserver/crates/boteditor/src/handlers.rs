@@ -159,9 +159,17 @@ pub async fn read_file(
     };
     match fs::read_to_string(&full).await {
         Ok(content) => Ok(Json(FileContentResponse { content })),
-        Err(_) => Ok(Json(FileContentResponse {
-            content: String::new(),
-        })),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err((
+            StatusCode::NOT_FOUND,
+            "File not found".to_string(),
+        )),
+        Err(e) => {
+            log::warn!("boteditor::read_file: failed to read {path:?}: {e}");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                log_and_sanitize(&e, "boteditor::read_file", None).message,
+            ))
+        }
     }
 }
 
