@@ -94,14 +94,18 @@ fn client_can_act(client_caps: Option<&Value>) -> bool {
     let Some(surfaces) = caps.get("surfaces").and_then(Value::as_array) else {
         return true;
     };
+    // VM execution (creating PDFs, images, running code) does not require the
+    // client to draw into apps: any chat client that can receive text can run
+    // the work in the VM and get the output in chat. The "live generation"
+    // checkbox (ui_plan surface) only gates the UI-drawing mechanism, which is
+    // decoupled from VM execution (#2567 follow-up).
     !surfaces.is_empty()
         && surfaces.iter().any(|surface| {
             surface.as_str().is_some_and(|value| {
-                value.eq_ignore_ascii_case("gb.basic.v1")
+                value.eq_ignore_ascii_case("text")
+                    || value.eq_ignore_ascii_case("gb.basic.v1")
                     || value.eq_ignore_ascii_case("actions")
                     || value.eq_ignore_ascii_case("tools")
-                    // The suite/assistant chat advertises UI automation under this
-                    // surface (#1691); it is an execution surface, not just text.
                     || value.eq_ignore_ascii_case("ui_plan")
             })
         })
@@ -186,11 +190,21 @@ mod tests {
     }
 
     #[test]
-    fn a_text_only_client_cannot_be_routed_to_actions() {
-        let caps = json!({ "surfaces": ["text"] });
+    fn a_client_with_no_surfaces_cannot_be_routed_to_actions() {
+        let caps = json!({ "surfaces": [] });
         let decision = decide("build a script that renames files", 0, Some(&caps));
         assert_eq!(decision.route, Route::NonAgentic);
         assert_eq!(decision.reason, "client-has-no-action-surface");
+    }
+
+    #[test]
+    fn a_text_only_client_can_run_vm_work() {
+        // Live generation (ui_plan) is off, but VM work still runs and the
+        // output is shown in chat.
+        let caps = json!({ "surfaces": ["text"] });
+        let decision = decide("create a pdf with images", 0, Some(&caps));
+        assert_eq!(decision.route, Route::Agentic);
+        assert_eq!(decision.reason, "artifact-or-execution");
     }
 
     #[test]
