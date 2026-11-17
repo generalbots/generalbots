@@ -344,17 +344,15 @@
         view.innerHTML = '<div class="integrations-skeleton-grid" aria-hidden="true">' + skeletonCards(3) + '</div>';
     };
 
+    // #2345 — the actionable/accessible result cell lives in its own module
+    // (02a) to keep this file under 450 lines; inject the module-local helpers.
     function testCell(row) {
-        if (!row.last_test_status) {
-            return '<span class="integrations-faint-text">Not tested yet</span>' +
-                '<span class="integrations-cell-subtext">Run a test to verify stored credentials.</span>';
-        }
-        var when = relativeDate(row.last_tested_at) || formatDate(row.last_tested_at);
-        var detail = namespace.text(row.last_test_detail || (namespace.testDetails && namespace.testDetails[row.id] && namespace.testDetails[row.id].detail), "");
-        var detailHtml = detail ? '<span class="integrations-cell-subtext">' + namespace.escapeHtml(detail) + '</span>' : '';
-        return statusBadge(row.last_test_status) +
-            '<span class="integrations-cell-subtext">Last tested ' + namespace.escapeHtml(when) + '</span>' +
-            detailHtml;
+        return namespace.buildTestCell(row, {
+            statusBadge: statusBadge,
+            relativeDate: relativeDate,
+            formatDate: formatDate,
+            expiryState: expiryState
+        });
     }
 
     // GB7-18 — the consent view: what the connection may read or do, and who

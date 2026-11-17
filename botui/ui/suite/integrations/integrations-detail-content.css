@@ -267,6 +267,29 @@
     font-weight: 650;
 }
 
+/* #2345 — actionable test-result cell (Retest / Rotate on the result). */
+.integrations-app .integrations-test-result {
+    display: block;
+}
+
+.integrations-app .integrations-test-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.integrations-app .integrations-test-action {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+.integrations-app .integrations-test-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .integrations-app td.is-expired > span:first-child,
 .integrations-app td.is-expiring-soon > span:first-child {
     color: var(--integrations-warning);

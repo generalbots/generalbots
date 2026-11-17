@@ -215,12 +215,12 @@
         // #2100: the value is re-resolved from the payload in `loadCatalog`,
         // because a catalog without priorities would match nothing here.
         state.statusFilter = "all";
-        syncStatusButtons(root, state);
+        namespace.syncStatusButtons(root, state);
         window.addEventListener("gb-preview-changed", function () {
             var next = namespace.preferredStatusFilter(state.providers);
             if (state.statusFilter === next) return;
             state.statusFilter = next;
-            syncStatusButtons(root, state);
+            namespace.syncStatusButtons(root, state);
             namespace.renderExplore(root);
         });
         configureAria(root, state);

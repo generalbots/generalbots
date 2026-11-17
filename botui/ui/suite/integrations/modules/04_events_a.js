@@ -5,11 +5,18 @@
         namespace.announce(root, message);
     }
 
+    function t(key, fallback) {
+        return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+    }
+
     function syncStatusButtons(root, state) {
         root.querySelectorAll("[data-status]").forEach(function (button) {
             button.setAttribute("aria-pressed", String(button.dataset.status === state.statusFilter));
         });
     }
+    // #2345 — shared with 04_events_b.js (both are split from 04_events.js);
+    // without exporting it, the app throws on boot ("syncStatusButtons is not defined").
+    namespace.syncStatusButtons = syncStatusButtons;
 
     /* #2100 — a filter that hides every provider must be one click away from
        showing everything again. */
@@ -94,7 +101,7 @@
     namespace.testConnection = async function (root, connectionId, button) {
         var url = namespace.connectionActionUrl(connectionId, "/test");
         if (!url) return announce(root, "Connection test needs a workspace context");
-        if (button) { button.disabled = true; button.textContent = "Testing..."; button.setAttribute("aria-busy", "true"); }
+        if (button) { button.disabled = true; button.textContent = t("integrations-testing", "Testing…"); button.setAttribute("aria-busy", "true"); }
         var state = namespace.getState(root);
         try {
             var outcome = await namespace.fetchJson(url, { method: "POST", body: {} });
@@ -117,7 +124,7 @@
             var parts = ["Connection test: " + namespace.titleCase(status, "Unknown")];
             if (detail) parts.push(detail);
             announce(root, parts.join(" — "));
-            if (button && button.isConnected) { button.textContent = "Retest"; }
+            if (button && button.isConnected) { button.textContent = t("integrations-retest", "Retest"); }
         } catch (error) {
             var errDetail = namespace.text(error && (error.detail || error.outcome_detail), "");
             if (errDetail) {
@@ -136,7 +143,6 @@
             announce(root, "Revoke needs a workspace context");
             return;
         }
-        var t = window.gbT || function (key, fallback) { return fallback; };
         var message = t("integrations-revoke-confirm", "Revoke this connection? Its stored credentials will be deleted.");
         var title = t("integrations-revoke-title", "Revoke connection");
         var confirmed = await new Promise(function (resolve) {
