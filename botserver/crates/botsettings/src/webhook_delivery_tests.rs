@@ -27,7 +27,7 @@ fn a_non_http_scheme_is_rejected() {
     for url in ["ftp://example.com/hook", "file:///etc/passwd", "example.com/hook"] {
         let error = validate_webhook_url(url).expect_err("must reject");
         assert!(
-            error == "Webhook URL must start with http:// or https://"
+            error == "Webhook URL cannot point to localhost or private networks"
                 || error == "Webhook URL must use HTTPS in production",
             "{url} produced {error}"
         );
@@ -44,6 +44,9 @@ fn localhost_and_private_networks_are_rejected() {
         "https://169.254.169.254/latest/meta-data",
         "https://10.0.0.5/hook",
         "https://192.168.1.10/hook",
+        "https://172.16.0.5/hook",
+        "https://2130706433/hook",
+        "https://127.0.0.2/hook",
     ] {
         assert_eq!(
             validate_webhook_url(url),
