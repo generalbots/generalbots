@@ -177,6 +177,19 @@ pub(crate) fn find_profile(id: &str) -> Option<&'static Profile> {
     PROFILES.iter().find(|profile| profile.id == id)
 }
 
+/// What a model is good at, as codes the interface turns into words. The
+/// R1 distillations think step by step before they answer; the others are
+/// general chat models trained on many languages.
+pub(crate) fn capabilities(spec: &ModelSpec) -> &'static [&'static str] {
+    if spec.id.starts_with("deepseek-r1") {
+        &["reasoning", "chat"]
+    } else if spec.server_only {
+        &["chat"]
+    } else {
+        &["chat", "multilingual"]
+    }
+}
+
 pub(crate) fn find(id: &str) -> Option<&'static ModelSpec> {
     CATALOG.iter().find(|spec| spec.id == id)
 }

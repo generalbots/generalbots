@@ -68,13 +68,7 @@ pub(super) async fn runtime_status() -> RuntimeStatus {
     let binary = llama_server_binary();
     let installed = binary.exists();
 
-    let reachable = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        tokio::net::TcpStream::connect("127.0.0.1:8081"),
-    )
-    .await
-    .map(|r| r.is_ok())
-    .unwrap_or(false);
+    let reachable = crate::on_device_ai::runtime_ctl::port_open().await;
 
     let (installing, install_job) = current_install_job();
 

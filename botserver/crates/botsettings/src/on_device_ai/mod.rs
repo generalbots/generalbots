@@ -133,6 +133,7 @@ fn model_row(
         "server_only": spec.server_only,
         "licence": spec.licence,
         "source_host": spec.source_host,
+        "capabilities": catalog::capabilities(spec),
     })
 }
 

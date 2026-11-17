@@ -63,8 +63,25 @@ impl EnsureOutcome {
 
 // ── probe ───────────────────────────────────────────────────────────────
 
+/// Whether something accepts connections on the chat port. A stopped engine
+/// is the common case on the settings page, and on Windows a refused
+/// connection to localhost only comes back after about two seconds of
+/// retries: give up early instead, a listening port answers at once.
+pub async fn port_open() -> bool {
+    tokio::time::timeout(
+        Duration::from_millis(350),
+        tokio::net::TcpStream::connect(format!("127.0.0.1:{CHAT_PORT}")),
+    )
+    .await
+    .map(|result| result.is_ok())
+    .unwrap_or(false)
+}
+
 /// Query what model the chat runtime has loaded. Short timeout (~1 s).
 pub async fn probe() -> RuntimeProbe {
+    if !port_open().await {
+        return RuntimeProbe { reachable: false, loaded_model: String::new() };
+    }
     probe_with_timeout(Duration::from_secs(1)).await
 }
 

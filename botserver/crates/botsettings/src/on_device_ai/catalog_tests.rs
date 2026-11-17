@@ -1,7 +1,8 @@
 //! Pure tier/model selection tests for the on-device catalogue (#2109).
 
 use super::{
-    catalog, effective_budget_gb, find, fit_verdict, fits, profiles, recommended, row_status,
+    capabilities, catalog, effective_budget_gb, find, fit_verdict, fits, profiles, recommended,
+    row_status,
     tier_groups, STATUS_ACTIVE, STATUS_AVAILABLE, STATUS_DOWNLOADED, STATUS_DOWNLOADING,
 };
 
@@ -92,4 +93,15 @@ fn profiles_are_named_bundles_with_growing_context() {
     assert_eq!(list.len(), 3);
     assert!(list[0].ctx_size < list[1].ctx_size);
     assert!(list[1].ctx_size < list[2].ctx_size);
+}
+
+#[test]
+fn every_model_says_what_it_is_good_at() {
+    for spec in catalog() {
+        assert!(!capabilities(spec).is_empty(), "no capability for {}", spec.id);
+    }
+    let r1 = find("deepseek-r1-distill-qwen-7b-q4km").expect("catalogue entry");
+    assert_eq!(capabilities(r1).first(), Some(&"reasoning"));
+    let qwen = find("qwen3.5-9b-q4km").expect("catalogue entry");
+    assert!(capabilities(qwen).contains(&"multilingual"));
 }
