@@ -5,7 +5,9 @@
 //! recipients can verify it came from the owning peer. This module builds
 //! the site document and its signature; hosting/relay wiring is separate.
 
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use uuid::Uuid;
 
 /// A signed home site published for a peer.
@@ -45,8 +47,8 @@ impl HomeSite {
     /// Canonical bytes that get signed.
     pub fn canonical(&self) -> String {
         format!(
-            "{}|{}|{}|{}|{}",
-            self.name, self.host, self.owner_node_id, self.title, self.body
+            "{}|{}|{}|{}|{}|{}",
+            self.name, self.host, self.owner_node_id, self.title, self.body, self.created_at
         )
     }
 
@@ -64,13 +66,15 @@ impl HomeSite {
 }
 
 fn simple_signature(key: &str, message: &str) -> String {
-    // FNV-1a based keyed digest, hex-encoded. Deterministic and dependency-free.
-    let mut hash: u64 = 0xcbf29ce484222325;
-    for byte in key.bytes().chain(message.bytes()) {
-        hash ^= byte as u64;
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    format!("{:016x}", hash)
+    // HMAC-SHA256 keyed digest, hex-encoded. Replaces the previous FNV-1a
+    // placeholder which was forgeable from a single observed signature (#2375).
+    type HmacSha256 = Hmac<Sha256>;
+    let mut mac = match HmacSha256::new_from_slice(key.as_bytes()) {
+        Ok(m) => m,
+        Err(_) => return String::new(),
+    };
+    mac.update(message.as_bytes());
+    hex::encode(mac.finalize().into_bytes())
 }
 
 /// Generator helper used when a user joins P2P.

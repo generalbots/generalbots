@@ -142,7 +142,7 @@ fn thumbnails_html(pres: &Presentation) -> Html<String> {
         r#"<div style="display:flex;flex-direction:column;gap:8px;padding:8px;">"#,
     );
     if pres.slides.is_empty() {
-        html.push_str(&super::empty_fragment("Nenhum slide. Adicione um slide para começar."));
+        html.push_str(&super::empty_fragment("No slides. Add a slide to get started."));
     }
     let total = pres.slides.len();
     for (index, slide) in pres.slides.iter().enumerate() {

@@ -86,7 +86,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
             Html(html.replace("{id}", &html_escape(&doc_id)))
         }
         _ => Html(empty_fragment(
-            "Nenhum sumário gerado. Use o botão Gerar Sumário para criar automaticamente a partir dos cabeçalhos.",
+            "No table of contents generated. Use the Generate TOC button to create one automatically from headings.",
         )),
     }
 }
@@ -105,7 +105,7 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
         return Html(format!(
             r##"<div class="dc-panel" id="comments-panel">{}</div>"##,
             empty_fragment(
-                "Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar."
+                "No comments. Add annotations to the selected text to start reviewing."
             )
         ));
     }
@@ -165,7 +165,7 @@ pub async fn handle_track_changes_panel(
         .unwrap_or("");
     if changes.is_empty() {
         return Html(empty_fragment(
-            "Nenhuma alteração rastreada. Ative o controle de alterações no menu Revisão.",
+            "No tracked changes. Enable track changes in the Review menu.",
         ));
     }
     let mut html = String::from(
@@ -237,7 +237,7 @@ pub async fn handle_footnotes_panel(
     }
     if notes.is_empty() {
         return Html(empty_fragment(
-            "Nenhuma nota de rodapé. Use Inserir > Nota de Rodapé para adicionar referências.",
+            "No footnotes. Use Insert > Footnote to add references.",
         ));
     }
     let mut body = String::new();
@@ -279,7 +279,7 @@ pub async fn handle_endnotes_panel(
     }
     if notes.is_empty() {
         return Html(empty_fragment(
-            "Nenhuma nota final. Use Inserir > Nota Final para adicionar referências no fim do documento.",
+            "No endnotes. Use Insert > Endnote to add references at the end of the document.",
         ));
     }
     let mut body = String::new();
@@ -318,7 +318,7 @@ pub async fn handle_styles_panel(
         return Html(format!(
             r##"<div class="dc-panel" id="styles-panel">{}</div>"##,
             empty_fragment(
-                "Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação."
+                "No custom styles. Create styles based on Normal/Heading 1/Heading 2 to speed up formatting."
             )
         ));
     }
@@ -359,7 +359,7 @@ pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Htm
     }
     if outline.is_empty() {
         return Html(empty_fragment(
-            "Nenhum item de estrutura detectado. Use títulos (H1, H2, H3) para criar uma estrutura hierárquica.",
+            "No outline items detected. Use headings (H1, H2, H3) to create a hierarchical structure.",
         ));
     }
     let mut body = String::new();

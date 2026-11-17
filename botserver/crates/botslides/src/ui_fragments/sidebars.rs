@@ -7,7 +7,7 @@ use crate::SlidesState;
 
 pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     if items.is_empty() {
-        return Html(empty_fragment("Nenhuma apresentação. Crie uma nova para começar."));
+        return Html(empty_fragment("No presentations. Create a new one to get started."));
     }
     let mut body = String::new();
     for m in &items {
@@ -25,7 +25,7 @@ pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<Presentation
 
 pub async fn handle_search_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     if items.is_empty() {
-        return Html(empty_fragment("Nenhum resultado para esta busca."));
+        return Html(empty_fragment("No results for this search."));
     }
     let mut body = String::new();
     for m in &items {
@@ -46,7 +46,7 @@ pub async fn handle_search_sidebar(Json(items): Json<Vec<PresentationMetadata>>)
 pub async fn handle_recent_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     let recent: Vec<&PresentationMetadata> = items.iter().take(5).collect();
     if recent.is_empty() {
-        return Html(empty_fragment("Nenhuma apresentação recente."));
+        return Html(empty_fragment("No recent presentations."));
     }
     let mut body = String::new();
     for m in recent {

@@ -101,12 +101,12 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
         }
     }
     if slides.is_empty() {
-        return Ok(Html(empty_fragment("Nenhum slide para ordenar.")));
+        return Ok(Html(empty_fragment("No slides to sort.")));
     }
     let mut html = format!(
         r##"<div class="sl-panel" id="slide-sorter-panel" data-presentation-id="{pid}" style="padding:16px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Organizar Slides</h3>
+<h3 style="margin:0;color:#f8fafc;font-size:16px;">Organize Slides</h3>
 <button type="button" onclick="this.closest('#slides-modal-container').innerHTML=''" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;">×</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">"##,
@@ -138,7 +138,7 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
     html.push_str(
         r##"</div>
 <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
-<button type="button" id="slide-sorter-save" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:600;">Salvar Ordem</button>
+<button type="button" id="slide-sorter-save" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:600;">Save Order</button>
 <span id="slide-sorter-status" role="status" style="font-size:12px;color:#94a3b8;"></span>
 </div>
 </div>"##,

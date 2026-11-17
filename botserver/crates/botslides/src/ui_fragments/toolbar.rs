@@ -282,7 +282,7 @@ pub async fn handle_notes_form(Json(payload): Json<serde_json::Value>) -> Html<S
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/slide/notes" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 {field}
-<button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Salvar Notas</button>
+<button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Save Notes</button>
 </form>"##,
         id = html_escape(id),
         idx = idx,

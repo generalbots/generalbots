@@ -37,7 +37,7 @@ pub async fn handle_document_view_by_id(
 pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     if items.is_empty() {
         return Html(empty_fragment(
-            "Nenhum documento. Crie um novo para começar.",
+            "No documents. Create a new one to get started.",
         ));
     }
     let mut body = String::new();
@@ -56,7 +56,7 @@ pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -
 
 pub async fn handle_search_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     if items.is_empty() {
-        return Html(empty_fragment("Nenhum resultado para esta busca."));
+        return Html(empty_fragment("No results for this search."));
     }
     let mut body = String::new();
     for m in &items {
@@ -77,7 +77,7 @@ pub async fn handle_search_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> 
 pub async fn handle_recent_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     let recent: Vec<&DocumentMetadata> = items.iter().take(5).collect();
     if recent.is_empty() {
-        return Html(empty_fragment("Nenhum documento recente."));
+        return Html(empty_fragment("No recent documents."));
     }
     let mut body = String::new();
     for m in recent {
