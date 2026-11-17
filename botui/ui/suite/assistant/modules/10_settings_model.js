@@ -150,6 +150,7 @@ function setBusy(on, msgEl, text) {
 var cfg = null, modes = null, localModels = null, readOnly = false;
 var cfgError = null;
 var pendingStatus = null; /* {html, isOk} shown after the next re-render */
+var viewMode = null;      /* the mode card being viewed; kept when a list refreshes */
 A._modelShared = {
   get cfg() { return cfg; },
   get localModels() { return localModels; },
@@ -159,6 +160,11 @@ A._modelShared = {
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
   refreshAfterChange: function () { return refreshAfterChange(); },
+  /* Lists changed (download, removal, engine install) but the model in use did not. */
+  refreshKeepingView: function () {
+    var panel = document.getElementById("gbSetPanel");
+    return panel ? A.renderModelFull(panel, true) : null;
+  },
   /* A switch asked from the chat's model menu failed: Modelo opens with the reason. */
   showFailure: function (code) {
     pendingStatus = { html: '<p class="gb-set-warn">' + esc(errText(code)) + '</p>' };
@@ -166,7 +172,8 @@ A._modelShared = {
   }
 };
 
-A.renderModelFull = function (panel) {
+A.renderModelFull = function (panel, keepView) {
+  if (!keepView) { viewMode = null; }
   readOnly = false;
   cfgError = null;
   cfg = null;
@@ -245,6 +252,7 @@ function renderFull(panel) {
     pendingStatus = null;
   }
   panel.innerHTML = html;
+  if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
   if (!readOnly) { bindModeCards(panel); }
 }
@@ -328,13 +336,14 @@ function bindModeCards(panel) {
       renderModeDetail(panel, mode);
     });
   });
-  if (cfg) renderModeDetail(panel, cfg.mode || "local");
+  if (cfg) renderModeDetail(panel, viewMode || cfg.mode || "local");
 }
 
 function renderModeDetail(panel, mode) {
   panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) {
     b.classList.toggle("gb-set-mode-selected", b.getAttribute("data-mode") === mode);
   });
+  viewMode = mode;
   var existing = document.getElementById("gbModeDetail");
   if (existing) existing.remove();
   var detail = document.createElement("div");

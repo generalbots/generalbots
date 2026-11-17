@@ -262,7 +262,25 @@
 .gb-set-btn-accent:hover { background: var(--id-accent-hover); }
 .gb-set-btn-danger { color: var(--id-danger); border-color: var(--id-danger-line); }
 .gb-set-btn-danger:hover { background: var(--id-danger-soft); }
-.gb-dl-progress { display: flex; align-items: center; gap: var(--id-space-2); }
+.gb-dl-progress { display: flex; align-items: center; gap: var(--id-space-2); flex-wrap: wrap; width: 100%; }
+.gb-dl-bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: var(--id-fill); overflow: hidden; }
+.gb-dl-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--id-accent);
+    transition: width var(--id-dur-fast) var(--id-ease); }
+.gb-dl-bar-wait > i { width: 35%; animation: gbDlWait 1.4s ease-in-out infinite; }
+@keyframes gbDlWait { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .gb-dl-bar-wait > i { animation: none; width: 100%; opacity: .5; } }
+/* The engine comes first, in its own inner card */
+.gb-set-engine { border: 1px solid var(--id-line); border-radius: var(--id-radius-control);
+    padding: var(--id-space-3) var(--id-space-4); margin-bottom: var(--id-space-3); background: var(--id-fill); }
+.gb-set-engine .gb-set-model-info { justify-content: space-between; }
+.gb-set-hw { margin: 0 0 var(--id-space-2); line-height: 1.5; }
+.gb-set-list-title { font-size: var(--id-text-sm); font-weight: 600; color: var(--id-ink);
+    margin: var(--id-space-4) 0 var(--id-space-1); }
+.gb-set-model-caps { font-size: var(--id-text-sm); color: var(--id-text); margin-top: 2px; }
+/* The model being downloaded stands out as an inner card */
+.gb-set-model-row-busy { border: 1px solid var(--id-accent); border-radius: var(--id-radius-control);
+    background: var(--id-accent-soft); padding: var(--id-space-3) var(--id-space-4); margin: var(--id-space-2) 0; }
+.gb-set-model-row-busy:last-child { border-bottom: 1px solid var(--id-accent); }
 .gb-dl-text { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-set-form { display: flex; flex-direction: column; gap: var(--id-space-2); }
 .gb-set-input {
