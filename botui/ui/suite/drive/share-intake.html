@@ -31,15 +31,15 @@
 <body>
   <main class="wrap">
     <h1 data-i18n="drive-share-intake-title">Save shared files to Drive</h1>
-    <p class="muted" id="intro">Review the shared items below, then save them to your Drive. You may need to sign in before saving.</p>
+    <p class="muted" id="intro" data-i18n="drive-share-intake-intro">Review the shared items below, then save them to your Drive. You may need to sign in before saving.</p>
     <section class="card" aria-labelledby="files-heading">
-      <h2 id="files-heading" style="font-size:1rem;margin:0 0 10px;">Shared items</h2>
-      <ul id="file-list" class="file-list"><li class="muted">Loading shared items…</li></ul>
+      <h2 id="files-heading" style="font-size:1rem;margin:0 0 10px;" data-i18n="drive-share-intake-heading">Shared items</h2>
+      <ul id="file-list" class="file-list"><li class="muted" data-i18n="drive-share-intake-loading">Loading shared items…</li></ul>
       <div id="text-share" class="muted" style="margin-top:10px;display:none;"></div>
-      <p id="auth-hint" class="muted" style="margin-top:10px;">If saving fails, sign in to General Bots and try again. Shared files are stored temporarily in this browser until saved or cleared.</p>
+      <p id="auth-hint" class="muted" style="margin-top:10px;" data-i18n="drive-share-intake-auth-hint">If saving fails, sign in to General Bots and try again. Shared files are stored temporarily in this browser until saved or cleared.</p>
       <div class="actions">
-        <button id="save-btn" class="primary" type="button" disabled>Save to Drive</button>
-        <a class="btn" href="/drive">Open Drive</a>
+        <button id="save-btn" class="primary" type="button" disabled data-i18n="drive-share-intake-save">Save to Drive</button>
+        <a class="btn" href="/drive" data-i18n="drive-share-intake-open-drive">Open Drive</a>
       </div>
       <div id="status" class="status" role="status" aria-live="polite"></div>
       <div id="progress" class="progress" aria-live="polite"></div>
@@ -56,6 +56,13 @@
     var textEl = document.getElementById("text-share");
     var meta = null;
     var fileBlobs = [];
+    function gbT(key, fallback) {
+      try {
+        if (window.gbI18n && typeof window.gbI18n.t === "function") return window.gbI18n.t(key);
+        if (typeof window.t === "function") return window.t(key);
+      } catch (_) {}
+      return fallback;
+    }
 
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
     function fmtBytes(n){ if(!n) return "0 B"; var u=["B","KB","MB","GB"]; var i=0; while(n>=1024 && i<u.length-1){n/=1024;i++;} return (i? n.toFixed(1):n)+" "+u[i]; }
@@ -74,14 +81,15 @@
         if (!("caches" in window)) throw new Error("Cache API unavailable");
         var cache = await caches.open(SHARE_CACHE);
         var metaRes = await cache.match(new Request(META_KEY));
-        if (!metaRes) { listEl.innerHTML = '<li class="muted">No shared files were found. You can still open Drive and upload manually.</li>'; return; }
+        if (!metaRes) { listEl.innerHTML = '<li class="muted">'+esc(gbT("drive-share-intake-no-shared","No shared files were found. You can still open Drive and upload manually."))+'</li>'; return; }
         meta = await metaRes.json();
         if ((meta.text || meta.url) && !(meta.files && meta.files.length)) {
           textEl.style.display = "block";
           textEl.textContent = [meta.title, meta.text, meta.url].filter(Boolean).join(" — ");
         }
         if (!meta.files || !meta.files.length) {
-          listEl.innerHTML = '<li class="muted">No files were shared. ' + ((meta.url||meta.text) ? 'Shared text/link shown above.' : '') + '</li>';
+          var textShown = (meta.url||meta.text) ? gbT("drive-share-intake-text-shown","Shared text/link shown above.") : "";
+          listEl.innerHTML = '<li class="muted">'+esc(gbT("drive-share-intake-no-files","No files were shared.")) + (textShown ? ' ' + esc(textShown) : '') + '</li>';
           return;
         }
         for (var i=0;i<meta.files.length;i++) {
@@ -92,13 +100,14 @@
         }
         listEl.innerHTML = meta.files.map(function(f, i){
           var ok = !!fileBlobs[i];
-          return '<li class="file-item"><span class="file-name">'+esc(f.name||('file-'+(i+1)))+'</span><span class="file-meta">'+esc(fmtBytes(f.size||0))+(ok?'':' • unavailable')+'</span></li>';
+          var unavailable = ok ? "" : " • " + esc(gbT("drive-share-intake-unavailable","unavailable"));
+          return '<li class="file-item"><span class="file-name">'+esc(f.name||('file-'+(i+1)))+'</span><span class="file-meta">'+esc(fmtBytes(f.size||0))+unavailable+'</span></li>';
         }).join("");
         saveBtn.disabled = fileBlobs.filter(Boolean).length === 0;
-        if (saveBtn.disabled) setStatus("Shared files could not be read. Open Drive to upload manually.", "err");
+        if (saveBtn.disabled) setStatus(gbT("drive-share-intake-read-failed","Shared files could not be read. Open Drive to upload manually."), "err");
       } catch (e) {
-        listEl.innerHTML = '<li class="muted">Could not read shared items.</li>';
-        setStatus("Unable to access shared items: " + (e && e.message ? e.message : e), "err");
+        listEl.innerHTML = '<li class="muted">'+esc(gbT("drive-share-intake-read-error","Could not read shared items."))+'</li>';
+        setStatus(gbT("drive-share-intake-read-error","Could not read shared items.") + ": " + (e && e.message ? e.message : e), "err");
       }
     }
 
@@ -117,7 +126,7 @@
         var txt = await res.text().catch(function(){ return ""; });
         var msg = "";
         try { msg = (JSON.parse(txt)||{}).message || ""; } catch(_){}
-        if (res.status === 401 || res.status === 403) throw new Error(msg || "Sign in required to save files to Drive.");
+        if (res.status === 401 || res.status === 403) throw new Error(msg || gbT("drive-share-intake-sign-in-required","Sign in required to save files to Drive."));
         throw new Error(msg || ("HTTP " + res.status + (txt ? ": " + txt.slice(0,120) : "")));
       }
       return { ok: true };
@@ -130,20 +139,20 @@
       setStatus("", "");
       var ok = 0, fail = 0;
       for (var i=0;i<files.length;i++) {
-        progressEl.textContent = "Uploading " + (i+1) + " of " + files.length + ": " + files[i].name;
+        progressEl.textContent = gbT("drive-share-intake-uploading","Uploading") + " " + (i+1) + "/" + files.length + ": " + files[i].name;
         try { await uploadOne(files[i]); ok++; }
         catch(e){ fail++; console.warn("Share upload failed", e); }
       }
       progressEl.textContent = "";
       if (fail === 0) {
-        setStatus("Saved " + ok + " file" + (ok===1?"":"s") + " to Drive.", "ok");
+        setStatus(gbT("drive-share-intake-saved","Saved files to Drive."), "ok");
         try {
           var cache = await caches.open(SHARE_CACHE);
           var keys = await cache.keys();
           await Promise.all(keys.map(function(r){return cache.delete(r);}));
         } catch(_){}
       } else {
-        setStatus("Saved " + ok + " file(s), " + fail + " failed. You can retry.", "err");
+        setStatus(gbT("drive-share-intake-saved-partial","Some files could not be saved. You can retry."), "err");
       }
       saveBtn.disabled = fail === 0;
     }
