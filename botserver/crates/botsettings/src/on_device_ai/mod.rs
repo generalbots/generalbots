@@ -25,6 +25,8 @@ use std::sync::Arc;
 pub(crate) mod catalog;
 pub(crate) mod hardware;
 mod jobs;
+pub mod runtime_ctl;
+pub mod runtime_stop;
 pub(crate) mod vault_store;
 
 use catalog::ModelSpec;
@@ -229,6 +231,34 @@ async fn activate(
         ),
         None => None,
     };
+    // Step 1: ensure the runtime FIRST -- before persisting the choice.
+    // If the runtime fails, nothing is written and the previous mode stays.
+    let config_mgr = botcore::config::ConfigManager::new(state.conn.clone());
+    let nil = uuid::Uuid::nil();
+    let gpu_layers = config_mgr
+        .get_config(&nil, "llm-server-gpu-layers", Some(""))
+        .unwrap_or_default();
+    let ctx_size = config_mgr
+        .get_config(&nil, "llm-server-ctx-size", Some(""))
+        .unwrap_or_default();
+
+    let runtime_result =
+        match runtime_ctl::desired_from_config(spec.file, &gpu_layers, &ctx_size) {
+            Some(desired) => runtime_ctl::ensure(&desired).await,
+            None => runtime_ctl::EnsureOutcome::Failed(
+                "Model file not found on disk.".to_string(),
+            ),
+        };
+
+    if let Some(reason) = runtime_result.error_message() {
+        log::error!("[on_device_ai] runtime ensure failed: {reason}");
+        return Err(error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "runtime_start_failed",
+        ));
+    }
+
+    // Step 2: runtime is healthy -- persist the choice.
     let url_written = vault_store::save_choice(&state, spec, profile)
         .await
         .map_err(|reason| {
@@ -236,7 +266,7 @@ async fn activate(
             error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
         })?;
 
-    // Hot-swap the LLM provider so the model activates without an app restart.
+    // Step 3: hot-swap the LLM provider.
     let swapped = hot_swap_provider(&state, spec).await;
     if !swapped {
         log::info!("[on_device_ai] provider hot-swap skipped (DynamicLLMProvider not available); restart required");
@@ -244,7 +274,7 @@ async fn activate(
     Ok(Json(json!({
         "active": spec.file,
         "profile": profile.map(|profile| profile.id),
-        "restarted": false,
+        "restarted": matches!(runtime_result, runtime_ctl::EnsureOutcome::Started),
         "restart_required": !swapped,
         "provider_swapped": swapped,
         "url_written": url_written,

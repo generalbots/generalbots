@@ -181,6 +181,9 @@ pub mod weather;
 #[cfg(feature = "telegram")]
 pub mod telegram;
 
+#[cfg(feature = "gbgov")]
+pub mod boot_runtime_ctl;
+
 // Re-export commonly used types
 #[cfg(feature = "llm")]
 pub use llm::cache::{CacheConfig, CachedLLMProvider, CachedResponse, LocalEmbeddingService};
