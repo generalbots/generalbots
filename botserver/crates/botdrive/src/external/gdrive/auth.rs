@@ -1,12 +1,78 @@
 use super::parse::{classify_status, percent_encode, truncate};
 use crate::external::types::SyncError;
-use serde::Deserialize;
-use serde_json::Value;
-
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
 use serde_json::Value;
 
+/// OAuth endpoints.
+const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
+const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+
+/// Token endpoint; overridable for a local mock in tests or a proxy mirror.
+fn token_url() -> String {
+    std::env::var("EXTERNAL_DRIVE_GOOGLE_TOKEN_URL")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| TOKEN_URL.to_string())
+}
+
+/// A token set as returned by the Google token endpoint.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TokenSet {
+    /// Bearer access token.
+    pub access_token: String,
+    /// Refresh token (issued because we request `access_type=offline`).
+    pub refresh_token: Option<String>,
+    /// Absolute expiry, derived from `expires_in`.
+    pub expires_at: DateTime<Utc>,
+    /// Scopes the provider reports as granted (#1643). Falls back to the
+    /// requested list when the provider omits it.
+    pub scope: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TokenResponse {
+    access_token: String,
+    #[serde(default)]
+    refresh_token: Option<String>,
+    #[serde(default)]
+    expires_in: Option<i64>,
+    #[serde(default)]
+    scope: Option<String>,
+}
+
+impl TokenResponse {
+    fn into_token_set(self, now: DateTime<Utc>) -> TokenSet {
+        TokenSet {
+            access_token: self.access_token,
+            refresh_token: self.refresh_token,
+            expires_at: now + chrono::Duration::seconds(self.expires_in.unwrap_or(3600)),
+            scope: self.scope,
+        }
+    }
+}
+
+/// Build the authorization URL. `access_type=offline` + `prompt=consent` is
+/// what makes Google issue a refresh token for a desktop-style client.
+pub fn authorize_url(client_id: &str, redirect_uri: &str, state: &str) -> String {
+    authorize_url_with_pkce(client_id, redirect_uri, state, None)
+}
+
+/// Build the authorization URL with an optional PKCE challenge. Managed
+/// installed-app clients have no secret, so the desktop flow always supplies
+/// the S256 challenge derived from the verifier carried in the signed state.
+pub fn authorize_url_with_pkce(
+    client_id: &str,
+    redirect_uri: &str,
+    state: &str,
+    code_challenge: Option<&str>,
+) -> String {
+    // #2047 — one consent asks for read + write, so a save target exists from
+    // the first connection; existing read-only grants are not rewritten.
+    let scope = crate::external::types::Provider::GoogleDrive
+        .scopes()
+        .join(" ");
     let mut url = format!(
         "{AUTH_URL}?client_id={client}&redirect_uri={redirect}&response_type=code\
 &scope={scope}&access_type=offline&prompt=consent&include_granted_scopes=true&state={state}",
