@@ -242,6 +242,8 @@ async fn stream_llm_response_inner(
                     );
                     super::stream_errors::send_empty_response_error(sink, identity).await;
                     {
+                        let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+                        let err_msg = super::llm_empty_message(&locale);
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &err_msg, 2);
                         let _ = sm.record_message_model(session_id, llm_model);
