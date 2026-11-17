@@ -4,6 +4,16 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "display": "standalone",
   "orientation": "natural",
   "background_color": "#0a0a12",

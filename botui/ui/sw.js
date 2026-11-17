@@ -6,13 +6,25 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v44";
+var CACHE = "gb-desktop-shell-v45";
 var CORE = [
   "/suite/desktop.html",
+  // Boot-critical inline layout partials (first paint, auth gate, base layout).
+  "/suite/desktop-inline/01_boot_flags.js",
+  "/suite/desktop-inline/01_auth_gate.css",
+  "/suite/desktop-inline/02_public_flag.js",
+  "/suite/desktop-inline/02_base_layout.css",
+  "/suite/desktop-inline/03_bbsia_mobile.css",
+  "/suite/desktop-inline/03_boot_splash.js",
+  "/suite/desktop-inline/04_boot_splash.css",
+  "/suite/desktop-inline/04_auth_fullscreen_a.js",
+  "/suite/desktop-inline/04_auth_fullscreen_b.js",
+  "/suite/desktop-inline/05_offline_shell.js",
   "/suite/js/vendor/htmx.min.js",
   "/suite/js/security-bootstrap/01_tokens.js?v=6",
   "/suite/js/security-bootstrap/02_interceptors.js?v=6",
   "/suite/js/security-bootstrap/99_init.js?v=6",
+  // Window manager is a split module set (the old single window-manager.js is gone).
   "/suite/js/window-manager/01_registry.js?v=131",
   "/suite/js/window-manager/02_class_core.js?v=131",
   "/suite/js/window-manager/03_window_chrome.js?v=131",
@@ -29,6 +41,13 @@ var CORE = [
   "/suite/js/sidebar_a_core.js?v=19",
   "/suite/js/sidebar_b_events.js?v=19",
   "/suite/js/vibe-bridge.js?v=4",
+  // Theme/identity foundation (needed so the offline shell renders correctly).
+  "/suite/identity/fonts.css",
+  "/suite/identity/tokens.css",
+  "/suite/css/theme-sentient.css",
+  "/suite/css/config-colors.css",
+  "/suite/css/app-identity.css?v=1",
+  // Desktop chrome styles.
   "/suite/css/desktop/widgets.css?v=1",
   "/suite/css/desktop/windows.css?v=15",
   "/suite/css/desktop/taskbar.css?v=4",
