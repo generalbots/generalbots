@@ -30,12 +30,10 @@ impl PlanManager {
     pub fn get_limit(&self, plan_id: &str, metric: UsageMetric) -> Option<LimitValue> {
         self.plans.get(plan_id).map(|plan| match metric {
             UsageMetric::Messages => plan.limits.messages_per_day,
-            UsageMetric::StorageBytes => {
-                match plan.limits.storage_mb {
-                    LimitValue::Limited(mb) => LimitValue::Limited(mb * 1024 * 1024),
-                    LimitValue::Unlimited => LimitValue::Unlimited,
-                }
-            }
+            UsageMetric::StorageBytes => match plan.limits.storage_mb {
+                LimitValue::Limited(mb) => LimitValue::Limited(mb * 1024 * 1024),
+                LimitValue::Unlimited => LimitValue::Unlimited,
+            },
             UsageMetric::ApiCalls => plan.limits.api_calls_per_day,
             UsageMetric::Bots => plan.limits.bots,
             UsageMetric::Users => plan.limits.users,
@@ -221,141 +219,8 @@ impl PlanManager {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum LimitCheckResult {
-    Allowed {
-        remaining: Option<u64>,
-        percentage_used: f64,
-    },
-    Exceeded {
-        limit: u64,
-        current: u64,
-    },
-}
-
-impl LimitCheckResult {
-    pub fn is_allowed(&self) -> bool {
-        matches!(self, Self::Allowed { .. })
-    }
-
-    pub fn is_warning_threshold(&self, threshold: f64) -> bool {
-        match self {
-            Self::Allowed { percentage_used, .. } => *percentage_used >= threshold,
-            Self::Exceeded { .. } => true,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ProrationType {
-    ChargeNow(u64),
-    Credit(u64),
-    NoChange,
-}
-
-#[derive(Debug, Clone)]
-pub struct OrganizationUsage {
-    pub organization_id: Uuid,
-    pub bots: u64,
-    pub users: u64,
-    pub storage_bytes: u64,
-    pub apps: u64,
-    pub kb_documents: u64,
-    pub messages_today: u64,
-    pub api_calls_today: u64,
-}
-
-impl Default for OrganizationUsage {
-    fn default() -> Self {
-        Self {
-            organization_id: Uuid::nil(),
-            bots: 0,
-            users: 0,
-            storage_bytes: 0,
-            apps: 0,
-            kb_documents: 0,
-            messages_today: 0,
-            api_calls_today: 0,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct DowngradeValidation {
-    pub allowed: bool,
-    pub blockers: Vec<DowngradeBlocker>,
-}
-
-#[derive(Debug, Clone)]
-pub enum DowngradeBlocker {
-    PlanNotFound,
-    TooManyBots { current: u64, limit: u64 },
-    TooManyUsers { current: u64, limit: u64 },
-    TooMuchStorage { current_mb: u64, limit_mb: u64 },
-    TooManyApps { current: u64, limit: u64 },
-    TooManyKbDocuments { current: u64, limit: u64 },
-}
-
-impl std::fmt::Display for DowngradeBlocker {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::PlanNotFound => write!(f, "Target plan not found"),
-            Self::TooManyBots { current, limit } => {
-                write!(f, "Too many bots: {current} (limit: {limit}). Please delete some bots.")
-            }
-            Self::TooManyUsers { current, limit } => {
-                write!(f, "Too many users: {current} (limit: {limit}). Please remove some users.")
-            }
-            Self::TooMuchStorage { current_mb, limit_mb } => {
-                write!(f, "Too much storage: {current_mb}MB (limit: {limit_mb}MB). Please delete some files.")
-            }
-            Self::TooManyApps { current, limit } => {
-                write!(f, "Too many apps: {current} (limit: {limit}). Please delete some apps.")
-            }
-            Self::TooManyKbDocuments { current, limit } => {
-                write!(f, "Too many KB documents: {current} (limit: {limit}). Please delete some documents.")
-            }
-        }
-    }
-}
-
-pub struct PlanComparison {
-    pub from_plan: String,
-    pub to_plan: String,
-    pub limit_changes: Vec<LimitChange>,
-    pub feature_changes: FeatureChanges,
-    pub price_change: PriceChange,
-}
-
-#[derive(Debug, Clone)]
-pub struct LimitChange {
-    pub metric: UsageMetric,
-    pub from: LimitValue,
-    pub to: LimitValue,
-    pub direction: ChangeDirection,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChangeDirection {
-    Increase,
-    Decrease,
-    NoChange,
-}
-
-#[derive(Debug, Clone)]
-pub struct FeatureChanges {
-    pub added: Vec<String>,
-    pub removed: Vec<String>,
-}
-
-#[derive(Debug, Clone)]
-pub enum PriceChange {
-    Increase { from: u64, to: u64 },
-    Decrease { from: u64, to: u64 },
-    NoChange,
-    ToCustom,
-    FromCustom,
-}
+mod types;
+pub use types::*;
 
 impl PlanManager {
     pub fn compare_plans(&self, from_plan_id: &str, to_plan_id: &str) -> Option<PlanComparison> {
@@ -363,15 +228,39 @@ impl PlanManager {
         let to = self.plans.get(to_plan_id)?;
 
         let limit_changes = vec![
-            Self::compare_limit(UsageMetric::Messages, from.limits.messages_per_day, to.limits.messages_per_day),
-            Self::compare_limit(UsageMetric::StorageBytes, from.limits.storage_mb, to.limits.storage_mb),
+            Self::compare_limit(
+                UsageMetric::Messages,
+                from.limits.messages_per_day,
+                to.limits.messages_per_day,
+            ),
+            Self::compare_limit(
+                UsageMetric::StorageBytes,
+                from.limits.storage_mb,
+                to.limits.storage_mb,
+            ),
             Self::compare_limit(UsageMetric::Bots, from.limits.bots, to.limits.bots),
             Self::compare_limit(UsageMetric::Users, from.limits.users, to.limits.users),
-            Self::compare_limit(UsageMetric::ApiCalls, from.limits.api_calls_per_day, to.limits.api_calls_per_day),
+            Self::compare_limit(
+                UsageMetric::ApiCalls,
+                from.limits.api_calls_per_day,
+                to.limits.api_calls_per_day,
+            ),
             Self::compare_limit(UsageMetric::Apps, from.limits.apps, to.limits.apps),
-            Self::compare_limit(UsageMetric::EmailsPerDay, from.limits.emails_per_day, to.limits.emails_per_day),
-            Self::compare_limit(UsageMetric::BuildsPerDay, from.limits.builds_per_day, to.limits.builds_per_day),
-            Self::compare_limit(UsageMetric::UploadsPerHour, from.limits.uploads_per_hour, to.limits.uploads_per_hour),
+            Self::compare_limit(
+                UsageMetric::EmailsPerDay,
+                from.limits.emails_per_day,
+                to.limits.emails_per_day,
+            ),
+            Self::compare_limit(
+                UsageMetric::BuildsPerDay,
+                from.limits.builds_per_day,
+                to.limits.builds_per_day,
+            ),
+            Self::compare_limit(
+                UsageMetric::UploadsPerHour,
+                from.limits.uploads_per_hour,
+                to.limits.uploads_per_hour,
+            ),
         ];
 
         let added: Vec<String> = to
@@ -426,17 +315,30 @@ impl PlanManager {
     fn compare_price(from: &PlanPrice, to: &PlanPrice) -> PriceChange {
         match (from, to) {
             (PlanPrice::Free, PlanPrice::Free) => PriceChange::NoChange,
-            (PlanPrice::Free, PlanPrice::Fixed { amount, .. }) => {
-                PriceChange::Increase { from: 0, to: *amount }
-            }
-            (PlanPrice::Fixed { amount, .. }, PlanPrice::Free) => {
-                PriceChange::Decrease { from: *amount, to: 0 }
-            }
-            (PlanPrice::Fixed { amount: from_amt, .. }, PlanPrice::Fixed { amount: to_amt, .. }) => {
+            (PlanPrice::Free, PlanPrice::Fixed { amount, .. }) => PriceChange::Increase {
+                from: 0,
+                to: *amount,
+            },
+            (PlanPrice::Fixed { amount, .. }, PlanPrice::Free) => PriceChange::Decrease {
+                from: *amount,
+                to: 0,
+            },
+            (
+                PlanPrice::Fixed {
+                    amount: from_amt, ..
+                },
+                PlanPrice::Fixed { amount: to_amt, .. },
+            ) => {
                 if to_amt > from_amt {
-                    PriceChange::Increase { from: *from_amt, to: *to_amt }
+                    PriceChange::Increase {
+                        from: *from_amt,
+                        to: *to_amt,
+                    }
                 } else if to_amt < from_amt {
-                    PriceChange::Decrease { from: *from_amt, to: *to_amt }
+                    PriceChange::Decrease {
+                        from: *from_amt,
+                        to: *to_amt,
+                    }
                 } else {
                     PriceChange::NoChange
                 }
@@ -448,5 +350,5 @@ impl PlanManager {
 }
 
 #[cfg(test)]
-#[path = "plans_tests.rs"]
+#[path = "../plans_tests.rs"]
 mod plans_tests;
