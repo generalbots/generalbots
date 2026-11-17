@@ -162,11 +162,13 @@ async function doActivate(id) {
   var msg = document.getElementById("gbLocalMsg");
   var btn = document.querySelector('[data-activate="' + id + '"]');
   if (btn) { btn.disabled = true; }
+  S().setBusy(true, msg, t("loadingLocal"));
   try {
     var r = await A.apiFetch("/api/llm/local/activate", { method: "POST", body: JSON.stringify({ model_id: id }) });
-    var d = await r.json();
+    var d = await r.json().catch(function () { return { error: "http_" + r.status }; });
+    S().setBusy(false);
     if (!r.ok || d.error) {
-      if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>';
+      if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(S().errText(d.error)) + '</p>';
       if (btn) { btn.disabled = false; }
       return;
     }
@@ -179,7 +181,8 @@ async function doActivate(id) {
     }
     S().refreshAfterChange();
   } catch (e) {
-    if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>';
+    S().setBusy(false);
+    if (msg) msg.innerHTML = '<p class="gb-set-warn">' + esc(S().errText("")) + '</p>';
     if (btn) { btn.disabled = false; }
   }
 }
