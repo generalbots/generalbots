@@ -119,3 +119,17 @@ chat-camera-no-device = no video device
 chat-camera-device = video device
 chat-camera-no-frames = The camera preview did not start. Choose a photo from the system picker instead.
 chat-camera-timeout = The camera did not answer. Choose a photo from the system picker instead.
+
+# Chat engineer status strip (#2342)
+chat-status-bot = 机器人
+chat-status-session = 会话
+chat-status-model = 模型
+chat-status-state = 状态
+chat-status-no-session = —
+chat-status-copy-session = 复制会话 ID
+chat-status-copied = 已复制
+chat-status-idle = 空闲
+chat-status-streaming = 流式输出
+chat-status-thinking = 思考中
+chat-status-error = 错误
+chat-status-stopped = 已停止

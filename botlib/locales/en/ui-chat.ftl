@@ -119,3 +119,17 @@ chat-feedback-comment = What could be better?
 chat-feedback-send = Send
 chat-staged-files = Attached files
 chat-staged-close = Close preview
+
+# Chat engineer status strip (#2342)
+chat-status-bot = Bot
+chat-status-session = Session
+chat-status-model = Model
+chat-status-state = State
+chat-status-no-session = —
+chat-status-copy-session = Copy session id
+chat-status-copied = Copied
+chat-status-idle = Idle
+chat-status-streaming = Streaming
+chat-status-thinking = Thinking
+chat-status-error = Error
+chat-status-stopped = Stopped

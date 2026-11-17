@@ -119,3 +119,17 @@ chat-camera-no-device = no video device
 chat-camera-device = video device
 chat-camera-no-frames = The camera preview did not start. Choose a photo from the system picker instead.
 chat-camera-timeout = The camera did not answer. Choose a photo from the system picker instead.
+
+# Chat engineer status strip (#2342)
+chat-status-bot = 봇
+chat-status-session = 세션
+chat-status-model = 모델
+chat-status-state = 상태
+chat-status-no-session = —
+chat-status-copy-session = 세션 ID 복사
+chat-status-copied = 복사됨
+chat-status-idle = 대기 중
+chat-status-streaming = 스트리밍
+chat-status-thinking = 생각 중
+chat-status-error = 오류
+chat-status-stopped = 중지됨

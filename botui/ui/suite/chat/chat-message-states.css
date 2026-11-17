@@ -603,3 +603,36 @@
   border-color: var(--success, #22c55e);
   color: var(--success, #22c55e);
 }
+
+
+/* #2342 (partial) — engineer status strip */
+.gb-chat-engineer-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 12px;
+  margin: 4px 8px 0;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  background: var(--surface-1, rgba(255,255,255,0.03));
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.gb-chat-es-item { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.gb-chat-es-label { opacity: 0.75; }
+.gb-chat-es-value { color: var(--text, #e5e7eb); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-chat-es-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.gb-chat-es-sep { opacity: 0.35; }
+.gb-chat-es-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: inline-block; }
+.gb-chat-es-conn[data-state="connected"] .gb-chat-es-dot { background: #22c55e; }
+.gb-chat-es-conn[data-state="connecting"] .gb-chat-es-dot { background: #f59e0b; }
+.gb-chat-es-conn[data-state="offline"] .gb-chat-es-dot { background: #ef4444; }
+.gb-chat-es-copy {
+  appearance: none; border: 1px solid transparent; background: transparent; color: inherit;
+  cursor: pointer; padding: 0 4px; border-radius: 4px; font-size: 12px; line-height: 1;
+}
+.gb-chat-es-copy:hover, .gb-chat-es-copy:focus-visible { border-color: var(--border, rgba(255,255,255,0.2)); color: var(--text, #e5e7eb); outline: none; }
+.gb-chat-es-copy:disabled { opacity: 0.4; cursor: default; }
+.gb-chat-es-copy[data-copied="1"] { color: #22c55e; }

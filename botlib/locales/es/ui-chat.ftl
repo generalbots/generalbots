@@ -119,3 +119,17 @@ chat-camera-no-device = no video device
 chat-camera-device = video device
 chat-camera-no-frames = The camera preview did not start. Choose a photo from the system picker instead.
 chat-camera-timeout = The camera did not answer. Choose a photo from the system picker instead.
+
+# Chat engineer status strip (#2342)
+chat-status-bot = Bot
+chat-status-session = Sesión
+chat-status-model = Modelo
+chat-status-state = Estado
+chat-status-no-session = —
+chat-status-copy-session = Copiar ID de sesión
+chat-status-copied = Copiado
+chat-status-idle = Inactivo
+chat-status-streaming = Transmitiendo
+chat-status-thinking = Pensando
+chat-status-error = Error
+chat-status-stopped = Detenido
