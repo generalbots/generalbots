@@ -238,4 +238,14 @@
             '<div class="gb-citations-list">' + items + '</div></details>';
     }
     A.citationsHtml = citationsHtml;
+
+    /** Sources that arrive after the answer go under the last answer. */
+    A.onCitations = function (citations) {
+        var all = document.querySelectorAll("#gbMessages > .gb-msg-assistant");
+        var el = all.length ? all[all.length - 1] : null;
+        if (!el || !citations.length || el.querySelector(".gb-citations")) { return; }
+        var toolbar = el.querySelector(".gb-msg-toolbar");
+        if (toolbar) { toolbar.insertAdjacentHTML("beforebegin", citationsHtml(citations)); }
+        else { el.insertAdjacentHTML("beforeend", citationsHtml(citations)); }
+    };
 })();

@@ -37,6 +37,18 @@
 
     var shortModelName = A.shortModelName;
 
+    /* ---- Web search switch (Settings > Modelo) ---- */
+    A.webSearchAvailable = function () {
+        return !!(A.productConfig && A.productConfig.web_search_available);
+    };
+    A.webSearchOn = function () {
+        if (!A.webSearchAvailable()) { return false; }
+        try { return localStorage.getItem("gb-web-search") === "1"; } catch (e) { return false; }
+    };
+    A.setWebSearch = function (on) {
+        try { localStorage.setItem("gb-web-search", on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+    };
+
     /* ---- Render / update ---- */
     A.renderModelPickers = function () {
         var pickers = document.querySelectorAll(".gb-model-picker");

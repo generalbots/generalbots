@@ -379,6 +379,12 @@
             return;
         }
 
+        /* Sources of a web search: one frame, sent after the answer. */
+        if (data.type === "citations") {
+            if (typeof A.onCitations === "function") { A.onCitations(data.citations || []); }
+            return;
+        }
+
         if (data.type === "message_received") {
             if (data.session_id) { A.currentSessionId = data.session_id; }
             return;
@@ -416,7 +422,9 @@
                and disables agent mode gracefully when unavailable. */
             agent_enabled: A.agentEnabled || false,
             ui_automation: false,
-            web_search: false,
+            /* The person's switch in Settings > Modelo (05b), off until they
+               turn it on. Always sent: the server never decides to search. */
+            web_search: typeof A.webSearchOn === "function" && A.webSearchOn(),
         };
         if (A.selectedModel) { payload.model_preference = A.selectedModel; }
         if (files && files.length > 0) { payload.files = files; payload.file = files[0]; }

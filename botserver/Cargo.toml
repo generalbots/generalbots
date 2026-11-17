@@ -243,6 +243,10 @@ gbgov = [
     # backend is unavailable without a WSL2/Incus wrapper; the server
     # detects this at startup and disables agent mode gracefully.
     "agent-vm",
+    # Web search for a chat turn. Compiled in, off for every turn unless the
+    # person turns the switch on in Settings > Modelo (the pipeline never
+    # searches by itself in this edition).
+    "web-search",
     "embed-ui",
     # Infrastructure the two apps rely on; `botcore/default` is deliberately
     # not enabled, so each botcore capability is named here.

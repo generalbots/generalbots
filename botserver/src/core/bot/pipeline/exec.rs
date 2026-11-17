@@ -575,7 +575,13 @@ pub async fn process_message_internal(
             && match web_flag {
                 Some(false) => false,
                 Some(true) => true,
-                None => super::turn_hooks::is_informational_request(&user_text),
+                // No flag from the client. The government edition searches
+                // only when the person asked for it: nothing leaves the
+                // machine on the server's own judgement.
+                None => {
+                    !cfg!(feature = "gbgov")
+                        && super::turn_hooks::is_informational_request(&user_text)
+                }
             };
         if web_search_enabled {
             let citations =
