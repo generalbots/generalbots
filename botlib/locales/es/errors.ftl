@@ -324,3 +324,9 @@ error-service-price-required = Este servicio no tiene precio; informa un valor.
 # Service-tax value validation (#2094)
 error-invalid-value = No se pudo interpretar el valor indicado.
 error-value-required = Es necesario indicar un valor para este servicio.
+error-file-archive-unsafe = The archive was refused: { $reason }.
+error-file-content-mismatch = The file content does not match its type ({ $expected } expected, { $detected } found).
+error-file-empty = The uploaded file is empty.
+error-file-extension-blocked = Files with the .{ $extension } extension are not allowed.
+error-file-extension-unknown = The .{ $extension } extension is not recognised.
+error-file-name-invalid = The file name is not valid.
