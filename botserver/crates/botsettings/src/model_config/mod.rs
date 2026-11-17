@@ -156,6 +156,8 @@ async fn handle_get_config(
             "running": runtime_probe.reachable,
             "loaded_model": if runtime_probe.loaded_model.is_empty() { serde_json::Value::Null } else { serde_json::json!(runtime_probe.loaded_model) },
             "active_model": active_local_model,
+            "last_failure": super::on_device_ai::runtime_ctl::last_failure()
+                .map(|(model, code)| json!({ "model": model, "code": code })),
             "installing": runtime.installing,
             "install_job": runtime.install_job,
             "install_info": runtime.install_info,
@@ -282,7 +284,7 @@ async fn handle_put_config(
         use super::on_device_ai::runtime_ctl;
         let result =
             match runtime_ctl::desired_from_config(&model_file, &gpu_layers, &ctx_size) {
-                Some(desired) => runtime_ctl::ensure(&desired).await,
+                Some(desired) => runtime_ctl::ensure_or_restore(&desired).await,
                 None => runtime_ctl::EnsureOutcome::Failed(
                     "Model file not found on disk.".to_string(),
                 ),
@@ -292,7 +294,7 @@ async fn handle_put_config(
             log::error!("[model_config] runtime ensure failed: {reason}");
             return Err(api_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "runtime_start_failed",
+                runtime_ctl::failure_code(reason),
             ));
         }
         runtime_restarted = matches!(result, runtime_ctl::EnsureOutcome::Started);

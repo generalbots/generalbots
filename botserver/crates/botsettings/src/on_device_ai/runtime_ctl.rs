@@ -210,13 +210,28 @@ pub async fn wait_healthy(desired_file: &str, child_pid: u32) -> Result<(), Stri
 
 // ── ensure ──────────────────────────────────────────────────────────────
 
-/// Make sure the chat runtime is running the desired model.
+/// Make sure the chat runtime is running the desired model. On failure the
+/// port is left empty: at app start the stored choice is the only model that
+/// may answer, so nothing else is started in its place.
 pub async fn ensure(desired: &DesiredRuntime) -> EnsureOutcome {
+    ensure_inner(desired, false).await
+}
+
+/// [`ensure`] for a switch asked by the user: when the new model cannot be
+/// started, the model that was running before is started again, so the
+/// choice that is still stored keeps answering.
+pub async fn ensure_or_restore(desired: &DesiredRuntime) -> EnsureOutcome {
+    ensure_inner(desired, true).await
+}
+
+async fn ensure_inner(desired: &DesiredRuntime, restore_previous: bool) -> EnsureOutcome {
     let current = wait_for_initial_probe().await;
 
     if current.reachable && model_matches(&current.loaded_model, &desired.model_file) {
+        record_failure(None);
         return EnsureOutcome::AlreadyCorrect;
     }
+    let log_mark = llm_log_len();
 
     if current.reachable {
         log::info!(
@@ -234,18 +249,130 @@ pub async fn ensure(desired: &DesiredRuntime) -> EnsureOutcome {
         }
     }
 
-    let child_pid = match start_chat_runtime(desired) {
-        Ok(pid) => pid,
-        Err(reason) => return EnsureOutcome::Failed(reason),
+    let started = match start_chat_runtime(desired) {
+        Ok(child_pid) => match wait_healthy(&desired.model_file, child_pid).await {
+            Ok(()) => Ok(()),
+            Err(reason) => {
+                log::warn!("[runtime_ctl] health wait failed, cleaning up PID {child_pid}");
+                let _ = runtime_stop::kill_pid(child_pid);
+                Err(reason)
+            }
+        },
+        Err(reason) => Err(reason),
+    };
+    let reason = match started {
+        Ok(()) => {
+            record_failure(None);
+            return EnsureOutcome::Started;
+        }
+        Err(reason) => reason,
     };
 
-    match wait_healthy(&desired.model_file, child_pid).await {
-        Ok(()) => EnsureOutcome::Started,
-        Err(reason) => {
-            log::warn!("[runtime_ctl] health wait failed, cleaning up PID {child_pid}");
-            let _ = runtime_stop::kill_pid(child_pid);
-            EnsureOutcome::Failed(reason)
-        }
+    let code = classify_failure(&llm_log_since(log_mark));
+    record_failure(Some((desired.model_file.clone(), code)));
+    if restore_previous && current.reachable {
+        wait_port_free().await;
+        restore(&current.loaded_model, desired).await;
+    }
+    EnsureOutcome::Failed(format!("{code}: {reason}"))
+}
+
+// ── failure cause ───────────────────────────────────────────────────────
+
+/// The engine does not know this model family (it is older than the model).
+pub const CODE_ENGINE_TOO_OLD: &str = "engine_too_old";
+/// The model does not fit the memory that is free.
+pub const CODE_NOT_ENOUGH_MEMORY: &str = "not_enough_memory";
+/// Any other start failure.
+pub const CODE_START_FAILED: &str = "runtime_start_failed";
+
+/// Why the engine stopped, from what it wrote to its log during the start.
+pub fn classify_failure(log_text: &str) -> &'static str {
+    let lower = log_text.to_ascii_lowercase();
+    if lower.contains("unknown model architecture") || lower.contains("unknown pre-tokenizer") {
+        CODE_ENGINE_TOO_OLD
+    } else if lower.contains("out of memory")
+        || lower.contains("failed to allocate")
+        || lower.contains("unable to allocate")
+    {
+        CODE_NOT_ENOUGH_MEMORY
+    } else {
+        CODE_START_FAILED
+    }
+}
+
+/// The code at the start of a [`EnsureOutcome::Failed`] message.
+pub fn failure_code(reason: &str) -> &'static str {
+    [CODE_ENGINE_TOO_OLD, CODE_NOT_ENOUGH_MEMORY]
+        .into_iter()
+        .find(|code| reason.starts_with(code))
+        .unwrap_or(CODE_START_FAILED)
+}
+
+static LAST_FAILURE: std::sync::Mutex<Option<(String, &'static str)>> = std::sync::Mutex::new(None);
+
+fn record_failure(failure: Option<(String, &'static str)>) {
+    if let Ok(mut slot) = LAST_FAILURE.lock() {
+        *slot = failure;
+    }
+}
+
+/// The model that last failed to start and why; `None` after a good start.
+pub fn last_failure() -> Option<(String, &'static str)> {
+    LAST_FAILURE.lock().ok().and_then(|slot| slot.clone())
+}
+
+fn llm_log_path() -> String {
+    format!("{}/logs/llm/llm.log", botcore::shared::utils::get_stack_path())
+}
+
+fn llm_log_len() -> u64 {
+    std::fs::metadata(llm_log_path()).map(|meta| meta.len()).unwrap_or(0)
+}
+
+/// What the engine wrote to its log after `mark` (at most the last 64 KB).
+fn llm_log_since(mark: u64) -> String {
+    use std::io::{Read, Seek, SeekFrom};
+    let Ok(mut file) = std::fs::File::open(llm_log_path()) else {
+        return String::new();
+    };
+    let len = file.metadata().map(|meta| meta.len()).unwrap_or(0);
+    let from = mark.min(len).max(len.saturating_sub(65_536));
+    if file.seek(SeekFrom::Start(from)).is_err() {
+        return String::new();
+    }
+    let mut bytes = Vec::new();
+    let _ = file.read_to_end(&mut bytes);
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+/// Starts the model that was loaded before a failed switch.
+async fn restore(previous_model: &str, failed: &DesiredRuntime) {
+    let bare = previous_model.rsplit(['/', '\\']).next().unwrap_or(previous_model);
+    let Some(dir) = std::path::Path::new(&failed.model_path).parent() else {
+        return;
+    };
+    let path = dir.join(bare);
+    if bare.is_empty() || !path.exists() {
+        log::warn!("[runtime_ctl] previous model {bare} is not on disk; nothing restored");
+        return;
+    }
+    let previous = DesiredRuntime {
+        model_file: bare.to_string(),
+        model_path: path.to_string_lossy().into_owned(),
+        server_dir: failed.server_dir.clone(),
+        gpu_layers: failed.gpu_layers.clone(),
+        ctx_size: failed.ctx_size.clone(),
+    };
+    match start_chat_runtime(&previous) {
+        Ok(pid) => match wait_healthy(bare, pid).await {
+            Ok(()) => log::info!("[runtime_ctl] previous model {bare} restored"),
+            Err(reason) => {
+                log::warn!("[runtime_ctl] previous model {bare} did not come back: {reason}");
+                let _ = runtime_stop::kill_pid(pid);
+            }
+        },
+        Err(reason) => log::warn!("[runtime_ctl] cannot restore {bare}: {reason}"),
     }
 }
 

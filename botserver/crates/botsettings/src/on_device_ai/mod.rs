@@ -244,7 +244,7 @@ async fn activate(
 
     let runtime_result =
         match runtime_ctl::desired_from_config(spec.file, &gpu_layers, &ctx_size) {
-            Some(desired) => runtime_ctl::ensure(&desired).await,
+            Some(desired) => runtime_ctl::ensure_or_restore(&desired).await,
             None => runtime_ctl::EnsureOutcome::Failed(
                 "Model file not found on disk.".to_string(),
             ),
@@ -254,7 +254,7 @@ async fn activate(
         log::error!("[on_device_ai] runtime ensure failed: {reason}");
         return Err(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "runtime_start_failed",
+            runtime_ctl::failure_code(reason),
         ));
     }
 

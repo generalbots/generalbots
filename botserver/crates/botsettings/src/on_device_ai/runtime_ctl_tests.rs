@@ -101,3 +101,20 @@ fn is_local_model_name_identifies_gguf() {
     assert!(!is_local_model_name(""));
     assert!(!is_local_model_name("  "));
 }
+
+#[test]
+fn a_failed_start_is_classified_from_the_engine_log() {
+    let old_engine = "llama_model_load: error loading model: error loading model architecture: unknown model architecture: 'qwen35'";
+    assert_eq!(classify_failure(old_engine), CODE_ENGINE_TOO_OLD);
+    assert_eq!(classify_failure("ggml_backend_cuda_buffer_type_alloc_buffer: allocating 5200.00 MiB on device 0: cudaMalloc failed: out of memory"), CODE_NOT_ENOUGH_MEMORY);
+    assert_eq!(classify_failure("main: exiting due to model loading error"), CODE_START_FAILED);
+    assert_eq!(classify_failure(""), CODE_START_FAILED);
+}
+
+#[test]
+fn the_failure_code_is_read_back_from_the_message() {
+    assert_eq!(failure_code("engine_too_old: Chat runtime exited during startup"), CODE_ENGINE_TOO_OLD);
+    assert_eq!(failure_code("not_enough_memory: Chat runtime exited during startup"), CODE_NOT_ENOUGH_MEMORY);
+    assert_eq!(failure_code("Cannot stop chat runtime: access denied"), CODE_START_FAILED);
+    assert_eq!(failure_code("Model file not found on disk."), CODE_START_FAILED);
+}
