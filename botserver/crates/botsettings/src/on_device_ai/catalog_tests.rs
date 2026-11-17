@@ -12,10 +12,10 @@ fn recommends_the_largest_model_that_fits_the_detected_vram() {
     assert_eq!(recommended(16, 32).id, "qwen3.8-27b-q3kxl");
     assert_eq!(recommended(24, 64).id, "qwen3.8-27b-udq4kxl");
     assert_eq!(recommended(32, 64).id, "qwen3.8-27b-q6");
-    assert_eq!(recommended(48, 128).id, "llama-3.3-70b-q4km");
-    assert_eq!(recommended(72, 128).id, "llama-3.3-70b-q5km");
-    assert_eq!(recommended(96, 128).id, "gpt-oss-120b-mxfp4");
-    assert_eq!(recommended(128, 256).id, "gpt-oss-120b-q6");
+    assert_eq!(recommended(48, 128).id, "qwen3.8-27b-q6");
+    assert_eq!(recommended(72, 128).id, "qwen3.8-27b-q6");
+    assert_eq!(recommended(96, 128).id, "qwen3.8-27b-q6");
+    assert_eq!(recommended(128, 256).id, "qwen3.8-27b-q6");
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn falls_back_to_ram_when_no_gpu_is_detected() {
 #[test]
 fn a_machine_below_the_smallest_tier_still_gets_one_recommendation() {
     let pick = recommended(0, 4);
-    assert_eq!(pick.id, "qwen3.5-9b-q4km");
+    assert_eq!(pick.id, "deepseek-r1-distill-qwen-7b-q4km");
     assert!(!fits(pick, 0, 4), "the row must warn that it does not fit");
 }
 
@@ -43,9 +43,9 @@ fn the_bundled_server_model_is_never_recommended() {
 #[test]
 fn tiers_ascend_and_the_server_profile_comes_last() {
     let groups = tier_groups();
-    assert_eq!(groups.len(), 10);
+    assert_eq!(groups.len(), 7);
     let tiers: Vec<u16> = groups.iter().filter_map(|group| group.tier_gb).collect();
-    assert_eq!(tiers, vec![8, 12, 16, 24, 32, 48, 72, 96, 128]);
+    assert_eq!(tiers, vec![6, 8, 12, 16, 24, 32]);
     let last = groups.last().expect("server profile group");
     assert_eq!(last.tier_gb, None);
     assert!(last.models.iter().all(|spec| spec.server_only));
