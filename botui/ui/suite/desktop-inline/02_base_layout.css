@@ -6,6 +6,7 @@
                 color: var(--text, #333333);
                 overflow: hidden;
                 height: 100vh;
+                height: 100dvh;
                 width: 100vw;
                 margin: 0;
                 padding: 0;
@@ -43,8 +44,8 @@
             .chat-sidebar.anon-limited #chatConversations { display: none !important; }
             .chat-sidebar.anon-limited #sidebarUser { display: flex !important; }
             body.fullscreen .toolbar-v15 { display: none !important; }
-            body.fullscreen .workspace-v15 { height: 100vh !important; }
-            body.fullscreen .main-wrapper { height: 100vh !important; }
+            body.fullscreen .workspace-v15 { height: 100vh !important; height: 100dvh !important; }
+            body.fullscreen .main-wrapper { height: 100vh !important; height: 100dvh !important; }
             body.fullscreen .window-titlebar { display: none !important; }
             body.fullscreen .window-element-glass,
             body.fullscreen .window-element {
@@ -58,7 +59,7 @@
 
             /* ── Public Bot Mode ── */
             body.public-mode .chat-sidebar { /* sidebar always visible */ }
-            body.public-mode .workspace-v15 { height: calc(100vh - 56px) !important; }
+            body.public-mode .workspace-v15 { height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; }
             body.public-mode .window-element-glass,
             body.public-mode .window-element {
                 border: none !important; border-radius: 0 !important;
