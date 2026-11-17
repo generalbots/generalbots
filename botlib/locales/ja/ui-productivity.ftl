@@ -328,3 +328,5 @@ paper-bold = 太字
 paper-italic = 斜体
 paper-underline = 下線
 paper-strikethrough = 取り消し線
+products-view-grid = グリッド表示
+products-view-list = リスト表示

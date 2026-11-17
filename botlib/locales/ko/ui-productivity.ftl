@@ -328,3 +328,5 @@ paper-bold = 굵게
 paper-italic = 기울임꼴
 paper-underline = 밑줄
 paper-strikethrough = 취소선
+products-view-grid = 격자 보기
+products-view-list = 목록 보기

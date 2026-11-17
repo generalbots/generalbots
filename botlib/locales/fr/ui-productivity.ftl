@@ -328,3 +328,5 @@ paper-bold = Gras
 paper-italic = Italique
 paper-underline = Souligné
 paper-strikethrough = Barré
+products-view-grid = Vue en grille
+products-view-list = Vue en liste

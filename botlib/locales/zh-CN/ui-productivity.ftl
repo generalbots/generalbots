@@ -328,3 +328,5 @@ paper-bold = 加粗
 paper-italic = 斜体
 paper-underline = 下划线
 paper-strikethrough = 删除线
+products-view-grid = 网格视图
+products-view-list = 列表视图

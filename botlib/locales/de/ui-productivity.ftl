@@ -328,3 +328,5 @@ paper-bold = Fett
 paper-italic = Kursiv
 paper-underline = Unterstrichen
 paper-strikethrough = Durchgestrichen
+products-view-grid = Rasteransicht
+products-view-list = Listenansicht
