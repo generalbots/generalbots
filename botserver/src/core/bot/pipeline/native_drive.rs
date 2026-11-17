@@ -592,7 +592,13 @@ mod tests {
             .unwrap_or_default();
         assert_eq!(decoded, "beiner.gbdrive/conversations/q3 2026");
         assert!(encoded.contains("%2F"), "slashes must be encoded: {link}");
-        let bucket = link.split("bucket=").nth(1).unwrap_or_default();
+        // The link is Markdown: the bucket is the last parameter, followed
+        // by the closing parenthesis of the link target.
+        let bucket = link
+            .split("bucket=")
+            .nth(1)
+            .unwrap_or_default()
+            .trim_end_matches(')');
         assert_eq!(bucket, "beiner.gbai");
     }
 
