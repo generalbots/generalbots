@@ -9,8 +9,9 @@
 <link rel="stylesheet" href="/suite/css/app.css" /> <link rel="stylesheet" href="/suite/css/base.css" />
 <link rel="stylesheet" href="/suite/css/theme-sentient.css" /> <link rel="stylesheet" href="/suite/css/config-colors.css" />
 <link rel="stylesheet" href="/suite/css/app-identity.css?v=1" /> <!-- #1952 per-app identity hues -->
+<link rel="stylesheet" href="/suite/css/assistant-skin.css?v=1" /> <!-- assistant look carried to every app, theme-derived -->
 <link rel="stylesheet" href="/suite/identity/fonts.css" /> <!-- #2567 identity typography (Fira Sans / Inter) -->
-<link rel="stylesheet" href="/suite/identity/tokens.css" /> <!-- #2567 identity tokens consumed by the Default theme -->
+<link rel="stylesheet" href="/suite/css/identity-tokens.css" /> <!-- #2567 identity tokens (served from css/ so every build has them) -->
 <link rel="stylesheet" href="/suite/css/save-menu.css?v=1" /> <!-- #2047 save target menu -->
 <!-- GB Fluent CSS modules --> <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
 <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=15" /> <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
@@ -29,7 +30,8 @@
 <script src="/suite/js/window-manager/06_deeplinks.js?v=131"></script>
 <script src="/suite/js/window-manager/07_status_a_core.js?v=133"></script> <script src="/suite/js/window-manager/07_status_b_render.js?v=133"></script> <script src="/suite/js/window-manager/07_status_c_events.js?v=133"></script> <script src="/suite/js/window-manager/08_fullscreen.js?v=1"></script> <script src="/suite/js/window-manager/99_init.js?v=131"></script>
 <script src="/suite/js/css-loader.js"></script> <script src="/suite/js/vibe-bridge.js?v=4"></script>
-<script src="/suite/js/theme-scheme.js?v=1"></script> <script src="/suite/js/theme-manager.js?v=2"></script> <script src="/suite/js/command-palette.js?v=2"></script>
+<script src="/suite/js/theme-scheme.js?v=1"></script> <script src="/suite/js/theme-manager.js?v=2"></script>
+<script src="/suite/js/chat-pattern.js?v=1"></script> <!-- chat background choice, shared with Settings --> <script src="/suite/js/command-palette.js?v=2"></script>
 <script src="/suite/js/sidebar-convos.js?v=6"></script> <script src="/suite/js/sidebar-convos-lock.js?v=4"></script>
 <script src="/suite/js/auto-update.js?v=4"></script> <script src="/suite/js/auto-update-settings.js?v=1"></script> <script src="/suite/js/whats-new.js?v=1"></script> <script src="/suite/js/data-export.js?v=1"></script>
 <script src="/suite/js/usage-stats.js?v=1"></script> <script src="/suite/js/privacy-controls.js?v=1"></script>

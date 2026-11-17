@@ -246,3 +246,14 @@ ts-small = Petit
 ts-default = Par défaut
 ts-large = Grand
 ts-xlarge = Très grand
+# Settings → Appearance: chat background pattern
+chatbg-title = Fond du chat
+chatbg-desc = Choisissez le motif derrière vos conversations
+chatbg-none = Aucun
+chatbg-image = Papier
+chatbg-dots = Points
+chatbg-microdots = Micro-points
+chatbg-grid = Grille
+chatbg-blueprint = Plan
+chatbg-weave = Tissage
+chatbg-mosaic = Mosaïque

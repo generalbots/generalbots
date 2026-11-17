@@ -1,0 +1,355 @@
+/* =============================================================================
+   CHAT — assistant look (part 2: controls, feedback, attachments, maths,
+   print). Companion to chat-assistant-look.css; same --id-* token set.
+   ========================================================================== */
+
+/* == Conversation actions in the window header ============================ */
+
+#chat-app #chatHeaderActions {
+    position: absolute;
+    top: var(--id-space-2);
+    right: var(--id-space-3);
+    z-index: 6;
+    display: flex;
+    gap: 2px;
+}
+
+#chat-app .gb-chat-header-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--id-radius-sm);
+    background: transparent;
+    color: var(--id-muted);
+    cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
+}
+
+#chat-app .gb-chat-header-btn:hover {
+    background: var(--id-surface-solid);
+    border-color: var(--id-line);
+    color: var(--id-ink);
+}
+
+#chat-app .gb-chat-header-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--id-focus);
+}
+
+/* == Per-message actions ================================================= */
+
+#chat-app .message-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--id-space-1);
+    margin-top: var(--id-space-2);
+    opacity: 0;
+    transition: opacity var(--id-dur-fast) var(--id-ease);
+}
+
+#chat-app .message:hover .message-actions,
+#chat-app .message:focus-within .message-actions,
+#chat-app .message.bot:last-of-type .message-actions {
+    opacity: 1;
+}
+
+#chat-app .message-action-btn {
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    background: var(--id-surface-solid);
+    color: var(--id-muted);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-xs);
+    padding: 2px var(--id-space-2);
+    cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
+}
+
+#chat-app .message-action-btn:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+#chat-app .message-action-btn[data-copied="1"] {
+    color: var(--id-success-text);
+    border-color: var(--id-success-line);
+}
+
+/* == Answer feedback ===================================================== */
+
+#chat-app .gb-feedback-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: var(--id-space-2);
+    /* Quiet by default: the vote controls surface on hover, and stay visible
+       on the newest answer so they are one click away. */
+    opacity: 0;
+    transition: opacity var(--id-dur-fast) var(--id-ease);
+}
+
+#chat-app .message:hover .gb-feedback-wrap,
+#chat-app .message:focus-within .gb-feedback-wrap,
+#chat-app .message.bot:last-of-type .gb-feedback-wrap {
+    opacity: 1;
+}
+
+#chat-app .gb-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--id-radius-sm);
+    background: transparent;
+    color: var(--id-gray-400);
+    cursor: pointer;
+    transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
+}
+
+#chat-app .gb-feedback-btn:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+#chat-app .gb-feedback-btn.active {
+    color: var(--id-accent);
+    border-color: color-mix(in srgb, var(--id-accent) 35%, transparent);
+    background: var(--id-accent-soft);
+}
+
+#chat-app .gb-feedback-comment {
+    display: flex;
+    gap: var(--id-space-1);
+    margin-top: var(--id-space-1);
+    width: 100%;
+}
+
+#chat-app .gb-feedback-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    background: var(--id-surface-solid);
+    color: var(--id-ink);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm);
+    padding: var(--id-space-1) var(--id-space-2);
+}
+
+#chat-app .gb-feedback-input:focus {
+    outline: none;
+    border-color: var(--id-accent);
+}
+
+#chat-app .gb-feedback-send {
+    border: 1px solid var(--id-accent);
+    border-radius: var(--id-radius-sm);
+    background: var(--id-accent);
+    color: var(--id-on-accent);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-xs);
+    padding: var(--id-space-1) var(--id-space-2);
+    cursor: pointer;
+}
+
+/* == Staged attachment preview =========================================== */
+
+#chat-app .gb-file-chip-clickable {
+    cursor: pointer;
+    border-radius: var(--id-radius-pill);
+}
+
+#chat-app .gb-file-chip-clickable:hover {
+    color: var(--id-accent-text);
+}
+
+#chat-app .gb-staged-preview {
+    position: absolute;
+    bottom: calc(100% + var(--id-space-2));
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-panel);
+    box-shadow: var(--id-shadow-float);
+    padding: var(--id-space-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--id-space-1);
+    z-index: 8;
+}
+
+#chat-app .gb-staged-row {
+    display: flex;
+    align-items: center;
+    gap: var(--id-space-2);
+}
+
+#chat-app .gb-staged-thumb {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: var(--id-radius-sm);
+    border: 1px solid var(--id-line);
+}
+
+#chat-app .gb-staged-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 4px;
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    background: var(--id-fill);
+    color: var(--id-muted);
+    font-size: var(--id-text-xs);
+    font-weight: 600;
+}
+
+#chat-app .gb-staged-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+#chat-app .gb-staged-name {
+    color: var(--id-ink);
+    font-size: var(--id-text-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#chat-app .gb-staged-size {
+    color: var(--id-muted);
+    font-size: var(--id-text-xs);
+}
+
+#chat-app .gb-staged-close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--id-gray-400);
+    cursor: pointer;
+    line-height: 1;
+}
+
+#chat-app .gb-staged-close:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+/* == Maths =============================================================== */
+
+#chat-app .gb-math-inline {
+    display: inline-block;
+    padding: 0 1px;
+    color: var(--id-ink);
+}
+
+#chat-app .gb-math-display {
+    display: block;
+    margin: var(--id-space-3) 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    text-align: center;
+    color: var(--id-ink);
+}
+
+#chat-app .gb-math-display .katex-display {
+    margin: 0;
+}
+
+#chat-app .gb-math-error {
+    background: var(--id-danger-soft);
+    border: 1px solid var(--id-danger-line);
+    border-radius: 4px;
+    color: var(--id-danger-text);
+    font-size: var(--id-text-xs);
+    padding: 1px 4px;
+}
+
+/* KaTeX inherits the answer's type scale rather than its own. */
+#chat-app .katex {
+    font-size: 1.05em;
+}
+
+/* == Print =============================================================== */
+/* Printing from the desktop paints the chat app over everything else, so the
+   window chrome, taskbar and other windows never reach the sheet. */
+
+body.gb-printing #chat-app {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #fff !important;
+    background-image: none !important;
+}
+
+@media print {
+    .taskbar-shell,
+    .gb-sidebar,
+    .window-caption,
+    .window-titlebar,
+    #chat-app footer,
+    #chat-app #chatHeaderActions,
+    #chat-app .message-actions,
+    #chat-app .gb-feedback-wrap,
+    #chat-app .gb-message-time,
+    #chat-app .scroll-to-bottom,
+    #chat-app .gb-staged-preview {
+        display: none !important;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    #chat-app #messages {
+        padding: 10mm !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+
+    #chat-app .user-message {
+        background: #f3f4f6 !important;
+        color: #000 !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+    }
+
+    #chat-app .bot-message,
+    #chat-app .bot-message p,
+    #chat-app .bot-message span,
+    #chat-app .bot-message li {
+        color: #000 !important;
+    }
+
+    #chat-app .bot-message pre,
+    #chat-app .bot-message code {
+        background: #f5f5f5 !important;
+        color: #000 !important;
+        border: 1px solid #ddd;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+}

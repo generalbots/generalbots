@@ -173,8 +173,13 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
       return;
     }
     var parsed;
+    // Maths goes to KaTeX through plain-text slots: the sanitizer below must
+    // never see (and strip) the rendered MathML.
+    var mathSlots = null;
     if (typeof marked !== "undefined" && marked.parse) {
-      parsed = marked.parse(cleanContent);
+      var math = window.GBChatMath ? GBChatMath.extract(cleanContent) : null;
+      mathSlots = math ? math.slots : null;
+      parsed = marked.parse(math ? math.text : cleanContent);
     } else {
       var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
@@ -188,6 +193,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
     parsed = renderMentionInMessage(parsed);
     parsed = renderDeepLinks(parsed);
     if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
+    if (mathSlots && mathSlots.length) parsed = GBChatMath.restore(parsed, mathSlots);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + renderToolExecHeader(toolExecMeta) + parsed + "</div>";
 
   }

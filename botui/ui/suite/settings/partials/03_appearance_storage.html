@@ -29,6 +29,18 @@
                     data-i18n-aria-label="ts-title" aria-label="Text size"></div>
             </div>
 
+            <!-- Chat background pattern — the chat app reads the same
+                 `gb-chat-pattern` key (suite/js/chat-pattern.js), so a choice
+                 made here is already in effect when a conversation opens. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2 data-i18n="chatbg-title">Chat background</h2>
+                    <p data-i18n="chatbg-desc">Choose the pattern behind your conversations</p>
+                </div>
+                <div class="chatbg-row" id="settings-chatbg-row" role="radiogroup"
+                    data-i18n-aria-label="chatbg-title" aria-label="Chat background"></div>
+            </div>
+
             <div class="setting-card">
                 <div class="card-header">
                     <h2 data-i18n="auto-desktop-wallpaper">Desktop Wallpaper</h2>

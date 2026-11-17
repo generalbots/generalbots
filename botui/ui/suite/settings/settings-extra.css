@@ -77,3 +77,85 @@
     border-color: var(--accent, #7c9cff);
     box-shadow: 0 0 0 1px var(--accent, #7c9cff) inset;
 }
+
+/* Chat background pattern picker (same patterns chat-assistant-look.css paints) */
+#appearance-section .chatbg-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 10px;
+}
+
+#appearance-section .chatbg-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--id-line, #e5e7eb);
+    border-radius: var(--id-radius-control, 10px);
+    background: var(--id-surface-solid, transparent);
+    color: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#appearance-section .chatbg-btn-active {
+    border-color: var(--id-accent, #f28c28);
+    box-shadow: 0 0 0 1px var(--id-accent, #f28c28) inset;
+}
+
+#appearance-section .chatbg-swatch {
+    width: 100%;
+    height: 46px;
+    border-radius: 6px;
+    border: 1px solid var(--id-line-soft, transparent);
+    background-color: var(--id-paper, #fff8f2);
+    background-size: 16px 16px;
+}
+
+#appearance-section .chatbg-swatch-none { background-image: none; }
+
+#appearance-section .chatbg-swatch-image {
+    background-image: url("/suite/chat/chat-pattern.png");
+    background-size: cover;
+    background-position: center;
+}
+
+#appearance-section .chatbg-swatch-dots {
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 45%, transparent) 1px, transparent 1px);
+    background-size: 8px 8px;
+}
+
+#appearance-section .chatbg-swatch-microdots {
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 35%, transparent) 1px, transparent 1px);
+    background-size: 5px 5px;
+}
+
+#appearance-section .chatbg-swatch-grid {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 28%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 28%, transparent) 1px, transparent 1px);
+    background-size: 16px 16px;
+}
+
+#appearance-section .chatbg-swatch-blueprint {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 30%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 30%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px, 32px 32px;
+}
+
+#appearance-section .chatbg-swatch-weave {
+    background-image:
+        repeating-linear-gradient(45deg, color-mix(in srgb, var(--id-accent, #f28c28) 22%, transparent) 0 2px, transparent 2px 12px),
+        repeating-linear-gradient(-45deg, color-mix(in srgb, var(--id-accent, #f28c28) 22%, transparent) 0 2px, transparent 2px 12px);
+}
+
+#appearance-section .chatbg-swatch-mosaic {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent, #f28c28) 20%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent, #f28c28) 20%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+#appearance-section .chatbg-label { line-height: 1.2; }

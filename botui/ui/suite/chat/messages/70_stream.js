@@ -56,8 +56,13 @@ function updateStreaming(content) {
   }
   var cleanContent = stripMarkdownBlocks(previewContent);
   var parsed;
+  // Same slot round-trip as the completed path: markdown first, KaTeX after
+  // sanitizing, so streaming answers typeset maths identically.
+  var mathSlots = null;
   if (typeof marked !== "undefined" && marked.parse) {
-    parsed = marked.parse(cleanContent);
+    var math = window.GBChatMath ? GBChatMath.extract(cleanContent) : null;
+    mathSlots = math ? math.slots : null;
+    parsed = marked.parse(math ? math.text : cleanContent);
   } else {
     var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
@@ -70,6 +75,9 @@ function updateStreaming(content) {
   parsed = renderMentionInMessage(parsed);
   if (typeof renderDeepLinks === "function") parsed = renderDeepLinks(parsed);
   if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
+  if (mathSlots && mathSlots.length && window.GBChatMath) {
+    parsed = GBChatMath.restore(parsed, mathSlots);
+  }
   // #2359 — `#messages` is role="log" aria-live="polite"; replacing this
   // bubble's innerHTML on every render makes assistive tech re-announce the
   // whole accumulated answer each tick. The in-progress bubble stays out of the

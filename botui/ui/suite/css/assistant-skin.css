@@ -1,0 +1,390 @@
+/* =============================================================================
+   ASSISTANT SKIN — the suite-wide look.
+
+   The assistant shell (gbgov) is the reference for the suite's UI: warm paper,
+   hairline surfaces, generous 20px cards, flat pill controls, Fira Sans
+   headings over Inter body text, and no gradients or bevelled chrome. This file
+   expresses that language once, in terms of the identity tokens (--id-*), which
+   in turn derive from the active theme. Switch theme and the same look comes
+   back recoloured; the skin never pins a palette of its own.
+
+   Deliberately limits itself to colour, border, radius, shadow, spacing and
+   typography inside app surfaces. No app's layout, display or positioning is
+   touched, so a rule here can restyle an app but never reflow it. App-specific
+   rules that load later still win on a tie; selectors are prefixed with
+   .window-body (or a data-gb-app scope) so the skin outranks legacy defaults
+   while specific app styling is left alone.
+   ========================================================================== */
+
+/* == 1. App surface ======================================================= */
+
+.window-body,
+.window-body-glass {
+    background: var(--id-paper);
+    color: var(--id-text);
+    font-family: var(--id-font-sans);
+}
+
+.window-body h1,
+.window-body h2,
+.window-body h3,
+.window-body h4 {
+    font-family: var(--id-font-heading);
+    color: var(--id-ink);
+    letter-spacing: -0.005em;
+}
+
+.window-body p,
+.window-body label,
+.window-body li,
+.window-body td,
+.window-body th,
+.window-body span.setting-desc,
+.window-body .subtitle {
+    color: var(--id-text);
+}
+
+.window-body .subtitle,
+.window-body .setting-desc,
+.window-body .muted,
+.window-body .text-muted,
+.window-body small {
+    color: var(--id-muted);
+}
+
+/* Section header — the assistant's page title block. */
+.window-body .section-header h1 {
+    font-family: var(--id-font-heading);
+    font-size: var(--id-text-3xl);
+    font-weight: 600;
+    color: var(--id-ink);
+    margin: 0 0 var(--id-space-2);
+}
+
+.window-body .section-header .subtitle {
+    font-size: var(--id-text-md);
+    color: var(--id-muted);
+    margin: 0;
+}
+
+/* == 2. Cards ============================================================= */
+
+.window-body .setting-card,
+.window-body .settings-card,
+.window-body .gb-card,
+.window-body .app-card,
+.window-body .stat-card,
+.window-body .panel-card {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-card);
+    box-shadow: var(--id-shadow-card);
+    padding: var(--id-space-5);
+}
+
+.window-body .setting-card:hover,
+.window-body .gb-card:hover,
+.window-body .app-card:hover {
+    box-shadow: var(--id-shadow-card-hover);
+}
+
+.window-body .card-header h2,
+.window-body .setting-card .card-header h2 {
+    font-family: var(--id-font-heading);
+    font-size: var(--id-text-lg);
+    font-weight: 600;
+    color: var(--id-ink);
+    margin: 0 0 var(--id-space-1);
+}
+
+.window-body .card-header p {
+    font-size: var(--id-text-sm);
+    color: var(--id-muted);
+    margin: 0;
+}
+
+/* A card's own separator lines stay hairline, never a heavy divider. */
+.window-body .setting-card hr,
+.window-body .card hr {
+    border: none;
+    border-top: 1px solid var(--id-line-soft);
+    margin: var(--id-space-4) 0;
+}
+
+/* Rows inside cards keep the assistant's calm rhythm. */
+.window-body .setting-row,
+.window-body .card-row {
+    border-bottom: 1px solid var(--id-line-soft);
+    padding: var(--id-space-3) 0;
+}
+
+.window-body .setting-row:last-child,
+.window-body .card-row:last-child {
+    border-bottom: none;
+}
+
+.window-body .setting-title {
+    font-size: var(--id-text-md);
+    font-weight: 500;
+    color: var(--id-ink);
+}
+
+/* == 3. Buttons =========================================================== */
+
+.window-body .btn-primary,
+.window-body .btn.preview,
+.window-body button[type="submit"].primary {
+    background: var(--id-accent);
+    border: 1px solid var(--id-accent);
+    border-radius: var(--id-radius-control);
+    color: var(--id-on-accent);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm);
+    font-weight: 500;
+    padding: var(--id-space-2) var(--id-space-4);
+    transition: background var(--id-dur-fast) var(--id-ease), border-color var(--id-dur-fast) var(--id-ease);
+}
+
+.window-body .btn-primary:hover,
+.window-body .btn.preview:hover {
+    background: var(--id-accent-hover);
+    border-color: var(--id-accent-hover);
+}
+
+.window-body .btn-secondary,
+.window-body .btn,
+.window-body .btn-ghost,
+.window-body button.secondary {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
+    color: var(--id-text);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm);
+    padding: var(--id-space-2) var(--id-space-4);
+    transition: background var(--id-dur-fast) var(--id-ease), border-color var(--id-dur-fast) var(--id-ease);
+}
+
+.window-body .btn-secondary:hover,
+.window-body .btn:hover,
+.window-body .btn-ghost:hover {
+    background: var(--id-fill);
+    border-color: var(--id-line);
+    color: var(--id-ink);
+}
+
+.window-body .btn:disabled,
+.window-body .btn-primary:disabled,
+.window-body .btn-secondary:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.window-body .btn-danger,
+.window-body .btn.danger {
+    background: var(--id-danger-soft);
+    border: 1px solid var(--id-danger-line);
+    border-radius: var(--id-radius-control);
+    color: var(--id-danger-text);
+}
+
+.window-body :focus-visible {
+    outline: none;
+    box-shadow: var(--id-focus);
+}
+
+/* == 4. Inputs ============================================================ */
+
+.window-body .form-input,
+.window-body .input,
+.window-body input[type="text"],
+.window-body input[type="email"],
+.window-body input[type="password"],
+.window-body input[type="number"],
+.window-body input[type="search"],
+.window-body input[type="date"],
+.window-body input[type="datetime-local"],
+.window-body select,
+.window-body textarea {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
+    color: var(--id-ink);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-md);
+    padding: var(--id-space-2) var(--id-space-3);
+}
+
+.window-body .form-input:focus,
+.window-body input:focus,
+.window-body select:focus,
+.window-body textarea:focus {
+    border-color: var(--id-accent);
+    box-shadow: 0 0 0 3px var(--id-accent-soft);
+    outline: none;
+}
+
+.window-body input::placeholder,
+.window-body textarea::placeholder {
+    color: var(--id-gray-400);
+}
+
+/* == 5. Tables ============================================================ */
+
+.window-body table {
+    border-collapse: collapse;
+    font-size: var(--id-text-sm);
+    color: var(--id-text);
+}
+
+.window-body table th {
+    background: var(--id-fill);
+    color: var(--id-muted);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-xs);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--id-line);
+    padding: var(--id-space-2) var(--id-space-3);
+}
+
+.window-body table td {
+    border-bottom: 1px solid var(--id-line-soft);
+    padding: var(--id-space-2) var(--id-space-3);
+    color: var(--id-text);
+}
+
+.window-body table tr:hover td {
+    background: var(--id-fill);
+}
+
+/* == 6. Chips, badges, pills ============================================= */
+
+.window-body .chip,
+.window-body .badge,
+.window-body .pill,
+.window-body .tag {
+    border-radius: var(--id-radius-pill);
+    border: 1px solid var(--id-line);
+    background: var(--id-fill);
+    color: var(--id-text);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-xs);
+    font-weight: 500;
+    padding: 2px var(--id-space-2);
+}
+
+.window-body .badge-accent,
+.window-body .chip-accent,
+.window-body .tag-accent {
+    background: var(--id-accent-soft);
+    border-color: color-mix(in srgb, var(--id-accent) 35%, transparent);
+    color: var(--id-accent-text);
+}
+
+/* == 7. Tabs ============================================================== */
+
+.window-body .tab {
+    border: 1px solid transparent;
+    border-radius: var(--id-radius-pill);
+    color: var(--id-muted);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm);
+    padding: var(--id-space-1) var(--id-space-3);
+    transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
+}
+
+.window-body .tab:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+.window-body .tab.active,
+.window-body .tab[aria-selected="true"] {
+    background: var(--id-accent-soft);
+    border-color: color-mix(in srgb, var(--id-accent) 30%, transparent);
+    color: var(--id-accent-text);
+}
+
+/* == 8. Toolbars ========================================================== */
+
+.window-body .toolbar {
+    background: transparent;
+    border-bottom: 1px solid var(--id-line-soft);
+    color: var(--id-text);
+}
+
+/* == 9. Empty and loading states ========================================= */
+
+.window-body .empty-state,
+.window-body .gb-state {
+    color: var(--id-muted);
+    text-align: center;
+}
+
+.window-body .empty-state h2,
+.window-body .empty-state h3,
+.window-body .gb-state-msg {
+    font-family: var(--id-font-heading);
+    color: var(--id-ink);
+    font-size: var(--id-text-lg);
+    font-weight: 600;
+}
+
+.window-body .spinner {
+    border-color: var(--id-line);
+    border-top-color: var(--id-accent);
+}
+
+/* == 10. Menus, popovers, modals ========================================= */
+
+.window-body .dropdown-menu,
+.window-body .menu,
+.window-body .popover,
+.window-body .context-menu,
+.window-body .modal-content,
+.window-body .modal-box {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-panel);
+    box-shadow: var(--id-shadow-float);
+    color: var(--id-text);
+}
+
+.window-body .dropdown-item:hover,
+.window-body .menu-item:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+/* == 11. Scrollbars ======================================================= */
+
+.window-body ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.window-body ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.window-body ::-webkit-scrollbar-thumb {
+    background: var(--id-gray-300);
+    border-radius: var(--id-radius-pill);
+}
+
+.window-body ::-webkit-scrollbar-thumb:hover {
+    background: var(--id-gray-400);
+}
+
+/* == 12. Print ============================================================ */
+
+@media print {
+    .taskbar-shell,
+    .window-caption,
+    .window-titlebar,
+    .gb-sidebar {
+        display: none !important;
+    }
+}

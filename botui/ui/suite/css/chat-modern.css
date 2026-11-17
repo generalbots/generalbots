@@ -7,21 +7,22 @@
 
 #chat-app,
 .chat-sidebar {
-    --gb-bg: #fafafa;
-    --gb-surface: #ffffff;
-    --gb-surface-muted: #f4f4f5;
-    --gb-text: #18181b;
-    --gb-muted: #71717a;
-    /* Borders are true grays, never black and never a black alpha: a 8%
-       black alpha still reads as a hard line on white. */
-    --gb-border: #e4e4e7;
-    --gb-border-soft: #ececef;
-    --gb-border-strong: #d4d4d8;
-    --gb-accent: #16a34a;
-    --gb-accent-soft: rgba(22, 163, 74, 0.10);
-    --gb-shadow-bubble: 0 1px 2px rgba(16, 24, 40, 0.04);
-    --gb-shadow-raised: 0 8px 24px rgba(16, 24, 40, 0.07);
-    --gb-focus-ring: 0 0 0 3px rgba(22, 163, 74, 0.14);
+    /* Named for the modern chrome, but sourced from the identity tokens: the
+       conversation now carries the assistant look in whichever theme is
+       active instead of a fixed neutral canvas with a brand green. */
+    --gb-bg: var(--id-paper);
+    --gb-surface: var(--id-surface-solid);
+    --gb-surface-muted: var(--id-fill);
+    --gb-text: var(--id-ink);
+    --gb-muted: var(--id-muted);
+    --gb-border: var(--id-line);
+    --gb-border-soft: var(--id-line-soft);
+    --gb-border-strong: var(--id-accent);
+    --gb-accent: var(--id-accent);
+    --gb-accent-soft: var(--id-accent-soft);
+    --gb-shadow-bubble: var(--id-shadow-card);
+    --gb-shadow-raised: var(--id-shadow-float);
+    --gb-focus-ring: 0 0 0 3px var(--id-accent-soft);
 }
 
 #chat-app {

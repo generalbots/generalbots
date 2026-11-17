@@ -1,0 +1,410 @@
+/* =============================================================================
+   CHAT — assistant look (part 1: surface, patterns, transcript, composer).
+
+   The chat window keeps the desktop's window chrome but everything inside it
+   speaks the assistant shell's language: warm paper, a 760px reading column,
+   the person's turns in white hairline bubbles, the assistant's answers as
+   plain prose, and a single rounded composer card. All colours come from the
+   identity tokens (--id-*), which derive from the active theme, so the look
+   stays intact in every theme.
+
+   Part 2 (controls, feedback, attachments, maths, print) lives in
+   chat-assistant-controls.css.
+   ========================================================================== */
+
+/* == Surface ============================================================== */
+
+#chat-app.chat-layout {
+    background-color: var(--id-paper);
+    background-repeat: repeat;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    border-radius: 0;
+    color: var(--id-text);
+    font-family: var(--id-font-sans);
+}
+
+#chat-app .chat-content-wrapper {
+    background: transparent;
+}
+
+/* == Background patterns (chosen in Settings → Appearance) =============== */
+/* Painted on the app surface, under the transcript. "image" is the identity
+   paper texture, washed with the theme's own paper so it stays subtle. */
+
+html[data-gb-chat-pattern="image"] #chat-app {
+    background-image:
+        linear-gradient(var(--id-paper), var(--id-paper)),
+        url("/suite/chat/chat-pattern.png");
+    background-size: auto, 340px 340px;
+    background-blend-mode: soft-light;
+}
+
+/* The shipped texture is a scanned paper: over dark paper it reads as noise,
+   so dark schemes take the finest dot grid instead of the photograph. */
+html[data-gb-chat-pattern="image"][data-color-scheme="dark"] #chat-app,
+html[data-color-scheme="dark"][data-gb-chat-pattern="image"] #chat-app {
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent) 16%, transparent) 1px, transparent 1px);
+    background-size: 8px 8px;
+    background-blend-mode: normal;
+}
+
+html[data-gb-chat-pattern="dots"] #chat-app {
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent) 34%, transparent) 1px, transparent 1px);
+    background-size: 12px 12px;
+}
+
+html[data-gb-chat-pattern="microdots"] #chat-app {
+    background-image: radial-gradient(color-mix(in srgb, var(--id-accent) 30%, transparent) 1px, transparent 1px);
+    background-size: 6px 6px;
+}
+
+html[data-gb-chat-pattern="grid"] #chat-app {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent) 20%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent) 20%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+html[data-gb-chat-pattern="blueprint"] #chat-app {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent) 26%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent) 26%, transparent) 1px, transparent 1px),
+        linear-gradient(color-mix(in srgb, var(--id-accent) 10%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent) 10%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px, 64px 64px, 16px 16px, 16px 16px;
+}
+
+html[data-gb-chat-pattern="weave"] #chat-app {
+    background-image:
+        repeating-linear-gradient(45deg, color-mix(in srgb, var(--id-accent) 16%, transparent) 0 2px, transparent 2px 14px),
+        repeating-linear-gradient(-45deg, color-mix(in srgb, var(--id-accent) 16%, transparent) 0 2px, transparent 2px 14px);
+}
+
+html[data-gb-chat-pattern="mosaic"] #chat-app {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--id-accent) 18%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--id-accent) 18%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+/* == Transcript ========================================================== */
+/* A centred reading column without touching the DOM: the horizontal padding
+   is what keeps the scroller full-width while the text stays 760px wide. */
+
+#chat-app #messages {
+    background: transparent;
+    padding: var(--id-space-6) max(var(--id-space-4), calc((100% - 760px) / 2));
+    gap: var(--id-space-5);
+}
+
+#chat-app #messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chat-app #messages::-webkit-scrollbar-thumb {
+    background: var(--id-gray-300);
+}
+
+#chat-app #messages::-webkit-scrollbar-thumb:hover {
+    background: var(--id-gray-400);
+}
+
+/* == Turns =============================================================== */
+
+#chat-app .message {
+    max-width: 100%;
+    animation: none;
+}
+
+#chat-app .message.user {
+    align-self: flex-end;
+    max-width: 85%;
+}
+
+#chat-app .message.bot {
+    align-self: stretch;
+    max-width: 100%;
+}
+
+#chat-app .message-content {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+}
+
+/* The person's turn — white bubble, hairline stroke, one squared corner. */
+#chat-app .user-message {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-panel) var(--id-radius-panel) var(--id-radius-sm) var(--id-radius-panel);
+    color: var(--id-ink) !important;
+    padding: var(--id-space-3) var(--id-space-4);
+    font-size: var(--id-text-md);
+    line-height: 1.6;
+}
+
+#chat-app .user-message .gb-message-text,
+#chat-app .user-message a {
+    color: var(--id-ink) !important;
+}
+
+#chat-app .gb-message-toggle {
+    color: var(--id-muted);
+}
+
+#chat-app .gb-message-text.gb-message-collapsed::after {
+    background: linear-gradient(transparent, var(--id-surface-solid));
+}
+
+/* The assistant's turn — prose on paper, no bubble. The selector carries the
+   message wrappers so it outranks the modern-dark bubble styling. */
+#chat-app .message .message-content.bot-message,
+#chat-app .bot-message,
+#chat-app .bot-message p,
+#chat-app .bot-message span,
+#chat-app .bot-message li,
+#chat-app .bot-message strong,
+#chat-app .bot-message em,
+#chat-app .bot-message blockquote,
+#chat-app .bot-message h1,
+#chat-app .bot-message h2,
+#chat-app .bot-message h3,
+#chat-app .bot-message h4 {
+    color: var(--id-ink) !important;
+}
+
+#chat-app .message .message-content.bot-message,
+#chat-app .bot-message {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: var(--id-text-md);
+    line-height: 1.7;
+    white-space: normal;
+}
+
+#chat-app .bot-message p {
+    margin-bottom: .6em;
+}
+
+#chat-app .bot-message p:last-child {
+    margin-bottom: 0;
+}
+
+#chat-app .bot-message h1,
+#chat-app .bot-message h2,
+#chat-app .bot-message h3 {
+    font-family: var(--id-font-heading);
+    margin-top: 1em;
+    margin-bottom: .4em;
+}
+
+#chat-app .bot-message h1 { font-size: var(--id-text-2xl); }
+#chat-app .bot-message h2 { font-size: var(--id-text-xl); }
+#chat-app .bot-message h3 { font-size: var(--id-text-lg); }
+
+#chat-app .bot-message ul,
+#chat-app .bot-message ol {
+    margin: .4em 0 .6em 1.4em;
+}
+
+#chat-app .bot-message a {
+    color: var(--id-accent-text) !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#chat-app .bot-message blockquote {
+    border-left: 3px solid var(--id-accent-light);
+    background: var(--id-fill);
+    border-radius: 0 var(--id-radius-sm) var(--id-radius-sm) 0;
+    margin: .6em 0;
+    padding: var(--id-space-2) var(--id-space-4);
+    color: var(--id-muted) !important;
+}
+
+#chat-app .bot-message pre {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-sm);
+    font-size: var(--id-text-sm);
+    line-height: 1.5;
+    margin: .6em 0;
+}
+
+#chat-app .bot-message code {
+    background: var(--id-fill);
+    border: 1px solid var(--id-line-soft);
+    border-radius: 4px;
+    color: var(--id-ink);
+    font-size: .9em;
+    padding: 1px 5px;
+}
+
+#chat-app .bot-message pre code {
+    background: none;
+    border: none;
+    padding: var(--id-space-3) var(--id-space-4);
+}
+
+#chat-app .bot-message th,
+#chat-app .bot-message td {
+    border: 1px solid var(--id-line);
+    padding: var(--id-space-2) var(--id-space-3);
+}
+
+#chat-app .bot-message th {
+    background: var(--id-fill);
+    color: var(--id-ink) !important;
+    font-size: var(--id-text-xs);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+/* Hover timestamp stays discreet. */
+#chat-app .gb-message-time {
+    color: var(--id-gray-400);
+}
+
+/* == Thinking / status =================================================== */
+
+#chat-app .chat-status,
+#chat-app .gb-state-msg {
+    color: var(--id-muted);
+    font-size: var(--id-text-sm);
+}
+
+#chat-app .chat-status-dot {
+    background: var(--id-accent-light);
+}
+
+/* == Footer, suggestions, composer ======================================= */
+
+#chat-app footer {
+    background: transparent;
+    border-top: none;
+    padding: var(--id-space-3) max(var(--id-space-4), calc((100% - 760px) / 2)) var(--id-space-4);
+}
+
+#chat-app .suggestions-container {
+    justify-content: center;
+    gap: var(--id-space-2);
+    padding: 0 0 var(--id-space-2);
+}
+
+#chat-app .suggestion-chip,
+#chat-app .suggestion-button {
+    height: 30px;
+    min-height: 30px;
+    padding: 0 var(--id-space-4);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-pill);
+    background: var(--id-surface-solid);
+    color: var(--id-text);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-sm);
+    font-weight: 500;
+    box-shadow: none;
+    transform: none;
+}
+
+#chat-app .suggestion-chip:hover,
+#chat-app .suggestion-button:hover {
+    background: var(--id-accent-soft);
+    border-color: var(--id-accent);
+    color: var(--id-accent-text);
+    box-shadow: none;
+    transform: none;
+}
+
+/* One rounded card, hairline stroke, soft lift on focus. */
+#chat-app .input-container,
+#chat-app form.input-container {
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-card);
+    background: var(--id-surface-solid);
+    box-shadow: var(--id-shadow-card);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: var(--id-space-2) var(--id-space-2) var(--id-space-2) var(--id-space-3);
+}
+
+#chat-app .input-container:focus-within {
+    border-color: var(--id-accent);
+    box-shadow: var(--id-shadow-card-hover), 0 0 0 3px var(--id-accent-soft);
+}
+
+#chat-app #messageInput,
+#chat-app textarea#messageInput {
+    color: var(--id-ink);
+    font-family: var(--id-font-sans);
+    font-size: var(--id-text-md);
+    line-height: 1.55;
+}
+
+#chat-app #messageInput::placeholder {
+    color: var(--id-gray-400);
+}
+
+#chat-app #sendBtn {
+    background: var(--id-accent);
+    border: 1px solid var(--id-accent);
+    border-radius: var(--id-radius-control);
+    color: var(--id-on-accent);
+    box-shadow: none;
+}
+
+#chat-app #sendBtn:hover {
+    background: var(--id-accent-hover);
+    border-color: var(--id-accent-hover);
+}
+
+#chat-app .file-btn,
+#chat-app .chat-tool-toggle {
+    border-radius: var(--id-radius-control);
+    color: var(--id-muted);
+}
+
+#chat-app .file-btn:hover,
+#chat-app .chat-tool-toggle:hover {
+    background: var(--id-fill);
+    color: var(--id-ink);
+}
+
+#chat-app .gb-model-picker {
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-control);
+    background: var(--id-surface-solid);
+    color: var(--id-text);
+    font-size: var(--id-text-xs);
+}
+
+/* Scroll-to-bottom pill. */
+#chat-app .scroll-to-bottom {
+    background: var(--id-surface-solid);
+    border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-pill);
+    box-shadow: var(--id-shadow-float);
+    color: var(--id-text);
+}
+
+/* == Empty conversation ================================================== */
+
+#chat-app .gb-chat-empty {
+    color: var(--id-muted);
+}
+
+#chat-app .gb-chat-empty-title {
+    font-family: var(--id-font-heading);
+    font-size: var(--id-text-3xl);
+    font-weight: 600;
+    color: var(--id-ink);
+}
+
+#chat-app .gb-chat-empty-hint {
+    font-size: var(--id-text-md);
+    color: var(--id-muted);
+}

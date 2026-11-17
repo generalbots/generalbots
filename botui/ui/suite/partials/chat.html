@@ -17,8 +17,13 @@
 <link rel="stylesheet" href="/suite/css/viz.css?v=1" />
 <link rel="stylesheet" href="/suite/css/app-frame.css?v=2" />
 <link rel="stylesheet" href="/suite/chat/chat-artifact-overlay.css?v=1" />
+<link rel="stylesheet" href="/suite/js/vendor/katex/katex.min.css" />
+<link rel="stylesheet" href="/suite/chat/chat-assistant-look.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat-assistant-controls.css?v=1" />
 <div class="chat-layout gb-app" id="chat-app" data-gb-app="chat" style="opacity: 1; visibility: visible;">
     <div class="chat-content-wrapper" id="chatContentWrapper">
+        <div id="chatHeaderActions" class="gb-chat-header-actions" role="toolbar"
+            data-i18n-aria-label="chat-export-actions" aria-label="Conversation actions"></div>
         <div class="connection-status connecting" id="connectionStatus" style="display: none">
             <span class="connection-status-dot"></span>
             <span class="connection-text" data-i18n="chat-connecting">Connecting...</span>
@@ -135,6 +140,8 @@
 </div>
 
 <script src="/suite/js/vendor/marked.min.js"></script>
+<script src="/suite/js/vendor/katex/katex.min.js"></script>
+<script src="/suite/chat/chat-math.js?v=1"></script>
 <script src="/suite/js/vendor/chart.umd.min.js"></script>
 <script src="/suite/chat/chat-state.js?v=4"></script>
 <script src="/suite/chat/chat-switchers.js?v=4"></script>
@@ -163,6 +170,10 @@
 <script src="/suite/chat/messages/70_stream.js?v=43"></script>
 <script src="/suite/chat/chat-output-polish.js?v=4"></script>
 <script src="/suite/chat/chat-suggestions.js?v=6"></script>
+<script src="/suite/chat/chat-export.js?v=1"></script>
+<script src="/suite/chat/chat-edit-last.js?v=1"></script>
+<script src="/suite/chat/chat-feedback.js?v=1"></script>
+<script src="/suite/chat/chat-staged-files.js?v=1"></script>
 <script src="/suite/chat/chat-theme.js?v=6"></script>
 <script src="/suite/chat/chat-websocket_a.js?v=32"></script>
 <script src="/suite/chat/chat-websocket_b.js?v=32"></script>

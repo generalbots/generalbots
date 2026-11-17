@@ -95,3 +95,19 @@ chat-artifact-words = words
 
 # #2362 — attachment action label
 chat-open-in-app = Open in app
+# Assistant-look chat: transcript export and answer feedback
+chat-export-actions = 会話の操作
+chat-export-md = 会話をMarkdownでエクスポート
+chat-export-print = 印刷またはPDFとして保存
+chat-export-done = 会話をエクスポートしました
+chat-export-empty = まだエクスポートする内容がありません
+chat-export-untitled = 会話
+chat-export-user = あなた
+chat-export-assistant = アシスタント
+chat-feedback-label = 回答への評価
+chat-feedback-good = 良い回答
+chat-feedback-bad = 良くない回答
+chat-feedback-comment = どこを改善できますか？
+chat-feedback-send = 送信
+chat-staged-files = 添付ファイル
+chat-staged-close = プレビューを閉じる

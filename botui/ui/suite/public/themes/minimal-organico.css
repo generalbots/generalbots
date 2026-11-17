@@ -79,3 +79,45 @@
     --glass-shadow: 0 4px 20px rgba(0,0,0,0.06);
     --glass-backdrop: blur(12px) saturate(120%);
 }
+
+/* == Identity bridge (assistant look) ==============================
+ * The suite's UI (every app, chat included) is expressed in --id-*
+ * tokens. Each theme declares its own values here so the assistant look
+ * comes back recoloured to this palette instead of falling back to the
+ * reference orange and paper. Generated from the palette declared above;
+ * regenerate when the palette changes.
+ */
+
+:root {
+    /* Accent — the theme's primary, with the reference shades derived. */
+    --id-accent: hsl(145 40% 40%);
+    --id-accent-hover: color-mix(in srgb, hsl(145 40% 40%) 86%, #000);
+    --id-accent-light: color-mix(in srgb, hsl(145 40% 40%) 68%, #fff);
+    --id-accent-text: hsl(40 20% 96%);
+    --id-accent-soft: color-mix(in srgb, hsl(145 40% 40%) 12%, transparent);
+    --id-accent-glow: color-mix(in srgb, hsl(145 40% 40%) 26%, transparent);
+    --id-on-accent: hsl(40 20% 96%);
+
+    /* Surfaces and ink. */
+    --id-paper: hsl(40 20% 96%);
+    --id-ink: hsl(30 25% 12%);
+    --id-text: color-mix(in srgb, hsl(30 25% 12%) 82%, hsl(40 20% 96%));
+    --id-muted: hsl(30 15% 45%);
+    --id-gray-100: hsl(30 15% 92%);
+    --id-gray-200: color-mix(in srgb, hsl(30 25% 12%) 12%, hsl(40 20% 96%));
+    --id-gray-300: color-mix(in srgb, hsl(30 25% 12%) 22%, hsl(40 20% 96%));
+    --id-gray-400: color-mix(in srgb, hsl(30 25% 12%) 46%, hsl(40 20% 96%));
+    --id-gray-500: color-mix(in srgb, hsl(30 25% 12%) 62%, hsl(40 20% 96%));
+    --id-surface: color-mix(in srgb, hsl(40 15% 100%) 90%, transparent);
+    --id-surface-solid: hsl(40 15% 100%);
+    --id-line: color-mix(in srgb, hsl(30 15% 85%) 90%, transparent);
+    --id-line-soft: color-mix(in srgb, hsl(30 15% 85%) 55%, transparent);
+    --id-fill: color-mix(in srgb, hsl(30 15% 92%) 80%, transparent);
+
+    /* Shape follows the theme's own radius. */
+    --id-radius-card: calc(1.5rem + 8px);
+    --id-radius-panel: calc(1.5rem + 6px);
+    --id-radius-bar: calc(1.5rem + 4px);
+    --id-radius-control: 1.5rem;
+    --id-radius-sm: max(4px, calc(1.5rem - 4px));
+}

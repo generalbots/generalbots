@@ -246,3 +246,14 @@ ts-small = 小
 ts-default = 默认
 ts-large = 大
 ts-xlarge = 特大
+# Settings → Appearance: chat background pattern
+chatbg-title = 聊天背景
+chatbg-desc = 选择对话背后的图案
+chatbg-none = 无
+chatbg-image = 纸张
+chatbg-dots = 圆点
+chatbg-microdots = 微点
+chatbg-grid = 网格
+chatbg-blueprint = 蓝图
+chatbg-weave = 织纹
+chatbg-mosaic = 马赛克

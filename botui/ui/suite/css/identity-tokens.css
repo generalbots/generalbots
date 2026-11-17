@@ -1,0 +1,173 @@
+/*
+ * Identity tokens for the desktop edition.
+ *
+ * Neutrals, radii, shadows, motion, type scale and font stacks are fixed.
+ * Accent tokens have literal defaults (the reference orange family) that
+ * accent.js can override at runtime for any hue the person chooses.
+ *
+ * Prefix: --id-
+ * Light theme only; no dark theme.
+ */
+
+:root {
+
+  /* == Accent ==========================================================
+   * Reference identity values. Every theme ships its own --id-* block
+   * (public/themes/*.css), so these only apply when no theme is loaded. */
+  --id-accent: #F28C28;
+  --id-accent-hover: #D4751C;
+  --id-accent-light: #FDB96A;
+  --id-accent-text: #B45309;
+  --id-accent-soft: rgb(242 140 40 / .1);
+  --id-accent-glow: rgb(242 140 40 / .26);
+  --id-on-accent: #ffffff;
+  --id-paper: #FFF8F2;
+
+  /* == Ink & neutrals ================================================== */
+  --id-ink: #2C2C2C;
+  --id-text: #4B5563;
+  --id-muted: #5F6673;
+  --id-gray-100: #f3f4f6;
+  --id-gray-200: #e5e7eb;
+  --id-gray-300: #d1d5db;
+  --id-gray-400: #9ca3af;
+  --id-gray-500: #6b7280;
+
+  /* == Surfaces ======================================================== */
+  --id-surface: rgb(255 255 255 / .9);
+  --id-surface-solid: #ffffff;
+  --id-line: rgb(229 231 235 / .8);
+  --id-line-soft: rgb(243 244 246 / .9);
+  --id-fill: rgb(243 244 246 / .8);
+
+  /* == Font stacks (fixed) ============================================= */
+  --id-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --id-font-heading: 'Fira Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --id-font-logo: 'Fira Sans', system-ui, sans-serif;
+
+  /* == Type scale (fixed) ============================================== */
+  --id-text-xs: 10px;
+  --id-text-sm: 12px;
+  --id-text-base: 14px;
+  --id-text-md: 15px;
+  --id-text-lg: 16px;
+  --id-text-xl: 17px;
+  --id-text-2xl: 20px;
+  --id-text-3xl: 24px;
+  --id-text-4xl: 32px;
+  --id-text-5xl: 36px;
+
+  /* == Radii ===========================================================
+   * Follow the theme's own --radius (0.5rem light, 0.75rem default, sharper
+   * in the retro themes) and keep the identity look's generous card steps. */
+  --id-radius-hero: calc(var(--radius, 0.75rem) + 12px);
+  --id-radius-card: calc(var(--radius, 0.75rem) + 8px);
+  --id-radius-panel: calc(var(--radius, 0.75rem) + 6px);
+  --id-radius-bar: calc(var(--radius, 0.75rem) + 4px);
+  --id-radius-control: var(--radius, 0.75rem);
+  --id-radius-sm: max(4px, calc(var(--radius, 0.75rem) - 4px));
+  --id-radius-pill: 999px;
+
+  /* == Shadows (fixed) ================================================= */
+  --id-shadow-card: 0 1px 2px rgb(0 0 0 / .05);
+  --id-shadow-card-hover: 0 8px 20px -10px rgb(0 0 0 / .12),
+                           0 1px 2px rgb(0 0 0 / .05);
+  --id-shadow-float: 0 10px 15px -3px rgb(0 0 0 / .04),
+                     0 4px 6px -4px rgb(0 0 0 / .04);
+
+  /* == Motion (fixed) ================================================== */
+  --id-ease: cubic-bezier(.22, 1, .36, 1);
+  --id-ease-standard: cubic-bezier(.25, .1, .25, 1);
+  --id-dur-fast: 150ms;
+  --id-dur-normal: 200ms;
+  --id-dur-medium: 350ms;
+  --id-dur-slow: 450ms;
+  --id-dur-glow: 20s;
+
+  /* == Spacing (4px base, fixed) ======================================= */
+  --id-space-1: 4px;
+  --id-space-2: 8px;
+  --id-space-3: 12px;
+  --id-space-4: 16px;
+  --id-space-5: 20px;
+  --id-space-6: 24px;
+  --id-space-8: 32px;
+  --id-space-10: 40px;
+
+  /* == Semantic colours (fixed per theme) =============================== */
+  --id-danger: #dc2626;
+  --id-danger-text: #b91c1c;
+  --id-danger-soft: rgb(220 38 38 / .06);
+  --id-danger-line: rgb(220 38 38 / .3);
+  --id-danger-icon: #ef4444;
+  --id-success: #22c55e;
+  --id-success-text: #16a34a;
+  --id-success-soft: rgb(34 197 94 / .06);
+  --id-success-line: rgb(34 197 94 / .25);
+  --id-warn: #d97706;
+  --id-warn-text: #92400e;
+  --id-warn-soft: rgb(234 179 8 / .08);
+  --id-warn-bg: #fef3c7;
+  --id-overlay: rgb(0 0 0 / .3);
+  --id-overlay-heavy: rgb(0 0 0 / .7);
+
+  /* == Syntax highlighting ============================================ */
+  --id-hl-keyword: var(--id-accent-text, #6366f1);
+  --id-hl-string: #059669;
+  --id-hl-comment: var(--id-gray-400);
+  --id-hl-number: #d97706;
+  --id-hl-function: #2563eb;
+  --id-hl-attr: #0d9488;
+  --id-hl-tag: #dc2626;
+  --id-hl-deletion: #dc2626;
+  --id-hl-deletion-bg: rgb(239 68 68 / .08);
+  --id-hl-addition-bg: rgb(5 150 105 / .08);
+
+  /* == Scrollbar ====================================================== */
+  --id-scrollbar-thumb: var(--id-gray-300);
+
+  /* == Text-size scale (overridden by theme.js) ======================= */
+  --id-scale: 1;
+
+  /* == Focus (accent-derived) ========================================== */
+  --id-focus: 0 0 0 2px var(--id-accent-text);
+}
+
+/* == Dark surfaces ====================================================
+ * The colour tokens above are derived from the theme, so a dark theme needs
+ * no second palette here. Only the semantic colours are re-tuned for a dark
+ * surface, keyed off data-color-scheme (set by theme-scheme.js from the
+ * active theme's own background), never off a theme id.
+ */
+
+:root[data-color-scheme="dark"] {
+  --id-danger: #f87171;
+  --id-danger-text: #fca5a5;
+  --id-danger-soft: rgb(220 38 38 / .12);
+  --id-danger-line: rgb(220 38 38 / .4);
+  --id-danger-icon: #f87171;
+  --id-success: #4ade80;
+  --id-success-text: #86efac;
+  --id-success-soft: rgb(34 197 94 / .12);
+  --id-success-line: rgb(34 197 94 / .35);
+  --id-warn: #fbbf24;
+  --id-warn-text: #fde68a;
+  --id-warn-soft: rgb(234 179 8 / .15);
+  --id-warn-bg: rgb(120 80 10 / .3);
+  --id-overlay: rgb(0 0 0 / .5);
+  --id-overlay-heavy: rgb(0 0 0 / .8);
+  --id-hl-string: #34d399;
+  --id-hl-number: #fbbf24;
+  --id-hl-function: #60a5fa;
+  --id-hl-attr: #2dd4bf;
+  --id-hl-tag: #f87171;
+  --id-hl-deletion: #f87171;
+  --id-hl-deletion-bg: rgb(239 68 68 / .15);
+  --id-hl-addition-bg: rgb(5 150 105 / .15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --id-dur-glow: 0s;
+  }
+}

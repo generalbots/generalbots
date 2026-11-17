@@ -95,3 +95,19 @@ chat-artifact-words = words
 
 # #2362 — attachment action label
 chat-open-in-app = Open in app
+# Assistant-look chat: transcript export and answer feedback
+chat-export-actions = 대화 작업
+chat-export-md = 대화를 Markdown으로 내보내기
+chat-export-print = 인쇄 또는 PDF로 저장
+chat-export-done = 대화를 내보냈습니다
+chat-export-empty = 아직 내보낼 내용이 없습니다
+chat-export-untitled = 대화
+chat-export-user = 사용자
+chat-export-assistant = 어시스턴트
+chat-feedback-label = 답변 평가
+chat-feedback-good = 좋은 답변
+chat-feedback-bad = 나쁜 답변
+chat-feedback-comment = 무엇을 개선할까요?
+chat-feedback-send = 보내기
+chat-staged-files = 첨부 파일
+chat-staged-close = 미리보기 닫기

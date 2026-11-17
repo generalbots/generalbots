@@ -5,19 +5,21 @@
 
 [data-color-scheme="dark"] #chat-app,
 [data-color-scheme="dark"] .chat-sidebar {
-    --gb-bg: #131316;
-    --gb-surface: #1b1b1f;
-    --gb-surface-muted: #26262b;
-    --gb-text: #ededf0;
-    --gb-muted: #a1a1aa;
-    --gb-border: #3f3f46;
-    --gb-border-soft: #313138;
-    --gb-border-strong: #52525b;
-    --gb-accent: #4ade80;
-    --gb-accent-soft: rgba(74, 222, 128, 0.12);
-    --gb-shadow-bubble: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --gb-shadow-raised: 0 10px 28px rgba(0, 0, 0, 0.45);
-    --gb-focus-ring: 0 0 0 3px rgba(74, 222, 128, 0.18);
+    /* Same identity mapping as the light block: a dark theme's own palette
+       already supplies the dark values, so there is no second palette here. */
+    --gb-bg: var(--id-paper);
+    --gb-surface: var(--id-surface-solid);
+    --gb-surface-muted: var(--id-fill);
+    --gb-text: var(--id-ink);
+    --gb-muted: var(--id-muted);
+    --gb-border: var(--id-line);
+    --gb-border-soft: var(--id-line-soft);
+    --gb-border-strong: var(--id-accent);
+    --gb-accent: var(--id-accent);
+    --gb-accent-soft: var(--id-accent-soft);
+    --gb-shadow-bubble: var(--id-shadow-card);
+    --gb-shadow-raised: var(--id-shadow-float);
+    --gb-focus-ring: 0 0 0 3px var(--id-accent-soft);
 }
 
 [data-color-scheme="dark"] #chat-app .user-message {

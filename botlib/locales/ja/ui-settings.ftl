@@ -246,3 +246,14 @@ ts-small = 小
 ts-default = 標準
 ts-large = 大
 ts-xlarge = 特大
+# Settings → Appearance: chat background pattern
+chatbg-title = チャットの背景
+chatbg-desc = 会話の背景パターンを選択
+chatbg-none = なし
+chatbg-image = 紙
+chatbg-dots = ドット
+chatbg-microdots = マイクロドット
+chatbg-grid = グリッド
+chatbg-blueprint = 設計図
+chatbg-weave = 織り目
+chatbg-mosaic = モザイク

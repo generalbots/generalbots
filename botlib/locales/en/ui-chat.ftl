@@ -103,3 +103,19 @@ chat-artifact-words = words
 
 # #2362 — attachment action label
 chat-open-in-app = Open in app
+# Assistant-look chat: transcript export and answer feedback
+chat-export-actions = Conversation actions
+chat-export-md = Export conversation as Markdown
+chat-export-print = Print or save as PDF
+chat-export-done = Conversation exported
+chat-export-empty = Nothing to export yet
+chat-export-untitled = Conversation
+chat-export-user = You
+chat-export-assistant = Assistant
+chat-feedback-label = Answer feedback
+chat-feedback-good = Good answer
+chat-feedback-bad = Bad answer
+chat-feedback-comment = What could be better?
+chat-feedback-send = Send
+chat-staged-files = Attached files
+chat-staged-close = Close preview

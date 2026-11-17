@@ -95,3 +95,19 @@ chat-artifact-words = words
 
 # #2362 — attachment action label
 chat-open-in-app = Open in app
+# Assistant-look chat: transcript export and answer feedback
+chat-export-actions = 对话操作
+chat-export-md = 将对话导出为 Markdown
+chat-export-print = 打印或保存为 PDF
+chat-export-done = 对话已导出
+chat-export-empty = 暂无可导出的内容
+chat-export-untitled = 对话
+chat-export-user = 你
+chat-export-assistant = 助手
+chat-feedback-label = 回答反馈
+chat-feedback-good = 回答有帮助
+chat-feedback-bad = 回答无帮助
+chat-feedback-comment = 哪里可以改进？
+chat-feedback-send = 发送
+chat-staged-files = 附件
+chat-staged-close = 关闭预览

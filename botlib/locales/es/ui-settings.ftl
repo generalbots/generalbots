@@ -246,3 +246,14 @@ ts-small = Pequeño
 ts-default = Predeterminado
 ts-large = Grande
 ts-xlarge = Muy grande
+# Settings → Appearance: chat background pattern
+chatbg-title = Fondo del chat
+chatbg-desc = Elige el patrón detrás de tus conversaciones
+chatbg-none = Ninguno
+chatbg-image = Papel
+chatbg-dots = Puntos
+chatbg-microdots = Micropuntos
+chatbg-grid = Cuadrícula
+chatbg-blueprint = Plano
+chatbg-weave = Trama
+chatbg-mosaic = Mosaico

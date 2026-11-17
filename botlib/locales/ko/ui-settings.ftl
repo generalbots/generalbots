@@ -246,3 +246,14 @@ ts-small = 작게
 ts-default = 기본
 ts-large = 크게
 ts-xlarge = 아주 크게
+# Settings → Appearance: chat background pattern
+chatbg-title = 채팅 배경
+chatbg-desc = 대화 뒤의 패턴을 선택하세요
+chatbg-none = 없음
+chatbg-image = 종이
+chatbg-dots = 점
+chatbg-microdots = 마이크로 점
+chatbg-grid = 격자
+chatbg-blueprint = 청사진
+chatbg-weave = 직조
+chatbg-mosaic = 모자이크
