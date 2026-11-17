@@ -1,4 +1,19 @@
 use super::*;
+use botsecurity::path_guard::{PathGuard, PathGuardConfig};
+
+/// Guard for a signup-supplied template path. Hidden segments and symlinks are
+/// not traversal on their own, so the guard allows both and relies on the
+/// canonical containment check to reject anything that escapes the templates
+/// directory. The extension deny list is irrelevant for a directory path.
+fn template_path_guard() -> PathGuard {
+    PathGuard::new(
+        PathGuardConfig::new()
+            .allow_hidden(true)
+            .allow_symlinks(true)
+            .with_denied_extensions(Vec::new())
+            .with_max_depth(16),
+    )
+}
 
 /// Recursively copy a directory from src to dst using std::fs.
 pub(super) fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
@@ -70,34 +85,34 @@ pub fn create_bot_bucket(
 
     if let Some(template_path) = template {
         let templates_dir = &config.templates_dir;
-        // Path-injection guard: the template path arrives from the signup
-        // request body. Only relative single-component segments under the
-        // configured templates dir are allowed — no `..`, no absolute paths,
-        // no separators beyond the single level of `sub/name.gbai`.
-        if template_path.contains('\\')
-            || template_path.contains('\0')
-            || template_path.starts_with('/')
-            || template_path.split('/').any(|seg| seg == ".." || seg.is_empty() || seg == ".")
+        // Path-injection guard (#2377): the template path arrives from the
+        // signup request body. PathGuard is the single validator — it rejects
+        // absolute paths, `..`, NUL bytes, over-depth input and any symlink
+        // escape, and resolves the target under the templates directory.
+        let src = match template_path_guard()
+            .validate_relative_under(Path::new(templates_dir), Path::new(template_path))
         {
-            return Err(format!(
-                "invalid template path: {template_path} (must be relative segments under the templates dir)"
-            ));
-        }
-        let src = Path::new(templates_dir).join(template_path);
-        // Containment barrier: canonicalize and verify the resolved template
-        // source stays inside the configured templates dir (symlink-aware).
-        let canon_src = src
-            .canonicalize()
-            .map_err(|e| format!("template path {}: {e}", src.display()))?;
-        let canon_base = Path::new(templates_dir)
-            .canonicalize()
-            .map_err(|e| format!("templates dir {}: {e}", templates_dir))?;
-        if !canon_src.starts_with(&canon_base) {
-            return Err(format!(
-                "template path {} escapes templates dir {}",
-                canon_src.display(),
-                canon_base.display()
-            ));
+            Ok(resolved) => resolved,
+            Err(e) => {
+                tracing::warn!(
+                    "create_bot_bucket: rejected template path {template_path:?}: {e}"
+                );
+                return Err(format!(
+                    "invalid template path: {}",
+                    botsecurity::error_sanitizer::log_and_sanitize(
+                        &e,
+                        "botcloud::create_bot_bucket",
+                        None,
+                    )
+                    .message
+                ));
+            }
+        };
+        if !src.exists() {
+            // Previously the unconditional canonicalize() surfaced this as an
+            // error; keep that contract without leaking the resolved path.
+            tracing::warn!("Template {template_path} not found at {templates_dir}");
+            return Err("template path not found under templates dir".to_string());
         }
         if src.is_dir() {
             let tmpdir = format!("/tmp/gbtemplate_{bot_slug}");
@@ -253,4 +268,73 @@ pub fn create_cloud_workspace(pool: &DbPool, branch_id: Uuid, name: &str) -> Res
     .map_err(|e| format!("Insert cloud_workspace: {e}"))?;
 
     Ok(id)
+}
+
+#[cfg(test)]
+mod template_path_guard_tests {
+    use super::template_path_guard;
+    use std::path::Path;
+
+    const ROOT: &str = "/srv/gb/templates";
+
+    #[test]
+    fn hostile_template_paths_are_rejected() {
+        let guard = template_path_guard();
+        let root = Path::new(ROOT);
+        for hostile in [
+            "../secret",
+            "/etc/passwd",
+            "core/../../secret",
+            "a\0b.gbai",
+            "a\\b.gbai",
+            ".",
+            "",
+        ] {
+            assert!(
+                guard
+                    .validate_relative_under(root, Path::new(hostile))
+                    .is_err(),
+                "{hostile:?} must be rejected"
+            );
+        }
+        let deep = vec!["a"; 20].join("/");
+        assert!(guard.validate_relative_under(root, Path::new(&deep)).is_err());
+    }
+
+    #[test]
+    fn valid_template_paths_resolve_under_the_templates_dir() {
+        let guard = template_path_guard();
+        let root = Path::new(ROOT);
+        assert_eq!(
+            guard
+                .validate_relative_under(root, Path::new("core/default.gbai"))
+                .ok(),
+            Some(root.join("core/default.gbai"))
+        );
+        assert_eq!(
+            guard
+                .validate_relative_under(root, Path::new("./apps/site.gbai"))
+                .ok(),
+            Some(root.join("apps/site.gbai"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn template_symlink_escape_is_rejected() {
+        let base = std::env::temp_dir().join(format!("botcloud-tpl-{}", std::process::id()));
+        let outside = std::env::temp_dir().join(format!("botcloud-out-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let _ = std::fs::remove_dir_all(&outside);
+        std::fs::create_dir_all(&base).expect("create templates dir");
+        std::fs::create_dir_all(&outside).expect("create outside dir");
+        std::fs::write(outside.join("secret.gbai"), "x").expect("write outside file");
+        std::os::unix::fs::symlink(&outside, base.join("escape")).expect("create symlink");
+        let guard = template_path_guard();
+        assert!(guard
+            .validate_relative_under(&base, Path::new("escape/secret.gbai"))
+            .is_err());
+        let _ = std::fs::remove_dir_all(&base);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
 }

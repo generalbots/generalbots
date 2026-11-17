@@ -99,6 +99,69 @@ impl PathGuard {
         Ok(normalized)
     }
 
+    /// Validate a user-supplied **relative** path and resolve it under `base`.
+    ///
+    /// This is the single entry point for handlers that accept a path from an
+    /// HTTP request (#2377). On top of [`PathGuard::validate`] it refuses
+    /// absolute input, rejects a path that normalises to nothing (`.`, `./`),
+    /// and walks the resolved components so a symlink anywhere between `base`
+    /// and the target cannot escape the root. Existing targets are additionally
+    /// canonicalised and checked against `base`.
+    ///
+    /// Returned path is `base.join(validated)` — callers read/write that path.
+    pub fn validate_relative_under(
+        &self,
+        base: &Path,
+        path: &Path,
+    ) -> Result<PathBuf, PathGuardError> {
+        let shown = path.to_string_lossy();
+        if path.is_absolute() {
+            warn!(path = %shown, "Absolute path input rejected");
+            return Err(PathGuardError::AbsolutePath);
+        }
+
+        let validated = self.validate(path)?;
+        if validated.as_os_str().is_empty() {
+            warn!(path = %shown, "Path normalised to nothing");
+            return Err(PathGuardError::EmptyPath);
+        }
+
+        // Reject symlinks on any component between `base` and the target. The
+        // final component is included, so a symlinked file cannot be read or
+        // written through the guard.
+        if !self.config.allow_symlinks {
+            let mut cursor = base.to_path_buf();
+            for component in validated.components() {
+                if let Component::Normal(name) = component {
+                    cursor.push(name);
+                    if cursor.is_symlink() {
+                        warn!(path = %cursor.display(), "Symlink component rejected");
+                        return Err(PathGuardError::SymlinkNotAllowed);
+                    }
+                }
+            }
+        }
+
+        let full_path = base.join(&validated);
+
+        // Symlink-aware containment for targets that already exist: a symlinked
+        // ancestor resolves here even if the component walk above missed it.
+        // This runs regardless of the symlink policy — an in-root symlink may be
+        // acceptable, an escaping one never is.
+        if let Ok(canonical) = full_path.canonicalize() {
+            let root = base.canonicalize().unwrap_or_else(|_| base.to_path_buf());
+            if !canonical.starts_with(&root) {
+                warn!(
+                    path = %canonical.display(),
+                    "Resolved path outside allowed root"
+                );
+                return Err(PathGuardError::OutsideAllowedRoot);
+            }
+        }
+
+        Ok(full_path)
+    }
+
     pub fn validate_and_resolve(&self, base: &Path, path: &Path) -> Result<PathBuf, PathGuardError> {
         let validated = self.validate(path)?;
         let full_path = base.join(&validated);

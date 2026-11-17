@@ -10,6 +10,8 @@ use std::sync::{Arc, Mutex};
 use tokio::fs;
 
 use botcore::shared::state::AppState;
+use botsecurity_core::error_sanitizer::log_and_sanitize;
+use botsecurity_core::path_guard::{PathGuard, PathGuardConfig, PathGuardError};
 
 #[derive(Serialize)]
 pub struct FileListResponse {
@@ -106,18 +108,55 @@ async fn workspace_root(state: Arc<AppState>) -> String {
     })
 }
 
-async fn resolve_path(state: &Arc<AppState>, path: &str) -> String {
+/// Guard for editor paths. Hidden files are valid editor targets (`.gbdialog`,
+/// `.gbot`) and source files must stay editable, so only the traversal/escape
+/// rules apply — not the extension deny list.
+fn editor_path_guard() -> PathGuard {
+    PathGuard::new(
+        PathGuardConfig::new()
+            .allow_hidden(true)
+            .with_denied_extensions(Vec::new())
+            .with_max_depth(64),
+    )
+}
+
+/// Resolve one user-supplied editor path under `root` through `PathGuard`.
+///
+/// Single hardening entry point (#2377): this replaces the old
+/// `trim_start_matches('/')` concatenation, which let `../` walk out of the
+/// workspace. Absolute paths, NUL bytes, traversal, symlink escapes and
+/// over-depth inputs are now rejected before any filesystem call.
+fn resolve_under_root(root: &std::path::Path, path: &str) -> Result<std::path::PathBuf, PathGuardError> {
+    editor_path_guard().validate_relative_under(root, std::path::Path::new(path))
+}
+
+/// Log a rejected path with this crate's logger and return a sanitized 400
+/// body — no raw internal error ever reaches the client.
+fn reject_path(context: &str, path: &str, error: &PathGuardError) -> (StatusCode, String) {
+    log::warn!("{context}: rejected path {path:?}: {error}");
+    (
+        StatusCode::BAD_REQUEST,
+        log_and_sanitize(error, context, None).message,
+    )
+}
+
+async fn resolve_path(
+    state: &Arc<AppState>,
+    path: &str,
+) -> Result<std::path::PathBuf, PathGuardError> {
     let root = workspace_root(state.clone()).await;
     let _ = fs::create_dir_all(&root).await;
-    let safe = path.trim_start_matches('/');
-    format!("{root}/{safe}")
+    resolve_under_root(std::path::Path::new(&root), path)
 }
 
 pub async fn read_file(
     State(state): State<Arc<AppState>>,
     Path(path): Path<String>,
 ) -> Result<Json<FileContentResponse>, (StatusCode, String)> {
-    let full = resolve_path(&state, &path).await;
+    let full = match resolve_path(&state, &path).await {
+        Ok(full) => full,
+        Err(e) => return Err(reject_path("boteditor::read_file", &path, &e)),
+    };
     match fs::read_to_string(&full).await {
         Ok(content) => Ok(Json(FileContentResponse { content })),
         Err(_) => Ok(Json(FileContentResponse {
@@ -132,22 +171,29 @@ pub async fn save_file(
     Json(payload): Json<SaveFileRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let content = payload.content.unwrap_or_default();
-    let full = resolve_path(&state, &path).await;
-    if let Some(parent) = std::path::Path::new(&full).parent() {
+    let full = match resolve_path(&state, &path).await {
+        Ok(full) => full,
+        Err(e) => return Err(reject_path("boteditor::save_file", &path, &e)),
+    };
+    if let Some(parent) = full.parent() {
         let _ = fs::create_dir_all(parent).await;
     }
     fs::write(&full, &content)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Write error: {e}")))?;
+        .map_err(|e| {
+            log::error!("Editor write error: {e}");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Write error".to_string())
+        })?;
 
+    let key = full.to_string_lossy().to_string();
     let registry = editor_registry();
     let mut map = registry.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(session) = map.get_mut(&full) {
+    if let Some(session) = map.get_mut(&key) {
         session.undo_stack.push(content.clone());
         session.redo_stack.clear();
     } else {
         map.insert(
-            full,
+            key,
             EditorSession {
                 undo_stack: vec![content],
                 redo_stack: Vec::new(),
@@ -310,34 +356,100 @@ pub async fn save_file_alt(
     State(state): State<Arc<AppState>>,
     Query(query): Query<EditorQuery>,
     Form(payload): Form<FormContent>,
-) -> impl IntoResponse {
+) -> Result<Html<String>, (StatusCode, String)> {
     let path = query.path.unwrap_or_else(|| "untitled.txt".to_string());
     let content = payload.content.unwrap_or_default();
-    let full = resolve_path(&state, &path).await;
-    if let Some(parent) = std::path::Path::new(&full).parent() {
+    let full = match resolve_path(&state, &path).await {
+        Ok(full) => full,
+        Err(e) => return Err(reject_path("boteditor::save_file_alt", &path, &e)),
+    };
+    if let Some(parent) = full.parent() {
         let _ = fs::create_dir_all(parent).await;
     }
     match fs::write(&full, &content).await {
         Ok(()) => {
+            let key = full.to_string_lossy().to_string();
             let registry = editor_registry();
             let mut map = registry.lock().unwrap_or_else(|e| e.into_inner());
-            if let Some(session) = map.get_mut(&full) {
+            if let Some(session) = map.get_mut(&key) {
                 session.undo_stack.push(content);
                 session.redo_stack.clear();
             } else {
                 map.insert(
-                    full,
+                    key,
                     EditorSession {
                         undo_stack: vec![content],
                         redo_stack: Vec::new(),
                     },
                 );
             }
-            Html("<span class=\"save-notification ok\">Saved</span>".to_string())
+            Ok(Html(
+                "<span class=\"save-notification ok\">Saved</span>".to_string(),
+            ))
         }
         Err(e) => {
             log::error!("Editor save error: {e}");
-            Html("<span class=\"save-notification error\">Save failed</span>".to_string())
+            Ok(Html(
+                "<span class=\"save-notification error\">Save failed</span>".to_string(),
+            ))
         }
+    }
+}
+
+#[cfg(test)]
+mod path_guard_tests {
+    use super::resolve_under_root;
+    use std::path::Path;
+
+    const ROOT: &str = "/tmp/gb-editor/test-root";
+
+    #[test]
+    fn hostile_editor_paths_are_rejected() {
+        let root = Path::new(ROOT);
+        for hostile in [
+            "../secret.bas",
+            "a/../../secret",
+            "/etc/passwd",
+            "/tmp/gb-editor/other/file.bas",
+            "file\0.bas",
+            "a\\b.bas",
+            "file;rm.bas",
+            ".",
+        ] {
+            assert!(
+                resolve_under_root(root, hostile).is_err(),
+                "{hostile:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn over_depth_editor_paths_are_rejected() {
+        let root = Path::new(ROOT);
+        assert!(resolve_under_root(root, &vec!["a"; 70].join("/")).is_err());
+    }
+
+    #[test]
+    fn valid_editor_paths_resolve_under_the_workspace() {
+        let root = Path::new(ROOT);
+        assert_eq!(
+            resolve_under_root(root, "src/script.bas").ok(),
+            Some(root.join("src/script.bas"))
+        );
+        assert_eq!(
+            resolve_under_root(root, "./.gbdialog/start.bas").ok(),
+            Some(root.join(".gbdialog/start.bas"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_escape_is_rejected() {
+        let root = std::env::temp_dir().join(format!("boteditor-pg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("create temp root");
+        std::os::unix::fs::symlink("/etc", root.join("escape")).expect("create symlink");
+        assert!(resolve_under_root(&root, "escape/passwd").is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

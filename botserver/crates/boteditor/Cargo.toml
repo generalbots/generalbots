@@ -7,6 +7,7 @@ license = "MIT"
 [dependencies]
 axum = { workspace = true }
 botcore = { workspace = true }
+botsecurity-core = { workspace = true }
 diesel = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

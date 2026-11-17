@@ -321,6 +321,68 @@ mod adversarial_tests {
     }
 
     #[test]
+    fn validate_relative_under_rejects_hostile_input() {
+        let guard = PathGuard::new(PathGuardConfig::new().allow_hidden(true));
+        let base = Path::new("/data/workspace");
+        for hostile in [
+            "../secret",
+            "/etc/passwd",
+            "a/../../secret",
+            "file\0.txt",
+            "a/b\\c.txt",
+            ".",
+            "./",
+        ] {
+            assert!(
+                guard
+                    .validate_relative_under(base, Path::new(hostile))
+                    .is_err(),
+                "{hostile:?} must be rejected"
+            );
+        }
+        assert_eq!(
+            guard
+                .validate_relative_under(base, Path::new("./a/./b.txt"))
+                .ok(),
+            Some(PathBuf::from("/data/workspace/a/b.txt"))
+        );
+    }
+
+    #[test]
+    fn validate_relative_under_enforces_depth_and_symlinks() {
+        let guard = PathGuard::new(
+            PathGuardConfig::new()
+                .allow_hidden(true)
+                .with_max_depth(3),
+        );
+        let base = Path::new("/data/workspace");
+        assert!(guard
+            .validate_relative_under(base, Path::new("a/b/c"))
+            .is_ok());
+        assert!(guard
+            .validate_relative_under(base, Path::new("a/b/c/d"))
+            .is_err());
+
+        #[cfg(unix)]
+        {
+            let root = std::env::temp_dir().join(format!("pg-rel-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&root);
+            if std::fs::create_dir_all(&root).is_ok() {
+                let link = root.join("escape");
+                if std::os::unix::fs::symlink("/etc", &link).is_ok() {
+                    assert_eq!(
+                        guard
+                            .validate_relative_under(&root, Path::new("escape/passwd"))
+                            .unwrap_err(),
+                        PathGuardError::SymlinkNotAllowed
+                    );
+                }
+                let _ = std::fs::remove_dir_all(&root);
+            }
+        }
+    }
+
+    #[test]
     fn extension_checks_are_case_insensitive() {
         let guard = PathGuard::new(
             PathGuardConfig::default().with_allowed_extensions(vec!["TXT".to_string()]),

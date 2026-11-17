@@ -1,6 +1,7 @@
 //! `proxy_sites::caddy` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
+use botsecurity_core::path_guard::{PathGuard, PathGuardConfig};
 
 /// Websites root INSIDE the proxy container (matches prod layout). Production
 /// site dirs stay `{root}/{slug}`; the test environment appends `-test`
@@ -174,6 +175,39 @@ pub(crate) fn check_serveability(files: &[serde_json::Value], python: bool) -> R
     Ok(())
 }
 
+/// Sentinel base for lexical validation of tar member paths. Nothing is read
+/// from this path — it only gives `PathGuard` a stable root to normalise
+/// against.
+const PAYLOAD_PATH_BASE: &str = "/vibe-site-payload";
+
+/// Validate one workspace-relative payload path before it becomes a tar member.
+///
+/// Single hardening entry point (#2377): `PathGuard` rejects `..`, absolute
+/// paths, NUL bytes, over-depth input and dangerous components, so the tar the
+/// proxy extracts can never write outside its staging directory. Returns the
+/// normalised relative path, or `None` for a hostile entry (skipped with a
+/// warning).
+pub(crate) fn payload_relative_path(rel: &str) -> Option<PathBuf> {
+    let guard = PathGuard::new(
+        PathGuardConfig::new()
+            .allow_hidden(true)
+            .with_denied_extensions(Vec::new())
+            .with_max_depth(64),
+    );
+    let base = Path::new(PAYLOAD_PATH_BASE);
+    match guard.validate_relative_under(base, Path::new(rel)) {
+        Ok(full) => full
+            .strip_prefix(base)
+            .ok()
+            .filter(|p| !p.as_os_str().is_empty())
+            .map(Path::to_path_buf),
+        Err(e) => {
+            log::warn!("stage_payload: rejected payload path {rel:?}: {e}");
+            None
+        }
+    }
+}
+
 /// Tar the workspace payload on the bot side (limits already checked) and
 /// extract it into a fresh directory inside the proxy, keeping the previous
 /// release as `<site>.prev-N` (rotated) for rollback. Then atomically swap.
@@ -198,18 +232,18 @@ pub(crate) fn stage_payload(
         let fh = std::fs::File::create(&tmp).map_err(|e| format!("create staging tar: {e}"))?;
         let mut builder = Builder::new(fh);
         for f in &files {
-            let rel = f["path"].as_str().unwrap_or_default().to_string();
-            if rel.is_empty() || rel.contains("..") {
+            let rel = f["path"].as_str().unwrap_or_default();
+            let Some(rel_path) = payload_relative_path(rel) else {
                 continue;
-            }
+            };
             let content = payload_bytes(f)?;
             let mut header = tar::Header::new_gnu();
             header.set_size(content.len() as u64);
             header.set_mode(0o644);
             header.set_cksum();
             builder
-                .append_data(&mut header, &rel, content.as_slice())
-                .map_err(|e| format!("tar append {rel}: {e}"))?;
+                .append_data(&mut header, rel_path.as_path(), content.as_slice())
+                .map_err(|e| format!("tar append {}: {e}", rel_path.display()))?;
         }
         builder.finish().map_err(|e| format!("tar finish: {e}"))?;
     }
