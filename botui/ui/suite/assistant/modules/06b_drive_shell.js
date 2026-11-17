@@ -33,7 +33,7 @@
             '<div class="gb-drv-breadcrumb" id="gbDrvBreadcrumb"></div>' +
             '<div class="gb-drv-toolbar" id="gbDrvToolbar">' +
                 '<button class="gb-drv-btn gb-drv-btn-accent" id="gbDrvUploadBtn">' +
-                    I("plus", 14) + ' <span>' + esc(t("drive.upload", "Enviar")) + '</span></button>' +
+                    I("plus", 14) + ' <span>' + esc(t("drive.upload", "Upload")) + '</span></button>' +
                 '<input type="file" id="gbDrvFileInput" style="display:none" multiple />' +
                 '<button class="gb-drv-btn" id="gbDrvNewFolder">' +
                     I("folder", 14) + ' <span>' + esc(t("drive.new-folder", "Nova pasta")) + '</span></button>' +
@@ -274,7 +274,7 @@
         wrap.appendChild(ok);
         var cancel = document.createElement("button");
         cancel.className = "gb-drv-btn gb-drv-btn-sm";
-        cancel.textContent = A.t("assistant.cancel", "Cancelar");
+        cancel.textContent = A.t("assistant.cancel", "Cancel");
         wrap.appendChild(cancel);
         toolbar.appendChild(wrap);
         input.focus();

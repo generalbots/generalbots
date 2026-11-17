@@ -30,7 +30,7 @@
         }
         items.push({ label: A.t("drive.download", "Baixar"), icon: "download", action: "download" });
         if (!opts.noDelete) {
-            items.push({ label: A.t("drive.delete", "Excluir"), icon: "trash", action: "delete", danger: true });
+            items.push({ label: A.t("drive.delete", "Delete"), icon: "trash", action: "delete", danger: true });
         }
 
         var html = "";
@@ -172,12 +172,12 @@
         bar.className = "gb-drv-confirm";
         bar.innerHTML =
             '<span class="gb-drv-confirm-text">' +
-                esc(A.t("drive.delete-confirm", "Excluir") + ' "' + name + '"?') +
+                esc(A.t("drive.delete-confirm", "Delete") + ' "' + name + '"?') +
             '</span>' +
             '<button class="gb-drv-confirm-btn gb-drv-confirm-danger" data-act="yes">' +
-                esc(A.t("assistant.delete", "Excluir")) + '</button>' +
+                esc(A.t("assistant.delete", "Delete")) + '</button>' +
             '<button class="gb-drv-confirm-btn" data-act="no">' +
-                esc(A.t("assistant.cancel", "Cancelar")) + '</button>';
+                esc(A.t("assistant.cancel", "Cancel")) + '</button>';
 
         row.innerHTML = "";
         row.appendChild(bar);
