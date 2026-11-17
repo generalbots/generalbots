@@ -1,0 +1,379 @@
+/* #2410 — coarse-pointer sheet mode and touch affordances. */
+
+/* #2410 — coarse-pointer phones (<768px) are pinned sheets: no free drag or
+   resize, the app body alone scrolls. Coarse tablets (>=768px) keep
+   one-finger title-bar drag per the issue's C1 acceptance criterion. */
+@media (pointer: coarse) and (max-width: 767px) {
+  .window-element-glass,
+  .window-element {
+    top: 8px !important;
+    left: 8px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px) !important;
+    height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px) !important;
+    max-height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px) !important;
+    max-height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px) - 16px) !important;
+  }
+
+  .window-element-glass > .window-resize-grip,
+  .window-element > .window-resize-grip {
+    display: none !important;
+  }
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .window-element-glass,
+  .window-element,
+  .window-dot,
+  .gb-window-loading-spinner,
+  .gb-window-loading,
+  .gb-window-content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* ── App-window status bar: 3D bevel relief + tooltips (issue #725) ── */
+.window-statusbar,
+.window-status-bar,
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 28px;
+  padding: 0 0.8rem;
+  font-size: 11.5px;
+  color: var(--win-titlebar-text, var(--text-secondary, #999));
+  /* #1970 — the bar now derives from the themed title-bar token instead of a
+     fixed dark glass colour, so it follows light and dark themes alike. */
+  background: var(--win-statusbar-bg, linear-gradient(180deg, color-mix(in srgb, var(--win-titlebar-bg) 90%, #ffffff 10%), var(--win-titlebar-bg)));
+  border-top: 1px solid var(--win-titlebar-sep, rgba(128,128,128,0.28));
+  box-shadow:
+    inset 0 1px 0 var(--win-chrome-highlight, rgba(255,255,255,0.10)),
+    inset 0 -1px 0 var(--win-chrome-shadow, rgba(0,0,0,0.28));
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.window-statusbar .status-item,
+.window-status-bar .status-item,
+.window-statusbar > * {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3);
+  cursor: default;
+}
+
+/* Beveled LED indicator dot present on status items that carry a state. */
+.statusbar-item[data-state]::before,
+.status-item[data-state]::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-color, var(--gb-accent, #d4f505));
+  box-shadow: 0 0 4px var(--accent-color, var(--gb-accent, #d4f505));
+}
+
+.statusbar-item[data-state="warn"]::before,
+.status-item[data-state="warn"]::before {
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 4px var(--warning, #f59e0b);
+}
+
+.statusbar-item[data-state="error"]::before,
+.status-item[data-state="error"]::before {
+  background: var(--error-color, #ef4444);
+  box-shadow: 0 0 4px var(--error-color, #ef4444);
+}
+
+/* Tooltips: any element carrying the data-tooltip attribute inside an app
+   window gets a clean beveled bubble on hover (no third-party lib).
+   data-tooltip is preferred; the native title provides an accessible fallback. */
+.window-element *[data-tooltip] {
+  position: relative;
+}
+
+.window-element *[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 200;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text, #fff);
+  background: rgba(10,10,14,0.95);
+  border: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.12));
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  pointer-events: none;
+}
+
+.statusbar-item,
+.window-status-bar .status-item {
+  cursor: help;
+}
+
+/* ── #1849 live window status bar contract ─────────────────────────────
+   Renderer sink: state LED + primary, progress, metrics, selection,
+   connection, title. See js/window-manager/07_status_a_core.js. */
+.window-statusbar {
+  gap: 6px;
+  overflow: hidden;
+}
+
+.window-statusbar > [hidden] {
+  display: none !important;
+}
+
+.window-statusbar .window-statusbar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 55%;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+  outline: none;
+}
+
+.window-statusbar .window-statusbar-status:focus-visible {
+  box-shadow: 0 0 0 2px var(--gb-accent, #22c55e);
+}
+
+.window-statusbar-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gb-accent, #22c55e);
+  box-shadow: 0 0 4px var(--gb-accent, #22c55e);
+}
+
+.window-statusbar-status[data-state="loading"]::before,
+.window-statusbar-status[data-state="busy"]::before,
+.window-statusbar-status[data-state="running"]::before,
+.window-statusbar-status[data-state="saving"]::before,
+.window-statusbar-status[data-state="connecting"]::before {
+  background: var(--gb-accent, #22c55e);
+  animation: gb-status-pulse 1.2s ease-in-out infinite;
+}
+
+.window-statusbar-status[data-state="success"]::before,
+.window-statusbar-status[data-state="complete"]::before,
+.window-statusbar-status[data-state="connected"]::before {
+  background: #22c55e;
+  box-shadow: 0 0 4px #22c55e;
+}
+
+.window-statusbar-status[data-state="warn"]::before,
+.window-statusbar-status[data-state="warning"]::before,
+.window-statusbar-status[data-state="paused"]::before {
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 4px var(--warning, #f59e0b);
+}
+
+.window-statusbar-status[data-state="error"]::before,
+.window-statusbar-status[data-state="failed"]::before,
+.window-statusbar-status[data-state="offline"]::before,
+.window-statusbar-status[data-state="disconnected"]::before {
+  background: var(--error-color, #ef4444);
+  box-shadow: 0 0 4px var(--error-color, #ef4444);
+}
+
+.window-statusbar-status[data-state="idle"]::before {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.window-statusbar .window-statusbar-progress,
+.window-statusbar .window-statusbar-metrics,
+.window-statusbar .window-statusbar-selection,
+.window-statusbar .window-statusbar-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.window-statusbar .window-statusbar-progress {
+  flex: 0 1 180px;
+  max-width: 28%;
+}
+
+.window-statusbar-progress-track {
+  position: relative;
+  flex: 1 1 70px;
+  min-width: 46px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.window-statusbar-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gb-accent, #22c55e);
+  transition: width 180ms ease;
+}
+
+.window-statusbar-progress.is-indeterminate .window-statusbar-progress-fill {
+  width: 35% !important;
+  animation: gb-status-indeterminate 1.1s linear infinite;
+}
+
+.window-statusbar-progress-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.window-statusbar-metrics {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.window-statusbar-metric {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-statusbar .window-statusbar-selection,
+.window-statusbar .window-statusbar-connection {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  cursor: help;
+}
+
+.window-statusbar-connection[data-state="connected"],
+.window-statusbar-connection[data-state="online"] {
+  color: #22c55e;
+}
+
+.window-statusbar-connection[data-state="warn"],
+.window-statusbar-connection[data-state="warning"] {
+  color: var(--warning, #f59e0b);
+}
+
+.window-statusbar-connection[data-state="offline"],
+.window-statusbar-connection[data-state="disconnected"],
+.window-statusbar-connection[data-state="error"] {
+  color: var(--error-color, #ef4444);
+}
+
+.window-statusbar-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* Tooltips also work in glass windows and on keyboard focus (a11y). */
+.window-element-glass *[data-tooltip] {
+  position: relative;
+}
+
+.window-element-glass *[data-tooltip]:hover::after,
+.window-element-glass *[data-tooltip]:focus-visible::after,
+.window-element *[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 240;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  max-width: min(320px, 70vw);
+  white-space: normal;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text, #fff);
+  background: rgba(10, 10, 14, 0.95);
+  border: 1px solid var(--win-titlebar-sep, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+@keyframes gb-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes gb-status-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window-statusbar-status::before,
+  .window-statusbar-progress.is-indeterminate .window-statusbar-progress-fill {
+    animation: none !important;
+  }
+  .window-statusbar-progress-fill {
+    transition: none !important;
+  }
+}
+
+/* Floating confirm/prompt tool windows (VB6-style, no native modals). */
+.gb-confirm-floating { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; min-width: 300px; }
+.gb-confirm-floating p { margin: 0 0 0.85rem; font-size: 0.85rem; line-height: 1.5; }
+.gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
+.gb-confirm-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; background: var(--gb-surface, #fff); color: inherit; cursor: pointer; font-size: 0.8rem; }
+.gb-confirm-btn.primary { background: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); color: #fff; }
+
+/* Workspace tabs (#1168): browser-style persistent tab bar. */
+.gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, #eef1f5); border-bottom: 1px solid var(--gb-border, #d5dbe3); min-height: 34px; }
+.gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, #cbd5e1); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, #f8fafc); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
+.gb-ws-tab.active { background: var(--gb-surface, #fff); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
+.gb-ws-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-ws-tab-x { color: var(--gb-text-dim, #94a3b8); font-weight: 700; padding: 0 2px; }
+.gb-ws-tab-x:hover { color: #dc2626; }
+.gb-ws-tab-add { border: 1px dashed var(--gb-border, #cbd5e1); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, #64748b); }
+.gb-ws-tab-add:hover { color: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); }
+
+/* #1304 — Settings/Admin open as a fixed-size modal dialog: no resize grip,
+   no maximize, no window-level scrollbars (the app scrolls its own panes). */
+.window-element-glass.window-settings-modal,
+.window-element.window-settings-modal {
+  resize: none !important;
+  overflow: hidden;
+}

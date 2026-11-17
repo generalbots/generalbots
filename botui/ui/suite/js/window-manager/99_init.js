@@ -30,29 +30,29 @@ if (document.readyState === "loading") {
 // is loaded after this file. Expose the start menu for launchers but do NOT
 // bind Ctrl+K here — command-palette.js handles it with one handler only.
 
-// #2411 — keep shell chrome height and window geometry in sync with the real
-// taskbar/viewport (URL bar, rotation, on-screen keyboard). This makes
-// --gb-chrome-bottom authoritative and reclamps windows on viewport changes.
+// #2410/#2411 — ONE viewport-change handler for window resize, device
+// rotation and visualViewport changes (URL bar, on-screen keyboard). A single
+// coalescing timer clamps every open window immediately and once more 200ms
+// later, so geometry is correct well inside the 250ms acceptance window
+// without the old storm of staggered timers/rAF callbacks.
 (function initViewportShellSync() {
-  function getTaskbarHeight() {
-    var tb = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
-    if (!tb) return 30;
-    var rect = tb.getBoundingClientRect();
-    if (rect && rect.height) return Math.round(rect.height);
-    return 30;
-  }
+  var reclampTimer = 0;
 
   function syncChromeBottom() {
-    var h = getTaskbarHeight();
+    var tb = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
+    var h = 30;
+    if (tb) {
+      var rect = tb.getBoundingClientRect();
+      if (rect && rect.height) h = Math.round(rect.height);
+    }
     try {
       document.documentElement.style.setProperty("--gb-chrome-bottom", h + "px");
     } catch (_e) {
-      /* ignore */
+      /* CSS custom property unavailable — geometry still uses viewport rects */
     }
-    return h;
   }
 
-  function reclampAllWindows() {
+  function clampAllWindows() {
     var wm = window.WindowManager;
     if (!wm || !Array.isArray(wm.openWindows)) return;
     wm.openWindows.forEach(function (w) {
@@ -71,43 +71,30 @@ if (document.readyState === "loading") {
       if (typeof ae.scrollIntoView === "function") {
         ae.scrollIntoView({ block: "nearest", inline: "nearest" });
       }
-    } catch (_e) {}
-  }
-
-  function reclampSoon() {
-    reclampAllWindows();
-    keepFocusedVisible();
-    [0, 60, 120, 220, 400, 700, 1100].forEach(function (ms) {
-      setTimeout(function () {
-        reclampAllWindows();
-        keepFocusedVisible();
-      }, ms);
-    });
-    if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(function () {
-        reclampAllWindows();
-        keepFocusedVisible();
-        requestAnimationFrame(function () {
-          reclampAllWindows();
-          keepFocusedVisible();
-        });
-      });
+    } catch (_e) {
+      /* focus may live in an iframe */
     }
   }
 
-  function onViewportChange() {
+  function applyViewportChange() {
     syncChromeBottom();
-    reclampSoon();
+    clampAllWindows();
+    keepFocusedVisible();
+  }
+
+  function onViewportChange() {
+    applyViewportChange();
+    if (reclampTimer) clearTimeout(reclampTimer);
+    reclampTimer = setTimeout(function () {
+      reclampTimer = 0;
+      applyViewportChange();
+    }, 200);
   }
 
   function bindViewportSync() {
-    syncChromeBottom();
+    applyViewportChange();
     window.addEventListener("resize", onViewportChange, { passive: true });
-    window.addEventListener("orientationchange", function () {
-      setTimeout(onViewportChange, 0);
-      setTimeout(onViewportChange, 120);
-      setTimeout(onViewportChange, 350);
-    }, { passive: true });
+    window.addEventListener("orientationchange", onViewportChange, { passive: true });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onViewportChange, { passive: true });
       window.visualViewport.addEventListener("scroll", onViewportChange, { passive: true });
@@ -115,16 +102,11 @@ if (document.readyState === "loading") {
     var tb = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
     if (tb && typeof ResizeObserver === "function") {
       try {
-        var ro = new ResizeObserver(onViewportChange);
-        ro.observe(tb);
+        new ResizeObserver(onViewportChange).observe(tb);
       } catch (_e) {
         /* ResizeObserver unavailable */
       }
     }
-    // Initial post-layout clamp for auto-opened windows.
-    setTimeout(onViewportChange, 0);
-    setTimeout(onViewportChange, 250);
-    setTimeout(onViewportChange, 800);
   }
 
   if (document.readyState === "loading") {

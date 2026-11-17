@@ -22,6 +22,9 @@
 
     const obj = this.openWindows.find((w) => w.id === id);
     if (obj) document.title = `${obj.title} - General Bots`;
+    // #2410 — maximize/fullscreen toggles end in focus(); keep the resize
+    // grip visibility in step with the new state.
+    if (el) this._syncResizeGrip(el);
     this._updateDockActive();
     document.dispatchEvent(new CustomEvent("gb-window-focus", { detail: obj || { id } }));
   },
@@ -176,89 +179,111 @@
     if (wantMax) this.toggleMaximize(id);
   },
 
+  // #2410 — a drag/resize that actually moved must not also fire the app's
+  // own click handlers on release (e.g. opening a file after moving it).
+  _suppressGestureClick() {
+    const block = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    const remove = () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", block, true);
+      document.removeEventListener("dblclick", block, true);
+    };
+    const timer = setTimeout(remove, 250);
+    document.addEventListener("click", block, true);
+    document.addEventListener("dblclick", block, true);
+  },
+
+  // Show the real grip only where resizing is allowed. Called on every clamp
+  // so a rotate/keyboard change updates the affordance with the geometry.
+  _syncResizeGrip(el) {
+    const grip = el.querySelector(":scope > .window-resize-grip");
+    if (!grip) return;
+    const id = el.id.replace("window-", "");
+    const wd = this.openWindows.find((w) => w.id === id);
+    const show = !this._isSheetMode()
+      && !el.classList.contains("window-settings-modal")
+      && !el.classList.contains("window-popup")
+      && !(this.isFullscreen && this.isFullscreen(id))
+      && !(wd && wd.isMaximized && !wd.noMaximize);
+    grip.style.display = show ? "" : "none";
+    grip.setAttribute("aria-hidden", show ? "false" : "true");
+    grip.setAttribute("tabindex", show ? "0" : "-1");
+  },
+
   _makeDraggable(el) {
     const header = el.querySelector(".window-header-glass") || el.querySelector(".window-header");
     if (!header) return;
-    let isDragging = false, startX, startY, initialLeft, initialTop, activePointerId = null, moveRaf = 0;
-
-    const isCompactSurface = () => {
-      // #2410: phone/compact surfaces keep sheet geometry pinned.
-      return window.innerWidth < 768;
-    };
-
-    const canFreeDrag = () => {
-      // #2410: compact phone surfaces must not free-drag; tablet/coarse-pointer
-      // surfaces (>=768px) still allow pointer-driven drag per acceptance.
-      return !isCompactSurface();
-    };
+    let dragging = false, pointerId = null, startX = 0, startY = 0;
+    let initialLeft = 0, initialTop = 0, moved = false, previousUserSelect = "";
 
     const endDrag = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; }
-      document.body.style.userSelect = "";
-      if (activePointerId != null) {
-        try { header.releasePointerCapture(activePointerId); } catch (_e) {}
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.userSelect = previousUserSelect;
+      if (pointerId != null) {
+        try { header.releasePointerCapture(pointerId); } catch (_e) {}
       }
-      activePointerId = null;
-      header.removeEventListener("pointermove", onMove);
-      header.removeEventListener("pointerup", onUp);
-      header.removeEventListener("pointercancel", onUp);
+      pointerId = null;
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
       document.removeEventListener("pointercancel", onUp);
+      if (moved) this._suppressGestureClick();
+      moved = false;
     };
 
     const onDown = (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest(".window-dot") || e.target.closest("button")) return;
+      if (e.target.closest(".window-dot") || e.target.closest("button") || e.target.closest(".window-resize-grip")) return;
       const id = el.id.replace("window-", "");
       this.focus(id);
-      if (!canFreeDrag()) return;
+      // #2410 — coarse phones are pinned sheets, never free-dragged.
+      if (this._isSheetMode()) return;
       // #2104 — a fullscreen window owns the screen: no drag, no restore.
       if (this.isFullscreen && this.isFullscreen(id)) return;
       const wd = this.openWindows.find((w) => w.id === id);
       if (wd && wd.isMaximized && !wd.noMaximize) this.toggleMaximize(id);
-      // Re-read after possible restore.
-      isDragging = true;
-      activePointerId = e.pointerId;
-      startX = e.clientX; startY = e.clientY;
-      initialLeft = parseInt(el.style.left || 0, 10);
-      initialTop = parseInt(el.style.top || 0, 10);
+      dragging = true;
+      moved = false;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      initialLeft = parseInt(el.style.left || "0", 10) || 0;
+      initialTop = parseInt(el.style.top || "0", 10) || 0;
+      previousUserSelect = document.body.style.userSelect;
       document.body.style.userSelect = "none";
       try { header.setPointerCapture(e.pointerId); } catch (_e) {}
-      // Listen on header and document for robustness (synthetic events may not honor capture).
-      header.addEventListener("pointermove", onMove);
-      header.addEventListener("pointerup", onUp);
-      header.addEventListener("pointercancel", onUp);
+      // Registered on document: captured pointer events target the header but
+      // still bubble here, so synthetic streams without capture also work.
       document.addEventListener("pointermove", onMove);
       document.addEventListener("pointerup", onUp);
       document.addEventListener("pointercancel", onUp);
     };
 
     const onMove = (e) => {
-      if (!isDragging) return;
-      if (e.pointerId !== activePointerId) return;
-      if (!canFreeDrag()) { endDrag(); return; }
-      const nx = Math.max(-200, initialLeft + e.clientX - startX);
-      const ny = Math.max(0, initialTop + e.clientY - startY);
-      // Apply immediately for deterministic behavior; rAF keeps last value consistent.
-      el.style.left = `${nx}px`;
-      el.style.top = `${ny}px`;
-      if (moveRaf) cancelAnimationFrame(moveRaf);
-      moveRaf = requestAnimationFrame(() => { moveRaf = 0; });
+      if (!dragging || e.pointerId !== pointerId) return;
+      if (this._isSheetMode()) { endDrag(); return; }
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      el.style.left = `${Math.max(-200, initialLeft + dx)}px`;
+      el.style.top = `${Math.max(0, initialTop + dy)}px`;
     };
 
     const onUp = (e) => {
-      if (e && activePointerId != null && e.pointerId !== activePointerId) return;
+      if (e && pointerId != null && e.pointerId !== pointerId) return;
       endDrag();
     };
 
+    // touch-action:none belongs to this drag handle ONLY; the window body
+    // keeps its own scrolling on touch devices.
     header.style.touchAction = "none";
     header.addEventListener("pointerdown", onDown);
     header.addEventListener("dblclick", (e) => {
       if (e.target.closest(".window-dot") || e.target.closest("button")) return;
-      if (!canFreeDrag()) return;
+      if (this._isSheetMode()) return;
       const id = el.id.replace("window-", "");
       // #2104 — double-click must not maximize (and so shrink) a fullscreen
       // window; Escape/F11 leave fullscreen instead.
@@ -276,22 +301,120 @@
   _makeResizable(el) {
     // Fixed popup windows (e.g. Vibe New Project / Members) are NOT
     // resizable (product spec): no resize handle and no window scrollbar —
-    // all fields are visible at once. Skip the CSS resize + auto overflow
-    // so a popup never grows a corner grip or clips its content.
+    // all fields are visible at once.
     if (el.classList.contains("window-popup")) {
       el.style.resize = "none";
       el.style.overflow = "hidden";
       return;
     }
-    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    const compact = window.innerWidth < 768;
-    // #2410: avoid browser-native resizer on compact/coarse-touch surfaces;
-    // fine pointer desktop keeps native behavior.
-    el.style.resize = (compact || coarse) ? "none" : "both";
-    // Only the inner .window-body scrolls. Making the window element itself
-    // `overflow: auto` produced a second, outer scrollbar (title bar and
-    // body scrolling together) whenever content exceeded the frame height.
+    // #2410 — the browser-native CSS resizer is unreachable on touch and has
+    // no accessible grip. A real >=44px bottom-right grip owns resize for
+    // both pointer types; only the inner .window-body scrolls (no outer bar).
+    el.style.resize = "none";
     el.style.overflow = "hidden";
+    let grip = el.querySelector(":scope > .window-resize-grip");
+    if (!grip) {
+      grip = document.createElement("div");
+      grip.className = "window-resize-grip";
+      grip.setAttribute("role", "button");
+      grip.setAttribute("tabindex", "0");
+      grip.setAttribute("data-i18n-aria-label", "window-resize-grip");
+      grip.setAttribute("aria-label", window.gbT
+        ? window.gbT("window-resize-grip", "Resize window")
+        : "Resize window");
+      el.appendChild(grip);
+    }
+    this._syncResizeGrip(el);
+
+    let resizing = false, pointerId = null, startX = 0, startY = 0;
+    let startW = 0, startH = 0, moved = false, previousUserSelect = "";
+    const id = el.id.replace("window-", "");
+
+    const canResize = () => {
+      if (this._isSheetMode()) return false;
+      if (el.classList.contains("window-settings-modal")) return false;
+      if (this.isFullscreen && this.isFullscreen(id)) return false;
+      const wd = this.openWindows.find((w) => w.id === id);
+      return !(wd && wd.isMaximized && !wd.noMaximize);
+    };
+
+    const endResize = () => {
+      if (!resizing) return;
+      resizing = false;
+      document.body.style.userSelect = previousUserSelect;
+      if (pointerId != null) {
+        try { grip.releasePointerCapture(pointerId); } catch (_e) {}
+      }
+      pointerId = null;
+      document.removeEventListener("pointermove", onResizeMove);
+      document.removeEventListener("pointerup", onResizeUp);
+      document.removeEventListener("pointercancel", onResizeUp);
+      if (moved) this._suppressGestureClick();
+      moved = false;
+      this._clampWindowIntoView(id);
+    };
+
+    const onResizeMove = (e) => {
+      if (!resizing || e.pointerId !== pointerId) return;
+      if (!canResize()) { endResize(); return; }
+      const b = this._viewportBounds();
+      const left = parseInt(el.style.left || "0", 10) || 0;
+      const top = parseInt(el.style.top || "0", 10) || 0;
+      const maxW = Math.max(320, b.width - b.margin * 2 - left);
+      const maxH = Math.max(200, b.bottom - top - b.margin);
+      const w = Math.min(Math.max(320, startW + e.clientX - startX), maxW);
+      const h = Math.min(Math.max(200, startH + e.clientY - startY), maxH);
+      if (Math.abs(w - startW) > 3 || Math.abs(h - startH) > 3) moved = true;
+      el.style.width = `${Math.floor(w)}px`;
+      el.style.height = `${Math.floor(h)}px`;
+    };
+
+    const onResizeUp = (e) => {
+      if (e && pointerId != null && e.pointerId !== pointerId) return;
+      endResize();
+    };
+
+    grip.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (!canResize()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.focus(id);
+      resizing = true;
+      moved = false;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      startW = rect.width;
+      startH = rect.height;
+      previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      try { grip.setPointerCapture(e.pointerId); } catch (_e) {}
+      document.addEventListener("pointermove", onResizeMove);
+      document.addEventListener("pointerup", onResizeUp);
+      document.addEventListener("pointercancel", onResizeUp);
+    });
+
+    // Keyboard equivalent: arrows resize in 16px steps (Shift = 48px).
+    grip.addEventListener("keydown", (e) => {
+      if (!canResize()) return;
+      const step = e.shiftKey ? 48 : 16;
+      const delta = { ArrowRight: [step, 0], ArrowLeft: [-step, 0], ArrowDown: [0, step], ArrowUp: [0, -step] }[e.key];
+      if (!delta) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const b = this._viewportBounds();
+      const left = parseInt(el.style.left || "0", 10) || 0;
+      const top = parseInt(el.style.top || "0", 10) || 0;
+      const maxW = Math.max(320, b.width - b.margin * 2 - left);
+      const maxH = Math.max(200, b.bottom - top - b.margin);
+      const w = Math.min(Math.max(320, rect.width + delta[0]), maxW);
+      const h = Math.min(Math.max(200, rect.height + delta[1]), maxH);
+      el.style.width = `${Math.floor(w)}px`;
+      el.style.height = `${Math.floor(h)}px`;
+      this._clampWindowIntoView(id);
+    });
   },
 
   });

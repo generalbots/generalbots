@@ -8,6 +8,44 @@
 
   WM.defineMethods(WindowManager.prototype, {
 
+  // #2410 — one geometry source for clamping, sheet mode and the resize grip.
+  // visualViewport.height is the only reliable visible height once the
+  // on-screen keyboard is up (innerHeight stays unchanged on iOS Safari).
+  _viewportBounds() {
+    const margin = 8;
+    const vv = window.visualViewport;
+    const vw = Math.max(160, window.innerWidth);
+    const vh = (vv && vv.height) ? vv.height : window.innerHeight;
+    const offsetTop = (vv && vv.offsetTop) ? vv.offsetTop : 0;
+    let bottom = vh + offsetTop - margin;
+    // Keep windows above the taskbar (also honoured by --gb-chrome-bottom).
+    const taskbar = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
+    if (taskbar) {
+      const tb = taskbar.getBoundingClientRect();
+      if (tb.top > 0 && tb.top < vh + offsetTop) bottom = Math.min(bottom, tb.top - margin);
+    }
+    if (bottom < offsetTop + margin + 120) bottom = offsetTop + margin + 120;
+    return {
+      margin,
+      offsetTop,
+      width: vw,
+      top: margin + offsetTop,
+      bottom,
+      height: Math.max(120, bottom - margin - offsetTop),
+    };
+  },
+
+  // Input mode is driven by the pointer device, not by width alone. A coarse
+  // phone is a pinned sheet (no free drag/resize); a coarse tablet (>=768px)
+  // keeps one-finger title-bar drag per the issue's C1 acceptance criterion.
+  _isCoarsePointer() {
+    return !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  },
+
+  _isSheetMode() {
+    return this._isCoarsePointer() && window.innerWidth < 768;
+  },
+
   // Keep an open window inside the viewport. If layout shifted between
   // computing the cascade position and the window being appended
   // (auto-opened apps on load are the usual victim), the window can sit
@@ -15,30 +53,38 @@
   // Shift it back into view using pure viewport-rect math: whatever the
   // offsetParent is doing, the window must end up fully visible.
   _clampWindowIntoView(id) {
-    // A maximized window fills the workspace by design; never clamp it.
-    if (document.body.classList.contains("window-maximized")) return;
     const win = document.getElementById(`window-${id}`);
     if (!win) return;
-    const margin = 8;
-    const vw = window.innerWidth;
-    const vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
-    const offsetTop = (window.visualViewport && window.visualViewport.offsetTop) ? window.visualViewport.offsetTop : 0;
-    // #1278/#2411 — keep windows above the taskbar and within the visible viewport.
-    let bottomBound = vh + offsetTop - margin;
-    const taskbar = document.getElementById("taskbar") || document.querySelector(".toolbar-v15");
-    if (taskbar) {
-      const tb = taskbar.getBoundingClientRect();
-      if (tb.top > 0 && tb.top < vh + offsetTop) bottomBound = Math.min(bottomBound, tb.top - margin);
-    }
-    const availH = Math.max(120, bottomBound - margin - offsetTop);
-    const availW = Math.max(160, vw - margin * 2);
-    let rect = win.getBoundingClientRect();
+    if (typeof this._syncResizeGrip === "function") this._syncResizeGrip(win);
+    // A maximized window fills the workspace by design; never clamp it.
+    if (document.body.classList.contains("window-maximized")) return;
+    const b = this._viewportBounds();
 
+    if (this._isSheetMode()) {
+      // Reduced phone mode: the window is a full-height sheet pinned above
+      // the taskbar. No free drag/resize; the app inside still scrolls.
+      win.classList.add("gb-window-sheet");
+      const sheetWidth = Math.max(160, b.width - b.margin * 2);
+      win.style.left = `${b.margin}px`;
+      win.style.top = `${b.top}px`;
+      win.style.width = `${sheetWidth}px`;
+      win.style.height = `${Math.floor(b.height)}px`;
+      win.style.maxWidth = `${sheetWidth}px`;
+      win.style.maxHeight = `${Math.floor(b.height)}px`;
+      return;
+    }
+    win.classList.remove("gb-window-sheet");
+    // Leaving sheet mode (e.g. on rotate) must not keep the phone caps.
+    win.style.maxWidth = "";
+    win.style.maxHeight = "";
+
+    let rect = win.getBoundingClientRect();
+    const availW = b.width - b.margin * 2;
     // Constrain oversized windows so they remain reachable on small/rotated viewports.
-    if (rect.height > availH || rect.width > availW) {
-      if (rect.height > availH) {
-        win.style.height = `${Math.floor(availH)}px`;
-        win.style.maxHeight = `${Math.floor(availH)}px`;
+    if (rect.height > b.height || rect.width > availW) {
+      if (rect.height > b.height) {
+        win.style.height = `${Math.floor(b.height)}px`;
+        win.style.maxHeight = `${Math.floor(b.height)}px`;
       }
       if (rect.width > availW) {
         win.style.width = `${Math.floor(availW)}px`;
@@ -51,12 +97,12 @@
     const curLeft = parseInt(win.style.left || "0", 10) || 0;
     let top = curTop;
     let left = curLeft;
-    if (rect.top < margin + offsetTop) top = curTop + (margin + offsetTop - rect.top);
-    if (rect.left < margin) left = curLeft + (margin - rect.left);
-    if (rect.right > vw - margin) left = curLeft - (rect.right - (vw - margin));
-    if (rect.bottom > bottomBound) top = curTop - (rect.bottom - bottomBound);
-    win.style.top = `${Math.max(margin + offsetTop, top)}px`;
-    win.style.left = `${Math.max(margin, left)}px`;
+    if (rect.top < b.top) top = curTop + (b.top - rect.top);
+    if (rect.left < b.margin) left = curLeft + (b.margin - rect.left);
+    if (rect.right > b.width - b.margin) left = curLeft - (rect.right - (b.width - b.margin));
+    if (rect.bottom > b.bottom) top = curTop - (rect.bottom - b.bottom);
+    win.style.top = `${Math.max(b.top, top)}px`;
+    win.style.left = `${Math.max(b.margin, left)}px`;
   },
 
   _glassHeader(id, title, opts) {
