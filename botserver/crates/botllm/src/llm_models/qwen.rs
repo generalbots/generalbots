@@ -61,6 +61,9 @@ pub(super) fn split_think_blocks(content: &str) -> (String, String) {
 /// entire accumulated text (including `<think>`). The caller must NOT clear
 /// state between calls.
 pub(super) fn stream_think_blocks(chunk: &str, state: &mut String) -> ProcessedChunk {
+    // Whether the block was already open before this chunk: its text has then
+    // gone out as deltas, and must not go out again when the block closes.
+    let was_mid_reasoning = state.contains(OPEN) && !state.contains(CLOSE);
     state.push_str(chunk);
 
     let has_open = state.contains(OPEN);
@@ -82,7 +85,17 @@ pub(super) fn stream_think_blocks(chunk: &str, state: &mut String) -> ProcessedC
     }
 
     // The close tag is present or there is no open tag: process normally.
-    let (answer, reasoning) = split_think_blocks(state);
+    let (answer, block_reasoning) = split_think_blocks(state);
+    let reasoning = if was_mid_reasoning {
+        // Only what this chunk adds before the closing tag is new. When the
+        // tag itself was split across chunks, this chunk adds nothing.
+        match chunk.split_once(CLOSE) {
+            Some((before_close, _)) => before_close.to_string(),
+            None => String::new(),
+        }
+    } else {
+        block_reasoning
+    };
     state.clear();
 
     match pending_tag(&answer) {
@@ -240,9 +253,19 @@ mod tests {
 
         let r3 = stream_think_blocks("</think>Answer here.", &mut state);
         assert_eq!(r3.content, "Answer here.");
-        // The final reasoning is the full block content from split_think_blocks
-        assert!(r3.reasoning.contains("Step one."));
+        // The block's text already went out as deltas: closing it adds nothing,
+        // so a receiver that joins the deltas gets the reasoning exactly once.
+        assert!(r3.reasoning.is_empty(), "the block must not be sent a second time");
+        assert_eq!(format!("{}{}{}", r1.reasoning, r2.reasoning, r3.reasoning), " Step one. ");
         assert!(state.is_empty());
+    }
+
+    #[test]
+    fn a_block_that_arrives_whole_is_sent_once() {
+        let mut state = String::new();
+        let r = stream_think_blocks("<think>all at once</think>Answer", &mut state);
+        assert_eq!(r.reasoning, "all at once");
+        assert_eq!(r.content, "Answer");
     }
 
     #[test]
@@ -302,7 +325,7 @@ mod tests {
         assert!(r1.content.is_empty());
         let r2 = stream_think_blocks("ing</think> The answer", &mut state);
         assert_eq!(r2.content, " The answer", "leading space must survive");
-        assert!(r2.reasoning.contains("reasoning"));
+        assert_eq!(format!("{}{}", r1.reasoning, r2.reasoning), "reasoning");
     }
 
     #[test]

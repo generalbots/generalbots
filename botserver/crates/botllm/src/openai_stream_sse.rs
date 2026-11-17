@@ -117,9 +117,11 @@ pub(crate) async fn consume_sse_stream(
                                 }
                                 if !processed.reasoning.is_empty() {
                                     reasoning_from_content.push_str(&processed.reasoning);
-                                    // Stream reasoning chunks live to the frontend
+                                    // Stream reasoning chunks live to the frontend, as
+                                    // they came: the receiver joins them, so trimming
+                                    // each one glued the words together.
                                     let reasoning_chunk = serde_json::json!({
-                                        "__reasoning__": processed.reasoning.trim()
+                                        "__reasoning__": processed.reasoning
                                     }).to_string();
                                     let _ = tx.send(reasoning_chunk).await;
                                 }
@@ -175,6 +177,7 @@ pub(crate) async fn consume_sse_stream(
         }
 
         // Combine all reasoning from both sources
+        let field_reasoning = reasoning_from_field.clone();
         let mut total_reasoning = reasoning_from_field;
         if !reasoning_from_content.is_empty() {
             if !total_reasoning.is_empty() {
@@ -183,12 +186,18 @@ pub(crate) async fn consume_sse_stream(
             total_reasoning.push_str(&reasoning_from_content);
         }
 
-        // Send accumulated reasoning to frontend as a thinking block
-        if !total_reasoning.is_empty() {
+        // The reasoning found inside the content was streamed above, chunk by
+        // chunk. What came in the API's own reasoning field was only
+        // collected: send that part now, once. (Sending the whole text again
+        // here made every receiver show the content reasoning twice.)
+        if !field_reasoning.trim().is_empty() {
+            let separator = if reasoning_from_content.is_empty() { "" } else { "\n" };
             let reasoning_msg = serde_json::json!({
-                "__reasoning__": total_reasoning.trim()
+                "__reasoning__": format!("{separator}{}", field_reasoning.trim())
             }).to_string();
             let _ = tx.send(reasoning_msg).await;
+        }
+        if !total_reasoning.is_empty() {
             info!("LLM reasoning sent: {} bytes", total_reasoning.len());
         }
 
