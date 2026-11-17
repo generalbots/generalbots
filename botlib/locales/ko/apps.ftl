@@ -125,3 +125,6 @@ app-recycle-desc = Drive에서 삭제한 파일을 복원하거나 영구 삭제
 timer-mode-focus = 집중
 timer-mode-short-break = 짧은 휴식
 timer-mode-long-break = 긴 휴식
+
+# Calculator modes (#2542)
+calculator-mode-scientific = 공학용

@@ -125,3 +125,6 @@ app-recycle-desc = Restaurez ou supprimez définitivement les fichiers mis à la
 timer-mode-focus = Concentration
 timer-mode-short-break = Pause courte
 timer-mode-long-break = Pause longue
+
+# Calculator modes (#2542)
+calculator-mode-scientific = Scientifique

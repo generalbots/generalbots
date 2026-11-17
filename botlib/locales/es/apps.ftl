@@ -123,3 +123,6 @@ app-recycle-desc = Restaura o elimina definitivamente archivos de la papelera de
 timer-mode-focus = Enfoque
 timer-mode-short-break = Descanso corto
 timer-mode-long-break = Descanso largo
+
+# Calculator modes (#2542)
+calculator-mode-scientific = Científica

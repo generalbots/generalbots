@@ -125,3 +125,6 @@ app-recycle-desc = 从 Drive 恢复或永久删除已删除的文件。
 timer-mode-focus = 专注
 timer-mode-short-break = 短休息
 timer-mode-long-break = 长休息
+
+# Calculator modes (#2542)
+calculator-mode-scientific = 科学

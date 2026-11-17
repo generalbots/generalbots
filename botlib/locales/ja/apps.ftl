@@ -125,3 +125,6 @@ app-recycle-desc = Drive で削除したファイルを復元または完全削�
 timer-mode-focus = 集中
 timer-mode-short-break = 短い休憩
 timer-mode-long-break = 長い休憩
+
+# Calculator modes (#2542)
+calculator-mode-scientific = 関数電卓

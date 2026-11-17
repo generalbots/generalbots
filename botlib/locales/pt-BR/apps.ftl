@@ -123,3 +123,6 @@ app-recycle-desc = Restaure ou exclua permanentemente arquivos da lixeira do Dri
 timer-mode-focus = Foco
 timer-mode-short-break = Pausa curta
 timer-mode-long-break = Pausa longa
+
+# Calculator modes (#2542)
+calculator-mode-scientific = Científica

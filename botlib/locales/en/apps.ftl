@@ -125,3 +125,6 @@ app-recycle-desc = Restore or permanently delete trashed files from Drive.
 timer-mode-focus = Focus
 timer-mode-short-break = Short Break
 timer-mode-long-break = Long Break
+
+# Calculator modes (#2542)
+calculator-mode-scientific = Scientific

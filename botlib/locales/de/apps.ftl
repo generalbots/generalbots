@@ -125,3 +125,6 @@ app-recycle-desc = Gelöschte Dateien aus Drive wiederherstellen oder endgültig
 timer-mode-focus = Fokus
 timer-mode-short-break = Kurze Pause
 timer-mode-long-break = Lange Pause
+
+# Calculator modes (#2542)
+calculator-mode-scientific = Wissenschaftlich
