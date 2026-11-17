@@ -169,10 +169,17 @@ function setBar(value,text){
 }
 
 /* Public API: take max of fake and pushed */
-window.gbSplashProgress=function(value,text){
+/* Wording for the keys the shell pushes, in the language of this page. */
+var shellLabels={
+  "splash-starting-services":pt?"Iniciando serviços...":"Starting services...",
+  "splash-loading-interface":pt?"Carregando a interface...":"Loading interface...",
+  "splash-opening-workspace":pt?"Abrindo a área de trabalho...":"Opening workspace...",
+  "splash-ready":readyLabel
+};
+window.gbSplashProgress=function(value,text,key){
   pushedValue=Math.max(pushedValue,value);
   var effective=Math.max(fakeValue,pushedValue);
-  setBar(effective,text||undefined);
+  setBar(effective,(key&&shellLabels[key])||text||undefined);
 };
 
 /* Version API */
