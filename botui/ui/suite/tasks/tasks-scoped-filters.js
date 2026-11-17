@@ -254,6 +254,36 @@
     showTaskListError(byId("task-list"), status);
   }
 
+  function onHtmxSendError(evt) {
+    if (!isTaskListRequest(evt)) return;
+    showTaskListError(byId("task-list"), 0);
+  }
+
+  function onHtmxTimeout(evt) {
+    if (!isTaskListRequest(evt)) return;
+    showTaskListError(byId("task-list"), 0);
+  }
+
+  function taskListStillLoading() {
+    var taskList = byId("task-list");
+    if (!taskList) return false;
+    return !!taskList.querySelector(".loading-state, .loading-spinner, [data-i18n='auto-loading-tasks']");
+  }
+
+  function scheduleTaskListFallback() {
+    window.setTimeout(function () {
+      if (!taskListStillLoading()) return;
+      fetch("/api/ui/tasks?filter=all", { credentials: "include" })
+        .then(function (response) {
+          if (response.ok) return;
+          showTaskListError(byId("task-list"), response.status);
+        })
+        .catch(function () {
+          showTaskListError(byId("task-list"), 0);
+        });
+    }, 3000);
+  }
+
   window.showNewIntentModal = showNewIntentModal;
   window.closeNewIntentModal = closeNewIntentModal;
   window.showDecisionModal = showDecisionModal;
@@ -266,12 +296,15 @@
   document.addEventListener("htmx:afterRequest", onHtmxAfterRequest);
   document.addEventListener("htmx:afterSwap", onHtmxAfterSwap);
   document.addEventListener("htmx:responseError", onHtmxResponseError);
+  document.addEventListener("htmx:sendError", onHtmxSendError);
+  document.addEventListener("htmx:timeout", onHtmxTimeout);
   document.body.addEventListener("taskCreated", updateFilterCounts);
 
   function init() {
     initFilterPills();
     initSplitter();
     updateFilterCounts();
+    scheduleTaskListFallback();
   }
 
   if (document.readyState === "loading") {
