@@ -2,7 +2,7 @@
 "use strict";
 
 function mktLoginUrl() {
-    return window.GB_LOGIN_URL || "http://localhost:5000";
+    return window.GB_LOGIN_URL || window.location.origin;
 }
 
 async function openSkillDetail(slug) {

@@ -3,7 +3,6 @@ pub(crate) use crate::package_manager::component::{ComponentConfig, InstallResul
 use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use log::{error, info, trace, warn};
-pub(crate) use std::io::Write;
 
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::InstallMode;

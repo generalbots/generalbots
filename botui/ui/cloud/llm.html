@@ -265,7 +265,7 @@
   });
 
   function showConnect(provider, name) {
-    if (!token) { window.location.href = (window.GB_LOGIN_URL || 'http://localhost:5000') + '/login'; return; }
+    if (!token) { window.location.href = (window.GB_LOGIN_URL || window.location.origin) + '/login'; return; }
     connectProvider = provider;
     document.getElementById('llm-connect-title').textContent = gbT('cloud-llm-connect-provider', 'Connect {name}', { name: name });
     document.getElementById('llm-connect-key').value = '';

@@ -90,22 +90,28 @@
       return Promise.resolve(false);
     }
     var cellEl = findCellElement(parsed);
-    if (!cellEl) {
-      if (!retried && revealSheetCell(parsed)) {
-        reportStep("Scrolling cell '" + parsed.ref + "' into view", "info");
-        return waitMs(400).then(function () { return stepCell(step, true); });
-      }
-      reportStep("Cell '" + parsed.ref + "' not found in app", "warn");
-      return Promise.resolve(false);
+    if (!cellEl && !retried && revealSheetCell(parsed)) {
+      reportStep("Scrolling cell '" + parsed.ref + "' into view", "info");
+      return waitMs(400).then(function () { return stepCell(step, true); });
     }
-    var rect = getElementRect(cellEl);
+    if (!cellEl) {
+      reportStep("Cell '" + parsed.ref + "' has no DOM node; using grid selection", "info");
+    }
+    var rect = cellEl ? getElementRect(cellEl) : null;
+    var gridForSelection = (window.SheetDefaults && window.SheetDefaults.virtualGrid) || window.SheetVirtualGrid;
+    if (gridForSelection) {
+      gridForSelection.selectedRow = parsed.row;
+      gridForSelection.selectedCol = parsed.col;
+    }
     return new Promise(function (resolve) {
-      moveCursorTo(rect, function () {
-        highlightFlash(cellEl);
-        pulseClick();
-        try { cellEl.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); } catch (e) {}
-        try { cellEl.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); } catch (e) {}
-        try { cellEl.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e) {}
+      function runCellStep() {
+        if (cellEl) {
+          highlightFlash(cellEl);
+          pulseClick();
+          try { cellEl.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); } catch (e) {}
+          try { cellEl.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); } catch (e) {}
+          try { cellEl.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e) {}
+        }
         setTimeout(function () {
           var formula = document.getElementById("formulaInput");
           if (!formula) {
@@ -197,7 +203,12 @@
             }, 200);
           });
         }, 300);
-      });
+      };
+      if (rect) {
+        moveCursorTo(rect, runCellStep);
+      } else {
+        runCellStep();
+      }
     });
   }
 
