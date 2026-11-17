@@ -32,7 +32,7 @@ pub fn validate_webhook_url(url: &str) -> Result<(), &'static str> {
     if is_prod && !trimmed.starts_with("https://") {
         return Err("Webhook URL must use HTTPS in production");
     }
-    botsecurity_core::validation::validate_url_ssrf_strict(trimmed)
+    botsecurity::validation::validate_url_ssrf_strict(trimmed)
         .map(|_| ())
         .map_err(|_| "Webhook URL cannot point to localhost or private networks")
 }
