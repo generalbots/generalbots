@@ -509,5 +509,6 @@
 @keyframes gb-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 /* Keyboard shortcut list in Settings */
 .gb-shortcut-list { list-style: none; padding: 0; margin: 0; }
-.gb-shortcut-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--id-line); font-size: var(--id-text-sm); }
-.gb-shortcut-list kbd { font-family: var(--id-font-mono, monospace); font-size: 11px; background: var(--id-surface-alt, #f1f5f9); border: 1px solid var(--id-line); border-radius: 4px; padding: 1px 6px; }
+.gb-shortcut-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--id-line-soft); font-size: var(--id-text-sm); color: var(--id-text); }
+.gb-shortcut-list li:last-child { border-bottom: none; }
+.gb-shortcut-list kbd { font-family: var(--id-font-mono, monospace); font-size: 11px; background: var(--id-fill); color: var(--id-ink); border: 1px solid var(--id-line); border-radius: 4px; padding: 1px 6px; }

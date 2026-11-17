@@ -100,6 +100,7 @@ window.GBAssistantLocales["en"] = {
     "settings.model-switch":   "Change model…",
     "settings.bg-label":       "Chat background",
     "settings.bg-none":        "None",
+    "settings.bg-image":       "Matrix",
     "settings.bg-dots":        "Dots",
     "settings.bg-microdots":   "Micro dots",
     "settings.bg-bubbles":     "Bubbles",

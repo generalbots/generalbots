@@ -100,6 +100,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "settings.model-switch":   "Trocar modelo…",
     "settings.bg-label":       "Fundo do chat",
     "settings.bg-none":        "Nenhum",
+    "settings.bg-image":       "Matrix",
     "settings.bg-dots":        "Pontos",
     "settings.bg-microdots":   "Micropontos",
     "settings.bg-bubbles":     "Bolhas",

@@ -144,6 +144,9 @@
     }
 
     function loadConversation(sessId) {
+        /* Settings or Drive may be open: a conversation picked in the
+           sidebar is shown, so the chat view comes back first. */
+        if (A.currentView !== "chat" && typeof A.switchView === "function") { A.switchView("chat"); }
         A.currentSessionId = sessId;
         renderConversationList();
         /* Sync the agent toggle for this conversation's stored state */
@@ -382,6 +385,11 @@
             if (bd) { bd.style.display = "block"; }
         }
     }
+
+    /** The title bar's button uses this, so both buttons share one state. */
+    A.toggleSidebar = function () {
+        if (A.sidebarCollapsed) { expandSidebar(); } else { collapseSidebar(); }
+    };
 
     A.initSidebarToggle = function () {
         var btn = document.getElementById("gbSidebarToggle");

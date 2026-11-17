@@ -50,6 +50,8 @@
         toggle.title = t.toggle;
         toggle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
         toggle.addEventListener("click", function () {
+            var shell = window.GBAssistant;
+            if (shell && typeof shell.toggleSidebar === "function") { shell.toggleSidebar(); return; }
             var sidebar = document.getElementById("gb-sidebar");
             if (sidebar) { sidebar.classList.toggle("collapsed"); }
         });

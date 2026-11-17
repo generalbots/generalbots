@@ -395,6 +395,9 @@ body {
 .gb-sidebar.collapsed ~ .gb-main .gb-expand-sidebar {
     display: flex;
 }
+/* The title bar already has the sidebar button: a second one under it showed
+   through the header when the sidebar was collapsed. */
+body:has(.gb-titlebar-toggle) .gb-expand-sidebar { display: none !important; }
 
 /* ================================================================
    Responsive: sidebar overlay on narrow viewports (< 960px)
