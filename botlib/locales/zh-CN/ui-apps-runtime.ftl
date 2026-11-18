@@ -535,3 +535,6 @@ templates-ai-prompt-placeholder = 描述 AI 应如何生成内容...
 
 # semantic i18n key (#2542)
 project-search-placeholder = 搜索项目...
+
+# semantic i18n key (#2542)
+docs-font-size-placeholder = 12 pt

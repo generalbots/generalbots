@@ -535,3 +535,6 @@ templates-ai-prompt-placeholder = Décrivez comment l'IA doit générer le conte
 
 # semantic i18n key (#2542)
 project-search-placeholder = Rechercher des projets...
+
+# semantic i18n key (#2542)
+docs-font-size-placeholder = 12 pt

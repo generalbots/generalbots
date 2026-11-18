@@ -753,3 +753,6 @@ templates-ai-prompt-placeholder = Describe how AI should generate content...
 
 # semantic i18n key (#2542)
 project-search-placeholder = Search projects...
+
+# semantic i18n key (#2542)
+docs-font-size-placeholder = 12 pt
