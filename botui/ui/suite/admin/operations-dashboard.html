@@ -11,7 +11,7 @@
 <span id="autoRefreshLabel" data-i18n="admin-ops-auto-refresh-on">Auto-refresh: ON</span> </button>
 <button class="btn-primary" onclick="showAlertConfig()"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path> <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-</svg> Configure Alerts
+</svg> <span data-i18n="admin-ops-configure-alerts">Configure Alerts</span>
 </button> </div>
 </div> <div class="system-status-bar" hx-get="/api/ops/status" hx-trigger="load, every 10s" hx-swap="innerHTML">
 <div class="status-indicator healthy"> <span class="status-dot"></span>
@@ -104,9 +104,9 @@
 </div> </div>
 </div> <div class="card distributed-tracing">
 <div class="card-header"> <h2 data-i18n="admin-ops-distributed-tracing">Distributed Tracing</h2>
-<div class="trace-controls"> <input type="text" class="trace-search" placeholder="Search trace ID..." id="traceSearch">
+<div class="trace-controls"> <input type="text" class="trace-search" placeholder="Search trace ID..." data-i18n-placeholder="admin-ops-trace-search-placeholder" id="traceSearch">
 <select class="trace-filter" id="traceFilter" onchange="filterTraces(this.value)"> <option value="all" data-i18n="admin-ops-all-traces">All Traces</option>
-<option value="slow">Slow (>500ms)</option> <option value="errors" data-i18n="admin-ops-errors-only">Errors Only</option>
+<option value="slow" data-i18n="admin-ops-traces-slow">Slow (>500ms)</option> <option value="errors" data-i18n="admin-ops-errors-only">Errors Only</option>
 <option value="api" data-i18n="admin-ops-api-requests">API Requests</option> <option value="db" data-i18n="monitoring-health-database">Database</option>
 </select> </div>
 </div> <div class="trace-list" hx-get="/api/ops/traces" hx-trigger="load, every 60s" hx-swap="innerHTML">
@@ -150,7 +150,7 @@
 <span class="legend-item"><span class="legend-color cache"></span>Cache</span> <span class="legend-item"><span class="legend-color external"></span>External</span>
 </div> </div>
 <div class="card service-health"> <div class="card-header">
-<h2 data-i18n="monitoring-health-services">Service Health</h2> <button class="btn-icon" onclick="refreshHealth()" aria-label="Action">
+<h2 data-i18n="monitoring-health-services">Service Health</h2> <button class="btn-icon" onclick="refreshHealth()" aria-label="Refresh" data-i18n-aria-label="action-refresh" title="Refresh" data-i18n-title="action-refresh">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <polyline points="23 4 23 10 17 10"></polyline>
 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path> </svg>
 </button> </div>

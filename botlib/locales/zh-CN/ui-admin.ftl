@@ -818,3 +818,7 @@ admin-onboarding-team-2-5 = 2-5 人
 admin-onboarding-team-6-20 = 6-20 人
 admin-onboarding-team-21-50 = 21-50 人
 admin-onboarding-team-51-plus = 50 人以上
+# semantic i18n key (#2542)
+admin-ops-configure-alerts = 配置告警
+admin-ops-trace-search-placeholder = 搜索跟踪 ID...
+admin-ops-traces-slow = 慢 (>500ms)

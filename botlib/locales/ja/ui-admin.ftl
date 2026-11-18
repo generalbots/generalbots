@@ -818,3 +818,7 @@ admin-onboarding-team-2-5 = 2〜5人
 admin-onboarding-team-6-20 = 6〜20人
 admin-onboarding-team-21-50 = 21〜50人
 admin-onboarding-team-51-plus = 50人以上
+# semantic i18n key (#2542)
+admin-ops-configure-alerts = アラートを設定
+admin-ops-trace-search-placeholder = トレースIDを検索...
+admin-ops-traces-slow = 遅い (>500ms)

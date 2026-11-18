@@ -818,3 +818,7 @@ admin-onboarding-team-2-5 = 2–5명
 admin-onboarding-team-6-20 = 6–20명
 admin-onboarding-team-21-50 = 21–50명
 admin-onboarding-team-51-plus = 50명 이상
+# semantic i18n key (#2542)
+admin-ops-configure-alerts = 경고 구성
+admin-ops-trace-search-placeholder = 트레이스 ID 검색...
+admin-ops-traces-slow = 느림 (>500ms)

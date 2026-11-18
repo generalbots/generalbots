@@ -818,3 +818,7 @@ admin-onboarding-team-2-5 = 2-5 pessoas
 admin-onboarding-team-6-20 = 6-20 pessoas
 admin-onboarding-team-21-50 = 21-50 pessoas
 admin-onboarding-team-51-plus = 50+ pessoas
+# semantic i18n key (#2542)
+admin-ops-configure-alerts = Configurar alertas
+admin-ops-trace-search-placeholder = Buscar ID de rastreamento...
+admin-ops-traces-slow = Lento (>500ms)
