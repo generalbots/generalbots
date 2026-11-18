@@ -5,12 +5,12 @@
 <section id="network-section" class="settings-section" data-shell-only="true" hidden>
     <div class="section-header">
         <h1 data-i18n="monitoring-network">Network</h1>
-        <p class="subtitle" data-i18n="auto-control-whether-this-installation-participates-in-the-peer-n">Control whether this installation participates in the peer network</p>
+        <p class="subtitle" data-i18n="settings-network-participation-desc">Control whether this installation participates in the peer network</p>
     </div>
 
     <article class="setting-card">
         <div class="card-header">
-            <h2 data-i18n="auto-p2p-network">P2P Network</h2>
+            <h2 data-i18n="settings-p2p-network">P2P Network</h2>
             <span id="network-mode-badge" class="shared-status shared-status-off">
                 <span class="shared-status-dot"></span>Offline
             </span>
@@ -18,9 +18,9 @@
         <p data-i18n-html="auto-offline-mode-keeps-every-connection-on">Offline mode keeps every connection on <code>127.0.0.1</code> and shared links work on your local network only.<br />P2P enables future features such as free shared-link relaying and peer discovery. No data leaves this machine until you explicitly share something.</p>
 
         <div class="inline-row" style="margin-top:12px">
-            <label for="network-mode-select" data-i18n="auto-network-mode">Network mode</label>
+            <label for="network-mode-select" data-i18n="settings-network-mode-label">Network mode</label>
             <select id="network-mode-select">
-                <option value="p2p" data-i18n="auto-p2p-recommended">P2P (recommended)</option>
+                <option value="p2p" data-i18n="settings-network-mode-p2p">P2P (recommended)</option>
                 <option value="offline" data-i18n="status-offline">Offline</option>
             </select>
             <button type="button" class="btn-secondary btn-sm" id="network-mode-apply" data-i18n="action-apply">Apply</button>

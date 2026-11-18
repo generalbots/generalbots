@@ -257,3 +257,15 @@ chatbg-grid = Grade
 chatbg-blueprint = Planta
 chatbg-weave = Trama
 chatbg-mosaic = Mosaico
+
+# semantic i18n key (#2542)
+settings-network-participation-desc = Controle se esta instalação participa da rede peer-to-peer
+
+# semantic i18n key (#2542)
+settings-p2p-network = Rede P2P
+
+# semantic i18n key (#2542)
+settings-network-mode-label = Modo de rede
+
+# semantic i18n key (#2542)
+settings-network-mode-p2p = P2P (recomendado)

@@ -257,3 +257,15 @@ chatbg-grid = Raster
 chatbg-blueprint = Blaupause
 chatbg-weave = Gewebe
 chatbg-mosaic = Mosaik
+
+# semantic i18n key (#2542)
+settings-network-participation-desc = Steuern Sie, ob diese Installation am Peer-Netzwerk teilnimmt
+
+# semantic i18n key (#2542)
+settings-p2p-network = P2P-Netzwerk
+
+# semantic i18n key (#2542)
+settings-network-mode-label = Netzwerkmodus
+
+# semantic i18n key (#2542)
+settings-network-mode-p2p = P2P (empfohlen)

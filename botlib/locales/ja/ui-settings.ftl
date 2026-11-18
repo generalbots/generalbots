@@ -257,3 +257,15 @@ chatbg-grid = グリッド
 chatbg-blueprint = 設計図
 chatbg-weave = 織り目
 chatbg-mosaic = モザイク
+
+# semantic i18n key (#2542)
+settings-network-participation-desc = このインストールがピアネットワークに参加するかどうかを制御します
+
+# semantic i18n key (#2542)
+settings-p2p-network = P2Pネットワーク
+
+# semantic i18n key (#2542)
+settings-network-mode-label = ネットワークモード
+
+# semantic i18n key (#2542)
+settings-network-mode-p2p = P2P（推奨）

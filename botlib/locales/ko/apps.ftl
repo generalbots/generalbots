@@ -329,3 +329,27 @@ lists-static = 정적
 
 # semantic i18n key (#2542)
 lists-dynamic = 동적
+
+# semantic i18n key (#2542)
+analytics-overview-badge = 개요
+
+# semantic i18n key (#2542)
+analytics-receivables-badge = 미수금
+
+# semantic i18n key (#2542)
+analytics-current-label = 현재
+
+# semantic i18n key (#2542)
+analytics-trend-badge = 추세
+
+# semantic i18n key (#2542)
+browser-vm-tabs-label = VM 탭
+
+# semantic i18n key (#2542)
+browser-shared-across-conversations = 대화 간 공유
+
+# semantic i18n key (#2542)
+browser-driver-tab = 드라이버
+
+# semantic i18n key (#2542)
+browser-new-tab = 새 탭

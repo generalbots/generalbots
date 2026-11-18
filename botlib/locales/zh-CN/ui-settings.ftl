@@ -257,3 +257,15 @@ chatbg-grid = 网格
 chatbg-blueprint = 蓝图
 chatbg-weave = 织纹
 chatbg-mosaic = 马赛克
+
+# semantic i18n key (#2542)
+settings-network-participation-desc = 控制此安装是否参与对等网络
+
+# semantic i18n key (#2542)
+settings-p2p-network = P2P 网络
+
+# semantic i18n key (#2542)
+settings-network-mode-label = 网络模式
+
+# semantic i18n key (#2542)
+settings-network-mode-p2p = P2P（推荐）

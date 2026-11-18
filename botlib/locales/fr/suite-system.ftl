@@ -156,3 +156,27 @@ system-versions-desc = Versions des composants et disponibilité des mises à jo
 
 # semantic i18n key (#2542)
 system-versions-loading = Chargement des informations de version...
+
+# semantic i18n key (#2542)
+monitoring-log-details = Détails du journal
+
+# semantic i18n key (#2542)
+monitoring-log-level-info-badge = INFO
+
+# semantic i18n key (#2542)
+monitoring-log-service-placeholder = nom-du-service
+
+# semantic i18n key (#2542)
+monitoring-log-message-placeholder = Le contenu du message de journal va ici
+
+# semantic i18n key (#2542)
+monitoring-all-status-filter = Tous les statuts
+
+# semantic i18n key (#2542)
+monitoring-service-details = Détails du service
+
+# semantic i18n key (#2542)
+monitoring-service-name-label = Nom du service
+
+# semantic i18n key (#2542)
+monitoring-service-description-placeholder = La description du service va ici

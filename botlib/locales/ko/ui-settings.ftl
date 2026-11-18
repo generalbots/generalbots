@@ -257,3 +257,15 @@ chatbg-grid = 격자
 chatbg-blueprint = 청사진
 chatbg-weave = 직조
 chatbg-mosaic = 모자이크
+
+# semantic i18n key (#2542)
+settings-network-participation-desc = 이 설치가 피어 네트워크에 참여할지 제어합니다
+
+# semantic i18n key (#2542)
+settings-p2p-network = P2P 네트워크
+
+# semantic i18n key (#2542)
+settings-network-mode-label = 네트워크 모드
+
+# semantic i18n key (#2542)
+settings-network-mode-p2p = P2P(권장)

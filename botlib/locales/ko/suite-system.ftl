@@ -156,3 +156,27 @@ system-versions-desc = 구성 요소 버전 및 업데이트 가능 여부
 
 # semantic i18n key (#2542)
 system-versions-loading = 버전 정보 불러오는 중...
+
+# semantic i18n key (#2542)
+monitoring-log-details = 로그 상세
+
+# semantic i18n key (#2542)
+monitoring-log-level-info-badge = INFO
+
+# semantic i18n key (#2542)
+monitoring-log-service-placeholder = 서비스-이름
+
+# semantic i18n key (#2542)
+monitoring-log-message-placeholder = 로그 메시지 내용이 여기에 표시됩니다
+
+# semantic i18n key (#2542)
+monitoring-all-status-filter = 모든 상태
+
+# semantic i18n key (#2542)
+monitoring-service-details = 서비스 상세
+
+# semantic i18n key (#2542)
+monitoring-service-name-label = 서비스 이름
+
+# semantic i18n key (#2542)
+monitoring-service-description-placeholder = 서비스 설명이 여기에 표시됩니다

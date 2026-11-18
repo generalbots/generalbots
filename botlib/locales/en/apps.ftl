@@ -329,3 +329,27 @@ lists-static = Static
 
 # semantic i18n key (#2542)
 lists-dynamic = Dynamic
+
+# semantic i18n key (#2542)
+analytics-overview-badge = Overview
+
+# semantic i18n key (#2542)
+analytics-receivables-badge = Receivables
+
+# semantic i18n key (#2542)
+analytics-current-label = Current
+
+# semantic i18n key (#2542)
+analytics-trend-badge = Trend
+
+# semantic i18n key (#2542)
+browser-vm-tabs-label = VM tabs
+
+# semantic i18n key (#2542)
+browser-shared-across-conversations = Shared across conversations
+
+# semantic i18n key (#2542)
+browser-driver-tab = Driver
+
+# semantic i18n key (#2542)
+browser-new-tab = New Tab

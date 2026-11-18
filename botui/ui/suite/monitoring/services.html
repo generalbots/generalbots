@@ -51,7 +51,7 @@
                 />
             </div>
             <select id="status-filter" onchange="filterByStatus(this.value)">
-                <option value="all" data-i18n="auto-all-status">All Status</option>
+                <option value="all" data-i18n="monitoring-all-status-filter">All Status</option>
                 <option value="running" data-i18n="monitoring-status-running">Running</option>
                 <option value="warning" data-i18n="status-warning">Warning</option>
                 <option value="stopped" data-i18n="monitoring-status-stopped">Stopped</option>
@@ -93,7 +93,7 @@
     <!-- Service Detail Panel (slides in from right) -->
     <div class="service-detail-panel" id="service-detail-panel">
         <div class="panel-header">
-            <h3 id="detail-service-name" data-i18n="auto-service-details">Service Details</h3>
+            <h3 id="detail-service-name" data-i18n="monitoring-service-details">Service Details</h3>
             <button class="close-btn" onclick="closeServiceDetail()" aria-label="Close">
                 <svg
                     width="20"
@@ -153,8 +153,8 @@
             </div>
         </div>
         <div class="card-body">
-            <h4 class="service-name" data-i18n="auto-service-name-2">Service Name</h4>
-            <p class="service-description" data-i18n="auto-service-description-goes-here">Service description goes here</p>
+            <h4 class="service-name" data-i18n="monitoring-service-name-label">Service Name</h4>
+            <p class="service-description" data-i18n="monitoring-service-description-placeholder">Service description goes here</p>
             <div class="service-meta">
                 <span class="meta-item">
                     <svg
@@ -245,7 +245,7 @@
 <!-- CSS moved to services.css -->
 
 <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script>
     function filterServices(query) {
         const cards = document.querySelectorAll(".service-card:not(.skeleton)");

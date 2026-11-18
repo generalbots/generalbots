@@ -329,3 +329,27 @@ lists-static = 静态
 
 # semantic i18n key (#2542)
 lists-dynamic = 动态
+
+# semantic i18n key (#2542)
+analytics-overview-badge = 概览
+
+# semantic i18n key (#2542)
+analytics-receivables-badge = 应收账款
+
+# semantic i18n key (#2542)
+analytics-current-label = 当前
+
+# semantic i18n key (#2542)
+analytics-trend-badge = 趋势
+
+# semantic i18n key (#2542)
+browser-vm-tabs-label = VM 标签页
+
+# semantic i18n key (#2542)
+browser-shared-across-conversations = 跨对话共享
+
+# semantic i18n key (#2542)
+browser-driver-tab = 驱动
+
+# semantic i18n key (#2542)
+browser-new-tab = 新标签页

@@ -329,3 +329,27 @@ lists-static = 静的
 
 # semantic i18n key (#2542)
 lists-dynamic = 動的
+
+# semantic i18n key (#2542)
+analytics-overview-badge = 概要
+
+# semantic i18n key (#2542)
+analytics-receivables-badge = 売掛金
+
+# semantic i18n key (#2542)
+analytics-current-label = 現在
+
+# semantic i18n key (#2542)
+analytics-trend-badge = トレンド
+
+# semantic i18n key (#2542)
+browser-vm-tabs-label = VMタブ
+
+# semantic i18n key (#2542)
+browser-shared-across-conversations = 会話間で共有
+
+# semantic i18n key (#2542)
+browser-driver-tab = ドライバー
+
+# semantic i18n key (#2542)
+browser-new-tab = 新しいタブ

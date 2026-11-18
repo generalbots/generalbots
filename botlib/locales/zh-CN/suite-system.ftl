@@ -156,3 +156,27 @@ system-versions-desc = 组件版本和更新可用性
 
 # semantic i18n key (#2542)
 system-versions-loading = 正在加载版本信息...
+
+# semantic i18n key (#2542)
+monitoring-log-details = 日志详情
+
+# semantic i18n key (#2542)
+monitoring-log-level-info-badge = INFO
+
+# semantic i18n key (#2542)
+monitoring-log-service-placeholder = 服务名称
+
+# semantic i18n key (#2542)
+monitoring-log-message-placeholder = 日志消息内容显示在此处
+
+# semantic i18n key (#2542)
+monitoring-all-status-filter = 所有状态
+
+# semantic i18n key (#2542)
+monitoring-service-details = 服务详情
+
+# semantic i18n key (#2542)
+monitoring-service-name-label = 服务名称
+
+# semantic i18n key (#2542)
+monitoring-service-description-placeholder = 服务描述显示在此处

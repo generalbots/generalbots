@@ -156,3 +156,27 @@ system-versions-desc = コンポーネントのバージョンと更新の有無
 
 # semantic i18n key (#2542)
 system-versions-loading = バージョン情報を読み込み中...
+
+# semantic i18n key (#2542)
+monitoring-log-details = ログ詳細
+
+# semantic i18n key (#2542)
+monitoring-log-level-info-badge = INFO
+
+# semantic i18n key (#2542)
+monitoring-log-service-placeholder = サービス名
+
+# semantic i18n key (#2542)
+monitoring-log-message-placeholder = ログメッセージの内容がここに表示されます
+
+# semantic i18n key (#2542)
+monitoring-all-status-filter = すべてのステータス
+
+# semantic i18n key (#2542)
+monitoring-service-details = サービス詳細
+
+# semantic i18n key (#2542)
+monitoring-service-name-label = サービス名
+
+# semantic i18n key (#2542)
+monitoring-service-description-placeholder = サービスの説明がここに表示されます
