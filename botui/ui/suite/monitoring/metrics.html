@@ -334,7 +334,7 @@
                     <line x1="16" y1="13" x2="8" y2="13"></line>
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
-                All Metrics
+                <span data-i18n="monitoring-all-metrics">All Metrics</span>
             </h3>
             <div class="section-actions">
                 <div class="search-box">
@@ -342,7 +342,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="metric-search" placeholder="Search metrics..." onkeyup="filterMetrics(this.value)">
+                    <input type="text" id="metric-search" data-i18n-placeholder="monitoring-search-metrics" onkeyup="filterMetrics(this.value)">
                 </div>
                 <select id="metric-category" onchange="filterByCategory(this.value)">
                     <option value="all" data-i18n="monitoring-alerts-all-categories">All Categories</option>

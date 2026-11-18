@@ -174,6 +174,12 @@ monitoring-service-status-list = Lista de estado de servicios
 monitoring-health-check-endpoints = Endpoints de verificación de salud
 
 # semantic i18n key (#2542)
+monitoring-search-metrics = Buscar métricas...
+
+# semantic i18n key (#2542)
+monitoring-all-metrics = Todas las métricas
+
+# semantic i18n key (#2542)
 monitoring-loading-services = Cargando servicios...
 
 # semantic i18n key (#2542)

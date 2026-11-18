@@ -174,6 +174,12 @@ monitoring-service-status-list = 服务状态列表
 monitoring-health-check-endpoints = 健康检查端点
 
 # semantic i18n key (#2542)
+monitoring-search-metrics = 搜索指标...
+
+# semantic i18n key (#2542)
+monitoring-all-metrics = 所有指标
+
+# semantic i18n key (#2542)
 monitoring-loading-services = 正在加载服务...
 
 # semantic i18n key (#2542)

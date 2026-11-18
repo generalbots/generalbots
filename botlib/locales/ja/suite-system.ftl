@@ -174,6 +174,12 @@ monitoring-service-status-list = サービスステータス一覧
 monitoring-health-check-endpoints = ヘルスチェックエンドポイント
 
 # semantic i18n key (#2542)
+monitoring-search-metrics = メトリクスを検索...
+
+# semantic i18n key (#2542)
+monitoring-all-metrics = すべてのメトリクス
+
+# semantic i18n key (#2542)
 monitoring-loading-services = サービスを読み込み中...
 
 # semantic i18n key (#2542)
