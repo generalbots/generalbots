@@ -355,3 +355,27 @@ db-page-info-default = 1 / 1 ページ
 
 # semantic i18n key (#2542)
 db-next-page = 次へ ▶
+
+# semantic i18n key (#2542)
+research-searching-sources = ソースを検索中...
+
+# semantic i18n key (#2542)
+research-suggestion-latest-ai = 最新のAI動向
+
+# semantic i18n key (#2542)
+research-suggestion-quantum = 量子コンピューティングの解説
+
+# semantic i18n key (#2542)
+research-suggestion-software-architecture = ソフトウェアアーキテクチャ
+
+# semantic i18n key (#2542)
+research-suggestion-ai-productivity = AI生産性ツール
+
+# semantic i18n key (#2542)
+research-related-heading = 関連
+
+# semantic i18n key (#2542)
+research-loading = リサーチを読み込み中…
+
+# semantic i18n key (#2542)
+research-service-unavailable = リサーチサービスを利用できません

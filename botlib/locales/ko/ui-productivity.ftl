@@ -355,3 +355,27 @@ db-page-info-default = 1 / 1 페이지
 
 # semantic i18n key (#2542)
 db-next-page = 다음 ▶
+
+# semantic i18n key (#2542)
+research-searching-sources = 소스 검색 중...
+
+# semantic i18n key (#2542)
+research-suggestion-latest-ai = 최신 AI 개발 동향
+
+# semantic i18n key (#2542)
+research-suggestion-quantum = 양자 컴퓨팅 설명
+
+# semantic i18n key (#2542)
+research-suggestion-software-architecture = 소프트웨어 아키텍처
+
+# semantic i18n key (#2542)
+research-suggestion-ai-productivity = AI 생산성 도구
+
+# semantic i18n key (#2542)
+research-related-heading = 관련
+
+# semantic i18n key (#2542)
+research-loading = 리서치 불러오는 중…
+
+# semantic i18n key (#2542)
+research-service-unavailable = 리서치 서비스를 사용할 수 없음

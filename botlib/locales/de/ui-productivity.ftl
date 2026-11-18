@@ -355,3 +355,27 @@ db-page-info-default = Seite 1 von 1
 
 # semantic i18n key (#2542)
 db-next-page = Weiter ▶
+
+# semantic i18n key (#2542)
+research-searching-sources = Quellen werden durchsucht...
+
+# semantic i18n key (#2542)
+research-suggestion-latest-ai = Neueste KI-Entwicklungen
+
+# semantic i18n key (#2542)
+research-suggestion-quantum = Quantencomputing erklärt
+
+# semantic i18n key (#2542)
+research-suggestion-software-architecture = Softwarearchitektur
+
+# semantic i18n key (#2542)
+research-suggestion-ai-productivity = KI-Produktivitätstools
+
+# semantic i18n key (#2542)
+research-related-heading = Verwandt
+
+# semantic i18n key (#2542)
+research-loading = Recherche wird geladen…
+
+# semantic i18n key (#2542)
+research-service-unavailable = Recherche-Dienst nicht verfügbar

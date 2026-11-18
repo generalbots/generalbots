@@ -355,3 +355,27 @@ db-page-info-default = 第 1 页，共 1 页
 
 # semantic i18n key (#2542)
 db-next-page = 下一页 ▶
+
+# semantic i18n key (#2542)
+research-searching-sources = 正在搜索来源...
+
+# semantic i18n key (#2542)
+research-suggestion-latest-ai = 最新 AI 发展
+
+# semantic i18n key (#2542)
+research-suggestion-quantum = 量子计算解析
+
+# semantic i18n key (#2542)
+research-suggestion-software-architecture = 软件架构
+
+# semantic i18n key (#2542)
+research-suggestion-ai-productivity = AI 生产力工具
+
+# semantic i18n key (#2542)
+research-related-heading = 相关
+
+# semantic i18n key (#2542)
+research-loading = 正在加载研究…
+
+# semantic i18n key (#2542)
+research-service-unavailable = 研究服务不可用
