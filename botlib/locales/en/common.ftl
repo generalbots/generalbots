@@ -370,3 +370,6 @@ common-cancel = Cancel
 
 # semantic i18n key (#2542)
 app-service-unavailable = Service unavailable
+
+# semantic i18n key (#2542)
+deploy-project-name-placeholder = my-project

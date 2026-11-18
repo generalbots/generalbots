@@ -365,3 +365,6 @@ common-cancel = Annuler
 
 # semantic i18n key (#2542)
 app-service-unavailable = Service indisponible
+
+# semantic i18n key (#2542)
+deploy-project-name-placeholder = mon-projet

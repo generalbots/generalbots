@@ -365,3 +365,6 @@ deploy-type-site-desc = Create a website
 
 # semantic i18n key (#2542)
 app-service-unavailable = Servicio no disponible
+
+# semantic i18n key (#2542)
+deploy-project-name-placeholder = mi-proyecto

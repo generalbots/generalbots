@@ -1253,3 +1253,7 @@ store-loading = 스토어 로딩 중…
 # semantic i18n key (#2542)
 browser-action-go = 이동
 browser-placeholder-nav-url = https://example.com
+
+# semantic i18n key (#2542)
+browser-go = 이동
+browser-url-default-placeholder = http://localhost:3000

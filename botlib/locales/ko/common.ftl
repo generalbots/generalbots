@@ -365,3 +365,6 @@ common-cancel = 취소
 
 # semantic i18n key (#2542)
 app-service-unavailable = 서비스를 사용할 수 없음
+
+# semantic i18n key (#2542)
+deploy-project-name-placeholder = my-project

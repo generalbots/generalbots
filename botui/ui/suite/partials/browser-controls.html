@@ -28,8 +28,8 @@
                 <button class="botcoder-btn-icon">➡</button>
                 <button class="botcoder-btn-icon">↻</button>
             </div>
-            <input type="text" id="browserUrl" class="botcoder-browser-url" placeholder="http://localhost:3000" onkeypress="if(event.key === 'Enter') browserNavigate(this.value);" />
-            <button class="botcoder-btn-icon" onclick="browserNavigate(document.getElementById('browserUrl').value)">Go</button>
+            <input type="text" id="browserUrl" class="botcoder-browser-url" data-i18n-placeholder="browser-url-default-placeholder" onkeypress="if(event.key === 'Enter') browserNavigate(this.value);" />
+            <button class="botcoder-btn-icon" onclick="browserNavigate(document.getElementById('browserUrl').value)" data-i18n="browser-go">Go</button>
         </div>
         
         <div class="botcoder-browser-preview">

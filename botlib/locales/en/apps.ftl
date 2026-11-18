@@ -1253,3 +1253,7 @@ store-loading = Loading the store…
 # semantic i18n key (#2542)
 browser-action-go = Go
 browser-placeholder-nav-url = https://example.com
+
+# semantic i18n key (#2542)
+browser-go = Go
+browser-url-default-placeholder = http://localhost:3000
