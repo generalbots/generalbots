@@ -803,3 +803,102 @@ admin-groups-personal-message-optional = 個人的なメッセージ（任意）
 
 # semantic i18n key (#2542)
 admin-groups-delete-warning = これにより、すべてのメンバーが削除され、グループのすべてのデータが削除されます。この操作は元に戻せません。
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-title = 請求ダッシュボード
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-subtitle = 組織の請求と使用状況に関する包括的な分析と洞察
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-period = 現在の期間
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-year-to-date = 年初来
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-spending = 現在の支出
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-utilization = クォータ使用率
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-average-quotas = すべてのクォータの平均
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-api-calls = API 呼び出し
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-storage-used = 使用済みストレージ
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-spending-trends = 支出の傾向
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-daily = 日次
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-weekly = 週次
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-cost-breakdown = サービス別コスト内訳
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-management = クォータ管理
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members = チームメンバー
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-no-alerts = アラートは設定されていません
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-usage-by-bot = ボット別使用状況
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-customer-support = カスタマーサポートボット
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-cs-01 = bot_cs_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sales-assistant = 営業アシスタント
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sa-01 = bot_sa_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-assistant = 人事アシスタント
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-01 = bot_hr_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-helpdesk = IT ヘルプデスク
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-01 = bot_it_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-recent-invoices = 最近の請求書
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alerts = 請求アラート
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoice-generated-january = 1月分の請求書が生成されました
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-settings = クォータ設定
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoices-limit = 請求書の上限
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members-limit = チームメンバーの上限
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bots-limit = ボットの上限
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alert-thresholds = 請求アラートのしきい値

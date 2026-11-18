@@ -803,3 +803,102 @@ admin-groups-personal-message-optional = 개인 메시지(선택 사항)
 
 # semantic i18n key (#2542)
 admin-groups-delete-warning = 모든 멤버가 제거되고 모든 그룹 데이터가 삭제됩니다. 이 작업은 취소할 수 없습니다.
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-title = 결제 대시보드
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-subtitle = 조직의 청구 및 사용량에 대한 종합적인 분석과 인사이트
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-period = 현재 기간
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-year-to-date = 연초 이후
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-spending = 현재 지출
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-utilization = 할당량 사용률
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-average-quotas = 모든 할당량 평균
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-api-calls = API 호출
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-storage-used = 사용된 저장 공간
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-spending-trends = 지출 추세
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-daily = 일별
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-weekly = 주별
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-cost-breakdown = 서비스별 비용 분석
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-management = 할당량 관리
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members = 팀 멤버
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-no-alerts = 구성된 알림 없음
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-usage-by-bot = 봇별 사용량
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-customer-support = 고객 지원 봇
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-cs-01 = bot_cs_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sales-assistant = 영업 도우미
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sa-01 = bot_sa_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-assistant = HR 도우미
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-01 = bot_hr_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-helpdesk = IT 헬프데스크
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-01 = bot_it_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-recent-invoices = 최근 청구서
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alerts = 청구 알림
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoice-generated-january = 1월 청구서가 생성되었습니다
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-settings = 할당량 설정
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoices-limit = 청구서 한도
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members-limit = 팀 멤버 한도
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bots-limit = 봇 한도
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alert-thresholds = 청구 알림 임계값

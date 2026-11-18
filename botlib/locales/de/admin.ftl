@@ -803,3 +803,102 @@ admin-groups-personal-message-optional = Persönliche Nachricht (optional)
 
 # semantic i18n key (#2542)
 admin-groups-delete-warning = Dadurch werden alle Mitglieder entfernt und alle Gruppendaten gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-title = Abrechnungs-Dashboard
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-subtitle = Umfassende Analysen und Einblicke in Abrechnung und Nutzung Ihrer Organisation
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-period = Aktueller Zeitraum
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-year-to-date = Jahr bis heute
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-spending = Aktuelle Ausgaben
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-utilization = Kontingentnutzung
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-average-quotas = Durchschnitt über alle Kontingente
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-api-calls = API-Aufrufe
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-storage-used = Verwendeter Speicher
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-spending-trends = Ausgabentrends
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-daily = Täglich
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-weekly = Wöchentlich
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-cost-breakdown = Kostenaufschlüsselung nach Dienst
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-management = Kontingentverwaltung
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members = Teammitglieder
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-no-alerts = Keine Warnungen konfiguriert
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-usage-by-bot = Nutzung nach Bot
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-customer-support = Kundensupport-Bot
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-cs-01 = bot_cs_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sales-assistant = Vertriebsassistent
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sa-01 = bot_sa_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-assistant = HR-Assistent
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-01 = bot_hr_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-helpdesk = IT-Helpdesk
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-01 = bot_it_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-recent-invoices = Aktuelle Rechnungen
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alerts = Abrechnungswarnungen
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoice-generated-january = Rechnung für Januar erstellt
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-settings = Kontingenteinstellungen
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoices-limit = Rechnungslimit
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members-limit = Limit für Teammitglieder
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bots-limit = Bot-Limit
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alert-thresholds = Schwellenwerte für Abrechnungswarnungen

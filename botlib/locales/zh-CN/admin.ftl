@@ -803,3 +803,102 @@ admin-groups-personal-message-optional = 个人消息（可选）
 
 # semantic i18n key (#2542)
 admin-groups-delete-warning = 这将移除所有成员并删除所有群组数据。此操作无法撤消。
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-title = 账单仪表板
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-subtitle = 为您组织的账单和使用情况提供全面的分析和洞察
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-period = 当前周期
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-year-to-date = 年初至今
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-current-spending = 当前支出
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-utilization = 配额使用率
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-average-quotas = 所有配额的平均值
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-api-calls = API 调用
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-storage-used = 已用存储空间
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-spending-trends = 支出趋势
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-daily = 每日
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-weekly = 每周
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-cost-breakdown = 按服务划分的成本明细
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-management = 配额管理
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members = 团队成员
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-no-alerts = 未配置警报
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-usage-by-bot = 按机器人划分的使用情况
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-customer-support = 客户支持机器人
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-cs-01 = bot_cs_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sales-assistant = 销售助理
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-sa-01 = bot_sa_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-assistant = 人力资源助理
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-hr-01 = bot_hr_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-helpdesk = IT 服务台
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bot-it-01 = bot_it_01
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-recent-invoices = 最近发票
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alerts = 账单提醒
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoice-generated-january = 已生成 1 月份发票
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-quota-settings = 配额设置
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-invoices-limit = 发票限制
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-team-members-limit = 团队成员限制
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-bots-limit = 机器人限制
+
+# semantic i18n key (#2542)
+admin-billing-dashboard-alert-thresholds = 账单提醒阈值
