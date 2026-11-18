@@ -16,7 +16,7 @@
         <div class="handoff-header-right">
             <div class="handoff-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="handoffSearch" placeholder="Search conversations...">
+                <input type="text" id="handoffSearch" data-i18n-placeholder="handoff-placeholder-search-conversations">
             </div>
             <select id="handoffChannelFilter" class="handoff-filter-select">
                 <option value="">All channels</option>
@@ -110,7 +110,7 @@
 
     <div id="transcripts-view" class="handoff-view">
         <div class="handoff-search" style="margin:16px 24px;max-width:400px">
-            <input type="text" id="transcriptSearch" placeholder="Search transcripts by keyword or agent...">
+            <input type="text" id="transcriptSearch" data-i18n-placeholder="handoff-placeholder-search-transcripts">
         </div>
         <div class="banking-table-wrap" style="padding:24px">
             <table class="sales-table">
@@ -167,7 +167,7 @@
                 </select>
             </label>
             <label>Internal note
-                <textarea id="transferNote" rows="3" placeholder="Optional context for the receiving agent"></textarea>
+                <textarea id="transferNote" rows="3" data-i18n-placeholder="handoff-placeholder-transfer-note"></textarea>
             </label>
         </div>
         <footer class="handoff-modal-footer">

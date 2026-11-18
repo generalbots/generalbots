@@ -182,3 +182,8 @@ handoff-transfer-reason-escalation = Kundeneskalation
 
 # semantic i18n key (#2542)
 handoff-transfer-reason-vip = VIP-Betreuung
+
+# semantic i18n key (#2542)
+handoff-placeholder-search-conversations = Gespräche suchen...
+handoff-placeholder-search-transcripts = Transkripte nach Stichwort oder Agent suchen...
+handoff-placeholder-transfer-note = Optionaler Kontext für den empfangenden Agenten

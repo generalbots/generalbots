@@ -182,3 +182,8 @@ handoff-transfer-reason-escalation = 고객 에스컬레이션
 
 # semantic i18n key (#2542)
 handoff-transfer-reason-vip = VIP 처리
+
+# semantic i18n key (#2542)
+handoff-placeholder-search-conversations = 대화 검색...
+handoff-placeholder-search-transcripts = 키워드 또는 상담원으로 기록 검색...
+handoff-placeholder-transfer-note = 인수 상담원을 위한 추가 정보(선택)
