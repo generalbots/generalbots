@@ -1207,3 +1207,10 @@ meet-placeholder-trunk-carrier = 运营商（默认 livekit-sip）
 memory-placeholder-search = 搜索记忆…
 memory-aria-filter-kind = 按类型筛选
 memory-placeholder-content = 用一句清晰的话陈述这条记忆。
+
+# semantic i18n key (#2542)
+canvas-placeholder-x = X
+canvas-placeholder-y = Y
+canvas-placeholder-width = 宽
+canvas-placeholder-height = 高
+canvas-placeholder-rotation = 0°

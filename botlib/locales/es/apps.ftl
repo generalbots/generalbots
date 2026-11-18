@@ -1205,3 +1205,10 @@ meet-placeholder-trunk-carrier = operador (predeterminado livekit-sip)
 memory-placeholder-search = Buscar recuerdos…
 memory-aria-filter-kind = Filtrar por tipo
 memory-placeholder-content = Expresa el recuerdo en una sola frase clara.
+
+# semantic i18n key (#2542)
+canvas-placeholder-x = X
+canvas-placeholder-y = Y
+canvas-placeholder-width = An
+canvas-placeholder-height = Al
+canvas-placeholder-rotation = 0°

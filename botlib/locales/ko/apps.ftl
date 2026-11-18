@@ -1207,3 +1207,10 @@ meet-placeholder-trunk-carrier = 통신사 (기본값 livekit-sip)
 memory-placeholder-search = 기억 검색…
 memory-aria-filter-kind = 종류별 필터
 memory-placeholder-content = 기억을 하나의 명확한 문장으로 작성하세요.
+
+# semantic i18n key (#2542)
+canvas-placeholder-x = X
+canvas-placeholder-y = Y
+canvas-placeholder-width = 너비
+canvas-placeholder-height = 높이
+canvas-placeholder-rotation = 0°

@@ -1207,3 +1207,10 @@ meet-placeholder-trunk-carrier = キャリア（既定: livekit-sip）
 memory-placeholder-search = メモリを検索…
 memory-aria-filter-kind = 種類で絞り込む
 memory-placeholder-content = 記憶を1つの明確な文で述べてください。
+
+# semantic i18n key (#2542)
+canvas-placeholder-x = X
+canvas-placeholder-y = Y
+canvas-placeholder-width = 幅
+canvas-placeholder-height = 高
+canvas-placeholder-rotation = 0°
