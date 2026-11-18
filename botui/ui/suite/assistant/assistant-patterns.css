@@ -16,6 +16,38 @@
     background: none; z-index: 1;
 }
 
+/* Settings > Appearance sliders. Strength multiplies the layer's opacity;
+   scale enlarges the pattern (the image keeps its default framing at 100%). */
+.gb-main::before { opacity: calc(.32 * var(--gb-pat-strength, 1)); }
+.gb-pat-scaled.gb-pattern-image.gb-main::before {
+    -webkit-mask: url("/suite/assistant/pattern.png") center / auto calc(100% * var(--gb-pat-scale, 1)) repeat;
+    mask: url("/suite/assistant/pattern.png") center / auto calc(100% * var(--gb-pat-scale, 1)) repeat;
+}
+/* Frost: one more layer over the background, under the content. It blurs
+   what is behind it and lays a veil of paper over it. */
+.gb-frost {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    -webkit-backdrop-filter: blur(calc(var(--gb-frost, 0) * 16px));
+    backdrop-filter: blur(calc(var(--gb-frost, 0) * 16px));
+    background: color-mix(in srgb, var(--id-paper) calc(var(--gb-frost, 0) * 45%), transparent);
+}
+.gb-frost[hidden] { display: none; }
+.gb-set-range-row {
+    display: grid; grid-template-columns: minmax(120px, 190px) 1fr 48px 24px;
+    align-items: center; gap: 12px; margin-top: var(--id-space-4);
+}
+.gb-set-range { width: 100%; accent-color: var(--id-accent); cursor: pointer; }
+.gb-set-range:disabled { opacity: .4; cursor: default; }
+.gb-set-range-value {
+    font-size: var(--id-text-sm); color: var(--id-text); text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.gb-set-range-reset {
+    border: 0; background: none; color: var(--id-gray-400); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 2px; border-radius: 4px;
+}
+.gb-set-range-reset:hover { color: var(--id-ink); background: var(--id-fill); }
+
 /* == Suggestion chip remove control == */
 .gb-suggestion-remove {
     display: inline-flex; align-items: center; justify-content: center;

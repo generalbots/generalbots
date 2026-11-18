@@ -178,7 +178,7 @@
             html += '<button class="gb-set-lang-btn gb-set-theme-btn' + tActive +
                 '" data-theme="' + to.id + '">' + esc(A.t(to.key, to.id)) + '</button>';
         }
-        html += '</div></div>';
+        html += '</div>' + (A._sliderRow ? A._sliderRow("frost") : "") + '</div>';
 
         /* Text size selector */
         var curSize = window.GBTextSize ? window.GBTextSize.get() : "default";
@@ -243,7 +243,7 @@
                 '<div class="gb-set-bg-preview" data-pat-id="' + esc(pat.id) + '"></div>' +
                 '<span class="gb-set-bg-name">' + esc(name) + '</span></button>';
         }
-        html += '</div></div>';
+        html += '</div>' + (A._sliderRow ? A._sliderRow("strength") + A._sliderRow("scale") : "") + '</div>';
 
         panel.innerHTML = html;
 
@@ -282,29 +282,9 @@
             });
         }
 
-        /* Apply live pattern previews to tiles */
-        panel.querySelectorAll(".gb-set-bg-preview").forEach(function (div) {
-            var patId = div.getAttribute("data-pat-id");
-            if (!patId || patId === "none") { return; }
-            if (patId === "image") {
-                /* The shipped dot composition image is too detailed for a 64x40 tile;
-                   show a suggestive dot cluster as a recognisable preview. */
-                div.style.cssText = "background:" +
-                    "radial-gradient(1.5px 1.5px at 20% 30%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(2px 2px at 55% 20%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(1px 1px at 40% 60%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(2.5px 2.5px at 70% 55%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(1.5px 1.5px at 30% 80%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(1px 1px at 80% 35%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(2px 2px at 15% 55%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(1.5px 1.5px at 60% 75%, var(--id-accent) 60%, transparent 100%)," +
-                    "radial-gradient(1px 1px at 85% 70%, var(--id-accent) 60%, transparent 100%)," +
-                    "var(--id-paper);opacity:0.6;";
-                return;
-            }
-            var pat = PATTERNS.filter(function (p) { return p.id === patId; })[0];
-            if (pat && pat.css) { div.style.cssText = pat.css + "opacity:0.3;"; }
-        });
+        /* Live pattern previews in the tiles; opacity, scale and frost sliders */
+        panel.querySelectorAll(".gb-set-bg-preview").forEach(function (div) { if (A._previewPattern) { A._previewPattern(div); } });
+        if (A._bindSliders) { A._bindSliders(panel); }
 
         /* Bind pattern tile clicks */
         panel.querySelectorAll(".gb-set-bg-tile").forEach(function (tile) {
@@ -315,6 +295,7 @@
                 panel.querySelectorAll(".gb-set-bg-tile").forEach(function (t) {
                     t.classList.toggle("gb-set-bg-active", t.getAttribute("data-pat") === id);
                 });
+                if (A._syncSliders) { A._syncSliders(panel); }
             });
         });
     }
