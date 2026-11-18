@@ -18,10 +18,10 @@ Open </button>
 <polyline points="17 21 17 13 7 13 7 21"/> <polyline points="7 3 7 8 15 8"/>
 </svg> Save
 </button> <div class="toolbar-separator"></div>
-<button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()" aria-label="Undo"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()" aria-label="Undo" data-i18n-aria-label="action-undo"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M3 7v6h6"/> <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
 </svg> </button>
-<button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()" aria-label="Redo"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()" aria-label="Redo" data-i18n-aria-label="action-redo"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M21 7v6h-6"/> <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
 </svg> </button>
 <div class="toolbar-separator"></div> <button class="toolbar-btn" id="btn-run" hx-post="/api/ui/designer/validate" hx-include="closest .gb-app" title="Validate Dialog">
