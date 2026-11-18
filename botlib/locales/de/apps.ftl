@@ -362,6 +362,7 @@ workspace-empty-title = Wählen Sie eine Seite aus oder erstellen Sie eine neue
 
 # semantic i18n key (#2542)
 workspace-empty-hint = Ihre Arbeitsbereichsseiten werden in der Seitenleiste angezeigt
+workspace-empty-command-hint = Drücken Sie <kbd>/</kbd> für Befehle oder beginnen Sie mit der Eingabe...
 
 # semantic i18n key (#2542)
 workspace-invite-members = Mitglieder einladen

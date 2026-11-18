@@ -269,6 +269,8 @@ settings-network-mode-label = Mode réseau
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P (recommandé)
+settings-network-p2p-description = Le mode hors ligne maintient chaque connexion sur <code>127.0.0.1</code> et les liens partagés ne fonctionnent que sur votre réseau local.<br />Le P2P active de futures fonctionnalités telles que le relais gratuit des liens partagés et la découverte de pairs. Aucune donnée ne quitte cette machine tant que vous ne partagez pas explicitement quelque chose.
+settings-network-p2p-restart-hint = Cette préférence est enregistrée localement et prend effet après le redémarrage de l'application. Le point de terminaison du relais est fixe (<code id="network-relay-host">peer.generalbots.org</code>) ; la résolution des pairs et du site d'accueil l'utilise toujours, aucune configuration manuelle n'est donc nécessaire.
 
 # semantic i18n key (#2542)
 settings-role-viewer = Lecteur

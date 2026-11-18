@@ -269,6 +269,8 @@ settings-network-mode-label = 网络模式
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P（推荐）
+settings-network-p2p-description = 离线模式会将所有连接保持在 <code>127.0.0.1</code>，共享链接仅在本地网络中可用。<br />P2P 将启用未来功能，例如免费共享链接中继和对等节点发现。在您明确共享内容之前，不会有任何数据离开此设备。
+settings-network-p2p-restart-hint = 此首选项会保存在本地，并在应用重启后生效。中继端点是固定的 (<code id="network-relay-host">peer.generalbots.org</code>)；对等节点和主站点解析始终使用它，因此无需手动配置。
 
 # semantic i18n key (#2542)
 settings-role-viewer = 查看者

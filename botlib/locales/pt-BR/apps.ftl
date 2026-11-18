@@ -360,6 +360,7 @@ workspace-empty-title = Selecione uma página ou crie uma nova
 
 # semantic i18n key (#2542)
 workspace-empty-hint = As páginas do seu workspace aparecerão na barra lateral
+workspace-empty-command-hint = Pressione <kbd>/</kbd> para comandos ou comece a digitar...
 
 # semantic i18n key (#2542)
 workspace-invite-members = Convidar membros

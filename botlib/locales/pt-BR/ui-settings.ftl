@@ -269,6 +269,8 @@ settings-network-mode-label = Modo de rede
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P (recomendado)
+settings-network-p2p-description = O modo offline mantém todas as conexões em <code>127.0.0.1</code> e os links compartilhados funcionam apenas na sua rede local.<br />O P2P habilita recursos futuros, como relay gratuito de links compartilhados e descoberta de peers. Nenhum dado sai deste computador até você compartilhar algo explicitamente.
+settings-network-p2p-restart-hint = Esta preferência é salva localmente e entra em vigor após reiniciar o app. O endpoint do relay é fixo (<code id="network-relay-host">peer.generalbots.org</code>); a resolução de peers e do site inicial sempre usa esse endereço, então nenhuma configuração manual é necessária.
 
 # semantic i18n key (#2542)
 settings-role-viewer = Visualizador

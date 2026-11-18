@@ -269,6 +269,8 @@ settings-network-mode-label = Modo de red
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P (recomendado)
+settings-network-p2p-description = El modo sin conexión mantiene todas las conexiones en <code>127.0.0.1</code> y los enlaces compartidos funcionan solo en su red local.<br />P2P habilita funciones futuras como el relé gratuito de enlaces compartidos y el descubrimiento de pares. Ningún dato sale de este equipo hasta que comparta algo explícitamente.
+settings-network-p2p-restart-hint = Esta preferencia se guarda localmente y surte efecto al reiniciar la aplicación. El endpoint del relé es fijo (<code id="network-relay-host">peer.generalbots.org</code>); la resolución de pares y del sitio principal siempre lo usa, así que no se requiere configuración manual.
 
 # semantic i18n key (#2542)
 settings-role-viewer = Visualizador

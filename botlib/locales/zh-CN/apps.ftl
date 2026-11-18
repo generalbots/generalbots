@@ -362,6 +362,7 @@ workspace-empty-title = 选择一个页面或创建新页面
 
 # semantic i18n key (#2542)
 workspace-empty-hint = 您的工作区页面将显示在侧边栏中
+workspace-empty-command-hint = 按 <kbd>/</kbd> 查看命令或开始输入...
 
 # semantic i18n key (#2542)
 workspace-invite-members = 邀请成员

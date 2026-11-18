@@ -362,6 +362,7 @@ workspace-empty-title = ページを選択するか新規作成してくださ�
 
 # semantic i18n key (#2542)
 workspace-empty-hint = ワークスペースのページはサイドバーに表示されます
+workspace-empty-command-hint = <kbd>/</kbd> を押してコマンドを表示するか、入力を開始してください...
 
 # semantic i18n key (#2542)
 workspace-invite-members = メンバーを招待

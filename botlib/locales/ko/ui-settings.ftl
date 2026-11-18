@@ -269,6 +269,8 @@ settings-network-mode-label = 네트워크 모드
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P(권장)
+settings-network-p2p-description = 오프라인 모드는 모든 연결을 <code>127.0.0.1</code>로 유지하며 공유 링크는 로컬 네트워크에서만 작동합니다.<br />P2P는 공유 링크 무료 릴레이 및 피어 검색과 같은 향후 기능을 활성화합니다. 명시적으로 공유하기 전까지 이 기기에서 데이터가 외부로 전송되지 않습니다.
+settings-network-p2p-restart-hint = 이 설정은 로컬에 저장되며 앱을 다시 시작한 후 적용됩니다. 릴레이 엔드포인트는 고정되어 있습니다(<code id="network-relay-host">peer.generalbots.org</code>). 피어 및 홈 사이트 확인에는 항상 이 엔드포인트가 사용되므로 수동 구성이 필요하지 않습니다.
 
 # semantic i18n key (#2542)
 settings-role-viewer = 뷰어

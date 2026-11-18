@@ -269,6 +269,8 @@ settings-network-mode-label = ネットワークモード
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P（推奨）
+settings-network-p2p-description = オフラインモードではすべての接続が <code>127.0.0.1</code> に保たれ、共有リンクはローカルネットワーク内でのみ機能します。<br />P2P は、共有リンクの無料リレーやピア検出などの将来機能を有効にします。明示的に共有するまで、このマシンからデータが外部に送信されることはありません。
+settings-network-p2p-restart-hint = この設定はローカルに保存され、アプリの再起動後に有効になります。リレーのエンドポイントは固定です (<code id="network-relay-host">peer.generalbots.org</code>)。ピアおよびホームサイトの解決には常にこれが使用されるため、手動設定は不要です。
 
 # semantic i18n key (#2542)
 settings-role-viewer = 閲覧者

@@ -362,6 +362,7 @@ workspace-empty-title = 페이지를 선택하거나 새로 만드세요
 
 # semantic i18n key (#2542)
 workspace-empty-hint = 작업 공간 페이지가 사이드바에 표시됩니다
+workspace-empty-command-hint = 명령을 보려면 <kbd>/</kbd>를 누르거나 입력을 시작하세요...
 
 # semantic i18n key (#2542)
 workspace-invite-members = 멤버 초대
