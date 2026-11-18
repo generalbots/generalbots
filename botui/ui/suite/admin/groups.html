@@ -56,7 +56,7 @@ hx-swap="innerHTML"> </div>
 </div> 
 <!-- Create Group Modal --> <dialog id="create-group-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="admin-groups-create-title">Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()" aria-label="Action">
+<h2 data-i18n="admin-groups-create-title">Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()" aria-label="Close" data-i18n-aria-label="action-close" title="Close" data-i18n-title="action-close">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -87,7 +87,7 @@ hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) { document
 </dialog> 
 <!-- Add Member Modal --> <dialog id="add-member-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="admin-groups-add-members">Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()" aria-label="Action">
+<h2 data-i18n="admin-groups-add-members">Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()" aria-label="Close" data-i18n-aria-label="action-close" title="Close" data-i18n-title="action-close">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -113,7 +113,7 @@ hx-swap="innerHTML"> </div>
 </dialog> 
 <!-- Send Invite Modal --> <dialog id="send-invite-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="admin-groups-send-invites">Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()" aria-label="Action">
+<h2 data-i18n="admin-groups-send-invites">Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()" aria-label="Close" data-i18n-aria-label="action-close" title="Close" data-i18n-title="action-close">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -130,7 +130,7 @@ hx-swap="none" hx-on::after-request="if(event.detail.successful) { document.getE
 </dialog> 
 <!-- Delete Group Modal --> <dialog id="delete-group-modal" class="modal modal-small">
 <div class="modal-content"> <div class="modal-header">
-<h2 data-i18n="admin-groups-delete">Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()" aria-label="Action">
+<h2 data-i18n="admin-groups-delete">Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()" aria-label="Close" data-i18n-aria-label="action-close" title="Close" data-i18n-title="action-close">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
