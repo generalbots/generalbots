@@ -251,8 +251,8 @@ async function disconnectAccount(){
     loadAll();
 }
 
-function showModal(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
-function hideModal(id){var el=document.getElementById(id);if(el)el.style.display='none'}
+function showModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id); var el=document.getElementById(id);if(el)el.style.display='flex'; }
+function hideModal(id){ if (window.GBAppKit && window.GBAppKit.hideModal) return window.GBAppKit.hideModal(id); var el=document.getElementById(id);if(el)el.style.display='none'; }
 
 function bindDelegated(){
     var root = document.querySelector('[data-gb-app="o365"]') || document;

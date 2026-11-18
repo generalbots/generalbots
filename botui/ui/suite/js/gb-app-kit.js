@@ -115,11 +115,35 @@
     else canvas.hasDrawn = false;
   }
 
+  function showModal(id, opts) {
+    var el = typeof id === "string" ? document.getElementById(id) : id;
+    if (!el) return;
+    opts = opts || {};
+    if (opts.className) {
+      el.classList.add(opts.className);
+    } else {
+      el.style.display = opts.display || "flex";
+    }
+  }
+
+  function hideModal(id, opts) {
+    var el = typeof id === "string" ? document.getElementById(id) : id;
+    if (!el) return;
+    opts = opts || {};
+    if (opts.className) {
+      el.classList.remove(opts.className);
+    } else {
+      el.style.display = opts.hideDisplay || "none";
+    }
+  }
+
   global.GBAppKit = {
     escapeHtml: escapeHtml,
     showFeedback: showFeedback,
     apiCall: apiCall,
     mountSignaturePad: mountSignaturePad,
-    clearSignatureCanvas: clearSignatureCanvas
+    clearSignatureCanvas: clearSignatureCanvas,
+    showModal: showModal,
+    hideModal: hideModal
   };
 })(window);
