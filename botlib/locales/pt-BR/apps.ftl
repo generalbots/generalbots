@@ -531,3 +531,27 @@ fraud-col-level = Nível
 
 # semantic i18n key (#2542)
 fraud-col-reason = Motivo
+
+# semantic i18n key (#2542)
+vision-loading = Carregando visão…
+
+# semantic i18n key (#2542)
+vision-service-unavailable = Serviço de visão indisponível
+
+# semantic i18n key (#2542)
+vision-image-recognition-title = Reconhecimento de Imagens
+
+# semantic i18n key (#2542)
+vision-license-plate-recognition = Reconhecimento de Placas
+
+# semantic i18n key (#2542)
+vision-drag-image-hint = Arraste uma imagem ou clique para selecionar
+
+# semantic i18n key (#2542)
+vision-results = Resultados
+
+# semantic i18n key (#2542)
+vision-clear = Limpar
+
+# semantic i18n key (#2542)
+vision-send-image-hint = Envie uma imagem para analisar

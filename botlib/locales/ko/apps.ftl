@@ -533,3 +533,27 @@ fraud-col-level = 수준
 
 # semantic i18n key (#2542)
 fraud-col-reason = 사유
+
+# semantic i18n key (#2542)
+vision-loading = 비전 불러오는 중…
+
+# semantic i18n key (#2542)
+vision-service-unavailable = 비전 서비스를 사용할 수 없음
+
+# semantic i18n key (#2542)
+vision-image-recognition-title = 이미지 인식
+
+# semantic i18n key (#2542)
+vision-license-plate-recognition = 번호판 인식
+
+# semantic i18n key (#2542)
+vision-drag-image-hint = 이미지를 끌어다 놓거나 클릭하여 선택하세요
+
+# semantic i18n key (#2542)
+vision-results = 결과
+
+# semantic i18n key (#2542)
+vision-clear = 지우기
+
+# semantic i18n key (#2542)
+vision-send-image-hint = 분석할 이미지를 보내세요

@@ -533,3 +533,27 @@ fraud-col-level = レベル
 
 # semantic i18n key (#2542)
 fraud-col-reason = 理由
+
+# semantic i18n key (#2542)
+vision-loading = ビジョンを読み込み中…
+
+# semantic i18n key (#2542)
+vision-service-unavailable = ビジョンサービスを利用できません
+
+# semantic i18n key (#2542)
+vision-image-recognition-title = 画像認識
+
+# semantic i18n key (#2542)
+vision-license-plate-recognition = ナンバープレート認識
+
+# semantic i18n key (#2542)
+vision-drag-image-hint = 画像をドラッグするかクリックして選択
+
+# semantic i18n key (#2542)
+vision-results = 結果
+
+# semantic i18n key (#2542)
+vision-clear = クリア
+
+# semantic i18n key (#2542)
+vision-send-image-hint = 分析する画像を送信してください

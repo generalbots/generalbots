@@ -533,3 +533,27 @@ fraud-col-level = 级别
 
 # semantic i18n key (#2542)
 fraud-col-reason = 原因
+
+# semantic i18n key (#2542)
+vision-loading = 正在加载视觉…
+
+# semantic i18n key (#2542)
+vision-service-unavailable = 视觉服务不可用
+
+# semantic i18n key (#2542)
+vision-image-recognition-title = 图像识别
+
+# semantic i18n key (#2542)
+vision-license-plate-recognition = 车牌识别
+
+# semantic i18n key (#2542)
+vision-drag-image-hint = 拖拽图像或点击选择
+
+# semantic i18n key (#2542)
+vision-results = 结果
+
+# semantic i18n key (#2542)
+vision-clear = 清除
+
+# semantic i18n key (#2542)
+vision-send-image-hint = 发送图像进行分析
