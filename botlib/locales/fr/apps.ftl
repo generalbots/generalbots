@@ -1231,3 +1231,17 @@ pos-placeholder-search-products = Rechercher des produits...
 
 # semantic i18n key (#2542)
 weather-placeholder-search-city = Rechercher une ville… (p. ex. São Paulo)
+
+# semantic i18n key (#2542)
+widget-todo-placeholder-add = Ajouter une tâche…
+widget-todo-aria-new-task = Nouvelle tâche
+widget-todo-aria-toggle = Basculer la tâche
+widget-todo-title-remove = Supprimer
+widget-todo-count-one = 1 tâche restante
+widget-todo-count-many = {n} tâches restantes
+widget-notes-placeholder = Écrire une note…
+widget-notes-aria = Note autocollante
+widget-notes-title-clear = Effacer la note
+widget-notes-status-saved = Enregistré
+widget-notes-status-editing = Modification…
+widget-notes-status-cleared = Effacé

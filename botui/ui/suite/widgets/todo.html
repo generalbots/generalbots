@@ -1,7 +1,7 @@
 <div class="gb-system-widget" data-gb-widget="todo">
   <div class="gb-wtodo" style="height: 100%">
     <div class="gb-wtodo-add">
-      <input type="text" class="gb-wtodo-input" placeholder="Add a task…" aria-label="New task" maxlength="200" />
+      <input type="text" class="gb-wtodo-input" data-i18n-placeholder="widget-todo-placeholder-add" data-i18n-aria-label="widget-todo-aria-new-task" maxlength="200" />
     </div>
     <ul class="gb-wtodo-list"></ul>
     <div class="gb-wtodo-foot">
@@ -54,7 +54,7 @@
       var check = document.createElement("input");
       check.type = "checkbox";
       check.checked = !!item.done;
-      check.setAttribute("aria-label", "Toggle task");
+      check.setAttribute("aria-label", (window.gbT ? window.gbT("widget-todo-aria-toggle", "Toggle task") : "Toggle task"));
       check.addEventListener("change", function () {
         var all = read();
         if (all[index]) all[index].done = check.checked;
@@ -69,7 +69,7 @@
       var del = document.createElement("button");
       del.type = "button";
       del.className = "gb-widget-btn gb-wtodo-del";
-      del.title = "Remove";
+      del.title = window.gbT ? window.gbT("widget-todo-title-remove", "Remove") : "Remove";
       del.textContent = "✕";
       del.addEventListener("click", function () {
         var all = read();
@@ -85,7 +85,12 @@
     });
     if (count) {
       var open = items.filter(function (i) { return !i.done; }).length;
-      count.textContent = open === 1 ? "1 task left" : open + " tasks left";
+      if (open === 1) {
+        count.textContent = window.gbT ? window.gbT("widget-todo-count-one", "1 task left") : "1 task left";
+      } else {
+        var tmpl = window.gbT ? window.gbT("widget-todo-count-many", "{n} tasks left") : "{n} tasks left";
+        count.textContent = String(tmpl).replace("{n}", String(open));
+      }
     }
   }
 

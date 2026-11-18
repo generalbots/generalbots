@@ -1231,3 +1231,17 @@ pos-placeholder-search-products = 搜索商品...
 
 # semantic i18n key (#2542)
 weather-placeholder-search-city = 搜索城市…（例如：圣保罗）
+
+# semantic i18n key (#2542)
+widget-todo-placeholder-add = 添加任务…
+widget-todo-aria-new-task = 新任务
+widget-todo-aria-toggle = 切换任务
+widget-todo-title-remove = 移除
+widget-todo-count-one = 剩余 1 个任务
+widget-todo-count-many = 剩余 {n} 个任务
+widget-notes-placeholder = 写一条便签…
+widget-notes-aria = 便签
+widget-notes-title-clear = 清除便签
+widget-notes-status-saved = 已保存
+widget-notes-status-editing = 编辑中…
+widget-notes-status-cleared = 已清除

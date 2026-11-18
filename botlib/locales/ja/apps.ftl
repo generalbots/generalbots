@@ -1231,3 +1231,17 @@ pos-placeholder-search-products = 商品を検索...
 
 # semantic i18n key (#2542)
 weather-placeholder-search-city = 都市を検索…（例: サンパウロ）
+
+# semantic i18n key (#2542)
+widget-todo-placeholder-add = タスクを追加…
+widget-todo-aria-new-task = 新しいタスク
+widget-todo-aria-toggle = タスクを切り替え
+widget-todo-title-remove = 削除
+widget-todo-count-one = 残り1件のタスク
+widget-todo-count-many = 残り{n}件のタスク
+widget-notes-placeholder = メモを書く…
+widget-notes-aria = 付箋
+widget-notes-title-clear = メモを消去
+widget-notes-status-saved = 保存済み
+widget-notes-status-editing = 編集中…
+widget-notes-status-cleared = 消去済み

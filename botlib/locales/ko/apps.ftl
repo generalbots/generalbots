@@ -1231,3 +1231,17 @@ pos-placeholder-search-products = 상품 검색...
 
 # semantic i18n key (#2542)
 weather-placeholder-search-city = 도시 검색… (예: 상파울루)
+
+# semantic i18n key (#2542)
+widget-todo-placeholder-add = 작업 추가…
+widget-todo-aria-new-task = 새 작업
+widget-todo-aria-toggle = 작업 전환
+widget-todo-title-remove = 제거
+widget-todo-count-one = 남은 작업 1개
+widget-todo-count-many = 남은 작업 {n}개
+widget-notes-placeholder = 메모 작성…
+widget-notes-aria = 스티커 메모
+widget-notes-title-clear = 메모 지우기
+widget-notes-status-saved = 저장됨
+widget-notes-status-editing = 편집 중…
+widget-notes-status-cleared = 지워짐
