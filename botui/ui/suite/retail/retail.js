@@ -8,6 +8,13 @@ async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiC
 
 function switchTab(tab,btn){
     state.currentTab=tab;
+    if (window.GBAppKit && window.GBAppKit.switchTab) {
+        window.GBAppKit.switchTab(tab, btn, {
+            tabSelector: '.retail-tabs [role="tab"], .retail-tabs .retail-tab',
+            panelSelector: '.retail-panel'
+        });
+        return;
+    }
     var tabs = Array.prototype.slice.call(document.querySelectorAll('.retail-tabs [role="tab"], .retail-tabs .retail-tab'));
     tabs.forEach(function(t){
         var active = t === btn;

@@ -16,6 +16,14 @@ async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiC
 
 function switchTab(tab,btn){
     currentTab=tab;
+    if (window.GBAppKit && window.GBAppKit.switchTab) {
+        window.GBAppKit.switchTab(tab, btn, {
+            tabSelector: '.kyc-tabs [role="tab"]',
+            panelSelector: '.kyc-panel',
+            panelId: function(t){ return t === 'verifications' ? 'panel-verifications' : 'kyc-panel-' + t; }
+        });
+        return;
+    }
     var tabs = Array.prototype.slice.call(document.querySelectorAll('.kyc-tabs [role="tab"]'));
     tabs.forEach(function(t){
         var active = t === btn;

@@ -8,6 +8,13 @@ async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiC
 
 function switchTab(tab,btn){
     state.currentTab=tab;
+    if (window.GBAppKit && window.GBAppKit.switchTab) {
+        window.GBAppKit.switchTab(tab, btn, {
+            tabSelector: '.o365-tabs [role="tab"], .o365-tabs .o365-tab',
+            panelSelector: '.o365-panel'
+        });
+        return;
+    }
     var tabs = Array.prototype.slice.call(document.querySelectorAll('.o365-tabs [role="tab"], .o365-tabs .o365-tab'));
     tabs.forEach(function(t){
         var active = t === btn;
