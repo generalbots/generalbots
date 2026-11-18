@@ -575,3 +575,9 @@ campaigns-delete-template-confirm = Supprimer ce modèle ?
 campaigns-failed-delete-template = Échec de la suppression du modèle
 campaigns-no-templates-yet = Aucun modèle pour le moment — créez le premier.
 campaigns-failed-load-templates = Échec du chargement des modèles
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = Carte KPI
+dashboards-widget-map = Carte
+dashboards-widget-embed = Intégrer
+dashboards-widget-filter = Filtre
+dashboards-widget-date-range = Plage de dates

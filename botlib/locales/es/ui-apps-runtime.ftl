@@ -793,3 +793,9 @@ campaigns-delete-template-confirm = ¿Eliminar esta plantilla?
 campaigns-failed-delete-template = Error al eliminar la plantilla
 campaigns-no-templates-yet = Aún no hay plantillas — crea la primera.
 campaigns-failed-load-templates = Error al cargar las plantillas
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = Tarjeta KPI
+dashboards-widget-map = Mapa
+dashboards-widget-embed = Insertar
+dashboards-widget-filter = Filtro
+dashboards-widget-date-range = Rango de fechas

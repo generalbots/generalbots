@@ -793,3 +793,9 @@ campaigns-delete-template-confirm = Delete this template?
 campaigns-failed-delete-template = Failed to delete template
 campaigns-no-templates-yet = No templates yet — create your first one.
 campaigns-failed-load-templates = Failed to load templates
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = KPI Card
+dashboards-widget-map = Map
+dashboards-widget-embed = Embed
+dashboards-widget-filter = Filter
+dashboards-widget-date-range = Date Range

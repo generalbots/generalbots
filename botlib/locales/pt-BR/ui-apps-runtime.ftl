@@ -792,3 +792,9 @@ campaigns-delete-template-confirm = Excluir este modelo?
 campaigns-failed-delete-template = Falha ao excluir o modelo
 campaigns-no-templates-yet = Nenhum modelo ainda — crie o primeiro.
 campaigns-failed-load-templates = Falha ao carregar modelos
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = Cartão KPI
+dashboards-widget-map = Mapa
+dashboards-widget-embed = Incorporar
+dashboards-widget-filter = Filtro
+dashboards-widget-date-range = Intervalo de datas

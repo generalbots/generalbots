@@ -575,3 +575,9 @@ campaigns-delete-template-confirm = このテンプレートを削除します�
 campaigns-failed-delete-template = テンプレートの削除に失敗しました
 campaigns-no-templates-yet = テンプレートはまだありません — 最初のテンプレートを作成してください。
 campaigns-failed-load-templates = テンプレートの読み込みに失敗しました
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = KPIカード
+dashboards-widget-map = マップ
+dashboards-widget-embed = 埋め込み
+dashboards-widget-filter = フィルター
+dashboards-widget-date-range = 日付範囲

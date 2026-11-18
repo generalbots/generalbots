@@ -575,3 +575,9 @@ campaigns-delete-template-confirm = 이 템플릿을 삭제하시겠습니까?
 campaigns-failed-delete-template = 템플릿을 삭제하지 못했습니다
 campaigns-no-templates-yet = 아직 템플릿이 없습니다 — 첫 번째 템플릿을 만드세요.
 campaigns-failed-load-templates = 템플릿을 불러오지 못했습니다
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = KPI 카드
+dashboards-widget-map = 지도
+dashboards-widget-embed = 임베드
+dashboards-widget-filter = 필터
+dashboards-widget-date-range = 날짜 범위

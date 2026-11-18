@@ -575,3 +575,9 @@ campaigns-delete-template-confirm = 删除此模板？
 campaigns-failed-delete-template = 删除模板失败
 campaigns-no-templates-yet = 还没有模板 — 创建第一个吧。
 campaigns-failed-load-templates = 加载模板失败
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = KPI 卡片
+dashboards-widget-map = 地图
+dashboards-widget-embed = 嵌入
+dashboards-widget-filter = 筛选器
+dashboards-widget-date-range = 日期范围

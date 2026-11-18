@@ -575,3 +575,9 @@ campaigns-delete-template-confirm = Diese Vorlage löschen?
 campaigns-failed-delete-template = Vorlage konnte nicht gelöscht werden
 campaigns-no-templates-yet = Noch keine Vorlagen — erstellen Sie die erste.
 campaigns-failed-load-templates = Vorlagen konnten nicht geladen werden
+# semantic i18n key (#2542)
+dashboards-widget-kpi-card = KPI-Karte
+dashboards-widget-map = Karte
+dashboards-widget-embed = Einbetten
+dashboards-widget-filter = Filter
+dashboards-widget-date-range = Datumsbereich
