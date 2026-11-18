@@ -1270,3 +1270,8 @@ banking-description-placeholder = 任意
 banking-bank-name-placeholder = 例: Banco do Brasil
 banking-agency-placeholder = 0001
 banking-account-number-placeholder = 12345-6
+# semantic i18n key (#2542)
+calculator-swap-units = 単位を入れ替え
+calculator-aria-amount = 数量
+calculator-aria-from-unit = 変換元の単位
+calculator-aria-to-unit = 変換先の単位

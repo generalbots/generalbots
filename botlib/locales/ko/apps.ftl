@@ -1270,3 +1270,8 @@ banking-description-placeholder = 선택 사항
 banking-bank-name-placeholder = 예: Banco do Brasil
 banking-agency-placeholder = 0001
 banking-account-number-placeholder = 12345-6
+# semantic i18n key (#2542)
+calculator-swap-units = 단위 바꾸기
+calculator-aria-amount = 수량
+calculator-aria-from-unit = 원래 단위
+calculator-aria-to-unit = 대상 단위

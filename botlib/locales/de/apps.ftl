@@ -1270,3 +1270,8 @@ banking-description-placeholder = Optional
 banking-bank-name-placeholder = z. B. Banco do Brasil
 banking-agency-placeholder = 0001
 banking-account-number-placeholder = 12345-6
+# semantic i18n key (#2542)
+calculator-swap-units = Einheiten tauschen
+calculator-aria-amount = Betrag
+calculator-aria-from-unit = Von Einheit
+calculator-aria-to-unit = Zu Einheit

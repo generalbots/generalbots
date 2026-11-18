@@ -29,13 +29,13 @@
         <div id="gb-calc-converter" class="gb-calc-converter" role="tabpanel" aria-labelledby="gb-tab-convert" hidden>
             <select id="gb-calc-conv-cat" class="gb-calc-select" data-i18n-aria-label="calculator-aria-category"></select>
             <div class="gb-calc-conv-row">
-                <input id="gb-calc-conv-amt" class="gb-calc-input" type="text" value="1" aria-label="Amount" />
-                <select id="gb-calc-conv-from" class="gb-calc-select" aria-label="From unit"></select>
+                <input id="gb-calc-conv-amt" class="gb-calc-input" type="text" value="1" aria-label="Amount" data-i18n-aria-label="calculator-aria-amount" />
+                <select id="gb-calc-conv-from" class="gb-calc-select" aria-label="From unit" data-i18n-aria-label="calculator-aria-from-unit"></select>
             </div>
-            <button type="button" class="gb-calc-key gb-calc-swap" id="gb-calc-conv-swap" title="Swap units">⇅</button>
+            <button type="button" class="gb-calc-key gb-calc-swap" id="gb-calc-conv-swap" title="Swap units" data-i18n-title="calculator-swap-units" aria-label="Swap units" data-i18n-aria-label="calculator-swap-units">⇅</button>
             <div class="gb-calc-conv-row">
                 <div id="gb-calc-conv-out" class="gb-calc-input gb-calc-conv-result">—</div>
-                <select id="gb-calc-conv-to" class="gb-calc-select" aria-label="To unit"></select>
+                <select id="gb-calc-conv-to" class="gb-calc-select" aria-label="To unit" data-i18n-aria-label="calculator-aria-to-unit"></select>
             </div>
         </div>
     </div>
