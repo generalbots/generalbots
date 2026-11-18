@@ -32,9 +32,41 @@
     setTimeout(function () { el.style.opacity = "0"; }, 3000);
   }
 
+  function getAuthToken() {
+    try {
+      if (global.GBSecurity && typeof global.GBSecurity.getToken === "function") {
+        var t = global.GBSecurity.getToken();
+        if (t) return t;
+      }
+      if (typeof global.getGBAccessToken === "function") {
+        var t2 = global.getGBAccessToken();
+        if (t2) return t2;
+      }
+    } catch (e) {}
+    var keys = ["gb-access-token", "management_token", "token", "id_token", "gb_token"];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var v = localStorage.getItem(keys[i]) || sessionStorage.getItem(keys[i]);
+        if (v) return v;
+      } catch (e2) {}
+    }
+    return null;
+  }
+
   async function apiCall(appId, url, options) {
     try {
-      var r = await fetch(url, options);
+      var opts = options ? Object.assign({}, options) : {};
+      var headers = Object.assign({}, (options && options.headers) || {});
+      var hasAuth = false;
+      Object.keys(headers).forEach(function (k) {
+        if (String(k).toLowerCase() === "authorization") hasAuth = true;
+      });
+      if (!hasAuth) {
+        var token = getAuthToken();
+        if (token) headers.Authorization = "Bearer " + token;
+      }
+      opts.headers = headers;
+      var r = await fetch(url, opts);
       if (!r.ok) throw new Error("HTTP " + r.status);
       var t = await r.text();
       return t ? JSON.parse(t) : null;
