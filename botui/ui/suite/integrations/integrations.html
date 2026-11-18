@@ -29,8 +29,8 @@
             </div>
         </header>
 
-        <nav class="integrations-navigation" data-tour="integrations.tabs" aria-label="Integration views">
-            <div class="integrations-tabs" role="tablist" aria-label="Integration views">
+        <nav class="integrations-navigation" data-tour="integrations.tabs" aria-label="Integration views" data-i18n-aria-label="integrations-integration-views-aria-label">
+            <div class="integrations-tabs" role="tablist" aria-label="Integration views" data-i18n-aria-label="integrations-integration-views-aria-label">
                 <button class="integrations-tab" type="button" role="tab" data-tab="explore"
                     aria-selected="true" tabindex="0" data-i18n="integrations-explore-tab">Explore</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="connected"
@@ -50,15 +50,15 @@
                         <span class="integrations-search-control">
                             <span class="integrations-search-mark" aria-hidden="true"></span>
                             <input type="search" data-search data-tour="integrations.search" autocomplete="off"
-                                placeholder="Search AWS, messaging, storage..."
-                                aria-label="Search integration providers and actions">
+                                placeholder="Search AWS, messaging, storage..." data-i18n-placeholder="integrations-search-placeholder"
+                                aria-label="Search integration providers and actions" data-i18n-aria-label="integrations-search-aria-label">
                         </span>
                     </label>
 
                     <fieldset class="integrations-filter-group">
                         <legend data-i18n="integrations-availability">Availability</legend>
-                        <div class="integrations-segments" aria-label="Filter by availability">
-                            <button type="button" data-status="all" aria-pressed="true">All</button>
+                        <div class="integrations-segments" aria-label="Filter by availability" data-i18n-aria-label="integrations-filter-availability-aria-label">
+                            <button type="button" data-status="all" aria-pressed="true" data-i18n="label-all">All</button>
                             <button type="button" data-status="must" aria-pressed="false" data-i18n="integrations-availability-must">Must</button>
                             <button type="button" data-status="available" aria-pressed="false" data-i18n="status-available">Available</button>
                         </div>
@@ -66,14 +66,14 @@
                 </div>
 
                 <div class="integrations-category-row" data-category-filters role="tablist"
-                    aria-label="Integration categories" aria-busy="true"></div>
+                    aria-label="Integration categories" data-i18n-aria-label="integrations-integration-categories-aria-label" aria-busy="true"></div>
 
                 <div data-category-panel role="tabpanel">
                     <div class="integrations-results-bar">
                         <p class="integrations-result-status" data-result-status role="status" aria-live="polite" data-i18n="integrations-loading-providers">
                             Loading providers
                         </p>
-                        <div class="integrations-view-toggle" role="group" aria-label="Catalog layout">
+                        <div class="integrations-view-toggle" role="group" aria-label="Catalog layout" data-i18n-aria-label="integrations-catalog-layout-aria-label">
                             <button type="button" data-view="grid" aria-pressed="true" data-i18n="integrations-view-cards">Cards</button>
                             <button type="button" data-view="list" aria-pressed="false" data-i18n="integrations-view-list">List</button>
                         </div>
@@ -164,7 +164,7 @@
                     <h2 data-detail-title data-i18n="integrations-integration-details-title">Integration details</h2>
                 </div>
                 <button class="integrations-close-button" type="button" data-action="close-details"
-                    aria-label="Close integration details" data-i18n="action-close">Close</button>
+                    aria-label="Close integration details" data-i18n-aria-label="integrations-close-details-aria-label" data-i18n="action-close">Close</button>
             </header>
             <div class="integrations-detail-body" data-detail-body></div>
         </aside>

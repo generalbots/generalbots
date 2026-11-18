@@ -119,3 +119,11 @@ integrations-provider-detail-eyebrow = Anbieterdetails
 
 # semantic i18n key (#2542)
 integrations-integration-details-title = Integrationsdetails
+# semantic i18n key (#2542)
+integrations-integration-views-aria-label = Integrationsansichten
+integrations-search-placeholder = AWS, Messaging, Speicher suchen...
+integrations-search-aria-label = Integrationsanbieter und Aktionen suchen
+integrations-filter-availability-aria-label = Nach Verfügbarkeit filtern
+integrations-catalog-layout-aria-label = Kataloglayout
+integrations-integration-categories-aria-label = Integrationskategorien
+integrations-close-details-aria-label = Integrationsdetails schließen

@@ -119,3 +119,11 @@ integrations-provider-detail-eyebrow = 提供商详情
 
 # semantic i18n key (#2542)
 integrations-integration-details-title = 集成详情
+# semantic i18n key (#2542)
+integrations-integration-views-aria-label = 集成视图
+integrations-search-placeholder = 搜索 AWS、消息传递、存储...
+integrations-search-aria-label = 搜索集成提供商和操作
+integrations-filter-availability-aria-label = 按可用性筛选
+integrations-catalog-layout-aria-label = 目录布局
+integrations-integration-categories-aria-label = 集成类别
+integrations-close-details-aria-label = 关闭集成详情

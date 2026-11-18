@@ -119,3 +119,11 @@ integrations-provider-detail-eyebrow = プロバイダーの詳細
 
 # semantic i18n key (#2542)
 integrations-integration-details-title = 統合の詳細
+# semantic i18n key (#2542)
+integrations-integration-views-aria-label = 統合ビュー
+integrations-search-placeholder = AWS、メッセージング、ストレージを検索...
+integrations-search-aria-label = 統合プロバイダーとアクションを検索
+integrations-filter-availability-aria-label = 利用可否でフィルター
+integrations-catalog-layout-aria-label = カタログのレイアウト
+integrations-integration-categories-aria-label = 統合カテゴリ
+integrations-close-details-aria-label = 統合の詳細を閉じる

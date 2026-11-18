@@ -119,3 +119,11 @@ integrations-provider-detail-eyebrow = 공급자 세부 정보
 
 # semantic i18n key (#2542)
 integrations-integration-details-title = 통합 세부 정보
+# semantic i18n key (#2542)
+integrations-integration-views-aria-label = 통합 보기
+integrations-search-placeholder = AWS, 메시징, 스토리지 검색...
+integrations-search-aria-label = 통합 제공업체 및 작업 검색
+integrations-filter-availability-aria-label = 가용성별 필터
+integrations-catalog-layout-aria-label = 카탈로그 레이아웃
+integrations-integration-categories-aria-label = 통합 카테고리
+integrations-close-details-aria-label = 통합 세부 정보 닫기
