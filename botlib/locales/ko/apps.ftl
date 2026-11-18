@@ -581,3 +581,36 @@ automations-max-runtime-label = 최대 실행 시간(초)
 
 # semantic i18n key (#2542)
 automations-save-schedule = 일정 저장
+
+# semantic i18n key (#2542)
+memory-edit-in-settings = 설정에서 편집
+
+# semantic i18n key (#2542)
+memory-privacy-label = 개인정보:
+
+# semantic i18n key (#2542)
+memory-add-title = 메모리 추가
+
+# semantic i18n key (#2542)
+memory-kind-label = 종류
+
+# semantic i18n key (#2542)
+memory-kind-fact = 사실
+
+# semantic i18n key (#2542)
+memory-kind-preference = 선호
+
+# semantic i18n key (#2542)
+memory-kind-goal = 목표
+
+# semantic i18n key (#2542)
+memory-kind-event = 이벤트
+
+# semantic i18n key (#2542)
+memory-import-title = 메모리 가져오기
+
+# semantic i18n key (#2542)
+memory-dry-run-label =  드라이 런 — 기록하지 않고 검증 및 개수 미리보기
+
+# semantic i18n key (#2542)
+memory-run-import = 가져오기 실행

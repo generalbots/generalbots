@@ -581,3 +581,36 @@ automations-max-runtime-label = Maximale Laufzeit (Sekunden)
 
 # semantic i18n key (#2542)
 automations-save-schedule = Zeitplan speichern
+
+# semantic i18n key (#2542)
+memory-edit-in-settings = In Einstellungen bearbeiten
+
+# semantic i18n key (#2542)
+memory-privacy-label = Datenschutz:
+
+# semantic i18n key (#2542)
+memory-add-title = Erinnerung hinzufügen
+
+# semantic i18n key (#2542)
+memory-kind-label = Art
+
+# semantic i18n key (#2542)
+memory-kind-fact = Fakt
+
+# semantic i18n key (#2542)
+memory-kind-preference = Präferenz
+
+# semantic i18n key (#2542)
+memory-kind-goal = Ziel
+
+# semantic i18n key (#2542)
+memory-kind-event = Ereignis
+
+# semantic i18n key (#2542)
+memory-import-title = Erinnerungen importieren
+
+# semantic i18n key (#2542)
+memory-dry-run-label =  Probelauf — validieren und Anzahl prüfen, ohne zu schreiben
+
+# semantic i18n key (#2542)
+memory-run-import = Import ausführen

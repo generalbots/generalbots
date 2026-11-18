@@ -581,3 +581,36 @@ automations-max-runtime-label = 最长运行时间（秒）
 
 # semantic i18n key (#2542)
 automations-save-schedule = 保存计划
+
+# semantic i18n key (#2542)
+memory-edit-in-settings = 在设置中编辑
+
+# semantic i18n key (#2542)
+memory-privacy-label = 隐私：
+
+# semantic i18n key (#2542)
+memory-add-title = 添加记忆
+
+# semantic i18n key (#2542)
+memory-kind-label = 类型
+
+# semantic i18n key (#2542)
+memory-kind-fact = 事实
+
+# semantic i18n key (#2542)
+memory-kind-preference = 偏好
+
+# semantic i18n key (#2542)
+memory-kind-goal = 目标
+
+# semantic i18n key (#2542)
+memory-kind-event = 事件
+
+# semantic i18n key (#2542)
+memory-import-title = 导入记忆
+
+# semantic i18n key (#2542)
+memory-dry-run-label =  试运行 — 验证并预览数量而不写入
+
+# semantic i18n key (#2542)
+memory-run-import = 运行导入

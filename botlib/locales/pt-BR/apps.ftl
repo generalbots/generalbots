@@ -579,3 +579,36 @@ automations-max-runtime-label = Tempo máximo de execução (segundos)
 
 # semantic i18n key (#2542)
 automations-save-schedule = Salvar agendamento
+
+# semantic i18n key (#2542)
+memory-edit-in-settings = Editar em Configurações
+
+# semantic i18n key (#2542)
+memory-privacy-label = Privacidade:
+
+# semantic i18n key (#2542)
+memory-add-title = Adicionar memória
+
+# semantic i18n key (#2542)
+memory-kind-label = Tipo
+
+# semantic i18n key (#2542)
+memory-kind-fact = Fato
+
+# semantic i18n key (#2542)
+memory-kind-preference = Preferência
+
+# semantic i18n key (#2542)
+memory-kind-goal = Meta
+
+# semantic i18n key (#2542)
+memory-kind-event = Evento
+
+# semantic i18n key (#2542)
+memory-import-title = Importar memórias
+
+# semantic i18n key (#2542)
+memory-dry-run-label =  Simulação — validar e visualizar contagens sem gravar
+
+# semantic i18n key (#2542)
+memory-run-import = Executar importação
