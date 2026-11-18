@@ -674,3 +674,39 @@ canvas-action-bring-to-front = 置于顶层
 
 # semantic i18n key (#2542)
 canvas-action-send-to-back = 置于底层
+
+# semantic i18n key (#2542)
+browser-headless-title = 无头浏览器
+
+# semantic i18n key (#2542)
+browser-session-none = 无会话
+
+# semantic i18n key (#2542)
+browser-action-new-session = + 新建会话
+
+# semantic i18n key (#2542)
+browser-action-screenshot = 截图
+
+# semantic i18n key (#2542)
+browser-action-extract-text = 提取文本
+
+# semantic i18n key (#2542)
+browser-agent-mode = 代理模式
+
+# semantic i18n key (#2542)
+browser-create-session-hint = 创建浏览器会话以开始。
+
+# semantic i18n key (#2542)
+browser-page-state = 页面状态
+
+# semantic i18n key (#2542)
+browser-page-title-label = 标题：
+
+# semantic i18n key (#2542)
+browser-page-links-label = 链接：
+
+# semantic i18n key (#2542)
+browser-agent-log = 代理日志
+
+# semantic i18n key (#2542)
+browser-agent-mode-disabled = 代理模式已禁用

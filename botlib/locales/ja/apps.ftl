@@ -674,3 +674,39 @@ canvas-action-bring-to-front = 最前面へ
 
 # semantic i18n key (#2542)
 canvas-action-send-to-back = 最背面へ
+
+# semantic i18n key (#2542)
+browser-headless-title = ヘッドレスブラウザ
+
+# semantic i18n key (#2542)
+browser-session-none = セッションなし
+
+# semantic i18n key (#2542)
+browser-action-new-session = + 新しいセッション
+
+# semantic i18n key (#2542)
+browser-action-screenshot = スクリーンショット
+
+# semantic i18n key (#2542)
+browser-action-extract-text = テキストを抽出
+
+# semantic i18n key (#2542)
+browser-agent-mode = エージェントモード
+
+# semantic i18n key (#2542)
+browser-create-session-hint = 開始するにはブラウザセッションを作成してください。
+
+# semantic i18n key (#2542)
+browser-page-state = ページ状態
+
+# semantic i18n key (#2542)
+browser-page-title-label = タイトル:
+
+# semantic i18n key (#2542)
+browser-page-links-label = リンク:
+
+# semantic i18n key (#2542)
+browser-agent-log = エージェントログ
+
+# semantic i18n key (#2542)
+browser-agent-mode-disabled = エージェントモードは無効です

@@ -674,3 +674,39 @@ canvas-action-bring-to-front = 맨 앞으로
 
 # semantic i18n key (#2542)
 canvas-action-send-to-back = 맨 뒤로
+
+# semantic i18n key (#2542)
+browser-headless-title = 헤드리스 브라우저
+
+# semantic i18n key (#2542)
+browser-session-none = 세션 없음
+
+# semantic i18n key (#2542)
+browser-action-new-session = + 새 세션
+
+# semantic i18n key (#2542)
+browser-action-screenshot = 스크린샷
+
+# semantic i18n key (#2542)
+browser-action-extract-text = 텍스트 추출
+
+# semantic i18n key (#2542)
+browser-agent-mode = 에이전트 모드
+
+# semantic i18n key (#2542)
+browser-create-session-hint = 시작하려면 브라우저 세션을 만드세요.
+
+# semantic i18n key (#2542)
+browser-page-state = 페이지 상태
+
+# semantic i18n key (#2542)
+browser-page-title-label = 제목:
+
+# semantic i18n key (#2542)
+browser-page-links-label = 링크:
+
+# semantic i18n key (#2542)
+browser-agent-log = 에이전트 로그
+
+# semantic i18n key (#2542)
+browser-agent-mode-disabled = 에이전트 모드 비활성화됨

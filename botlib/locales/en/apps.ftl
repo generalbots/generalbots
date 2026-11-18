@@ -674,3 +674,39 @@ canvas-action-bring-to-front = Bring to Front
 
 # semantic i18n key (#2542)
 canvas-action-send-to-back = Send to Back
+
+# semantic i18n key (#2542)
+browser-headless-title = Headless Browser
+
+# semantic i18n key (#2542)
+browser-session-none = No session
+
+# semantic i18n key (#2542)
+browser-action-new-session = + New Session
+
+# semantic i18n key (#2542)
+browser-action-screenshot = Screenshot
+
+# semantic i18n key (#2542)
+browser-action-extract-text = Extract Text
+
+# semantic i18n key (#2542)
+browser-agent-mode = Agent Mode
+
+# semantic i18n key (#2542)
+browser-create-session-hint = Create a browser session to begin.
+
+# semantic i18n key (#2542)
+browser-page-state = Page State
+
+# semantic i18n key (#2542)
+browser-page-title-label = Title:
+
+# semantic i18n key (#2542)
+browser-page-links-label = Links:
+
+# semantic i18n key (#2542)
+browser-agent-log = Agent Log
+
+# semantic i18n key (#2542)
+browser-agent-mode-disabled = Agent mode disabled
