@@ -2,7 +2,7 @@
 <form class="product-form" hx-post="/api/products/services" hx-ext="json-enc" hx-swap="none" hx-disabled-elt="find button[type='submit']" hx-on::after-request="var xhr=event.detail.xhr; if(event.detail.successful){ if(window.showProductsToast){showProductsToast('Service saved','success');} closeProductsModal(); htmx.ajax('GET','/api/ui/products/services',{target:'#services-table-body',swap:'innerHTML'}); } else { if(window.showProductsToast){showProductsToast(window.productsErrorMessage?productsErrorMessage(xhr):'Could not save service');} }">
     <div class="product-form-header">
         <h2 class="product-form-title" data-i18n="products-new-service">New Service</h2>
-        <button type="button" class="form-close" onclick="closeProductsModal()" aria-label="Close">
+        <button type="button" class="form-close" onclick="closeProductsModal()" data-i18n-aria-label="action-close" data-i18n-title="action-close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
