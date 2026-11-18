@@ -97,3 +97,60 @@ tax-weight-kg-label = 重量 (kg)
 
 # semantic i18n key (#2542)
 tax-mode-label = 輸送モード
+
+# semantic i18n key (#2542)
+minutes-title = 議事録
+
+# semantic i18n key (#2542)
+minutes-action-signature = 署名
+
+# semantic i18n key (#2542)
+minutes-tab-live = 進行中
+
+# semantic i18n key (#2542)
+minutes-tab-documents = 議事録
+
+# semantic i18n key (#2542)
+minutes-tab-signatures = 署名
+
+# semantic i18n key (#2542)
+minutes-label-date = 日付
+
+# semantic i18n key (#2542)
+minutes-label-location = 場所
+
+# semantic i18n key (#2542)
+minutes-label-deadline = 期限
+
+# semantic i18n key (#2542)
+minutes-label-participant = 参加者
+
+# semantic i18n key (#2542)
+minutes-status-confirmed = 確認済み
+
+# semantic i18n key (#2542)
+minutes-status-declined = 辞退
+
+# semantic i18n key (#2542)
+minutes-status-tentative = 未定
+
+# semantic i18n key (#2542)
+minutes-action-register = 登録
+
+# semantic i18n key (#2542)
+minutes-editor-title = 議事録エディター
+
+# semantic i18n key (#2542)
+minutes-option-summary = 要約
+
+# semantic i18n key (#2542)
+minutes-digital-signature-title = デジタル署名
+
+# semantic i18n key (#2542)
+minutes-label-document-id = 文書ID
+
+# semantic i18n key (#2542)
+minutes-label-signer = 署名者
+
+# semantic i18n key (#2542)
+minutes-action-sign = 署名する

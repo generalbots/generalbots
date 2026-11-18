@@ -97,3 +97,60 @@ tax-weight-kg-label = 무게 (kg)
 
 # semantic i18n key (#2542)
 tax-mode-label = 운송 방식
+
+# semantic i18n key (#2542)
+minutes-title = 회의록
+
+# semantic i18n key (#2542)
+minutes-action-signature = 서명
+
+# semantic i18n key (#2542)
+minutes-tab-live = 진행 중
+
+# semantic i18n key (#2542)
+minutes-tab-documents = 회의록
+
+# semantic i18n key (#2542)
+minutes-tab-signatures = 서명
+
+# semantic i18n key (#2542)
+minutes-label-date = 날짜
+
+# semantic i18n key (#2542)
+minutes-label-location = 장소
+
+# semantic i18n key (#2542)
+minutes-label-deadline = 기한
+
+# semantic i18n key (#2542)
+minutes-label-participant = 참가자
+
+# semantic i18n key (#2542)
+minutes-status-confirmed = 확인됨
+
+# semantic i18n key (#2542)
+minutes-status-declined = 거절됨
+
+# semantic i18n key (#2542)
+minutes-status-tentative = 미정
+
+# semantic i18n key (#2542)
+minutes-action-register = 등록
+
+# semantic i18n key (#2542)
+minutes-editor-title = 회의록 편집기
+
+# semantic i18n key (#2542)
+minutes-option-summary = 요약
+
+# semantic i18n key (#2542)
+minutes-digital-signature-title = 디지털 서명
+
+# semantic i18n key (#2542)
+minutes-label-document-id = 문서 ID
+
+# semantic i18n key (#2542)
+minutes-label-signer = 서명자
+
+# semantic i18n key (#2542)
+minutes-action-sign = 서명

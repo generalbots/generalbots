@@ -97,3 +97,60 @@ tax-weight-kg-label = 重量 (kg)
 
 # semantic i18n key (#2542)
 tax-mode-label = 运输方式
+
+# semantic i18n key (#2542)
+minutes-title = 会议纪要
+
+# semantic i18n key (#2542)
+minutes-action-signature = 签名
+
+# semantic i18n key (#2542)
+minutes-tab-live = 进行中
+
+# semantic i18n key (#2542)
+minutes-tab-documents = 纪要
+
+# semantic i18n key (#2542)
+minutes-tab-signatures = 签名
+
+# semantic i18n key (#2542)
+minutes-label-date = 日期
+
+# semantic i18n key (#2542)
+minutes-label-location = 地点
+
+# semantic i18n key (#2542)
+minutes-label-deadline = 截止日期
+
+# semantic i18n key (#2542)
+minutes-label-participant = 参与者
+
+# semantic i18n key (#2542)
+minutes-status-confirmed = 已确认
+
+# semantic i18n key (#2542)
+minutes-status-declined = 已拒绝
+
+# semantic i18n key (#2542)
+minutes-status-tentative = 待定
+
+# semantic i18n key (#2542)
+minutes-action-register = 登记
+
+# semantic i18n key (#2542)
+minutes-editor-title = 纪要编辑器
+
+# semantic i18n key (#2542)
+minutes-option-summary = 摘要
+
+# semantic i18n key (#2542)
+minutes-digital-signature-title = 数字签名
+
+# semantic i18n key (#2542)
+minutes-label-document-id = 文档 ID
+
+# semantic i18n key (#2542)
+minutes-label-signer = 签署人
+
+# semantic i18n key (#2542)
+minutes-action-sign = 签署

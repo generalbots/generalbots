@@ -97,3 +97,60 @@ tax-weight-kg-label = Weight (kg)
 
 # semantic i18n key (#2542)
 tax-mode-label = Mode
+
+# semantic i18n key (#2542)
+minutes-title = Meeting Minutes
+
+# semantic i18n key (#2542)
+minutes-action-signature = Signature
+
+# semantic i18n key (#2542)
+minutes-tab-live = In progress
+
+# semantic i18n key (#2542)
+minutes-tab-documents = Minutes
+
+# semantic i18n key (#2542)
+minutes-tab-signatures = Signatures
+
+# semantic i18n key (#2542)
+minutes-label-date = Date
+
+# semantic i18n key (#2542)
+minutes-label-location = Location
+
+# semantic i18n key (#2542)
+minutes-label-deadline = Deadline
+
+# semantic i18n key (#2542)
+minutes-label-participant = Participant
+
+# semantic i18n key (#2542)
+minutes-status-confirmed = Confirmed
+
+# semantic i18n key (#2542)
+minutes-status-declined = Declined
+
+# semantic i18n key (#2542)
+minutes-status-tentative = Maybe
+
+# semantic i18n key (#2542)
+minutes-action-register = Register
+
+# semantic i18n key (#2542)
+minutes-editor-title = Minutes editor
+
+# semantic i18n key (#2542)
+minutes-option-summary = Summary
+
+# semantic i18n key (#2542)
+minutes-digital-signature-title = Digital signature
+
+# semantic i18n key (#2542)
+minutes-label-document-id = Document ID
+
+# semantic i18n key (#2542)
+minutes-label-signer = Signer
+
+# semantic i18n key (#2542)
+minutes-action-sign = Sign
