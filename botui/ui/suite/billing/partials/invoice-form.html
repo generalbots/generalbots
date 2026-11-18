@@ -2,7 +2,7 @@
 <form class="invoice-form" hx-post="/api/billing/invoices" hx-target="#invoices-table-body" hx-swap="innerHTML" hx-on:htmx:after-request="if(event.detail.elt===this && event.detail.successful) closeBillingModal()">
     <div class="invoice-form-header">
         <h2 class="invoice-form-title" data-i18n="billing-new-invoice">New Invoice</h2>
-        <button type="button" class="form-close" onclick="closeBillingModal()" aria-label="Close">
+        <button type="button" class="form-close" onclick="closeBillingModal()" data-i18n-aria-label="action-close" data-i18n-title="action-close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
