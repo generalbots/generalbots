@@ -35,14 +35,14 @@ function switchTab(tab,btn){
 }
 
 function updateStats(){
-    var s1=document.getElementById('stat-sites');
-    var s2=document.getElementById('stat-events');
-    var s3=document.getElementById('stat-files');
-    var s4=document.getElementById('stat-teams');
-    if(s1)s1.textContent=state.sharepointSites.length;
-    if(s2)s2.textContent=state.calendarEvents.length;
-    if(s3)s3.textContent=state.onedriveFiles.length;
-    if(s4)s4.textContent=state.teams.length;
+    var values={
+        'stat-sites': state.sharepointSites.length,
+        'stat-events': state.calendarEvents.length,
+        'stat-files': state.onedriveFiles.length,
+        'stat-teams': state.teams.length
+    };
+    if (window.GBAppKit && window.GBAppKit.setStatValues) return window.GBAppKit.setStatValues(values);
+    Object.keys(values).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=String(values[id]); });
 }
 
 function renderSharePoint(){

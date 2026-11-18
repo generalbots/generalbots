@@ -52,10 +52,6 @@ function filterBranch(branchId){
 }
 
 function updateStats(){
-    var revEl=document.getElementById('stat-revenue');
-    var ordEl=document.getElementById('stat-orders');
-    var lsEl=document.getElementById('stat-low-stock');
-    var prEl=document.getElementById('stat-promos');
     var filteredStock = getFilteredStock();
 
     var rev = 0;
@@ -68,12 +64,14 @@ function updateStats(){
             if (o != null && !isNaN(Number(o))) { hasOrders = true; orders += Number(o); }
         });
     }
-    // Fallback: if no top-product revenue data, don't fabricate revenue from stock; keep 0.00
-    if(revEl) revEl.textContent='$'+(Number(rev)||0).toFixed(2);
-    // Orders: prefer real order counts; never count stock SKUs as "orders"
-    if(ordEl) ordEl.textContent = hasOrders ? String(Math.round(orders)) : '—';
-    if(lsEl) lsEl.textContent = String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length);
-    if(prEl) prEl.textContent = String((state.promos||[]).filter(function(p){return p.status==='active'}).length);
+    var values={
+        'stat-revenue': '$'+(Number(rev)||0).toFixed(2),
+        'stat-orders': hasOrders ? String(Math.round(orders)) : '—',
+        'stat-low-stock': String(filteredStock.filter(function(s){return (Number(s.available)||0) <= (Number(s.min)||0)}).length),
+        'stat-promos': String((state.promos||[]).filter(function(p){return p.status==='active'}).length)
+    };
+    if (window.GBAppKit && window.GBAppKit.setStatValues) return window.GBAppKit.setStatValues(values);
+    Object.keys(values).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=String(values[id]); });
 }
 
 function renderDashboard(){

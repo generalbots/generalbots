@@ -168,6 +168,14 @@
     return panel || null;
   }
 
+  function setStatValues(map) {
+    if (!map) return;
+    Object.keys(map).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = String(map[id] == null ? "" : map[id]);
+    });
+  }
+
   global.GBAppKit = {
     escapeHtml: escapeHtml,
     showFeedback: showFeedback,
@@ -176,6 +184,7 @@
     clearSignatureCanvas: clearSignatureCanvas,
     showModal: showModal,
     hideModal: hideModal,
-    switchTab: switchTab
+    switchTab: switchTab,
+    setStatValues: setStatValues
   };
 })(window);

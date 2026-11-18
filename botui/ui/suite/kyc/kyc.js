@@ -48,14 +48,14 @@ function updateStats(){
     var pending=verifications.filter(function(v){return v.status==='pending'}).length;
     var verified=verifications.filter(function(v){return v.status==='verified'}).length;
     var failed=verifications.filter(function(v){return v.status==='failed'}).length;
-    var elP=document.getElementById('kyc-stat-pending');
-    var elV=document.getElementById('kyc-stat-verified');
-    var elF=document.getElementById('kyc-stat-failed');
-    var elT=document.getElementById('kyc-stat-total');
-    if(elP)elP.textContent=pending;
-    if(elV)elV.textContent=verified;
-    if(elF)elF.textContent=failed;
-    if(elT)elT.textContent=verifications.length;
+    var values={
+        'kyc-stat-pending': pending,
+        'kyc-stat-verified': verified,
+        'kyc-stat-failed': failed,
+        'kyc-stat-total': verifications.length
+    };
+    if (window.GBAppKit && window.GBAppKit.setStatValues) return window.GBAppKit.setStatValues(values);
+    Object.keys(values).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=String(values[id]); });
 }
 
 function renderVerifications(){

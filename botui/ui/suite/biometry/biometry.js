@@ -37,14 +37,14 @@ function switchTab(tab,btn){
 }
 
 function updateStats(){
-    var p=document.getElementById('bio-stat-pending');
-    var v=document.getElementById('bio-stat-verified');
-    var l=document.getElementById('stat-liveness');
-    var s=document.getElementById('stat-signatures');
-    if(p)p.textContent=state.kyc.filter(function(x){return x.status==='pending'}).length;
-    if(v)v.textContent=state.kyc.filter(function(x){return x.status==='verified'}).length;
-    if(l)l.textContent=state.livenessSessions.length;
-    if(s)s.textContent=state.signatures.length;
+    var values={
+        'bio-stat-pending': state.kyc.filter(function(x){return x.status==='pending'}).length,
+        'bio-stat-verified': state.kyc.filter(function(x){return x.status==='verified'}).length,
+        'stat-liveness': state.livenessSessions.length,
+        'stat-signatures': state.signatures.length
+    };
+    if (window.GBAppKit && window.GBAppKit.setStatValues) return window.GBAppKit.setStatValues(values);
+    Object.keys(values).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=String(values[id]); });
 }
 
 function renderKyc(){
