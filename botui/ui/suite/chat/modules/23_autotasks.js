@@ -144,8 +144,10 @@
   async function refresh(sessionId) {
     if (!sessionId) return;
     try {
+      var t = token();
+      var headers = t ? { Authorization: "Bearer " + t } : {};
       var response = await fetch("/api/conversations/" + encodeURIComponent(sessionId) + "/autotasks", {
-        headers: { Authorization: "Bearer " + token() },
+        headers: headers,
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       apply(sessionId, await response.json());
@@ -158,9 +160,11 @@
 
   async function stop(id) {
     try {
+      var t = token();
+      var headers = t ? { Authorization: "Bearer " + t } : {};
       var response = await fetch("/api/conversation-autotasks/" + encodeURIComponent(id) + "/cancel", {
         method: "POST",
-        headers: { Authorization: "Bearer " + token() },
+        headers: headers,
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       var sessionId = activeSessionId();
