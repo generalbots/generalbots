@@ -794,3 +794,8 @@ admin-dashboard-roles-permissions = Rollen und Berechtigungen
 
 # semantic i18n key (#2542)
 workspace-placeholder-untitled = Ohne Titel
+
+# semantic i18n key (#2542)
+admin-dashboard-placeholder-invite-email = kollege@beispiel.de
+admin-dashboard-placeholder-bulk-emails = a@beispiel.de
+b@beispiel.de

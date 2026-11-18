@@ -187,3 +187,6 @@ handoff-transfer-reason-vip = VIP 处理
 handoff-placeholder-search-conversations = 搜索会话...
 handoff-placeholder-search-transcripts = 按关键词或客服搜索记录...
 handoff-placeholder-transfer-note = 给接收客服的可选说明
+
+# semantic i18n key (#2542)
+attendant-placeholder-transfer-reason = 例如：技术问题，需要专家

@@ -187,3 +187,6 @@ handoff-transfer-reason-vip = VIP-Betreuung
 handoff-placeholder-search-conversations = Gespräche suchen...
 handoff-placeholder-search-transcripts = Transkripte nach Stichwort oder Agent suchen...
 handoff-placeholder-transfer-note = Optionaler Kontext für den empfangenden Agenten
+
+# semantic i18n key (#2542)
+attendant-placeholder-transfer-reason = z. B. Technisches Problem, Spezialist benötigt

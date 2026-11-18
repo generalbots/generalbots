@@ -223,7 +223,7 @@ Bulk Invite </button>
 <div class="modal-header"> <h2 data-i18n="admin-dashboard-invite-member">Invite Member</h2>
 <button type="button" class="close-btn" onclick="closeInviteMemberModal()">✕</button> </div>
 <div class="modal-body"> <div class="form-group">
-<label data-i18n="attendant-channel-email">Email</label> <input type="email" id="invite-email" placeholder="teammate@example.com" required />
+<label data-i18n="attendant-channel-email">Email</label> <input type="email" id="invite-email" data-i18n-placeholder="admin-dashboard-placeholder-invite-email" required />
 </div> <div class="form-group">
 <label data-i18n="label-role">Role</label> <select id="invite-role">
 <option value="member" data-i18n="admin-groups-role-member">Member</option> <option value="admin" data-i18n="nav-admin">Admin</option>
@@ -237,7 +237,7 @@ Bulk Invite </button>
 <div class="modal-header"> <h2 data-i18n="admin-dashboard-bulk-invite">Bulk Invite</h2>
 <button type="button" class="close-btn" onclick="closeBulkInviteModal()">✕</button> </div>
 <div class="modal-body"> <div class="form-group">
-<label data-i18n="admin-dashboard-emails-label">Emails (one per line, comma or semicolon separated)</label> <textarea id="bulk-emails" rows="5" placeholder="a@example.com&#10;b@example.com"></textarea>
+<label data-i18n="admin-dashboard-emails-label">Emails (one per line, comma or semicolon separated)</label> <textarea id="bulk-emails" rows="5" data-i18n-placeholder="admin-dashboard-placeholder-bulk-emails"></textarea>
 </div> <div class="form-group">
 <label data-i18n="label-role">Role</label> <select id="bulk-role">
 <option value="member" data-i18n="admin-groups-role-member">Member</option> <option value="admin" data-i18n="nav-admin">Admin</option>

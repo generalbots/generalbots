@@ -794,3 +794,8 @@ admin-dashboard-roles-permissions = 角色和权限
 
 # semantic i18n key (#2542)
 workspace-placeholder-untitled = 无标题
+
+# semantic i18n key (#2542)
+admin-dashboard-placeholder-invite-email = teammate@example.com
+admin-dashboard-placeholder-bulk-emails = a@example.com
+b@example.com

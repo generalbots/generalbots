@@ -794,3 +794,8 @@ admin-dashboard-roles-permissions = 역할 및 권한
 
 # semantic i18n key (#2542)
 workspace-placeholder-untitled = 제목 없음
+
+# semantic i18n key (#2542)
+admin-dashboard-placeholder-invite-email = teammate@example.com
+admin-dashboard-placeholder-bulk-emails = a@example.com
+b@example.com

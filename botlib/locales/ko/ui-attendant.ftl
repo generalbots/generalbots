@@ -187,3 +187,6 @@ handoff-transfer-reason-vip = VIP 처리
 handoff-placeholder-search-conversations = 대화 검색...
 handoff-placeholder-search-transcripts = 키워드 또는 상담원으로 기록 검색...
 handoff-placeholder-transfer-note = 인수 상담원을 위한 추가 정보(선택)
+
+# semantic i18n key (#2542)
+attendant-placeholder-transfer-reason = 예: 기술 문제, 전문가 필요

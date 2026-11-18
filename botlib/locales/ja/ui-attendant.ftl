@@ -187,3 +187,6 @@ handoff-transfer-reason-vip = VIP対応
 handoff-placeholder-search-conversations = 会話を検索...
 handoff-placeholder-search-transcripts = キーワードまたは担当者で記録を検索...
 handoff-placeholder-transfer-note = 引き継ぎ担当者への補足情報（任意）
+
+# semantic i18n key (#2542)
+attendant-placeholder-transfer-reason = 例：技術的な問題、専門家が必要
