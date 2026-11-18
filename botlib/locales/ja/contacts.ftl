@@ -334,3 +334,24 @@ crm-deal-title = タイトル *
 
 # semantic i18n key (#2542)
 crm-create-deal = 取引を作成
+
+# semantic i18n key (#2542)
+crm-field-channel = チャネル
+
+# semantic i18n key (#2542)
+crm-field-budget = 予算
+
+# semantic i18n key (#2542)
+crm-field-scheduled-at = 予定日時
+
+# semantic i18n key (#2542)
+crm-account-name = 名前 *
+
+# semantic i18n key (#2542)
+crm-account-employees = 従業員数
+
+# semantic i18n key (#2542)
+crm-account-country = 国
+
+# semantic i18n key (#2542)
+crm-create-account = アカウントを作成

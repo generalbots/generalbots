@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = Connexion requise pour enregistrer des fic
 drive-share-intake-uploading = Téléversement
 drive-share-intake-saved = Fichiers enregistrés dans Drive.
 drive-share-intake-saved-partial = Certains fichiers n’ont pas pu être enregistrés. Vous pouvez réessayer.
+
+# semantic i18n key (#2542)
+drive-my-files = Mes fichiers
+
+# semantic i18n key (#2542)
+drive-loading-files = Chargement des fichiers...
+
+# semantic i18n key (#2542)
+drive-drop-hint = Déposez des fichiers ou dossiers ici pour les téléverser

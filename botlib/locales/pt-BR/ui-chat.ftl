@@ -157,3 +157,15 @@ chat-select-context = Selecionar contexto...
 
 # semantic i18n key (#2542)
 chat-no-contexts-configured = Nenhum contexto configurado
+
+# semantic i18n key (#2542)
+projector-title = Visualizador de conteúdo
+
+# semantic i18n key (#2542)
+projector-loading-content = Carregando conteúdo...
+
+# semantic i18n key (#2542)
+projector-slide-info = Slide 1 de 1
+
+# semantic i18n key (#2542)
+projector-code-info = code.rs

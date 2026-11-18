@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = Anmeldung erforderlich, um Dateien in Driv
 drive-share-intake-uploading = Wird hochgeladen
 drive-share-intake-saved = Dateien in Drive gespeichert.
 drive-share-intake-saved-partial = Einige Dateien konnten nicht gespeichert werden. Sie können es erneut versuchen.
+
+# semantic i18n key (#2542)
+drive-my-files = Meine Dateien
+
+# semantic i18n key (#2542)
+drive-loading-files = Dateien werden geladen...
+
+# semantic i18n key (#2542)
+drive-drop-hint = Dateien oder Ordner hier ablegen, um sie hochzuladen

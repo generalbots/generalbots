@@ -157,3 +157,15 @@ chat-select-context = コンテキストを選択...
 
 # semantic i18n key (#2542)
 chat-no-contexts-configured = 設定されたコンテキストはありません
+
+# semantic i18n key (#2542)
+projector-title = コンテンツビューア
+
+# semantic i18n key (#2542)
+projector-loading-content = コンテンツを読み込み中...
+
+# semantic i18n key (#2542)
+projector-slide-info = スライド 1 / 1
+
+# semantic i18n key (#2542)
+projector-code-info = code.rs

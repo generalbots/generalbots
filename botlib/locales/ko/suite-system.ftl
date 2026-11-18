@@ -147,3 +147,12 @@ monitoring-alerts-all-outcomes = 모든 결과
 monitoring-alerts-resolved-state = 해결됨
 monitoring-alerts-expired = 만료됨
 monitoring-alerts-loading-history = 기록을 불러오는 중...
+
+# semantic i18n key (#2542)
+system-versions-title = 시스템 버전
+
+# semantic i18n key (#2542)
+system-versions-desc = 구성 요소 버전 및 업데이트 가능 여부
+
+# semantic i18n key (#2542)
+system-versions-loading = 버전 정보 불러오는 중...

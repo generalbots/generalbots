@@ -296,3 +296,36 @@ vibe-graph-legend-run = 运行
 
 # semantic i18n key (#2542)
 vibe-graph-legend-tool = 工具
+
+# semantic i18n key (#2542)
+billing-currency-usd = USD - 美元
+
+# semantic i18n key (#2542)
+billing-currency-eur = EUR - 欧元
+
+# semantic i18n key (#2542)
+billing-currency-brl = BRL - 巴西雷亚尔
+
+# semantic i18n key (#2542)
+billing-currency-gbp = GBP - 英镑
+
+# semantic i18n key (#2542)
+brazil-tab-cte-mdfe = CTe / MDFe
+
+# semantic i18n key (#2542)
+brazil-tab-efd-sped = EFD / SPED
+
+# semantic i18n key (#2542)
+brazil-tab-validators = 验证器
+
+# semantic i18n key (#2542)
+brazil-validate = 验证
+
+# semantic i18n key (#2542)
+lists-all = 所有列表
+
+# semantic i18n key (#2542)
+lists-static = 静态
+
+# semantic i18n key (#2542)
+lists-dynamic = 动态

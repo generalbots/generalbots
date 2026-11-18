@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = 파일을 Drive에 저장하려면 로그�
 drive-share-intake-uploading = 업로드 중
 drive-share-intake-saved = 파일을 Drive에 저장했습니다.
 drive-share-intake-saved-partial = 일부 파일을 저장하지 못했습니다. 다시 시도할 수 있습니다.
+
+# semantic i18n key (#2542)
+drive-my-files = 내 파일
+
+# semantic i18n key (#2542)
+drive-loading-files = 파일 불러오는 중...
+
+# semantic i18n key (#2542)
+drive-drop-hint = 여기에 파일이나 폴더를 끌어다 놓아 업로드하세요

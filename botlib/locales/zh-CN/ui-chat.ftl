@@ -157,3 +157,15 @@ chat-select-context = 选择上下文...
 
 # semantic i18n key (#2542)
 chat-no-contexts-configured = 未配置上下文
+
+# semantic i18n key (#2542)
+projector-title = 内容查看器
+
+# semantic i18n key (#2542)
+projector-loading-content = 正在加载内容...
+
+# semantic i18n key (#2542)
+projector-slide-info = 幻灯片 1 / 1
+
+# semantic i18n key (#2542)
+projector-code-info = code.rs

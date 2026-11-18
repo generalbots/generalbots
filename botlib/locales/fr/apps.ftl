@@ -296,3 +296,36 @@ vibe-graph-legend-run = exécution
 
 # semantic i18n key (#2542)
 vibe-graph-legend-tool = outil
+
+# semantic i18n key (#2542)
+billing-currency-usd = USD - Dollar américain
+
+# semantic i18n key (#2542)
+billing-currency-eur = EUR - Euro
+
+# semantic i18n key (#2542)
+billing-currency-brl = BRL - Réal brésilien
+
+# semantic i18n key (#2542)
+billing-currency-gbp = GBP - Livre sterling
+
+# semantic i18n key (#2542)
+brazil-tab-cte-mdfe = CTe / MDFe
+
+# semantic i18n key (#2542)
+brazil-tab-efd-sped = EFD / SPED
+
+# semantic i18n key (#2542)
+brazil-tab-validators = Validateurs
+
+# semantic i18n key (#2542)
+brazil-validate = Valider
+
+# semantic i18n key (#2542)
+lists-all = Toutes les listes
+
+# semantic i18n key (#2542)
+lists-static = Statique
+
+# semantic i18n key (#2542)
+lists-dynamic = Dynamique

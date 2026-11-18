@@ -334,3 +334,24 @@ crm-deal-title = 제목 *
 
 # semantic i18n key (#2542)
 crm-create-deal = 거래 생성
+
+# semantic i18n key (#2542)
+crm-field-channel = 채널
+
+# semantic i18n key (#2542)
+crm-field-budget = 예산
+
+# semantic i18n key (#2542)
+crm-field-scheduled-at = 예정 일시
+
+# semantic i18n key (#2542)
+crm-account-name = 이름 *
+
+# semantic i18n key (#2542)
+crm-account-employees = 직원 수
+
+# semantic i18n key (#2542)
+crm-account-country = 국가
+
+# semantic i18n key (#2542)
+crm-create-account = 계정 만들기

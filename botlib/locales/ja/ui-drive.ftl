@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = ファイルをDriveに保存するには�
 drive-share-intake-uploading = アップロード中
 drive-share-intake-saved = ファイルをDriveに保存しました。
 drive-share-intake-saved-partial = 一部のファイルを保存できませんでした。再試行できます。
+
+# semantic i18n key (#2542)
+drive-my-files = マイファイル
+
+# semantic i18n key (#2542)
+drive-loading-files = ファイルを読み込み中...
+
+# semantic i18n key (#2542)
+drive-drop-hint = ここにファイルまたはフォルダをドロップしてアップロード

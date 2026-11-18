@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = Sign in required to save files to Drive.
 drive-share-intake-uploading = Uploading
 drive-share-intake-saved = Saved files to Drive.
 drive-share-intake-saved-partial = Some files could not be saved. You can retry.
+
+# semantic i18n key (#2542)
+drive-my-files = My Files
+
+# semantic i18n key (#2542)
+drive-loading-files = Loading files...
+
+# semantic i18n key (#2542)
+drive-drop-hint = Drop files or folders here to upload

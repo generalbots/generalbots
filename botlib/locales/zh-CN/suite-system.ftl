@@ -147,3 +147,12 @@ monitoring-alerts-all-outcomes = 所有结果
 monitoring-alerts-resolved-state = 已解决
 monitoring-alerts-expired = 已过期
 monitoring-alerts-loading-history = 正在加载历史记录...
+
+# semantic i18n key (#2542)
+system-versions-title = 系统版本
+
+# semantic i18n key (#2542)
+system-versions-desc = 组件版本和更新可用性
+
+# semantic i18n key (#2542)
+system-versions-loading = 正在加载版本信息...

@@ -334,3 +334,24 @@ crm-deal-title = Titre *
 
 # semantic i18n key (#2542)
 crm-create-deal = Créer une affaire
+
+# semantic i18n key (#2542)
+crm-field-channel = Canal
+
+# semantic i18n key (#2542)
+crm-field-budget = Budget
+
+# semantic i18n key (#2542)
+crm-field-scheduled-at = Planifié pour
+
+# semantic i18n key (#2542)
+crm-account-name = Nom *
+
+# semantic i18n key (#2542)
+crm-account-employees = Employés
+
+# semantic i18n key (#2542)
+crm-account-country = Pays
+
+# semantic i18n key (#2542)
+crm-create-account = Créer un compte

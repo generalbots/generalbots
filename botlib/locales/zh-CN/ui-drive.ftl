@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = 需要登录才能将文件保存到云盘
 drive-share-intake-uploading = 正在上传
 drive-share-intake-saved = 文件已保存到云盘。
 drive-share-intake-saved-partial = 部分文件无法保存。您可以重试。
+
+# semantic i18n key (#2542)
+drive-my-files = 我的文件
+
+# semantic i18n key (#2542)
+drive-loading-files = 正在加载文件...
+
+# semantic i18n key (#2542)
+drive-drop-hint = 将文件或文件夹拖放到此处以上传

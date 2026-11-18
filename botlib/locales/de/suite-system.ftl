@@ -147,3 +147,12 @@ monitoring-alerts-all-outcomes = Alle Ergebnisse
 monitoring-alerts-resolved-state = Behoben
 monitoring-alerts-expired = Abgelaufen
 monitoring-alerts-loading-history = Verlauf wird geladen...
+
+# semantic i18n key (#2542)
+system-versions-title = Systemversionen
+
+# semantic i18n key (#2542)
+system-versions-desc = Komponentenversionen und Update-Verfügbarkeit
+
+# semantic i18n key (#2542)
+system-versions-loading = Versionsinformationen werden geladen...

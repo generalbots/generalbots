@@ -147,3 +147,12 @@ monitoring-alerts-all-outcomes = すべての結果
 monitoring-alerts-resolved-state = 解決済み
 monitoring-alerts-expired = 期限切れ
 monitoring-alerts-loading-history = 履歴を読み込んでいます...
+
+# semantic i18n key (#2542)
+system-versions-title = システムバージョン
+
+# semantic i18n key (#2542)
+system-versions-desc = コンポーネントのバージョンと更新の有無
+
+# semantic i18n key (#2542)
+system-versions-loading = バージョン情報を読み込み中...

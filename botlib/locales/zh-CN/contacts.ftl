@@ -334,3 +334,24 @@ crm-deal-title = 标题 *
 
 # semantic i18n key (#2542)
 crm-create-deal = 创建交易
+
+# semantic i18n key (#2542)
+crm-field-channel = 渠道
+
+# semantic i18n key (#2542)
+crm-field-budget = 预算
+
+# semantic i18n key (#2542)
+crm-field-scheduled-at = 计划时间
+
+# semantic i18n key (#2542)
+crm-account-name = 名称 *
+
+# semantic i18n key (#2542)
+crm-account-employees = 员工数
+
+# semantic i18n key (#2542)
+crm-account-country = 国家
+
+# semantic i18n key (#2542)
+crm-create-account = 创建账户

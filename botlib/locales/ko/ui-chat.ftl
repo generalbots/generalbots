@@ -157,3 +157,15 @@ chat-select-context = 컨텍스트 선택...
 
 # semantic i18n key (#2542)
 chat-no-contexts-configured = 구성된 컨텍스트 없음
+
+# semantic i18n key (#2542)
+projector-title = 콘텐츠 뷰어
+
+# semantic i18n key (#2542)
+projector-loading-content = 콘텐츠 불러오는 중...
+
+# semantic i18n key (#2542)
+projector-slide-info = 슬라이드 1 / 1
+
+# semantic i18n key (#2542)
+projector-code-info = code.rs

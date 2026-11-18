@@ -66,3 +66,12 @@ drive-share-intake-sign-in-required = Debes iniciar sesión para guardar archivo
 drive-share-intake-uploading = Subiendo
 drive-share-intake-saved = Archivos guardados en Drive.
 drive-share-intake-saved-partial = Algunos archivos no se pudieron guardar. Puedes volver a intentarlo.
+
+# semantic i18n key (#2542)
+drive-my-files = Mis archivos
+
+# semantic i18n key (#2542)
+drive-loading-files = Cargando archivos...
+
+# semantic i18n key (#2542)
+drive-drop-hint = Suelta archivos o carpetas aquí para subirlos
