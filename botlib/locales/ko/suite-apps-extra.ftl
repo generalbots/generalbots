@@ -70,3 +70,30 @@ docs-spellcheck-none = 수정 사항을 찾을 수 없습니다.
 docs-spellcheck-all-applied = 모든 수정 사항이 적용되었습니다.
 docs-spellcheck-accept = 수락
 docs-spellcheck-not-found = 문서에서 텍스트를 찾을 수 없습니다.
+
+# semantic i18n key (#2542)
+tax-errors-label = 오류
+
+# semantic i18n key (#2542)
+tax-cte-documents-title = 운송장 (CT-e)
+
+# semantic i18n key (#2542)
+tax-cfop-label = CFOP
+
+# semantic i18n key (#2542)
+tax-products-label = 제품
+
+# semantic i18n key (#2542)
+tax-sender-label = 발송인
+
+# semantic i18n key (#2542)
+tax-origin-city-label = 출발 도시
+
+# semantic i18n key (#2542)
+tax-destination-city-label = 도착 도시
+
+# semantic i18n key (#2542)
+tax-weight-kg-label = 무게 (kg)
+
+# semantic i18n key (#2542)
+tax-mode-label = 운송 방식

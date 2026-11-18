@@ -70,3 +70,30 @@ docs-spellcheck-none = 修正は見つかりませんでした。
 docs-spellcheck-all-applied = すべての修正を適用しました。
 docs-spellcheck-accept = 承認
 docs-spellcheck-not-found = ドキュメント内にテキストが見つかりません。
+
+# semantic i18n key (#2542)
+tax-errors-label = エラー
+
+# semantic i18n key (#2542)
+tax-cte-documents-title = 輸送証券 (CT-e)
+
+# semantic i18n key (#2542)
+tax-cfop-label = CFOP
+
+# semantic i18n key (#2542)
+tax-products-label = 製品
+
+# semantic i18n key (#2542)
+tax-sender-label = 差出人
+
+# semantic i18n key (#2542)
+tax-origin-city-label = 出発都市
+
+# semantic i18n key (#2542)
+tax-destination-city-label = 目的地都市
+
+# semantic i18n key (#2542)
+tax-weight-kg-label = 重量 (kg)
+
+# semantic i18n key (#2542)
+tax-mode-label = 輸送モード

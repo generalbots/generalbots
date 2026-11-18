@@ -70,3 +70,30 @@ docs-spellcheck-none = Nenhuma correção encontrada.
 docs-spellcheck-all-applied = Todas as correções aplicadas.
 docs-spellcheck-accept = Aceitar
 docs-spellcheck-not-found = Trecho não encontrado no documento.
+
+# semantic i18n key (#2542)
+tax-errors-label = Erros
+
+# semantic i18n key (#2542)
+tax-cte-documents-title = Conhecimentos de Transporte (CT-e)
+
+# semantic i18n key (#2542)
+tax-cfop-label = CFOP
+
+# semantic i18n key (#2542)
+tax-products-label = Produtos
+
+# semantic i18n key (#2542)
+tax-sender-label = Remetente
+
+# semantic i18n key (#2542)
+tax-origin-city-label = Cidade de origem
+
+# semantic i18n key (#2542)
+tax-destination-city-label = Cidade de destino
+
+# semantic i18n key (#2542)
+tax-weight-kg-label = Peso (kg)
+
+# semantic i18n key (#2542)
+tax-mode-label = Modalidade

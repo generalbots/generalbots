@@ -70,3 +70,30 @@ docs-spellcheck-none = 未找到更正。
 docs-spellcheck-all-applied = 已应用所有更正。
 docs-spellcheck-accept = 接受
 docs-spellcheck-not-found = 在文档中未找到文本。
+
+# semantic i18n key (#2542)
+tax-errors-label = 错误
+
+# semantic i18n key (#2542)
+tax-cte-documents-title = 运输单据 (CT-e)
+
+# semantic i18n key (#2542)
+tax-cfop-label = CFOP
+
+# semantic i18n key (#2542)
+tax-products-label = 产品
+
+# semantic i18n key (#2542)
+tax-sender-label = 发件人
+
+# semantic i18n key (#2542)
+tax-origin-city-label = 始发城市
+
+# semantic i18n key (#2542)
+tax-destination-city-label = 目的城市
+
+# semantic i18n key (#2542)
+tax-weight-kg-label = 重量 (kg)
+
+# semantic i18n key (#2542)
+tax-mode-label = 运输方式
