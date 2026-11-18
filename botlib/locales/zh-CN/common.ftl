@@ -368,3 +368,7 @@ app-service-unavailable = 服务不可用
 
 # semantic i18n key (#2542)
 deploy-project-name-placeholder = my-project
+
+# semantic i18n key (#2542)
+deploy-organization-placeholder = generalbots
+deploy-custom-domain-placeholder = app.example.com

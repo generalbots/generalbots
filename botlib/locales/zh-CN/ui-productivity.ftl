@@ -634,3 +634,7 @@ db-placeholder-column-name-example = column_name
 
 # semantic i18n key (#2542)
 calendar-event-attendees-placeholder = 邮箱1, 邮箱2
+
+# semantic i18n key (#2542)
+db-sql-editor-placeholder = SELECT * FROM 表...
+db-sql-editor-aria-label = SQL 查询

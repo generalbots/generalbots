@@ -13,7 +13,7 @@
 
         <div class="botcoder-query-builder">
             <h4 data-i18n="db-query-builder">Query Builder</h4>
-            <textarea id="dbSqlEditor" placeholder="SELECT * FROM table..." aria-label="SQL query"></textarea>
+            <textarea id="dbSqlEditor" data-i18n-placeholder="db-sql-editor-placeholder" data-i18n-aria-label="db-sql-editor-aria-label" aria-label="SQL query"></textarea>
             <button class="botcoder-btn botcoder-btn-primary" onclick="DB.executeSql()" data-i18n="db-run-query">Run Query</button>
             <span id="dbQueryDuration" class="db-query-duration" role="status" aria-live="polite" aria-atomic="true"></span>
             <div id="dbSqlResults" class="db-sql-results" role="status" aria-live="polite"></div>

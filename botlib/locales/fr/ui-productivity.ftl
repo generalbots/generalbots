@@ -634,3 +634,7 @@ db-placeholder-column-name-example = nom_colonne
 
 # semantic i18n key (#2542)
 calendar-event-attendees-placeholder = email1, email2
+
+# semantic i18n key (#2542)
+db-sql-editor-placeholder = SELECT * FROM table...
+db-sql-editor-aria-label = Requête SQL
