@@ -201,3 +201,21 @@ monitoring-network-io = 네트워크 I/O
 
 # semantic i18n key (#2542)
 monitoring-connections-active = -- 활성 연결
+
+# semantic i18n key (#2542)
+monitoring-last-sync-placeholder = 마지막 동기화: --
+
+# semantic i18n key (#2542)
+monitoring-avg-latency = 평균 지연 시간
+
+# semantic i18n key (#2542)
+monitoring-active-users = 활성 사용자
+
+# semantic i18n key (#2542)
+monitoring-request-rate = 요청률
+
+# semantic i18n key (#2542)
+monitoring-chart-type-line = 선
+
+# semantic i18n key (#2542)
+monitoring-chart-type-area = 영역

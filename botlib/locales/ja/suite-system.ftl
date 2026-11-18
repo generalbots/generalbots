@@ -201,3 +201,21 @@ monitoring-network-io = ネットワークI/O
 
 # semantic i18n key (#2542)
 monitoring-connections-active = -- 接続中
+
+# semantic i18n key (#2542)
+monitoring-last-sync-placeholder = 最終同期: --
+
+# semantic i18n key (#2542)
+monitoring-avg-latency = 平均レイテンシ
+
+# semantic i18n key (#2542)
+monitoring-active-users = アクティブユーザー
+
+# semantic i18n key (#2542)
+monitoring-request-rate = リクエスト率
+
+# semantic i18n key (#2542)
+monitoring-chart-type-line = 線
+
+# semantic i18n key (#2542)
+monitoring-chart-type-area = 面

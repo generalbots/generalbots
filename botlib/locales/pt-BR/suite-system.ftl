@@ -201,3 +201,21 @@ monitoring-network-io = E/S de rede
 
 # semantic i18n key (#2542)
 monitoring-connections-active = -- conexões ativas
+
+# semantic i18n key (#2542)
+monitoring-last-sync-placeholder = Última sincronização: --
+
+# semantic i18n key (#2542)
+monitoring-avg-latency = Latência média
+
+# semantic i18n key (#2542)
+monitoring-active-users = Usuários ativos
+
+# semantic i18n key (#2542)
+monitoring-request-rate = Taxa de requisições
+
+# semantic i18n key (#2542)
+monitoring-chart-type-line = Linha
+
+# semantic i18n key (#2542)
+monitoring-chart-type-area = Área
