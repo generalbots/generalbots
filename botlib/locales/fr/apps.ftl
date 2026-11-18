@@ -142,7 +142,6 @@ monitoring-time-last-30d = 30 derniers jours
 monitoring-status-acknowledged = Acquitté
 monitoring-alert-name = Nom de l'alerte *
 monitoring-alert-name-placeholder = p. ex., Utilisation élevée du CPU
-monitoring-alert-severity = Gravité *
 monitoring-select-severity = Sélectionner la gravité
 monitoring-alert-category = Catégorie *
 monitoring-select-category = Sélectionner la catégorie
@@ -445,7 +444,6 @@ browser-record = ⏺ Enregistrer
 browser-download-test = Télécharger le test
 
 # semantic i18n key (#2542)
-browser-no-actions = Aucune action enregistrée
 
 # semantic i18n key (#2542)
 browser-not-initialized = Navigateur non initialisé.
@@ -463,7 +461,6 @@ git-commit-push = Valider et pousser
 git-changes = Modifications
 
 # semantic i18n key (#2542)
-git-loading-status = Chargement du statut...
 
 # semantic i18n key (#2542)
 git-branches = Branches

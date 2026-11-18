@@ -188,3 +188,6 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = Pesquisar contatos...
+
+# Chat header / app chrome (#2542)
+crm-lost-reason-title = Por que o negócio foi perdido?

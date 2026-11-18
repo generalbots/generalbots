@@ -114,4 +114,3 @@ auth-password-updated = Su contraseña ha sido actualizada. Ahora puedes iniciar
 auth-invalid-token = Enlace no válido o caducado
 auth-invalid-token-desc = Este enlace para restablecer contraseña no es válido o ha caducado. Por favor solicite uno nuevo.
 auth-request-new-link = Solicitar nuevo enlace
-auth-session-expired = Your session has expired. Please log in again.

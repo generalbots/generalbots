@@ -118,24 +118,6 @@ player-filter-document = Filtrar documentos
 player-filter-image = Filtrar imagens
 player-fullscreen = Tela cheia
 player-toggle-playlist = Alternar painel de playlist
-player-playlist-add = Add to playlist
-player-playlist-add-current = + Add current media
-player-playlist-create = Create
-player-playlist-created = Playlist created
-player-playlist-delete = Delete playlist
-player-playlist-deleted = Playlist deleted
-player-playlist-empty = No playlist created
-player-playlist-empty-items = Empty playlist
-player-playlist-error = Failed to load playlists
-player-playlist-item-added = Added to playlist
-player-playlist-item-removed = Removed from playlist
-player-playlist-name = Playlist name
-player-playlist-new = New playlist
-player-playlist-play = Play
-player-playlist-remove = Remove
-player-playlist-rename = Rename
-player-playlist-renamed = Playlist renamed
-player-playlists = Playlists
 
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = host:porta (ex.: 10.0.0.1:5900)

@@ -567,8 +567,6 @@ admin-bots = Bots
 admin-bots-subtitle = Gerenciar bots assistentes
 admin-dns = DNS
 
-nav-about = Sobre
-nav-organizations = Organizações
 
 
 # ── #2307 Users & Groups dialogs / status regions ──────────────────

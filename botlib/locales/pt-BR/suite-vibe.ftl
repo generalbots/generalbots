@@ -132,3 +132,9 @@ vibe-transfer-ownership = Transferir propriedade
 
 # semantic i18n key (#2542)
 vibe-run-telemetry = telemetria da execução
+
+# Chat header / app chrome (#2542)
+vibe-members-list = Lista de membros do projeto
+vibe-members-transfer-title = Transferir propriedade
+vibe-project-delete-title = Excluir projeto
+vibe-transfer-search-placeholder = Buscar pessoas…

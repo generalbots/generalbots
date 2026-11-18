@@ -13,9 +13,12 @@ Violation kinds:
 * ``DUPLICATE``            same key defined twice (same value)
 * ``CONFLICT``             same key defined twice with different values
 * ``BAD_KEY``              key outside ``^[a-z0-9]+(-[a-z0-9]+)*$``
+* ``AUTO_KEY``             a machine-generated ``auto-`` key (AGENTS.md forbids
+                           them; #2542 retired the last one)
 * ``UNBALANCED``           a message value with unbalanced ``{ }``
 * ``PLURAL_NO_OTHER``      plural block without ``*[other]``
-* ``MISSING``              a key used by the UI that ``en`` does not define
+* ``MISSING``              a key used by the UI that neither ``en`` nor the
+                           app's own dictionary defines
 * ``PLACEHOLDER_MISMATCH`` same key uses different placeholders across locales
 * ``HARDCODED``            an English user-facing literal in the suite/cloud/
                            login HTML or JS instead of a catalogue key (#2096)
@@ -68,6 +71,55 @@ KEY_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 PLACEHOLDER_RE = re.compile(r"\{\s*\$([A-Za-z0-9_]+)\s*\}")
 DATA_I18N_RE = re.compile(r"data-i18n(?:-[a-z-]+)?=\"([^\"]+)\"")
 T_CALL_RE = re.compile(r"\b(?:t|tOr|i18n\.t)\(\s*['\"]([a-z0-9][a-z0-9.-]*)['\"]")
+# A key mapped to a string inside an app-owned dictionary object, e.g.
+# `"assistant.copy": "Copy"` in `suite/assistant/i18n/en.js` or the inline `T`
+# map in `suite/assistant/modules/10_settings_model.js`.
+# Both quoted (`"assistant.copy": "Copy"`) and bare identifier keys
+# (`swapped: "Ready…"`), which the settings modules use.
+DICT_ENTRY_RE = re.compile(
+    r"""(?:["']([A-Za-z0-9_.-]+)["']|\b([A-Za-z_][A-Za-z0-9_.-]*))\s*:\s*["'`]"""
+)
+
+
+def app_scope(relative: str) -> str:
+    """The app a UI path belongs to: `suite/<app>`, or the top-level tree."""
+    parts = Path(relative).parts
+    if parts[:2] == ("botui", "ui"):
+        parts = parts[2:]
+    if parts and parts[0] == "suite" and len(parts) > 1:
+        return f"suite/{parts[1]}"
+    return parts[0] if parts else "."
+
+
+_LOCAL_KEY_CACHE: dict[str, set[str]] = {}
+
+
+def app_local_keys(scope: str):
+    """Keys the app resolves from its own dictionary instead of the catalogue.
+
+    `suite/assistant` and a few other apps ship `<app>/i18n/<locale>.js` or an
+    inline `T = {...}` map and translate through a local `t()`. Those strings
+    are defined — just not in `botlib/locales` — so reporting them as MISSING
+    was a false positive (#2542). Scoping the scan to the app that owns the
+    usage keeps an unrelated file from silencing a genuinely missing key.
+    """
+    if scope in _LOCAL_KEY_CACHE:
+        return _LOCAL_KEY_CACHE[scope]
+    keys = set()
+    base = ROOT / "botui" / "ui" / scope
+    if base.exists():
+        for path in list(base.rglob("*.js")) + list(base.rglob("*.html")):
+            if "vendor" in path.parts:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            keys.update(
+                match.group(1) or match.group(2) for match in DICT_ENTRY_RE.finditer(text)
+            )
+    _LOCAL_KEY_CACHE[scope] = keys
+    return keys
 
 
 def parse_ftl(path: Path):
@@ -160,6 +212,8 @@ def lint():
         for key, definitions in entries.items():
             if not KEY_RE.match(key):
                 add("BAD_KEY", key, definitions[0][1], locale)
+            if key.startswith("auto-"):
+                add("AUTO_KEY", key, definitions[0][1], locale)
             if len(definitions) > 1:
                 values = {value for value, _, _ in definitions}
                 kind = "CONFLICT" if len(values) > 1 else "DUPLICATE"
@@ -185,8 +239,11 @@ def lint():
 
     english = catalog.get("en", {})
     for key, paths in used_keys().items():
-        if key not in english:
-            add("MISSING", key, sorted(paths)[0], f"used in {len(set(paths))} file(s)")
+        if key in english:
+            continue
+        if any(key in app_local_keys(app_scope(path)) for path in paths):
+            continue
+        add("MISSING", key, sorted(paths)[0], f"used in {len(set(paths))} file(s)")
 
     for key, definitions in english.items():
         reference = placeholders(definitions[0][0])

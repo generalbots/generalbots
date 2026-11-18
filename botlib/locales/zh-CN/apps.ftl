@@ -142,7 +142,6 @@ monitoring-time-last-30d = 最近30天
 monitoring-status-acknowledged = 已确认
 monitoring-alert-name = 告警名称 *
 monitoring-alert-name-placeholder = 例如：CPU 使用率过高
-monitoring-alert-severity = 严重性 *
 monitoring-select-severity = 选择严重性
 monitoring-alert-category = 类别 *
 monitoring-select-category = 选择类别
@@ -445,7 +444,6 @@ browser-record = ⏺ 录制
 browser-download-test = 下载测试
 
 # semantic i18n key (#2542)
-browser-no-actions = 未记录任何操作
 
 # semantic i18n key (#2542)
 browser-not-initialized = 浏览器未初始化。
@@ -463,7 +461,6 @@ git-commit-push = 提交并推送
 git-changes = 更改
 
 # semantic i18n key (#2542)
-git-loading-status = 正在加载状态...
 
 # semantic i18n key (#2542)
 git-branches = 分支

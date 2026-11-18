@@ -814,3 +814,13 @@ viewer-zoom-in = Ampliar
 viewer-zoom-out = Reduzir
 code-line-numbers = Números de linha
 code-word-wrap = Quebra de linha
+
+# Chat header / app chrome (#2542)
+assistant-rows-read = Lido
+assistant-rows-chars = caracteres
+assistant-rows-items = itens
+assistant-rows-results = resultados
+assistant-rows-sources = fontes
+
+# Artifact download (#2542)
+artifact-drawing-not-started = O desenho ainda não começou.

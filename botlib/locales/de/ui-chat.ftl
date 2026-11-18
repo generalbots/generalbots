@@ -169,3 +169,6 @@ projector-slide-info = Folie 1 von 1
 
 # semantic i18n key (#2542)
 projector-code-info = code.rs
+
+# Projector viewer control (#2542)
+chat-projector-rotate = Drehen

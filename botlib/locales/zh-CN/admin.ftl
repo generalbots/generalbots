@@ -564,8 +564,6 @@ admin-groups = 组
 admin-bots = 机器人
 admin-dns = DNS
 admin-audit = 审计日志
-nav-about = 关于
-nav-organizations = 组织
 
 
 # ── #2307 Users & Groups dialogs / status regions ──────────────────

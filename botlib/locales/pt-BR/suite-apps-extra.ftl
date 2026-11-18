@@ -225,3 +225,11 @@ fraud-col-transactions = Transações
 fraud-col-blocked = Bloqueadas
 fraud-col-review = Revisão
 fraud-col-false-positive = Falso Positivo
+
+# Chat header / app chrome (#2542)
+docs-bibliography-title = Bibliografia
+docs-citations-empty = Sem citações
+docs-footnotes-empty = Sem notas de rodapé
+docs-page-x-of-y = Página X de Y
+docs-toc-empty = Nenhum título encontrado.
+tax-emit = Emitir

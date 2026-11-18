@@ -142,7 +142,6 @@ monitoring-time-last-30d = 최근 30일
 monitoring-status-acknowledged = 확인됨
 monitoring-alert-name = 알림 이름 *
 monitoring-alert-name-placeholder = 예: CPU 사용량 높음
-monitoring-alert-severity = 심각도 *
 monitoring-select-severity = 심각도 선택
 monitoring-alert-category = 카테고리 *
 monitoring-select-category = 카테고리 선택
@@ -445,7 +444,6 @@ browser-record = ⏺ 기록
 browser-download-test = 테스트 다운로드
 
 # semantic i18n key (#2542)
-browser-no-actions = 기록된 작업 없음
 
 # semantic i18n key (#2542)
 browser-not-initialized = 브라우저가 초기화되지 않았습니다.
@@ -463,7 +461,6 @@ git-commit-push = 커밋 및 푸시
 git-changes = 변경 사항
 
 # semantic i18n key (#2542)
-git-loading-status = 상태 불러오는 중...
 
 # semantic i18n key (#2542)
 git-branches = 브랜치

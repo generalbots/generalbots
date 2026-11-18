@@ -350,3 +350,7 @@ monitoring-no-recent-incidents = No recent incidents
 
 # semantic i18n key (#2542)
 monitoring-system-stable = System has been stable
+
+# Chat header / app chrome (#2542)
+recycle-empty-failed = Empty failed.
+recycle-restore-failed = Restore failed.

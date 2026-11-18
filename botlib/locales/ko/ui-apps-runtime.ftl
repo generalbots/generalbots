@@ -599,3 +599,6 @@ viewer-zoom-in = 확대
 viewer-zoom-out = 축소
 code-line-numbers = 줄 번호
 code-word-wrap = 줄 바꿈
+
+# Artifact download (#2542)
+artifact-drawing-not-started = 그리기가 아직 시작되지 않았습니다.

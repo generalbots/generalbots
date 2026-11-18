@@ -564,8 +564,6 @@ admin-groups = 그룹
 admin-bots = 봇
 admin-dns = DNS
 admin-audit = 감사 로그
-nav-about = 정보
-nav-organizations = 조직
 
 
 # ── #2307 Users & Groups dialogs / status regions ──────────────────

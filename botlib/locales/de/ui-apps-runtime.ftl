@@ -599,3 +599,6 @@ viewer-zoom-in = Vergrößern
 viewer-zoom-out = Verkleinern
 code-line-numbers = Zeilennummern
 code-word-wrap = Zeilenumbruch
+
+# Artifact download (#2542)
+artifact-drawing-not-started = Die Zeichnung wurde noch nicht begonnen.

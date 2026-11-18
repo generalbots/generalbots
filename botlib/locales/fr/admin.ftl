@@ -564,8 +564,6 @@ admin-groups = Groupes
 admin-bots = Bots
 admin-dns = DNS
 admin-audit = Journal d'audit
-nav-about = À propos
-nav-organizations = Organisations
 
 
 # ── #2307 Users & Groups dialogs / status regions ──────────────────

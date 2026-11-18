@@ -638,3 +638,17 @@ calendar-event-attendees-placeholder = email1, email2
 # semantic i18n key (#2542)
 db-sql-editor-placeholder = SELECT * FROM table...
 db-sql-editor-aria-label = SQL query
+
+# Chat header / app chrome (#2542)
+paper-save-failed = Not saved — retry
+paper-save-retry-hint = Click to retry saving
+paper-saved-locally = Saved on this device
+paper-status-bar = Document status
+tasks-detail-region = Task details
+tasks-filters = Task filters
+tasks-progress-bar = Task progress bar
+tasks-progress-close = Close progress
+tasks-progress-minimize = Minimize progress
+tasks-progress-output = Task output
+tasks-progress-region = Task progress
+tasks-terminal-log = Live agent activity

@@ -142,7 +142,6 @@ monitoring-time-last-30d = 過去30日間
 monitoring-status-acknowledged = 確認済み
 monitoring-alert-name = アラート名 *
 monitoring-alert-name-placeholder = 例: CPU使用率が高い
-monitoring-alert-severity = 重大度 *
 monitoring-select-severity = 重大度を選択
 monitoring-alert-category = カテゴリ *
 monitoring-select-category = カテゴリを選択
@@ -445,7 +444,6 @@ browser-record = ⏺ 記録
 browser-download-test = テストをダウンロード
 
 # semantic i18n key (#2542)
-browser-no-actions = 記録されたアクションはありません
 
 # semantic i18n key (#2542)
 browser-not-initialized = ブラウザが初期化されていません。
@@ -463,7 +461,6 @@ git-commit-push = コミットしてプッシュ
 git-changes = 変更
 
 # semantic i18n key (#2542)
-git-loading-status = ステータスを読み込み中...
 
 # semantic i18n key (#2542)
 git-branches = ブランチ

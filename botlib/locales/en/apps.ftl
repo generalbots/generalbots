@@ -142,7 +142,6 @@ monitoring-time-last-30d = Last 30 days
 monitoring-status-acknowledged = Acknowledged
 monitoring-alert-name = Alert Name *
 monitoring-alert-name-placeholder = e.g., High CPU Usage
-monitoring-alert-severity = Severity *
 monitoring-select-severity = Select severity
 monitoring-alert-category = Category *
 monitoring-select-category = Select category
@@ -445,7 +444,6 @@ browser-record = ⏺ Record
 browser-download-test = Download Test
 
 # semantic i18n key (#2542)
-browser-no-actions = No actions recorded
 
 # semantic i18n key (#2542)
 browser-not-initialized = Browser not initialized.
@@ -463,7 +461,6 @@ git-commit-push = Commit & Push
 git-changes = Changes
 
 # semantic i18n key (#2542)
-git-loading-status = Loading status...
 
 # semantic i18n key (#2542)
 git-branches = Branches
@@ -1275,3 +1272,6 @@ calculator-swap-units = Swap units
 calculator-aria-amount = Amount
 calculator-aria-from-unit = From unit
 calculator-aria-to-unit = To unit
+
+# Chat header / app chrome (#2542)
+notes-board = Notes board

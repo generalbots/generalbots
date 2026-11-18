@@ -599,3 +599,6 @@ viewer-zoom-in = 拡大
 viewer-zoom-out = 縮小
 code-line-numbers = 行番号
 code-word-wrap = 折り返し
+
+# Artifact download (#2542)
+artifact-drawing-not-started = 描画はまだ始まっていません。

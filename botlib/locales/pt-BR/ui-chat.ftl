@@ -169,3 +169,28 @@ projector-slide-info = Slide 1 de 1
 
 # semantic i18n key (#2542)
 projector-code-info = code.rs
+
+# Projector viewer control (#2542)
+chat-projector-rotate = Girar
+
+# Chat header / app chrome (#2542)
+chat-conversation-clear = Limpar contexto
+chat-conversation-cleared = Contexto da conversa limpo
+chat-conversation-copy-link = Copiar link
+chat-conversation-delete = Excluir
+chat-conversation-delete-confirm = Excluir esta conversa?
+chat-conversation-delete-failed = Falha ao excluir a conversa
+chat-conversation-delete-title = Excluir conversa
+chat-conversation-delete-unavailable = Diálogo de confirmação indisponível
+chat-conversation-deleted = Conversa excluída
+chat-conversation-export-json = Exportar transcrição (.json)
+chat-conversation-export-md = Exportar transcrição (.md)
+chat-conversation-exported = Conversa exportada
+chat-conversation-link-copied = Link da conversa copiado
+chat-conversation-link-copy-failed = Falha ao copiar o link
+chat-conversation-menu = Menu da conversa
+chat-conversation-rename = Renomear
+chat-conversation-rename-failed = Falha ao renomear a conversa
+chat-conversation-renamed = Conversa renomeada
+chat-conversation-title = Título da conversa
+chat-conversation-untitled = Conversa sem título

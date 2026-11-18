@@ -34,3 +34,7 @@ video-rtsp-url = RTSP URL
 video-placeholder-camera-name = e.g. Main Entrance
 video-placeholder-rtsp-url = rtsp://user:pass@ip:port/stream
 video-placeholder-location = e.g. Building A - Ground Floor
+
+# Chat header / app chrome (#2542)
+label-location = Location
+video-add-camera-dialog = Add Camera

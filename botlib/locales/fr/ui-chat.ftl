@@ -169,3 +169,6 @@ projector-slide-info = Diapositive 1 sur 1
 
 # semantic i18n key (#2542)
 projector-code-info = code.rs
+
+# Projector viewer control (#2542)
+chat-projector-rotate = Tourner

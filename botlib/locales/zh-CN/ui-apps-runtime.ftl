@@ -599,3 +599,6 @@ viewer-zoom-in = 放大
 viewer-zoom-out = 缩小
 code-line-numbers = 行号
 code-word-wrap = 自动换行
+
+# Artifact download (#2542)
+artifact-drawing-not-started = 绘图尚未开始。

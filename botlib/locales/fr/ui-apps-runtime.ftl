@@ -599,3 +599,6 @@ viewer-zoom-in = Zoom avant
 viewer-zoom-out = Zoom arrière
 code-line-numbers = Numéros de ligne
 code-word-wrap = Retour à la ligne
+
+# Artifact download (#2542)
+artifact-drawing-not-started = Le dessin n'a pas encore commencé.

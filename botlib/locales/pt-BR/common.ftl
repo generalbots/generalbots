@@ -348,20 +348,6 @@ a11y-info = Informação
 
 common-cancel = Cancelar
 tab-strip = Conversas
-deploy-create-project = Create Project
-deploy-custom-domain = Custom Domain
-deploy-environment = Environment
-deploy-framework = Framework
-deploy-new-project = New Project
-deploy-organization = Organization
-deploy-project-name = Project Name
-deploy-project-type = Project Type
-deploy-type-app = App
-deploy-type-app-desc = Create a web application
-deploy-type-bot = Bot
-deploy-type-bot-desc = Create a conversational AI bot
-deploy-type-site = Site
-deploy-type-site-desc = Create a website
 
 # semantic i18n key (#2542)
 app-service-unavailable = Serviço indisponível

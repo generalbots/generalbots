@@ -815,3 +815,6 @@ viewer-zoom-in = Acercar
 viewer-zoom-out = Alejar
 code-line-numbers = Números de línea
 code-word-wrap = Ajuste de línea
+
+# Artifact download (#2542)
+artifact-drawing-not-started = El dibujo aún no ha comenzado.

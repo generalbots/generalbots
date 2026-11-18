@@ -815,3 +815,13 @@ viewer-zoom-in = Zoom In
 viewer-zoom-out = Zoom Out
 code-line-numbers = Line Numbers
 code-word-wrap = Word Wrap
+
+# Chat header / app chrome (#2542)
+assistant-rows-read = Read
+assistant-rows-chars = chars
+assistant-rows-items = items
+assistant-rows-results = results
+assistant-rows-sources = sources
+
+# Artifact download (#2542)
+artifact-drawing-not-started = The drawing has not started yet
