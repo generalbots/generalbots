@@ -181,3 +181,12 @@ mail-placeholder-template-subject = 기본 환영 제목
 mail-placeholder-template-body = 안녕하세요 {{name}}님, 플랫폼에 오신 것을 환영합니다!
 mail-placeholder-autoreply-subject = 회신 제목
 mail-placeholder-autoreply-message = 자동 회신 메시지...
+
+# semantic i18n key (#2542)
+mail-placeholder-search-emails = 이메일 검색...
+mail-placeholder-recipients = 받는 사람
+mail-placeholder-carbon-copy = 참조
+mail-placeholder-blind-carbon-copy = 숨은 참조
+mail-placeholder-subject = 제목
+mail-placeholder-compose-message = 메시지를 작성하세요...
+mail-placeholder-account-name = 업무, 개인 등

@@ -181,3 +181,12 @@ mail-placeholder-template-subject = 标准欢迎主题
 mail-placeholder-template-body = 您好 {{name}}，欢迎来到我们的平台！
 mail-placeholder-autoreply-subject = 回复主题
 mail-placeholder-autoreply-message = 您的自动回复消息...
+
+# semantic i18n key (#2542)
+mail-placeholder-search-emails = 搜索邮件...
+mail-placeholder-recipients = 收件人
+mail-placeholder-carbon-copy = 抄送
+mail-placeholder-blind-carbon-copy = 密送
+mail-placeholder-subject = 主题
+mail-placeholder-compose-message = 撰写邮件...
+mail-placeholder-account-name = 工作、个人等

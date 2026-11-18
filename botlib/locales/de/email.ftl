@@ -181,3 +181,12 @@ mail-placeholder-template-subject = Standard-Willkommensbetreff
 mail-placeholder-template-body = Hallo {{name}}, willkommen auf unserer Plattform!
 mail-placeholder-autoreply-subject = Betreff der Antwort
 mail-placeholder-autoreply-message = Ihre automatische Antwortnachricht...
+
+# semantic i18n key (#2542)
+mail-placeholder-search-emails = E-Mails suchen...
+mail-placeholder-recipients = Empfänger
+mail-placeholder-carbon-copy = Kopie
+mail-placeholder-blind-carbon-copy = Blindkopie
+mail-placeholder-subject = Betreff
+mail-placeholder-compose-message = Nachricht schreiben...
+mail-placeholder-account-name = Arbeit, Privat usw.

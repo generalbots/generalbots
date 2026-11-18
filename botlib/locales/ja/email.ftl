@@ -181,3 +181,12 @@ mail-placeholder-template-subject = 標準のウェルカム件名
 mail-placeholder-template-body = こんにちは {{name}} さん、プラットフォームへようこそ！
 mail-placeholder-autoreply-subject = 返信件名
 mail-placeholder-autoreply-message = 自動返信メッセージ...
+
+# semantic i18n key (#2542)
+mail-placeholder-search-emails = メールを検索...
+mail-placeholder-recipients = 宛先
+mail-placeholder-carbon-copy = CC
+mail-placeholder-blind-carbon-copy = BCC
+mail-placeholder-subject = 件名
+mail-placeholder-compose-message = メッセージを入力...
+mail-placeholder-account-name = 仕事、個人など
