@@ -137,30 +137,20 @@ function heroHtml(data) {
 
 // ── Order modal ──
 function openOrder(plan) {
-  selectedPlan = plan;
-  document.getElementById('modal-title').textContent = `Order: ${plan.name}`;
-  document.getElementById('modal-body').innerHTML = `
-    <div style="background:var(--bg3);border-radius:8px;padding:1rem;margin-bottom:1rem;border:1px solid var(--border)">
-      <div style="font-size:1.3rem;font-weight:800;color:var(--text)">${plan.currency}${plan.amount}<small style="font-size:.75rem;font-weight:400;color:var(--muted)"> / ${plan.period}</small></div>
-      <ul style="list-style:none;margin-top:.5rem">${plan.specs.map(s=>`<li style="font-size:.82rem;color:var(--muted);padding:.1rem 0">• ${esc(s)}</li>`).join('')}</ul>
-    </div>
-    <div class="form-group">
-      <label class="form-label">${gbT('cloud-store-service-name', 'Name this service (optional)')}</label>
-      <input id="order-name" class="form-control" type="text" placeholder="${gbT('cloud-store-service-name-placeholder', 'e.g. WhatsApp Bot Server')}">
-    </div>
-    <p style="font-size:.82rem;color:var(--muted);margin-top:.75rem">${gbT('cloud-store-no-auto-provision', 'Automatic purchase and provisioning are not available in this environment. Contact sales to complete this request; no charge or provisioning is started here.')}</p>`;
-  document.getElementById('purchase-modal').classList.add('open');
-  resetConfirmButton();
+  selectedPlan = plan || null;
+  const name = selectedPlan && selectedPlan.name ? String(selectedPlan.name) : gbT('cloud-store-order-service', 'Order Service');
+  const detail = selectedPlan
+    ? `${name}${selectedPlan.amount ? ` — ${selectedPlan.currency || '$'}${selectedPlan.amount}${selectedPlan.period ? `/${selectedPlan.period}` : ''}` : ''}`
+    : name;
+  openSalesContact(gbT('cloud-store-purchase-request', 'Purchase request'), detail);
 }
 
 async function confirmOrder() {
-  if (!selectedPlan) return;
-  const btn = document.getElementById('modal-confirm-btn');
-  if (btn) {
-    btn.textContent = gbT('cloud-store-contact-sales', 'Contact sales');
-    btn.disabled = false;
-  }
-  openSalesContact(gbT('cloud-store-purchase-request', 'Purchase request'), selectedPlan && selectedPlan.name ? String(selectedPlan.name) : '');
+  // No automatic purchase/provisioning is available in this environment.
+  openSalesContact(
+    gbT('cloud-store-purchase-request', 'Purchase request'),
+    selectedPlan && selectedPlan.name ? String(selectedPlan.name) : ''
+  );
 }
 
 function hideModal() {
@@ -223,7 +213,7 @@ function openSalesContact(subject, detail) {
 function resetConfirmButton() {
   const btn = document.getElementById('modal-confirm-btn');
   if (!btn) return;
-  btn.textContent = gbT('cloud-store-confirm-purchase', 'Confirm & Purchase');
+  btn.textContent = gbT('cloud-store-contact-sales', 'Contact sales');
   btn.disabled = false;
   btn.onclick = confirmOrder;
 }
