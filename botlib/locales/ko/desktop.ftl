@@ -330,3 +330,24 @@ user-menu-help-support = 도움말 및 지원
 
 # semantic i18n key (#2542)
 user-menu-sign-out = 로그아웃
+
+# semantic i18n key (#2542)
+desktop-session-management = 세션 관리
+
+# semantic i18n key (#2542)
+desktop-sessions-hint = 모든 VM의 활성 원격 데스크톱 세션
+
+# semantic i18n key (#2542)
+desktop-active-sessions = 활성 세션
+
+# semantic i18n key (#2542)
+desktop-session-idle = 유휴
+
+# semantic i18n key (#2542)
+desktop-session-state = 상태
+
+# semantic i18n key (#2542)
+desktop-session-duration = 기간
+
+# semantic i18n key (#2542)
+desktop-no-active-sessions = 활성 세션이 없습니다.

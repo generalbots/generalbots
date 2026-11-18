@@ -401,3 +401,87 @@ vdi-authentication = 身份验证
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = VNC 身份验证
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ 语音会话
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ 开始会话
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ 停止会话
+
+# semantic i18n key (#2542)
+meet-session-idle = 空闲
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 配置电话中继
+
+# semantic i18n key (#2542)
+meet-provision = 配置
+
+# semantic i18n key (#2542)
+meet-carrier = 运营商
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 浏览器测试
+
+# semantic i18n key (#2542)
+browser-new-session = 新建会话
+
+# semantic i18n key (#2542)
+browser-record = ⏺ 录制
+
+# semantic i18n key (#2542)
+browser-download-test = 下载测试
+
+# semantic i18n key (#2542)
+browser-no-actions = 未记录任何操作
+
+# semantic i18n key (#2542)
+browser-not-initialized = 浏览器未初始化。
+
+# semantic i18n key (#2542)
+browser-click-new-session = 点击“新建会话”开始。
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 源代码管理
+
+# semantic i18n key (#2542)
+git-commit-push = 提交并推送
+
+# semantic i18n key (#2542)
+git-changes = 更改
+
+# semantic i18n key (#2542)
+git-loading-status = 正在加载状态...
+
+# semantic i18n key (#2542)
+git-branches = 分支
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = 选择文件以查看更改
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = 葡萄牙语（巴西）
+
+# semantic i18n key (#2542)
+language-spanish = 西班牙语
+
+# semantic i18n key (#2542)
+language-chinese-simplified = 简体中文
+
+# semantic i18n key (#2542)
+language-french = 法语
+
+# semantic i18n key (#2542)
+language-german = 德语
+
+# semantic i18n key (#2542)
+language-japanese = 日语
+
+# semantic i18n key (#2542)
+language-korean = 韩语

@@ -336,3 +336,24 @@ user-menu-help-support = Ayuda y soporte
 
 # semantic i18n key (#2542)
 user-menu-sign-out = Cerrar sesión
+
+# semantic i18n key (#2542)
+desktop-session-management = Gestión de sesiones
+
+# semantic i18n key (#2542)
+desktop-sessions-hint = Sesiones activas de escritorio remoto en todas las VM
+
+# semantic i18n key (#2542)
+desktop-active-sessions = Sesiones activas
+
+# semantic i18n key (#2542)
+desktop-session-idle = Inactivo
+
+# semantic i18n key (#2542)
+desktop-session-state = Estado
+
+# semantic i18n key (#2542)
+desktop-session-duration = Duración
+
+# semantic i18n key (#2542)
+desktop-no-active-sessions = No hay sesiones activas.

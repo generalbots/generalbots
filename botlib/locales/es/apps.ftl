@@ -399,3 +399,87 @@ vdi-authentication = Autenticación
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = Autenticación VNC
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ Sesión de voz
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ Iniciar sesión
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ Detener sesión
+
+# semantic i18n key (#2542)
+meet-session-idle = Inactivo
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 Aprovisionar troncal de telefonía
+
+# semantic i18n key (#2542)
+meet-provision = Aprovisionar
+
+# semantic i18n key (#2542)
+meet-carrier = Operador
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 Pruebas de navegador
+
+# semantic i18n key (#2542)
+browser-new-session = Nueva sesión
+
+# semantic i18n key (#2542)
+browser-record = ⏺ Grabar
+
+# semantic i18n key (#2542)
+browser-download-test = Descargar prueba
+
+# semantic i18n key (#2542)
+browser-no-actions = No hay acciones registradas
+
+# semantic i18n key (#2542)
+browser-not-initialized = Navegador no inicializado.
+
+# semantic i18n key (#2542)
+browser-click-new-session = Haz clic en "Nueva sesión" para comenzar.
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 Control de código fuente
+
+# semantic i18n key (#2542)
+git-commit-push = Confirmar y enviar
+
+# semantic i18n key (#2542)
+git-changes = Cambios
+
+# semantic i18n key (#2542)
+git-loading-status = Cargando estado...
+
+# semantic i18n key (#2542)
+git-branches = Ramas
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = Selecciona un archivo para ver los cambios
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = Portugués (Brasil)
+
+# semantic i18n key (#2542)
+language-spanish = Español
+
+# semantic i18n key (#2542)
+language-chinese-simplified = Chino (simplificado)
+
+# semantic i18n key (#2542)
+language-french = Francés
+
+# semantic i18n key (#2542)
+language-german = Alemán
+
+# semantic i18n key (#2542)
+language-japanese = Japonés
+
+# semantic i18n key (#2542)
+language-korean = Coreano

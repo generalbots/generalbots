@@ -330,3 +330,24 @@ user-menu-help-support = 帮助与支持
 
 # semantic i18n key (#2542)
 user-menu-sign-out = 退出登录
+
+# semantic i18n key (#2542)
+desktop-session-management = 会话管理
+
+# semantic i18n key (#2542)
+desktop-sessions-hint = 所有虚拟机上的活动远程桌面会话
+
+# semantic i18n key (#2542)
+desktop-active-sessions = 活动会话
+
+# semantic i18n key (#2542)
+desktop-session-idle = 空闲
+
+# semantic i18n key (#2542)
+desktop-session-state = 状态
+
+# semantic i18n key (#2542)
+desktop-session-duration = 时长
+
+# semantic i18n key (#2542)
+desktop-no-active-sessions = 没有活动会话。

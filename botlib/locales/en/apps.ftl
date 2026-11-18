@@ -401,3 +401,87 @@ vdi-authentication = Authentication
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = VNC Authentication
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ Voice Session
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ Start session
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ Stop session
+
+# semantic i18n key (#2542)
+meet-session-idle = Idle
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 Provision Telephony Trunk
+
+# semantic i18n key (#2542)
+meet-provision = Provision
+
+# semantic i18n key (#2542)
+meet-carrier = Carrier
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 Browser Tests
+
+# semantic i18n key (#2542)
+browser-new-session = New Session
+
+# semantic i18n key (#2542)
+browser-record = ⏺ Record
+
+# semantic i18n key (#2542)
+browser-download-test = Download Test
+
+# semantic i18n key (#2542)
+browser-no-actions = No actions recorded
+
+# semantic i18n key (#2542)
+browser-not-initialized = Browser not initialized.
+
+# semantic i18n key (#2542)
+browser-click-new-session = Click "New Session" to begin.
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 Source Control
+
+# semantic i18n key (#2542)
+git-commit-push = Commit & Push
+
+# semantic i18n key (#2542)
+git-changes = Changes
+
+# semantic i18n key (#2542)
+git-loading-status = Loading status...
+
+# semantic i18n key (#2542)
+git-branches = Branches
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = Select a file to view changes
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = Portuguese (Brazil)
+
+# semantic i18n key (#2542)
+language-spanish = Spanish
+
+# semantic i18n key (#2542)
+language-chinese-simplified = Chinese (Simplified)
+
+# semantic i18n key (#2542)
+language-french = French
+
+# semantic i18n key (#2542)
+language-german = German
+
+# semantic i18n key (#2542)
+language-japanese = Japanese
+
+# semantic i18n key (#2542)
+language-korean = Korean

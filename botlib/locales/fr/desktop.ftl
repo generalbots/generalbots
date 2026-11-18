@@ -330,3 +330,24 @@ user-menu-help-support = Aide et support
 
 # semantic i18n key (#2542)
 user-menu-sign-out = Se déconnecter
+
+# semantic i18n key (#2542)
+desktop-session-management = Gestion des sessions
+
+# semantic i18n key (#2542)
+desktop-sessions-hint = Sessions de bureau à distance actives sur toutes les VM
+
+# semantic i18n key (#2542)
+desktop-active-sessions = Sessions actives
+
+# semantic i18n key (#2542)
+desktop-session-idle = Inactif
+
+# semantic i18n key (#2542)
+desktop-session-state = État
+
+# semantic i18n key (#2542)
+desktop-session-duration = Durée
+
+# semantic i18n key (#2542)
+desktop-no-active-sessions = Aucune session active.

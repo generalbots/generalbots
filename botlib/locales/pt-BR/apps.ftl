@@ -399,3 +399,87 @@ vdi-authentication = Autenticação
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = Autenticação VNC
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ Sessão de voz
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ Iniciar sessão
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ Encerrar sessão
+
+# semantic i18n key (#2542)
+meet-session-idle = Ocioso
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 Provisionar tronco de telefonia
+
+# semantic i18n key (#2542)
+meet-provision = Provisionar
+
+# semantic i18n key (#2542)
+meet-carrier = Operadora
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 Testes de navegador
+
+# semantic i18n key (#2542)
+browser-new-session = Nova sessão
+
+# semantic i18n key (#2542)
+browser-record = ⏺ Gravar
+
+# semantic i18n key (#2542)
+browser-download-test = Baixar teste
+
+# semantic i18n key (#2542)
+browser-no-actions = Nenhuma ação registrada
+
+# semantic i18n key (#2542)
+browser-not-initialized = Navegador não inicializado.
+
+# semantic i18n key (#2542)
+browser-click-new-session = Clique em "Nova sessão" para começar.
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 Controle de código
+
+# semantic i18n key (#2542)
+git-commit-push = Commit e Push
+
+# semantic i18n key (#2542)
+git-changes = Alterações
+
+# semantic i18n key (#2542)
+git-loading-status = Carregando status...
+
+# semantic i18n key (#2542)
+git-branches = Branches
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = Selecione um arquivo para ver as alterações
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = Português (Brasil)
+
+# semantic i18n key (#2542)
+language-spanish = Espanhol
+
+# semantic i18n key (#2542)
+language-chinese-simplified = Chinês (simplificado)
+
+# semantic i18n key (#2542)
+language-french = Francês
+
+# semantic i18n key (#2542)
+language-german = Alemão
+
+# semantic i18n key (#2542)
+language-japanese = Japonês
+
+# semantic i18n key (#2542)
+language-korean = Coreano

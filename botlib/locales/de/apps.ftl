@@ -401,3 +401,87 @@ vdi-authentication = Authentifizierung
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = VNC-Authentifizierung
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ Sprachsitzung
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ Sitzung starten
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ Sitzung beenden
+
+# semantic i18n key (#2542)
+meet-session-idle = Leerlauf
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 Telefonie-Trunk bereitstellen
+
+# semantic i18n key (#2542)
+meet-provision = Bereitstellen
+
+# semantic i18n key (#2542)
+meet-carrier = Anbieter
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 Browser-Tests
+
+# semantic i18n key (#2542)
+browser-new-session = Neue Sitzung
+
+# semantic i18n key (#2542)
+browser-record = ⏺ Aufnehmen
+
+# semantic i18n key (#2542)
+browser-download-test = Test herunterladen
+
+# semantic i18n key (#2542)
+browser-no-actions = Keine Aktionen aufgezeichnet
+
+# semantic i18n key (#2542)
+browser-not-initialized = Browser nicht initialisiert.
+
+# semantic i18n key (#2542)
+browser-click-new-session = Klicken Sie auf „Neue Sitzung“, um zu beginnen.
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 Quellcodeverwaltung
+
+# semantic i18n key (#2542)
+git-commit-push = Commit & Push
+
+# semantic i18n key (#2542)
+git-changes = Änderungen
+
+# semantic i18n key (#2542)
+git-loading-status = Status wird geladen...
+
+# semantic i18n key (#2542)
+git-branches = Branches
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = Wählen Sie eine Datei aus, um Änderungen anzuzeigen
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = Portugiesisch (Brasilien)
+
+# semantic i18n key (#2542)
+language-spanish = Spanisch
+
+# semantic i18n key (#2542)
+language-chinese-simplified = Chinesisch (vereinfacht)
+
+# semantic i18n key (#2542)
+language-french = Französisch
+
+# semantic i18n key (#2542)
+language-german = Deutsch
+
+# semantic i18n key (#2542)
+language-japanese = Japanisch
+
+# semantic i18n key (#2542)
+language-korean = Koreanisch

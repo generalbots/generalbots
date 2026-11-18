@@ -330,3 +330,24 @@ user-menu-help-support = ヘルプとサポート
 
 # semantic i18n key (#2542)
 user-menu-sign-out = サインアウト
+
+# semantic i18n key (#2542)
+desktop-session-management = セッション管理
+
+# semantic i18n key (#2542)
+desktop-sessions-hint = すべてのVMにわたるアクティブなリモートデスクトップセッション
+
+# semantic i18n key (#2542)
+desktop-active-sessions = アクティブなセッション
+
+# semantic i18n key (#2542)
+desktop-session-idle = アイドル
+
+# semantic i18n key (#2542)
+desktop-session-state = 状態
+
+# semantic i18n key (#2542)
+desktop-session-duration = 期間
+
+# semantic i18n key (#2542)
+desktop-no-active-sessions = アクティブなセッションはありません。

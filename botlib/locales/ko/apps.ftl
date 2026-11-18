@@ -401,3 +401,87 @@ vdi-authentication = 인증
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = VNC 인증
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ 음성 세션
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ 세션 시작
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ 세션 중지
+
+# semantic i18n key (#2542)
+meet-session-idle = 유휴
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 전화 트렁크 프로비저닝
+
+# semantic i18n key (#2542)
+meet-provision = 프로비저닝
+
+# semantic i18n key (#2542)
+meet-carrier = 통신사
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 브라우저 테스트
+
+# semantic i18n key (#2542)
+browser-new-session = 새 세션
+
+# semantic i18n key (#2542)
+browser-record = ⏺ 기록
+
+# semantic i18n key (#2542)
+browser-download-test = 테스트 다운로드
+
+# semantic i18n key (#2542)
+browser-no-actions = 기록된 작업 없음
+
+# semantic i18n key (#2542)
+browser-not-initialized = 브라우저가 초기화되지 않았습니다.
+
+# semantic i18n key (#2542)
+browser-click-new-session = "새 세션"을 클릭하여 시작하세요.
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 소스 제어
+
+# semantic i18n key (#2542)
+git-commit-push = 커밋 및 푸시
+
+# semantic i18n key (#2542)
+git-changes = 변경 사항
+
+# semantic i18n key (#2542)
+git-loading-status = 상태 불러오는 중...
+
+# semantic i18n key (#2542)
+git-branches = 브랜치
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = 변경 사항을 보려면 파일을 선택하세요
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = 포르투갈어(브라질)
+
+# semantic i18n key (#2542)
+language-spanish = 스페인어
+
+# semantic i18n key (#2542)
+language-chinese-simplified = 중국어(간체)
+
+# semantic i18n key (#2542)
+language-french = 프랑스어
+
+# semantic i18n key (#2542)
+language-german = 독일어
+
+# semantic i18n key (#2542)
+language-japanese = 일본어
+
+# semantic i18n key (#2542)
+language-korean = 한국어

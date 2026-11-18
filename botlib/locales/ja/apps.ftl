@@ -401,3 +401,87 @@ vdi-authentication = 認証
 
 # semantic i18n key (#2542)
 vdi-vnc-authentication = VNC認証
+
+# semantic i18n key (#2542)
+meet-voice-session = 🎙️ 音声セッション
+
+# semantic i18n key (#2542)
+meet-start-session = ▶ セッション開始
+
+# semantic i18n key (#2542)
+meet-stop-session = ■ セッション停止
+
+# semantic i18n key (#2542)
+meet-session-idle = アイドル
+
+# semantic i18n key (#2542)
+meet-provision-trunk = 📞 テレフォニートランクをプロビジョニング
+
+# semantic i18n key (#2542)
+meet-provision = プロビジョニング
+
+# semantic i18n key (#2542)
+meet-carrier = キャリア
+
+# semantic i18n key (#2542)
+browser-tests-title = 🌐 ブラウザテスト
+
+# semantic i18n key (#2542)
+browser-new-session = 新しいセッション
+
+# semantic i18n key (#2542)
+browser-record = ⏺ 記録
+
+# semantic i18n key (#2542)
+browser-download-test = テストをダウンロード
+
+# semantic i18n key (#2542)
+browser-no-actions = 記録されたアクションはありません
+
+# semantic i18n key (#2542)
+browser-not-initialized = ブラウザが初期化されていません。
+
+# semantic i18n key (#2542)
+browser-click-new-session = 「新しいセッション」をクリックして開始します。
+
+# semantic i18n key (#2542)
+git-source-control = 🌱 ソース管理
+
+# semantic i18n key (#2542)
+git-commit-push = コミットしてプッシュ
+
+# semantic i18n key (#2542)
+git-changes = 変更
+
+# semantic i18n key (#2542)
+git-loading-status = ステータスを読み込み中...
+
+# semantic i18n key (#2542)
+git-branches = ブランチ
+
+# semantic i18n key (#2542)
+git-branch-main = main
+
+# semantic i18n key (#2542)
+git-select-file-hint = 変更を表示するファイルを選択してください
+
+# semantic i18n key (#2542)
+language-portuguese-brazil = ポルトガル語（ブラジル）
+
+# semantic i18n key (#2542)
+language-spanish = スペイン語
+
+# semantic i18n key (#2542)
+language-chinese-simplified = 中国語（簡体字）
+
+# semantic i18n key (#2542)
+language-french = フランス語
+
+# semantic i18n key (#2542)
+language-german = ドイツ語
+
+# semantic i18n key (#2542)
+language-japanese = 日本語
+
+# semantic i18n key (#2542)
+language-korean = 韓国語
