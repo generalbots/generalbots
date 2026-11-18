@@ -488,3 +488,69 @@ settings-os-restart-action = 再起動
 
 # semantic i18n key (#2542)
 settings-os-restart-confirm-message = <strong id="os-restart-service-name" data-i18n="settings-os-the-service">サービス</strong>を再起動しますか？確認のためサービス名を入力してください。再起動は監査ログに記録されます。
+
+# semantic i18n key (#2542)
+settings-profile-directory-managed = Zitadel ディレクトリで管理
+
+# semantic i18n key (#2542)
+settings-profile-open-directory-profile = ディレクトリプロファイルを開く
+
+# semantic i18n key (#2542)
+settings-profile-public-title = 公開プロフィール
+
+# semantic i18n key (#2542)
+settings-profile-public-desc = General Bots ホームページでの表示方法
+
+# semantic i18n key (#2542)
+settings-profile-public-display-name = 公開表示名
+
+# semantic i18n key (#2542)
+settings-profile-public-url-label = プロフィール URL は次のようになります
+
+# semantic i18n key (#2542)
+settings-profile-coming-soon = 近日公開
+
+# semantic i18n key (#2542)
+settings-profile-public-bio = 公開プロフィール
+
+# semantic i18n key (#2542)
+settings-profile-public-url-placeholder = your-name.generalbots.org
+
+# semantic i18n key (#2542)
+settings-profile-language-region = 言語と地域
+
+# semantic i18n key (#2542)
+settings-profile-public-url-hint-html = General Bots ホームサイトリレーが提供されると（#1867）、ページは <strong><span id="public-profile-url-hint" data-i18n="settings-profile-public-url-placeholder">your-name.generalbots.org</span></strong> で公開されます。
+
+# semantic i18n key (#2542)
+settings-security-directory-note = ID、セッション、2FA は Zitadel ディレクトリで管理されます
+
+# semantic i18n key (#2542)
+settings-security-open-directory-security = ディレクトリのセキュリティを開く
+
+# semantic i18n key (#2542)
+settings-security-connected-devices = 接続済みデバイス
+
+# semantic i18n key (#2542)
+settings-security-connected-devices-desc = アカウントにアクセスしたデバイス
+
+# semantic i18n key (#2542)
+settings-security-local-data = ローカルデータ
+
+# semantic i18n key (#2542)
+settings-security-local-data-desc = このインストールでは、すべてがこのデバイスに保存されます。
+
+# semantic i18n key (#2542)
+settings-security-export-local-data = ローカルデータをエクスポート
+
+# semantic i18n key (#2542)
+settings-security-export-local-data-desc = このデバイスに保存されているデータをダウンロード
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache = ローカルキャッシュをクリア
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache-desc = このブラウザプロファイルに保存されたキャッシュ設定と下書きを削除します
+
+# semantic i18n key (#2542)
+settings-security-clear-cache-action = キャッシュをクリア

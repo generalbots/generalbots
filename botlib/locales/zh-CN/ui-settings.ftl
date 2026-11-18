@@ -488,3 +488,69 @@ settings-os-restart-action = 重启
 
 # semantic i18n key (#2542)
 settings-os-restart-confirm-message = 重启<strong id="os-restart-service-name" data-i18n="settings-os-the-service">该服务</strong>？请输入服务名称以确认；重启操作将写入审计日志。
+
+# semantic i18n key (#2542)
+settings-profile-directory-managed = 由 Zitadel 目录管理
+
+# semantic i18n key (#2542)
+settings-profile-open-directory-profile = 打开目录配置文件
+
+# semantic i18n key (#2542)
+settings-profile-public-title = 公开个人资料
+
+# semantic i18n key (#2542)
+settings-profile-public-desc = 您在 General Bots 主页上的显示方式
+
+# semantic i18n key (#2542)
+settings-profile-public-display-name = 公开显示名称
+
+# semantic i18n key (#2542)
+settings-profile-public-url-label = 您的个人资料 URL 将是
+
+# semantic i18n key (#2542)
+settings-profile-coming-soon = 即将推出
+
+# semantic i18n key (#2542)
+settings-profile-public-bio = 公开简介
+
+# semantic i18n key (#2542)
+settings-profile-public-url-placeholder = your-name.generalbots.org
+
+# semantic i18n key (#2542)
+settings-profile-language-region = 语言和区域
+
+# semantic i18n key (#2542)
+settings-profile-public-url-hint-html = General Bots 主站中继发布后（#1867），页面将在 <strong><span id="public-profile-url-hint" data-i18n="settings-profile-public-url-placeholder">your-name.generalbots.org</span></strong> 上线。
+
+# semantic i18n key (#2542)
+settings-security-directory-note = 身份、会话和双重验证位于 Zitadel 目录中
+
+# semantic i18n key (#2542)
+settings-security-open-directory-security = 打开目录安全设置
+
+# semantic i18n key (#2542)
+settings-security-connected-devices = 已连接设备
+
+# semantic i18n key (#2542)
+settings-security-connected-devices-desc = 曾访问您帐户的设备
+
+# semantic i18n key (#2542)
+settings-security-local-data = 本地数据
+
+# semantic i18n key (#2542)
+settings-security-local-data-desc = 此安装会将所有内容保留在此设备上。
+
+# semantic i18n key (#2542)
+settings-security-export-local-data = 导出本地数据
+
+# semantic i18n key (#2542)
+settings-security-export-local-data-desc = 下载存储在此设备上的数据
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache = 清除本地缓存
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache-desc = 移除此浏览器配置文件中存储的缓存设置和草稿
+
+# semantic i18n key (#2542)
+settings-security-clear-cache-action = 清除缓存

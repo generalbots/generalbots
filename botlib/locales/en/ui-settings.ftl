@@ -488,3 +488,69 @@ settings-os-restart-action = Restart
 
 # semantic i18n key (#2542)
 settings-os-restart-confirm-message = Restart <strong id="os-restart-service-name" data-i18n="settings-os-the-service">the service</strong>? Type the service name to confirm; the restart is written to the audit log.
+
+# semantic i18n key (#2542)
+settings-profile-directory-managed = Managed by the Zitadel directory
+
+# semantic i18n key (#2542)
+settings-profile-open-directory-profile = Open directory profile
+
+# semantic i18n key (#2542)
+settings-profile-public-title = Public Profile
+
+# semantic i18n key (#2542)
+settings-profile-public-desc = How you appear on your General Bots home page
+
+# semantic i18n key (#2542)
+settings-profile-public-display-name = Public Display Name
+
+# semantic i18n key (#2542)
+settings-profile-public-url-label = Your profile URL will be
+
+# semantic i18n key (#2542)
+settings-profile-coming-soon = Coming soon
+
+# semantic i18n key (#2542)
+settings-profile-public-bio = Public Bio
+
+# semantic i18n key (#2542)
+settings-profile-public-url-placeholder = your-name.generalbots.org
+
+# semantic i18n key (#2542)
+settings-profile-language-region = Language & region
+
+# semantic i18n key (#2542)
+settings-profile-public-url-hint-html = The page will be live at <strong><span id="public-profile-url-hint" data-i18n="settings-profile-public-url-placeholder">your-name.generalbots.org</span></strong> once the General Bots home-site relay ships (#1867).
+
+# semantic i18n key (#2542)
+settings-security-directory-note = Identity, sessions and 2FA live in the Zitadel directory
+
+# semantic i18n key (#2542)
+settings-security-open-directory-security = Open directory security
+
+# semantic i18n key (#2542)
+settings-security-connected-devices = Connected Devices
+
+# semantic i18n key (#2542)
+settings-security-connected-devices-desc = Devices that have accessed your account
+
+# semantic i18n key (#2542)
+settings-security-local-data = Local data
+
+# semantic i18n key (#2542)
+settings-security-local-data-desc = This installation keeps everything on this device.
+
+# semantic i18n key (#2542)
+settings-security-export-local-data = Export local data
+
+# semantic i18n key (#2542)
+settings-security-export-local-data-desc = Download the data stored on this device
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache = Clear local cache
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache-desc = Removes cached settings and drafts stored in this browser profile
+
+# semantic i18n key (#2542)
+settings-security-clear-cache-action = Clear cache

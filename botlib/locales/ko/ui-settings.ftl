@@ -488,3 +488,69 @@ settings-os-restart-action = 다시 시작
 
 # semantic i18n key (#2542)
 settings-os-restart-confirm-message = <strong id="os-restart-service-name" data-i18n="settings-os-the-service">서비스</strong>를 다시 시작하시겠습니까? 확인을 위해 서비스 이름을 입력하세요. 다시 시작은 감사 로그에 기록됩니다.
+
+# semantic i18n key (#2542)
+settings-profile-directory-managed = Zitadel 디렉터리에서 관리됨
+
+# semantic i18n key (#2542)
+settings-profile-open-directory-profile = 디렉터리 프로필 열기
+
+# semantic i18n key (#2542)
+settings-profile-public-title = 공개 프로필
+
+# semantic i18n key (#2542)
+settings-profile-public-desc = General Bots 홈 페이지에 표시되는 방식
+
+# semantic i18n key (#2542)
+settings-profile-public-display-name = 공개 표시 이름
+
+# semantic i18n key (#2542)
+settings-profile-public-url-label = 프로필 URL은 다음과 같습니다
+
+# semantic i18n key (#2542)
+settings-profile-coming-soon = 곧 제공 예정
+
+# semantic i18n key (#2542)
+settings-profile-public-bio = 공개 소개
+
+# semantic i18n key (#2542)
+settings-profile-public-url-placeholder = your-name.generalbots.org
+
+# semantic i18n key (#2542)
+settings-profile-language-region = 언어 및 지역
+
+# semantic i18n key (#2542)
+settings-profile-public-url-hint-html = General Bots 홈 사이트 릴레이가 배포되면(#1867) 페이지가 <strong><span id="public-profile-url-hint" data-i18n="settings-profile-public-url-placeholder">your-name.generalbots.org</span></strong>에서 제공됩니다.
+
+# semantic i18n key (#2542)
+settings-security-directory-note = ID, 세션 및 2FA는 Zitadel 디렉터리에 있습니다
+
+# semantic i18n key (#2542)
+settings-security-open-directory-security = 디렉터리 보안 열기
+
+# semantic i18n key (#2542)
+settings-security-connected-devices = 연결된 기기
+
+# semantic i18n key (#2542)
+settings-security-connected-devices-desc = 계정에 액세스한 기기
+
+# semantic i18n key (#2542)
+settings-security-local-data = 로컬 데이터
+
+# semantic i18n key (#2542)
+settings-security-local-data-desc = 이 설치는 모든 데이터를 이 기기에 보관합니다.
+
+# semantic i18n key (#2542)
+settings-security-export-local-data = 로컬 데이터 내보내기
+
+# semantic i18n key (#2542)
+settings-security-export-local-data-desc = 이 기기에 저장된 데이터 다운로드
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache = 로컬 캐시 지우기
+
+# semantic i18n key (#2542)
+settings-security-clear-local-cache-desc = 이 브라우저 프로필에 저장된 캐시된 설정 및 임시 보관함을 제거합니다
+
+# semantic i18n key (#2542)
+settings-security-clear-cache-action = 캐시 지우기
