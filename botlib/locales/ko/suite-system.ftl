@@ -161,6 +161,12 @@ system-versions-loading = 버전 정보 불러오는 중...
 monitoring-log-details = 로그 상세
 
 # semantic i18n key (#2542)
+monitoring-scroll-to-top = 맨 위로 스크롤
+
+# semantic i18n key (#2542)
+monitoring-scroll-to-bottom-auto = 맨 아래로 스크롤(자동 스크롤)
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

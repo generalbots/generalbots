@@ -161,6 +161,12 @@ system-versions-loading = 正在加载版本信息...
 monitoring-log-details = 日志详情
 
 # semantic i18n key (#2542)
+monitoring-scroll-to-top = 滚动到顶部
+
+# semantic i18n key (#2542)
+monitoring-scroll-to-bottom-auto = 滚动到底部（自动滚动）
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

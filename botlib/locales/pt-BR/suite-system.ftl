@@ -161,6 +161,12 @@ system-versions-loading = Carregando informações da versão...
 monitoring-log-details = Detalhes do log
 
 # semantic i18n key (#2542)
+monitoring-scroll-to-top = Rolar para o topo
+
+# semantic i18n key (#2542)
+monitoring-scroll-to-bottom-auto = Rolar para o fim (rolagem automática)
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)
