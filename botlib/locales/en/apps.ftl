@@ -182,3 +182,15 @@ notes-new-note = + New Note
 
 # semantic i18n key (#2542)
 docs-all-changes-saved = All changes saved
+
+# semantic i18n key (#2542)
+widget-battery-unavailable = Battery information unavailable
+
+# semantic i18n key (#2542)
+widget-open-photos = Open Photos →
+
+# semantic i18n key (#2542)
+widget-clear-done = Clear done
+
+# semantic i18n key (#2542)
+terminal-tab-1 = Terminal 1

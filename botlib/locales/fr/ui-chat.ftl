@@ -136,3 +136,6 @@ chat-status-stopped = Arrêté
 
 chat-response-ready = Réponse prête
 chat-response-started = L'assistant répond
+
+# semantic i18n key (#2542)
+chat-no-suggestions-available = Aucune suggestion disponible

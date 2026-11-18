@@ -322,3 +322,9 @@ people-job-title = 标题
 people-notes = 注释
 people-empty-title = 还没有联系方式
 people-empty-desc = 添加您的第一个联系人以开始使用
+
+# semantic i18n key (#2542)
+crm-status-prospect = 潜在客户
+
+# semantic i18n key (#2542)
+crm-lost-reason = 丢失原因

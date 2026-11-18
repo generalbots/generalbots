@@ -182,3 +182,15 @@ notes-new-note = + 新しいメモ
 
 # semantic i18n key (#2542)
 docs-all-changes-saved = すべての変更を保存しました
+
+# semantic i18n key (#2542)
+widget-battery-unavailable = バッテリー情報を利用できません
+
+# semantic i18n key (#2542)
+widget-open-photos = 写真を開く →
+
+# semantic i18n key (#2542)
+widget-clear-done = 完了をクリア
+
+# semantic i18n key (#2542)
+terminal-tab-1 = ターミナル 1

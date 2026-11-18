@@ -182,3 +182,15 @@ notes-new-note = + 새 메모
 
 # semantic i18n key (#2542)
 docs-all-changes-saved = 모든 변경 사항이 저장됨
+
+# semantic i18n key (#2542)
+widget-battery-unavailable = 배터리 정보를 사용할 수 없음
+
+# semantic i18n key (#2542)
+widget-open-photos = 사진 열기 →
+
+# semantic i18n key (#2542)
+widget-clear-done = 완료 항목 지우기
+
+# semantic i18n key (#2542)
+terminal-tab-1 = 터미널 1

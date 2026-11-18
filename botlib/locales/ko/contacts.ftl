@@ -322,3 +322,9 @@ people-job-title = 제목
 people-notes = 메모
 people-empty-title = 아직 연락처가 없습니다.
 people-empty-desc = 시작하려면 첫 번째 연락처를 추가하세요.
+
+# semantic i18n key (#2542)
+crm-status-prospect = 잠재 고객
+
+# semantic i18n key (#2542)
+crm-lost-reason = 실패 사유

@@ -322,3 +322,9 @@ people-job-title = Cargo
 people-notes = Notas
 people-empty-title = No hay contactos aún
 people-empty-desc = Agrega tu primer contacto para comenzar
+
+# semantic i18n key (#2542)
+crm-status-prospect = Prospecto
+
+# semantic i18n key (#2542)
+crm-lost-reason = Motivo de pérdida

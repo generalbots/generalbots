@@ -182,3 +182,15 @@ notes-new-note = + 新建笔记
 
 # semantic i18n key (#2542)
 docs-all-changes-saved = 所有更改已保存
+
+# semantic i18n key (#2542)
+widget-battery-unavailable = 电池信息不可用
+
+# semantic i18n key (#2542)
+widget-open-photos = 打开照片 →
+
+# semantic i18n key (#2542)
+widget-clear-done = 清除已完成
+
+# semantic i18n key (#2542)
+terminal-tab-1 = 终端 1

@@ -322,3 +322,9 @@ people-job-title = タイトル
 people-notes = 注意事項
 people-empty-title = まだ連絡先がありません
 people-empty-desc = 最初の連絡先を追加して始めましょう
+
+# semantic i18n key (#2542)
+crm-status-prospect = 見込み客
+
+# semantic i18n key (#2542)
+crm-lost-reason = 失注理由
