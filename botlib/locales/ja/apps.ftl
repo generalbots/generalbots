@@ -989,3 +989,81 @@ learn-app-course-preview = コースプレビュー
 
 # semantic i18n key (#2542)
 learn-app-enroll = 登録する
+
+# semantic i18n key (#2542)
+o365-integration-title = o365 連携
+
+# semantic i18n key (#2542)
+o365-stat-sp-sites = SP サイト
+
+# semantic i18n key (#2542)
+o365-stat-calendar-events = カレンダーのイベント
+
+# semantic i18n key (#2542)
+o365-stat-drive-files = Drive ファイル
+
+# semantic i18n key (#2542)
+o365-stat-chats = チャット
+
+# semantic i18n key (#2542)
+o365-fetching-sp-sites = SP サイトを取得しています
+
+# semantic i18n key (#2542)
+o365-upcoming-meetings = 今後の会議
+
+# semantic i18n key (#2542)
+o365-fetching-calendar-events = カレンダーのイベントを取得しています
+
+# semantic i18n key (#2542)
+o365-root = ルート
+
+# semantic i18n key (#2542)
+o365-account-status = アカウントの状態
+
+# semantic i18n key (#2542)
+o365-account-label = o365 アカウント
+
+# semantic i18n key (#2542)
+o365-last-sync = 最終同期
+
+# semantic i18n key (#2542)
+o365-never = なし
+
+# semantic i18n key (#2542)
+o365-sync-now = 今すぐ同期
+
+# semantic i18n key (#2542)
+o365-sync-frequency = 同期頻度
+
+# semantic i18n key (#2542)
+o365-calendar-sync = カレンダー同期
+
+# semantic i18n key (#2542)
+o365-sync-calendar-events = カレンダーのイベントを同期
+
+# semantic i18n key (#2542)
+o365-every-5-min = 5分ごと
+
+# semantic i18n key (#2542)
+o365-every-15-min = 15分ごと
+
+# semantic i18n key (#2542)
+o365-every-30-min = 30分ごと
+
+# semantic i18n key (#2542)
+o365-every-hour = 1時間ごと
+
+# semantic i18n key (#2542)
+o365-drive-sync = Drive 同期
+
+# semantic i18n key (#2542)
+o365-sync-drive-files = Drive ファイルを同期
+
+# semantic i18n key (#2542)
+o365-account = アカウント
+
+# semantic i18n key (#2542)
+o365-integration-managed = o365 連携はワークスペースによって管理されています
+
+# semantic i18n key (#2542)
+o365-create-meeting = 会議を作成

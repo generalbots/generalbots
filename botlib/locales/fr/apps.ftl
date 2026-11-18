@@ -989,3 +989,81 @@ learn-app-course-preview = Aperçu du cours
 
 # semantic i18n key (#2542)
 learn-app-enroll = S'inscrire
+
+# semantic i18n key (#2542)
+o365-integration-title = Intégration o365
+
+# semantic i18n key (#2542)
+o365-stat-sp-sites = Sites SP
+
+# semantic i18n key (#2542)
+o365-stat-calendar-events = Événements du calendrier
+
+# semantic i18n key (#2542)
+o365-stat-drive-files = Fichiers Drive
+
+# semantic i18n key (#2542)
+o365-stat-chats = Discussions
+
+# semantic i18n key (#2542)
+o365-fetching-sp-sites = Récupération des sites SP
+
+# semantic i18n key (#2542)
+o365-upcoming-meetings = Réunions à venir
+
+# semantic i18n key (#2542)
+o365-fetching-calendar-events = Récupération des événements du calendrier
+
+# semantic i18n key (#2542)
+o365-root = Racine
+
+# semantic i18n key (#2542)
+o365-account-status = État du compte
+
+# semantic i18n key (#2542)
+o365-account-label = Compte o365
+
+# semantic i18n key (#2542)
+o365-last-sync = Dernière synchronisation
+
+# semantic i18n key (#2542)
+o365-never = Jamais
+
+# semantic i18n key (#2542)
+o365-sync-now = Synchroniser maintenant
+
+# semantic i18n key (#2542)
+o365-sync-frequency = Fréquence de synchronisation
+
+# semantic i18n key (#2542)
+o365-calendar-sync = Synchronisation du calendrier
+
+# semantic i18n key (#2542)
+o365-sync-calendar-events = Synchroniser les événements du calendrier
+
+# semantic i18n key (#2542)
+o365-every-5-min = Toutes les 5 min
+
+# semantic i18n key (#2542)
+o365-every-15-min = Toutes les 15 min
+
+# semantic i18n key (#2542)
+o365-every-30-min = Toutes les 30 min
+
+# semantic i18n key (#2542)
+o365-every-hour = Toutes les heures
+
+# semantic i18n key (#2542)
+o365-drive-sync = Synchronisation de Drive
+
+# semantic i18n key (#2542)
+o365-sync-drive-files = Synchroniser les fichiers Drive
+
+# semantic i18n key (#2542)
+o365-account = Compte
+
+# semantic i18n key (#2542)
+o365-integration-managed = Intégration o365 gérée par votre espace de travail
+
+# semantic i18n key (#2542)
+o365-create-meeting = Créer une réunion

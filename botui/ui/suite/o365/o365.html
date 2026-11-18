@@ -1,12 +1,12 @@
 <link rel="stylesheet" href="/suite/o365/o365.css">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/gb-app-kit.js?v=1"></script>
 <script src="/suite/o365/o365.js"></script>
 
 <div class="gb-app o365-container" data-gb-app="o365">
     <header class="o365-header">
-        <h1 data-i18n="auto-o365-integration">o365 Integration</h1>
+        <h1 data-i18n="o365-integration-title">o365 Integration</h1>
         <div class="o365-header-actions">
             <button type="button" class="o365-btn" data-o365-action="load-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
@@ -16,10 +16,10 @@
     </header>
 
     <div class="o365-stats">
-        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="auto-sp-sites">SP Sites</span><span class="o365-stat-value blue" id="stat-sites">0</span></div>
-        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="auto-calendar-events">Calendar Events</span><span class="o365-stat-value green" id="stat-events">0</span></div>
-        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="auto-drive-files">Drive Files</span><span class="o365-stat-value purple" id="stat-files">0</span></div>
-        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="auto-chats">Chats</span><span class="o365-stat-value orange" id="stat-teams">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="o365-stat-sp-sites">SP Sites</span><span class="o365-stat-value blue" id="stat-sites">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="o365-stat-calendar-events">Calendar Events</span><span class="o365-stat-value green" id="stat-events">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="o365-stat-drive-files">Drive Files</span><span class="o365-stat-value purple" id="stat-files">0</span></div>
+        <div class="o365-stat-card"><span class="o365-stat-label" data-i18n="o365-stat-chats">Chats</span><span class="o365-stat-value orange" id="stat-teams">0</span></div>
     </div>
 
     <nav class="o365-tabs" role="tablist" aria-label="O365 sections">
@@ -32,27 +32,27 @@
     <div class="o365-content">
         <div class="o365-panel active" id="panel-sharepoint" role="tabpanel" aria-labelledby="o365-tab-sharepoint">
             <div class="o365-grid" id="sharepoint-grid">
-                <div class="o365-empty"><div class="o365-empty-icon">📁</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-sp-sites">Fetching SP sites</p></div>
+                <div class="o365-empty"><div class="o365-empty-icon">📁</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="o365-fetching-sp-sites">Fetching SP sites</p></div>
             </div>
             <div id="sharepoint-items" style="margin-top:16px"></div>
         </div>
 
         <div class="o365-panel" id="panel-calendar" role="tabpanel" aria-labelledby="o365-tab-calendar" hidden>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                <h3 style="font-size:16px;font-weight:600;margin:0" data-i18n="auto-upcoming-meetings">Upcoming Meetings</h3>
+                <h3 style="font-size:16px;font-weight:600;margin:0" data-i18n="o365-upcoming-meetings">Upcoming Meetings</h3>
                 <button type="button" class="o365-btn o365-btn-primary" data-o365-action="show-create-meeting">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Create Meeting
                 </button>
             </div>
             <div class="o365-grid" id="calendar-grid">
-                <div class="o365-empty"><div class="o365-empty-icon">📅</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="auto-fetching-calendar-events">Fetching calendar events</p></div>
+                <div class="o365-empty"><div class="o365-empty-icon">📅</div><h3 data-i18n="label-loading">Loading...</h3><p data-i18n="o365-fetching-calendar-events">Fetching calendar events</p></div>
             </div>
         </div>
 
         <div class="o365-panel" id="panel-onedrive" role="tabpanel" aria-labelledby="o365-tab-onedrive" hidden>
             <div class="o365-breadcrumb" id="onedrive-breadcrumb">
-                <button type="button" class="o365-breadcrumb-item" data-o365-nav-id="root" data-o365-nav-name="Root" data-i18n="auto-root">Root</button>
+                <button type="button" class="o365-breadcrumb-item" data-o365-nav-id="root" data-o365-nav-name="Root" data-i18n="o365-root">Root</button>
             </div>
             <div class="o365-table-wrapper">
                 <table class="o365-table">
@@ -64,43 +64,43 @@
 
         <div class="o365-panel" id="panel-settings" role="tabpanel" aria-labelledby="o365-tab-settings" hidden>
             <div class="o365-settings-card">
-                <h3 data-i18n="auto-account-status">Account Status</h3>
+                <h3 data-i18n="o365-account-status">Account Status</h3>
                 <div class="o365-settings-row">
                     <div>
-                        <div class="o365-settings-label" data-i18n="auto-o365-account">o365 Account</div>
+                        <div class="o365-settings-label" data-i18n="o365-account-label">o365 Account</div>
                         <div class="o365-settings-desc"><span id="settings-account" data-i18n="oauth-not-connected">Not connected</span> <span id="settings-status" class="o365-badge" style="display:none"></span></div>
                     </div>
                 </div>
                 <div class="o365-settings-row">
-                    <div><div class="o365-settings-label" data-i18n="auto-last-sync-2">Last Sync</div><div class="o365-settings-desc" id="settings-sync" data-i18n="auto-never">Never</div></div>
-                    <button type="button" class="o365-btn" data-o365-action="sync-now" data-i18n="auto-sync-now">Sync Now</button>
+                    <div><div class="o365-settings-label" data-i18n="o365-last-sync">Last Sync</div><div class="o365-settings-desc" id="settings-sync" data-i18n="o365-never">Never</div></div>
+                    <button type="button" class="o365-btn" data-o365-action="sync-now" data-i18n="o365-sync-now">Sync Now</button>
                 </div>
             </div>
             <div class="o365-settings-card">
-                <h3 data-i18n="auto-sync-frequency">Sync Frequency</h3>
+                <h3 data-i18n="o365-sync-frequency">Sync Frequency</h3>
                 <div class="o365-settings-row">
-                    <div><div class="o365-settings-label" data-i18n="auto-calendar-sync">Calendar Sync</div><div class="o365-settings-desc" data-i18n="auto-sync-calendar-events">Sync calendar events</div></div>
+                    <div><div class="o365-settings-label" data-i18n="o365-calendar-sync">Calendar Sync</div><div class="o365-settings-desc" data-i18n="o365-sync-calendar-events">Sync calendar events</div></div>
                     <select id="sync-calendar" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="calendar">
-                        <option value="5" data-i18n="auto-every-5-min">Every 5 min</option>
-                        <option value="15" selected data-i18n="auto-every-15-min">Every 15 min</option>
-                        <option value="30" data-i18n="auto-every-30-min">Every 30 min</option>
-                        <option value="60" data-i18n="auto-every-hour">Every hour</option>
+                        <option value="5" data-i18n="o365-every-5-min">Every 5 min</option>
+                        <option value="15" selected data-i18n="o365-every-15-min">Every 15 min</option>
+                        <option value="30" data-i18n="o365-every-30-min">Every 30 min</option>
+                        <option value="60" data-i18n="o365-every-hour">Every hour</option>
                     </select>
                 </div>
                 <div class="o365-settings-row">
-                    <div><div class="o365-settings-label" data-i18n="auto-drive-sync">Drive Sync</div><div class="o365-settings-desc" data-i18n="auto-sync-drive-files">Sync Drive files</div></div>
+                    <div><div class="o365-settings-label" data-i18n="o365-drive-sync">Drive Sync</div><div class="o365-settings-desc" data-i18n="o365-sync-drive-files">Sync Drive files</div></div>
                     <select id="sync-onedrive" style="padding:6px 10px;background:var(--bg-tertiary,#334155);border:1px solid var(--border-color,#334155);border-radius:4px;color:var(--text-primary,#f8fafc);font-size:13px" data-o365-sync="onedrive">
-                        <option value="5" data-i18n="auto-every-5-min">Every 5 min</option>
-                        <option value="15" data-i18n="auto-every-15-min">Every 15 min</option>
-                        <option value="30" selected data-i18n="auto-every-30-min">Every 30 min</option>
-                        <option value="60" data-i18n="auto-every-hour">Every hour</option>
+                        <option value="5" data-i18n="o365-every-5-min">Every 5 min</option>
+                        <option value="15" data-i18n="o365-every-15-min">Every 15 min</option>
+                        <option value="30" selected data-i18n="o365-every-30-min">Every 30 min</option>
+                        <option value="60" data-i18n="o365-every-hour">Every hour</option>
                     </select>
                 </div>
             </div>
             <div class="o365-settings-card">
                 <h3 data-i18n="billing-col-actions">Actions</h3>
                 <div class="o365-settings-row">
-                    <div><div class="o365-settings-label" data-i18n="auto-account">Account</div><div class="o365-settings-desc" data-i18n="auto-o365-integration-managed">o365 integration managed by your workspace</div></div>
+                    <div><div class="o365-settings-label" data-i18n="o365-account">Account</div><div class="o365-settings-desc" data-i18n="o365-integration-managed">o365 integration managed by your workspace</div></div>
                 </div>
             </div>
         </div>
@@ -110,7 +110,7 @@
 <div class="o365-modal-overlay" id="meeting-modal" role="dialog" aria-modal="true" aria-label="Create Meeting" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000">
     <div style="background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:500px">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-            <h3 style="font-size:15px;font-weight:600;margin:0" data-i18n="auto-create-meeting">Create Meeting</h3>
+            <h3 style="font-size:15px;font-weight:600;margin:0" data-i18n="o365-create-meeting">Create Meeting</h3>
             <button type="button" style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;font-size:18px" data-o365-action="hide-modal" data-o365-modal="meeting-modal" aria-label="Close">&times;</button>
         </div>
         <div style="padding:16px">

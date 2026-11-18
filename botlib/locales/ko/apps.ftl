@@ -989,3 +989,81 @@ learn-app-course-preview = 과정 미리보기
 
 # semantic i18n key (#2542)
 learn-app-enroll = 등록
+
+# semantic i18n key (#2542)
+o365-integration-title = o365 통합
+
+# semantic i18n key (#2542)
+o365-stat-sp-sites = SP 사이트
+
+# semantic i18n key (#2542)
+o365-stat-calendar-events = 캘린더 이벤트
+
+# semantic i18n key (#2542)
+o365-stat-drive-files = Drive 파일
+
+# semantic i18n key (#2542)
+o365-stat-chats = 채팅
+
+# semantic i18n key (#2542)
+o365-fetching-sp-sites = SP 사이트 가져오는 중
+
+# semantic i18n key (#2542)
+o365-upcoming-meetings = 예정된 회의
+
+# semantic i18n key (#2542)
+o365-fetching-calendar-events = 캘린더 이벤트 가져오는 중
+
+# semantic i18n key (#2542)
+o365-root = 루트
+
+# semantic i18n key (#2542)
+o365-account-status = 계정 상태
+
+# semantic i18n key (#2542)
+o365-account-label = o365 계정
+
+# semantic i18n key (#2542)
+o365-last-sync = 마지막 동기화
+
+# semantic i18n key (#2542)
+o365-never = 없음
+
+# semantic i18n key (#2542)
+o365-sync-now = 지금 동기화
+
+# semantic i18n key (#2542)
+o365-sync-frequency = 동기화 빈도
+
+# semantic i18n key (#2542)
+o365-calendar-sync = 캘린더 동기화
+
+# semantic i18n key (#2542)
+o365-sync-calendar-events = 캘린더 이벤트 동기화
+
+# semantic i18n key (#2542)
+o365-every-5-min = 5분마다
+
+# semantic i18n key (#2542)
+o365-every-15-min = 15분마다
+
+# semantic i18n key (#2542)
+o365-every-30-min = 30분마다
+
+# semantic i18n key (#2542)
+o365-every-hour = 매시간
+
+# semantic i18n key (#2542)
+o365-drive-sync = Drive 동기화
+
+# semantic i18n key (#2542)
+o365-sync-drive-files = Drive 파일 동기화
+
+# semantic i18n key (#2542)
+o365-account = 계정
+
+# semantic i18n key (#2542)
+o365-integration-managed = o365 통합은 작업 공간에서 관리됩니다
+
+# semantic i18n key (#2542)
+o365-create-meeting = 회의 만들기

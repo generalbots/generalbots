@@ -989,3 +989,81 @@ learn-app-course-preview = Kursvorschau
 
 # semantic i18n key (#2542)
 learn-app-enroll = Einschreiben
+
+# semantic i18n key (#2542)
+o365-integration-title = o365-Integration
+
+# semantic i18n key (#2542)
+o365-stat-sp-sites = SP-Websites
+
+# semantic i18n key (#2542)
+o365-stat-calendar-events = Kalenderereignisse
+
+# semantic i18n key (#2542)
+o365-stat-drive-files = Drive-Dateien
+
+# semantic i18n key (#2542)
+o365-stat-chats = Chats
+
+# semantic i18n key (#2542)
+o365-fetching-sp-sites = SP-Websites werden abgerufen
+
+# semantic i18n key (#2542)
+o365-upcoming-meetings = Bevorstehende Besprechungen
+
+# semantic i18n key (#2542)
+o365-fetching-calendar-events = Kalenderereignisse werden abgerufen
+
+# semantic i18n key (#2542)
+o365-root = Stamm
+
+# semantic i18n key (#2542)
+o365-account-status = Kontostatus
+
+# semantic i18n key (#2542)
+o365-account-label = o365-Konto
+
+# semantic i18n key (#2542)
+o365-last-sync = Letzte Synchronisierung
+
+# semantic i18n key (#2542)
+o365-never = Nie
+
+# semantic i18n key (#2542)
+o365-sync-now = Jetzt synchronisieren
+
+# semantic i18n key (#2542)
+o365-sync-frequency = Synchronisierungshäufigkeit
+
+# semantic i18n key (#2542)
+o365-calendar-sync = Kalendersynchronisierung
+
+# semantic i18n key (#2542)
+o365-sync-calendar-events = Kalenderereignisse synchronisieren
+
+# semantic i18n key (#2542)
+o365-every-5-min = Alle 5 Min.
+
+# semantic i18n key (#2542)
+o365-every-15-min = Alle 15 Min.
+
+# semantic i18n key (#2542)
+o365-every-30-min = Alle 30 Min.
+
+# semantic i18n key (#2542)
+o365-every-hour = Jede Stunde
+
+# semantic i18n key (#2542)
+o365-drive-sync = Drive-Synchronisierung
+
+# semantic i18n key (#2542)
+o365-sync-drive-files = Drive-Dateien synchronisieren
+
+# semantic i18n key (#2542)
+o365-account = Konto
+
+# semantic i18n key (#2542)
+o365-integration-managed = o365-Integration wird von Ihrem Arbeitsbereich verwaltet
+
+# semantic i18n key (#2542)
+o365-create-meeting = Besprechung erstellen

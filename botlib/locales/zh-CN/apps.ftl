@@ -989,3 +989,81 @@ learn-app-course-preview = 课程预览
 
 # semantic i18n key (#2542)
 learn-app-enroll = 注册
+
+# semantic i18n key (#2542)
+o365-integration-title = o365 集成
+
+# semantic i18n key (#2542)
+o365-stat-sp-sites = SP 网站
+
+# semantic i18n key (#2542)
+o365-stat-calendar-events = 日历事件
+
+# semantic i18n key (#2542)
+o365-stat-drive-files = 云端硬盘文件
+
+# semantic i18n key (#2542)
+o365-stat-chats = 聊天
+
+# semantic i18n key (#2542)
+o365-fetching-sp-sites = 正在获取 SP 网站
+
+# semantic i18n key (#2542)
+o365-upcoming-meetings = 即将举行的会议
+
+# semantic i18n key (#2542)
+o365-fetching-calendar-events = 正在获取日历事件
+
+# semantic i18n key (#2542)
+o365-root = 根目录
+
+# semantic i18n key (#2542)
+o365-account-status = 帐户状态
+
+# semantic i18n key (#2542)
+o365-account-label = o365 帐户
+
+# semantic i18n key (#2542)
+o365-last-sync = 上次同步
+
+# semantic i18n key (#2542)
+o365-never = 从不
+
+# semantic i18n key (#2542)
+o365-sync-now = 立即同步
+
+# semantic i18n key (#2542)
+o365-sync-frequency = 同步频率
+
+# semantic i18n key (#2542)
+o365-calendar-sync = 日历同步
+
+# semantic i18n key (#2542)
+o365-sync-calendar-events = 同步日历事件
+
+# semantic i18n key (#2542)
+o365-every-5-min = 每 5 分钟
+
+# semantic i18n key (#2542)
+o365-every-15-min = 每 15 分钟
+
+# semantic i18n key (#2542)
+o365-every-30-min = 每 30 分钟
+
+# semantic i18n key (#2542)
+o365-every-hour = 每小时
+
+# semantic i18n key (#2542)
+o365-drive-sync = 云端硬盘同步
+
+# semantic i18n key (#2542)
+o365-sync-drive-files = 同步云端硬盘文件
+
+# semantic i18n key (#2542)
+o365-account = 帐户
+
+# semantic i18n key (#2542)
+o365-integration-managed = o365 集成由您的工作区管理
+
+# semantic i18n key (#2542)
+o365-create-meeting = 创建会议
