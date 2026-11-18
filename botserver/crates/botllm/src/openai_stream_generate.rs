@@ -42,6 +42,7 @@ pub(crate) async fn generate(
         let mut messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
         if OpenAIClient::is_loopback_endpoint(&client.base_url) {
             messages = OpenAIClient::lead_with_one_system_message(&messages);
+            messages = client.fit_local_context(&messages, None).await;
         }
 
         let full_url = format!("{}{}", client.base_url, client.endpoint_path);
