@@ -190,3 +190,9 @@ mail-placeholder-blind-carbon-copy = 密送
 mail-placeholder-subject = 主题
 mail-placeholder-compose-message = 撰写邮件...
 mail-placeholder-account-name = 工作、个人等
+
+# semantic i18n key (#2542)
+mail-placeholder-imap-server = imap.example.com
+mail-placeholder-smtp-server = smtp.example.com
+mail-placeholder-username-or-email = 用户名或邮箱
+mail-placeholder-password = ••••••••

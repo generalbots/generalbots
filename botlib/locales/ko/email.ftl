@@ -190,3 +190,9 @@ mail-placeholder-blind-carbon-copy = 숨은 참조
 mail-placeholder-subject = 제목
 mail-placeholder-compose-message = 메시지를 작성하세요...
 mail-placeholder-account-name = 업무, 개인 등
+
+# semantic i18n key (#2542)
+mail-placeholder-imap-server = imap.example.com
+mail-placeholder-smtp-server = smtp.example.com
+mail-placeholder-username-or-email = 사용자 이름 또는 이메일
+mail-placeholder-password = ••••••••

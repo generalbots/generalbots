@@ -190,3 +190,9 @@ mail-placeholder-blind-carbon-copy = Copia oculta
 mail-placeholder-subject = Asunto
 mail-placeholder-compose-message = Escriba su mensaje...
 mail-placeholder-account-name = Trabajo, Personal, etc.
+
+# semantic i18n key (#2542)
+mail-placeholder-imap-server = imap.ejemplo.com
+mail-placeholder-smtp-server = smtp.ejemplo.com
+mail-placeholder-username-or-email = usuario o correo
+mail-placeholder-password = ••••••••

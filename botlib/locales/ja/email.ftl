@@ -190,3 +190,9 @@ mail-placeholder-blind-carbon-copy = BCC
 mail-placeholder-subject = 件名
 mail-placeholder-compose-message = メッセージを入力...
 mail-placeholder-account-name = 仕事、個人など
+
+# semantic i18n key (#2542)
+mail-placeholder-imap-server = imap.example.com
+mail-placeholder-smtp-server = smtp.example.com
+mail-placeholder-username-or-email = ユーザー名またはメールアドレス
+mail-placeholder-password = ••••••••
