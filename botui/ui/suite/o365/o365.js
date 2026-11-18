@@ -190,9 +190,10 @@ function navigateTo(index){
 
 function downloadFile(fileId, fileName){
     showFeedback('Starting download...','success');
-    return fetch('/api/o365/onedrive/download/'+fileId, {
-        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
-    }).then(function(r){
+    var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
+    var headers = {};
+    if (token) headers.Authorization = 'Bearer ' + token;
+    return fetch('/api/o365/onedrive/download/'+fileId, { headers: headers }).then(function(r){
         if(!r.ok) throw new Error('HTTP '+r.status);
         return r.blob();
     }).then(function(blob){

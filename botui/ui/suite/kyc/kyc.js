@@ -245,6 +245,8 @@ function bindDelegated(){
     if (root.__kycBound) return;
     root.__kycBound = true;
     root.addEventListener('click', function(e){
+        var tab = e.target.closest('.kyc-tabs [data-tab]');
+        if (tab) { switchTab(tab.getAttribute('data-tab') || 'verifications', tab); return; }
         var btn = e.target.closest('[data-kyc-action]');
         if (!btn) return;
         var action = btn.getAttribute('data-kyc-action');

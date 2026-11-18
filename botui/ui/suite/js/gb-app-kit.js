@@ -211,6 +211,7 @@
   global.GBAppKit = {
     escapeHtml: escapeHtml,
     showFeedback: showFeedback,
+    getAuthToken: getAuthToken,
     apiCall: apiCall,
     mountSignaturePad: mountSignaturePad,
     clearSignatureCanvas: clearSignatureCanvas,

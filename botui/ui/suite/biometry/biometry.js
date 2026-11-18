@@ -256,6 +256,8 @@ function bindDelegated(){
     if (root.__bioBound) return;
     root.__bioBound = true;
     root.addEventListener('click', function(e){
+        var tab = e.target.closest('.bio-tabs [data-tab]');
+        if (tab) { switchTab(tab.getAttribute('data-tab') || 'kyc', tab); return; }
         var btn = e.target.closest('[data-bio-action]');
         if (!btn) return;
         var action = btn.getAttribute('data-bio-action');

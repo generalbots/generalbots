@@ -215,7 +215,10 @@ function searchStock(q){
 
 async function apiPost(url, body){
     try{
-        var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('gb_token')||'')},body:JSON.stringify(body)});
+        var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
+        var headers = {'Content-Type':'application/json'};
+        if (token) headers.Authorization = 'Bearer ' + token;
+        var r=await fetch(url,{method:'POST',headers:headers,body:JSON.stringify(body)});
         if(!r.ok)throw new Error('HTTP '+r.status);
         var t=await r.text();return t?JSON.parse(t):null;
     }catch(e){showFeedback('API error: '+e.message,'error');return null}
@@ -248,7 +251,10 @@ async function submitBranch(e){
     var url=state.editingBranchId?('/api/retail/branches/'+state.editingBranchId):'/api/retail/branches';
     var method=state.editingBranchId?'PUT':'POST';
     try{
-        var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('gb_token')||'')},body:JSON.stringify(payload)});
+        var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
+        var headers = {'Content-Type':'application/json'};
+        if (token) headers.Authorization = 'Bearer ' + token;
+        var r=await fetch(url,{method:method,headers:headers,body:JSON.stringify(payload)});
         if(!r.ok)throw new Error('HTTP '+r.status);
         closeModal('retailBranchModal');showFeedback('Branch saved','success');loadBranches();
     }catch(err){showFeedback('Save failed: '+err.message,'error');}
