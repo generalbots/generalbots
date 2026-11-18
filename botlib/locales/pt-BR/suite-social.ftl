@@ -12,3 +12,30 @@ social-org-only = Organização
 social-community-only = Somente comunidade
 social-public = Público
 social-no-community = Sem comunidade
+
+# semantic i18n key (#2542)
+social-analytics-engagement-title = Análise de engajamento de posts
+
+# semantic i18n key (#2542)
+social-analytics-period-hint = Últimos 30 dias · detalhamento por plataforma
+
+# semantic i18n key (#2542)
+social-analytics-reach = Alcance
+
+# semantic i18n key (#2542)
+social-analytics-engagement-rate = Taxa de engajamento
+
+# semantic i18n key (#2542)
+social-analytics-new-followers = Novos seguidores
+
+# semantic i18n key (#2542)
+social-analytics-platform = Plataforma
+
+# semantic i18n key (#2542)
+social-analytics-posts = Publicações
+
+# semantic i18n key (#2542)
+social-analytics-likes = Curtidas
+
+# semantic i18n key (#2542)
+social-analytics-shares = Compartilhamentos
