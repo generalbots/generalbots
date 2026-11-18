@@ -581,3 +581,5 @@ dashboards-widget-map = 地图
 dashboards-widget-embed = 嵌入
 dashboards-widget-filter = 筛选器
 dashboards-widget-date-range = 日期范围
+# semantic i18n key (#2542)
+sheet-formula-placeholder = 输入值或公式

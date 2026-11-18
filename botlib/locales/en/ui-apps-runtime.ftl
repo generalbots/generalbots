@@ -799,3 +799,5 @@ dashboards-widget-map = Map
 dashboards-widget-embed = Embed
 dashboards-widget-filter = Filter
 dashboards-widget-date-range = Date Range
+# semantic i18n key (#2542)
+sheet-formula-placeholder = Enter value or formula

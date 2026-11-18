@@ -581,3 +581,5 @@ dashboards-widget-map = マップ
 dashboards-widget-embed = 埋め込み
 dashboards-widget-filter = フィルター
 dashboards-widget-date-range = 日付範囲
+# semantic i18n key (#2542)
+sheet-formula-placeholder = 値または数式を入力
