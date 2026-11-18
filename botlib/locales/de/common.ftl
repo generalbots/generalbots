@@ -372,3 +372,6 @@ deploy-project-name-placeholder = mein-projekt
 # semantic i18n key (#2542)
 deploy-organization-placeholder = generalbots
 deploy-custom-domain-placeholder = app.beispiel.com
+action-print = Drucken
+action-history = Verlauf
+action-previous = Zurück
