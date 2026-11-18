@@ -183,3 +183,6 @@ crm-placeholder-amount = 0.00
 crm-placeholder-lead-lost-reason = 该线索变冷的原因
 crm-placeholder-lead-notes = 关于此线索的其他信息...
 crm-placeholder-website = https://
+
+# semantic i18n key (#2542)
+crm-placeholder-search-contacts = 搜索联系人...

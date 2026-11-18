@@ -183,3 +183,6 @@ crm-placeholder-amount = 0.00
 crm-placeholder-lead-lost-reason = 이 리드가 중단된 이유
 crm-placeholder-lead-notes = 이 리드에 대한 추가 정보...
 crm-placeholder-website = https://
+
+# semantic i18n key (#2542)
+crm-placeholder-search-contacts = 연락처 검색...

@@ -183,3 +183,6 @@ crm-placeholder-amount = 0,00
 crm-placeholder-lead-lost-reason = Pourquoi ce prospect s'est refroidi
 crm-placeholder-lead-notes = Informations supplémentaires sur ce prospect...
 crm-placeholder-website = https://
+
+# semantic i18n key (#2542)
+crm-placeholder-search-contacts = Rechercher des contacts...

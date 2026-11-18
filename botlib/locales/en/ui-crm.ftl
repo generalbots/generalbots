@@ -187,3 +187,6 @@ crm-placeholder-amount = 0.00
 crm-placeholder-lead-lost-reason = Why this lead went cold
 crm-placeholder-lead-notes = Additional information about this lead...
 crm-placeholder-website = https://
+
+# semantic i18n key (#2542)
+crm-placeholder-search-contacts = Search contacts...
