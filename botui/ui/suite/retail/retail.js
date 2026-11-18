@@ -216,8 +216,8 @@ async function apiPost(url, body){
     }catch(e){showFeedback('API error: '+e.message,'error');return null}
 }
 
-function openModal(id){var el=document.getElementById(id);if(el)el.style.display='flex';}
-function closeModal(id){var el=document.getElementById(id);if(el)el.style.display='none';}
+function openModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id); var el=document.getElementById(id);if(el)el.style.display='flex'; }
+function closeModal(id){ if (window.GBAppKit && window.GBAppKit.hideModal) return window.GBAppKit.hideModal(id); var el=document.getElementById(id);if(el)el.style.display='none'; }
 
 function showCreateBranch(){state.editingBranchId=null;['branchCode','branchName','branchAddress','branchManager','branchStock','branchStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='branchStatus')?'active':'';});openModal('retailBranchModal');}
 function showCreatePromo(){state.editingPromoId=null;['promoName','promoType','promoDiscount','promoFrom','promoTo','promoStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='promoStatus')?'active':'';});openModal('retailPromoModal');}
