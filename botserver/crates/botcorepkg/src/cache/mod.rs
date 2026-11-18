@@ -96,7 +96,13 @@ impl DownloadCache {
                 CONFIG_FILE,
                 config_path.display()
             );
-            let content = include_str!("../../../3rdparty.toml");
+            // This file is `botserver/crates/botcorepkg/src/cache/mod.rs`, so
+            // the workspace manifest is four levels up. It said three, which
+            // resolved to `botserver/crates/3rdparty.toml` and made the whole
+            // crate uncompilable in every feature set that enables the package
+            // manager. Nothing in CI built this crate, so the break only
+            // surfaced on the first `server.yml` run (default features).
+            let content = include_str!("../../../../3rdparty.toml");
             let config: ThirdPartyConfig =
                 toml::from_str(content).with_context(|| "Failed to parse embedded config file")?;
             return Ok(config);
