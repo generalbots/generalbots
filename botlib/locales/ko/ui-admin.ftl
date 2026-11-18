@@ -809,3 +809,12 @@ admin-roles-placeholder-display-name-example = 예: 콘텐츠 편집자
 admin-roles-placeholder-description = 이 역할의 용도를 설명하세요...
 admin-roles-placeholder-search-users = 입력하여 사용자 검색...
 admin-roles-placeholder-search-groups = 입력하여 그룹 검색...
+
+# semantic i18n key (#2542)
+admin-onboarding-placeholder-full-name = 홍길동
+admin-onboarding-placeholder-org-name = 예시 회사
+admin-onboarding-placeholder-org-slug = example
+admin-onboarding-team-2-5 = 2–5명
+admin-onboarding-team-6-20 = 6–20명
+admin-onboarding-team-21-50 = 21–50명
+admin-onboarding-team-51-plus = 50명 이상

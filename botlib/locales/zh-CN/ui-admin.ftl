@@ -809,3 +809,12 @@ admin-roles-placeholder-display-name-example = 例如：内容编辑者
 admin-roles-placeholder-description = 描述此角色的用途...
 admin-roles-placeholder-search-users = 输入以搜索用户...
 admin-roles-placeholder-search-groups = 输入以搜索群组...
+
+# semantic i18n key (#2542)
+admin-onboarding-placeholder-full-name = 张三
+admin-onboarding-placeholder-org-name = 示例公司
+admin-onboarding-placeholder-org-slug = example
+admin-onboarding-team-2-5 = 2-5 人
+admin-onboarding-team-6-20 = 6-20 人
+admin-onboarding-team-21-50 = 21-50 人
+admin-onboarding-team-51-plus = 50 人以上

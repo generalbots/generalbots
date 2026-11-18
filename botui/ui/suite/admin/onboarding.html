@@ -85,7 +85,7 @@
                 <form class="panel-form" id="welcomeForm">
                     <div class="form-group">
                         <label for="fullName" data-i18n="admin-onboarding-full-name">Full Name</label>
-                        <input type="text" id="fullName" name="full_name" required placeholder="John Smith">
+                        <input type="text" id="fullName" name="full_name" required data-i18n-placeholder="admin-onboarding-placeholder-full-name">
                     </div>
                     <div class="form-group">
                         <label for="role" data-i18n="admin-onboarding-your-role">Your Role</label>
@@ -138,7 +138,7 @@
                 <div class="panel-actions">
                     <div></div>
                     <button class="btn-primary" onclick="nextStep(1)">
-                        Continue
+                        <span data-i18n="action-continue">Continue</span>
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>
@@ -155,14 +155,14 @@
                 <form class="panel-form" id="orgForm">
                     <div class="form-group">
                         <label for="orgName" data-i18n="admin-onboarding-org-name">Organization Name</label>
-                        <input type="text" id="orgName" name="org_name" required placeholder="Acme Corporation">
+                        <input type="text" id="orgName" name="org_name" required data-i18n-placeholder="admin-onboarding-placeholder-org-name">
                         <span class="form-hint" data-i18n="admin-onboarding-org-name-hint">This will be visible to your team members</span>
                     </div>
                     <div class="form-group">
                         <label for="orgSlug" data-i18n="admin-onboarding-org-url">Organization URL</label>
                         <div class="input-with-prefix">
                             <span class="input-prefix" data-i18n="admin-onboarding-org-url-prefix">app.generalbots.com/</span>
-                            <input type="text" id="orgSlug" name="org_slug" required placeholder="acme" pattern="[a-z0-9-]+">
+                            <input type="text" id="orgSlug" name="org_slug" required data-i18n-placeholder="admin-onboarding-placeholder-org-slug" pattern="[a-z0-9-]+">
                         </div>
                         <span class="form-hint" data-i18n="admin-onboarding-org-url-hint">Only lowercase letters, numbers, and hyphens</span>
                     </div>
@@ -171,10 +171,10 @@
                         <select id="teamSize" name="team_size" required>
                             <option value="" data-i18n="admin-onboarding-team-size-placeholder">How many people will use this?</option>
                             <option value="1" data-i18n="admin-onboarding-team-just-me">Just me</option>
-                            <option value="2-5">2-5 people</option>
-                            <option value="6-20">6-20 people</option>
-                            <option value="21-50">21-50 people</option>
-                            <option value="51+">50+ people</option>
+                            <option value="2-5" data-i18n="admin-onboarding-team-2-5">2-5 people</option>
+                            <option value="6-20" data-i18n="admin-onboarding-team-6-20">6-20 people</option>
+                            <option value="21-50" data-i18n="admin-onboarding-team-21-50">21-50 people</option>
+                            <option value="51+" data-i18n="admin-onboarding-team-51-plus">50+ people</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -200,10 +200,10 @@
                             <line x1="19" y1="12" x2="5" y2="12"></line>
                             <polyline points="12 19 5 12 12 5"></polyline>
                         </svg>
-                        Back
+                        <span data-i18n="action-back">Back</span>
                     </button>
                     <button class="btn-primary" onclick="nextStep(2)">
-                        Continue
+                        <span data-i18n="action-continue">Continue</span>
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>

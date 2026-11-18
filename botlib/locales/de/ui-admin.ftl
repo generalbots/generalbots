@@ -809,3 +809,12 @@ admin-roles-placeholder-display-name-example = z. B. Inhaltseditor
 admin-roles-placeholder-description = Beschreiben Sie den Zweck dieser Rolle...
 admin-roles-placeholder-search-users = Tippen, um Benutzer zu suchen...
 admin-roles-placeholder-search-groups = Tippen, um Gruppen zu suchen...
+
+# semantic i18n key (#2542)
+admin-onboarding-placeholder-full-name = Max Mustermann
+admin-onboarding-placeholder-org-name = Beispiel GmbH
+admin-onboarding-placeholder-org-slug = beispiel
+admin-onboarding-team-2-5 = 2–5 Personen
+admin-onboarding-team-6-20 = 6–20 Personen
+admin-onboarding-team-21-50 = 21–50 Personen
+admin-onboarding-team-51-plus = 50+ Personen

@@ -809,3 +809,12 @@ admin-roles-placeholder-display-name-example = e.g., Content Editor
 admin-roles-placeholder-description = Describe what this role is for...
 admin-roles-placeholder-search-users = Type to search users...
 admin-roles-placeholder-search-groups = Type to search groups...
+
+# semantic i18n key (#2542)
+admin-onboarding-placeholder-full-name = John Smith
+admin-onboarding-placeholder-org-name = Acme Corporation
+admin-onboarding-placeholder-org-slug = acme
+admin-onboarding-team-2-5 = 2-5 people
+admin-onboarding-team-6-20 = 6-20 people
+admin-onboarding-team-21-50 = 21-50 people
+admin-onboarding-team-51-plus = 50+ people

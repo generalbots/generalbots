@@ -809,3 +809,12 @@ admin-roles-placeholder-display-name-example = 例: コンテンツ編集者
 admin-roles-placeholder-description = このロールの目的を説明してください...
 admin-roles-placeholder-search-users = 入力してユーザーを検索...
 admin-roles-placeholder-search-groups = 入力してグループを検索...
+
+# semantic i18n key (#2542)
+admin-onboarding-placeholder-full-name = 山田 太郎
+admin-onboarding-placeholder-org-name = 株式会社サンプル
+admin-onboarding-placeholder-org-slug = sample
+admin-onboarding-team-2-5 = 2〜5人
+admin-onboarding-team-6-20 = 6〜20人
+admin-onboarding-team-21-50 = 21〜50人
+admin-onboarding-team-51-plus = 50人以上
