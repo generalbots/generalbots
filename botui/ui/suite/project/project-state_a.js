@@ -223,7 +223,7 @@ function renderGanttTable(tasks) {
                 <div class="col-end">${task.end_date || task.endDate || ''}</div>
                 <div class="col-duration">${task.duration || '-'}</div>
                 <div class="col-progress"><div class="progress-bar"><div class="progress-fill" style="width:${task.percent_complete || task.percentComplete || 0}%"></div></div></div>
-                <div class="col-assignee">${assigneeNames(task)} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
+                <div class="col-assignee">${assigneeNames(task)} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments" data-i18n-title="comments-title" aria-label="Comments" data-i18n-aria-label="comments-title">💬</button></div>
             </div>
         `;
     }
@@ -249,7 +249,7 @@ function renderListView(tasks) {
                 <td><span class="status-badge status-${(task.status || 'not-started').toLowerCase().replace(' ', '-')}">${task.status || 'Not Started'}</span></td>
                 <td>${assigneeNames(task)}</td>
                 <td>${task.percent_complete || task.percentComplete || 0}%</td>
-                <td><button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></td>
+                <td><button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments" data-i18n-title="comments-title" aria-label="Comments" data-i18n-aria-label="comments-title">💬</button></td>
             </tr>
         `;
     }
@@ -282,7 +282,7 @@ function renderBoardColumn(containerId, tasks) {
     for (const task of tasks) {
         html += `
             <div class="board-card" onclick="showTaskDetail('${task.id}')" draggable="true">
-                <div class="card-title">${task.name || ''} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
+                <div class="card-title">${task.name || ''} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments" data-i18n-title="comments-title" aria-label="Comments" data-i18n-aria-label="comments-title">💬</button></div>
                 <div class="card-meta">${assigneeNames(task) !== '-' ? '👤 ' + assigneeNames(task) : ''}</div>
                 <div class="card-progress">${task.percent_complete || task.percentComplete || 0}%</div>
             </div>
@@ -384,7 +384,7 @@ function showTaskDetail(taskId) {
             depHtml += `<li class="dep-item"><span>${predName}</span>` +
                 `<span class="dep-type">${d.dependency_type || 'finish_to_start'}</span>` +
                 (d.lag_days ? `<span class="dep-lag">lag ${d.lag_days}d</span>` : '') +
-                `<button class="row-comment-btn" onclick="removeDependency('${taskId}','${d.predecessor_id}')" title="Remove">✕</button></li>`;
+                `<button class="row-comment-btn" onclick="removeDependency('${taskId}','${d.predecessor_id}')" title="Remove" data-i18n-title="action-remove" aria-label="Remove" data-i18n-aria-label="action-remove">✕</button></li>`;
         });
         depHtml += '</ul>';
     }
