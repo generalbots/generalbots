@@ -65,3 +65,66 @@ mail-priority-high = 高優先度
 
 # semantic i18n key (#2542)
 mail-priority-low = 低優先度
+
+# semantic i18n key (#2542)
+mail-dialog-templates-title = メールテンプレート
+
+# semantic i18n key (#2542)
+mail-dialog-new-template = + 新しいテンプレート
+
+# semantic i18n key (#2542)
+mail-dialog-signatures-title = メール署名
+
+# semantic i18n key (#2542)
+mail-dialog-new-signature = + 新しい署名
+
+# semantic i18n key (#2542)
+mail-dialog-rules-title = メールルール
+
+# semantic i18n key (#2542)
+mail-dialog-new-rule = + 新しいルール
+
+# semantic i18n key (#2542)
+mail-dialog-automatic-replies-title = 自動返信
+
+# semantic i18n key (#2542)
+mail-dialog-send-automatic-replies = 自動返信を送信する
+
+# semantic i18n key (#2542)
+mail-dialog-start-date = 開始日
+
+# semantic i18n key (#2542)
+mail-dialog-end-date = 終了日
+
+# semantic i18n key (#2542)
+mail-dialog-reply-only-org = 組織内のユーザーにのみ送信する
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-title = メールアカウントを追加
+
+# semantic i18n key (#2542)
+mail-dialog-account-name = アカウント名
+
+# semantic i18n key (#2542)
+mail-dialog-imap-server = IMAP サーバー
+
+# semantic i18n key (#2542)
+mail-dialog-imap-port = IMAP ポート
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-server = SMTP サーバー
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-port = SMTP ポート
+
+# semantic i18n key (#2542)
+mail-dialog-use-ssl-tls = SSL/TLS を使用する
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-action = アカウントを追加
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-send-title = 送信を予約
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-action = 予約

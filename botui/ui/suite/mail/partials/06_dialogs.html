@@ -2,7 +2,7 @@
 <dialog id="templates-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-email-templates">Email Templates</h2>
+            <h2 data-i18n="mail-dialog-templates-title">Email Templates</h2>
             <button class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close" onclick="closeTemplates()">
                 <svg
                     width="16"
@@ -31,7 +31,7 @@
             <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewTemplate()" data-i18n="auto-new-template-2">
+            <button class="btn-primary" onclick="createNewTemplate()" data-i18n="mail-dialog-new-template">
                 + New Template
             </button>
         </div>
@@ -42,7 +42,7 @@
 <dialog id="signatures-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-email-signatures">Email Signatures</h2>
+            <h2 data-i18n="mail-dialog-signatures-title">Email Signatures</h2>
             <button class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close" onclick="closeSignatures()">
                 <svg
                     width="16"
@@ -71,7 +71,7 @@
             <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewSignature()" data-i18n="auto-new-signature">
+            <button class="btn-primary" onclick="createNewSignature()" data-i18n="mail-dialog-new-signature">
                 + New Signature
             </button>
         </div>
@@ -82,7 +82,7 @@
 <dialog id="rules-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h2 data-i18n="auto-email-rules">Email Rules</h2>
+            <h2 data-i18n="mail-dialog-rules-title">Email Rules</h2>
             <button class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close" onclick="closeRules()">
                 <svg
                     width="16"
@@ -109,7 +109,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>
-            <button class="btn-primary" onclick="createNewRule()" data-i18n="auto-new-rule">
+            <button class="btn-primary" onclick="createNewRule()" data-i18n="mail-dialog-new-rule">
                 + New Rule
             </button>
         </div>
@@ -120,7 +120,7 @@
 <dialog id="autoresponder-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-automatic-replies">Automatic Replies</h2>
+            <h2 data-i18n="mail-dialog-automatic-replies-title">Automatic Replies</h2>
             <button class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close" onclick="closeAutoResponder()">
                 <svg
                     width="16"
@@ -148,11 +148,11 @@
                         id="autoresponder-enabled"
                     />
                     <span class="toggle-switch"></span>
-                    <span data-i18n="auto-send-automatic-replies">Send automatic replies</span>
+                    <span data-i18n="mail-dialog-send-automatic-replies">Send automatic replies</span>
                 </label>
             </div>
             <div class="form-group">
-                <label data-i18n="auto-start-date">Start date</label>
+                <label data-i18n="mail-dialog-start-date">Start date</label>
                 <input
                     type="datetime-local"
                     name="start_date"
@@ -160,7 +160,7 @@
                 />
             </div>
             <div class="form-group">
-                <label data-i18n="auto-end-date">End date</label>
+                <label data-i18n="mail-dialog-end-date">End date</label>
                 <input
                     type="datetime-local"
                     name="end_date"
@@ -187,7 +187,7 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="internal_only" />
-                    <span data-i18n="auto-send-only-to-people-in-my-organization">Send only to people in my organization</span>
+                    <span data-i18n="mail-dialog-reply-only-org">Send only to people in my organization</span>
                 </label>
             </div>
         </form>
@@ -207,7 +207,7 @@
 <dialog id="add-account-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-add-email-account">Add Email Account</h2>
+            <h2 data-i18n="mail-dialog-add-account-title">Add Email Account</h2>
             <button
                 class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close"
                 onclick="document.getElementById('add-account-modal').close()"
@@ -232,7 +232,7 @@
             hx-on::after-request="if(event.detail.successful) document.getElementById('add-account-modal').close()"
         >
             <div class="form-group">
-                <label data-i18n="auto-account-name">Account Name</label>
+                <label data-i18n="mail-dialog-account-name">Account Name</label>
                 <input
                     type="text"
                     name="name"
@@ -250,7 +250,7 @@
                 />
             </div>
             <div class="form-group">
-                <label data-i18n="auto-imap-server">IMAP Server</label>
+                <label data-i18n="mail-dialog-imap-server">IMAP Server</label>
                 <input
                     type="text"
                     name="imap_server"
@@ -259,11 +259,11 @@
                 />
             </div>
             <div class="form-group">
-                <label data-i18n="auto-imap-port">IMAP Port</label>
+                <label data-i18n="mail-dialog-imap-port">IMAP Port</label>
                 <input type="number" name="imap_port" value="993" required />
             </div>
             <div class="form-group">
-                <label data-i18n="auto-smtp-server">SMTP Server</label>
+                <label data-i18n="mail-dialog-smtp-server">SMTP Server</label>
                 <input
                     type="text"
                     name="smtp_server"
@@ -272,7 +272,7 @@
                 />
             </div>
             <div class="form-group">
-                <label data-i18n="auto-smtp-port">SMTP Port</label>
+                <label data-i18n="mail-dialog-smtp-port">SMTP Port</label>
                 <input type="number" name="smtp_port" value="587" required />
             </div>
             <div class="form-group">
@@ -298,7 +298,7 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="use_ssl" checked />
-                    <span data-i18n="auto-use-ssl-tls">Use SSL/TLS</span>
+                    <span data-i18n="mail-dialog-use-ssl-tls">Use SSL/TLS</span>
                 </label>
             </div>
             <div class="modal-footer">
@@ -309,7 +309,7 @@
                  data-i18n="action-cancel">
                     Cancel
                 </button>
-                <button type="submit" class="btn-primary" data-i18n="auto-add-account">Add Account</button>
+                <button type="submit" class="btn-primary" data-i18n="mail-dialog-add-account-action">Add Account</button>
             </div>
         </form>
     </div>
@@ -318,7 +318,7 @@
 <dialog id="schedule-modal" class="modal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h2 data-i18n="auto-schedule-send">Schedule Send</h2>
+            <h2 data-i18n="mail-dialog-schedule-send-title">Schedule Send</h2>
             <button class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close" onclick="closeScheduleModal()">
                 <svg
                     width="16"
@@ -347,7 +347,7 @@
             <button class="btn-secondary" onclick="closeScheduleModal()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="confirmSchedule()" data-i18n="auto-schedule">
+            <button class="btn-primary" onclick="confirmSchedule()" data-i18n="mail-dialog-schedule-action">
                 Schedule
             </button>
         </div>

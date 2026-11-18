@@ -65,3 +65,66 @@ mail-priority-high = 高优先级
 
 # semantic i18n key (#2542)
 mail-priority-low = 低优先级
+
+# semantic i18n key (#2542)
+mail-dialog-templates-title = 邮件模板
+
+# semantic i18n key (#2542)
+mail-dialog-new-template = + 新建模板
+
+# semantic i18n key (#2542)
+mail-dialog-signatures-title = 邮件签名
+
+# semantic i18n key (#2542)
+mail-dialog-new-signature = + 新建签名
+
+# semantic i18n key (#2542)
+mail-dialog-rules-title = 邮件规则
+
+# semantic i18n key (#2542)
+mail-dialog-new-rule = + 新建规则
+
+# semantic i18n key (#2542)
+mail-dialog-automatic-replies-title = 自动答复
+
+# semantic i18n key (#2542)
+mail-dialog-send-automatic-replies = 发送自动答复
+
+# semantic i18n key (#2542)
+mail-dialog-start-date = 开始日期
+
+# semantic i18n key (#2542)
+mail-dialog-end-date = 结束日期
+
+# semantic i18n key (#2542)
+mail-dialog-reply-only-org = 仅发送给组织内的人员
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-title = 添加电子邮件帐户
+
+# semantic i18n key (#2542)
+mail-dialog-account-name = 帐户名称
+
+# semantic i18n key (#2542)
+mail-dialog-imap-server = IMAP 服务器
+
+# semantic i18n key (#2542)
+mail-dialog-imap-port = IMAP 端口
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-server = SMTP 服务器
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-port = SMTP 端口
+
+# semantic i18n key (#2542)
+mail-dialog-use-ssl-tls = 使用 SSL/TLS
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-action = 添加帐户
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-send-title = 定时发送
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-action = 计划

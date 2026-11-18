@@ -65,3 +65,66 @@ mail-priority-high = Hohe Priorität
 
 # semantic i18n key (#2542)
 mail-priority-low = Niedrige Priorität
+
+# semantic i18n key (#2542)
+mail-dialog-templates-title = E-Mail-Vorlagen
+
+# semantic i18n key (#2542)
+mail-dialog-new-template = + Neue Vorlage
+
+# semantic i18n key (#2542)
+mail-dialog-signatures-title = E-Mail-Signaturen
+
+# semantic i18n key (#2542)
+mail-dialog-new-signature = + Neue Signatur
+
+# semantic i18n key (#2542)
+mail-dialog-rules-title = E-Mail-Regeln
+
+# semantic i18n key (#2542)
+mail-dialog-new-rule = + Neue Regel
+
+# semantic i18n key (#2542)
+mail-dialog-automatic-replies-title = Automatische Antworten
+
+# semantic i18n key (#2542)
+mail-dialog-send-automatic-replies = Automatische Antworten senden
+
+# semantic i18n key (#2542)
+mail-dialog-start-date = Startdatum
+
+# semantic i18n key (#2542)
+mail-dialog-end-date = Enddatum
+
+# semantic i18n key (#2542)
+mail-dialog-reply-only-org = Nur an Personen in meiner Organisation senden
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-title = E-Mail-Konto hinzufügen
+
+# semantic i18n key (#2542)
+mail-dialog-account-name = Kontoname
+
+# semantic i18n key (#2542)
+mail-dialog-imap-server = IMAP-Server
+
+# semantic i18n key (#2542)
+mail-dialog-imap-port = IMAP-Port
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-server = SMTP-Server
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-port = SMTP-Port
+
+# semantic i18n key (#2542)
+mail-dialog-use-ssl-tls = SSL/TLS verwenden
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-action = Konto hinzufügen
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-send-title = Senden planen
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-action = Planen

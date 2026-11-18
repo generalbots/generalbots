@@ -65,3 +65,66 @@ mail-priority-high = 높은 우선순위
 
 # semantic i18n key (#2542)
 mail-priority-low = 낮은 우선순위
+
+# semantic i18n key (#2542)
+mail-dialog-templates-title = 이메일 템플릿
+
+# semantic i18n key (#2542)
+mail-dialog-new-template = + 새 템플릿
+
+# semantic i18n key (#2542)
+mail-dialog-signatures-title = 이메일 서명
+
+# semantic i18n key (#2542)
+mail-dialog-new-signature = + 새 서명
+
+# semantic i18n key (#2542)
+mail-dialog-rules-title = 이메일 규칙
+
+# semantic i18n key (#2542)
+mail-dialog-new-rule = + 새 규칙
+
+# semantic i18n key (#2542)
+mail-dialog-automatic-replies-title = 자동 회신
+
+# semantic i18n key (#2542)
+mail-dialog-send-automatic-replies = 자동 회신 보내기
+
+# semantic i18n key (#2542)
+mail-dialog-start-date = 시작 날짜
+
+# semantic i18n key (#2542)
+mail-dialog-end-date = 종료 날짜
+
+# semantic i18n key (#2542)
+mail-dialog-reply-only-org = 조직 내 사용자에게만 보내기
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-title = 이메일 계정 추가
+
+# semantic i18n key (#2542)
+mail-dialog-account-name = 계정 이름
+
+# semantic i18n key (#2542)
+mail-dialog-imap-server = IMAP 서버
+
+# semantic i18n key (#2542)
+mail-dialog-imap-port = IMAP 포트
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-server = SMTP 서버
+
+# semantic i18n key (#2542)
+mail-dialog-smtp-port = SMTP 포트
+
+# semantic i18n key (#2542)
+mail-dialog-use-ssl-tls = SSL/TLS 사용
+
+# semantic i18n key (#2542)
+mail-dialog-add-account-action = 계정 추가
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-send-title = 전송 예약
+
+# semantic i18n key (#2542)
+mail-dialog-schedule-action = 예약
