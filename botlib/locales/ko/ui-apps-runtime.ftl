@@ -590,3 +590,12 @@ slides-files = 파일
 canvas-clear = 캔버스 지우기
 
 project-dependency-lag-days = 지연 일수
+
+player-seek-back-10 = 10초 뒤로
+player-play-pause = 재생/일시정지
+player-seek-forward-10 = 10초 앞으로
+player-loop = 반복
+viewer-zoom-in = 확대
+viewer-zoom-out = 축소
+code-line-numbers = 줄 번호
+code-word-wrap = 줄 바꿈

@@ -590,3 +590,12 @@ slides-files = ファイル
 canvas-clear = キャンバスをクリア
 
 project-dependency-lag-days = 遅延日数
+
+player-seek-back-10 = 10秒戻る
+player-play-pause = 再生/一時停止
+player-seek-forward-10 = 10秒進む
+player-loop = ループ
+viewer-zoom-in = 拡大
+viewer-zoom-out = 縮小
+code-line-numbers = 行番号
+code-word-wrap = 折り返し

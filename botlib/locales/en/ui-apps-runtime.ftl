@@ -806,3 +806,12 @@ sheet-formula-placeholder = Enter value or formula
 slides-files = Files
 
 project-dependency-lag-days = Lag days
+
+player-seek-back-10 = Back 10s
+player-play-pause = Play/Pause
+player-seek-forward-10 = Forward 10s
+player-loop = Loop
+viewer-zoom-in = Zoom In
+viewer-zoom-out = Zoom Out
+code-line-numbers = Line Numbers
+code-word-wrap = Word Wrap

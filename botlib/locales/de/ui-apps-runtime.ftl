@@ -590,3 +590,12 @@ slides-files = Dateien
 canvas-clear = Leinwand leeren
 
 project-dependency-lag-days = Verzögerungstage
+
+player-seek-back-10 = 10 s zurück
+player-play-pause = Wiedergabe/Pause
+player-seek-forward-10 = 10 s vor
+player-loop = Wiederholen
+viewer-zoom-in = Vergrößern
+viewer-zoom-out = Verkleinern
+code-line-numbers = Zeilennummern
+code-word-wrap = Zeilenumbruch

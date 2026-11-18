@@ -805,3 +805,12 @@ sheet-formula-placeholder = Insira valor ou fórmula
 slides-files = Arquivos
 
 project-dependency-lag-days = Dias de atraso
+
+player-seek-back-10 = Voltar 10s
+player-play-pause = Reproduzir/Pausar
+player-seek-forward-10 = Avançar 10s
+player-loop = Repetir
+viewer-zoom-in = Ampliar
+viewer-zoom-out = Reduzir
+code-line-numbers = Números de linha
+code-word-wrap = Quebra de linha

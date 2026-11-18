@@ -590,3 +590,12 @@ slides-files = Fichiers
 canvas-clear = Effacer le canevas
 
 project-dependency-lag-days = Jours de décalage
+
+player-seek-back-10 = Reculer de 10 s
+player-play-pause = Lecture/Pause
+player-seek-forward-10 = Avancer de 10 s
+player-loop = Boucle
+viewer-zoom-in = Zoom avant
+viewer-zoom-out = Zoom arrière
+code-line-numbers = Numéros de ligne
+code-word-wrap = Retour à la ligne

@@ -38,13 +38,13 @@
         <div class="projector-controls" id="projector-controls">
             <!-- Video/Audio Controls -->
             <div class="media-controls hidden" id="media-controls">
-                <button class="control-btn" onclick="mediaSeekBack()" title="Back 10s">
+                <button class="control-btn" onclick="mediaSeekBack()" title="Back 10s" data-i18n-title="player-seek-back-10" aria-label="Back 10s" data-i18n-aria-label="player-seek-back-10">
                     ⏪
                 </button>
-                <button class="control-btn play-btn" onclick="togglePlayPause()" id="play-pause-btn" title="Play/Pause">
+                <button class="control-btn play-btn" onclick="togglePlayPause()" id="play-pause-btn" title="Play/Pause" data-i18n-title="player-play-pause" aria-label="Play/Pause" data-i18n-aria-label="player-play-pause">
                     ▶️
                 </button>
-                <button class="control-btn" onclick="mediaSeekForward()" title="Forward 10s">
+                <button class="control-btn" onclick="mediaSeekForward()" title="Forward 10s" data-i18n-title="player-seek-forward-10" aria-label="Forward 10s" data-i18n-aria-label="player-seek-forward-10">
                     ⏩
                 </button>
                 <div class="progress-container">
@@ -57,7 +57,7 @@
                 </button>
                 <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="100"
                     oninput="setVolume(this.value)">
-                <button class="control-btn" onclick="toggleLoop()" id="loop-btn" title="Loop">
+                <button class="control-btn" onclick="toggleLoop()" id="loop-btn" title="Loop" data-i18n-title="player-loop" aria-label="Loop" data-i18n-aria-label="player-loop">
                     🔁
                 </button>
                 <select class="speed-select" id="speed-select" onchange="setPlaybackSpeed(this.value)">
@@ -82,10 +82,10 @@
                 <div class="slide-nav">
                     <input type="number" id="slide-input" min="1" value="1" onchange="goToSlide(this.value)">
                 </div>
-                <button class="control-btn" onclick="zoomIn()" title="Zoom In">
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In" data-i18n-title="viewer-zoom-in" aria-label="Zoom In" data-i18n-aria-label="viewer-zoom-in">
                     🔍+
                 </button>
-                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out" data-i18n-title="viewer-zoom-out" aria-label="Zoom Out" data-i18n-aria-label="viewer-zoom-out">
                     🔍-
                 </button>
                 <span class="zoom-level" id="zoom-level">100%</span>
@@ -100,10 +100,10 @@
                 <button class="control-btn" onclick="nextImage()" id="next-image-btn" title="Next" data-i18n-title="action-next" aria-label="Next" data-i18n-aria-label="action-next">
                     ▶️
                 </button>
-                <button class="control-btn" onclick="zoomIn()" title="Zoom In">
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In" data-i18n-title="viewer-zoom-in" aria-label="Zoom In" data-i18n-aria-label="viewer-zoom-in">
                     🔍+
                 </button>
-                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out" data-i18n-title="viewer-zoom-out" aria-label="Zoom Out" data-i18n-aria-label="viewer-zoom-out">
                     🔍-
                 </button>
                 <button class="control-btn" onclick="rotateImage()" title="Rotate" data-i18n-title="auto-rotate-2" aria-label="Rotate" data-i18n-aria-label="auto-rotate-2">
@@ -117,10 +117,10 @@
             <!-- Code Controls -->
             <div class="code-controls hidden" id="code-controls">
                 <span class="code-info" id="code-info" data-i18n="projector-code-info">code.rs</span>
-                <button class="control-btn" onclick="toggleLineNumbers()" title="Line Numbers">
+                <button class="control-btn" onclick="toggleLineNumbers()" title="Line Numbers" data-i18n-title="code-line-numbers" aria-label="Line Numbers" data-i18n-aria-label="code-line-numbers">
                     #️⃣
                 </button>
-                <button class="control-btn" onclick="toggleWordWrap()" title="Word Wrap">
+                <button class="control-btn" onclick="toggleWordWrap()" title="Word Wrap" data-i18n-title="code-word-wrap" aria-label="Word Wrap" data-i18n-aria-label="code-word-wrap">
                     ↩️
                 </button>
 

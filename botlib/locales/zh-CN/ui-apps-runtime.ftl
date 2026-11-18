@@ -590,3 +590,12 @@ slides-files = 文件
 canvas-clear = 清空画布
 
 project-dependency-lag-days = 延迟天数
+
+player-seek-back-10 = 后退 10 秒
+player-play-pause = 播放/暂停
+player-seek-forward-10 = 前进 10 秒
+player-loop = 循环
+viewer-zoom-in = 放大
+viewer-zoom-out = 缩小
+code-line-numbers = 行号
+code-word-wrap = 自动换行
