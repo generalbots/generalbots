@@ -360,3 +360,6 @@ setup-bot-config-desc = 为您的机器人命名并描述其用途
 
 # semantic i18n key (#2542)
 setup-media-features = 媒体功能
+
+# semantic i18n key (#2542)
+git-commit-placeholder = 消息（Ctrl+Enter 提交）

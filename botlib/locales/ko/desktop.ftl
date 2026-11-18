@@ -360,3 +360,6 @@ setup-bot-config-desc = 봇에 이름을 지정하고 목적을 설명하세요
 
 # semantic i18n key (#2542)
 setup-media-features = 미디어 기능
+
+# semantic i18n key (#2542)
+git-commit-placeholder = 메시지 (Ctrl+Enter로 커밋)

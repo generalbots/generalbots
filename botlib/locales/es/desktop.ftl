@@ -366,3 +366,6 @@ setup-bot-config-desc = Dale a tu bot un nombre y describe su propósito
 
 # semantic i18n key (#2542)
 setup-media-features = Funciones multimedia
+
+# semantic i18n key (#2542)
+git-commit-placeholder = Mensaje (Ctrl+Enter para confirmar)
