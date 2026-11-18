@@ -108,3 +108,27 @@ vibe-member-kind-user = 用户
 
 # semantic i18n key (#2542)
 vibe-member-kind-group = 组
+
+# semantic i18n key (#2542)
+vibe-loading = 正在加载 Vibe…
+
+# semantic i18n key (#2542)
+vibe-service-unavailable = Vibe 服务不可用
+
+# semantic i18n key (#2542)
+vibe-agent-executing = 代理执行中…
+
+# semantic i18n key (#2542)
+vibe-dialog-close = 关闭 ✕
+
+# semantic i18n key (#2542)
+vibe-role-user = 用户
+
+# semantic i18n key (#2542)
+vibe-role-group = 组
+
+# semantic i18n key (#2542)
+vibe-transfer-ownership = 转移所有权
+
+# semantic i18n key (#2542)
+vibe-run-telemetry = 运行遥测

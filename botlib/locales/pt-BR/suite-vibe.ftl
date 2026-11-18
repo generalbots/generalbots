@@ -108,3 +108,27 @@ vibe-member-kind-user = usuário
 
 # semantic i18n key (#2542)
 vibe-member-kind-group = grupo
+
+# semantic i18n key (#2542)
+vibe-loading = Carregando Vibe…
+
+# semantic i18n key (#2542)
+vibe-service-unavailable = Serviço Vibe indisponível
+
+# semantic i18n key (#2542)
+vibe-agent-executing = AGENTE EXECUTANDO…
+
+# semantic i18n key (#2542)
+vibe-dialog-close = Fechar ✕
+
+# semantic i18n key (#2542)
+vibe-role-user = usuário
+
+# semantic i18n key (#2542)
+vibe-role-group = grupo
+
+# semantic i18n key (#2542)
+vibe-transfer-ownership = Transferir propriedade
+
+# semantic i18n key (#2542)
+vibe-run-telemetry = telemetria da execução

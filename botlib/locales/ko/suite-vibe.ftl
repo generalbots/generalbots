@@ -108,3 +108,27 @@ vibe-member-kind-user = 사용자
 
 # semantic i18n key (#2542)
 vibe-member-kind-group = 그룹
+
+# semantic i18n key (#2542)
+vibe-loading = Vibe 불러오는 중…
+
+# semantic i18n key (#2542)
+vibe-service-unavailable = Vibe 서비스를 사용할 수 없음
+
+# semantic i18n key (#2542)
+vibe-agent-executing = 에이전트 실행 중…
+
+# semantic i18n key (#2542)
+vibe-dialog-close = 닫기 ✕
+
+# semantic i18n key (#2542)
+vibe-role-user = 사용자
+
+# semantic i18n key (#2542)
+vibe-role-group = 그룹
+
+# semantic i18n key (#2542)
+vibe-transfer-ownership = 소유권 이전
+
+# semantic i18n key (#2542)
+vibe-run-telemetry = 실행 원격 측정

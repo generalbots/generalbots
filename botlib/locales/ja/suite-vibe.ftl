@@ -108,3 +108,27 @@ vibe-member-kind-user = ユーザー
 
 # semantic i18n key (#2542)
 vibe-member-kind-group = グループ
+
+# semantic i18n key (#2542)
+vibe-loading = Vibeを読み込み中…
+
+# semantic i18n key (#2542)
+vibe-service-unavailable = Vibeサービスを利用できません
+
+# semantic i18n key (#2542)
+vibe-agent-executing = エージェント実行中…
+
+# semantic i18n key (#2542)
+vibe-dialog-close = 閉じる ✕
+
+# semantic i18n key (#2542)
+vibe-role-user = ユーザー
+
+# semantic i18n key (#2542)
+vibe-role-group = グループ
+
+# semantic i18n key (#2542)
+vibe-transfer-ownership = 所有権を譲渡
+
+# semantic i18n key (#2542)
+vibe-run-telemetry = 実行テレメトリ
