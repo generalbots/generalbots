@@ -214,14 +214,11 @@ function searchStock(q){
 }
 
 async function apiPost(url, body){
-    try{
-        var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
-        var headers = {'Content-Type':'application/json'};
-        if (token) headers.Authorization = 'Bearer ' + token;
-        var r=await fetch(url,{method:'POST',headers:headers,body:JSON.stringify(body)});
-        if(!r.ok)throw new Error('HTTP '+r.status);
-        var t=await r.text();return t?JSON.parse(t):null;
-    }catch(e){showFeedback('API error: '+e.message,'error');return null}
+    return apiCall(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
 }
 
 function openModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id); var el=document.getElementById(id);if(el)el.style.display='flex'; }
