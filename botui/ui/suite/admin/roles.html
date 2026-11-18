@@ -19,7 +19,7 @@ Create Role </button>
 </div> </div>
 <div class="search-box"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-</svg> <input type="text" placeholder="Search roles..." aria-label="Search roles" data-i18n-aria-label="forms-a11y-search-roles" name="q" autocomplete="off" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
+</svg> <input type="text" data-i18n-placeholder="admin-roles-placeholder-search" aria-label="Search roles" data-i18n-aria-label="forms-a11y-search-roles" name="q" autocomplete="off" hx-get="/api/rbac/roles/search" hx-trigger="keyup changed delay:300ms" hx-target="#roles-list" hx-swap="innerHTML">
 </div> <div class="roles-list" id="roles-list" role="status" aria-live="polite" hx-get="/api/rbac/roles" hx-trigger="load" hx-swap="innerHTML">
 <div class="loading-state" role="status"> <div class="spinner"></div>
 </div> </div>
@@ -61,7 +61,7 @@ Delete </button>
 <div class="list-box available-box"> <div class="list-box-header">
 <span data-i18n="admin-roles-available-permissions">Available Permissions</span> <span class="count" id="available-count">0</span>
 </div> <div class="list-box-search">
-<input type="text" placeholder="Filter available..." aria-label="Filter available permissions" data-i18n-aria-label="forms-a11y-filter-available-permissions" onkeyup="filterAvailable(this.value)"> </div>
+<input type="text" data-i18n-placeholder="admin-roles-placeholder-filter-available" aria-label="Filter available permissions" data-i18n-aria-label="forms-a11y-filter-available-permissions" onkeyup="filterAvailable(this.value)"> </div>
 <div class="category-filter"> <select aria-label="Filter available permissions by category" data-i18n-aria-label="forms-a11y-filter-available-permissions-category" onchange="filterByCategory(this.value, 'available')">
 <option value="" data-i18n="products-cat-all">All Categories</option> <option value="admin" data-i18n="settings-administration">Administration</option>
 <option value="compliance" data-i18n="learn-compliance">Compliance</option> <option value="security" data-i18n="learn-security">Security</option>
@@ -89,7 +89,7 @@ Delete </button>
 </div> <div class="list-box assigned-box">
 <div class="list-box-header"> <span data-i18n="admin-roles-assigned-permissions">Assigned Permissions</span>
 <span class="count" id="assigned-count">0</span> </div>
-<div class="list-box-search"> <input type="text" placeholder="Filter assigned..." aria-label="Filter assigned permissions" data-i18n-aria-label="forms-a11y-filter-assigned-permissions" onkeyup="filterAssigned(this.value)">
+<div class="list-box-search"> <input type="text" data-i18n-placeholder="admin-roles-placeholder-filter-assigned" aria-label="Filter assigned permissions" data-i18n-aria-label="forms-a11y-filter-assigned-permissions" onkeyup="filterAssigned(this.value)">
 </div> <div class="category-filter">
 <select aria-label="Filter assigned permissions by category" data-i18n-aria-label="forms-a11y-filter-assigned-permissions-category" onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
 <option value="admin" data-i18n="settings-administration">Administration</option> <option value="compliance" data-i18n="learn-compliance">Compliance</option>
@@ -145,11 +145,11 @@ Export </button>
 </svg> </button>
 </div> <form hx-post="/api/rbac/roles" hx-target="#roles-list" hx-swap="innerHTML" hx-on::after-request="this.closest('dialog').close(); this.reset();">
 <div class="form-group"> <label for="create-role-name">Role Name <span class="required">*</span></label>
-<input id="create-role-name" type="text" name="name" placeholder="e.g., content_editor" required pattern="[a-z_]+" title="Lowercase letters and underscores only" autocomplete="off"> <p class="help-text" data-i18n="admin-roles-name-help">Lowercase, no spaces (use underscores)</p>
+<input id="create-role-name" type="text" name="name" data-i18n-placeholder="admin-roles-placeholder-name-example" required pattern="[a-z_]+" title="Lowercase letters and underscores only" autocomplete="off"> <p class="help-text" data-i18n="admin-roles-name-help">Lowercase, no spaces (use underscores)</p>
 </div> <div class="form-group">
-<label for="create-role-display-name">Display Name <span class="required">*</span></label> <input id="create-role-display-name" type="text" name="display_name" placeholder="e.g., Content Editor" required autocomplete="off">
+<label for="create-role-display-name">Display Name <span class="required">*</span></label> <input id="create-role-display-name" type="text" name="display_name" data-i18n-placeholder="admin-roles-placeholder-display-name-example" required autocomplete="off">
 </div> <div class="form-group">
-<label for="create-role-description" data-i18n="label-description">Description</label> <textarea id="create-role-description" name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
+<label for="create-role-description" data-i18n="label-description">Description</label> <textarea id="create-role-description" name="description" rows="3" data-i18n-placeholder="admin-roles-placeholder-description"></textarea>
 </div> <div class="form-group">
 <label for="create-role-copy-from" data-i18n="admin-roles-copy-permissions-from">Copy Permissions From</label> <select id="create-role-copy-from" name="copy_from">
 <option value="" data-i18n="admin-roles-start-with-no-permissions">Start with no permissions</option> <option value="standard_user" data-i18n="admin-roles-standard-user">Standard User</option>
@@ -183,7 +183,7 @@ Export </button>
 </svg> </button>
 </div> <div class="modal-body">
 <div class="form-group"> <label for="user-search" data-i18n="admin-roles-search-users-label">Search Users</label>
-<input type="text" id="user-search" placeholder="Type to search users..." aria-label="Search users" data-i18n-aria-label="forms-a11y-search-users" autocomplete="off" hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
+<input type="text" id="user-search" data-i18n-placeholder="admin-roles-placeholder-search-users" aria-label="Search users" data-i18n-aria-label="forms-a11y-search-users" autocomplete="off" hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
 <div class="search-results" id="user-search-results" role="status" aria-live="polite"> <p class="empty-text" data-i18n="admin-roles-type-to-search-users">Type to search for users</p>
 </div> <div class="selected-items" id="selected-users" aria-live="polite">
 </div> <div class="form-group">
@@ -199,7 +199,7 @@ Export </button>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <div class="modal-body"> <div class="form-group">
-<label for="group-search" data-i18n="admin-roles-search-groups-label">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." aria-label="Search groups" data-i18n-aria-label="forms-a11y-search-groups" autocomplete="off" hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
+<label for="group-search" data-i18n="admin-roles-search-groups-label">Search Groups</label> <input type="text" id="group-search" data-i18n-placeholder="admin-roles-placeholder-search-groups" aria-label="Search groups" data-i18n-aria-label="forms-a11y-search-groups" autocomplete="off" hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
 </div> <div class="search-results" id="group-search-results" role="status" aria-live="polite">
 <p class="empty-text" data-i18n="admin-roles-type-to-search-groups">Type to search for groups</p> </div>
 <div class="selected-items" id="selected-groups" aria-live="polite"> </div>
