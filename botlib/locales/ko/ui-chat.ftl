@@ -135,3 +135,4 @@ chat-status-error = 오류
 chat-status-stopped = 중지됨
 
 chat-response-ready = 응답 준비 완료
+chat-response-started = 어시스턴트가 응답 중입니다

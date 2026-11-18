@@ -135,3 +135,4 @@ chat-status-error = 错误
 chat-status-stopped = 已停止
 
 chat-response-ready = 回复就绪
+chat-response-started = 助手正在回复

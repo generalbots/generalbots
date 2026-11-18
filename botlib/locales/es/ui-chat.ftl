@@ -135,3 +135,4 @@ chat-status-error = Error
 chat-status-stopped = Detenido
 
 chat-response-ready = Respuesta lista
+chat-response-started = El asistente está respondiendo

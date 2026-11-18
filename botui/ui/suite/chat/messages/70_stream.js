@@ -253,6 +253,7 @@ function processMessage(data) {
     } catch (e) { /* hydration is best-effort */ }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
+    ChatState._gbStreamStartAnnounced = false;
     gbChatStatus({ state: "ready" });
     gbFinishTurn(data, completed);
     // #2331 — announce completion once (not per token). The streaming bubble is
@@ -303,6 +304,25 @@ function processMessage(data) {
         ChatState.pendingToolExec = null;
       }
       addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning, null, streamMeta);
+      // #2331 — announce stream start once (not per token).
+      try {
+        if (!ChatState._gbStreamStartAnnounced) {
+          ChatState._gbStreamStartAnnounced = true;
+          var startAnnounce = (window.gbT ? window.gbT("chat-response-started", "Assistant is responding") : "Assistant is responding");
+          var politeStart = document.getElementById("gb-toast-live-polite");
+          if (politeStart) {
+            politeStart.textContent = "";
+            setTimeout(function () {
+              try {
+                politeStart.textContent = startAnnounce;
+                setTimeout(function () {
+                  try { if (politeStart.textContent === startAnnounce) politeStart.textContent = ""; } catch (e2) {}
+                }, 1200);
+              } catch (e1) {}
+            }, 40);
+          }
+        }
+      } catch (eStartAnn) { /* announcement best-effort */ }
       ChatState.lastRenderTime = Date.now();
       gbChatStatus({ state: "running", text: gbChatStatusText("status-generating", "Generating…") });
     } else {
