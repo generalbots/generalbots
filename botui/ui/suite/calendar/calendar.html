@@ -62,7 +62,7 @@
                     </svg>
                 </button>
                 <span class="mini-calendar-title" id="mini-cal-title"
-                     data-i18n="auto-january-2025">January 2025</span
+                     data-i18n="calendar-mini-month-placeholder">January 2025</span
                 >
                 <button class="btn-icon-sm" id="next-month" title="Next month" aria-label="Next month" data-i18n-title="calendar-next-month" data-i18n-aria-label="calendar-next-month">
                     <svg
@@ -134,7 +134,7 @@
 
         <!-- Upcoming Events -->
         <div class="sidebar-section">
-            <h3 data-i18n="auto-upcoming">Upcoming</h3>
+            <h3 data-i18n="calendar-upcoming">Upcoming</h3>
             <div
                 class="upcoming-events"
                 id="upcoming-events"
@@ -149,7 +149,7 @@
         <!-- iCal Import/Export -->
         <div class="sidebar-section">
             <div class="section-header">
-                <h3 data-i18n="auto-import-export">Import / Export</h3>
+                <h3 data-i18n="calendar-import-export">Import / Export</h3>
             </div>
             <div class="ical-actions">
                 <a
@@ -207,7 +207,7 @@
     <div class="event-popup hidden" id="event-popup" role="status" aria-live="polite" aria-atomic="true">
         <div class="event-popup-header">
             <div class="event-popup-color" id="popup-color"></div>
-            <h4 id="popup-title" data-i18n="auto-event-title">Event Title</h4>
+            <h4 id="popup-title" data-i18n="calendar-popup-event-title">Event Title</h4>
             <div class="event-popup-actions">
                 <button
                     class="btn-icon-sm"
@@ -300,7 +300,7 @@
                     ></path>
                     <circle cx="12" cy="10" r="3"></circle>
                 </svg>
-                <span id="popup-location" data-i18n="auto-conference-room-a">Conference Room A</span>
+                <span id="popup-location" data-i18n="calendar-popup-location-placeholder">Conference Room A</span>
             </div>
             <div class="popup-detail" id="popup-description-row">
                 <svg
@@ -316,7 +316,7 @@
                     <line x1="21" y1="14" x2="3" y2="14"></line>
                     <line x1="17" y1="18" x2="3" y2="18"></line>
                 </svg>
-                <span id="popup-description" data-i18n="auto-event-description">Event description</span>
+                <span id="popup-description" data-i18n="calendar-popup-event-description">Event description</span>
             </div>
             <div class="popup-detail">
                 <svg
@@ -339,7 +339,7 @@
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                <span id="popup-calendar" data-i18n="auto-personal">Personal</span>
+                <span id="popup-calendar" data-i18n="calendar-personal">Personal</span>
             </div>
         </div>
     </div>
@@ -349,7 +349,7 @@
 <div class="modal hidden" id="ical-import-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 data-i18n="auto-import-ical-file">Import iCal File</h3>
+            <h3 data-i18n="calendar-import-ical-title">Import iCal File</h3>
             <button
                 type="button"
                 class="btn-icon close-modal"
@@ -382,7 +382,7 @@
                 hx-on::after-request="if(event.detail.successful) { setTimeout(() => { document.getElementById('ical-import-modal').classList.add('hidden'); location.reload(); }, 1500); }"
             >
                 <div class="form-group">
-                    <label data-i18n="auto-select-ics-file">Select .ics file</label>
+                    <label data-i18n="calendar-select-ics-file">Select .ics file</label>
                     <input
                         type="file"
                         name="file"
@@ -398,14 +398,14 @@
                     />
                 </div>
                 <div class="form-group">
-                    <label data-i18n="auto-import-to-calendar">Import to calendar</label>
+                    <label data-i18n="calendar-import-to-calendar-label">Import to calendar</label>
                     <select
                         name="calendar_id"
                         hx-get="/api/ui/calendar/calendars"
                         hx-trigger="intersect once"
                         hx-swap="innerHTML"
                     >
-                        <option value="" data-i18n="auto-default-calendar">Default Calendar</option>
+                        <option value="" data-i18n="calendar-default-calendar">Default Calendar</option>
                     </select>
                 </div>
                 <div id="import-result" style="margin-top: 12px" role="status" aria-live="polite"></div>
@@ -425,8 +425,8 @@
 </div>
 
 
-<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="auto-loading-calendar">Loading calendar…</span></div>
-<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="auto-calendar-unavailable">Calendar unavailable</span></div>
+<div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="calendar-loading">Loading calendar…</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="calendar-unavailable">Calendar unavailable</span></div>
 <script src="/suite/calendar/calendar-templates.js?v=1"></script>
 <script src="/suite/calendar/calendar.js?v=5"></script>
 <script src="/suite/calendar/modules/calendar-draw.js?v=1"></script>

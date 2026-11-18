@@ -379,3 +379,42 @@ research-loading = 正在加载研究…
 
 # semantic i18n key (#2542)
 research-service-unavailable = 研究服务不可用
+
+# semantic i18n key (#2542)
+calendar-mini-month-placeholder = 2025年1月
+
+# semantic i18n key (#2542)
+calendar-upcoming = 即将到来
+
+# semantic i18n key (#2542)
+calendar-import-export = 导入 / 导出
+
+# semantic i18n key (#2542)
+calendar-popup-event-title = 活动标题
+
+# semantic i18n key (#2542)
+calendar-popup-location-placeholder = 会议室 A
+
+# semantic i18n key (#2542)
+calendar-popup-event-description = 活动描述
+
+# semantic i18n key (#2542)
+calendar-personal = 个人
+
+# semantic i18n key (#2542)
+calendar-import-ical-title = 导入 iCal 文件
+
+# semantic i18n key (#2542)
+calendar-select-ics-file = 选择 .ics 文件
+
+# semantic i18n key (#2542)
+calendar-import-to-calendar-label = 导入到日历
+
+# semantic i18n key (#2542)
+calendar-default-calendar = 默认日历
+
+# semantic i18n key (#2542)
+calendar-loading = 正在加载日历…
+
+# semantic i18n key (#2542)
+calendar-unavailable = 日历不可用

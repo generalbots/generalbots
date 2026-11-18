@@ -379,3 +379,42 @@ research-loading = 리서치 불러오는 중…
 
 # semantic i18n key (#2542)
 research-service-unavailable = 리서치 서비스를 사용할 수 없음
+
+# semantic i18n key (#2542)
+calendar-mini-month-placeholder = 2025년 1월
+
+# semantic i18n key (#2542)
+calendar-upcoming = 예정된 일정
+
+# semantic i18n key (#2542)
+calendar-import-export = 가져오기 / 내보내기
+
+# semantic i18n key (#2542)
+calendar-popup-event-title = 이벤트 제목
+
+# semantic i18n key (#2542)
+calendar-popup-location-placeholder = 회의실 A
+
+# semantic i18n key (#2542)
+calendar-popup-event-description = 이벤트 설명
+
+# semantic i18n key (#2542)
+calendar-personal = 개인
+
+# semantic i18n key (#2542)
+calendar-import-ical-title = iCal 파일 가져오기
+
+# semantic i18n key (#2542)
+calendar-select-ics-file = .ics 파일 선택
+
+# semantic i18n key (#2542)
+calendar-import-to-calendar-label = 캘린더로 가져오기
+
+# semantic i18n key (#2542)
+calendar-default-calendar = 기본 캘린더
+
+# semantic i18n key (#2542)
+calendar-loading = 캘린더 불러오는 중…
+
+# semantic i18n key (#2542)
+calendar-unavailable = 캘린더를 사용할 수 없음

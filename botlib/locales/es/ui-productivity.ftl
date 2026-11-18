@@ -379,3 +379,42 @@ research-loading = Cargando investigación…
 
 # semantic i18n key (#2542)
 research-service-unavailable = Servicio de investigación no disponible
+
+# semantic i18n key (#2542)
+calendar-mini-month-placeholder = Enero de 2025
+
+# semantic i18n key (#2542)
+calendar-upcoming = Próximos
+
+# semantic i18n key (#2542)
+calendar-import-export = Importar / Exportar
+
+# semantic i18n key (#2542)
+calendar-popup-event-title = Título del evento
+
+# semantic i18n key (#2542)
+calendar-popup-location-placeholder = Sala de conferencias A
+
+# semantic i18n key (#2542)
+calendar-popup-event-description = Descripción del evento
+
+# semantic i18n key (#2542)
+calendar-personal = Personal
+
+# semantic i18n key (#2542)
+calendar-import-ical-title = Importar archivo iCal
+
+# semantic i18n key (#2542)
+calendar-select-ics-file = Seleccionar archivo .ics
+
+# semantic i18n key (#2542)
+calendar-import-to-calendar-label = Importar al calendario
+
+# semantic i18n key (#2542)
+calendar-default-calendar = Calendario predeterminado
+
+# semantic i18n key (#2542)
+calendar-loading = Cargando calendario…
+
+# semantic i18n key (#2542)
+calendar-unavailable = Calendario no disponible

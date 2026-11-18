@@ -379,3 +379,42 @@ research-loading = リサーチを読み込み中…
 
 # semantic i18n key (#2542)
 research-service-unavailable = リサーチサービスを利用できません
+
+# semantic i18n key (#2542)
+calendar-mini-month-placeholder = 2025年1月
+
+# semantic i18n key (#2542)
+calendar-upcoming = 今後の予定
+
+# semantic i18n key (#2542)
+calendar-import-export = インポート / エクスポート
+
+# semantic i18n key (#2542)
+calendar-popup-event-title = イベントタイトル
+
+# semantic i18n key (#2542)
+calendar-popup-location-placeholder = 会議室A
+
+# semantic i18n key (#2542)
+calendar-popup-event-description = イベントの説明
+
+# semantic i18n key (#2542)
+calendar-personal = 個人
+
+# semantic i18n key (#2542)
+calendar-import-ical-title = iCalファイルをインポート
+
+# semantic i18n key (#2542)
+calendar-select-ics-file = .icsファイルを選択
+
+# semantic i18n key (#2542)
+calendar-import-to-calendar-label = カレンダーにインポート
+
+# semantic i18n key (#2542)
+calendar-default-calendar = 既定のカレンダー
+
+# semantic i18n key (#2542)
+calendar-loading = カレンダーを読み込み中…
+
+# semantic i18n key (#2542)
+calendar-unavailable = カレンダーを利用できません
