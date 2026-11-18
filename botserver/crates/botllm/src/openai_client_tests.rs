@@ -157,3 +157,33 @@ fn empty_prompt_and_context_are_omitted_from_the_message_list() {
     assert_eq!(roles(&built), vec!["user"]);
     assert_eq!(built[0]["content"], "hello");
 }
+
+#[test]
+fn system_messages_are_merged_into_the_first_position() {
+    let messages = serde_json::json!([
+        message("system", "You are the assistant."),
+        message("user", "first question"),
+        message("assistant", "first answer"),
+        message("system", "Web results: ..."),
+        message("user", "hi"),
+    ]);
+    let merged = OpenAIClient::lead_with_one_system_message(&messages);
+    assert_eq!(roles(&merged), ["system", "user", "assistant", "user"]);
+    assert_eq!(merged[0]["content"], "You are the assistant.\n\nWeb results: ...");
+    assert_eq!(merged[3]["content"], "hi");
+}
+
+#[test]
+fn a_conversation_without_system_messages_is_left_as_it_is() {
+    let messages = serde_json::json!([message("user", "hi"), message("assistant", "hello")]);
+    assert_eq!(OpenAIClient::lead_with_one_system_message(&messages), messages);
+    let empty_system = serde_json::json!([message("system", "  "), message("user", "hi")]);
+    assert_eq!(roles(&OpenAIClient::lead_with_one_system_message(&empty_system)), ["user"]);
+}
+
+#[test]
+fn only_this_machine_counts_as_a_loopback_endpoint() {
+    assert!(OpenAIClient::is_loopback_endpoint("http://127.0.0.1:8081"));
+    assert!(OpenAIClient::is_loopback_endpoint("http://localhost:8081/v1"));
+    assert!(!OpenAIClient::is_loopback_endpoint("https://api.example.com/v1"));
+}

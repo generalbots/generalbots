@@ -39,7 +39,10 @@ pub(crate) async fn generate(
             32768
         };
 
-        let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+        let mut messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+        if OpenAIClient::is_loopback_endpoint(&client.base_url) {
+            messages = OpenAIClient::lead_with_one_system_message(&messages);
+        }
 
         let full_url = format!("{}{}", client.base_url, client.endpoint_path);
         let auth_header = crate::retry::bearer_header(key);

@@ -229,6 +229,42 @@ impl OpenAIClient {
         serde_json::Value::Array(result)
     }
 
+    /// True when this client talks to a server on this machine (the local
+    /// engine).
+    pub fn is_loopback_endpoint(base_url: &str) -> bool {
+        ["://127.0.0.1", "://localhost", "://[::1]"]
+            .iter()
+            .any(|host| base_url.contains(host))
+    }
+
+    /// Every system message merged into one, placed first; the rest of the
+    /// conversation keeps its order. The chat templates that recent local
+    /// models carry (Qwen3.5 among them) refuse a request whose system
+    /// message is not the first and only one, and the pipeline adds its
+    /// context blocks as further system messages.
+    pub fn lead_with_one_system_message(messages: &Value) -> Value {
+        let Some(array) = messages.as_array() else {
+            return messages.clone();
+        };
+        let is_system = |m: &&Value| m.get("role").and_then(|r| r.as_str()) == Some("system");
+        let parts: Vec<String> = array
+            .iter()
+            .filter(is_system)
+            .filter_map(|m| match m.get("content") {
+                Some(Value::String(text)) => Some(text.trim().to_string()),
+                Some(Value::Null) | None => None,
+                Some(other) => Some(other.to_string()),
+            })
+            .filter(|text| !text.is_empty())
+            .collect();
+        let mut result = Vec::with_capacity(array.len());
+        if !parts.is_empty() {
+            result.push(serde_json::json!({ "role": "system", "content": parts.join("\n\n") }));
+        }
+        result.extend(array.iter().filter(|m| !is_system(m)).cloned());
+        Value::Array(result)
+    }
+
     pub fn ensure_token_limit(messages: &Value, model_context_limit: usize) -> Value {
         let estimated_tokens = Self::estimate_messages_tokens(messages);
         let safe_limit = (model_context_limit as f64 * 0.9) as usize;
