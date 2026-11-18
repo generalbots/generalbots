@@ -614,3 +614,21 @@ memory-dry-run-label =  Simulation — valider et prévisualiser les comptes san
 
 # semantic i18n key (#2542)
 memory-run-import = Lancer l'importation
+
+# semantic i18n key (#2542)
+fraud-false-positive-rate = Taux de faux positifs
+
+# semantic i18n key (#2542)
+fraud-tab-block = Blocage
+
+# semantic i18n key (#2542)
+fraud-action-flag = Signaler (Flag)
+
+# semantic i18n key (#2542)
+fraud-action-block = Bloquer
+
+# semantic i18n key (#2542)
+fraud-priority-label = Priorité
+
+# semantic i18n key (#2542)
+fraud-type-label = Type

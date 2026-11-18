@@ -614,3 +614,21 @@ memory-dry-run-label =  Dry run — validate and preview counts without writing
 
 # semantic i18n key (#2542)
 memory-run-import = Run Import
+
+# semantic i18n key (#2542)
+fraud-false-positive-rate = False Positive Rate
+
+# semantic i18n key (#2542)
+fraud-tab-block = Block
+
+# semantic i18n key (#2542)
+fraud-action-flag = Flag
+
+# semantic i18n key (#2542)
+fraud-action-block = Block
+
+# semantic i18n key (#2542)
+fraud-priority-label = Priority
+
+# semantic i18n key (#2542)
+fraud-type-label = Type

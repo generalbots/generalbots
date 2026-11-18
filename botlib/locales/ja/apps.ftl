@@ -614,3 +614,21 @@ memory-dry-run-label =  ドライラン — 書き込みせずに検証し件数
 
 # semantic i18n key (#2542)
 memory-run-import = インポートを実行
+
+# semantic i18n key (#2542)
+fraud-false-positive-rate = 誤検知率
+
+# semantic i18n key (#2542)
+fraud-tab-block = ブロック
+
+# semantic i18n key (#2542)
+fraud-action-flag = フラグ付け
+
+# semantic i18n key (#2542)
+fraud-action-block = ブロックする
+
+# semantic i18n key (#2542)
+fraud-priority-label = 優先度
+
+# semantic i18n key (#2542)
+fraud-type-label = 種類

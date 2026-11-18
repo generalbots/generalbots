@@ -614,3 +614,21 @@ memory-dry-run-label =  试运行 — 验证并预览数量而不写入
 
 # semantic i18n key (#2542)
 memory-run-import = 运行导入
+
+# semantic i18n key (#2542)
+fraud-false-positive-rate = 误报率
+
+# semantic i18n key (#2542)
+fraud-tab-block = 拦截
+
+# semantic i18n key (#2542)
+fraud-action-flag = 标记（Flag）
+
+# semantic i18n key (#2542)
+fraud-action-block = 阻止
+
+# semantic i18n key (#2542)
+fraud-priority-label = 优先级
+
+# semantic i18n key (#2542)
+fraud-type-label = 类型

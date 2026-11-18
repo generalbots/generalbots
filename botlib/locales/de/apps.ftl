@@ -614,3 +614,21 @@ memory-dry-run-label =  Probelauf — validieren und Anzahl prüfen, ohne zu sch
 
 # semantic i18n key (#2542)
 memory-run-import = Import ausführen
+
+# semantic i18n key (#2542)
+fraud-false-positive-rate = Falsch-Positiv-Rate
+
+# semantic i18n key (#2542)
+fraud-tab-block = Sperren
+
+# semantic i18n key (#2542)
+fraud-action-flag = Markieren (Flag)
+
+# semantic i18n key (#2542)
+fraud-action-block = Blockieren
+
+# semantic i18n key (#2542)
+fraud-priority-label = Priorität
+
+# semantic i18n key (#2542)
+fraud-type-label = Typ
