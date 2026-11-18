@@ -1,8 +1,11 @@
 use uuid::Uuid;
 
+pub use super::types::PipelineFn;
 use super::types::{PipelineResult, SessionIdentity};
 use log::info;
-pub use super::types::PipelineFn;
+
+mod context;
+mod finish;
 
 pub async fn process_message_internal(
     identity: &SessionIdentity<'_>,
@@ -212,9 +215,7 @@ pub async fn process_message_internal(
         .map(|b| b.len() * 3 / 4)
         .unwrap_or(0);
     let attach_activity = if has_file {
-        let summary = super::activity::attachment_summary(
-            &file_name, "", file_size, 0, false, "",
-        );
+        let summary = super::activity::attachment_summary(&file_name, "", file_size, 0, false, "");
         let act = super::activity::Activity::started(
             super::activity::ActivityKind::AttachmentRead,
             summary,
@@ -246,7 +247,8 @@ pub async fn process_message_internal(
                 n.find(&marker).map(|start| {
                     let content_start = start + marker.len();
                     let end_marker = format!("\n--- END ATTACHMENT {file_name} ---");
-                    let end = n[content_start..].find(&end_marker)
+                    let end = n[content_start..]
+                        .find(&end_marker)
                         .map(|e| content_start + e)
                         .unwrap_or(n.len());
                     n[content_start..end].chars().count().min(12000)
@@ -382,268 +384,37 @@ pub async fn process_message_internal(
         route.reason
     );
 
-    // The composer's app-automation/media switches ride with the client
-    // capabilities so the prompt only advertises what this turn may use.
-    let client_caps_value = {
-        let mut caps = parsed
-            .get("client_capabilities")
-            .cloned()
-            .unwrap_or_else(|| serde_json::json!({}));
-        if let Some(obj) = caps.as_object_mut() {
-            obj.insert("ui_automation".to_string(), serde_json::json!(ui_automation_enabled));
-            if media_type != "auto" {
-                obj.insert("media_type".to_string(), serde_json::json!(media_type.clone()));
-            }
-        }
-        caps
-    };
-
-    let channel = sink.channel_type();
-    let system_prompt = super::system_prompt::with_structured_tools(
-        super::system_prompt::build(
-            state,
-            bot_uuid,
-            session_id,
-            user_id,
-            bot_name,
-            channel,
-            &active_switchers,
-            Some(&client_caps_value),
-        ),
-        channel,
-    );
-    // #2238 — bias the answer toward the requested artifact/media type.
-    let system_prompt = if media_type != "auto" {
-        format!(
-            "{system_prompt}\n\n---\nRequested output type: {media_type}. Prefer producing this artifact/format when feasible; if not possible, explain briefly and provide the closest alternative."
-        )
-    } else {
-        system_prompt
-    };
-    // #1975 — selective Canvas/SVG subsystem prompt for drawing turns.
-    let canvas_block = super::system_prompt::canvas_drawing_block(&user_text);
-    let system_prompt = if canvas_block.is_empty() {
-        system_prompt
-    } else {
-        format!("{system_prompt}\n\n{canvas_block}")
-    };
-
-    let session_context = {
-        let sm = state.session_manager.lock().await;
-        sm.get_session_context_data(&session_id, &user_id)
-            .ok()
-            .unwrap_or_default()
-    };
-
-    let mut messages =
-        vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
-
-    // #1946 — the selected mode is an instruction for this turn, not a
-    // session-wide switch: it tells the model whether to plan execution or to
-    // answer/patch through the catalog, while the guards stay in place.
-    // #2239 — when Agent/VM is disabled, never offer or encourage workspace tools.
-    // #2562 — when `agent-vm` is not compiled, the simpler "answer directly"
-    //         block replaces the full VM-disabled message so the model never
-    //         sees controls or capabilities that do not exist in this build.
-    let turn_instruction = if !agent_enabled {
-        if cfg!(feature = "agent-vm") {
-            format!(
-                "THIS TURN: Agent/VM is disabled for this conversation. Do not use or mention vm_exec, \
-                 terminal_run, or terminal.exec, and do not assume a workspace/VM is available. \
-                 Never claim a file was created and never emit a vmfile: link. Answer directly or use \
-                 non-VM capabilities only. When the request genuinely needs the VM (running code, \
-                 generating or attaching a file), say exactly: \"{}\"",
-                super::agent_turn::DISABLED_MESSAGE
-            )
-        } else {
-            "THIS TURN: Answer directly using your knowledge and the API command catalog. \
-             Do not reference terminal commands, code execution, sandboxes or file generation."
-                .to_string()
-        }
-    } else {
-        match route.route {
-            crate::core::bot::ws::stream::routing::Route::Agentic => {
-                "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
-            }
-            crate::core::bot::ws::stream::routing::Route::NonAgentic => {
-                "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
-            }
-        }
-        .to_string()
-    };
-    messages.push(serde_json::json!({
-        "role": "system",
-        "content": turn_instruction
-    }));
-
-    // #1670 — structured answers and approved plans shape this turn's prompt.
-    super::turn_context::apply_structured_answers(&parsed, session_id, &mut messages);
-
-    // #1549/#1637: the tier now selects a real model in
-    // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
-    // secondary shaping hint, not the routing mechanism.
-    super::turn_context::apply_model_preference(&mut messages, &model_preference);
-    super::turn_context::apply_session_context(&mut messages, &session_context);
-
-    let routing = super::turn_context::TurnRouting {
-        state,
-        sink,
-        bot_uuid,
-        session_id,
-        user_id,
-    };
-    if super::turn_context::route_project(
-        &routing,
-        project_context.as_ref(),
+    let mut messages = Vec::new();
+    if context::prepare_messages_and_maybe_finish(
+        identity,
+        &parsed,
         &user_text,
-        &mut messages,
         agent_enabled,
+        &route,
+        &active_switchers,
+        ui_automation_enabled,
+        &media_type,
+        &model_preference,
+        &session_context,
+        project_context.as_ref(),
+        &mut attachment_note,
+        &mut messages,
     )
     .await?
     {
         return Ok(());
     }
-    super::turn_context::apply_drive_listing(&mut messages, &parsed);
 
-    // #1580: Always-on agent VM — auto-provision and inject execution context.
-    // #1835 — news/informational turns belong to web grounding, not to the
-    // agent VM's code-execution surface: skip the VM contract for them so the
-    // model does not route the request into vm_exec (which never shows refs).
-    // #2238 — explicit Agent toggle: skip VM provisioning/inject when off.
-    if agent_enabled && !super::turn_hooks::is_informational_request(&user_text) {
-        super::agent_vm_context::inject(identity, &mut messages).await;
-    }
-
-    // #1584: files named in the message are copied from Drive into data/
-    // before the model writes the program that reads them.
-    #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    if agent_enabled {
-        super::native_drive::fetch_referenced(
-            state,
-            bot_uuid,
-            user_id,
-            session_id,
-            &user_text,
-            &mut messages,
-        )
-        .await;
-    }
-
-    super::history::append_conversation_history(
-        state,
-        bot_uuid,
-        session_id,
-        user_id,
-        &mut messages,
-    )
-    .await;
-
-    // #1641 — attachment content is a separate system block so it never gets
-    // persisted as if the user had typed the whole file.
-    if let Some(note) = attachment_note.take() {
-        messages.push(serde_json::json!({"role": "system", "content": note}));
-    }
-
-    // #1644 — results of approved browser/terminal actions are fed back into
-    // the conversation before the model answers, so the next reply can cite
-    // the page title (or say the action was denied/failed).
-    super::turn_context::apply_completed_actions(session_id, user_id, &mut messages).await;
-
-    // #1545/#1547: grounding context goes LAST, immediately before the model
-    // call, so it is the freshest instruction in the prompt.
-    #[cfg(feature = "drive")]
-    super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
-
-    // #1632 item 3 / #2238 — the composer's Web switch is the decision.
-    // When explicitly off, do not search (even for informational requests).
-    // When on (or unspecified legacy), search as before.
-    //
-    // #2147 — a front-page request is answered from rendered images, not from
-    // search snippets, so it never pays for a web search first.
-    #[cfg(all(feature = "browser", feature = "drive"))]
-    let front_page_turn = super::front_page::wants_front_page(&user_text);
-
-    #[cfg(any(feature = "research", feature = "web-search"))]
-    {
-        #[cfg(all(feature = "browser", feature = "drive"))]
-        let web_search_allowed = !front_page_turn;
-        #[cfg(not(all(feature = "browser", feature = "drive")))]
-        let web_search_allowed = true;
-
-        let web_flag = parsed.get("web_search").and_then(|value| value.as_bool());
-        let web_search_enabled = web_search_allowed
-            && match web_flag {
-                Some(false) => false,
-                Some(true) => true,
-                None => super::turn_hooks::is_informational_request(&user_text),
-            };
-        if web_search_enabled {
-            let citations =
-                super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
-            if !citations.is_empty() {
-                state
-                    .pending_citations
-                    .lock()
-                    .await
-                    .insert(session_id.to_string(), citations);
-            }
-        }
-    }
-
-    // #2147 — "as capas dos jornais … foto" must arrive as pictures. The
-    // capture runs here, after every other grounding block, so the exact
-    // markdown image is the freshest instruction the model reads.
-    #[cfg(all(feature = "browser", feature = "drive"))]
-    if front_page_turn {
-        super::front_page::capture_and_inject(identity, &user_text, &mut messages).await;
-    }
-    super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
-
-    let turn_timeout_secs = super::enriched_llm::turn_timeout_secs();
-    if tokio::time::timeout(
-        std::time::Duration::from_secs(turn_timeout_secs),
-        super::enriched_llm::build_and_stream(
-            identity,
-            rx,
-            &messages,
-            &user_text,
-            #[cfg(feature = "integrations")]
-            &mentions,
-            is_switcher_replay,
-            &model_preference,
-        ),
+    finish::stream_and_finalize(
+        identity,
+        rx,
+        &messages,
+        &user_text,
+        #[cfg(feature = "integrations")]
+        &mentions,
+        is_switcher_replay,
+        &model_preference,
+        agent_enabled,
     )
     .await
-    .is_err()
-    {
-        botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
-        return Err(super::types::PipelineError::LLM(format!("Turn timed out after {turn_timeout_secs}s")));
-    }
-
-    // #1635 — the pipeline streams typed BotResponse frames, which have no
-    // citations field. Send the sources as one explicit frame after the answer
-    // so the renderer can attach the chips to the message that just completed.
-    let citations = {
-        let mut pending = state.pending_citations.lock().await;
-        pending.remove(&session_id.to_string()).unwrap_or_default()
-    };
-    if !citations.is_empty() {
-        let frame = serde_json::json!({
-            "type": "citations",
-            "message_type": "citations",
-            "bot_id": bot_uuid.to_string(),
-            "session_id": session_id.to_string(),
-            "citations": citations,
-        });
-        let _ = sink.send_raw_json(&frame).await;
-    }
-
-    // #2143 gap D — publish this turn's artifacts; a Drive outage never fails it.
-    // #2239 — skip workspace artifact publish when Agent/VM is off for this turn.
-    #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    if agent_enabled {
-        super::output_publish::publish_and_attach(identity).await;
-    }
-
-    Ok(())
 }
