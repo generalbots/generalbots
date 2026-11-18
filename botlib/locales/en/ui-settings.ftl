@@ -862,3 +862,14 @@ settings-no-invoices = No invoices for this account.
 
 # semantic i18n key (#2542)
 settings-view-invoices-on-cloud = View invoices on Cloud
+
+# semantic i18n key (#2542)
+settings-skills-placeholder =
+    Paste a SKILL.md package:
+    ---
+    name: deploy-check
+    description: Verify a deploy before announcing it
+    ---
+    1. …
+settings-memory-search-placeholder = Search memories…
+settings-notification-recipient-placeholder = you@example.com

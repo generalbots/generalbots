@@ -862,3 +862,14 @@ settings-no-invoices = 이 계정에 대한 청구서가 없습니다.
 
 # semantic i18n key (#2542)
 settings-view-invoices-on-cloud = 클라우드에서 청구서 보기
+
+# semantic i18n key (#2542)
+settings-skills-placeholder =
+    SKILL.md 패키지 붙여넣기:
+    ---
+    name: deploy-check
+    description: 배포를 알리기 전에 확인합니다
+    ---
+    1. …
+settings-memory-search-placeholder = 기억 검색…
+settings-notification-recipient-placeholder = you@example.com

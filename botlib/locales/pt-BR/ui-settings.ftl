@@ -862,3 +862,14 @@ settings-no-invoices = Nenhuma fatura para esta conta.
 
 # semantic i18n key (#2542)
 settings-view-invoices-on-cloud = Ver faturas na nuvem
+
+# semantic i18n key (#2542)
+settings-skills-placeholder =
+    Cole um pacote SKILL.md:
+    ---
+    name: deploy-check
+    description: Verifique um deploy antes de anunciá-lo
+    ---
+    1. …
+settings-memory-search-placeholder = Pesquisar memórias…
+settings-notification-recipient-placeholder = voce@exemplo.com

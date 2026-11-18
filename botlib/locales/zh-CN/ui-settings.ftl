@@ -862,3 +862,14 @@ settings-no-invoices = 此帐户没有发票。
 
 # semantic i18n key (#2542)
 settings-view-invoices-on-cloud = 在云端查看发票
+
+# semantic i18n key (#2542)
+settings-skills-placeholder =
+    粘贴 SKILL.md 包：
+    ---
+    name: deploy-check
+    description: 在发布前验证部署
+    ---
+    1. …
+settings-memory-search-placeholder = 搜索记忆…
+settings-notification-recipient-placeholder = you@example.com

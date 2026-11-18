@@ -862,3 +862,14 @@ settings-no-invoices = このアカウントの請求書はありません。
 
 # semantic i18n key (#2542)
 settings-view-invoices-on-cloud = クラウドで請求書を表示
+
+# semantic i18n key (#2542)
+settings-skills-placeholder =
+    SKILL.md パッケージを貼り付け:
+    ---
+    name: deploy-check
+    description: 公開前にデプロイを確認する
+    ---
+    1. …
+settings-memory-search-placeholder = メモリを検索…
+settings-notification-recipient-placeholder = you@example.com

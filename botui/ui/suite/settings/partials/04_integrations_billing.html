@@ -96,7 +96,7 @@
                     <button class="btn-secondary btn-sm" id="settings-skills-import" data-i18n="settings-import-skill">Import skill</button>
                 </div>
                 <textarea id="settings-skills-input" class="settings-skills-input" rows="6"
-                    placeholder="Paste a SKILL.md package:&#10;---&#10;name: deploy-check&#10;description: Verify a deploy before announcing it&#10;---&#10;1. …"></textarea>
+                    data-i18n-placeholder="settings-skills-placeholder"></textarea>
                 <div class="connections-list settings-mcp-list" id="settings-skills-list" aria-busy="true">
                     <div class="empty-state">
                         <p data-i18n="settings-loading-skills">Loading skills</p>
@@ -295,7 +295,7 @@
                     conversations. Remove anything you no longer want the assistant to use.
                 </p>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 20px 12px;">
-                    <input id="gbMemorySearch" class="input-sm" placeholder="Search memories…" style="flex:1;min-width:180px;">
+                    <input id="gbMemorySearch" class="input-sm" data-i18n-placeholder="settings-memory-search-placeholder" style="flex:1;min-width:180px;">
                     <select id="gbMemoryScope" class="input-sm" aria-label="Memory scope filter">
                         <option value="all" data-i18n="settings-memory-all-scopes">All scopes</option>
                         <option value="global" data-i18n="settings-memory-global-all-bots">Global (all bots)</option>
