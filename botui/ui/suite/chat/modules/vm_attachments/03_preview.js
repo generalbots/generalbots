@@ -87,6 +87,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
   close.type = "button";
   close.className = "gb-attachment-inline-btn";
   close.setAttribute("aria-label", "Close preview");
+  close.setAttribute("data-i18n-aria-label", "chat-staged-close");
   close.textContent = "×";
   close.addEventListener("click", function () {
     if (window.GBArtifactOverlay) window.GBArtifactOverlay.close(box);

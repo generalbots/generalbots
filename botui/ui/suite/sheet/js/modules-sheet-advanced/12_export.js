@@ -196,6 +196,8 @@
     btn.type = "button";
     btn.title = "Export";
     btn.setAttribute("aria-label", "Export");
+    btn.setAttribute("data-i18n-title", "table-export");
+    btn.setAttribute("data-i18n-aria-label", "table-export");
     btn.style.cssText = "display:inline-flex;align-items:center;gap:4px;";
     // A trailing `+` used to concatenate this call's `undefined` return into
     // the markup, so the toolbar button rendered the word "undefined" and the

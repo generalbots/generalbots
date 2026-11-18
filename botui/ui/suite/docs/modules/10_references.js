@@ -111,13 +111,13 @@
     panel.innerHTML =
       '<div class="gref-header">' +
       '<span class="gref-title">References &amp; citations</span>' +
-      '<button class="gref-close" title="Close" aria-label="Close">×</button>' +
+      '<button class="gref-close" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close">×</button>' +
       '</div>' +
       '<div class="gref-list"></div>' +
       '<div class="gref-form">' +
       '<input id="gref-author" placeholder="Author" aria-label="Author" />' +
       '<input id="gref-title" placeholder="Title" aria-label="Title" />' +
-      '<input id="gref-year" placeholder="Year" aria-label="Year" />' +
+      '<input id="gref-year" placeholder="Year" aria-label="Year" data-i18n-placeholder="calendar-year" data-i18n-aria-label="calendar-year" />' +
       '<input id="gref-url" placeholder="URL (optional)" aria-label="URL" />' +
       '<button id="gref-add">Add reference</button>' +
       '</div>';
