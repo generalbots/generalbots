@@ -2,7 +2,7 @@ use crate::external::types::{DeltaPage, ExternalFile, SyncError};
 use serde_json::Value;
 
 /// Drive API root.
-pub(super) const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
+pub(crate) const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
 /// Folder mime type — the only one that is a directory rather than a blob.
 pub(super) const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// The field mask keeps responses small; the default projection omits nothing
@@ -131,7 +131,7 @@ pub(super) fn truncate(body: &str) -> String {
     botlib::text::truncate_with_suffix(body.trim(), 300, "…")
 }
 
-pub(super) fn percent_encode(value: &str) -> String {
+pub(crate) fn percent_encode(value: &str) -> String {
     value
         .bytes()
         .map(|b| match b {

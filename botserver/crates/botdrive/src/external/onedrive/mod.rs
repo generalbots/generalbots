@@ -18,7 +18,7 @@ pub use auth::{
 };
 pub(crate) use delta::parse_ts;
 pub use delta::{classify_status, download, fetch_page, parse_delta};
-pub(super) use delta::{percent_encode, GRAPH_BASE};
+pub(crate) use delta::{percent_encode, GRAPH_BASE};
 
 #[cfg(test)]
 mod tests;

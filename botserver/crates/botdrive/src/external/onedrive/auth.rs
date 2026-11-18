@@ -12,6 +12,10 @@ pub struct TokenSet {
     pub refresh_token: Option<String>,
     /// Absolute expiry of the access token.
     pub expires_at: DateTime<Utc>,
+    /// Scopes the provider reports as granted (#1643). `routes/callback.rs`
+    /// stores this for the consent record and reads it for both providers, so
+    /// the field has to exist here too — Graph does return `scope`.
+    pub scope: Option<String>,
 }
 
 /// Minimal slice of the token endpoint response.
@@ -22,6 +26,11 @@ struct TokenResponse {
     refresh_token: Option<String>,
     /// Lifetime in seconds.
     expires_in: i64,
+    /// Granted scopes, space separated. Optional: Microsoft omits it on some
+    /// tenant configurations, and the consent record then keeps the requested
+    /// list (see `routes/callback.rs`).
+    #[serde(default)]
+    scope: Option<String>,
 }
 
 impl TokenResponse {
@@ -32,6 +41,7 @@ impl TokenResponse {
             access_token: self.access_token,
             refresh_token: self.refresh_token,
             expires_at,
+            scope: self.scope,
         }
     }
 }

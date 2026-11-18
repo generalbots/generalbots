@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 
 /// Graph endpoint used for the change feed.
-pub(super) const GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
+pub(crate) const GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
 /// First call of a delta run (no cursor yet).
 pub(super) const DELTA_ROOT: &str = "https://graph.microsoft.com/v1.0/me/drive/root/delta";
 /// Token endpoint (tenant is part of the path).
@@ -152,7 +152,7 @@ pub(super) fn truncate(body: &str) -> String {
     botlib::text::truncate_with_suffix(body.trim(), 300, "…")
 }
 
-pub(super) fn percent_encode(value: &str) -> String {
+pub(crate) fn percent_encode(value: &str) -> String {
     value
         .bytes()
         .map(|b| match b {
