@@ -54,7 +54,7 @@ var T = {"pt-BR":{
   privLocal:"Suas conversas ficam neste computador. Nada é enviado para fora.",
   privNet:"Suas conversas são enviadas ao servidor da sua organização (%h).",
   privExt:"Suas conversas são enviadas a um servidor externo (%h).",
-  noImageReading:"Leitura de imagens não disponível com as opções atuais."},
+  noImageReading:"O texto de imagens e digitalizações é lido neste computador; fotos e gráficos ainda não são interpretados."},
 en:{
   now:"Now",where:"Where the assistant thinks",local:"On this computer",
   own:"Own server or key",free:"Free model",
@@ -99,7 +99,7 @@ en:{
   privLocal:"Your conversations stay on this computer. Nothing is sent outside.",
   privNet:"Your conversations are sent to your organization’s server (%h).",
   privExt:"Your conversations are sent to an external host (%h).",
-  noImageReading:"Image reading not available with the current options."}};
+  noImageReading:"Text in images and scans is read on this computer; photos and charts are not interpreted yet."}};
 function t(key) {
   var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en";
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
@@ -156,6 +156,7 @@ A._modelShared = {
   get localModels() { return localModels; },
   set localModels(v) { localModels = v; },
   t: t,
+  shortName: shortName,
   errText: errText,
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
@@ -205,12 +206,16 @@ function renderFull(panel) {
   var scope = cfg ? cfg.endpoint_scope : (A.destination && A.destination.scope || "");
   var host = cfg ? cfg.endpoint_host : (A.destination && A.destination.host || "");
   var currentMode = cfg ? (cfg.mode || "") : "";
+  var G = A._modelGarage;
 
-  var html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>';
-  html += '<div class="gb-set-field"><span class="gb-set-label">' +
-    esc(A.t("settings.current-model","")) + '</span>' +
-    '<span class="gb-set-value gb-set-model-name">' + esc(shortName(modelName)) + '</span></div>';
-  html += destLine(scope, host);
+  var html;
+  if (G) {
+    html = G.dashboard(cfg, privacyText(scope, host)) + '<div class="gb-gar-dash-warn">';
+  } else {
+    html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
+      '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
+      '<span class="gb-set-value gb-set-model-name">' + esc(shortName(modelName)) + '</span></div>' + destLine(scope, host);
+  }
   if (readOnly) {
     html += '<p class="gb-set-hint gb-set-warn">' + esc(t("errAdmin")) + '</p>';
   }
@@ -237,14 +242,9 @@ function renderFull(panel) {
       esc(t("useFree")) + '</button><div id="gbRestoreMsg"></div>' : '') + '</div>';
   }
 
-  /* Mode cards — always shown unless read-only (admin restriction) */
-  if (!readOnly) {
-    html += '<h3 class="gb-set-section-title">' + esc(t("where")) + '</h3>';
-    html += '<div class="gb-set-modes" id="gbModelModes">';
-    html += modeCard("local", currentMode);
-    html += modeCard("own_key", currentMode);
-    html += modeCard("free", currentMode);
-    html += '</div>';
+  /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
+  if (!readOnly && G) {
+    html += G.guide() + G.compare(currentMode, modes, cfg);
   }
 
   if (pendingStatus) {
@@ -254,7 +254,15 @@ function renderFull(panel) {
   panel.innerHTML = html;
   if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
-  if (!readOnly) { bindModeCards(panel); }
+  if (!readOnly) { bindModeCards(panel); if (G) { G.bindGuide(panel, modes); } }
+}
+
+/* The dashboard's privacy line, already escaped. */
+function privacyText(scope, host) {
+  if (scope === "machine") return esc(t("privLocal"));
+  if (scope === "network") return esc(t("privNet").replace("%h", host || ""));
+  if (scope === "external") return '<span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span>';
+  return '';
 }
 
 function shortName(m) { if (!m) return "—"; var s=m; var i=s.lastIndexOf("/"); if(i>=0)s=s.substring(i+1); var c=s.indexOf(":"); if(c>0)s=s.substring(0,c); return s||m; }
@@ -264,28 +272,6 @@ function destLine(scope, host) {
   if (scope === "network") return '<p class="gb-set-privacy">' + esc(t("privNet").replace("%h", host || "")) + '</p>';
   if (scope === "external") return '<p class="gb-set-privacy"><span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span></p>';
   return '';
-}
-
-function modeCard(id, currentMode) {
-  var sel = currentMode === id;
-  var cls = "gb-set-mode-card" + (sel ? " gb-set-mode-active" : "");
-  var label = t(id === "own_key" ? "own" : id);
-  var sub = t(id === "own_key" ? "subOwn" : (id === "local" ? "subLocal" : "subFree"));
-  var modeData = modes && modes.find(function(m){return m.id===id});
-  var avail = !modeData || modeData.available !== false;
-  /* Icon per mode */
-  var icons = {
-    local: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-    own_key: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-    free: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
-  };
-  var icon = icons[id] || "";
-  return '<button class="' + cls + '" data-mode="' + id + '"' + (avail ? '' : ' disabled') + '>' +
-    icon +
-    '<span class="gb-set-mode-label">' + esc(label) + '</span>' +
-    '<span class="gb-set-mode-sub">' + esc(sub) + '</span>' +
-    (sel ? '<span class="gb-badge gb-badge-active">' + esc(t("active")) + '</span>' : '') +
-    '</button>';
 }
 
 function bindRestoreButton() {
@@ -343,6 +329,7 @@ function renderModeDetail(panel, mode) {
   panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) {
     b.classList.toggle("gb-set-mode-selected", b.getAttribute("data-mode") === mode);
   });
+  if (A._modelGarage) { A._modelGarage.markView(mode); }
   viewMode = mode;
   var existing = document.getElementById("gbModeDetail");
   if (existing) existing.remove();

@@ -1,0 +1,96 @@
+/* Settings > Modelo laid out as a workshop (modules/10c_settings_garage.js):
+   dashboard, two-question guide, the three ways compared, model parts. */
+
+/* -- Title -- */
+.gb-gar-hero { display: flex; align-items: center; gap: var(--id-space-3); margin-bottom: var(--id-space-4); color: var(--id-accent); }
+.gb-gar-title { font-family: var(--id-font-heading); font-size: var(--id-text-2xl); font-weight: 600; color: var(--id-ink); margin: 0; }
+.gb-gar-lead { font-size: var(--id-text-sm); color: var(--id-muted); margin: 2px 0 0; }
+.gb-gar-kicker { display: block; font-size: var(--id-text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--id-muted); font-weight: 600; }
+
+/* -- Dashboard -- */
+.gb-gar-dash { position: relative; overflow: hidden; }
+.gb-gar-dash::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+    background: linear-gradient(90deg, var(--id-accent), var(--id-accent-light)); }
+.gb-gar-dash-head { margin-bottom: var(--id-space-3); }
+.gb-gar-dash-main { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--id-space-3); flex-wrap: wrap;
+    padding-bottom: var(--id-space-3); margin-bottom: var(--id-space-2); border-bottom: 1px solid var(--id-line-soft); }
+.gb-gar-engine { font-size: var(--id-text-2xl); font-weight: 600; color: var(--id-ink); margin-top: 2px; overflow-wrap: anywhere; }
+.gb-gar-where { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--id-radius-pill);
+    background: var(--id-accent-soft); color: var(--id-accent-text); font-size: var(--id-text-sm); font-weight: 500; }
+.gb-gar-where svg { width: 16px; height: 16px; }
+.gb-gar-dash-row { display: grid; grid-template-columns: 120px auto 1fr; align-items: center; gap: var(--id-space-3);
+    padding: 6px 0; font-size: var(--id-text-sm); }
+.gb-gar-dash-row > .gb-gar-chips { grid-column: 2 / 4; }
+.gb-gar-dash-label { color: var(--id-muted); font-weight: 500; }
+.gb-gar-dash-text { color: var(--id-text); }
+.gb-gar-dash-warn:empty { display: none; }
+
+/* -- Gauges: five segments; red to green when more is better -- */
+.gb-gar-gauge { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.gb-gar-gauge i { width: 14px; height: 8px; border-radius: 2px; background: var(--id-line); }
+.gb-gar-gauge i.on { background: var(--id-accent); }
+.gb-gar-level-1 i.on, .gb-gar-level-2 i.on { background: var(--id-warn-text); }
+.gb-gar-level-4 i.on, .gb-gar-level-5 i.on { background: var(--id-success-text); }
+.gb-gar-gauge.gb-gar-neutral i.on { background: var(--id-accent); }
+
+/* -- Marks and chips -- */
+.gb-gar-mark { flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; margin-top: 1px; }
+.gb-gar-mark.yes { background: var(--id-success-soft); color: var(--id-success-text); }
+.gb-gar-mark.yes::before { content: "\2713"; }
+.gb-gar-mark.part { background: var(--id-warn-soft); color: var(--id-warn-text); }
+.gb-gar-mark.part::before { content: "~"; }
+.gb-gar-mark.no { background: var(--id-fill); color: var(--id-muted); }
+.gb-gar-mark.no::before { content: "\2013"; }
+.gb-gar-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gb-gar-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: var(--id-radius-pill);
+    border: 1px solid var(--id-line); font-size: var(--id-text-xs); color: var(--id-muted); background: var(--id-fill); }
+.gb-gar-chip.on { color: var(--id-ink); background: var(--id-surface-solid); }
+
+/* -- Guide -- */
+.gb-gar-guide { border-style: dashed; }
+.gb-gar-guide-head { margin-bottom: var(--id-space-2); font-size: var(--id-text-base); color: var(--id-ink); }
+.gb-gar-q { font-size: var(--id-text-base); color: var(--id-ink); margin: 0 0 var(--id-space-2); }
+.gb-gar-rec { font-size: var(--id-text-base); color: var(--id-ink); margin: 0 0 var(--id-space-3);
+    padding-left: var(--id-space-3); border-left: 3px solid var(--id-accent); }
+.gb-gar-answers { display: flex; gap: var(--id-space-2); flex-wrap: wrap; }
+
+/* -- The three ways compared -- */
+.gb-gar-sub { margin: 0 0 var(--id-space-3); }
+.gb-gar-compare { overflow-x: auto; margin-bottom: var(--id-space-4); border: 1px solid var(--id-line);
+    border-radius: var(--id-radius-card); background: var(--id-surface-solid); }
+.gb-gar-grid { display: grid; grid-template-columns: minmax(110px, .9fr) repeat(3, minmax(130px, 1fr)); min-width: 560px; }
+.gb-gar-corner { border-bottom: 1px solid var(--id-line); }
+.gb-set-mode-card.gb-gar-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;
+    border: 0; border-left: 1px solid var(--id-line-soft); border-bottom: 1px solid var(--id-line); border-radius: 0;
+    padding: var(--id-space-4) var(--id-space-3); background: transparent; color: var(--id-ink); text-align: left; }
+.gb-set-mode-card.gb-gar-head:hover { background: var(--id-fill); }
+.gb-set-mode-card.gb-gar-head.gb-set-mode-active { background: transparent; color: var(--id-ink); }
+.gb-set-mode-card.gb-gar-head.gb-set-mode-selected { box-shadow: inset 0 3px 0 var(--id-accent); }
+.gb-set-mode-card.gb-gar-head:focus-visible { outline: 2px solid var(--id-focus); outline-offset: -2px; }
+.gb-gar-head .gb-set-mode-icon { color: var(--id-accent); }
+.gb-gar-label { padding: 10px var(--id-space-3); font-size: var(--id-text-sm); font-weight: 500; color: var(--id-ink);
+    border-bottom: 1px solid var(--id-line-soft); }
+.gb-gar-cell { display: flex; gap: 8px; align-items: flex-start; padding: 10px var(--id-space-3); font-size: var(--id-text-sm);
+    color: var(--id-text); border-left: 1px solid var(--id-line-soft); border-bottom: 1px solid var(--id-line-soft); }
+.gb-gar-note { display: block; margin-top: 3px; font-size: var(--id-text-xs); color: var(--id-muted); }
+.gb-gar-grid[data-view="local"] [data-col="local"],
+.gb-gar-grid[data-view="own_key"] [data-col="own_key"],
+.gb-gar-grid[data-view="free"] [data-col="free"] { background: var(--id-accent-soft); }
+.gb-gar-sugg { display: none; }
+.gb-gar-grid[data-rec="local"] [data-mode="local"] .gb-gar-sugg,
+.gb-gar-grid[data-rec="own_key"] [data-mode="own_key"] .gb-gar-sugg,
+.gb-gar-grid[data-rec="free"] [data-mode="free"] .gb-gar-sugg {
+    display: inline-block; background: var(--id-success-soft); color: var(--id-success-text); border-color: var(--id-success-line); }
+
+/* -- Local models as parts -- */
+.gb-gar-part { padding: var(--id-space-3) 0; }
+.gb-gar-part .gb-set-model-info { flex-wrap: wrap; }
+.gb-gar-part-rec { padding-left: var(--id-space-3); border-radius: var(--id-radius-sm);
+    background: linear-gradient(90deg, var(--id-success-soft), transparent 70%); }
+.gb-gar-rec-badge { background: var(--id-success-soft); color: var(--id-success-text); border-color: var(--id-success-line); }
+.gb-gar-meters { display: flex; flex-wrap: wrap; gap: 6px var(--id-space-5); margin: 6px 0; }
+.gb-gar-meter { display: inline-flex; align-items: center; gap: 8px; font-size: var(--id-text-xs); color: var(--id-muted); }
+.gb-gar-meter-label { min-width: 74px; font-weight: 500; color: var(--id-text); }
+.gb-gar-meter-word { color: var(--id-text); }
+.gb-gar-part > .gb-gar-chips { margin: 4px 0; }

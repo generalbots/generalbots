@@ -207,12 +207,37 @@ function fitLabel(m) {
   return m.fits ? t("fits") : t("nofit").replace("%v", String(m.min_vram_gb));
 }
 
-function capsLine(m) {
+/* What the model does, as chips; the last one says what it cannot do. */
+function capsChips(m) {
   var idx = A.locale && A.locale.startsWith("pt") ? 0 : 1;
   var words = (m.capabilities || []).map(function (c) { return CAPS[c] ? CAPS[c][idx] : ""; }).filter(Boolean);
   if (!words.length) return "";
-  var line = words.join(", ");
-  return line.charAt(0).toUpperCase() + line.slice(1) + ". " + tr("Só texto.", "Text only.");
+  return '<div class="gb-gar-chips">' + words.map(function (w) {
+    return '<span class="gb-gar-chip on"><span class="gb-gar-mark yes" aria-hidden="true"></span>' + esc(w) + '</span>';
+  }).join("") + '<span class="gb-gar-chip"><span class="gb-gar-mark no" aria-hidden="true"></span>' +
+    esc(tr("fotos e gráficos", "photos and charts")) + '</span></div>';
+}
+
+/* Two gauges per model: its size (bigger models answer better and need more
+   memory) and how it fits the memory of this computer. */
+function meter(label, level, word, neutral) {
+  var segs = "";
+  for (var i = 1; i <= 5; i++) { segs += '<i class="' + (i <= level ? "on" : "") + '"></i>'; }
+  return '<div class="gb-gar-meter"><span class="gb-gar-meter-label">' + esc(label) + '</span>' +
+    '<span class="gb-gar-gauge gb-gar-level-' + level + (neutral ? ' gb-gar-neutral' : '') + '" aria-hidden="true">' + segs + '</span>' +
+    '<span class="gb-gar-meter-word">' + esc(word) + '</span></div>';
+}
+function sizeMeter(m) {
+  var b = parseFloat(String(m.params || "")) || 0;
+  var level = m.server_only ? 5 : b <= 4 ? 1 : b <= 7 ? 2 : b <= 9 ? 3 : b <= 14 ? 4 : 5;
+  var words = [["", ""], ["pequeno", "small"], ["compacto", "compact"], ["médio", "medium"], ["grande", "large"], ["muito grande", "very large"]];
+  return meter(tr("Porte", "Size"), level, tr(words[level][0], words[level][1]) + " · " + (m.params || ""), true);
+}
+function fitMeter(m) {
+  if (m.server_only) return meter(tr("Nesta máquina", "On this machine"), 0, t("serverOnly"));
+  var v = m.fit_verdict;
+  var level = v === "comfortable" ? 5 : v === "tight" ? 3 : 1;
+  return meter(tr("Nesta máquina", "On this machine"), level, fitLabel(m));
 }
 
 function progressText(p) {
@@ -241,14 +266,17 @@ function modelRow(m, lr) {
   } else if (!m.downloaded && !m.active && m.repo) {
     actions = '<button class="gb-set-btn-sm" data-download="' + esc(m.id) + '" data-size="' + size + '" data-host="' + esc(m.source_host || "huggingface.co") + '">' + esc(t("install")) + '</button>';
   }
-  var meta = esc(size) + ' &middot; ' + esc(fitLabel(m));
+  var meta = esc(tr("Download", "Download")) + ': ' + esc(size);
   if (m.licence) meta += ' &middot; ' + esc(t("licence")) + ': ' + esc(m.licence);
   if (m.source_host) meta += ' &middot; ' + esc(t("source")) + ': ' + esc(m.source_host);
-  var caps = capsLine(m);
-  return '<div class="gb-set-model-row' + (downloading ? ' gb-set-model-row-busy' : '') + '">' +
+  var models = S().localModels || {};
+  var recommended = !m.server_only && models.recommended === m.id;
+  return '<div class="gb-set-model-row gb-gar-part' + (downloading ? ' gb-set-model-row-busy' : '') + (recommended ? ' gb-gar-part-rec' : '') + '">' +
     '<div class="gb-set-model-info"><span class="gb-set-model-row-name">' + esc(m.name) + ' <small>' + esc(m.quant) + '</small></span>' +
-    '<span class="gb-badge' + badge + '">' + esc(statusLabel) + '</span></div>' +
-    (caps ? '<div class="gb-set-model-caps">' + esc(caps) + '</div>' : '') +
+    '<span class="gb-badge' + badge + '">' + esc(statusLabel) + '</span>' +
+    (recommended ? '<span class="gb-badge gb-gar-rec-badge">' + esc(tr("Recomendado para este computador", "Recommended for this computer")) + '</span>' : '') + '</div>' +
+    '<div class="gb-gar-meters">' + sizeMeter(m) + fitMeter(m) + '</div>' +
+    capsChips(m) +
     '<div class="gb-set-model-meta">' + meta + '</div>' +
     (failedHere ? '<div class="gb-set-warn">' + esc(S().errText(lr.last_failure.code)) + '</div>' : '') +
     '<div class="gb-set-model-actions">' + actions + '</div></div>';
