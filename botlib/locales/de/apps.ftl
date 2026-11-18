@@ -1214,3 +1214,11 @@ canvas-placeholder-y = Y
 canvas-placeholder-width = B
 canvas-placeholder-height = H
 canvas-placeholder-rotation = 0°
+
+# semantic i18n key (#2542)
+calculator-placeholder-expression = 0
+calculator-aria-expression = Ausdruck
+calculator-aria-category = Kategorie
+calculator-aria-mode = Rechnermodus
+calculator-title-angle-unit = Winkeleinheit umschalten
+calculator-title-memory = Rechnerspeicher

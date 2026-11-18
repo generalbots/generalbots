@@ -3,14 +3,14 @@
 <div class="gb-calc" id="gb-calc-root">
     <div class="gb-calc-main">
         <div class="gb-calc-toolbar">
-            <div class="gb-calc-tabs" role="tablist" aria-label="Calculator mode">
+            <div class="gb-calc-tabs" role="tablist" data-i18n-aria-label="calculator-aria-mode">
                 <button type="button" class="gb-calc-tab active" role="tab" id="gb-tab-standard" aria-controls="gb-panel-standard" aria-selected="true" tabindex="0" data-tab="standard" data-i18n="products-pricelist-type-standard">Standard</button>
                 <button type="button" class="gb-calc-tab" role="tab" id="gb-tab-scientific" aria-controls="gb-panel-scientific" aria-selected="false" tabindex="-1" data-tab="scientific" data-i18n="calculator-mode-scientific">Scientific</button>
                 <button type="button" class="gb-calc-tab" role="tab" id="gb-tab-convert" aria-controls="gb-panel-convert" aria-selected="false" tabindex="-1" data-tab="convert" data-i18n="crm-convert">Convert</button>
             </div>
             <div class="gb-calc-tools">
-                <button type="button" class="gb-calc-tool" id="gb-calc-angle" title="Toggle angle unit">DEG</button>
-                <button type="button" class="gb-calc-tool" id="gb-calc-memory-indicator" title="Calculator memory">M</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-angle" data-i18n-title="calculator-title-angle-unit">DEG</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-memory-indicator" data-i18n-title="calculator-title-memory">M</button>
                 <button type="button" class="gb-calc-tool" id="gb-calc-copy" data-i18n-title="action-copy" data-i18n="action-copy">Copy</button>
                 <button type="button" class="gb-calc-tool" id="gb-calc-history-btn" data-i18n-title="attendant-history" data-i18n="attendant-history">History</button>
             </div>
@@ -18,7 +18,7 @@
 
         <div class="gb-calc-screen">
             <input id="gb-calc-expr" class="gb-calc-expr" type="text" autocomplete="off"
-                   spellcheck="false" aria-label="Expression" placeholder="0" />
+                   spellcheck="false" data-i18n-aria-label="calculator-aria-expression" data-i18n-placeholder="calculator-placeholder-expression" />
             <div id="gb-calc-preview" class="gb-calc-preview">&nbsp;</div>
         </div>
 
@@ -27,7 +27,7 @@
         <div id="gb-calc-pad" class="gb-calc-pad gb-calc-standard" role="tabpanel" aria-labelledby="gb-tab-standard"></div>
 
         <div id="gb-calc-converter" class="gb-calc-converter" role="tabpanel" aria-labelledby="gb-tab-convert" hidden>
-            <select id="gb-calc-conv-cat" class="gb-calc-select" aria-label="Category"></select>
+            <select id="gb-calc-conv-cat" class="gb-calc-select" data-i18n-aria-label="calculator-aria-category"></select>
             <div class="gb-calc-conv-row">
                 <input id="gb-calc-conv-amt" class="gb-calc-input" type="text" value="1" aria-label="Amount" />
                 <select id="gb-calc-conv-from" class="gb-calc-select" aria-label="From unit"></select>

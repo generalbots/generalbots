@@ -1214,3 +1214,11 @@ canvas-placeholder-y = Y
 canvas-placeholder-width = 幅
 canvas-placeholder-height = 高
 canvas-placeholder-rotation = 0°
+
+# semantic i18n key (#2542)
+calculator-placeholder-expression = 0
+calculator-aria-expression = 式
+calculator-aria-category = カテゴリ
+calculator-aria-mode = 電卓モード
+calculator-title-angle-unit = 角度単位を切り替え
+calculator-title-memory = 電卓メモリ

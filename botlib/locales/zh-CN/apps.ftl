@@ -1214,3 +1214,11 @@ canvas-placeholder-y = Y
 canvas-placeholder-width = 宽
 canvas-placeholder-height = 高
 canvas-placeholder-rotation = 0°
+
+# semantic i18n key (#2542)
+calculator-placeholder-expression = 0
+calculator-aria-expression = 表达式
+calculator-aria-category = 类别
+calculator-aria-mode = 计算器模式
+calculator-title-angle-unit = 切换角度单位
+calculator-title-memory = 计算器内存
