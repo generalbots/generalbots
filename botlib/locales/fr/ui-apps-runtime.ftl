@@ -586,3 +586,5 @@ sheet-formula-placeholder = Entrez une valeur ou une formule
 
 # semantic i18n key (#2542)
 slides-files = Fichiers
+
+canvas-clear = Effacer le canevas

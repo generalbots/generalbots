@@ -586,3 +586,5 @@ sheet-formula-placeholder = Wert oder Formel eingeben
 
 # semantic i18n key (#2542)
 slides-files = Dateien
+
+canvas-clear = Leinwand leeren

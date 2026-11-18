@@ -586,3 +586,5 @@ sheet-formula-placeholder = 값 또는 수식을 입력하세요
 
 # semantic i18n key (#2542)
 slides-files = 파일
+
+canvas-clear = 캔버스 지우기
