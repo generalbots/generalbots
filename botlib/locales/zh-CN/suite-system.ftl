@@ -258,3 +258,42 @@ editor-loading = 正在加载编辑器…
 
 # semantic i18n key (#2542)
 editor-unavailable = 编辑器不可用
+
+# semantic i18n key (#2542)
+monitoring-all-health-checks-passing = 所有健康检查均已通过
+
+# semantic i18n key (#2542)
+monitoring-uptime-30-days = 正常运行时间（30 天）
+
+# semantic i18n key (#2542)
+monitoring-last-incident = 上次事件
+
+# semantic i18n key (#2542)
+monitoring-avg-response-time = 平均响应时间
+
+# semantic i18n key (#2542)
+monitoring-last-check = 上次检查
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-api = OpenAI API
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-url = api.openai.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-api = WhatsApp Business API
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-url = graph.facebook.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-service = 邮件服务
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-url = smtp.sendgrid.net
+
+# semantic i18n key (#2542)
+monitoring-no-recent-incidents = 近期无事件
+
+# semantic i18n key (#2542)
+monitoring-system-stable = 系统一直保持稳定

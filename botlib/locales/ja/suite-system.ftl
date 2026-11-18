@@ -258,3 +258,42 @@ editor-loading = エディターを読み込み中…
 
 # semantic i18n key (#2542)
 editor-unavailable = エディターを利用できません
+
+# semantic i18n key (#2542)
+monitoring-all-health-checks-passing = すべてのヘルスチェックに合格しています
+
+# semantic i18n key (#2542)
+monitoring-uptime-30-days = 稼働時間（30日間）
+
+# semantic i18n key (#2542)
+monitoring-last-incident = 最後のインシデント
+
+# semantic i18n key (#2542)
+monitoring-avg-response-time = 平均応答時間
+
+# semantic i18n key (#2542)
+monitoring-last-check = 最終確認
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-api = OpenAI API
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-url = api.openai.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-api = WhatsApp Business API
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-url = graph.facebook.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-service = メールサービス
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-url = smtp.sendgrid.net
+
+# semantic i18n key (#2542)
+monitoring-no-recent-incidents = 最近のインシデントはありません
+
+# semantic i18n key (#2542)
+monitoring-system-stable = システムは安定しています

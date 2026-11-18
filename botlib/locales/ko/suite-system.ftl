@@ -258,3 +258,42 @@ editor-loading = 편집기 불러오는 중…
 
 # semantic i18n key (#2542)
 editor-unavailable = 편집기를 사용할 수 없음
+
+# semantic i18n key (#2542)
+monitoring-all-health-checks-passing = 모든 상태 검사가 통과했습니다
+
+# semantic i18n key (#2542)
+monitoring-uptime-30-days = 가동 시간(30일)
+
+# semantic i18n key (#2542)
+monitoring-last-incident = 마지막 장애
+
+# semantic i18n key (#2542)
+monitoring-avg-response-time = 평균 응답 시간
+
+# semantic i18n key (#2542)
+monitoring-last-check = 마지막 확인
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-api = OpenAI API
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-url = api.openai.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-api = WhatsApp Business API
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-url = graph.facebook.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-service = 이메일 서비스
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-url = smtp.sendgrid.net
+
+# semantic i18n key (#2542)
+monitoring-no-recent-incidents = 최근 장애 없음
+
+# semantic i18n key (#2542)
+monitoring-system-stable = 시스템이 안정적입니다

@@ -258,3 +258,42 @@ editor-loading = Chargement de l'éditeur…
 
 # semantic i18n key (#2542)
 editor-unavailable = Éditeur indisponible
+
+# semantic i18n key (#2542)
+monitoring-all-health-checks-passing = Tous les contrôles de santé sont réussis
+
+# semantic i18n key (#2542)
+monitoring-uptime-30-days = Disponibilité (30 jours)
+
+# semantic i18n key (#2542)
+monitoring-last-incident = Dernier incident
+
+# semantic i18n key (#2542)
+monitoring-avg-response-time = Temps de réponse moyen
+
+# semantic i18n key (#2542)
+monitoring-last-check = Dernière vérification
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-api = OpenAI API
+
+# semantic i18n key (#2542)
+monitoring-dependency-openai-url = api.openai.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-api = API WhatsApp Business
+
+# semantic i18n key (#2542)
+monitoring-dependency-whatsapp-url = graph.facebook.com
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-service = Service de messagerie
+
+# semantic i18n key (#2542)
+monitoring-dependency-email-url = smtp.sendgrid.net
+
+# semantic i18n key (#2542)
+monitoring-no-recent-incidents = Aucun incident récent
+
+# semantic i18n key (#2542)
+monitoring-system-stable = Le système est stable
