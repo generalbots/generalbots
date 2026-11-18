@@ -554,3 +554,96 @@ settings-security-clear-local-cache-desc = 移除此浏览器配置文件中存�
 
 # semantic i18n key (#2542)
 settings-security-clear-cache-action = 清除缓存
+
+# semantic i18n key (#2542)
+settings-shared-links-subtitle = 选择公共文件链接如何送达给收件人
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-title = 目前只能访问此计算机。
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-body-html = 复制的回环链接（<code>127.0.0.1</code>）会在收件人自己的计算机上打开，而不是在您的计算机上。在此计算机外共享链接之前，请使用局域网地址、设置域名或等待免费的 General Bots 地址。
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-title = 此网络
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-desc = 您的 Wi-Fi 或有线网络上的任何人
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-computer = 在此计算机上
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-network = 在此网络上
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-detail = 适用于同一网络上的任何人。数据不会离开此计算机。
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-title = 配置
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-body-html = 此层级默认启用：本地服务器在所有接口上侦听。请从同一网络上的其他设备打开网络地址。如果设备间流量被阻止，请在此计算机上允许入站 TCP 端口 <code id="shared-links-port">8080</code>。
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-local-html = 如果 <code>.local</code> 名称无法解析，请改用此计算机的 IPv4 地址（例如 <code>http://192.168.1.20:8080</code>）。
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-title = 我自己的域名
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-desc = 您控制的、可从互联网访问的名称
+
+# semantic i18n key (#2542)
+settings-shared-links-public-link = 公开链接
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-not-configured = 未配置 — 新链接将回退到上面的本地地址。
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-title = 如何配置
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-dns-html = 将 DNS 记录（例如 <code>files.example.com</code>）指向此计算机的公共地址。
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-url-html = 为此安装设置公共基础 URL：<pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre> 或在产品文件中设置：<pre><code>public_base_url=https://files.example.com</code></pre>
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-restart = 重启桌面应用，以便新共享链接使用该域名生成；现有链接将保留其令牌。
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-hint = 注册商令牌保留在本地保管库中，绝不会写入日志。自动 DNS 刷新和 TLS 证书是此问题中跟踪的域名提供商工作的一部分；在该功能发布之前，请在注册商处保持记录更新。
+
+# semantic i18n key (#2542)
+settings-shared-links-free-title = 免费的 General Bots 地址
+
+# semantic i18n key (#2542)
+settings-shared-links-free-desc = 由 General Bots 提供的名称，无需域名
+
+# semantic i18n key (#2542)
+settings-shared-links-free-unavailable-html = 尚不可用。桌面可离线工作，因此此层级需要免费的 DNS 区域和用于无法直接访问的计算机的中继。它随 #1864 中跟踪的 <code>botpublic</code> 工作一起以禁用状态提供。
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-title = 它将执行的操作
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-body-html = 免费帐户将保留一个名称，而不是您的文件。当无法直接访问某台计算机时，托管中继（<code id="shared-links-relay-host">peer.generalbots.org</code>）仅保留共享文件的加密副本，且该副本会过期。无需手动配置中继。
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-title = 主对等开关
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-desc-html = 停止此安装的所有 P2P 流量。离线模式会将每个连接保持在 <code>127.0.0.1</code> 上。
+
+# semantic i18n key (#2542)
+settings-shared-links-offline-default = 离线（默认）
+
+# semantic i18n key (#2542)
+settings-shared-links-p2p-opt-in = P2P（选择加入）
+
+# semantic i18n key (#2542)
+settings-shared-links-relay-hint-html = 中继端点是固定的（<code>peer.generalbots.org</code>）。更改此设置可能需要重启应用才能完全生效。
+
+# semantic i18n key (#2542)
+settings-shared-links-check-again = 再次检查

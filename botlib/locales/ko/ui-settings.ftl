@@ -554,3 +554,96 @@ settings-security-clear-local-cache-desc = 이 브라우저 프로필에 저장�
 
 # semantic i18n key (#2542)
 settings-security-clear-cache-action = 캐시 지우기
+
+# semantic i18n key (#2542)
+settings-shared-links-subtitle = 공개 파일 링크가 수신자에게 전달되는 방식을 선택하세요
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-title = 현재 이 기기에서만 접근할 수 있습니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-body-html = 복사한 루프백 링크(<code>127.0.0.1</code>)는 내 컴퓨터가 아니라 받는 사람의 컴퓨터에서 열립니다. 이 기기 외부에서 링크를 공유하기 전에 LAN 주소를 사용하거나, 도메인을 설정하거나, 무료 General Bots 주소를 기다리세요.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-title = 이 네트워크
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-desc = Wi-Fi 또는 유선 네트워크의 모든 사용자
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-computer = 이 컴퓨터에서
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-network = 이 네트워크에서
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-detail = 같은 네트워크의 모든 사용자가 이용할 수 있습니다. 이 기기에서 데이터가 외부로 나가지 않습니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-title = 구성
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-body-html = 이 계층은 기본적으로 켜져 있습니다. 로컬 서버가 모든 인터페이스에서 수신 대기합니다. 같은 네트워크의 다른 기기에서 네트워크 주소를 여세요. 기기 간 트래픽이 차단된 경우 이 컴퓨터에서 인바운드 TCP 포트 <code id="shared-links-port">8080</code>을 허용하세요.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-local-html = <code>.local</code> 이름이 확인되지 않으면 이 컴퓨터의 IPv4 주소를 대신 사용하세요(예: <code>http://192.168.1.20:8080</code>).
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-title = 내 도메인
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-desc = 직접 관리하며 인터넷에서 접근할 수 있는 이름
+
+# semantic i18n key (#2542)
+settings-shared-links-public-link = 공개 링크
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-not-configured = 구성되지 않음 — 새 링크는 위의 로컬 주소로 대체됩니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-title = 구성 방법
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-dns-html = DNS 레코드(예: <code>files.example.com</code>)를 이 컴퓨터의 공용 주소로 지정하세요.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-url-html = 이 설치의 공개 기본 URL을 설정하세요: <pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre> 또는 제품 파일에서: <pre><code>public_base_url=https://files.example.com</code></pre>
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-restart = 새 공유 링크가 도메인으로 생성되도록 데스크톱 앱을 다시 시작하세요. 기존 링크는 토큰을 유지합니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-hint = 등록기관 토큰은 로컬 보관소에 보관되며 로그에 기록되지 않습니다. 자동 DNS 갱신 및 TLS 인증서는 이 이슈에서 추적 중인 도메인 공급자 작업의 일부입니다. 해당 기능이 제공될 때까지는 등록기관에서 레코드를 최신 상태로 유지하세요.
+
+# semantic i18n key (#2542)
+settings-shared-links-free-title = 무료 General Bots 주소
+
+# semantic i18n key (#2542)
+settings-shared-links-free-desc = General Bots에서 제공하는 이름, 도메인 필요 없음
+
+# semantic i18n key (#2542)
+settings-shared-links-free-unavailable-html = 아직 사용할 수 없습니다. 데스크톱은 오프라인으로 작동하므로 이 계층에는 무료 DNS 영역과 직접 연결할 수 없는 기기를 위한 릴레이가 필요합니다. #1864에서 추적 중인 <code>botpublic</code> 작업과 함께 비활성화된 상태로 제공됩니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-title = 수행할 작업
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-body-html = 무료 계정은 파일이 아닌 이름만 보유합니다. 기기에 직접 연결할 수 없는 경우 관리형 릴레이(<code id="shared-links-relay-host">peer.generalbots.org</code>)는 공유 파일의 암호화된 복사본만 보관하며 해당 복사본은 만료됩니다. 수동 릴레이 구성은 필요하지 않습니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-title = 마스터 피어 스위치
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-desc-html = 이 설치의 모든 P2P 트래픽을 중지합니다. 오프라인 모드는 모든 연결을 <code>127.0.0.1</code>에 유지합니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-offline-default = 오프라인(기본값)
+
+# semantic i18n key (#2542)
+settings-shared-links-p2p-opt-in = P2P(선택)
+
+# semantic i18n key (#2542)
+settings-shared-links-relay-hint-html = 릴레이 엔드포인트는 고정되어 있습니다(<code>peer.generalbots.org</code>). 이 설정을 변경하면 완전히 적용하려면 앱을 다시 시작해야 할 수 있습니다.
+
+# semantic i18n key (#2542)
+settings-shared-links-check-again = 다시 확인

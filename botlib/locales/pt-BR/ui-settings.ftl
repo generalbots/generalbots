@@ -554,3 +554,96 @@ settings-security-clear-local-cache-desc = Remove configurações e rascunhos em
 
 # semantic i18n key (#2542)
 settings-security-clear-cache-action = Limpar cache
+
+# semantic i18n key (#2542)
+settings-shared-links-subtitle = Escolha como um link público de arquivo chega à pessoa para quem você o envia
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-title = Apenas esta máquina está acessível no momento.
+
+# semantic i18n key (#2542)
+settings-shared-links-loopback-warning-body-html = Um link de loopback copiado (<code>127.0.0.1</code>) abre no computador de quem recebe, não no seu. Use um endereço de rede local, defina um domínio ou aguarde o endereço gratuito do General Bots antes de compartilhar um link fora desta máquina.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-title = Esta rede
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-desc = Qualquer pessoa na sua rede Wi-Fi ou cabeada
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-computer = Neste computador
+
+# semantic i18n key (#2542)
+settings-shared-links-on-this-network = Nesta rede
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-detail = Funciona para qualquer pessoa na mesma rede. Nada sai desta máquina.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-title = Configuração
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-body-html = Este nível vem ativado: o servidor local escuta em todas as interfaces. Abra o endereço de rede de outro dispositivo na mesma rede. Se o tráfego entre dispositivos estiver bloqueado, libere a porta TCP de entrada <code id="shared-links-port">8080</code> neste computador.
+
+# semantic i18n key (#2542)
+settings-shared-links-lan-config-local-html = Se o nome <code>.local</code> não resolver, use o endereço IPv4 deste computador (por exemplo <code>http://192.168.1.20:8080</code>).
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-title = Meu próprio domínio
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-desc = Um nome que você controla, acessível pela internet
+
+# semantic i18n key (#2542)
+settings-shared-links-public-link = Link público
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-not-configured = Não configurado — novos links usarão o endereço local acima.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-title = Como configurar
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-dns-html = Aponte um registro DNS (por exemplo <code>files.example.com</code>) para o endereço público deste computador.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-url-html = Defina a URL base pública desta instalação: <pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre> ou, no arquivo de produto: <pre><code>public_base_url=https://files.example.com</code></pre>
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-restart = Reinicie o app de desktop para que os novos links de compartilhamento usem o domínio; os links existentes mantêm seus tokens.
+
+# semantic i18n key (#2542)
+settings-shared-links-domain-config-hint = O token do registrador permanece no cofre local e nunca é gravado em logs. A atualização automática de DNS e os certificados TLS fazem parte do trabalho do provedor de domínio acompanhado nesta issue; até isso ser entregue, mantenha o registro atualizado no seu registrador.
+
+# semantic i18n key (#2542)
+settings-shared-links-free-title = Endereço gratuito do General Bots
+
+# semantic i18n key (#2542)
+settings-shared-links-free-desc = Um nome fornecido pelo General Bots, sem necessidade de domínio
+
+# semantic i18n key (#2542)
+settings-shared-links-free-unavailable-html = Ainda não disponível. O desktop funciona offline, então este nível precisa de uma zona DNS gratuita e de um relay para máquinas que não podem ser alcançadas diretamente. Vem desativado junto com o trabalho <code>botpublic</code> acompanhado em #1864.
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-title = O que fará
+
+# semantic i18n key (#2542)
+settings-shared-links-free-what-body-html = A conta gratuita guardará um nome — não seus arquivos. Quando uma máquina não puder ser alcançada diretamente, o relay gerenciado (<code id="shared-links-relay-host">peer.generalbots.org</code>) mantém apenas uma cópia criptografada do arquivo compartilhado e essa cópia expira. Nenhuma configuração manual de relay é necessária.
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-title = Chave mestre de peer
+
+# semantic i18n key (#2542)
+settings-shared-links-peer-desc-html = Interrompe todo o tráfego P2P desta instalação. O modo offline mantém todas as conexões em <code>127.0.0.1</code>.
+
+# semantic i18n key (#2542)
+settings-shared-links-offline-default = Offline (padrão)
+
+# semantic i18n key (#2542)
+settings-shared-links-p2p-opt-in = P2P (opcional)
+
+# semantic i18n key (#2542)
+settings-shared-links-relay-hint-html = O endpoint do relay é fixo (<code>peer.generalbots.org</code>). Alterar esta configuração pode exigir reiniciar o app para ter efeito completo.
+
+# semantic i18n key (#2542)
+settings-shared-links-check-again = Verificar novamente
