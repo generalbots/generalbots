@@ -431,3 +431,60 @@ settings-connected-cloud-storage = Stockage cloud connecté
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = Chargement des connexions de stockage...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = Paramètres et outils hôte de bas niveau pour cette installation du shell
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = Identité de l'hôte, noyau et fuseau horaire
+
+# semantic i18n key (#2542)
+settings-os-kernel = Noyau
+
+# semantic i18n key (#2542)
+settings-os-architecture = Architecture
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = Le nom d'hôte et le fuseau horaire sont en lecture seule à cette étape. Utilisez l'application Terminal ou les outils hôte de l'image kiosque pour les modifier.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = Démarrer, arrêter et redémarrer les services hôte
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = Ouvrez le panneau pour charger les services.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = Utilisation du disque des systèmes de fichiers montés
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = Ouvrez le panneau pour charger le stockage.
+
+# semantic i18n key (#2542)
+settings-os-log-files = Fichiers journaux
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = Fichiers écrits par cette installation, avec emplacement et taille
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = Ouvrez le panneau pour charger les fichiers journaux.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = Afficher les 200 dernières lignes d'un journal de service
+
+# semantic i18n key (#2542)
+settings-os-reload = Recharger
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = Redémarrer le service
+
+# semantic i18n key (#2542)
+settings-os-the-service = le service
+
+# semantic i18n key (#2542)
+settings-os-service-name = Nom du service
+
+# semantic i18n key (#2542)
+settings-os-restart-action = Redémarrer
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = Redémarrer <strong id="os-restart-service-name" data-i18n="settings-os-the-service">le service</strong> ? Saisissez le nom du service pour confirmer ; le redémarrage sera consigné dans le journal d'audit.

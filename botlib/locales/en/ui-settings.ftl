@@ -431,3 +431,60 @@ settings-connected-cloud-storage = Connected Cloud Storage
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = Loading storage connections...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = Low-level host settings and tools for this shell installation
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = Host identity, kernel and timezone
+
+# semantic i18n key (#2542)
+settings-os-kernel = Kernel
+
+# semantic i18n key (#2542)
+settings-os-architecture = Architecture
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = Hostname and timezone are read-only in this phase. Use the Terminal app or the host tools in the kiosk image to change them.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = Start, stop and restart host services
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = Open the panel to load services.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = Disk usage for mounted filesystems
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = Open the panel to load storage.
+
+# semantic i18n key (#2542)
+settings-os-log-files = Log files
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = Files this installation writes, with location and size
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = Open the panel to load log files.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = Tail the last 200 lines of a service log
+
+# semantic i18n key (#2542)
+settings-os-reload = Reload
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = Restart service
+
+# semantic i18n key (#2542)
+settings-os-the-service = the service
+
+# semantic i18n key (#2542)
+settings-os-service-name = Service name
+
+# semantic i18n key (#2542)
+settings-os-restart-action = Restart
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = Restart <strong id="os-restart-service-name" data-i18n="settings-os-the-service">the service</strong>? Type the service name to confirm; the restart is written to the audit log.

@@ -431,3 +431,60 @@ settings-connected-cloud-storage = Armazenamento em nuvem conectado
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = Carregando conexões de armazenamento...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = Configurações e ferramentas de baixo nível do host para esta instalação do shell
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = Identidade do host, kernel e fuso horário
+
+# semantic i18n key (#2542)
+settings-os-kernel = Kernel
+
+# semantic i18n key (#2542)
+settings-os-architecture = Arquitetura
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = O nome do host e o fuso horário são somente leitura nesta fase. Use o app Terminal ou as ferramentas do host na imagem do quiosque para alterá-los.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = Iniciar, parar e reiniciar serviços do host
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = Abra o painel para carregar os serviços.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = Uso de disco dos sistemas de arquivos montados
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = Abra o painel para carregar o armazenamento.
+
+# semantic i18n key (#2542)
+settings-os-log-files = Arquivos de log
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = Arquivos gravados por esta instalação, com local e tamanho
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = Abra o painel para carregar os arquivos de log.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = Exibir as últimas 200 linhas de um log de serviço
+
+# semantic i18n key (#2542)
+settings-os-reload = Recarregar
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = Reiniciar serviço
+
+# semantic i18n key (#2542)
+settings-os-the-service = o serviço
+
+# semantic i18n key (#2542)
+settings-os-service-name = Nome do serviço
+
+# semantic i18n key (#2542)
+settings-os-restart-action = Reiniciar
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = Reiniciar <strong id="os-restart-service-name" data-i18n="settings-os-the-service">o serviço</strong>? Digite o nome do serviço para confirmar; a reinicialização será registrada no log de auditoria.

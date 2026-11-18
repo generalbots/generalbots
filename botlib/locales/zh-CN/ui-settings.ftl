@@ -431,3 +431,60 @@ settings-connected-cloud-storage = 已连接的云存储
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = 正在加载存储连接...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = 此 shell 安装的底层主机设置和工具
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = 主机标识、内核和时区
+
+# semantic i18n key (#2542)
+settings-os-kernel = 内核
+
+# semantic i18n key (#2542)
+settings-os-architecture = 架构
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = 此阶段主机名和时区为只读。请使用终端应用或自助终端镜像中的主机工具进行更改。
+
+# semantic i18n key (#2542)
+settings-os-services-desc = 启动、停止和重启主机服务
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = 打开面板以加载服务。
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = 已挂载文件系统的磁盘使用情况
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = 打开面板以加载存储。
+
+# semantic i18n key (#2542)
+settings-os-log-files = 日志文件
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = 此安装写入的文件及其位置和大小
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = 打开面板以加载日志文件。
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = 查看服务日志的最后 200 行
+
+# semantic i18n key (#2542)
+settings-os-reload = 重新加载
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = 重启服务
+
+# semantic i18n key (#2542)
+settings-os-the-service = 该服务
+
+# semantic i18n key (#2542)
+settings-os-service-name = 服务名称
+
+# semantic i18n key (#2542)
+settings-os-restart-action = 重启
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = 重启<strong id="os-restart-service-name" data-i18n="settings-os-the-service">该服务</strong>？请输入服务名称以确认；重启操作将写入审计日志。

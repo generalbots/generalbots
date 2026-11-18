@@ -431,3 +431,60 @@ settings-connected-cloud-storage = 接続済みクラウドストレージ
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = ストレージ接続を読み込み中...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = このシェルインストール用の低レベルなホスト設定とツール
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = ホストの識別情報、カーネル、タイムゾーン
+
+# semantic i18n key (#2542)
+settings-os-kernel = カーネル
+
+# semantic i18n key (#2542)
+settings-os-architecture = アーキテクチャ
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = この段階ではホスト名とタイムゾーンは読み取り専用です。変更するには、ターミナルアプリまたはキオスクイメージのホストツールを使用してください。
+
+# semantic i18n key (#2542)
+settings-os-services-desc = ホストサービスの開始、停止、再起動
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = パネルを開いてサービスを読み込みます。
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = マウントされたファイルシステムのディスク使用量
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = パネルを開いてストレージを読み込みます。
+
+# semantic i18n key (#2542)
+settings-os-log-files = ログファイル
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = このインストールが書き込むファイル（場所とサイズ付き）
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = パネルを開いてログファイルを読み込みます。
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = サービスログの最後の200行を表示
+
+# semantic i18n key (#2542)
+settings-os-reload = 再読み込み
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = サービスを再起動
+
+# semantic i18n key (#2542)
+settings-os-the-service = サービス
+
+# semantic i18n key (#2542)
+settings-os-service-name = サービス名
+
+# semantic i18n key (#2542)
+settings-os-restart-action = 再起動
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = <strong id="os-restart-service-name" data-i18n="settings-os-the-service">サービス</strong>を再起動しますか？確認のためサービス名を入力してください。再起動は監査ログに記録されます。

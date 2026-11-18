@@ -431,3 +431,60 @@ settings-connected-cloud-storage = 연결된 클라우드 저장소
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = 저장소 연결 불러오는 중...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = 이 셸 설치를 위한 저수준 호스트 설정 및 도구
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = 호스트 ID, 커널 및 시간대
+
+# semantic i18n key (#2542)
+settings-os-kernel = 커널
+
+# semantic i18n key (#2542)
+settings-os-architecture = 아키텍처
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = 이 단계에서는 호스트 이름과 시간대가 읽기 전용입니다. 변경하려면 터미널 앱 또는 키오스크 이미지의 호스트 도구를 사용하세요.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = 호스트 서비스 시작, 중지 및 다시 시작
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = 패널을 열어 서비스를 불러오세요.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = 마운트된 파일 시스템의 디스크 사용량
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = 패널을 열어 저장소를 불러오세요.
+
+# semantic i18n key (#2542)
+settings-os-log-files = 로그 파일
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = 이 설치에서 기록하는 파일(위치 및 크기 포함)
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = 패널을 열어 로그 파일을 불러오세요.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = 서비스 로그의 마지막 200줄 표시
+
+# semantic i18n key (#2542)
+settings-os-reload = 다시 불러오기
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = 서비스 다시 시작
+
+# semantic i18n key (#2542)
+settings-os-the-service = 서비스
+
+# semantic i18n key (#2542)
+settings-os-service-name = 서비스 이름
+
+# semantic i18n key (#2542)
+settings-os-restart-action = 다시 시작
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = <strong id="os-restart-service-name" data-i18n="settings-os-the-service">서비스</strong>를 다시 시작하시겠습니까? 확인을 위해 서비스 이름을 입력하세요. 다시 시작은 감사 로그에 기록됩니다.

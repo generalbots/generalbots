@@ -431,3 +431,60 @@ settings-connected-cloud-storage = Verbundenes Cloud-Speicher
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = Speicherverbindungen werden geladen...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = Low-Level-Hosteinstellungen und -werkzeuge für diese Shell-Installation
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = Host-Identität, Kernel und Zeitzone
+
+# semantic i18n key (#2542)
+settings-os-kernel = Kernel
+
+# semantic i18n key (#2542)
+settings-os-architecture = Architektur
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = Hostname und Zeitzone sind in dieser Phase schreibgeschützt. Verwenden Sie die Terminal-App oder die Host-Werkzeuge im Kiosk-Image, um sie zu ändern.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = Host-Dienste starten, stoppen und neu starten
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = Öffnen Sie das Panel, um Dienste zu laden.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = Speichernutzung der eingebundenen Dateisysteme
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = Öffnen Sie das Panel, um den Speicher zu laden.
+
+# semantic i18n key (#2542)
+settings-os-log-files = Protokolldateien
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = Von dieser Installation geschriebene Dateien mit Speicherort und Größe
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = Öffnen Sie das Panel, um Protokolldateien zu laden.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = Die letzten 200 Zeilen eines Dienstprotokolls anzeigen
+
+# semantic i18n key (#2542)
+settings-os-reload = Neu laden
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = Dienst neu starten
+
+# semantic i18n key (#2542)
+settings-os-the-service = den Dienst
+
+# semantic i18n key (#2542)
+settings-os-service-name = Dienstname
+
+# semantic i18n key (#2542)
+settings-os-restart-action = Neu starten
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = <strong id="os-restart-service-name" data-i18n="settings-os-the-service">Den Dienst</strong> neu starten? Geben Sie den Dienstnamen zur Bestätigung ein; der Neustart wird im Audit-Protokoll aufgezeichnet.

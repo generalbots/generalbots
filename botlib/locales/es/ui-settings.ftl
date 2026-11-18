@@ -431,3 +431,60 @@ settings-connected-cloud-storage = Almacenamiento en la nube conectado
 
 # semantic i18n key (#2542)
 settings-loading-storage-connections = Cargando conexiones de almacenamiento...
+
+# semantic i18n key (#2542)
+settings-os-subtitle = Configuración y herramientas de bajo nivel del host para esta instalación del shell
+
+# semantic i18n key (#2542)
+settings-os-host-identity-desc = Identidad del host, kernel y zona horaria
+
+# semantic i18n key (#2542)
+settings-os-kernel = Kernel
+
+# semantic i18n key (#2542)
+settings-os-architecture = Arquitectura
+
+# semantic i18n key (#2542)
+settings-os-host-readonly-hint = El nombre de host y la zona horaria son de solo lectura en esta fase. Use la aplicación Terminal o las herramientas del host en la imagen de quiosco para cambiarlos.
+
+# semantic i18n key (#2542)
+settings-os-services-desc = Iniciar, detener y reiniciar servicios del host
+
+# semantic i18n key (#2542)
+settings-os-load-services-hint = Abra el panel para cargar los servicios.
+
+# semantic i18n key (#2542)
+settings-os-disk-usage-desc = Uso de disco de los sistemas de archivos montados
+
+# semantic i18n key (#2542)
+settings-os-load-storage-hint = Abra el panel para cargar el almacenamiento.
+
+# semantic i18n key (#2542)
+settings-os-log-files = Archivos de registro
+
+# semantic i18n key (#2542)
+settings-os-log-files-desc = Archivos que escribe esta instalación, con ubicación y tamaño
+
+# semantic i18n key (#2542)
+settings-os-load-log-files-hint = Abra el panel para cargar los archivos de registro.
+
+# semantic i18n key (#2542)
+settings-os-tail-log-desc = Mostrar las últimas 200 líneas de un registro de servicio
+
+# semantic i18n key (#2542)
+settings-os-reload = Recargar
+
+# semantic i18n key (#2542)
+settings-os-restart-service-title = Reiniciar servicio
+
+# semantic i18n key (#2542)
+settings-os-the-service = el servicio
+
+# semantic i18n key (#2542)
+settings-os-service-name = Nombre del servicio
+
+# semantic i18n key (#2542)
+settings-os-restart-action = Reiniciar
+
+# semantic i18n key (#2542)
+settings-os-restart-confirm-message = ¿Reiniciar <strong id="os-restart-service-name" data-i18n="settings-os-the-service">el servicio</strong>? Escriba el nombre del servicio para confirmar; el reinicio se registrará en el registro de auditoría.
