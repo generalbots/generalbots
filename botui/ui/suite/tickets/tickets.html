@@ -346,6 +346,6 @@
 <!-- Modal loaded via HTMX -->
 <div hx-get="/suite/tickets/partials/new-ticket-modal.html" hx-trigger="load" hx-swap="none" id="tickets-modal-container"></div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="status-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/tickets/tickets.js"></script>
