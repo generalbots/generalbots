@@ -2,31 +2,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("o365");
 (function(){
 var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],currentTab:'sharepoint',currentFolder:'root',folderStack:[{id:'root',name:'Root'}]};
 
-function escapeHtml(value){
-    if (window.GBShared && window.GBShared.html && typeof window.GBShared.html.escape === 'function') {
-        return window.GBShared.html.escape(value);
-    }
-    return String(value == null ? '' : value)
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#39;');
-}
-
-function showFeedback(msg,type){
-    var el=document.getElementById('o365-feedback');
-    if(!el){el=document.createElement('div');el.id='o365-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
-    el.textContent=msg;
-    el.style.background=type==='error'?'#ef4444':'#22c55e';
-    el.style.color='#fff';
-    el.style.opacity='1';
-    setTimeout(function(){el.style.opacity='0'},3000);
-}
-
-async function apiCall(url,options){
-    try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null}
-}
+function escapeHtml(value){ return (window.GBAppKit && window.GBAppKit.escapeHtml) ? window.GBAppKit.escapeHtml(value) : String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('o365', msg, type); }
+async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('o365', url, options); try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
 
 function switchTab(tab,btn){
     state.currentTab=tab;

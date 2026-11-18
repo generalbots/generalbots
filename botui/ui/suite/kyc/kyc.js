@@ -10,26 +10,9 @@ var drawing=false;
 var lastX=0;
 var lastY=0;
 
-function escapeHtml(str){
-    if(str==null||str==='') return '';
-    var d=document.createElement('div');
-    d.textContent=String(str);
-    return d.innerHTML;
-}
-
-function showFeedback(msg,type){
-    var el=document.getElementById('kyc-feedback');
-    if(!el){el=document.createElement('div');el.id='kyc-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
-    el.textContent=msg;
-    el.style.background=type==='error'?'#ef4444':'#22c55e';
-    el.style.color='#fff';
-    el.style.opacity='1';
-    setTimeout(function(){el.style.opacity='0'},3000);
-}
-
-async function apiCall(url,options){
-    try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null}
-}
+function escapeHtml(str){ if (window.GBAppKit && window.GBAppKit.escapeHtml) return window.GBAppKit.escapeHtml(str); if(str==null||str==='') return ''; var d=document.createElement('div'); d.textContent=String(str); return d.innerHTML; }
+function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('kyc', msg, type); }
+async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('kyc', url, options); try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
 
 function switchTab(tab,btn){
     currentTab=tab;

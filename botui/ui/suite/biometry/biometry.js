@@ -2,25 +2,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("biometry");
 (function(){
 var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc:null,signaturePad:null,drawing:false,lastX:0,lastY:0,livenessActive:false};
 
-function escapeHtml(str){
-    if(str==null||str==='') return '';
-    var d=document.createElement('div');
-    d.textContent=String(str);
-    return d.innerHTML;
-}
-function showFeedback(msg,type){
-    var el=document.getElementById('bio-feedback');
-    if(!el){el=document.createElement('div');el.id='bio-feedback';el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';document.body.appendChild(el)}
-    el.textContent=msg;
-    el.style.background=type==='error'?'#ef4444':'#22c55e';
-    el.style.color='#fff';
-    el.style.opacity='1';
-    setTimeout(function(){el.style.opacity='0'},3000);
-}
-
-async function apiCall(url,options){
-    try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null}
-}
+function escapeHtml(str){ if (window.GBAppKit && window.GBAppKit.escapeHtml) return window.GBAppKit.escapeHtml(str); if(str==null||str==='') return ''; var d=document.createElement('div'); d.textContent=String(str); return d.innerHTML; }
+function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('biometry', msg, type); }
+async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('biometry', url, options); try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
 
 function switchTab(tab,btn){
     state.currentTab=tab;
@@ -179,42 +163,28 @@ async function rejectUser(id){
 function openSignaturePad(docId){
     state.selectedSignDoc=docId;
     state.hasDrawn = false;
+    state.drawing = false;
     var area=document.getElementById('bio-signature-pad-area');
     if(area)area.style.display='block';
     var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
-    var parent = canvas.parentElement;
-    if(parent){
-        var w = Math.min(parent.clientWidth || 500, 800);
-        canvas.width = Math.max(300, w);
-        canvas.height = 200;
+    if (window.GBAppKit && window.GBAppKit.mountSignaturePad) {
+        window.GBAppKit.mountSignaturePad(canvas, state);
+    } else {
+        var parent = canvas.parentElement;
+        if(parent){ var w = Math.min(parent.clientWidth || 500, 800); canvas.width = Math.max(300, w); canvas.height = 200; }
+        var ctx=canvas.getContext('2d'); ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#f8fafc';ctx.lineWidth=2;ctx.lineCap='round';
     }
-    var ctx=canvas.getContext('2d');
-    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle='#f8fafc';ctx.lineWidth=2;ctx.lineCap='round';
-    function getPos(e){
-        var rect = canvas.getBoundingClientRect();
-        var clientX, clientY;
-        if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-        else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
-        else { clientX = e.clientX; clientY = e.clientY; }
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-    canvas.onmousedown=function(e){state.drawing=true; var p=getPos(e); state.lastX=p.x; state.lastY=p.y; state.hasDrawn=true; e.preventDefault();};
-    canvas.onmousemove=function(e){if(!state.drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); state.lastX=p.x; state.lastY=p.y; e.preventDefault();};
-    canvas.onmouseup=function(){state.drawing=false};
-    canvas.onmouseleave=function(){state.drawing=false};
-    canvas.ontouchstart=function(e){state.drawing=true; var p=getPos(e); state.lastX=p.x; state.lastY=p.y; state.hasDrawn=true; e.preventDefault();};
-    canvas.ontouchmove=function(e){if(!state.drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); state.lastX=p.x; state.lastY=p.y; e.preventDefault();};
-    canvas.ontouchend=function(e){state.drawing=false; e.preventDefault();};
-    canvas.ontouchcancel=function(){state.drawing=false;};
 }
 
 function clearSignature(){
     var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
-    var ctx=canvas.getContext('2d');
-    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    if (window.GBAppKit && window.GBAppKit.clearSignatureCanvas) {
+        window.GBAppKit.clearSignatureCanvas(canvas, state);
+    } else {
+        var ctx=canvas.getContext('2d'); ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
     state.hasDrawn = false;
 }
 
