@@ -532,3 +532,6 @@ templates-name-placeholder = 예: 환영 이메일
 templates-subject-placeholder = 예: {{company}}에 오신 것을 환영합니다!
 templates-body-placeholder = 여기에 메시지를 작성하세요. {{contact.name}}, {{company}} 등을 사용할 수 있습니다.
 templates-ai-prompt-placeholder = AI가 콘텐츠를 생성하는 방법을 설명하세요...
+
+# semantic i18n key (#2542)
+project-search-placeholder = 프로젝트 검색...

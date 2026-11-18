@@ -532,3 +532,6 @@ templates-name-placeholder = z. B. Willkommens-E-Mail
 templates-subject-placeholder = z. B. Willkommen bei {{company}}!
 templates-body-placeholder = Schreiben Sie hier Ihre Nachricht. Verwenden Sie {{contact.name}}, {{company}} usw.
 templates-ai-prompt-placeholder = Beschreiben Sie, wie die KI Inhalte generieren soll...
+
+# semantic i18n key (#2542)
+project-search-placeholder = Projekte suchen...

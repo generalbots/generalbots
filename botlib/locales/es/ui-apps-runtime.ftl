@@ -750,3 +750,6 @@ templates-name-placeholder = p. ej., Correo de bienvenida
 templates-subject-placeholder = p. ej., ¡Bienvenido a {{company}}!
 templates-body-placeholder = Escribe tu mensaje aquí. Usa {{contact.name}}, {{company}}, etc.
 templates-ai-prompt-placeholder = Describe cómo la IA debe generar el contenido...
+
+# semantic i18n key (#2542)
+project-search-placeholder = Buscar proyectos...

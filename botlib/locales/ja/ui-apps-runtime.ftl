@@ -532,3 +532,6 @@ templates-name-placeholder = 例: ウェルカムメール
 templates-subject-placeholder = 例: {{company}}へようこそ！
 templates-body-placeholder = ここにメッセージを入力してください。{{contact.name}}、{{company}} などを使用できます。
 templates-ai-prompt-placeholder = AIがコンテンツを生成する方法を説明してください...
+
+# semantic i18n key (#2542)
+project-search-placeholder = プロジェクトを検索...
