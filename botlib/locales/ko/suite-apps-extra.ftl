@@ -162,3 +162,14 @@ lists-search-placeholder = 목록 검색...
 lists-name-placeholder = 예: 활성 고객
 lists-query-placeholder = 예: status = 'active' AND country = 'KR'
 lists-add-member-placeholder = 추가할 연락처 검색...
+
+# semantic i18n key (#2542)
+tax-placeholder-razao-cnpj = 회사명 또는 CNPJ
+tax-placeholder-cfop-example = 예: 5102
+tax-placeholder-description = 설명
+tax-placeholder-value-brl = 금액 (R$)
+tax-placeholder-zero = 0
+tax-placeholder-zero-decimal = 0.00
+tax-placeholder-service-description = 제공된 서비스 설명
+tax-placeholder-service-code-example = 예: 17.02
+tax-placeholder-city-uf = 도시 - 주

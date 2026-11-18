@@ -162,3 +162,14 @@ lists-search-placeholder = Search lists...
 lists-name-placeholder = e.g., Active Customers
 lists-query-placeholder = e.g., status = 'active' AND country = 'US'
 lists-add-member-placeholder = Search contacts to add...
+
+# semantic i18n key (#2542)
+tax-placeholder-razao-cnpj = Company name or CNPJ
+tax-placeholder-cfop-example = e.g. 5102
+tax-placeholder-description = Description
+tax-placeholder-value-brl = Amount (R$)
+tax-placeholder-zero = 0
+tax-placeholder-zero-decimal = 0.00
+tax-placeholder-service-description = Description of service provided
+tax-placeholder-service-code-example = e.g. 17.02
+tax-placeholder-city-uf = City - State

@@ -162,3 +162,14 @@ lists-search-placeholder = 搜索列表...
 lists-name-placeholder = 例如：活跃客户
 lists-query-placeholder = 例如：status = 'active' AND country = 'CN'
 lists-add-member-placeholder = 搜索要添加的联系人...
+
+# semantic i18n key (#2542)
+tax-placeholder-razao-cnpj = 公司名称或 CNPJ
+tax-placeholder-cfop-example = 例如：5102
+tax-placeholder-description = 描述
+tax-placeholder-value-brl = 金额 (R$)
+tax-placeholder-zero = 0
+tax-placeholder-zero-decimal = 0.00
+tax-placeholder-service-description = 所提供服务的描述
+tax-placeholder-service-code-example = 例如：17.02
+tax-placeholder-city-uf = 城市 - 州

@@ -100,18 +100,18 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Destinatário</label>
-          <input type="text" id="nfeDestinatario" placeholder="Razão social ou CNPJ">
+          <input type="text" id="nfeDestinatario" data-i18n-placeholder="tax-placeholder-razao-cnpj">
         </div>
         <div class="form-group">
           <label data-i18n="tax-cfop-label">CFOP</label>
-          <input type="text" id="nfeCfop" placeholder="Ex: 5102">
+          <input type="text" id="nfeCfop" data-i18n-placeholder="tax-placeholder-cfop-example">
         </div>
         <div class="form-group">
           <label data-i18n="tax-products-label">Produtos</label>
           <div id="nfeProdutos">
             <div class="form-row" style="margin-bottom:8px;">
-              <input type="text" placeholder="Descrição" class="produto-desc">
-              <input type="number" placeholder="Valor (R$)" class="produto-valor">
+              <input type="text" data-i18n-placeholder="tax-placeholder-description" class="produto-desc">
+              <input type="number" data-i18n-placeholder="tax-placeholder-value-brl" class="produto-valor">
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" id="btnAddProduto">+ Adicionar Produto</button>
@@ -119,21 +119,21 @@
         <div class="form-row">
           <div class="form-group">
             <label>ICMS (%)</label>
-            <input type="number" id="nfeIcms" placeholder="0" step="0.01">
+            <input type="number" id="nfeIcms" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
           </div>
           <div class="form-group">
             <label>IPI (%)</label>
-            <input type="number" id="nfeIpi" placeholder="0" step="0.01">
+            <input type="number" id="nfeIpi" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>PIS (%)</label>
-            <input type="number" id="nfePis" placeholder="0" step="0.01">
+            <input type="number" id="nfePis" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
           </div>
           <div class="form-group">
             <label>COFINS (%)</label>
-            <input type="number" id="nfeCofins" placeholder="0" step="0.01">
+            <input type="number" id="nfeCofins" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
           </div>
         </div>
       </div>
@@ -153,25 +153,25 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Tomador do Serviço</label>
-          <input type="text" id="nfseTomador" placeholder="Razão social ou CNPJ">
+          <input type="text" id="nfseTomador" data-i18n-placeholder="tax-placeholder-razao-cnpj">
         </div>
         <div class="form-group">
           <label>Descrição do Serviço</label>
-          <textarea id="nfseDescricao" rows="3" placeholder="Descrição do serviço prestado"></textarea>
+          <textarea id="nfseDescricao" rows="3" data-i18n-placeholder="tax-placeholder-service-description"></textarea>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Valor do Serviço (R$)</label>
-            <input type="number" id="nfseValor" placeholder="0,00" step="0.01">
+            <input type="number" id="nfseValor" data-i18n-placeholder="tax-placeholder-zero-decimal" step="0.01">
           </div>
           <div class="form-group">
             <label>Código de Serviço</label>
-            <input type="text" id="nfseCodigoServico" placeholder="Ex: 17.02">
+            <input type="text" id="nfseCodigoServico" data-i18n-placeholder="tax-placeholder-service-code-example">
           </div>
         </div>
         <div class="form-group">
           <label>ISS (%)</label>
-          <input type="number" id="nfseIss" placeholder="0" step="0.01">
+          <input type="number" id="nfseIss" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
         </div>
       </div>
       <div class="modal-footer">
@@ -190,30 +190,30 @@
       <div class="modal-body">
         <div class="form-group">
           <label data-i18n="tax-sender-label">Remetente</label>
-          <input type="text" id="cteRemetente" placeholder="Razão social ou CNPJ">
+          <input type="text" id="cteRemetente" data-i18n-placeholder="tax-placeholder-razao-cnpj">
         </div>
         <div class="form-group">
           <label>Destinatário</label>
-          <input type="text" id="cteDestinatario" placeholder="Razão social ou CNPJ">
+          <input type="text" id="cteDestinatario" data-i18n-placeholder="tax-placeholder-razao-cnpj">
         </div>
         <div class="form-row">
           <div class="form-group">
             <label data-i18n="tax-origin-city-label">Cidade Origem</label>
-            <input type="text" id="cteOrigem" placeholder="Cidade - UF">
+            <input type="text" id="cteOrigem" data-i18n-placeholder="tax-placeholder-city-uf">
           </div>
           <div class="form-group">
             <label data-i18n="tax-destination-city-label">Cidade Destino</label>
-            <input type="text" id="cteDestino" placeholder="Cidade - UF">
+            <input type="text" id="cteDestino" data-i18n-placeholder="tax-placeholder-city-uf">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label data-i18n="tax-weight-kg-label">Peso (kg)</label>
-            <input type="number" id="ctePeso" placeholder="0" step="0.01">
+            <input type="number" id="ctePeso" data-i18n-placeholder="tax-placeholder-zero" step="0.01">
           </div>
           <div class="form-group">
             <label>Valor do Frete (R$)</label>
-            <input type="number" id="cteValorFrete" placeholder="0,00" step="0.01">
+            <input type="number" id="cteValorFrete" data-i18n-placeholder="tax-placeholder-zero-decimal" step="0.01">
           </div>
         </div>
         <div class="form-group">

@@ -162,3 +162,14 @@ lists-search-placeholder = Listen suchen...
 lists-name-placeholder = z. B. Aktive Kunden
 lists-query-placeholder = z. B. status = 'active' AND country = 'DE'
 lists-add-member-placeholder = Kontakte zum Hinzufügen suchen...
+
+# semantic i18n key (#2542)
+tax-placeholder-razao-cnpj = Firmenname oder CNPJ
+tax-placeholder-cfop-example = z. B. 5102
+tax-placeholder-description = Beschreibung
+tax-placeholder-value-brl = Betrag (R$)
+tax-placeholder-zero = 0
+tax-placeholder-zero-decimal = 0,00
+tax-placeholder-service-description = Beschreibung der erbrachten Leistung
+tax-placeholder-service-code-example = z. B. 17.02
+tax-placeholder-city-uf = Stadt - Bundesstaat
