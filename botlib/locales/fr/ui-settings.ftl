@@ -326,3 +326,33 @@ settings-plan-placeholder = Forfait : —
 
 # semantic i18n key (#2542)
 settings-preview-placeholder = Aperçu : —
+
+# semantic i18n key (#2542)
+settings-oda-subtitle = Modèles qui s'exécutent sur cette machine. Téléchargez un modèle adapté au matériel, activez-le et le moteur local l'utilisera à son prochain démarrage. Aucune clé API n'est utilisée ici.
+
+# semantic i18n key (#2542)
+settings-oda-detecting-hardware = Détection du matériel…
+
+# semantic i18n key (#2542)
+settings-oda-recommended-for-machine = Recommandé pour cette machine
+
+# semantic i18n key (#2542)
+settings-oda-activate = Activer
+
+# semantic i18n key (#2542)
+settings-oda-models = Modèles
+
+# semantic i18n key (#2542)
+settings-oda-model = Modèle
+
+# semantic i18n key (#2542)
+settings-oda-params = Paramètres
+
+# semantic i18n key (#2542)
+settings-oda-quant = Quant.
+
+# semantic i18n key (#2542)
+settings-oda-min-vram = VRAM min.
+
+# semantic i18n key (#2542)
+settings-oda-loading-models = Chargement des modèles…

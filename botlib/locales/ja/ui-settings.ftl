@@ -326,3 +326,33 @@ settings-plan-placeholder = プラン: —
 
 # semantic i18n key (#2542)
 settings-preview-placeholder = プレビュー: —
+
+# semantic i18n key (#2542)
+settings-oda-subtitle = このマシン上で動作するモデルです。ハードウェアに合ったモデルをダウンロードして有効化すると、ローカルエンジンは次回起動時にそれを使用します。ここではAPIキーは使用されません。
+
+# semantic i18n key (#2542)
+settings-oda-detecting-hardware = ハードウェアを検出中…
+
+# semantic i18n key (#2542)
+settings-oda-recommended-for-machine = このマシンに推奨
+
+# semantic i18n key (#2542)
+settings-oda-activate = 有効化
+
+# semantic i18n key (#2542)
+settings-oda-models = モデル
+
+# semantic i18n key (#2542)
+settings-oda-model = モデル
+
+# semantic i18n key (#2542)
+settings-oda-params = パラメータ
+
+# semantic i18n key (#2542)
+settings-oda-quant = 量子化
+
+# semantic i18n key (#2542)
+settings-oda-min-vram = 最小VRAM
+
+# semantic i18n key (#2542)
+settings-oda-loading-models = モデルを読み込み中…

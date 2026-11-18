@@ -326,3 +326,33 @@ settings-plan-placeholder = 套餐：—
 
 # semantic i18n key (#2542)
 settings-preview-placeholder = 预览：—
+
+# semantic i18n key (#2542)
+settings-oda-subtitle = 在此设备上运行的模型。下载适合硬件的模型并激活，本地引擎将在下次启动时使用它。此处不使用 API 密钥。
+
+# semantic i18n key (#2542)
+settings-oda-detecting-hardware = 正在检测硬件…
+
+# semantic i18n key (#2542)
+settings-oda-recommended-for-machine = 推荐用于此设备
+
+# semantic i18n key (#2542)
+settings-oda-activate = 激活
+
+# semantic i18n key (#2542)
+settings-oda-models = 模型
+
+# semantic i18n key (#2542)
+settings-oda-model = 模型
+
+# semantic i18n key (#2542)
+settings-oda-params = 参数
+
+# semantic i18n key (#2542)
+settings-oda-quant = 量化
+
+# semantic i18n key (#2542)
+settings-oda-min-vram = 最小显存
+
+# semantic i18n key (#2542)
+settings-oda-loading-models = 正在加载模型…
