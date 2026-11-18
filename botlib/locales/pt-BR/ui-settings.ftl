@@ -710,3 +710,153 @@ settings-ledger-tab-budgets = Orçamentos
 
 # semantic i18n key (#2542)
 settings-ledger-tab-ttft = TTFT
+
+# semantic i18n key (#2542)
+settings-integrations-subtitle = Conecte serviços externos e gerencie o acesso à API
+
+# semantic i18n key (#2542)
+settings-open-integrations = Abrir integrações
+
+# semantic i18n key (#2542)
+settings-personal-access-tokens = Tokens de acesso pessoal
+
+# semantic i18n key (#2542)
+settings-personal-tokens-desc = Tokens que você gera para chamar a API como você mesmo (<code>gb_…</code>). As chaves dos provedores de modelo ficam no app Integrações.
+
+# semantic i18n key (#2542)
+settings-no-api-keys = Nenhuma chave de API criada ainda
+
+# semantic i18n key (#2542)
+settings-webhooks-title = Webhooks
+
+# semantic i18n key (#2542)
+settings-no-webhooks = Nenhum webhook configurado
+
+# semantic i18n key (#2542)
+settings-full-catalog = Catálogo completo
+
+# semantic i18n key (#2542)
+settings-loading-mcp-servers = Carregando servidores MCP
+
+# semantic i18n key (#2542)
+settings-agent-skills = Habilidades do agente
+
+# semantic i18n key (#2542)
+settings-import-skill = Importar habilidade
+
+# semantic i18n key (#2542)
+settings-loading-skills = Carregando habilidades
+
+# semantic i18n key (#2542)
+settings-ai-accounts-subtitle = As assinaturas dos planos Claude Code e ChatGPT são por usuário. As credenciais ficam na VM do seu agente ou no cofre local; apenas o status e os metadados de exibição são armazenados aqui.
+
+# semantic i18n key (#2542)
+settings-subscription-accounts = Contas de assinatura
+
+# semantic i18n key (#2542)
+settings-ai-accounts-desc = Conecte uma conta e atribua-a a um tipo de agente Vibe
+
+# semantic i18n key (#2542)
+settings-loading-ai-accounts = Carregando contas de IA…
+
+# semantic i18n key (#2542)
+settings-vibe-subtitle = Atribua um provedor de LLM a cada tipo de agente Vibe. Os provedores são definidos em Integrações → Provedores de modelo (BYOK) ou na loja Cloud.
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers = Provedores de LLM do agente
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers-desc = Cada tipo de agente roteia suas execuções para o provedor selecionado aqui para esta ramificação
+
+# semantic i18n key (#2542)
+settings-loading-agent-providers = Carregando provedores do agente…
+
+# semantic i18n key (#2542)
+settings-privacy-subtitle = Gerencie seus dados e configurações de privacidade
+
+# semantic i18n key (#2542)
+settings-privacy-preferences = Preferências de privacidade
+
+# semantic i18n key (#2542)
+settings-profile-visibility = Visibilidade do perfil
+
+# semantic i18n key (#2542)
+settings-profile-visibility-desc = Quem pode ver seu perfil
+
+# semantic i18n key (#2542)
+settings-contacts-only = Somente contatos
+
+# semantic i18n key (#2542)
+settings-online-status = Status online
+
+# semantic i18n key (#2542)
+settings-online-status-desc = Mostrar quando você estiver online
+
+# semantic i18n key (#2542)
+settings-read-receipts = Confirmações de leitura
+
+# semantic i18n key (#2542)
+settings-read-receipts-desc = Permitir que outros saibam quando você leu mensagens
+
+# semantic i18n key (#2542)
+settings-your-data = Seus dados
+
+# semantic i18n key (#2542)
+settings-export-data = Exportar dados
+
+# semantic i18n key (#2542)
+settings-export-data-desc = Baixe todos os seus dados em um formato portátil
+
+# semantic i18n key (#2542)
+settings-delete-account-title = Excluir permanentemente sua conta e todos os dados associados
+
+# semantic i18n key (#2542)
+settings-delete-my-account = Excluir minha conta
+
+# semantic i18n key (#2542)
+settings-memory-subtitle = O que o assistente lembra sobre você entre conversas
+
+# semantic i18n key (#2542)
+settings-remembered-facts = Fatos lembrados
+
+# semantic i18n key (#2542)
+settings-memory-facts-desc = Esses fatos são enviados com cada mensagem para que as respostas permaneçam consistentes entre as conversas. Remova qualquer coisa que você não queira mais que o assistente use.
+
+# semantic i18n key (#2542)
+settings-memory-all-scopes = Todos os escopos
+
+# semantic i18n key (#2542)
+settings-memory-global-all-bots = Global (todos os bots)
+
+# semantic i18n key (#2542)
+settings-memory-bot-specific = Específico do bot
+
+# semantic i18n key (#2542)
+settings-default-scope = padrão
+
+# semantic i18n key (#2542)
+settings-manage-memories = Gerenciar memórias
+
+# semantic i18n key (#2542)
+settings-manage-memories-desc = As memórias são criadas pelo assistente. Edite ou remova-as aqui.
+
+# semantic i18n key (#2542)
+settings-no-plan-info = Nenhuma informação de plano é gerenciada por esta implantação.
+
+# semantic i18n key (#2542)
+settings-manage-plan-on-cloud = Gerenciar plano na nuvem
+
+# semantic i18n key (#2542)
+settings-add-method = Adicionar método
+
+# semantic i18n key (#2542)
+settings-no-payment-method = Nenhuma forma de pagamento cadastrada.
+
+# semantic i18n key (#2542)
+settings-add-method-on-cloud = Adicionar método na nuvem
+
+# semantic i18n key (#2542)
+settings-no-invoices = Nenhuma fatura para esta conta.
+
+# semantic i18n key (#2542)
+settings-view-invoices-on-cloud = Ver faturas na nuvem

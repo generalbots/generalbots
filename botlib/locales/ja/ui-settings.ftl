@@ -710,3 +710,153 @@ settings-ledger-tab-budgets = 予算
 
 # semantic i18n key (#2542)
 settings-ledger-tab-ttft = TTFT
+
+# semantic i18n key (#2542)
+settings-integrations-subtitle = 外部サービスを接続し、API アクセスを管理します
+
+# semantic i18n key (#2542)
+settings-open-integrations = 統合を開く
+
+# semantic i18n key (#2542)
+settings-personal-access-tokens = 個人アクセストークン
+
+# semantic i18n key (#2542)
+settings-personal-tokens-desc = 自分として API を呼び出すために発行するトークン（<code>gb_…</code>）。モデルプロバイダーのキーは統合アプリにあります。
+
+# semantic i18n key (#2542)
+settings-no-api-keys = API キーはまだ作成されていません
+
+# semantic i18n key (#2542)
+settings-webhooks-title = Webhook
+
+# semantic i18n key (#2542)
+settings-no-webhooks = Webhook が設定されていません
+
+# semantic i18n key (#2542)
+settings-full-catalog = 全カタログ
+
+# semantic i18n key (#2542)
+settings-loading-mcp-servers = MCP サーバーを読み込み中
+
+# semantic i18n key (#2542)
+settings-agent-skills = エージェントスキル
+
+# semantic i18n key (#2542)
+settings-import-skill = スキルをインポート
+
+# semantic i18n key (#2542)
+settings-loading-skills = スキルを読み込み中
+
+# semantic i18n key (#2542)
+settings-ai-accounts-subtitle = Claude Code と ChatGPT のプラン契約はユーザーごとです。認証情報はエージェント VM またはローカルボールトに保持され、ここにはステータスと表示メタデータのみが保存されます。
+
+# semantic i18n key (#2542)
+settings-subscription-accounts = サブスクリプションアカウント
+
+# semantic i18n key (#2542)
+settings-ai-accounts-desc = アカウントを接続し、Vibe エージェントタイプに割り当てます
+
+# semantic i18n key (#2542)
+settings-loading-ai-accounts = AI アカウントを読み込み中…
+
+# semantic i18n key (#2542)
+settings-vibe-subtitle = 各 Vibe エージェントタイプに LLM プロバイダーを割り当てます。プロバイダーは統合 → モデルプロバイダー（BYOK）またはクラウドストアで定義されます。
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers = エージェント LLM プロバイダー
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers-desc = 各エージェントタイプは、このブランチでここに選択されたプロバイダーに実行をルーティングします
+
+# semantic i18n key (#2542)
+settings-loading-agent-providers = エージェントプロバイダーを読み込み中…
+
+# semantic i18n key (#2542)
+settings-privacy-subtitle = データとプライバシー設定を管理します
+
+# semantic i18n key (#2542)
+settings-privacy-preferences = プライバシー設定
+
+# semantic i18n key (#2542)
+settings-profile-visibility = プロフィールの公開範囲
+
+# semantic i18n key (#2542)
+settings-profile-visibility-desc = プロフィールを閲覧できるユーザー
+
+# semantic i18n key (#2542)
+settings-contacts-only = 連絡先のみ
+
+# semantic i18n key (#2542)
+settings-online-status = オンライン状態
+
+# semantic i18n key (#2542)
+settings-online-status-desc = オンライン時に表示する
+
+# semantic i18n key (#2542)
+settings-read-receipts = 既読通知
+
+# semantic i18n key (#2542)
+settings-read-receipts-desc = メッセージを読んだことを他のユーザーに知らせる
+
+# semantic i18n key (#2542)
+settings-your-data = あなたのデータ
+
+# semantic i18n key (#2542)
+settings-export-data = データをエクスポート
+
+# semantic i18n key (#2542)
+settings-export-data-desc = すべてのデータをポータブル形式でダウンロード
+
+# semantic i18n key (#2542)
+settings-delete-account-title = アカウントと関連するすべてのデータを完全に削除します
+
+# semantic i18n key (#2542)
+settings-delete-my-account = アカウントを削除
+
+# semantic i18n key (#2542)
+settings-memory-subtitle = 会話をまたいでアシスタントがあなたについて覚えていること
+
+# semantic i18n key (#2542)
+settings-remembered-facts = 記憶された事実
+
+# semantic i18n key (#2542)
+settings-memory-facts-desc = これらの事実は各メッセージとともに送信され、会話間で回答の一貫性が保たれます。アシスタントに使用してほしくないものは削除してください。
+
+# semantic i18n key (#2542)
+settings-memory-all-scopes = すべてのスコープ
+
+# semantic i18n key (#2542)
+settings-memory-global-all-bots = グローバル（すべてのボット）
+
+# semantic i18n key (#2542)
+settings-memory-bot-specific = ボット固有
+
+# semantic i18n key (#2542)
+settings-default-scope = デフォルト
+
+# semantic i18n key (#2542)
+settings-manage-memories = 記憶を管理
+
+# semantic i18n key (#2542)
+settings-manage-memories-desc = 記憶はアシスタントによって作成されます。ここで編集または削除できます。
+
+# semantic i18n key (#2542)
+settings-no-plan-info = このデプロイメントではプラン情報は管理されていません。
+
+# semantic i18n key (#2542)
+settings-manage-plan-on-cloud = クラウドでプランを管理
+
+# semantic i18n key (#2542)
+settings-add-method = 方法を追加
+
+# semantic i18n key (#2542)
+settings-no-payment-method = 登録されている支払い方法はありません。
+
+# semantic i18n key (#2542)
+settings-add-method-on-cloud = クラウドで方法を追加
+
+# semantic i18n key (#2542)
+settings-no-invoices = このアカウントの請求書はありません。
+
+# semantic i18n key (#2542)
+settings-view-invoices-on-cloud = クラウドで請求書を表示

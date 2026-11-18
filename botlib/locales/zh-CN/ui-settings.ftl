@@ -710,3 +710,153 @@ settings-ledger-tab-budgets = 预算
 
 # semantic i18n key (#2542)
 settings-ledger-tab-ttft = TTFT
+
+# semantic i18n key (#2542)
+settings-integrations-subtitle = 连接外部服务并管理 API 访问
+
+# semantic i18n key (#2542)
+settings-open-integrations = 打开集成
+
+# semantic i18n key (#2542)
+settings-personal-access-tokens = 个人访问令牌
+
+# semantic i18n key (#2542)
+settings-personal-tokens-desc = 您为以自己身份调用 API 而创建的令牌（<code>gb_…</code>）。模型提供商密钥位于集成应用中。
+
+# semantic i18n key (#2542)
+settings-no-api-keys = 尚未创建 API 密钥
+
+# semantic i18n key (#2542)
+settings-webhooks-title = Webhook
+
+# semantic i18n key (#2542)
+settings-no-webhooks = 未配置 Webhook
+
+# semantic i18n key (#2542)
+settings-full-catalog = 完整目录
+
+# semantic i18n key (#2542)
+settings-loading-mcp-servers = 正在加载 MCP 服务器
+
+# semantic i18n key (#2542)
+settings-agent-skills = 代理技能
+
+# semantic i18n key (#2542)
+settings-import-skill = 导入技能
+
+# semantic i18n key (#2542)
+settings-loading-skills = 正在加载技能
+
+# semantic i18n key (#2542)
+settings-ai-accounts-subtitle = Claude Code 和 ChatGPT 套餐订阅按用户计费。凭据保留在您的代理 VM 或本地保管库中；此处仅存储状态和显示元数据。
+
+# semantic i18n key (#2542)
+settings-subscription-accounts = 订阅帐户
+
+# semantic i18n key (#2542)
+settings-ai-accounts-desc = 连接帐户，然后将其分配给 Vibe 代理类型
+
+# semantic i18n key (#2542)
+settings-loading-ai-accounts = 正在加载 AI 帐户…
+
+# semantic i18n key (#2542)
+settings-vibe-subtitle = 为每种 Vibe 代理类型分配 LLM 提供商。提供商在“集成 → 模型提供商 (BYOK)”或云商店中定义。
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers = 代理 LLM 提供商
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers-desc = 每种代理类型都会将其运行路由到此处分支所选的提供商
+
+# semantic i18n key (#2542)
+settings-loading-agent-providers = 正在加载代理提供商…
+
+# semantic i18n key (#2542)
+settings-privacy-subtitle = 管理您的数据和隐私设置
+
+# semantic i18n key (#2542)
+settings-privacy-preferences = 隐私偏好
+
+# semantic i18n key (#2542)
+settings-profile-visibility = 个人资料可见性
+
+# semantic i18n key (#2542)
+settings-profile-visibility-desc = 谁可以查看您的个人资料
+
+# semantic i18n key (#2542)
+settings-contacts-only = 仅限联系人
+
+# semantic i18n key (#2542)
+settings-online-status = 在线状态
+
+# semantic i18n key (#2542)
+settings-online-status-desc = 显示您的在线状态
+
+# semantic i18n key (#2542)
+settings-read-receipts = 已读回执
+
+# semantic i18n key (#2542)
+settings-read-receipts-desc = 让其他人知道您何时已读消息
+
+# semantic i18n key (#2542)
+settings-your-data = 您的数据
+
+# semantic i18n key (#2542)
+settings-export-data = 导出数据
+
+# semantic i18n key (#2542)
+settings-export-data-desc = 以可移植格式下载您的所有数据
+
+# semantic i18n key (#2542)
+settings-delete-account-title = 永久删除您的帐户及所有相关数据
+
+# semantic i18n key (#2542)
+settings-delete-my-account = 删除我的帐户
+
+# semantic i18n key (#2542)
+settings-memory-subtitle = 助手在多次对话中记住的关于您的信息
+
+# semantic i18n key (#2542)
+settings-remembered-facts = 已记住的事实
+
+# semantic i18n key (#2542)
+settings-memory-facts-desc = 这些事实会随每条消息发送，以使回答在对话之间保持一致。请移除您不希望助手再使用的任何内容。
+
+# semantic i18n key (#2542)
+settings-memory-all-scopes = 所有范围
+
+# semantic i18n key (#2542)
+settings-memory-global-all-bots = 全局（所有机器人）
+
+# semantic i18n key (#2542)
+settings-memory-bot-specific = 特定机器人
+
+# semantic i18n key (#2542)
+settings-default-scope = 默认
+
+# semantic i18n key (#2542)
+settings-manage-memories = 管理记忆
+
+# semantic i18n key (#2542)
+settings-manage-memories-desc = 记忆由助手创建。您可以在此处编辑或删除它们。
+
+# semantic i18n key (#2542)
+settings-no-plan-info = 此部署不管理套餐信息。
+
+# semantic i18n key (#2542)
+settings-manage-plan-on-cloud = 在云端管理套餐
+
+# semantic i18n key (#2542)
+settings-add-method = 添加方式
+
+# semantic i18n key (#2542)
+settings-no-payment-method = 没有已保存的付款方式。
+
+# semantic i18n key (#2542)
+settings-add-method-on-cloud = 在云端添加方式
+
+# semantic i18n key (#2542)
+settings-no-invoices = 此帐户没有发票。
+
+# semantic i18n key (#2542)
+settings-view-invoices-on-cloud = 在云端查看发票

@@ -710,3 +710,153 @@ settings-ledger-tab-budgets = 예산
 
 # semantic i18n key (#2542)
 settings-ledger-tab-ttft = TTFT
+
+# semantic i18n key (#2542)
+settings-integrations-subtitle = 외부 서비스를 연결하고 API 액세스를 관리합니다
+
+# semantic i18n key (#2542)
+settings-open-integrations = 통합 열기
+
+# semantic i18n key (#2542)
+settings-personal-access-tokens = 개인 액세스 토큰
+
+# semantic i18n key (#2542)
+settings-personal-tokens-desc = 본인으로 API를 호출하기 위해 발급하는 토큰(<code>gb_…</code>)입니다. 모델 제공자 키는 통합 앱에 있습니다.
+
+# semantic i18n key (#2542)
+settings-no-api-keys = 아직 생성된 API 키가 없습니다
+
+# semantic i18n key (#2542)
+settings-webhooks-title = 웹훅
+
+# semantic i18n key (#2542)
+settings-no-webhooks = 구성된 웹훅이 없습니다
+
+# semantic i18n key (#2542)
+settings-full-catalog = 전체 카탈로그
+
+# semantic i18n key (#2542)
+settings-loading-mcp-servers = MCP 서버 로드 중
+
+# semantic i18n key (#2542)
+settings-agent-skills = 에이전트 스킬
+
+# semantic i18n key (#2542)
+settings-import-skill = 스킬 가져오기
+
+# semantic i18n key (#2542)
+settings-loading-skills = 스킬 로드 중
+
+# semantic i18n key (#2542)
+settings-ai-accounts-subtitle = Claude Code 및 ChatGPT 요금제 구독은 사용자별입니다. 자격 증명은 에이전트 VM 또는 로컬 볼트에 유지되며, 여기에는 상태 및 표시 메타데이터만 저장됩니다.
+
+# semantic i18n key (#2542)
+settings-subscription-accounts = 구독 계정
+
+# semantic i18n key (#2542)
+settings-ai-accounts-desc = 계정을 연결한 다음 Vibe 에이전트 유형에 할당하세요
+
+# semantic i18n key (#2542)
+settings-loading-ai-accounts = AI 계정 로드 중…
+
+# semantic i18n key (#2542)
+settings-vibe-subtitle = 각 Vibe 에이전트 유형에 LLM 공급자를 할당합니다. 공급자는 통합 → 모델 공급자(BYOK) 또는 클라우드 스토어에서 정의됩니다.
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers = 에이전트 LLM 공급자
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers-desc = 각 에이전트 유형은 이 브랜치에 대해 여기에서 선택한 공급자로 실행을 라우팅합니다
+
+# semantic i18n key (#2542)
+settings-loading-agent-providers = 에이전트 공급자 로드 중…
+
+# semantic i18n key (#2542)
+settings-privacy-subtitle = 데이터 및 개인정보 설정을 관리합니다
+
+# semantic i18n key (#2542)
+settings-privacy-preferences = 개인정보 기본 설정
+
+# semantic i18n key (#2542)
+settings-profile-visibility = 프로필 공개 범위
+
+# semantic i18n key (#2542)
+settings-profile-visibility-desc = 프로필을 볼 수 있는 사람
+
+# semantic i18n key (#2542)
+settings-contacts-only = 연락처만
+
+# semantic i18n key (#2542)
+settings-online-status = 온라인 상태
+
+# semantic i18n key (#2542)
+settings-online-status-desc = 온라인일 때 표시
+
+# semantic i18n key (#2542)
+settings-read-receipts = 읽음 확인
+
+# semantic i18n key (#2542)
+settings-read-receipts-desc = 메시지를 읽었을 때 다른 사람에게 알리기
+
+# semantic i18n key (#2542)
+settings-your-data = 내 데이터
+
+# semantic i18n key (#2542)
+settings-export-data = 데이터 내보내기
+
+# semantic i18n key (#2542)
+settings-export-data-desc = 모든 데이터를 이동 가능한 형식으로 다운로드
+
+# semantic i18n key (#2542)
+settings-delete-account-title = 계정 및 모든 관련 데이터를 영구적으로 삭제합니다
+
+# semantic i18n key (#2542)
+settings-delete-my-account = 내 계정 삭제
+
+# semantic i18n key (#2542)
+settings-memory-subtitle = 대화 전반에 걸쳐 어시스턴트가 기억하는 정보
+
+# semantic i18n key (#2542)
+settings-remembered-facts = 기억된 사실
+
+# semantic i18n key (#2542)
+settings-memory-facts-desc = 이 사실은 모든 메시지와 함께 전송되어 대화 간 답변의 일관성을 유지합니다. 어시스턴트가 더 이상 사용하지 않기를 원하는 항목은 제거하세요.
+
+# semantic i18n key (#2542)
+settings-memory-all-scopes = 모든 범위
+
+# semantic i18n key (#2542)
+settings-memory-global-all-bots = 전역(모든 봇)
+
+# semantic i18n key (#2542)
+settings-memory-bot-specific = 봇별
+
+# semantic i18n key (#2542)
+settings-default-scope = 기본값
+
+# semantic i18n key (#2542)
+settings-manage-memories = 기억 관리
+
+# semantic i18n key (#2542)
+settings-manage-memories-desc = 기억은 어시스턴트가 생성합니다. 여기에서 편집하거나 제거하세요.
+
+# semantic i18n key (#2542)
+settings-no-plan-info = 이 배포에서는 요금제 정보를 관리하지 않습니다.
+
+# semantic i18n key (#2542)
+settings-manage-plan-on-cloud = 클라우드에서 요금제 관리
+
+# semantic i18n key (#2542)
+settings-add-method = 방법 추가
+
+# semantic i18n key (#2542)
+settings-no-payment-method = 등록된 결제 수단이 없습니다.
+
+# semantic i18n key (#2542)
+settings-add-method-on-cloud = 클라우드에서 방법 추가
+
+# semantic i18n key (#2542)
+settings-no-invoices = 이 계정에 대한 청구서가 없습니다.
+
+# semantic i18n key (#2542)
+settings-view-invoices-on-cloud = 클라우드에서 청구서 보기

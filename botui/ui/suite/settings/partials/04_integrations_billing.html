@@ -3,11 +3,11 @@
             <div class="section-header settings-section-head">
                 <div>
                     <h1 data-i18n="settings-integrations">Integrations</h1>
-                    <p class="subtitle" data-i18n="auto-connect-external-services-and-manage-api-access">Connect external services and manage API access</p>
+                    <p class="subtitle" data-i18n="settings-integrations-subtitle">Connect external services and manage API access</p>
                 </div>
                 <!-- #1878 — one explicit way into the Integrations app from the
                      settings section that talks about it. -->
-                <button type="button" class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()" data-i18n="auto-open-integrations">
+                <button type="button" class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()" data-i18n="settings-open-integrations">
                     Open Integrations
                 </button>
             </div>
@@ -16,7 +16,7 @@
                  model-provider keys owned by the Integrations app. -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-personal-access-tokens">Personal access tokens</h2>
+                    <h2 data-i18n="settings-personal-access-tokens">Personal access tokens</h2>
                     <div class="card-actions" style="display:flex;gap:8px;align-items:center">
                         <a class="btn-secondary btn-sm"
                             href="https://docs.generalbots.org/08-rest-api-tools/user-security.html#api-keys"
@@ -33,11 +33,11 @@
                         </button>
                     </div>
                 </div>
-                <p class="setting-desc" style="padding:0 20px 12px;" data-i18n-html="auto-tokens-you-mint-for-calling-the-api-as-yourself">Tokens you mint for calling the API as yourself (<code>gb_…</code>). Model-provider keys live in the Integrations app.</p>
+                <p class="setting-desc" style="padding:0 20px 12px;" data-i18n-html="settings-personal-tokens-desc">Tokens you mint for calling the API as yourself (<code>gb_…</code>). Model-provider keys live in the Integrations app.</p>
                 <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="empty-state">
-                        <p data-i18n="auto-no-api-keys-created-yet">No API keys created yet</p>
+                        <p data-i18n="settings-no-api-keys">No API keys created yet</p>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@
             <!-- Webhooks -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-webhooks">Webhooks</h2>
+                    <h2 data-i18n="settings-webhooks-title">Webhooks</h2>
                     <div class="card-actions" style="display:flex;gap:8px;align-items:center">
                         <a class="btn-secondary btn-sm"
                             href="https://docs.generalbots.org/07-user-interface/apps/settings.html#integrations"
@@ -65,7 +65,7 @@
                 <div class="webhooks-list" id="webhooks-list" hx-get="/api/user/webhooks" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="empty-state">
-                        <p data-i18n="auto-no-webhooks-configured">No webhooks configured</p>
+                        <p data-i18n="settings-no-webhooks">No webhooks configured</p>
                     </div>
                 </div>
             </div>
@@ -76,13 +76,13 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2 data-i18n="sources-servers">MCP Servers</h2>
-                    <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()" data-i18n="auto-full-catalog">
+                    <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()" data-i18n="settings-full-catalog">
                         Full catalog
                     </button>
                 </div>
                 <div class="connections-list settings-mcp-list" id="settings-mcp-list" aria-busy="true">
                     <div class="empty-state">
-                        <p data-i18n="auto-loading-mcp-servers">Loading MCP servers</p>
+                        <p data-i18n="settings-loading-mcp-servers">Loading MCP servers</p>
                     </div>
                 </div>
                 <div class="settings-mcp-status" id="settings-mcp-status" role="status"></div>
@@ -92,14 +92,14 @@
                  advertised to the model as guidance and can be toggled off. -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-agent-skills">Agent Skills</h2>
-                    <button class="btn-secondary btn-sm" id="settings-skills-import" data-i18n="auto-import-skill">Import skill</button>
+                    <h2 data-i18n="settings-agent-skills">Agent Skills</h2>
+                    <button class="btn-secondary btn-sm" id="settings-skills-import" data-i18n="settings-import-skill">Import skill</button>
                 </div>
                 <textarea id="settings-skills-input" class="settings-skills-input" rows="6"
                     placeholder="Paste a SKILL.md package:&#10;---&#10;name: deploy-check&#10;description: Verify a deploy before announcing it&#10;---&#10;1. …"></textarea>
                 <div class="connections-list settings-mcp-list" id="settings-skills-list" aria-busy="true">
                     <div class="empty-state">
-                        <p data-i18n="auto-loading-skills">Loading skills</p>
+                        <p data-i18n="settings-loading-skills">Loading skills</p>
                     </div>
                 </div>
                 <div class="settings-mcp-status" id="settings-skills-status" role="status"></div>
@@ -174,15 +174,15 @@
         <section id="ai-accounts-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-ai-accounts">AI accounts</h1>
-                <p class="subtitle" data-i18n="auto-claude-code-and-chatgpt-plan-subscriptions-are-per-user-cred">Claude Code and ChatGPT plan subscriptions are per user. Credentials stay in your agent VM or the local vault; only the status and display metadata are stored here.</p>
+                <p class="subtitle" data-i18n="settings-ai-accounts-subtitle">Claude Code and ChatGPT plan subscriptions are per user. Credentials stay in your agent VM or the local vault; only the status and display metadata are stored here.</p>
             </div>
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-subscription-accounts">Subscription accounts</h2>
-                    <span class="subtitle" data-i18n="auto-connect-an-account-then-assign-it-to-a-vibe-agent-type">Connect an account, then assign it to a Vibe agent type</span>
+                    <h2 data-i18n="settings-subscription-accounts">Subscription accounts</h2>
+                    <span class="subtitle" data-i18n="settings-ai-accounts-desc">Connect an account, then assign it to a Vibe agent type</span>
                 </div>
                 <div id="ai-accounts-list">
-                    <div class="empty-state"><p data-i18n="auto-loading-ai-accounts">Loading AI accounts…</p></div>
+                    <div class="empty-state"><p data-i18n="settings-loading-ai-accounts">Loading AI accounts…</p></div>
                 </div>
                 <div class="note" id="ai-accounts-status" role="status" style="margin-top:12px"></div>
             </div>
@@ -191,16 +191,16 @@
         <!-- Vibe Section -->
         <section id="vibe-section" class="settings-section">
             <div class="section-header">
-                <h1 data-i18n="settings-vibe">Vibe</h1>                    <p class="subtitle" data-i18n="auto-assign-an-llm-provider-to-each-vibe-agent-type-providers-are">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → Model providers (BYOK) or the Cloud store.</p>
+                <h1 data-i18n="settings-vibe">Vibe</h1>                    <p class="subtitle" data-i18n="settings-vibe-subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → Model providers (BYOK) or the Cloud store.</p>
             </div>
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-agent-llm-providers">Agent LLM Providers</h2>
-                    <span class="subtitle" data-i18n="auto-each-agent-type-routes-its-runs-to-the-provider-selected-her">Each agent type routes its runs to the provider selected here for this branch</span>
+                    <h2 data-i18n="settings-agent-llm-providers">Agent LLM Providers</h2>
+                    <span class="subtitle" data-i18n="settings-agent-llm-providers-desc">Each agent type routes its runs to the provider selected here for this branch</span>
                 </div>
                 <div class="vibe-agent-slots" id="vibe-agent-slots" role="status" aria-live="polite" aria-atomic="true">
-                    <div class="empty-state"><p data-i18n="auto-loading-agent-providers">Loading agent providers…</p></div>
+                    <div class="empty-state"><p data-i18n="settings-loading-agent-providers">Loading agent providers…</p></div>
                 </div>
             </div>
         </section>
@@ -209,29 +209,29 @@
         <section id="privacy-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-privacy">Privacy</h1>
-                <p class="subtitle" data-i18n="auto-manage-your-data-and-privacy-settings">Manage your data and privacy settings</p>
+                <p class="subtitle" data-i18n="settings-privacy-subtitle">Manage your data and privacy settings</p>
             </div>
 
             <!-- Privacy Settings -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-privacy-preferences">Privacy Preferences</h2>
+                    <h2 data-i18n="settings-privacy-preferences">Privacy Preferences</h2>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title" data-i18n="auto-profile-visibility">Profile Visibility</span>
-                        <span class="setting-desc" data-i18n="auto-who-can-see-your-profile">Who can see your profile</span>
+                        <span class="setting-title" data-i18n="settings-profile-visibility">Profile Visibility</span>
+                        <span class="setting-desc" data-i18n="settings-profile-visibility-desc">Who can see your profile</span>
                     </div>
                     <select name="profile_visibility" class="select-sm" data-pref="gb-privacy-profile-visibility">
                         <option value="public" data-i18n="label-public">Public</option>
-                        <option value="contacts" data-i18n="auto-contacts-only">Contacts Only</option>
+                        <option value="contacts" data-i18n="settings-contacts-only">Contacts Only</option>
                         <option value="private" data-i18n="label-private">Private</option>
                     </select>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title" data-i18n="auto-online-status">Online Status</span>
-                        <span class="setting-desc" data-i18n="auto-show-when-you-re-online">Show when you're online</span>
+                        <span class="setting-title" data-i18n="settings-online-status">Online Status</span>
+                        <span class="setting-desc" data-i18n="settings-online-status-desc">Show when you're online</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="show_online" checked data-pref="gb-privacy-online">
@@ -240,8 +240,8 @@
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title" data-i18n="auto-read-receipts">Read Receipts</span>
-                        <span class="setting-desc" data-i18n="auto-let-others-know-when-you-ve-read-messages">Let others know when you've read messages</span>
+                        <span class="setting-title" data-i18n="settings-read-receipts">Read Receipts</span>
+                        <span class="setting-desc" data-i18n="settings-read-receipts-desc">Let others know when you've read messages</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="read_receipts" checked data-pref="gb-privacy-read-receipts">
@@ -253,15 +253,15 @@
             <!-- Data Export -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-your-data">Your Data</h2>
-                    <p data-i18n="auto-download-a-copy-of-your-data">Download a copy of your data</p>
+                    <h2 data-i18n="settings-your-data">Your Data</h2>
+                    <p data-i18n="settings-download-data-desc">Download a copy of your data</p>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title" data-i18n="auto-export-data">Export Data</span>
-                        <span class="setting-desc" data-i18n="auto-download-all-your-data-in-a-portable-format">Download all your data in a portable format</span>
+                        <span class="setting-title" data-i18n="settings-export-data">Export Data</span>
+                        <span class="setting-desc" data-i18n="settings-export-data-desc">Download all your data in a portable format</span>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="downloadDataExport()" data-i18n="auto-export-data">Export Data</button>
+                    <button class="btn-secondary" type="button" onclick="downloadDataExport()" data-i18n="settings-export-data">Export Data</button>
                 </div>
             </div>
 
@@ -269,11 +269,11 @@
             <div class="setting-card danger-card">
                 <div class="card-header">
                     <h2 data-i18n="settings-delete-account">Delete Account</h2>
-                    <p data-i18n="auto-permanently-delete-your-account-and-all-associated-data">Permanently delete your account and all associated data</p>
+                    <p data-i18n="settings-delete-account-title">Permanently delete your account and all associated data</p>
                 </div>
                 <div class="danger-content">
-                    <p data-i18n="auto-once-you-delete-your-account-there-is-no-going-back-please-b">Once you delete your account, there is no going back. Please be certain.</p>
-                    <button class="btn-danger" disabled title="Contact support to delete account" data-i18n="auto-delete-my-account">
+                    <p data-i18n="settings-delete-account-warning">Once you delete your account, there is no going back. Please be certain.</p>
+                    <button class="btn-danger" disabled title="Contact support to delete account" data-i18n="settings-delete-my-account">
                         Delete My Account
                     </button>
                 </div>
@@ -284,33 +284,33 @@
         <section id="memory-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-memory">Memory</h1>
-                <p class="subtitle" data-i18n="auto-what-the-assistant-remembers-about-you-across-conversations">What the assistant remembers about you across conversations</p>
+                <p class="subtitle" data-i18n="settings-memory-subtitle">What the assistant remembers about you across conversations</p>
             </div>
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-remembered-facts">Remembered facts</h2>
+                    <h2 data-i18n="settings-remembered-facts">Remembered facts</h2>
                 </div>
-                <p class="setting-desc" style="padding:0 20px 12px;" data-i18n="auto-these-facts-are-sent-with-every-message-so-answers-stay-cons">
+                <p class="setting-desc" style="padding:0 20px 12px;" data-i18n="settings-memory-facts-desc">
                     These facts are sent with every message so answers stay consistent between
                     conversations. Remove anything you no longer want the assistant to use.
                 </p>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 20px 12px;">
                     <input id="gbMemorySearch" class="input-sm" placeholder="Search memories…" style="flex:1;min-width:180px;">
                     <select id="gbMemoryScope" class="input-sm" aria-label="Memory scope filter">
-                        <option value="all" data-i18n="auto-all-scopes">All scopes</option>
-                        <option value="global" data-i18n="auto-global-all-bots">Global (all bots)</option>
-                        <option value="bot" data-i18n="auto-bot-specific">Bot-specific</option>
+                        <option value="all" data-i18n="settings-memory-all-scopes">All scopes</option>
+                        <option value="global" data-i18n="settings-memory-global-all-bots">Global (all bots)</option>
+                        <option value="bot" data-i18n="settings-memory-bot-specific">Bot-specific</option>
                     </select>
                     <span id="gbMemorySyncStatus" class="setting-desc" role="status" aria-live="polite" aria-atomic="true" data-i18n="paper-synced">Synced</span>
                 </div>
                 <div id="gbMemoryBotScope" class="setting-desc" style="padding:0 20px 8px;">
-                    Bot scope: <strong id="gbMemoryBotName" data-i18n="auto-default">default</strong>
+                    Bot scope: <strong id="gbMemoryBotName" data-i18n="settings-default-scope">default</strong>
                 </div>
                 <div id="gbMemoryList" style="padding:0 20px 16px;"></div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title" data-i18n="auto-manage-memories">Manage memories</span>
-                        <span class="setting-desc" data-i18n="auto-memories-are-created-by-the-assistant-edit-or-remove-them-he">Memories are created by the assistant. Edit or remove them here.</span>
+                        <span class="setting-title" data-i18n="settings-manage-memories">Manage memories</span>
+                        <span class="setting-desc" data-i18n="settings-manage-memories-desc">Memories are created by the assistant. Edit or remove them here.</span>
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button type="button" class="btn btn-secondary btn-sm" id="gbMemoryClear" data-i18n="notifications-clear">Clear all</button>
@@ -333,8 +333,8 @@
                      with real data, otherwise the empty state below is shown. -->
                 <div class="plan-display" hx-get="/api/user/billing/plan" hx-trigger="load" hx-swap="innerHTML">
                     <div class="empty-state">
-                        <p data-i18n="auto-no-plan-information-is-managed-by-this-deployment">No plan information is managed by this deployment.</p>
-                        <button type="button" class="btn-secondary" onclick="return openCloudBilling()" data-i18n="auto-manage-plan-on-cloud">Manage plan on Cloud</button>
+                        <p data-i18n="settings-no-plan-info">No plan information is managed by this deployment.</p>
+                        <button type="button" class="btn-secondary" onclick="return openCloudBilling()" data-i18n="settings-manage-plan-on-cloud">Manage plan on Cloud</button>
                     </div>
                 </div>
             </div>
@@ -342,17 +342,17 @@
             <!-- Payment Method -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2 data-i18n="auto-payment-method">Payment Method</h2>
+                    <h2 data-i18n="admin-billing-payment-method">Payment Method</h2>
                     <button class="btn-primary btn-sm"
-                        onclick="window.location.href=(window.GB_CLOUD_URL || window.location.origin.replace(/:\d+$/, function(_, p) { return p === '3000' ? ':4000' : ':' + p })) + '/cloud/payment-cards';" data-i18n="auto-add-method">
+                        onclick="window.location.href=(window.GB_CLOUD_URL || window.location.origin.replace(/:\d+$/, function(_, p) { return p === '3000' ? ':4000' : ':' + p })) + '/cloud/payment-cards';" data-i18n="settings-add-method">
                         Add Method
                     </button>
                 </div>
                 <div class="payment-methods" id="payment-methods" hx-get="/api/user/billing/payment-methods"
                     hx-trigger="load" hx-swap="innerHTML">
                     <div class="empty-state">
-                        <p data-i18n="auto-no-payment-method-on-file">No payment method on file.</p>
-                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()" data-i18n="auto-add-method-on-cloud">Add Method on Cloud</button>
+                        <p data-i18n="settings-no-payment-method">No payment method on file.</p>
+                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()" data-i18n="settings-add-method-on-cloud">Add Method on Cloud</button>
                     </div>
                 </div>
             </div>
@@ -365,8 +365,8 @@
                 <div class="invoices-list" id="invoices-list" hx-get="/api/user/billing/invoices" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="empty-state">
-                        <p data-i18n="auto-no-invoices-for-this-account">No invoices for this account.</p>
-                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()" data-i18n="auto-view-invoices-on-cloud">View invoices on Cloud</button>
+                        <p data-i18n="settings-no-invoices">No invoices for this account.</p>
+                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()" data-i18n="settings-view-invoices-on-cloud">View invoices on Cloud</button>
                     </div>
                 </div>
             </div>

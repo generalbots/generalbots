@@ -710,3 +710,153 @@ settings-ledger-tab-budgets = Budgets
 
 # semantic i18n key (#2542)
 settings-ledger-tab-ttft = TTFT
+
+# semantic i18n key (#2542)
+settings-integrations-subtitle = Connect external services and manage API access
+
+# semantic i18n key (#2542)
+settings-open-integrations = Open Integrations
+
+# semantic i18n key (#2542)
+settings-personal-access-tokens = Personal access tokens
+
+# semantic i18n key (#2542)
+settings-personal-tokens-desc = Tokens you mint for calling the API as yourself (<code>gb_…</code>). Model-provider keys live in the Integrations app.
+
+# semantic i18n key (#2542)
+settings-no-api-keys = No API keys created yet
+
+# semantic i18n key (#2542)
+settings-webhooks-title = Webhooks
+
+# semantic i18n key (#2542)
+settings-no-webhooks = No webhooks configured
+
+# semantic i18n key (#2542)
+settings-full-catalog = Full catalog
+
+# semantic i18n key (#2542)
+settings-loading-mcp-servers = Loading MCP servers
+
+# semantic i18n key (#2542)
+settings-agent-skills = Agent Skills
+
+# semantic i18n key (#2542)
+settings-import-skill = Import skill
+
+# semantic i18n key (#2542)
+settings-loading-skills = Loading skills
+
+# semantic i18n key (#2542)
+settings-ai-accounts-subtitle = Claude Code and ChatGPT plan subscriptions are per user. Credentials stay in your agent VM or the local vault; only the status and display metadata are stored here.
+
+# semantic i18n key (#2542)
+settings-subscription-accounts = Subscription accounts
+
+# semantic i18n key (#2542)
+settings-ai-accounts-desc = Connect an account, then assign it to a Vibe agent type
+
+# semantic i18n key (#2542)
+settings-loading-ai-accounts = Loading AI accounts…
+
+# semantic i18n key (#2542)
+settings-vibe-subtitle = Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → Model providers (BYOK) or the Cloud store.
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers = Agent LLM Providers
+
+# semantic i18n key (#2542)
+settings-agent-llm-providers-desc = Each agent type routes its runs to the provider selected here for this branch
+
+# semantic i18n key (#2542)
+settings-loading-agent-providers = Loading agent providers…
+
+# semantic i18n key (#2542)
+settings-privacy-subtitle = Manage your data and privacy settings
+
+# semantic i18n key (#2542)
+settings-privacy-preferences = Privacy Preferences
+
+# semantic i18n key (#2542)
+settings-profile-visibility = Profile Visibility
+
+# semantic i18n key (#2542)
+settings-profile-visibility-desc = Who can see your profile
+
+# semantic i18n key (#2542)
+settings-contacts-only = Contacts Only
+
+# semantic i18n key (#2542)
+settings-online-status = Online Status
+
+# semantic i18n key (#2542)
+settings-online-status-desc = Show when you're online
+
+# semantic i18n key (#2542)
+settings-read-receipts = Read Receipts
+
+# semantic i18n key (#2542)
+settings-read-receipts-desc = Let others know when you've read messages
+
+# semantic i18n key (#2542)
+settings-your-data = Your Data
+
+# semantic i18n key (#2542)
+settings-export-data = Export Data
+
+# semantic i18n key (#2542)
+settings-export-data-desc = Download all your data in a portable format
+
+# semantic i18n key (#2542)
+settings-delete-account-title = Permanently delete your account and all associated data
+
+# semantic i18n key (#2542)
+settings-delete-my-account = Delete My Account
+
+# semantic i18n key (#2542)
+settings-memory-subtitle = What the assistant remembers about you across conversations
+
+# semantic i18n key (#2542)
+settings-remembered-facts = Remembered facts
+
+# semantic i18n key (#2542)
+settings-memory-facts-desc = These facts are sent with every message so answers stay consistent between conversations. Remove anything you no longer want the assistant to use.
+
+# semantic i18n key (#2542)
+settings-memory-all-scopes = All scopes
+
+# semantic i18n key (#2542)
+settings-memory-global-all-bots = Global (all bots)
+
+# semantic i18n key (#2542)
+settings-memory-bot-specific = Bot-specific
+
+# semantic i18n key (#2542)
+settings-default-scope = default
+
+# semantic i18n key (#2542)
+settings-manage-memories = Manage memories
+
+# semantic i18n key (#2542)
+settings-manage-memories-desc = Memories are created by the assistant. Edit or remove them here.
+
+# semantic i18n key (#2542)
+settings-no-plan-info = No plan information is managed by this deployment.
+
+# semantic i18n key (#2542)
+settings-manage-plan-on-cloud = Manage plan on Cloud
+
+# semantic i18n key (#2542)
+settings-add-method = Add Method
+
+# semantic i18n key (#2542)
+settings-no-payment-method = No payment method on file.
+
+# semantic i18n key (#2542)
+settings-add-method-on-cloud = Add Method on Cloud
+
+# semantic i18n key (#2542)
+settings-no-invoices = No invoices for this account.
+
+# semantic i18n key (#2542)
+settings-view-invoices-on-cloud = View invoices on Cloud
