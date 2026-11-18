@@ -245,3 +245,54 @@ widget-system-resources = システムリソース
 
 # semantic i18n key (#2542)
 widget-cores = コア
+
+# semantic i18n key (#2542)
+paper-extract-actions = アクションを抽出
+
+# semantic i18n key (#2542)
+paper-extract-actions-desc = テキストからタスクを抽出
+
+# semantic i18n key (#2542)
+analytics-funnel-badge = ファネル
+
+# semantic i18n key (#2542)
+analytics-chart-badge = チャート
+
+# semantic i18n key (#2542)
+analytics-projection-badge = 予測
+
+# semantic i18n key (#2542)
+editor-loading-workspace = ワークスペースを読み込み中...
+
+# semantic i18n key (#2542)
+editor-no-file-open = ファイルが開かれていません
+
+# semantic i18n key (#2542)
+editor-publish = 公開
+
+# semantic i18n key (#2542)
+project-framework-react = React
+
+# semantic i18n key (#2542)
+project-env-staging = ステージング
+
+# semantic i18n key (#2542)
+project-env-production = 本番
+
+# semantic i18n key (#2542)
+snapshot-capture-hint = この画面をキャプチャ（ブラウザの共有選択）し、画像をダウンロードまたはコピーします。
+
+# semantic i18n key (#2542)
+snapshot-capture-screen = 画面をキャプチャ
+
+# semantic i18n key (#2542)
+snapshot-download-png = PNGをダウンロード
+
+# semantic i18n key (#2542)
+vibe-graph-legend-use-case = ユースケース
+
+# semantic i18n key (#2542)
+vibe-graph-legend-run = 実行
+
+# semantic i18n key (#2542)
+vibe-graph-legend-tool = ツール

@@ -69,3 +69,12 @@ admin-notify-upload-failed-reason = 업로드에 실패했습니다: { $reason }
 
 # semantic i18n key (#2542)
 admin-views = 보기
+
+# semantic i18n key (#2542)
+admin-observability = 관측 가능성
+
+# semantic i18n key (#2542)
+admin-run-quality = 실행 품질
+
+# semantic i18n key (#2542)
+admin-run-quality-desc = 최근 실행 로그의 프레임 유효성, 동의 거부, 샌드박스 오류 및 토큰 사용량.

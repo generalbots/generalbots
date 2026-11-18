@@ -245,3 +245,54 @@ widget-system-resources = 系统资源
 
 # semantic i18n key (#2542)
 widget-cores = 核心
+
+# semantic i18n key (#2542)
+paper-extract-actions = 提取操作
+
+# semantic i18n key (#2542)
+paper-extract-actions-desc = 从文本中提取任务
+
+# semantic i18n key (#2542)
+analytics-funnel-badge = 漏斗
+
+# semantic i18n key (#2542)
+analytics-chart-badge = 图表
+
+# semantic i18n key (#2542)
+analytics-projection-badge = 预测
+
+# semantic i18n key (#2542)
+editor-loading-workspace = 正在加载工作区...
+
+# semantic i18n key (#2542)
+editor-no-file-open = 未打开文件
+
+# semantic i18n key (#2542)
+editor-publish = 发布
+
+# semantic i18n key (#2542)
+project-framework-react = React
+
+# semantic i18n key (#2542)
+project-env-staging = 预发布
+
+# semantic i18n key (#2542)
+project-env-production = 生产
+
+# semantic i18n key (#2542)
+snapshot-capture-hint = 捕获此屏幕（浏览器选择共享），然后下载或复制图像。
+
+# semantic i18n key (#2542)
+snapshot-capture-screen = 捕获屏幕
+
+# semantic i18n key (#2542)
+snapshot-download-png = 下载 PNG
+
+# semantic i18n key (#2542)
+vibe-graph-legend-use-case = 用例
+
+# semantic i18n key (#2542)
+vibe-graph-legend-run = 运行
+
+# semantic i18n key (#2542)
+vibe-graph-legend-tool = 工具

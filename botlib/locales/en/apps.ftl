@@ -245,3 +245,54 @@ widget-system-resources = System Resources
 
 # semantic i18n key (#2542)
 widget-cores = Cores
+
+# semantic i18n key (#2542)
+paper-extract-actions = Extract Actions
+
+# semantic i18n key (#2542)
+paper-extract-actions-desc = Pull tasks from text
+
+# semantic i18n key (#2542)
+analytics-funnel-badge = Funnel
+
+# semantic i18n key (#2542)
+analytics-chart-badge = Chart
+
+# semantic i18n key (#2542)
+analytics-projection-badge = Projection
+
+# semantic i18n key (#2542)
+editor-loading-workspace = Loading workspace...
+
+# semantic i18n key (#2542)
+editor-no-file-open = No file open
+
+# semantic i18n key (#2542)
+editor-publish = Publish
+
+# semantic i18n key (#2542)
+project-framework-react = React
+
+# semantic i18n key (#2542)
+project-env-staging = Staging
+
+# semantic i18n key (#2542)
+project-env-production = Production
+
+# semantic i18n key (#2542)
+snapshot-capture-hint = Capture this screen (browser pick share), then download or copy the image.
+
+# semantic i18n key (#2542)
+snapshot-capture-screen = Capture screen
+
+# semantic i18n key (#2542)
+snapshot-download-png = Download PNG
+
+# semantic i18n key (#2542)
+vibe-graph-legend-use-case = use case
+
+# semantic i18n key (#2542)
+vibe-graph-legend-run = run
+
+# semantic i18n key (#2542)
+vibe-graph-legend-tool = tool

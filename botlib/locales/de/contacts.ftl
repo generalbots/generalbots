@@ -328,3 +328,9 @@ crm-status-prospect = Interessent
 
 # semantic i18n key (#2542)
 crm-lost-reason = Verlustgrund
+
+# semantic i18n key (#2542)
+crm-deal-title = Titel *
+
+# semantic i18n key (#2542)
+crm-create-deal = Deal erstellen

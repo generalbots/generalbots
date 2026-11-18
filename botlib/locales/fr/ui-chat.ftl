@@ -148,3 +148,12 @@ chat-empty-hint = Saisissez un message ci-dessous ou utilisez la saisie vocale
 
 # semantic i18n key (#2542)
 chat-no-conversations-yet = Aucune conversation pour l'instant
+
+# semantic i18n key (#2542)
+chat-context-label = Contexte :
+
+# semantic i18n key (#2542)
+chat-select-context = Sélectionner un contexte...
+
+# semantic i18n key (#2542)
+chat-no-contexts-configured = Aucun contexte configuré

@@ -148,3 +148,12 @@ chat-empty-hint = 아래에 메시지를 입력하거나 음성 입력을 사용
 
 # semantic i18n key (#2542)
 chat-no-conversations-yet = 아직 대화가 없습니다
+
+# semantic i18n key (#2542)
+chat-context-label = 컨텍스트:
+
+# semantic i18n key (#2542)
+chat-select-context = 컨텍스트 선택...
+
+# semantic i18n key (#2542)
+chat-no-contexts-configured = 구성된 컨텍스트 없음

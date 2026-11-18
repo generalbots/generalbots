@@ -245,3 +245,54 @@ widget-system-resources = Systemressourcen
 
 # semantic i18n key (#2542)
 widget-cores = Kerne
+
+# semantic i18n key (#2542)
+paper-extract-actions = Aktionen extrahieren
+
+# semantic i18n key (#2542)
+paper-extract-actions-desc = Aufgaben aus Text extrahieren
+
+# semantic i18n key (#2542)
+analytics-funnel-badge = Trichter
+
+# semantic i18n key (#2542)
+analytics-chart-badge = Diagramm
+
+# semantic i18n key (#2542)
+analytics-projection-badge = Prognose
+
+# semantic i18n key (#2542)
+editor-loading-workspace = Arbeitsbereich wird geladen...
+
+# semantic i18n key (#2542)
+editor-no-file-open = Keine Datei geöffnet
+
+# semantic i18n key (#2542)
+editor-publish = Veröffentlichen
+
+# semantic i18n key (#2542)
+project-framework-react = React
+
+# semantic i18n key (#2542)
+project-env-staging = Staging
+
+# semantic i18n key (#2542)
+project-env-production = Produktion
+
+# semantic i18n key (#2542)
+snapshot-capture-hint = Erfassen Sie diesen Bildschirm (Browser-Freigabe) und laden Sie das Bild dann herunter oder kopieren Sie es.
+
+# semantic i18n key (#2542)
+snapshot-capture-screen = Bildschirm aufnehmen
+
+# semantic i18n key (#2542)
+snapshot-download-png = PNG herunterladen
+
+# semantic i18n key (#2542)
+vibe-graph-legend-use-case = Anwendungsfall
+
+# semantic i18n key (#2542)
+vibe-graph-legend-run = Ausführung
+
+# semantic i18n key (#2542)
+vibe-graph-legend-tool = Werkzeug

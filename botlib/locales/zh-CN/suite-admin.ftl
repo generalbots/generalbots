@@ -69,3 +69,12 @@ admin-notify-upload-failed-reason = 上传失败:{ $reason }
 
 # semantic i18n key (#2542)
 admin-views = 视图
+
+# semantic i18n key (#2542)
+admin-observability = 可观测性
+
+# semantic i18n key (#2542)
+admin-run-quality = 运行质量
+
+# semantic i18n key (#2542)
+admin-run-quality-desc = 最近运行日志的帧有效性、同意拒绝、沙箱错误和令牌使用情况。

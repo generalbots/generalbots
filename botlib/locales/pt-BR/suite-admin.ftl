@@ -69,3 +69,12 @@ admin-notify-upload-failed-reason = Falha no envio: { $reason }
 
 # semantic i18n key (#2542)
 admin-views = Visualizações
+
+# semantic i18n key (#2542)
+admin-observability = Observabilidade
+
+# semantic i18n key (#2542)
+admin-run-quality = Qualidade da execução
+
+# semantic i18n key (#2542)
+admin-run-quality-desc = Validade de quadros, recusas de consentimento, erros de sandbox e uso de tokens do log de execuções recentes.

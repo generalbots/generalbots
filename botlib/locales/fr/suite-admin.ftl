@@ -69,3 +69,12 @@ admin-notify-upload-failed-reason = Échec du téléversement : { $reason }
 
 # semantic i18n key (#2542)
 admin-views = Vues
+
+# semantic i18n key (#2542)
+admin-observability = Observabilité
+
+# semantic i18n key (#2542)
+admin-run-quality = Qualité d'exécution
+
+# semantic i18n key (#2542)
+admin-run-quality-desc = Validité des trames, refus de consentement, erreurs de bac à sable et utilisation des jetons pour le journal d'exécution récent.

@@ -69,3 +69,12 @@ admin-notify-upload-failed-reason = アップロードに失敗しました: { $
 
 # semantic i18n key (#2542)
 admin-views = ビュー
+
+# semantic i18n key (#2542)
+admin-observability = オブザーバビリティ
+
+# semantic i18n key (#2542)
+admin-run-quality = 実行品質
+
+# semantic i18n key (#2542)
+admin-run-quality-desc = 最近の実行ログのフレーム有効性、同意拒否、サンドボックスエラー、トークン使用量。

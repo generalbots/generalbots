@@ -148,3 +148,12 @@ chat-empty-hint = 在下方输入消息或使用语音输入
 
 # semantic i18n key (#2542)
 chat-no-conversations-yet = 暂无对话
+
+# semantic i18n key (#2542)
+chat-context-label = 上下文：
+
+# semantic i18n key (#2542)
+chat-select-context = 选择上下文...
+
+# semantic i18n key (#2542)
+chat-no-contexts-configured = 未配置上下文

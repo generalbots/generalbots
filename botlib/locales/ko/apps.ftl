@@ -245,3 +245,54 @@ widget-system-resources = 시스템 리소스
 
 # semantic i18n key (#2542)
 widget-cores = 코어
+
+# semantic i18n key (#2542)
+paper-extract-actions = 작업 추출
+
+# semantic i18n key (#2542)
+paper-extract-actions-desc = 텍스트에서 작업 추출
+
+# semantic i18n key (#2542)
+analytics-funnel-badge = 퍼널
+
+# semantic i18n key (#2542)
+analytics-chart-badge = 차트
+
+# semantic i18n key (#2542)
+analytics-projection-badge = 전망
+
+# semantic i18n key (#2542)
+editor-loading-workspace = 작업 공간 불러오는 중...
+
+# semantic i18n key (#2542)
+editor-no-file-open = 열린 파일 없음
+
+# semantic i18n key (#2542)
+editor-publish = 게시
+
+# semantic i18n key (#2542)
+project-framework-react = React
+
+# semantic i18n key (#2542)
+project-env-staging = 스테이징
+
+# semantic i18n key (#2542)
+project-env-production = 프로덕션
+
+# semantic i18n key (#2542)
+snapshot-capture-hint = 이 화면을 캡처(브라우저 공유 선택)한 다음 이미지를 다운로드하거나 복사하세요.
+
+# semantic i18n key (#2542)
+snapshot-capture-screen = 화면 캡처
+
+# semantic i18n key (#2542)
+snapshot-download-png = PNG 다운로드
+
+# semantic i18n key (#2542)
+vibe-graph-legend-use-case = 사용 사례
+
+# semantic i18n key (#2542)
+vibe-graph-legend-run = 실행
+
+# semantic i18n key (#2542)
+vibe-graph-legend-tool = 도구

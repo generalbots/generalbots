@@ -328,3 +328,9 @@ crm-status-prospect = 잠재 고객
 
 # semantic i18n key (#2542)
 crm-lost-reason = 실패 사유
+
+# semantic i18n key (#2542)
+crm-deal-title = 제목 *
+
+# semantic i18n key (#2542)
+crm-create-deal = 거래 생성

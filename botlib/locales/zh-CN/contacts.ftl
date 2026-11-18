@@ -328,3 +328,9 @@ crm-status-prospect = 潜在客户
 
 # semantic i18n key (#2542)
 crm-lost-reason = 丢失原因
+
+# semantic i18n key (#2542)
+crm-deal-title = 标题 *
+
+# semantic i18n key (#2542)
+crm-create-deal = 创建交易
