@@ -815,3 +815,60 @@ banking-account-savings = Savings
 
 # semantic i18n key (#2542)
 banking-account-save = Save account
+
+# semantic i18n key (#2542)
+jukebox-instrumental-radio = Instrumental radio
+
+# semantic i18n key (#2542)
+jukebox-status-check = CHECK
+
+# semantic i18n key (#2542)
+jukebox-station-ambient-label = AMBIENT
+
+# semantic i18n key (#2542)
+jukebox-select-genre = SELECT A GENRE
+
+# semantic i18n key (#2542)
+jukebox-press-play-hint = PRESS PLAY TO START THE STATION
+
+# semantic i18n key (#2542)
+jukebox-genre-station-label = GENRE STATION
+
+# semantic i18n key (#2542)
+jukebox-genre-ambient = Ambient
+
+# semantic i18n key (#2542)
+jukebox-genre-lofi = Lo-fi Hip Hop
+
+# semantic i18n key (#2542)
+jukebox-genre-jazz = Jazz
+
+# semantic i18n key (#2542)
+jukebox-genre-classical = Classical
+
+# semantic i18n key (#2542)
+jukebox-genre-electronic = Electronic
+
+# semantic i18n key (#2542)
+jukebox-genre-synthwave = Synthwave
+
+# semantic i18n key (#2542)
+jukebox-genre-bossa = Brazilian Bossa
+
+# semantic i18n key (#2542)
+jukebox-genre-cinematic = Cinematic
+
+# semantic i18n key (#2542)
+jukebox-genre-acoustic = Acoustic
+
+# semantic i18n key (#2542)
+jukebox-genre-chillhouse = Chill House
+
+# semantic i18n key (#2542)
+jukebox-vocal-inst = INST
+
+# semantic i18n key (#2542)
+jukebox-playlist-tape = PLAYLIST TAPE
+
+# semantic i18n key (#2542)
+jukebox-queue-empty = Queue is empty — pick a station to start

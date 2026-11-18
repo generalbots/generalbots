@@ -815,3 +815,60 @@ banking-account-savings = 저축
 
 # semantic i18n key (#2542)
 banking-account-save = 계좌 저장
+
+# semantic i18n key (#2542)
+jukebox-instrumental-radio = 인스트루멘탈 라디오
+
+# semantic i18n key (#2542)
+jukebox-status-check = 확인
+
+# semantic i18n key (#2542)
+jukebox-station-ambient-label = 앰비언트
+
+# semantic i18n key (#2542)
+jukebox-select-genre = 장르 선택
+
+# semantic i18n key (#2542)
+jukebox-press-play-hint = 재생을 눌러 스테이션 시작
+
+# semantic i18n key (#2542)
+jukebox-genre-station-label = 장르 스테이션
+
+# semantic i18n key (#2542)
+jukebox-genre-ambient = 앰비언트
+
+# semantic i18n key (#2542)
+jukebox-genre-lofi = 로파이 힙합
+
+# semantic i18n key (#2542)
+jukebox-genre-jazz = 재즈
+
+# semantic i18n key (#2542)
+jukebox-genre-classical = 클래식
+
+# semantic i18n key (#2542)
+jukebox-genre-electronic = 일렉트로닉
+
+# semantic i18n key (#2542)
+jukebox-genre-synthwave = 신스웨이브
+
+# semantic i18n key (#2542)
+jukebox-genre-bossa = 브라질 보사노바
+
+# semantic i18n key (#2542)
+jukebox-genre-cinematic = 시네마틱
+
+# semantic i18n key (#2542)
+jukebox-genre-acoustic = 어쿠스틱
+
+# semantic i18n key (#2542)
+jukebox-genre-chillhouse = 칠 하우스
+
+# semantic i18n key (#2542)
+jukebox-vocal-inst = INST
+
+# semantic i18n key (#2542)
+jukebox-playlist-tape = 플레이리스트 테이프
+
+# semantic i18n key (#2542)
+jukebox-queue-empty = 대기열이 비어 있습니다 — 시작할 스테이션을 선택하세요

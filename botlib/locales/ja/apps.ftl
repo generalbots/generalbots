@@ -815,3 +815,60 @@ banking-account-savings = 普通預金
 
 # semantic i18n key (#2542)
 banking-account-save = 口座を保存
+
+# semantic i18n key (#2542)
+jukebox-instrumental-radio = インストゥルメンタルラジオ
+
+# semantic i18n key (#2542)
+jukebox-status-check = 確認
+
+# semantic i18n key (#2542)
+jukebox-station-ambient-label = アンビエント
+
+# semantic i18n key (#2542)
+jukebox-select-genre = ジャンルを選択
+
+# semantic i18n key (#2542)
+jukebox-press-play-hint = 再生を押してステーションを開始
+
+# semantic i18n key (#2542)
+jukebox-genre-station-label = ジャンルステーション
+
+# semantic i18n key (#2542)
+jukebox-genre-ambient = アンビエント
+
+# semantic i18n key (#2542)
+jukebox-genre-lofi = Lo-fiヒップホップ
+
+# semantic i18n key (#2542)
+jukebox-genre-jazz = ジャズ
+
+# semantic i18n key (#2542)
+jukebox-genre-classical = クラシック
+
+# semantic i18n key (#2542)
+jukebox-genre-electronic = エレクトロニック
+
+# semantic i18n key (#2542)
+jukebox-genre-synthwave = シンセウェーブ
+
+# semantic i18n key (#2542)
+jukebox-genre-bossa = ブラジリアン・ボサ
+
+# semantic i18n key (#2542)
+jukebox-genre-cinematic = シネマティック
+
+# semantic i18n key (#2542)
+jukebox-genre-acoustic = アコースティック
+
+# semantic i18n key (#2542)
+jukebox-genre-chillhouse = チルハウス
+
+# semantic i18n key (#2542)
+jukebox-vocal-inst = INST
+
+# semantic i18n key (#2542)
+jukebox-playlist-tape = プレイリストテープ
+
+# semantic i18n key (#2542)
+jukebox-queue-empty = キューは空です — ステーションを選んで開始してください

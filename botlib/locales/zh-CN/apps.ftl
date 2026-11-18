@@ -815,3 +815,60 @@ banking-account-savings = 储蓄账户
 
 # semantic i18n key (#2542)
 banking-account-save = 保存账户
+
+# semantic i18n key (#2542)
+jukebox-instrumental-radio = 器乐电台
+
+# semantic i18n key (#2542)
+jukebox-status-check = 检查
+
+# semantic i18n key (#2542)
+jukebox-station-ambient-label = 氛围
+
+# semantic i18n key (#2542)
+jukebox-select-genre = 选择流派
+
+# semantic i18n key (#2542)
+jukebox-press-play-hint = 按播放开始电台
+
+# semantic i18n key (#2542)
+jukebox-genre-station-label = 流派电台
+
+# semantic i18n key (#2542)
+jukebox-genre-ambient = 氛围
+
+# semantic i18n key (#2542)
+jukebox-genre-lofi = Lo-fi 嘻哈
+
+# semantic i18n key (#2542)
+jukebox-genre-jazz = 爵士
+
+# semantic i18n key (#2542)
+jukebox-genre-classical = 古典
+
+# semantic i18n key (#2542)
+jukebox-genre-electronic = 电子
+
+# semantic i18n key (#2542)
+jukebox-genre-synthwave = 合成波
+
+# semantic i18n key (#2542)
+jukebox-genre-bossa = 巴西波萨
+
+# semantic i18n key (#2542)
+jukebox-genre-cinematic = 电影感
+
+# semantic i18n key (#2542)
+jukebox-genre-acoustic = 原声
+
+# semantic i18n key (#2542)
+jukebox-genre-chillhouse = 弛放浩室
+
+# semantic i18n key (#2542)
+jukebox-vocal-inst = 纯音乐
+
+# semantic i18n key (#2542)
+jukebox-playlist-tape = 播放列表磁带
+
+# semantic i18n key (#2542)
+jukebox-queue-empty = 队列为空 — 请选择一个电台开始
