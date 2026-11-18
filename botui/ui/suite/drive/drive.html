@@ -234,16 +234,16 @@ Drive
 <div class="selection-bar" id="selection-bar" style="display: none">
 <span class="selection-count" role="status" aria-live="polite" aria-atomic="true" ><span id="selected-count">0</span> selected</span >
 <div class="selection-actions">
-<button class="action-btn" onclick="DriveModule.downloadSelected()" title="Download"  aria-label="Download">
+<button class="action-btn" onclick="DriveModule.downloadSelected()" title="Download" data-i18n-title="action-download" aria-label="Download" data-i18n-aria-label="action-download">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 </button>
-<button class="action-btn" onclick="DriveModule.copySelected()" title="Copy"  aria-label="Copy">
+<button class="action-btn" onclick="DriveModule.copySelected()" title="Copy" data-i18n-title="action-copy" aria-label="Copy" data-i18n-aria-label="action-copy">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" ></rect>
 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" ></path>
 </svg>
 </button>
-<button class="action-btn" onclick="DriveModule.cutSelected()" title="Cut"  aria-label="Cut">
+<button class="action-btn" onclick="DriveModule.cutSelected()" title="Cut" aria-label="Cut">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
 <circle cx="6" cy="6" r="3"></circle>
 <circle cx="6" cy="18" r="3"></circle>
@@ -252,7 +252,7 @@ Drive
 <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
 </svg>
 </button>
-<button class="action-btn danger" onclick="DriveModule.deleteSelected()" title="Delete"  aria-label="Delete">
+<button class="action-btn danger" onclick="DriveModule.deleteSelected()" title="Delete" data-i18n-title="action-delete" aria-label="Delete" data-i18n-aria-label="action-delete">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
 <polyline points="3 6 5 6 21 6"></polyline>
 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" ></path>
