@@ -22,7 +22,7 @@
                     <button class="btn-icon" id="newSlideBtn" hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="New Slide" aria-label="New Slide">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"></rect><line x1="12" y1="6" x2="12" y2="18"></line><line x1="6" y1="12" x2="18" y2="12"></line></svg>
                     </button>
-                    <button class="btn-icon" id="notesBtn" hx-post="/suite/slides/forms/notes" hx-vals='{"presentation_id":"current","slide_index":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Notes" aria-label="Notes">
+                    <button class="btn-icon" id="notesBtn" hx-post="/suite/slides/forms/notes" hx-vals='{"presentation_id":"current","slide_index":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Notes" aria-label="Notes" data-i18n-title="crm-notes" data-i18n-aria-label="crm-notes">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     </button>
                     <button class="btn-icon" id="backgroundBtn" hx-post="/suite/slides/forms/background" hx-vals='{"presentation_id":"current","slide_index":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Background" aria-label="Background" data-i18n-title="canvas-prop-background" data-i18n-aria-label="canvas-prop-background">
@@ -62,7 +62,7 @@
                 <button class="btn-icon" id="followBtn" title="Collaborators & follow" aria-label="Collaborators and follow" onclick="event.stopPropagation(); window.GBCollabFollow && window.GBCollabFollow.toggle(this, function(){ return window.SlidesPresence; })"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3.5"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
                 <button class="btn-icon" id="activityBtn" title="Activity log" aria-label="Activity log" onclick="event.stopPropagation(); openSlidesActivity()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></button>
                 <button class="btn-icon" id="versionsBtn" title="Version history" aria-label="Version history" data-i18n-title="versions-title" data-i18n-aria-label="versions-title" onclick="event.stopPropagation(); openSlidesVersions()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 7 7 7"/><polyline points="12 8 12 13 15.5 15"/></svg></button>
-                <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments" aria-label="Comments">
+                <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments" aria-label="Comments" data-i18n-title="comments-title" data-i18n-aria-label="comments-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </button>
                 <button class="btn-icon" id="shareBtn" title="Share" aria-label="Share" data-i18n-title="action-share" data-i18n-aria-label="action-share" onclick="openSlidesShare()">
@@ -116,7 +116,7 @@
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
-                <div class="toolbar-group" role="group" aria-label="Insert">
+                <div class="toolbar-group" role="group" aria-label="Insert" data-i18n-aria-label="db-insert">
                     <button class="btn-icon" id="insertTextBtn" hx-post="/suite/slides/forms/add-text" hx-vals='{"presentation_id":"current","slide_index":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Add Text" aria-label="Add Text">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
                     </button>
