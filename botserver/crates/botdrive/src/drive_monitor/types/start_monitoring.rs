@@ -219,6 +219,20 @@ impl DriveMonitor {
                             "DriveMonitor: inventorying {} (git-owned source; not downloaded or compiled from Drive)",
                             full_key
                         );
+                                        // #1474 made this arm inventory-only: `git_bot_monitor`
+                                        // is the sole producer of script sources and the sole
+                                        // compile trigger, so a Drive `.bas` has no follow-up
+                                        // work. The mark is still required — without it
+                                        // `indexed` stays false forever, `needs_reindex` is
+                                        // true on every scan, and the row is re-resolved and
+                                        // re-upserted every 5 s. Production shows the cost:
+                                        // 285 `.bas` rows churning, 1,149 "Resolved branch_id"
+                                        // lines per minute (each one a `branches` query) and
+                                        // 63% of a core burned on a server with 16 sessions a
+                                        // week. `indexed` here means "no follow-up work", which
+                                        // is exactly what the config/prompt arms already say.
+                                        let _ =
+                                            self.file_repo.mark_indexed(&full_key, etag.clone());
                                     } else if file_type == "prompt" {
                                         self.sync_gbot_to_work(bot_name, &obj.key, etag.clone())
                                             .await;

@@ -237,7 +237,10 @@ impl DriveMonitor {
                 .get_result::<BranchIdRow>(&mut conn)
                 .ok();
             if let Some(row) = result {
-                log::info!(
+                // Per-file, so INFO here floods the journal: a cold scan of a
+                // populated workspace resolves this once for every object in
+                // the bucket. It belongs at debug; `warn` below stays visible.
+                log::debug!(
                     "Resolved branch_id {} from slug '{}'",
                     row.id,
                     self.branch_slug
