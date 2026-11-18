@@ -1048,3 +1048,11 @@ accounts-placeholder-smtp-username = tu@email.com
 accounts-placeholder-smtp-password = ••••••••
 accounts-placeholder-smtp-from-address = noreply@ejemplo.com
 accounts-placeholder-smtp-from-name = Tu empresa
+
+# semantic i18n key (#2542)
+admin-placeholder-username = nombre de usuario
+admin-placeholder-email = usuario@ejemplo.com
+admin-placeholder-display-name = Juan Pérez
+admin-placeholder-password = ••••••••
+admin-placeholder-group-name = Equipo de ingeniería
+admin-placeholder-group-description = Descripción del grupo...

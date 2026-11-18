@@ -883,3 +883,12 @@ settings-profile-placeholder-public-bio = 在您的公开个人资料中显示�
 settings-profile-placeholder-phone = +86 138 0000 0000
 settings-profile-placeholder-location = 城市，国家
 settings-profile-placeholder-website = https://example.com
+
+# semantic i18n key (#2542)
+settings-placeholder-dns-hostname = mybot.example.com
+settings-placeholder-dns-target = 192.168.1.1 或 target.domain.com
+settings-placeholder-api-key-name = 生产密钥
+settings-placeholder-api-key-scopes = user, admin
+settings-placeholder-api-key-expiry = 90
+settings-placeholder-webhook-url = https://example.com/hooks/gb
+settings-placeholder-webhook-events = user.created, order.completed

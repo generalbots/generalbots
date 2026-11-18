@@ -883,3 +883,12 @@ settings-profile-placeholder-public-bio = 공개 프로필에 표시될 짧은 �
 settings-profile-placeholder-phone = +82 10-0000-0000
 settings-profile-placeholder-location = 도시, 국가
 settings-profile-placeholder-website = https://example.com
+
+# semantic i18n key (#2542)
+settings-placeholder-dns-hostname = mybot.example.com
+settings-placeholder-dns-target = 192.168.1.1 또는 target.domain.com
+settings-placeholder-api-key-name = 프로덕션 키
+settings-placeholder-api-key-scopes = user, admin
+settings-placeholder-api-key-expiry = 90
+settings-placeholder-webhook-url = https://example.com/hooks/gb
+settings-placeholder-webhook-events = user.created, order.completed

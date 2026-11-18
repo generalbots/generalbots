@@ -883,3 +883,12 @@ settings-profile-placeholder-public-bio = 公開プロフィールに表示さ�
 settings-profile-placeholder-phone = +81 90-0000-0000
 settings-profile-placeholder-location = 市区町村、国
 settings-profile-placeholder-website = https://example.com
+
+# semantic i18n key (#2542)
+settings-placeholder-dns-hostname = mybot.example.com
+settings-placeholder-dns-target = 192.168.1.1 または target.domain.com
+settings-placeholder-api-key-name = 本番キー
+settings-placeholder-api-key-scopes = user, admin
+settings-placeholder-api-key-expiry = 90
+settings-placeholder-webhook-url = https://example.com/hooks/gb
+settings-placeholder-webhook-events = user.created, order.completed

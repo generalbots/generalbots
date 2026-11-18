@@ -883,3 +883,12 @@ settings-profile-placeholder-public-bio = Eine kurze Beschreibung, die in Ihrem 
 settings-profile-placeholder-phone = +49 170 0000000
 settings-profile-placeholder-location = Stadt, Land
 settings-profile-placeholder-website = https://beispiel.com
+
+# semantic i18n key (#2542)
+settings-placeholder-dns-hostname = meinbot.beispiel.com
+settings-placeholder-dns-target = 192.168.1.1 oder ziel.domain.com
+settings-placeholder-api-key-name = Produktionsschlüssel
+settings-placeholder-api-key-scopes = user, admin
+settings-placeholder-api-key-expiry = 90
+settings-placeholder-webhook-url = https://beispiel.com/hooks/gb
+settings-placeholder-webhook-events = user.created, order.completed

@@ -16,19 +16,19 @@
         <form id="add-user-form">
             <div class="form-group">
                 <label data-i18n="dashboards-username">Username</label>
-                <input type="text" name="username" required placeholder="username" autocomplete="username">
+                <input type="text" name="username" required data-i18n-placeholder="admin-placeholder-username" autocomplete="username">
             </div>
             <div class="form-group">
                 <label data-i18n="attendant-channel-email">Email</label>
-                <input type="email" name="email" required placeholder="user@example.com" autocomplete="email">
+                <input type="email" name="email" required data-i18n-placeholder="admin-placeholder-email" autocomplete="email">
             </div>
             <div class="form-group">
                 <label data-i18n="settings-display-name">Display Name</label>
-                <input type="text" name="display_name" placeholder="John Doe" autocomplete="name">
+                <input type="text" name="display_name" data-i18n-placeholder="admin-placeholder-display-name" autocomplete="name">
             </div>
             <div class="form-group">
                 <label data-i18n="dashboards-password">Password</label>
-                <input type="password" name="password" required placeholder="••••••••" autocomplete="new-password">
+                <input type="password" name="password" required data-i18n-placeholder="admin-placeholder-password" autocomplete="new-password">
             </div>
             <div class="form-group">
                 <label data-i18n="label-role">Role</label>
@@ -67,11 +67,11 @@
         <form id="add-group-form">
             <div class="form-group">
                 <label data-i18n="label-group-name">Group Name</label>
-                <input type="text" name="name" required placeholder="Engineering Team">
+                <input type="text" name="name" required data-i18n-placeholder="admin-placeholder-group-name">
             </div>
             <div class="form-group">
                 <label data-i18n="label-description">Description</label>
-                <textarea name="description" placeholder="Group description..." rows="3"></textarea>
+                <textarea name="description" data-i18n-placeholder="admin-placeholder-group-description" rows="3"></textarea>
             </div>
             <div id="add-group-status" class="form-status" role="status" aria-live="polite"></div>
             <div class="modal-footer">
@@ -99,7 +99,7 @@
             hx-on::after-request="if(event.detail.successful) { document.getElementById('register-dns-modal').close(); showToast('DNS record registered'); }">
             <div class="form-group">
                 <label data-i18n="label-hostname">Hostname</label>
-                <input type="text" name="hostname" required placeholder="mybot.example.com">
+                <input type="text" name="hostname" required data-i18n-placeholder="settings-placeholder-dns-hostname">
             </div>
             <div class="form-group">
                 <label data-i18n="label-record-type">Record Type</label>
@@ -111,7 +111,7 @@
             </div>
             <div class="form-group">
                 <label data-i18n="label-target">Target</label>
-                <input type="text" name="target" placeholder="192.168.1.1 or target.domain.com">
+                <input type="text" name="target" data-i18n-placeholder="settings-placeholder-dns-target">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary"
@@ -137,16 +137,16 @@
             hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/api-keys', { target: '#api-keys-list', swap: 'innerHTML' }); }">
             <div class="form-group">
                 <label data-i18n="settings-api-key-name">Token name</label>
-                <input type="text" name="name" required placeholder="Production key">
+                <input type="text" name="name" required data-i18n-placeholder="settings-placeholder-api-key-name">
             </div>
             <div class="form-group">
                 <label data-i18n="settings-api-key-scopes">Scopes (comma-separated)</label>
-                <input type="text" name="scopes" placeholder="user, admin">
+                <input type="text" name="scopes" data-i18n-placeholder="settings-placeholder-api-key-scopes">
                 <p class="hint" data-i18n="settings-api-key-scopes-hint">Leave empty for the default "user" scope.</p>
             </div>
             <div class="form-group">
                 <label data-i18n="settings-api-key-expiry">Expires in (days)</label>
-                <input type="number" name="expires_in_days" min="1" placeholder="90">
+                <input type="number" name="expires_in_days" min="1" data-i18n-placeholder="settings-placeholder-api-key-expiry">
                 <p class="hint" data-i18n="settings-api-key-expiry-hint">Leave empty for no expiration.</p>
             </div>
             <div id="create-api-key-result"></div>
@@ -174,11 +174,11 @@
             hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/webhooks', { target: '#webhooks-list', swap: 'innerHTML' }); }">
             <div class="form-group">
                 <label data-i18n="settings-webhook-url">Webhook URL</label>
-                <input type="url" name="url" required placeholder="https://example.com/hooks/gb">
+                <input type="url" name="url" required data-i18n-placeholder="settings-placeholder-webhook-url">
             </div>
             <div class="form-group">
                 <label data-i18n="settings-webhook-events">Events (comma-separated)</label>
-                <input type="text" name="events" placeholder="user.created, order.completed">
+                <input type="text" name="events" data-i18n-placeholder="settings-placeholder-webhook-events">
                 <p class="hint" data-i18n="settings-webhook-events-hint">Leave empty to receive all events.</p>
             </div>
             <div id="add-webhook-result"></div>

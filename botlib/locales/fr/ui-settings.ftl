@@ -883,3 +883,12 @@ settings-profile-placeholder-public-bio = Une courte description visible sur vot
 settings-profile-placeholder-phone = +33 6 00 00 00 00
 settings-profile-placeholder-location = Ville, Pays
 settings-profile-placeholder-website = https://exemple.com
+
+# semantic i18n key (#2542)
+settings-placeholder-dns-hostname = monbot.exemple.com
+settings-placeholder-dns-target = 192.168.1.1 ou cible.domaine.com
+settings-placeholder-api-key-name = Clé de production
+settings-placeholder-api-key-scopes = user, admin
+settings-placeholder-api-key-expiry = 90
+settings-placeholder-webhook-url = https://exemple.com/hooks/gb
+settings-placeholder-webhook-events = user.created, order.completed

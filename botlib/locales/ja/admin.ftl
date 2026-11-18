@@ -1048,3 +1048,11 @@ accounts-placeholder-smtp-username = your@email.com
 accounts-placeholder-smtp-password = ••••••••
 accounts-placeholder-smtp-from-address = noreply@example.com
 accounts-placeholder-smtp-from-name = 会社名
+
+# semantic i18n key (#2542)
+admin-placeholder-username = ユーザー名
+admin-placeholder-email = user@example.com
+admin-placeholder-display-name = 山田 太郎
+admin-placeholder-password = ••••••••
+admin-placeholder-group-name = エンジニアリングチーム
+admin-placeholder-group-description = グループの説明...
