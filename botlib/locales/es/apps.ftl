@@ -1226,3 +1226,6 @@ player-placeholder-search-files = Buscar archivos...
 
 # semantic i18n key (#2542)
 pos-placeholder-search-products = Buscar productos...
+
+# semantic i18n key (#2542)
+weather-placeholder-search-city = Buscar ciudad… (p. ej. São Paulo)

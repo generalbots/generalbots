@@ -1228,3 +1228,6 @@ player-placeholder-search-files = 파일 검색...
 
 # semantic i18n key (#2542)
 pos-placeholder-search-products = 상품 검색...
+
+# semantic i18n key (#2542)
+weather-placeholder-search-city = 도시 검색… (예: 상파울루)

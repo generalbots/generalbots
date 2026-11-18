@@ -1228,3 +1228,6 @@ player-placeholder-search-files = 搜索文件...
 
 # semantic i18n key (#2542)
 pos-placeholder-search-products = 搜索商品...
+
+# semantic i18n key (#2542)
+weather-placeholder-search-city = 搜索城市…（例如：圣保罗）
