@@ -43,7 +43,7 @@
     <div id="campaigns-view" class="crm-view active">
         <div class="studio-monitor-toolbar">
             <div class="studio-monitor-filters">
-                <button class="studio-chip active" data-monitor-filter="all">All</button>
+                <button class="studio-chip active" data-monitor-filter="all" data-i18n="label-all">All</button>
                 <button class="studio-chip" data-monitor-filter="email" data-i18n="campaigns-email-filter">📧 Email</button>
                 <button class="studio-chip" data-monitor-filter="whatsapp">💬 WhatsApp</button>
                 <button class="studio-chip" data-monitor-filter="instagram" data-i18n="campaigns-instagram-filter">📸 Instagram</button>
@@ -120,7 +120,7 @@
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
             <h2 data-i18n="campaigns-publish-campaign-title">🚀 Publish Campaign</h2>
-            <button class="crm-modal-close" onclick="window.CampStudio.actions.closePublish()">×</button>
+            <button class="crm-modal-close" onclick="window.CampStudio.actions.closePublish()" data-i18n-aria-label="action-close" aria-label="Close">×</button>
         </div>
         <div class="studio-ai-channel-hint" id="studio-publish-desc"></div>
         <div class="crm-form-group">
@@ -150,11 +150,11 @@
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
             <h2 data-i18n="campaigns-ai-image-generator">🖼 AI Image Generator</h2>
-            <button class="crm-modal-close" id="studio-img-close">×</button>
+            <button class="crm-modal-close" id="studio-img-close" data-i18n-aria-label="action-close" aria-label="Close">×</button>
         </div>
         <div class="crm-form-group">
             <label data-i18n="campaigns-prompt">Prompt</label>
-            <textarea id="studio-img-prompt" rows="3" placeholder="e.g., Modern coffee shop interior, warm light, product on wooden table, 4:5 vertical composition for Instagram"></textarea>
+            <textarea id="studio-img-prompt" rows="3" placeholder="e.g., Modern coffee shop interior, warm light, product on wooden table, 4:5 vertical composition for Instagram" data-i18n-placeholder="campaigns-img-prompt-placeholder"></textarea>
         </div>
         <div class="crm-form-row">
             <div class="crm-form-group">
@@ -193,15 +193,15 @@
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
             <h2 data-i18n="campaigns-ai-content-writer">✨ AI Content Writer</h2>
-            <button class="crm-modal-close" id="studio-ai-close">×</button>
+            <button class="crm-modal-close" id="studio-ai-close" data-i18n-aria-label="action-close" aria-label="Close">×</button>
         </div>
         <div class="crm-form-group">
             <label data-i18n="campaigns-goal">Goal</label>
-            <textarea id="studio-ai-goal" rows="3" placeholder="e.g., Announce a 20% discount for returning customers this weekend"></textarea>
+            <textarea id="studio-ai-goal" rows="3" placeholder="e.g., Announce a 20% discount for returning customers this weekend" data-i18n-placeholder="campaigns-ai-goal-placeholder"></textarea>
         </div>
         <div class="crm-form-group">
             <label data-i18n="campaign-wizard-audience">Audience</label>
-            <input type="text" id="studio-ai-audience" placeholder="e.g., Existing customers aged 25-40 interested in tech">
+            <input type="text" id="studio-ai-audience" placeholder="e.g., Existing customers aged 25-40 interested in tech" data-i18n-placeholder="campaigns-ai-audience-placeholder">
         </div>
         <div class="crm-form-row">
             <div class="crm-form-group">
@@ -242,12 +242,12 @@
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
             <h2 id="list-modal-title" data-i18n="campaigns-new-list">New List</h2>
-            <button class="crm-modal-close" onclick="closeListModal()">×</button>
+            <button class="crm-modal-close" onclick="closeListModal()" data-i18n-aria-label="action-close" aria-label="Close">×</button>
         </div>
         <form id="list-form">
             <div class="crm-form-group">
                 <label for="list-name" data-i18n="campaigns-list-name">List Name</label>
-                <input type="text" id="list-name" required placeholder="e.g., Newsletter subscribers">
+                <input type="text" id="list-name" required placeholder="e.g., Newsletter subscribers" data-i18n-placeholder="campaigns-list-name-placeholder">
             </div>
             <div class="crm-form-group">
                 <label for="list-type" data-i18n="label-type">Type</label>
@@ -258,7 +258,7 @@
             </div>
             <div class="crm-form-group">
                 <label for="list-query" data-i18n="campaigns-segment-query-optional">Segment query (optional)</label>
-                <textarea id="list-query" rows="3" placeholder="e.g., status = 'active' AND country = 'BR'"></textarea>
+                <textarea id="list-query" rows="3" placeholder="e.g., status = 'active' AND country = 'BR'" data-i18n-placeholder="campaigns-segment-query-placeholder"></textarea>
             </div>
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="closeListModal()" data-i18n="action-cancel">Cancel</button>
@@ -292,7 +292,7 @@ function escHtml(s) {
 
 function showListModal() {
     document.getElementById('list-modal').style.display = 'flex';
-    document.getElementById('list-modal-title').textContent = 'New List';
+    var _t = function(k,d){return (typeof window.gbT==='function')?window.gbT(k,d):d;}; document.getElementById('list-modal-title').textContent = _t('campaigns-new-list','New List');
     document.getElementById('list-form').reset();
 }
 
@@ -346,7 +346,7 @@ async function loadLists() {
 
 function showTemplateModal() {
     document.getElementById('template-modal').style.display = 'flex';
-    document.getElementById('template-modal-title').textContent = 'New Template';
+    var _t = function(k,d){return (typeof window.gbT==='function')?window.gbT(k,d):d;}; document.getElementById('template-modal-title').textContent = _t('campaigns-new-template','New Template');
     document.getElementById('template-form').reset();
 }
 

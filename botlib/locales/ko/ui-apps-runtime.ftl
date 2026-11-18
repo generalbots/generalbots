@@ -548,3 +548,11 @@ dashboards-loading = 대시보드 로딩 중
 
 # semantic i18n key (#2542)
 dashboards-query-results = 쿼리 결과
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name-placeholder = 2026 봄 세일
+campaign-wizard-ai-prompt-placeholder = 캠페인 목표, 톤, 핵심 제안을 설명하세요…
+campaigns-img-prompt-placeholder = 예: 현대적인 카페 내부, 따뜻한 조명, 나무 테이블 위 제품, Instagram용 4:5 세로 구도
+campaigns-ai-goal-placeholder = 예: 이번 주말 재구매 고객에게 20% 할인 안내
+campaigns-ai-audience-placeholder = 예: 기술에 관심 있는 25~40세 기존 고객
+campaigns-list-name-placeholder = 예: 뉴스레터 구독자
+campaigns-segment-query-placeholder = 예: status = 'active' AND country = 'BR'

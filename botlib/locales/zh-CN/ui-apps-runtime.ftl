@@ -548,3 +548,11 @@ dashboards-loading = 正在加载仪表板
 
 # semantic i18n key (#2542)
 dashboards-query-results = 查询结果
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name-placeholder = 2026 春季促销
+campaign-wizard-ai-prompt-placeholder = 描述活动目标、语气和主要优惠…
+campaigns-img-prompt-placeholder = 例如：现代咖啡馆室内，暖光，木桌上的产品，适用于 Instagram 的 4:5 竖版构图
+campaigns-ai-goal-placeholder = 例如：本周末向回头客宣布 20% 折扣
+campaigns-ai-audience-placeholder = 例如：对科技感兴趣的 25-40 岁现有客户
+campaigns-list-name-placeholder = 例如：新闻通讯订阅者
+campaigns-segment-query-placeholder = 例如：status = 'active' AND country = 'BR'

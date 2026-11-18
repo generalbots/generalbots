@@ -548,3 +548,11 @@ dashboards-loading = Chargement des tableaux de bord
 
 # semantic i18n key (#2542)
 dashboards-query-results = Résultats de la requête
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name-placeholder = Soldes de printemps 2026
+campaign-wizard-ai-prompt-placeholder = Décrivez l’objectif de la campagne, le ton et l’offre principale…
+campaigns-img-prompt-placeholder = ex. : Intérieur de café moderne, lumière chaude, produit sur table en bois, composition verticale 4:5 pour Instagram
+campaigns-ai-goal-placeholder = ex. : Annoncer une réduction de 20 % pour les clients fidèles ce week-end
+campaigns-ai-audience-placeholder = ex. : Clients existants de 25 à 40 ans intéressés par la technologie
+campaigns-list-name-placeholder = ex. : Abonnés à la newsletter
+campaigns-segment-query-placeholder = ex. : status = 'active' AND country = 'BR'

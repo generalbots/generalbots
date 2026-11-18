@@ -548,3 +548,11 @@ dashboards-loading = ダッシュボードを読み込み中
 
 # semantic i18n key (#2542)
 dashboards-query-results = クエリ結果
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name-placeholder = 2026年春セール
+campaign-wizard-ai-prompt-placeholder = キャンペーンの目標、トーン、主要オファーを説明してください…
+campaigns-img-prompt-placeholder = 例: モダンなカフェの内装、暖かい光、木製テーブル上の商品、Instagram向け4:5縦構図
+campaigns-ai-goal-placeholder = 例: 今週末、リピーター向けに20%割引を告知する
+campaigns-ai-audience-placeholder = 例: テクノロジーに関心のある25〜40歳の既存顧客
+campaigns-list-name-placeholder = 例: ニュースレター購読者
+campaigns-segment-query-placeholder = 例: status = 'active' AND country = 'BR'
