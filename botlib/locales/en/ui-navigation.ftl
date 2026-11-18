@@ -163,3 +163,6 @@ tour-integrations-search-title = Find a provider
 tour-integrations-search-body = Search by provider, action or category, then open a card to see the full setup.
 tour-integrations-catalog-title = Review before you connect
 tour-integrations-catalog-body = Cards show availability and health. Open one to inspect actions and credential requirements.
+
+# semantic i18n key (#2542)
+sidebar-feedback-placeholder = Suggestion or bug report...

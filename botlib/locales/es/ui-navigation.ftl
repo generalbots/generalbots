@@ -162,3 +162,6 @@ tasks-pending = Pending
 tasks-priority-urgent = Urgent
 tasks-this-week = This week
 tasks-today = Today
+
+# semantic i18n key (#2542)
+sidebar-feedback-placeholder = Sugerencia o informe de error...
