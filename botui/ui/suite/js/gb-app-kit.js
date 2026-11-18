@@ -137,6 +137,37 @@
     }
   }
 
+  function switchTab(tab, btn, opts) {
+    opts = opts || {};
+    var tabSelector = opts.tabSelector || '[role="tab"]';
+    var panelSelector = opts.panelSelector || '[role="tabpanel"]';
+    var activeClass = opts.activeClass || "active";
+    var panelId = typeof opts.panelId === "function"
+      ? opts.panelId(tab)
+      : (opts.panelPrefix || "panel-") + tab;
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(tabSelector));
+    tabs.forEach(function (t) {
+      var active = t === btn;
+      t.classList.toggle(activeClass, active);
+      t.setAttribute("aria-selected", active ? "true" : "false");
+      if ("tabIndex" in t) t.tabIndex = active ? 0 : -1;
+    });
+
+    document.querySelectorAll(panelSelector).forEach(function (p) {
+      p.classList.remove(activeClass);
+      if ("hidden" in p) p.hidden = true;
+    });
+
+    var panel = document.getElementById(panelId);
+    if (panel) {
+      panel.classList.add(activeClass);
+      if ("hidden" in panel) panel.hidden = false;
+      if (btn && btn.id) panel.setAttribute("aria-labelledby", btn.id);
+    }
+    return panel || null;
+  }
+
   global.GBAppKit = {
     escapeHtml: escapeHtml,
     showFeedback: showFeedback,
@@ -144,6 +175,7 @@
     mountSignaturePad: mountSignaturePad,
     clearSignatureCanvas: clearSignatureCanvas,
     showModal: showModal,
-    hideModal: hideModal
+    hideModal: hideModal,
+    switchTab: switchTab
   };
 })(window);

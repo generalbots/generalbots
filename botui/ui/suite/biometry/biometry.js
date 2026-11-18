@@ -8,6 +8,14 @@ async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiC
 
 function switchTab(tab,btn){
     state.currentTab=tab;
+    if (window.GBAppKit && window.GBAppKit.switchTab) {
+        window.GBAppKit.switchTab(tab, btn, {
+            tabSelector: '.bio-tabs [role="tab"]',
+            panelSelector: '.bio-panel',
+            panelId: function(t){ return (t==='signatures'||t==='certificates') ? ('bio-panel-'+t) : ('panel-'+t); }
+        });
+        return;
+    }
     var tabs = Array.prototype.slice.call(document.querySelectorAll('.bio-tabs [role="tab"]'));
     tabs.forEach(function(t){
         var active = t === btn;
