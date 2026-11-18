@@ -778,3 +778,17 @@ dashboards-width-placeholder = 4
 dashboards-height-placeholder = 2
 dashboards-x-axis-placeholder = data
 dashboards-y-axis-placeholder = valor
+# semantic i18n key (#2542)
+campaigns-list-name-required = O nome da lista é obrigatório
+campaigns-failed-save-list = Falha ao salvar a lista
+campaigns-delete-list-confirm = Excluir esta lista?
+campaigns-failed-delete-list = Falha ao excluir a lista
+campaigns-no-lists-yet = Nenhuma lista ainda — crie a primeira.
+campaigns-members = membros
+campaigns-failed-load-lists = Falha ao carregar listas
+campaigns-template-name-required = O nome do modelo é obrigatório
+campaigns-failed-save-template = Falha ao salvar o modelo
+campaigns-delete-template-confirm = Excluir este modelo?
+campaigns-failed-delete-template = Falha ao excluir o modelo
+campaigns-no-templates-yet = Nenhum modelo ainda — crie o primeiro.
+campaigns-failed-load-templates = Falha ao carregar modelos

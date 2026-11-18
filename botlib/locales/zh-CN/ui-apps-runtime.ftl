@@ -561,3 +561,17 @@ dashboards-width-placeholder = 4
 dashboards-height-placeholder = 2
 dashboards-x-axis-placeholder = 日期
 dashboards-y-axis-placeholder = 值
+# semantic i18n key (#2542)
+campaigns-list-name-required = 列表名称为必填项
+campaigns-failed-save-list = 保存列表失败
+campaigns-delete-list-confirm = 删除此列表？
+campaigns-failed-delete-list = 删除列表失败
+campaigns-no-lists-yet = 还没有列表 — 创建第一个吧。
+campaigns-members = 位成员
+campaigns-failed-load-lists = 加载列表失败
+campaigns-template-name-required = 模板名称为必填项
+campaigns-failed-save-template = 保存模板失败
+campaigns-delete-template-confirm = 删除此模板？
+campaigns-failed-delete-template = 删除模板失败
+campaigns-no-templates-yet = 还没有模板 — 创建第一个吧。
+campaigns-failed-load-templates = 加载模板失败

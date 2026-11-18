@@ -561,3 +561,17 @@ dashboards-width-placeholder = 4
 dashboards-height-placeholder = 2
 dashboards-x-axis-placeholder = 日付
 dashboards-y-axis-placeholder = 値
+# semantic i18n key (#2542)
+campaigns-list-name-required = リスト名は必須です
+campaigns-failed-save-list = リストの保存に失敗しました
+campaigns-delete-list-confirm = このリストを削除しますか？
+campaigns-failed-delete-list = リストの削除に失敗しました
+campaigns-no-lists-yet = リストはまだありません — 最初のリストを作成してください。
+campaigns-members = メンバー
+campaigns-failed-load-lists = リストの読み込みに失敗しました
+campaigns-template-name-required = テンプレート名は必須です
+campaigns-failed-save-template = テンプレートの保存に失敗しました
+campaigns-delete-template-confirm = このテンプレートを削除しますか？
+campaigns-failed-delete-template = テンプレートの削除に失敗しました
+campaigns-no-templates-yet = テンプレートはまだありません — 最初のテンプレートを作成してください。
+campaigns-failed-load-templates = テンプレートの読み込みに失敗しました

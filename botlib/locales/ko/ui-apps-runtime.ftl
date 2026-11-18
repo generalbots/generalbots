@@ -561,3 +561,17 @@ dashboards-width-placeholder = 4
 dashboards-height-placeholder = 2
 dashboards-x-axis-placeholder = 날짜
 dashboards-y-axis-placeholder = 값
+# semantic i18n key (#2542)
+campaigns-list-name-required = 목록 이름은 필수입니다
+campaigns-failed-save-list = 목록을 저장하지 못했습니다
+campaigns-delete-list-confirm = 이 목록을 삭제하시겠습니까?
+campaigns-failed-delete-list = 목록을 삭제하지 못했습니다
+campaigns-no-lists-yet = 아직 목록이 없습니다 — 첫 번째 목록을 만드세요.
+campaigns-members = 명
+campaigns-failed-load-lists = 목록을 불러오지 못했습니다
+campaigns-template-name-required = 템플릿 이름은 필수입니다
+campaigns-failed-save-template = 템플릿을 저장하지 못했습니다
+campaigns-delete-template-confirm = 이 템플릿을 삭제하시겠습니까?
+campaigns-failed-delete-template = 템플릿을 삭제하지 못했습니다
+campaigns-no-templates-yet = 아직 템플릿이 없습니다 — 첫 번째 템플릿을 만드세요.
+campaigns-failed-load-templates = 템플릿을 불러오지 못했습니다

@@ -290,9 +290,11 @@ function escHtml(s) {
     return d.innerHTML;
 }
 
+var t = function(k,d){return (typeof window.gbT==='function')?window.gbT(k,d):d;};
+
 function showListModal() {
     document.getElementById('list-modal').style.display = 'flex';
-    var _t = function(k,d){return (typeof window.gbT==='function')?window.gbT(k,d):d;}; document.getElementById('list-modal-title').textContent = _t('campaigns-new-list','New List');
+    document.getElementById('list-modal-title').textContent = t('campaigns-new-list','New List');
     document.getElementById('list-form').reset();
 }
 
@@ -302,7 +304,7 @@ function closeListModal() {
 
 async function saveList() {
     var name = document.getElementById('list-name').value.trim();
-    if (!name) { alert('List name is required'); return; }
+    if (!name) { alert(t('campaigns-list-name-required','List name is required')); return; }
     var payload = {
         name: name,
         list_type: document.getElementById('list-type').value || 'static',
@@ -314,16 +316,16 @@ async function saveList() {
         loadLists();
     } catch (err) {
         console.error('Save list failed:', err);
-        alert('Failed to save list');
+        alert(t('campaigns-failed-save-list','Failed to save list'));
     }
 }
 
 async function deleteList(id) {
-    if (!confirm('Delete this list?')) return;
+    if (!confirm(t('campaigns-delete-list-confirm','Delete this list?'))) return;
     try {
         await apiFetch('/api/crm/lists/' + id, { method: 'DELETE' });
         loadLists();
-    } catch (err) { console.error('Delete list failed:', err); alert('Failed to delete list'); }
+    } catch (err) { console.error('Delete list failed:', err); alert(t('campaigns-failed-delete-list','Failed to delete list')); }
 }
 
 async function loadLists() {
@@ -332,21 +334,21 @@ async function loadLists() {
     try {
         var lists = await apiFetch('/api/crm/lists');
         if (!Array.isArray(lists) || !lists.length) {
-            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">No lists yet — create your first one.</div></div>';
+            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">' + escHtml(t('campaigns-no-lists-yet','No lists yet — create your first one.')) + '</div></div>';
             return;
         }
         grid.innerHTML = lists.map(function (l) {
-            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(l.name) + '</span><span class="campaign-card-badge">' + escHtml(l.list_type || 'static') + '</span></div><div class="campaign-card-meta">' + (l.member_count || l.contact_count || 0) + ' members</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteList(\'' + l.id + '\')">Delete</button></div></div>';
+            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(l.name) + '</span><span class="campaign-card-badge">' + escHtml(l.list_type || 'static') + '</span></div><div class="campaign-card-meta">' + (l.member_count || l.contact_count || 0) + ' ' + escHtml(t('campaigns-members','members')) + '</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteList(\'' + l.id + '\')">' + escHtml(t('action-delete','Delete')) + '</button></div></div>';
         }).join('');
     } catch (err) {
-        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load lists</div></div>';
+        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">' + escHtml(t('campaigns-failed-load-lists','Failed to load lists')) + '</div></div>';
         console.error('loadLists error:', err);
     }
 }
 
 function showTemplateModal() {
     document.getElementById('template-modal').style.display = 'flex';
-    var _t = function(k,d){return (typeof window.gbT==='function')?window.gbT(k,d):d;}; document.getElementById('template-modal-title').textContent = _t('campaigns-new-template','New Template');
+    document.getElementById('template-modal-title').textContent = t('campaigns-new-template','New Template');
     document.getElementById('template-form').reset();
 }
 
@@ -356,7 +358,7 @@ function closeTemplateModal() {
 
 async function saveTemplate() {
     var name = document.getElementById('template-name').value.trim();
-    if (!name) { alert('Template name is required'); return; }
+    if (!name) { alert(t('campaigns-template-name-required','Template name is required')); return; }
     var payload = {
         name: name,
         channel: document.getElementById('template-channel').value || 'email',
@@ -369,16 +371,16 @@ async function saveTemplate() {
         loadTemplates();
     } catch (err) {
         console.error('Save template failed:', err);
-        alert('Failed to save template');
+        alert(t('campaigns-failed-save-template','Failed to save template'));
     }
 }
 
 async function deleteTemplate(id) {
-    if (!confirm('Delete this template?')) return;
+    if (!confirm(t('campaigns-delete-template-confirm','Delete this template?'))) return;
     try {
         await apiFetch('/api/crm/templates/' + id, { method: 'DELETE' });
         loadTemplates();
-    } catch (err) { console.error('Delete template failed:', err); alert('Failed to delete template'); }
+    } catch (err) { console.error('Delete template failed:', err); alert(t('campaigns-failed-delete-template','Failed to delete template')); }
 }
 
 async function loadTemplates() {
@@ -387,14 +389,14 @@ async function loadTemplates() {
     try {
         var templates = await apiFetch('/api/crm/templates');
         if (!Array.isArray(templates) || !templates.length) {
-            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">No templates yet — create your first one.</div></div>';
+            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">' + escHtml(t('campaigns-no-templates-yet','No templates yet — create your first one.')) + '</div></div>';
             return;
         }
         grid.innerHTML = templates.map(function (t) {
-            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(t.name) + '</span><span class="campaign-card-badge">' + escHtml(t.channel || 'email') + '</span></div><div class="campaign-card-meta">' + escHtml(t.subject || '') + '</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteTemplate(\'' + t.id + '\')">Delete</button></div></div>';
+            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(t.name) + '</span><span class="campaign-card-badge">' + escHtml(t.channel || 'email') + '</span></div><div class="campaign-card-meta">' + escHtml(t.subject || '') + '</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteTemplate(\'' + t.id + '\')">' + escHtml(t('action-delete','Delete')) + '</button></div></div>';
         }).join('');
     } catch (err) {
-        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load templates</div></div>';
+        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">' + escHtml(t('campaigns-failed-load-templates','Failed to load templates')) + '</div></div>';
         console.error('loadTemplates error:', err);
     }
 }

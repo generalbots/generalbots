@@ -779,3 +779,17 @@ dashboards-width-placeholder = 4
 dashboards-height-placeholder = 2
 dashboards-x-axis-placeholder = date
 dashboards-y-axis-placeholder = value
+# semantic i18n key (#2542)
+campaigns-list-name-required = List name is required
+campaigns-failed-save-list = Failed to save list
+campaigns-delete-list-confirm = Delete this list?
+campaigns-failed-delete-list = Failed to delete list
+campaigns-no-lists-yet = No lists yet — create your first one.
+campaigns-members = members
+campaigns-failed-load-lists = Failed to load lists
+campaigns-template-name-required = Template name is required
+campaigns-failed-save-template = Failed to save template
+campaigns-delete-template-confirm = Delete this template?
+campaigns-failed-delete-template = Failed to delete template
+campaigns-no-templates-yet = No templates yet — create your first one.
+campaigns-failed-load-templates = Failed to load templates
