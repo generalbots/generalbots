@@ -872,3 +872,42 @@ jukebox-playlist-tape = 播放列表磁带
 
 # semantic i18n key (#2542)
 jukebox-queue-empty = 队列为空 — 请选择一个电台开始
+
+# semantic i18n key (#2542)
+biometry-title = 生物识别与数字身份
+
+# semantic i18n key (#2542)
+biometry-stat-pending-kyc = 待处理 KYC
+
+# semantic i18n key (#2542)
+biometry-stat-liveness-checks = 活体检测
+
+# semantic i18n key (#2542)
+biometry-tab-liveness = 活体
+
+# semantic i18n key (#2542)
+biometry-loading-kyc = 正在加载 KYC...
+
+# semantic i18n key (#2542)
+biometry-loading-kyc-desc = 正在获取身份验证
+
+# semantic i18n key (#2542)
+biometry-liveness-active-session = 活动活体会话
+
+# semantic i18n key (#2542)
+biometry-liveness-idle = 空闲
+
+# semantic i18n key (#2542)
+biometry-liveness-recent-sessions = 最近会话
+
+# semantic i18n key (#2542)
+biometry-liveness-no-sessions = 无会话
+
+# semantic i18n key (#2542)
+biometry-loading-certificates = 正在加载证书...
+
+# semantic i18n key (#2542)
+biometry-audit-timestamp = 时间戳
+
+# semantic i18n key (#2542)
+biometry-audit-result = 结果

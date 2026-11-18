@@ -872,3 +872,42 @@ jukebox-playlist-tape = 플레이리스트 테이프
 
 # semantic i18n key (#2542)
 jukebox-queue-empty = 대기열이 비어 있습니다 — 시작할 스테이션을 선택하세요
+
+# semantic i18n key (#2542)
+biometry-title = 생체 인식 및 디지털 신원
+
+# semantic i18n key (#2542)
+biometry-stat-pending-kyc = 대기 중인 KYC
+
+# semantic i18n key (#2542)
+biometry-stat-liveness-checks = 라이브니스 검사
+
+# semantic i18n key (#2542)
+biometry-tab-liveness = 라이브니스
+
+# semantic i18n key (#2542)
+biometry-loading-kyc = KYC 로드 중...
+
+# semantic i18n key (#2542)
+biometry-loading-kyc-desc = 신원 확인 정보를 가져오는 중
+
+# semantic i18n key (#2542)
+biometry-liveness-active-session = 활성 라이브니스 세션
+
+# semantic i18n key (#2542)
+biometry-liveness-idle = 대기 중
+
+# semantic i18n key (#2542)
+biometry-liveness-recent-sessions = 최근 세션
+
+# semantic i18n key (#2542)
+biometry-liveness-no-sessions = 세션 없음
+
+# semantic i18n key (#2542)
+biometry-loading-certificates = 인증서 로드 중...
+
+# semantic i18n key (#2542)
+biometry-audit-timestamp = 타임스탬프
+
+# semantic i18n key (#2542)
+biometry-audit-result = 결과

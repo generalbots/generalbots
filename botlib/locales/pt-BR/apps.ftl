@@ -870,3 +870,42 @@ jukebox-playlist-tape = FITA DE PLAYLIST
 
 # semantic i18n key (#2542)
 jukebox-queue-empty = A fila está vazia — escolha uma estação para começar
+
+# semantic i18n key (#2542)
+biometry-title = Biometria e identidade digital
+
+# semantic i18n key (#2542)
+biometry-stat-pending-kyc = KYC pendente
+
+# semantic i18n key (#2542)
+biometry-stat-liveness-checks = Verificações de vivacidade
+
+# semantic i18n key (#2542)
+biometry-tab-liveness = Vivacidade
+
+# semantic i18n key (#2542)
+biometry-loading-kyc = Carregando KYC...
+
+# semantic i18n key (#2542)
+biometry-loading-kyc-desc = Buscando verificações de identidade
+
+# semantic i18n key (#2542)
+biometry-liveness-active-session = Sessão de vivacidade ativa
+
+# semantic i18n key (#2542)
+biometry-liveness-idle = Ocioso
+
+# semantic i18n key (#2542)
+biometry-liveness-recent-sessions = Sessões recentes
+
+# semantic i18n key (#2542)
+biometry-liveness-no-sessions = Nenhuma sessão
+
+# semantic i18n key (#2542)
+biometry-loading-certificates = Carregando certificados...
+
+# semantic i18n key (#2542)
+biometry-audit-timestamp = Data e hora
+
+# semantic i18n key (#2542)
+biometry-audit-result = Resultado

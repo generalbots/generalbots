@@ -1,12 +1,12 @@
 <link rel="stylesheet" href="/suite/biometry/biometry.css">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/gb-app-kit.js?v=1"></script>
 <script src="/suite/biometry/biometry.js"></script>
 
 <div class="gb-app bio-container" data-gb-app="biometry">
     <header class="bio-header">
-        <h1 data-i18n="auto-biometry-digital-identity">Biometry & Digital Identity</h1>
+        <h1 data-i18n="biometry-title">Biometry & Digital Identity</h1>
         <div class="bio-header-actions">
             <button type="button" class="bio-btn" data-bio-action="refresh-all">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
@@ -16,16 +16,16 @@
     </header>
 
     <div class="bio-stats">
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-pending-kyc">Pending KYC</span><span class="bio-stat-value yellow" id="bio-stat-pending">0</span></div>
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-verified">Verified</span><span class="bio-stat-value green" id="bio-stat-verified">0</span></div>
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-liveness-checks">Liveness Checks</span><span class="bio-stat-value blue" id="stat-liveness">0</span></div>
-        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="auto-signatures">Signatures</span><span class="bio-stat-value purple" id="stat-signatures">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="biometry-stat-pending-kyc">Pending KYC</span><span class="bio-stat-value yellow" id="bio-stat-pending">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="kyc-stat-verified">Verified</span><span class="bio-stat-value green" id="bio-stat-verified">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="biometry-stat-liveness-checks">Liveness Checks</span><span class="bio-stat-value blue" id="stat-liveness">0</span></div>
+        <div class="bio-stat-card"><span class="bio-stat-label" data-i18n="kyc-tab-signatures">Signatures</span><span class="bio-stat-value purple" id="stat-signatures">0</span></div>
     </div>
 
     <nav class="bio-tabs" role="tablist" aria-label="Biometry sections">
         <button type="button" id="bio-tab-kyc" class="bio-tab active" role="tab" aria-selected="true" aria-controls="panel-kyc" tabindex="0" data-tab="kyc">KYC</button>
-        <button type="button" id="bio-tab-liveness" class="bio-tab" role="tab" aria-selected="false" aria-controls="panel-liveness" tabindex="-1" data-tab="liveness" data-i18n="auto-liveness">Liveness</button>
-        <button type="button" id="bio-tab-signatures" class="bio-tab" role="tab" aria-selected="false" aria-controls="bio-panel-signatures" tabindex="-1" data-tab="signatures" data-i18n="auto-signatures">Signatures</button>
+        <button type="button" id="bio-tab-liveness" class="bio-tab" role="tab" aria-selected="false" aria-controls="panel-liveness" tabindex="-1" data-tab="liveness" data-i18n="biometry-tab-liveness">Liveness</button>
+        <button type="button" id="bio-tab-signatures" class="bio-tab" role="tab" aria-selected="false" aria-controls="bio-panel-signatures" tabindex="-1" data-tab="signatures" data-i18n="kyc-tab-signatures">Signatures</button>
         <button type="button" id="bio-tab-certificates" class="bio-tab" role="tab" aria-selected="false" aria-controls="bio-panel-certificates" tabindex="-1" data-tab="certificates" data-i18n="learn-certificates">Certificates</button>
         <button type="button" id="bio-tab-audit" class="bio-tab" role="tab" aria-selected="false" aria-controls="panel-audit" tabindex="-1" data-tab="audit" data-i18n="settings-audit">Audit Log</button>
     </nav>
@@ -33,15 +33,15 @@
     <div class="bio-content">
         <div class="bio-panel active" id="panel-kyc" role="tabpanel" aria-labelledby="bio-tab-kyc">
             <div class="bio-grid" id="kyc-grid">
-                <div class="bio-empty"><div class="bio-empty-icon">🔍</div><h3 data-i18n="auto-loading-kyc">Loading KYC...</h3><p data-i18n="auto-fetching-identity-verifications">Fetching identity verifications</p></div>
+                <div class="bio-empty"><div class="bio-empty-icon">🔍</div><h3 data-i18n="biometry-loading-kyc">Loading KYC...</h3><p data-i18n="biometry-loading-kyc-desc">Fetching identity verifications</p></div>
             </div>
         </div>
 
         <div class="bio-panel" id="panel-liveness" role="tabpanel" aria-labelledby="bio-tab-liveness" hidden>
             <div class="bio-liveness-layout">
                 <div class="bio-liveness-card">
-                    <h3 data-i18n="auto-active-liveness-session">Active Liveness Session</h3>
-                    <div class="bio-liveness-status" id="liveness-status" data-i18n="auto-idle">Idle</div>
+                    <h3 data-i18n="biometry-liveness-active-session">Active Liveness Session</h3>
+                    <div class="bio-liveness-status" id="liveness-status" data-i18n="biometry-liveness-idle">Idle</div>
                     <div class="bio-liveness-frame" id="liveness-frame">
                         <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
@@ -57,8 +57,8 @@
                     </div>
                 </div>
                 <div class="bio-liveness-card">
-                    <h3 data-i18n="auto-recent-sessions">Recent Sessions</h3>
-                    <div id="liveness-sessions"><div class="bio-empty" data-i18n="auto-no-sessions">No sessions</div></div>
+                    <h3 data-i18n="biometry-liveness-recent-sessions">Recent Sessions</h3>
+                    <div id="liveness-sessions"><div class="bio-empty" data-i18n="biometry-liveness-no-sessions">No sessions</div></div>
                 </div>
             </div>
         </div>
@@ -66,12 +66,12 @@
         <div class="bio-panel" id="bio-panel-signatures" role="tabpanel" aria-labelledby="bio-tab-signatures" hidden>
             <div class="bio-table-wrapper">
                 <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-                    <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-documents-awaiting-signature">Documents Awaiting Signature</h3>
+                    <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="kyc-documents-awaiting-signature">Documents Awaiting Signature</h3>
                     <button type="button" class="bio-btn" data-bio-action="refresh-signatures" data-i18n="action-refresh">Refresh</button>
                 </div>
                 <div style="overflow-x:auto">
                     <table class="bio-table">
-                        <thead><tr><th data-i18n="auto-document">Document</th><th data-i18n="label-type">Type</th><th data-i18n="auto-signer">Signer</th><th data-i18n="auto-requested">Requested</th><th data-i18n="security-col-action">Action</th></tr></thead>
+                        <thead><tr><th data-i18n="kyc-col-document">Document</th><th data-i18n="label-type">Type</th><th data-i18n="kyc-col-signer">Signer</th><th data-i18n="kyc-col-requested">Requested</th><th data-i18n="security-col-action">Action</th></tr></thead>
                         <tbody id="bio-signatures-tbody"><tr><td colspan="5" class="bio-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
                     </table>
                 </div>
@@ -79,10 +79,10 @@
             <div id="bio-signature-pad-area" style="margin-top:16px;display:none">
                 <div class="bio-table-wrapper">
                     <div style="padding:14px 16px;border-bottom:1px solid var(--border-color,#334155);display:flex;align-items:center;justify-content:space-between">
-                        <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="auto-signature-pad">Signature Pad</h3>
+                        <h3 style="font-size:14px;font-weight:600;margin:0" data-i18n="kyc-signature-pad-title">Signature Pad</h3>
                         <div style="display:flex;gap:8px">
                             <button type="button" class="bio-btn" data-bio-action="clear-signature" data-i18n="action-clear">Clear</button>
-                            <button type="button" class="bio-btn bio-btn-primary" data-bio-action="submit-signature" data-i18n="auto-submit-signature">Submit Signature</button>
+                            <button type="button" class="bio-btn bio-btn-primary" data-bio-action="submit-signature" data-i18n="kyc-action-submit-signature">Submit Signature</button>
                         </div>
                     </div>
                     <div style="padding:16px;display:flex;justify-content:center">
@@ -94,14 +94,14 @@
 
         <div class="bio-panel" id="bio-panel-certificates" role="tabpanel" aria-labelledby="bio-tab-certificates" hidden>
             <div class="bio-grid" id="bio-certificates-grid">
-                <div class="bio-empty"><div class="bio-empty-icon">📜</div><h3 data-i18n="auto-loading-certificates">Loading certificates...</h3></div>
+                <div class="bio-empty"><div class="bio-empty-icon">📜</div><h3 data-i18n="biometry-loading-certificates">Loading certificates...</h3></div>
             </div>
         </div>
 
         <div class="bio-panel" id="panel-audit" role="tabpanel" aria-labelledby="bio-tab-audit" hidden>
             <div class="bio-table-wrapper">
                 <table class="bio-table">
-                    <thead><tr><th data-i18n="auto-timestamp">Timestamp</th><th data-i18n="start-menu-user">User</th><th data-i18n="security-col-action">Action</th><th data-i18n="auto-result">Result</th><th>IP</th><th data-i18n="label-details">Details</th></tr></thead>
+                    <thead><tr><th data-i18n="biometry-audit-timestamp">Timestamp</th><th data-i18n="start-menu-user">User</th><th data-i18n="security-col-action">Action</th><th data-i18n="biometry-audit-result">Result</th><th>IP</th><th data-i18n="label-details">Details</th></tr></thead>
                     <tbody id="audit-tbody"><tr><td colspan="6" class="bio-empty" data-i18n="label-loading">Loading...</td></tr></tbody>
                 </table>
             </div>

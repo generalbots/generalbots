@@ -872,3 +872,42 @@ jukebox-playlist-tape = プレイリストテープ
 
 # semantic i18n key (#2542)
 jukebox-queue-empty = キューは空です — ステーションを選んで開始してください
+
+# semantic i18n key (#2542)
+biometry-title = 生体認証とデジタルID
+
+# semantic i18n key (#2542)
+biometry-stat-pending-kyc = 保留中のKYC
+
+# semantic i18n key (#2542)
+biometry-stat-liveness-checks = ライブネスチェック
+
+# semantic i18n key (#2542)
+biometry-tab-liveness = ライブネス
+
+# semantic i18n key (#2542)
+biometry-loading-kyc = KYCを読み込み中...
+
+# semantic i18n key (#2542)
+biometry-loading-kyc-desc = 本人確認情報を取得しています
+
+# semantic i18n key (#2542)
+biometry-liveness-active-session = アクティブなライブネスセッション
+
+# semantic i18n key (#2542)
+biometry-liveness-idle = 待機中
+
+# semantic i18n key (#2542)
+biometry-liveness-recent-sessions = 最近のセッション
+
+# semantic i18n key (#2542)
+biometry-liveness-no-sessions = セッションなし
+
+# semantic i18n key (#2542)
+biometry-loading-certificates = 証明書を読み込み中...
+
+# semantic i18n key (#2542)
+biometry-audit-timestamp = タイムスタンプ
+
+# semantic i18n key (#2542)
+biometry-audit-result = 結果
