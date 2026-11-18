@@ -159,3 +159,8 @@ monitoring-alert-evaluation-interval = 평가 간격
 monitoring-enable-alert-rule = 이 알림 규칙 사용
 monitoring-create-alert-rule = 알림 규칙 만들기
 monitoring-alert-details = 알림 세부 정보
+
+# clock/weather i18n (#2542)
+clock-tab-stopwatch = 스톱워치
+clock-tab-timer = 타이머
+weather-search-prompt = 도시를 검색하여 현재 날씨를 확인하세요.

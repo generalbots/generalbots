@@ -159,3 +159,8 @@ monitoring-alert-evaluation-interval = 评估间隔
 monitoring-enable-alert-rule = 启用此告警规则
 monitoring-create-alert-rule = 创建告警规则
 monitoring-alert-details = 告警详情
+
+# clock/weather i18n (#2542)
+clock-tab-stopwatch = 秒表
+clock-tab-timer = 计时器
+weather-search-prompt = 搜索城市以查看当前天气状况。

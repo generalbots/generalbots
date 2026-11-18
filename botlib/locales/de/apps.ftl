@@ -159,3 +159,8 @@ monitoring-alert-evaluation-interval = Auswertungsintervall
 monitoring-enable-alert-rule = Diese Alarmregel aktivieren
 monitoring-create-alert-rule = Alarmregel erstellen
 monitoring-alert-details = Alarmdetails
+
+# clock/weather i18n (#2542)
+clock-tab-stopwatch = Stoppuhr
+clock-tab-timer = Timer
+weather-search-prompt = Suchen Sie nach einer Stadt, um die aktuellen Bedingungen zu sehen.

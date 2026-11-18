@@ -159,3 +159,8 @@ monitoring-alert-evaluation-interval = 評価間隔
 monitoring-enable-alert-rule = このアラートルールを有効にする
 monitoring-create-alert-rule = アラートルールを作成
 monitoring-alert-details = アラート詳細
+
+# clock/weather i18n (#2542)
+clock-tab-stopwatch = ストップウォッチ
+clock-tab-timer = タイマー
+weather-search-prompt = 都市を検索して現在の状況を確認してください。
