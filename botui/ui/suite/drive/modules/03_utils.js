@@ -151,6 +151,94 @@ function readFileAsBase64(file) {
     });
 }
 
+// #2510 — downscale/compress large photos client-side before upload so mobile
+// captures do not upload multi-megabyte originals by default.
+function compressImageForUpload(file, opts) {
+    opts = opts || {};
+    var maxBytes = opts.maxBytes || (2 * 1024 * 1024);
+    var maxDim = opts.maxDim || 2048;
+    var minQuality = opts.minQuality || 0.5;
+    return new Promise(function (resolve) {
+        try {
+            if (!file || !file.type || file.type.indexOf("image/") !== 0) return resolve(file);
+            if (file.type === "image/svg+xml" || file.type === "image/gif") return resolve(file);
+            if ((file.size || 0) <= maxBytes) return resolve(file);
+            if (typeof Image === "undefined" || typeof document === "undefined") return resolve(file);
+
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+                try {
+                    var w = img.naturalWidth || img.width || 0;
+                    var h = img.naturalHeight || img.height || 0;
+                    if (!w || !h) { URL.revokeObjectURL(url); return resolve(file); }
+
+                    var scale = Math.min(1, maxDim / Math.max(w, h));
+                    var cw = Math.max(1, Math.round(w * scale));
+                    var ch = Math.max(1, Math.round(h * scale));
+                    var canvas = document.createElement("canvas");
+                    canvas.width = cw;
+                    canvas.height = ch;
+                    var ctx = canvas.getContext("2d");
+                    if (!ctx) { URL.revokeObjectURL(url); return resolve(file); }
+                    ctx.drawImage(img, 0, 0, cw, ch);
+
+                    var quality = 0.82;
+                    var outType = "image/jpeg";
+
+                    function finish(blob) {
+                        URL.revokeObjectURL(url);
+                        if (!blob || (file.size && blob.size >= file.size)) return resolve(file);
+                        var base = String(file.name || "photo").replace(/\.[^.]+$/, "");
+                        var outName = base + ".jpg";
+                        try {
+                            resolve(new File([blob], outName, { type: outType, lastModified: Date.now() }));
+                        } catch (_) {
+                            try {
+                                blob.name = outName;
+                                blob.lastModified = Date.now();
+                            } catch (_e) {}
+                            resolve(blob);
+                        }
+                    }
+
+                    function attempt() {
+                        canvas.toBlob(function (blob) {
+                            if (blob && blob.size <= maxBytes) return finish(blob);
+                            if (quality > minQuality + 0.05) {
+                                quality = Math.max(minQuality, quality - 0.12);
+                                return attempt();
+                            }
+                            if (cw > 1280 || ch > 1280) {
+                                cw = Math.max(1, Math.round(cw * 0.75));
+                                ch = Math.max(1, Math.round(ch * 0.75));
+                                canvas.width = cw;
+                                canvas.height = ch;
+                                ctx = canvas.getContext("2d");
+                                if (!ctx) return finish(blob || file);
+                                ctx.drawImage(img, 0, 0, cw, ch);
+                                quality = 0.8;
+                                return attempt();
+                            }
+                            finish(blob || file);
+                        }, outType, quality);
+                    }
+
+                    attempt();
+                } catch (_) {
+                    URL.revokeObjectURL(url);
+                    resolve(file);
+                }
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+            img.src = url;
+        } catch (_) {
+            resolve(file);
+        }
+    });
+}
+window.compressImageForUpload = compressImageForUpload;
+
 function getEffectiveBucket() {
     if (currentGborgBucket) return currentGborgBucket;
     if (currentBucket) return currentBucket;

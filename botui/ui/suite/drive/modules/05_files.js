@@ -111,8 +111,18 @@ async function uploadFiles(files) {
     var failures = [];
     var progressEl = showUploadProgress(total);
     for (var fi = 0; fi < files.length; fi++) {
-        var file = files[fi];
-        updateUploadProgress(progressEl, fi, total, file.name);
+        var originalFile = files[fi];
+        var file = originalFile;
+        try {
+            if (typeof window.compressImageForUpload === "function") {
+                file = await window.compressImageForUpload(originalFile);
+            } else if (typeof compressImageForUpload === "function") {
+                file = await compressImageForUpload(originalFile);
+            }
+        } catch (_) {
+            file = originalFile;
+        }
+        updateUploadProgress(progressEl, fi, total, (file && file.name) || originalFile.name);
         try {
             const content = await readFileAsBase64(file);
             var filePath = currentPath ? currentPath + "/" + file.name : file.name;
@@ -127,10 +137,10 @@ async function uploadFiles(files) {
             });
             uploaded++;
         } catch (err) {
-            console.error("Upload error for " + file.name + ":", err);
+            console.error("Upload error for " + (file && file.name ? file.name : originalFile.name) + ":", err);
             failed++;
-            failedFiles.push(file);
-            failures.push(file.name + " (" + uploadFailureReason(err) + ")");
+            failedFiles.push(originalFile);
+            failures.push((originalFile && originalFile.name ? originalFile.name : "file") + " (" + uploadFailureReason(err) + ")");
         }
     }
     if (failed === 0) {
