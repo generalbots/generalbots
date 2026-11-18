@@ -583,3 +583,6 @@ dashboards-widget-filter = 筛选器
 dashboards-widget-date-range = 日期范围
 # semantic i18n key (#2542)
 sheet-formula-placeholder = 输入值或公式
+
+# semantic i18n key (#2542)
+slides-files = 文件

@@ -800,3 +800,6 @@ dashboards-widget-filter = Filtro
 dashboards-widget-date-range = Intervalo de datas
 # semantic i18n key (#2542)
 sheet-formula-placeholder = Insira valor ou fórmula
+
+# semantic i18n key (#2542)
+slides-files = Arquivos

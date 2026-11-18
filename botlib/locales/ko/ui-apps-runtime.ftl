@@ -583,3 +583,6 @@ dashboards-widget-filter = 필터
 dashboards-widget-date-range = 날짜 범위
 # semantic i18n key (#2542)
 sheet-formula-placeholder = 값 또는 수식을 입력하세요
+
+# semantic i18n key (#2542)
+slides-files = 파일
