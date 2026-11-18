@@ -6,10 +6,10 @@
         <aside class="db-sidebar" id="db-sidebar">
             <div class="db-sidebar-header">
                 <h3 data-i18n="db-schema-browser">Schema Browser</h3>
-                <button class="db-btn-icon" onclick="DBApp.refreshSchema()" title="Refresh">&#8635;</button>
+                <button class="db-btn-icon" onclick="DBApp.refreshSchema()" data-i18n-title="action-refresh">&#8635;</button>
             </div>
             <div class="db-sidebar-search">
-                <input type="text" id="db-table-search" placeholder="Search tables..." aria-label="Search tables" oninput="DBApp.filterTables(this.value)">
+                <input type="text" id="db-table-search" data-i18n-placeholder="db-placeholder-search-tables" data-i18n-aria-label="db-placeholder-search-tables" oninput="DBApp.filterTables(this.value)">
             </div>
             <div class="db-table-list" id="db-table-list" role="status" aria-live="polite" aria-busy="true">
                 <div class="db-loading" data-i18n="db-loading-schema">Loading schema...</div>
@@ -82,9 +82,9 @@
             <div class="db-sql-console" id="db-sql-console" style="display:none">
                 <div class="db-sql-header">
                     <h3 data-i18n="db-sql-console">SQL Console</h3>
-                    <button class="db-btn-icon" onclick="DBApp.hideQueryBuilder()" aria-label="Close SQL console">&times;</button>
+                    <button class="db-btn-icon" onclick="DBApp.hideQueryBuilder()" data-i18n-aria-label="db-aria-close-sql-console">&times;</button>
                 </div>
-                <textarea id="db-sql-input" class="db-sql-textarea" placeholder="SELECT * FROM table_name WHERE condition..." rows="4" aria-label="SQL query"></textarea>
+                <textarea id="db-sql-input" class="db-sql-textarea" data-i18n-placeholder="db-placeholder-sql-query" rows="4" data-i18n-aria-label="db-aria-sql-query"></textarea>
                 <div class="db-sql-actions">
                     <button class="db-btn db-btn-primary" onclick="DBApp.executeQuery()" data-i18n="db-execute-query">Execute (Ctrl+Enter)</button>
                     <button class="db-btn" onclick="DBApp.explainQuery()" data-i18n="db-explain">EXPLAIN</button>
@@ -108,19 +108,19 @@
                 <label for="new-table-name" data-i18n="db-table-name">Table Name</label>
                 <!-- #1944 — data-gb-field lets the __ui_plan__ executor fill this
                      input by field name instead of guessing a selector. -->
-                <input type="text" id="new-table-name" name="table_name" data-gb-field="Table Name" placeholder="my_table" class="db-input" pattern="[a-z_][a-z0-9_]*">
+                <input type="text" id="new-table-name" name="table_name" data-gb-field="Table Name" data-i18n-placeholder="db-placeholder-table-name-example" class="db-input" pattern="[a-z_][a-z0-9_]*">
             </div>
             <div class="db-form-group">
                 <label data-i18n="db-columns">Columns</label>
                 <div id="new-table-columns">
                     <div class="db-column-row">
-                        <input type="text" placeholder="id" class="db-input" value="id" disabled>
+                        <input type="text" data-i18n-placeholder="db-placeholder-column-id" class="db-input" value="id" disabled>
                         <select class="db-select"><option>UUID</option></select>
                         <label class="db-checkbox"><input type="checkbox" checked disabled> PK</label>
                         <label class="db-checkbox"><input type="checkbox" checked disabled><span data-i18n="db-not-null"> NOT NULL</span></label>
                     </div>
                     <div class="db-column-row">
-                        <input type="text" placeholder="column_name" data-gb-field="Column Name" class="db-input">
+                        <input type="text" data-i18n-placeholder="db-placeholder-column-name-example" data-gb-field="Column Name" class="db-input">
                         <select class="db-select" data-gb-field="Column Type">
                             <option data-i18n="db-type-varchar-255">VARCHAR(255)</option><option data-i18n="db-type-text">TEXT</option><option data-i18n="db-type-integer">INTEGER</option>
                             <option data-i18n="db-type-bigint">BIGINT</option><option data-i18n="db-type-decimal">DECIMAL</option><option data-i18n="db-type-boolean">BOOLEAN</option>

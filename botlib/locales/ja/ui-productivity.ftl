@@ -622,3 +622,12 @@ analytics-ask-placeholder = 分析データについて質問してください.
 tasks-intent-description-placeholder = 作成または自動化したい内容を説明してください...
 tasks-assignee-placeholder = 担当者のUUID（任意）
 tasks-parent-placeholder = 親タスクのUUID（任意）
+
+# semantic i18n key (#2542)
+db-placeholder-search-tables = テーブルを検索...
+db-aria-close-sql-console = SQLコンソールを閉じる
+db-placeholder-sql-query = SELECT * FROM テーブル名 WHERE 条件...
+db-aria-sql-query = SQLクエリ
+db-placeholder-table-name-example = my_table
+db-placeholder-column-id = id
+db-placeholder-column-name-example = column_name
