@@ -110,7 +110,7 @@ function inlineConfirm(text, onYes) {
   var overlay = document.createElement("div");
   overlay.className = "gb-inline-dialog";
   var A2 = window.GBAssistant;
-  var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue?") : "OK";
+  var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue") : "OK";
   var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
   overlay.innerHTML =
     '<div class="gb-inline-dialog-backdrop"></div>' +
