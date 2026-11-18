@@ -125,8 +125,21 @@ async fn ingest_single_attachment(
         }
     };
 
-    let excerpt = super::super::attachment_text::extract_excerpt(&fname, &data);
+    let mut excerpt = super::super::attachment_text::extract_excerpt(&fname, &data);
     let media = super::super::attachment_text::is_media(&fname);
+    // An image, or a PDF that is only scanned pages, has no text layer: read
+    // the text off the pixels on this machine.
+    let image = super::media::media_kind(&fname) == Some("image");
+    let pdf = fname.to_lowercase().ends_with(".pdf");
+    let recognised = if excerpt.is_none() && (image || pdf) {
+        super::text_recognition::recognize(&fname, data.clone()).await
+    } else {
+        None
+    };
+    let read_by_ocr = recognised.is_some();
+    if recognised.is_some() {
+        excerpt = recognised;
+    }
     let mut stored = false;
     if let Some(drive) = state.drive.as_ref() {
         // Same resolution as the channel stagers: an org-hosted bot lives under
@@ -177,6 +190,9 @@ async fn ingest_single_attachment(
             data.len()
         );
         attachment_note = Some(match excerpt {
+            Some(text) if read_by_ocr => format!(
+                "The user attached '{fname}'. The file is stored at inbox/{fname}. It has no text layer, so text recognition (OCR) on this computer read the text below from its pixels: it may contain recognition errors, and pictures, stamps, signatures and layout are not described. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+            ),
             Some(text) => format!(
                 "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
             ),
@@ -196,6 +212,17 @@ async fn ingest_single_attachment(
                 } else {
                     media_fail_reason = Some("image_reader_unavailable");
                     let kind = super::media::media_kind(&fname).unwrap_or("media");
+                    if cfg!(windows) && kind == "image" {
+                        return format!(
+                            "The user attached the image '{fname}' (stored at inbox/{fname}). \
+                             Text recognition on this computer found no readable text in it, and \
+                             describing pictures is not available in this installation. Tell the \
+                             user in one or two sentences that you found no text in the image and \
+                             cannot describe what it shows, and suggest they describe it if they \
+                             need help with it. Do NOT call any tool or command to look for the \
+                             file. Never invent what it shows."
+                        );
+                    }
                     format!(
                         "The user attached the {kind} file '{fname}' (stored at inbox/{fname}). \
                          Image reading is not available in this installation and the current model \

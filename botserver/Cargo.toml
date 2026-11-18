@@ -549,6 +549,18 @@ botmodelsbridge = { workspace = true }
 botcloud = { workspace = true, optional = true }
 botproviders = { workspace = true, optional = true }
 
+# Text recognition for images and scanned PDFs attached to a chat, with the
+# engine that ships with Windows (same `windows` version sysinfo already uses).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Data_Pdf",
+    "Foundation_Collections",
+    "Globalization",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Storage_Streams",
+] }
+
 [dev-dependencies]
 mockito = { workspace = true }
 tempfile = { workspace = true }
