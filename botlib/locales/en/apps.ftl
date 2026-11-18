@@ -1202,3 +1202,8 @@ meet-placeholder-session-id = session_id (optional)
 meet-placeholder-trunk-name = Name (e.g. Support line)
 meet-placeholder-trunk-number = +1 555 0100
 meet-placeholder-trunk-carrier = carrier (default livekit-sip)
+
+# semantic i18n key (#2542)
+memory-placeholder-search = Search memories…
+memory-aria-filter-kind = Filter by kind
+memory-placeholder-content = State the memory in a single clear sentence.

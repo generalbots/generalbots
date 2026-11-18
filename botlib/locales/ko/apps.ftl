@@ -1202,3 +1202,8 @@ meet-placeholder-session-id = session_id (선택 사항)
 meet-placeholder-trunk-name = 이름 (예: 지원 라인)
 meet-placeholder-trunk-number = +82 2 555 0100
 meet-placeholder-trunk-carrier = 통신사 (기본값 livekit-sip)
+
+# semantic i18n key (#2542)
+memory-placeholder-search = 기억 검색…
+memory-aria-filter-kind = 종류별 필터
+memory-placeholder-content = 기억을 하나의 명확한 문장으로 작성하세요.

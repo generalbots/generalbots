@@ -1202,3 +1202,8 @@ meet-placeholder-session-id = session_id（任意）
 meet-placeholder-trunk-name = 名前（例: サポート回線）
 meet-placeholder-trunk-number = +81 3 5555 0100
 meet-placeholder-trunk-carrier = キャリア（既定: livekit-sip）
+
+# semantic i18n key (#2542)
+memory-placeholder-search = メモリを検索…
+memory-aria-filter-kind = 種類で絞り込む
+memory-placeholder-content = 記憶を1つの明確な文で述べてください。

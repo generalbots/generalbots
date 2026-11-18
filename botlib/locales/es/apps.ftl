@@ -1200,3 +1200,8 @@ meet-placeholder-session-id = session_id (opcional)
 meet-placeholder-trunk-name = Nombre (p. ej. Línea de soporte)
 meet-placeholder-trunk-number = +34 555 010 100
 meet-placeholder-trunk-carrier = operador (predeterminado livekit-sip)
+
+# semantic i18n key (#2542)
+memory-placeholder-search = Buscar recuerdos…
+memory-aria-filter-kind = Filtrar por tipo
+memory-placeholder-content = Expresa el recuerdo en una sola frase clara.

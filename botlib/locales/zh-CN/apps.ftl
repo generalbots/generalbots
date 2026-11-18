@@ -1202,3 +1202,8 @@ meet-placeholder-session-id = session_id（可选）
 meet-placeholder-trunk-name = 名称（例如：支持线路）
 meet-placeholder-trunk-number = +86 10 5555 0100
 meet-placeholder-trunk-carrier = 运营商（默认 livekit-sip）
+
+# semantic i18n key (#2542)
+memory-placeholder-search = 搜索记忆…
+memory-aria-filter-kind = 按类型筛选
+memory-placeholder-content = 用一句清晰的话陈述这条记忆。

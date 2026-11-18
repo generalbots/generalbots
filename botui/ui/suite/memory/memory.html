@@ -22,8 +22,8 @@
   </div>
 
   <div class="mem-toolbar">
-    <input type="search" id="mem-search" placeholder="Search memories…" aria-label="Search memories" />
-    <div class="mem-chip-row" id="mem-kind-chips" role="group" aria-label="Filter by kind"></div>
+    <input type="search" id="mem-search" data-i18n-placeholder="memory-placeholder-search" data-i18n-aria-label="memory-placeholder-search" />
+    <div class="mem-chip-row" id="mem-kind-chips" role="group" data-i18n-aria-label="memory-aria-filter-kind"></div>
   </div>
 
   <div class="mem-state" id="mem-state" role="status"></div>
@@ -46,7 +46,7 @@
         </div>
         <div class="mem-field">
           <label for="mem-f-content" data-i18n="dashboards-content">Content</label>
-          <textarea id="mem-f-content" rows="4" required placeholder="State the memory in a single clear sentence."></textarea>
+          <textarea id="mem-f-content" rows="4" required data-i18n-placeholder="memory-placeholder-content"></textarea>
         </div>
       </form>
       <div class="mem-modal-actions">
