@@ -331,3 +331,27 @@ paper-strikethrough = 취소선
 products-view-grid = 격자 보기
 products-view-list = 목록 보기
 sheet-freeze-panes = 틀 고정
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ 데이터베이스 스키마
+
+# semantic i18n key (#2542)
+db-loading-tables = 테이블 불러오는 중...
+
+# semantic i18n key (#2542)
+db-query-builder = 쿼리 빌더
+
+# semantic i18n key (#2542)
+db-run-query = 쿼리 실행
+
+# semantic i18n key (#2542)
+db-select-table-hint = 데이터를 보려면 테이블을 선택하세요
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ 이전
+
+# semantic i18n key (#2542)
+db-page-info-default = 1 / 1 페이지
+
+# semantic i18n key (#2542)
+db-next-page = 다음 ▶

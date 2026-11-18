@@ -331,3 +331,27 @@ paper-strikethrough = 取り消し線
 products-view-grid = グリッド表示
 products-view-list = リスト表示
 sheet-freeze-panes = ウィンドウ枠の固定
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ データベーススキーマ
+
+# semantic i18n key (#2542)
+db-loading-tables = テーブルを読み込み中...
+
+# semantic i18n key (#2542)
+db-query-builder = クエリビルダー
+
+# semantic i18n key (#2542)
+db-run-query = クエリを実行
+
+# semantic i18n key (#2542)
+db-select-table-hint = データを表示するテーブルを選択してください
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ 前へ
+
+# semantic i18n key (#2542)
+db-page-info-default = 1 / 1 ページ
+
+# semantic i18n key (#2542)
+db-next-page = 次へ ▶

@@ -331,3 +331,27 @@ paper-strikethrough = Tachado
 products-view-grid = Vista de cuadrícula
 products-view-list = Vista de lista
 sheet-freeze-panes = Congelar paneles
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ Esquema de la base de datos
+
+# semantic i18n key (#2542)
+db-loading-tables = Cargando tablas...
+
+# semantic i18n key (#2542)
+db-query-builder = Constructor de consultas
+
+# semantic i18n key (#2542)
+db-run-query = Ejecutar consulta
+
+# semantic i18n key (#2542)
+db-select-table-hint = Selecciona una tabla para ver los datos
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ Anterior
+
+# semantic i18n key (#2542)
+db-page-info-default = Página 1 de 1
+
+# semantic i18n key (#2542)
+db-next-page = Siguiente ▶

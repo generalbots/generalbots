@@ -331,3 +331,27 @@ paper-strikethrough = Strikethrough
 products-view-grid = Grid view
 products-view-list = List view
 sheet-freeze-panes = Freeze panes
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ Database Schema
+
+# semantic i18n key (#2542)
+db-loading-tables = Loading tables...
+
+# semantic i18n key (#2542)
+db-query-builder = Query Builder
+
+# semantic i18n key (#2542)
+db-run-query = Run Query
+
+# semantic i18n key (#2542)
+db-select-table-hint = Select a table to view data
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ Prev
+
+# semantic i18n key (#2542)
+db-page-info-default = Page 1 of 1
+
+# semantic i18n key (#2542)
+db-next-page = Next ▶

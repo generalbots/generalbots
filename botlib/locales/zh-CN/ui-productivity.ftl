@@ -331,3 +331,27 @@ paper-strikethrough = 删除线
 products-view-grid = 网格视图
 products-view-list = 列表视图
 sheet-freeze-panes = 冻结窗格
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ 数据库架构
+
+# semantic i18n key (#2542)
+db-loading-tables = 正在加载表...
+
+# semantic i18n key (#2542)
+db-query-builder = 查询生成器
+
+# semantic i18n key (#2542)
+db-run-query = 运行查询
+
+# semantic i18n key (#2542)
+db-select-table-hint = 选择一个表以查看数据
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ 上一页
+
+# semantic i18n key (#2542)
+db-page-info-default = 第 1 页，共 1 页
+
+# semantic i18n key (#2542)
+db-next-page = 下一页 ▶

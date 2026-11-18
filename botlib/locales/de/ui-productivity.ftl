@@ -331,3 +331,27 @@ paper-strikethrough = Durchgestrichen
 products-view-grid = Rasteransicht
 products-view-list = Listenansicht
 sheet-freeze-panes = Bereiche fixieren
+
+# semantic i18n key (#2542)
+db-schema-title = 🗄️ Datenbankschema
+
+# semantic i18n key (#2542)
+db-loading-tables = Tabellen werden geladen...
+
+# semantic i18n key (#2542)
+db-query-builder = Abfrage-Generator
+
+# semantic i18n key (#2542)
+db-run-query = Abfrage ausführen
+
+# semantic i18n key (#2542)
+db-select-table-hint = Wählen Sie eine Tabelle aus, um Daten anzuzeigen
+
+# semantic i18n key (#2542)
+db-prev-page = ◀ Zurück
+
+# semantic i18n key (#2542)
+db-page-info-default = Seite 1 von 1
+
+# semantic i18n key (#2542)
+db-next-page = Weiter ▶
