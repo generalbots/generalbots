@@ -553,7 +553,13 @@ jobs:
 
   windows:
     name: Windows binaries
-    needs: [release, linux, bundle-windows]
+    # Windows consumes only `botmodels-pythonbox-windows` (from
+    # `bundle-windows`); `linux-installer` is read by `iso` and `publish`, not
+    # here. The `linux` edge was therefore pure serialization: nothing was
+    # shared, yet Windows could not start until the 61-minute Linux job
+    # finished. Run 42631974498 shows the cost — Windows began at minute 61.5
+    # and the run took 147 minutes to produce 82 minutes of Windows work.
+    needs: [release, bundle-windows]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     timeout-minutes: 150
