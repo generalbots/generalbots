@@ -588,3 +588,5 @@ sheet-formula-placeholder = 값 또는 수식을 입력하세요
 slides-files = 파일
 
 canvas-clear = 캔버스 지우기
+
+project-dependency-lag-days = 지연 일수

@@ -420,7 +420,7 @@ function showTaskDetail(taskId) {
                     <option value="finish_to_finish">Finish → Finish</option>
                     <option value="start_to_finish">Start → Finish</option>
                 </select>
-                <input type="number" id="dep-lag" class="form-input" value="0" step="1" title="Lag days" />
+                <input type="number" id="dep-lag" class="form-input" value="0" step="1" title="Lag days" data-i18n-title="project-dependency-lag-days" aria-label="Lag days" data-i18n-aria-label="project-dependency-lag-days" />
                 <button class="btn-primary" onclick="addDependency('${taskId}')" ${predOptions ? '' : 'disabled'}>Link</button>
             </div>
         </div>

@@ -588,3 +588,5 @@ sheet-formula-placeholder = Entrez une valeur ou une formule
 slides-files = Fichiers
 
 canvas-clear = Effacer le canevas
+
+project-dependency-lag-days = Jours de décalage

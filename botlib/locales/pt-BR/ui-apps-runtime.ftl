@@ -803,3 +803,5 @@ sheet-formula-placeholder = Insira valor ou fórmula
 
 # semantic i18n key (#2542)
 slides-files = Arquivos
+
+project-dependency-lag-days = Dias de atraso

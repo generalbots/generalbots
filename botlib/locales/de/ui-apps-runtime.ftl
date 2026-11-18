@@ -588,3 +588,5 @@ sheet-formula-placeholder = Wert oder Formel eingeben
 slides-files = Dateien
 
 canvas-clear = Leinwand leeren
+
+project-dependency-lag-days = Verzögerungstage

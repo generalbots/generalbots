@@ -588,3 +588,5 @@ sheet-formula-placeholder = 値または数式を入力
 slides-files = ファイル
 
 canvas-clear = キャンバスをクリア
+
+project-dependency-lag-days = 遅延日数

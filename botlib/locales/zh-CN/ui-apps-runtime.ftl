@@ -588,3 +588,5 @@ sheet-formula-placeholder = 输入值或公式
 slides-files = 文件
 
 canvas-clear = 清空画布
+
+project-dependency-lag-days = 延迟天数
