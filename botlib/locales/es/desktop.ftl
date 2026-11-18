@@ -357,3 +357,12 @@ desktop-session-duration = Duración
 
 # semantic i18n key (#2542)
 desktop-no-active-sessions = No hay sesiones activas.
+
+# semantic i18n key (#2542)
+setup-provider-nvidia-title = NVIDIA
+
+# semantic i18n key (#2542)
+setup-bot-config-desc = Dale a tu bot un nombre y describe su propósito
+
+# semantic i18n key (#2542)
+setup-media-features = Funciones multimedia

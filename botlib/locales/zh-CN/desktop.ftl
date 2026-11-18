@@ -351,3 +351,12 @@ desktop-session-duration = 时长
 
 # semantic i18n key (#2542)
 desktop-no-active-sessions = 没有活动会话。
+
+# semantic i18n key (#2542)
+setup-provider-nvidia-title = NVIDIA
+
+# semantic i18n key (#2542)
+setup-bot-config-desc = 为您的机器人命名并描述其用途
+
+# semantic i18n key (#2542)
+setup-media-features = 媒体功能
