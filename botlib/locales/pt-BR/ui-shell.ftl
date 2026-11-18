@@ -272,3 +272,8 @@ settings-notification-recipient-desc = Deixe em branco para usar sua conta princ
 language-search-placeholder = Pesquisar idiomas…
 settings-profile-title = Configurações de Perfil
 settings-security-title = Configurações de Segurança
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = Pesquisar aplicativos...
+apps-menu-aria-search = Pesquisar aplicativos
+apps-menu-aria-close = Fechar menu de aplicativos

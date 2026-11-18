@@ -272,3 +272,8 @@ settings-notification-recipient-desc = Leave blank to use your primary Mail acco
 language-search-placeholder = Search languages…
 settings-profile-title = Profile Settings
 settings-security-title = Security Settings
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = Search apps...
+apps-menu-aria-search = Search apps
+apps-menu-aria-close = Close apps menu

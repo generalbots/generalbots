@@ -272,3 +272,8 @@ settings-notification-recipient-desc = 비워 두면 기본 Mail 계정 또는 �
 language-search-placeholder = 언어 검색…
 settings-profile-title = 프로필 설정
 settings-security-title = 보안 설정
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = 앱 검색...
+apps-menu-aria-search = 앱 검색
+apps-menu-aria-close = 앱 메뉴 닫기

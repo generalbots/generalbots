@@ -272,3 +272,8 @@ settings-notification-recipient-desc = Leer lassen, um Ihr primäres Mail-Konto 
 language-search-placeholder = Sprachen suchen…
 settings-profile-title = Profileinstellungen
 settings-security-title = Sicherheitseinstellungen
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = Apps suchen...
+apps-menu-aria-search = Apps suchen
+apps-menu-aria-close = App-Menü schließen

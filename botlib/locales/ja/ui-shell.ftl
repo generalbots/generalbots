@@ -272,3 +272,8 @@ settings-notification-recipient-desc = 空欄の場合は、主要なメール�
 language-search-placeholder = 言語を検索…
 settings-profile-title = プロファイル設定
 settings-security-title = セキュリティ設定
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = アプリを検索...
+apps-menu-aria-search = アプリを検索
+apps-menu-aria-close = アプリメニューを閉じる

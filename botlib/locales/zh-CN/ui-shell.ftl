@@ -272,3 +272,8 @@ settings-notification-recipient-desc = 留空则使用您的主 Mail 账户或�
 language-search-placeholder = 搜索语言…
 settings-profile-title = 配置文件设置
 settings-security-title = 安全设置
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = 搜索应用...
+apps-menu-aria-search = 搜索应用
+apps-menu-aria-close = 关闭应用菜单

@@ -272,3 +272,8 @@ settings-notification-recipient-desc = Laissez vide pour utiliser votre compte M
 language-search-placeholder = Rechercher des langues…
 settings-profile-title = Paramètres du profil
 settings-security-title = Paramètres de sécurité
+
+# semantic i18n key (#2542)
+apps-menu-placeholder-search = Rechercher des applications...
+apps-menu-aria-search = Rechercher des applications
+apps-menu-aria-close = Fermer le menu des applications
