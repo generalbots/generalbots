@@ -4,7 +4,7 @@ var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],curren
 
 function escapeHtml(value){ return (window.GBAppKit && window.GBAppKit.escapeHtml) ? window.GBAppKit.escapeHtml(value) : String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('o365', msg, type); }
-async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('o365', url, options); try{var r=await fetch(url,options);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
+async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('o365', url, options); try{var opts=options?Object.assign({},options):{};var headers=Object.assign({},(options&&options.headers)||{});var hasAuth=false;Object.keys(headers).forEach(function(k){if(String(k).toLowerCase()==='authorization')hasAuth=true;});if(!hasAuth){var token=(window.GBAppKit&&window.GBAppKit.getAuthToken)?window.GBAppKit.getAuthToken():(localStorage.getItem('gb_token')||localStorage.getItem('gb-access-token')||sessionStorage.getItem('gb-access-token')||'');if(token)headers.Authorization='Bearer '+token;}opts.headers=headers;var r=await fetch(url,opts);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
 
 function switchTab(tab,btn){
     state.currentTab=tab;
