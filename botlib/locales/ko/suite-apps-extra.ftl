@@ -4,6 +4,8 @@
 drive-new-bot = 새 봇
 drive-upload-folder = 폴더 업로드
 drive-take-photo = 사진 찍기
+drive-camera-permission-title = 카메라 사용
+drive-camera-permission-explainer = General Bots는 이 폴더에 사진을 찍어 업로드할 수 있도록 카메라 액세스를 요청합니다. 권한은 브라우저에서 제어합니다.
 lists-title = 마케팅 목록
 cancel = 취소
 save = 저장

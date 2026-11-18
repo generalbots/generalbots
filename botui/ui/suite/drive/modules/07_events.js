@@ -155,8 +155,26 @@ function triggerUpload() {
 }
 
 function triggerCameraUpload() {
-    const input = document.getElementById("camera-input");
-    if (input) input.click();
+    const explainedKey = "gb-drive-camera-explained-v1";
+    let explained = false;
+    try { explained = localStorage.getItem(explainedKey) === "1"; } catch (_) {}
+    const proceed = function () {
+        try { localStorage.setItem(explainedKey, "1"); } catch (_) {}
+        const input = document.getElementById("camera-input");
+        if (input) input.click();
+    };
+    if (explained) { proceed(); return; }
+    const msg = window.gbT
+        ? window.gbT("drive-camera-permission-explainer", "General Bots will ask for camera access so you can take a photo and upload it to this folder. Your browser controls the permission.")
+        : "General Bots will ask for camera access so you can take a photo and upload it to this folder. Your browser controls the permission.";
+    const title = window.gbT
+        ? window.gbT("drive-camera-permission-title", "Use camera")
+        : "Use camera";
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+        window.GBModal.confirm(msg, title, proceed, function () {});
+        return;
+    }
+    proceed();
 }
 
 function handleFileInputChange(e) {

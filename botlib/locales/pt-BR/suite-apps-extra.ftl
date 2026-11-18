@@ -4,6 +4,8 @@
 drive-new-bot = Novo bot
 drive-upload-folder = Enviar pasta
 drive-take-photo = Tirar foto
+drive-camera-permission-title = Usar câmera
+drive-camera-permission-explainer = O General Bots solicitará acesso à câmera para que você possa tirar uma foto e enviá-la para esta pasta. A permissão é controlada pelo seu navegador.
 lists-title = Listas de marketing
 cancel = Cancelar
 save = Salvar

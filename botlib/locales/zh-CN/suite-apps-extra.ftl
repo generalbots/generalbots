@@ -4,6 +4,8 @@
 drive-new-bot = 新建机器人
 drive-upload-folder = 上传文件夹
 drive-take-photo = 拍照
+drive-camera-permission-title = 使用相机
+drive-camera-permission-explainer = General Bots 将请求相机访问权限，以便您拍照并上传到此文件夹。权限由您的浏览器控制。
 lists-title = 营销列表
 cancel = 取消
 save = 保存

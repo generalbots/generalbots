@@ -4,6 +4,8 @@
 drive-new-bot = New Bot
 drive-upload-folder = Upload folder
 drive-take-photo = Take photo
+drive-camera-permission-title = Use camera
+drive-camera-permission-explainer = General Bots will ask for camera access so you can take a photo and upload it to this folder. Your browser controls the permission.
 lists-title = Marketing Lists
 cancel = Cancel
 save = Save

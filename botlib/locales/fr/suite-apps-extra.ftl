@@ -4,6 +4,8 @@
 drive-new-bot = Nouveau bot
 drive-upload-folder = Importer un dossier
 drive-take-photo = Prendre une photo
+drive-camera-permission-title = Utiliser l'appareil photo
+drive-camera-permission-explainer = General Bots demandera l'accès à l'appareil photo pour que vous puissiez prendre une photo et la téléverser dans ce dossier. Votre navigateur contrôle l'autorisation.
 lists-title = Listes marketing
 cancel = Annuler
 save = Enregistrer
