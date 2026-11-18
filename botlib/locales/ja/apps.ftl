@@ -1257,3 +1257,7 @@ browser-placeholder-nav-url = https://example.com
 # semantic i18n key (#2542)
 browser-go = 移動
 browser-url-default-placeholder = http://localhost:3000
+
+# semantic i18n key (#2542)
+learn-app-content-title-placeholder = コースまたはレッスンのタイトル
+learn-app-content-desc-placeholder = 内容を説明してください...

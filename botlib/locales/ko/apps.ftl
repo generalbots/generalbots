@@ -1257,3 +1257,7 @@ browser-placeholder-nav-url = https://example.com
 # semantic i18n key (#2542)
 browser-go = 이동
 browser-url-default-placeholder = http://localhost:3000
+
+# semantic i18n key (#2542)
+learn-app-content-title-placeholder = 코스 또는 레슨 제목
+learn-app-content-desc-placeholder = 내용을 설명하세요...

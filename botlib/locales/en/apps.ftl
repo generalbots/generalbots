@@ -1257,3 +1257,7 @@ browser-placeholder-nav-url = https://example.com
 # semantic i18n key (#2542)
 browser-go = Go
 browser-url-default-placeholder = http://localhost:3000
+
+# semantic i18n key (#2542)
+learn-app-content-title-placeholder = Course or lesson title
+learn-app-content-desc-placeholder = Describe the content...
