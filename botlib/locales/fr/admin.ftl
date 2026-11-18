@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = Jean Dupont
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = Équipe d'ingénierie
 admin-placeholder-group-description = Description du groupe...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = Saisissez le nom de l'organisation
+admin-org-placeholder-slug = slug-organisation
+admin-billing-placeholder-feedback = Aidez-nous à nous améliorer...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = Seuil d'avertissement (%)
+admin-billing-dashboard-critical-threshold = Seuil critique (%)
+admin-billing-dashboard-exceeded-threshold = Seuil dépassé (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

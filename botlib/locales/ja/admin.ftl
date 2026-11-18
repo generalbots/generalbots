@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = 山田 太郎
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = エンジニアリングチーム
 admin-placeholder-group-description = グループの説明...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = 組織名を入力
+admin-org-placeholder-slug = organization-slug
+admin-billing-placeholder-feedback = 改善にご協力ください...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = 警告しきい値 (%)
+admin-billing-dashboard-critical-threshold = 重大しきい値 (%)
+admin-billing-dashboard-exceeded-threshold = 超過しきい値 (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

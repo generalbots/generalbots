@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = 홍길동
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = 엔지니어링 팀
 admin-placeholder-group-description = 그룹 설명...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = 조직 이름 입력
+admin-org-placeholder-slug = organization-slug
+admin-billing-placeholder-feedback = 개선에 도움을 주세요...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = 경고 임계값 (%)
+admin-billing-dashboard-critical-threshold = 심각 임계값 (%)
+admin-billing-dashboard-exceeded-threshold = 초과 임계값 (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

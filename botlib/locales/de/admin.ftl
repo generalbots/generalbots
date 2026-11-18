@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = Max Mustermann
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = Engineering-Team
 admin-placeholder-group-description = Gruppenbeschreibung...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = Organisationsnamen eingeben
+admin-org-placeholder-slug = organisations-slug
+admin-billing-placeholder-feedback = Helfen Sie uns, besser zu werden...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = Warnschwelle (%)
+admin-billing-dashboard-critical-threshold = Kritische Schwelle (%)
+admin-billing-dashboard-exceeded-threshold = Überschrittene Schwelle (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

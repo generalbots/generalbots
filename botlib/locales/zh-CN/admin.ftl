@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = 张三
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = 工程团队
 admin-placeholder-group-description = 群组描述...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = 输入组织名称
+admin-org-placeholder-slug = organization-slug
+admin-billing-placeholder-feedback = 帮助我们改进...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = 警告阈值 (%)
+admin-billing-dashboard-critical-threshold = 严重阈值 (%)
+admin-billing-dashboard-exceeded-threshold = 超出阈值 (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

@@ -1059,3 +1059,17 @@ admin-placeholder-display-name = João Silva
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = Equipe de Engenharia
 admin-placeholder-group-description = Descrição do grupo...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = Digite o nome da organização
+admin-org-placeholder-slug = slug-da-organizacao
+admin-billing-placeholder-feedback = Ajude-nos a melhorar...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = Limite de aviso (%)
+admin-billing-dashboard-critical-threshold = Limite crítico (%)
+admin-billing-dashboard-exceeded-threshold = Limite excedido (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

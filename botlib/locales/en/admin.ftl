@@ -1058,3 +1058,17 @@ admin-placeholder-display-name = John Doe
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = Engineering Team
 admin-placeholder-group-description = Group description...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = Enter organization name
+admin-org-placeholder-slug = organization-slug
+admin-billing-placeholder-feedback = Help us improve...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = Warning threshold (%)
+admin-billing-dashboard-critical-threshold = Critical threshold (%)
+admin-billing-dashboard-exceeded-threshold = Exceeded threshold (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

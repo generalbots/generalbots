@@ -1056,3 +1056,17 @@ admin-placeholder-display-name = Juan Pérez
 admin-placeholder-password = ••••••••
 admin-placeholder-group-name = Equipo de ingeniería
 admin-placeholder-group-description = Descripción del grupo...
+
+# semantic i18n key (#2542)
+admin-org-placeholder-name = Ingrese el nombre de la organización
+admin-org-placeholder-slug = slug-de-organizacion
+admin-billing-placeholder-feedback = Ayúdenos a mejorar...
+admin-billing-dashboard-placeholder-invoices-limit = 100
+admin-billing-dashboard-placeholder-team-limit = 50
+admin-billing-dashboard-placeholder-bots-limit = 10
+admin-billing-dashboard-warning-threshold = Umbral de advertencia (%)
+admin-billing-dashboard-critical-threshold = Umbral crítico (%)
+admin-billing-dashboard-exceeded-threshold = Umbral excedido (%)
+admin-billing-dashboard-placeholder-warning = 80
+admin-billing-dashboard-placeholder-critical = 90
+admin-billing-dashboard-placeholder-exceeded = 100

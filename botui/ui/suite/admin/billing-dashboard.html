@@ -241,11 +241,11 @@ Settings </button>
 <h2 data-i18n="admin-billing-dashboard-quota-settings">Quota Settings</h2> <button type="button" class="close-btn" onclick="closeQuotaSettings()">✕</button>
 </div> <form id="quota-form">
 <div class="modal-body"> <div class="form-group">
-<label data-i18n="admin-billing-dashboard-invoices-limit">Invoices limit</label> <input type="number" name="invoices" min="1" placeholder="100" />
+<label data-i18n="admin-billing-dashboard-invoices-limit">Invoices limit</label> <input type="number" name="invoices" min="1" data-i18n-placeholder="admin-billing-dashboard-placeholder-invoices-limit" />
 </div> <div class="form-group">
-<label data-i18n="admin-billing-dashboard-team-members-limit">Team Members limit</label> <input type="number" name="team" min="1" placeholder="50" />
+<label data-i18n="admin-billing-dashboard-team-members-limit">Team Members limit</label> <input type="number" name="team" min="1" data-i18n-placeholder="admin-billing-dashboard-placeholder-team-limit" />
 </div> <div class="form-group">
-<label data-i18n="admin-billing-dashboard-bots-limit">Bots limit</label> <input type="number" name="bots" min="1" placeholder="10" />
+<label data-i18n="admin-billing-dashboard-bots-limit">Bots limit</label> <input type="number" name="bots" min="1" data-i18n-placeholder="admin-billing-dashboard-placeholder-bots-limit" />
 </div> </div>
 <div class="modal-footer"> <button type="button" class="btn-secondary" onclick="closeQuotaSettings()" data-i18n="action-cancel">Cancel</button>
 <button type="button" class="btn-primary" onclick="saveQuotaSettings()" data-i18n="action-save">Save</button> </div>
@@ -255,12 +255,12 @@ Settings </button>
 <div class="modal-header"> <h2 data-i18n="admin-billing-dashboard-alert-thresholds">Billing Alert Thresholds</h2>
 <button type="button" class="close-btn" onclick="closeAlertsConfig()">✕</button> </div>
 <form id="alerts-form"> <div class="modal-body">
-<div class="form-group"> <label>Warning threshold (%)</label>
-<input type="number" name="warning" min="0" max="100" placeholder="80" /> </div>
-<div class="form-group"> <label>Critical threshold (%)</label>
-<input type="number" name="critical" min="0" max="100" placeholder="90" /> </div>
-<div class="form-group"> <label>Exceeded threshold (%)</label>
-<input type="number" name="exceeded" min="0" max="100" placeholder="100" /> </div>
+<div class="form-group"> <label data-i18n="admin-billing-dashboard-warning-threshold">Warning threshold (%)</label>
+<input type="number" name="warning" min="0" max="100" data-i18n-placeholder="admin-billing-dashboard-placeholder-warning" /> </div>
+<div class="form-group"> <label data-i18n="admin-billing-dashboard-critical-threshold">Critical threshold (%)</label>
+<input type="number" name="critical" min="0" max="100" data-i18n-placeholder="admin-billing-dashboard-placeholder-critical" /> </div>
+<div class="form-group"> <label data-i18n="admin-billing-dashboard-exceeded-threshold">Exceeded threshold (%)</label>
+<input type="number" name="exceeded" min="0" max="100" data-i18n-placeholder="admin-billing-dashboard-placeholder-exceeded" /> </div>
 </div> <div class="modal-footer">
 <button type="button" class="btn-secondary" onclick="closeAlertsConfig()" data-i18n="action-cancel">Cancel</button> <button type="button" class="btn-primary" onclick="saveAlertSettings()" data-i18n="action-save">Save</button>
 </div> </form>
