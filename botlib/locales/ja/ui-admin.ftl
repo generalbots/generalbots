@@ -791,3 +791,6 @@ admin-dashboard-manage-users = ユーザーを管理
 
 # semantic i18n key (#2542)
 admin-dashboard-roles-permissions = ロールと権限
+
+# semantic i18n key (#2542)
+workspace-placeholder-untitled = 無題

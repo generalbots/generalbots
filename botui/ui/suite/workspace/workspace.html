@@ -24,7 +24,6 @@
         <div class="sidebar-search">
             <input
                 type="search"
-                placeholder="Search pages..."
                 data-i18n-placeholder="workspace-search-pages"
                 hx-get="/api/ui/workspaces/current/search"
                 hx-trigger="keyup changed delay:300ms"
@@ -115,7 +114,7 @@
                     class="page-title"
                     id="page-title"
                     value="Untitled"
-                    placeholder="Untitled"
+                    data-i18n-placeholder="workspace-placeholder-untitled"
                     hx-put="/api/pages/current"
                     hx-trigger="blur changed"
                     hx-vals='js:{title: document.getElementById("page-title").value}'

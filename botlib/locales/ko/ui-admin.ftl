@@ -791,3 +791,6 @@ admin-dashboard-manage-users = 사용자 관리
 
 # semantic i18n key (#2542)
 admin-dashboard-roles-permissions = 역할 및 권한
+
+# semantic i18n key (#2542)
+workspace-placeholder-untitled = 제목 없음

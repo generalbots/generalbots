@@ -791,3 +791,6 @@ admin-dashboard-manage-users = 管理用户
 
 # semantic i18n key (#2542)
 admin-dashboard-roles-permissions = 角色和权限
+
+# semantic i18n key (#2542)
+workspace-placeholder-untitled = 无标题

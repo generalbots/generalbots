@@ -791,3 +791,6 @@ admin-dashboard-manage-users = Benutzer verwalten
 
 # semantic i18n key (#2542)
 admin-dashboard-roles-permissions = Rollen und Berechtigungen
+
+# semantic i18n key (#2542)
+workspace-placeholder-untitled = Ohne Titel
