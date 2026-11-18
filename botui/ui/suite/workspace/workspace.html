@@ -121,7 +121,7 @@
                     hx-vals='js:{title: document.getElementById("page-title").value}'
                 />
                 <div class="page-meta">
-                    <span class="meta-item" data-i18n="auto-last-edited-just-now">Last edited: just now</span>
+                    <span class="meta-item" data-i18n="workspace-last-edited-just-now">Last edited: just now</span>
                 </div>
             </header>
 
@@ -160,8 +160,8 @@
         <!-- Empty State (no page selected) -->
         <div id="empty-state" class="empty-state hidden">
             <div class="empty-state-icon">📝</div>
-            <h2 data-i18n="auto-select-a-page-or-create-a-new-one">Select a page or create a new one</h2>
-            <p data-i18n="auto-your-workspace-pages-will-appear-in-the-sidebar">Your workspace pages will appear in the sidebar</p>
+            <h2 data-i18n="workspace-empty-title">Select a page or create a new one</h2>
+            <p data-i18n="workspace-empty-hint">Your workspace pages will appear in the sidebar</p>
             <button
                 class="btn-primary"
                 hx-post="/api/ui/workspaces/current/pages"
@@ -194,7 +194,7 @@
                 hx-get="/api/ui/workspaces/current/invite"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
-             data-i18n="auto-invite-members">
+             data-i18n="workspace-invite-members">
                 Invite Members
             </button>
         </div>
@@ -207,5 +207,5 @@
 <link rel="stylesheet" href="/suite/workspace/workspace-inline.css">
 
 <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/workspace/workspace-inline.js"></script>

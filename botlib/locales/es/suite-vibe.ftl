@@ -93,3 +93,18 @@ vibe-project-delete-default-confirm = Eliminar el proyecto del bot predeterminad
 vibe-project-delete-failed = No se pudo eliminar el proyecto: { $reason }
 vibe-project-deleting = Eliminando proyecto…
 vibe-unknown-error = desconocido
+
+# semantic i18n key (#2542)
+vibe-role-viewer = visualizador
+
+# semantic i18n key (#2542)
+vibe-role-developer = desarrollador
+
+# semantic i18n key (#2542)
+vibe-role-admin = admin
+
+# semantic i18n key (#2542)
+vibe-member-kind-user = usuario
+
+# semantic i18n key (#2542)
+vibe-member-kind-group = grupo

@@ -93,3 +93,18 @@ vibe-project-delete-default-confirm = 既定のボットプロジェクトを削
 vibe-project-delete-failed = プロジェクトを削除できませんでした: { $reason }
 vibe-project-deleting = プロジェクトを削除しています…
 vibe-unknown-error = 不明
+
+# semantic i18n key (#2542)
+vibe-role-viewer = 閲覧者
+
+# semantic i18n key (#2542)
+vibe-role-developer = 開発者
+
+# semantic i18n key (#2542)
+vibe-role-admin = 管理者
+
+# semantic i18n key (#2542)
+vibe-member-kind-user = ユーザー
+
+# semantic i18n key (#2542)
+vibe-member-kind-group = グループ

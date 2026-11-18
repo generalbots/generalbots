@@ -353,3 +353,15 @@ browser-driver-tab = ドライバー
 
 # semantic i18n key (#2542)
 browser-new-tab = 新しいタブ
+
+# semantic i18n key (#2542)
+workspace-last-edited-just-now = 最終編集: たった今
+
+# semantic i18n key (#2542)
+workspace-empty-title = ページを選択するか新規作成してください
+
+# semantic i18n key (#2542)
+workspace-empty-hint = ワークスペースのページはサイドバーに表示されます
+
+# semantic i18n key (#2542)
+workspace-invite-members = メンバーを招待

@@ -351,3 +351,15 @@ browser-driver-tab = Driver
 
 # semantic i18n key (#2542)
 browser-new-tab = Nova aba
+
+# semantic i18n key (#2542)
+workspace-last-edited-just-now = Última edição: agora mesmo
+
+# semantic i18n key (#2542)
+workspace-empty-title = Selecione uma página ou crie uma nova
+
+# semantic i18n key (#2542)
+workspace-empty-hint = As páginas do seu workspace aparecerão na barra lateral
+
+# semantic i18n key (#2542)
+workspace-invite-members = Convidar membros

@@ -12,3 +12,18 @@ photos-load-failed = Esta imagem não pôde ser carregada do Drive.
 photos-drive-error = Não foi possível acessar seu Drive.
 photos-error-hint = Conecte um Drive para ver suas imagens aqui. Se o Drive já estiver conectado, tente atualizar.
 photos-retry = Tentar novamente
+
+# semantic i18n key (#2542)
+photo-editor-image-label = imagem
+
+# semantic i18n key (#2542)
+photo-editor-rotate = ⟳ Girar
+
+# semantic i18n key (#2542)
+photo-editor-flip-h = ⇋ Inverter H
+
+# semantic i18n key (#2542)
+photo-editor-flip-v = ⇅ Inverter V
+
+# semantic i18n key (#2542)
+photo-editor-reset = ↺ Redefinir

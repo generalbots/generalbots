@@ -93,3 +93,18 @@ vibe-project-delete-default-confirm = 기본 봇 프로젝트 삭제: { $message
 vibe-project-delete-failed = 프로젝트를 삭제하지 못했습니다: { $reason }
 vibe-project-deleting = 프로젝트를 삭제하는 중…
 vibe-unknown-error = 알 수 없음
+
+# semantic i18n key (#2542)
+vibe-role-viewer = 뷰어
+
+# semantic i18n key (#2542)
+vibe-role-developer = 개발자
+
+# semantic i18n key (#2542)
+vibe-role-admin = 관리자
+
+# semantic i18n key (#2542)
+vibe-member-kind-user = 사용자
+
+# semantic i18n key (#2542)
+vibe-member-kind-group = 그룹

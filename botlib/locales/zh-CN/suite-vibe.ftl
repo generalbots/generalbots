@@ -93,3 +93,18 @@ vibe-project-delete-default-confirm = 删除默认机器人项目:{ $message }
 vibe-project-delete-failed = 无法删除项目:{ $reason }
 vibe-project-deleting = 正在删除项目…
 vibe-unknown-error = 未知
+
+# semantic i18n key (#2542)
+vibe-role-viewer = 查看者
+
+# semantic i18n key (#2542)
+vibe-role-developer = 开发者
+
+# semantic i18n key (#2542)
+vibe-role-admin = 管理员
+
+# semantic i18n key (#2542)
+vibe-member-kind-user = 用户
+
+# semantic i18n key (#2542)
+vibe-member-kind-group = 组

@@ -12,3 +12,18 @@ photos-load-failed = 이 이미지를 Drive에서 불러올 수 없습니다.
 photos-drive-error = Drive에 연결할 수 없습니다.
 photos-error-hint = Drive를 연결하면 여기에서 이미지를 볼 수 있습니다. 이미 연결되어 있다면 새로 고침하세요.
 photos-retry = 다시 시도
+
+# semantic i18n key (#2542)
+photo-editor-image-label = 이미지
+
+# semantic i18n key (#2542)
+photo-editor-rotate = ⟳ 회전
+
+# semantic i18n key (#2542)
+photo-editor-flip-h = ⇋ 좌우 뒤집기
+
+# semantic i18n key (#2542)
+photo-editor-flip-v = ⇅ 상하 뒤집기
+
+# semantic i18n key (#2542)
+photo-editor-reset = ↺ 초기화

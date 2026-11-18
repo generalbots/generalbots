@@ -269,3 +269,18 @@ settings-network-mode-label = 网络模式
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P（推荐）
+
+# semantic i18n key (#2542)
+settings-role-viewer = 查看者
+
+# semantic i18n key (#2542)
+settings-register-dns-hostname = 注册 DNS 主机名
+
+# semantic i18n key (#2542)
+settings-dns-aaaa-ipv6 = AAAA (IPv6)
+
+# semantic i18n key (#2542)
+settings-dns-cname = CNAME
+
+# semantic i18n key (#2542)
+settings-create-token = 创建令牌

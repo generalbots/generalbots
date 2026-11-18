@@ -35,7 +35,7 @@
                 <select name="role">
                     <option value="user" data-i18n="start-menu-user">User</option>
                     <option value="admin" data-i18n="nav-admin">Admin</option>
-                    <option value="viewer" data-i18n="auto-viewer">Viewer</option>
+                    <option value="viewer" data-i18n="settings-role-viewer">Viewer</option>
                 </select>
             </div>
             <!-- #2307 — inline, null-safe feedback instead of a native alert. -->
@@ -87,7 +87,7 @@
 <dialog id="register-dns-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-register-dns-hostname">Register DNS Hostname</h2>
+            <h2 data-i18n="settings-register-dns-hostname">Register DNS Hostname</h2>
             <button type="button" class="close-btn" onclick="document.getElementById('register-dns-modal').close()" aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -105,8 +105,8 @@
                 <label data-i18n="label-record-type">Record Type</label>
                 <select name="record_type">
                     <option value="A">A (IPv4)</option>
-                    <option value="AAAA" data-i18n="auto-aaaa-ipv6">AAAA (IPv6)</option>
-                    <option value="CNAME" data-i18n="auto-cname">CNAME</option>
+                    <option value="AAAA" data-i18n="settings-dns-aaaa-ipv6">AAAA (IPv6)</option>
+                    <option value="CNAME" data-i18n="settings-dns-cname">CNAME</option>
                 </select>
             </div>
             <div class="form-group">
@@ -153,7 +153,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn-secondary"
                     onclick="document.getElementById('create-api-key-modal').close()" data-i18n="action-cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="auto-create-token">Create token</button>
+                <button type="submit" class="btn-primary" data-i18n="settings-create-token">Create token</button>
             </div>
         </form>
     </div>

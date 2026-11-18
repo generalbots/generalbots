@@ -269,3 +269,18 @@ settings-network-mode-label = ネットワークモード
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P（推奨）
+
+# semantic i18n key (#2542)
+settings-role-viewer = 閲覧者
+
+# semantic i18n key (#2542)
+settings-register-dns-hostname = DNSホスト名を登録
+
+# semantic i18n key (#2542)
+settings-dns-aaaa-ipv6 = AAAA (IPv6)
+
+# semantic i18n key (#2542)
+settings-dns-cname = CNAME
+
+# semantic i18n key (#2542)
+settings-create-token = トークンを作成

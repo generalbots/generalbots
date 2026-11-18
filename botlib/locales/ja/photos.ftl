@@ -12,3 +12,18 @@ photos-load-failed = この画像を Drive から読み込めませんでした�
 photos-drive-error = Drive に接続できませんでした。
 photos-error-hint = Drive を接続すると、ここに画像が表示されます。接続済みの場合は更新してください。
 photos-retry = 再試行
+
+# semantic i18n key (#2542)
+photo-editor-image-label = 画像
+
+# semantic i18n key (#2542)
+photo-editor-rotate = ⟳ 回転
+
+# semantic i18n key (#2542)
+photo-editor-flip-h = ⇋ 左右反転
+
+# semantic i18n key (#2542)
+photo-editor-flip-v = ⇅ 上下反転
+
+# semantic i18n key (#2542)
+photo-editor-reset = ↺ リセット

@@ -353,3 +353,15 @@ browser-driver-tab = 드라이버
 
 # semantic i18n key (#2542)
 browser-new-tab = 새 탭
+
+# semantic i18n key (#2542)
+workspace-last-edited-just-now = 마지막 편집: 방금
+
+# semantic i18n key (#2542)
+workspace-empty-title = 페이지를 선택하거나 새로 만드세요
+
+# semantic i18n key (#2542)
+workspace-empty-hint = 작업 공간 페이지가 사이드바에 표시됩니다
+
+# semantic i18n key (#2542)
+workspace-invite-members = 멤버 초대

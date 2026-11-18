@@ -269,3 +269,18 @@ settings-network-mode-label = Modo de red
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P (recomendado)
+
+# semantic i18n key (#2542)
+settings-role-viewer = Visualizador
+
+# semantic i18n key (#2542)
+settings-register-dns-hostname = Registrar nombre de host DNS
+
+# semantic i18n key (#2542)
+settings-dns-aaaa-ipv6 = AAAA (IPv6)
+
+# semantic i18n key (#2542)
+settings-dns-cname = CNAME
+
+# semantic i18n key (#2542)
+settings-create-token = Crear token

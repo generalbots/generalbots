@@ -269,3 +269,18 @@ settings-network-mode-label = 네트워크 모드
 
 # semantic i18n key (#2542)
 settings-network-mode-p2p = P2P(권장)
+
+# semantic i18n key (#2542)
+settings-role-viewer = 뷰어
+
+# semantic i18n key (#2542)
+settings-register-dns-hostname = DNS 호스트 이름 등록
+
+# semantic i18n key (#2542)
+settings-dns-aaaa-ipv6 = AAAA (IPv6)
+
+# semantic i18n key (#2542)
+settings-dns-cname = CNAME
+
+# semantic i18n key (#2542)
+settings-create-token = 토큰 만들기

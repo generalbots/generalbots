@@ -353,3 +353,15 @@ browser-driver-tab = 驱动
 
 # semantic i18n key (#2542)
 browser-new-tab = 新标签页
+
+# semantic i18n key (#2542)
+workspace-last-edited-just-now = 最后编辑：刚刚
+
+# semantic i18n key (#2542)
+workspace-empty-title = 选择一个页面或创建新页面
+
+# semantic i18n key (#2542)
+workspace-empty-hint = 您的工作区页面将显示在侧边栏中
+
+# semantic i18n key (#2542)
+workspace-invite-members = 邀请成员

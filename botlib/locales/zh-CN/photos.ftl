@@ -12,3 +12,18 @@ photos-load-failed = 无法从 Drive 加载此图片。
 photos-drive-error = 无法连接到您的 Drive。
 photos-error-hint = 连接 Drive 后即可在此查看图片。如已连接，请尝试刷新。
 photos-retry = 重试
+
+# semantic i18n key (#2542)
+photo-editor-image-label = 图像
+
+# semantic i18n key (#2542)
+photo-editor-rotate = ⟳ 旋转
+
+# semantic i18n key (#2542)
+photo-editor-flip-h = ⇋ 水平翻转
+
+# semantic i18n key (#2542)
+photo-editor-flip-v = ⇅ 垂直翻转
+
+# semantic i18n key (#2542)
+photo-editor-reset = ↺ 重置
