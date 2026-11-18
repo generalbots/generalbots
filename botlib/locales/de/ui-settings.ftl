@@ -284,3 +284,21 @@ settings-dns-cname = CNAME
 
 # semantic i18n key (#2542)
 settings-create-token = Token erstellen
+
+# semantic i18n key (#2542)
+settings-system-preview-desc = Vorschaumodus und Versionsinformationen für diese Bereitstellung
+
+# semantic i18n key (#2542)
+settings-system-preview-surface-desc = Steuert, wie viel Oberfläche angezeigt wird, nicht was installiert ist.
+
+# semantic i18n key (#2542)
+settings-system-preview-toggle-desc = Zeigt Apps in der Vorschau und den vollständigen Einstellungsbaum an. Aus zeigt nur die wesentlichen Einstellungen dieser Edition.
+
+# semantic i18n key (#2542)
+settings-component-versions = Komponentenversionen
+
+# semantic i18n key (#2542)
+settings-component-versions-desc = BotServer-, BotUI- und Dienstversionen dieser Installation
+
+# semantic i18n key (#2542)
+settings-open-versions = Versionen öffnen

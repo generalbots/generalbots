@@ -284,3 +284,21 @@ settings-dns-cname = CNAME
 
 # semantic i18n key (#2542)
 settings-create-token = 토큰 만들기
+
+# semantic i18n key (#2542)
+settings-system-preview-desc = 이 배포의 미리보기 모드 및 버전 정보
+
+# semantic i18n key (#2542)
+settings-system-preview-surface-desc = 설치된 항목이 아니라 표시되는 범위를 제어합니다.
+
+# semantic i18n key (#2542)
+settings-system-preview-toggle-desc = 미리보기 앱과 전체 설정 트리를 표시합니다. 끄면 이 에디션의 필수 설정만 유지됩니다.
+
+# semantic i18n key (#2542)
+settings-component-versions = 구성 요소 버전
+
+# semantic i18n key (#2542)
+settings-component-versions-desc = 이 설치의 BotServer, BotUI 및 서비스 버전
+
+# semantic i18n key (#2542)
+settings-open-versions = 버전 열기

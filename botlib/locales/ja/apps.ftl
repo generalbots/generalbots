@@ -365,3 +365,39 @@ workspace-empty-hint = ワークスペースのページはサイドバーに表
 
 # semantic i18n key (#2542)
 workspace-invite-members = メンバーを招待
+
+# semantic i18n key (#2542)
+canvas-export-png = PNG画像
+
+# semantic i18n key (#2542)
+canvas-export-svg = SVGベクター
+
+# semantic i18n key (#2542)
+canvas-export-pdf = PDFドキュメント
+
+# semantic i18n key (#2542)
+canvas-export-json = JSONデータ
+
+# semantic i18n key (#2542)
+canvas-export-scale = スケール
+
+# semantic i18n key (#2542)
+canvas-export-include-background = 背景を含める
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = ウィンドウに合わせる
+
+# semantic i18n key (#2542)
+vdi-actual-size = 実際のサイズ
+
+# semantic i18n key (#2542)
+vdi-stretch = 引き伸ばす
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = ホスト名またはIP
+
+# semantic i18n key (#2542)
+vdi-authentication = 認証
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = VNC認証

@@ -365,3 +365,39 @@ workspace-empty-hint = Ihre Arbeitsbereichsseiten werden in der Seitenleiste ang
 
 # semantic i18n key (#2542)
 workspace-invite-members = Mitglieder einladen
+
+# semantic i18n key (#2542)
+canvas-export-png = PNG-Bild
+
+# semantic i18n key (#2542)
+canvas-export-svg = SVG-Vektor
+
+# semantic i18n key (#2542)
+canvas-export-pdf = PDF-Dokument
+
+# semantic i18n key (#2542)
+canvas-export-json = JSON-Daten
+
+# semantic i18n key (#2542)
+canvas-export-scale = Skalierung
+
+# semantic i18n key (#2542)
+canvas-export-include-background = Hintergrund einschließen
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = An Fenster anpassen
+
+# semantic i18n key (#2542)
+vdi-actual-size = Tatsächliche Größe
+
+# semantic i18n key (#2542)
+vdi-stretch = Strecken
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = Hostname oder IP
+
+# semantic i18n key (#2542)
+vdi-authentication = Authentifizierung
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = VNC-Authentifizierung

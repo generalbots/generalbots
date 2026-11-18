@@ -365,3 +365,39 @@ workspace-empty-hint = 您的工作区页面将显示在侧边栏中
 
 # semantic i18n key (#2542)
 workspace-invite-members = 邀请成员
+
+# semantic i18n key (#2542)
+canvas-export-png = PNG 图像
+
+# semantic i18n key (#2542)
+canvas-export-svg = SVG 矢量
+
+# semantic i18n key (#2542)
+canvas-export-pdf = PDF 文档
+
+# semantic i18n key (#2542)
+canvas-export-json = JSON 数据
+
+# semantic i18n key (#2542)
+canvas-export-scale = 缩放
+
+# semantic i18n key (#2542)
+canvas-export-include-background = 包含背景
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = 适应窗口
+
+# semantic i18n key (#2542)
+vdi-actual-size = 实际大小
+
+# semantic i18n key (#2542)
+vdi-stretch = 拉伸
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = 主机名或 IP
+
+# semantic i18n key (#2542)
+vdi-authentication = 身份验证
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = VNC 身份验证

@@ -363,3 +363,39 @@ workspace-empty-hint = Las páginas de tu espacio de trabajo aparecerán en la b
 
 # semantic i18n key (#2542)
 workspace-invite-members = Invitar miembros
+
+# semantic i18n key (#2542)
+canvas-export-png = Imagen PNG
+
+# semantic i18n key (#2542)
+canvas-export-svg = Vector SVG
+
+# semantic i18n key (#2542)
+canvas-export-pdf = Documento PDF
+
+# semantic i18n key (#2542)
+canvas-export-json = Datos JSON
+
+# semantic i18n key (#2542)
+canvas-export-scale = Escala
+
+# semantic i18n key (#2542)
+canvas-export-include-background = Incluir fondo
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = Ajustar a la ventana
+
+# semantic i18n key (#2542)
+vdi-actual-size = Tamaño real
+
+# semantic i18n key (#2542)
+vdi-stretch = Estirar
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = Nombre de host o IP
+
+# semantic i18n key (#2542)
+vdi-authentication = Autenticación
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = Autenticación VNC

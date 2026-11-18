@@ -284,3 +284,21 @@ settings-dns-cname = CNAME
 
 # semantic i18n key (#2542)
 settings-create-token = 创建令牌
+
+# semantic i18n key (#2542)
+settings-system-preview-desc = 此部署的预览模式和版本信息
+
+# semantic i18n key (#2542)
+settings-system-preview-surface-desc = 控制显示多少界面，而不是安装了什么。
+
+# semantic i18n key (#2542)
+settings-system-preview-toggle-desc = 显示预览中的应用和完整设置树。关闭时仅保留此版本的基本设置。
+
+# semantic i18n key (#2542)
+settings-component-versions = 组件版本
+
+# semantic i18n key (#2542)
+settings-component-versions-desc = 此安装的 BotServer、BotUI 和服务版本
+
+# semantic i18n key (#2542)
+settings-open-versions = 打开版本

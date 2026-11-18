@@ -44,9 +44,9 @@
                     <option value="1920x1080">1920x1080</option>
                 </select>
                 <select id="scaling-select" class="toolbar-select">
-                    <option value="scale" data-i18n="auto-fit-to-window">Fit to Window</option>
-                    <option value="none" data-i18n="auto-actual-size">Actual Size</option>
-                    <option value="stretch" data-i18n="auto-stretch">Stretch</option>
+                    <option value="scale" data-i18n="vdi-fit-to-window">Fit to Window</option>
+                    <option value="none" data-i18n="vdi-actual-size">Actual Size</option>
+                    <option value="stretch" data-i18n="vdi-stretch">Stretch</option>
                 </select>
                 <button class="btn btn-danger btn-sm" id="btn-disconnect" data-i18n="action-disconnect">Disconnect</button>
             </div>
@@ -81,7 +81,7 @@
                 <input type="text" id="conn-name" class="input-field" maxlength="255">
             </div>
             <div class="form-group">
-                <label for="conn-host" data-i18n="auto-hostname-or-ip">Hostname or IP</label>
+                <label for="conn-host" data-i18n="vdi-hostname-or-ip">Hostname or IP</label>
                 <input type="text" id="conn-host" class="input-field" placeholder="10.0.0.1">
             </div>
             <div class="form-group">
@@ -96,7 +96,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="conn-auth-type" data-i18n="auto-authentication">Authentication</label>
+                <label for="conn-auth-type" data-i18n="vdi-authentication">Authentication</label>
                 <select id="conn-auth-type" class="input-field">
                     <option value="none" data-i18n="label-none">None</option>
                     <option value="password" selected data-i18n="dashboards-password">Password</option>
@@ -114,7 +114,7 @@
 <div class="modal-overlay hidden" id="auth-modal-overlay">
     <div class="modal modal-sm" id="auth-modal">
         <div class="modal-header">
-            <h2 data-i18n="auto-vnc-authentication">VNC Authentication</h2>
+            <h2 data-i18n="vdi-vnc-authentication">VNC Authentication</h2>
         </div>
         <div class="modal-body">
             <div class="form-group">

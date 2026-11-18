@@ -365,3 +365,39 @@ workspace-empty-hint = 작업 공간 페이지가 사이드바에 표시됩니�
 
 # semantic i18n key (#2542)
 workspace-invite-members = 멤버 초대
+
+# semantic i18n key (#2542)
+canvas-export-png = PNG 이미지
+
+# semantic i18n key (#2542)
+canvas-export-svg = SVG 벡터
+
+# semantic i18n key (#2542)
+canvas-export-pdf = PDF 문서
+
+# semantic i18n key (#2542)
+canvas-export-json = JSON 데이터
+
+# semantic i18n key (#2542)
+canvas-export-scale = 배율
+
+# semantic i18n key (#2542)
+canvas-export-include-background = 배경 포함
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = 창에 맞춤
+
+# semantic i18n key (#2542)
+vdi-actual-size = 실제 크기
+
+# semantic i18n key (#2542)
+vdi-stretch = 늘리기
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = 호스트 이름 또는 IP
+
+# semantic i18n key (#2542)
+vdi-authentication = 인증
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = VNC 인증

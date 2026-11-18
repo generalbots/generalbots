@@ -365,3 +365,39 @@ workspace-empty-hint = Your workspace pages will appear in the sidebar
 
 # semantic i18n key (#2542)
 workspace-invite-members = Invite Members
+
+# semantic i18n key (#2542)
+canvas-export-png = PNG Image
+
+# semantic i18n key (#2542)
+canvas-export-svg = SVG Vector
+
+# semantic i18n key (#2542)
+canvas-export-pdf = PDF Document
+
+# semantic i18n key (#2542)
+canvas-export-json = JSON Data
+
+# semantic i18n key (#2542)
+canvas-export-scale = Scale
+
+# semantic i18n key (#2542)
+canvas-export-include-background = Include Background
+
+# semantic i18n key (#2542)
+vdi-fit-to-window = Fit to Window
+
+# semantic i18n key (#2542)
+vdi-actual-size = Actual Size
+
+# semantic i18n key (#2542)
+vdi-stretch = Stretch
+
+# semantic i18n key (#2542)
+vdi-hostname-or-ip = Hostname or IP
+
+# semantic i18n key (#2542)
+vdi-authentication = Authentication
+
+# semantic i18n key (#2542)
+vdi-vnc-authentication = VNC Authentication
