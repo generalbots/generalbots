@@ -356,3 +356,27 @@ settings-oda-min-vram = 最小显存
 
 # semantic i18n key (#2542)
 settings-oda-loading-models = 正在加载模型…
+
+# semantic i18n key (#2542)
+settings-date-format-mm-dd-yyyy-us = MM/DD/YYYY（美国）
+
+# semantic i18n key (#2542)
+settings-date-format-dd-mm-yyyy-eu-br = DD/MM/YYYY（欧盟/巴西）
+
+# semantic i18n key (#2542)
+settings-date-format-yyyy-mm-dd-iso = YYYY-MM-DD（ISO）
+
+# semantic i18n key (#2542)
+settings-timezone-america-new-york = 纽约（GMT-5）
+
+# semantic i18n key (#2542)
+settings-timezone-america-los-angeles = 洛杉矶（GMT-8）
+
+# semantic i18n key (#2542)
+settings-timezone-europe-london = 伦敦（GMT+0）
+
+# semantic i18n key (#2542)
+settings-timezone-europe-paris = 巴黎（GMT+1）
+
+# semantic i18n key (#2542)
+settings-timezone-asia-tokyo = 东京（GMT+9）

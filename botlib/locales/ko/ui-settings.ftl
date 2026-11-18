@@ -356,3 +356,27 @@ settings-oda-min-vram = 최소 VRAM
 
 # semantic i18n key (#2542)
 settings-oda-loading-models = 모델 불러오는 중…
+
+# semantic i18n key (#2542)
+settings-date-format-mm-dd-yyyy-us = MM/DD/YYYY(미국)
+
+# semantic i18n key (#2542)
+settings-date-format-dd-mm-yyyy-eu-br = DD/MM/YYYY(EU/브라질)
+
+# semantic i18n key (#2542)
+settings-date-format-yyyy-mm-dd-iso = YYYY-MM-DD(ISO)
+
+# semantic i18n key (#2542)
+settings-timezone-america-new-york = 뉴욕(GMT-5)
+
+# semantic i18n key (#2542)
+settings-timezone-america-los-angeles = 로스앤젤레스(GMT-8)
+
+# semantic i18n key (#2542)
+settings-timezone-europe-london = 런던(GMT+0)
+
+# semantic i18n key (#2542)
+settings-timezone-europe-paris = 파리(GMT+1)
+
+# semantic i18n key (#2542)
+settings-timezone-asia-tokyo = 도쿄(GMT+9)
