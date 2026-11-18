@@ -710,3 +710,51 @@ browser-agent-log = Journal de l'agent
 
 # semantic i18n key (#2542)
 browser-agent-mode-disabled = Mode agent désactivé
+
+# semantic i18n key (#2542)
+kyc-dashboard-title = Tableau de bord KYC
+
+# semantic i18n key (#2542)
+kyc-stat-verified = Vérifiés
+
+# semantic i18n key (#2542)
+kyc-tab-verifications = Vérifications
+
+# semantic i18n key (#2542)
+kyc-tab-signatures = Signatures
+
+# semantic i18n key (#2542)
+kyc-loading-verification-data = Récupération des données de vérification
+
+# semantic i18n key (#2542)
+kyc-documents-awaiting-signature = Documents en attente de signature
+
+# semantic i18n key (#2542)
+kyc-col-document = Document
+
+# semantic i18n key (#2542)
+kyc-col-requested = Demandé
+
+# semantic i18n key (#2542)
+kyc-col-signer = Signataire
+
+# semantic i18n key (#2542)
+kyc-signature-pad-title = Zone de signature
+
+# semantic i18n key (#2542)
+kyc-action-submit-signature = Soumettre la signature
+
+# semantic i18n key (#2542)
+kyc-loading-certificate-data = Récupération des données du certificat
+
+# semantic i18n key (#2542)
+kyc-renew-certificate-title = Renouveler le certificat
+
+# semantic i18n key (#2542)
+kyc-label-certificate-id = ID du certificat
+
+# semantic i18n key (#2542)
+kyc-label-validity-period-days = Période de validité (jours)
+
+# semantic i18n key (#2542)
+kyc-action-renew = Renouveler

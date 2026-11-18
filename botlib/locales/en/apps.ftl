@@ -710,3 +710,51 @@ browser-agent-log = Agent Log
 
 # semantic i18n key (#2542)
 browser-agent-mode-disabled = Agent mode disabled
+
+# semantic i18n key (#2542)
+kyc-dashboard-title = KYC Dashboard
+
+# semantic i18n key (#2542)
+kyc-stat-verified = Verified
+
+# semantic i18n key (#2542)
+kyc-tab-verifications = Verifications
+
+# semantic i18n key (#2542)
+kyc-tab-signatures = Signatures
+
+# semantic i18n key (#2542)
+kyc-loading-verification-data = Fetching verification data
+
+# semantic i18n key (#2542)
+kyc-documents-awaiting-signature = Documents Awaiting Signature
+
+# semantic i18n key (#2542)
+kyc-col-document = Document
+
+# semantic i18n key (#2542)
+kyc-col-requested = Requested
+
+# semantic i18n key (#2542)
+kyc-col-signer = Signer
+
+# semantic i18n key (#2542)
+kyc-signature-pad-title = Signature Pad
+
+# semantic i18n key (#2542)
+kyc-action-submit-signature = Submit Signature
+
+# semantic i18n key (#2542)
+kyc-loading-certificate-data = Fetching certificate data
+
+# semantic i18n key (#2542)
+kyc-renew-certificate-title = Renew Certificate
+
+# semantic i18n key (#2542)
+kyc-label-certificate-id = Certificate ID
+
+# semantic i18n key (#2542)
+kyc-label-validity-period-days = Validity Period (days)
+
+# semantic i18n key (#2542)
+kyc-action-renew = Renew

@@ -710,3 +710,51 @@ browser-agent-log = 에이전트 로그
 
 # semantic i18n key (#2542)
 browser-agent-mode-disabled = 에이전트 모드 비활성화됨
+
+# semantic i18n key (#2542)
+kyc-dashboard-title = KYC 대시보드
+
+# semantic i18n key (#2542)
+kyc-stat-verified = 인증됨
+
+# semantic i18n key (#2542)
+kyc-tab-verifications = 검증
+
+# semantic i18n key (#2542)
+kyc-tab-signatures = 서명
+
+# semantic i18n key (#2542)
+kyc-loading-verification-data = 검증 데이터를 가져오는 중
+
+# semantic i18n key (#2542)
+kyc-documents-awaiting-signature = 서명 대기 중인 문서
+
+# semantic i18n key (#2542)
+kyc-col-document = 문서
+
+# semantic i18n key (#2542)
+kyc-col-requested = 요청됨
+
+# semantic i18n key (#2542)
+kyc-col-signer = 서명자
+
+# semantic i18n key (#2542)
+kyc-signature-pad-title = 서명 패드
+
+# semantic i18n key (#2542)
+kyc-action-submit-signature = 서명 제출
+
+# semantic i18n key (#2542)
+kyc-loading-certificate-data = 인증서 데이터를 가져오는 중
+
+# semantic i18n key (#2542)
+kyc-renew-certificate-title = 인증서 갱신
+
+# semantic i18n key (#2542)
+kyc-label-certificate-id = 인증서 ID
+
+# semantic i18n key (#2542)
+kyc-label-validity-period-days = 유효 기간(일)
+
+# semantic i18n key (#2542)
+kyc-action-renew = 갱신

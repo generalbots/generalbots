@@ -710,3 +710,51 @@ browser-agent-log = 代理日志
 
 # semantic i18n key (#2542)
 browser-agent-mode-disabled = 代理模式已禁用
+
+# semantic i18n key (#2542)
+kyc-dashboard-title = KYC 仪表板
+
+# semantic i18n key (#2542)
+kyc-stat-verified = 已验证
+
+# semantic i18n key (#2542)
+kyc-tab-verifications = 验证
+
+# semantic i18n key (#2542)
+kyc-tab-signatures = 签名
+
+# semantic i18n key (#2542)
+kyc-loading-verification-data = 正在获取验证数据
+
+# semantic i18n key (#2542)
+kyc-documents-awaiting-signature = 待签名文档
+
+# semantic i18n key (#2542)
+kyc-col-document = 文档
+
+# semantic i18n key (#2542)
+kyc-col-requested = 请求时间
+
+# semantic i18n key (#2542)
+kyc-col-signer = 签署人
+
+# semantic i18n key (#2542)
+kyc-signature-pad-title = 签名板
+
+# semantic i18n key (#2542)
+kyc-action-submit-signature = 提交签名
+
+# semantic i18n key (#2542)
+kyc-loading-certificate-data = 正在获取证书数据
+
+# semantic i18n key (#2542)
+kyc-renew-certificate-title = 续订证书
+
+# semantic i18n key (#2542)
+kyc-label-certificate-id = 证书 ID
+
+# semantic i18n key (#2542)
+kyc-label-validity-period-days = 有效期（天）
+
+# semantic i18n key (#2542)
+kyc-action-renew = 续订

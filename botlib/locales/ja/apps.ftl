@@ -710,3 +710,51 @@ browser-agent-log = エージェントログ
 
 # semantic i18n key (#2542)
 browser-agent-mode-disabled = エージェントモードは無効です
+
+# semantic i18n key (#2542)
+kyc-dashboard-title = KYCダッシュボード
+
+# semantic i18n key (#2542)
+kyc-stat-verified = 確認済み
+
+# semantic i18n key (#2542)
+kyc-tab-verifications = 検証
+
+# semantic i18n key (#2542)
+kyc-tab-signatures = 署名
+
+# semantic i18n key (#2542)
+kyc-loading-verification-data = 検証データを取得しています
+
+# semantic i18n key (#2542)
+kyc-documents-awaiting-signature = 署名待ちの文書
+
+# semantic i18n key (#2542)
+kyc-col-document = 文書
+
+# semantic i18n key (#2542)
+kyc-col-requested = 依頼日
+
+# semantic i18n key (#2542)
+kyc-col-signer = 署名者
+
+# semantic i18n key (#2542)
+kyc-signature-pad-title = 署名パッド
+
+# semantic i18n key (#2542)
+kyc-action-submit-signature = 署名を送信
+
+# semantic i18n key (#2542)
+kyc-loading-certificate-data = 証明書データを取得しています
+
+# semantic i18n key (#2542)
+kyc-renew-certificate-title = 証明書を更新
+
+# semantic i18n key (#2542)
+kyc-label-certificate-id = 証明書ID
+
+# semantic i18n key (#2542)
+kyc-label-validity-period-days = 有効期間（日）
+
+# semantic i18n key (#2542)
+kyc-action-renew = 更新
