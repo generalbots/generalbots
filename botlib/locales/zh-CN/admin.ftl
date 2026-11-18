@@ -731,3 +731,75 @@ accounts-sample-connected-since = 2025年1月15日
 
 # semantic i18n key (#2542)
 accounts-permissions = 权限
+
+# semantic i18n key (#2542)
+admin-groups-hidden = 隐藏
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = 群组详情
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = 概览
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = 成员
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = 权限
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = 知识库
+
+# semantic i18n key (#2542)
+admin-groups-create-title = 创建新群组
+
+# semantic i18n key (#2542)
+admin-groups-visibility = 可见性
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = 加入策略
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = 仅限邀请
+
+# semantic i18n key (#2542)
+admin-groups-request-join = 请求加入
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = 允许成员邀请其他人
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = 启用群聊
+
+# semantic i18n key (#2542)
+admin-groups-add-members = 添加成员
+
+# semantic i18n key (#2542)
+admin-groups-search-users = 搜索用户
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = 已选用户
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = 未选择用户
+
+# semantic i18n key (#2542)
+admin-groups-role-member = 成员
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = 版主
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = 发送邀请
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = 电子邮件地址
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = 每行输入一个电子邮件地址
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = 个人消息（可选）
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = 这将移除所有成员并删除所有群组数据。此操作无法撤消。

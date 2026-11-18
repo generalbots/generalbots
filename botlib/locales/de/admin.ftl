@@ -731,3 +731,75 @@ accounts-sample-connected-since = 15. Januar 2025
 
 # semantic i18n key (#2542)
 accounts-permissions = Berechtigungen
+
+# semantic i18n key (#2542)
+admin-groups-hidden = Versteckt
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = Gruppendetails
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = Übersicht
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = Mitglieder
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = Berechtigungen
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = Wissensdatenbanken
+
+# semantic i18n key (#2542)
+admin-groups-create-title = Neue Gruppe erstellen
+
+# semantic i18n key (#2542)
+admin-groups-visibility = Sichtbarkeit
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = Beitrittsrichtlinie
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = Nur auf Einladung
+
+# semantic i18n key (#2542)
+admin-groups-request-join = Beitritt anfragen
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = Mitgliedern erlauben, andere einzuladen
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = Gruppenchat aktivieren
+
+# semantic i18n key (#2542)
+admin-groups-add-members = Mitglieder hinzufügen
+
+# semantic i18n key (#2542)
+admin-groups-search-users = Benutzer suchen
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = Ausgewählte Benutzer
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = Keine Benutzer ausgewählt
+
+# semantic i18n key (#2542)
+admin-groups-role-member = Mitglied
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = Moderator
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = Einladungen senden
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = E-Mail-Adressen
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = Geben Sie eine E-Mail-Adresse pro Zeile ein
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = Persönliche Nachricht (optional)
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = Dadurch werden alle Mitglieder entfernt und alle Gruppendaten gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.

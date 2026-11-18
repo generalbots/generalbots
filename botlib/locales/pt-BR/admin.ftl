@@ -734,3 +734,75 @@ accounts-sample-connected-since = 15 de janeiro de 2025
 
 # semantic i18n key (#2542)
 accounts-permissions = Permissões
+
+# semantic i18n key (#2542)
+admin-groups-hidden = Oculto
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = Detalhes do grupo
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = Visão geral
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = Membros
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = Permissões
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = Bases de conhecimento
+
+# semantic i18n key (#2542)
+admin-groups-create-title = Criar novo grupo
+
+# semantic i18n key (#2542)
+admin-groups-visibility = Visibilidade
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = Política de entrada
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = Somente por convite
+
+# semantic i18n key (#2542)
+admin-groups-request-join = Solicitar entrada
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = Permitir que membros convidem outras pessoas
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = Ativar chat do grupo
+
+# semantic i18n key (#2542)
+admin-groups-add-members = Adicionar membros
+
+# semantic i18n key (#2542)
+admin-groups-search-users = Pesquisar usuários
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = Usuários selecionados
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = Nenhum usuário selecionado
+
+# semantic i18n key (#2542)
+admin-groups-role-member = Membro
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = Moderador
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = Enviar convites
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = Endereços de e-mail
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = Digite um endereço de e-mail por linha
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = Mensagem pessoal (opcional)
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = Isso removerá todos os membros e excluirá todos os dados do grupo. Esta ação não pode ser desfeita.

@@ -731,3 +731,75 @@ accounts-sample-connected-since = 15 janvier 2025
 
 # semantic i18n key (#2542)
 accounts-permissions = Autorisations
+
+# semantic i18n key (#2542)
+admin-groups-hidden = Masqué
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = Détails du groupe
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = Aperçu
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = Membres
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = Autorisations
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = Bases de connaissances
+
+# semantic i18n key (#2542)
+admin-groups-create-title = Créer un nouveau groupe
+
+# semantic i18n key (#2542)
+admin-groups-visibility = Visibilité
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = Politique d'adhésion
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = Sur invitation uniquement
+
+# semantic i18n key (#2542)
+admin-groups-request-join = Demander à rejoindre
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = Autoriser les membres à inviter d'autres personnes
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = Activer le chat de groupe
+
+# semantic i18n key (#2542)
+admin-groups-add-members = Ajouter des membres
+
+# semantic i18n key (#2542)
+admin-groups-search-users = Rechercher des utilisateurs
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = Utilisateurs sélectionnés
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = Aucun utilisateur sélectionné
+
+# semantic i18n key (#2542)
+admin-groups-role-member = Membre
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = Modérateur
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = Envoyer des invitations
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = Adresses e-mail
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = Saisissez une adresse e-mail par ligne
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = Message personnel (facultatif)
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = Cela supprimera tous les membres et toutes les données du groupe. Cette action est irréversible.

@@ -731,3 +731,75 @@ accounts-sample-connected-since = 2025年1月15日
 
 # semantic i18n key (#2542)
 accounts-permissions = 権限
+
+# semantic i18n key (#2542)
+admin-groups-hidden = 非表示
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = グループの詳細
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = 概要
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = メンバー
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = 権限
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = ナレッジベース
+
+# semantic i18n key (#2542)
+admin-groups-create-title = 新しいグループを作成
+
+# semantic i18n key (#2542)
+admin-groups-visibility = 公開範囲
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = 参加ポリシー
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = 招待制
+
+# semantic i18n key (#2542)
+admin-groups-request-join = 参加をリクエスト
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = メンバーが他のユーザーを招待できるようにする
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = グループチャットを有効にする
+
+# semantic i18n key (#2542)
+admin-groups-add-members = メンバーを追加
+
+# semantic i18n key (#2542)
+admin-groups-search-users = ユーザーを検索
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = 選択されたユーザー
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = ユーザーが選択されていません
+
+# semantic i18n key (#2542)
+admin-groups-role-member = メンバー
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = モデレーター
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = 招待を送信
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = メールアドレス
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = 1行に1つのメールアドレスを入力してください
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = 個人的なメッセージ（任意）
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = これにより、すべてのメンバーが削除され、グループのすべてのデータが削除されます。この操作は元に戻せません。

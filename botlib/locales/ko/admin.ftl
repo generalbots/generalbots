@@ -731,3 +731,75 @@ accounts-sample-connected-since = 2025년 1월 15일
 
 # semantic i18n key (#2542)
 accounts-permissions = 권한
+
+# semantic i18n key (#2542)
+admin-groups-hidden = 숨김
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = 그룹 세부 정보
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = 개요
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = 멤버
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = 권한
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = 지식 베이스
+
+# semantic i18n key (#2542)
+admin-groups-create-title = 새 그룹 만들기
+
+# semantic i18n key (#2542)
+admin-groups-visibility = 공개 범위
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = 가입 정책
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = 초대 전용
+
+# semantic i18n key (#2542)
+admin-groups-request-join = 가입 요청
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = 멤버가 다른 사람을 초대하도록 허용
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = 그룹 채팅 사용
+
+# semantic i18n key (#2542)
+admin-groups-add-members = 멤버 추가
+
+# semantic i18n key (#2542)
+admin-groups-search-users = 사용자 검색
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = 선택된 사용자
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = 선택된 사용자 없음
+
+# semantic i18n key (#2542)
+admin-groups-role-member = 멤버
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = 중재자
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = 초대 보내기
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = 이메일 주소
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = 한 줄에 이메일 주소 하나씩 입력하세요
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = 개인 메시지(선택 사항)
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = 모든 멤버가 제거되고 모든 그룹 데이터가 삭제됩니다. 이 작업은 취소할 수 없습니다.

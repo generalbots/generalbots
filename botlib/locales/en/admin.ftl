@@ -733,3 +733,75 @@ accounts-sample-connected-since = January 15, 2025
 
 # semantic i18n key (#2542)
 accounts-permissions = Permissions
+
+# semantic i18n key (#2542)
+admin-groups-hidden = Hidden
+
+# semantic i18n key (#2542)
+admin-groups-detail-title = Group Details
+
+# semantic i18n key (#2542)
+admin-groups-tab-overview = Overview
+
+# semantic i18n key (#2542)
+admin-groups-tab-members = Members
+
+# semantic i18n key (#2542)
+admin-groups-tab-permissions = Permissions
+
+# semantic i18n key (#2542)
+admin-groups-tab-kbs = Knowledge Bases
+
+# semantic i18n key (#2542)
+admin-groups-create-title = Create New Group
+
+# semantic i18n key (#2542)
+admin-groups-visibility = Visibility
+
+# semantic i18n key (#2542)
+admin-groups-join-policy = Join Policy
+
+# semantic i18n key (#2542)
+admin-groups-invite-only = Invite Only
+
+# semantic i18n key (#2542)
+admin-groups-request-join = Request to Join
+
+# semantic i18n key (#2542)
+admin-groups-allow-member-invite = Allow members to invite others
+
+# semantic i18n key (#2542)
+admin-groups-enable-chat = Enable group chat
+
+# semantic i18n key (#2542)
+admin-groups-add-members = Add Members
+
+# semantic i18n key (#2542)
+admin-groups-search-users = Search Users
+
+# semantic i18n key (#2542)
+admin-groups-selected-users = Selected Users
+
+# semantic i18n key (#2542)
+admin-groups-no-users-selected = No users selected
+
+# semantic i18n key (#2542)
+admin-groups-role-member = Member
+
+# semantic i18n key (#2542)
+admin-groups-role-moderator = Moderator
+
+# semantic i18n key (#2542)
+admin-groups-send-invites = Send Invites
+
+# semantic i18n key (#2542)
+admin-groups-email-addresses = Email Addresses
+
+# semantic i18n key (#2542)
+admin-groups-emails-help = Enter one email address per line
+
+# semantic i18n key (#2542)
+admin-groups-personal-message-optional = Personal Message (optional)
+
+# semantic i18n key (#2542)
+admin-groups-delete-warning = This will remove all members and delete all group data. This action cannot be undone.
