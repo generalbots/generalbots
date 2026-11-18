@@ -379,3 +379,8 @@ people-import-csv = CSVをインポート
 
 # semantic i18n key (#2542)
 people-search-empty-hint = 検索を実行すると結果が表示されます。
+
+# semantic i18n key (#2542)
+people-search-name-placeholder = 例: マリア
+people-search-email-placeholder = maria@example.com
+people-search-tags-placeholder = vip, パートナー, リード

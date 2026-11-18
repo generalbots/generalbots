@@ -379,3 +379,8 @@ people-import-csv = Importer CSV
 
 # semantic i18n key (#2542)
 people-search-empty-hint = Lancez une recherche pour voir les résultats.
+
+# semantic i18n key (#2542)
+people-search-name-placeholder = p. ex. Marie
+people-search-email-placeholder = marie@entreprise.com
+people-search-tags-placeholder = vip, partenaire, prospect

@@ -631,3 +631,6 @@ db-aria-sql-query = SQL 쿼리
 db-placeholder-table-name-example = my_table
 db-placeholder-column-id = id
 db-placeholder-column-name-example = column_name
+
+# semantic i18n key (#2542)
+calendar-event-attendees-placeholder = 이메일1, 이메일2

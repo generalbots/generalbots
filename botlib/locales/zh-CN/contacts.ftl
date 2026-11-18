@@ -379,3 +379,8 @@ people-import-csv = 导入 CSV
 
 # semantic i18n key (#2542)
 people-search-empty-hint = 运行搜索以查看结果。
+
+# semantic i18n key (#2542)
+people-search-name-placeholder = 例如：Maria
+people-search-email-placeholder = maria@example.com
+people-search-tags-placeholder = vip, 合作伙伴, 潜在客户

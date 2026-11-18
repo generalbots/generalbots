@@ -379,3 +379,8 @@ people-import-csv = CSV 가져오기
 
 # semantic i18n key (#2542)
 people-search-empty-hint = 검색을 실행하면 결과가 표시됩니다.
+
+# semantic i18n key (#2542)
+people-search-name-placeholder = 예: 마리아
+people-search-email-placeholder = maria@example.com
+people-search-tags-placeholder = vip, 파트너, 리드
