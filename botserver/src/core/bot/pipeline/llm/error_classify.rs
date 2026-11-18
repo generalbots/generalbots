@@ -19,6 +19,8 @@ pub enum LlmErrorCode {
     ModelError,
     /// The turn timed out before the model answered.
     Timeout,
+    /// The conversation is longer than the model can read in one request.
+    ContextExceeded,
 }
 
 impl LlmErrorCode {
@@ -31,6 +33,7 @@ impl LlmErrorCode {
             Self::ModelRateLimited => "The language model is rate-limiting requests.",
             Self::ModelError => "The language model returned an error.",
             Self::Timeout => "The request timed out.",
+            Self::ContextExceeded => "The conversation is longer than the model can read at once.",
         }
     }
 
@@ -51,6 +54,14 @@ impl LlmErrorCode {
 /// invisible.
 pub fn classify(error: &str) -> LlmErrorCode {
     let lower = error.to_lowercase();
+
+    // The request itself is too long: sending it again cannot succeed.
+    if lower.contains("exceeds the available context size")
+        || lower.contains("context_length_exceeded")
+        || lower.contains("maximum context length")
+    {
+        return LlmErrorCode::ContextExceeded;
+    }
 
     // Connection-level failures
     if lower.contains("connection refused")
@@ -132,6 +143,17 @@ mod tests {
         assert_eq!(
             classify("LLM stream request failed after retries"),
             LlmErrorCode::ModelUnreachable
+        );
+    }
+
+    #[test]
+    fn classify_a_request_longer_than_the_context() {
+        let local = "LLM request failed with status: 400 Bad Request: {\"error\":{\"code\":400,\"message\":\"request (8640 tokens) exceeds the available context size (8192 tokens), try increasing it\"}}";
+        assert_eq!(classify(local), LlmErrorCode::ContextExceeded);
+        assert!(!LlmErrorCode::ContextExceeded.is_retryable());
+        assert_eq!(
+            classify("This model's maximum context length is 32768 tokens"),
+            LlmErrorCode::ContextExceeded
         );
     }
 
