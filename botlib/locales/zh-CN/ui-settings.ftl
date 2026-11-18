@@ -380,3 +380,54 @@ settings-timezone-europe-paris = 巴黎（GMT+1）
 
 # semantic i18n key (#2542)
 settings-timezone-asia-tokyo = 东京（GMT+9）
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper = 桌面壁纸
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper-desc = 选择在桌面上显示的背景
+
+# semantic i18n key (#2542)
+settings-organizations-bots = 组织和机器人
+
+# semantic i18n key (#2542)
+settings-organizations-bots-desc = 管理您的组织和机器人层级
+
+# semantic i18n key (#2542)
+settings-current-organization = 当前组织
+
+# semantic i18n key (#2542)
+settings-current-organization-desc = 选择要管理的组织
+
+# semantic i18n key (#2542)
+settings-loading-organizations = 正在加载组织...
+
+# semantic i18n key (#2542)
+settings-bot-tree = 机器人树
+
+# semantic i18n key (#2542)
+settings-bot-tree-desc = 属于所选组织的机器人
+
+# semantic i18n key (#2542)
+settings-loading-bots = 正在加载机器人...
+
+# semantic i18n key (#2542)
+settings-storage-sync-desc = 管理您的存储和同步设置
+
+# semantic i18n key (#2542)
+settings-knowledge = 知识
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context = 将所有云端硬盘文件用作知识上下文
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context-desc = 启用后（默认），您最近的云端硬盘文件名会随每次聊天发送，以便助手将其用作上下文。关闭后可将云端硬盘排除在提示之外。
+
+# semantic i18n key (#2542)
+settings-loading-storage-information = 正在加载存储信息...
+
+# semantic i18n key (#2542)
+settings-connected-cloud-storage = 已连接的云存储
+
+# semantic i18n key (#2542)
+settings-loading-storage-connections = 正在加载存储连接...

@@ -380,3 +380,54 @@ settings-timezone-europe-paris = Paris (GMT+1)
 
 # semantic i18n key (#2542)
 settings-timezone-asia-tokyo = Tokyo (GMT+9)
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper = Fond d'écran du bureau
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper-desc = Choisissez l'arrière-plan affiché sur votre bureau
+
+# semantic i18n key (#2542)
+settings-organizations-bots = Organisations et bots
+
+# semantic i18n key (#2542)
+settings-organizations-bots-desc = Gérez vos organisations et la hiérarchie des bots
+
+# semantic i18n key (#2542)
+settings-current-organization = Organisation actuelle
+
+# semantic i18n key (#2542)
+settings-current-organization-desc = Sélectionnez l'organisation que vous souhaitez gérer
+
+# semantic i18n key (#2542)
+settings-loading-organizations = Chargement des organisations...
+
+# semantic i18n key (#2542)
+settings-bot-tree = Arborescence des bots
+
+# semantic i18n key (#2542)
+settings-bot-tree-desc = Bots appartenant à l'organisation sélectionnée
+
+# semantic i18n key (#2542)
+settings-loading-bots = Chargement des bots...
+
+# semantic i18n key (#2542)
+settings-storage-sync-desc = Gérez vos paramètres de stockage et de synchronisation
+
+# semantic i18n key (#2542)
+settings-knowledge = Connaissances
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context = Utiliser tous les fichiers Drive comme contexte de connaissances
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context-desc = Lorsqu'elle est activée (par défaut), les noms de vos fichiers Drive récents sont envoyés à chaque tour de discussion afin que l'assistant puisse les utiliser comme contexte. Désactivez-la pour exclure Drive du prompt.
+
+# semantic i18n key (#2542)
+settings-loading-storage-information = Chargement des informations de stockage...
+
+# semantic i18n key (#2542)
+settings-connected-cloud-storage = Stockage cloud connecté
+
+# semantic i18n key (#2542)
+settings-loading-storage-connections = Chargement des connexions de stockage...

@@ -380,3 +380,54 @@ settings-timezone-europe-paris = パリ (GMT+1)
 
 # semantic i18n key (#2542)
 settings-timezone-asia-tokyo = 東京 (GMT+9)
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper = デスクトップの壁紙
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper-desc = デスクトップに表示する背景を選択します
+
+# semantic i18n key (#2542)
+settings-organizations-bots = 組織とボット
+
+# semantic i18n key (#2542)
+settings-organizations-bots-desc = 組織とボットの階層を管理します
+
+# semantic i18n key (#2542)
+settings-current-organization = 現在の組織
+
+# semantic i18n key (#2542)
+settings-current-organization-desc = 管理する組織を選択してください
+
+# semantic i18n key (#2542)
+settings-loading-organizations = 組織を読み込み中...
+
+# semantic i18n key (#2542)
+settings-bot-tree = ボットツリー
+
+# semantic i18n key (#2542)
+settings-bot-tree-desc = 選択した組織に属するボット
+
+# semantic i18n key (#2542)
+settings-loading-bots = ボットを読み込み中...
+
+# semantic i18n key (#2542)
+settings-storage-sync-desc = ストレージと同期の設定を管理します
+
+# semantic i18n key (#2542)
+settings-knowledge = ナレッジ
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context = すべてのDriveファイルをナレッジコンテキストとして使用する
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context-desc = 有効（デフォルト）の場合、最近のDriveファイル名が各チャットのやり取りに含まれ、アシスタントがコンテキストとして使用できます。Driveをプロンプトから除外するにはオフにしてください。
+
+# semantic i18n key (#2542)
+settings-loading-storage-information = ストレージ情報を読み込み中...
+
+# semantic i18n key (#2542)
+settings-connected-cloud-storage = 接続済みクラウドストレージ
+
+# semantic i18n key (#2542)
+settings-loading-storage-connections = ストレージ接続を読み込み中...

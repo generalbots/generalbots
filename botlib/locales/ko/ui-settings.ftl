@@ -380,3 +380,54 @@ settings-timezone-europe-paris = 파리(GMT+1)
 
 # semantic i18n key (#2542)
 settings-timezone-asia-tokyo = 도쿄(GMT+9)
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper = 바탕 화면 배경
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper-desc = 바탕 화면에 표시할 배경을 선택하세요
+
+# semantic i18n key (#2542)
+settings-organizations-bots = 조직 및 봇
+
+# semantic i18n key (#2542)
+settings-organizations-bots-desc = 조직 및 봇 계층 구조를 관리하세요
+
+# semantic i18n key (#2542)
+settings-current-organization = 현재 조직
+
+# semantic i18n key (#2542)
+settings-current-organization-desc = 관리할 조직을 선택하세요
+
+# semantic i18n key (#2542)
+settings-loading-organizations = 조직 불러오는 중...
+
+# semantic i18n key (#2542)
+settings-bot-tree = 봇 트리
+
+# semantic i18n key (#2542)
+settings-bot-tree-desc = 선택한 조직에 속한 봇
+
+# semantic i18n key (#2542)
+settings-loading-bots = 봇 불러오는 중...
+
+# semantic i18n key (#2542)
+settings-storage-sync-desc = 저장 공간 및 동기화 설정을 관리하세요
+
+# semantic i18n key (#2542)
+settings-knowledge = 지식
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context = 모든 드라이브 파일을 지식 컨텍스트로 사용
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context-desc = 활성화(기본값)하면 최근 드라이브 파일 이름이 각 채팅 턴에 포함되어 어시스턴트가 컨텍스트로 사용할 수 있습니다. 프롬프트에서 드라이브를 제외하려면 끄세요.
+
+# semantic i18n key (#2542)
+settings-loading-storage-information = 저장 공간 정보 불러오는 중...
+
+# semantic i18n key (#2542)
+settings-connected-cloud-storage = 연결된 클라우드 저장소
+
+# semantic i18n key (#2542)
+settings-loading-storage-connections = 저장소 연결 불러오는 중...

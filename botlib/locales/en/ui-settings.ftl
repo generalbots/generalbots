@@ -380,3 +380,54 @@ settings-timezone-europe-paris = Paris (GMT+1)
 
 # semantic i18n key (#2542)
 settings-timezone-asia-tokyo = Tokyo (GMT+9)
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper = Desktop Wallpaper
+
+# semantic i18n key (#2542)
+settings-desktop-wallpaper-desc = Choose the background displayed on your desktop
+
+# semantic i18n key (#2542)
+settings-organizations-bots = Organizations & Bots
+
+# semantic i18n key (#2542)
+settings-organizations-bots-desc = Manage your organizations and bot hierarchy
+
+# semantic i18n key (#2542)
+settings-current-organization = Current Organization
+
+# semantic i18n key (#2542)
+settings-current-organization-desc = Select the organization you want to manage
+
+# semantic i18n key (#2542)
+settings-loading-organizations = Loading organizations...
+
+# semantic i18n key (#2542)
+settings-bot-tree = Bot Tree
+
+# semantic i18n key (#2542)
+settings-bot-tree-desc = Bots belonging to the selected organization
+
+# semantic i18n key (#2542)
+settings-loading-bots = Loading bots...
+
+# semantic i18n key (#2542)
+settings-storage-sync-desc = Manage your storage and sync settings
+
+# semantic i18n key (#2542)
+settings-knowledge = Knowledge
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context = Use all Drive files as knowledge context
+
+# semantic i18n key (#2542)
+settings-drive-files-as-context-desc = When enabled (the default), the names of your recent Drive files travel with each chat turn so the assistant can use them as context. Turn it off to keep Drive out of the prompt.
+
+# semantic i18n key (#2542)
+settings-loading-storage-information = Loading storage information...
+
+# semantic i18n key (#2542)
+settings-connected-cloud-storage = Connected Cloud Storage
+
+# semantic i18n key (#2542)
+settings-loading-storage-connections = Loading storage connections...
