@@ -27,3 +27,27 @@ photo-editor-flip-v = ⇅ Retourner V
 
 # semantic i18n key (#2542)
 photo-editor-reset = ↺ Réinitialiser
+
+# semantic i18n key (#2542)
+photo-editor-rotate-title = Pivoter de 90°
+
+# semantic i18n key (#2542)
+photo-editor-flip-h-title = Retourner horizontalement
+
+# semantic i18n key (#2542)
+photo-editor-flip-v-title = Retourner verticalement
+
+# semantic i18n key (#2542)
+photo-editor-reset-title = Annuler toutes les modifications
+
+# semantic i18n key (#2542)
+photo-editor-save-title = Enregistrer dans Drive (même fichier)
+
+# semantic i18n key (#2542)
+photo-editor-save = Enregistrer
+
+# semantic i18n key (#2542)
+photo-editor-save-as-title = Enregistrer une copie dans Drive
+
+# semantic i18n key (#2542)
+photo-editor-save-as = Enregistrer sous…

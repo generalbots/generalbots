@@ -27,3 +27,27 @@ photo-editor-flip-v = ⇅ 垂直翻转
 
 # semantic i18n key (#2542)
 photo-editor-reset = ↺ 重置
+
+# semantic i18n key (#2542)
+photo-editor-rotate-title = 旋转 90°
+
+# semantic i18n key (#2542)
+photo-editor-flip-h-title = 水平翻转
+
+# semantic i18n key (#2542)
+photo-editor-flip-v-title = 垂直翻转
+
+# semantic i18n key (#2542)
+photo-editor-reset-title = 还原所有编辑
+
+# semantic i18n key (#2542)
+photo-editor-save-title = 保存到 Drive（同一文件）
+
+# semantic i18n key (#2542)
+photo-editor-save = 保存
+
+# semantic i18n key (#2542)
+photo-editor-save-as-title = 在 Drive 中另存为副本
+
+# semantic i18n key (#2542)
+photo-editor-save-as = 另存为…

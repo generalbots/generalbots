@@ -27,3 +27,27 @@ photo-editor-flip-v = ⇅ 上下反転
 
 # semantic i18n key (#2542)
 photo-editor-reset = ↺ リセット
+
+# semantic i18n key (#2542)
+photo-editor-rotate-title = 90度回転
+
+# semantic i18n key (#2542)
+photo-editor-flip-h-title = 左右反転
+
+# semantic i18n key (#2542)
+photo-editor-flip-v-title = 上下反転
+
+# semantic i18n key (#2542)
+photo-editor-reset-title = すべての編集を元に戻す
+
+# semantic i18n key (#2542)
+photo-editor-save-title = Drive に保存（同じファイル）
+
+# semantic i18n key (#2542)
+photo-editor-save = 保存
+
+# semantic i18n key (#2542)
+photo-editor-save-as-title = Drive にコピーとして保存
+
+# semantic i18n key (#2542)
+photo-editor-save-as = 名前を付けて保存…

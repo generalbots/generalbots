@@ -27,3 +27,27 @@ photo-editor-flip-v = ⇅ Vertikal spiegeln
 
 # semantic i18n key (#2542)
 photo-editor-reset = ↺ Zurücksetzen
+
+# semantic i18n key (#2542)
+photo-editor-rotate-title = Um 90° drehen
+
+# semantic i18n key (#2542)
+photo-editor-flip-h-title = Horizontal spiegeln
+
+# semantic i18n key (#2542)
+photo-editor-flip-v-title = Vertikal spiegeln
+
+# semantic i18n key (#2542)
+photo-editor-reset-title = Alle Änderungen zurücksetzen
+
+# semantic i18n key (#2542)
+photo-editor-save-title = In Drive speichern (gleiche Datei)
+
+# semantic i18n key (#2542)
+photo-editor-save = Speichern
+
+# semantic i18n key (#2542)
+photo-editor-save-as-title = Als Kopie in Drive speichern
+
+# semantic i18n key (#2542)
+photo-editor-save-as = Speichern unter…

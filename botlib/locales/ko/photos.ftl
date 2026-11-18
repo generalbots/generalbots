@@ -27,3 +27,27 @@ photo-editor-flip-v = ⇅ 상하 뒤집기
 
 # semantic i18n key (#2542)
 photo-editor-reset = ↺ 초기화
+
+# semantic i18n key (#2542)
+photo-editor-rotate-title = 90도 회전
+
+# semantic i18n key (#2542)
+photo-editor-flip-h-title = 좌우 뒤집기
+
+# semantic i18n key (#2542)
+photo-editor-flip-v-title = 상하 뒤집기
+
+# semantic i18n key (#2542)
+photo-editor-reset-title = 모든 편집 되돌리기
+
+# semantic i18n key (#2542)
+photo-editor-save-title = Drive에 저장(같은 파일)
+
+# semantic i18n key (#2542)
+photo-editor-save = 저장
+
+# semantic i18n key (#2542)
+photo-editor-save-as-title = Drive에 사본으로 저장
+
+# semantic i18n key (#2542)
+photo-editor-save-as = 다른 이름으로 저장…
