@@ -1041,3 +1041,10 @@ admin-groups-placeholder-invite-message = 为邀请添加个人消息...
 
 # semantic i18n key (#2542)
 admin-org-placeholder-search = 搜索组织...
+
+# semantic i18n key (#2542)
+accounts-placeholder-smtp-host = smtp.example.com
+accounts-placeholder-smtp-username = your@email.com
+accounts-placeholder-smtp-password = ••••••••
+accounts-placeholder-smtp-from-address = noreply@example.com
+accounts-placeholder-smtp-from-name = 您的公司

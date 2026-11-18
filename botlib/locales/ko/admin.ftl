@@ -1041,3 +1041,10 @@ admin-groups-placeholder-invite-message = 초대에 개인 메시지를 추가�
 
 # semantic i18n key (#2542)
 admin-org-placeholder-search = 조직 검색...
+
+# semantic i18n key (#2542)
+accounts-placeholder-smtp-host = smtp.example.com
+accounts-placeholder-smtp-username = your@email.com
+accounts-placeholder-smtp-password = ••••••••
+accounts-placeholder-smtp-from-address = noreply@example.com
+accounts-placeholder-smtp-from-name = 회사명

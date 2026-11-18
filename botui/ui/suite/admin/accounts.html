@@ -350,7 +350,7 @@
             <form id="smtpForm" hx-post="/api/settings/accounts/smtp" hx-swap="none">
                 <div class="form-group">
                     <label for="smtpHost" data-i18n="channel-email-smtp-host">SMTP Host</label>
-                    <input type="text" id="smtpHost" name="host" required placeholder="smtp.example.com">
+                    <input type="text" id="smtpHost" name="host" required data-i18n-placeholder="accounts-placeholder-smtp-host">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -368,19 +368,19 @@
                 </div>
                 <div class="form-group">
                     <label for="smtpUsername" data-i18n="dashboards-username">Username</label>
-                    <input type="text" id="smtpUsername" name="username" required placeholder="your@email.com">
+                    <input type="text" id="smtpUsername" name="username" required data-i18n-placeholder="accounts-placeholder-smtp-username">
                 </div>
                 <div class="form-group">
                     <label for="smtpPassword" data-i18n="dashboards-password">Password</label>
-                    <input type="password" id="smtpPassword" name="password" required placeholder="••••••••">
+                    <input type="password" id="smtpPassword" name="password" required data-i18n-placeholder="accounts-placeholder-smtp-password">
                 </div>
                 <div class="form-group">
                     <label for="smtpFrom" data-i18n="channel-email-from-address">From Address</label>
-                    <input type="email" id="smtpFrom" name="from_address" required placeholder="noreply@example.com">
+                    <input type="email" id="smtpFrom" name="from_address" required data-i18n-placeholder="accounts-placeholder-smtp-from-address">
                 </div>
                 <div class="form-group">
                     <label for="smtpFromName" data-i18n="channel-email-from-name">From Name</label>
-                    <input type="text" id="smtpFromName" name="from_name" placeholder="Your Company">
+                    <input type="text" id="smtpFromName" name="from_name" data-i18n-placeholder="accounts-placeholder-smtp-from-name">
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="testSmtpConnection()" data-i18n="dashboards-test-connection">Test Connection</button>

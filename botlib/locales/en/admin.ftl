@@ -1043,3 +1043,10 @@ admin-groups-placeholder-invite-message = Add a personal message to the invite..
 
 # semantic i18n key (#2542)
 admin-org-placeholder-search = Search organizations...
+
+# semantic i18n key (#2542)
+accounts-placeholder-smtp-host = smtp.example.com
+accounts-placeholder-smtp-username = your@email.com
+accounts-placeholder-smtp-password = ••••••••
+accounts-placeholder-smtp-from-address = noreply@example.com
+accounts-placeholder-smtp-from-name = Your Company
