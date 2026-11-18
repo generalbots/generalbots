@@ -1178,3 +1178,9 @@ retail-lead-time-days = 交货时间（天）
 
 # semantic i18n key (#2542)
 retail-rating = 评分 (0-5)
+
+# semantic i18n key (#2542)
+retail-placeholder-stock-search = 搜索 SKU 或商品...
+retail-placeholder-branch-code = 例如：BR-01
+retail-placeholder-branch-name = 市中心
+retail-placeholder-discount = 例如：10% 或 ¥20

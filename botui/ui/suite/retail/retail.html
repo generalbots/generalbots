@@ -73,7 +73,7 @@
         <div class="retail-panel" id="panel-stock" role="tabpanel" aria-labelledby="retail-tab-stock" hidden>
             <div class="retail-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="stock-search" placeholder="Search SKU or product..." data-retail-input="stock-search">
+                <input type="text" id="stock-search" data-i18n-placeholder="retail-placeholder-stock-search" data-retail-input="stock-search">
             </div>
             <div class="retail-table-wrapper">
                 <table class="retail-table">
@@ -121,8 +121,8 @@
     <div class="retail-modal-dialog">
         <header class="retail-modal-header"><h2 data-i18n="retail-branch-modal-title">Branch</h2><button data-retail-close="'retailBranchModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitBranch(event)">
-            <label><span data-i18n="research-code">Code</span><input type="text" id="branchCode" placeholder="e.g. BR-01"></label>
-            <label><span data-i18n="label-name">Name</span><input type="text" id="branchName" required placeholder="Downtown"></label>
+            <label><span data-i18n="research-code">Code</span><input type="text" id="branchCode" data-i18n-placeholder="retail-placeholder-branch-code"></label>
+            <label><span data-i18n="label-name">Name</span><input type="text" id="branchName" required data-i18n-placeholder="retail-placeholder-branch-name"></label>
             <label><span data-i18n="retail-address">Address</span><input type="text" id="branchAddress"></label>
             <label><span data-i18n="retail-manager">Manager</span><input type="text" id="branchManager"></label>
             <label>Stock value (R$)<input type="number" id="branchStock" step="0.01" min="0" value="0"></label>
@@ -141,7 +141,7 @@
         <form class="retail-modal-body" onsubmit="window._retail.submitPromo(event)">
             <label><span data-i18n="label-name">Name</span><input type="text" id="promoName" required></label>
             <label>Type<select id="promoType"><option value="percent" data-i18n="retail-promo-type-percent">Percent</option><option value="fixed" data-i18n="retail-promo-type-fixed">Fixed</option><option value="bogo" data-i18n="retail-promo-type-bogo">BOGO</option></select></label>
-            <label><span data-i18n="billing-discount">Discount</span><input type="text" id="promoDiscount" placeholder="e.g. 10% or R$20"></label>
+            <label><span data-i18n="billing-discount">Discount</span><input type="text" id="promoDiscount" data-i18n-placeholder="retail-placeholder-discount"></label>
             <label><span data-i18n="retail-valid-from">Valid from</span><input type="date" id="promoFrom"></label>
             <label><span data-i18n="retail-valid-to">Valid to</span><input type="date" id="promoTo"></label>
             <label>Status<select id="promoStatus"><option value="active" data-i18n="label-active">Active</option><option value="paused" data-i18n="tasks-status-paused">Paused</option></select></label>

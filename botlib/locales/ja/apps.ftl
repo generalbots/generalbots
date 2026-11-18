@@ -1178,3 +1178,9 @@ retail-lead-time-days = リードタイム（日数）
 
 # semantic i18n key (#2542)
 retail-rating = 評価 (0-5)
+
+# semantic i18n key (#2542)
+retail-placeholder-stock-search = SKUまたは商品を検索...
+retail-placeholder-branch-code = 例: BR-01
+retail-placeholder-branch-name = ダウンタウン
+retail-placeholder-discount = 例: 10% または ¥2000

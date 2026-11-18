@@ -1178,3 +1178,9 @@ retail-lead-time-days = 리드 타임(일)
 
 # semantic i18n key (#2542)
 retail-rating = 평점(0-5)
+
+# semantic i18n key (#2542)
+retail-placeholder-stock-search = SKU 또는 상품 검색...
+retail-placeholder-branch-code = 예: BR-01
+retail-placeholder-branch-name = 도심점
+retail-placeholder-discount = 예: 10% 또는 ₩20,000

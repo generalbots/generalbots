@@ -1178,3 +1178,9 @@ retail-lead-time-days = Délai de livraison (jours)
 
 # semantic i18n key (#2542)
 retail-rating = Note (0-5)
+
+# semantic i18n key (#2542)
+retail-placeholder-stock-search = Rechercher un SKU ou un produit...
+retail-placeholder-branch-code = p. ex. BR-01
+retail-placeholder-branch-name = Centre-ville
+retail-placeholder-discount = p. ex. 10 % ou 20 €
