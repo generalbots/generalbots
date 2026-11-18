@@ -29,3 +29,8 @@ video-loading-alerts = 正在加载警报…
 video-storage-used = 已用存储
 video-camera-service-unavailable = 摄像头服务不可用
 video-rtsp-url = RTSP URL
+
+# semantic i18n key (#2542)
+video-placeholder-camera-name = 例如：主入口
+video-placeholder-rtsp-url = rtsp://user:pass@ip:port/stream
+video-placeholder-location = 例如：A座 一层

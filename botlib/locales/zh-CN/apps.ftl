@@ -1225,3 +1225,6 @@ calculator-title-memory = 计算器内存
 
 # semantic i18n key (#2542)
 player-placeholder-search-files = 搜索文件...
+
+# semantic i18n key (#2542)
+pos-placeholder-search-products = 搜索商品...

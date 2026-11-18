@@ -29,3 +29,8 @@ video-loading-alerts = Chargement des alertes…
 video-storage-used = Stockage utilisé
 video-camera-service-unavailable = Service de caméras indisponible
 video-rtsp-url = URL RTSP
+
+# semantic i18n key (#2542)
+video-placeholder-camera-name = p. ex. Entrée principale
+video-placeholder-rtsp-url = rtsp://utilisateur:motdepasse@ip:port/stream
+video-placeholder-location = p. ex. Bâtiment A - Rez-de-chaussée

@@ -1225,3 +1225,6 @@ calculator-title-memory = 계산기 메모리
 
 # semantic i18n key (#2542)
 player-placeholder-search-files = 파일 검색...
+
+# semantic i18n key (#2542)
+pos-placeholder-search-products = 상품 검색...

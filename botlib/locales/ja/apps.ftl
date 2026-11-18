@@ -1225,3 +1225,6 @@ calculator-title-memory = 電卓メモリ
 
 # semantic i18n key (#2542)
 player-placeholder-search-files = ファイルを検索...
+
+# semantic i18n key (#2542)
+pos-placeholder-search-products = 商品を検索...

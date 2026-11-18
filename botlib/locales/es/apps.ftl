@@ -1223,3 +1223,6 @@ calculator-title-memory = Memoria de la calculadora
 
 # semantic i18n key (#2542)
 player-placeholder-search-files = Buscar archivos...
+
+# semantic i18n key (#2542)
+pos-placeholder-search-products = Buscar productos...

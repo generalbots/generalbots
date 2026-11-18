@@ -29,3 +29,8 @@ video-loading-alerts = アラートを読み込み中…
 video-storage-used = 使用ストレージ
 video-camera-service-unavailable = カメラサービスを利用できません
 video-rtsp-url = RTSP URL
+
+# semantic i18n key (#2542)
+video-placeholder-camera-name = 例: 正面玄関
+video-placeholder-rtsp-url = rtsp://user:pass@ip:port/stream
+video-placeholder-location = 例: A棟 1階

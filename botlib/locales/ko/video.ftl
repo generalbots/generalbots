@@ -29,3 +29,8 @@ video-loading-alerts = 알림 불러오는 중…
 video-storage-used = 사용 중인 저장 공간
 video-camera-service-unavailable = 카메라 서비스를 사용할 수 없습니다
 video-rtsp-url = RTSP URL
+
+# semantic i18n key (#2542)
+video-placeholder-camera-name = 예: 정문
+video-placeholder-rtsp-url = rtsp://user:pass@ip:port/stream
+video-placeholder-location = 예: A동 1층
