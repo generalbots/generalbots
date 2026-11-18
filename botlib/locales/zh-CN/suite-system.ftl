@@ -219,3 +219,42 @@ monitoring-chart-type-line = 折线
 
 # semantic i18n key (#2542)
 monitoring-chart-type-area = 面积
+
+# semantic i18n key (#2542)
+editor-save-as = 另存为
+
+# semantic i18n key (#2542)
+editor-undo = ↩️ 撤销
+
+# semantic i18n key (#2542)
+editor-redo = ↪️ 重做
+
+# semantic i18n key (#2542)
+editor-magic = ✨ 魔法
+
+# semantic i18n key (#2542)
+editor-add-column = ➕ 列
+
+# semantic i18n key (#2542)
+editor-ai-improvements-title = ✨ AI 改进
+
+# semantic i18n key (#2542)
+editor-analyzing-code = 正在分析代码...
+
+# semantic i18n key (#2542)
+editor-files-header = 文件
+
+# semantic i18n key (#2542)
+editor-no-project-selected = 未选择项目。
+
+# semantic i18n key (#2542)
+editor-plain-text = 📄 纯文本
+
+# semantic i18n key (#2542)
+editor-ln-col-initial = 第1行，第1列
+
+# semantic i18n key (#2542)
+editor-loading = 正在加载编辑器…
+
+# semantic i18n key (#2542)
+editor-unavailable = 编辑器不可用

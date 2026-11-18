@@ -219,3 +219,42 @@ monitoring-chart-type-line = Linie
 
 # semantic i18n key (#2542)
 monitoring-chart-type-area = Fläche
+
+# semantic i18n key (#2542)
+editor-save-as = Speichern unter
+
+# semantic i18n key (#2542)
+editor-undo = ↩️ Rückgängig
+
+# semantic i18n key (#2542)
+editor-redo = ↪️ Wiederholen
+
+# semantic i18n key (#2542)
+editor-magic = ✨ Magie
+
+# semantic i18n key (#2542)
+editor-add-column = ➕ Spalte
+
+# semantic i18n key (#2542)
+editor-ai-improvements-title = ✨ KI-Verbesserungen
+
+# semantic i18n key (#2542)
+editor-analyzing-code = Code wird analysiert...
+
+# semantic i18n key (#2542)
+editor-files-header = DATEIEN
+
+# semantic i18n key (#2542)
+editor-no-project-selected = Kein Projekt ausgewählt.
+
+# semantic i18n key (#2542)
+editor-plain-text = 📄 Nur Text
+
+# semantic i18n key (#2542)
+editor-ln-col-initial = Z 1, Sp 1
+
+# semantic i18n key (#2542)
+editor-loading = Editor wird geladen…
+
+# semantic i18n key (#2542)
+editor-unavailable = Editor nicht verfügbar

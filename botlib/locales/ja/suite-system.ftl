@@ -219,3 +219,42 @@ monitoring-chart-type-line = 線
 
 # semantic i18n key (#2542)
 monitoring-chart-type-area = 面
+
+# semantic i18n key (#2542)
+editor-save-as = 名前を付けて保存
+
+# semantic i18n key (#2542)
+editor-undo = ↩️ 元に戻す
+
+# semantic i18n key (#2542)
+editor-redo = ↪️ やり直し
+
+# semantic i18n key (#2542)
+editor-magic = ✨ マジック
+
+# semantic i18n key (#2542)
+editor-add-column = ➕ 列
+
+# semantic i18n key (#2542)
+editor-ai-improvements-title = ✨ AIによる改善
+
+# semantic i18n key (#2542)
+editor-analyzing-code = コードを分析中...
+
+# semantic i18n key (#2542)
+editor-files-header = ファイル
+
+# semantic i18n key (#2542)
+editor-no-project-selected = プロジェクトが選択されていません。
+
+# semantic i18n key (#2542)
+editor-plain-text = 📄 プレーンテキスト
+
+# semantic i18n key (#2542)
+editor-ln-col-initial = 1行, 1列
+
+# semantic i18n key (#2542)
+editor-loading = エディターを読み込み中…
+
+# semantic i18n key (#2542)
+editor-unavailable = エディターを利用できません

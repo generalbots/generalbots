@@ -219,3 +219,42 @@ monitoring-chart-type-line = 선
 
 # semantic i18n key (#2542)
 monitoring-chart-type-area = 영역
+
+# semantic i18n key (#2542)
+editor-save-as = 다른 이름으로 저장
+
+# semantic i18n key (#2542)
+editor-undo = ↩️ 실행 취소
+
+# semantic i18n key (#2542)
+editor-redo = ↪️ 다시 실행
+
+# semantic i18n key (#2542)
+editor-magic = ✨ 매직
+
+# semantic i18n key (#2542)
+editor-add-column = ➕ 열
+
+# semantic i18n key (#2542)
+editor-ai-improvements-title = ✨ AI 개선 사항
+
+# semantic i18n key (#2542)
+editor-analyzing-code = 코드 분석 중...
+
+# semantic i18n key (#2542)
+editor-files-header = 파일
+
+# semantic i18n key (#2542)
+editor-no-project-selected = 선택된 프로젝트가 없습니다.
+
+# semantic i18n key (#2542)
+editor-plain-text = 📄 일반 텍스트
+
+# semantic i18n key (#2542)
+editor-ln-col-initial = 1행, 1열
+
+# semantic i18n key (#2542)
+editor-loading = 편집기 불러오는 중…
+
+# semantic i18n key (#2542)
+editor-unavailable = 편집기를 사용할 수 없음
