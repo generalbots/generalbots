@@ -126,3 +126,111 @@ project-select-from-sidebar = Sélectionnez un projet dans la barre latérale ou
 
 # semantic i18n key (#2542)
 project-select-task-details = Sélectionnez une tâche pour voir les détails
+
+# semantic i18n key (#2542)
+campaign-wizard-step-channel = Canal
+
+# semantic i18n key (#2542)
+campaign-wizard-audience = Audience
+
+# semantic i18n key (#2542)
+campaign-wizard-schedule = Planification
+
+# semantic i18n key (#2542)
+campaign-wizard-review = Réviser
+
+# semantic i18n key (#2542)
+campaign-wizard-choose-channels = Choisir les canaux
+
+# semantic i18n key (#2542)
+campaign-wizard-channels-hint = L'envoi multicanal s'effectue en parallèle par canal.
+
+# semantic i18n key (#2542)
+campaign-wizard-channel-push = Push
+
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name = Nom de la campagne
+
+# semantic i18n key (#2542)
+campaign-wizard-saved-list = Liste enregistrée
+
+# semantic i18n key (#2542)
+campaign-wizard-dynamic-segment = Segment dynamique
+
+# semantic i18n key (#2542)
+campaign-wizard-tag-filter = Filtre par tag
+
+# semantic i18n key (#2542)
+campaign-wizard-list-segment = Liste / segment
+
+# semantic i18n key (#2542)
+campaign-wizard-all-contacts = Tous les contacts
+
+# semantic i18n key (#2542)
+campaign-wizard-vip-customers = Clients VIP
+
+# semantic i18n key (#2542)
+campaign-wizard-recent-leads = Prospects récents
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-reach = Portée estimée
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-contacts = — contacts
+
+# semantic i18n key (#2542)
+campaign-wizard-generate-copy-ai =  Générer le texte avec l'IA
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-image-instagram =  Image IA (Instagram)
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-video-script =  Script vidéo IA
+
+# semantic i18n key (#2542)
+campaign-wizard-manual-template =  Manuel / modèle
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-prompt = Invite IA
+
+# semantic i18n key (#2542)
+campaign-wizard-template = Modèle
+
+# semantic i18n key (#2542)
+campaign-wizard-template-promo = Promo
+
+# semantic i18n key (#2542)
+campaign-wizard-template-newsletter = Newsletter
+
+# semantic i18n key (#2542)
+campaign-wizard-template-event-invite = Invitation à un événement
+
+# semantic i18n key (#2542)
+campaign-wizard-mode = Mode
+
+# semantic i18n key (#2542)
+campaign-wizard-send-now = Envoyer maintenant
+
+# semantic i18n key (#2542)
+campaign-wizard-at-specific-time = À une heure précise
+
+# semantic i18n key (#2542)
+campaign-wizard-drip-sequence = Séquence de goutte-à-goutte
+
+# semantic i18n key (#2542)
+campaign-wizard-when = Quand
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-sao-paulo = Amérique/Sao_Paulo
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-new-york = Amérique/New_York
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-lisbon = Europe/Lisbonne
+
+# semantic i18n key (#2542)
+campaign-wizard-channels = Canaux
+
+# semantic i18n key (#2542)
+campaign-wizard-launch-campaign = Lancer la campagne

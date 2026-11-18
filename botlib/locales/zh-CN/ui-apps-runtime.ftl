@@ -126,3 +126,111 @@ project-select-from-sidebar = 从侧边栏选择一个项目或创建新项目
 
 # semantic i18n key (#2542)
 project-select-task-details = 选择一个任务以查看详细信息
+
+# semantic i18n key (#2542)
+campaign-wizard-step-channel = 渠道
+
+# semantic i18n key (#2542)
+campaign-wizard-audience = 受众
+
+# semantic i18n key (#2542)
+campaign-wizard-schedule = 计划
+
+# semantic i18n key (#2542)
+campaign-wizard-review = 审查
+
+# semantic i18n key (#2542)
+campaign-wizard-choose-channels = 选择渠道
+
+# semantic i18n key (#2542)
+campaign-wizard-channels-hint = 多渠道分发会按渠道并行发送。
+
+# semantic i18n key (#2542)
+campaign-wizard-channel-push = 推送
+
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name = 活动名称
+
+# semantic i18n key (#2542)
+campaign-wizard-saved-list = 已保存列表
+
+# semantic i18n key (#2542)
+campaign-wizard-dynamic-segment = 动态细分
+
+# semantic i18n key (#2542)
+campaign-wizard-tag-filter = 标签筛选
+
+# semantic i18n key (#2542)
+campaign-wizard-list-segment = 列表 / 细分
+
+# semantic i18n key (#2542)
+campaign-wizard-all-contacts = 所有联系人
+
+# semantic i18n key (#2542)
+campaign-wizard-vip-customers = VIP 客户
+
+# semantic i18n key (#2542)
+campaign-wizard-recent-leads = 最近的潜在客户
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-reach = 预计覆盖范围
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-contacts = — 联系人
+
+# semantic i18n key (#2542)
+campaign-wizard-generate-copy-ai =  使用 AI 生成文案
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-image-instagram =  AI 图片（Instagram）
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-video-script =  AI 视频脚本
+
+# semantic i18n key (#2542)
+campaign-wizard-manual-template =  手动 / 模板
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-prompt = AI 提示词
+
+# semantic i18n key (#2542)
+campaign-wizard-template = 模板
+
+# semantic i18n key (#2542)
+campaign-wizard-template-promo = 促销
+
+# semantic i18n key (#2542)
+campaign-wizard-template-newsletter = 新闻通讯
+
+# semantic i18n key (#2542)
+campaign-wizard-template-event-invite = 活动邀请
+
+# semantic i18n key (#2542)
+campaign-wizard-mode = 模式
+
+# semantic i18n key (#2542)
+campaign-wizard-send-now = 立即发送
+
+# semantic i18n key (#2542)
+campaign-wizard-at-specific-time = 在指定时间
+
+# semantic i18n key (#2542)
+campaign-wizard-drip-sequence = 滴灌序列
+
+# semantic i18n key (#2542)
+campaign-wizard-when = 时间
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-sao-paulo = 美洲/圣保罗
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-new-york = 美洲/纽约
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-lisbon = 欧洲/里斯本
+
+# semantic i18n key (#2542)
+campaign-wizard-channels = 渠道
+
+# semantic i18n key (#2542)
+campaign-wizard-launch-campaign = 启动活动

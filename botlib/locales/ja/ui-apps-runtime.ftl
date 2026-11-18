@@ -126,3 +126,111 @@ project-select-from-sidebar = サイドバーからプロジェクトを選択�
 
 # semantic i18n key (#2542)
 project-select-task-details = 詳細を表示するタスクを選択してください
+
+# semantic i18n key (#2542)
+campaign-wizard-step-channel = チャネル
+
+# semantic i18n key (#2542)
+campaign-wizard-audience = オーディエンス
+
+# semantic i18n key (#2542)
+campaign-wizard-schedule = スケジュール
+
+# semantic i18n key (#2542)
+campaign-wizard-review = 確認
+
+# semantic i18n key (#2542)
+campaign-wizard-choose-channels = チャネルを選択
+
+# semantic i18n key (#2542)
+campaign-wizard-channels-hint = マルチチャネル配信はチャネルごとに並行して送信されます。
+
+# semantic i18n key (#2542)
+campaign-wizard-channel-push = プッシュ
+
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name = キャンペーン名
+
+# semantic i18n key (#2542)
+campaign-wizard-saved-list = 保存済みリスト
+
+# semantic i18n key (#2542)
+campaign-wizard-dynamic-segment = 動的セグメント
+
+# semantic i18n key (#2542)
+campaign-wizard-tag-filter = タグフィルター
+
+# semantic i18n key (#2542)
+campaign-wizard-list-segment = リスト / セグメント
+
+# semantic i18n key (#2542)
+campaign-wizard-all-contacts = すべての連絡先
+
+# semantic i18n key (#2542)
+campaign-wizard-vip-customers = VIP 顧客
+
+# semantic i18n key (#2542)
+campaign-wizard-recent-leads = 最近のリード
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-reach = 推定リーチ
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-contacts = — 件の連絡先
+
+# semantic i18n key (#2542)
+campaign-wizard-generate-copy-ai =  AI でコピーを生成
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-image-instagram =  AI 画像（Instagram）
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-video-script =  AI 動画スクリプト
+
+# semantic i18n key (#2542)
+campaign-wizard-manual-template =  手動 / テンプレート
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-prompt = AI プロンプト
+
+# semantic i18n key (#2542)
+campaign-wizard-template = テンプレート
+
+# semantic i18n key (#2542)
+campaign-wizard-template-promo = プロモーション
+
+# semantic i18n key (#2542)
+campaign-wizard-template-newsletter = ニュースレター
+
+# semantic i18n key (#2542)
+campaign-wizard-template-event-invite = イベント招待
+
+# semantic i18n key (#2542)
+campaign-wizard-mode = モード
+
+# semantic i18n key (#2542)
+campaign-wizard-send-now = 今すぐ送信
+
+# semantic i18n key (#2542)
+campaign-wizard-at-specific-time = 指定した時間に
+
+# semantic i18n key (#2542)
+campaign-wizard-drip-sequence = ドリップシーケンス
+
+# semantic i18n key (#2542)
+campaign-wizard-when = いつ
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-sao-paulo = アメリカ/サンパウロ
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-new-york = アメリカ/ニューヨーク
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-lisbon = ヨーロッパ/リスボン
+
+# semantic i18n key (#2542)
+campaign-wizard-channels = チャネル
+
+# semantic i18n key (#2542)
+campaign-wizard-launch-campaign = キャンペーンを開始

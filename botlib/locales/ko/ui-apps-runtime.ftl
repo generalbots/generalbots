@@ -126,3 +126,111 @@ project-select-from-sidebar = 사이드바에서 프로젝트를 선택하거나
 
 # semantic i18n key (#2542)
 project-select-task-details = 세부 정보를 보려면 작업을 선택하세요
+
+# semantic i18n key (#2542)
+campaign-wizard-step-channel = 채널
+
+# semantic i18n key (#2542)
+campaign-wizard-audience = 대상
+
+# semantic i18n key (#2542)
+campaign-wizard-schedule = 일정
+
+# semantic i18n key (#2542)
+campaign-wizard-review = 검토
+
+# semantic i18n key (#2542)
+campaign-wizard-choose-channels = 채널 선택
+
+# semantic i18n key (#2542)
+campaign-wizard-channels-hint = 멀티채널 발송은 채널별로 병렬 전송됩니다.
+
+# semantic i18n key (#2542)
+campaign-wizard-channel-push = 푸시
+
+# semantic i18n key (#2542)
+campaign-wizard-campaign-name = 캠페인 이름
+
+# semantic i18n key (#2542)
+campaign-wizard-saved-list = 저장된 목록
+
+# semantic i18n key (#2542)
+campaign-wizard-dynamic-segment = 동적 세그먼트
+
+# semantic i18n key (#2542)
+campaign-wizard-tag-filter = 태그 필터
+
+# semantic i18n key (#2542)
+campaign-wizard-list-segment = 목록 / 세그먼트
+
+# semantic i18n key (#2542)
+campaign-wizard-all-contacts = 모든 연락처
+
+# semantic i18n key (#2542)
+campaign-wizard-vip-customers = VIP 고객
+
+# semantic i18n key (#2542)
+campaign-wizard-recent-leads = 최근 리드
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-reach = 예상 도달 범위
+
+# semantic i18n key (#2542)
+campaign-wizard-estimated-contacts = —개 연락처
+
+# semantic i18n key (#2542)
+campaign-wizard-generate-copy-ai =  AI로 문구 생성
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-image-instagram =  AI 이미지(Instagram)
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-video-script =  AI 비디오 스크립트
+
+# semantic i18n key (#2542)
+campaign-wizard-manual-template =  수동 / 템플릿
+
+# semantic i18n key (#2542)
+campaign-wizard-ai-prompt = AI 프롬프트
+
+# semantic i18n key (#2542)
+campaign-wizard-template = 템플릿
+
+# semantic i18n key (#2542)
+campaign-wizard-template-promo = 프로모션
+
+# semantic i18n key (#2542)
+campaign-wizard-template-newsletter = 뉴스레터
+
+# semantic i18n key (#2542)
+campaign-wizard-template-event-invite = 이벤트 초대
+
+# semantic i18n key (#2542)
+campaign-wizard-mode = 모드
+
+# semantic i18n key (#2542)
+campaign-wizard-send-now = 지금 보내기
+
+# semantic i18n key (#2542)
+campaign-wizard-at-specific-time = 지정 시간에
+
+# semantic i18n key (#2542)
+campaign-wizard-drip-sequence = 드립 시퀀스
+
+# semantic i18n key (#2542)
+campaign-wizard-when = 시간
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-sao-paulo = 아메리카/상파울루
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-new-york = 아메리카/뉴욕
+
+# semantic i18n key (#2542)
+campaign-wizard-timezone-lisbon = 유럽/리스본
+
+# semantic i18n key (#2542)
+campaign-wizard-channels = 채널
+
+# semantic i18n key (#2542)
+campaign-wizard-launch-campaign = 캠페인 시작
