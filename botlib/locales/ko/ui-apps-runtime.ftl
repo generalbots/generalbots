@@ -357,3 +357,171 @@ campaigns-segment-query-optional = 세그먼트 쿼리(선택 사항)
 
 # semantic i18n key (#2542)
 campaigns-create-list = 목록 만들기
+
+# semantic i18n key (#2542)
+hr-management-title = 인사 관리
+
+# semantic i18n key (#2542)
+hr-cycle-q1-2025-review = 2025년 1분기 평가
+
+# semantic i18n key (#2542)
+hr-tab-recruitment = 채용
+
+# semantic i18n key (#2542)
+hr-tab-attendance = 근태
+
+# semantic i18n key (#2542)
+hr-tab-payroll = 급여
+
+# semantic i18n key (#2542)
+hr-tab-benefits = 복리후생
+
+# semantic i18n key (#2542)
+hr-stat-headcount = 인원수
+
+# semantic i18n key (#2542)
+hr-stat-on-leave-today = 오늘 휴가
+
+# semantic i18n key (#2542)
+hr-stat-open-requisitions = 채용 공고
+
+# semantic i18n key (#2542)
+hr-stat-pending-reviews = 대기 중인 평가
+
+# semantic i18n key (#2542)
+hr-stat-turnover-90d = 이직률(90일)
+
+# semantic i18n key (#2542)
+hr-employee-directory = 직원 디렉터리
+
+# semantic i18n key (#2542)
+hr-add-employee = 직원 추가
+
+# semantic i18n key (#2542)
+hr-filter-all-departments = 모든 부서
+
+# semantic i18n key (#2542)
+hr-dept-engineering = 엔지니어링
+
+# semantic i18n key (#2542)
+hr-status-on-leave = 휴가 중
+
+# semantic i18n key (#2542)
+hr-status-terminated = 퇴사
+
+# semantic i18n key (#2542)
+hr-filter-all-locations = 모든 위치
+
+# semantic i18n key (#2542)
+hr-location-remote = 원격
+
+# semantic i18n key (#2542)
+hr-field-hire-date = 입사일
+
+# semantic i18n key (#2542)
+hr-field-employment-type = 고용 형태
+
+# semantic i18n key (#2542)
+hr-employment-full-time = 정규직
+
+# semantic i18n key (#2542)
+hr-employment-part-time = 파트타임
+
+# semantic i18n key (#2542)
+hr-employment-contractor = 계약직
+
+# semantic i18n key (#2542)
+hr-employment-intern = 인턴
+
+# semantic i18n key (#2542)
+hr-job-postings = 채용 공고
+
+# semantic i18n key (#2542)
+hr-post-job = 채용 공고 등록
+
+# semantic i18n key (#2542)
+hr-pipeline-overview = 파이프라인 개요
+
+# semantic i18n key (#2542)
+hr-todays-attendance = 오늘 출근 현황
+
+# semantic i18n key (#2542)
+hr-col-employee = 직원
+
+# semantic i18n key (#2542)
+hr-col-clock-in = 출근
+
+# semantic i18n key (#2542)
+hr-col-clock-out = 퇴근
+
+# semantic i18n key (#2542)
+hr-col-hours = 시간
+
+# semantic i18n key (#2542)
+hr-department-summary = 부서 요약
+
+# semantic i18n key (#2542)
+hr-review-cycles = 평가 주기
+
+# semantic i18n key (#2542)
+hr-start-new-cycle = 새 주기 시작
+
+# semantic i18n key (#2542)
+hr-goal-completion = 목표 달성
+
+# semantic i18n key (#2542)
+hr-payroll-runs = 급여 실행
+
+# semantic i18n key (#2542)
+hr-run-payroll = 급여 실행
+
+# semantic i18n key (#2542)
+hr-col-period = 기간
+
+# semantic i18n key (#2542)
+hr-col-gross = 총액
+
+# semantic i18n key (#2542)
+hr-col-taxes = 세금
+
+# semantic i18n key (#2542)
+hr-benefits-enrollment = 복리후생 등록
+
+# semantic i18n key (#2542)
+hr-col-plan = 플랜
+
+# semantic i18n key (#2542)
+hr-col-enrolled = 등록됨
+
+# semantic i18n key (#2542)
+hr-col-monthly-cost = 월 비용
+
+# semantic i18n key (#2542)
+hr-training-certifications = 교육 및 자격증
+
+# semantic i18n key (#2542)
+hr-add-course = + 과정 추가
+
+# semantic i18n key (#2542)
+hr-col-course = 과정
+
+# semantic i18n key (#2542)
+hr-col-duration = 기간
+
+# semantic i18n key (#2542)
+hr-col-assigned = 할당됨
+
+# semantic i18n key (#2542)
+hr-analytics-title = 인사 분석
+
+# semantic i18n key (#2542)
+hr-report-headcount-by-department = 부서별 인원수
+
+# semantic i18n key (#2542)
+hr-report-attrition-12m = 이직률(12개월)
+
+# semantic i18n key (#2542)
+hr-report-time-to-hire = 채용 소요 시간
+
+# semantic i18n key (#2542)
+hr-report-compensation-distribution = 보상 분포

@@ -357,3 +357,171 @@ campaigns-segment-query-optional = セグメントクエリ（任意）
 
 # semantic i18n key (#2542)
 campaigns-create-list = リストを作成
+
+# semantic i18n key (#2542)
+hr-management-title = 人事管理
+
+# semantic i18n key (#2542)
+hr-cycle-q1-2025-review = 2025年第1四半期レビュー
+
+# semantic i18n key (#2542)
+hr-tab-recruitment = 採用
+
+# semantic i18n key (#2542)
+hr-tab-attendance = 勤怠
+
+# semantic i18n key (#2542)
+hr-tab-payroll = 給与
+
+# semantic i18n key (#2542)
+hr-tab-benefits = 福利厚生
+
+# semantic i18n key (#2542)
+hr-stat-headcount = 人員数
+
+# semantic i18n key (#2542)
+hr-stat-on-leave-today = 本日休暇中
+
+# semantic i18n key (#2542)
+hr-stat-open-requisitions = 募集中の求人
+
+# semantic i18n key (#2542)
+hr-stat-pending-reviews = 保留中のレビュー
+
+# semantic i18n key (#2542)
+hr-stat-turnover-90d = 離職率（90日）
+
+# semantic i18n key (#2542)
+hr-employee-directory = 従業員ディレクトリ
+
+# semantic i18n key (#2542)
+hr-add-employee = 従業員を追加
+
+# semantic i18n key (#2542)
+hr-filter-all-departments = すべての部署
+
+# semantic i18n key (#2542)
+hr-dept-engineering = エンジニアリング
+
+# semantic i18n key (#2542)
+hr-status-on-leave = 休暇中
+
+# semantic i18n key (#2542)
+hr-status-terminated = 退職済み
+
+# semantic i18n key (#2542)
+hr-filter-all-locations = すべての勤務地
+
+# semantic i18n key (#2542)
+hr-location-remote = リモート
+
+# semantic i18n key (#2542)
+hr-field-hire-date = 入社日
+
+# semantic i18n key (#2542)
+hr-field-employment-type = 雇用形態
+
+# semantic i18n key (#2542)
+hr-employment-full-time = フルタイム
+
+# semantic i18n key (#2542)
+hr-employment-part-time = パートタイム
+
+# semantic i18n key (#2542)
+hr-employment-contractor = 契約社員
+
+# semantic i18n key (#2542)
+hr-employment-intern = インターン
+
+# semantic i18n key (#2542)
+hr-job-postings = 求人掲載
+
+# semantic i18n key (#2542)
+hr-post-job = 求人を掲載
+
+# semantic i18n key (#2542)
+hr-pipeline-overview = パイプライン概要
+
+# semantic i18n key (#2542)
+hr-todays-attendance = 本日の出勤状況
+
+# semantic i18n key (#2542)
+hr-col-employee = 従業員
+
+# semantic i18n key (#2542)
+hr-col-clock-in = 出勤
+
+# semantic i18n key (#2542)
+hr-col-clock-out = 退勤
+
+# semantic i18n key (#2542)
+hr-col-hours = 時間
+
+# semantic i18n key (#2542)
+hr-department-summary = 部署別サマリー
+
+# semantic i18n key (#2542)
+hr-review-cycles = 評価サイクル
+
+# semantic i18n key (#2542)
+hr-start-new-cycle = 新しいサイクルを開始
+
+# semantic i18n key (#2542)
+hr-goal-completion = 目標達成
+
+# semantic i18n key (#2542)
+hr-payroll-runs = 給与計算実行
+
+# semantic i18n key (#2542)
+hr-run-payroll = 給与計算を実行
+
+# semantic i18n key (#2542)
+hr-col-period = 期間
+
+# semantic i18n key (#2542)
+hr-col-gross = 総支給額
+
+# semantic i18n key (#2542)
+hr-col-taxes = 税金
+
+# semantic i18n key (#2542)
+hr-benefits-enrollment = 福利厚生登録
+
+# semantic i18n key (#2542)
+hr-col-plan = プラン
+
+# semantic i18n key (#2542)
+hr-col-enrolled = 登録済み
+
+# semantic i18n key (#2542)
+hr-col-monthly-cost = 月額費用
+
+# semantic i18n key (#2542)
+hr-training-certifications = 研修と認定資格
+
+# semantic i18n key (#2542)
+hr-add-course = + コースを追加
+
+# semantic i18n key (#2542)
+hr-col-course = コース
+
+# semantic i18n key (#2542)
+hr-col-duration = 期間
+
+# semantic i18n key (#2542)
+hr-col-assigned = 割り当て済み
+
+# semantic i18n key (#2542)
+hr-analytics-title = 人事分析
+
+# semantic i18n key (#2542)
+hr-report-headcount-by-department = 部署別人員数
+
+# semantic i18n key (#2542)
+hr-report-attrition-12m = 離職率（12か月）
+
+# semantic i18n key (#2542)
+hr-report-time-to-hire = 採用までの期間
+
+# semantic i18n key (#2542)
+hr-report-compensation-distribution = 報酬分布

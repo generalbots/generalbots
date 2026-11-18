@@ -357,3 +357,171 @@ campaigns-segment-query-optional = 细分查询（可选）
 
 # semantic i18n key (#2542)
 campaigns-create-list = 创建列表
+
+# semantic i18n key (#2542)
+hr-management-title = 人力资源管理
+
+# semantic i18n key (#2542)
+hr-cycle-q1-2025-review = 2025年第一季度评审
+
+# semantic i18n key (#2542)
+hr-tab-recruitment = 招聘
+
+# semantic i18n key (#2542)
+hr-tab-attendance = 考勤
+
+# semantic i18n key (#2542)
+hr-tab-payroll = 薪资
+
+# semantic i18n key (#2542)
+hr-tab-benefits = 福利
+
+# semantic i18n key (#2542)
+hr-stat-headcount = 员工人数
+
+# semantic i18n key (#2542)
+hr-stat-on-leave-today = 今日休假
+
+# semantic i18n key (#2542)
+hr-stat-open-requisitions = 开放职位
+
+# semantic i18n key (#2542)
+hr-stat-pending-reviews = 待处理评审
+
+# semantic i18n key (#2542)
+hr-stat-turnover-90d = 离职率（90天）
+
+# semantic i18n key (#2542)
+hr-employee-directory = 员工目录
+
+# semantic i18n key (#2542)
+hr-add-employee = 添加员工
+
+# semantic i18n key (#2542)
+hr-filter-all-departments = 所有部门
+
+# semantic i18n key (#2542)
+hr-dept-engineering = 工程
+
+# semantic i18n key (#2542)
+hr-status-on-leave = 休假中
+
+# semantic i18n key (#2542)
+hr-status-terminated = 已离职
+
+# semantic i18n key (#2542)
+hr-filter-all-locations = 所有地点
+
+# semantic i18n key (#2542)
+hr-location-remote = 远程
+
+# semantic i18n key (#2542)
+hr-field-hire-date = 入职日期
+
+# semantic i18n key (#2542)
+hr-field-employment-type = 雇佣类型
+
+# semantic i18n key (#2542)
+hr-employment-full-time = 全职
+
+# semantic i18n key (#2542)
+hr-employment-part-time = 兼职
+
+# semantic i18n key (#2542)
+hr-employment-contractor = 承包商
+
+# semantic i18n key (#2542)
+hr-employment-intern = 实习生
+
+# semantic i18n key (#2542)
+hr-job-postings = 职位发布
+
+# semantic i18n key (#2542)
+hr-post-job = 发布职位
+
+# semantic i18n key (#2542)
+hr-pipeline-overview = 流程概览
+
+# semantic i18n key (#2542)
+hr-todays-attendance = 今日考勤
+
+# semantic i18n key (#2542)
+hr-col-employee = 员工
+
+# semantic i18n key (#2542)
+hr-col-clock-in = 上班打卡
+
+# semantic i18n key (#2542)
+hr-col-clock-out = 下班打卡
+
+# semantic i18n key (#2542)
+hr-col-hours = 工时
+
+# semantic i18n key (#2542)
+hr-department-summary = 部门汇总
+
+# semantic i18n key (#2542)
+hr-review-cycles = 评审周期
+
+# semantic i18n key (#2542)
+hr-start-new-cycle = 开始新周期
+
+# semantic i18n key (#2542)
+hr-goal-completion = 目标完成情况
+
+# semantic i18n key (#2542)
+hr-payroll-runs = 薪资发放记录
+
+# semantic i18n key (#2542)
+hr-run-payroll = 运行薪资
+
+# semantic i18n key (#2542)
+hr-col-period = 周期
+
+# semantic i18n key (#2542)
+hr-col-gross = 税前总额
+
+# semantic i18n key (#2542)
+hr-col-taxes = 税费
+
+# semantic i18n key (#2542)
+hr-benefits-enrollment = 福利登记
+
+# semantic i18n key (#2542)
+hr-col-plan = 计划
+
+# semantic i18n key (#2542)
+hr-col-enrolled = 已登记
+
+# semantic i18n key (#2542)
+hr-col-monthly-cost = 月度费用
+
+# semantic i18n key (#2542)
+hr-training-certifications = 培训与认证
+
+# semantic i18n key (#2542)
+hr-add-course = + 添加课程
+
+# semantic i18n key (#2542)
+hr-col-course = 课程
+
+# semantic i18n key (#2542)
+hr-col-duration = 时长
+
+# semantic i18n key (#2542)
+hr-col-assigned = 已分配
+
+# semantic i18n key (#2542)
+hr-analytics-title = 人力资源分析
+
+# semantic i18n key (#2542)
+hr-report-headcount-by-department = 各部门员工人数
+
+# semantic i18n key (#2542)
+hr-report-attrition-12m = 流失率（12个月）
+
+# semantic i18n key (#2542)
+hr-report-time-to-hire = 招聘周期
+
+# semantic i18n key (#2542)
+hr-report-compensation-distribution = 薪酬分布

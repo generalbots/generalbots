@@ -357,3 +357,171 @@ campaigns-segment-query-optional = Segmentabfrage (optional)
 
 # semantic i18n key (#2542)
 campaigns-create-list = Liste erstellen
+
+# semantic i18n key (#2542)
+hr-management-title = Personalverwaltung
+
+# semantic i18n key (#2542)
+hr-cycle-q1-2025-review = Bewertung Q1 2025
+
+# semantic i18n key (#2542)
+hr-tab-recruitment = Rekrutierung
+
+# semantic i18n key (#2542)
+hr-tab-attendance = Anwesenheit
+
+# semantic i18n key (#2542)
+hr-tab-payroll = Gehaltsabrechnung
+
+# semantic i18n key (#2542)
+hr-tab-benefits = Leistungen
+
+# semantic i18n key (#2542)
+hr-stat-headcount = Mitarbeiterzahl
+
+# semantic i18n key (#2542)
+hr-stat-on-leave-today = Heute abwesend
+
+# semantic i18n key (#2542)
+hr-stat-open-requisitions = Offene Stellenanforderungen
+
+# semantic i18n key (#2542)
+hr-stat-pending-reviews = Ausstehende Bewertungen
+
+# semantic i18n key (#2542)
+hr-stat-turnover-90d = Fluktuation (90 T.)
+
+# semantic i18n key (#2542)
+hr-employee-directory = Mitarbeiterverzeichnis
+
+# semantic i18n key (#2542)
+hr-add-employee = Mitarbeiter hinzufügen
+
+# semantic i18n key (#2542)
+hr-filter-all-departments = Alle Abteilungen
+
+# semantic i18n key (#2542)
+hr-dept-engineering = Technik
+
+# semantic i18n key (#2542)
+hr-status-on-leave = Beurlaubt
+
+# semantic i18n key (#2542)
+hr-status-terminated = Beendet
+
+# semantic i18n key (#2542)
+hr-filter-all-locations = Alle Standorte
+
+# semantic i18n key (#2542)
+hr-location-remote = Remote
+
+# semantic i18n key (#2542)
+hr-field-hire-date = Einstellungsdatum
+
+# semantic i18n key (#2542)
+hr-field-employment-type = Beschäftigungsart
+
+# semantic i18n key (#2542)
+hr-employment-full-time = Vollzeit
+
+# semantic i18n key (#2542)
+hr-employment-part-time = Teilzeit
+
+# semantic i18n key (#2542)
+hr-employment-contractor = Auftragnehmer
+
+# semantic i18n key (#2542)
+hr-employment-intern = Praktikant
+
+# semantic i18n key (#2542)
+hr-job-postings = Stellenausschreibungen
+
+# semantic i18n key (#2542)
+hr-post-job = Stelle veröffentlichen
+
+# semantic i18n key (#2542)
+hr-pipeline-overview = Pipeline-Übersicht
+
+# semantic i18n key (#2542)
+hr-todays-attendance = Heutige Anwesenheit
+
+# semantic i18n key (#2542)
+hr-col-employee = Mitarbeiter
+
+# semantic i18n key (#2542)
+hr-col-clock-in = Einstempeln
+
+# semantic i18n key (#2542)
+hr-col-clock-out = Ausstempeln
+
+# semantic i18n key (#2542)
+hr-col-hours = Stunden
+
+# semantic i18n key (#2542)
+hr-department-summary = Abteilungsübersicht
+
+# semantic i18n key (#2542)
+hr-review-cycles = Bewertungszyklen
+
+# semantic i18n key (#2542)
+hr-start-new-cycle = Neuen Zyklus starten
+
+# semantic i18n key (#2542)
+hr-goal-completion = Zielerreichung
+
+# semantic i18n key (#2542)
+hr-payroll-runs = Gehaltsabrechnungsläufe
+
+# semantic i18n key (#2542)
+hr-run-payroll = Gehaltsabrechnung ausführen
+
+# semantic i18n key (#2542)
+hr-col-period = Zeitraum
+
+# semantic i18n key (#2542)
+hr-col-gross = Brutto
+
+# semantic i18n key (#2542)
+hr-col-taxes = Steuern
+
+# semantic i18n key (#2542)
+hr-benefits-enrollment = Leistungsanmeldung
+
+# semantic i18n key (#2542)
+hr-col-plan = Plan
+
+# semantic i18n key (#2542)
+hr-col-enrolled = Angemeldet
+
+# semantic i18n key (#2542)
+hr-col-monthly-cost = Monatliche Kosten
+
+# semantic i18n key (#2542)
+hr-training-certifications = Schulungen und Zertifizierungen
+
+# semantic i18n key (#2542)
+hr-add-course = + Kurs hinzufügen
+
+# semantic i18n key (#2542)
+hr-col-course = Kurs
+
+# semantic i18n key (#2542)
+hr-col-duration = Dauer
+
+# semantic i18n key (#2542)
+hr-col-assigned = Zugewiesen
+
+# semantic i18n key (#2542)
+hr-analytics-title = HR-Analysen
+
+# semantic i18n key (#2542)
+hr-report-headcount-by-department = Mitarbeiterzahl nach Abteilung
+
+# semantic i18n key (#2542)
+hr-report-attrition-12m = Fluktuation (12 M.)
+
+# semantic i18n key (#2542)
+hr-report-time-to-hire = Zeit bis zur Einstellung
+
+# semantic i18n key (#2542)
+hr-report-compensation-distribution = Vergütungsverteilung
