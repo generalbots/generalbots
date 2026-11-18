@@ -142,6 +142,16 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         // #1666 — Stop is cooperative: the owner checks between
         // chunks and ends the turn without running tool calls.
         if crate::core::bot::runs::bus::bus().is_cancelled(session_id_s) {
+            // What was on screen stays in the conversation as the answer of
+            // this turn. With nothing stored, the next question reached the
+            // model together with the stopped one, and it answered both.
+            let kept =
+                super::message_meta::stopped_answer(&content_buffer, &attempt_reasoning);
+            {
+                let mut sm = state.session_manager.lock().await;
+                let _ = sm.save_message(session_id, user_id, 2, &kept, 2);
+                let _ = sm.record_message_model(session_id, model);
+            }
             let cancelled = botlib::models::BotResponse::new(
                 bot_uuid_s,
                 session_id_s,
