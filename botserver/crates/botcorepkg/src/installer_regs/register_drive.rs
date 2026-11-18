@@ -169,7 +169,10 @@ pub fn register_llm(components: &mut HashMap<String, ComponentConfig>) {
 
     info!(
         "LLM component using llama.cpp {} for this platform",
-        LLAMA_CPP_VERSION
+        download_url
+            .as_deref()
+            .and_then(crate::installer::llama_build_tag)
+            .unwrap_or_else(|| LLAMA_CPP_VERSION.to_string())
     );
 
     components.insert(

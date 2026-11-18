@@ -26,6 +26,7 @@ pub(crate) mod catalog;
 pub(crate) mod hardware;
 mod jobs;
 pub mod runtime_ctl;
+pub mod runtime_spawn;
 pub mod runtime_stop;
 pub(crate) mod vault_store;
 

@@ -2,8 +2,9 @@
 //!
 //! Finds the stack's own `llama-server` whose command line carries
 //! `--port 8081` and kills ONLY that PID. The embedding runtime on 8082 is
-//! never touched. Discovery uses `sysinfo` (no external commands, no
-//! SafeCommand allowlist dependency).
+//! never touched by a model switch; only an engine update stops every
+//! process of the stack's engine folder (`stop_all_stack_llama`). Discovery
+//! uses `sysinfo` (no external commands, no SafeCommand allowlist dependency).
 
 use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
@@ -72,6 +73,11 @@ pub fn is_stack_llm_process(exe_lower: &str, stack_fragment: &str) -> bool {
 
 /// Scan running processes with `sysinfo` and select the matching one.
 fn find_stack_llama_for_port(stack_fragment: &str, port: u16) -> Result<u32, String> {
+    select_stack_llama(&scan_processes(), stack_fragment, port)
+        .ok_or_else(|| format!("No stack llama-server found for port {port}"))
+}
+
+fn scan_processes() -> Vec<ProcessInfo> {
     let mut sys = System::new();
     sys.refresh_processes_specifics(
         ProcessesToUpdate::All,
@@ -80,9 +86,7 @@ fn find_stack_llama_for_port(stack_fragment: &str, port: u16) -> Result<u32, Str
             .with_exe(UpdateKind::Always)
             .with_cmd(UpdateKind::Always),
     );
-
-    let procs: Vec<ProcessInfo> = sys
-        .processes()
+    sys.processes()
         .iter()
         .map(|(pid, proc)| {
             let exe = proc
@@ -100,10 +104,30 @@ fn find_stack_llama_for_port(stack_fragment: &str, port: u16) -> Result<u32, Str
                 cmd_line: cmd.join(" "),
             }
         })
-        .collect();
+        .collect()
+}
 
-    select_stack_llama(&procs, stack_fragment, port)
-        .ok_or_else(|| format!("No stack llama-server found for port {port}"))
+/// Stop every process started from the stack's engine folder: the chat
+/// runtime, the embedding runtime and any left over from an earlier run.
+/// The engine files cannot be replaced while one of them is running.
+/// Returns the processes that were stopped.
+pub fn stop_all_stack_llama() -> Vec<ProcessInfo> {
+    let fragment = stack_llm_fragment();
+    let stopped: Vec<ProcessInfo> = scan_processes()
+        .into_iter()
+        .filter(|p| is_stack_llm_process(&p.exe_lower, &fragment))
+        .filter(|p| kill_pid(p.pid).is_ok())
+        .collect();
+    for p in &stopped {
+        log::info!("[runtime_stop] stopped engine process {} ({})", p.pid, p.cmd_line);
+    }
+    stopped
+}
+
+/// Whether one of `procs` was serving `port`.
+pub fn served_port(procs: &[ProcessInfo], port: u16) -> bool {
+    let (spaced, joined) = (format!("--port {port}"), format!("--port={port}"));
+    procs.iter().any(|p| p.cmd_line.contains(&spaced) || p.cmd_line.contains(&joined))
 }
 
 pub fn kill_pid(pid: u32) -> Result<(), String> {
@@ -180,6 +204,13 @@ mod tests {
         let frag = r"c:\stack\bin\llm\".to_ascii_lowercase();
         assert!(is_stack_llm_process(r"c:\stack\bin\llm\bin\llama-server.exe", &frag));
         assert!(!is_stack_llm_process(r"c:\other\llama-server.exe", &frag));
+    }
+
+    #[test]
+    fn served_port_reads_the_command_line() {
+        let procs = vec![make_proc(100, r"c:\stack\bin\llm\llama-server.exe", "--port 8082 --embeddings")];
+        assert!(served_port(&procs, 8082));
+        assert!(!served_port(&procs, 8081));
     }
 
     /// Live test: bind a port, find ourselves via sysinfo, and confirm

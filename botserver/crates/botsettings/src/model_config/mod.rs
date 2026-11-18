@@ -161,6 +161,9 @@ async fn handle_get_config(
             "installing": runtime.installing,
             "install_job": runtime.install_job,
             "install_info": runtime.install_info,
+            "build": runtime.build,
+            "available_build": runtime.available_build,
+            "update_available": runtime.update_available,
         },
     });
     if inconsistent {
@@ -340,6 +343,7 @@ async fn handle_put_config(
 }
 
 mod test_endpoint;
+mod engine_update;
 mod local_runtime;
 pub(crate) mod write_sets;
 

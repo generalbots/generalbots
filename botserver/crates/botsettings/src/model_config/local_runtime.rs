@@ -1,42 +1,23 @@
-//! Local inference runtime: install, status (#2561).
+//! Local inference runtime: install, update, status (#2561).
 //!
 //! The `llm` component (llama.cpp) is installed by the package manager the same
-//! way the wizard does it.  The endpoints here let a Settings panel trigger the
-//! install without re-running the wizard.  Once installed and a model is
-//! activated, the person restarts the app and `ensure_llama_servers_running`
-//! starts the servers automatically.
+//! way the wizard does it.  The endpoints here let a Settings panel install it
+//! without re-running the wizard, and replace an installed engine with the
+//! build this version pins (see `engine_update`).
 
-use axum::{extract::{Extension, Path}, http::StatusCode, response::Json};
+use axum::{extract::{Extension, Path, State}, http::StatusCode, response::Json};
+use botcore::config::ConfigManager;
+use botcore::shared::state::AppState;
 use botsecurity::auth::AuthenticatedUser;
 use serde::Serialize;
 use serde_json::json;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
 
-use botcore::package_manager::{InstallMode, PackageManager};
-
-use super::{api_error, require_admin, local_hardware, ApiResult};
+use super::{api_error, engine_update, require_admin, local_hardware, ApiResult};
 
 // ── runtime status ───────────────────────────────────────────────────────
-
-/// The llama-server binary path inside the stack.
-fn llama_server_dir() -> PathBuf {
-    PathBuf::from(botcore::shared::utils::get_stack_path())
-        .join("bin")
-        .join("llm")
-        .join("bin")
-}
-
-fn llama_server_binary() -> PathBuf {
-    let dir = llama_server_dir();
-    if cfg!(windows) {
-        dir.join("llama-server.exe")
-    } else {
-        dir.join("llama-server")
-    }
-}
 
 #[derive(Serialize)]
 pub(super) struct RuntimeStatus {
@@ -52,6 +33,12 @@ pub(super) struct RuntimeStatus {
     pub install_blocked: Option<String>,
     /// What would be installed: the download source and estimated size.
     pub install_info: InstallInfo,
+    /// The llama.cpp build installed, when it was recorded at install time.
+    pub build: Option<String>,
+    /// The build this version of the product installs.
+    pub available_build: Option<String>,
+    /// An engine is installed and it is not `available_build`.
+    pub update_available: bool,
 }
 
 #[derive(Serialize)]
@@ -65,8 +52,7 @@ pub(super) struct InstallInfo {
 }
 
 pub(super) async fn runtime_status() -> RuntimeStatus {
-    let binary = llama_server_binary();
-    let installed = binary.exists();
+    let installed = engine_update::server_binary().is_some();
 
     let reachable = crate::on_device_ai::runtime_ctl::port_open().await;
 
@@ -100,8 +86,11 @@ pub(super) async fn runtime_status() -> RuntimeStatus {
         install_info: InstallInfo {
             component: "llama.cpp (inference engine)",
             download_host: "github.com",
-            download_size_bytes: 100_000_000,
+            download_size_bytes: engine_update::download_bytes(),
         },
+        build: engine_update::installed_build(),
+        available_build: engine_update::available_build(),
+        update_available: engine_update::update_available(),
     }
 }
 
@@ -115,6 +104,12 @@ struct InstallJob {
     state: Mutex<&'static str>,
     started: Instant,
     message: Mutex<String>,
+    /// What the job is doing (`engine_update::STAGE_*`).
+    stage: Mutex<&'static str>,
+    /// Why it failed (`engine_update::CODE_*`), empty otherwise.
+    code: Mutex<&'static str>,
+    /// The job replaces an installed engine.
+    update: bool,
     bytes_done: AtomicU64,
     bytes_total: AtomicU64,
 }
@@ -128,9 +123,50 @@ pub(super) struct JobSnapshot {
     pub job_id: String,
     pub state: &'static str,
     pub message: String,
+    pub stage: &'static str,
+    pub code: &'static str,
+    pub update: bool,
     pub elapsed_ms: u64,
     pub bytes_done: u64,
     pub bytes_total: u64,
+}
+
+impl InstallJob {
+    fn state(&self) -> &'static str {
+        self.state.lock().map(|g| *g).unwrap_or(STATE_FAILED)
+    }
+
+    fn snapshot(&self) -> JobSnapshot {
+        JobSnapshot {
+            job_id: self.id.clone(),
+            state: self.state(),
+            message: self.message.lock().ok().map(|g| g.clone()).unwrap_or_default(),
+            stage: self.stage.lock().map(|g| *g).unwrap_or(""),
+            code: self.code.lock().map(|g| *g).unwrap_or(""),
+            update: self.update,
+            elapsed_ms: self.started.elapsed().as_millis() as u64,
+            bytes_done: self.bytes_done.load(Ordering::Relaxed),
+            bytes_total: self.bytes_total.load(Ordering::Relaxed),
+        }
+    }
+
+    fn set_stage(&self, stage: &'static str) {
+        if let Ok(mut guard) = self.stage.lock() {
+            *guard = stage;
+        }
+    }
+
+    fn finish(&self, state: &'static str, code: &'static str, message: &str) {
+        if let Ok(mut guard) = self.message.lock() {
+            *guard = message.to_string();
+        }
+        if let Ok(mut guard) = self.code.lock() {
+            *guard = code;
+        }
+        if let Ok(mut guard) = self.state.lock() {
+            *guard = state;
+        }
+    }
 }
 
 fn current_install_job() -> (bool, Option<JobSnapshot>) {
@@ -139,32 +175,23 @@ fn current_install_job() -> (bool, Option<JobSnapshot>) {
         Err(_) => return (false, None),
     };
     match guard.as_ref() {
-        Some(job) => {
-            let state = job.state.lock().map(|g| *g).unwrap_or(STATE_FAILED);
-            let installing = state == STATE_RUNNING;
-            let snapshot = JobSnapshot {
-                job_id: job.id.clone(),
-                state,
-                message: job.message.lock().ok().map(|g| g.clone()).unwrap_or_default(),
-                elapsed_ms: job.started.elapsed().as_millis() as u64,
-                bytes_done: job.bytes_done.load(Ordering::Relaxed),
-                bytes_total: job.bytes_total.load(Ordering::Relaxed),
-            };
-            (installing, Some(snapshot))
-        }
+        Some(job) => (job.state() == STATE_RUNNING, Some(job.snapshot())),
         None => (false, None),
     }
 }
 
 // ── POST /api/llm/runtime/install ────────────────────────────────────────
 
+/// Installs the engine, or replaces an installed one that is not the pinned
+/// build. An engine that is already the pinned build is refused.
 pub(super) async fn handle_install(
+    State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
 ) -> ApiResult {
     require_admin(&user)?;
 
-    // Refuse if already installed.
-    if llama_server_binary().exists() {
+    let update = engine_update::server_binary().is_some();
+    if update && !engine_update::update_available() {
         return Err(api_error(StatusCode::CONFLICT, "already_installed"));
     }
     // Refuse if a job is already running.
@@ -173,8 +200,7 @@ pub(super) async fn handle_install(
             api_error(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed")
         })?;
         if let Some(job) = guard.as_ref() {
-            let state = job.state.lock().map(|g| *g).unwrap_or(STATE_FAILED);
-            if state == STATE_RUNNING {
+            if job.state() == STATE_RUNNING {
                 return Ok(Json(json!({ "job_id": job.id, "already_running": true })));
             }
         }
@@ -186,6 +212,9 @@ pub(super) async fn handle_install(
         state: Mutex::new(STATE_RUNNING),
         started: Instant::now(),
         message: Mutex::new("Starting install".to_string()),
+        stage: Mutex::new(engine_update::STAGE_DOWNLOADING),
+        code: Mutex::new(""),
+        update,
         bytes_done: AtomicU64::new(0),
         bytes_total: AtomicU64::new(0),
     });
@@ -197,53 +226,37 @@ pub(super) async fn handle_install(
         *guard = Some(Arc::clone(&job));
     }
 
+    // What a restart of the running model needs, read before the job starts.
+    let config = ConfigManager::new(state.conn.clone());
+    let nil = uuid::Uuid::nil();
+    let gpu_layers = config.get_config(&nil, "llm-server-gpu-layers", Some("")).unwrap_or_default();
+    let ctx_size = config.get_config(&nil, "llm-server-ctx-size", Some("")).unwrap_or_default();
+
     tokio::spawn(async move {
-        run_install(job).await;
+        run_install(job, gpu_layers, ctx_size).await;
     });
 
-    Ok(Json(json!({ "job_id": id })))
+    Ok(Json(json!({ "job_id": id, "update": update })))
 }
 
-async fn run_install(job: Arc<InstallJob>) {
-    fn set_message(job: &InstallJob, msg: &str) {
-        if let Ok(mut guard) = job.message.lock() {
-            *guard = msg.to_string();
+async fn run_install(job: Arc<InstallJob>, gpu_layers: String, ctx_size: String) {
+    if job.update {
+        let reporter = Arc::clone(&job);
+        let stage = move |stage: &'static str| reporter.set_stage(stage);
+        match engine_update::update(&stage, &gpu_layers, &ctx_size).await {
+            Ok(()) => job.finish(STATE_DONE, "", "Engine updated"),
+            Err(code) => job.finish(STATE_FAILED, code, "Engine update failed; the previous engine is back"),
         }
+        return;
     }
-    fn set_state(job: &InstallJob, state: &'static str) {
-        if let Ok(mut guard) = job.state.lock() {
-            *guard = state;
-        }
-    }
-
-    set_message(&job, "Creating package manager");
-    let pm = match PackageManager::new(InstallMode::Local, None) {
-        Ok(pm) => pm,
-        Err(e) => {
-            log::error!("[model_config] package manager init failed: {e}");
-            set_message(&job, &format!("Package manager init failed: {e}"));
-            set_state(&job, STATE_FAILED);
-            return;
-        }
-    };
-
-    set_message(&job, "Installing llm component (llama.cpp)");
-    match pm.install("llm").await {
-        Ok(_) => {
-            if llama_server_binary().exists() {
-                set_message(&job, "Runtime installed successfully");
-                set_state(&job, STATE_DONE);
-                log::info!("[model_config] llm runtime installed successfully");
-            } else {
-                set_message(&job, "Install completed but binary not found");
-                set_state(&job, STATE_FAILED);
-                log::error!("[model_config] llm install completed but binary not at expected path");
-            }
+    match engine_update::install().await {
+        Ok(()) => {
+            log::info!("[model_config] llm runtime installed successfully");
+            job.finish(STATE_DONE, "", "Runtime installed successfully");
         }
         Err(e) => {
             log::error!("[model_config] llm install failed: {e}");
-            set_message(&job, &format!("Install failed: {e}"));
-            set_state(&job, STATE_FAILED);
+            job.finish(STATE_FAILED, engine_update::CODE_DOWNLOAD_FAILED, &format!("Install failed: {e}"));
         }
     }
 }
@@ -269,17 +282,7 @@ pub(super) async fn handle_job_status(
         api_error(StatusCode::INTERNAL_SERVER_ERROR, "lock_failed")
     })?;
     match guard.as_ref() {
-        Some(job) if job.id == id => {
-            let state = job.state.lock().map(|g| *g).unwrap_or(STATE_FAILED);
-            Ok(Json(json!(JobSnapshot {
-                job_id: job.id.clone(),
-                state,
-                message: job.message.lock().ok().map(|g| g.clone()).unwrap_or_default(),
-                elapsed_ms: job.started.elapsed().as_millis() as u64,
-                bytes_done: job.bytes_done.load(Ordering::Relaxed),
-                bytes_total: job.bytes_total.load(Ordering::Relaxed),
-            })))
-        }
+        Some(job) if job.id == id => Ok(Json(json!(job.snapshot()))),
         _ => Err(api_error(StatusCode::NOT_FOUND, "job_not_found")),
     }
 }

@@ -6,9 +6,8 @@
 //! necessary.
 //!
 //! Only the **chat** runtime on port 8081 is managed here; the embedding
-//! runtime on 8082 is never touched.
+//! runtime on 8082 is only started again after an engine update stopped it.
 
-use botsecurity::command_guard::SafeCommand;
 use serde::Serialize;
 use std::time::Duration;
 
@@ -131,46 +130,8 @@ pub fn is_local_model_name(model: &str) -> bool {
 
 /// Spawn llama-server for chat. Returns the child PID.
 pub fn start_chat_runtime(desired: &DesiredRuntime) -> Result<u32, String> {
-    let binary = if cfg!(windows) {
-        format!("{}\\llama-server.exe", desired.server_dir)
-    } else {
-        format!("{}/llama-server", desired.server_dir)
-    };
-    if !std::path::Path::new(&binary).exists() {
-        return Err(format!("llama-server binary not found at {binary}"));
-    }
     if !std::path::Path::new(&desired.model_path).exists() {
         return Err(format!("Model file not found at {}", desired.model_path));
-    }
-    let args = build_args(desired);
-    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let mut command = SafeCommand::new(&binary).map_err(|e| e.to_string())?;
-    command = command.args(&arg_refs).map_err(|e| e.to_string())?;
-    command = command
-        .working_dir(std::path::Path::new(&desired.server_dir))
-        .map_err(|e| e.to_string())?;
-    if !cfg!(windows) {
-        command = command
-            .env("LD_LIBRARY_PATH", &desired.server_dir)
-            .map_err(|e| e.to_string())?;
-    }
-    let stack = botcore::shared::utils::get_stack_path();
-    let log_dir = format!("{stack}/logs/llm");
-    let _ = std::fs::create_dir_all(&log_dir);
-    let log_path = format!("{log_dir}/llm.log");
-    match std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
-        Ok(log_file) => {
-            if let Ok(clone) = log_file.try_clone() {
-                command = command.stdout(std::process::Stdio::from(clone));
-            } else {
-                command = command.stdout(std::process::Stdio::null());
-            }
-            command = command.stderr(std::process::Stdio::from(log_file));
-        }
-        Err(_) => {
-            command = command.stdout(std::process::Stdio::null());
-            command = command.stderr(std::process::Stdio::null());
-        }
     }
     log::info!(
         "[runtime_ctl] starting chat runtime: model={}, gpu_layers={}, ctx_size={}",
@@ -178,8 +139,7 @@ pub fn start_chat_runtime(desired: &DesiredRuntime) -> Result<u32, String> {
         if desired.gpu_layers.is_empty() { "(build default)" } else { &desired.gpu_layers },
         desired.ctx_size,
     );
-    let child = command.spawn().map_err(|e| format!("spawn failed: {e}"))?;
-    Ok(child.id())
+    super::runtime_spawn::spawn_server(&desired.server_dir, &build_args(desired), "llm.log")
 }
 
 /// Command-line args matching the package manager's line plus `--ctx-size`.
@@ -332,6 +292,11 @@ fn record_failure(failure: Option<(String, &'static str)>) {
     if let Ok(mut slot) = LAST_FAILURE.lock() {
         *slot = failure;
     }
+}
+
+/// Forget the last start failure (the engine was replaced since).
+pub fn clear_last_failure() {
+    record_failure(None);
 }
 
 /// The model that last failed to start and why; `None` after a good start.

@@ -33,36 +33,69 @@ function renderLocalDetail(el) {
 }
 
 /* ---- Engine section ---- */
+var ENGINE_FAIL = {
+  engine_in_use: ["O motor em uso não pôde ser parado para a troca. Feche outros programas que usem o modelo local e tente de novo.",
+    "The engine in use could not be stopped for the swap. Close other programs that use the local model and try again."],
+  engine_download_failed: ["O download do motor novo falhou. O motor anterior continua instalado.",
+    "The download of the new engine failed. The previous engine is still installed."],
+  engine_new_failed: ["O motor novo não conseguiu iniciar o modelo que estava em uso. O motor anterior foi restaurado.",
+    "The new engine could not start the model that was in use. The previous engine was restored."]
+};
+function engineStageText(job) {
+  if (!job || !job.update) return tr("Baixando e instalando o motor...", "Downloading and installing the engine...");
+  if (job.stage === "stopping") return tr("Parando o motor em uso...", "Stopping the engine in use...");
+  if (job.stage === "starting") return tr("Iniciando o modelo com o motor novo...", "Starting the model with the new engine...");
+  return tr("Baixando o motor novo...", "Downloading the new engine...");
+}
+function engineFailText(job) {
+  var pair = ENGINE_FAIL[job.code] || ["A instalação do motor falhou.", "The engine install failed."];
+  return tr(pair[0], pair[1]);
+}
+
 function engineSection(lr) {
   lr = lr || {};
   var job = lr.install_job;
   var installing = lr.installing && job;
+  var info = lr.install_info || {};
+  var size = fmtBytes(info.download_size_bytes), host = info.download_host || "github.com";
   var state, badge = "", body = "";
   if (installing) {
-    state = tr("Instalando", "Installing");
+    state = job.update ? tr("Atualizando", "Updating") : tr("Instalando", "Installing");
     body = '<div class="gb-dl-progress" id="gbEngineJob" data-job="' + esc(job.job_id) + '">' +
       '<div class="gb-dl-bar gb-dl-bar-wait"><i></i></div>' +
-      '<span class="gb-dl-text">' + esc(tr("Baixando e instalando o motor...", "Downloading and installing the engine...")) + '</span></div>';
+      '<span class="gb-dl-text">' + esc(engineStageText(job)) + '</span></div>';
   } else if (!lr.installed) {
     state = tr("Não instalado", "Not installed");
-    var info = lr.install_info || {};
     body = '<p class="gb-set-model-meta">' + esc(tr(
         "Necessário para usar modelos neste computador. Download de cerca de %s de %h.",
         "Needed to run models on this computer. A download of about %s from %h.")
-        .replace("%s", fmtBytes(info.download_size_bytes)).replace("%h", info.download_host || "github.com")) + '</p>' +
+        .replace("%s", size).replace("%h", host)) + '</p>' +
       '<div class="gb-set-model-actions"><button class="gb-set-btn-sm gb-set-btn-accent" id="gbInstallRuntime">' +
       esc(tr("Instalar o motor local", "Install the local engine")) + '</button></div>';
-    if (job && job.state === "failed") {
-      body += '<p class="gb-set-warn">' + esc(tr("A instalação do motor falhou.", "The engine install failed.")) + '</p>';
-    }
-  } else if (lr.running && lr.loaded_model) {
-    state = tr("Em execução", "Running"); badge = " gb-badge-active";
-    body = '<p class="gb-set-model-meta">' + esc(tr("Modelo carregado: %m", "Model loaded: %m").replace("%m", shortName(lr.loaded_model))) + '</p>';
   } else {
-    state = tr("Instalado, parado", "Installed, stopped"); badge = " gb-badge-ok";
-    body = '<p class="gb-set-model-meta">' + esc(tr(
-      "Inicia quando você escolhe um modelo deste computador.",
-      "Starts when you choose a model on this computer.")) + '</p>';
+    if (lr.running && lr.loaded_model) {
+      state = tr("Em execução", "Running"); badge = " gb-badge-active";
+      body = '<p class="gb-set-model-meta">' + esc(tr("Modelo carregado: %m", "Model loaded: %m").replace("%m", shortName(lr.loaded_model))) + '</p>';
+    } else {
+      state = tr("Instalado, parado", "Installed, stopped"); badge = " gb-badge-ok";
+      body = '<p class="gb-set-model-meta">' + esc(tr(
+        "Inicia quando você escolhe um modelo deste computador.",
+        "Starts when you choose a model on this computer.")) + '</p>';
+    }
+    if (lr.update_available) {
+      body += '<p class="gb-set-model-meta">' + esc(tr(
+          "Há uma versão mais nova do motor (%n). Modelos recentes, como o Qwen3.5, só abrem com ela. Download de cerca de %s de %h.",
+          "A newer version of the engine is available (%n). Recent models, such as Qwen3.5, only open with it. A download of about %s from %h.")
+          .replace("%n", lr.available_build || "").replace("%s", size).replace("%h", host)) + '</p>' +
+        '<div class="gb-set-model-actions"><button class="gb-set-btn-sm gb-set-btn-accent" id="gbInstallRuntime" data-update="1"' +
+        ' data-size="' + esc(size) + '" data-host="' + esc(host) + '">' +
+        esc(tr("Atualizar o motor local", "Update the local engine")) + '</button></div>';
+    } else if (lr.build) {
+      body += '<p class="gb-set-model-meta">' + esc(tr("Versão do motor: %n", "Engine version: %n").replace("%n", lr.build)) + '</p>';
+    }
+  }
+  if (!installing && job && job.state === "failed") {
+    body += '<p class="gb-set-warn">' + esc(engineFailText(job)) + '</p>';
   }
   return '<div class="gb-set-engine"><div class="gb-set-model-info">' +
     '<span class="gb-set-model-row-name">' + esc(tr("Motor local", "Local engine")) + '</span>' +
@@ -70,29 +103,37 @@ function engineSection(lr) {
     '<div id="gbInstallMsg"></div></div>';
 }
 
+function startEngineInstall() {
+  S().setBusy(true, document.getElementById("gbInstallMsg"), tr("Iniciando...", "Starting..."));
+  A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
+    return r.json().catch(function () { return { error: "http_" + r.status }; });
+  }).catch(function () { return { error: "unreachable" }; }).then(function (d) {
+    S().setBusy(false);
+    if (d && d.error) {
+      var msg = document.getElementById("gbInstallMsg");
+      if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(tr("A instalação não pôde começar.", "The install could not start.")) + ' (' + esc(d.error) + ')</p>'; }
+      return;
+    }
+    S().refreshKeepingView();
+  });
+}
+
 function bindEngine(container) {
   var btn = container.querySelector("#gbInstallRuntime");
   if (btn) {
     btn.addEventListener("click", function () {
-      S().setBusy(true, document.getElementById("gbInstallMsg"), tr("Iniciando a instalação...", "Starting the install..."));
-      A.apiFetch("/api/llm/runtime/install", { method: "POST" }).then(function (r) {
-        return r.json().catch(function () { return { error: "http_" + r.status }; });
-      }).catch(function () { return { error: "unreachable" }; }).then(function (d) {
-        S().setBusy(false);
-        if (d && d.error) {
-          var msg = document.getElementById("gbInstallMsg");
-          if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(tr("A instalação não pôde começar.", "The install could not start.")) + ' (' + esc(d.error) + ')</p>'; }
-          return;
-        }
-        S().refreshKeepingView();
-      });
+      if (!btn.getAttribute("data-update")) { startEngineInstall(); return; }
+      S().inlineConfirm(tr(
+          "Baixar cerca de %s de %h e trocar o motor local? O modelo em uso fica parado durante a troca. Se o motor novo não funcionar, o anterior volta sozinho.",
+          "Download about %s from %h and replace the local engine? The model in use stops during the swap. If the new engine does not work, the previous one comes back by itself.")
+          .replace("%s", btn.getAttribute("data-size")).replace("%h", btn.getAttribute("data-host")), startEngineInstall);
     });
   }
   var jobEl = container.querySelector("#gbEngineJob");
   if (jobEl) { pollEngine(jobEl.getAttribute("data-job")); }
 }
 
-/* The engine install reports a state and the time it has run, not bytes. */
+/* The engine job reports its stage and the time it has run, not bytes. */
 function pollEngine(jobId) {
   var key = "engine:" + jobId;
   if (jobPollers[key]) return;
@@ -104,10 +145,9 @@ function pollEngine(jobId) {
       var d = r.ok ? await r.json() : { state: "failed" };
       var txt = el.querySelector(".gb-dl-text");
       if (txt && d.state === "running") {
-        txt.textContent = tr("Baixando e instalando o motor...", "Downloading and installing the engine...") +
-          " " + fmtEta(Math.round((d.elapsed_ms || 0) / 1000));
+        txt.textContent = engineStageText(d) + " " + fmtEta(Math.round((d.elapsed_ms || 0) / 1000));
       }
-      if (d.state !== "running") { stopJobPoller(key); S().refreshKeepingView(); }
+      if (d.state !== "running") { stopJobPoller(key); S().refreshAfterChange(); }
     } catch (e) { stopJobPoller(key); }
   }, 2000);
 }
