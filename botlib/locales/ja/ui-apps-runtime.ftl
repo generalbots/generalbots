@@ -234,3 +234,126 @@ campaign-wizard-channels = チャネル
 
 # semantic i18n key (#2542)
 campaign-wizard-launch-campaign = キャンペーンを開始
+
+# semantic i18n key (#2542)
+campaigns-loading = キャンペーンを読み込み中…
+
+# semantic i18n key (#2542)
+campaigns-unavailable = キャンペーンを利用できません
+
+# semantic i18n key (#2542)
+campaigns-email-filter = 📧 メール
+
+# semantic i18n key (#2542)
+campaigns-instagram-filter = 📸 Instagram
+
+# semantic i18n key (#2542)
+campaigns-facebook-filter = 📘 Facebook
+
+# semantic i18n key (#2542)
+campaigns-table-campaign = キャンペーン
+
+# semantic i18n key (#2542)
+campaigns-table-delivered = 配信済み
+
+# semantic i18n key (#2542)
+campaigns-table-opened = 開封済み
+
+# semantic i18n key (#2542)
+campaigns-table-clicked = クリック済み
+
+# semantic i18n key (#2542)
+campaigns-table-replied = 返信済み
+
+# semantic i18n key (#2542)
+campaigns-new-list = 新しいリスト
+
+# semantic i18n key (#2542)
+campaigns-loading-lists = リストを読み込み中...
+
+# semantic i18n key (#2542)
+campaigns-new-template = 新しいテンプレート
+
+# semantic i18n key (#2542)
+campaigns-loading-templates = テンプレートを読み込み中...
+
+# semantic i18n key (#2542)
+campaigns-publish-campaign-title = 🚀 キャンペーンを公開
+
+# semantic i18n key (#2542)
+campaigns-recipient-list = 受信者リスト
+
+# semantic i18n key (#2542)
+campaigns-instagram-feed-post =  📸 Instagram（フィード投稿）
+
+# semantic i18n key (#2542)
+campaigns-publishing = 公開中…
+
+# semantic i18n key (#2542)
+campaigns-publish-btn = 🚀 公開
+
+# semantic i18n key (#2542)
+campaigns-ai-image-generator = 🖼 AI 画像ジェネレーター
+
+# semantic i18n key (#2542)
+campaigns-prompt = プロンプト
+
+# semantic i18n key (#2542)
+campaigns-style = スタイル
+
+# semantic i18n key (#2542)
+campaigns-no-style = スタイルなし
+
+# semantic i18n key (#2542)
+campaigns-photorealistic = フォトリアル
+
+# semantic i18n key (#2542)
+campaigns-minimalist = ミニマル
+
+# semantic i18n key (#2542)
+campaigns-vibrant = 鮮やか
+
+# semantic i18n key (#2542)
+campaigns-generating = 生成中…
+
+# semantic i18n key (#2542)
+campaigns-generate-image-btn = 🖼 生成
+
+# semantic i18n key (#2542)
+campaigns-ai-content-writer = ✨ AI コンテンツライター
+
+# semantic i18n key (#2542)
+campaigns-goal = 目標
+
+# semantic i18n key (#2542)
+campaigns-persuasive = 説得力のある
+
+# semantic i18n key (#2542)
+campaigns-length = 長さ
+
+# semantic i18n key (#2542)
+campaigns-short = 短い
+
+# semantic i18n key (#2542)
+campaigns-long = 長い
+
+# semantic i18n key (#2542)
+campaigns-generating-with-ai = AI で生成中…
+
+# semantic i18n key (#2542)
+campaigns-generate-btn = ✨ 生成
+
+# semantic i18n key (#2542)
+campaigns-list-name = リスト名
+
+# semantic i18n key (#2542)
+campaigns-static = 静的
+
+# semantic i18n key (#2542)
+campaigns-dynamic-query-based = 動的（クエリベース）
+
+# semantic i18n key (#2542)
+campaigns-segment-query-optional = セグメントクエリ（任意）
+
+# semantic i18n key (#2542)
+campaigns-create-list = リストを作成

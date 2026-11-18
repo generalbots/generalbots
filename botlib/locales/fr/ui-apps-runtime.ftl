@@ -234,3 +234,126 @@ campaign-wizard-channels = Canaux
 
 # semantic i18n key (#2542)
 campaign-wizard-launch-campaign = Lancer la campagne
+
+# semantic i18n key (#2542)
+campaigns-loading = Chargement des campagnes…
+
+# semantic i18n key (#2542)
+campaigns-unavailable = Campagnes indisponibles
+
+# semantic i18n key (#2542)
+campaigns-email-filter = 📧 E-mail
+
+# semantic i18n key (#2542)
+campaigns-instagram-filter = 📸 Instagram
+
+# semantic i18n key (#2542)
+campaigns-facebook-filter = 📘 Facebook
+
+# semantic i18n key (#2542)
+campaigns-table-campaign = Campagne
+
+# semantic i18n key (#2542)
+campaigns-table-delivered = Livrés
+
+# semantic i18n key (#2542)
+campaigns-table-opened = Ouverts
+
+# semantic i18n key (#2542)
+campaigns-table-clicked = Cliqués
+
+# semantic i18n key (#2542)
+campaigns-table-replied = Répondus
+
+# semantic i18n key (#2542)
+campaigns-new-list = Nouvelle liste
+
+# semantic i18n key (#2542)
+campaigns-loading-lists = Chargement des listes...
+
+# semantic i18n key (#2542)
+campaigns-new-template = Nouveau modèle
+
+# semantic i18n key (#2542)
+campaigns-loading-templates = Chargement des modèles...
+
+# semantic i18n key (#2542)
+campaigns-publish-campaign-title = 🚀 Publier la campagne
+
+# semantic i18n key (#2542)
+campaigns-recipient-list = Liste des destinataires
+
+# semantic i18n key (#2542)
+campaigns-instagram-feed-post =  📸 Instagram (publication du fil)
+
+# semantic i18n key (#2542)
+campaigns-publishing = Publication…
+
+# semantic i18n key (#2542)
+campaigns-publish-btn = 🚀 Publier
+
+# semantic i18n key (#2542)
+campaigns-ai-image-generator = 🖼 Générateur d'images IA
+
+# semantic i18n key (#2542)
+campaigns-prompt = Invite
+
+# semantic i18n key (#2542)
+campaigns-style = Style
+
+# semantic i18n key (#2542)
+campaigns-no-style = Sans style
+
+# semantic i18n key (#2542)
+campaigns-photorealistic = Photoréaliste
+
+# semantic i18n key (#2542)
+campaigns-minimalist = Minimaliste
+
+# semantic i18n key (#2542)
+campaigns-vibrant = Vibrant
+
+# semantic i18n key (#2542)
+campaigns-generating = Génération…
+
+# semantic i18n key (#2542)
+campaigns-generate-image-btn = 🖼 Générer
+
+# semantic i18n key (#2542)
+campaigns-ai-content-writer = ✨ Rédacteur de contenu IA
+
+# semantic i18n key (#2542)
+campaigns-goal = Objectif
+
+# semantic i18n key (#2542)
+campaigns-persuasive = Persuasif
+
+# semantic i18n key (#2542)
+campaigns-length = Longueur
+
+# semantic i18n key (#2542)
+campaigns-short = Court
+
+# semantic i18n key (#2542)
+campaigns-long = Long
+
+# semantic i18n key (#2542)
+campaigns-generating-with-ai = Génération avec l'IA…
+
+# semantic i18n key (#2542)
+campaigns-generate-btn = ✨ Générer
+
+# semantic i18n key (#2542)
+campaigns-list-name = Nom de la liste
+
+# semantic i18n key (#2542)
+campaigns-static = Statique
+
+# semantic i18n key (#2542)
+campaigns-dynamic-query-based = Dynamique (basée sur une requête)
+
+# semantic i18n key (#2542)
+campaigns-segment-query-optional = Requête de segment (facultatif)
+
+# semantic i18n key (#2542)
+campaigns-create-list = Créer une liste

@@ -234,3 +234,126 @@ campaign-wizard-channels = 채널
 
 # semantic i18n key (#2542)
 campaign-wizard-launch-campaign = 캠페인 시작
+
+# semantic i18n key (#2542)
+campaigns-loading = 캠페인 로드 중…
+
+# semantic i18n key (#2542)
+campaigns-unavailable = 캠페인을 사용할 수 없음
+
+# semantic i18n key (#2542)
+campaigns-email-filter = 📧 이메일
+
+# semantic i18n key (#2542)
+campaigns-instagram-filter = 📸 Instagram
+
+# semantic i18n key (#2542)
+campaigns-facebook-filter = 📘 Facebook
+
+# semantic i18n key (#2542)
+campaigns-table-campaign = 캠페인
+
+# semantic i18n key (#2542)
+campaigns-table-delivered = 전달됨
+
+# semantic i18n key (#2542)
+campaigns-table-opened = 열람됨
+
+# semantic i18n key (#2542)
+campaigns-table-clicked = 클릭됨
+
+# semantic i18n key (#2542)
+campaigns-table-replied = 응답됨
+
+# semantic i18n key (#2542)
+campaigns-new-list = 새 목록
+
+# semantic i18n key (#2542)
+campaigns-loading-lists = 목록 로드 중...
+
+# semantic i18n key (#2542)
+campaigns-new-template = 새 템플릿
+
+# semantic i18n key (#2542)
+campaigns-loading-templates = 템플릿 로드 중...
+
+# semantic i18n key (#2542)
+campaigns-publish-campaign-title = 🚀 캠페인 게시
+
+# semantic i18n key (#2542)
+campaigns-recipient-list = 수신자 목록
+
+# semantic i18n key (#2542)
+campaigns-instagram-feed-post =  📸 Instagram(피드 게시물)
+
+# semantic i18n key (#2542)
+campaigns-publishing = 게시 중…
+
+# semantic i18n key (#2542)
+campaigns-publish-btn = 🚀 게시
+
+# semantic i18n key (#2542)
+campaigns-ai-image-generator = 🖼 AI 이미지 생성기
+
+# semantic i18n key (#2542)
+campaigns-prompt = 프롬프트
+
+# semantic i18n key (#2542)
+campaigns-style = 스타일
+
+# semantic i18n key (#2542)
+campaigns-no-style = 스타일 없음
+
+# semantic i18n key (#2542)
+campaigns-photorealistic = 포토리얼리스틱
+
+# semantic i18n key (#2542)
+campaigns-minimalist = 미니멀리스트
+
+# semantic i18n key (#2542)
+campaigns-vibrant = 생동감 있는
+
+# semantic i18n key (#2542)
+campaigns-generating = 생성 중…
+
+# semantic i18n key (#2542)
+campaigns-generate-image-btn = 🖼 생성
+
+# semantic i18n key (#2542)
+campaigns-ai-content-writer = ✨ AI 콘텐츠 작성기
+
+# semantic i18n key (#2542)
+campaigns-goal = 목표
+
+# semantic i18n key (#2542)
+campaigns-persuasive = 설득력 있는
+
+# semantic i18n key (#2542)
+campaigns-length = 길이
+
+# semantic i18n key (#2542)
+campaigns-short = 짧게
+
+# semantic i18n key (#2542)
+campaigns-long = 길게
+
+# semantic i18n key (#2542)
+campaigns-generating-with-ai = AI로 생성 중…
+
+# semantic i18n key (#2542)
+campaigns-generate-btn = ✨ 생성
+
+# semantic i18n key (#2542)
+campaigns-list-name = 목록 이름
+
+# semantic i18n key (#2542)
+campaigns-static = 정적
+
+# semantic i18n key (#2542)
+campaigns-dynamic-query-based = 동적(쿼리 기반)
+
+# semantic i18n key (#2542)
+campaigns-segment-query-optional = 세그먼트 쿼리(선택 사항)
+
+# semantic i18n key (#2542)
+campaigns-create-list = 목록 만들기

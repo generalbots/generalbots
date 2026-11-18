@@ -234,3 +234,126 @@ campaign-wizard-channels = 渠道
 
 # semantic i18n key (#2542)
 campaign-wizard-launch-campaign = 启动活动
+
+# semantic i18n key (#2542)
+campaigns-loading = 正在加载活动…
+
+# semantic i18n key (#2542)
+campaigns-unavailable = 活动不可用
+
+# semantic i18n key (#2542)
+campaigns-email-filter = 📧 邮件
+
+# semantic i18n key (#2542)
+campaigns-instagram-filter = 📸 Instagram
+
+# semantic i18n key (#2542)
+campaigns-facebook-filter = 📘 Facebook
+
+# semantic i18n key (#2542)
+campaigns-table-campaign = 活动
+
+# semantic i18n key (#2542)
+campaigns-table-delivered = 已送达
+
+# semantic i18n key (#2542)
+campaigns-table-opened = 已打开
+
+# semantic i18n key (#2542)
+campaigns-table-clicked = 已点击
+
+# semantic i18n key (#2542)
+campaigns-table-replied = 已回复
+
+# semantic i18n key (#2542)
+campaigns-new-list = 新建列表
+
+# semantic i18n key (#2542)
+campaigns-loading-lists = 正在加载列表...
+
+# semantic i18n key (#2542)
+campaigns-new-template = 新建模板
+
+# semantic i18n key (#2542)
+campaigns-loading-templates = 正在加载模板...
+
+# semantic i18n key (#2542)
+campaigns-publish-campaign-title = 🚀 发布活动
+
+# semantic i18n key (#2542)
+campaigns-recipient-list = 收件人列表
+
+# semantic i18n key (#2542)
+campaigns-instagram-feed-post =  📸 Instagram（动态帖子）
+
+# semantic i18n key (#2542)
+campaigns-publishing = 正在发布…
+
+# semantic i18n key (#2542)
+campaigns-publish-btn = 🚀 发布
+
+# semantic i18n key (#2542)
+campaigns-ai-image-generator = 🖼 AI 图像生成器
+
+# semantic i18n key (#2542)
+campaigns-prompt = 提示词
+
+# semantic i18n key (#2542)
+campaigns-style = 风格
+
+# semantic i18n key (#2542)
+campaigns-no-style = 无风格
+
+# semantic i18n key (#2542)
+campaigns-photorealistic = 写实风格
+
+# semantic i18n key (#2542)
+campaigns-minimalist = 极简风格
+
+# semantic i18n key (#2542)
+campaigns-vibrant = 鲜艳风格
+
+# semantic i18n key (#2542)
+campaigns-generating = 正在生成…
+
+# semantic i18n key (#2542)
+campaigns-generate-image-btn = 🖼 生成
+
+# semantic i18n key (#2542)
+campaigns-ai-content-writer = ✨ AI 内容撰写器
+
+# semantic i18n key (#2542)
+campaigns-goal = 目标
+
+# semantic i18n key (#2542)
+campaigns-persuasive = 有说服力
+
+# semantic i18n key (#2542)
+campaigns-length = 长度
+
+# semantic i18n key (#2542)
+campaigns-short = 短
+
+# semantic i18n key (#2542)
+campaigns-long = 长
+
+# semantic i18n key (#2542)
+campaigns-generating-with-ai = 正在使用 AI 生成…
+
+# semantic i18n key (#2542)
+campaigns-generate-btn = ✨ 生成
+
+# semantic i18n key (#2542)
+campaigns-list-name = 列表名称
+
+# semantic i18n key (#2542)
+campaigns-static = 静态
+
+# semantic i18n key (#2542)
+campaigns-dynamic-query-based = 动态（基于查询）
+
+# semantic i18n key (#2542)
+campaigns-segment-query-optional = 细分查询（可选）
+
+# semantic i18n key (#2542)
+campaigns-create-list = 创建列表
