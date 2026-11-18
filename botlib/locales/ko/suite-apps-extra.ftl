@@ -173,3 +173,9 @@ tax-placeholder-zero-decimal = 0.00
 tax-placeholder-service-description = 제공된 서비스 설명
 tax-placeholder-service-code-example = 예: 17.02
 tax-placeholder-city-uf = 도시 - 주
+
+# semantic i18n key (#2542)
+minutes-placeholder-location = 회의실 또는 링크
+minutes-placeholder-meeting-id = 회의 UUID
+minutes-placeholder-participant = 이름 또는 이메일
+minutes-placeholder-document-id = 문서 UUID

@@ -173,3 +173,9 @@ tax-placeholder-zero-decimal = 0,00
 tax-placeholder-service-description = 提供サービスの説明
 tax-placeholder-service-code-example = 例: 17.02
 tax-placeholder-city-uf = 都市 - 州
+
+# semantic i18n key (#2542)
+minutes-placeholder-location = 会議室またはリンク
+minutes-placeholder-meeting-id = 会議UUID
+minutes-placeholder-participant = 名前またはメール
+minutes-placeholder-document-id = ドキュメントUUID

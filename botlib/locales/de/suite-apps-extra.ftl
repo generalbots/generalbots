@@ -173,3 +173,9 @@ tax-placeholder-zero-decimal = 0,00
 tax-placeholder-service-description = Beschreibung der erbrachten Leistung
 tax-placeholder-service-code-example = z. B. 17.02
 tax-placeholder-city-uf = Stadt - Bundesstaat
+
+# semantic i18n key (#2542)
+minutes-placeholder-location = Raum oder Link
+minutes-placeholder-meeting-id = Besprechungs-UUID
+minutes-placeholder-participant = Name oder E-Mail
+minutes-placeholder-document-id = Dokument-UUID
