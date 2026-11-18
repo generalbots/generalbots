@@ -1247,3 +1247,7 @@ widget-notes-status-cleared = Limpo
 # semantic i18n key (#2542)
 store-placeholder-search = Pesquisar na loja...
 store-loading = Carregando a loja…
+
+# semantic i18n key (#2542)
+browser-action-go = Ir
+browser-placeholder-nav-url = https://exemplo.com

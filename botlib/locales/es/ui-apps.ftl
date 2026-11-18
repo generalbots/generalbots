@@ -136,3 +136,7 @@ player-filter-document = Filtrar documentos
 player-filter-image = Filtrar imágenes
 player-fullscreen = Pantalla completa
 player-toggle-playlist = Alternar panel de playlist
+
+# semantic i18n key (#2542)
+vdi-placeholder-quick-connect = host:puerto (p. ej., 10.0.0.1:5900)
+vdi-placeholder-host = 10.0.0.1

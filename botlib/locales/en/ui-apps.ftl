@@ -136,3 +136,7 @@ player-filter-document = Filter documents
 player-filter-image = Filter images
 player-fullscreen = Fullscreen
 player-toggle-playlist = Toggle playlist panel
+
+# semantic i18n key (#2542)
+vdi-placeholder-quick-connect = host:port (e.g., 10.0.0.1:5900)
+vdi-placeholder-host = 10.0.0.1

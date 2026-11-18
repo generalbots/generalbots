@@ -1249,3 +1249,7 @@ widget-notes-status-cleared = 지워짐
 # semantic i18n key (#2542)
 store-placeholder-search = 스토어 검색...
 store-loading = 스토어 로딩 중…
+
+# semantic i18n key (#2542)
+browser-action-go = 이동
+browser-placeholder-nav-url = https://example.com

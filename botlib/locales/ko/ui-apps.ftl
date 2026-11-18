@@ -132,3 +132,7 @@ billing-valid-until = Valid Until *
 erp-gl = GL
 erp-inventory = Inventory
 erp-procurement = Procurement
+
+# semantic i18n key (#2542)
+vdi-placeholder-quick-connect = 호스트:포트 (예: 10.0.0.1:5900)
+vdi-placeholder-host = 10.0.0.1

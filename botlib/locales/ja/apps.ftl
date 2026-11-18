@@ -1249,3 +1249,7 @@ widget-notes-status-cleared = 消去済み
 # semantic i18n key (#2542)
 store-placeholder-search = ストアを検索...
 store-loading = ストアを読み込み中…
+
+# semantic i18n key (#2542)
+browser-action-go = 移動
+browser-placeholder-nav-url = https://example.com
