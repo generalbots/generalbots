@@ -6,7 +6,7 @@ use std::time::Duration;
 use super::super::api_call::handle_api_call;
 use super::super::types::{LlmTarget, PipelineResult, SessionIdentity};
 use super::attempt::{stream_attempt, Attempt, AttemptOutcome};
-use super::markdown::convert_markdown;
+use super::markdown::for_shell;
 use super::{get_session_tools_with_timeout, is_web_channel, LLM_RETRY_DELAY, LLM_RETRY_MAX};
 
 pub async fn stream_llm_response(
@@ -259,7 +259,7 @@ async fn stream_llm_response_inner(
                         super::super::system_prompt::wants_drawing(user_text);
                     let content =
                         super::svg_contract::enforce(&content_buffer, drawing_turn);
-                    let converted = convert_markdown(&content);
+                    let converted = for_shell(&content);
                     let final_resp = botlib::models::BotResponse {
                         bot_id: bot_uuid_s.clone(),
                         user_id: user_id.to_string(),
