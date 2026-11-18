@@ -1196,3 +1196,9 @@ browser-start-search-placeholder = 搜索网页或输入网址...
 automations-placeholder-title = 夜间库存摘要
 automations-placeholder-goal = 描述代理在每次运行时需要达成的目标。
 automations-placeholder-cron = */15 * * * *
+
+# semantic i18n key (#2542)
+meet-placeholder-session-id = session_id（可选）
+meet-placeholder-trunk-name = 名称（例如：支持线路）
+meet-placeholder-trunk-number = +86 10 5555 0100
+meet-placeholder-trunk-carrier = 运营商（默认 livekit-sip）

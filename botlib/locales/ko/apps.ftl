@@ -1196,3 +1196,9 @@ browser-start-search-placeholder = 웹 검색 또는 URL 입력...
 automations-placeholder-title = 야간 재고 요약
 automations-placeholder-goal = 각 실행마다 에이전트가 달성해야 할 목표를 설명하세요.
 automations-placeholder-cron = */15 * * * *
+
+# semantic i18n key (#2542)
+meet-placeholder-session-id = session_id (선택 사항)
+meet-placeholder-trunk-name = 이름 (예: 지원 라인)
+meet-placeholder-trunk-number = +82 2 555 0100
+meet-placeholder-trunk-carrier = 통신사 (기본값 livekit-sip)

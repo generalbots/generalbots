@@ -1194,3 +1194,9 @@ browser-start-search-placeholder = Pesquise na web ou digite uma URL...
 automations-placeholder-title = Resumo noturno de estoque
 automations-placeholder-goal = Descreva o objetivo que o agente deve alcançar em cada execução.
 automations-placeholder-cron = */15 * * * *
+
+# semantic i18n key (#2542)
+meet-placeholder-session-id = session_id (opcional)
+meet-placeholder-trunk-name = Nome (ex.: Linha de suporte)
+meet-placeholder-trunk-number = +55 11 5555 0100
+meet-placeholder-trunk-carrier = operadora (padrão livekit-sip)

@@ -1196,3 +1196,9 @@ browser-start-search-placeholder = Webを検索するかURLを入力...
 automations-placeholder-title = 夜間在庫ダイジェスト
 automations-placeholder-goal = 各実行でエージェントが達成すべき目標を説明してください。
 automations-placeholder-cron = */15 * * * *
+
+# semantic i18n key (#2542)
+meet-placeholder-session-id = session_id（任意）
+meet-placeholder-trunk-name = 名前（例: サポート回線）
+meet-placeholder-trunk-number = +81 3 5555 0100
+meet-placeholder-trunk-carrier = キャリア（既定: livekit-sip）

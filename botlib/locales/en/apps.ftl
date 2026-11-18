@@ -1196,3 +1196,9 @@ browser-start-search-placeholder = Search the web or enter a URL...
 automations-placeholder-title = Nightly inventory digest
 automations-placeholder-goal = Describe the objective the agent must achieve on each run.
 automations-placeholder-cron = */15 * * * *
+
+# semantic i18n key (#2542)
+meet-placeholder-session-id = session_id (optional)
+meet-placeholder-trunk-name = Name (e.g. Support line)
+meet-placeholder-trunk-number = +1 555 0100
+meet-placeholder-trunk-carrier = carrier (default livekit-sip)

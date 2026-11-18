@@ -19,7 +19,7 @@
   <div class="gb-voice-card">
     <h3 data-i18n="meet-voice-session">🎙️ Voice Session</h3>
     <div class="gb-voice-row">
-      <input id="voiceSessionId" placeholder="session_id (optional)" style="width: 16rem" />
+      <input id="voiceSessionId" data-i18n-placeholder="meet-placeholder-session-id" style="width: 16rem" />
       <button id="voiceStartBtn" class="gb-voice-btn" data-i18n="meet-start-session">▶ Start session</button>
       <button id="voiceStopBtn" class="gb-voice-btn danger" disabled data-i18n="meet-stop-session">■ Stop session</button>
       <span id="voiceStatus" class="gb-voice-session-status" data-i18n="meet-session-idle">Idle</span>
@@ -30,9 +30,9 @@
   <div class="gb-voice-card">
     <h3 data-i18n="meet-provision-trunk">📞 Provision Telephony Trunk</h3>
     <div class="gb-voice-row">
-      <input id="trunkName" placeholder="Name (e.g. Support line)" />
-      <input id="trunkNumber" placeholder="+1 555 0100" />
-      <input id="trunkCarrier" placeholder="carrier (default livekit-sip)" />
+      <input id="trunkName" data-i18n-placeholder="meet-placeholder-trunk-name" />
+      <input id="trunkNumber" data-i18n-placeholder="meet-placeholder-trunk-number" />
+      <input id="trunkCarrier" data-i18n-placeholder="meet-placeholder-trunk-carrier" />
       <button id="trunkProvisionBtn" class="gb-voice-btn" data-i18n="meet-provision">Provision</button>
     </div>
     <table class="gb-trunk-table">
