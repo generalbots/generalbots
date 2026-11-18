@@ -367,3 +367,6 @@ tab-strip = Conversations
 
 # Common cancel alias
 common-cancel = Cancel
+
+# semantic i18n key (#2542)
+app-service-unavailable = Service unavailable

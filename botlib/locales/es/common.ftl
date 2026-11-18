@@ -362,3 +362,6 @@ deploy-type-bot = Bot
 deploy-type-bot-desc = Create a conversational AI bot
 deploy-type-site = Site
 deploy-type-site-desc = Create a website
+
+# semantic i18n key (#2542)
+app-service-unavailable = Servicio no disponible

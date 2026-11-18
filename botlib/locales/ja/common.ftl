@@ -362,3 +362,6 @@ deploy-environment = 環境
 deploy-create-project = プロジェクトを作成
 tab-strip = 会話
 common-cancel = キャンセル
+
+# semantic i18n key (#2542)
+app-service-unavailable = サービス利用不可

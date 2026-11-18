@@ -164,3 +164,21 @@ monitoring-alert-details = 알림 세부 정보
 clock-tab-stopwatch = 스톱워치
 clock-tab-timer = 타이머
 weather-search-prompt = 도시를 검색하여 현재 날씨를 확인하세요.
+
+# semantic i18n key (#2542)
+goals-loading-objectives = 목표 불러오는 중...
+
+# semantic i18n key (#2542)
+plan-status-all-saved = 모두 저장됨
+
+# semantic i18n key (#2542)
+slides-rotate-label = 회전
+
+# semantic i18n key (#2542)
+sales-moved-to-crm-quotes-orders = CRM → 견적 및 주문
+
+# semantic i18n key (#2542)
+notes-new-note = + 새 메모
+
+# semantic i18n key (#2542)
+docs-all-changes-saved = 모든 변경 사항이 저장됨

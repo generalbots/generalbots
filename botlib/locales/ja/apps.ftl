@@ -164,3 +164,21 @@ monitoring-alert-details = アラート詳細
 clock-tab-stopwatch = ストップウォッチ
 clock-tab-timer = タイマー
 weather-search-prompt = 都市を検索して現在の状況を確認してください。
+
+# semantic i18n key (#2542)
+goals-loading-objectives = 目標を読み込み中...
+
+# semantic i18n key (#2542)
+plan-status-all-saved = すべて保存済み
+
+# semantic i18n key (#2542)
+slides-rotate-label = 回転
+
+# semantic i18n key (#2542)
+sales-moved-to-crm-quotes-orders = CRM → 見積もりと注文
+
+# semantic i18n key (#2542)
+notes-new-note = + 新しいメモ
+
+# semantic i18n key (#2542)
+docs-all-changes-saved = すべての変更を保存しました

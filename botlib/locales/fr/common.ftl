@@ -362,3 +362,6 @@ deploy-environment = Environnement
 deploy-create-project = Créer le projet
 tab-strip = Conversations
 common-cancel = Annuler
+
+# semantic i18n key (#2542)
+app-service-unavailable = Service indisponible

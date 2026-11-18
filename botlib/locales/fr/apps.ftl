@@ -164,3 +164,21 @@ monitoring-alert-details = Détails de l'alerte
 clock-tab-stopwatch = Chronomètre
 clock-tab-timer = Minuteur
 weather-search-prompt = Recherchez une ville pour voir les conditions actuelles.
+
+# semantic i18n key (#2542)
+goals-loading-objectives = Chargement des objectifs...
+
+# semantic i18n key (#2542)
+plan-status-all-saved = Tout enregistré
+
+# semantic i18n key (#2542)
+slides-rotate-label = Pivoter
+
+# semantic i18n key (#2542)
+sales-moved-to-crm-quotes-orders = CRM → Devis et commandes
+
+# semantic i18n key (#2542)
+notes-new-note = + Nouvelle note
+
+# semantic i18n key (#2542)
+docs-all-changes-saved = Toutes les modifications enregistrées

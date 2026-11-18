@@ -164,3 +164,21 @@ monitoring-alert-details = Alert Details
 clock-tab-stopwatch = Stopwatch
 clock-tab-timer = Timer
 weather-search-prompt = Search for a city to see current conditions.
+
+# semantic i18n key (#2542)
+goals-loading-objectives = Loading objectives...
+
+# semantic i18n key (#2542)
+plan-status-all-saved = All saved
+
+# semantic i18n key (#2542)
+slides-rotate-label = Rotate
+
+# semantic i18n key (#2542)
+sales-moved-to-crm-quotes-orders = CRM → Quotes & Orders
+
+# semantic i18n key (#2542)
+notes-new-note = + New Note
+
+# semantic i18n key (#2542)
+docs-all-changes-saved = All changes saved

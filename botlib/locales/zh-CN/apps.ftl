@@ -164,3 +164,21 @@ monitoring-alert-details = 告警详情
 clock-tab-stopwatch = 秒表
 clock-tab-timer = 计时器
 weather-search-prompt = 搜索城市以查看当前天气状况。
+
+# semantic i18n key (#2542)
+goals-loading-objectives = 正在加载目标...
+
+# semantic i18n key (#2542)
+plan-status-all-saved = 全部已保存
+
+# semantic i18n key (#2542)
+slides-rotate-label = 旋转
+
+# semantic i18n key (#2542)
+sales-moved-to-crm-quotes-orders = CRM → 报价与订单
+
+# semantic i18n key (#2542)
+notes-new-note = + 新建笔记
+
+# semantic i18n key (#2542)
+docs-all-changes-saved = 所有更改已保存
