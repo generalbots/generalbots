@@ -902,3 +902,132 @@ admin-billing-dashboard-bots-limit = Límite de bots
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = Umbrales de alerta de facturación
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = Facturación y suscripción
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = Administra la suscripción, los métodos de pago y el historial de facturación de tu organización
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /mes
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = Próxima fecha de facturación:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 21 de febrero de 2025
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = Uso en este período
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 21 ene - 21 feb, 2025
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = Método de pago
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = Vence 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = Dirección de facturación
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = Suite 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = San Francisco, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = Estados Unidos
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = Mejora tu plan
+
+# semantic i18n key (#2542)
+admin-billing-recommended = Recomendado
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = Soporte prioritario
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Actualizar a Business
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = Enterprise
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = Todo ilimitado
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = Soporte dedicado
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = Integraciones personalizadas
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = Garantía de SLA
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = Contactar con ventas
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = Tu próxima factura se prorrateará según el período de facturación restante.
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = ¡Lamentamos verte partir!
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = Antes de cancelar, ¿te gustaría considerar alguna de estas opciones?
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = Quédate con nosotros con una tarifa reducida
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = Aceptar oferta
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = Pausar tu suscripción
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = Tómate un descanso de hasta 3 meses
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = Pausar en su lugar
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = Cambiar a un plan más pequeño
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = Mantén las funciones esenciales a un menor costo
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = Ver planes
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = ¿Por qué estás cancelando?
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = Selecciona un motivo...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = Demasiado caro
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = Faltan funciones que necesito
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = No lo uso lo suficiente
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = Cambiando a otro producto
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = Temporal - volveré
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = Comentarios adicionales (opcional)
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = Mantener suscripción

@@ -905,3 +905,132 @@ admin-billing-dashboard-bots-limit = Limite de bots
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = Limites de alerta de faturamento
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = Faturamento e assinatura
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = Gerencie a assinatura, os métodos de pagamento e o histórico de faturamento da sua organização
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /mês
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = Próxima data de cobrança:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 21 de fevereiro de 2025
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = Uso neste período
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 21 jan - 21 fev, 2025
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = Forma de pagamento
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = Expira em 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = Endereço de cobrança
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = Sala 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = San Francisco, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = Estados Unidos
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = Atualize seu plano
+
+# semantic i18n key (#2542)
+admin-billing-recommended = Recomendado
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = Suporte prioritário
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Atualizar para Business
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = Enterprise
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = Tudo ilimitado
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = Suporte dedicado
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = Integrações personalizadas
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = Garantia de SLA
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = Falar com vendas
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = Sua próxima fatura será rateada com base no período de cobrança restante.
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = Sentimos muito em vê-lo partir!
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = Antes de cancelar, você gostaria de considerar alguma destas opções?
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = Continue conosco com uma tarifa reduzida
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = Aceitar oferta
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = Pausar sua assinatura
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = Faça uma pausa por até 3 meses
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = Pausar em vez disso
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = Fazer downgrade para um plano menor
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = Mantenha recursos essenciais com menor custo
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = Ver planos
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = Por que você está cancelando?
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = Selecione um motivo...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = Muito caro
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = Faltam recursos que preciso
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = Não uso o suficiente
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = Mudando para outro produto
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = Temporário - voltarei
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = Feedback adicional (opcional)
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = Manter assinatura

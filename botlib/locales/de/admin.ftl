@@ -902,3 +902,132 @@ admin-billing-dashboard-bots-limit = Bot-Limit
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = Schwellenwerte für Abrechnungswarnungen
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = Abrechnung und Abonnement
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = Verwalten Sie das Abonnement, die Zahlungsmethoden und den Abrechnungsverlauf Ihrer Organisation
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /Monat
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = Nächstes Abrechnungsdatum:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 21. Februar 2025
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = Nutzung in diesem Zeitraum
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 21. Jan. - 21. Feb. 2025
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = Zahlungsmethode
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = Läuft ab 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = Rechnungsadresse
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = Suite 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = San Francisco, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = Vereinigte Staaten
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = Aktualisieren Sie Ihren Tarif
+
+# semantic i18n key (#2542)
+admin-billing-recommended = Empfohlen
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = Prioritäts-Support
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Auf Business upgraden
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = Enterprise
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = Alles unbegrenzt
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = Dedizierter Support
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = Benutzerdefinierte Integrationen
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = SLA-Garantie
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = Vertrieb kontaktieren
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = Ihre nächste Rechnung wird anteilig basierend auf Ihrem verbleibenden Abrechnungszeitraum berechnet.
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = Schade, dass Sie gehen!
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = Möchten Sie vor der Kündigung eine dieser Optionen in Betracht ziehen?
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = Bleiben Sie zu einem reduzierten Preis bei uns
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = Angebot annehmen
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = Abonnement pausieren
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = Machen Sie eine Pause von bis zu 3 Monaten
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = Stattdessen pausieren
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = Zu einem kleineren Tarif wechseln
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = Behalten Sie wichtige Funktionen zu geringeren Kosten
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = Tarife anzeigen
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = Warum kündigen Sie?
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = Wählen Sie einen Grund...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = Zu teuer
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = Fehlende Funktionen, die ich brauche
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = Ich nutze es nicht genug
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = Wechsel zu einem anderen Produkt
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = Vorübergehend - ich komme zurück
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = Zusätzliches Feedback (optional)
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = Abonnement behalten

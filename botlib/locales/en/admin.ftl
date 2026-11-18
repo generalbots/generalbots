@@ -904,3 +904,132 @@ admin-billing-dashboard-bots-limit = Bots limit
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = Billing Alert Thresholds
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = Billing & Subscription
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = Manage your organization's subscription, payment methods, and billing history
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /month
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = Next billing date:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = February 21, 2025
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = Usage This Period
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = Jan 21 - Feb 21, 2025
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = Payment Method
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = Expires 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = Billing Address
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = Suite 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = San Francisco, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = United States
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = Upgrade Your Plan
+
+# semantic i18n key (#2542)
+admin-billing-recommended = Recommended
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = Priority support
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Upgrade to Business
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = Enterprise
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = Unlimited everything
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = Dedicated support
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = Custom integrations
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = SLA guarantee
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = Contact Sales
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = Your next invoice will be prorated based on your remaining billing period.
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = We're sorry to see you go!
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = Before you cancel, would you like to consider any of these options?
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = Stay with us at a reduced rate
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = Accept Offer
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = Pause your subscription
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = Take a break for up to 3 months
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = Pause Instead
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = Downgrade to a smaller plan
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = Keep essential features at a lower cost
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = View Plans
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = Why are you cancelling?
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = Select a reason...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = Too expensive
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = Missing features I need
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = Not using it enough
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = Switching to another product
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = Temporary - will be back
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = Additional feedback (optional)
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = Keep Subscription

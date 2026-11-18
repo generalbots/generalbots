@@ -902,3 +902,132 @@ admin-billing-dashboard-bots-limit = 机器人限制
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = 账单提醒阈值
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = 账单与订阅
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = 管理您组织的订阅、付款方式和账单历史记录
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /月
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = 下次账单日期：
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 2025年2月21日
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = 本期使用情况
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 2025年1月21日 - 2月21日
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = 付款方式
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = 有效期至 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = 账单地址
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = 456 套房
+
+# semantic i18n key (#2542)
+admin-billing-address-city = 旧金山, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = 美国
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = 升级您的套餐
+
+# semantic i18n key (#2542)
+admin-billing-recommended = 推荐
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = 优先支持
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = 升级到 Business
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = 企业版
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = 一切无限制
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = 专属支持
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = 自定义集成
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = SLA 保证
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = 联系销售
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = 您的下一张发票将根据剩余账单周期按比例计算。
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = 很遗憾看到您离开！
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = 在取消之前，您是否愿意考虑以下选项？
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = 以优惠价格继续使用
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = 接受优惠
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = 暂停您的订阅
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = 最多暂停 3 个月
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = 改为暂停
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = 降级到较小的套餐
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = 以更低成本保留基本功能
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = 查看套餐
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = 您为什么要取消？
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = 选择原因...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = 太贵
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = 缺少我需要的功能
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = 使用不够频繁
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = 转用其他产品
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = 暂时的 - 会再回来
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = 其他反馈（可选）
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = 保留订阅

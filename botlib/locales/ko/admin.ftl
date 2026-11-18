@@ -902,3 +902,132 @@ admin-billing-dashboard-bots-limit = 봇 한도
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = 청구 알림 임계값
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = 청구 및 구독
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = 조직의 구독, 결제 수단 및 청구 내역을 관리합니다
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /월
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = 다음 청구일:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 2025년 2월 21일
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = 이번 기간 사용량
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 2025년 1월 21일 - 2월 21일
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = 결제 수단
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = 만료 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = 청구지 주소
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = 스위트 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = 샌프란시스코, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = 미국
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = 요금제 업그레이드
+
+# semantic i18n key (#2542)
+admin-billing-recommended = 추천
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = 우선 지원
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Business로 업그레이드
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = 엔터프라이즈
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = 모든 기능 무제한
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = 전담 지원
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = 맞춤형 통합
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = SLA 보장
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = 영업팀 문의
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = 다음 청구서는 남은 청구 기간에 따라 일할 계산됩니다.
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = 떠나시게 되어 아쉽습니다!
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = 취소하기 전에 다음 옵션을 고려해 보시겠습니까?
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = 할인된 요금으로 계속 이용하기
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = 제안 수락
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = 구독 일시 중지
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = 최대 3개월 동안 휴식하기
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = 대신 일시 중지
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = 더 작은 요금제로 다운그레이드
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = 더 낮은 비용으로 필수 기능 유지
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = 요금제 보기
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = 취소하는 이유는 무엇인가요?
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = 사유 선택...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = 너무 비쌈
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = 필요한 기능이 없음
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = 충분히 사용하지 않음
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = 다른 제품으로 전환
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = 일시적 - 다시 돌아올 예정
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = 추가 의견(선택 사항)
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = 구독 유지

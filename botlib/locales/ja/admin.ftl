@@ -902,3 +902,132 @@ admin-billing-dashboard-bots-limit = ボットの上限
 
 # semantic i18n key (#2542)
 admin-billing-dashboard-alert-thresholds = 請求アラートのしきい値
+
+# semantic i18n key (#2542)
+admin-billing-subscription-title = 請求とサブスクリプション
+
+# semantic i18n key (#2542)
+admin-billing-manage-subscription-desc = 組織のサブスクリプション、支払い方法、請求履歴を管理します
+
+# semantic i18n key (#2542)
+admin-billing-per-month = /月
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date = 次回請求日:
+
+# semantic i18n key (#2542)
+admin-billing-next-billing-date-value = 2025年2月21日
+
+# semantic i18n key (#2542)
+admin-billing-usage-this-period = この期間の使用量
+
+# semantic i18n key (#2542)
+admin-billing-usage-period-value = 2025年1月21日 - 2月21日
+
+# semantic i18n key (#2542)
+admin-billing-payment-method = 支払い方法
+
+# semantic i18n key (#2542)
+admin-billing-card-expiry-value = 有効期限 12/2026
+
+# semantic i18n key (#2542)
+admin-billing-billing-address = 請求先住所
+
+# semantic i18n key (#2542)
+admin-billing-address-suite = スイート 456
+
+# semantic i18n key (#2542)
+admin-billing-address-city = サンフランシスコ, CA 94102
+
+# semantic i18n key (#2542)
+admin-billing-address-country = アメリカ合衆国
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-your-plan = プランをアップグレード
+
+# semantic i18n key (#2542)
+admin-billing-recommended = おすすめ
+
+# semantic i18n key (#2542)
+admin-billing-priority-support = 優先サポート
+
+# semantic i18n key (#2542)
+admin-billing-upgrade-to-business = Business にアップグレード
+
+# semantic i18n key (#2542)
+admin-billing-enterprise = エンタープライズ
+
+# semantic i18n key (#2542)
+admin-billing-unlimited-everything = すべて無制限
+
+# semantic i18n key (#2542)
+admin-billing-dedicated-support = 専任サポート
+
+# semantic i18n key (#2542)
+admin-billing-custom-integrations = カスタム連携
+
+# semantic i18n key (#2542)
+admin-billing-sla-guarantee = SLA 保証
+
+# semantic i18n key (#2542)
+admin-billing-contact-sales = 営業に連絡
+
+# semantic i18n key (#2542)
+admin-billing-prorated-notice = 次回の請求書は、残りの請求期間に基づいて日割り計算されます。
+
+# semantic i18n key (#2542)
+admin-billing-sorry-to-see-you-go = ご利用いただきありがとうございました。
+
+# semantic i18n key (#2542)
+admin-billing-cancel-consider-options = キャンセルする前に、次のオプションをご検討ください。
+
+# semantic i18n key (#2542)
+admin-billing-stay-reduced-rate = 割引料金でご利用を継続
+
+# semantic i18n key (#2542)
+admin-billing-accept-offer = オファーを受け入れる
+
+# semantic i18n key (#2542)
+admin-billing-pause-your-subscription = サブスクリプションを一時停止
+
+# semantic i18n key (#2542)
+admin-billing-pause-up-to-3-months = 最大3か月間休止できます
+
+# semantic i18n key (#2542)
+admin-billing-pause-instead = 代わりに一時停止
+
+# semantic i18n key (#2542)
+admin-billing-downgrade-smaller-plan = より小さいプランにダウングレード
+
+# semantic i18n key (#2542)
+admin-billing-keep-essential-features = 重要な機能を低コストで維持
+
+# semantic i18n key (#2542)
+admin-billing-view-plans = プランを見る
+
+# semantic i18n key (#2542)
+admin-billing-why-cancelling = キャンセルする理由を教えてください
+
+# semantic i18n key (#2542)
+admin-billing-select-reason = 理由を選択...
+
+# semantic i18n key (#2542)
+admin-billing-reason-too-expensive = 高すぎる
+
+# semantic i18n key (#2542)
+admin-billing-reason-missing-features = 必要な機能がない
+
+# semantic i18n key (#2542)
+admin-billing-reason-not-using = 十分に使っていない
+
+# semantic i18n key (#2542)
+admin-billing-reason-switching = 別の製品に切り替える
+
+# semantic i18n key (#2542)
+admin-billing-reason-temporary = 一時的 - また利用します
+
+# semantic i18n key (#2542)
+admin-billing-additional-feedback = 追加のフィードバック（任意）
+
+# semantic i18n key (#2542)
+admin-billing-keep-subscription = サブスクリプションを維持
