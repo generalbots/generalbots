@@ -1067,3 +1067,105 @@ o365-integration-managed = o365 連携はワークスペースによって管理
 
 # semantic i18n key (#2542)
 o365-create-meeting = 会議を作成
+
+# semantic i18n key (#2542)
+retail-management-title = 小売管理
+
+# semantic i18n key (#2542)
+retail-all-branches = すべての支店
+
+# semantic i18n key (#2542)
+retail-branch-downtown = 支店 1 — ダウンタウン
+
+# semantic i18n key (#2542)
+retail-branch-mall = 支店 2 — モール
+
+# semantic i18n key (#2542)
+retail-branch-outlet = 支店 3 — アウトレット
+
+# semantic i18n key (#2542)
+retail-todays-revenue = 本日の売上
+
+# semantic i18n key (#2542)
+retail-low-stock-skus = 在庫僅少 SKU
+
+# semantic i18n key (#2542)
+retail-active-promotions = 有効なプロモーション
+
+# semantic i18n key (#2542)
+retail-branches-tab = 支店
+
+# semantic i18n key (#2542)
+retail-pricing-tab = 価格設定
+
+# semantic i18n key (#2542)
+retail-promotions-tab = プロモーション
+
+# semantic i18n key (#2542)
+retail-suppliers-tab = サプライヤー
+
+# semantic i18n key (#2542)
+retail-top-products = 人気商品
+
+# semantic i18n key (#2542)
+retail-branch-performance = 支店パフォーマンス
+
+# semantic i18n key (#2542)
+retail-stock-alerts = 在庫アラート
+
+# semantic i18n key (#2542)
+retail-store-branches = 店舗支店
+
+# semantic i18n key (#2542)
+retail-new-branch = + 新しい支店
+
+# semantic i18n key (#2542)
+retail-address = 住所
+
+# semantic i18n key (#2542)
+retail-manager = マネージャー
+
+# semantic i18n key (#2542)
+retail-stock-value = 在庫価値
+
+# semantic i18n key (#2542)
+retail-loading-pricing-rules = 価格ルールを読み込み中...
+
+# semantic i18n key (#2542)
+retail-new-promotion = + 新しいプロモーション
+
+# semantic i18n key (#2542)
+retail-new-supplier = + 新しいサプライヤー
+
+# semantic i18n key (#2542)
+retail-lead-time = リードタイム
+
+# semantic i18n key (#2542)
+retail-branch-modal-title = 支店
+
+# semantic i18n key (#2542)
+retail-promotion-modal-title = プロモーション
+
+# semantic i18n key (#2542)
+retail-promo-type-percent = パーセント
+
+# semantic i18n key (#2542)
+retail-promo-type-fixed = 固定
+
+# semantic i18n key (#2542)
+retail-promo-type-bogo = BOGO
+
+# semantic i18n key (#2542)
+retail-valid-from = 開始日
+
+# semantic i18n key (#2542)
+retail-valid-to = 終了日
+
+# semantic i18n key (#2542)
+retail-supplier-modal-title = サプライヤー
+
+# semantic i18n key (#2542)
+retail-lead-time-days = リードタイム（日数）
+
+# semantic i18n key (#2542)
+retail-rating = 評価 (0-5)

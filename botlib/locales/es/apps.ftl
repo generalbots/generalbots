@@ -1065,3 +1065,105 @@ o365-integration-managed = Integración de o365 administrada por tu espacio de t
 
 # semantic i18n key (#2542)
 o365-create-meeting = Crear reunión
+
+# semantic i18n key (#2542)
+retail-management-title = Gestión de retail
+
+# semantic i18n key (#2542)
+retail-all-branches = Todas las sucursales
+
+# semantic i18n key (#2542)
+retail-branch-downtown = Sucursal 1 — Centro
+
+# semantic i18n key (#2542)
+retail-branch-mall = Sucursal 2 — Centro comercial
+
+# semantic i18n key (#2542)
+retail-branch-outlet = Sucursal 3 — Outlet
+
+# semantic i18n key (#2542)
+retail-todays-revenue = Ingresos de hoy
+
+# semantic i18n key (#2542)
+retail-low-stock-skus = SKU con poco stock
+
+# semantic i18n key (#2542)
+retail-active-promotions = Promociones activas
+
+# semantic i18n key (#2542)
+retail-branches-tab = Sucursales
+
+# semantic i18n key (#2542)
+retail-pricing-tab = Precios
+
+# semantic i18n key (#2542)
+retail-promotions-tab = Promociones
+
+# semantic i18n key (#2542)
+retail-suppliers-tab = Proveedores
+
+# semantic i18n key (#2542)
+retail-top-products = Productos principales
+
+# semantic i18n key (#2542)
+retail-branch-performance = Rendimiento de sucursales
+
+# semantic i18n key (#2542)
+retail-stock-alerts = Alertas de stock
+
+# semantic i18n key (#2542)
+retail-store-branches = Sucursales de la tienda
+
+# semantic i18n key (#2542)
+retail-new-branch = + Nueva sucursal
+
+# semantic i18n key (#2542)
+retail-address = Dirección
+
+# semantic i18n key (#2542)
+retail-manager = Gerente
+
+# semantic i18n key (#2542)
+retail-stock-value = Valor del stock
+
+# semantic i18n key (#2542)
+retail-loading-pricing-rules = Cargando reglas de precios...
+
+# semantic i18n key (#2542)
+retail-new-promotion = + Nueva promoción
+
+# semantic i18n key (#2542)
+retail-new-supplier = + Nuevo proveedor
+
+# semantic i18n key (#2542)
+retail-lead-time = Tiempo de entrega
+
+# semantic i18n key (#2542)
+retail-branch-modal-title = Sucursal
+
+# semantic i18n key (#2542)
+retail-promotion-modal-title = Promoción
+
+# semantic i18n key (#2542)
+retail-promo-type-percent = Porcentaje
+
+# semantic i18n key (#2542)
+retail-promo-type-fixed = Fijo
+
+# semantic i18n key (#2542)
+retail-promo-type-bogo = 2x1
+
+# semantic i18n key (#2542)
+retail-valid-from = Válido desde
+
+# semantic i18n key (#2542)
+retail-valid-to = Válido hasta
+
+# semantic i18n key (#2542)
+retail-supplier-modal-title = Proveedor
+
+# semantic i18n key (#2542)
+retail-lead-time-days = Tiempo de entrega (días)
+
+# semantic i18n key (#2542)
+retail-rating = Calificación (0-5)

@@ -1067,3 +1067,105 @@ o365-integration-managed = o365 集成由您的工作区管理
 
 # semantic i18n key (#2542)
 o365-create-meeting = 创建会议
+
+# semantic i18n key (#2542)
+retail-management-title = 零售管理
+
+# semantic i18n key (#2542)
+retail-all-branches = 所有分店
+
+# semantic i18n key (#2542)
+retail-branch-downtown = 分店 1 — 市中心
+
+# semantic i18n key (#2542)
+retail-branch-mall = 分店 2 — 商场
+
+# semantic i18n key (#2542)
+retail-branch-outlet = 分店 3 — 奥特莱斯
+
+# semantic i18n key (#2542)
+retail-todays-revenue = 今日收入
+
+# semantic i18n key (#2542)
+retail-low-stock-skus = 低库存 SKU
+
+# semantic i18n key (#2542)
+retail-active-promotions = 有效促销
+
+# semantic i18n key (#2542)
+retail-branches-tab = 分店
+
+# semantic i18n key (#2542)
+retail-pricing-tab = 定价
+
+# semantic i18n key (#2542)
+retail-promotions-tab = 促销
+
+# semantic i18n key (#2542)
+retail-suppliers-tab = 供应商
+
+# semantic i18n key (#2542)
+retail-top-products = 热门产品
+
+# semantic i18n key (#2542)
+retail-branch-performance = 分店业绩
+
+# semantic i18n key (#2542)
+retail-stock-alerts = 库存警报
+
+# semantic i18n key (#2542)
+retail-store-branches = 门店分店
+
+# semantic i18n key (#2542)
+retail-new-branch = + 新建分店
+
+# semantic i18n key (#2542)
+retail-address = 地址
+
+# semantic i18n key (#2542)
+retail-manager = 经理
+
+# semantic i18n key (#2542)
+retail-stock-value = 库存价值
+
+# semantic i18n key (#2542)
+retail-loading-pricing-rules = 正在加载定价规则...
+
+# semantic i18n key (#2542)
+retail-new-promotion = + 新建促销
+
+# semantic i18n key (#2542)
+retail-new-supplier = + 新建供应商
+
+# semantic i18n key (#2542)
+retail-lead-time = 交货时间
+
+# semantic i18n key (#2542)
+retail-branch-modal-title = 分店
+
+# semantic i18n key (#2542)
+retail-promotion-modal-title = 促销
+
+# semantic i18n key (#2542)
+retail-promo-type-percent = 百分比
+
+# semantic i18n key (#2542)
+retail-promo-type-fixed = 固定
+
+# semantic i18n key (#2542)
+retail-promo-type-bogo = 买一送一
+
+# semantic i18n key (#2542)
+retail-valid-from = 有效期自
+
+# semantic i18n key (#2542)
+retail-valid-to = 有效期至
+
+# semantic i18n key (#2542)
+retail-supplier-modal-title = 供应商
+
+# semantic i18n key (#2542)
+retail-lead-time-days = 交货时间（天）
+
+# semantic i18n key (#2542)
+retail-rating = 评分 (0-5)

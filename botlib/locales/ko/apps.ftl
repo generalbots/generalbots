@@ -1067,3 +1067,105 @@ o365-integration-managed = o365 통합은 작업 공간에서 관리됩니다
 
 # semantic i18n key (#2542)
 o365-create-meeting = 회의 만들기
+
+# semantic i18n key (#2542)
+retail-management-title = 소매 관리
+
+# semantic i18n key (#2542)
+retail-all-branches = 모든 지점
+
+# semantic i18n key (#2542)
+retail-branch-downtown = 지점 1 — 도심
+
+# semantic i18n key (#2542)
+retail-branch-mall = 지점 2 — 쇼핑몰
+
+# semantic i18n key (#2542)
+retail-branch-outlet = 지점 3 — 아울렛
+
+# semantic i18n key (#2542)
+retail-todays-revenue = 오늘 매출
+
+# semantic i18n key (#2542)
+retail-low-stock-skus = 재고 부족 SKU
+
+# semantic i18n key (#2542)
+retail-active-promotions = 진행 중인 프로모션
+
+# semantic i18n key (#2542)
+retail-branches-tab = 지점
+
+# semantic i18n key (#2542)
+retail-pricing-tab = 가격
+
+# semantic i18n key (#2542)
+retail-promotions-tab = 프로모션
+
+# semantic i18n key (#2542)
+retail-suppliers-tab = 공급업체
+
+# semantic i18n key (#2542)
+retail-top-products = 인기 상품
+
+# semantic i18n key (#2542)
+retail-branch-performance = 지점 실적
+
+# semantic i18n key (#2542)
+retail-stock-alerts = 재고 알림
+
+# semantic i18n key (#2542)
+retail-store-branches = 매장 지점
+
+# semantic i18n key (#2542)
+retail-new-branch = + 새 지점
+
+# semantic i18n key (#2542)
+retail-address = 주소
+
+# semantic i18n key (#2542)
+retail-manager = 관리자
+
+# semantic i18n key (#2542)
+retail-stock-value = 재고 가치
+
+# semantic i18n key (#2542)
+retail-loading-pricing-rules = 가격 규칙 로드 중...
+
+# semantic i18n key (#2542)
+retail-new-promotion = + 새 프로모션
+
+# semantic i18n key (#2542)
+retail-new-supplier = + 새 공급업체
+
+# semantic i18n key (#2542)
+retail-lead-time = 리드 타임
+
+# semantic i18n key (#2542)
+retail-branch-modal-title = 지점
+
+# semantic i18n key (#2542)
+retail-promotion-modal-title = 프로모션
+
+# semantic i18n key (#2542)
+retail-promo-type-percent = 퍼센트
+
+# semantic i18n key (#2542)
+retail-promo-type-fixed = 고정
+
+# semantic i18n key (#2542)
+retail-promo-type-bogo = BOGO
+
+# semantic i18n key (#2542)
+retail-valid-from = 유효 시작일
+
+# semantic i18n key (#2542)
+retail-valid-to = 유효 종료일
+
+# semantic i18n key (#2542)
+retail-supplier-modal-title = 공급업체
+
+# semantic i18n key (#2542)
+retail-lead-time-days = 리드 타임(일)
+
+# semantic i18n key (#2542)
+retail-rating = 평점(0-5)
