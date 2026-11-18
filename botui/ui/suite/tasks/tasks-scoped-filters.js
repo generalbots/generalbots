@@ -267,7 +267,7 @@
   function taskListStillLoading() {
     var taskList = byId("task-list");
     if (!taskList) return false;
-    return !!taskList.querySelector(".loading-state, .loading-spinner, [data-i18n='auto-loading-tasks']");
+    return !!taskList.querySelector(".loading-state, .loading-spinner, [data-i18n='tasks-loading-tasks'], [data-i18n='auto-loading-tasks']");
   }
 
   function scheduleTaskListFallback() {
