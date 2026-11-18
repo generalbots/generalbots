@@ -213,9 +213,9 @@ function openSalesContact(subject, detail) {
 function resetConfirmButton() {
   const btn = document.getElementById('modal-confirm-btn');
   if (!btn) return;
-  btn.textContent = gbT('cloud-store-contact-sales', 'Contact sales');
+  btn.textContent = gbT('cloud-store-close', 'Close');
   btn.disabled = false;
-  btn.onclick = confirmOrder;
+  btn.onclick = function () { hideModal(); };
 }
 
 function orderDomain(ext) {
