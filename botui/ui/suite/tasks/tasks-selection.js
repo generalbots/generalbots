@@ -1,3 +1,8 @@
+function renderManifestProgress(
+  taskId,
+  manifest,
+  retryCount = 0,
+  forceStore = false
 ) {
   // Normalize task IDs for comparison (both to lowercase string)
   const normalizedTaskId = String(taskId).toLowerCase().trim();
