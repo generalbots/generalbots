@@ -1222,3 +1222,6 @@ calculator-aria-category = 类别
 calculator-aria-mode = 计算器模式
 calculator-title-angle-unit = 切换角度单位
 calculator-title-memory = 计算器内存
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = 搜索文件...

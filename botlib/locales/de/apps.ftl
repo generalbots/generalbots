@@ -1222,3 +1222,6 @@ calculator-aria-category = Kategorie
 calculator-aria-mode = Rechnermodus
 calculator-title-angle-unit = Winkeleinheit umschalten
 calculator-title-memory = Rechnerspeicher
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = Dateien suchen...

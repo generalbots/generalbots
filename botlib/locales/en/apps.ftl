@@ -1222,3 +1222,6 @@ calculator-aria-category = Category
 calculator-aria-mode = Calculator mode
 calculator-title-angle-unit = Toggle angle unit
 calculator-title-memory = Calculator memory
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = Search files...

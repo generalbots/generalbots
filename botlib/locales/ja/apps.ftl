@@ -1222,3 +1222,6 @@ calculator-aria-category = カテゴリ
 calculator-aria-mode = 電卓モード
 calculator-title-angle-unit = 角度単位を切り替え
 calculator-title-memory = 電卓メモリ
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = ファイルを検索...

@@ -1220,3 +1220,6 @@ calculator-aria-category = Categoría
 calculator-aria-mode = Modo de calculadora
 calculator-title-angle-unit = Alternar unidad de ángulo
 calculator-title-memory = Memoria de la calculadora
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = Buscar archivos...

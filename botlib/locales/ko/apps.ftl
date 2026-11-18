@@ -1222,3 +1222,6 @@ calculator-aria-category = 범주
 calculator-aria-mode = 계산기 모드
 calculator-title-angle-unit = 각도 단위 전환
 calculator-title-memory = 계산기 메모리
+
+# semantic i18n key (#2542)
+player-placeholder-search-files = 파일 검색...
