@@ -19,7 +19,7 @@
         <div class="banking-header-right">
             <div class="banking-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="bankingSearch" placeholder="Search transactions...">
+                <input type="text" id="bankingSearch" data-i18n-placeholder="banking-search-placeholder">
             </div>
             <select id="bankingDateRange" class="banking-filter-select">
                 <option value="7d">Last 7 days</option>
@@ -171,7 +171,7 @@
                     <input type="checkbox" id="setting-notify" checked>
                 </label>
                 <label class="banking-form-row">Webhook for sync events
-                    <input type="url" id="setting-webhook" placeholder="https://...">
+                    <input type="url" id="setting-webhook" data-i18n-placeholder="banking-webhook-placeholder">
                 </label>
                 <div style="display:flex;gap:8px;margin-top:16px">
                     <button class="btn-primary" type="submit">Save settings</button>
@@ -199,13 +199,13 @@
                 </select>
             </label>
             <label><span data-i18n="banking-transfer-recipient-key">Recipient key
-                </span><input type="text" id="transferKey" placeholder="000.000.000-00 or email">
+                </span><input type="text" id="transferKey" data-i18n-placeholder="banking-recipient-key-placeholder">
             </label>
             <label>Amount (R$)
                 <input type="number" id="transferAmount" step="0.01" min="0.01">
             </label>
             <label><span data-i18n="label-description">Description
-                </span><input type="text" id="transferDescription" placeholder="Optional">
+                </span><input type="text" id="transferDescription" data-i18n-placeholder="banking-description-placeholder">
             </label>
             <label><span data-i18n="banking-transfer-schedule">Schedule
                 </span><input type="datetime-local" id="transferSchedule">
@@ -226,13 +226,13 @@
         </header>
         <form class="banking-modal-body" onsubmit="BankingApp.submitAccount(event)">
             <label><span data-i18n="banking-account-bank">Bank
-                </span><input type="text" id="accountBank" placeholder="e.g. Banco do Brasil" required>
+                </span><input type="text" id="accountBank" data-i18n-placeholder="banking-bank-name-placeholder" required>
             </label>
             <label><span data-i18n="banking-account-agency">Agency
-                </span><input type="text" id="accountAgency" placeholder="0001">
+                </span><input type="text" id="accountAgency" data-i18n-placeholder="banking-agency-placeholder">
             </label>
             <label><span data-i18n="banking-account-number">Account number
-                </span><input type="text" id="accountNumber" placeholder="12345-6">
+                </span><input type="text" id="accountNumber" data-i18n-placeholder="banking-account-number-placeholder">
             </label>
             <label>Type
                 <select id="accountType">

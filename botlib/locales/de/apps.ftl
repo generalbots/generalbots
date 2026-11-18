@@ -1261,3 +1261,12 @@ browser-url-default-placeholder = http://localhost:3000
 # semantic i18n key (#2542)
 learn-app-content-title-placeholder = Titel des Kurses oder der Lektion
 learn-app-content-desc-placeholder = Beschreiben Sie den Inhalt...
+
+# semantic i18n key (#2542)
+banking-search-placeholder = Transaktionen suchen...
+banking-webhook-placeholder = https://...
+banking-recipient-key-placeholder = 000.000.000-00 oder E-Mail
+banking-description-placeholder = Optional
+banking-bank-name-placeholder = z. B. Banco do Brasil
+banking-agency-placeholder = 0001
+banking-account-number-placeholder = 12345-6

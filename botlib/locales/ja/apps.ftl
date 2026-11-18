@@ -1261,3 +1261,12 @@ browser-url-default-placeholder = http://localhost:3000
 # semantic i18n key (#2542)
 learn-app-content-title-placeholder = コースまたはレッスンのタイトル
 learn-app-content-desc-placeholder = 内容を説明してください...
+
+# semantic i18n key (#2542)
+banking-search-placeholder = 取引を検索...
+banking-webhook-placeholder = https://...
+banking-recipient-key-placeholder = 000.000.000-00 またはメール
+banking-description-placeholder = 任意
+banking-bank-name-placeholder = 例: Banco do Brasil
+banking-agency-placeholder = 0001
+banking-account-number-placeholder = 12345-6

@@ -1261,3 +1261,12 @@ browser-url-default-placeholder = http://localhost:3000
 # semantic i18n key (#2542)
 learn-app-content-title-placeholder = 코스 또는 레슨 제목
 learn-app-content-desc-placeholder = 내용을 설명하세요...
+
+# semantic i18n key (#2542)
+banking-search-placeholder = 거래 검색...
+banking-webhook-placeholder = https://...
+banking-recipient-key-placeholder = 000.000.000-00 또는 이메일
+banking-description-placeholder = 선택 사항
+banking-bank-name-placeholder = 예: Banco do Brasil
+banking-agency-placeholder = 0001
+banking-account-number-placeholder = 12345-6
