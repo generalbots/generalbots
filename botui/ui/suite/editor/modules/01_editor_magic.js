@@ -67,10 +67,10 @@
                     const result = await response.json();
                     renderMagicResult(result);
                 } else {
-                    content.innerHTML = '<p style="color:var(--error);padding:20px;">' + t('editor-magic-failed', 'Failed to analyze. Try again.') + '</p>';
+                    content.innerHTML = '<p style="color:var(--error);padding:20px;">' + escapeHtml(t('editor-magic-failed', 'Failed to analyze. Try again.')) + '</p>';
                 }
             } catch (e) {
-                content.innerHTML = '<p style="color:var(--error);padding:20px;">' + t('editor-magic-connection-error', 'Error connecting to AI service.') + '</p>';
+                content.innerHTML = '<p style="color:var(--error);padding:20px;">' + escapeHtml(t('editor-magic-connection-error', 'Error connecting to AI service.')) + '</p>';
             }
         }
 
@@ -79,10 +79,10 @@
             if (result.improved_code) {
                 content.innerHTML = `
                     <div class="magic-result">
-                        <p><strong>${t('editor-magic-suggested-improvements', 'Suggested improvements:')}</strong></p>
+                        <p><strong>${escapeHtml(t('editor-magic-suggested-improvements', 'Suggested improvements:'))}</strong></p>
                         <p style="color:var(--text-secondary, #94a3b8);margin:8px 0;">${result.explanation || t('editor-magic-default-explanation', 'Improved code structure and patterns.')}</p>
                         <pre>${escapeHtml(result.improved_code)}</pre>
-                        <button class="magic-apply-btn" onclick="applyMagicCode()">${t('editor-magic-apply', 'Apply Changes')}</button>
+                        <button class="magic-apply-btn" onclick="applyMagicCode()">${escapeHtml(t('editor-magic-apply', 'Apply Changes'))}</button>
                     </div>
                 `;
                 window.magicImprovedCode = result.improved_code;
@@ -94,7 +94,7 @@
                     </div>
                 `).join('');
             } else {
-                content.innerHTML = '<p style="padding:20px;">' + t('editor-magic-no-suggestions', 'Your code looks good! No suggestions at this time.') + '</p>';
+                content.innerHTML = '<p style="padding:20px;">' + escapeHtml(t('editor-magic-no-suggestions', 'Your code looks good! No suggestions at this time.')) + '</p>';
             }
         }
 

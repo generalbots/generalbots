@@ -59,7 +59,7 @@ async function loadOrgs() {
 function renderOrgs() {
   const el = document.getElementById('org-list');
   if (!orgs.length) {
-    el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">🏢</div><div>' + gbT('cloud-orgs-empty', 'No organizations yet.') + '<br><button class="btn btn-primary btn-sm" onclick="showCreateOrg()" style="margin-top:.75rem">' + gbT('cloud-orgs-create-first', 'Create your first organization') + '</button></div></div>';
+    el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">🏢</div><div>' + escapeHtml(gbT('cloud-orgs-empty', 'No organizations yet.')) + '<br><button class="btn btn-primary btn-sm" onclick="showCreateOrg()" style="margin-top:.75rem">' + escapeHtml(gbT('cloud-orgs-create-first', 'Create your first organization')) + '</button></div></div>';
     return;
   }
   el.innerHTML = orgs.map(o => `
@@ -68,8 +68,8 @@ function renderOrgs() {
       <div class="org-card-name">${esc(o.name)}<span class="org-card-suffix">.gborg</span></div>
       <div class="org-card-plan">${gbT('cloud-orgs-plan-suffix', '{plan} plan', { plan: o.plan || 'free' })}</div>
       <div class="org-card-stats">
-        <div class="org-card-stat"><div class="org-card-stat-num">${o.wsCount || 0}</div><div class="org-card-stat-label">${gbT('cloud-orgs-workspaces', 'Workspaces')}</div></div>
-        <div class="org-card-stat"><div class="org-card-stat-num">${o.resCount || 0}</div><div class="org-card-stat-label">${gbT('cloud-orgs-resources', 'Resources')}</div></div>
+        <div class="org-card-stat"><div class="org-card-stat-num">${o.wsCount || 0}</div><div class="org-card-stat-label">${escapeHtml(gbT('cloud-orgs-workspaces', 'Workspaces'))}</div></div>
+        <div class="org-card-stat"><div class="org-card-stat-num">${o.resCount || 0}</div><div class="org-card-stat-label">${escapeHtml(gbT('cloud-orgs-resources', 'Resources'))}</div></div>
       </div>
     </div>
   `).join('');
@@ -144,10 +144,10 @@ async function showOrgDetail(orgId) {
   document.getElementById('org-detail-header').innerHTML = `
     <div class="org-detail-icon">${(org.name||'O')[0].toUpperCase()}</div>
     <div><div class="org-detail-name">${esc(org.name)}<span class="org-detail-suffix" style="color:var(--muted)">.gborg</span></div><div class="org-detail-plan">${gbT('cloud-orgs-plan-suffix', '{plan} plan', { plan: org.plan || 'free' })}</div>
-    <div class="org-detail-meta">${gbT('cloud-orgs-id', 'ID:')} ${orgId}</div></div>
+    <div class="org-detail-meta">${escapeHtml(gbT('cloud-orgs-id', 'ID:'))} ${orgId}</div></div>
     <div class="org-detail-actions">
-      <button class="btn btn-secondary btn-sm" onclick="showEditOrg('${orgId}','${safeName}')">${gbT('cloud-edit', 'Edit')}</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteOrg('${orgId}','${safeName}')">${gbT('cloud-delete', 'Delete')}</button>
+      <button class="btn btn-secondary btn-sm" onclick="showEditOrg('${orgId}','${safeName}')">${escapeHtml(gbT('cloud-edit', 'Edit'))}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteOrg('${orgId}','${safeName}')">${escapeHtml(gbT('cloud-delete', 'Delete'))}</button>
     </div>
   `;
   document.querySelector('#app-root > .mgmt-topbar').style.display = 'none';
@@ -176,11 +176,11 @@ async function loadWorkspaces(orgId) {
   if (!el) return;
   try {
     const res = await cloudFetch(API + '/organizations/' + orgId + '/workspaces', );
-    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + gbT('cloud-orgs-workspaces-error', 'Failed to load workspaces.') + '</div>'; return; }
+    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + escapeHtml(gbT('cloud-orgs-workspaces-error', 'Failed to load workspaces.')) + '</div>'; return; }
     const data = await res.json();
     const wss = data.workspaces || [];
     if (!wss.length) {
-      el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">📂</div><div>' + gbT('cloud-orgs-no-workspaces', 'No workspaces in this organization.') + '<br><button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()" style="margin-top:.75rem">' + gbT('cloud-orgs-create-first-workspace', 'Create your first workspace') + '</button></div></div>';
+      el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">📂</div><div>' + escapeHtml(gbT('cloud-orgs-no-workspaces', 'No workspaces in this organization.')) + '<br><button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()" style="margin-top:.75rem">' + escapeHtml(gbT('cloud-orgs-create-first-workspace', 'Create your first workspace')) + '</button></div></div>';
       return;
     }
     // Fetch resource counts per workspace
@@ -202,12 +202,12 @@ async function loadWorkspaces(orgId) {
         <div class="ws-card-desc">${ws.description ? esc(ws.description) : gbT('cloud-orgs-no-description', 'No description')}</div>
         <div class="ws-card-footer">
           <span class="ws-card-resource">${gbT('cloud-orgs-resource-count', '{count} resources', { count: ws.resCount || 0 })}</span>
-          <button class="btn btn-ghost btn-sm" onclick="showWsDetail('${ws.id}','${safeName}')">${gbT('cloud-orgs-manage', 'Manage')}</button>
+          <button class="btn btn-ghost btn-sm" onclick="showWsDetail('${ws.id}','${safeName}')">${escapeHtml(gbT('cloud-orgs-manage', 'Manage'))}</button>
         </div>
       </div>`;
     }).join('');
   } catch (_) {
-    el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + gbT('cloud-orgs-workspaces-load-error', 'Could not load workspaces.') + '</div>';
+    el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + escapeHtml(gbT('cloud-orgs-workspaces-load-error', 'Could not load workspaces.')) + '</div>';
   }
 }
 
@@ -260,11 +260,11 @@ async function loadResources(wsId) {
   if (!el) return;
   try {
     const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId + '/resources', );
-    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-resources-error', 'Could not load resources.') + '</div>'; return; }
+    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + escapeHtml(gbT('cloud-orgs-resources-error', 'Could not load resources.')) + '</div>'; return; }
     const data = await res.json();
     const resources = data.resources || [];
     if (!resources.length) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-no-resources', 'No resources assigned yet.') + '</div>';
+      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + escapeHtml(gbT('cloud-orgs-no-resources', 'No resources assigned yet.')) + '</div>';
       return;
     }
     el.innerHTML = resources.map(r => {
@@ -281,7 +281,7 @@ async function loadResources(wsId) {
     const assignModal = document.getElementById('assign-res-modal');
     if (assignModal) assignModal.setAttribute('data-ws-id', wsId);
   } catch (_) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-resources-error', 'Could not load resources.') + '</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + escapeHtml(gbT('cloud-orgs-resources-error', 'Could not load resources.')) + '</div>';
   }
 }
 

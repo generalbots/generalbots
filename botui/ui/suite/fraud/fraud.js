@@ -61,18 +61,18 @@ function getStatusBadge(status) {
 function renderTransactions(data) {
   const container = document.getElementById('transactionsTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span>' + t('fraud-empty-transactions', 'No transactions found') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span>' + escapeHtml(t('fraud-empty-transactions', 'No transactions found')) + '</span></div>';
     return;
   }
   container.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>${t('fraud-col-id','ID')}</th>
-          <th>${t('fraud-col-value','Value')}</th>
-          <th>${t('fraud-col-risk','Risk')}</th>
-          <th>${t('fraud-col-status','Status')}</th>
-          <th>${t('fraud-col-date','Date')}</th>
+          <th>${escapeHtml(t('fraud-col-id','ID'))}</th>
+          <th>${escapeHtml(t('fraud-col-value','Value'))}</th>
+          <th>${escapeHtml(t('fraud-col-risk','Risk'))}</th>
+          <th>${escapeHtml(t('fraud-col-status','Status'))}</th>
+          <th>${escapeHtml(t('fraud-col-date','Date'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -98,19 +98,19 @@ function renderTransactions(data) {
 function renderRules(data) {
   const container = document.getElementById('rulesTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span>' + t('fraud-empty-rules', 'No rules configured') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span>' + escapeHtml(t('fraud-empty-rules', 'No rules configured')) + '</span></div>';
     return;
   }
   container.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>${t('fraud-col-name','Name')}</th>
-          <th>${t('fraud-col-condition','Condition')}</th>
-          <th>${t('fraud-col-action','Action')}</th>
-          <th>${t('fraud-col-priority','Priority')}</th>
-          <th>${t('fraud-col-active','Active')}</th>
-          <th>${t('fraud-col-actions','Actions')}</th>
+          <th>${escapeHtml(t('fraud-col-name','Name'))}</th>
+          <th>${escapeHtml(t('fraud-col-condition','Condition'))}</th>
+          <th>${escapeHtml(t('fraud-col-action','Action'))}</th>
+          <th>${escapeHtml(t('fraud-col-priority','Priority'))}</th>
+          <th>${escapeHtml(t('fraud-col-active','Active'))}</th>
+          <th>${escapeHtml(t('fraud-col-actions','Actions'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -127,7 +127,7 @@ function renderRules(data) {
               </label>
             </td>
             <td>
-              <button class="btn btn-danger btn-sm" data-delete-rule="${r.id}" data-i18n="action-delete">${t('action-delete', 'Delete')}</button>
+              <button class="btn btn-danger btn-sm" data-delete-rule="${r.id}" data-i18n="action-delete">${escapeHtml(t('action-delete', 'Delete'))}</button>
             </td>
           </tr>
         `).join('')}
@@ -167,18 +167,18 @@ function renderRules(data) {
 function renderBlocklist(data) {
   const container = document.getElementById('blocklistTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span>' + t('fraud-empty-blocklist', 'Blocklist is empty') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span>' + escapeHtml(t('fraud-empty-blocklist', 'Blocklist is empty')) + '</span></div>';
     return;
   }
   container.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>${t('fraud-col-type','Type')}</th>
-          <th>${t('fraud-col-value','Value')}</th>
-          <th>${t('fraud-col-reason','Reason')}</th>
-          <th>${t('fraud-col-date','Date')}</th>
-          <th>${t('fraud-col-actions','Actions')}</th>
+          <th>${escapeHtml(t('fraud-col-type','Type'))}</th>
+          <th>${escapeHtml(t('fraud-col-value','Value'))}</th>
+          <th>${escapeHtml(t('fraud-col-reason','Reason'))}</th>
+          <th>${escapeHtml(t('fraud-col-date','Date'))}</th>
+          <th>${escapeHtml(t('fraud-col-actions','Actions'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -189,7 +189,7 @@ function renderBlocklist(data) {
             <td>${b.reason || b.motivo || '-'}</td>
             <td>${formatDateTime(b.created_at || b.timestamp)}</td>
             <td>
-              <button class="btn btn-danger btn-sm" data-delete-block="${b.id}">${t('fraud-remove','Remove')}</button>
+              <button class="btn btn-danger btn-sm" data-delete-block="${b.id}">${escapeHtml(t('fraud-remove','Remove'))}</button>
             </td>
           </tr>
         `).join('')}
@@ -214,19 +214,19 @@ function renderBlocklist(data) {
 function renderReports(data) {
   const container = document.getElementById('reportsContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span>' + t('fraud-empty-reports', 'No reports generated') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span>' + escapeHtml(t('fraud-empty-reports', 'No reports generated')) + '</span></div>';
     return;
   }
   container.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>${t('fraud-col-period','Period')}</th>
-          <th>${t('fraud-col-transactions','Transactions')}</th>
-          <th>${t('fraud-col-blocked','Blocked')}</th>
-          <th>${t('fraud-col-review','Review')}</th>
-          <th>${t('fraud-col-false-positive','False Positive')}</th>
-          <th>${t('fraud-col-actions','Actions')}</th>
+          <th>${escapeHtml(t('fraud-col-period','Period'))}</th>
+          <th>${escapeHtml(t('fraud-col-transactions','Transactions'))}</th>
+          <th>${escapeHtml(t('fraud-col-blocked','Blocked'))}</th>
+          <th>${escapeHtml(t('fraud-col-review','Review'))}</th>
+          <th>${escapeHtml(t('fraud-col-false-positive','False Positive'))}</th>
+          <th>${escapeHtml(t('fraud-col-actions','Actions'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -238,7 +238,7 @@ function renderReports(data) {
             <td>${r.review || r.revisao || 0}</td>
             <td>${r.false_positive_rate || r.falso_positivo || '0%'}</td>
             <td>
-              <button class="btn btn-secondary btn-sm" data-download-report="${r.id}">${t('action-download','Download')}</button>
+              <button class="btn btn-secondary btn-sm" data-download-report="${r.id}">${escapeHtml(t('action-download','Download'))}</button>
             </td>
           </tr>
         `).join('')}

@@ -24,6 +24,13 @@
   let currentLocale = DEFAULT_LOCALE;
   let translations = {};
   let isInitialized = false;
+  // #2542 — the English catalogue is the last resort before the raw key: a
+  // string the active locale does not ship renders in English instead of an
+  // identifier. `fallbackLocale` names the catalogue that fills the gaps, and
+  // every gap is logged once so it can be translated.
+  let englishFallback = {};
+  let fallbackLocale = DEFAULT_LOCALE;
+  const missingKeysReported = new Set();
 
   function detectBrowserLocale() {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -114,6 +121,9 @@
       translations = fetched;
       currentLocale = locale;
       setCachedTranslations(locale, fetched);
+      if (locale !== DEFAULT_LOCALE) {
+        await loadFallbackTranslations();
+      }
       return true;
     }
 
@@ -127,11 +137,33 @@
     return false;
   }
 
-  function t(key, params) {
-    let text = translations[key] || MINIMAL_FALLBACK[key] || key;
+  // Loads (and caches) the English catalogue underneath the active locale.
+  async function loadFallbackTranslations() {
+    const cached = getCachedTranslations(DEFAULT_LOCALE);
+    if (cached) {
+      englishFallback = cached;
+      return;
+    }
+    const fetched = await fetchTranslations(DEFAULT_LOCALE);
+    if (fetched && Object.keys(fetched).length > 0) {
+      englishFallback = fetched;
+      setCachedTranslations(DEFAULT_LOCALE, fetched);
+    }
+  }
 
-    if (!translations[key] && !MINIMAL_FALLBACK[key]) {
-      console.warn(`i18n: Missing translation key: ${key}`);
+  function t(key, params) {
+    let text = translations[key];
+    if (text === undefined) text = englishFallback[key];
+    if (text === undefined) text = MINIMAL_FALLBACK[key];
+    if (text === undefined) {
+      text = key;
+      if (!missingKeysReported.has(key)) {
+        missingKeysReported.add(key);
+        console.warn(
+          `i18n: Missing translation key: ${key} in ${currentLocale}` +
+            (fallbackLocale !== currentLocale ? ` (English fallback has no entry either)` : ""),
+        );
+      }
     }
 
     if (params && typeof params === "object") {
@@ -434,6 +466,7 @@
     setLocale,
     getLocale: getCurrentLocale,
     getCurrentLocale,
+    getFallbackLocale: () => fallbackLocale,
     getAvailableLocales,
     translatePage,
     translateElement,

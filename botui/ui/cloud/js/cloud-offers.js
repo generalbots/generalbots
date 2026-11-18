@@ -57,14 +57,14 @@ async function loadInvoicesAndBalance(token, email) {
     const tbody = document.getElementById('topup-history-tbody');
     if (tbody) {
       if (topupInvoices.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">${gbT('cloud-offers-no-topups', 'No top-ups found yet.')}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">${escapeHtml(gbT('cloud-offers-no-topups', 'No top-ups found yet.'))}</td></tr>`;
       } else {
         tbody.innerHTML = topupInvoices.map(inv => `
           <tr>
             <td style="font-family:monospace;font-size:.85rem">${inv.number}</td>
             <td>${inv.issue_date}</td>
             <td style="color:var(--accent2);font-weight:700">+$${parseFloat(inv.total).toFixed(2)}</td>
-            <td><span class="badge badge-active" style="background:rgba(0,212,170,.15);color:var(--accent2)">${gbT('cloud-offers-paid', 'Paid')}</span></td>
+            <td><span class="badge badge-active" style="background:rgba(0,212,170,.15);color:var(--accent2)">${escapeHtml(gbT('cloud-offers-paid', 'Paid'))}</span></td>
           </tr>
         `).join('');
       }

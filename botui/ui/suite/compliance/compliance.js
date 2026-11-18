@@ -71,7 +71,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         if (activity) {
             var recent = auditLog.slice(-5).reverse();
             if (recent.length === 0) {
-                activity.innerHTML = '<div class="compliance-empty">' + t('compliance-no-recent-activity', 'No recent activity') + '</div>';
+                activity.innerHTML = '<div class="compliance-empty">' + escapeHtml(t('compliance-no-recent-activity', 'No recent activity')) + '</div>';
             } else {
                 activity.innerHTML = recent.map(function(a) {
                     return '<div class="compliance-activity-item">'
@@ -90,7 +90,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
             var score = total > 0 ? Math.round((passed / total) * 100) : 0;
             var colorClass = score >= 80 ? 'green' : score >= 50 ? 'yellow' : 'red';
             scoreDisplay.innerHTML = '<div class="compliance-score-circle ' + colorClass + '">' + score + '%</div>'
-                + '<div class="compliance-score-label">' + t('compliance-overall-compliance-score', 'Overall Compliance Score') + '</div>';
+                + '<div class="compliance-score-label">' + escapeHtml(t('compliance-overall-compliance-score', 'Overall Compliance Score')) + '</div>';
         }
 
         var chart = document.getElementById('score-chart');
@@ -102,17 +102,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
             chart.innerHTML = '<div class="compliance-chart-col">'
                 + '<div class="compliance-chart-value">' + passed + '</div>'
                 + '<div class="compliance-chart-bar-fill green" style="height:' + (passed / maxVal * 100) + '%"></div>'
-                + '<div class="compliance-chart-label">' + t('compliance-stat-passed', 'Passed') + '</div>'
+                + '<div class="compliance-chart-label">' + escapeHtml(t('compliance-stat-passed', 'Passed')) + '</div>'
                 + '</div>'
                 + '<div class="compliance-chart-col">'
                 + '<div class="compliance-chart-value">' + failed + '</div>'
                 + '<div class="compliance-chart-bar-fill red" style="height:' + (failed / maxVal * 100) + '%"></div>'
-                + '<div class="compliance-chart-label">' + t('compliance-stat-failed', 'Failed') + '</div>'
+                + '<div class="compliance-chart-label">' + escapeHtml(t('compliance-stat-failed', 'Failed')) + '</div>'
                 + '</div>'
                 + '<div class="compliance-chart-col">'
                 + '<div class="compliance-chart-value">' + warnings + '</div>'
                 + '<div class="compliance-chart-bar-fill yellow" style="height:' + (warnings / maxVal * 100) + '%"></div>'
-                + '<div class="compliance-chart-label">' + t('compliance-stat-warnings', 'Warnings') + '</div>'
+                + '<div class="compliance-chart-label">' + escapeHtml(t('compliance-stat-warnings', 'Warnings')) + '</div>'
                 + '</div>';
         }
     }
@@ -121,7 +121,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         var tbody = document.getElementById('checks-tbody');
         if (!tbody) return;
         if (checks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="compliance-empty">' + t('compliance-no-checks-found', 'No checks found') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="compliance-empty">' + escapeHtml(t('compliance-no-checks-found', 'No checks found')) + '</td></tr>';
             return;
         }
         tbody.innerHTML = checks.map(function(c) {
@@ -130,7 +130,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
                 + '<td>' + (c.name || '') + '</td>'
                 + '<td><span class="compliance-badge ' + (c.framework || '') + '">' + (c.framework || '') + '</span></td>'
                 + '<td><span class="compliance-badge ' + (c.status || '') + '">' + (c.status || '') + '</span></td>'
-                + '<td><button class="compliance-action-btn primary" onclick="window._compliance.runCheck(\'' + (c.id || '') + '\')">' + t('compliance-action-run', 'Run') + '</button></td>'
+                + '<td><button class="compliance-action-btn primary" onclick="window._compliance.runCheck(\'' + (c.id || '') + '\')">' + escapeHtml(t('compliance-action-run', 'Run')) + '</button></td>'
                 + '</tr>';
         }).join('');
     }
@@ -139,7 +139,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         var tbody = document.getElementById('issues-tbody');
         if (!tbody) return;
         if (issues.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="compliance-empty">' + t('compliance-no-issues-found', 'No issues found') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="compliance-empty">' + escapeHtml(t('compliance-no-issues-found', 'No issues found')) + '</td></tr>';
             return;
         }
         tbody.innerHTML = issues.map(function(iss) {
@@ -158,7 +158,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         var tbody = document.getElementById('audit-tbody');
         if (!tbody) return;
         if (auditLog.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="compliance-empty">' + t('compliance-no-audit-entries', 'No audit entries') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="compliance-empty">' + escapeHtml(t('compliance-no-audit-entries', 'No audit entries')) + '</td></tr>';
             return;
         }
         tbody.innerHTML = auditLog.slice().reverse().map(function(a) {
@@ -175,7 +175,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         var container = document.getElementById('risks-cards');
         if (!container) return;
         if (risks.length === 0) {
-            container.innerHTML = '<div class="compliance-empty">' + t('compliance-no-risks-recorded', 'No risks recorded') + '</div>';
+            container.innerHTML = '<div class="compliance-empty">' + escapeHtml(t('compliance-no-risks-recorded', 'No risks recorded')) + '</div>';
             return;
         }
         container.innerHTML = risks.map(function(r) {
@@ -196,14 +196,14 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         var container = document.getElementById('training-list');
         if (!container) return;
         if (training.length === 0) {
-            container.innerHTML = '<div class="compliance-empty">' + t('compliance-no-training-records', 'No training records') + '</div>';
+            container.innerHTML = '<div class="compliance-empty">' + escapeHtml(t('compliance-no-training-records', 'No training records')) + '</div>';
             return;
         }
         container.innerHTML = training.map(function(t) {
             return '<div class="compliance-training-card">'
                 + '<div class="compliance-training-info">'
                 + '<h4>' + (t.title || '') + '</h4>'
-                + '<p>' + (t.assignee || '') + ' - ' + t('compliance-due-label', 'Due:') + ' ' + (t.due_date || '') + '</p>'
+                + '<p>' + (t.assignee || '') + ' - ' + escapeHtml(t('compliance-due-label', 'Due:')) + ' ' + (t.due_date || '') + '</p>'
                 + '</div>'
                 + '<span class="compliance-badge ' + (t.status || 'not-started') + '">' + (t.status || 'not-started') + '</span>'
                 + '</div>';
@@ -281,7 +281,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
                 .then(function (r) { return r.text(); })
                 .then(function (html) { if (body) body.innerHTML = html; })
                 .catch(function () {
-                    if (body) body.innerHTML = '<div class="framework-detail-error">' + t('compliance-failed-load-framework', 'Failed to load framework') + '</div>';
+                    if (body) body.innerHTML = '<div class="framework-detail-error">' + escapeHtml(t('compliance-failed-load-framework', 'Failed to load framework')) + '</div>';
                 });
         }
     }

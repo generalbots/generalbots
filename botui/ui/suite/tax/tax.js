@@ -96,7 +96,7 @@ function getStatusBadge(status) {
 function renderNfeTable(data) {
   const container = document.getElementById('nfeTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">📄</span><span>' + t('tax-empty-nfe', 'No NF-e found') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">📄</span><span>' + escapeHtml(t('tax-empty-nfe', 'No NF-e found')) + '</span></div>';
     return;
   }
   container.innerHTML = `
@@ -128,7 +128,7 @@ function renderNfeTable(data) {
 function renderNfseTable(data) {
   const container = document.getElementById('nfseTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">📋</span><span>' + t('tax-empty-nfse', 'No NFS-e found') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">📋</span><span>' + escapeHtml(t('tax-empty-nfse', 'No NFS-e found')) + '</span></div>';
     return;
   }
   container.innerHTML = `
@@ -160,7 +160,7 @@ function renderNfseTable(data) {
 function renderCteTable(data) {
   const container = document.getElementById('cteTableContainer');
   if (!data.length) {
-    container.innerHTML = '<div class="empty-state"><span class="icon">🚛</span><span>' + t('tax-empty-cte', 'No CT-e found') + '</span></div>';
+    container.innerHTML = '<div class="empty-state"><span class="icon">🚛</span><span>' + escapeHtml(t('tax-empty-cte', 'No CT-e found')) + '</span></div>';
     return;
   }
   container.innerHTML = `

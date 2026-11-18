@@ -61,7 +61,7 @@ async function loadAboutData() {
                     .map(f => `<span class="feature-badge disabled">${f}</span>`)
                     .join('');
             } else {
-                disabledContainer.innerHTML = `<span class="text-muted">${t('about-all-features-enabled', 'All compiled features are enabled')}</span>`;
+                disabledContainer.innerHTML = `<span class="text-muted">${escapeHtml(t('about-all-features-enabled', 'All compiled features are enabled'))}</span>`;
             }
         }
         

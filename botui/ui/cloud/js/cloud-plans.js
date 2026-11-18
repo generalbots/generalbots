@@ -92,10 +92,10 @@ function renderPlans(period) {
           ${(plan.features || []).map(f => '<li>' + featureLabel(f) + '</li>').join('')}
         </ul>
         <div class="plan-limits">
-          <div class="limit-row"><span>${gbT('cloud-plans-limit-messages-day', 'Messages/day')}</span><span>${formatLimit(plan.limits.messages_per_day)}</span></div>
-          <div class="limit-row"><span>${gbT('cloud-plans-limit-storage', 'Storage')}</span><span>${formatStorage(plan.limits.storage_mb)}</span></div>
-          <div class="limit-row"><span>${gbT('cloud-plans-limit-bots', 'Bots')}</span><span>${formatLimit(plan.limits.bots)}</span></div>
-          <div class="limit-row"><span>${gbT('cloud-plans-limit-users', 'Users')}</span><span>${formatLimit(plan.limits.users)}</span></div>
+          <div class="limit-row"><span>${escapeHtml(gbT('cloud-plans-limit-messages-day', 'Messages/day'))}</span><span>${formatLimit(plan.limits.messages_per_day)}</span></div>
+          <div class="limit-row"><span>${escapeHtml(gbT('cloud-plans-limit-storage', 'Storage'))}</span><span>${formatStorage(plan.limits.storage_mb)}</span></div>
+          <div class="limit-row"><span>${escapeHtml(gbT('cloud-plans-limit-bots', 'Bots'))}</span><span>${formatLimit(plan.limits.bots)}</span></div>
+          <div class="limit-row"><span>${escapeHtml(gbT('cloud-plans-limit-users', 'Users'))}</span><span>${formatLimit(plan.limits.users)}</span></div>
         </div>
         <button class="btn-primary btn-block" onclick="selectPlan('${id}')">
           ${isFree ? gbT('cloud-plans-cta-start', 'Get Started') : isCustom ? gbT('cloud-plans-cta-contact', 'Contact Us') : gbT('cloud-plans-cta-choose', 'Choose Plan')}
@@ -110,7 +110,7 @@ function renderFeatureMatrix() {
   const tbody = document.getElementById('features-body');
   const entries = Object.entries(allPlans);
 
-  thead.innerHTML = '<th>' + gbT('cloud-plans-feature', 'Feature') + '</th>' + entries.map(([id, p]) => '<th>' + escapeHtml(p.name) + '</th>').join('');
+  thead.innerHTML = '<th>' + escapeHtml(gbT('cloud-plans-feature', 'Feature')) + '</th>' + entries.map(([id, p]) => '<th>' + escapeHtml(p.name) + '</th>').join('');
 
   const allFeatures = [...new Set(entries.flatMap(([_, p]) => p.features || []))];
   const allLimits = ['messages_per_day', 'storage_mb', 'bots', 'users', 'api_calls_per_day', 'kb_documents', 'apps'];
@@ -123,7 +123,7 @@ function renderFeatureMatrix() {
         ((p.features || []).includes(feat) ? '✓' : '—') + '</td>').join('') + '</tr>';
   });
 
-  tbody.innerHTML += '<tr class="section-divider"><td colspan="' + (entries.length + 1) + '">' + gbT('cloud-plans-limits', 'Limits') + '</td></tr>';
+  tbody.innerHTML += '<tr class="section-divider"><td colspan="' + (entries.length + 1) + '">' + escapeHtml(gbT('cloud-plans-limits', 'Limits')) + '</td></tr>';
 
   allLimits.forEach(limit => {
     tbody.innerHTML += '<tr><td class="feature-name">' + limitLabel(limit) + '</td>' +

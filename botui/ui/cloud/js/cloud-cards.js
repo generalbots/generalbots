@@ -22,7 +22,7 @@ async function loadCards(token) {
 function renderCards(cards) {
   const container = document.getElementById('cards-list');
   if (cards.length === 0) {
-    container.innerHTML = '<div class="saas-loading">' + gbT('cloud-cards-empty', 'No payment cards saved.') + ' <a href="#" onclick="openBillingPortal()">' + gbT('cloud-cards-add-stripe', 'Add one in Stripe') + '</a>.</div>';
+    container.innerHTML = '<div class="saas-loading">' + escapeHtml(gbT('cloud-cards-empty', 'No payment cards saved.')) + ' <a href="#" onclick="openBillingPortal()">' + escapeHtml(gbT('cloud-cards-add-stripe', 'Add one in Stripe')) + '</a>.</div>';
     return;
   }
   container.innerHTML = cards.map(card => `

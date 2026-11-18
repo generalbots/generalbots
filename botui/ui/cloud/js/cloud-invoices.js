@@ -22,7 +22,7 @@ async function loadInvoices(token) {
 function renderInvoices(invoices) {
   const container = document.getElementById('invoices-list');
   if (invoices.length === 0) {
-    container.innerHTML = '<div class="saas-loading">' + gbT('cloud-invoices-empty', 'No invoices yet.') + '</div>';
+    container.innerHTML = '<div class="saas-loading">' + escapeHtml(gbT('cloud-invoices-empty', 'No invoices yet.')) + '</div>';
     return;
   }
   container.innerHTML = invoices.map(inv => `

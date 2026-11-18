@@ -45,7 +45,7 @@
         frame.id = "vibeBrowserFrame";
 
         var status = D.el("div", "vibe-browser-status");
-        status.innerHTML = '<span class="vibe-status info" id="vibeBrowserState">' + t("vibe-browser-no-session", "no session") + '</span>' +
+        status.innerHTML = '<span class="vibe-status info" id="vibeBrowserState">' + escapeHtml(t("vibe-browser-no-session", "no session")) + '</span>' +
             '<span style="flex:1"></span><span id="vibeBrowserInfo">—</span>';
 
         toolbar.appendChild(url);
@@ -102,7 +102,7 @@
         var frame = document.getElementById("vibeBrowserFrame");
         var stateEl = document.getElementById("vibeBrowserState");
         if (btn) { btn.disabled = true; btn.textContent = t("vibe-browser-creating", "Creating..."); }
-        if (frame) frame.innerHTML = '<div class="vibe-empty">' + t("vibe-browser-creating-session", "Creating headless session...") + '</div>';
+        if (frame) frame.innerHTML = '<div class="vibe-empty">' + escapeHtml(t("vibe-browser-creating-session", "Creating headless session...")) + '</div>';
         D.api("/api/browser/session", {
             method: "POST",
             body: { headless: true },

@@ -95,7 +95,7 @@
                     A.hideThinking();
                     if (typeof A.renderErrorCode === "function") {
                         A.renderErrorCode("timeout",
-                            A.t("assistant.error.timeout",
+                            A.t("assistant.error-timeout",
                                 "The server did not respond in time."));
                     }
                 }

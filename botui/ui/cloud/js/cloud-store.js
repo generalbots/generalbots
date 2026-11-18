@@ -28,7 +28,7 @@ function renderStore(category) {
   const filtered = category === 'all' ? storeItems : storeItems.filter(i => i.category === category);
 
   if (filtered.length === 0) {
-    grid.innerHTML = '<div class="saas-loading">' + gbT('cloud-store-empty-category', 'No items in this category.') + '</div>';
+    grid.innerHTML = '<div class="saas-loading">' + escapeHtml(gbT('cloud-store-empty-category', 'No items in this category.')) + '</div>';
     return;
   }
 

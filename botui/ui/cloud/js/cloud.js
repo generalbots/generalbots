@@ -179,9 +179,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         banner.className = 'anon-cta-banner';
         const loginBase = window.GB_LOGIN_URL || '/login';
         banner.innerHTML = '<div class="anon-cta-content">' +
-          '<span>' + gbT('cloud-anon-banner', 'Browse freely — <strong>create a free account</strong> to manage bots, domains and services.') + '</span>' +
-          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">' + gbT('cloud-signin', 'Sign In') + '</a>' +
-          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">' + gbT('cloud-create-free-account', 'Create Free Account') + '</a>' +
+          '<span>' + escapeHtml(gbT('cloud-anon-banner', 'Browse freely — <strong>create a free account</strong> to manage bots, domains and services.')) + '</span>' +
+          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">' + escapeHtml(gbT('cloud-signin', 'Sign In')) + '</a>' +
+          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">' + escapeHtml(gbT('cloud-create-free-account', 'Create Free Account')) + '</a>' +
           '</div>';
         main.insertBefore(banner, main.firstChild);
       }
@@ -197,18 +197,18 @@ async function loadDashboardOrgs(token) {
     const res = await fetch(`${API_BASE}/organizations`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { container.innerHTML = '<p>' + gbT('cloud-error-load-orgs', 'Failed to load organizations') + '</p>'; return; }
+    if (!res.ok) { container.innerHTML = '<p>' + escapeHtml(gbT('cloud-error-load-orgs', 'Failed to load organizations')) + '</p>'; return; }
     const orgs = await res.json();
     renderDashboardOrgs(orgs);
   } catch (err) {
-    container.innerHTML = `<p>${gbT('cloud-error-prefix', 'Error:')} ${err.message}</p>`;
+    container.innerHTML = `<p>${escapeHtml(gbT('cloud-error-prefix', 'Error:'))} ${err.message}</p>`;
   }
 }
 
 function renderDashboardOrgs(orgs) {
   const container = document.getElementById('orgs-list');
   if (!container || !orgs || orgs.length === 0) {
-    if (container) container.innerHTML = '<div class="saas-loading"><p>' + gbT('cloud-orgs-empty', 'No organizations yet.') + '</p><button onclick="showNewOrgModal()" class="btn-primary">' + gbT('cloud-dashboard-create-first-org', 'Create Your First Organization') + '</button></div>';
+    if (container) container.innerHTML = '<div class="saas-loading"><p>' + escapeHtml(gbT('cloud-orgs-empty', 'No organizations yet.')) + '</p><button onclick="showNewOrgModal()" class="btn-primary">' + escapeHtml(gbT('cloud-dashboard-create-first-org', 'Create Your First Organization')) + '</button></div>';
     return;
   }
   container.innerHTML = orgs.map(o => `
@@ -219,8 +219,8 @@ function renderDashboardOrgs(orgs) {
         ${o.vps_address ? `<p>VPS: ${o.vps_address}</p>` : ''}
       </div>
       <div class="saas-org-actions">
-        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank" rel="noopener noreferrer"' : 'disabled'}>${gbT('cloud-open', 'Open')}</a>
-        <button onclick="openBilling('${o.id}')" class="btn-text">${gbT('cloud-billing', 'Billing')}</button>
+        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank" rel="noopener noreferrer"' : 'disabled'}>${escapeHtml(gbT('cloud-open', 'Open'))}</a>
+        <button onclick="openBilling('${o.id}')" class="btn-text">${escapeHtml(gbT('cloud-billing', 'Billing'))}</button>
       </div>
     </div>
   `).join('');
