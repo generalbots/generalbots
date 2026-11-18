@@ -647,3 +647,66 @@ settings-shared-links-relay-hint-html = 릴레이 엔드포인트는 고정되�
 
 # semantic i18n key (#2542)
 settings-shared-links-check-again = 다시 확인
+
+# semantic i18n key (#2542)
+settings-admin-bots-loading = 봇 로드 중...
+
+# semantic i18n key (#2542)
+settings-admin-domain-configuration = 도메인 구성
+
+# semantic i18n key (#2542)
+settings-admin-audit-loading = 감사 로그 로드 중...
+
+# semantic i18n key (#2542)
+settings-updates-subtitle = 최신 GitHub 릴리스를 확인하고 공식 다운로드로 이동하세요
+
+# semantic i18n key (#2542)
+settings-updates-desktop-title = 데스크톱 업데이트
+
+# semantic i18n key (#2542)
+settings-updates-desktop-checks-html = 앱은 <code>github.com/generalbots/generalbots/releases/latest</code>를 확인합니다. 설치는 항상 선택 사항입니다.
+
+# semantic i18n key (#2542)
+settings-updates-check-startup = 시작 시 업데이트 확인
+
+# semantic i18n key (#2542)
+settings-updates-check-startup-desc = 하루에 최대 한 번 실행되며 알림만 표시합니다. 이 기능이 꺼져 있어도 “지금 확인”을 사용할 수 있습니다.
+
+# semantic i18n key (#2542)
+settings-updates-current-version = 현재 버전
+
+# semantic i18n key (#2542)
+settings-updates-never = 없음
+
+# semantic i18n key (#2542)
+settings-updates-check-now = 지금 확인
+
+# semantic i18n key (#2542)
+settings-updates-view-release-notes = 릴리스 정보 보기
+
+# semantic i18n key (#2542)
+settings-updates-not-checked-yet = 아직 확인하지 않았습니다.
+
+# semantic i18n key (#2542)
+settings-versions-subtitle = 구성 요소 버전 및 업데이트 가용성
+
+# semantic i18n key (#2542)
+settings-versions-loading = 버전 정보 로드 중...
+
+# semantic i18n key (#2542)
+settings-ledger-description = 모든 터미널 및 브라우저 작업과 동의 결정, 결과, 스크린샷 경로.
+
+# semantic i18n key (#2542)
+settings-ledger-actions-title = 작업 원장
+
+# semantic i18n key (#2542)
+settings-ledger-tab-terminal = 터미널
+
+# semantic i18n key (#2542)
+settings-ledger-tab-browser = 브라우저
+
+# semantic i18n key (#2542)
+settings-ledger-tab-budgets = 예산
+
+# semantic i18n key (#2542)
+settings-ledger-tab-ttft = TTFT

@@ -647,3 +647,66 @@ settings-shared-links-relay-hint-html = Der Relay-Endpunkt ist fest (<code>peer.
 
 # semantic i18n key (#2542)
 settings-shared-links-check-again = Erneut prüfen
+
+# semantic i18n key (#2542)
+settings-admin-bots-loading = Bots werden geladen...
+
+# semantic i18n key (#2542)
+settings-admin-domain-configuration = Domain-Konfiguration
+
+# semantic i18n key (#2542)
+settings-admin-audit-loading = Audit-Protokoll wird geladen...
+
+# semantic i18n key (#2542)
+settings-updates-subtitle = Prüfen Sie die neueste GitHub-Version und wechseln Sie zum offiziellen Download
+
+# semantic i18n key (#2542)
+settings-updates-desktop-title = Desktop-Updates
+
+# semantic i18n key (#2542)
+settings-updates-desktop-checks-html = Die App prüft <code>github.com/generalbots/generalbots/releases/latest</code>. Die Installation erfolgt immer auf Wunsch.
+
+# semantic i18n key (#2542)
+settings-updates-check-startup = Beim Start nach Updates suchen
+
+# semantic i18n key (#2542)
+settings-updates-check-startup-desc = Läuft höchstens einmal pro Tag und zeigt nur eine Benachrichtigung an. Sie können „Jetzt prüfen“ weiterhin verwenden, wenn dies deaktiviert ist.
+
+# semantic i18n key (#2542)
+settings-updates-current-version = Aktuelle Version
+
+# semantic i18n key (#2542)
+settings-updates-never = Nie
+
+# semantic i18n key (#2542)
+settings-updates-check-now = Jetzt prüfen
+
+# semantic i18n key (#2542)
+settings-updates-view-release-notes = Versionshinweise anzeigen
+
+# semantic i18n key (#2542)
+settings-updates-not-checked-yet = Noch nicht geprüft.
+
+# semantic i18n key (#2542)
+settings-versions-subtitle = Komponentenversionen und Update-Verfügbarkeit
+
+# semantic i18n key (#2542)
+settings-versions-loading = Versionsinformationen werden geladen...
+
+# semantic i18n key (#2542)
+settings-ledger-description = Jede Terminal- und Browseraktion mit Einwilligungsentscheidung, Ergebnis und Screenshot-Pfad.
+
+# semantic i18n key (#2542)
+settings-ledger-actions-title = Aktionsprotokoll
+
+# semantic i18n key (#2542)
+settings-ledger-tab-terminal = Terminal
+
+# semantic i18n key (#2542)
+settings-ledger-tab-browser = Browser
+
+# semantic i18n key (#2542)
+settings-ledger-tab-budgets = Budgets
+
+# semantic i18n key (#2542)
+settings-ledger-tab-ttft = TTFT

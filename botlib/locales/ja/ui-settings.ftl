@@ -647,3 +647,66 @@ settings-shared-links-relay-hint-html = リレーエンドポイントは固定�
 
 # semantic i18n key (#2542)
 settings-shared-links-check-again = 再確認
+
+# semantic i18n key (#2542)
+settings-admin-bots-loading = ボットを読み込み中...
+
+# semantic i18n key (#2542)
+settings-admin-domain-configuration = ドメイン設定
+
+# semantic i18n key (#2542)
+settings-admin-audit-loading = 監査ログを読み込み中...
+
+# semantic i18n key (#2542)
+settings-updates-subtitle = 最新の GitHub リリースを確認し、公式ダウンロードへ移動します
+
+# semantic i18n key (#2542)
+settings-updates-desktop-title = デスクトップの更新
+
+# semantic i18n key (#2542)
+settings-updates-desktop-checks-html = アプリは <code>github.com/generalbots/generalbots/releases/latest</code> を確認します。インストールは常に任意です。
+
+# semantic i18n key (#2542)
+settings-updates-check-startup = 起動時に更新を確認する
+
+# semantic i18n key (#2542)
+settings-updates-check-startup-desc = 1日に最大1回実行され、通知のみを表示します。これがオフの場合でも「今すぐ確認」を使用できます。
+
+# semantic i18n key (#2542)
+settings-updates-current-version = 現在のバージョン
+
+# semantic i18n key (#2542)
+settings-updates-never = なし
+
+# semantic i18n key (#2542)
+settings-updates-check-now = 今すぐ確認
+
+# semantic i18n key (#2542)
+settings-updates-view-release-notes = リリースノートを表示
+
+# semantic i18n key (#2542)
+settings-updates-not-checked-yet = まだ確認されていません。
+
+# semantic i18n key (#2542)
+settings-versions-subtitle = コンポーネントのバージョンと更新の可用性
+
+# semantic i18n key (#2542)
+settings-versions-loading = バージョン情報を読み込み中...
+
+# semantic i18n key (#2542)
+settings-ledger-description = すべてのターミナルおよびブラウザー操作、同意の判断、結果、スクリーンショットのパス。
+
+# semantic i18n key (#2542)
+settings-ledger-actions-title = アクション台帳
+
+# semantic i18n key (#2542)
+settings-ledger-tab-terminal = ターミナル
+
+# semantic i18n key (#2542)
+settings-ledger-tab-browser = ブラウザー
+
+# semantic i18n key (#2542)
+settings-ledger-tab-budgets = 予算
+
+# semantic i18n key (#2542)
+settings-ledger-tab-ttft = TTFT

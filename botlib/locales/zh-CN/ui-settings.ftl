@@ -647,3 +647,66 @@ settings-shared-links-relay-hint-html = 中继端点是固定的（<code>peer.ge
 
 # semantic i18n key (#2542)
 settings-shared-links-check-again = 再次检查
+
+# semantic i18n key (#2542)
+settings-admin-bots-loading = 正在加载机器人...
+
+# semantic i18n key (#2542)
+settings-admin-domain-configuration = 域名配置
+
+# semantic i18n key (#2542)
+settings-admin-audit-loading = 正在加载审核日志...
+
+# semantic i18n key (#2542)
+settings-updates-subtitle = 检查最新的 GitHub 版本并跳转到官方下载
+
+# semantic i18n key (#2542)
+settings-updates-desktop-title = 桌面更新
+
+# semantic i18n key (#2542)
+settings-updates-desktop-checks-html = 应用会检查 <code>github.com/generalbots/generalbots/releases/latest</code>。安装始终为可选操作。
+
+# semantic i18n key (#2542)
+settings-updates-check-startup = 启动时检查更新
+
+# semantic i18n key (#2542)
+settings-updates-check-startup-desc = 每天最多运行一次，并且仅显示通知。关闭此选项时，您仍然可以使用“立即检查”。
+
+# semantic i18n key (#2542)
+settings-updates-current-version = 当前版本
+
+# semantic i18n key (#2542)
+settings-updates-never = 从不
+
+# semantic i18n key (#2542)
+settings-updates-check-now = 立即检查
+
+# semantic i18n key (#2542)
+settings-updates-view-release-notes = 查看发行说明
+
+# semantic i18n key (#2542)
+settings-updates-not-checked-yet = 尚未检查。
+
+# semantic i18n key (#2542)
+settings-versions-subtitle = 组件版本和更新可用性
+
+# semantic i18n key (#2542)
+settings-versions-loading = 正在加载版本信息...
+
+# semantic i18n key (#2542)
+settings-ledger-description = 每个终端和浏览器操作，以及同意决定、结果和屏幕截图路径。
+
+# semantic i18n key (#2542)
+settings-ledger-actions-title = 操作记录
+
+# semantic i18n key (#2542)
+settings-ledger-tab-terminal = 终端
+
+# semantic i18n key (#2542)
+settings-ledger-tab-browser = 浏览器
+
+# semantic i18n key (#2542)
+settings-ledger-tab-budgets = 预算
+
+# semantic i18n key (#2542)
+settings-ledger-tab-ttft = TTFT
