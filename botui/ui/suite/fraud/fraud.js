@@ -68,11 +68,11 @@ function renderTransactions(data) {
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Valor</th>
-          <th>Risco</th>
-          <th>Status</th>
-          <th>Data</th>
+          <th>${t('fraud-col-id','ID')}</th>
+          <th>${t('fraud-col-value','Value')}</th>
+          <th>${t('fraud-col-risk','Risk')}</th>
+          <th>${t('fraud-col-status','Status')}</th>
+          <th>${t('fraud-col-date','Date')}</th>
         </tr>
       </thead>
       <tbody>
@@ -105,12 +105,12 @@ function renderRules(data) {
     <table>
       <thead>
         <tr>
-          <th>Nome</th>
-          <th>Condição</th>
-          <th>Ação</th>
-          <th>Prioridade</th>
-          <th>Ativa</th>
-          <th>Ações</th>
+          <th>${t('fraud-col-name','Name')}</th>
+          <th>${t('fraud-col-condition','Condition')}</th>
+          <th>${t('fraud-col-action','Action')}</th>
+          <th>${t('fraud-col-priority','Priority')}</th>
+          <th>${t('fraud-col-active','Active')}</th>
+          <th>${t('fraud-col-actions','Actions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -174,11 +174,11 @@ function renderBlocklist(data) {
     <table>
       <thead>
         <tr>
-          <th>Tipo</th>
-          <th>Valor</th>
-          <th>Motivo</th>
-          <th>Data</th>
-          <th>Ações</th>
+          <th>${t('fraud-col-type','Type')}</th>
+          <th>${t('fraud-col-value','Value')}</th>
+          <th>${t('fraud-col-reason','Reason')}</th>
+          <th>${t('fraud-col-date','Date')}</th>
+          <th>${t('fraud-col-actions','Actions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -189,7 +189,7 @@ function renderBlocklist(data) {
             <td>${b.reason || b.motivo || '-'}</td>
             <td>${formatDateTime(b.created_at || b.timestamp)}</td>
             <td>
-              <button class="btn btn-danger btn-sm" data-delete-block="${b.id}">Remover</button>
+              <button class="btn btn-danger btn-sm" data-delete-block="${b.id}">${t('fraud-remove','Remove')}</button>
             </td>
           </tr>
         `).join('')}
@@ -221,12 +221,12 @@ function renderReports(data) {
     <table>
       <thead>
         <tr>
-          <th>Período</th>
-          <th>Transações</th>
-          <th>Bloqueadas</th>
-          <th>Revisão</th>
-          <th>Falso Positivo</th>
-          <th>Ações</th>
+          <th>${t('fraud-col-period','Period')}</th>
+          <th>${t('fraud-col-transactions','Transactions')}</th>
+          <th>${t('fraud-col-blocked','Blocked')}</th>
+          <th>${t('fraud-col-review','Review')}</th>
+          <th>${t('fraud-col-false-positive','False Positive')}</th>
+          <th>${t('fraud-col-actions','Actions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -238,7 +238,7 @@ function renderReports(data) {
             <td>${r.review || r.revisao || 0}</td>
             <td>${r.false_positive_rate || r.falso_positivo || '0%'}</td>
             <td>
-              <button class="btn btn-secondary btn-sm" data-download-report="${r.id}">Baixar</button>
+              <button class="btn btn-secondary btn-sm" data-download-report="${r.id}">${t('action-download','Download')}</button>
             </td>
           </tr>
         `).join('')}
