@@ -22,7 +22,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" for="invoice-amount-display" data-i18n="billing-invoice-amount">Invoice Amount</label>
-                <input type="text" id="invoice-amount-display" class="form-input" readonly placeholder="$0.00" aria-live="polite" aria-atomic="true">
+                <input type="text" id="invoice-amount-display" class="form-input" readonly data-i18n-placeholder="billing-placeholder-invoice-amount" aria-live="polite" aria-atomic="true">
             </div>
         </div>
     </div>
@@ -37,7 +37,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" data-i18n="billing-amount">Amount *</label>
-                <input type="number" name="amount" class="form-input" required placeholder="0.00" min="0" step="0.01">
+                <input type="number" name="amount" class="form-input" required data-i18n-placeholder="billing-placeholder-amount" min="0" step="0.01">
             </div>
         </div>
         <div class="form-row">
@@ -56,7 +56,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" data-i18n="billing-reference">Reference Number</label>
-                <input type="text" name="reference" class="form-input" placeholder="Transaction ID, Check #, etc.">
+                <input type="text" name="reference" class="form-input" data-i18n-placeholder="billing-placeholder-reference">
             </div>
         </div>
     </div>
@@ -64,7 +64,7 @@
     <!-- Notes -->
     <div class="form-group">
         <label class="form-label" data-i18n="billing-notes">Notes</label>
-        <textarea name="notes" class="form-textarea" rows="2" placeholder="Additional payment notes..."></textarea>
+        <textarea name="notes" class="form-textarea" rows="2" data-i18n-placeholder="billing-placeholder-payment-notes"></textarea>
     </div>
 
     <div class="form-actions">

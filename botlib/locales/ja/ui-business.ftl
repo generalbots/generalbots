@@ -327,3 +327,22 @@ products-unit-seat = Seat
 products-unit-unit = Unit
 products-unit-year = Year
 products-upload-image = Click to upload image
+
+# semantic i18n key (#2542)
+billing-placeholder-invoice-amount = ¥0
+billing-placeholder-amount = 0.00
+billing-placeholder-reference = 取引ID、小切手番号など
+billing-placeholder-payment-notes = 支払いに関する追加メモ...
+products-placeholder-service-name = 例: 技術コンサルティング
+products-placeholder-service-description = サービス内容を説明してください...
+products-placeholder-price = 0.00
+products-placeholder-trial-days = 0
+products-placeholder-min-hours = 1
+products-placeholder-max-hours = 40
+products-placeholder-pricelist-name = 例: 標準価格表 2026
+products-placeholder-pricelist-description = 価格表の説明...
+products-placeholder-markup = 0.00
+products-placeholder-product-name = 製品名を入力
+products-placeholder-sku = PRD-001
+products-placeholder-product-description = 製品の説明...
+products-placeholder-cost = 0.00

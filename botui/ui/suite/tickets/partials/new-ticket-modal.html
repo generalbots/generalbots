@@ -27,7 +27,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" for="ticket-subject" data-i18n="tickets-subject">Subject</label>
-                <input id="ticket-subject" type="text" name="subject" class="form-input" required placeholder="Brief description of the issue" data-i18n-placeholder="tickets-subject-placeholder" autocomplete="off"/>
+                <input id="ticket-subject" type="text" name="subject" class="form-input" required data-i18n-placeholder="tickets-subject-placeholder" autocomplete="off"/>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -65,7 +65,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" for="ticket-description" data-i18n="tickets-description">Description</label>
-                <textarea id="ticket-description" name="description" class="form-textarea" required rows="5" placeholder="Describe the issue in detail..." data-i18n-placeholder="tickets-description-placeholder" hx-post="/api/ui/tickets/ai-suggest" hx-trigger="blur delay:500ms" hx-target="#ai-suggestions"></textarea>
+                <textarea id="ticket-description" name="description" class="form-textarea" required rows="5" data-i18n-placeholder="tickets-description-placeholder" hx-post="/api/ui/tickets/ai-suggest" hx-trigger="blur delay:500ms" hx-target="#ai-suggestions"></textarea>
             </div>
             <div id="ai-suggestions" class="ai-suggestions" role="status" aria-live="polite" aria-atomic="true"></div>
             <div class="form-actions">

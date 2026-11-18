@@ -334,3 +334,22 @@ products-unit-seat = Usuário
 products-unit-unit = Unidade
 products-unit-year = Ano
 products-upload-image = Clique para enviar imagem
+
+# semantic i18n key (#2542)
+billing-placeholder-invoice-amount = R$ 0,00
+billing-placeholder-amount = 0,00
+billing-placeholder-reference = ID da transação, nº do cheque, etc.
+billing-placeholder-payment-notes = Observações adicionais sobre o pagamento...
+products-placeholder-service-name = ex.: Consultoria técnica
+products-placeholder-service-description = Descreva a oferta de serviço...
+products-placeholder-price = 0,00
+products-placeholder-trial-days = 0
+products-placeholder-min-hours = 1
+products-placeholder-max-hours = 40
+products-placeholder-pricelist-name = ex.: Tabela padrão 2026
+products-placeholder-pricelist-description = Descrição da tabela de preços...
+products-placeholder-markup = 0,00
+products-placeholder-product-name = Informe o nome do produto
+products-placeholder-sku = PRD-001
+products-placeholder-product-description = Descrição do produto...
+products-placeholder-cost = 0,00

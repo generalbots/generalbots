@@ -327,3 +327,22 @@ products-unit-seat = Seat
 products-unit-unit = Unit
 products-unit-year = Year
 products-upload-image = Click to upload image
+
+# semantic i18n key (#2542)
+billing-placeholder-invoice-amount = ₩0
+billing-placeholder-amount = 0.00
+billing-placeholder-reference = 거래 ID, 수표 번호 등
+billing-placeholder-payment-notes = 추가 결제 메모...
+products-placeholder-service-name = 예: 기술 컨설팅
+products-placeholder-service-description = 서비스 내용을 설명하세요...
+products-placeholder-price = 0.00
+products-placeholder-trial-days = 0
+products-placeholder-min-hours = 1
+products-placeholder-max-hours = 40
+products-placeholder-pricelist-name = 예: 표준 가격표 2026
+products-placeholder-pricelist-description = 가격표 설명...
+products-placeholder-markup = 0.00
+products-placeholder-product-name = 제품 이름 입력
+products-placeholder-sku = PRD-001
+products-placeholder-product-description = 제품 설명...
+products-placeholder-cost = 0.00

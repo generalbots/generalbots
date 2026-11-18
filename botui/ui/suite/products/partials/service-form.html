@@ -13,12 +13,12 @@
     <!-- Basic Info -->
     <div class="form-group">
         <label class="form-label" for="service-name" data-i18n="products-service-name">Service Name *</label>
-        <input id="service-name" type="text" name="name" class="form-input" required placeholder="e.g., Technical Consulting" autocomplete="off">
+        <input id="service-name" type="text" name="name" class="form-input" required data-i18n-placeholder="products-placeholder-service-name" autocomplete="off">
     </div>
 
     <div class="form-group">
         <label class="form-label" for="service-description" data-i18n="products-description">Description</label>
-        <textarea id="service-description" name="description" class="form-textarea" rows="3" placeholder="Describe the service offering..."></textarea>
+        <textarea id="service-description" name="description" class="form-textarea" rows="3" data-i18n-placeholder="products-placeholder-service-description"></textarea>
     </div>
 
     <!-- Pricing Type -->
@@ -50,7 +50,7 @@
     <div class="form-row" id="pricing-row">
         <div class="form-group">
             <label class="form-label" for="service-price" data-i18n="products-price">Price *</label>
-            <input id="service-price" type="number" name="price" class="form-input" required placeholder="0.00" min="0" step="0.01">
+            <input id="service-price" type="number" name="price" class="form-input" required data-i18n-placeholder="products-placeholder-price" min="0" step="0.01">
         </div>
         <div class="form-group" id="unit-group">
             <label class="form-label" for="service-unit" data-i18n="products-unit">Unit</label>
@@ -76,7 +76,7 @@
         </div>
         <div class="form-group">
             <label class="form-label" for="service-trial-days" data-i18n="products-trial-days">Trial Period (days)</label>
-            <input id="service-trial-days" type="number" name="trial_days" class="form-input" placeholder="0" min="0" step="1">
+            <input id="service-trial-days" type="number" name="trial_days" class="form-input" data-i18n-placeholder="products-placeholder-trial-days" min="0" step="1">
         </div>
     </div>
 
@@ -84,11 +84,11 @@
     <div class="form-row" id="duration-row">
         <div class="form-group">
             <label class="form-label" for="service-min-hours" data-i18n="products-min-hours">Min. Hours</label>
-            <input id="service-min-hours" type="number" name="min_hours" class="form-input" placeholder="1" min="0" step="0.5">
+            <input id="service-min-hours" type="number" name="min_hours" class="form-input" data-i18n-placeholder="products-placeholder-min-hours" min="0" step="0.5">
         </div>
         <div class="form-group">
             <label class="form-label" for="service-max-hours" data-i18n="products-max-hours">Max. Hours (estimate)</label>
-            <input id="service-max-hours" type="number" name="max_hours" class="form-input" placeholder="40" min="0" step="0.5">
+            <input id="service-max-hours" type="number" name="max_hours" class="form-input" data-i18n-placeholder="products-placeholder-max-hours" min="0" step="0.5">
         </div>
     </div>
 

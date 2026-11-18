@@ -327,3 +327,22 @@ products-unit-seat = Seat
 products-unit-unit = Unit
 products-unit-year = Year
 products-upload-image = Click to upload image
+
+# semantic i18n key (#2542)
+billing-placeholder-invoice-amount = ¥0.00
+billing-placeholder-amount = 0.00
+billing-placeholder-reference = 交易编号、支票号等
+billing-placeholder-payment-notes = 其他付款备注...
+products-placeholder-service-name = 例如：技术咨询
+products-placeholder-service-description = 描述服务内容...
+products-placeholder-price = 0.00
+products-placeholder-trial-days = 0
+products-placeholder-min-hours = 1
+products-placeholder-max-hours = 40
+products-placeholder-pricelist-name = 例如：2026 标准价目表
+products-placeholder-pricelist-description = 价目表说明...
+products-placeholder-markup = 0.00
+products-placeholder-product-name = 输入产品名称
+products-placeholder-sku = PRD-001
+products-placeholder-product-description = 产品说明...
+products-placeholder-cost = 0.00
