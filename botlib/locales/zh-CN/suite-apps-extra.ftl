@@ -156,3 +156,9 @@ minutes-label-signer = 签署人
 
 # semantic i18n key (#2542)
 minutes-action-sign = 签署
+
+# semantic i18n key (#2542)
+lists-search-placeholder = 搜索列表...
+lists-name-placeholder = 例如：活跃客户
+lists-query-placeholder = 例如：status = 'active' AND country = 'CN'
+lists-add-member-placeholder = 搜索要添加的联系人...

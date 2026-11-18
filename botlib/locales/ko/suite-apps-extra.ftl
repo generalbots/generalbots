@@ -156,3 +156,9 @@ minutes-label-signer = 서명자
 
 # semantic i18n key (#2542)
 minutes-action-sign = 서명
+
+# semantic i18n key (#2542)
+lists-search-placeholder = 목록 검색...
+lists-name-placeholder = 예: 활성 고객
+lists-query-placeholder = 예: status = 'active' AND country = 'KR'
+lists-add-member-placeholder = 추가할 연락처 검색...

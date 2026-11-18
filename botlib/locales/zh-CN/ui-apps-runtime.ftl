@@ -525,3 +525,10 @@ hr-report-time-to-hire = 招聘周期
 
 # semantic i18n key (#2542)
 hr-report-compensation-distribution = 薪酬分布
+
+# semantic i18n key (#2542)
+templates-search-placeholder = 搜索模板...
+templates-name-placeholder = 例如：欢迎邮件
+templates-subject-placeholder = 例如：欢迎来到 {{company}}！
+templates-body-placeholder = 在此输入您的消息。可使用 {{contact.name}}、{{company}} 等变量。
+templates-ai-prompt-placeholder = 描述 AI 应如何生成内容...

@@ -156,3 +156,9 @@ minutes-label-signer = Signataire
 
 # semantic i18n key (#2542)
 minutes-action-sign = Signer
+
+# semantic i18n key (#2542)
+lists-search-placeholder = Rechercher des listes...
+lists-name-placeholder = p. ex., Clients actifs
+lists-query-placeholder = p. ex., status = 'active' AND country = 'FR'
+lists-add-member-placeholder = Rechercher des contacts à ajouter...

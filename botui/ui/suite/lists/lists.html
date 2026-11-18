@@ -25,7 +25,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="text" id="lists-search-input" placeholder="Search lists..." oninput="searchLists(this.value)">
+                <input type="text" id="lists-search-input" data-i18n-placeholder="lists-search-placeholder" oninput="searchLists(this.value)">
             </div>
             <button class="btn-secondary" onclick="importLists()" title="Import CSV" aria-label="Import CSV">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,7 +74,7 @@
             <input type="hidden" name="id" id="list-form-id" value="">
             <div class="crm-form-group">
                 <label>List Name</label>
-                <input type="text" name="name" id="list-form-name" required placeholder="e.g., Active Customers">
+                <input type="text" name="name" id="list-form-name" required data-i18n-placeholder="lists-name-placeholder">
             </div>
             <div class="crm-form-group">
                 <label>List Type</label>
@@ -85,7 +85,7 @@
             </div>
             <div class="crm-form-group" id="query-group" style="display:none">
                 <label>Query (for dynamic lists)</label>
-                <textarea name="query_text" id="list-form-query" rows="3" placeholder="e.g., status = 'active' AND country = 'US'"></textarea>
+                <textarea name="query_text" id="list-form-query" rows="3" data-i18n-placeholder="lists-query-placeholder"></textarea>
             </div>
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="hideListModal()">Cancel</button>
@@ -111,7 +111,7 @@
             <div style="text-align: center; color: var(--text-secondary);">Loading members...</div>
         </div>
         <div style="padding: 0 16px 16px; display: flex; gap: 8px;">
-            <input type="text" id="add-member-search" placeholder="Search contacts to add..." style="flex:1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+            <input type="text" id="add-member-search" data-i18n-placeholder="lists-add-member-placeholder" style="flex:1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
             <button class="btn-primary" onclick="addMemberToList()">Add</button>
         </div>
     </div>

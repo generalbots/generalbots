@@ -525,3 +525,10 @@ hr-report-time-to-hire = Zeit bis zur Einstellung
 
 # semantic i18n key (#2542)
 hr-report-compensation-distribution = Vergütungsverteilung
+
+# semantic i18n key (#2542)
+templates-search-placeholder = Vorlagen suchen...
+templates-name-placeholder = z. B. Willkommens-E-Mail
+templates-subject-placeholder = z. B. Willkommen bei {{company}}!
+templates-body-placeholder = Schreiben Sie hier Ihre Nachricht. Verwenden Sie {{contact.name}}, {{company}} usw.
+templates-ai-prompt-placeholder = Beschreiben Sie, wie die KI Inhalte generieren soll...

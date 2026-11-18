@@ -156,3 +156,9 @@ minutes-label-signer = 署名者
 
 # semantic i18n key (#2542)
 minutes-action-sign = 署名する
+
+# semantic i18n key (#2542)
+lists-search-placeholder = リストを検索...
+lists-name-placeholder = 例: アクティブな顧客
+lists-query-placeholder = 例: status = 'active' AND country = 'JP'
+lists-add-member-placeholder = 追加する連絡先を検索...

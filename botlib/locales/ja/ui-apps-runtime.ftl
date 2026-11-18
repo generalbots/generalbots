@@ -525,3 +525,10 @@ hr-report-time-to-hire = 採用までの期間
 
 # semantic i18n key (#2542)
 hr-report-compensation-distribution = 報酬分布
+
+# semantic i18n key (#2542)
+templates-search-placeholder = テンプレートを検索...
+templates-name-placeholder = 例: ウェルカムメール
+templates-subject-placeholder = 例: {{company}}へようこそ！
+templates-body-placeholder = ここにメッセージを入力してください。{{contact.name}}、{{company}} などを使用できます。
+templates-ai-prompt-placeholder = AIがコンテンツを生成する方法を説明してください...

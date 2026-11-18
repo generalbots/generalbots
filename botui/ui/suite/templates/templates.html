@@ -28,7 +28,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="text" id="templates-search" placeholder="Search templates..." oninput="searchTemplates(this.value)">
+                <input type="text" id="templates-search" data-i18n-placeholder="templates-search-placeholder" oninput="searchTemplates(this.value)">
             </div>
             <button class="btn-secondary" onclick="exportTemplates()">Export</button>
             <button class="btn-secondary" onclick="importTemplates()">Import</button>
@@ -65,7 +65,7 @@
             <div class="crm-form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="crm-form-group">
                     <label data-i18n="templates-name-label">Template Name</label>
-                    <input type="text" name="name" id="tpl-form-name" required placeholder="e.g., Welcome Email">
+                    <input type="text" name="name" id="tpl-form-name" required data-i18n-placeholder="templates-name-placeholder">
                 </div>
                 <div class="crm-form-group">
                     <label data-i18n="templates-channel-label">Channel</label>
@@ -80,15 +80,15 @@
             </div>
             <div class="crm-form-group" id="tpl-subject-group">
                 <label data-i18n="templates-subject-label">Subject (for email)</label>
-                <input type="text" name="subject" id="tpl-form-subject" placeholder="e.g., Welcome to {{company}}!">
+                <input type="text" name="subject" id="tpl-form-subject" data-i18n-placeholder="templates-subject-placeholder">
             </div>
             <div class="crm-form-group">
                 <label>Body <span style="font-weight:normal;color:var(--text-secondary);font-size:12px">Use {{variable}} for personalization</span></label>
-                <textarea name="body" id="tpl-form-body" rows="8" placeholder="Write your message here. Use {{contact.name}}, {{company}}, etc." oninput="previewTemplate()"></textarea>
+                <textarea name="body" id="tpl-form-body" rows="8" data-i18n-placeholder="templates-body-placeholder" oninput="previewTemplate()"></textarea>
             </div>
             <div class="crm-form-group">
                 <label data-i18n="templates-ai-prompt-label">AI Prompt (optional)</label>
-                <textarea name="ai_prompt" id="tpl-form-ai" rows="2" placeholder="Describe how AI should generate content..."></textarea>
+                <textarea name="ai_prompt" id="tpl-form-ai" rows="2" data-i18n-placeholder="templates-ai-prompt-placeholder"></textarea>
             </div>
 
             <!-- Live Preview -->

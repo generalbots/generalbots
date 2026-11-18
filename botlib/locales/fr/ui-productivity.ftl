@@ -616,3 +616,9 @@ db-import-csv = Importer CSV
 
 # semantic i18n key (#2542)
 db-select-csv-file = Sélectionner un fichier CSV
+
+# semantic i18n key (#2542)
+analytics-ask-placeholder = Posez une question sur vos données analytiques...
+tasks-intent-description-placeholder = Décrivez ce que vous voulez créer ou automatiser...
+tasks-assignee-placeholder = UUID du responsable (facultatif)
+tasks-parent-placeholder = UUID de la tâche parente (facultatif)

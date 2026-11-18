@@ -616,3 +616,9 @@ db-import-csv = Import CSV
 
 # semantic i18n key (#2542)
 db-select-csv-file = Select CSV file
+
+# semantic i18n key (#2542)
+analytics-ask-placeholder = Ask about your analytics data...
+tasks-intent-description-placeholder = Describe what you want to create or automate...
+tasks-assignee-placeholder = UUID of the assignee (optional)
+tasks-parent-placeholder = UUID of parent task (optional)
