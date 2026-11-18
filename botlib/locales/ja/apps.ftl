@@ -557,3 +557,27 @@ vision-clear = クリア
 
 # semantic i18n key (#2542)
 vision-send-image-hint = 分析する画像を送信してください
+
+# semantic i18n key (#2542)
+automations-title = 自動化
+
+# semantic i18n key (#2542)
+automations-new-schedule = 新しいスケジュール
+
+# semantic i18n key (#2542)
+automations-conversation-jobs = 会話ジョブ
+
+# semantic i18n key (#2542)
+automations-conversation-jobs-desc = 会話から作成された cron/systemd ジョブ
+
+# semantic i18n key (#2542)
+automations-goal-label = 目標
+
+# semantic i18n key (#2542)
+automations-cron-label = Cron 式（5フィールド: 分 時 日 月 曜日）
+
+# semantic i18n key (#2542)
+automations-max-runtime-label = 最大実行時間（秒）
+
+# semantic i18n key (#2542)
+automations-save-schedule = スケジュールを保存

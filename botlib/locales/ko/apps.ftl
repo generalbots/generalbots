@@ -557,3 +557,27 @@ vision-clear = 지우기
 
 # semantic i18n key (#2542)
 vision-send-image-hint = 분석할 이미지를 보내세요
+
+# semantic i18n key (#2542)
+automations-title = 자동화
+
+# semantic i18n key (#2542)
+automations-new-schedule = 새 일정
+
+# semantic i18n key (#2542)
+automations-conversation-jobs = 대화 작업
+
+# semantic i18n key (#2542)
+automations-conversation-jobs-desc = 대화에서 생성된 cron/systemd 작업
+
+# semantic i18n key (#2542)
+automations-goal-label = 목표
+
+# semantic i18n key (#2542)
+automations-cron-label = Cron 표현식(5개 필드: 분 시 일 월 요일)
+
+# semantic i18n key (#2542)
+automations-max-runtime-label = 최대 실행 시간(초)
+
+# semantic i18n key (#2542)
+automations-save-schedule = 일정 저장

@@ -557,3 +557,27 @@ vision-clear = 清除
 
 # semantic i18n key (#2542)
 vision-send-image-hint = 发送图像进行分析
+
+# semantic i18n key (#2542)
+automations-title = 自动化
+
+# semantic i18n key (#2542)
+automations-new-schedule = 新建计划
+
+# semantic i18n key (#2542)
+automations-conversation-jobs = 会话任务
+
+# semantic i18n key (#2542)
+automations-conversation-jobs-desc = 从会话创建的 cron/systemd 任务
+
+# semantic i18n key (#2542)
+automations-goal-label = 目标
+
+# semantic i18n key (#2542)
+automations-cron-label = Cron 表达式（5 个字段：分 时 日 月 星期）
+
+# semantic i18n key (#2542)
+automations-max-runtime-label = 最长运行时间（秒）
+
+# semantic i18n key (#2542)
+automations-save-schedule = 保存计划

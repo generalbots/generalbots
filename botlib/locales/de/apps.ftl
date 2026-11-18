@@ -557,3 +557,27 @@ vision-clear = Löschen
 
 # semantic i18n key (#2542)
 vision-send-image-hint = Senden Sie ein Bild zur Analyse
+
+# semantic i18n key (#2542)
+automations-title = Automatisierungen
+
+# semantic i18n key (#2542)
+automations-new-schedule = Neuer Zeitplan
+
+# semantic i18n key (#2542)
+automations-conversation-jobs = Konversationsaufträge
+
+# semantic i18n key (#2542)
+automations-conversation-jobs-desc = Aus Gesprächen erstellte Cron-/systemd-Aufträge
+
+# semantic i18n key (#2542)
+automations-goal-label = Ziel
+
+# semantic i18n key (#2542)
+automations-cron-label = Cron-Ausdruck (5 Felder: Min Stunde Tag Monat Wochentag)
+
+# semantic i18n key (#2542)
+automations-max-runtime-label = Maximale Laufzeit (Sekunden)
+
+# semantic i18n key (#2542)
+automations-save-schedule = Zeitplan speichern
