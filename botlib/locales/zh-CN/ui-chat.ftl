@@ -133,3 +133,5 @@ chat-status-streaming = 流式输出
 chat-status-thinking = 思考中
 chat-status-error = 错误
 chat-status-stopped = 已停止
+
+chat-response-ready = 回复就绪

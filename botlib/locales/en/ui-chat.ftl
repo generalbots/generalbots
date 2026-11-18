@@ -133,3 +133,5 @@ chat-status-streaming = Streaming
 chat-status-thinking = Thinking
 chat-status-error = Error
 chat-status-stopped = Stopped
+
+chat-response-ready = Response ready

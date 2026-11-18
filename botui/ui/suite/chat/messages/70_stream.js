@@ -255,6 +255,24 @@ function processMessage(data) {
     ChatState.currentReasoning = "";
     gbChatStatus({ state: "ready" });
     gbFinishTurn(data, completed);
+    // #2331 — announce completion once (not per token). The streaming bubble is
+    // aria-hidden during generation; this polite status tells assistive tech a
+    // response is ready without re-reading the full message.
+    try {
+      var announce = (window.gbT ? window.gbT("chat-response-ready", "Response ready") : "Response ready");
+      var polite = document.getElementById("gb-toast-live-polite");
+      if (polite) {
+        polite.textContent = "";
+        setTimeout(function () {
+          try {
+            polite.textContent = announce;
+            setTimeout(function () {
+              try { if (polite.textContent === announce) polite.textContent = ""; } catch (e2) {}
+            }, 1500);
+          } catch (e1) {}
+        }, 50);
+      }
+    } catch (eAnn) { /* announcement best-effort */ }
     // Consumers that react to a finished turn (voice/full-duplex, proactivity)
     // must fire once, on completion — not on the first streaming chunk.
     try {

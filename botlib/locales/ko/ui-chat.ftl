@@ -133,3 +133,5 @@ chat-status-streaming = 스트리밍
 chat-status-thinking = 생각 중
 chat-status-error = 오류
 chat-status-stopped = 중지됨
+
+chat-response-ready = 응답 준비 완료
