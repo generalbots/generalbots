@@ -167,3 +167,8 @@ mail-template-name = 템플릿 이름
 
 # semantic i18n key (#2542)
 mail-body-html = 본문 HTML
+
+# semantic i18n key (#2542)
+mail-placeholder-label-name = 예: 업무
+mail-placeholder-signature-name = 예: 업무용 서명
+mail-placeholder-signature-content = 감사합니다.<br><b>이름</b>

@@ -167,3 +167,8 @@ mail-template-name = 模板名称
 
 # semantic i18n key (#2542)
 mail-body-html = 正文 HTML
+
+# semantic i18n key (#2542)
+mail-placeholder-label-name = 例如：工作
+mail-placeholder-signature-name = 例如：专业签名
+mail-placeholder-signature-content = 此致敬礼，<br><b>您的姓名</b>

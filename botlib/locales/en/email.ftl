@@ -167,3 +167,8 @@ mail-template-name = Template Name
 
 # semantic i18n key (#2542)
 mail-body-html = Body HTML
+
+# semantic i18n key (#2542)
+mail-placeholder-label-name = e.g. Work
+mail-placeholder-signature-name = e.g. Professional Signature
+mail-placeholder-signature-content = Best regards,<br><b>Your Name</b>
