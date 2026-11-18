@@ -1073,3 +1073,5 @@ admin-billing-dashboard-exceeded-threshold = Limite excedido (%)
 admin-billing-dashboard-placeholder-warning = 80
 admin-billing-dashboard-placeholder-critical = 90
 admin-billing-dashboard-placeholder-exceeded = 100
+# semantic i18n key (#2542)
+admin-billing-dashboard-toggle-breakdown-view = Alternar visualização do detalhamento

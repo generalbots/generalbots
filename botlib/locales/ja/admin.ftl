@@ -1070,3 +1070,5 @@ admin-billing-dashboard-exceeded-threshold = 超過しきい値 (%)
 admin-billing-dashboard-placeholder-warning = 80
 admin-billing-dashboard-placeholder-critical = 90
 admin-billing-dashboard-placeholder-exceeded = 100
+# semantic i18n key (#2542)
+admin-billing-dashboard-toggle-breakdown-view = 内訳表示を切り替え
