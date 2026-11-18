@@ -1184,3 +1184,6 @@ retail-placeholder-stock-search = 搜索 SKU 或商品...
 retail-placeholder-branch-code = 例如：BR-01
 retail-placeholder-branch-name = 市中心
 retail-placeholder-discount = 例如：10% 或 ¥20
+
+# semantic i18n key (#2542)
+concierge-placeholder-goal = 例如：准备 CRM 报告、安排会议、查看天气…

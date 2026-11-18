@@ -75,3 +75,7 @@ drive-loading-files = ファイルを読み込み中...
 
 # semantic i18n key (#2542)
 drive-drop-hint = ここにファイルまたはフォルダをドロップしてアップロード
+
+# semantic i18n key (#2542)
+drive-search-all-placeholder = すべてのファイルを検索…
+drive-search-all-aria-label = 名前と内容ですべてのファイルを検索

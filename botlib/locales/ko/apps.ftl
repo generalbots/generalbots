@@ -1184,3 +1184,6 @@ retail-placeholder-stock-search = SKU 또는 상품 검색...
 retail-placeholder-branch-code = 예: BR-01
 retail-placeholder-branch-name = 도심점
 retail-placeholder-discount = 예: 10% 또는 ₩20,000
+
+# semantic i18n key (#2542)
+concierge-placeholder-goal = 예: CRM 보고서 준비, 회의 일정 잡기, 날씨 확인…

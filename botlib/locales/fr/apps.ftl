@@ -1184,3 +1184,6 @@ retail-placeholder-stock-search = Rechercher un SKU ou un produit...
 retail-placeholder-branch-code = p. ex. BR-01
 retail-placeholder-branch-name = Centre-ville
 retail-placeholder-discount = p. ex. 10 % ou 20 €
+
+# semantic i18n key (#2542)
+concierge-placeholder-goal = p. ex. préparer un rapport CRM, planifier une réunion, vérifier la météo…

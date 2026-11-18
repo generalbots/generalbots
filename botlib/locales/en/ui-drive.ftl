@@ -75,3 +75,7 @@ drive-loading-files = Loading files...
 
 # semantic i18n key (#2542)
 drive-drop-hint = Drop files or folders here to upload
+
+# semantic i18n key (#2542)
+drive-search-all-placeholder = Search all files…
+drive-search-all-aria-label = Search all files by name and content

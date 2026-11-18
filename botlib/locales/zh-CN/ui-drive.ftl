@@ -75,3 +75,7 @@ drive-loading-files = 正在加载文件...
 
 # semantic i18n key (#2542)
 drive-drop-hint = 将文件或文件夹拖放到此处以上传
+
+# semantic i18n key (#2542)
+drive-search-all-placeholder = 搜索所有文件…
+drive-search-all-aria-label = 按名称和内容搜索所有文件

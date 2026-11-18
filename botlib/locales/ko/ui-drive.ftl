@@ -75,3 +75,7 @@ drive-loading-files = 파일 불러오는 중...
 
 # semantic i18n key (#2542)
 drive-drop-hint = 여기에 파일이나 폴더를 끌어다 놓아 업로드하세요
+
+# semantic i18n key (#2542)
+drive-search-all-placeholder = 모든 파일 검색…
+drive-search-all-aria-label = 이름과 내용으로 모든 파일 검색
