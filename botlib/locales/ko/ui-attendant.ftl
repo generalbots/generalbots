@@ -146,3 +146,39 @@ attendant-toast-assigned = 나에게 할당된 대화
 attendant-toast-error = 오류가 발생했습니다
 attendant-toast-connection-lost = 연결이 끊겼습니다. 다시 연결하는 중...
 attendant-toast-connection-restored = 연결이 복원되었습니다.
+
+# semantic i18n key (#2542)
+handoff-title = 챗봇 핸드오프 및 분석
+
+# semantic i18n key (#2542)
+handoff-tab-queue = 핸드오프 대기열
+
+# semantic i18n key (#2542)
+handoff-tab-agents = 상담원
+
+# semantic i18n key (#2542)
+handoff-tab-channels = 채널
+
+# semantic i18n key (#2542)
+handoff-tab-csat = CSAT
+
+# semantic i18n key (#2542)
+handoff-tab-transcripts = 대화 기록
+
+# semantic i18n key (#2542)
+handoff-tab-sla = SLA 모니터
+
+# semantic i18n key (#2542)
+handoff-transfer-title = 대화 이관
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-skill = 스킬 불일치
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-workload = 업무량 분산
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-escalation = 고객 에스컬레이션
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-vip = VIP 처리

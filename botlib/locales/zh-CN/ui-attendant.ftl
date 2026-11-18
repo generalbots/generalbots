@@ -146,3 +146,39 @@ attendant-toast-assigned = 分配给您的对话
 attendant-toast-error = 发生错误
 attendant-toast-connection-lost = 连接丢失。正在重新连接...
 attendant-toast-connection-restored = 连接已恢复
+
+# semantic i18n key (#2542)
+handoff-title = 聊天机器人转接与分析
+
+# semantic i18n key (#2542)
+handoff-tab-queue = 转接队列
+
+# semantic i18n key (#2542)
+handoff-tab-agents = 客服
+
+# semantic i18n key (#2542)
+handoff-tab-channels = 渠道
+
+# semantic i18n key (#2542)
+handoff-tab-csat = CSAT
+
+# semantic i18n key (#2542)
+handoff-tab-transcripts = 转录记录
+
+# semantic i18n key (#2542)
+handoff-tab-sla = SLA 监控
+
+# semantic i18n key (#2542)
+handoff-transfer-title = 转接对话
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-skill = 技能不匹配
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-workload = 工作负载均衡
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-escalation = 客户升级
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-vip = VIP 处理

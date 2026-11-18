@@ -146,3 +146,39 @@ attendant-toast-assigned = あなたに割り当てられた会話
 attendant-toast-error = エラーが発生しました
 attendant-toast-connection-lost = 接続が失われました。再接続中...
 attendant-toast-connection-restored = 接続が回復しました
+
+# semantic i18n key (#2542)
+handoff-title = チャットボット引き継ぎと分析
+
+# semantic i18n key (#2542)
+handoff-tab-queue = 引き継ぎキュー
+
+# semantic i18n key (#2542)
+handoff-tab-agents = エージェント
+
+# semantic i18n key (#2542)
+handoff-tab-channels = チャネル
+
+# semantic i18n key (#2542)
+handoff-tab-csat = CSAT
+
+# semantic i18n key (#2542)
+handoff-tab-transcripts = トランスクリプト
+
+# semantic i18n key (#2542)
+handoff-tab-sla = SLAモニター
+
+# semantic i18n key (#2542)
+handoff-transfer-title = 会話を転送
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-skill = スキルの不一致
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-workload = 負荷分散
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-escalation = 顧客エスカレーション
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-vip = VIP対応

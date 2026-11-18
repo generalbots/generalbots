@@ -146,3 +146,39 @@ attendant-toast-assigned = Conversation qui vous est attribuée
 attendant-toast-error = Une erreur s'est produite
 attendant-toast-connection-lost = Connexion perdue. Reconnexion...
 attendant-toast-connection-restored = Connexion rétablie
+
+# semantic i18n key (#2542)
+handoff-title = Transfert du chatbot et analyses
+
+# semantic i18n key (#2542)
+handoff-tab-queue = File de transfert
+
+# semantic i18n key (#2542)
+handoff-tab-agents = Agents
+
+# semantic i18n key (#2542)
+handoff-tab-channels = Canaux
+
+# semantic i18n key (#2542)
+handoff-tab-csat = CSAT
+
+# semantic i18n key (#2542)
+handoff-tab-transcripts = Transcriptions
+
+# semantic i18n key (#2542)
+handoff-tab-sla = Moniteur SLA
+
+# semantic i18n key (#2542)
+handoff-transfer-title = Transférer la conversation
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-skill = Inadéquation des compétences
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-workload = Répartition de la charge
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-escalation = Escalade client
+
+# semantic i18n key (#2542)
+handoff-transfer-reason-vip = Gestion VIP
