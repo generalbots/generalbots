@@ -194,3 +194,54 @@ widget-clear-done = 완료 항목 지우기
 
 # semantic i18n key (#2542)
 terminal-tab-1 = 터미널 1
+
+# semantic i18n key (#2542)
+preview-loading-parameters = 매개변수 불러오는 중...
+
+# semantic i18n key (#2542)
+test-harness-ready = 준비 완료
+
+# semantic i18n key (#2542)
+canvas-loading = 캔버스 불러오는 중…
+
+# semantic i18n key (#2542)
+canvas-unavailable = 캔버스를 사용할 수 없음
+
+# semantic i18n key (#2542)
+compliance-iso27001-title = ISO 27001 규정 준수
+
+# semantic i18n key (#2542)
+concierge-title = 컨시어지
+
+# semantic i18n key (#2542)
+concierge-description = 원하는 것을 설명하세요 — 계획을 세우고 적절한 앱을 열겠습니다.
+
+# semantic i18n key (#2542)
+preview-save-to-drive = 드라이브에 저장
+
+# semantic i18n key (#2542)
+preview-no-file-selected = 선택된 파일이 없습니다. 채팅에서 파일을 여세요.
+
+# semantic i18n key (#2542)
+vibe-mcp-servers = 🔌 MCP 서버
+
+# semantic i18n key (#2542)
+vibe-loading-servers = 서버 불러오는 중...
+
+# semantic i18n key (#2542)
+pos-title = 판매 시점 관리
+
+# semantic i18n key (#2542)
+pos-cart = 장바구니
+
+# semantic i18n key (#2542)
+vibe-canvas-project-label = 프로젝트
+
+# semantic i18n key (#2542)
+vibe-canvas-draw-file = project.draw
+
+# semantic i18n key (#2542)
+widget-system-resources = 시스템 리소스
+
+# semantic i18n key (#2542)
+widget-cores = 코어

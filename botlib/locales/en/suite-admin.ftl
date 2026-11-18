@@ -66,3 +66,6 @@ admin-notify-system-roles-cannot-be-deleted = System roles cannot be deleted
 admin-notify-testing-smtp-connection = Testing SMTP connection...
 admin-notify-upgrade-failed-reason = Upgrade failed: { $reason }
 admin-notify-upload-failed-reason = Upload failed: { $reason }
+
+# semantic i18n key (#2542)
+admin-views = Views

@@ -194,3 +194,54 @@ widget-clear-done = Erledigte löschen
 
 # semantic i18n key (#2542)
 terminal-tab-1 = Terminal 1
+
+# semantic i18n key (#2542)
+preview-loading-parameters = Parameter werden geladen...
+
+# semantic i18n key (#2542)
+test-harness-ready = BEREIT
+
+# semantic i18n key (#2542)
+canvas-loading = Leinwand wird geladen…
+
+# semantic i18n key (#2542)
+canvas-unavailable = Leinwand nicht verfügbar
+
+# semantic i18n key (#2542)
+compliance-iso27001-title = ISO-27001-Konformität
+
+# semantic i18n key (#2542)
+concierge-title = Concierge
+
+# semantic i18n key (#2542)
+concierge-description = Beschreiben Sie, was Sie möchten — ich plane es und öffne die richtigen Apps.
+
+# semantic i18n key (#2542)
+preview-save-to-drive = In Drive speichern
+
+# semantic i18n key (#2542)
+preview-no-file-selected = Keine Datei ausgewählt. Öffnen Sie eine Datei aus dem Chat.
+
+# semantic i18n key (#2542)
+vibe-mcp-servers = 🔌 MCP-Server
+
+# semantic i18n key (#2542)
+vibe-loading-servers = Server werden geladen...
+
+# semantic i18n key (#2542)
+pos-title = Kassensystem
+
+# semantic i18n key (#2542)
+pos-cart = Warenkorb
+
+# semantic i18n key (#2542)
+vibe-canvas-project-label = Projekt
+
+# semantic i18n key (#2542)
+vibe-canvas-draw-file = project.draw
+
+# semantic i18n key (#2542)
+widget-system-resources = Systemressourcen
+
+# semantic i18n key (#2542)
+widget-cores = Kerne

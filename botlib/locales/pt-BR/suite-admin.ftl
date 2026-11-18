@@ -66,3 +66,6 @@ admin-notify-system-roles-cannot-be-deleted = Papéis do sistema não podem ser 
 admin-notify-testing-smtp-connection = Testando conexão SMTP...
 admin-notify-upgrade-failed-reason = Falha na atualização: { $reason }
 admin-notify-upload-failed-reason = Falha no envio: { $reason }
+
+# semantic i18n key (#2542)
+admin-views = Visualizações

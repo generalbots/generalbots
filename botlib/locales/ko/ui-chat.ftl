@@ -139,3 +139,12 @@ chat-response-started = 어시스턴트가 응답 중입니다
 
 # semantic i18n key (#2542)
 chat-no-suggestions-available = 사용 가능한 제안 없음
+
+# semantic i18n key (#2542)
+chat-start-conversation = 대화 시작
+
+# semantic i18n key (#2542)
+chat-empty-hint = 아래에 메시지를 입력하거나 음성 입력을 사용하세요
+
+# semantic i18n key (#2542)
+chat-no-conversations-yet = 아직 대화가 없습니다

@@ -330,3 +330,9 @@ comments-filter-resolved = Resueltos
 comments-input-placeholder = Añada un comentario… use @nombre para mencionar
 comments-someone = alguien
 comments-mention-announce = Le mencionaron en un comentario de { $author }
+
+# semantic i18n key (#2542)
+user-menu-help-support = Ayuda y soporte
+
+# semantic i18n key (#2542)
+user-menu-sign-out = Cerrar sesión

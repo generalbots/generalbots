@@ -139,3 +139,12 @@ chat-response-started = アシスタントが応答しています
 
 # semantic i18n key (#2542)
 chat-no-suggestions-available = 利用可能な提案はありません
+
+# semantic i18n key (#2542)
+chat-start-conversation = 会話を開始
+
+# semantic i18n key (#2542)
+chat-empty-hint = 下にメッセージを入力するか音声入力を使用してください
+
+# semantic i18n key (#2542)
+chat-no-conversations-yet = まだ会話はありません

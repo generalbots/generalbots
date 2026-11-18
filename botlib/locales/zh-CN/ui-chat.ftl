@@ -139,3 +139,12 @@ chat-response-started = 助手正在回复
 
 # semantic i18n key (#2542)
 chat-no-suggestions-available = 没有可用建议
+
+# semantic i18n key (#2542)
+chat-start-conversation = 开始对话
+
+# semantic i18n key (#2542)
+chat-empty-hint = 在下方输入消息或使用语音输入
+
+# semantic i18n key (#2542)
+chat-no-conversations-yet = 暂无对话

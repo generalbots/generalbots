@@ -139,3 +139,12 @@ chat-response-started = Assistant is responding
 
 # semantic i18n key (#2542)
 chat-no-suggestions-available = No suggestions available
+
+# semantic i18n key (#2542)
+chat-start-conversation = Start a conversation
+
+# semantic i18n key (#2542)
+chat-empty-hint = Type a message below or use voice input
+
+# semantic i18n key (#2542)
+chat-no-conversations-yet = No conversations yet

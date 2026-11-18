@@ -66,3 +66,6 @@ admin-notify-system-roles-cannot-be-deleted = 系统角色无法删除
 admin-notify-testing-smtp-connection = 正在测试 SMTP 连接...
 admin-notify-upgrade-failed-reason = 升级失败:{ $reason }
 admin-notify-upload-failed-reason = 上传失败:{ $reason }
+
+# semantic i18n key (#2542)
+admin-views = 视图

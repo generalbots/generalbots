@@ -66,3 +66,6 @@ admin-notify-system-roles-cannot-be-deleted = 시스템 역할은 삭제할 수 
 admin-notify-testing-smtp-connection = SMTP 연결을 테스트하는 중...
 admin-notify-upgrade-failed-reason = 업그레이드에 실패했습니다: { $reason }
 admin-notify-upload-failed-reason = 업로드에 실패했습니다: { $reason }
+
+# semantic i18n key (#2542)
+admin-views = 보기

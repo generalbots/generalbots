@@ -194,3 +194,54 @@ widget-clear-done = 清除已完成
 
 # semantic i18n key (#2542)
 terminal-tab-1 = 终端 1
+
+# semantic i18n key (#2542)
+preview-loading-parameters = 正在加载参数...
+
+# semantic i18n key (#2542)
+test-harness-ready = 就绪
+
+# semantic i18n key (#2542)
+canvas-loading = 正在加载画布…
+
+# semantic i18n key (#2542)
+canvas-unavailable = 画布不可用
+
+# semantic i18n key (#2542)
+compliance-iso27001-title = ISO 27001 合规
+
+# semantic i18n key (#2542)
+concierge-title = 礼宾助手
+
+# semantic i18n key (#2542)
+concierge-description = 描述您想要的内容——我会为您规划并打开合适的应用。
+
+# semantic i18n key (#2542)
+preview-save-to-drive = 保存到云盘
+
+# semantic i18n key (#2542)
+preview-no-file-selected = 未选择文件。请从聊天中打开文件。
+
+# semantic i18n key (#2542)
+vibe-mcp-servers = 🔌 MCP 服务器
+
+# semantic i18n key (#2542)
+vibe-loading-servers = 正在加载服务器...
+
+# semantic i18n key (#2542)
+pos-title = 销售点
+
+# semantic i18n key (#2542)
+pos-cart = 购物车
+
+# semantic i18n key (#2542)
+vibe-canvas-project-label = 项目
+
+# semantic i18n key (#2542)
+vibe-canvas-draw-file = project.draw
+
+# semantic i18n key (#2542)
+widget-system-resources = 系统资源
+
+# semantic i18n key (#2542)
+widget-cores = 核心

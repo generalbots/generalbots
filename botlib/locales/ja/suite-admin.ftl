@@ -66,3 +66,6 @@ admin-notify-system-roles-cannot-be-deleted = システムロールは削除で�
 admin-notify-testing-smtp-connection = SMTP 接続をテストしています...
 admin-notify-upgrade-failed-reason = アップグレードに失敗しました: { $reason }
 admin-notify-upload-failed-reason = アップロードに失敗しました: { $reason }
+
+# semantic i18n key (#2542)
+admin-views = ビュー

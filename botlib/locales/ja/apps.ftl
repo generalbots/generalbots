@@ -194,3 +194,54 @@ widget-clear-done = 完了をクリア
 
 # semantic i18n key (#2542)
 terminal-tab-1 = ターミナル 1
+
+# semantic i18n key (#2542)
+preview-loading-parameters = パラメータを読み込み中...
+
+# semantic i18n key (#2542)
+test-harness-ready = 準備完了
+
+# semantic i18n key (#2542)
+canvas-loading = キャンバスを読み込み中…
+
+# semantic i18n key (#2542)
+canvas-unavailable = キャンバスを利用できません
+
+# semantic i18n key (#2542)
+compliance-iso27001-title = ISO 27001 コンプライアンス
+
+# semantic i18n key (#2542)
+concierge-title = コンシェルジュ
+
+# semantic i18n key (#2542)
+concierge-description = やりたいことを説明してください。計画して適切なアプリを開きます。
+
+# semantic i18n key (#2542)
+preview-save-to-drive = ドライブに保存
+
+# semantic i18n key (#2542)
+preview-no-file-selected = ファイルが選択されていません。チャットからファイルを開いてください。
+
+# semantic i18n key (#2542)
+vibe-mcp-servers = 🔌 MCP サーバー
+
+# semantic i18n key (#2542)
+vibe-loading-servers = サーバーを読み込み中...
+
+# semantic i18n key (#2542)
+pos-title = POS
+
+# semantic i18n key (#2542)
+pos-cart = カート
+
+# semantic i18n key (#2542)
+vibe-canvas-project-label = プロジェクト
+
+# semantic i18n key (#2542)
+vibe-canvas-draw-file = project.draw
+
+# semantic i18n key (#2542)
+widget-system-resources = システムリソース
+
+# semantic i18n key (#2542)
+widget-cores = コア

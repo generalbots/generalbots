@@ -324,3 +324,9 @@ dataexport-error-not-object = the file is not a backup object
 dataexport-error-version = unsupported backup version
 dataexport-error-date = the backup has no valid export date
 dataexport-error-section = unexpected section: { $section }
+
+# semantic i18n key (#2542)
+user-menu-help-support = ヘルプとサポート
+
+# semantic i18n key (#2542)
+user-menu-sign-out = サインアウト
