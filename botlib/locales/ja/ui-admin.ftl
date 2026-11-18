@@ -665,3 +665,129 @@ admin-onboarding-plan-pro-desc = 成長中のチーム向け
 
 # semantic i18n key (#2542)
 admin-onboarding-select-pro = Pro を選択
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-title = 組織ダッシュボード
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-subtitle = 組織のアクティビティ、メンバー、システム状態の概要
+
+# semantic i18n key (#2542)
+admin-dashboard-team-members = チームメンバー
+
+# semantic i18n key (#2542)
+admin-dashboard-system-uptime = システム稼働時間
+
+# semantic i18n key (#2542)
+admin-dashboard-api-server = API サーバー
+
+# semantic i18n key (#2542)
+admin-dashboard-operational = 稼働中
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-45ms = レイテンシ: 45ms
+
+# semantic i18n key (#2542)
+admin-dashboard-requests-1-2k-min = リクエスト: 1.2K/分
+
+# semantic i18n key (#2542)
+admin-dashboard-connections-45-100 = 接続数: 45/100
+
+# semantic i18n key (#2542)
+admin-dashboard-query-time-12ms = クエリ時間: 12ms
+
+# semantic i18n key (#2542)
+admin-dashboard-vector-database = ベクトルデータベース
+
+# semantic i18n key (#2542)
+admin-dashboard-vectors-2-4m = ベクトル: 2.4M
+
+# semantic i18n key (#2542)
+admin-dashboard-search-8ms = 検索: 8ms
+
+# semantic i18n key (#2542)
+admin-dashboard-tokens-125k-min = トークン: 125K/分
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-850ms = レイテンシ: 850ms
+
+# semantic i18n key (#2542)
+admin-dashboard-high-usage = 使用率高
+
+# semantic i18n key (#2542)
+admin-dashboard-used-34-5gb = 使用量: 34.5GB
+
+# semantic i18n key (#2542)
+admin-dashboard-iops-2-1k = IOPS: 2.1K
+
+# semantic i18n key (#2542)
+admin-dashboard-members-filter = メンバー
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-support-bot = カスタマーサポートボット
+
+# semantic i18n key (#2542)
+admin-dashboard-security-alert = セキュリティアラート:
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-feedback-survey = 顧客フィードバック調査
+
+# semantic i18n key (#2542)
+admin-dashboard-sales-assistant = 営業アシスタント
+
+# semantic i18n key (#2542)
+admin-dashboard-load-more-activity = さらにアクティビティを読み込む
+
+# semantic i18n key (#2542)
+admin-dashboard-john-smith = John Smith
+
+# semantic i18n key (#2542)
+admin-dashboard-role-distribution = ロール分布
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-roles = ロールを管理
+
+# semantic i18n key (#2542)
+admin-dashboard-bot-status = ボットの状態
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-bots = ボットを管理
+
+# semantic i18n key (#2542)
+admin-dashboard-handles-customer-inquiries = 顧客からの問い合わせに対応
+
+# semantic i18n key (#2542)
+admin-dashboard-product-recommendations = 製品のおすすめ
+
+# semantic i18n key (#2542)
+admin-dashboard-hr-assistant = 人事アシスタント
+
+# semantic i18n key (#2542)
+admin-dashboard-employee-questions = 従業員からの質問
+
+# semantic i18n key (#2542)
+admin-dashboard-it-helpdesk = IT ヘルプデスク
+
+# semantic i18n key (#2542)
+admin-dashboard-technical-support = 技術サポート
+
+# semantic i18n key (#2542)
+admin-dashboard-pending-invitations = 保留中の招待
+
+# semantic i18n key (#2542)
+admin-dashboard-loading-invitations = 招待を読み込み中…
+
+# semantic i18n key (#2542)
+admin-dashboard-invite-member = メンバーを招待
+
+# semantic i18n key (#2542)
+admin-dashboard-bulk-invite = 一括招待
+
+# semantic i18n key (#2542)
+admin-dashboard-emails-label = メールアドレス（1行に1件、カンマまたはセミコロン区切り）
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-users = ユーザーを管理
+
+# semantic i18n key (#2542)
+admin-dashboard-roles-permissions = ロールと権限

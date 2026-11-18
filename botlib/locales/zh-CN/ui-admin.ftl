@@ -665,3 +665,129 @@ admin-onboarding-plan-pro-desc = 适用于成长型团队
 
 # semantic i18n key (#2542)
 admin-onboarding-select-pro = 选择专业版
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-title = 组织仪表板
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-subtitle = 组织活动、成员和系统运行状况概览
+
+# semantic i18n key (#2542)
+admin-dashboard-team-members = 团队成员
+
+# semantic i18n key (#2542)
+admin-dashboard-system-uptime = 系统正常运行时间
+
+# semantic i18n key (#2542)
+admin-dashboard-api-server = API 服务器
+
+# semantic i18n key (#2542)
+admin-dashboard-operational = 运行正常
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-45ms = 延迟：45ms
+
+# semantic i18n key (#2542)
+admin-dashboard-requests-1-2k-min = 请求：1.2K/分钟
+
+# semantic i18n key (#2542)
+admin-dashboard-connections-45-100 = 连接数：45/100
+
+# semantic i18n key (#2542)
+admin-dashboard-query-time-12ms = 查询时间：12ms
+
+# semantic i18n key (#2542)
+admin-dashboard-vector-database = 向量数据库
+
+# semantic i18n key (#2542)
+admin-dashboard-vectors-2-4m = 向量：2.4M
+
+# semantic i18n key (#2542)
+admin-dashboard-search-8ms = 搜索：8ms
+
+# semantic i18n key (#2542)
+admin-dashboard-tokens-125k-min = 令牌：125K/分钟
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-850ms = 延迟：850ms
+
+# semantic i18n key (#2542)
+admin-dashboard-high-usage = 使用率高
+
+# semantic i18n key (#2542)
+admin-dashboard-used-34-5gb = 已用：34.5GB
+
+# semantic i18n key (#2542)
+admin-dashboard-iops-2-1k = IOPS：2.1K
+
+# semantic i18n key (#2542)
+admin-dashboard-members-filter = 成员
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-support-bot = 客户支持机器人
+
+# semantic i18n key (#2542)
+admin-dashboard-security-alert = 安全警报：
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-feedback-survey = 客户反馈调查
+
+# semantic i18n key (#2542)
+admin-dashboard-sales-assistant = 销售助理
+
+# semantic i18n key (#2542)
+admin-dashboard-load-more-activity = 加载更多活动
+
+# semantic i18n key (#2542)
+admin-dashboard-john-smith = John Smith
+
+# semantic i18n key (#2542)
+admin-dashboard-role-distribution = 角色分布
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-roles = 管理角色
+
+# semantic i18n key (#2542)
+admin-dashboard-bot-status = 机器人状态
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-bots = 管理机器人
+
+# semantic i18n key (#2542)
+admin-dashboard-handles-customer-inquiries = 处理客户咨询
+
+# semantic i18n key (#2542)
+admin-dashboard-product-recommendations = 产品推荐
+
+# semantic i18n key (#2542)
+admin-dashboard-hr-assistant = 人力资源助理
+
+# semantic i18n key (#2542)
+admin-dashboard-employee-questions = 员工问题
+
+# semantic i18n key (#2542)
+admin-dashboard-it-helpdesk = IT 服务台
+
+# semantic i18n key (#2542)
+admin-dashboard-technical-support = 技术支持
+
+# semantic i18n key (#2542)
+admin-dashboard-pending-invitations = 待处理邀请
+
+# semantic i18n key (#2542)
+admin-dashboard-loading-invitations = 正在加载邀请…
+
+# semantic i18n key (#2542)
+admin-dashboard-invite-member = 邀请成员
+
+# semantic i18n key (#2542)
+admin-dashboard-bulk-invite = 批量邀请
+
+# semantic i18n key (#2542)
+admin-dashboard-emails-label = 电子邮件（每行一个，以逗号或分号分隔）
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-users = 管理用户
+
+# semantic i18n key (#2542)
+admin-dashboard-roles-permissions = 角色和权限

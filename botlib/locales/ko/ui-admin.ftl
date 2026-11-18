@@ -665,3 +665,129 @@ admin-onboarding-plan-pro-desc = 성장하는 팀용
 
 # semantic i18n key (#2542)
 admin-onboarding-select-pro = Pro 선택
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-title = 조직 대시보드
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-subtitle = 조직의 활동, 구성원 및 시스템 상태 개요
+
+# semantic i18n key (#2542)
+admin-dashboard-team-members = 팀 구성원
+
+# semantic i18n key (#2542)
+admin-dashboard-system-uptime = 시스템 가동 시간
+
+# semantic i18n key (#2542)
+admin-dashboard-api-server = API 서버
+
+# semantic i18n key (#2542)
+admin-dashboard-operational = 정상 운영 중
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-45ms = 지연 시간: 45ms
+
+# semantic i18n key (#2542)
+admin-dashboard-requests-1-2k-min = 요청: 1.2K/분
+
+# semantic i18n key (#2542)
+admin-dashboard-connections-45-100 = 연결: 45/100
+
+# semantic i18n key (#2542)
+admin-dashboard-query-time-12ms = 쿼리 시간: 12ms
+
+# semantic i18n key (#2542)
+admin-dashboard-vector-database = 벡터 데이터베이스
+
+# semantic i18n key (#2542)
+admin-dashboard-vectors-2-4m = 벡터: 2.4M
+
+# semantic i18n key (#2542)
+admin-dashboard-search-8ms = 검색: 8ms
+
+# semantic i18n key (#2542)
+admin-dashboard-tokens-125k-min = 토큰: 125K/분
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-850ms = 지연 시간: 850ms
+
+# semantic i18n key (#2542)
+admin-dashboard-high-usage = 높은 사용량
+
+# semantic i18n key (#2542)
+admin-dashboard-used-34-5gb = 사용됨: 34.5GB
+
+# semantic i18n key (#2542)
+admin-dashboard-iops-2-1k = IOPS: 2.1K
+
+# semantic i18n key (#2542)
+admin-dashboard-members-filter = 구성원
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-support-bot = 고객 지원 봇
+
+# semantic i18n key (#2542)
+admin-dashboard-security-alert = 보안 경고:
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-feedback-survey = 고객 피드백 설문조사
+
+# semantic i18n key (#2542)
+admin-dashboard-sales-assistant = 영업 어시스턴트
+
+# semantic i18n key (#2542)
+admin-dashboard-load-more-activity = 활동 더 보기
+
+# semantic i18n key (#2542)
+admin-dashboard-john-smith = John Smith
+
+# semantic i18n key (#2542)
+admin-dashboard-role-distribution = 역할 분포
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-roles = 역할 관리
+
+# semantic i18n key (#2542)
+admin-dashboard-bot-status = 봇 상태
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-bots = 봇 관리
+
+# semantic i18n key (#2542)
+admin-dashboard-handles-customer-inquiries = 고객 문의 처리
+
+# semantic i18n key (#2542)
+admin-dashboard-product-recommendations = 제품 추천
+
+# semantic i18n key (#2542)
+admin-dashboard-hr-assistant = 인사 어시스턴트
+
+# semantic i18n key (#2542)
+admin-dashboard-employee-questions = 직원 질문
+
+# semantic i18n key (#2542)
+admin-dashboard-it-helpdesk = IT 헬프데스크
+
+# semantic i18n key (#2542)
+admin-dashboard-technical-support = 기술 지원
+
+# semantic i18n key (#2542)
+admin-dashboard-pending-invitations = 대기 중인 초대
+
+# semantic i18n key (#2542)
+admin-dashboard-loading-invitations = 초대 불러오는 중…
+
+# semantic i18n key (#2542)
+admin-dashboard-invite-member = 구성원 초대
+
+# semantic i18n key (#2542)
+admin-dashboard-bulk-invite = 대량 초대
+
+# semantic i18n key (#2542)
+admin-dashboard-emails-label = 이메일(한 줄에 하나씩, 쉼표 또는 세미콜론으로 구분)
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-users = 사용자 관리
+
+# semantic i18n key (#2542)
+admin-dashboard-roles-permissions = 역할 및 권한

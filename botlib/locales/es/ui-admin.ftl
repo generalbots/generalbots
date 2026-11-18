@@ -665,3 +665,129 @@ admin-onboarding-plan-pro-desc = Para equipos en crecimiento
 
 # semantic i18n key (#2542)
 admin-onboarding-select-pro = Seleccionar Pro
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-title = Panel de la organización
+
+# semantic i18n key (#2542)
+admin-dashboard-organization-subtitle = Resumen de la actividad, los miembros y el estado del sistema de tu organización
+
+# semantic i18n key (#2542)
+admin-dashboard-team-members = Miembros del equipo
+
+# semantic i18n key (#2542)
+admin-dashboard-system-uptime = Tiempo de actividad del sistema
+
+# semantic i18n key (#2542)
+admin-dashboard-api-server = Servidor de API
+
+# semantic i18n key (#2542)
+admin-dashboard-operational = Operativo
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-45ms = Latencia: 45ms
+
+# semantic i18n key (#2542)
+admin-dashboard-requests-1-2k-min = Solicitudes: 1,2K/min
+
+# semantic i18n key (#2542)
+admin-dashboard-connections-45-100 = Conexiones: 45/100
+
+# semantic i18n key (#2542)
+admin-dashboard-query-time-12ms = Tiempo de consulta: 12ms
+
+# semantic i18n key (#2542)
+admin-dashboard-vector-database = Base de datos vectorial
+
+# semantic i18n key (#2542)
+admin-dashboard-vectors-2-4m = Vectores: 2,4M
+
+# semantic i18n key (#2542)
+admin-dashboard-search-8ms = Búsqueda: 8ms
+
+# semantic i18n key (#2542)
+admin-dashboard-tokens-125k-min = Tokens: 125K/min
+
+# semantic i18n key (#2542)
+admin-dashboard-latency-850ms = Latencia: 850ms
+
+# semantic i18n key (#2542)
+admin-dashboard-high-usage = Uso alto
+
+# semantic i18n key (#2542)
+admin-dashboard-used-34-5gb = Usado: 34,5 GB
+
+# semantic i18n key (#2542)
+admin-dashboard-iops-2-1k = IOPS: 2,1K
+
+# semantic i18n key (#2542)
+admin-dashboard-members-filter = Miembros
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-support-bot = Bot de atención al cliente
+
+# semantic i18n key (#2542)
+admin-dashboard-security-alert = Alerta de seguridad:
+
+# semantic i18n key (#2542)
+admin-dashboard-customer-feedback-survey = Encuesta de comentarios de clientes
+
+# semantic i18n key (#2542)
+admin-dashboard-sales-assistant = Asistente de ventas
+
+# semantic i18n key (#2542)
+admin-dashboard-load-more-activity = Cargar más actividad
+
+# semantic i18n key (#2542)
+admin-dashboard-john-smith = John Smith
+
+# semantic i18n key (#2542)
+admin-dashboard-role-distribution = Distribución de roles
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-roles = Administrar roles
+
+# semantic i18n key (#2542)
+admin-dashboard-bot-status = Estado del bot
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-bots = Administrar bots
+
+# semantic i18n key (#2542)
+admin-dashboard-handles-customer-inquiries = Gestiona consultas de clientes
+
+# semantic i18n key (#2542)
+admin-dashboard-product-recommendations = Recomendaciones de productos
+
+# semantic i18n key (#2542)
+admin-dashboard-hr-assistant = Asistente de RR. HH.
+
+# semantic i18n key (#2542)
+admin-dashboard-employee-questions = Preguntas de empleados
+
+# semantic i18n key (#2542)
+admin-dashboard-it-helpdesk = Mesa de ayuda de TI
+
+# semantic i18n key (#2542)
+admin-dashboard-technical-support = Soporte técnico
+
+# semantic i18n key (#2542)
+admin-dashboard-pending-invitations = Invitaciones pendientes
+
+# semantic i18n key (#2542)
+admin-dashboard-loading-invitations = Cargando invitaciones…
+
+# semantic i18n key (#2542)
+admin-dashboard-invite-member = Invitar miembro
+
+# semantic i18n key (#2542)
+admin-dashboard-bulk-invite = Invitación masiva
+
+# semantic i18n key (#2542)
+admin-dashboard-emails-label = Correos electrónicos (uno por línea, separados por coma o punto y coma)
+
+# semantic i18n key (#2542)
+admin-dashboard-manage-users = Administrar usuarios
+
+# semantic i18n key (#2542)
+admin-dashboard-roles-permissions = Roles y permisos
