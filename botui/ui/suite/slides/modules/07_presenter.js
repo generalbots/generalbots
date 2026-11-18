@@ -166,11 +166,11 @@
     panel.innerHTML =
       '<div class="gqa-header">' +
       '<span class="gqa-title">Questions &amp; answers</span>' +
-      '<button class="gqa-close" title="Close" aria-label="Close">×</button>' +
+      '<button class="gqa-close" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close">×</button>' +
       '</div>' +
       '<div class="gqa-list"></div>' +
       '<div class="gqa-compose">' +
-      '<textarea class="gqa-input" placeholder="Ask a question…" aria-label="Question"></textarea>' +
+      '<textarea class="gqa-input" placeholder="Ask a question…" aria-label="Question" data-i18n-aria-label="webinar-poll-question"></textarea>' +
       '<button class="gqa-send">Ask</button>' +
       '</div>';
     document.body.appendChild(panel);
