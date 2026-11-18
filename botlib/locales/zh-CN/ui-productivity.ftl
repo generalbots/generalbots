@@ -514,3 +514,27 @@ tasks-skip-for-now = 暂时跳过
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = 确认决定
+
+# semantic i18n key (#2542)
+tasks-due-soon = 即将到期
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // 自动任务项
+
+# semantic i18n key (#2542)
+tasks-edit-task = 编辑任务
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = 负责人（用户 ID）
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = 父任务（…的子任务）
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ 重新打开
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ 完成
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 删除

@@ -514,3 +514,27 @@ tasks-skip-for-now = 지금은 건너뛰기
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = 결정 확인
+
+# semantic i18n key (#2542)
+tasks-due-soon = 곧 마감
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // 자동 작업 항목
+
+# semantic i18n key (#2542)
+tasks-edit-task = 작업 편집
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = 담당자(사용자 ID)
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = 상위 작업(…의 하위 작업)
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ 다시 열기
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ 완료
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 삭제

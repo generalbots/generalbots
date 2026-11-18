@@ -514,3 +514,27 @@ tasks-skip-for-now = 今はスキップ
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = 決定を確認
+
+# semantic i18n key (#2542)
+tasks-due-soon = 期限間近
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // AUTOTASK アイテム
+
+# semantic i18n key (#2542)
+tasks-edit-task = タスクを編集
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = 担当者（ユーザー ID）
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = 親タスク（…のサブタスク）
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ 再開
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ 完了
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 削除

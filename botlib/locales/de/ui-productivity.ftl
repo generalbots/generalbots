@@ -514,3 +514,27 @@ tasks-skip-for-now = Vorerst überspringen
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = Entscheidung bestätigen
+
+# semantic i18n key (#2542)
+tasks-due-soon = Bald fällig
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // AUTOTASK-ELEMENTE
+
+# semantic i18n key (#2542)
+tasks-edit-task = Aufgabe bearbeiten
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = Zugewiesen (Benutzer-ID)
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = Übergeordnete Aufgabe (Unteraufgabe von…)
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ Wieder öffnen
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ Abschließen
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 Löschen

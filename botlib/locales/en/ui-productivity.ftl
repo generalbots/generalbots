@@ -514,3 +514,27 @@ tasks-skip-for-now = Skip for Now
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = Confirm Decision
+
+# semantic i18n key (#2542)
+tasks-due-soon = Due soon
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // AUTOTASK ITEMS
+
+# semantic i18n key (#2542)
+tasks-edit-task = Edit Task
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = Assignee (user ID)
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = Parent task (subtask of…)
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ Reopen
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ Complete
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 Delete

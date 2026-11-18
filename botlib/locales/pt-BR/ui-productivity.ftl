@@ -514,3 +514,27 @@ tasks-skip-for-now = Pular por enquanto
 
 # semantic i18n key (#2542)
 tasks-confirm-decision = Confirmar decisão
+
+# semantic i18n key (#2542)
+tasks-due-soon = Vence em breve
+
+# semantic i18n key (#2542)
+tasks-autotask-items = // ITENS DE AUTOTAREFA
+
+# semantic i18n key (#2542)
+tasks-edit-task = Editar tarefa
+
+# semantic i18n key (#2542)
+tasks-assignee-user-id = Responsável (ID do usuário)
+
+# semantic i18n key (#2542)
+tasks-parent-task-subtask-of = Tarefa pai (subtarefa de…)
+
+# semantic i18n key (#2542)
+tasks-reopen-action = ↩ Reabrir
+
+# semantic i18n key (#2542)
+tasks-complete-action = ✓ Concluir
+
+# semantic i18n key (#2542)
+tasks-delete-action = 🗑 Excluir
