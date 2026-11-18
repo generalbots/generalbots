@@ -167,6 +167,9 @@ monitoring-scroll-to-top = 滚动到顶部
 monitoring-scroll-to-bottom-auto = 滚动到底部（自动滚动）
 
 # semantic i18n key (#2542)
+monitoring-log-stream = 日志流
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

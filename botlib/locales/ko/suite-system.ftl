@@ -167,6 +167,9 @@ monitoring-scroll-to-top = 맨 위로 스크롤
 monitoring-scroll-to-bottom-auto = 맨 아래로 스크롤(자동 스크롤)
 
 # semantic i18n key (#2542)
+monitoring-log-stream = 로그 스트림
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

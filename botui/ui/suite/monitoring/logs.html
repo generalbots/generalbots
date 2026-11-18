@@ -155,7 +155,7 @@
     <!-- Log Stream Container -->
     <!-- Note: ws-connect="/ws/logs" removed until backend WebSocket endpoint is implemented -->
     <div class="log-stream-container">
-        <div class="log-stream" id="log-stream" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Log stream">
+        <div class="log-stream" id="log-stream" role="log" aria-live="polite" aria-relevant="additions text" data-i18n-aria-label="monitoring-log-stream">
             <div class="log-placeholder" role="status" aria-live="polite">
                 <svg
                     width="48"
@@ -252,8 +252,8 @@
         <button
             class="log-expand"
             onclick="expandLog(this)"
-            title="View details"
-         aria-label="View details">
+            data-i18n-title="compliance-view-details"
+            data-i18n-aria-label="compliance-view-details">
             <svg
                 width="14"
                 height="14"

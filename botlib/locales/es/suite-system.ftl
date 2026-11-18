@@ -167,6 +167,9 @@ monitoring-scroll-to-top = Desplazarse hacia arriba
 monitoring-scroll-to-bottom-auto = Desplazarse hacia abajo (desplazamiento automático)
 
 # semantic i18n key (#2542)
+monitoring-log-stream = Flujo de registros
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

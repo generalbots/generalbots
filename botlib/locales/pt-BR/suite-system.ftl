@@ -167,6 +167,9 @@ monitoring-scroll-to-top = Rolar para o topo
 monitoring-scroll-to-bottom-auto = Rolar para o fim (rolagem automática)
 
 # semantic i18n key (#2542)
+monitoring-log-stream = Fluxo de logs
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)

@@ -167,6 +167,9 @@ monitoring-scroll-to-top = Nach oben scrollen
 monitoring-scroll-to-bottom-auto = Nach unten scrollen (automatisch scrollen)
 
 # semantic i18n key (#2542)
+monitoring-log-stream = Protokollstream
+
+# semantic i18n key (#2542)
 monitoring-log-level-info-badge = INFO
 
 # semantic i18n key (#2542)
