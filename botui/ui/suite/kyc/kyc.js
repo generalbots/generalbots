@@ -229,8 +229,8 @@ async function renewCertificate(){
     if(data){hideModal('renew-modal');showFeedback('Certificate renewed','success');loadCertificates()}
 }
 
-function showModal(id){var el=document.getElementById(id);if(el)el.classList.add('visible')}
-function hideModal(id){var el=document.getElementById(id);if(el)el.classList.remove('visible')}
+function showModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id, {className:'visible'}); var el=document.getElementById(id);if(el)el.classList.add('visible'); }
+function hideModal(id){ if (window.GBAppKit && window.GBAppKit.hideModal) return window.GBAppKit.hideModal(id, {className:'visible'}); var el=document.getElementById(id);if(el)el.classList.remove('visible'); }
 
 function bindDelegated(){
     var root = document.querySelector('[data-gb-app="kyc"]') || document;
