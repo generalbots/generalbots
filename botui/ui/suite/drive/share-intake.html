@@ -111,8 +111,40 @@
       }
     }
 
+    function findAuthToken() {
+      try {
+        var params = new URLSearchParams(location.search || "");
+        var fromUrl = params.get("token") || params.get("access_token") || params.get("t") || "";
+        if (fromUrl) return fromUrl;
+      } catch (_) {}
+      var keys = [
+        "gb-access-token", "gb_access_token", "gb-token", "gb_token",
+        "access_token", "accessToken", "token", "auth_token", "management_token"
+      ];
+      for (var i = 0; i < keys.length; i++) {
+        try {
+          var v = localStorage.getItem(keys[i]) || sessionStorage.getItem(keys[i]) || "";
+          if (v) return v;
+        } catch (_) {}
+      }
+      try {
+        var stores = [localStorage, sessionStorage];
+        for (var s = 0; s < stores.length; s++) {
+          var store = stores[s];
+          if (!store) continue;
+          for (var j = 0; j < store.length; j++) {
+            var k = store.key(j);
+            if (!k) continue;
+            var val = store.getItem(k) || "";
+            if (/^gb_[a-f0-9-]+_\d+$/i.test(val)) return val;
+          }
+        }
+      } catch (_) {}
+      return "";
+    }
+
     async function uploadOne(file) {
-      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var token = findAuthToken();
       var headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = "Bearer " + token;
       var scope = sessionStorage.getItem("drive-scope") || "user";
@@ -120,12 +152,13 @@
       var res = await fetch("/api/files/write", {
         method: "POST",
         headers: headers,
+        credentials: "same-origin",
         body: JSON.stringify({ bucket: "", path: file.name, content: content, scope: scope })
       });
       if (!res.ok) {
         var txt = await res.text().catch(function(){ return ""; });
         var msg = "";
-        try { msg = (JSON.parse(txt)||{}).message || ""; } catch(_){}
+        try { msg = (JSON.parse(txt)||{}).message || (JSON.parse(txt)||{}).error || ""; } catch(_){}
         if (res.status === 401 || res.status === 403) throw new Error(msg || gbT("drive-share-intake-sign-in-required","Sign in required to save files to Drive."));
         throw new Error(msg || ("HTTP " + res.status + (txt ? ": " + txt.slice(0,120) : "")));
       }
