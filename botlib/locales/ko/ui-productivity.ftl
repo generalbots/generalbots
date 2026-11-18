@@ -418,3 +418,45 @@ calendar-loading = 캘린더 불러오는 중…
 
 # semantic i18n key (#2542)
 calendar-unavailable = 캘린더를 사용할 수 없음
+
+# semantic i18n key (#2542)
+tasks-progress-status = 상태
+
+# semantic i18n key (#2542)
+tasks-progress-sample-title = 사용자 인증 시스템 구현
+
+# semantic i18n key (#2542)
+tasks-progress-runtime = 실행 시간:
+
+# semantic i18n key (#2542)
+tasks-progress-sample-action = 토큰 만료 전략 선택
+
+# semantic i18n key (#2542)
+tasks-progress-estimated = 예상:
+
+# semantic i18n key (#2542)
+tasks-progress-sample-decision = 보안 구성에 대한 승인이 필요합니다
+
+# semantic i18n key (#2542)
+tasks-progress-log = 진행 로그
+
+# semantic i18n key (#2542)
+tasks-progress-terminal-live = 터미널(실시간 에이전트 활동)
+
+# semantic i18n key (#2542)
+tasks-progress-processed = 처리됨:
+
+# semantic i18n key (#2542)
+tasks-progress-data-points = 데이터 포인트
+
+# semantic i18n key (#2542)
+tasks-progress-sample-speed = 분당 ~8개 소스
+
+# semantic i18n key (#2542)
+tasks-progress-sample-insight = 경쟁 인사이트를 종합하는 중...
+
+# semantic i18n key (#2542)
+tasks-progress-sample-pricing = 가격 데이터를 교차 참조하는 중...
+
+# semantic i18n key (#2542)
+tasks-progress-view-details = 세부 정보 보기 ▸

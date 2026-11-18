@@ -418,3 +418,45 @@ calendar-loading = 正在加载日历…
 
 # semantic i18n key (#2542)
 calendar-unavailable = 日历不可用
+
+# semantic i18n key (#2542)
+tasks-progress-status = 状态
+
+# semantic i18n key (#2542)
+tasks-progress-sample-title = 实现用户身份验证系统
+
+# semantic i18n key (#2542)
+tasks-progress-runtime = 运行时间：
+
+# semantic i18n key (#2542)
+tasks-progress-sample-action = 选择令牌过期策略
+
+# semantic i18n key (#2542)
+tasks-progress-estimated = 预计：
+
+# semantic i18n key (#2542)
+tasks-progress-sample-decision = 安全配置需要审批
+
+# semantic i18n key (#2542)
+tasks-progress-log = 进度日志
+
+# semantic i18n key (#2542)
+tasks-progress-terminal-live = 终端（实时代理活动）
+
+# semantic i18n key (#2542)
+tasks-progress-processed = 已处理：
+
+# semantic i18n key (#2542)
+tasks-progress-data-points = 数据点
+
+# semantic i18n key (#2542)
+tasks-progress-sample-speed = 约每分钟 8 个来源
+
+# semantic i18n key (#2542)
+tasks-progress-sample-insight = 正在综合竞争洞察...
+
+# semantic i18n key (#2542)
+tasks-progress-sample-pricing = 正在交叉引用定价数据...
+
+# semantic i18n key (#2542)
+tasks-progress-view-details = 查看详情 ▸

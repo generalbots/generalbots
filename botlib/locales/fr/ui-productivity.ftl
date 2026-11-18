@@ -418,3 +418,45 @@ calendar-loading = Chargement du calendrier…
 
 # semantic i18n key (#2542)
 calendar-unavailable = Calendrier indisponible
+
+# semantic i18n key (#2542)
+tasks-progress-status = STATUT
+
+# semantic i18n key (#2542)
+tasks-progress-sample-title = Mettre en œuvre le système d'authentification des utilisateurs
+
+# semantic i18n key (#2542)
+tasks-progress-runtime = Durée d'exécution :
+
+# semantic i18n key (#2542)
+tasks-progress-sample-action = Choisir la stratégie d'expiration du jeton
+
+# semantic i18n key (#2542)
+tasks-progress-estimated = Estimé :
+
+# semantic i18n key (#2542)
+tasks-progress-sample-decision = Nécessitera une approbation pour la configuration de sécurité
+
+# semantic i18n key (#2542)
+tasks-progress-log = JOURNAL DE PROGRESSION
+
+# semantic i18n key (#2542)
+tasks-progress-terminal-live = TERMINAL (ACTIVITÉ DE L'AGENT EN DIRECT)
+
+# semantic i18n key (#2542)
+tasks-progress-processed = Traité :
+
+# semantic i18n key (#2542)
+tasks-progress-data-points = points de données
+
+# semantic i18n key (#2542)
+tasks-progress-sample-speed = ~8 sources/min
+
+# semantic i18n key (#2542)
+tasks-progress-sample-insight = Synthèse des informations concurrentielles...
+
+# semantic i18n key (#2542)
+tasks-progress-sample-pricing = Recoupement des données de tarification...
+
+# semantic i18n key (#2542)
+tasks-progress-view-details = Voir les détails ▸

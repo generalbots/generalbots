@@ -418,3 +418,45 @@ calendar-loading = カレンダーを読み込み中…
 
 # semantic i18n key (#2542)
 calendar-unavailable = カレンダーを利用できません
+
+# semantic i18n key (#2542)
+tasks-progress-status = ステータス
+
+# semantic i18n key (#2542)
+tasks-progress-sample-title = ユーザー認証システムを実装する
+
+# semantic i18n key (#2542)
+tasks-progress-runtime = 実行時間:
+
+# semantic i18n key (#2542)
+tasks-progress-sample-action = トークン有効期限戦略を選択
+
+# semantic i18n key (#2542)
+tasks-progress-estimated = 推定:
+
+# semantic i18n key (#2542)
+tasks-progress-sample-decision = セキュリティ設定には承認が必要です
+
+# semantic i18n key (#2542)
+tasks-progress-log = 進捗ログ
+
+# semantic i18n key (#2542)
+tasks-progress-terminal-live = ターミナル（エージェントのライブ活動）
+
+# semantic i18n key (#2542)
+tasks-progress-processed = 処理済み:
+
+# semantic i18n key (#2542)
+tasks-progress-data-points = データポイント
+
+# semantic i18n key (#2542)
+tasks-progress-sample-speed = 約8ソース/分
+
+# semantic i18n key (#2542)
+tasks-progress-sample-insight = 競合インサイトを統合しています...
+
+# semantic i18n key (#2542)
+tasks-progress-sample-pricing = 価格データを照合しています...
+
+# semantic i18n key (#2542)
+tasks-progress-view-details = 詳細を見る ▸
