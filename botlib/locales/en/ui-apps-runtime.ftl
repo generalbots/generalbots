@@ -257,3 +257,27 @@ docs-font-size = Font size
 slides-font-family = Font family
 slides-font-size = Font size
 docs-no-documents-yet = No documents yet. Click + New.
+
+# semantic i18n key (#2542)
+templates-channel-notification = Notification
+
+# semantic i18n key (#2542)
+templates-create = Create Template
+
+# semantic i18n key (#2542)
+templates-name-label = Template Name
+
+# semantic i18n key (#2542)
+templates-channel-label = Channel
+
+# semantic i18n key (#2542)
+templates-subject-label = Subject (for email)
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = AI Prompt (optional)
+
+# semantic i18n key (#2542)
+templates-available-variables = Available Variables
+
+# semantic i18n key (#2542)
+templates-preview-title = Template Preview

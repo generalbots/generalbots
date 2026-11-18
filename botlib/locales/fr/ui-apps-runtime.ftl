@@ -39,3 +39,27 @@ docs-font-size = Taille de police
 slides-font-family = Police
 slides-font-size = Taille de police
 docs-no-documents-yet = Aucun document pour l’instant. Cliquez sur + Nouveau.
+
+# semantic i18n key (#2542)
+templates-channel-notification = Notification
+
+# semantic i18n key (#2542)
+templates-create = Créer un modèle
+
+# semantic i18n key (#2542)
+templates-name-label = Nom du modèle
+
+# semantic i18n key (#2542)
+templates-channel-label = Canal
+
+# semantic i18n key (#2542)
+templates-subject-label = Objet (pour e-mail)
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = Invite IA (facultatif)
+
+# semantic i18n key (#2542)
+templates-available-variables = Variables disponibles
+
+# semantic i18n key (#2542)
+templates-preview-title = Aperçu du modèle

@@ -39,3 +39,27 @@ docs-font-size = フォントサイズ
 slides-font-family = フォント
 slides-font-size = フォントサイズ
 docs-no-documents-yet = まだドキュメントがありません。+ 新規 をクリックしてください。
+
+# semantic i18n key (#2542)
+templates-channel-notification = 通知
+
+# semantic i18n key (#2542)
+templates-create = テンプレートを作成
+
+# semantic i18n key (#2542)
+templates-name-label = テンプレート名
+
+# semantic i18n key (#2542)
+templates-channel-label = チャネル
+
+# semantic i18n key (#2542)
+templates-subject-label = 件名（メール用）
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = AIプロンプト（任意）
+
+# semantic i18n key (#2542)
+templates-available-variables = 利用可能な変数
+
+# semantic i18n key (#2542)
+templates-preview-title = テンプレートプレビュー

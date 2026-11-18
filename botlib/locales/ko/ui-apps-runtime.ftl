@@ -39,3 +39,27 @@ docs-font-size = 글꼴 크기
 slides-font-family = 글꼴
 slides-font-size = 글꼴 크기
 docs-no-documents-yet = 아직 문서가 없습니다. + 새로 만들기를 클릭하세요.
+
+# semantic i18n key (#2542)
+templates-channel-notification = 알림
+
+# semantic i18n key (#2542)
+templates-create = 템플릿 만들기
+
+# semantic i18n key (#2542)
+templates-name-label = 템플릿 이름
+
+# semantic i18n key (#2542)
+templates-channel-label = 채널
+
+# semantic i18n key (#2542)
+templates-subject-label = 제목(이메일용)
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = AI 프롬프트(선택 사항)
+
+# semantic i18n key (#2542)
+templates-available-variables = 사용 가능한 변수
+
+# semantic i18n key (#2542)
+templates-preview-title = 템플릿 미리보기

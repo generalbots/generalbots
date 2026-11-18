@@ -39,3 +39,27 @@ docs-font-size = 字号
 slides-font-family = 字体
 slides-font-size = 字号
 docs-no-documents-yet = 还没有文档。点击 + 新建。
+
+# semantic i18n key (#2542)
+templates-channel-notification = 通知
+
+# semantic i18n key (#2542)
+templates-create = 创建模板
+
+# semantic i18n key (#2542)
+templates-name-label = 模板名称
+
+# semantic i18n key (#2542)
+templates-channel-label = 渠道
+
+# semantic i18n key (#2542)
+templates-subject-label = 主题（用于电子邮件）
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = AI 提示（可选）
+
+# semantic i18n key (#2542)
+templates-available-variables = 可用变量
+
+# semantic i18n key (#2542)
+templates-preview-title = 模板预览

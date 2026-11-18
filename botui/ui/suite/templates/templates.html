@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/suite/crm/crm-detail-forms.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-bulk-drawers.css?v=1">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap/01_tokens.js"></script>
@@ -20,7 +20,7 @@
                 <button class="crm-tab" data-view="whatsapp" onclick="filterTemplates('whatsapp', this)">WhatsApp</button>
                 <button class="crm-tab" data-view="social" onclick="filterTemplates('social', this)" data-i18n="nav-social">Social</button>
                 <button class="crm-tab" data-view="bot" onclick="filterTemplates('bot', this)">Bot</button>
-                <button class="crm-tab" data-view="notification" onclick="filterTemplates('notification', this)" data-i18n="auto-notification">Notification</button>
+                <button class="crm-tab" data-view="notification" onclick="filterTemplates('notification', this)" data-i18n="templates-channel-notification">Notification</button>
             </nav>
         </div>
         <div class="crm-header-right">
@@ -53,7 +53,7 @@
     <div class="crm-modal-overlay" onclick="hideTemplateModal()"></div>
     <div class="crm-modal-content" style="max-width: 700px;">
         <div class="crm-modal-header">
-            <h2 id="template-modal-title" data-i18n="auto-create-template">Create Template</h2>
+            <h2 id="template-modal-title" data-i18n="templates-create">Create Template</h2>
             <button class="crm-modal-close" onclick="hideTemplateModal()" aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -64,22 +64,22 @@
             <input type="hidden" name="id" id="tpl-form-id" value="">
             <div class="crm-form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="crm-form-group">
-                    <label data-i18n="auto-template-name">Template Name</label>
+                    <label data-i18n="templates-name-label">Template Name</label>
                     <input type="text" name="name" id="tpl-form-name" required placeholder="e.g., Welcome Email">
                 </div>
                 <div class="crm-form-group">
-                    <label data-i18n="auto-channel">Channel</label>
+                    <label data-i18n="templates-channel-label">Channel</label>
                     <select name="channel" id="tpl-form-channel" required>
                         <option value="email" data-i18n="attendant-channel-email">Email</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="social" data-i18n="nav-social">Social</option>
                         <option value="bot">Bot</option>
-                        <option value="notification" data-i18n="auto-notification">Notification</option>
+                        <option value="notification" data-i18n="templates-channel-notification">Notification</option>
                     </select>
                 </div>
             </div>
             <div class="crm-form-group" id="tpl-subject-group">
-                <label data-i18n="auto-subject-for-email">Subject (for email)</label>
+                <label data-i18n="templates-subject-label">Subject (for email)</label>
                 <input type="text" name="subject" id="tpl-form-subject" placeholder="e.g., Welcome to {{company}}!">
             </div>
             <div class="crm-form-group">
@@ -87,7 +87,7 @@
                 <textarea name="body" id="tpl-form-body" rows="8" placeholder="Write your message here. Use {{contact.name}}, {{company}}, etc." oninput="previewTemplate()"></textarea>
             </div>
             <div class="crm-form-group">
-                <label data-i18n="auto-ai-prompt-optional">AI Prompt (optional)</label>
+                <label data-i18n="templates-ai-prompt-label">AI Prompt (optional)</label>
                 <textarea name="ai_prompt" id="tpl-form-ai" rows="2" placeholder="Describe how AI should generate content..."></textarea>
             </div>
 
@@ -105,7 +105,7 @@
             </div>
 
             <div class="crm-form-group">
-                <label data-i18n="auto-available-variables">Available Variables</label>
+                <label data-i18n="templates-available-variables">Available Variables</label>
                 <div style="display:flex;flex-wrap:wrap;gap:6px" id="tpl-variables">
                     <span class="tpl-var-tag" onclick="insertVariable('contact.name')">{{contact.name}}</span>
                     <span class="tpl-var-tag" onclick="insertVariable('contact.email')">{{contact.email}}</span>
@@ -119,7 +119,7 @@
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="hideTemplateModal()" data-i18n="action-cancel">Cancel</button>
                 <button type="button" class="btn-secondary" onclick="previewTemplate()" data-i18n="sources-template-preview">Preview</button>
-                <button type="submit" class="btn-primary" id="tpl-form-submit" data-i18n="auto-create-template">Create Template</button>
+                <button type="submit" class="btn-primary" id="tpl-form-submit" data-i18n="templates-create">Create Template</button>
             </div>
         </form>
     </div>
@@ -130,7 +130,7 @@
     <div class="crm-modal-overlay" onclick="hidePreviewModal()"></div>
     <div class="crm-modal-content" style="max-width:600px">
         <div class="crm-modal-header">
-            <h2 data-i18n="auto-template-preview">Template Preview</h2>
+            <h2 data-i18n="templates-preview-title">Template Preview</h2>
             <button class="crm-modal-close" onclick="hidePreviewModal()" aria-label="Close">&times;</button>
         </div>
         <div style="padding:16px">

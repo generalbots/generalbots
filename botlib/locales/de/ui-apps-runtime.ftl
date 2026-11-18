@@ -39,3 +39,27 @@ docs-font-size = Schriftgröße
 slides-font-family = Schriftart
 slides-font-size = Schriftgröße
 docs-no-documents-yet = Noch keine Dokumente. Klicken Sie auf + Neu.
+
+# semantic i18n key (#2542)
+templates-channel-notification = Benachrichtigung
+
+# semantic i18n key (#2542)
+templates-create = Vorlage erstellen
+
+# semantic i18n key (#2542)
+templates-name-label = Vorlagenname
+
+# semantic i18n key (#2542)
+templates-channel-label = Kanal
+
+# semantic i18n key (#2542)
+templates-subject-label = Betreff (für E-Mail)
+
+# semantic i18n key (#2542)
+templates-ai-prompt-label = KI-Prompt (optional)
+
+# semantic i18n key (#2542)
+templates-available-variables = Verfügbare Variablen
+
+# semantic i18n key (#2542)
+templates-preview-title = Vorlagenvorschau
