@@ -63,3 +63,66 @@ templates-available-variables = 利用可能な変数
 
 # semantic i18n key (#2542)
 templates-preview-title = テンプレートプレビュー
+
+# semantic i18n key (#2542)
+project-loading-projects = プロジェクトを読み込み中...
+
+# semantic i18n key (#2542)
+project-select-project-title = プロジェクトを選択
+
+# semantic i18n key (#2542)
+project-no-project-selected-status = プロジェクトが選択されていません
+
+# semantic i18n key (#2542)
+project-no-project-selected-title = プロジェクトが選択されていません
+
+# semantic i18n key (#2542)
+project-status-planning = 計画中
+
+# semantic i18n key (#2542)
+project-status-not-started = 未開始
+
+# semantic i18n key (#2542)
+project-progress-label = 進捗:
+
+# semantic i18n key (#2542)
+project-action-comments = 💬 コメント
+
+# semantic i18n key (#2542)
+project-action-open = 📂 開く
+
+# semantic i18n key (#2542)
+project-action-export = ⬇ エクスポート
+
+# semantic i18n key (#2542)
+project-zoom-quarter = 四半期
+
+# semantic i18n key (#2542)
+project-fit-to-screen = 画面に合わせる
+
+# semantic i18n key (#2542)
+project-col-task-name = タスク名
+
+# semantic i18n key (#2542)
+project-col-duration = 期間
+
+# semantic i18n key (#2542)
+project-col-progress = 進捗
+
+# semantic i18n key (#2542)
+project-col-assignee = 担当者
+
+# semantic i18n key (#2542)
+project-select-to-view-tasks = タスクを表示するプロジェクトを選択してください
+
+# semantic i18n key (#2542)
+project-no-tasks-to-display = 表示するタスクはありません
+
+# semantic i18n key (#2542)
+project-select-to-view-timeline = タイムラインを表示するプロジェクトを選択してください
+
+# semantic i18n key (#2542)
+project-select-from-sidebar = サイドバーからプロジェクトを選択するか、新しいプロジェクトを作成してください
+
+# semantic i18n key (#2542)
+project-select-task-details = 詳細を表示するタスクを選択してください

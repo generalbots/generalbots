@@ -63,3 +63,66 @@ templates-available-variables = 可用变量
 
 # semantic i18n key (#2542)
 templates-preview-title = 模板预览
+
+# semantic i18n key (#2542)
+project-loading-projects = 正在加载项目...
+
+# semantic i18n key (#2542)
+project-select-project-title = 选择项目
+
+# semantic i18n key (#2542)
+project-no-project-selected-status = 未选择项目
+
+# semantic i18n key (#2542)
+project-no-project-selected-title = 未选择项目
+
+# semantic i18n key (#2542)
+project-status-planning = 规划中
+
+# semantic i18n key (#2542)
+project-status-not-started = 未开始
+
+# semantic i18n key (#2542)
+project-progress-label = 进度：
+
+# semantic i18n key (#2542)
+project-action-comments = 💬 评论
+
+# semantic i18n key (#2542)
+project-action-open = 📂 打开
+
+# semantic i18n key (#2542)
+project-action-export = ⬇ 导出
+
+# semantic i18n key (#2542)
+project-zoom-quarter = 季度
+
+# semantic i18n key (#2542)
+project-fit-to-screen = 适应屏幕
+
+# semantic i18n key (#2542)
+project-col-task-name = 任务名称
+
+# semantic i18n key (#2542)
+project-col-duration = 持续时间
+
+# semantic i18n key (#2542)
+project-col-progress = 进度
+
+# semantic i18n key (#2542)
+project-col-assignee = 负责人
+
+# semantic i18n key (#2542)
+project-select-to-view-tasks = 选择一个项目以查看任务
+
+# semantic i18n key (#2542)
+project-no-tasks-to-display = 没有可显示的任务
+
+# semantic i18n key (#2542)
+project-select-to-view-timeline = 选择一个项目以查看时间线
+
+# semantic i18n key (#2542)
+project-select-from-sidebar = 从侧边栏选择一个项目或创建新项目
+
+# semantic i18n key (#2542)
+project-select-task-details = 选择一个任务以查看详细信息

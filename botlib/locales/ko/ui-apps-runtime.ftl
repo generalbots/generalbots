@@ -63,3 +63,66 @@ templates-available-variables = 사용 가능한 변수
 
 # semantic i18n key (#2542)
 templates-preview-title = 템플릿 미리보기
+
+# semantic i18n key (#2542)
+project-loading-projects = 프로젝트 로드 중...
+
+# semantic i18n key (#2542)
+project-select-project-title = 프로젝트 선택
+
+# semantic i18n key (#2542)
+project-no-project-selected-status = 선택된 프로젝트 없음
+
+# semantic i18n key (#2542)
+project-no-project-selected-title = 선택된 프로젝트 없음
+
+# semantic i18n key (#2542)
+project-status-planning = 계획
+
+# semantic i18n key (#2542)
+project-status-not-started = 시작되지 않음
+
+# semantic i18n key (#2542)
+project-progress-label = 진행률:
+
+# semantic i18n key (#2542)
+project-action-comments = 💬 댓글
+
+# semantic i18n key (#2542)
+project-action-open = 📂 열기
+
+# semantic i18n key (#2542)
+project-action-export = ⬇ 내보내기
+
+# semantic i18n key (#2542)
+project-zoom-quarter = 분기
+
+# semantic i18n key (#2542)
+project-fit-to-screen = 화면에 맞추기
+
+# semantic i18n key (#2542)
+project-col-task-name = 작업 이름
+
+# semantic i18n key (#2542)
+project-col-duration = 기간
+
+# semantic i18n key (#2542)
+project-col-progress = 진행률
+
+# semantic i18n key (#2542)
+project-col-assignee = 담당자
+
+# semantic i18n key (#2542)
+project-select-to-view-tasks = 작업을 보려면 프로젝트를 선택하세요
+
+# semantic i18n key (#2542)
+project-no-tasks-to-display = 표시할 작업이 없습니다
+
+# semantic i18n key (#2542)
+project-select-to-view-timeline = 타임라인을 보려면 프로젝트를 선택하세요
+
+# semantic i18n key (#2542)
+project-select-from-sidebar = 사이드바에서 프로젝트를 선택하거나 새 프로젝트를 만드세요
+
+# semantic i18n key (#2542)
+project-select-task-details = 세부 정보를 보려면 작업을 선택하세요

@@ -63,3 +63,66 @@ templates-available-variables = Verfügbare Variablen
 
 # semantic i18n key (#2542)
 templates-preview-title = Vorlagenvorschau
+
+# semantic i18n key (#2542)
+project-loading-projects = Projekte werden geladen...
+
+# semantic i18n key (#2542)
+project-select-project-title = Projekt auswählen
+
+# semantic i18n key (#2542)
+project-no-project-selected-status = Kein Projekt ausgewählt
+
+# semantic i18n key (#2542)
+project-no-project-selected-title = Kein Projekt ausgewählt
+
+# semantic i18n key (#2542)
+project-status-planning = Planung
+
+# semantic i18n key (#2542)
+project-status-not-started = Nicht gestartet
+
+# semantic i18n key (#2542)
+project-progress-label = Fortschritt:
+
+# semantic i18n key (#2542)
+project-action-comments = 💬 Kommentare
+
+# semantic i18n key (#2542)
+project-action-open = 📂 Öffnen
+
+# semantic i18n key (#2542)
+project-action-export = ⬇ Exportieren
+
+# semantic i18n key (#2542)
+project-zoom-quarter = Quartal
+
+# semantic i18n key (#2542)
+project-fit-to-screen = An Bildschirm anpassen
+
+# semantic i18n key (#2542)
+project-col-task-name = Aufgabenname
+
+# semantic i18n key (#2542)
+project-col-duration = Dauer
+
+# semantic i18n key (#2542)
+project-col-progress = Fortschritt
+
+# semantic i18n key (#2542)
+project-col-assignee = Zugewiesen an
+
+# semantic i18n key (#2542)
+project-select-to-view-tasks = Wählen Sie ein Projekt aus, um Aufgaben anzuzeigen
+
+# semantic i18n key (#2542)
+project-no-tasks-to-display = Keine Aufgaben zum Anzeigen
+
+# semantic i18n key (#2542)
+project-select-to-view-timeline = Wählen Sie ein Projekt aus, um die Zeitleiste anzuzeigen
+
+# semantic i18n key (#2542)
+project-select-from-sidebar = Wählen Sie ein Projekt aus der Seitenleiste aus oder erstellen Sie ein neues
+
+# semantic i18n key (#2542)
+project-select-task-details = Wählen Sie eine Aufgabe aus, um Details anzuzeigen
