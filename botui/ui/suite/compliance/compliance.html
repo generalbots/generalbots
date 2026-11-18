@@ -12,7 +12,7 @@
                     <path d="M21 12a9 9 0 11-6.22-8.56"/>
                     <path d="M21 3v6h-6"/>
                 </svg>
-                Run Check
+                <span data-i18n="compliance-run-check">Run Check</span>
             </button>
             <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.exportReport()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -20,41 +20,41 @@
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Export Report
+                <span data-i18n="compliance-export-report">Export Report</span>
             </button>
         </div>
     </header>
 
     <div class="compliance-stats">
         <div class="compliance-stat-card">
-            <span class="compliance-stat-label">Total Checks</span>
+            <span class="compliance-stat-label" data-i18n="compliance-stat-total-checks">Total Checks</span>
             <span class="compliance-stat-value" id="stat-total">0</span>
         </div>
         <div class="compliance-stat-card">
-            <span class="compliance-stat-label">Passed</span>
+            <span class="compliance-stat-label" data-i18n="compliance-stat-passed">Passed</span>
             <span class="compliance-stat-value green" id="stat-passed">0</span>
         </div>
         <div class="compliance-stat-card">
-            <span class="compliance-stat-label">Failed</span>
+            <span class="compliance-stat-label" data-i18n="compliance-stat-failed">Failed</span>
             <span class="compliance-stat-value red" id="stat-failed">0</span>
         </div>
         <div class="compliance-stat-card">
-            <span class="compliance-stat-label">Warnings</span>
+            <span class="compliance-stat-label" data-i18n="compliance-stat-warnings">Warnings</span>
             <span class="compliance-stat-value yellow" id="stat-warnings">0</span>
         </div>
         <div class="compliance-stat-card">
-            <span class="compliance-stat-label">Score</span>
+            <span class="compliance-stat-label" data-i18n="compliance-stat-score">Score</span>
             <span class="compliance-stat-value blue" id="stat-score">0%</span>
         </div>
     </div>
 
     <nav class="compliance-tabs">
-        <button class="compliance-tab active" data-tab="dashboard">Dashboard</button>
-        <button class="compliance-tab" data-tab="checks">Checks</button>
-        <button class="compliance-tab" data-tab="issues">Issues</button>
-        <button class="compliance-tab" data-tab="audit">Audit Log</button>
-        <button class="compliance-tab" data-tab="risks">Risk Matrix</button>
-        <button class="compliance-tab" data-tab="training">Training</button>
+        <button class="compliance-tab active" data-tab="dashboard" data-i18n="compliance-tab-dashboard">Dashboard</button>
+        <button class="compliance-tab" data-tab="checks" data-i18n="compliance-tab-checks">Checks</button>
+        <button class="compliance-tab" data-tab="issues" data-i18n="compliance-tab-issues">Issues</button>
+        <button class="compliance-tab" data-tab="audit" data-i18n="compliance-tab-audit-log">Audit Log</button>
+        <button class="compliance-tab" data-tab="risks" data-i18n="compliance-tab-risk-matrix">Risk Matrix</button>
+        <button class="compliance-tab" data-tab="training" data-i18n="compliance-tab-training">Training</button>
     </nav>
 
     <div class="compliance-content">
@@ -62,21 +62,21 @@
             <div class="compliance-dashboard-grid">
                 <div class="compliance-dashboard-card">
                     <div style="display:flex;justify-content:space-between;align-items:center">
-                        <h3>Frameworks</h3>
-                        <button class="compliance-btn compliance-btn-primary" style="padding:4px 10px;font-size:12px" onclick="window._compliance.createFramework()">+ New</button>
+                        <h3 data-i18n="compliance-frameworks">Frameworks</h3>
+                        <button class="compliance-btn compliance-btn-primary" style="padding:4px 10px;font-size:12px" onclick="window._compliance.createFramework()">+ <span data-i18n="compliance-new-framework">New</span></button>
                     </div>
                     <div class="compliance-frameworks" id="frameworks-container"></div>
                 </div>
                 <div class="compliance-dashboard-card">
-                    <h3>Recent Activity</h3>
+                    <h3 data-i18n="compliance-recent-activity">Recent Activity</h3>
                     <div class="compliance-activity-list" id="activity-container"></div>
                 </div>
                 <div class="compliance-dashboard-card">
-                    <h3>Compliance Score</h3>
+                    <h3 data-i18n="compliance-score-heading">Compliance Score</h3>
                     <div class="compliance-score-display" id="score-display"></div>
                 </div>
                 <div class="compliance-dashboard-card">
-                    <h3>Check Results</h3>
+                    <h3 data-i18n="compliance-check-results-heading">Check Results</h3>
                     <div class="compliance-chart-bar" id="score-chart"></div>
                 </div>
             </div>
@@ -85,28 +85,28 @@
         <div class="compliance-panel" id="panel-checks">
             <div class="compliance-table-wrapper">
                 <div class="compliance-table-header">
-                    <h3>Compliance Checks</h3>
+                    <h3 data-i18n="compliance-checks-heading">Compliance Checks</h3>
                     <button class="compliance-btn" onclick="window._compliance.loadAll()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12a9 9 0 11-6.22-8.56"/>
                             <path d="M21 3v6h-6"/>
                         </svg>
-                        Refresh
+                        <span data-i18n="action-refresh">Refresh</span>
                     </button>
                 </div>
                 <div class="compliance-table-scroll">
                     <table class="compliance-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Framework</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th data-i18n="compliance-col-id">ID</th>
+                                <th data-i18n="label-name">Name</th>
+                                <th data-i18n="compliance-col-framework">Framework</th>
+                                <th data-i18n="label-status">Status</th>
+                                <th data-i18n="compliance-col-action">Action</th>
                             </tr>
                         </thead>
                         <tbody id="checks-tbody">
-                            <tr><td colspan="5" class="compliance-empty">Loading...</td></tr>
+                            <tr><td colspan="5" class="compliance-empty" data-i18n="compliance-loading">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -116,28 +116,28 @@
         <div class="compliance-panel" id="panel-issues">
             <div class="compliance-table-wrapper">
                 <div class="compliance-table-header">
-                    <h3>Issues</h3>
+                    <h3 data-i18n="compliance-issues-heading">Issues</h3>
                     <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.showModal('issue-modal')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        Create Issue
+                        <span data-i18n="compliance-create-issue">Create Issue</span>
                     </button>
                 </div>
                 <div class="compliance-table-scroll">
                     <table class="compliance-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Title</th>
-                                <th>Severity</th>
-                                <th>Status</th>
-                                <th>Assignee</th>
-                                <th>Created</th>
+                                <th data-i18n="compliance-col-id">ID</th>
+                                <th data-i18n="label-title">Title</th>
+                                <th data-i18n="compliance-col-severity">Severity</th>
+                                <th data-i18n="label-status">Status</th>
+                                <th data-i18n="compliance-col-assignee">Assignee</th>
+                                <th data-i18n="compliance-col-created">Created</th>
                             </tr>
                         </thead>
                         <tbody id="issues-tbody">
-                            <tr><td colspan="6" class="compliance-empty">Loading...</td></tr>
+                            <tr><td colspan="6" class="compliance-empty" data-i18n="compliance-loading">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -147,27 +147,27 @@
         <div class="compliance-panel" id="panel-audit">
             <div class="compliance-table-wrapper">
                 <div class="compliance-table-header">
-                    <h3>Audit Log</h3>
+                    <h3 data-i18n="compliance-audit-log-heading">Audit Log</h3>
                     <button class="compliance-btn" onclick="window._compliance.loadAll()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12a9 9 0 11-6.22-8.56"/>
                             <path d="M21 3v6h-6"/>
                         </svg>
-                        Refresh
+                        <span data-i18n="action-refresh">Refresh</span>
                     </button>
                 </div>
                 <div class="compliance-table-scroll">
                     <table class="compliance-table">
                         <thead>
                             <tr>
-                                <th>Timestamp</th>
-                                <th>Type</th>
-                                <th>Description</th>
-                                <th>User</th>
+                                <th data-i18n="compliance-col-timestamp">Timestamp</th>
+                                <th data-i18n="compliance-filter-type">Type</th>
+                                <th data-i18n="label-description">Description</th>
+                                <th data-i18n="compliance-col-user">User</th>
                             </tr>
                         </thead>
                         <tbody id="audit-tbody">
-                            <tr><td colspan="4" class="compliance-empty">Loading...</td></tr>
+                            <tr><td colspan="4" class="compliance-empty" data-i18n="compliance-loading">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -175,9 +175,9 @@
         </div>
 
         <div class="compliance-panel" id="panel-risks">
-            <h3 class="compliance-section-title">Risk Matrix (Likelihood x Impact)</h3>
+            <h3 class="compliance-section-title" data-i18n="compliance-risk-matrix-title">Risk Matrix (Likelihood x Impact)</h3>
             <div class="compliance-risk-matrix">
-                <div class="y-label">Likelihood</div>
+                <div class="y-label" data-i18n="compliance-likelihood-axis">Likelihood</div>
                 <div class="compliance-risk-cell risk-1">1</div>
                 <div class="compliance-risk-cell risk-2">2</div>
                 <div class="compliance-risk-cell risk-3">3</div>
@@ -219,24 +219,24 @@
                 <div class="x-label">4</div>
                 <div class="x-label">5</div>
             </div>
-            <p class="compliance-section-title" style="text-align:center;color:var(--text-secondary);font-size:12px;font-weight:400">Impact &#8594;</p>
+            <p class="compliance-section-title" style="text-align:center;color:var(--text-secondary);font-size:12px;font-weight:400" data-i18n="compliance-impact-axis">Impact &#8594;</p>
             <div class="compliance-risk-cards" id="risks-cards"></div>
         </div>
 
         <div class="compliance-panel" id="panel-training">
             <div class="compliance-table-wrapper">
                 <div class="compliance-table-header">
-                    <h3>Training Records</h3>
+                    <h3 data-i18n="compliance-training-records">Training Records</h3>
                     <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.showModal('training-modal')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        New Training
+                        <span data-i18n="compliance-new-training">New Training</span>
                     </button>
                 </div>
                 <div style="padding:16px">
                     <div class="compliance-training-list" id="training-list">
-                        <div class="compliance-empty">Loading...</div>
+                        <div class="compliance-empty" data-i18n="compliance-loading">Loading...</div>
                     </div>
                 </div>
             </div>
@@ -247,34 +247,34 @@
 <div class="compliance-modal-overlay" id="issue-modal">
     <div class="compliance-modal">
         <div class="compliance-modal-header">
-            <h3>Create Issue</h3>
-            <button class="compliance-modal-close" onclick="window._compliance.hideModal('issue-modal')">&times;</button>
+            <h3 data-i18n="compliance-create-issue">Create Issue</h3>
+            <button class="compliance-modal-close" onclick="window._compliance.hideModal('issue-modal')" data-i18n-aria-label="action-close" aria-label="Close">&times;</button>
         </div>
         <div class="compliance-modal-body">
             <div class="compliance-form-group">
-                <label>Title</label>
-                <input type="text" id="issue-title" placeholder="Issue title">
+                <label data-i18n="label-title">Title</label>
+                <input type="text" id="issue-title" data-i18n-placeholder="compliance-issue-title-placeholder" placeholder="Issue title">
             </div>
             <div class="compliance-form-group">
-                <label>Severity</label>
+                <label data-i18n="compliance-col-severity">Severity</label>
                 <select id="issue-severity">
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="low">Low</option>
+                    <option value="critical" data-i18n="compliance-critical">Critical</option>
+                    <option value="high" data-i18n="compliance-high">High</option>
+                    <option value="medium" selected data-i18n="compliance-medium">Medium</option>
+                    <option value="low" data-i18n="compliance-low">Low</option>
                 </select>
             </div>
             <div class="compliance-form-group">
-                <label>Assignee</label>
-                <input type="text" id="issue-assignee" placeholder="Assignee name">
+                <label data-i18n="compliance-col-assignee">Assignee</label>
+                <input type="text" id="issue-assignee" data-i18n-placeholder="compliance-issue-assignee-placeholder" placeholder="Assignee name">
             </div>
             <div class="compliance-form-group">
-                <label>Description</label>
-                <textarea id="issue-description" rows="3" placeholder="Describe the issue..."></textarea>
+                <label data-i18n="label-description">Description</label>
+                <textarea id="issue-description" rows="3" data-i18n-placeholder="compliance-issue-description-placeholder" placeholder="Describe the issue..."></textarea>
             </div>
             <div class="compliance-form-actions">
-                <button class="compliance-btn" onclick="window._compliance.hideModal('issue-modal')">Cancel</button>
-                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createIssue()">Create Issue</button>
+                <button class="compliance-btn" onclick="window._compliance.hideModal('issue-modal')" data-i18n="action-cancel">Cancel</button>
+                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createIssue()" data-i18n="compliance-create-issue">Create Issue</button>
             </div>
         </div>
     </div>
@@ -283,25 +283,25 @@
 <div class="compliance-modal-overlay" id="training-modal">
     <div class="compliance-modal">
         <div class="compliance-modal-header">
-            <h3>New Training</h3>
-            <button class="compliance-modal-close" onclick="window._compliance.hideModal('training-modal')">&times;</button>
+            <h3 data-i18n="compliance-new-training">New Training</h3>
+            <button class="compliance-modal-close" onclick="window._compliance.hideModal('training-modal')" data-i18n-aria-label="action-close" aria-label="Close">&times;</button>
         </div>
         <div class="compliance-modal-body">
             <div class="compliance-form-group">
-                <label>Title</label>
-                <input type="text" id="training-title" placeholder="Training title">
+                <label data-i18n="label-title">Title</label>
+                <input type="text" id="training-title" data-i18n-placeholder="compliance-training-title-placeholder" placeholder="Training title">
             </div>
             <div class="compliance-form-group">
-                <label>Assignee</label>
-                <input type="text" id="training-assignee" placeholder="Assignee name">
+                <label data-i18n="compliance-col-assignee">Assignee</label>
+                <input type="text" id="training-assignee" data-i18n-placeholder="compliance-training-assignee-placeholder" placeholder="Assignee name">
             </div>
             <div class="compliance-form-group">
-                <label>Due Date</label>
+                <label data-i18n="compliance-due-date">Due Date</label>
                 <input type="date" id="training-due">
             </div>
             <div class="compliance-form-actions">
-                <button class="compliance-btn" onclick="window._compliance.hideModal('training-modal')">Cancel</button>
-                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createTraining()">Create Training</button>
+                <button class="compliance-btn" onclick="window._compliance.hideModal('training-modal')" data-i18n="action-cancel">Cancel</button>
+                <button class="compliance-btn compliance-btn-primary" onclick="window._compliance.createTraining()" data-i18n="compliance-create-training">Create Training</button>
             </div>
         </div>
     </div>
@@ -311,8 +311,8 @@
 <div class="compliance-modal-overlay" id="framework-detail-overlay">
     <div class="compliance-modal framework-detail-modal">
         <div class="modal-header">
-            <h3>Framework Details</h3>
-            <button class="compliance-modal-close" onclick="closeFrameworkDetail()">&times;</button>
+            <h3 data-i18n="compliance-framework-details">Framework Details</h3>
+            <button class="compliance-modal-close" onclick="closeFrameworkDetail()" data-i18n-aria-label="action-close" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body" id="framework-detail-body">
             <div class="loading-state"><div class="spinner"></div></div>
