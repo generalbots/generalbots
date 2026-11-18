@@ -188,3 +188,156 @@ goals-dashboard = 대시보드
 goals-objectives = 목표
 goals-alignment = 정렬
 goals-ai-suggestions = AI 제안
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-title = 운영 대시보드
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-subtitle = 실시간 시스템 메트릭, 분산 추적 및 성능 모니터링
+
+# semantic i18n key (#2542)
+admin-ops-auto-refresh-on = 자동 새로고침: 켜짐
+
+# semantic i18n key (#2542)
+admin-ops-avg-response = 평균 응답
+
+# semantic i18n key (#2542)
+admin-ops-requests-min = 요청/분
+
+# semantic i18n key (#2542)
+admin-ops-disk-io = 디스크 I/O
+
+# semantic i18n key (#2542)
+admin-ops-iops-read-write = IOPS(읽기/쓰기)
+
+# semantic i18n key (#2542)
+admin-ops-in-95-out-50 = 수신: 95 / 송신: 50
+
+# semantic i18n key (#2542)
+admin-ops-stable = 안정
+
+# semantic i18n key (#2542)
+admin-ops-request-metrics = 요청 메트릭
+
+# semantic i18n key (#2542)
+admin-ops-errors-label = 오류
+
+# semantic i18n key (#2542)
+admin-ops-distributed-tracing = 분산 추적
+
+# semantic i18n key (#2542)
+admin-ops-all-traces = 모든 추적
+
+# semantic i18n key (#2542)
+admin-ops-errors-only = 오류만
+
+# semantic i18n key (#2542)
+admin-ops-api-requests = API 요청
+
+# semantic i18n key (#2542)
+admin-ops-post-api-chat-message = POST /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-trace-a1b2c3d4e5f6 = trace_a1b2c3d4e5f6
+
+# semantic i18n key (#2542)
+admin-ops-get-api-kb-search = GET /api/kb/search
+
+# semantic i18n key (#2542)
+admin-ops-trace-b2c3d4e5f6g7 = trace_b2c3d4e5f6g7
+
+# semantic i18n key (#2542)
+admin-ops-post-api-billing-checkout = POST /api/billing/checkout
+
+# semantic i18n key (#2542)
+admin-ops-trace-c3d4e5f6g7h8 = trace_c3d4e5f6g7h8
+
+# semantic i18n key (#2542)
+admin-ops-get-api-user-profile = GET /api/user/profile
+
+# semantic i18n key (#2542)
+admin-ops-trace-d4e5f6g7h8i9 = trace_d4e5f6g7h8i9
+
+# semantic i18n key (#2542)
+admin-ops-api-gateway = API 게이트웨이
+
+# semantic i18n key (#2542)
+admin-ops-primary-2-replicas = 기본 + 복제본 2개
+
+# semantic i18n key (#2542)
+admin-ops-qdrant-vector-db = Qdrant(벡터 DB)
+
+# semantic i18n key (#2542)
+admin-ops-redis-cache = Redis 캐시
+
+# semantic i18n key (#2542)
+admin-ops-cluster-mode-3-shards = 클러스터 모드 | 샤드 3개
+
+# semantic i18n key (#2542)
+admin-ops-llm-service = LLM 서비스
+
+# semantic i18n key (#2542)
+admin-ops-openai-gpt-4-high-latency = OpenAI GPT-4 | 높은 지연 시간
+
+# semantic i18n key (#2542)
+admin-ops-object-storage = 오브젝트 스토리지
+
+# semantic i18n key (#2542)
+admin-ops-s3-compatible = S3 호환
+
+# semantic i18n key (#2542)
+admin-ops-error-tracking = 오류 추적
+
+# semantic i18n key (#2542)
+admin-ops-view-all-errors = 모든 오류 보기
+
+# semantic i18n key (#2542)
+admin-ops-warnings = 경고
+
+# semantic i18n key (#2542)
+admin-ops-payment-processing-failed-stripe-timeout = 결제 처리 실패: Stripe API 시간 초과
+
+# semantic i18n key (#2542)
+admin-ops-billing-checkout-rs-145 = billing/checkout.rs:145
+
+# semantic i18n key (#2542)
+admin-ops-rate-limit-approaching-openai = OpenAI API 속도 제한에 근접 중
+
+# semantic i18n key (#2542)
+admin-ops-llm-openai-rs-89 = llm/openai.rs:89
+
+# semantic i18n key (#2542)
+admin-ops-core-analytics-rs-234 = core/analytics.rs:234
+
+# semantic i18n key (#2542)
+admin-ops-cache-miss-rate-above-threshold = 캐시 미스율이 임계값을 초과했습니다
+
+# semantic i18n key (#2542)
+admin-ops-cache-redis-rs-67 = cache/redis.rs:67
+
+# semantic i18n key (#2542)
+admin-ops-endpoint-performance = 엔드포인트 성능
+
+# semantic i18n key (#2542)
+admin-ops-by-requests = 요청별
+
+# semantic i18n key (#2542)
+admin-ops-by-latency = 지연 시간별
+
+# semantic i18n key (#2542)
+admin-ops-by-error-rate = 오류율별
+
+# semantic i18n key (#2542)
+admin-ops-post = POST
+
+# semantic i18n key (#2542)
+admin-ops-api-chat-message = /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-req-min = 요청/분
+
+# semantic i18n key (#2542)
+admin-ops-errors-metric = 오류
+
+# semantic i18n key (#2542)
+admin-ops-api-kb-search = /api/kb/search

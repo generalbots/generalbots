@@ -188,3 +188,156 @@ goals-dashboard = ダッシュボード
 goals-objectives = 目的
 goals-alignment = 位置合わせ
 goals-ai-suggestions = AIによる提案
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-title = 運用ダッシュボード
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-subtitle = リアルタイムのシステムメトリクス、分散トレーシング、パフォーマンス監視
+
+# semantic i18n key (#2542)
+admin-ops-auto-refresh-on = 自動更新: オン
+
+# semantic i18n key (#2542)
+admin-ops-avg-response = 平均応答
+
+# semantic i18n key (#2542)
+admin-ops-requests-min = リクエスト/分
+
+# semantic i18n key (#2542)
+admin-ops-disk-io = ディスク I/O
+
+# semantic i18n key (#2542)
+admin-ops-iops-read-write = IOPS（読み取り/書き込み）
+
+# semantic i18n key (#2542)
+admin-ops-in-95-out-50 = 受信: 95 / 送信: 50
+
+# semantic i18n key (#2542)
+admin-ops-stable = 安定
+
+# semantic i18n key (#2542)
+admin-ops-request-metrics = リクエストメトリクス
+
+# semantic i18n key (#2542)
+admin-ops-errors-label = エラー
+
+# semantic i18n key (#2542)
+admin-ops-distributed-tracing = 分散トレーシング
+
+# semantic i18n key (#2542)
+admin-ops-all-traces = すべてのトレース
+
+# semantic i18n key (#2542)
+admin-ops-errors-only = エラーのみ
+
+# semantic i18n key (#2542)
+admin-ops-api-requests = API リクエスト
+
+# semantic i18n key (#2542)
+admin-ops-post-api-chat-message = POST /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-trace-a1b2c3d4e5f6 = trace_a1b2c3d4e5f6
+
+# semantic i18n key (#2542)
+admin-ops-get-api-kb-search = GET /api/kb/search
+
+# semantic i18n key (#2542)
+admin-ops-trace-b2c3d4e5f6g7 = trace_b2c3d4e5f6g7
+
+# semantic i18n key (#2542)
+admin-ops-post-api-billing-checkout = POST /api/billing/checkout
+
+# semantic i18n key (#2542)
+admin-ops-trace-c3d4e5f6g7h8 = trace_c3d4e5f6g7h8
+
+# semantic i18n key (#2542)
+admin-ops-get-api-user-profile = GET /api/user/profile
+
+# semantic i18n key (#2542)
+admin-ops-trace-d4e5f6g7h8i9 = trace_d4e5f6g7h8i9
+
+# semantic i18n key (#2542)
+admin-ops-api-gateway = API ゲートウェイ
+
+# semantic i18n key (#2542)
+admin-ops-primary-2-replicas = プライマリ + 2 レプリカ
+
+# semantic i18n key (#2542)
+admin-ops-qdrant-vector-db = Qdrant（ベクトル DB）
+
+# semantic i18n key (#2542)
+admin-ops-redis-cache = Redis キャッシュ
+
+# semantic i18n key (#2542)
+admin-ops-cluster-mode-3-shards = クラスターモード | 3 シャード
+
+# semantic i18n key (#2542)
+admin-ops-llm-service = LLM サービス
+
+# semantic i18n key (#2542)
+admin-ops-openai-gpt-4-high-latency = OpenAI GPT-4 | 高レイテンシ
+
+# semantic i18n key (#2542)
+admin-ops-object-storage = オブジェクトストレージ
+
+# semantic i18n key (#2542)
+admin-ops-s3-compatible = S3 互換
+
+# semantic i18n key (#2542)
+admin-ops-error-tracking = エラー追跡
+
+# semantic i18n key (#2542)
+admin-ops-view-all-errors = すべてのエラーを表示
+
+# semantic i18n key (#2542)
+admin-ops-warnings = 警告
+
+# semantic i18n key (#2542)
+admin-ops-payment-processing-failed-stripe-timeout = 支払い処理に失敗しました: Stripe API タイムアウト
+
+# semantic i18n key (#2542)
+admin-ops-billing-checkout-rs-145 = billing/checkout.rs:145
+
+# semantic i18n key (#2542)
+admin-ops-rate-limit-approaching-openai = OpenAI API のレート制限に近づいています
+
+# semantic i18n key (#2542)
+admin-ops-llm-openai-rs-89 = llm/openai.rs:89
+
+# semantic i18n key (#2542)
+admin-ops-core-analytics-rs-234 = core/analytics.rs:234
+
+# semantic i18n key (#2542)
+admin-ops-cache-miss-rate-above-threshold = キャッシュミス率がしきい値を超えています
+
+# semantic i18n key (#2542)
+admin-ops-cache-redis-rs-67 = cache/redis.rs:67
+
+# semantic i18n key (#2542)
+admin-ops-endpoint-performance = エンドポイントパフォーマンス
+
+# semantic i18n key (#2542)
+admin-ops-by-requests = リクエスト順
+
+# semantic i18n key (#2542)
+admin-ops-by-latency = レイテンシ順
+
+# semantic i18n key (#2542)
+admin-ops-by-error-rate = エラー率順
+
+# semantic i18n key (#2542)
+admin-ops-post = POST
+
+# semantic i18n key (#2542)
+admin-ops-api-chat-message = /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-req-min = リクエスト/分
+
+# semantic i18n key (#2542)
+admin-ops-errors-metric = エラー
+
+# semantic i18n key (#2542)
+admin-ops-api-kb-search = /api/kb/search

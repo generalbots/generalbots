@@ -188,3 +188,156 @@ goals-dashboard = 仪表板
 goals-objectives = 目标
 goals-alignment = 对准
 goals-ai-suggestions = 人工智能建议
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-title = 运维仪表板
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-subtitle = 实时系统指标、分布式追踪和性能监控
+
+# semantic i18n key (#2542)
+admin-ops-auto-refresh-on = 自动刷新：开启
+
+# semantic i18n key (#2542)
+admin-ops-avg-response = 平均响应
+
+# semantic i18n key (#2542)
+admin-ops-requests-min = 请求/分钟
+
+# semantic i18n key (#2542)
+admin-ops-disk-io = 磁盘 I/O
+
+# semantic i18n key (#2542)
+admin-ops-iops-read-write = IOPS（读/写）
+
+# semantic i18n key (#2542)
+admin-ops-in-95-out-50 = 入站：95 / 出站：50
+
+# semantic i18n key (#2542)
+admin-ops-stable = 稳定
+
+# semantic i18n key (#2542)
+admin-ops-request-metrics = 请求指标
+
+# semantic i18n key (#2542)
+admin-ops-errors-label = 错误
+
+# semantic i18n key (#2542)
+admin-ops-distributed-tracing = 分布式追踪
+
+# semantic i18n key (#2542)
+admin-ops-all-traces = 所有追踪
+
+# semantic i18n key (#2542)
+admin-ops-errors-only = 仅错误
+
+# semantic i18n key (#2542)
+admin-ops-api-requests = API 请求
+
+# semantic i18n key (#2542)
+admin-ops-post-api-chat-message = POST /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-trace-a1b2c3d4e5f6 = trace_a1b2c3d4e5f6
+
+# semantic i18n key (#2542)
+admin-ops-get-api-kb-search = GET /api/kb/search
+
+# semantic i18n key (#2542)
+admin-ops-trace-b2c3d4e5f6g7 = trace_b2c3d4e5f6g7
+
+# semantic i18n key (#2542)
+admin-ops-post-api-billing-checkout = POST /api/billing/checkout
+
+# semantic i18n key (#2542)
+admin-ops-trace-c3d4e5f6g7h8 = trace_c3d4e5f6g7h8
+
+# semantic i18n key (#2542)
+admin-ops-get-api-user-profile = GET /api/user/profile
+
+# semantic i18n key (#2542)
+admin-ops-trace-d4e5f6g7h8i9 = trace_d4e5f6g7h8i9
+
+# semantic i18n key (#2542)
+admin-ops-api-gateway = API 网关
+
+# semantic i18n key (#2542)
+admin-ops-primary-2-replicas = 主节点 + 2 个副本
+
+# semantic i18n key (#2542)
+admin-ops-qdrant-vector-db = Qdrant（向量数据库）
+
+# semantic i18n key (#2542)
+admin-ops-redis-cache = Redis 缓存
+
+# semantic i18n key (#2542)
+admin-ops-cluster-mode-3-shards = 集群模式 | 3 个分片
+
+# semantic i18n key (#2542)
+admin-ops-llm-service = LLM 服务
+
+# semantic i18n key (#2542)
+admin-ops-openai-gpt-4-high-latency = OpenAI GPT-4 | 高延迟
+
+# semantic i18n key (#2542)
+admin-ops-object-storage = 对象存储
+
+# semantic i18n key (#2542)
+admin-ops-s3-compatible = 兼容 S3
+
+# semantic i18n key (#2542)
+admin-ops-error-tracking = 错误跟踪
+
+# semantic i18n key (#2542)
+admin-ops-view-all-errors = 查看所有错误
+
+# semantic i18n key (#2542)
+admin-ops-warnings = 警告
+
+# semantic i18n key (#2542)
+admin-ops-payment-processing-failed-stripe-timeout = 付款处理失败：Stripe API 超时
+
+# semantic i18n key (#2542)
+admin-ops-billing-checkout-rs-145 = billing/checkout.rs:145
+
+# semantic i18n key (#2542)
+admin-ops-rate-limit-approaching-openai = OpenAI API 即将达到速率限制
+
+# semantic i18n key (#2542)
+admin-ops-llm-openai-rs-89 = llm/openai.rs:89
+
+# semantic i18n key (#2542)
+admin-ops-core-analytics-rs-234 = core/analytics.rs:234
+
+# semantic i18n key (#2542)
+admin-ops-cache-miss-rate-above-threshold = 缓存未命中率超过阈值
+
+# semantic i18n key (#2542)
+admin-ops-cache-redis-rs-67 = cache/redis.rs:67
+
+# semantic i18n key (#2542)
+admin-ops-endpoint-performance = 端点性能
+
+# semantic i18n key (#2542)
+admin-ops-by-requests = 按请求数
+
+# semantic i18n key (#2542)
+admin-ops-by-latency = 按延迟
+
+# semantic i18n key (#2542)
+admin-ops-by-error-rate = 按错误率
+
+# semantic i18n key (#2542)
+admin-ops-post = POST
+
+# semantic i18n key (#2542)
+admin-ops-api-chat-message = /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-req-min = 请求/分钟
+
+# semantic i18n key (#2542)
+admin-ops-errors-metric = 错误
+
+# semantic i18n key (#2542)
+admin-ops-api-kb-search = /api/kb/search

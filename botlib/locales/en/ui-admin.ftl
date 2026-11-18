@@ -188,3 +188,156 @@ goals-dashboard = Dashboard
 goals-objectives = Objectives
 goals-alignment = Alignment
 goals-ai-suggestions = AI Suggestions
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-title = Operations Dashboard
+
+# semantic i18n key (#2542)
+admin-ops-dashboard-subtitle = Real-time system metrics, distributed tracing, and performance monitoring
+
+# semantic i18n key (#2542)
+admin-ops-auto-refresh-on = Auto-refresh: ON
+
+# semantic i18n key (#2542)
+admin-ops-avg-response = Avg Response
+
+# semantic i18n key (#2542)
+admin-ops-requests-min = Requests/min
+
+# semantic i18n key (#2542)
+admin-ops-disk-io = Disk I/O
+
+# semantic i18n key (#2542)
+admin-ops-iops-read-write = IOPS (read/write)
+
+# semantic i18n key (#2542)
+admin-ops-in-95-out-50 = In: 95 / Out: 50
+
+# semantic i18n key (#2542)
+admin-ops-stable = Stable
+
+# semantic i18n key (#2542)
+admin-ops-request-metrics = Request Metrics
+
+# semantic i18n key (#2542)
+admin-ops-errors-label = Errors
+
+# semantic i18n key (#2542)
+admin-ops-distributed-tracing = Distributed Tracing
+
+# semantic i18n key (#2542)
+admin-ops-all-traces = All Traces
+
+# semantic i18n key (#2542)
+admin-ops-errors-only = Errors Only
+
+# semantic i18n key (#2542)
+admin-ops-api-requests = API Requests
+
+# semantic i18n key (#2542)
+admin-ops-post-api-chat-message = POST /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-trace-a1b2c3d4e5f6 = trace_a1b2c3d4e5f6
+
+# semantic i18n key (#2542)
+admin-ops-get-api-kb-search = GET /api/kb/search
+
+# semantic i18n key (#2542)
+admin-ops-trace-b2c3d4e5f6g7 = trace_b2c3d4e5f6g7
+
+# semantic i18n key (#2542)
+admin-ops-post-api-billing-checkout = POST /api/billing/checkout
+
+# semantic i18n key (#2542)
+admin-ops-trace-c3d4e5f6g7h8 = trace_c3d4e5f6g7h8
+
+# semantic i18n key (#2542)
+admin-ops-get-api-user-profile = GET /api/user/profile
+
+# semantic i18n key (#2542)
+admin-ops-trace-d4e5f6g7h8i9 = trace_d4e5f6g7h8i9
+
+# semantic i18n key (#2542)
+admin-ops-api-gateway = API Gateway
+
+# semantic i18n key (#2542)
+admin-ops-primary-2-replicas = Primary + 2 Replicas
+
+# semantic i18n key (#2542)
+admin-ops-qdrant-vector-db = Qdrant (Vector DB)
+
+# semantic i18n key (#2542)
+admin-ops-redis-cache = Redis Cache
+
+# semantic i18n key (#2542)
+admin-ops-cluster-mode-3-shards = Cluster mode | 3 shards
+
+# semantic i18n key (#2542)
+admin-ops-llm-service = LLM Service
+
+# semantic i18n key (#2542)
+admin-ops-openai-gpt-4-high-latency = OpenAI GPT-4 | High latency
+
+# semantic i18n key (#2542)
+admin-ops-object-storage = Object Storage
+
+# semantic i18n key (#2542)
+admin-ops-s3-compatible = S3 Compatible
+
+# semantic i18n key (#2542)
+admin-ops-error-tracking = Error Tracking
+
+# semantic i18n key (#2542)
+admin-ops-view-all-errors = View All Errors
+
+# semantic i18n key (#2542)
+admin-ops-warnings = Warnings
+
+# semantic i18n key (#2542)
+admin-ops-payment-processing-failed-stripe-timeout = Payment processing failed: Stripe API timeout
+
+# semantic i18n key (#2542)
+admin-ops-billing-checkout-rs-145 = billing/checkout.rs:145
+
+# semantic i18n key (#2542)
+admin-ops-rate-limit-approaching-openai = Rate limit approaching for OpenAI API
+
+# semantic i18n key (#2542)
+admin-ops-llm-openai-rs-89 = llm/openai.rs:89
+
+# semantic i18n key (#2542)
+admin-ops-core-analytics-rs-234 = core/analytics.rs:234
+
+# semantic i18n key (#2542)
+admin-ops-cache-miss-rate-above-threshold = Cache miss rate above threshold
+
+# semantic i18n key (#2542)
+admin-ops-cache-redis-rs-67 = cache/redis.rs:67
+
+# semantic i18n key (#2542)
+admin-ops-endpoint-performance = Endpoint Performance
+
+# semantic i18n key (#2542)
+admin-ops-by-requests = By Requests
+
+# semantic i18n key (#2542)
+admin-ops-by-latency = By Latency
+
+# semantic i18n key (#2542)
+admin-ops-by-error-rate = By Error Rate
+
+# semantic i18n key (#2542)
+admin-ops-post = POST
+
+# semantic i18n key (#2542)
+admin-ops-api-chat-message = /api/chat/message
+
+# semantic i18n key (#2542)
+admin-ops-req-min = req/min
+
+# semantic i18n key (#2542)
+admin-ops-errors-metric = errors
+
+# semantic i18n key (#2542)
+admin-ops-api-kb-search = /api/kb/search
