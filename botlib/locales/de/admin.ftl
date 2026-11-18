@@ -602,3 +602,30 @@ admin-failed-create-user = Benutzer konnte nicht erstellt werden.
 admin-failed-create-group = Gruppe konnte nicht erstellt werden.
 admin-no-users = Keine Benutzer gefunden
 admin-no-groups = Keine Gruppen gefunden
+
+# semantic i18n key (#2542)
+admin-org-switch-title = Organisation wechseln
+
+# semantic i18n key (#2542)
+admin-org-create-new-title = Neue Organisation erstellen
+
+# semantic i18n key (#2542)
+admin-org-name-label = Organisationsname
+
+# semantic i18n key (#2542)
+admin-org-url-slug-label = URL-Slug
+
+# semantic i18n key (#2542)
+admin-org-slug-preview = organization-slug
+
+# semantic i18n key (#2542)
+admin-org-plan-label = Planen
+
+# semantic i18n key (#2542)
+admin-org-plan-free = Kostenlos
+
+# semantic i18n key (#2542)
+admin-org-plan-starter = Anlasser
+
+# semantic i18n key (#2542)
+admin-org-create-btn = Organisation erstellen

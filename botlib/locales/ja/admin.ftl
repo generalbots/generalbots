@@ -602,3 +602,30 @@ admin-failed-create-user = ユーザーを作成できませんでした。
 admin-failed-create-group = グループを作成できませんでした。
 admin-no-users = ユーザーが見つかりません
 admin-no-groups = グループが見つかりません
+
+# semantic i18n key (#2542)
+admin-org-switch-title = 組織を切り替え
+
+# semantic i18n key (#2542)
+admin-org-create-new-title = 新しい組織を作成
+
+# semantic i18n key (#2542)
+admin-org-name-label = 組織名
+
+# semantic i18n key (#2542)
+admin-org-url-slug-label = URLスラッグ
+
+# semantic i18n key (#2542)
+admin-org-slug-preview = organization-slug
+
+# semantic i18n key (#2542)
+admin-org-plan-label = 計画
+
+# semantic i18n key (#2542)
+admin-org-plan-free = 無料
+
+# semantic i18n key (#2542)
+admin-org-plan-starter = スターター
+
+# semantic i18n key (#2542)
+admin-org-create-btn = 組織を作成

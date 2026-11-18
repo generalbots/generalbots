@@ -602,3 +602,30 @@ admin-failed-create-user = 사용자를 만들 수 없습니다.
 admin-failed-create-group = 그룹을 만들 수 없습니다.
 admin-no-users = 사용자를 찾을 수 없습니다
 admin-no-groups = 그룹을 찾을 수 없습니다
+
+# semantic i18n key (#2542)
+admin-org-switch-title = 조직 전환
+
+# semantic i18n key (#2542)
+admin-org-create-new-title = 새 조직 만들기
+
+# semantic i18n key (#2542)
+admin-org-name-label = 조직 이름
+
+# semantic i18n key (#2542)
+admin-org-url-slug-label = URL 슬러그
+
+# semantic i18n key (#2542)
+admin-org-slug-preview = organization-slug
+
+# semantic i18n key (#2542)
+admin-org-plan-label = 계획
+
+# semantic i18n key (#2542)
+admin-org-plan-free = 무료
+
+# semantic i18n key (#2542)
+admin-org-plan-starter = 스타터
+
+# semantic i18n key (#2542)
+admin-org-create-btn = 조직 만들기

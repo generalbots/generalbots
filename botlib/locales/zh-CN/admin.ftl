@@ -602,3 +602,30 @@ admin-failed-create-user = 无法创建用户。
 admin-failed-create-group = 无法创建群组。
 admin-no-users = 未找到用户
 admin-no-groups = 未找到群组
+
+# semantic i18n key (#2542)
+admin-org-switch-title = 切换组织
+
+# semantic i18n key (#2542)
+admin-org-create-new-title = 创建新组织
+
+# semantic i18n key (#2542)
+admin-org-name-label = 组织名称
+
+# semantic i18n key (#2542)
+admin-org-url-slug-label = URL 别名
+
+# semantic i18n key (#2542)
+admin-org-slug-preview = organization-slug
+
+# semantic i18n key (#2542)
+admin-org-plan-label = 计划
+
+# semantic i18n key (#2542)
+admin-org-plan-free = 免费
+
+# semantic i18n key (#2542)
+admin-org-plan-starter = 入门者
+
+# semantic i18n key (#2542)
+admin-org-create-btn = 创建组织
