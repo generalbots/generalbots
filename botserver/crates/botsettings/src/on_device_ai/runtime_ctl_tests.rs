@@ -93,6 +93,18 @@ fn desired_from_config_normalizes_ctx_size() {
 }
 
 #[test]
+fn the_default_context_follows_the_room_left_on_the_card() {
+    const GB: u64 = 1024 * 1024 * 1024;
+    let nine_b_q4 = 5_680_522_464;
+    assert_eq!(ctx_size_for(nine_b_q4, Some(8)), 16384);
+    assert_eq!(ctx_size_for(nine_b_q4, Some(6)), 8192);
+    assert_eq!(ctx_size_for(nine_b_q4, Some(12)), 32768);
+    assert_eq!(ctx_size_for(7 * GB, Some(8)), 8192);
+    assert_eq!(ctx_size_for(nine_b_q4, None), 8192, "no graphics card");
+    assert_eq!(ctx_size_for(0, Some(24)), 8192, "model size unknown");
+}
+
+#[test]
 fn is_local_model_name_identifies_gguf() {
     assert!(is_local_model_name("Qwen3.5-9B-Q4_K_M.gguf"));
     assert!(is_local_model_name("DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"));

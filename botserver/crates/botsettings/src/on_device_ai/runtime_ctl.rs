@@ -403,13 +403,31 @@ pub fn desired_from_config(
         other => other.to_string(),
     };
     let ctx = match ctx_size.trim() {
-        "" | "0" => "8192".to_string(),
+        "" | "0" => {
+            let model_bytes = std::fs::metadata(&model_path).map(|m| m.len()).unwrap_or(0);
+            let hardware = super::hardware::probe();
+            let vram_gb = hardware.cuda_usable.then_some(hardware.vram_gb);
+            ctx_size_for(model_bytes, vram_gb).to_string()
+        }
         other => other.to_string(),
     };
     Some(DesiredRuntime {
         model_file: bare.to_string(), model_path, server_dir,
         gpu_layers: gpu, ctx_size: ctx,
     })
+}
+
+/// Context the chat engine starts with when none is configured: 8192 tokens,
+/// more when the graphics card keeps room beside the model. The context takes
+/// video memory too, and a model that spills out of it answers far slower.
+pub fn ctx_size_for(model_bytes: u64, vram_gb: Option<u16>) -> u32 {
+    let (Some(vram_gb), true) = (vram_gb, model_bytes > 0) else { return 8192 };
+    let spare_mib = (u64::from(vram_gb) * 1024).saturating_sub(model_bytes / (1024 * 1024));
+    match spare_mib {
+        6144.. => 32768,
+        2048.. => 16384,
+        _ => 8192,
+    }
 }
 
 #[cfg(test)]
