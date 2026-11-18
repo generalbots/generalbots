@@ -145,7 +145,7 @@
     <div id="crm-opportunities-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <input type="search" class="grid-search" data-grid="opportunities" placeholder="Filter opportunities…">
+                <input type="search" class="grid-search" data-grid="opportunities" data-i18n-placeholder="crm-filter-opportunities-placeholder">
                 <select class="grid-filter" data-grid="opportunities">
                     <option value="all" data-i18n="crm-filter-all">All</option>
                     <option value="qualification">Qualification</option>
@@ -200,7 +200,7 @@
     <div id="crm-deals-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <input type="search" class="grid-search" data-grid="deals" placeholder="Filter deals…">
+                <input type="search" class="grid-search" data-grid="deals" data-i18n-placeholder="crm-filter-deals-placeholder">
                 <select class="grid-filter" data-grid="deals" name="stage">
                     <option value="all" data-i18n="crm-filter-all">All Deals</option>
                     <option value="new" data-i18n="crm-filter-new">New</option>
@@ -242,7 +242,7 @@
     <div id="crm-accounts-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <input type="search" class="grid-search" data-grid="accounts" placeholder="Filter accounts…">
+                <input type="search" class="grid-search" data-grid="accounts" data-i18n-placeholder="crm-filter-accounts-placeholder">
                 <button class="btn-secondary" data-create="account" data-i18n="crm-new-account">New Account</button>
             </div>
         </div>
@@ -266,7 +266,7 @@
     <div id="crm-contacts-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <input type="search" class="grid-search" data-grid="contacts" placeholder="Filter contacts…">
+                <input type="search" class="grid-search" data-grid="contacts" data-i18n-placeholder="crm-filter-contacts-placeholder">
                 <button class="btn-secondary" data-create="contact" data-i18n="crm-new-contact">New Contact</button>
             </div>
         </div>
@@ -299,7 +299,7 @@
     <div id="crm-campaigns-view" class="crm-view">
         <div class="crm-bulk-bar">
             <button class="btn-primary" id="campaign-new-btn">New Campaign</button>
-            <input type="search" class="grid-search" data-grid="campaigns" placeholder="Filter campaigns…">
+            <input type="search" class="grid-search" data-grid="campaigns" data-i18n-placeholder="crm-filter-campaigns-placeholder">
             <span class="crm-bulk-result" id="campaign-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
         <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML" role="status" aria-live="polite"></div>
