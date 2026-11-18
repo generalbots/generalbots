@@ -355,7 +355,12 @@ pub(super) fn build_base_router(
         // `200 text/html` was returned to callers that expected JSON, DAV XML or
         // an acknowledgement, which is how a whole family of unreachable
         // endpoints stayed invisible (see the axum 0.7 `:param` spelling).
-        let shell_path = format!("{}/desktop.html", ui_path);
+        // Joined as a path: on Windows the interface folder is a `\\?\` path,
+        // which does not accept `/` as a separator.
+        let shell_path = std::path::Path::new(&ui_path)
+            .join("desktop.html")
+            .to_string_lossy()
+            .into_owned();
         base_router
             .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
             .nest_service("/suite", ServeDir::new(&ui_path))
