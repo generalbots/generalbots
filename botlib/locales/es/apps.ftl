@@ -756,3 +756,60 @@ kyc-label-validity-period-days = Período de validez (días)
 
 # semantic i18n key (#2542)
 kyc-action-renew = Renovar
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = Conciliación bancaria
+
+# semantic i18n key (#2542)
+banking-tab-transactions = Transacciones
+
+# semantic i18n key (#2542)
+banking-tab-platforms = Plataformas
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = Conciliación
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIX y transferencias
+
+# semantic i18n key (#2542)
+banking-tab-statements = Extractos
+
+# semantic i18n key (#2542)
+banking-tab-reports = Informes
+
+# semantic i18n key (#2542)
+banking-transfer-title = Nueva transferencia PIX
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = Clave aleatoria
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = Clave del destinatario
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = Programar
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = Enviar PIX
+
+# semantic i18n key (#2542)
+banking-add-account-title = Agregar cuenta bancaria
+
+# semantic i18n key (#2542)
+banking-account-bank = Banco
+
+# semantic i18n key (#2542)
+banking-account-agency = Agencia
+
+# semantic i18n key (#2542)
+banking-account-number = Número de cuenta
+
+# semantic i18n key (#2542)
+banking-account-checking = Corriente
+
+# semantic i18n key (#2542)
+banking-account-savings = Ahorros
+
+# semantic i18n key (#2542)
+banking-account-save = Guardar cuenta

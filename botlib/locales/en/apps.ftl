@@ -758,3 +758,60 @@ kyc-label-validity-period-days = Validity Period (days)
 
 # semantic i18n key (#2542)
 kyc-action-renew = Renew
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = Banking Reconciliation
+
+# semantic i18n key (#2542)
+banking-tab-transactions = Transactions
+
+# semantic i18n key (#2542)
+banking-tab-platforms = Platforms
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = Reconciliation
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIX & Transfers
+
+# semantic i18n key (#2542)
+banking-tab-statements = Statements
+
+# semantic i18n key (#2542)
+banking-tab-reports = Reports
+
+# semantic i18n key (#2542)
+banking-transfer-title = New PIX transfer
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = Random key
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = Recipient key
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = Schedule
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = Send PIX
+
+# semantic i18n key (#2542)
+banking-add-account-title = Add bank account
+
+# semantic i18n key (#2542)
+banking-account-bank = Bank
+
+# semantic i18n key (#2542)
+banking-account-agency = Agency
+
+# semantic i18n key (#2542)
+banking-account-number = Account number
+
+# semantic i18n key (#2542)
+banking-account-checking = Checking
+
+# semantic i18n key (#2542)
+banking-account-savings = Savings
+
+# semantic i18n key (#2542)
+banking-account-save = Save account

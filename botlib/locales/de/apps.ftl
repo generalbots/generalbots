@@ -758,3 +758,60 @@ kyc-label-validity-period-days = Gültigkeitsdauer (Tage)
 
 # semantic i18n key (#2542)
 kyc-action-renew = Erneuern
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = Bankabstimmung
+
+# semantic i18n key (#2542)
+banking-tab-transactions = Transaktionen
+
+# semantic i18n key (#2542)
+banking-tab-platforms = Plattformen
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = Abstimmung
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIX & Überweisungen
+
+# semantic i18n key (#2542)
+banking-tab-statements = Kontoauszüge
+
+# semantic i18n key (#2542)
+banking-tab-reports = Berichte
+
+# semantic i18n key (#2542)
+banking-transfer-title = Neue PIX-Überweisung
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = Zufälliger Schlüssel
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = Empfängerschlüssel
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = Planen
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = PIX senden
+
+# semantic i18n key (#2542)
+banking-add-account-title = Bankkonto hinzufügen
+
+# semantic i18n key (#2542)
+banking-account-bank = Bank
+
+# semantic i18n key (#2542)
+banking-account-agency = Filiale
+
+# semantic i18n key (#2542)
+banking-account-number = Kontonummer
+
+# semantic i18n key (#2542)
+banking-account-checking = Girokonto
+
+# semantic i18n key (#2542)
+banking-account-savings = Sparkonto
+
+# semantic i18n key (#2542)
+banking-account-save = Konto speichern

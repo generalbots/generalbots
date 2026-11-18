@@ -758,3 +758,60 @@ kyc-label-validity-period-days = 유효 기간(일)
 
 # semantic i18n key (#2542)
 kyc-action-renew = 갱신
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = 은행 대사
+
+# semantic i18n key (#2542)
+banking-tab-transactions = 거래
+
+# semantic i18n key (#2542)
+banking-tab-platforms = 플랫폼
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = 대사
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIX 및 이체
+
+# semantic i18n key (#2542)
+banking-tab-statements = 명세서
+
+# semantic i18n key (#2542)
+banking-tab-reports = 보고서
+
+# semantic i18n key (#2542)
+banking-transfer-title = 새 PIX 이체
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = 랜덤 키
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = 수신자 키
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = 예약
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = PIX 보내기
+
+# semantic i18n key (#2542)
+banking-add-account-title = 은행 계좌 추가
+
+# semantic i18n key (#2542)
+banking-account-bank = 은행
+
+# semantic i18n key (#2542)
+banking-account-agency = 지점
+
+# semantic i18n key (#2542)
+banking-account-number = 계좌번호
+
+# semantic i18n key (#2542)
+banking-account-checking = 입출금
+
+# semantic i18n key (#2542)
+banking-account-savings = 저축
+
+# semantic i18n key (#2542)
+banking-account-save = 계좌 저장

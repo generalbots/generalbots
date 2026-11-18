@@ -758,3 +758,60 @@ kyc-label-validity-period-days = 有効期間（日）
 
 # semantic i18n key (#2542)
 kyc-action-renew = 更新
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = 銀行照合
+
+# semantic i18n key (#2542)
+banking-tab-transactions = 取引
+
+# semantic i18n key (#2542)
+banking-tab-platforms = プラットフォーム
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = 照合
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIXと振込
+
+# semantic i18n key (#2542)
+banking-tab-statements = 明細
+
+# semantic i18n key (#2542)
+banking-tab-reports = レポート
+
+# semantic i18n key (#2542)
+banking-transfer-title = 新しいPIX送金
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = ランダムキー
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = 受取人キー
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = スケジュール
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = PIXを送信
+
+# semantic i18n key (#2542)
+banking-add-account-title = 銀行口座を追加
+
+# semantic i18n key (#2542)
+banking-account-bank = 銀行
+
+# semantic i18n key (#2542)
+banking-account-agency = 支店
+
+# semantic i18n key (#2542)
+banking-account-number = 口座番号
+
+# semantic i18n key (#2542)
+banking-account-checking = 当座
+
+# semantic i18n key (#2542)
+banking-account-savings = 普通預金
+
+# semantic i18n key (#2542)
+banking-account-save = 口座を保存

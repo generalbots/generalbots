@@ -758,3 +758,60 @@ kyc-label-validity-period-days = 有效期（天）
 
 # semantic i18n key (#2542)
 kyc-action-renew = 续订
+
+# semantic i18n key (#2542)
+banking-reconciliation-title = 银行对账
+
+# semantic i18n key (#2542)
+banking-tab-transactions = 交易
+
+# semantic i18n key (#2542)
+banking-tab-platforms = 平台
+
+# semantic i18n key (#2542)
+banking-tab-reconciliation = 对账
+
+# semantic i18n key (#2542)
+banking-tab-pix-transfers = PIX 与转账
+
+# semantic i18n key (#2542)
+banking-tab-statements = 对账单
+
+# semantic i18n key (#2542)
+banking-tab-reports = 报告
+
+# semantic i18n key (#2542)
+banking-transfer-title = 新建 PIX 转账
+
+# semantic i18n key (#2542)
+banking-transfer-random-key = 随机密钥
+
+# semantic i18n key (#2542)
+banking-transfer-recipient-key = 收款人密钥
+
+# semantic i18n key (#2542)
+banking-transfer-schedule = 计划
+
+# semantic i18n key (#2542)
+banking-transfer-send-pix = 发送 PIX
+
+# semantic i18n key (#2542)
+banking-add-account-title = 添加银行账户
+
+# semantic i18n key (#2542)
+banking-account-bank = 银行
+
+# semantic i18n key (#2542)
+banking-account-agency = 网点
+
+# semantic i18n key (#2542)
+banking-account-number = 账号
+
+# semantic i18n key (#2542)
+banking-account-checking = 支票账户
+
+# semantic i18n key (#2542)
+banking-account-savings = 储蓄账户
+
+# semantic i18n key (#2542)
+banking-account-save = 保存账户
