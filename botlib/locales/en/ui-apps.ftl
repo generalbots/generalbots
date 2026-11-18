@@ -140,3 +140,7 @@ player-toggle-playlist = Toggle playlist panel
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = host:port (e.g., 10.0.0.1:5900)
 vdi-placeholder-host = 10.0.0.1
+# semantic i18n key (#2542)
+billing-quote-name-placeholder = e.g., Q1 Software License Proposal
+billing-item-description-placeholder = Product or service description
+billing-terms-placeholder = Payment terms, delivery conditions, etc.

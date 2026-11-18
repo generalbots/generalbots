@@ -78,11 +78,11 @@
             </div>
             <div id="invoice-line-items">
                 <div class="line-item" data-index="0">
-                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" data-i18n-placeholder="billing-item-description-placeholder" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
                     <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
                     <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
                     <span class="line-item-total">$0.00</span>
-                    <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" aria-label="Remove line item">
+                    <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" data-i18n-title="action-remove" aria-label="Remove line item" data-i18n-aria-label="billing-remove-line-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -119,7 +119,7 @@
     <!-- Notes -->
     <div class="form-group">
         <label class="form-label" for="invoice-notes" data-i18n="billing-notes">Notes</label>
-        <textarea id="invoice-notes" name="notes" class="form-textarea" rows="2" placeholder="Payment instructions or additional notes..."></textarea>
+        <textarea id="invoice-notes" name="notes" class="form-textarea" rows="2" placeholder="Payment instructions or additional notes..." data-i18n-placeholder="billing-invoice-notes-placeholder"></textarea>
     </div>
 
     <div class="form-actions">
@@ -155,11 +155,11 @@
         newItem.className = 'line-item';
         newItem.dataset.index = lineItemIndex;
         newItem.innerHTML = `
-            <input type="text" name="items[${lineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+            <input type="text" name="items[${lineItemIndex}][description]" class="form-input" placeholder="Product or service description" data-i18n-placeholder="billing-item-description-placeholder" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
             <input type="number" name="items[${lineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
             <input type="number" name="items[${lineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
             <span class="line-item-total">$0.00</span>
-            <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" aria-label="Remove line item">
+            <button type="button" class="line-item-remove" onclick="removeLineItem(this)" title="Remove" data-i18n-title="action-remove" aria-label="Remove line item" data-i18n-aria-label="billing-remove-line-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>

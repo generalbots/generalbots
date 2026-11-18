@@ -140,3 +140,7 @@ player-playlists = Playlists
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = host:porta (ex.: 10.0.0.1:5900)
 vdi-placeholder-host = 10.0.0.1
+# semantic i18n key (#2542)
+billing-quote-name-placeholder = ex.: Proposta de licença de software do 1º trimestre
+billing-item-description-placeholder = Descrição do produto ou serviço
+billing-terms-placeholder = Condições de pagamento, entrega, etc.

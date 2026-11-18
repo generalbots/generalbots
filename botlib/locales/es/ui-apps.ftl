@@ -140,3 +140,7 @@ player-toggle-playlist = Alternar panel de playlist
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = host:puerto (p. ej., 10.0.0.1:5900)
 vdi-placeholder-host = 10.0.0.1
+# semantic i18n key (#2542)
+billing-quote-name-placeholder = p. ej., Propuesta de licencia de software del T1
+billing-item-description-placeholder = Descripción del producto o servicio
+billing-terms-placeholder = Condiciones de pago, entrega, etc.

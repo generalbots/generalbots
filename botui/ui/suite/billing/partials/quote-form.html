@@ -45,7 +45,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label" for="quote-name" data-i18n="billing-quote-name">Quote Name</label>
-                <input id="quote-name" type="text" name="name" class="form-input" placeholder="e.g., Q1 Software License Proposal">
+                <input id="quote-name" type="text" name="name" class="form-input" placeholder="e.g., Q1 Software License Proposal" data-i18n-placeholder="billing-quote-name-placeholder">
             </div>
             <div class="form-group">
                 <label class="form-label" for="quote-currency" data-i18n="billing-currency">Currency</label>
@@ -72,11 +72,11 @@
             </div>
             <div id="quote-line-items">
                 <div class="line-item" data-index="0">
-                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+                    <input type="text" name="items[0][description]" class="form-input" placeholder="Product or service description" data-i18n-placeholder="billing-item-description-placeholder" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
                     <input type="number" name="items[0][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
                     <input type="number" name="items[0][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
                     <span class="line-item-total">$0.00</span>
-                    <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
+                    <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" data-i18n-title="action-remove" aria-label="Remove line item" data-i18n-aria-label="billing-remove-line-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -129,12 +129,12 @@
     <!-- Terms & Notes -->
     <div class="form-group">
         <label class="form-label" for="quote-terms" data-i18n="billing-terms">Terms & Conditions</label>
-        <textarea id="quote-terms" name="terms" class="form-textarea" rows="2" placeholder="Payment terms, delivery conditions, etc."></textarea>
+        <textarea id="quote-terms" name="terms" class="form-textarea" rows="2" placeholder="Payment terms, delivery conditions, etc." data-i18n-placeholder="billing-terms-placeholder"></textarea>
     </div>
 
     <div class="form-group">
         <label class="form-label" for="quote-notes" data-i18n="billing-notes">Notes</label>
-        <textarea id="quote-notes" name="notes" class="form-textarea" rows="2" placeholder="Additional notes for the customer..."></textarea>
+        <textarea id="quote-notes" name="notes" class="form-textarea" rows="2" placeholder="Additional notes for the customer..." data-i18n-placeholder="billing-notes-placeholder"></textarea>
     </div>
 
     <div class="form-actions">
@@ -170,11 +170,11 @@
         newItem.className = 'line-item';
         newItem.dataset.index = quoteLineItemIndex;
         newItem.innerHTML = `
-            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
+            <input type="text" name="items[${quoteLineItemIndex}][description]" class="form-input" placeholder="Product or service description" data-i18n-placeholder="billing-item-description-placeholder" required aria-label="Item description" data-i18n-aria-label="forms-a11y-item-description">
             <input type="number" name="items[${quoteLineItemIndex}][quantity]" class="form-input" value="1" min="1" step="1" onchange="updateQuoteLineTotal(this)" aria-label="Item quantity" data-i18n-aria-label="forms-a11y-item-quantity">
             <input type="number" name="items[${quoteLineItemIndex}][unit_price]" class="form-input" placeholder="0.00" min="0" step="0.01" onchange="updateQuoteLineTotal(this)" aria-label="Item unit price" data-i18n-aria-label="forms-a11y-item-unit-price">
             <span class="line-item-total">$0.00</span>
-            <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" aria-label="Remove line item">
+            <button type="button" class="line-item-remove" onclick="removeQuoteLineItem(this)" title="Remove" data-i18n-title="action-remove" aria-label="Remove line item" data-i18n-aria-label="billing-remove-line-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>

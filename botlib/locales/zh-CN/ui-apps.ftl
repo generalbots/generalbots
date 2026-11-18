@@ -136,3 +136,7 @@ erp-procurement = Procurement
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = 主机:端口（例如 10.0.0.1:5900）
 vdi-placeholder-host = 10.0.0.1
+# semantic i18n key (#2542)
+billing-quote-name-placeholder = 例如：第一季度软件许可方案
+billing-item-description-placeholder = 产品或服务描述
+billing-terms-placeholder = 付款条款、交付条件等

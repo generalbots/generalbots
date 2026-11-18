@@ -136,3 +136,7 @@ erp-procurement = Procurement
 # semantic i18n key (#2542)
 vdi-placeholder-quick-connect = 호스트:포트 (예: 10.0.0.1:5900)
 vdi-placeholder-host = 10.0.0.1
+# semantic i18n key (#2542)
+billing-quote-name-placeholder = 예: 1분기 소프트웨어 라이선스 제안
+billing-item-description-placeholder = 제품 또는 서비스 설명
+billing-terms-placeholder = 결제 조건, 배송 조건 등
