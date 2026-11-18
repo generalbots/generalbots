@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = 正在交叉引用定价数据...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = 查看详情 ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = 创建并运行
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = 正在加载任务...
+
+# semantic i18n key (#2542)
+tasks-select-task = 选择一个任务
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = 点击列表中的任务以查看详情
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = 机器人数据库：
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = 共享资源：
+
+# semantic i18n key (#2542)
+tasks-starting = 正在启动...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = 创建新意图
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = 您想完成什么？
+
+# semantic i18n key (#2542)
+tasks-execution-mode = 执行模式
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = 自动
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = 监督
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = 手动批准
+
+# semantic i18n key (#2542)
+tasks-make-decision = 做出决定
+
+# semantic i18n key (#2542)
+tasks-decision-required = 需要决定
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = 正在加载决策详情...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = 暂时跳过
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = 确认决定

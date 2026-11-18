@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = Cross-referencing pricing data...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = View Details ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = Create & Run
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = Loading tasks...
+
+# semantic i18n key (#2542)
+tasks-select-task = Select a task
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = Click on a task from the list to view details
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = Bot Database:
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = Shared Resources:
+
+# semantic i18n key (#2542)
+tasks-starting = Starting...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = Create New Intent
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = What would you like to accomplish?
+
+# semantic i18n key (#2542)
+tasks-execution-mode = Execution Mode
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = Automatic
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = Supervised
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = Manual Approval
+
+# semantic i18n key (#2542)
+tasks-make-decision = Make Decision
+
+# semantic i18n key (#2542)
+tasks-decision-required = Decision Required
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = Loading decision details...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = Skip for Now
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = Confirm Decision

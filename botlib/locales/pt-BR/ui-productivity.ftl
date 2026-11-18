@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = Cruzando dados de preços...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = Ver detalhes ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = Criar e executar
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = Carregando tarefas...
+
+# semantic i18n key (#2542)
+tasks-select-task = Selecione uma tarefa
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = Clique em uma tarefa da lista para ver os detalhes
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = Banco de dados do bot:
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = Recursos compartilhados:
+
+# semantic i18n key (#2542)
+tasks-starting = Iniciando...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = Criar nova intenção
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = O que você gostaria de realizar?
+
+# semantic i18n key (#2542)
+tasks-execution-mode = Modo de execução
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = Automático
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = Supervisionado
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = Aprovação manual
+
+# semantic i18n key (#2542)
+tasks-make-decision = Tomar decisão
+
+# semantic i18n key (#2542)
+tasks-decision-required = Decisão necessária
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = Carregando detalhes da decisão...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = Pular por enquanto
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = Confirmar decisão

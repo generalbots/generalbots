@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = 가격 데이터를 교차 참조하는 중...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = 세부 정보 보기 ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = 생성 및 실행
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = 작업 불러오는 중...
+
+# semantic i18n key (#2542)
+tasks-select-task = 작업 선택
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = 목록에서 작업을 클릭하여 세부 정보를 확인하세요
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = 봇 데이터베이스:
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = 공유 리소스:
+
+# semantic i18n key (#2542)
+tasks-starting = 시작 중...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = 새 의도 만들기
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = 무엇을 달성하고 싶으신가요?
+
+# semantic i18n key (#2542)
+tasks-execution-mode = 실행 모드
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = 자동
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = 감독
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = 수동 승인
+
+# semantic i18n key (#2542)
+tasks-make-decision = 결정하기
+
+# semantic i18n key (#2542)
+tasks-decision-required = 결정 필요
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = 결정 세부 정보 불러오는 중...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = 지금은 건너뛰기
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = 결정 확인

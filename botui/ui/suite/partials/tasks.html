@@ -136,7 +136,7 @@
                 hx-indicator="#intent-spinner"
                 hx-timeout="300000"
             >
-                <span class="btn-text" data-i18n="auto-create-run">Create & Run</span>
+                <span class="btn-text" data-i18n="tasks-create-run">Create & Run</span>
                 <span class="spinner" id="intent-spinner"></span>
             </button>
         </div>
@@ -158,7 +158,7 @@
                 <!-- Loading state - replaced by HTMX -->
                 <div class="loading-state">
                     <div class="loading-spinner"></div>
-                    <p data-i18n="auto-loading-tasks">Loading tasks...</p>
+                    <p data-i18n="tasks-loading-tasks">Loading tasks...</p>
                 </div>
             </div>
         </section>
@@ -171,17 +171,17 @@
             <!-- Detail content loaded dynamically -->
             <div class="detail-empty" id="detail-empty">
                 <div class="empty-icon">📋</div>
-                <h3 class="empty-title" data-i18n="auto-select-a-task">Select a task</h3>
-                <p class="empty-description" data-i18n="auto-click-on-a-task-from-the-list-to-view-details">
+                <h3 class="empty-title" data-i18n="tasks-select-task">Select a task</h3>
+                <p class="empty-description" data-i18n="tasks-select-task-desc">
                     Click on a task from the list to view details
                 </p>
                 <div class="empty-info">
                     <p>
-                        <strong data-i18n="auto-bot-database">Bot Database:</strong> All apps share the same
+                        <strong data-i18n="tasks-bot-database-label">Bot Database:</strong> All apps share the same
                         database tables.
                     </p>
                     <p>
-                        <strong data-i18n="auto-shared-resources">Shared Resources:</strong> Schedulers, tools,
+                        <strong data-i18n="tasks-shared-resources-label">Shared Resources:</strong> Schedulers, tools,
                         and monitors work across all apps.
                     </p>
                 </div>
@@ -230,7 +230,7 @@
             ></div>
         </div>
         <div class="floating-progress-info">
-            <span id="floating-progress-step" data-i18n="auto-starting">Starting...</span>
+            <span id="floating-progress-step" data-i18n="tasks-starting">Starting...</span>
             <span id="floating-progress-percent">0%</span>
         </div>
         <div class="floating-progress-log" id="floating-progress-log">
@@ -250,14 +250,14 @@
     <div class="modal-backdrop" onclick="closeNewIntentModal()"></div>
     <div class="modal-content">
         <div class="modal-header">
-            <h3 data-i18n="auto-create-new-intent">Create New Intent</h3>
+            <h3 data-i18n="tasks-create-new-intent">Create New Intent</h3>
             <button class="btn-close" onclick="closeNewIntentModal()">×</button>
         </div>
         <div class="modal-div">
             <form id="new-intent-form">
                 <div class="form-group">
                     <label for="intent-text"
-                         data-i18n="auto-what-would-you-like-to-accomplish">What would you like to accomplish?</label
+                         data-i18n="tasks-intent-accomplish-label">What would you like to accomplish?</label
                     >
                     <textarea
                         id="intent-text"
@@ -277,11 +277,11 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="intent-mode" data-i18n="auto-execution-mode">Execution Mode</label>
+                        <label for="intent-mode" data-i18n="tasks-execution-mode">Execution Mode</label>
                         <select id="intent-mode" name="mode">
-                            <option value="auto" data-i18n="auto-automatic">Automatic</option>
-                            <option value="supervised" data-i18n="auto-supervised">Supervised</option>
-                            <option value="manual" data-i18n="auto-manual-approval">Manual Approval</option>
+                            <option value="auto" data-i18n="tasks-mode-automatic">Automatic</option>
+                            <option value="supervised" data-i18n="tasks-mode-supervised">Supervised</option>
+                            <option value="manual" data-i18n="tasks-mode-manual-approval">Manual Approval</option>
                         </select>
                     </div>
                 </div>
@@ -291,7 +291,7 @@
             <button class="btn-secondary" onclick="closeNewIntentModal()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="submitNewIntent()" data-i18n="auto-create-run">
+            <button class="btn-primary" onclick="submitNewIntent()" data-i18n="tasks-create-run">
                 Create & Run
             </button>
         </div>
@@ -303,13 +303,13 @@
     <div class="modal-backdrop" onclick="closeDecisionModal()"></div>
     <div class="modal-content modal-lg">
         <div class="modal-header">
-            <h3 data-i18n="auto-make-decision">Make Decision</h3>
+            <h3 data-i18n="tasks-make-decision">Make Decision</h3>
             <button class="btn-close" onclick="closeDecisionModal()">×</button>
         </div>
         <div class="modal-div">
             <div class="decision-question" id="decision-question">
-                <h4 data-i18n="auto-decision-required">Decision Required</h4>
-                <p data-i18n="auto-loading-decision-details">Loading decision details...</p>
+                <h4 data-i18n="tasks-decision-required">Decision Required</h4>
+                <p data-i18n="tasks-loading-decision-details">Loading decision details...</p>
             </div>
             <div class="decision-options" id="decision-options">
                 <!-- Options loaded dynamically -->
@@ -319,10 +319,10 @@
             <button class="btn-secondary" onclick="closeDecisionModal()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-secondary" onclick="skipDecision()" data-i18n="auto-skip-for-now">
+            <button class="btn-secondary" onclick="skipDecision()" data-i18n="tasks-skip-for-now">
                 Skip for Now
             </button>
-            <button class="btn-primary" onclick="submitDecision()" data-i18n="auto-confirm-decision">
+            <button class="btn-primary" onclick="submitDecision()" data-i18n="tasks-confirm-decision">
                 Confirm Decision
             </button>
         </div>

@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = 価格データを照合しています...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = 詳細を見る ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = 作成して実行
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = タスクを読み込み中...
+
+# semantic i18n key (#2542)
+tasks-select-task = タスクを選択
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = 一覧からタスクをクリックして詳細を表示します
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = ボットデータベース:
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = 共有リソース:
+
+# semantic i18n key (#2542)
+tasks-starting = 開始中...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = 新しいインテントを作成
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = 何を達成したいですか？
+
+# semantic i18n key (#2542)
+tasks-execution-mode = 実行モード
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = 自動
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = 監視付き
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = 手動承認
+
+# semantic i18n key (#2542)
+tasks-make-decision = 決定する
+
+# semantic i18n key (#2542)
+tasks-decision-required = 決定が必要です
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = 決定の詳細を読み込み中...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = 今はスキップ
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = 決定を確認

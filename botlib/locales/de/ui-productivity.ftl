@@ -460,3 +460,57 @@ tasks-progress-sample-pricing = Preisdaten werden abgeglichen...
 
 # semantic i18n key (#2542)
 tasks-progress-view-details = Details anzeigen ▸
+
+# semantic i18n key (#2542)
+tasks-create-run = Erstellen und ausführen
+
+# semantic i18n key (#2542)
+tasks-loading-tasks = Aufgaben werden geladen...
+
+# semantic i18n key (#2542)
+tasks-select-task = Wählen Sie eine Aufgabe aus
+
+# semantic i18n key (#2542)
+tasks-select-task-desc = Klicken Sie auf eine Aufgabe in der Liste, um Details anzuzeigen
+
+# semantic i18n key (#2542)
+tasks-bot-database-label = Bot-Datenbank:
+
+# semantic i18n key (#2542)
+tasks-shared-resources-label = Gemeinsame Ressourcen:
+
+# semantic i18n key (#2542)
+tasks-starting = Wird gestartet...
+
+# semantic i18n key (#2542)
+tasks-create-new-intent = Neue Absicht erstellen
+
+# semantic i18n key (#2542)
+tasks-intent-accomplish-label = Was möchten Sie erreichen?
+
+# semantic i18n key (#2542)
+tasks-execution-mode = Ausführungsmodus
+
+# semantic i18n key (#2542)
+tasks-mode-automatic = Automatisch
+
+# semantic i18n key (#2542)
+tasks-mode-supervised = Überwacht
+
+# semantic i18n key (#2542)
+tasks-mode-manual-approval = Manuelle Genehmigung
+
+# semantic i18n key (#2542)
+tasks-make-decision = Entscheidung treffen
+
+# semantic i18n key (#2542)
+tasks-decision-required = Entscheidung erforderlich
+
+# semantic i18n key (#2542)
+tasks-loading-decision-details = Entscheidungsdetails werden geladen...
+
+# semantic i18n key (#2542)
+tasks-skip-for-now = Vorerst überspringen
+
+# semantic i18n key (#2542)
+tasks-confirm-decision = Entscheidung bestätigen
