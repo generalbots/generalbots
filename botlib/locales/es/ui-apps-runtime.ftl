@@ -760,3 +760,9 @@ docs-font-size-placeholder = 12 pt
 # semantic i18n key (#2542)
 hr-search-employees-placeholder = Buscar empleados...
 hr-manager-placeholder = Nombre o correo del gerente
+
+# semantic i18n key (#2542)
+dashboards-loading = Cargando paneles
+
+# semantic i18n key (#2542)
+dashboards-query-results = Resultados de la consulta

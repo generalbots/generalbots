@@ -542,3 +542,9 @@ docs-font-size-placeholder = 12 pt
 # semantic i18n key (#2542)
 hr-search-employees-placeholder = 従業員を検索...
 hr-manager-placeholder = マネージャーの名前またはメール
+
+# semantic i18n key (#2542)
+dashboards-loading = ダッシュボードを読み込み中
+
+# semantic i18n key (#2542)
+dashboards-query-results = クエリ結果

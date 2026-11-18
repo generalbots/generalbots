@@ -542,3 +542,9 @@ docs-font-size-placeholder = 12 pt
 # semantic i18n key (#2542)
 hr-search-employees-placeholder = 搜索员工...
 hr-manager-placeholder = 经理姓名或邮箱
+
+# semantic i18n key (#2542)
+dashboards-loading = 正在加载仪表板
+
+# semantic i18n key (#2542)
+dashboards-query-results = 查询结果

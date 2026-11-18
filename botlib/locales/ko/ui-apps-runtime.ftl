@@ -542,3 +542,9 @@ docs-font-size-placeholder = 12 pt
 # semantic i18n key (#2542)
 hr-search-employees-placeholder = 직원 검색...
 hr-manager-placeholder = 관리자 이름 또는 이메일
+
+# semantic i18n key (#2542)
+dashboards-loading = 대시보드 로딩 중
+
+# semantic i18n key (#2542)
+dashboards-query-results = 쿼리 결과
