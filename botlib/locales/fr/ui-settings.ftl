@@ -873,3 +873,13 @@ settings-skills-placeholder =
     1. …
 settings-memory-search-placeholder = Rechercher des souvenirs…
 settings-notification-recipient-placeholder = vous@exemple.com
+
+# semantic i18n key (#2542)
+settings-profile-placeholder-display-name = Jean Dupont
+settings-profile-placeholder-username = jeandupont
+settings-profile-placeholder-email = jean@exemple.com
+settings-profile-placeholder-public-display-name = Votre nom
+settings-profile-placeholder-public-bio = Une courte description visible sur votre profil public...
+settings-profile-placeholder-phone = +33 6 00 00 00 00
+settings-profile-placeholder-location = Ville, Pays
+settings-profile-placeholder-website = https://exemple.com

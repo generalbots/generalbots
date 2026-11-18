@@ -873,3 +873,13 @@ settings-skills-placeholder =
     1. …
 settings-memory-search-placeholder = 기억 검색…
 settings-notification-recipient-placeholder = you@example.com
+
+# semantic i18n key (#2542)
+settings-profile-placeholder-display-name = 홍길동
+settings-profile-placeholder-username = hong
+settings-profile-placeholder-email = hong@example.com
+settings-profile-placeholder-public-display-name = 이름
+settings-profile-placeholder-public-bio = 공개 프로필에 표시될 짧은 설명...
+settings-profile-placeholder-phone = +82 10-0000-0000
+settings-profile-placeholder-location = 도시, 국가
+settings-profile-placeholder-website = https://example.com

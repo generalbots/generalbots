@@ -873,3 +873,13 @@ settings-skills-placeholder =
     1. …
 settings-memory-search-placeholder = Erinnerungen suchen…
 settings-notification-recipient-placeholder = sie@beispiel.com
+
+# semantic i18n key (#2542)
+settings-profile-placeholder-display-name = Max Mustermann
+settings-profile-placeholder-username = maxmustermann
+settings-profile-placeholder-email = max@beispiel.com
+settings-profile-placeholder-public-display-name = Ihr Name
+settings-profile-placeholder-public-bio = Eine kurze Beschreibung, die in Ihrem öffentlichen Profil sichtbar ist...
+settings-profile-placeholder-phone = +49 170 0000000
+settings-profile-placeholder-location = Stadt, Land
+settings-profile-placeholder-website = https://beispiel.com

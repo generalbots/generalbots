@@ -873,3 +873,13 @@ settings-skills-placeholder =
     1. …
 settings-memory-search-placeholder = 搜索记忆…
 settings-notification-recipient-placeholder = you@example.com
+
+# semantic i18n key (#2542)
+settings-profile-placeholder-display-name = 张三
+settings-profile-placeholder-username = zhangsan
+settings-profile-placeholder-email = zhangsan@example.com
+settings-profile-placeholder-public-display-name = 您的姓名
+settings-profile-placeholder-public-bio = 在您的公开个人资料中显示的简短描述...
+settings-profile-placeholder-phone = +86 138 0000 0000
+settings-profile-placeholder-location = 城市，国家
+settings-profile-placeholder-website = https://example.com

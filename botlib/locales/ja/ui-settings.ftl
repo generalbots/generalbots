@@ -873,3 +873,13 @@ settings-skills-placeholder =
     1. …
 settings-memory-search-placeholder = メモリを検索…
 settings-notification-recipient-placeholder = you@example.com
+
+# semantic i18n key (#2542)
+settings-profile-placeholder-display-name = 山田 太郎
+settings-profile-placeholder-username = yamada
+settings-profile-placeholder-email = taro@example.com
+settings-profile-placeholder-public-display-name = 表示名
+settings-profile-placeholder-public-bio = 公開プロフィールに表示される短い説明...
+settings-profile-placeholder-phone = +81 90-0000-0000
+settings-profile-placeholder-location = 市区町村、国
+settings-profile-placeholder-website = https://example.com
