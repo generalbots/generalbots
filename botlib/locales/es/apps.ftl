@@ -1189,3 +1189,8 @@ concierge-placeholder-goal = p. ej. preparar un informe de CRM, programar una re
 # semantic i18n key (#2542)
 browser-url-placeholder = Introduce una URL o busca...
 browser-start-search-placeholder = Busca en la web o introduce una URL...
+
+# semantic i18n key (#2542)
+automations-placeholder-title = Resumen nocturno de inventario
+automations-placeholder-goal = Describe el objetivo que el agente debe lograr en cada ejecución.
+automations-placeholder-cron = */15 * * * *

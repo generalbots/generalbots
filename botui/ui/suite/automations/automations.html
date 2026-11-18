@@ -34,17 +34,17 @@
         <div class="auto-field">
           <label for="auto-f-title" data-i18n="label-title">Title</label>
           <input type="text" id="auto-f-title" name="title" required maxlength="200"
-                 placeholder="Nightly inventory digest" autocomplete="off" />
+                 data-i18n-placeholder="automations-placeholder-title" autocomplete="off" />
         </div>
         <div class="auto-field">
           <label for="auto-f-goal" data-i18n="automations-goal-label">Goal</label>
           <textarea id="auto-f-goal" name="goal" rows="4" required
-                    placeholder="Describe the objective the agent must achieve on each run."></textarea>
+                    data-i18n-placeholder="automations-placeholder-goal"></textarea>
         </div>
         <div class="auto-field">
           <label for="auto-f-cron" data-i18n="automations-cron-label">Cron expression (5 fields: min hour day month weekday)</label>
           <input type="text" id="auto-f-cron" name="cron_expr" required maxlength="64"
-                 placeholder="*/15 * * * *" autocomplete="off" spellcheck="false" />
+                 data-i18n-placeholder="automations-placeholder-cron" autocomplete="off" spellcheck="false" />
           <p class="auto-cron-preview" id="auto-cron-preview" aria-live="polite"></p>
         </div>
         <div class="auto-field-row">

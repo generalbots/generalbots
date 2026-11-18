@@ -1191,3 +1191,8 @@ concierge-placeholder-goal = 例如：准备 CRM 报告、安排会议、查看�
 # semantic i18n key (#2542)
 browser-url-placeholder = 输入网址或搜索...
 browser-start-search-placeholder = 搜索网页或输入网址...
+
+# semantic i18n key (#2542)
+automations-placeholder-title = 夜间库存摘要
+automations-placeholder-goal = 描述代理在每次运行时需要达成的目标。
+automations-placeholder-cron = */15 * * * *

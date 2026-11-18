@@ -1191,3 +1191,8 @@ concierge-placeholder-goal = 예: CRM 보고서 준비, 회의 일정 잡기, �
 # semantic i18n key (#2542)
 browser-url-placeholder = URL 입력 또는 검색...
 browser-start-search-placeholder = 웹 검색 또는 URL 입력...
+
+# semantic i18n key (#2542)
+automations-placeholder-title = 야간 재고 요약
+automations-placeholder-goal = 각 실행마다 에이전트가 달성해야 할 목표를 설명하세요.
+automations-placeholder-cron = */15 * * * *
