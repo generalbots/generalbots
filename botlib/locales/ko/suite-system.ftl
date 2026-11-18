@@ -180,3 +180,24 @@ monitoring-service-name-label = 서비스 이름
 
 # semantic i18n key (#2542)
 monitoring-service-description-placeholder = 서비스 설명이 여기에 표시됩니다
+
+# semantic i18n key (#2542)
+monitoring-cpu-usage = CPU 사용량
+
+# semantic i18n key (#2542)
+monitoring-cores-detail = -- 코어 @ -- GHz
+
+# semantic i18n key (#2542)
+monitoring-memory-usage = 메모리 사용량
+
+# semantic i18n key (#2542)
+monitoring-gb-detail = -- GB / -- GB
+
+# semantic i18n key (#2542)
+monitoring-disk-usage = 디스크 사용량
+
+# semantic i18n key (#2542)
+monitoring-network-io = 네트워크 I/O
+
+# semantic i18n key (#2542)
+monitoring-connections-active = -- 활성 연결

@@ -180,3 +180,24 @@ monitoring-service-name-label = 服务名称
 
 # semantic i18n key (#2542)
 monitoring-service-description-placeholder = 服务描述显示在此处
+
+# semantic i18n key (#2542)
+monitoring-cpu-usage = CPU 使用率
+
+# semantic i18n key (#2542)
+monitoring-cores-detail = -- 核心 @ -- GHz
+
+# semantic i18n key (#2542)
+monitoring-memory-usage = 内存使用率
+
+# semantic i18n key (#2542)
+monitoring-gb-detail = -- GB / -- GB
+
+# semantic i18n key (#2542)
+monitoring-disk-usage = 磁盘使用率
+
+# semantic i18n key (#2542)
+monitoring-network-io = 网络 I/O
+
+# semantic i18n key (#2542)
+monitoring-connections-active = -- 个活动连接

@@ -355,3 +355,27 @@ crm-account-country = Pays
 
 # semantic i18n key (#2542)
 crm-create-account = Créer un compte
+
+# semantic i18n key (#2542)
+people-search-name-contains = Le nom contient
+
+# semantic i18n key (#2542)
+people-search-job-title = Intitulé du poste
+
+# semantic i18n key (#2542)
+people-search-tags = Étiquettes (séparées par des virgules)
+
+# semantic i18n key (#2542)
+people-source-manual = Manuel
+
+# semantic i18n key (#2542)
+people-source-csv-import = Import CSV
+
+# semantic i18n key (#2542)
+people-source-crm-sync = Synchronisation CRM
+
+# semantic i18n key (#2542)
+people-import-csv = Importer CSV
+
+# semantic i18n key (#2542)
+people-search-empty-hint = Lancez une recherche pour voir les résultats.

@@ -27,3 +27,27 @@ tickets-ai-resolved = Resolvidos por IA
 tickets-priority-all = Todas as prioridades
 tickets-category-all = Todas as categorias
 tickets-select-case = Selecione um caso para ver os detalhes
+
+# semantic i18n key (#2542)
+tickets-sla-management = Gerenciamento de SLA
+
+# semantic i18n key (#2542)
+tickets-sla-hint = Acordos de nível de serviço por prioridade · previsão de violação nas próximas 24h
+
+# semantic i18n key (#2542)
+tickets-sla-target-critical = Meta: 1h de resposta / 4h de resolução
+
+# semantic i18n key (#2542)
+tickets-sla-target-high = Meta: 4h de resposta / 24h de resolução
+
+# semantic i18n key (#2542)
+tickets-sla-target-normal = Meta: 8h de resposta / 72h de resolução
+
+# semantic i18n key (#2542)
+tickets-sla-col-ticket = Ticket
+
+# semantic i18n key (#2542)
+tickets-sla-col-time = Tempo até o SLA
+
+# semantic i18n key (#2542)
+tickets-sla-no-risk = Nenhum ticket em risco nas próximas 24h.

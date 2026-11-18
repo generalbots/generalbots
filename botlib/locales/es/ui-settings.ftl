@@ -302,3 +302,27 @@ settings-component-versions-desc = Versiones de BotServer, BotUI y servicios de 
 
 # semantic i18n key (#2542)
 settings-open-versions = Abrir versiones
+
+# semantic i18n key (#2542)
+settings-on-device-ai = IA en el dispositivo
+
+# semantic i18n key (#2542)
+settings-operating-system = Sistema operativo
+
+# semantic i18n key (#2542)
+settings-ledger = Libro mayor
+
+# semantic i18n key (#2542)
+settings-updates = Actualizaciones
+
+# semantic i18n key (#2542)
+settings-this-workspace = Este espacio de trabajo
+
+# semantic i18n key (#2542)
+settings-loading-identity = Cargando identidad…
+
+# semantic i18n key (#2542)
+settings-plan-placeholder = Plan: —
+
+# semantic i18n key (#2542)
+settings-preview-placeholder = Vista previa: —

@@ -355,3 +355,27 @@ crm-account-country = 국가
 
 # semantic i18n key (#2542)
 crm-create-account = 계정 만들기
+
+# semantic i18n key (#2542)
+people-search-name-contains = 이름 포함
+
+# semantic i18n key (#2542)
+people-search-job-title = 직함
+
+# semantic i18n key (#2542)
+people-search-tags = 태그(쉼표로 구분)
+
+# semantic i18n key (#2542)
+people-source-manual = 수동
+
+# semantic i18n key (#2542)
+people-source-csv-import = CSV 가져오기
+
+# semantic i18n key (#2542)
+people-source-crm-sync = CRM 동기화
+
+# semantic i18n key (#2542)
+people-import-csv = CSV 가져오기
+
+# semantic i18n key (#2542)
+people-search-empty-hint = 검색을 실행하면 결과가 표시됩니다.

@@ -302,3 +302,27 @@ settings-component-versions-desc = 此安装的 BotServer、BotUI 和服务版�
 
 # semantic i18n key (#2542)
 settings-open-versions = 打开版本
+
+# semantic i18n key (#2542)
+settings-on-device-ai = 设备端 AI
+
+# semantic i18n key (#2542)
+settings-operating-system = 操作系统
+
+# semantic i18n key (#2542)
+settings-ledger = 账本
+
+# semantic i18n key (#2542)
+settings-updates = 更新
+
+# semantic i18n key (#2542)
+settings-this-workspace = 此工作区
+
+# semantic i18n key (#2542)
+settings-loading-identity = 正在加载身份…
+
+# semantic i18n key (#2542)
+settings-plan-placeholder = 套餐：—
+
+# semantic i18n key (#2542)
+settings-preview-placeholder = 预览：—

@@ -180,3 +180,24 @@ monitoring-service-name-label = Nom du service
 
 # semantic i18n key (#2542)
 monitoring-service-description-placeholder = La description du service va ici
+
+# semantic i18n key (#2542)
+monitoring-cpu-usage = Utilisation du CPU
+
+# semantic i18n key (#2542)
+monitoring-cores-detail = -- cœurs @ -- GHz
+
+# semantic i18n key (#2542)
+monitoring-memory-usage = Utilisation de la mémoire
+
+# semantic i18n key (#2542)
+monitoring-gb-detail = -- Go / -- Go
+
+# semantic i18n key (#2542)
+monitoring-disk-usage = Utilisation du disque
+
+# semantic i18n key (#2542)
+monitoring-network-io = E/S réseau
+
+# semantic i18n key (#2542)
+monitoring-connections-active = -- connexions actives

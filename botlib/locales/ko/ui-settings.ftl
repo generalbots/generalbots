@@ -302,3 +302,27 @@ settings-component-versions-desc = 이 설치의 BotServer, BotUI 및 서비스 
 
 # semantic i18n key (#2542)
 settings-open-versions = 버전 열기
+
+# semantic i18n key (#2542)
+settings-on-device-ai = 온디바이스 AI
+
+# semantic i18n key (#2542)
+settings-operating-system = 운영 체제
+
+# semantic i18n key (#2542)
+settings-ledger = 원장
+
+# semantic i18n key (#2542)
+settings-updates = 업데이트
+
+# semantic i18n key (#2542)
+settings-this-workspace = 이 작업 공간
+
+# semantic i18n key (#2542)
+settings-loading-identity = ID 불러오는 중…
+
+# semantic i18n key (#2542)
+settings-plan-placeholder = 플랜: —
+
+# semantic i18n key (#2542)
+settings-preview-placeholder = 미리보기: —

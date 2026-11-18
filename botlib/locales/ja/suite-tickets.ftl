@@ -27,3 +27,27 @@ tickets-ai-resolved = AI 解決済み
 tickets-priority-all = すべての優先度
 tickets-category-all = すべてのカテゴリ
 tickets-select-case = 詳細を表示するケースを選択してください
+
+# semantic i18n key (#2542)
+tickets-sla-management = SLA管理
+
+# semantic i18n key (#2542)
+tickets-sla-hint = 優先度別のサービスレベル契約 · 今後24時間の違反予測
+
+# semantic i18n key (#2542)
+tickets-sla-target-critical = 目標: 応答1時間 / 解決4時間
+
+# semantic i18n key (#2542)
+tickets-sla-target-high = 目標: 応答4時間 / 解決24時間
+
+# semantic i18n key (#2542)
+tickets-sla-target-normal = 目標: 応答8時間 / 解決72時間
+
+# semantic i18n key (#2542)
+tickets-sla-col-ticket = チケット
+
+# semantic i18n key (#2542)
+tickets-sla-col-time = SLAまでの時間
+
+# semantic i18n key (#2542)
+tickets-sla-no-risk = 今後24時間でリスクのあるチケットはありません。

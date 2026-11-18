@@ -355,3 +355,27 @@ crm-account-country = 国
 
 # semantic i18n key (#2542)
 crm-create-account = アカウントを作成
+
+# semantic i18n key (#2542)
+people-search-name-contains = 名前に含む
+
+# semantic i18n key (#2542)
+people-search-job-title = 役職
+
+# semantic i18n key (#2542)
+people-search-tags = タグ（カンマ区切り）
+
+# semantic i18n key (#2542)
+people-source-manual = 手動
+
+# semantic i18n key (#2542)
+people-source-csv-import = CSVインポート
+
+# semantic i18n key (#2542)
+people-source-crm-sync = CRM同期
+
+# semantic i18n key (#2542)
+people-import-csv = CSVをインポート
+
+# semantic i18n key (#2542)
+people-search-empty-hint = 検索を実行すると結果が表示されます。

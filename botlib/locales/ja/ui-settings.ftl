@@ -302,3 +302,27 @@ settings-component-versions-desc = このインストールの BotServer、BotUI
 
 # semantic i18n key (#2542)
 settings-open-versions = バージョンを開く
+
+# semantic i18n key (#2542)
+settings-on-device-ai = デバイス上のAI
+
+# semantic i18n key (#2542)
+settings-operating-system = オペレーティングシステム
+
+# semantic i18n key (#2542)
+settings-ledger = 台帳
+
+# semantic i18n key (#2542)
+settings-updates = 更新
+
+# semantic i18n key (#2542)
+settings-this-workspace = このワークスペース
+
+# semantic i18n key (#2542)
+settings-loading-identity = IDを読み込み中…
+
+# semantic i18n key (#2542)
+settings-plan-placeholder = プラン: —
+
+# semantic i18n key (#2542)
+settings-preview-placeholder = プレビュー: —

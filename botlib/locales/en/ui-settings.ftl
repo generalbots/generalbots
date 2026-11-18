@@ -302,3 +302,27 @@ settings-component-versions-desc = BotServer, BotUI and service versions for thi
 
 # semantic i18n key (#2542)
 settings-open-versions = Open Versions
+
+# semantic i18n key (#2542)
+settings-on-device-ai = On-device AI
+
+# semantic i18n key (#2542)
+settings-operating-system = Operating System
+
+# semantic i18n key (#2542)
+settings-ledger = Ledger
+
+# semantic i18n key (#2542)
+settings-updates = Updates
+
+# semantic i18n key (#2542)
+settings-this-workspace = This workspace
+
+# semantic i18n key (#2542)
+settings-loading-identity = Loading identity…
+
+# semantic i18n key (#2542)
+settings-plan-placeholder = Plan: —
+
+# semantic i18n key (#2542)
+settings-preview-placeholder = Preview: —

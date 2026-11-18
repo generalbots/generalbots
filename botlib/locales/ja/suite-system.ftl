@@ -180,3 +180,24 @@ monitoring-service-name-label = サービス名
 
 # semantic i18n key (#2542)
 monitoring-service-description-placeholder = サービスの説明がここに表示されます
+
+# semantic i18n key (#2542)
+monitoring-cpu-usage = CPU使用率
+
+# semantic i18n key (#2542)
+monitoring-cores-detail = -- コア @ -- GHz
+
+# semantic i18n key (#2542)
+monitoring-memory-usage = メモリ使用率
+
+# semantic i18n key (#2542)
+monitoring-gb-detail = -- GB / -- GB
+
+# semantic i18n key (#2542)
+monitoring-disk-usage = ディスク使用率
+
+# semantic i18n key (#2542)
+monitoring-network-io = ネットワークI/O
+
+# semantic i18n key (#2542)
+monitoring-connections-active = -- 接続中

@@ -355,3 +355,27 @@ crm-account-country = 国家
 
 # semantic i18n key (#2542)
 crm-create-account = 创建账户
+
+# semantic i18n key (#2542)
+people-search-name-contains = 姓名包含
+
+# semantic i18n key (#2542)
+people-search-job-title = 职位
+
+# semantic i18n key (#2542)
+people-search-tags = 标签（逗号分隔）
+
+# semantic i18n key (#2542)
+people-source-manual = 手动
+
+# semantic i18n key (#2542)
+people-source-csv-import = CSV 导入
+
+# semantic i18n key (#2542)
+people-source-crm-sync = CRM 同步
+
+# semantic i18n key (#2542)
+people-import-csv = 导入 CSV
+
+# semantic i18n key (#2542)
+people-search-empty-hint = 运行搜索以查看结果。

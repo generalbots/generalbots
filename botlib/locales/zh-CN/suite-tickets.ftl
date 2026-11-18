@@ -27,3 +27,27 @@ tickets-ai-resolved = AI 已解决
 tickets-priority-all = 所有优先级
 tickets-category-all = 所有类别
 tickets-select-case = 选择一个工单以查看详情
+
+# semantic i18n key (#2542)
+tickets-sla-management = SLA 管理
+
+# semantic i18n key (#2542)
+tickets-sla-hint = 按优先级划分的服务级别协议 · 未来 24 小时违规预测
+
+# semantic i18n key (#2542)
+tickets-sla-target-critical = 目标：1 小时响应 / 4 小时解决
+
+# semantic i18n key (#2542)
+tickets-sla-target-high = 目标：4 小时响应 / 24 小时解决
+
+# semantic i18n key (#2542)
+tickets-sla-target-normal = 目标：8 小时响应 / 72 小时解决
+
+# semantic i18n key (#2542)
+tickets-sla-col-ticket = 工单
+
+# semantic i18n key (#2542)
+tickets-sla-col-time = 距离 SLA 的时间
+
+# semantic i18n key (#2542)
+tickets-sla-no-risk = 未来 24 小时内没有风险工单。
