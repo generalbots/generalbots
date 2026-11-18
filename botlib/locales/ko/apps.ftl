@@ -136,11 +136,13 @@ monitoring-time-last-7d = 최근 7일
 monitoring-time-last-30d = 최근 30일
 monitoring-status-acknowledged = 확인됨
 monitoring-alert-name = 알림 이름 *
+monitoring-alert-name-placeholder = 예: CPU 사용량 높음
 monitoring-alert-severity = 심각도 *
 monitoring-select-severity = 심각도 선택
 monitoring-alert-category = 카테고리 *
 monitoring-select-category = 카테고리 선택
 monitoring-alert-condition = 조건
+monitoring-alert-description-placeholder = 이 알림 규칙에 대한 간단한 설명
 monitoring-alert-metric = 지표 *
 monitoring-select-metric = 지표 선택
 monitoring-metric-load-average = 평균 부하
@@ -153,6 +155,7 @@ monitoring-alert-operator = 연산자 *
 monitoring-operator-equal = 같음 (=)
 monitoring-operator-not-equal = 같지 않음 (!=)
 monitoring-alert-threshold = 임계값 *
+monitoring-alert-threshold-placeholder = 예: 90
 monitoring-alert-duration = 기간 *
 monitoring-duration-instant = 즉시
 monitoring-alert-evaluation-interval = 평가 간격

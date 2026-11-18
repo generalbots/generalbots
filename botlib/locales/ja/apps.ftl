@@ -136,11 +136,13 @@ monitoring-time-last-7d = 過去7日間
 monitoring-time-last-30d = 過去30日間
 monitoring-status-acknowledged = 確認済み
 monitoring-alert-name = アラート名 *
+monitoring-alert-name-placeholder = 例: CPU使用率が高い
 monitoring-alert-severity = 重大度 *
 monitoring-select-severity = 重大度を選択
 monitoring-alert-category = カテゴリ *
 monitoring-select-category = カテゴリを選択
 monitoring-alert-condition = 条件
+monitoring-alert-description-placeholder = このアラートルールの簡単な説明
 monitoring-alert-metric = メトリック *
 monitoring-select-metric = メトリックを選択
 monitoring-metric-load-average = 平均負荷
@@ -153,6 +155,7 @@ monitoring-alert-operator = 演算子 *
 monitoring-operator-equal = 等しい (=)
 monitoring-operator-not-equal = 等しくない (!=)
 monitoring-alert-threshold = しきい値 *
+monitoring-alert-threshold-placeholder = 例: 90
 monitoring-alert-duration = 期間 *
 monitoring-duration-instant = 即時
 monitoring-alert-evaluation-interval = 評価間隔

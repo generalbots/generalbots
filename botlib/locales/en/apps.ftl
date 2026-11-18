@@ -136,11 +136,13 @@ monitoring-time-last-7d = Last 7 days
 monitoring-time-last-30d = Last 30 days
 monitoring-status-acknowledged = Acknowledged
 monitoring-alert-name = Alert Name *
+monitoring-alert-name-placeholder = e.g., High CPU Usage
 monitoring-alert-severity = Severity *
 monitoring-select-severity = Select severity
 monitoring-alert-category = Category *
 monitoring-select-category = Select category
 monitoring-alert-condition = Condition
+monitoring-alert-description-placeholder = Brief description of this alert rule
 monitoring-alert-metric = Metric *
 monitoring-select-metric = Select metric
 monitoring-metric-load-average = Load Average
@@ -153,6 +155,7 @@ monitoring-alert-operator = Operator *
 monitoring-operator-equal = Equal to (=)
 monitoring-operator-not-equal = Not equal to (!=)
 monitoring-alert-threshold = Threshold *
+monitoring-alert-threshold-placeholder = e.g., 90
 monitoring-alert-duration = Duration *
 monitoring-duration-instant = Instant
 monitoring-alert-evaluation-interval = Evaluation Interval

@@ -136,11 +136,13 @@ monitoring-time-last-7d = 7 derniers jours
 monitoring-time-last-30d = 30 derniers jours
 monitoring-status-acknowledged = Acquitté
 monitoring-alert-name = Nom de l'alerte *
+monitoring-alert-name-placeholder = p. ex., Utilisation élevée du CPU
 monitoring-alert-severity = Gravité *
 monitoring-select-severity = Sélectionner la gravité
 monitoring-alert-category = Catégorie *
 monitoring-select-category = Sélectionner la catégorie
 monitoring-alert-condition = Condition
+monitoring-alert-description-placeholder = Brève description de cette règle d'alerte
 monitoring-alert-metric = Métrique *
 monitoring-select-metric = Sélectionner la métrique
 monitoring-metric-load-average = Charge moyenne
@@ -153,6 +155,7 @@ monitoring-alert-operator = Opérateur *
 monitoring-operator-equal = Égal à (=)
 monitoring-operator-not-equal = Différent de (!=)
 monitoring-alert-threshold = Seuil *
+monitoring-alert-threshold-placeholder = p. ex., 90
 monitoring-alert-duration = Durée *
 monitoring-duration-instant = Instantané
 monitoring-alert-evaluation-interval = Intervalle d'évaluation

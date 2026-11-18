@@ -136,11 +136,13 @@ monitoring-time-last-7d = 最近7天
 monitoring-time-last-30d = 最近30天
 monitoring-status-acknowledged = 已确认
 monitoring-alert-name = 告警名称 *
+monitoring-alert-name-placeholder = 例如：CPU 使用率过高
 monitoring-alert-severity = 严重性 *
 monitoring-select-severity = 选择严重性
 monitoring-alert-category = 类别 *
 monitoring-select-category = 选择类别
 monitoring-alert-condition = 条件
+monitoring-alert-description-placeholder = 此告警规则的简要说明
 monitoring-alert-metric = 指标 *
 monitoring-select-metric = 选择指标
 monitoring-metric-load-average = 平均负载
@@ -153,6 +155,7 @@ monitoring-alert-operator = 运算符 *
 monitoring-operator-equal = 等于 (=)
 monitoring-operator-not-equal = 不等于 (!=)
 monitoring-alert-threshold = 阈值 *
+monitoring-alert-threshold-placeholder = 例如：90
 monitoring-alert-duration = 持续时间 *
 monitoring-duration-instant = 立即
 monitoring-alert-evaluation-interval = 评估间隔

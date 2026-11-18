@@ -136,11 +136,13 @@ monitoring-time-last-7d = Letzte 7 Tage
 monitoring-time-last-30d = Letzte 30 Tage
 monitoring-status-acknowledged = Bestätigt
 monitoring-alert-name = Alarmname *
+monitoring-alert-name-placeholder = z. B. Hohe CPU-Auslastung
 monitoring-alert-severity = Schweregrad *
 monitoring-select-severity = Schweregrad auswählen
 monitoring-alert-category = Kategorie *
 monitoring-select-category = Kategorie auswählen
 monitoring-alert-condition = Bedingung
+monitoring-alert-description-placeholder = Kurze Beschreibung dieser Alarmregel
 monitoring-alert-metric = Metrik *
 monitoring-select-metric = Metrik auswählen
 monitoring-metric-load-average = Durchschnittslast
@@ -153,6 +155,7 @@ monitoring-alert-operator = Operator *
 monitoring-operator-equal = Gleich (=)
 monitoring-operator-not-equal = Ungleich (!=)
 monitoring-alert-threshold = Schwellenwert *
+monitoring-alert-threshold-placeholder = z. B. 90
 monitoring-alert-duration = Dauer *
 monitoring-duration-instant = Sofort
 monitoring-alert-evaluation-interval = Auswertungsintervall
