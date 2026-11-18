@@ -172,3 +172,12 @@ mail-body-html = 本文 HTML
 mail-placeholder-label-name = 例: 仕事
 mail-placeholder-signature-name = 例: ビジネス署名
 mail-placeholder-signature-content = よろしくお願いいたします。<br><b>お名前</b>
+
+# semantic i18n key (#2542)
+mail-placeholder-rule-name = 例: ニュースレターをアーカイブ
+mail-placeholder-rule-condition = 例: newsletter
+mail-placeholder-template-name = 例: ウェルカムメール
+mail-placeholder-template-subject = 標準のウェルカム件名
+mail-placeholder-template-body = こんにちは {{name}} さん、プラットフォームへようこそ！
+mail-placeholder-autoreply-subject = 返信件名
+mail-placeholder-autoreply-message = 自動返信メッセージ...

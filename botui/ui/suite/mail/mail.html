@@ -66,11 +66,11 @@
         </div>
         <div class="form-group">
             <label data-i18n="mail-rule-name">Rule Name</label>
-            <input type="text" id="new-rule-name" placeholder="e.g. Archive Newsletters" style="width:100%; box-sizing:border-box; padding:8px;" required />
+            <input type="text" id="new-rule-name" data-i18n-placeholder="mail-placeholder-rule-name" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
             <label data-i18n="mail-condition-sender-contains">Condition (Sender contains)</label>
-            <input type="text" id="new-rule-condition" placeholder="e.g. newsletter" style="width:100%; box-sizing:border-box; padding:8px;" required />
+            <input type="text" id="new-rule-condition" data-i18n-placeholder="mail-placeholder-rule-condition" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
             <label data-i18n="security-col-action">Action</label>
@@ -101,15 +101,15 @@
         </div>
         <div class="form-group">
             <label data-i18n="mail-template-name">Template Name</label>
-            <input type="text" id="new-template-name" placeholder="e.g. Welcome Email" style="width:100%; box-sizing:border-box; padding:8px;" required />
+            <input type="text" id="new-template-name" data-i18n-placeholder="mail-placeholder-template-name" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
             <label data-i18n="tickets-subject">Subject</label>
-            <input type="text" id="new-template-subject" placeholder="Standard Welcome Subject" style="width:100%; box-sizing:border-box; padding:8px;" required />
+            <input type="text" id="new-template-subject" data-i18n-placeholder="mail-placeholder-template-subject" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
             <label data-i18n="mail-body-html">Body HTML</label>
-            <textarea id="new-template-body" placeholder="Hello {{name}}, welcome to our platform!" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
+            <textarea id="new-template-body" data-i18n-placeholder="mail-placeholder-template-body" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
         </div>
         <div class="modal-footer" style="margin-top:1.5rem;">
             <button class="btn-secondary" onclick="document.getElementById('new-template-modal').close()" data-i18n="action-cancel">Cancel</button>
@@ -302,7 +302,7 @@
                     type="text"
                     name="subject"
                     value="Out of Office"
-                    placeholder="Reply subject"
+                    data-i18n-placeholder="mail-placeholder-autoreply-subject"
                 />
             </div>
             <div class="form-group">
@@ -310,7 +310,7 @@
                 <textarea
                     name="body"
                     rows="6"
-                    placeholder="Your automatic reply message..."
+                    data-i18n-placeholder="mail-placeholder-autoreply-message"
                 ></textarea>
             </div>
             <div class="form-group">

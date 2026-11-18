@@ -172,3 +172,12 @@ mail-body-html = 본문 HTML
 mail-placeholder-label-name = 예: 업무
 mail-placeholder-signature-name = 예: 업무용 서명
 mail-placeholder-signature-content = 감사합니다.<br><b>이름</b>
+
+# semantic i18n key (#2542)
+mail-placeholder-rule-name = 예: 뉴스레터 보관
+mail-placeholder-rule-condition = 예: newsletter
+mail-placeholder-template-name = 예: 환영 이메일
+mail-placeholder-template-subject = 기본 환영 제목
+mail-placeholder-template-body = 안녕하세요 {{name}}님, 플랫폼에 오신 것을 환영합니다!
+mail-placeholder-autoreply-subject = 회신 제목
+mail-placeholder-autoreply-message = 자동 회신 메시지...

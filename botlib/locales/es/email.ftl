@@ -172,3 +172,12 @@ mail-body-html = Cuerpo HTML
 mail-placeholder-label-name = p. ej. Trabajo
 mail-placeholder-signature-name = p. ej. Firma profesional
 mail-placeholder-signature-content = Saludos cordiales,<br><b>Su nombre</b>
+
+# semantic i18n key (#2542)
+mail-placeholder-rule-name = p. ej. Archivar boletines
+mail-placeholder-rule-condition = p. ej. newsletter
+mail-placeholder-template-name = p. ej. Correo de bienvenida
+mail-placeholder-template-subject = Asunto estándar de bienvenida
+mail-placeholder-template-body = Hola {{name}}, ¡bienvenido a nuestra plataforma!
+mail-placeholder-autoreply-subject = Asunto de la respuesta
+mail-placeholder-autoreply-message = Su mensaje de respuesta automática...

@@ -172,3 +172,12 @@ mail-body-html = 正文 HTML
 mail-placeholder-label-name = 例如：工作
 mail-placeholder-signature-name = 例如：专业签名
 mail-placeholder-signature-content = 此致敬礼，<br><b>您的姓名</b>
+
+# semantic i18n key (#2542)
+mail-placeholder-rule-name = 例如：归档新闻通讯
+mail-placeholder-rule-condition = 例如：newsletter
+mail-placeholder-template-name = 例如：欢迎邮件
+mail-placeholder-template-subject = 标准欢迎主题
+mail-placeholder-template-body = 您好 {{name}}，欢迎来到我们的平台！
+mail-placeholder-autoreply-subject = 回复主题
+mail-placeholder-autoreply-message = 您的自动回复消息...
