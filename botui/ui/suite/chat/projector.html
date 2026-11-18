@@ -52,7 +52,7 @@
                         oninput="seekTo(this.value)">
                     <span class="time-display" id="time-display">0:00 / 0:00</span>
                 </div>
-                <button class="control-btn" onclick="toggleMute()" id="mute-btn" title="Mute">
+                <button class="control-btn" onclick="toggleMute()" id="mute-btn" title="Mute" data-i18n-title="meet-mute" aria-label="Mute" data-i18n-aria-label="meet-mute">
                     🔊
                 </button>
                 <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="100"
@@ -106,10 +106,10 @@
                 <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
                     🔍-
                 </button>
-                <button class="control-btn" onclick="rotateImage()" title="Rotate">
+                <button class="control-btn" onclick="rotateImage()" title="Rotate" data-i18n-title="auto-rotate-2" aria-label="Rotate" data-i18n-aria-label="auto-rotate-2">
                     🔄
                 </button>
-                <button class="control-btn" onclick="fitToScreen()" title="Fit to Screen">
+                <button class="control-btn" onclick="fitToScreen()" title="Fit to Screen" data-i18n-title="auto-fit-to-screen" aria-label="Fit to Screen" data-i18n-aria-label="auto-fit-to-screen">
                     📐
                 </button>
             </div>
