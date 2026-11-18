@@ -170,3 +170,16 @@ crm-filter-deals-placeholder = Filtrer les affaires…
 crm-filter-accounts-placeholder = Filtrer les comptes…
 crm-filter-contacts-placeholder = Filtrer les contacts…
 crm-filter-campaigns-placeholder = Filtrer les campagnes…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = jean@entreprise.com
+crm-placeholder-deal-lost-reason = Quand l'affaire a été perdue
+crm-placeholder-first-name = Jean
+crm-placeholder-last-name = Dupont
+crm-placeholder-phone = +33 6 12 34 56 78
+crm-placeholder-company-name = Nom de l'entreprise
+crm-placeholder-job-title = PDG, Responsable, etc.
+crm-placeholder-amount = 0,00
+crm-placeholder-lead-lost-reason = Pourquoi ce prospect s'est refroidi
+crm-placeholder-lead-notes = Informations supplémentaires sur ce prospect...
+crm-placeholder-website = https://

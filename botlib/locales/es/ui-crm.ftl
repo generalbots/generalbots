@@ -174,3 +174,16 @@ crm-filter-deals-placeholder = Filtrar negocios…
 crm-filter-accounts-placeholder = Filtrar cuentas…
 crm-filter-contacts-placeholder = Filtrar contactos…
 crm-filter-campaigns-placeholder = Filtrar campañas…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = juan@empresa.com
+crm-placeholder-deal-lost-reason = Cuando se perdió el negocio
+crm-placeholder-first-name = Juan
+crm-placeholder-last-name = García
+crm-placeholder-phone = +34 600 123 456
+crm-placeholder-company-name = Nombre de la empresa
+crm-placeholder-job-title = CEO, Gerente, etc.
+crm-placeholder-amount = 0,00
+crm-placeholder-lead-lost-reason = Por qué este lead se enfrió
+crm-placeholder-lead-notes = Información adicional sobre este lead...
+crm-placeholder-website = https://

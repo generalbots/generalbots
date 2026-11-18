@@ -170,3 +170,16 @@ crm-filter-deals-placeholder = 거래 필터…
 crm-filter-accounts-placeholder = 계정 필터…
 crm-filter-contacts-placeholder = 연락처 필터…
 crm-filter-campaigns-placeholder = 캠페인 필터…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = hong@example.co.kr
+crm-placeholder-deal-lost-reason = 거래가 실패한 시점/사유
+crm-placeholder-first-name = 길동
+crm-placeholder-last-name = 홍
+crm-placeholder-phone = +82 10-1234-5678
+crm-placeholder-company-name = 회사명
+crm-placeholder-job-title = CEO, 관리자 등
+crm-placeholder-amount = 0.00
+crm-placeholder-lead-lost-reason = 이 리드가 중단된 이유
+crm-placeholder-lead-notes = 이 리드에 대한 추가 정보...
+crm-placeholder-website = https://

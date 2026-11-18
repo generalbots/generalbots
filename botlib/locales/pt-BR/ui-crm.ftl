@@ -172,3 +172,16 @@ crm-filter-deals-placeholder = Filtrar negócios…
 crm-filter-accounts-placeholder = Filtrar contas…
 crm-filter-contacts-placeholder = Filtrar contatos…
 crm-filter-campaigns-placeholder = Filtrar campanhas…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = joao@empresa.com.br
+crm-placeholder-deal-lost-reason = Quando o negócio foi perdido
+crm-placeholder-first-name = João
+crm-placeholder-last-name = Silva
+crm-placeholder-phone = +55 (11) 91234-5678
+crm-placeholder-company-name = Nome da empresa
+crm-placeholder-job-title = CEO, Gerente, etc.
+crm-placeholder-amount = 0,00
+crm-placeholder-lead-lost-reason = Por que este lead esfriou
+crm-placeholder-lead-notes = Informações adicionais sobre este lead...
+crm-placeholder-website = https://

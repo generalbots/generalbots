@@ -170,3 +170,16 @@ crm-filter-deals-placeholder = 筛选交易…
 crm-filter-accounts-placeholder = 筛选客户…
 crm-filter-contacts-placeholder = 筛选联系人…
 crm-filter-campaigns-placeholder = 筛选营销活动…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = zhangsan@company.com
+crm-placeholder-deal-lost-reason = 交易丢失的原因/时间
+crm-placeholder-first-name = 三
+crm-placeholder-last-name = 张
+crm-placeholder-phone = +86 138 0013 8000
+crm-placeholder-company-name = 公司名称
+crm-placeholder-job-title = CEO、经理等
+crm-placeholder-amount = 0.00
+crm-placeholder-lead-lost-reason = 该线索变冷的原因
+crm-placeholder-lead-notes = 关于此线索的其他信息...
+crm-placeholder-website = https://

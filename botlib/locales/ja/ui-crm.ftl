@@ -170,3 +170,16 @@ crm-filter-deals-placeholder = 取引を絞り込む…
 crm-filter-accounts-placeholder = 取引先を絞り込む…
 crm-filter-contacts-placeholder = 連絡先を絞り込む…
 crm-filter-campaigns-placeholder = キャンペーンを絞り込む…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = taro@example.co.jp
+crm-placeholder-deal-lost-reason = 取引を失注した理由
+crm-placeholder-first-name = 太郎
+crm-placeholder-last-name = 山田
+crm-placeholder-phone = +81 90-1234-5678
+crm-placeholder-company-name = 会社名
+crm-placeholder-job-title = CEO、マネージャーなど
+crm-placeholder-amount = 0.00
+crm-placeholder-lead-lost-reason = このリードが停滞した理由
+crm-placeholder-lead-notes = このリードに関する追加情報...
+crm-placeholder-website = https://

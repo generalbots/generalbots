@@ -174,3 +174,16 @@ crm-filter-deals-placeholder = Filter deals…
 crm-filter-accounts-placeholder = Filter accounts…
 crm-filter-contacts-placeholder = Filter contacts…
 crm-filter-campaigns-placeholder = Filter campaigns…
+
+# semantic i18n key (#2542)
+crm-placeholder-email = john@company.com
+crm-placeholder-deal-lost-reason = When the deal is lost
+crm-placeholder-first-name = John
+crm-placeholder-last-name = Doe
+crm-placeholder-phone = +1 (555) 123-4567
+crm-placeholder-company-name = Company Name
+crm-placeholder-job-title = CEO, Manager, etc.
+crm-placeholder-amount = 0.00
+crm-placeholder-lead-lost-reason = Why this lead went cold
+crm-placeholder-lead-notes = Additional information about this lead...
+crm-placeholder-website = https://
