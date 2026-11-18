@@ -629,3 +629,30 @@ admin-org-plan-starter = スターター
 
 # semantic i18n key (#2542)
 admin-org-create-btn = 組織を作成
+
+# semantic i18n key (#2542)
+admin-filter-all-roles = すべてのロール
+
+# semantic i18n key (#2542)
+admin-user-role-moderator = モデレーター
+
+# semantic i18n key (#2542)
+admin-filter-all-status = すべてのステータス
+
+# semantic i18n key (#2542)
+admin-users-last-active = 最終アクティブ
+
+# semantic i18n key (#2542)
+admin-users-loading = ユーザーを読み込み中...
+
+# semantic i18n key (#2542)
+admin-users-create-new = 新しいユーザーを作成
+
+# semantic i18n key (#2542)
+admin-users-send-welcome-email = ウェルカムメールを送信
+
+# semantic i18n key (#2542)
+admin-users-require-password-change = 初回ログイン時にパスワード変更を要求
+
+# semantic i18n key (#2542)
+admin-users-delete-warning = この操作は元に戻せません。すべてのユーザーデータが完全に削除されます。

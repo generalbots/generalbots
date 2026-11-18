@@ -1,8 +1,8 @@
 <div class="gb-app users-view" data-gb-app="adminpanel">
     <div class="page-header">
         <div class="header-left">
-            <h1 data-i18n="auto-user-management">User Management</h1>
-            <p class="subtitle" data-i18n="auto-manage-users-roles-and-permissions">Manage users, roles, and permissions</p>
+            <h1 data-i18n="admin-users-title">User Management</h1>
+            <p class="subtitle" data-i18n="admin-users-subtitle">Manage users, roles, and permissions</p>
         </div>
         <div class="header-actions">
             <button class="btn-primary" onclick="document.getElementById('create-user-modal').showModal()">
@@ -44,9 +44,9 @@
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
                     hx-include="[name='status']">
-                <option value="" data-i18n="auto-all-roles">All Roles</option>
+                <option value="" data-i18n="admin-filter-all-roles">All Roles</option>
                 <option value="admin" data-i18n="nav-admin">Admin</option>
-                <option value="moderator" data-i18n="auto-moderator">Moderator</option>
+                <option value="moderator" data-i18n="admin-user-role-moderator">Moderator</option>
                 <option value="user" data-i18n="start-menu-user">User</option>
             </select>
             <select name="status"
@@ -57,10 +57,10 @@
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
                     hx-include="[name='role']">
-                <option value="" data-i18n="auto-all-status">All Status</option>
+                <option value="" data-i18n="admin-filter-all-status">All Status</option>
                 <option value="active" data-i18n="label-active">Active</option>
                 <option value="inactive" data-i18n="label-inactive">Inactive</option>
-                <option value="suspended" data-i18n="auto-suspended">Suspended</option>
+                <option value="suspended" data-i18n="admin-user-status-suspended">Suspended</option>
             </select>
         </div>
     </div>
@@ -77,7 +77,7 @@
                     <th data-i18n="attendant-channel-email">Email</th>
                     <th data-i18n="label-role">Role</th>
                     <th data-i18n="label-status">Status</th>
-                    <th data-i18n="auto-last-active">Last Active</th>
+                    <th data-i18n="admin-users-last-active">Last Active</th>
                     <th data-i18n="billing-col-actions">Actions</th>
                 </tr>
             </thead>
@@ -89,7 +89,7 @@
                     <td colspan="7" class="loading-cell">
                         <div class="loading-state" role="status">
                             <div class="spinner"></div>
-                            <p data-i18n="auto-loading-users">Loading users...</p>
+                            <p data-i18n="admin-users-loading">Loading users...</p>
                         </div>
                     </td>
                 </tr>
@@ -108,7 +108,7 @@
 <!-- User Detail Panel (slides in from right) -->
 <div class="detail-panel" id="user-detail-panel">
     <div class="panel-header">
-        <h2 id="panel-user-name" data-i18n="auto-user-details">User Details</h2>
+        <h2 id="panel-user-name" data-i18n="admin-user-details">User Details</h2>
         <button class="close-btn" onclick="closeDetailPanel()" aria-label="Close user details">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -119,7 +119,7 @@
     <div class="panel-tabs">
         <button class="tab-btn active" data-tab="profile" onclick="switchTab(this, 'profile')" data-i18n="settings-profile">Profile</button>
         <button class="tab-btn" data-tab="settings" onclick="switchTab(this, 'settings')" data-i18n="workspace-settings">Settings</button>
-        <button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')" data-i18n="auto-permissions">Permissions</button>
+        <button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')" data-i18n="admin-user-permissions">Permissions</button>
         <button class="tab-btn" data-tab="security" onclick="switchTab(this, 'security')" data-i18n="learn-security">Security</button>
         <button class="tab-btn" data-tab="activity" onclick="switchTab(this, 'activity')" data-i18n="crm-activity">Activity</button>
     </div>
@@ -132,7 +132,7 @@
 <dialog id="create-user-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-create-new-user">Create New User</h2>
+            <h2 data-i18n="admin-users-create-new">Create New User</h2>
             <button type="button" class="close-btn" onclick="document.getElementById('create-user-modal').close()" aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -173,7 +173,7 @@
                     <label for="create-user-role" data-i18n="label-role">Role</label>
                     <select id="create-user-role" name="role">
                         <option value="user" data-i18n="start-menu-user">User</option>
-                        <option value="moderator" data-i18n="auto-moderator">Moderator</option>
+                        <option value="moderator" data-i18n="admin-user-role-moderator">Moderator</option>
                         <option value="admin" data-i18n="nav-admin">Admin</option>
                     </select>
                 </div>
@@ -188,18 +188,18 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="send_welcome_email" checked>
-                    <span data-i18n="auto-send-welcome-email">Send welcome email</span>
+                    <span data-i18n="admin-users-send-welcome-email">Send welcome email</span>
                 </label>
             </div>
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="require_password_change">
-                    <span data-i18n="auto-require-password-change-on-first-login">Require password change on first login</span>
+                    <span data-i18n="admin-users-require-password-change">Require password change on first login</span>
                 </label>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('create-user-modal').close()" data-i18n="action-cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="auto-create-user">Create User</button>
+                <button type="submit" class="btn-primary" data-i18n="admin-create-user">Create User</button>
             </div>
         </form>
     </div>
@@ -209,7 +209,7 @@
 <dialog id="edit-user-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-edit-user">Edit User</h2>
+            <h2 data-i18n="admin-users-edit">Edit User</h2>
             <button type="button" class="close-btn" onclick="document.getElementById('edit-user-modal').close()" aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -227,7 +227,7 @@
 <dialog id="delete-user-modal" class="modal modal-small">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-delete-user">Delete User</h2>
+            <h2 data-i18n="admin-users-delete">Delete User</h2>
             <button type="button" class="close-btn" onclick="document.getElementById('delete-user-modal').close()" aria-label="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -244,7 +244,7 @@
                 </svg>
             </div>
             <p>Are you sure you want to delete <strong id="delete-user-name"></strong>?</p>
-            <p class="warning-text" data-i18n="auto-this-action-cannot-be-undone-all-user-data-will-be-permanent">This action cannot be undone. All user data will be permanently removed.</p>
+            <p class="warning-text" data-i18n="admin-users-delete-warning">This action cannot be undone. All user data will be permanently removed.</p>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-secondary" onclick="document.getElementById('delete-user-modal').close()" data-i18n="action-cancel">Cancel</button>
@@ -252,7 +252,7 @@
                     hx-delete="/api/directory/users/{user_id}/delete"
                     hx-target="#users-table-body"
                     hx-swap="innerHTML"
-                    hx-on::after-request="document.getElementById('delete-user-modal').close(); showToast('User deleted');" data-i18n="auto-delete-user">
+                    hx-on::after-request="document.getElementById('delete-user-modal').close(); showToast('User deleted');" data-i18n="admin-users-delete">
                 Delete User
             </button>
         </div>
@@ -264,7 +264,7 @@
 <link rel="stylesheet" href="/suite/admin/users-inline/03_users_states.css">
 
 <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
-<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
+<div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script></script>
     function toggleSelectAll(checkbox) {
         const checkboxes = document.querySelectorAll('#users-table-body input[type="checkbox"]');

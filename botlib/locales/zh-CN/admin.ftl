@@ -629,3 +629,30 @@ admin-org-plan-starter = 入门者
 
 # semantic i18n key (#2542)
 admin-org-create-btn = 创建组织
+
+# semantic i18n key (#2542)
+admin-filter-all-roles = 所有角色
+
+# semantic i18n key (#2542)
+admin-user-role-moderator = 版主
+
+# semantic i18n key (#2542)
+admin-filter-all-status = 所有状态
+
+# semantic i18n key (#2542)
+admin-users-last-active = 最后活跃
+
+# semantic i18n key (#2542)
+admin-users-loading = 正在加载用户...
+
+# semantic i18n key (#2542)
+admin-users-create-new = 创建新用户
+
+# semantic i18n key (#2542)
+admin-users-send-welcome-email = 发送欢迎邮件
+
+# semantic i18n key (#2542)
+admin-users-require-password-change = 首次登录时要求更改密码
+
+# semantic i18n key (#2542)
+admin-users-delete-warning = 此操作无法撤销。所有用户数据将被永久删除。

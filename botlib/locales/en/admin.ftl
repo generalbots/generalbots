@@ -631,3 +631,30 @@ admin-org-plan-starter = Starter
 
 # semantic i18n key (#2542)
 admin-org-create-btn = Create Organization
+
+# semantic i18n key (#2542)
+admin-filter-all-roles = All Roles
+
+# semantic i18n key (#2542)
+admin-user-role-moderator = Moderator
+
+# semantic i18n key (#2542)
+admin-filter-all-status = All Status
+
+# semantic i18n key (#2542)
+admin-users-last-active = Last Active
+
+# semantic i18n key (#2542)
+admin-users-loading = Loading users...
+
+# semantic i18n key (#2542)
+admin-users-create-new = Create New User
+
+# semantic i18n key (#2542)
+admin-users-send-welcome-email = Send welcome email
+
+# semantic i18n key (#2542)
+admin-users-require-password-change = Require password change on first login
+
+# semantic i18n key (#2542)
+admin-users-delete-warning = This action cannot be undone. All user data will be permanently removed.

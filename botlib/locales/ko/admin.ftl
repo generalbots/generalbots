@@ -629,3 +629,30 @@ admin-org-plan-starter = 스타터
 
 # semantic i18n key (#2542)
 admin-org-create-btn = 조직 만들기
+
+# semantic i18n key (#2542)
+admin-filter-all-roles = 모든 역할
+
+# semantic i18n key (#2542)
+admin-user-role-moderator = 중재자
+
+# semantic i18n key (#2542)
+admin-filter-all-status = 모든 상태
+
+# semantic i18n key (#2542)
+admin-users-last-active = 마지막 활동
+
+# semantic i18n key (#2542)
+admin-users-loading = 사용자 불러오는 중...
+
+# semantic i18n key (#2542)
+admin-users-create-new = 새 사용자 만들기
+
+# semantic i18n key (#2542)
+admin-users-send-welcome-email = 환영 이메일 보내기
+
+# semantic i18n key (#2542)
+admin-users-require-password-change = 첫 로그인 시 비밀번호 변경 요구
+
+# semantic i18n key (#2542)
+admin-users-delete-warning = 이 작업은 되돌릴 수 없습니다. 모든 사용자 데이터가 영구적으로 삭제됩니다.

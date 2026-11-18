@@ -629,3 +629,30 @@ admin-org-plan-starter = Démarreur
 
 # semantic i18n key (#2542)
 admin-org-create-btn = Créer l'organisation
+
+# semantic i18n key (#2542)
+admin-filter-all-roles = Tous les rôles
+
+# semantic i18n key (#2542)
+admin-user-role-moderator = Modérateur
+
+# semantic i18n key (#2542)
+admin-filter-all-status = Tous les statuts
+
+# semantic i18n key (#2542)
+admin-users-last-active = Dernière activité
+
+# semantic i18n key (#2542)
+admin-users-loading = Chargement des utilisateurs...
+
+# semantic i18n key (#2542)
+admin-users-create-new = Créer un nouvel utilisateur
+
+# semantic i18n key (#2542)
+admin-users-send-welcome-email = Envoyer un e-mail de bienvenue
+
+# semantic i18n key (#2542)
+admin-users-require-password-change = Exiger un changement de mot de passe lors de la première connexion
+
+# semantic i18n key (#2542)
+admin-users-delete-warning = Cette action est irréversible. Toutes les données de l'utilisateur seront définitivement supprimées.
