@@ -109,3 +109,147 @@ compliance-archive = 存档
 compliance-total-controls = 全面控制
 compliance-coverage = 覆盖范围
 compliance-no-frameworks = 尚未配置框架。
+
+# semantic i18n key (#2542)
+admin-compliance-dashboard-title = 合规仪表板
+
+# semantic i18n key (#2542)
+admin-compliance-subtitle = SOC 2 Type II 合规状态、控制监控和审计证据
+
+# semantic i18n key (#2542)
+admin-compliance-compliant = 合规
+
+# semantic i18n key (#2542)
+admin-compliance-overall-score = 总体合规评分
+
+# semantic i18n key (#2542)
+admin-compliance-controls-passing = 通过的控制项
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-items-due = 待提交的证据项
+
+# semantic i18n key (#2542)
+admin-compliance-until-next-audit = 距离下次审计
+
+# semantic i18n key (#2542)
+admin-compliance-next-audit-date = 计划时间：2025年3月7日
+
+# semantic i18n key (#2542)
+admin-compliance-trust-service-criteria = 信任服务标准
+
+# semantic i18n key (#2542)
+admin-compliance-availability = 可用性
+
+# semantic i18n key (#2542)
+admin-compliance-processing-integrity = 处理完整性
+
+# semantic i18n key (#2542)
+admin-compliance-confidentiality = 机密性
+
+# semantic i18n key (#2542)
+admin-compliance-controls-requiring-attention = 需要关注的控制项
+
+# semantic i18n key (#2542)
+admin-compliance-control-mfa-privileged = 特权帐户的多因素身份验证
+
+# semantic i18n key (#2542)
+admin-compliance-due-jan-25-2025 = 截止日期：2025年1月25日
+
+# semantic i18n key (#2542)
+admin-compliance-remediate = 修复
+
+# semantic i18n key (#2542)
+admin-compliance-control-incident-response-testing = 安全事件响应计划测试
+
+# semantic i18n key (#2542)
+admin-compliance-issue-annual-test-overdue = 年度测试逾期 15 天
+
+# semantic i18n key (#2542)
+admin-compliance-control-dpa-documentation = 数据处理协议文档
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-1-2025 = 截止日期：2025年2月1日
+
+# semantic i18n key (#2542)
+admin-compliance-control-data-classification-review = 数据分类策略审查
+
+# semantic i18n key (#2542)
+admin-compliance-issue-policy-review-pending = 策略审查待批准
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-15-2025 = 截止日期：2025年2月15日
+
+# semantic i18n key (#2542)
+admin-compliance-control-privacy-notice-updates = 隐私声明更新
+
+# semantic i18n key (#2542)
+admin-compliance-issue-privacy-policy-update = 隐私政策需要针对新的数据收集进行更新
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-28-2025 = 截止日期：2025年2月28日
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-collection = 证据收集
+
+# semantic i18n key (#2542)
+admin-compliance-current = 当前
+
+# semantic i18n key (#2542)
+admin-compliance-due-soon = 即将到期
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-pentest-q4 = 2024年第4季度渗透测试报告
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc4-vuln = CC4.1.1 - 漏洞评估
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-access-review-jan = 访问审查报告 - 2025年1月
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc6-access = CC6.2.1 - 访问控制
+
+# semantic i18n key (#2542)
+admin-compliance-due-in-3-days = 3天后到期
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-backup-restore = 备份恢复测试结果
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-a1-backup = A1.2.3 - 备份与恢复
+
+# semantic i18n key (#2542)
+admin-compliance-due-in-5-days = 5天后到期
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-security-training = 安全意识培训记录
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc1-training = CC1.4.1 - 安全培训
+
+# semantic i18n key (#2542)
+admin-compliance-view-all-evidence = 查看所有证据
+
+# semantic i18n key (#2542)
+admin-compliance-access-events = 访问事件
+
+# semantic i18n key (#2542)
+admin-compliance-configuration-changes = 配置变更
+
+# semantic i18n key (#2542)
+admin-compliance-security-events = 安全事件
+
+# semantic i18n key (#2542)
+admin-compliance-compliance-events = 合规事件
+
+# semantic i18n key (#2542)
+admin-compliance-failed-login-attempt = 登录尝试失败
+
+# semantic i18n key (#2542)
+admin-compliance-failed-login-details = 用户：admin@company.com | IP：192.168.1.105 | 原因：密码无效
+
+# semantic i18n key (#2542)
+admin-compliance-user-logged-in = 用户已登录
+
+# semantic i18n key (#2542)
+admin-compliance-user-logged-in-details = 用户：sarah.johnson@company.com | IP：10.0.0.45

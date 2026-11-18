@@ -109,3 +109,147 @@ compliance-archive = Archiver
 compliance-total-controls = Contrôles totaux
 compliance-coverage = Couverture
 compliance-no-frameworks = Aucun framework n'est encore configuré.
+
+# semantic i18n key (#2542)
+admin-compliance-dashboard-title = Tableau de bord de conformité
+
+# semantic i18n key (#2542)
+admin-compliance-subtitle = État de conformité SOC 2 Type II, surveillance des contrôles et preuves d'audit
+
+# semantic i18n key (#2542)
+admin-compliance-compliant = Conforme
+
+# semantic i18n key (#2542)
+admin-compliance-overall-score = Score global de conformité
+
+# semantic i18n key (#2542)
+admin-compliance-controls-passing = Contrôles réussis
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-items-due = Éléments de preuve dus
+
+# semantic i18n key (#2542)
+admin-compliance-until-next-audit = Jusqu'au prochain audit
+
+# semantic i18n key (#2542)
+admin-compliance-next-audit-date = Prévu : 7 mars 2025
+
+# semantic i18n key (#2542)
+admin-compliance-trust-service-criteria = Critères de services de confiance
+
+# semantic i18n key (#2542)
+admin-compliance-availability = Disponibilité
+
+# semantic i18n key (#2542)
+admin-compliance-processing-integrity = Intégrité du traitement
+
+# semantic i18n key (#2542)
+admin-compliance-confidentiality = Confidentialité
+
+# semantic i18n key (#2542)
+admin-compliance-controls-requiring-attention = Contrôles nécessitant une attention
+
+# semantic i18n key (#2542)
+admin-compliance-control-mfa-privileged = Authentification multifacteur pour les comptes privilégiés
+
+# semantic i18n key (#2542)
+admin-compliance-due-jan-25-2025 = Échéance : 25 janv. 2025
+
+# semantic i18n key (#2542)
+admin-compliance-remediate = Corriger
+
+# semantic i18n key (#2542)
+admin-compliance-control-incident-response-testing = Test du plan de réponse aux incidents de sécurité
+
+# semantic i18n key (#2542)
+admin-compliance-issue-annual-test-overdue = Test annuel en retard de 15 jours
+
+# semantic i18n key (#2542)
+admin-compliance-control-dpa-documentation = Documentation de l'accord de traitement des données
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-1-2025 = Échéance : 1 févr. 2025
+
+# semantic i18n key (#2542)
+admin-compliance-control-data-classification-review = Révision de la politique de classification des données
+
+# semantic i18n key (#2542)
+admin-compliance-issue-policy-review-pending = Révision de la politique en attente d'approbation
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-15-2025 = Échéance : 15 févr. 2025
+
+# semantic i18n key (#2542)
+admin-compliance-control-privacy-notice-updates = Mises à jour de l'avis de confidentialité
+
+# semantic i18n key (#2542)
+admin-compliance-issue-privacy-policy-update = La politique de confidentialité doit être mise à jour pour la nouvelle collecte de données
+
+# semantic i18n key (#2542)
+admin-compliance-due-feb-28-2025 = Échéance : 28 févr. 2025
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-collection = Collecte de preuves
+
+# semantic i18n key (#2542)
+admin-compliance-current = À jour
+
+# semantic i18n key (#2542)
+admin-compliance-due-soon = Bientôt dû
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-pentest-q4 = Rapport de test d'intrusion T4 2024
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc4-vuln = CC4.1.1 - Évaluation des vulnérabilités
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-access-review-jan = Rapport de revue des accès - Janvier 2025
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc6-access = CC6.2.1 - Contrôle d'accès
+
+# semantic i18n key (#2542)
+admin-compliance-due-in-3-days = Échéance dans 3 jours
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-backup-restore = Résultats du test de restauration des sauvegardes
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-a1-backup = A1.2.3 - Sauvegarde et récupération
+
+# semantic i18n key (#2542)
+admin-compliance-due-in-5-days = Échéance dans 5 jours
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-security-training = Dossiers de formation à la sensibilisation à la sécurité
+
+# semantic i18n key (#2542)
+admin-compliance-evidence-cc1-training = CC1.4.1 - Formation à la sécurité
+
+# semantic i18n key (#2542)
+admin-compliance-view-all-evidence = Voir toutes les preuves
+
+# semantic i18n key (#2542)
+admin-compliance-access-events = Événements d'accès
+
+# semantic i18n key (#2542)
+admin-compliance-configuration-changes = Modifications de configuration
+
+# semantic i18n key (#2542)
+admin-compliance-security-events = Événements de sécurité
+
+# semantic i18n key (#2542)
+admin-compliance-compliance-events = Événements de conformité
+
+# semantic i18n key (#2542)
+admin-compliance-failed-login-attempt = Tentative de connexion échouée
+
+# semantic i18n key (#2542)
+admin-compliance-failed-login-details = Utilisateur : admin@company.com | IP : 192.168.1.105 | Raison : Mot de passe invalide
+
+# semantic i18n key (#2542)
+admin-compliance-user-logged-in = Utilisateur connecté
+
+# semantic i18n key (#2542)
+admin-compliance-user-logged-in-details = Utilisateur : sarah.johnson@company.com | IP : 10.0.0.45
