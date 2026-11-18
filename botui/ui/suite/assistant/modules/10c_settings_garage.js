@@ -97,7 +97,7 @@ function chip(on, text) {
 function dashboard(cfg, shortName, privacyText) {
   var mode = cfg ? cfg.mode : "";
   var scope = cfg ? cfg.endpoint_scope : "";
-  var name = shortName(cfg ? cfg.model : (A.defaultModel || A.selectedModel || ""));
+  var name = shortName(cfg ? cfg.model : (A.defaultModel || A.selectedModel || "")).replace(/\.gguf$/i, "");
   var where = mode ? g(mode === "own_key" ? "own" : mode) : "";
   var html = '<div class="gb-gar-hero">' + ICONS.wrench +
     '<div><h2 class="gb-gar-title">' + esc(g("title")) + '</h2><p class="gb-gar-lead">' + esc(g("lead")) + '</p></div></div>';
