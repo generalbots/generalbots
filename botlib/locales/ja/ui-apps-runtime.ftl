@@ -556,3 +556,8 @@ campaigns-ai-goal-placeholder = 例: 今週末、リピーター向けに20%割�
 campaigns-ai-audience-placeholder = 例: テクノロジーに関心のある25〜40歳の既存顧客
 campaigns-list-name-placeholder = 例: ニュースレター購読者
 campaigns-segment-query-placeholder = 例: status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = 日付
+dashboards-y-axis-placeholder = 値

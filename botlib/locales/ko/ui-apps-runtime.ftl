@@ -556,3 +556,8 @@ campaigns-ai-goal-placeholder = 예: 이번 주말 재구매 고객에게 20% �
 campaigns-ai-audience-placeholder = 예: 기술에 관심 있는 25~40세 기존 고객
 campaigns-list-name-placeholder = 예: 뉴스레터 구독자
 campaigns-segment-query-placeholder = 예: status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = 날짜
+dashboards-y-axis-placeholder = 값

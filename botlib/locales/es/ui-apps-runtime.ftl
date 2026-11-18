@@ -774,3 +774,8 @@ campaigns-ai-goal-placeholder = p. ej., Anunciar un 20 % de descuento para clien
 campaigns-ai-audience-placeholder = p. ej., Clientes existentes de 25 a 40 años interesados en tecnología
 campaigns-list-name-placeholder = p. ej., Suscriptores del boletín
 campaigns-segment-query-placeholder = p. ej., status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = fecha
+dashboards-y-axis-placeholder = valor

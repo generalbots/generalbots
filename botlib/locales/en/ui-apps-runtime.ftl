@@ -774,3 +774,8 @@ campaigns-ai-goal-placeholder = e.g., Announce a 20% discount for returning cust
 campaigns-ai-audience-placeholder = e.g., Existing customers aged 25-40 interested in tech
 campaigns-list-name-placeholder = e.g., Newsletter subscribers
 campaigns-segment-query-placeholder = e.g., status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = date
+dashboards-y-axis-placeholder = value

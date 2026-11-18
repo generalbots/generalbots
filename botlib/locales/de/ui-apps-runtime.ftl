@@ -556,3 +556,8 @@ campaigns-ai-goal-placeholder = z. B. 20 % Rabatt für Bestandskunden an diesem 
 campaigns-ai-audience-placeholder = z. B. Bestandskunden im Alter von 25–40 Jahren mit Interesse an Technik
 campaigns-list-name-placeholder = z. B. Newsletter-Abonnenten
 campaigns-segment-query-placeholder = z. B. status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = Datum
+dashboards-y-axis-placeholder = Wert

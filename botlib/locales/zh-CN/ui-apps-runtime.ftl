@@ -556,3 +556,8 @@ campaigns-ai-goal-placeholder = 例如：本周末向回头客宣布 20% 折扣
 campaigns-ai-audience-placeholder = 例如：对科技感兴趣的 25-40 岁现有客户
 campaigns-list-name-placeholder = 例如：新闻通讯订阅者
 campaigns-segment-query-placeholder = 例如：status = 'active' AND country = 'BR'
+# semantic i18n key (#2542)
+dashboards-width-placeholder = 4
+dashboards-height-placeholder = 2
+dashboards-x-axis-placeholder = 日期
+dashboards-y-axis-placeholder = 值
