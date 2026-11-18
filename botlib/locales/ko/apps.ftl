@@ -632,3 +632,45 @@ fraud-priority-label = 우선순위
 
 # semantic i18n key (#2542)
 fraud-type-label = 유형
+
+# semantic i18n key (#2542)
+canvas-prop-position = 위치
+
+# semantic i18n key (#2542)
+canvas-prop-rotation = 회전
+
+# semantic i18n key (#2542)
+canvas-prop-opacity = 불투명도
+
+# semantic i18n key (#2542)
+canvas-prop-stroke = 선
+
+# semantic i18n key (#2542)
+canvas-prop-fill = 채우기
+
+# semantic i18n key (#2542)
+canvas-prop-background = 배경
+
+# semantic i18n key (#2542)
+canvas-prop-grid = 그리드
+
+# semantic i18n key (#2542)
+canvas-prop-grid-dots = 점
+
+# semantic i18n key (#2542)
+canvas-prop-grid-lines = 선
+
+# semantic i18n key (#2542)
+canvas-prop-grid-squares = 사각형
+
+# semantic i18n key (#2542)
+canvas-prop-snap-to-grid = 그리드에 맞춤
+
+# semantic i18n key (#2542)
+canvas-prop-layers = 레이어
+
+# semantic i18n key (#2542)
+canvas-action-bring-to-front = 맨 앞으로
+
+# semantic i18n key (#2542)
+canvas-action-send-to-back = 맨 뒤로

@@ -630,3 +630,45 @@ fraud-priority-label = Prioridad
 
 # semantic i18n key (#2542)
 fraud-type-label = Tipo
+
+# semantic i18n key (#2542)
+canvas-prop-position = Posición
+
+# semantic i18n key (#2542)
+canvas-prop-rotation = Rotación
+
+# semantic i18n key (#2542)
+canvas-prop-opacity = Opacidad
+
+# semantic i18n key (#2542)
+canvas-prop-stroke = Trazo
+
+# semantic i18n key (#2542)
+canvas-prop-fill = Relleno
+
+# semantic i18n key (#2542)
+canvas-prop-background = Fondo
+
+# semantic i18n key (#2542)
+canvas-prop-grid = Cuadrícula
+
+# semantic i18n key (#2542)
+canvas-prop-grid-dots = Puntos
+
+# semantic i18n key (#2542)
+canvas-prop-grid-lines = Líneas
+
+# semantic i18n key (#2542)
+canvas-prop-grid-squares = Cuadrados
+
+# semantic i18n key (#2542)
+canvas-prop-snap-to-grid = Ajustar a la cuadrícula
+
+# semantic i18n key (#2542)
+canvas-prop-layers = Capas
+
+# semantic i18n key (#2542)
+canvas-action-bring-to-front = Traer al frente
+
+# semantic i18n key (#2542)
+canvas-action-send-to-back = Enviar al fondo

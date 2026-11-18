@@ -632,3 +632,45 @@ fraud-priority-label = 优先级
 
 # semantic i18n key (#2542)
 fraud-type-label = 类型
+
+# semantic i18n key (#2542)
+canvas-prop-position = 位置
+
+# semantic i18n key (#2542)
+canvas-prop-rotation = 旋转
+
+# semantic i18n key (#2542)
+canvas-prop-opacity = 不透明度
+
+# semantic i18n key (#2542)
+canvas-prop-stroke = 描边
+
+# semantic i18n key (#2542)
+canvas-prop-fill = 填充
+
+# semantic i18n key (#2542)
+canvas-prop-background = 背景
+
+# semantic i18n key (#2542)
+canvas-prop-grid = 网格
+
+# semantic i18n key (#2542)
+canvas-prop-grid-dots = 点
+
+# semantic i18n key (#2542)
+canvas-prop-grid-lines = 线
+
+# semantic i18n key (#2542)
+canvas-prop-grid-squares = 方格
+
+# semantic i18n key (#2542)
+canvas-prop-snap-to-grid = 对齐网格
+
+# semantic i18n key (#2542)
+canvas-prop-layers = 图层
+
+# semantic i18n key (#2542)
+canvas-action-bring-to-front = 置于顶层
+
+# semantic i18n key (#2542)
+canvas-action-send-to-back = 置于底层

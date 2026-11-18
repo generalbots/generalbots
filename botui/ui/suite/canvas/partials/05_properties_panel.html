@@ -8,7 +8,7 @@
 
             <div id="element-properties" class="properties-group hidden">
                 <div class="property-row">
-                    <label data-i18n="auto-position">Position</label>
+                    <label data-i18n="canvas-prop-position">Position</label>
                     <div class="input-group">
                         <input
                             type="number"
@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-rotation">Rotation</label>
+                    <label data-i18n="canvas-prop-rotation">Rotation</label>
                     <input
                         type="number"
                         id="prop-rotation"
@@ -51,7 +51,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-opacity">Opacity</label>
+                    <label data-i18n="canvas-prop-opacity">Opacity</label>
                     <input
                         type="range"
                         id="prop-opacity"
@@ -62,7 +62,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-stroke">Stroke</label>
+                    <label data-i18n="canvas-prop-stroke">Stroke</label>
                     <input
                         type="color"
                         id="prop-stroke"
@@ -70,7 +70,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-fill">Fill</label>
+                    <label data-i18n="canvas-prop-fill">Fill</label>
                     <input
                         type="color"
                         id="prop-fill"
@@ -82,7 +82,7 @@
             <div id="canvas-properties" class="properties-group">
                 <h4 data-i18n="nav-canvas">Canvas</h4>
                 <div class="property-row">
-                    <label data-i18n="auto-background">Background</label>
+                    <label data-i18n="canvas-prop-background">Background</label>
                     <input
                         type="color"
                         id="canvas-bg"
@@ -91,16 +91,16 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-grid">Grid</label>
+                    <label data-i18n="canvas-prop-grid">Grid</label>
                     <select id="grid-type" onchange="setGridType(this.value)">
                         <option value="none" data-i18n="label-none">None</option>
-                        <option value="dots" selected data-i18n="auto-dots">Dots</option>
-                        <option value="lines" data-i18n="auto-lines">Lines</option>
-                        <option value="squares" data-i18n="auto-squares">Squares</option>
+                        <option value="dots" selected data-i18n="canvas-prop-grid-dots">Dots</option>
+                        <option value="lines" data-i18n="canvas-prop-grid-lines">Lines</option>
+                        <option value="squares" data-i18n="canvas-prop-grid-squares">Squares</option>
                     </select>
                 </div>
                 <div class="property-row">
-                    <label data-i18n="auto-snap-to-grid">Snap to Grid</label>
+                    <label data-i18n="canvas-prop-snap-to-grid">Snap to Grid</label>
                     <input
                         type="checkbox"
                         id="snap-grid"
@@ -110,7 +110,7 @@
             </div>
 
             <div class="properties-group">
-                <h4 data-i18n="auto-layers">Layers</h4>
+                <h4 data-i18n="canvas-prop-layers">Layers</h4>
                 <div id="layers-list" class="layers-list">
                     <div class="layer-item active">
                         <span class="layer-visibility"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
@@ -136,8 +136,8 @@
         <button onclick="copySelected()" data-i18n="action-copy">Copy</button>
         <button onclick="pasteClipboard()" data-i18n="action-paste">Paste</button>
         <div class="menu-divider"></div>
-        <button onclick="bringToFront()" data-i18n="auto-bring-to-front">Bring to Front</button>
-        <button onclick="sendToBack()" data-i18n="auto-send-to-back">Send to Back</button>
+        <button onclick="bringToFront()" data-i18n="canvas-action-bring-to-front">Bring to Front</button>
+        <button onclick="sendToBack()" data-i18n="canvas-action-send-to-back">Send to Back</button>
         <div class="menu-divider"></div>
         <button onclick="deleteSelected()" data-i18n="action-delete">Delete</button>
     </div>
