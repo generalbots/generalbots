@@ -19,3 +19,6 @@ timeclock-tab-audit = 監査
 timeclock-date = 日付
 timeclock-hours = 時間
 timeclock-loading-panel = ダッシュボードを読み込み中…
+
+# semantic i18n key (#2542)
+timeclock-employee-placeholder = 従業員UUID

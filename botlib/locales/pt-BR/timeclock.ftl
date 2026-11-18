@@ -19,3 +19,6 @@ timeclock-tab-audit = Auditoria
 timeclock-date = Data
 timeclock-hours = Horas
 timeclock-loading-panel = Carregando painel…
+
+# semantic i18n key (#2542)
+timeclock-employee-placeholder = UUID do funcionário

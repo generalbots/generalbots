@@ -538,3 +538,7 @@ project-search-placeholder = 搜索项目...
 
 # semantic i18n key (#2542)
 docs-font-size-placeholder = 12 pt
+
+# semantic i18n key (#2542)
+hr-search-employees-placeholder = 搜索员工...
+hr-manager-placeholder = 经理姓名或邮箱

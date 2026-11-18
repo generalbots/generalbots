@@ -19,3 +19,6 @@ timeclock-tab-audit = Audit
 timeclock-date = Date
 timeclock-hours = Hours
 timeclock-loading-panel = Loading dashboard…
+
+# semantic i18n key (#2542)
+timeclock-employee-placeholder = Employee UUID

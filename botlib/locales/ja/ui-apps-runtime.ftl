@@ -538,3 +538,7 @@ project-search-placeholder = プロジェクトを検索...
 
 # semantic i18n key (#2542)
 docs-font-size-placeholder = 12 pt
+
+# semantic i18n key (#2542)
+hr-search-employees-placeholder = 従業員を検索...
+hr-manager-placeholder = マネージャーの名前またはメール

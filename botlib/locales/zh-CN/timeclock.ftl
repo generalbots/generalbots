@@ -19,3 +19,6 @@ timeclock-tab-audit = 审计
 timeclock-date = 日期
 timeclock-hours = 小时
 timeclock-loading-panel = 正在加载面板…
+
+# semantic i18n key (#2542)
+timeclock-employee-placeholder = 员工 UUID

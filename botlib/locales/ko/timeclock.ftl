@@ -19,3 +19,6 @@ timeclock-tab-audit = 감사
 timeclock-date = 날짜
 timeclock-hours = 시간
 timeclock-loading-panel = 대시보드를 불러오는 중…
+
+# semantic i18n key (#2542)
+timeclock-employee-placeholder = 직원 UUID

@@ -538,3 +538,7 @@ project-search-placeholder = Rechercher des projets...
 
 # semantic i18n key (#2542)
 docs-font-size-placeholder = 12 pt
+
+# semantic i18n key (#2542)
+hr-search-employees-placeholder = Rechercher des employés...
+hr-manager-placeholder = Nom ou e-mail du responsable
