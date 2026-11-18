@@ -179,6 +179,16 @@ monitoring-search-metrics = 搜索指标...
 # semantic i18n key (#2542)
 monitoring-all-metrics = 所有指标
 
+
+# semantic i18n key (#2542)
+monitoring-metric-name = 指标名称
+monitoring-metric-type = 类型
+monitoring-metric-value = 值
+monitoring-metric-category = 类别
+monitoring-metric-description = 描述
+monitoring-metric-actions = 操作
+monitoring-metrics-loading = 正在加载指标...
+
 # semantic i18n key (#2542)
 monitoring-loading-services = 正在加载服务...
 

@@ -346,11 +346,11 @@
                 </div>
                 <select id="metric-category" onchange="filterByCategory(this.value)">
                     <option value="all" data-i18n="monitoring-alerts-all-categories">All Categories</option>
-                    <option value="http">HTTP</option>
-                    <option value="system">System</option>
-                    <option value="database">Database</option>
-                    <option value="cache">Cache</option>
-                    <option value="queue">Queue</option>
+                    <option value="http" data-i18n="monitoring-category-http">HTTP</option>
+                    <option value="system" data-i18n="monitoring-category-system">System</option>
+                    <option value="database" data-i18n="monitoring-category-database">Database</option>
+                    <option value="cache" data-i18n="monitoring-category-cache">Cache</option>
+                    <option value="queue" data-i18n="monitoring-category-queue">Queue</option>
                 </select>
             </div>
         </div>
@@ -361,17 +361,17 @@
                    hx-swap="innerHTML">
                 <thead>
                     <tr>
-                        <th>Metric Name</th>
-                        <th>Type</th>
-                        <th>Value</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Actions</th>
+                        <th data-i18n="monitoring-metric-name">Metric Name</th>
+                        <th data-i18n="monitoring-metric-type">Type</th>
+                        <th data-i18n="monitoring-metric-value">Value</th>
+                        <th data-i18n="monitoring-metric-category">Category</th>
+                        <th data-i18n="monitoring-metric-description">Description</th>
+                        <th data-i18n="monitoring-metric-actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="6" class="loading-cell">Loading metrics...</td>
+                        <td colspan="6" class="loading-cell" data-i18n="monitoring-metrics-loading">Loading metrics...</td>
                     </tr>
                 </tbody>
             </table>

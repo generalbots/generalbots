@@ -129,6 +129,11 @@ calculator-mode-scientific = Científica
 
 # monitoring alerts i18n (#2542)
 monitoring-category-application = Aplicación
+monitoring-category-http = HTTP
+monitoring-category-system = Sistema
+monitoring-category-database = Base de datos
+monitoring-category-cache = Caché
+monitoring-category-queue = Cola
 monitoring-time-last-24h = Últimas 24 horas
 monitoring-time-last-7d = Últimos 7 días
 monitoring-time-last-30d = Últimos 30 días

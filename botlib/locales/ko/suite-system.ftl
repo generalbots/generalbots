@@ -179,6 +179,16 @@ monitoring-search-metrics = 메트릭 검색...
 # semantic i18n key (#2542)
 monitoring-all-metrics = 모든 메트릭
 
+
+# semantic i18n key (#2542)
+monitoring-metric-name = 메트릭 이름
+monitoring-metric-type = 유형
+monitoring-metric-value = 값
+monitoring-metric-category = 카테고리
+monitoring-metric-description = 설명
+monitoring-metric-actions = 작업
+monitoring-metrics-loading = 메트릭 불러오는 중...
+
 # semantic i18n key (#2542)
 monitoring-loading-services = 서비스 불러오는 중...
 

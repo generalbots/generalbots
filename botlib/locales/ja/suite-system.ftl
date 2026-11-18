@@ -179,6 +179,16 @@ monitoring-search-metrics = メトリクスを検索...
 # semantic i18n key (#2542)
 monitoring-all-metrics = すべてのメトリクス
 
+
+# semantic i18n key (#2542)
+monitoring-metric-name = メトリクス名
+monitoring-metric-type = 種類
+monitoring-metric-value = 値
+monitoring-metric-category = カテゴリ
+monitoring-metric-description = 説明
+monitoring-metric-actions = 操作
+monitoring-metrics-loading = メトリクスを読み込み中...
+
 # semantic i18n key (#2542)
 monitoring-loading-services = サービスを読み込み中...
 

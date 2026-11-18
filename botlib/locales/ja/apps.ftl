@@ -131,6 +131,11 @@ calculator-mode-scientific = 関数電卓
 
 # monitoring alerts i18n (#2542)
 monitoring-category-application = アプリケーション
+monitoring-category-http = HTTP
+monitoring-category-system = システム
+monitoring-category-database = データベース
+monitoring-category-cache = キャッシュ
+monitoring-category-queue = キュー
 monitoring-time-last-24h = 過去24時間
 monitoring-time-last-7d = 過去7日間
 monitoring-time-last-30d = 過去30日間

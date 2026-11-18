@@ -131,6 +131,11 @@ calculator-mode-scientific = 科学
 
 # monitoring alerts i18n (#2542)
 monitoring-category-application = 应用程序
+monitoring-category-http = HTTP
+monitoring-category-system = 系统
+monitoring-category-database = 数据库
+monitoring-category-cache = 缓存
+monitoring-category-queue = 队列
 monitoring-time-last-24h = 最近24小时
 monitoring-time-last-7d = 最近7天
 monitoring-time-last-30d = 最近30天

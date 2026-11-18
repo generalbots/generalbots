@@ -131,6 +131,11 @@ calculator-mode-scientific = 공학용
 
 # monitoring alerts i18n (#2542)
 monitoring-category-application = 애플리케이션
+monitoring-category-http = HTTP
+monitoring-category-system = 시스템
+monitoring-category-database = 데이터베이스
+monitoring-category-cache = 캐시
+monitoring-category-queue = 큐
 monitoring-time-last-24h = 최근 24시간
 monitoring-time-last-7d = 최근 7일
 monitoring-time-last-30d = 최근 30일

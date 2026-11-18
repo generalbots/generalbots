@@ -179,6 +179,16 @@ monitoring-search-metrics = Metriken suchen...
 # semantic i18n key (#2542)
 monitoring-all-metrics = Alle Metriken
 
+
+# semantic i18n key (#2542)
+monitoring-metric-name = Metrikname
+monitoring-metric-type = Typ
+monitoring-metric-value = Wert
+monitoring-metric-category = Kategorie
+monitoring-metric-description = Beschreibung
+monitoring-metric-actions = Aktionen
+monitoring-metrics-loading = Metriken werden geladen...
+
 # semantic i18n key (#2542)
 monitoring-loading-services = Dienste werden geladen...
 
