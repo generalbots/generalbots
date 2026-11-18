@@ -12,7 +12,7 @@
 <div class="search-box"> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 </svg> <input type="text"
-placeholder="Search groups..." name="q"
+data-i18n-placeholder="admin-search-groups" name="q"
 hx-get="/api/directory/groups/search" hx-trigger="keyup changed delay:300ms"
 hx-target="#groups-grid" hx-swap="innerHTML">
 </div> <div class="filters">
@@ -63,9 +63,9 @@ hx-swap="innerHTML"> </div>
 <form hx-post="/api/directory/groups/create" hx-target="#groups-grid"
 hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
 <div class="form-group"> <label></label>Group Name <span class="required">*</span></label>
-<input type="text" name="name" required placeholder="Engineering Team"> </div>
+<input type="text" name="name" required data-i18n-placeholder="admin-groups-placeholder-name"> </div>
 <div class="form-group"> <label data-i18n="label-description">Description</label>
-<textarea name="description" rows="3" placeholder="Describe the purpose of this group..."></textarea> </div>
+<textarea name="description" rows="3" data-i18n-placeholder="admin-groups-placeholder-description"></textarea> </div>
 <div class="form-row"> <div class="form-group">
 <label data-i18n="admin-groups-visibility">Visibility</label> <select name="visibility">
 <option value="private" data-i18n="label-private">Private</option> <option value="public" data-i18n="label-public">Public</option>
@@ -96,7 +96,7 @@ hx-target="#group-members-list" hx-swap="innerHTML"
 hx-on::after-request="if(event.detail.successful) { document.getElementById('add-member-modal').close(); showToast('Members added'); }"> <input type="hidden" name="group_id" id="add-member-group-id">
 <div class="form-group"> <label data-i18n="admin-groups-search-users">Search Users</label>
 <div class="user-search"> <input type="text"
-placeholder="Search by name or email..." hx-get="/api/directory/users/search"
+data-i18n-placeholder="admin-groups-placeholder-search-members" hx-get="/api/directory/users/search"
 hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results"
 hx-swap="innerHTML"> </div>
 <div id="user-search-results" class="search-results" role="status" aria-live="polite"></div> </div>
@@ -120,10 +120,10 @@ hx-swap="innerHTML"> </div>
 <form id="send-invite-form" hx-post="/api/directory/groups/{group_id}/invites/send"
 hx-swap="none" hx-on::after-request="if(event.detail.successful) { document.getElementById('send-invite-modal').close(); showToast('Invites sent'); }">
 <input type="hidden" name="group_id" id="invite-group-id"> <div class="form-group">
-<label data-i18n="admin-groups-email-addresses">Email Addresses</label> <textarea name="emails" rows="4" placeholder="Enter email addresses, one per line..."></textarea>
+<label data-i18n="admin-groups-email-addresses">Email Addresses</label> <textarea name="emails" rows="4" data-i18n-placeholder="admin-groups-placeholder-invite-emails"></textarea>
 <p class="help-text" data-i18n="admin-groups-emails-help">Enter one email address per line</p> </div>
 <div class="form-group"> <label data-i18n="admin-groups-personal-message-optional">Personal Message (optional)</label>
-<textarea name="message" rows="3" placeholder="Add a personal message to the invite..."></textarea> </div>
+<textarea name="message" rows="3" data-i18n-placeholder="admin-groups-placeholder-invite-message"></textarea> </div>
 <div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('send-invite-modal').close()" data-i18n="action-cancel">Cancel</button>
 <button type="submit" class="btn-primary" data-i18n="admin-groups-send-invites">Send Invites</button> </div>
 </form> </div>
