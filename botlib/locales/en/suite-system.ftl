@@ -148,6 +148,31 @@ monitoring-alerts-resolved-state = Resolved
 monitoring-alerts-expired = Expired
 monitoring-alerts-loading-history = Loading history...
 
+
+# semantic i18n key (#2542)
+monitoring-active-alerts-section = Active alerts
+
+# semantic i18n key (#2542)
+monitoring-search-alerts = Search alerts...
+
+# semantic i18n key (#2542)
+monitoring-alert-rules-section = Alert rules
+
+# semantic i18n key (#2542)
+monitoring-alert-history-section = Alert history
+
+# semantic i18n key (#2542)
+monitoring-loading-rules = Loading rules
+
+# semantic i18n key (#2542)
+monitoring-search-services = Search services...
+
+# semantic i18n key (#2542)
+monitoring-service-status-list = Service status list
+
+# semantic i18n key (#2542)
+monitoring-loading-services = Loading services
+
 # semantic i18n key (#2542)
 system-versions-title = System Versions
 

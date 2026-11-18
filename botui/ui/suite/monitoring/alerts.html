@@ -95,7 +95,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                <input type="text" id="alert-search" placeholder="Search alerts..." onkeyup="searchAlerts(this.value)">
+                <input type="text" id="alert-search" data-i18n-placeholder="monitoring-search-alerts" onkeyup="searchAlerts(this.value)">
             </div>
         </div>
 
@@ -104,7 +104,7 @@
              hx-trigger="load, every 30s"
              hx-swap="innerHTML"
              role="region"
-             aria-label="Active alerts"
+             data-i18n-aria-label="monitoring-active-alerts-section"
              aria-live="polite">
             <div class="alert-placeholder" role="status">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -149,9 +149,9 @@
              hx-trigger="load"
              hx-swap="innerHTML"
              role="region"
-             aria-label="Alert rules"
+             data-i18n-aria-label="monitoring-alert-rules-section"
              aria-live="polite">
-            <div class="rule-card skeleton" role="status" aria-label="Loading rules">
+            <div class="rule-card skeleton" role="status" data-i18n-aria-label="monitoring-loading-rules">
                 <div class="skeleton-line"></div>
                 <div class="skeleton-line short"></div>
             </div>
@@ -193,7 +193,7 @@
              hx-trigger="load"
              hx-swap="innerHTML"
              role="region"
-             aria-label="Alert history"
+             data-i18n-aria-label="monitoring-alert-history-section"
              aria-live="polite">
             <div class="loading-state" role="status" aria-live="polite">
                 <div class="spinner" aria-hidden="true"></div>

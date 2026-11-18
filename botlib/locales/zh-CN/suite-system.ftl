@@ -148,6 +148,31 @@ monitoring-alerts-resolved-state = 已解决
 monitoring-alerts-expired = 已过期
 monitoring-alerts-loading-history = 正在加载历史记录...
 
+
+# semantic i18n key (#2542)
+monitoring-active-alerts-section = 活动告警
+
+# semantic i18n key (#2542)
+monitoring-search-alerts = 搜索告警...
+
+# semantic i18n key (#2542)
+monitoring-alert-rules-section = 告警规则
+
+# semantic i18n key (#2542)
+monitoring-alert-history-section = 告警历史
+
+# semantic i18n key (#2542)
+monitoring-loading-rules = 正在加载规则...
+
+# semantic i18n key (#2542)
+monitoring-search-services = 搜索服务...
+
+# semantic i18n key (#2542)
+monitoring-service-status-list = 服务状态列表
+
+# semantic i18n key (#2542)
+monitoring-loading-services = 正在加载服务...
+
 # semantic i18n key (#2542)
 system-versions-title = 系统版本
 

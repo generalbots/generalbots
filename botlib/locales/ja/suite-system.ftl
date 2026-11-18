@@ -148,6 +148,31 @@ monitoring-alerts-resolved-state = 解決済み
 monitoring-alerts-expired = 期限切れ
 monitoring-alerts-loading-history = 履歴を読み込んでいます...
 
+
+# semantic i18n key (#2542)
+monitoring-active-alerts-section = アクティブなアラート
+
+# semantic i18n key (#2542)
+monitoring-search-alerts = アラートを検索...
+
+# semantic i18n key (#2542)
+monitoring-alert-rules-section = アラートルール
+
+# semantic i18n key (#2542)
+monitoring-alert-history-section = アラート履歴
+
+# semantic i18n key (#2542)
+monitoring-loading-rules = ルールを読み込み中...
+
+# semantic i18n key (#2542)
+monitoring-search-services = サービスを検索...
+
+# semantic i18n key (#2542)
+monitoring-service-status-list = サービスステータス一覧
+
+# semantic i18n key (#2542)
+monitoring-loading-services = サービスを読み込み中...
+
 # semantic i18n key (#2542)
 system-versions-title = システムバージョン
 

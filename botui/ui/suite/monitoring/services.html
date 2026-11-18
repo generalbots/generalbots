@@ -46,7 +46,7 @@
                 <input
                     type="text"
                     id="service-search"
-                    placeholder="Search services..."
+                    data-i18n-placeholder="monitoring-search-services"
                     onkeyup="filterServices(this.value)"
                 />
             </div>
@@ -68,11 +68,11 @@
         hx-trigger="load, every 10s"
         hx-swap="innerHTML"
         role="region"
-        aria-label="Service status list"
+        data-i18n-aria-label="monitoring-service-status-list"
         aria-live="polite"
     >
         <!-- Loading placeholder -->
-        <div class="service-card skeleton" role="status" aria-label="Loading services">
+        <div class="service-card skeleton" role="status" data-i18n-aria-label="monitoring-loading-services">
             <div class="skeleton-line"></div>
             <div class="skeleton-line short"></div>
         </div>

@@ -148,6 +148,31 @@ monitoring-alerts-resolved-state = 해결됨
 monitoring-alerts-expired = 만료됨
 monitoring-alerts-loading-history = 기록을 불러오는 중...
 
+
+# semantic i18n key (#2542)
+monitoring-active-alerts-section = 활성 알림
+
+# semantic i18n key (#2542)
+monitoring-search-alerts = 알림 검색...
+
+# semantic i18n key (#2542)
+monitoring-alert-rules-section = 알림 규칙
+
+# semantic i18n key (#2542)
+monitoring-alert-history-section = 알림 기록
+
+# semantic i18n key (#2542)
+monitoring-loading-rules = 규칙 불러오는 중...
+
+# semantic i18n key (#2542)
+monitoring-search-services = 서비스 검색...
+
+# semantic i18n key (#2542)
+monitoring-service-status-list = 서비스 상태 목록
+
+# semantic i18n key (#2542)
+monitoring-loading-services = 서비스 불러오는 중...
+
 # semantic i18n key (#2542)
 system-versions-title = 시스템 버전
 
