@@ -909,3 +909,81 @@ biometry-audit-timestamp = Data e hora
 
 # semantic i18n key (#2542)
 biometry-audit-result = Resultado
+
+# semantic i18n key (#2542)
+learn-app-loading = Carregando Learn…
+
+# semantic i18n key (#2542)
+learn-app-unavailable = Conteúdo do Learn indisponível
+
+# semantic i18n key (#2542)
+learn-app-title = Plataforma de aprendizado
+
+# semantic i18n key (#2542)
+learn-app-hours-learned = Horas aprendidas
+
+# semantic i18n key (#2542)
+learn-app-courses-done = Cursos concluídos
+
+# semantic i18n key (#2542)
+learn-app-streak = Sequência
+
+# semantic i18n key (#2542)
+learn-app-badges = Emblemas
+
+# semantic i18n key (#2542)
+learn-app-tab-courses = Cursos
+
+# semantic i18n key (#2542)
+learn-app-tab-certifications = Certificações
+
+# semantic i18n key (#2542)
+learn-app-tab-creator = Criador
+
+# semantic i18n key (#2542)
+learn-app-tab-progress = Progresso
+
+# semantic i18n key (#2542)
+learn-app-fetching-courses = Buscando cursos
+
+# semantic i18n key (#2542)
+learn-app-fetching-certifications = Buscando certificações
+
+# semantic i18n key (#2542)
+learn-app-content-creation = Criação de conteúdo
+
+# semantic i18n key (#2542)
+learn-app-lesson = Lição
+
+# semantic i18n key (#2542)
+learn-app-quiz = Quiz
+
+# semantic i18n key (#2542)
+learn-app-document = Documento
+
+# semantic i18n key (#2542)
+learn-app-interactive = Interativo
+
+# semantic i18n key (#2542)
+learn-app-ai-assist = Assistente de IA
+
+# semantic i18n key (#2542)
+learn-app-content-editor = Editor de conteúdo
+
+# semantic i18n key (#2542)
+learn-app-publish = Publicar
+
+# semantic i18n key (#2542)
+learn-app-learning-stats = Estatísticas de aprendizado
+
+# semantic i18n key (#2542)
+learn-app-achievement-badges = Emblemas de conquista
+
+# semantic i18n key (#2542)
+learn-app-no-badges-yet = Nenhum emblema conquistado ainda
+
+# semantic i18n key (#2542)
+learn-app-course-preview = Pré-visualização do curso
+
+# semantic i18n key (#2542)
+learn-app-enroll = Inscrever-se

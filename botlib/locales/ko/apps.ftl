@@ -911,3 +911,81 @@ biometry-audit-timestamp = 타임스탬프
 
 # semantic i18n key (#2542)
 biometry-audit-result = 결과
+
+# semantic i18n key (#2542)
+learn-app-loading = Learn 로드 중…
+
+# semantic i18n key (#2542)
+learn-app-unavailable = Learn 콘텐츠를 사용할 수 없음
+
+# semantic i18n key (#2542)
+learn-app-title = 학습 플랫폼
+
+# semantic i18n key (#2542)
+learn-app-hours-learned = 학습 시간
+
+# semantic i18n key (#2542)
+learn-app-courses-done = 완료한 과정
+
+# semantic i18n key (#2542)
+learn-app-streak = 연속 기록
+
+# semantic i18n key (#2542)
+learn-app-badges = 배지
+
+# semantic i18n key (#2542)
+learn-app-tab-courses = 과정
+
+# semantic i18n key (#2542)
+learn-app-tab-certifications = 인증
+
+# semantic i18n key (#2542)
+learn-app-tab-creator = 작성자
+
+# semantic i18n key (#2542)
+learn-app-tab-progress = 진행 상황
+
+# semantic i18n key (#2542)
+learn-app-fetching-courses = 과정 가져오는 중
+
+# semantic i18n key (#2542)
+learn-app-fetching-certifications = 인증 가져오는 중
+
+# semantic i18n key (#2542)
+learn-app-content-creation = 콘텐츠 제작
+
+# semantic i18n key (#2542)
+learn-app-lesson = 레슨
+
+# semantic i18n key (#2542)
+learn-app-quiz = 퀴즈
+
+# semantic i18n key (#2542)
+learn-app-document = 문서
+
+# semantic i18n key (#2542)
+learn-app-interactive = 대화형
+
+# semantic i18n key (#2542)
+learn-app-ai-assist = AI 지원
+
+# semantic i18n key (#2542)
+learn-app-content-editor = 콘텐츠 편집기
+
+# semantic i18n key (#2542)
+learn-app-publish = 게시
+
+# semantic i18n key (#2542)
+learn-app-learning-stats = 학습 통계
+
+# semantic i18n key (#2542)
+learn-app-achievement-badges = 업적 배지
+
+# semantic i18n key (#2542)
+learn-app-no-badges-yet = 아직 획득한 배지가 없습니다
+
+# semantic i18n key (#2542)
+learn-app-course-preview = 과정 미리보기
+
+# semantic i18n key (#2542)
+learn-app-enroll = 등록

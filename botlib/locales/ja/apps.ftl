@@ -911,3 +911,81 @@ biometry-audit-timestamp = タイムスタンプ
 
 # semantic i18n key (#2542)
 biometry-audit-result = 結果
+
+# semantic i18n key (#2542)
+learn-app-loading = Learn を読み込み中…
+
+# semantic i18n key (#2542)
+learn-app-unavailable = Learn コンテンツを利用できません
+
+# semantic i18n key (#2542)
+learn-app-title = 学習プラットフォーム
+
+# semantic i18n key (#2542)
+learn-app-hours-learned = 学習時間
+
+# semantic i18n key (#2542)
+learn-app-courses-done = 完了したコース
+
+# semantic i18n key (#2542)
+learn-app-streak = 連続記録
+
+# semantic i18n key (#2542)
+learn-app-badges = バッジ
+
+# semantic i18n key (#2542)
+learn-app-tab-courses = コース
+
+# semantic i18n key (#2542)
+learn-app-tab-certifications = 認定資格
+
+# semantic i18n key (#2542)
+learn-app-tab-creator = 作成者
+
+# semantic i18n key (#2542)
+learn-app-tab-progress = 進捗
+
+# semantic i18n key (#2542)
+learn-app-fetching-courses = コースを取得しています
+
+# semantic i18n key (#2542)
+learn-app-fetching-certifications = 認定資格を取得しています
+
+# semantic i18n key (#2542)
+learn-app-content-creation = コンテンツ作成
+
+# semantic i18n key (#2542)
+learn-app-lesson = レッスン
+
+# semantic i18n key (#2542)
+learn-app-quiz = クイズ
+
+# semantic i18n key (#2542)
+learn-app-document = ドキュメント
+
+# semantic i18n key (#2542)
+learn-app-interactive = インタラクティブ
+
+# semantic i18n key (#2542)
+learn-app-ai-assist = AI アシスト
+
+# semantic i18n key (#2542)
+learn-app-content-editor = コンテンツエディター
+
+# semantic i18n key (#2542)
+learn-app-publish = 公開
+
+# semantic i18n key (#2542)
+learn-app-learning-stats = 学習統計
+
+# semantic i18n key (#2542)
+learn-app-achievement-badges = 達成バッジ
+
+# semantic i18n key (#2542)
+learn-app-no-badges-yet = まだバッジを獲得していません
+
+# semantic i18n key (#2542)
+learn-app-course-preview = コースプレビュー
+
+# semantic i18n key (#2542)
+learn-app-enroll = 登録する

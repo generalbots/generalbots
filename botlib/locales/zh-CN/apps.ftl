@@ -911,3 +911,81 @@ biometry-audit-timestamp = 时间戳
 
 # semantic i18n key (#2542)
 biometry-audit-result = 结果
+
+# semantic i18n key (#2542)
+learn-app-loading = 正在加载 Learn…
+
+# semantic i18n key (#2542)
+learn-app-unavailable = Learn 内容不可用
+
+# semantic i18n key (#2542)
+learn-app-title = 学习平台
+
+# semantic i18n key (#2542)
+learn-app-hours-learned = 学习时长
+
+# semantic i18n key (#2542)
+learn-app-courses-done = 已完成课程
+
+# semantic i18n key (#2542)
+learn-app-streak = 连续学习
+
+# semantic i18n key (#2542)
+learn-app-badges = 徽章
+
+# semantic i18n key (#2542)
+learn-app-tab-courses = 课程
+
+# semantic i18n key (#2542)
+learn-app-tab-certifications = 认证
+
+# semantic i18n key (#2542)
+learn-app-tab-creator = 创作者
+
+# semantic i18n key (#2542)
+learn-app-tab-progress = 进度
+
+# semantic i18n key (#2542)
+learn-app-fetching-courses = 正在获取课程
+
+# semantic i18n key (#2542)
+learn-app-fetching-certifications = 正在获取认证
+
+# semantic i18n key (#2542)
+learn-app-content-creation = 内容创作
+
+# semantic i18n key (#2542)
+learn-app-lesson = 课程
+
+# semantic i18n key (#2542)
+learn-app-quiz = 测验
+
+# semantic i18n key (#2542)
+learn-app-document = 文档
+
+# semantic i18n key (#2542)
+learn-app-interactive = 互动
+
+# semantic i18n key (#2542)
+learn-app-ai-assist = AI 助手
+
+# semantic i18n key (#2542)
+learn-app-content-editor = 内容编辑器
+
+# semantic i18n key (#2542)
+learn-app-publish = 发布
+
+# semantic i18n key (#2542)
+learn-app-learning-stats = 学习统计
+
+# semantic i18n key (#2542)
+learn-app-achievement-badges = 成就徽章
+
+# semantic i18n key (#2542)
+learn-app-no-badges-yet = 尚未获得徽章
+
+# semantic i18n key (#2542)
+learn-app-course-preview = 课程预览
+
+# semantic i18n key (#2542)
+learn-app-enroll = 注册
