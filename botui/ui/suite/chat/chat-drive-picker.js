@@ -60,7 +60,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
       '<div class="gb-drive-picker" role="dialog" aria-modal="true" aria-label="Attach from Drive">' +
       '<div class="gb-drive-picker-head">' +
       '<span class="gb-drive-picker-title">Attach from Drive</span>' +
-      '<button type="button" class="gb-drive-picker-close" aria-label="Close">×</button>' +
+      '<button type="button" class="gb-drive-picker-close" aria-label="Close" data-i18n-aria-label="action-close">×</button>' +
       "</div>" +
       '<div class="gb-drive-picker-crumb"></div>' +
       '<div class="gb-drive-picker-status" hidden></div>' +

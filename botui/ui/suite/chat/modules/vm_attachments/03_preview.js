@@ -239,7 +239,7 @@ function vmShowPreviewUrl(url, path) {
   overlay.innerHTML =
     '<div class="gb-vm-preview-head"><span>' + name + "</span>" +
     '<a class="gb-vm-preview-download" download="' + name + '" href="#">Download</a>' +
-    '<button type="button" class="gb-vm-preview-close" aria-label="Close preview">&times;</button></div>' +
+    '<button type="button" class="gb-vm-preview-close" aria-label="Close preview" data-i18n-aria-label="chat-staged-close">&times;</button></div>' +
     '<div class="gb-vm-preview-body">Loading…</div>';
   var downloadLink = overlay.querySelector(".gb-vm-preview-download");
   if (downloadLink) {

@@ -81,6 +81,7 @@ function openDrivePreviewShell(options) {
   var closeButton = drivePreviewElement("button", "gb-preview-close", "\u00D7");
   closeButton.type = "button";
   closeButton.setAttribute("aria-label", "Close preview");
+  closeButton.setAttribute("data-i18n-aria-label", "chat-staged-close");
   closeButton.addEventListener("click", closeDrivePreview);
   actions.appendChild(closeButton);
   header.appendChild(actions);

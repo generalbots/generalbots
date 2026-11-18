@@ -56,7 +56,7 @@
       '<div class="drive-sync-dialog" role="dialog" aria-modal="true" aria-labelledby="drive-sync-title">' +
       '<header><h2 id="drive-sync-title">Local sync</h2>' +
       '<span class="drive-sync-state" id="drive-sync-state" role="status" aria-live="polite" aria-atomic="true">idle</span>' +
-      '<button type="button" class="drive-sync-x" data-close="1" aria-label="Close">&times;</button></header>' +
+      '<button type="button" class="drive-sync-x" data-close="1" aria-label="Close" data-i18n-aria-label="action-close">&times;</button></header>' +
       '<div class="drive-sync-body">' +
       '<p class="drive-sync-hint">Mirror a local folder with a Drive folder using rsync. The server runs the schedule; every job can also run on demand.</p>' +
       '<div class="drive-sync-jobs" id="drive-sync-jobs"></div>' +
