@@ -1,0 +1,140 @@
+name: Server
+
+# Production server binary — the SaaS/deployment shape, which is the
+# `botserver` default feature set (`all-apps`). Nothing else in the repo builds
+# it: `ci.yml` compiles `--features desktop-local` (an audit profile, no
+# artifact) and `release.yml` ships the desktop edition, so a change to
+# `botserver` had no path to a deployable binary.
+#
+# WHY `workflow_dispatch` ONLY
+#   A push to `main` fans `ci.yml` out to 30 jobs (measured on run 42755006195),
+#   and the free-plan concurrency budget is ~20 slots. A push-triggered server
+#   build would therefore queue behind CI instead of starting, adding ~10 min of
+#   dead time for an identical result. Dispatch keeps it off the queue. Dispatch
+#   also accepts any ref, so a branch can be built before it is merged.
+#
+# WHY `--profile fast` AND NOT `--release`
+#   `[profile.release]` is tuned for installer size, not for a server:
+#   `lto = true` (fat), `opt-level = "z"`, `codegen-units = 1`.
+#   Measured on the same runner class and feature set (desktop-local):
+#   release = 23 min of compilation, debug = 4 min 11 s.
+#   `[profile.fast]` (inherits release, `lto = false`, `opt-level = 3`,
+#   `codegen-units = 16`, `strip = true`) keeps the optimised, stripped binary
+#   the platform actually runs while removing the fat-LTO link phase.
+#
+# WHAT THIS DOES NOT DO
+#   It does not deploy. Deploying is a manual, reversible step on the host
+#   (stop -> push -> chmod -> start -> health), documented in the runbook. No
+#   SSH credentials are stored in this repository.
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Cargo profile. `fast` is the deployable default; `release` exists only to measure the size-tuned profile."
+        required: true
+        type: choice
+        default: fast
+        options:
+          - fast
+          - release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep output stable across runners so the cache key and the artifact name
+  # never depend on the host toolchain path.
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  build:
+    name: Build botserver (default features)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+
+      # Same composite action the rest of CI uses: Debian build deps (clang +
+      # mold, so the link is not the bottleneck), the pinned stable toolchain
+      # and the shared Cargo cache. The cache scope is per profile, because a
+      # `fast` target dir and a `release` target dir never share artifacts and
+      # would otherwise evict one another on every run.
+      - name: Rust setup
+        uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: server-${{ inputs.profile }}
+
+      - name: Build botserver
+        run: cargo build -p botserver --profile "${{ inputs.profile }}"
+
+      # The UI is a separate binary that serves `botui/ui` from disk; the
+      # standalone build is what the host runs. Built with the same profile so
+      # one `target/<profile>/` holds the whole deployable set.
+      - name: Build botui
+        run: cargo build -p botui --profile "${{ inputs.profile }}"
+
+      - name: Assemble the deployable bundle
+        run: |
+          set -euo pipefail
+          profile="${{ inputs.profile }}"
+          out="$RUNNER_TEMP/server-bundle"
+          mkdir -p "$out/ui"
+
+          install -m 0755 "target/$profile/botserver" "$out/botserver"
+          install -m 0755 "target/$profile/botui" "$out/botui"
+          cp -a botui/ui/. "$out/ui/"
+
+          # Deployment metadata, so an operator can tell two artifacts apart
+          # without unpacking the binaries.
+          {
+            echo "commit=$(git rev-parse HEAD)"
+            echo "ref=${{ github.ref_name }}"
+            echo "profile=$profile"
+            echo "built=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "$out/BUILD-INFO"
+
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/server-$profile.tar.gz" server-bundle
+          ( cd "$RUNNER_TEMP" && sha256sum "server-$profile.tar.gz" > SHA256SUMS )
+
+          ls -l "$RUNNER_TEMP/server-$profile.tar.gz" "$out/botserver" "$out/botui"
+
+      - name: Report the artifact contents
+        run: |
+          set -euo pipefail
+          profile="${{ inputs.profile }}"
+          out="$RUNNER_TEMP/server-bundle"
+          {
+            echo "### Server bundle (${profile})"
+            echo
+            echo "| file | size |"
+            echo "|---|---|"
+            for f in botserver botui; do
+              printf '| `%s` | %s |\n' "$f" "$(stat -c %s "$out/$f") bytes"
+            done
+            echo
+            echo "Archive: $(stat -c %s "$RUNNER_TEMP/server-$profile.tar.gz") bytes"
+            echo
+            echo '```'
+            file "$out/botserver"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the server bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: server-${{ inputs.profile }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/server-${{ inputs.profile }}.tar.gz
+            ${{ runner.temp }}/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+          # The archive is already deflated; re-compressing it costs minutes and
+          # saves almost nothing.
+          compression-level: 0
