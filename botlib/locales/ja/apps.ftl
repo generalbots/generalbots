@@ -485,3 +485,51 @@ language-japanese = 日本語
 
 # semantic i18n key (#2542)
 language-korean = 韓国語
+
+# semantic i18n key (#2542)
+dashboards-chart-line = 折れ線グラフ
+
+# semantic i18n key (#2542)
+dashboards-chart-bar = 棒グラフ
+
+# semantic i18n key (#2542)
+dashboards-chart-pie = 円グラフ
+
+# semantic i18n key (#2542)
+dashboards-chart-area = 面グラフ
+
+# semantic i18n key (#2542)
+dashboards-chart-scatter = 散布図
+
+# semantic i18n key (#2542)
+dashboards-chart-gauge = ゲージ
+
+# semantic i18n key (#2542)
+dashboards-widget-text = テキスト
+
+# semantic i18n key (#2542)
+dashboards-widget-iframe = iFrame
+
+# semantic i18n key (#2542)
+fraud-engine-title = 不正防止エンジン
+
+# semantic i18n key (#2542)
+fraud-tab-events = イベント
+
+# semantic i18n key (#2542)
+fraud-tab-rules = ルール
+
+# semantic i18n key (#2542)
+fraud-tab-blocklist = ブロックリスト
+
+# semantic i18n key (#2542)
+fraud-col-entity = エンティティ
+
+# semantic i18n key (#2542)
+fraud-col-score = スコア
+
+# semantic i18n key (#2542)
+fraud-col-level = レベル
+
+# semantic i18n key (#2542)
+fraud-col-reason = 理由

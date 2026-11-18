@@ -171,3 +171,27 @@ analytics-realtime-conversations = Conversations actives
 analytics-realtime-users = Utilisateurs en ligne
 analytics-realtime-requests = Requêtes/min
 analytics-realtime-events = Événements/s
+
+# semantic i18n key (#2542)
+analytics-distribution-badge = Distribution
+
+# semantic i18n key (#2542)
+analytics-hours-unit = heures
+
+# semantic i18n key (#2542)
+analytics-vs-last-period = par rapport à la période précédente
+
+# semantic i18n key (#2542)
+analytics-breakdown-badge = Répartition
+
+# semantic i18n key (#2542)
+analytics-category-technical-issue = Problème technique
+
+# semantic i18n key (#2542)
+analytics-category-billing-question = Question de facturation
+
+# semantic i18n key (#2542)
+analytics-category-feature-request = Demande de fonctionnalité
+
+# semantic i18n key (#2542)
+analytics-category-general-inquiry = Demande générale

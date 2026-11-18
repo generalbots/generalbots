@@ -41,3 +41,27 @@ email-share-link-expires = Este enlace caduca el { $date }. Puede revocarlo en c
 email-share-link-no-expiry = Este enlace no caduca. Puede revocarlo en cualquier momento.
 email-mention-subject = { $author } le mencionó en un comentario
 email-mention-body = { $author } le mencionó en { $resource_type } ({ $resource_id }). "{ $preview }" Abra la aplicación para ver y responder.
+
+# semantic i18n key (#2542)
+mail-new-message = Nuevo mensaje
+
+# semantic i18n key (#2542)
+mail-cc-bcc = Cc/Cco
+
+# semantic i18n key (#2542)
+mail-subject-label = Asunto:
+
+# semantic i18n key (#2542)
+mail-track-opens = Rastrear aperturas
+
+# semantic i18n key (#2542)
+mail-request-read-receipt = Solicitar confirmación de lectura
+
+# semantic i18n key (#2542)
+mail-priority-normal = Prioridad normal
+
+# semantic i18n key (#2542)
+mail-priority-high = Alta prioridad
+
+# semantic i18n key (#2542)
+mail-priority-low = Baja prioridad

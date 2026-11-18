@@ -171,3 +171,27 @@ analytics-realtime-conversations = 활성 대화
 analytics-realtime-users = 온라인 사용자
 analytics-realtime-requests = 요청/분
 analytics-realtime-events = 이벤트/초
+
+# semantic i18n key (#2542)
+analytics-distribution-badge = 분포
+
+# semantic i18n key (#2542)
+analytics-hours-unit = 시간
+
+# semantic i18n key (#2542)
+analytics-vs-last-period = 이전 기간 대비
+
+# semantic i18n key (#2542)
+analytics-breakdown-badge = 세부 내역
+
+# semantic i18n key (#2542)
+analytics-category-technical-issue = 기술 문제
+
+# semantic i18n key (#2542)
+analytics-category-billing-question = 청구 문의
+
+# semantic i18n key (#2542)
+analytics-category-feature-request = 기능 요청
+
+# semantic i18n key (#2542)
+analytics-category-general-inquiry = 일반 문의

@@ -41,3 +41,27 @@ email-share-link-expires = 此链接将于 { $date } 过期。您可以随时撤
 email-share-link-no-expiry = 此链接不会过期。您可以随时撤销。
 email-mention-subject = { $author } 在评论中提到了您
 email-mention-body = { $author } 在 { $resource_type }({ $resource_id })中提到了您。“{ $preview }”请打开应用查看并回复。
+
+# semantic i18n key (#2542)
+mail-new-message = 新邮件
+
+# semantic i18n key (#2542)
+mail-cc-bcc = 抄送/密送
+
+# semantic i18n key (#2542)
+mail-subject-label = 主题：
+
+# semantic i18n key (#2542)
+mail-track-opens = 跟踪打开
+
+# semantic i18n key (#2542)
+mail-request-read-receipt = 请求已读回执
+
+# semantic i18n key (#2542)
+mail-priority-normal = 普通优先级
+
+# semantic i18n key (#2542)
+mail-priority-high = 高优先级
+
+# semantic i18n key (#2542)
+mail-priority-low = 低优先级

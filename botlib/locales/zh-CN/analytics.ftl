@@ -171,3 +171,27 @@ analytics-realtime-conversations = 活跃的对话
 analytics-realtime-users = 在线用户
 analytics-realtime-requests = 请求/分钟
 analytics-realtime-events = 事件/秒
+
+# semantic i18n key (#2542)
+analytics-distribution-badge = 分布
+
+# semantic i18n key (#2542)
+analytics-hours-unit = 小时
+
+# semantic i18n key (#2542)
+analytics-vs-last-period = 与上一周期相比
+
+# semantic i18n key (#2542)
+analytics-breakdown-badge = 细分
+
+# semantic i18n key (#2542)
+analytics-category-technical-issue = 技术问题
+
+# semantic i18n key (#2542)
+analytics-category-billing-question = 账单问题
+
+# semantic i18n key (#2542)
+analytics-category-feature-request = 功能请求
+
+# semantic i18n key (#2542)
+analytics-category-general-inquiry = 一般咨询

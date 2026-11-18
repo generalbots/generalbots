@@ -41,3 +41,27 @@ email-share-link-expires = 이 링크는 { $date } 에 만료됩니다. 언제�
 email-share-link-no-expiry = 이 링크는 만료되지 않습니다. 언제든지 취소할 수 있습니다.
 email-mention-subject = { $author } 님이 댓글에서 회원님을 언급했습니다
 email-mention-body = { $author } 님이 { $resource_type } ({ $resource_id }) 에서 회원님을 언급했습니다. "{ $preview }" 앱을 열어 확인하고 답변하세요.
+
+# semantic i18n key (#2542)
+mail-new-message = 새 메시지
+
+# semantic i18n key (#2542)
+mail-cc-bcc = 참조/숨은참조
+
+# semantic i18n key (#2542)
+mail-subject-label = 제목:
+
+# semantic i18n key (#2542)
+mail-track-opens = 열람 추적
+
+# semantic i18n key (#2542)
+mail-request-read-receipt = 읽음 확인 요청
+
+# semantic i18n key (#2542)
+mail-priority-normal = 보통 우선순위
+
+# semantic i18n key (#2542)
+mail-priority-high = 높은 우선순위
+
+# semantic i18n key (#2542)
+mail-priority-low = 낮은 우선순위

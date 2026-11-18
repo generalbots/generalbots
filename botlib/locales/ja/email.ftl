@@ -41,3 +41,27 @@ email-share-link-expires = このリンクは { $date } に失効します。い
 email-share-link-no-expiry = このリンクは失効しません。いつでも無効にできます。
 email-mention-subject = { $author } がコメントであなたをメンションしました
 email-mention-body = { $author } が { $resource_type } ({ $resource_id }) であなたをメンションしました。「{ $preview }」アプリを開いて確認し、返信してください。
+
+# semantic i18n key (#2542)
+mail-new-message = 新規メッセージ
+
+# semantic i18n key (#2542)
+mail-cc-bcc = Cc/Bcc
+
+# semantic i18n key (#2542)
+mail-subject-label = 件名:
+
+# semantic i18n key (#2542)
+mail-track-opens = 開封を追跡
+
+# semantic i18n key (#2542)
+mail-request-read-receipt = 開封確認を要求
+
+# semantic i18n key (#2542)
+mail-priority-normal = 通常の優先度
+
+# semantic i18n key (#2542)
+mail-priority-high = 高優先度
+
+# semantic i18n key (#2542)
+mail-priority-low = 低優先度

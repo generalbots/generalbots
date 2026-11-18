@@ -2,7 +2,7 @@
 <dialog id="compose-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h2 data-i18n="auto-new-message">New Message</h2>
+            <h2 data-i18n="mail-new-message">New Message</h2>
             <div class="compose-actions-top">
                 <button
                     class="icon-btn" title="Close" aria-label="Close" data-i18n-title="action-close" data-i18n-aria-label="action-close"
@@ -56,7 +56,7 @@
                         type="button"
                         class="field-toggle"
                         onclick="toggleCcBcc()"
-                     data-i18n="auto-cc-bcc">
+                     data-i18n="mail-cc-bcc">
                         Cc/Bcc
                     </button>
                 </div>
@@ -79,7 +79,7 @@
                     />
                 </div>
                 <div class="field-row">
-                    <label data-i18n="auto-subject">Subject:</label>
+                    <label data-i18n="mail-subject-label">Subject:</label>
                     <input
                         type="text"
                         name="subject"
@@ -101,16 +101,16 @@
                 <div class="compose-options">
                     <label class="option-checkbox">
                         <input type="checkbox" name="track_opens" checked />
-                        <span data-i18n="auto-track-opens">Track opens</span>
+                        <span data-i18n="mail-track-opens">Track opens</span>
                     </label>
                     <label class="option-checkbox">
                         <input type="checkbox" name="request_receipt" />
-                        <span data-i18n="auto-request-read-receipt">Request read receipt</span>
+                        <span data-i18n="mail-request-read-receipt">Request read receipt</span>
                     </label>
                     <select name="priority" class="priority-select">
-                        <option value="normal" data-i18n="auto-normal-priority">Normal priority</option>
-                        <option value="high" data-i18n="auto-high-priority">High priority</option>
-                        <option value="low" data-i18n="auto-low-priority">Low priority</option>
+                        <option value="normal" data-i18n="mail-priority-normal">Normal priority</option>
+                        <option value="high" data-i18n="mail-priority-high">High priority</option>
+                        <option value="low" data-i18n="mail-priority-low">Low priority</option>
                     </select>
                 </div>
                 <div class="compose-actions">

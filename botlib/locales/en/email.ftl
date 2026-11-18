@@ -41,3 +41,27 @@ email-share-link-expires = This link expires on { $date }. You can revoke it at 
 email-share-link-no-expiry = This link does not expire. You can revoke it at any time.
 email-mention-subject = { $author } mentioned you in a comment
 email-mention-body = { $author } mentioned you on { $resource_type } ({ $resource_id }). "{ $preview }" Open the app to view and reply.
+
+# semantic i18n key (#2542)
+mail-new-message = New Message
+
+# semantic i18n key (#2542)
+mail-cc-bcc = Cc/Bcc
+
+# semantic i18n key (#2542)
+mail-subject-label = Subject:
+
+# semantic i18n key (#2542)
+mail-track-opens = Track opens
+
+# semantic i18n key (#2542)
+mail-request-read-receipt = Request read receipt
+
+# semantic i18n key (#2542)
+mail-priority-normal = Normal priority
+
+# semantic i18n key (#2542)
+mail-priority-high = High priority
+
+# semantic i18n key (#2542)
+mail-priority-low = Low priority
