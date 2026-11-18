@@ -485,3 +485,183 @@ admin-roles-type-to-search-groups = 输入以搜索组
 
 # semantic i18n key (#2542)
 admin-roles-assign-role-btn = 分配角色
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome = 欢迎
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome-desc = 介绍一下您自己
+
+# semantic i18n key (#2542)
+admin-onboarding-step-org-desc = 创建您的工作区
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan = 选择套餐
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan-desc = 选择您的订阅
+
+# semantic i18n key (#2542)
+admin-onboarding-step-payment-desc = 添加付款方式
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start = 开始使用
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start-desc = 创建您的第一个机器人
+
+# semantic i18n key (#2542)
+admin-onboarding-view-guide = 查看指南
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-title = 欢迎使用 General Bots！
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-subtitle = 我们将在几分钟内完成设置。首先，请简单介绍一下您自己。
+
+# semantic i18n key (#2542)
+admin-onboarding-full-name = 全名
+
+# semantic i18n key (#2542)
+admin-onboarding-your-role = 您的角色
+
+# semantic i18n key (#2542)
+admin-onboarding-role-placeholder = 选择您的角色...
+
+# semantic i18n key (#2542)
+admin-onboarding-role-developer = 开发人员 / 工程师
+
+# semantic i18n key (#2542)
+admin-onboarding-role-product-manager = 产品经理
+
+# semantic i18n key (#2542)
+admin-onboarding-role-customer-support = 客户支持
+
+# semantic i18n key (#2542)
+admin-onboarding-role-executive = 高管 / 创始人
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-label = 您想构建什么？
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-placeholder = 选择主要用例...
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-support-bot = 客户支持机器人
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-sales-assistant = 销售助理
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-internal-kb = 内部知识库
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-lead-generation = 潜在客户开发
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-employee-onboarding = 员工入职
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-ecommerce = 电子商务助理
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-other = 其他
+
+# semantic i18n key (#2542)
+admin-onboarding-hear-about-label = 您是如何了解我们的？
+
+# semantic i18n key (#2542)
+admin-onboarding-source-search = 搜索引擎
+
+# semantic i18n key (#2542)
+admin-onboarding-source-social = 社交媒体
+
+# semantic i18n key (#2542)
+admin-onboarding-source-friend = 朋友 / 同事
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-title = 创建您的组织
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-subtitle = 您将在组织中管理机器人、团队成员和知识库。
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name = 组织名称
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name-hint = 这将对您的团队成员可见
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url = 组织 URL
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-prefix = app.generalbots.com/
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-hint = 仅限小写字母、数字和连字符
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size = 团队规模
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size-placeholder = 将有多少人使用？
+
+# semantic i18n key (#2542)
+admin-onboarding-team-just-me = 仅我自己
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-placeholder = 选择您的行业（可选）
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-technology = 科技
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-healthcare = 医疗保健
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-finance = 金融 / 银行
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-retail = 零售 / 电子商务
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-education = 教育
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-manufacturing = 制造业
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-consulting = 咨询 / 服务
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-government = 政府
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-nonprofit = 非营利
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-title = 选择您的套餐
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-subtitle = 选择最适合您需求的套餐。您可以随时升级或降级。
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free = 免费
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free-desc = 适用于个人和小型项目
+
+# semantic i18n key (#2542)
+admin-onboarding-per-month = /月
+
+# semantic i18n key (#2542)
+admin-onboarding-select-free = 选择免费版
+
+# semantic i18n key (#2542)
+admin-onboarding-most-popular = 最受欢迎
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-pro-desc = 适用于成长型团队
+
+# semantic i18n key (#2542)
+admin-onboarding-select-pro = 选择专业版

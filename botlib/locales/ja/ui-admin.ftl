@@ -485,3 +485,183 @@ admin-roles-type-to-search-groups = 入力してグループを検索
 
 # semantic i18n key (#2542)
 admin-roles-assign-role-btn = ロールを割り当て
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome = ようこそ
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome-desc = あなたについて教えてください
+
+# semantic i18n key (#2542)
+admin-onboarding-step-org-desc = ワークスペースを作成
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan = プランを選択
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan-desc = サブスクリプションを選択
+
+# semantic i18n key (#2542)
+admin-onboarding-step-payment-desc = 支払い方法を追加
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start = 始める
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start-desc = 最初のボットを作成
+
+# semantic i18n key (#2542)
+admin-onboarding-view-guide = ガイドを見る
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-title = General Botsへようこそ！
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-subtitle = 数分でセットアップを完了しましょう。まず、あなたについて少し教えてください。
+
+# semantic i18n key (#2542)
+admin-onboarding-full-name = 氏名
+
+# semantic i18n key (#2542)
+admin-onboarding-your-role = あなたの役割
+
+# semantic i18n key (#2542)
+admin-onboarding-role-placeholder = 役割を選択...
+
+# semantic i18n key (#2542)
+admin-onboarding-role-developer = 開発者 / エンジニア
+
+# semantic i18n key (#2542)
+admin-onboarding-role-product-manager = プロダクトマネージャー
+
+# semantic i18n key (#2542)
+admin-onboarding-role-customer-support = カスタマーサポート
+
+# semantic i18n key (#2542)
+admin-onboarding-role-executive = 経営者 / 創業者
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-label = 何を作りたいですか？
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-placeholder = 主なユースケースを選択...
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-support-bot = カスタマーサポートボット
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-sales-assistant = 営業アシスタント
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-internal-kb = 社内ナレッジベース
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-lead-generation = リード獲得
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-employee-onboarding = 従業員オンボーディング
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-ecommerce = EC アシスタント
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-other = その他
+
+# semantic i18n key (#2542)
+admin-onboarding-hear-about-label = どこで私たちを知りましたか？
+
+# semantic i18n key (#2542)
+admin-onboarding-source-search = 検索エンジン
+
+# semantic i18n key (#2542)
+admin-onboarding-source-social = ソーシャルメディア
+
+# semantic i18n key (#2542)
+admin-onboarding-source-friend = 友人 / 同僚
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-title = 組織を作成
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-subtitle = 組織では、ボット、チームメンバー、ナレッジベースを管理します。
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name = 組織名
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name-hint = これはチームメンバーに表示されます
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url = 組織 URL
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-prefix = app.generalbots.com/
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-hint = 小文字、数字、ハイフンのみ
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size = チーム規模
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size-placeholder = 何人が利用しますか？
+
+# semantic i18n key (#2542)
+admin-onboarding-team-just-me = 自分だけ
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-placeholder = 業界を選択（任意）
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-technology = テクノロジー
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-healthcare = ヘルスケア
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-finance = 金融 / 銀行
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-retail = 小売 / EC
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-education = 教育
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-manufacturing = 製造
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-consulting = コンサルティング / サービス
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-government = 政府
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-nonprofit = 非営利
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-title = プランを選択
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-subtitle = ニーズに最適なプランを選択してください。いつでもアップグレードやダウングレードが可能です。
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free = 無料
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free-desc = 個人や小規模プロジェクト向け
+
+# semantic i18n key (#2542)
+admin-onboarding-per-month = /月
+
+# semantic i18n key (#2542)
+admin-onboarding-select-free = 無料を選択
+
+# semantic i18n key (#2542)
+admin-onboarding-most-popular = 最も人気
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-pro-desc = 成長中のチーム向け
+
+# semantic i18n key (#2542)
+admin-onboarding-select-pro = Pro を選択

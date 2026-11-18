@@ -485,3 +485,183 @@ admin-roles-type-to-search-groups = Escribe para buscar grupos
 
 # semantic i18n key (#2542)
 admin-roles-assign-role-btn = Asignar rol
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome = Bienvenido
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome-desc = Cuéntanos sobre ti
+
+# semantic i18n key (#2542)
+admin-onboarding-step-org-desc = Crea tu espacio de trabajo
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan = Elegir plan
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan-desc = Selecciona tu suscripción
+
+# semantic i18n key (#2542)
+admin-onboarding-step-payment-desc = Agregar método de pago
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start = Comenzar
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start-desc = Crea tu primer bot
+
+# semantic i18n key (#2542)
+admin-onboarding-view-guide = Ver guía
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-title = ¡Bienvenido a General Bots!
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-subtitle = Vamos a configurarlo en solo unos minutos. Primero, cuéntanos un poco sobre ti.
+
+# semantic i18n key (#2542)
+admin-onboarding-full-name = Nombre completo
+
+# semantic i18n key (#2542)
+admin-onboarding-your-role = Tu rol
+
+# semantic i18n key (#2542)
+admin-onboarding-role-placeholder = Selecciona tu rol...
+
+# semantic i18n key (#2542)
+admin-onboarding-role-developer = Desarrollador / Ingeniero
+
+# semantic i18n key (#2542)
+admin-onboarding-role-product-manager = Gerente de producto
+
+# semantic i18n key (#2542)
+admin-onboarding-role-customer-support = Atención al cliente
+
+# semantic i18n key (#2542)
+admin-onboarding-role-executive = Ejecutivo / Fundador
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-label = ¿Qué quieres construir?
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-placeholder = Selecciona el caso de uso principal...
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-support-bot = Bot de atención al cliente
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-sales-assistant = Asistente de ventas
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-internal-kb = Base de conocimiento interna
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-lead-generation = Generación de leads
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-employee-onboarding = Incorporación de empleados
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-ecommerce = Asistente de comercio electrónico
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-other = Otra cosa
+
+# semantic i18n key (#2542)
+admin-onboarding-hear-about-label = ¿Cómo te enteraste de nosotros?
+
+# semantic i18n key (#2542)
+admin-onboarding-source-search = Motor de búsqueda
+
+# semantic i18n key (#2542)
+admin-onboarding-source-social = Redes sociales
+
+# semantic i18n key (#2542)
+admin-onboarding-source-friend = Amigo / Colega
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-title = Crea tu organización
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-subtitle = Tu organización es donde administrarás bots, miembros del equipo y bases de conocimiento.
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name = Nombre de la organización
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name-hint = Esto será visible para los miembros de tu equipo
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url = URL de la organización
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-prefix = app.generalbots.com/
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-hint = Solo letras minúsculas, números y guiones
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size = Tamaño del equipo
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size-placeholder = ¿Cuántas personas usarán esto?
+
+# semantic i18n key (#2542)
+admin-onboarding-team-just-me = Solo yo
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-placeholder = Selecciona tu industria (opcional)
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-technology = Tecnología
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-healthcare = Salud
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-finance = Finanzas / Banca
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-retail = Comercio minorista / Comercio electrónico
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-education = Educación
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-manufacturing = Manufactura
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-consulting = Consultoría / Servicios
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-government = Gobierno
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-nonprofit = Sin fines de lucro
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-title = Elige tu plan
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-subtitle = Selecciona el plan que mejor se adapte a tus necesidades. Puedes cambiar de plan en cualquier momento.
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free = Gratis
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free-desc = Para individuos y proyectos pequeños
+
+# semantic i18n key (#2542)
+admin-onboarding-per-month = /mes
+
+# semantic i18n key (#2542)
+admin-onboarding-select-free = Seleccionar gratis
+
+# semantic i18n key (#2542)
+admin-onboarding-most-popular = Más popular
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-pro-desc = Para equipos en crecimiento
+
+# semantic i18n key (#2542)
+admin-onboarding-select-pro = Seleccionar Pro

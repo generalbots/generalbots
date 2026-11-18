@@ -485,3 +485,183 @@ admin-roles-type-to-search-groups = 입력하여 그룹 검색
 
 # semantic i18n key (#2542)
 admin-roles-assign-role-btn = 역할 할당
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome = 환영합니다
+
+# semantic i18n key (#2542)
+admin-onboarding-step-welcome-desc = 자신에 대해 알려주세요
+
+# semantic i18n key (#2542)
+admin-onboarding-step-org-desc = 워크스페이스 만들기
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan = 요금제 선택
+
+# semantic i18n key (#2542)
+admin-onboarding-step-plan-desc = 구독 선택
+
+# semantic i18n key (#2542)
+admin-onboarding-step-payment-desc = 결제 수단 추가
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start = 시작하기
+
+# semantic i18n key (#2542)
+admin-onboarding-step-start-desc = 첫 번째 봇 만들기
+
+# semantic i18n key (#2542)
+admin-onboarding-view-guide = 가이드 보기
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-title = General Bots에 오신 것을 환영합니다!
+
+# semantic i18n key (#2542)
+admin-onboarding-welcome-subtitle = 몇 분 안에 설정을 완료해 드리겠습니다. 먼저 자신에 대해 조금 알려주세요.
+
+# semantic i18n key (#2542)
+admin-onboarding-full-name = 전체 이름
+
+# semantic i18n key (#2542)
+admin-onboarding-your-role = 귀하의 역할
+
+# semantic i18n key (#2542)
+admin-onboarding-role-placeholder = 역할 선택...
+
+# semantic i18n key (#2542)
+admin-onboarding-role-developer = 개발자 / 엔지니어
+
+# semantic i18n key (#2542)
+admin-onboarding-role-product-manager = 제품 관리자
+
+# semantic i18n key (#2542)
+admin-onboarding-role-customer-support = 고객 지원
+
+# semantic i18n key (#2542)
+admin-onboarding-role-executive = 임원 / 창업자
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-label = 무엇을 만들고 싶으신가요?
+
+# semantic i18n key (#2542)
+admin-onboarding-use-case-placeholder = 주요 사용 사례 선택...
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-support-bot = 고객 지원 봇
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-sales-assistant = 영업 어시스턴트
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-internal-kb = 내부 지식 베이스
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-lead-generation = 리드 생성
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-employee-onboarding = 직원 온보딩
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-ecommerce = 전자상거래 어시스턴트
+
+# semantic i18n key (#2542)
+admin-onboarding-usecase-other = 기타
+
+# semantic i18n key (#2542)
+admin-onboarding-hear-about-label = 어떻게 저희를 알게 되셨나요?
+
+# semantic i18n key (#2542)
+admin-onboarding-source-search = 검색 엔진
+
+# semantic i18n key (#2542)
+admin-onboarding-source-social = 소셜 미디어
+
+# semantic i18n key (#2542)
+admin-onboarding-source-friend = 친구 / 동료
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-title = 조직 만들기
+
+# semantic i18n key (#2542)
+admin-onboarding-create-org-subtitle = 조직에서 봇, 팀원, 지식 베이스를 관리할 수 있습니다.
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name = 조직 이름
+
+# semantic i18n key (#2542)
+admin-onboarding-org-name-hint = 팀원에게 표시됩니다
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url = 조직 URL
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-prefix = app.generalbots.com/
+
+# semantic i18n key (#2542)
+admin-onboarding-org-url-hint = 소문자, 숫자, 하이픈만 사용 가능
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size = 팀 규모
+
+# semantic i18n key (#2542)
+admin-onboarding-team-size-placeholder = 몇 명이 사용하나요?
+
+# semantic i18n key (#2542)
+admin-onboarding-team-just-me = 나만
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-placeholder = 업종 선택(선택 사항)
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-technology = 기술
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-healthcare = 의료
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-finance = 금융 / 은행
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-retail = 소매 / 전자상거래
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-education = 교육
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-manufacturing = 제조
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-consulting = 컨설팅 / 서비스
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-government = 정부
+
+# semantic i18n key (#2542)
+admin-onboarding-industry-nonprofit = 비영리
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-title = 요금제 선택
+
+# semantic i18n key (#2542)
+admin-onboarding-choose-plan-subtitle = 필요에 가장 적합한 요금제를 선택하세요. 언제든지 업그레이드하거나 다운그레이드할 수 있습니다.
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free = 무료
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-free-desc = 개인 및 소규모 프로젝트용
+
+# semantic i18n key (#2542)
+admin-onboarding-per-month = /월
+
+# semantic i18n key (#2542)
+admin-onboarding-select-free = 무료 선택
+
+# semantic i18n key (#2542)
+admin-onboarding-most-popular = 가장 인기
+
+# semantic i18n key (#2542)
+admin-onboarding-plan-pro-desc = 성장하는 팀용
+
+# semantic i18n key (#2542)
+admin-onboarding-select-pro = Pro 선택
