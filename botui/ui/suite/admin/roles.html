@@ -140,7 +140,7 @@ Export </button>
 </div> </div>
 <dialog id="create-role-modal" class="modal"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="admin-roles-create-new-role">Create New Role</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<button class="close-btn" onclick="this.closest('dialog').close()" data-i18n-aria-label="action-close" data-i18n-title="action-close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <form hx-post="/api/rbac/roles" hx-target="#roles-list" hx-swap="innerHTML" hx-on::after-request="this.closest('dialog').close(); this.reset();">
@@ -161,7 +161,7 @@ Export </button>
 </div> </dialog>
 <dialog id="delete-role-modal" class="modal modal-small"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="admin-roles-delete-role-title">Delete Role</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<button class="close-btn" onclick="this.closest('dialog').close()" data-i18n-aria-label="action-close" data-i18n-title="action-close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
@@ -178,7 +178,7 @@ Export </button>
 </div> </dialog>
 <dialog id="add-user-modal" class="modal"> <div class="modal-content">
 <div class="modal-header"> <h2 data-i18n="admin-roles-assign-to-users">Assign Role to Users</h2>
-<button class="close-btn" onclick="this.closest('dialog').close()" aria-label="Close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<button class="close-btn" onclick="this.closest('dialog').close()" data-i18n-aria-label="action-close" data-i18n-title="action-close"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
