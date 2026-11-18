@@ -128,3 +128,42 @@ mail-dialog-schedule-send-title = Senden planen
 
 # semantic i18n key (#2542)
 mail-dialog-schedule-action = Planen
+
+# semantic i18n key (#2542)
+mail-manage-labels-title = Labels verwalten
+
+# semantic i18n key (#2542)
+mail-label-name = Labelname
+
+# semantic i18n key (#2542)
+mail-label-color = Farbe
+
+# semantic i18n key (#2542)
+mail-new-signature-title = Neue E-Mail-Signatur
+
+# semantic i18n key (#2542)
+mail-signature-name = Signaturname
+
+# semantic i18n key (#2542)
+mail-html-content = HTML-Inhalt
+
+# semantic i18n key (#2542)
+mail-new-rule-title = Neue E-Mail-Regel
+
+# semantic i18n key (#2542)
+mail-rule-name = Regelname
+
+# semantic i18n key (#2542)
+mail-condition-sender-contains = Bedingung (Absender enthält)
+
+# semantic i18n key (#2542)
+mail-action-star = Markieren
+
+# semantic i18n key (#2542)
+mail-new-template-title = Neue E-Mail-Vorlage
+
+# semantic i18n key (#2542)
+mail-template-name = Vorlagenname
+
+# semantic i18n key (#2542)
+mail-body-html = HTML-Textkörper

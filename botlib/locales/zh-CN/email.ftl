@@ -128,3 +128,42 @@ mail-dialog-schedule-send-title = 定时发送
 
 # semantic i18n key (#2542)
 mail-dialog-schedule-action = 计划
+
+# semantic i18n key (#2542)
+mail-manage-labels-title = 管理标签
+
+# semantic i18n key (#2542)
+mail-label-name = 标签名称
+
+# semantic i18n key (#2542)
+mail-label-color = 颜色
+
+# semantic i18n key (#2542)
+mail-new-signature-title = 新建电子邮件签名
+
+# semantic i18n key (#2542)
+mail-signature-name = 签名名称
+
+# semantic i18n key (#2542)
+mail-html-content = HTML 内容
+
+# semantic i18n key (#2542)
+mail-new-rule-title = 新建邮件规则
+
+# semantic i18n key (#2542)
+mail-rule-name = 规则名称
+
+# semantic i18n key (#2542)
+mail-condition-sender-contains = 条件（发件人包含）
+
+# semantic i18n key (#2542)
+mail-action-star = 加星标
+
+# semantic i18n key (#2542)
+mail-new-template-title = 新建邮件模板
+
+# semantic i18n key (#2542)
+mail-template-name = 模板名称
+
+# semantic i18n key (#2542)
+mail-body-html = 正文 HTML

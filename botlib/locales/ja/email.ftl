@@ -128,3 +128,42 @@ mail-dialog-schedule-send-title = 送信を予約
 
 # semantic i18n key (#2542)
 mail-dialog-schedule-action = 予約
+
+# semantic i18n key (#2542)
+mail-manage-labels-title = ラベルを管理
+
+# semantic i18n key (#2542)
+mail-label-name = ラベル名
+
+# semantic i18n key (#2542)
+mail-label-color = 色
+
+# semantic i18n key (#2542)
+mail-new-signature-title = 新しいメール署名
+
+# semantic i18n key (#2542)
+mail-signature-name = 署名名
+
+# semantic i18n key (#2542)
+mail-html-content = HTML コンテンツ
+
+# semantic i18n key (#2542)
+mail-new-rule-title = 新しいメールルール
+
+# semantic i18n key (#2542)
+mail-rule-name = ルール名
+
+# semantic i18n key (#2542)
+mail-condition-sender-contains = 条件（送信者に含む）
+
+# semantic i18n key (#2542)
+mail-action-star = スターを付ける
+
+# semantic i18n key (#2542)
+mail-new-template-title = 新しいメールテンプレート
+
+# semantic i18n key (#2542)
+mail-template-name = テンプレート名
+
+# semantic i18n key (#2542)
+mail-body-html = 本文 HTML

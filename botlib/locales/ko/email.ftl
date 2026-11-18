@@ -128,3 +128,42 @@ mail-dialog-schedule-send-title = 전송 예약
 
 # semantic i18n key (#2542)
 mail-dialog-schedule-action = 예약
+
+# semantic i18n key (#2542)
+mail-manage-labels-title = 라벨 관리
+
+# semantic i18n key (#2542)
+mail-label-name = 라벨 이름
+
+# semantic i18n key (#2542)
+mail-label-color = 색상
+
+# semantic i18n key (#2542)
+mail-new-signature-title = 새 이메일 서명
+
+# semantic i18n key (#2542)
+mail-signature-name = 서명 이름
+
+# semantic i18n key (#2542)
+mail-html-content = HTML 콘텐츠
+
+# semantic i18n key (#2542)
+mail-new-rule-title = 새 이메일 규칙
+
+# semantic i18n key (#2542)
+mail-rule-name = 규칙 이름
+
+# semantic i18n key (#2542)
+mail-condition-sender-contains = 조건(보낸 사람 포함)
+
+# semantic i18n key (#2542)
+mail-action-star = 별표 표시
+
+# semantic i18n key (#2542)
+mail-new-template-title = 새 이메일 템플릿
+
+# semantic i18n key (#2542)
+mail-template-name = 템플릿 이름
+
+# semantic i18n key (#2542)
+mail-body-html = 본문 HTML
