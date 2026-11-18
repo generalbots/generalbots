@@ -341,3 +341,147 @@ admin-ops-errors-metric = エラー
 
 # semantic i18n key (#2542)
 admin-ops-api-kb-search = /api/kb/search
+
+# semantic i18n key (#2542)
+admin-roles-title = ロール管理
+
+# semantic i18n key (#2542)
+admin-roles-subtitle = ロールを構成し、権限を割り当ててスイート全体のアクセスを制御します
+
+# semantic i18n key (#2542)
+admin-roles-sidebar-title = ロール
+
+# semantic i18n key (#2542)
+admin-roles-system-filter = システムロール
+
+# semantic i18n key (#2542)
+admin-roles-custom-filter = カスタムロール
+
+# semantic i18n key (#2542)
+admin-roles-select-title = ロールを選択
+
+# semantic i18n key (#2542)
+admin-roles-select-hint = リストからロールを選択して、権限を表示および管理します
+
+# semantic i18n key (#2542)
+admin-roles-name-label = ロール名
+
+# semantic i18n key (#2542)
+admin-roles-name-badge-placeholder = role_name
+
+# semantic i18n key (#2542)
+admin-roles-description-placeholder = ロールの説明がここに表示されます
+
+# semantic i18n key (#2542)
+admin-roles-permissions-label = 権限
+
+# semantic i18n key (#2542)
+admin-roles-assigned-users-tab = 割り当て済みユーザー
+
+# semantic i18n key (#2542)
+admin-roles-assigned-groups-tab = 割り当て済みグループ
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment = 権限の割り当て
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment-help = デュアルリストを使用してこのロールに権限を割り当てます
+
+# semantic i18n key (#2542)
+admin-roles-available-permissions = 利用可能な権限
+
+# semantic i18n key (#2542)
+admin-roles-category-documents = ドキュメント
+
+# semantic i18n key (#2542)
+admin-roles-category-spreadsheets = スプレッドシート
+
+# semantic i18n key (#2542)
+admin-roles-category-presentations = プレゼンテーション
+
+# semantic i18n key (#2542)
+admin-roles-category-meetings = 会議
+
+# semantic i18n key (#2542)
+admin-roles-category-ai-bots = AI とボット
+
+# semantic i18n key (#2542)
+admin-roles-category-automation = 自動化
+
+# semantic i18n key (#2542)
+admin-roles-assigned-permissions = 割り当て済み権限
+
+# semantic i18n key (#2542)
+admin-roles-no-permissions-assigned = 権限が割り当てられていません
+
+# semantic i18n key (#2542)
+admin-roles-reset-to-default = 既定にリセット
+
+# semantic i18n key (#2542)
+admin-roles-users-with-role = このロールのユーザー
+
+# semantic i18n key (#2542)
+admin-roles-groups-with-role = このロールのグループ
+
+# semantic i18n key (#2542)
+admin-roles-change-history = ロール変更履歴
+
+# semantic i18n key (#2542)
+admin-roles-create-new-role = 新しいロールを作成
+
+# semantic i18n key (#2542)
+admin-roles-name-help = 小文字、スペースなし（アンダースコアを使用）
+
+# semantic i18n key (#2542)
+admin-roles-copy-permissions-from = 権限のコピー元
+
+# semantic i18n key (#2542)
+admin-roles-start-with-no-permissions = 権限なしで開始
+
+# semantic i18n key (#2542)
+admin-roles-standard-user = 標準ユーザー
+
+# semantic i18n key (#2542)
+admin-roles-power-user = パワーユーザー
+
+# semantic i18n key (#2542)
+admin-roles-viewer = 閲覧者
+
+# semantic i18n key (#2542)
+admin-roles-guest-user = ゲストユーザー
+
+# semantic i18n key (#2542)
+admin-roles-create-role-btn = ロールを作成
+
+# semantic i18n key (#2542)
+admin-roles-delete-role-title = ロールを削除
+
+# semantic i18n key (#2542)
+admin-roles-delete-warning = これにより、すべてのユーザーとグループからロールが削除されます。この操作は元に戻せません。
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-users = ユーザーにロールを割り当て
+
+# semantic i18n key (#2542)
+admin-roles-search-users-label = ユーザーを検索
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-users = 入力してユーザーを検索
+
+# semantic i18n key (#2542)
+admin-roles-expiration-optional = 有効期限（任意）
+
+# semantic i18n key (#2542)
+admin-roles-expiration-help = 永続的な割り当ての場合は空欄のままにします
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-groups = グループにロールを割り当て
+
+# semantic i18n key (#2542)
+admin-roles-search-groups-label = グループを検索
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-groups = 入力してグループを検索
+
+# semantic i18n key (#2542)
+admin-roles-assign-role-btn = ロールを割り当て

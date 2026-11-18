@@ -341,3 +341,147 @@ admin-ops-errors-metric = errors
 
 # semantic i18n key (#2542)
 admin-ops-api-kb-search = /api/kb/search
+
+# semantic i18n key (#2542)
+admin-roles-title = Role Management
+
+# semantic i18n key (#2542)
+admin-roles-subtitle = Configure roles and assign permissions to control access across the suite
+
+# semantic i18n key (#2542)
+admin-roles-sidebar-title = Roles
+
+# semantic i18n key (#2542)
+admin-roles-system-filter = System Roles
+
+# semantic i18n key (#2542)
+admin-roles-custom-filter = Custom Roles
+
+# semantic i18n key (#2542)
+admin-roles-select-title = Select a Role
+
+# semantic i18n key (#2542)
+admin-roles-select-hint = Choose a role from the list to view and manage its permissions
+
+# semantic i18n key (#2542)
+admin-roles-name-label = Role Name
+
+# semantic i18n key (#2542)
+admin-roles-name-badge-placeholder = role_name
+
+# semantic i18n key (#2542)
+admin-roles-description-placeholder = Role description goes here
+
+# semantic i18n key (#2542)
+admin-roles-permissions-label = Permissions
+
+# semantic i18n key (#2542)
+admin-roles-assigned-users-tab = Assigned Users
+
+# semantic i18n key (#2542)
+admin-roles-assigned-groups-tab = Assigned Groups
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment = Permission Assignment
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment-help = Use the dual-list to assign permissions to this role
+
+# semantic i18n key (#2542)
+admin-roles-available-permissions = Available Permissions
+
+# semantic i18n key (#2542)
+admin-roles-category-documents = Documents
+
+# semantic i18n key (#2542)
+admin-roles-category-spreadsheets = Spreadsheets
+
+# semantic i18n key (#2542)
+admin-roles-category-presentations = Presentations
+
+# semantic i18n key (#2542)
+admin-roles-category-meetings = Meetings
+
+# semantic i18n key (#2542)
+admin-roles-category-ai-bots = AI & Bots
+
+# semantic i18n key (#2542)
+admin-roles-category-automation = Automation
+
+# semantic i18n key (#2542)
+admin-roles-assigned-permissions = Assigned Permissions
+
+# semantic i18n key (#2542)
+admin-roles-no-permissions-assigned = No permissions assigned
+
+# semantic i18n key (#2542)
+admin-roles-reset-to-default = Reset to Default
+
+# semantic i18n key (#2542)
+admin-roles-users-with-role = Users with this Role
+
+# semantic i18n key (#2542)
+admin-roles-groups-with-role = Groups with this Role
+
+# semantic i18n key (#2542)
+admin-roles-change-history = Role Change History
+
+# semantic i18n key (#2542)
+admin-roles-create-new-role = Create New Role
+
+# semantic i18n key (#2542)
+admin-roles-name-help = Lowercase, no spaces (use underscores)
+
+# semantic i18n key (#2542)
+admin-roles-copy-permissions-from = Copy Permissions From
+
+# semantic i18n key (#2542)
+admin-roles-start-with-no-permissions = Start with no permissions
+
+# semantic i18n key (#2542)
+admin-roles-standard-user = Standard User
+
+# semantic i18n key (#2542)
+admin-roles-power-user = Power User
+
+# semantic i18n key (#2542)
+admin-roles-viewer = Viewer
+
+# semantic i18n key (#2542)
+admin-roles-guest-user = Guest User
+
+# semantic i18n key (#2542)
+admin-roles-create-role-btn = Create Role
+
+# semantic i18n key (#2542)
+admin-roles-delete-role-title = Delete Role
+
+# semantic i18n key (#2542)
+admin-roles-delete-warning = This will remove the role from all users and groups. This action cannot be undone.
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-users = Assign Role to Users
+
+# semantic i18n key (#2542)
+admin-roles-search-users-label = Search Users
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-users = Type to search for users
+
+# semantic i18n key (#2542)
+admin-roles-expiration-optional = Expiration (Optional)
+
+# semantic i18n key (#2542)
+admin-roles-expiration-help = Leave empty for permanent assignment
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-groups = Assign Role to Groups
+
+# semantic i18n key (#2542)
+admin-roles-search-groups-label = Search Groups
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-groups = Type to search for groups
+
+# semantic i18n key (#2542)
+admin-roles-assign-role-btn = Assign Role

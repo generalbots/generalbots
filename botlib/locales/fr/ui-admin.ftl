@@ -341,3 +341,147 @@ admin-ops-errors-metric = erreurs
 
 # semantic i18n key (#2542)
 admin-ops-api-kb-search = /api/kb/search
+
+# semantic i18n key (#2542)
+admin-roles-title = Gestion des rôles
+
+# semantic i18n key (#2542)
+admin-roles-subtitle = Configurez les rôles et attribuez des autorisations pour contrôler l'accès dans toute la suite
+
+# semantic i18n key (#2542)
+admin-roles-sidebar-title = Rôles
+
+# semantic i18n key (#2542)
+admin-roles-system-filter = Rôles système
+
+# semantic i18n key (#2542)
+admin-roles-custom-filter = Rôles personnalisés
+
+# semantic i18n key (#2542)
+admin-roles-select-title = Sélectionnez un rôle
+
+# semantic i18n key (#2542)
+admin-roles-select-hint = Choisissez un rôle dans la liste pour afficher et gérer ses autorisations
+
+# semantic i18n key (#2542)
+admin-roles-name-label = Nom du rôle
+
+# semantic i18n key (#2542)
+admin-roles-name-badge-placeholder = role_name
+
+# semantic i18n key (#2542)
+admin-roles-description-placeholder = La description du rôle s'affiche ici
+
+# semantic i18n key (#2542)
+admin-roles-permissions-label = Autorisations
+
+# semantic i18n key (#2542)
+admin-roles-assigned-users-tab = Utilisateurs attribués
+
+# semantic i18n key (#2542)
+admin-roles-assigned-groups-tab = Groupes attribués
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment = Attribution des autorisations
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment-help = Utilisez la double liste pour attribuer des autorisations à ce rôle
+
+# semantic i18n key (#2542)
+admin-roles-available-permissions = Autorisations disponibles
+
+# semantic i18n key (#2542)
+admin-roles-category-documents = Documents
+
+# semantic i18n key (#2542)
+admin-roles-category-spreadsheets = Feuilles de calcul
+
+# semantic i18n key (#2542)
+admin-roles-category-presentations = Présentations
+
+# semantic i18n key (#2542)
+admin-roles-category-meetings = Réunions
+
+# semantic i18n key (#2542)
+admin-roles-category-ai-bots = IA et bots
+
+# semantic i18n key (#2542)
+admin-roles-category-automation = Automatisation
+
+# semantic i18n key (#2542)
+admin-roles-assigned-permissions = Autorisations attribuées
+
+# semantic i18n key (#2542)
+admin-roles-no-permissions-assigned = Aucune autorisation attribuée
+
+# semantic i18n key (#2542)
+admin-roles-reset-to-default = Réinitialiser par défaut
+
+# semantic i18n key (#2542)
+admin-roles-users-with-role = Utilisateurs avec ce rôle
+
+# semantic i18n key (#2542)
+admin-roles-groups-with-role = Groupes avec ce rôle
+
+# semantic i18n key (#2542)
+admin-roles-change-history = Historique des modifications de rôle
+
+# semantic i18n key (#2542)
+admin-roles-create-new-role = Créer un nouveau rôle
+
+# semantic i18n key (#2542)
+admin-roles-name-help = Minuscules, sans espaces (utilisez des traits de soulignement)
+
+# semantic i18n key (#2542)
+admin-roles-copy-permissions-from = Copier les autorisations depuis
+
+# semantic i18n key (#2542)
+admin-roles-start-with-no-permissions = Commencer sans autorisations
+
+# semantic i18n key (#2542)
+admin-roles-standard-user = Utilisateur standard
+
+# semantic i18n key (#2542)
+admin-roles-power-user = Utilisateur avancé
+
+# semantic i18n key (#2542)
+admin-roles-viewer = Lecteur
+
+# semantic i18n key (#2542)
+admin-roles-guest-user = Utilisateur invité
+
+# semantic i18n key (#2542)
+admin-roles-create-role-btn = Créer un rôle
+
+# semantic i18n key (#2542)
+admin-roles-delete-role-title = Supprimer le rôle
+
+# semantic i18n key (#2542)
+admin-roles-delete-warning = Cela supprimera le rôle de tous les utilisateurs et groupes. Cette action est irréversible.
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-users = Attribuer le rôle aux utilisateurs
+
+# semantic i18n key (#2542)
+admin-roles-search-users-label = Rechercher des utilisateurs
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-users = Tapez pour rechercher des utilisateurs
+
+# semantic i18n key (#2542)
+admin-roles-expiration-optional = Expiration (facultatif)
+
+# semantic i18n key (#2542)
+admin-roles-expiration-help = Laissez vide pour une attribution permanente
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-groups = Attribuer le rôle aux groupes
+
+# semantic i18n key (#2542)
+admin-roles-search-groups-label = Rechercher des groupes
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-groups = Tapez pour rechercher des groupes
+
+# semantic i18n key (#2542)
+admin-roles-assign-role-btn = Attribuer le rôle

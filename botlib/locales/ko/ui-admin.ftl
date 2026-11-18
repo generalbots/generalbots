@@ -341,3 +341,147 @@ admin-ops-errors-metric = 오류
 
 # semantic i18n key (#2542)
 admin-ops-api-kb-search = /api/kb/search
+
+# semantic i18n key (#2542)
+admin-roles-title = 역할 관리
+
+# semantic i18n key (#2542)
+admin-roles-subtitle = 역할을 구성하고 권한을 할당하여 제품군 전체의 액세스를 제어합니다
+
+# semantic i18n key (#2542)
+admin-roles-sidebar-title = 역할
+
+# semantic i18n key (#2542)
+admin-roles-system-filter = 시스템 역할
+
+# semantic i18n key (#2542)
+admin-roles-custom-filter = 사용자 지정 역할
+
+# semantic i18n key (#2542)
+admin-roles-select-title = 역할 선택
+
+# semantic i18n key (#2542)
+admin-roles-select-hint = 목록에서 역할을 선택하여 권한을 보고 관리하세요
+
+# semantic i18n key (#2542)
+admin-roles-name-label = 역할 이름
+
+# semantic i18n key (#2542)
+admin-roles-name-badge-placeholder = role_name
+
+# semantic i18n key (#2542)
+admin-roles-description-placeholder = 역할 설명이 여기에 표시됩니다
+
+# semantic i18n key (#2542)
+admin-roles-permissions-label = 권한
+
+# semantic i18n key (#2542)
+admin-roles-assigned-users-tab = 할당된 사용자
+
+# semantic i18n key (#2542)
+admin-roles-assigned-groups-tab = 할당된 그룹
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment = 권한 할당
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment-help = 이중 목록을 사용하여 이 역할에 권한을 할당하세요
+
+# semantic i18n key (#2542)
+admin-roles-available-permissions = 사용 가능한 권한
+
+# semantic i18n key (#2542)
+admin-roles-category-documents = 문서
+
+# semantic i18n key (#2542)
+admin-roles-category-spreadsheets = 스프레드시트
+
+# semantic i18n key (#2542)
+admin-roles-category-presentations = 프레젠테이션
+
+# semantic i18n key (#2542)
+admin-roles-category-meetings = 회의
+
+# semantic i18n key (#2542)
+admin-roles-category-ai-bots = AI 및 봇
+
+# semantic i18n key (#2542)
+admin-roles-category-automation = 자동화
+
+# semantic i18n key (#2542)
+admin-roles-assigned-permissions = 할당된 권한
+
+# semantic i18n key (#2542)
+admin-roles-no-permissions-assigned = 할당된 권한 없음
+
+# semantic i18n key (#2542)
+admin-roles-reset-to-default = 기본값으로 재설정
+
+# semantic i18n key (#2542)
+admin-roles-users-with-role = 이 역할의 사용자
+
+# semantic i18n key (#2542)
+admin-roles-groups-with-role = 이 역할의 그룹
+
+# semantic i18n key (#2542)
+admin-roles-change-history = 역할 변경 기록
+
+# semantic i18n key (#2542)
+admin-roles-create-new-role = 새 역할 만들기
+
+# semantic i18n key (#2542)
+admin-roles-name-help = 소문자, 공백 없음(밑줄 사용)
+
+# semantic i18n key (#2542)
+admin-roles-copy-permissions-from = 다음에서 권한 복사
+
+# semantic i18n key (#2542)
+admin-roles-start-with-no-permissions = 권한 없이 시작
+
+# semantic i18n key (#2542)
+admin-roles-standard-user = 표준 사용자
+
+# semantic i18n key (#2542)
+admin-roles-power-user = 고급 사용자
+
+# semantic i18n key (#2542)
+admin-roles-viewer = 뷰어
+
+# semantic i18n key (#2542)
+admin-roles-guest-user = 게스트 사용자
+
+# semantic i18n key (#2542)
+admin-roles-create-role-btn = 역할 만들기
+
+# semantic i18n key (#2542)
+admin-roles-delete-role-title = 역할 삭제
+
+# semantic i18n key (#2542)
+admin-roles-delete-warning = 이렇게 하면 모든 사용자 및 그룹에서 역할이 제거됩니다. 이 작업은 취소할 수 없습니다.
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-users = 사용자에게 역할 할당
+
+# semantic i18n key (#2542)
+admin-roles-search-users-label = 사용자 검색
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-users = 입력하여 사용자 검색
+
+# semantic i18n key (#2542)
+admin-roles-expiration-optional = 만료(선택 사항)
+
+# semantic i18n key (#2542)
+admin-roles-expiration-help = 영구 할당의 경우 비워 두세요
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-groups = 그룹에 역할 할당
+
+# semantic i18n key (#2542)
+admin-roles-search-groups-label = 그룹 검색
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-groups = 입력하여 그룹 검색
+
+# semantic i18n key (#2542)
+admin-roles-assign-role-btn = 역할 할당

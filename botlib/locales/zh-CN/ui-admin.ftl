@@ -341,3 +341,147 @@ admin-ops-errors-metric = 错误
 
 # semantic i18n key (#2542)
 admin-ops-api-kb-search = /api/kb/search
+
+# semantic i18n key (#2542)
+admin-roles-title = 角色管理
+
+# semantic i18n key (#2542)
+admin-roles-subtitle = 配置角色并分配权限，以控制整个套件的访问
+
+# semantic i18n key (#2542)
+admin-roles-sidebar-title = 角色
+
+# semantic i18n key (#2542)
+admin-roles-system-filter = 系统角色
+
+# semantic i18n key (#2542)
+admin-roles-custom-filter = 自定义角色
+
+# semantic i18n key (#2542)
+admin-roles-select-title = 选择角色
+
+# semantic i18n key (#2542)
+admin-roles-select-hint = 从列表中选择角色以查看和管理其权限
+
+# semantic i18n key (#2542)
+admin-roles-name-label = 角色名称
+
+# semantic i18n key (#2542)
+admin-roles-name-badge-placeholder = role_name
+
+# semantic i18n key (#2542)
+admin-roles-description-placeholder = 角色描述显示在此处
+
+# semantic i18n key (#2542)
+admin-roles-permissions-label = 权限
+
+# semantic i18n key (#2542)
+admin-roles-assigned-users-tab = 已分配用户
+
+# semantic i18n key (#2542)
+admin-roles-assigned-groups-tab = 已分配组
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment = 权限分配
+
+# semantic i18n key (#2542)
+admin-roles-permission-assignment-help = 使用双列表为此角色分配权限
+
+# semantic i18n key (#2542)
+admin-roles-available-permissions = 可用权限
+
+# semantic i18n key (#2542)
+admin-roles-category-documents = 文档
+
+# semantic i18n key (#2542)
+admin-roles-category-spreadsheets = 电子表格
+
+# semantic i18n key (#2542)
+admin-roles-category-presentations = 演示文稿
+
+# semantic i18n key (#2542)
+admin-roles-category-meetings = 会议
+
+# semantic i18n key (#2542)
+admin-roles-category-ai-bots = AI 与机器人
+
+# semantic i18n key (#2542)
+admin-roles-category-automation = 自动化
+
+# semantic i18n key (#2542)
+admin-roles-assigned-permissions = 已分配权限
+
+# semantic i18n key (#2542)
+admin-roles-no-permissions-assigned = 未分配权限
+
+# semantic i18n key (#2542)
+admin-roles-reset-to-default = 重置为默认值
+
+# semantic i18n key (#2542)
+admin-roles-users-with-role = 拥有此角色的用户
+
+# semantic i18n key (#2542)
+admin-roles-groups-with-role = 拥有此角色的组
+
+# semantic i18n key (#2542)
+admin-roles-change-history = 角色变更历史
+
+# semantic i18n key (#2542)
+admin-roles-create-new-role = 创建新角色
+
+# semantic i18n key (#2542)
+admin-roles-name-help = 小写，无空格（使用下划线）
+
+# semantic i18n key (#2542)
+admin-roles-copy-permissions-from = 从以下位置复制权限
+
+# semantic i18n key (#2542)
+admin-roles-start-with-no-permissions = 从无权限开始
+
+# semantic i18n key (#2542)
+admin-roles-standard-user = 标准用户
+
+# semantic i18n key (#2542)
+admin-roles-power-user = 高级用户
+
+# semantic i18n key (#2542)
+admin-roles-viewer = 查看者
+
+# semantic i18n key (#2542)
+admin-roles-guest-user = 访客用户
+
+# semantic i18n key (#2542)
+admin-roles-create-role-btn = 创建角色
+
+# semantic i18n key (#2542)
+admin-roles-delete-role-title = 删除角色
+
+# semantic i18n key (#2542)
+admin-roles-delete-warning = 这将从所有用户和组中移除该角色。此操作无法撤消。
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-users = 将角色分配给用户
+
+# semantic i18n key (#2542)
+admin-roles-search-users-label = 搜索用户
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-users = 输入以搜索用户
+
+# semantic i18n key (#2542)
+admin-roles-expiration-optional = 到期时间（可选）
+
+# semantic i18n key (#2542)
+admin-roles-expiration-help = 留空表示永久分配
+
+# semantic i18n key (#2542)
+admin-roles-assign-to-groups = 将角色分配给组
+
+# semantic i18n key (#2542)
+admin-roles-search-groups-label = 搜索组
+
+# semantic i18n key (#2542)
+admin-roles-type-to-search-groups = 输入以搜索组
+
+# semantic i18n key (#2542)
+admin-roles-assign-role-btn = 分配角色
