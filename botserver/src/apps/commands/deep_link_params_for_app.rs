@@ -173,7 +173,7 @@ pub(crate) fn all_commands() -> &'static [AppCommand] {
     ALL_COMMANDS_JOINED.get_or_init(|| {
         ALL_COMMANDS_CORE
             .iter()
-            .chain(super::app_commands_extra::ALL_COMMANDS_EXTRA.iter())
+            .chain(super::app_commands_extra::all_commands_extra().iter())
             .copied()
             .collect()
     })
