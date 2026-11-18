@@ -659,3 +659,78 @@ admin-users-require-password-change = Exigir alteração de senha no primeiro ac
 
 # semantic i18n key (#2542)
 admin-users-delete-warning = Esta ação não pode ser desfeita. Todos os dados do usuário serão removidos permanentemente.
+
+# semantic i18n key (#2542)
+accounts-subtitle = Gerencie suas integrações de canais de redes sociais e mensagens
+
+# semantic i18n key (#2542)
+accounts-channel-facebook = Facebook
+
+# semantic i18n key (#2542)
+accounts-channel-twitter-x = Twitter / X
+
+# semantic i18n key (#2542)
+accounts-channel-bluesky = Bluesky
+
+# semantic i18n key (#2542)
+accounts-channel-threads = Threads
+
+# semantic i18n key (#2542)
+accounts-channel-tiktok = TikTok
+
+# semantic i18n key (#2542)
+accounts-channel-youtube = YouTube
+
+# semantic i18n key (#2542)
+accounts-channel-pinterest = Pinterest
+
+# semantic i18n key (#2542)
+accounts-channel-reddit = Reddit
+
+# semantic i18n key (#2542)
+accounts-channel-snapchat = Snapchat
+
+# semantic i18n key (#2542)
+accounts-messaging = Mensagens
+
+# semantic i18n key (#2542)
+accounts-channel-whatsapp-business = WhatsApp Business
+
+# semantic i18n key (#2542)
+accounts-channel-twilio-sms = Twilio SMS
+
+# semantic i18n key (#2542)
+accounts-channel-wechat = WeChat
+
+# semantic i18n key (#2542)
+accounts-channel-gmail-google-workspace = Gmail / Google Workspace
+
+# semantic i18n key (#2542)
+accounts-channel-outlook-office-365 = Outlook / Office 365
+
+# semantic i18n key (#2542)
+accounts-channel-custom-smtp = SMTP personalizado
+
+# semantic i18n key (#2542)
+accounts-redirecting-authorization = Redirecionando para autorização...
+
+# semantic i18n key (#2542)
+accounts-configure-smtp-server = Configurar servidor SMTP
+
+# semantic i18n key (#2542)
+accounts-save-configuration = Salvar configuração
+
+# semantic i18n key (#2542)
+accounts-account-details = Detalhes da conta
+
+# semantic i18n key (#2542)
+accounts-connection-status = Status da conexão
+
+# semantic i18n key (#2542)
+accounts-sample-username = @usuario
+
+# semantic i18n key (#2542)
+accounts-sample-connected-since = 15 de janeiro de 2025
+
+# semantic i18n key (#2542)
+accounts-permissions = Permissões

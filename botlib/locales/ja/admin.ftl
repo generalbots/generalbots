@@ -656,3 +656,78 @@ admin-users-require-password-change = 初回ログイン時にパスワード変
 
 # semantic i18n key (#2542)
 admin-users-delete-warning = この操作は元に戻せません。すべてのユーザーデータが完全に削除されます。
+
+# semantic i18n key (#2542)
+accounts-subtitle = ソーシャルメディアとメッセージングチャネルの連携を管理します
+
+# semantic i18n key (#2542)
+accounts-channel-facebook = Facebook
+
+# semantic i18n key (#2542)
+accounts-channel-twitter-x = Twitter / X
+
+# semantic i18n key (#2542)
+accounts-channel-bluesky = Bluesky
+
+# semantic i18n key (#2542)
+accounts-channel-threads = Threads
+
+# semantic i18n key (#2542)
+accounts-channel-tiktok = TikTok
+
+# semantic i18n key (#2542)
+accounts-channel-youtube = YouTube
+
+# semantic i18n key (#2542)
+accounts-channel-pinterest = Pinterest
+
+# semantic i18n key (#2542)
+accounts-channel-reddit = Reddit
+
+# semantic i18n key (#2542)
+accounts-channel-snapchat = Snapchat
+
+# semantic i18n key (#2542)
+accounts-messaging = メッセージング
+
+# semantic i18n key (#2542)
+accounts-channel-whatsapp-business = WhatsApp Business
+
+# semantic i18n key (#2542)
+accounts-channel-twilio-sms = Twilio SMS
+
+# semantic i18n key (#2542)
+accounts-channel-wechat = WeChat
+
+# semantic i18n key (#2542)
+accounts-channel-gmail-google-workspace = Gmail / Google Workspace
+
+# semantic i18n key (#2542)
+accounts-channel-outlook-office-365 = Outlook / Office 365
+
+# semantic i18n key (#2542)
+accounts-channel-custom-smtp = カスタム SMTP
+
+# semantic i18n key (#2542)
+accounts-redirecting-authorization = 認証にリダイレクトしています...
+
+# semantic i18n key (#2542)
+accounts-configure-smtp-server = SMTP サーバーを設定
+
+# semantic i18n key (#2542)
+accounts-save-configuration = 設定を保存
+
+# semantic i18n key (#2542)
+accounts-account-details = アカウントの詳細
+
+# semantic i18n key (#2542)
+accounts-connection-status = 接続状態
+
+# semantic i18n key (#2542)
+accounts-sample-username = @username
+
+# semantic i18n key (#2542)
+accounts-sample-connected-since = 2025年1月15日
+
+# semantic i18n key (#2542)
+accounts-permissions = 権限

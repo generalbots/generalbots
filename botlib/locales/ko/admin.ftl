@@ -656,3 +656,78 @@ admin-users-require-password-change = 첫 로그인 시 비밀번호 변경 요�
 
 # semantic i18n key (#2542)
 admin-users-delete-warning = 이 작업은 되돌릴 수 없습니다. 모든 사용자 데이터가 영구적으로 삭제됩니다.
+
+# semantic i18n key (#2542)
+accounts-subtitle = 소셜 미디어 및 메시징 채널 연동을 관리하세요
+
+# semantic i18n key (#2542)
+accounts-channel-facebook = Facebook
+
+# semantic i18n key (#2542)
+accounts-channel-twitter-x = Twitter / X
+
+# semantic i18n key (#2542)
+accounts-channel-bluesky = Bluesky
+
+# semantic i18n key (#2542)
+accounts-channel-threads = Threads
+
+# semantic i18n key (#2542)
+accounts-channel-tiktok = TikTok
+
+# semantic i18n key (#2542)
+accounts-channel-youtube = YouTube
+
+# semantic i18n key (#2542)
+accounts-channel-pinterest = Pinterest
+
+# semantic i18n key (#2542)
+accounts-channel-reddit = Reddit
+
+# semantic i18n key (#2542)
+accounts-channel-snapchat = Snapchat
+
+# semantic i18n key (#2542)
+accounts-messaging = 메시징
+
+# semantic i18n key (#2542)
+accounts-channel-whatsapp-business = WhatsApp Business
+
+# semantic i18n key (#2542)
+accounts-channel-twilio-sms = Twilio SMS
+
+# semantic i18n key (#2542)
+accounts-channel-wechat = WeChat
+
+# semantic i18n key (#2542)
+accounts-channel-gmail-google-workspace = Gmail / Google Workspace
+
+# semantic i18n key (#2542)
+accounts-channel-outlook-office-365 = Outlook / Office 365
+
+# semantic i18n key (#2542)
+accounts-channel-custom-smtp = 사용자 지정 SMTP
+
+# semantic i18n key (#2542)
+accounts-redirecting-authorization = 인증으로 리디렉션 중...
+
+# semantic i18n key (#2542)
+accounts-configure-smtp-server = SMTP 서버 구성
+
+# semantic i18n key (#2542)
+accounts-save-configuration = 구성 저장
+
+# semantic i18n key (#2542)
+accounts-account-details = 계정 세부 정보
+
+# semantic i18n key (#2542)
+accounts-connection-status = 연결 상태
+
+# semantic i18n key (#2542)
+accounts-sample-username = @username
+
+# semantic i18n key (#2542)
+accounts-sample-connected-since = 2025년 1월 15일
+
+# semantic i18n key (#2542)
+accounts-permissions = 권한

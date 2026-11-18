@@ -658,3 +658,78 @@ admin-users-require-password-change = Require password change on first login
 
 # semantic i18n key (#2542)
 admin-users-delete-warning = This action cannot be undone. All user data will be permanently removed.
+
+# semantic i18n key (#2542)
+accounts-subtitle = Manage your social media and messaging channel integrations
+
+# semantic i18n key (#2542)
+accounts-channel-facebook = Facebook
+
+# semantic i18n key (#2542)
+accounts-channel-twitter-x = Twitter / X
+
+# semantic i18n key (#2542)
+accounts-channel-bluesky = Bluesky
+
+# semantic i18n key (#2542)
+accounts-channel-threads = Threads
+
+# semantic i18n key (#2542)
+accounts-channel-tiktok = TikTok
+
+# semantic i18n key (#2542)
+accounts-channel-youtube = YouTube
+
+# semantic i18n key (#2542)
+accounts-channel-pinterest = Pinterest
+
+# semantic i18n key (#2542)
+accounts-channel-reddit = Reddit
+
+# semantic i18n key (#2542)
+accounts-channel-snapchat = Snapchat
+
+# semantic i18n key (#2542)
+accounts-messaging = Messaging
+
+# semantic i18n key (#2542)
+accounts-channel-whatsapp-business = WhatsApp Business
+
+# semantic i18n key (#2542)
+accounts-channel-twilio-sms = Twilio SMS
+
+# semantic i18n key (#2542)
+accounts-channel-wechat = WeChat
+
+# semantic i18n key (#2542)
+accounts-channel-gmail-google-workspace = Gmail / Google Workspace
+
+# semantic i18n key (#2542)
+accounts-channel-outlook-office-365 = Outlook / Office 365
+
+# semantic i18n key (#2542)
+accounts-channel-custom-smtp = Custom SMTP
+
+# semantic i18n key (#2542)
+accounts-redirecting-authorization = Redirecting to authorization...
+
+# semantic i18n key (#2542)
+accounts-configure-smtp-server = Configure SMTP Server
+
+# semantic i18n key (#2542)
+accounts-save-configuration = Save Configuration
+
+# semantic i18n key (#2542)
+accounts-account-details = Account Details
+
+# semantic i18n key (#2542)
+accounts-connection-status = Connection Status
+
+# semantic i18n key (#2542)
+accounts-sample-username = @username
+
+# semantic i18n key (#2542)
+accounts-sample-connected-since = January 15, 2025
+
+# semantic i18n key (#2542)
+accounts-permissions = Permissions

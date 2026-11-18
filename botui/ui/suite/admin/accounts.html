@@ -1,13 +1,13 @@
 <section class="accounts-settings">
     <div class="gb-app accounts-header" data-gb-app="adminpanel">
         <h1 data-i18n="oauth-connected-accounts">Connected Accounts</h1>
-        <p data-i18n="auto-manage-your-social-media-and-messaging-channel-integrations">Manage your social media and messaging channel integrations</p>
+        <p data-i18n="accounts-subtitle">Manage your social media and messaging channel integrations</p>
     </div>
 
     <div class="accounts-grid">
         <div class="account-category">
             <div class="category-header">
-                <h2 data-i18n="auto-social-media">Social Media</h2>
+                <h2 data-i18n="contacts-source-social">Social Media</h2>
                 <span class="category-count" id="socialCount">0 connected</span>
             </div>
             <div class="accounts-list" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/ui/settings/accounts/social" hx-trigger="load" hx-swap="innerHTML">
@@ -33,7 +33,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-facebook">Facebook</span>
+                        <span class="account-name" data-i18n="accounts-channel-facebook">Facebook</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('facebook')" data-i18n="action-connect">Connect</button>
@@ -46,7 +46,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-twitter-x">Twitter / X</span>
+                        <span class="account-name" data-i18n="accounts-channel-twitter-x">Twitter / X</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('twitter')" data-i18n="action-connect">Connect</button>
@@ -75,7 +75,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-bluesky">Bluesky</span>
+                        <span class="account-name" data-i18n="accounts-channel-bluesky">Bluesky</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('bluesky')" data-i18n="action-connect">Connect</button>
@@ -89,7 +89,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-threads">Threads</span>
+                        <span class="account-name" data-i18n="accounts-channel-threads">Threads</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('threads')" data-i18n="action-connect">Connect</button>
@@ -102,7 +102,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-tiktok">TikTok</span>
+                        <span class="account-name" data-i18n="accounts-channel-tiktok">TikTok</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('tiktok')" data-i18n="action-connect">Connect</button>
@@ -116,7 +116,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-youtube">YouTube</span>
+                        <span class="account-name" data-i18n="accounts-channel-youtube">YouTube</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('youtube')" data-i18n="action-connect">Connect</button>
@@ -130,7 +130,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-pinterest">Pinterest</span>
+                        <span class="account-name" data-i18n="accounts-channel-pinterest">Pinterest</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('pinterest')" data-i18n="action-connect">Connect</button>
@@ -146,7 +146,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-reddit">Reddit</span>
+                        <span class="account-name" data-i18n="accounts-channel-reddit">Reddit</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('reddit')" data-i18n="action-connect">Connect</button>
@@ -160,7 +160,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-snapchat">Snapchat</span>
+                        <span class="account-name" data-i18n="accounts-channel-snapchat">Snapchat</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('snapchat')" data-i18n="action-connect">Connect</button>
@@ -170,7 +170,7 @@
 
         <div class="account-category">
             <div class="category-header">
-                <h2 data-i18n="auto-messaging">Messaging</h2>
+                <h2 data-i18n="accounts-messaging">Messaging</h2>
                 <span class="category-count" id="messagingCount">0 connected</span>
             </div>
             <div class="accounts-list" role="status" aria-live="polite" aria-atomic="false" hx-get="/api/ui/settings/accounts/messaging" hx-trigger="load" hx-swap="innerHTML">
@@ -194,7 +194,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-whatsapp-business">WhatsApp Business</span>
+                        <span class="account-name" data-i18n="accounts-channel-whatsapp-business">WhatsApp Business</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('whatsapp')" data-i18n="action-connect">Connect</button>
@@ -221,7 +221,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-twilio-sms">Twilio SMS</span>
+                        <span class="account-name" data-i18n="accounts-channel-twilio-sms">Twilio SMS</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('twilio')" data-i18n="action-connect">Connect</button>
@@ -238,7 +238,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-wechat">WeChat</span>
+                        <span class="account-name" data-i18n="accounts-channel-wechat">WeChat</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('wechat')" data-i18n="action-connect">Connect</button>
@@ -276,7 +276,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-gmail-google-workspace">Gmail / Google Workspace</span>
+                        <span class="account-name" data-i18n="accounts-channel-gmail-google-workspace">Gmail / Google Workspace</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('gmail')" data-i18n="action-connect">Connect</button>
@@ -290,7 +290,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-outlook-office-365">Outlook / Office 365</span>
+                        <span class="account-name" data-i18n="accounts-channel-outlook-office-365">Outlook / Office 365</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="connectAccount('outlook')" data-i18n="action-connect">Connect</button>
@@ -305,7 +305,7 @@
                         </svg>
                     </div>
                     <div class="account-info">
-                        <span class="account-name" data-i18n="auto-custom-smtp">Custom SMTP</span>
+                        <span class="account-name" data-i18n="accounts-channel-custom-smtp">Custom SMTP</span>
                         <span class="account-status disconnected" data-i18n="oauth-not-connected">Not connected</span>
                     </div>
                     <button class="btn-connect" onclick="showSmtpModal()" data-i18n="sources-server-configure">Configure</button>
@@ -318,7 +318,7 @@
 <dialog id="accountModal" class="account-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modalTitle" data-i18n="auto-connect-account">Connect Account</h2>
+            <h2 id="modalTitle" data-i18n="contacts-sync-connect">Connect Account</h2>
             <button class="btn-close" onclick="closeModal('accountModal')" aria-label="Close">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -329,7 +329,7 @@
         <div class="modal-body" id="modalBody">
             <div class="oauth-loading">
                 <div class="spinner"></div>
-                <p data-i18n="auto-redirecting-to-authorization">Redirecting to authorization...</p>
+                <p data-i18n="accounts-redirecting-authorization">Redirecting to authorization...</p>
             </div>
         </div>
     </div>
@@ -338,7 +338,7 @@
 <dialog id="smtpModal" class="account-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="auto-configure-smtp-server">Configure SMTP Server</h2>
+            <h2 data-i18n="accounts-configure-smtp-server">Configure SMTP Server</h2>
             <button class="btn-close" onclick="closeModal('smtpModal')" aria-label="Close">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -349,7 +349,7 @@
         <div class="modal-body">
             <form id="smtpForm" hx-post="/api/settings/accounts/smtp" hx-swap="none">
                 <div class="form-group">
-                    <label for="smtpHost" data-i18n="auto-smtp-host">SMTP Host</label>
+                    <label for="smtpHost" data-i18n="channel-email-smtp-host">SMTP Host</label>
                     <input type="text" id="smtpHost" name="host" required placeholder="smtp.example.com">
                 </div>
                 <div class="form-row">
@@ -375,16 +375,16 @@
                     <input type="password" id="smtpPassword" name="password" required placeholder="••••••••">
                 </div>
                 <div class="form-group">
-                    <label for="smtpFrom" data-i18n="auto-from-address">From Address</label>
+                    <label for="smtpFrom" data-i18n="channel-email-from-address">From Address</label>
                     <input type="email" id="smtpFrom" name="from_address" required placeholder="noreply@example.com">
                 </div>
                 <div class="form-group">
-                    <label for="smtpFromName" data-i18n="auto-from-name">From Name</label>
+                    <label for="smtpFromName" data-i18n="channel-email-from-name">From Name</label>
                     <input type="text" id="smtpFromName" name="from_name" placeholder="Your Company">
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="testSmtpConnection()" data-i18n="dashboards-test-connection">Test Connection</button>
-                    <button type="submit" class="btn-primary" data-i18n="auto-save-configuration">Save Configuration</button>
+                    <button type="submit" class="btn-primary" data-i18n="accounts-save-configuration">Save Configuration</button>
                 </div>
             </form>
         </div>
@@ -394,7 +394,7 @@
 <dialog id="accountDetailsModal" class="account-modal wide">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="detailsTitle" data-i18n="auto-account-details">Account Details</h2>
+            <h2 id="detailsTitle" data-i18n="accounts-account-details">Account Details</h2>
             <button class="btn-close" onclick="closeModal('accountDetailsModal')" aria-label="Close">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -405,16 +405,16 @@
         <div class="modal-body" id="detailsBody">
             <div class="account-details-grid">
                 <div class="detail-section">
-                    <h3 data-i18n="auto-connection-status">Connection Status</h3>
+                    <h3 data-i18n="accounts-connection-status">Connection Status</h3>
                     <div class="status-indicator connected">
                         <span class="status-dot"></span>
                         <span data-i18n="status-connected">Connected</span>
                     </div>
-                    <p class="connected-as">Connected as: <strong id="connectedAccount" data-i18n="auto-username">@username</strong></p>
-                    <p class="connected-since">Since: <span id="connectedSince" data-i18n="auto-january-15-2025">January 15, 2025</span></p>
+                    <p class="connected-as">Connected as: <strong id="connectedAccount" data-i18n="accounts-sample-username">@username</strong></p>
+                    <p class="connected-since">Since: <span id="connectedSince" data-i18n="accounts-sample-connected-since">January 15, 2025</span></p>
                 </div>
                 <div class="detail-section">
-                    <h3 data-i18n="auto-permissions">Permissions</h3>
+                    <h3 data-i18n="accounts-permissions">Permissions</h3>
                     <ul class="permissions-list" id="permissionsList">
                         <li>
                             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">

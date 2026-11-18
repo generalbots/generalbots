@@ -656,3 +656,78 @@ admin-users-require-password-change = Passwortänderung bei der ersten Anmeldung
 
 # semantic i18n key (#2542)
 admin-users-delete-warning = Diese Aktion kann nicht rückgängig gemacht werden. Alle Benutzerdaten werden dauerhaft entfernt.
+
+# semantic i18n key (#2542)
+accounts-subtitle = Verwalten Sie Ihre Integrationen für Social-Media- und Messaging-Kanäle
+
+# semantic i18n key (#2542)
+accounts-channel-facebook = Facebook
+
+# semantic i18n key (#2542)
+accounts-channel-twitter-x = Twitter / X
+
+# semantic i18n key (#2542)
+accounts-channel-bluesky = Bluesky
+
+# semantic i18n key (#2542)
+accounts-channel-threads = Threads
+
+# semantic i18n key (#2542)
+accounts-channel-tiktok = TikTok
+
+# semantic i18n key (#2542)
+accounts-channel-youtube = YouTube
+
+# semantic i18n key (#2542)
+accounts-channel-pinterest = Pinterest
+
+# semantic i18n key (#2542)
+accounts-channel-reddit = Reddit
+
+# semantic i18n key (#2542)
+accounts-channel-snapchat = Snapchat
+
+# semantic i18n key (#2542)
+accounts-messaging = Nachrichten
+
+# semantic i18n key (#2542)
+accounts-channel-whatsapp-business = WhatsApp Business
+
+# semantic i18n key (#2542)
+accounts-channel-twilio-sms = Twilio SMS
+
+# semantic i18n key (#2542)
+accounts-channel-wechat = WeChat
+
+# semantic i18n key (#2542)
+accounts-channel-gmail-google-workspace = Gmail / Google Workspace
+
+# semantic i18n key (#2542)
+accounts-channel-outlook-office-365 = Outlook / Office 365
+
+# semantic i18n key (#2542)
+accounts-channel-custom-smtp = Benutzerdefiniertes SMTP
+
+# semantic i18n key (#2542)
+accounts-redirecting-authorization = Weiterleitung zur Autorisierung...
+
+# semantic i18n key (#2542)
+accounts-configure-smtp-server = SMTP-Server konfigurieren
+
+# semantic i18n key (#2542)
+accounts-save-configuration = Konfiguration speichern
+
+# semantic i18n key (#2542)
+accounts-account-details = Kontodetails
+
+# semantic i18n key (#2542)
+accounts-connection-status = Verbindungsstatus
+
+# semantic i18n key (#2542)
+accounts-sample-username = @benutzername
+
+# semantic i18n key (#2542)
+accounts-sample-connected-since = 15. Januar 2025
+
+# semantic i18n key (#2542)
+accounts-permissions = Berechtigungen
