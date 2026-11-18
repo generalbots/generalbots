@@ -418,7 +418,7 @@ mod web_source_tests {
         ]);
         assert!(block.contains("NEWS DIGEST CONTRACT"));
         assert!(
-            block.contains("never repeat a headline"),
+            block.contains("Never repeat a headline"),
             "contract missing"
         );
         assert!(block.contains(
