@@ -143,45 +143,53 @@ function openSignaturePad(docId){
     if(area)area.style.display='block';
     var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
-    // Make canvas responsive to container width while keeping aspect
-    var parent = canvas.parentElement;
-    if(parent){
-        var w = Math.min(parent.clientWidth || 500, 800);
-        canvas.width = Math.max(300, w);
-        canvas.height = 200;
+    if (window.GBAppKit && window.GBAppKit.mountSignaturePad) {
+        window.GBAppKit.mountSignaturePad(canvas);
+    } else {
+        // Fallback: local mount (behavior-preserving)
+        var parent = canvas.parentElement;
+        if(parent){
+            var w = Math.min(parent.clientWidth || 500, 800);
+            canvas.width = Math.max(300, w);
+            canvas.height = 200;
+        }
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#0f172a';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle='#f8fafc';
+        ctx.lineWidth=2;
+        ctx.lineCap='round';
+        canvas.hasDrawn = false;
+        function getPos(e){
+            var rect = canvas.getBoundingClientRect();
+            var clientX, clientY;
+            if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+            else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+            else { clientX = e.clientX; clientY = e.clientY; }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+        canvas.onmousedown=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
+        canvas.onmousemove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
+        canvas.onmouseup=function(){drawing=false};
+        canvas.onmouseleave=function(){drawing=false};
+        canvas.ontouchstart=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
+        canvas.ontouchmove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
+        canvas.ontouchend=function(e){drawing=false; e.preventDefault();};
+        canvas.ontouchcancel=function(){drawing=false;};
     }
-    var ctx=canvas.getContext('2d');
-    ctx.fillStyle='#0f172a';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle='#f8fafc';
-    ctx.lineWidth=2;
-    ctx.lineCap='round';
-    canvas.hasDrawn = false;
-    function getPos(e){
-        var rect = canvas.getBoundingClientRect();
-        var clientX, clientY;
-        if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-        else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
-        else { clientX = e.clientX; clientY = e.clientY; }
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-    canvas.onmousedown=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
-    canvas.onmousemove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
-    canvas.onmouseup=function(){drawing=false};
-    canvas.onmouseleave=function(){drawing=false};
-    canvas.ontouchstart=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
-    canvas.ontouchmove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
-    canvas.ontouchend=function(e){drawing=false; e.preventDefault();};
-    canvas.ontouchcancel=function(){drawing=false;};
 }
 
 function clearSignature(){
     var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
-    var ctx=canvas.getContext('2d');
-    ctx.fillStyle='#0f172a';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    canvas.hasDrawn = false;
+    if (window.GBAppKit && window.GBAppKit.clearSignatureCanvas) {
+        window.GBAppKit.clearSignatureCanvas(canvas);
+    } else {
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#0f172a';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        canvas.hasDrawn = false;
+    }
 }
 
 async function submitSignature(){
