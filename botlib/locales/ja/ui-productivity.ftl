@@ -538,3 +538,81 @@ tasks-complete-action = ✓ 完了
 
 # semantic i18n key (#2542)
 tasks-delete-action = 🗑 削除
+
+# semantic i18n key (#2542)
+db-schema-browser = スキーマブラウザー
+
+# semantic i18n key (#2542)
+db-loading-schema = スキーマを読み込み中...
+
+# semantic i18n key (#2542)
+db-new-table = + 新しいテーブル
+
+# semantic i18n key (#2542)
+db-previous = ← 前へ
+
+# semantic i18n key (#2542)
+db-next = 次へ →
+
+# semantic i18n key (#2542)
+db-sql-console = SQL コンソール
+
+# semantic i18n key (#2542)
+db-execute-query = 実行 (Ctrl+Enter)
+
+# semantic i18n key (#2542)
+db-explain = EXPLAIN
+
+# semantic i18n key (#2542)
+db-create-new-table = 新しいテーブルを作成
+
+# semantic i18n key (#2542)
+db-table-name = テーブル名
+
+# semantic i18n key (#2542)
+db-columns = 列
+
+# semantic i18n key (#2542)
+db-not-null = NOT NULL
+
+# semantic i18n key (#2542)
+db-type-varchar-255 = VARCHAR(255)
+
+# semantic i18n key (#2542)
+db-type-text = TEXT
+
+# semantic i18n key (#2542)
+db-type-integer = INTEGER
+
+# semantic i18n key (#2542)
+db-type-bigint = BIGINT
+
+# semantic i18n key (#2542)
+db-type-decimal = DECIMAL
+
+# semantic i18n key (#2542)
+db-type-boolean = BOOLEAN
+
+# semantic i18n key (#2542)
+db-type-date = DATE
+
+# semantic i18n key (#2542)
+db-type-timestamptz = TIMESTAMPTZ
+
+# semantic i18n key (#2542)
+db-type-jsonb = JSONB
+
+# semantic i18n key (#2542)
+db-add-column = + 列を追加
+
+# semantic i18n key (#2542)
+db-create-table = テーブルを作成
+
+# semantic i18n key (#2542)
+db-edit-row = 行を編集
+
+# semantic i18n key (#2542)
+db-import-csv = CSV をインポート
+
+# semantic i18n key (#2542)
+db-select-csv-file = CSV ファイルを選択

@@ -538,3 +538,81 @@ tasks-complete-action = ✓ 완료
 
 # semantic i18n key (#2542)
 tasks-delete-action = 🗑 삭제
+
+# semantic i18n key (#2542)
+db-schema-browser = 스키마 브라우저
+
+# semantic i18n key (#2542)
+db-loading-schema = 스키마 로드 중...
+
+# semantic i18n key (#2542)
+db-new-table = + 새 테이블
+
+# semantic i18n key (#2542)
+db-previous = ← 이전
+
+# semantic i18n key (#2542)
+db-next = 다음 →
+
+# semantic i18n key (#2542)
+db-sql-console = SQL 콘솔
+
+# semantic i18n key (#2542)
+db-execute-query = 실행 (Ctrl+Enter)
+
+# semantic i18n key (#2542)
+db-explain = EXPLAIN
+
+# semantic i18n key (#2542)
+db-create-new-table = 새 테이블 만들기
+
+# semantic i18n key (#2542)
+db-table-name = 테이블 이름
+
+# semantic i18n key (#2542)
+db-columns = 열
+
+# semantic i18n key (#2542)
+db-not-null = NOT NULL
+
+# semantic i18n key (#2542)
+db-type-varchar-255 = VARCHAR(255)
+
+# semantic i18n key (#2542)
+db-type-text = TEXT
+
+# semantic i18n key (#2542)
+db-type-integer = INTEGER
+
+# semantic i18n key (#2542)
+db-type-bigint = BIGINT
+
+# semantic i18n key (#2542)
+db-type-decimal = DECIMAL
+
+# semantic i18n key (#2542)
+db-type-boolean = BOOLEAN
+
+# semantic i18n key (#2542)
+db-type-date = DATE
+
+# semantic i18n key (#2542)
+db-type-timestamptz = TIMESTAMPTZ
+
+# semantic i18n key (#2542)
+db-type-jsonb = JSONB
+
+# semantic i18n key (#2542)
+db-add-column = + 열 추가
+
+# semantic i18n key (#2542)
+db-create-table = 테이블 만들기
+
+# semantic i18n key (#2542)
+db-edit-row = 행 편집
+
+# semantic i18n key (#2542)
+db-import-csv = CSV 가져오기
+
+# semantic i18n key (#2542)
+db-select-csv-file = CSV 파일 선택

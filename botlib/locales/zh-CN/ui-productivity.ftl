@@ -538,3 +538,81 @@ tasks-complete-action = ✓ 完成
 
 # semantic i18n key (#2542)
 tasks-delete-action = 🗑 删除
+
+# semantic i18n key (#2542)
+db-schema-browser = 架构浏览器
+
+# semantic i18n key (#2542)
+db-loading-schema = 正在加载架构...
+
+# semantic i18n key (#2542)
+db-new-table = + 新建表
+
+# semantic i18n key (#2542)
+db-previous = ← 上一页
+
+# semantic i18n key (#2542)
+db-next = 下一页 →
+
+# semantic i18n key (#2542)
+db-sql-console = SQL 控制台
+
+# semantic i18n key (#2542)
+db-execute-query = 执行 (Ctrl+Enter)
+
+# semantic i18n key (#2542)
+db-explain = EXPLAIN
+
+# semantic i18n key (#2542)
+db-create-new-table = 创建新表
+
+# semantic i18n key (#2542)
+db-table-name = 表名
+
+# semantic i18n key (#2542)
+db-columns = 列
+
+# semantic i18n key (#2542)
+db-not-null = NOT NULL
+
+# semantic i18n key (#2542)
+db-type-varchar-255 = VARCHAR(255)
+
+# semantic i18n key (#2542)
+db-type-text = TEXT
+
+# semantic i18n key (#2542)
+db-type-integer = INTEGER
+
+# semantic i18n key (#2542)
+db-type-bigint = BIGINT
+
+# semantic i18n key (#2542)
+db-type-decimal = DECIMAL
+
+# semantic i18n key (#2542)
+db-type-boolean = BOOLEAN
+
+# semantic i18n key (#2542)
+db-type-date = DATE
+
+# semantic i18n key (#2542)
+db-type-timestamptz = TIMESTAMPTZ
+
+# semantic i18n key (#2542)
+db-type-jsonb = JSONB
+
+# semantic i18n key (#2542)
+db-add-column = + 添加列
+
+# semantic i18n key (#2542)
+db-create-table = 创建表
+
+# semantic i18n key (#2542)
+db-edit-row = 编辑行
+
+# semantic i18n key (#2542)
+db-import-csv = 导入 CSV
+
+# semantic i18n key (#2542)
+db-select-csv-file = 选择 CSV 文件

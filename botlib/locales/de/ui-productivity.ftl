@@ -538,3 +538,81 @@ tasks-complete-action = ✓ Abschließen
 
 # semantic i18n key (#2542)
 tasks-delete-action = 🗑 Löschen
+
+# semantic i18n key (#2542)
+db-schema-browser = Schema-Browser
+
+# semantic i18n key (#2542)
+db-loading-schema = Schema wird geladen...
+
+# semantic i18n key (#2542)
+db-new-table = + Neue Tabelle
+
+# semantic i18n key (#2542)
+db-previous = ← Zurück
+
+# semantic i18n key (#2542)
+db-next = Weiter →
+
+# semantic i18n key (#2542)
+db-sql-console = SQL-Konsole
+
+# semantic i18n key (#2542)
+db-execute-query = Ausführen (Strg+Eingabe)
+
+# semantic i18n key (#2542)
+db-explain = EXPLAIN
+
+# semantic i18n key (#2542)
+db-create-new-table = Neue Tabelle erstellen
+
+# semantic i18n key (#2542)
+db-table-name = Tabellenname
+
+# semantic i18n key (#2542)
+db-columns = Spalten
+
+# semantic i18n key (#2542)
+db-not-null = NOT NULL
+
+# semantic i18n key (#2542)
+db-type-varchar-255 = VARCHAR(255)
+
+# semantic i18n key (#2542)
+db-type-text = TEXT
+
+# semantic i18n key (#2542)
+db-type-integer = INTEGER
+
+# semantic i18n key (#2542)
+db-type-bigint = BIGINT
+
+# semantic i18n key (#2542)
+db-type-decimal = DECIMAL
+
+# semantic i18n key (#2542)
+db-type-boolean = BOOLEAN
+
+# semantic i18n key (#2542)
+db-type-date = DATE
+
+# semantic i18n key (#2542)
+db-type-timestamptz = TIMESTAMPTZ
+
+# semantic i18n key (#2542)
+db-type-jsonb = JSONB
+
+# semantic i18n key (#2542)
+db-add-column = + Spalte hinzufügen
+
+# semantic i18n key (#2542)
+db-create-table = Tabelle erstellen
+
+# semantic i18n key (#2542)
+db-edit-row = Zeile bearbeiten
+
+# semantic i18n key (#2542)
+db-import-csv = CSV importieren
+
+# semantic i18n key (#2542)
+db-select-csv-file = CSV-Datei auswählen
