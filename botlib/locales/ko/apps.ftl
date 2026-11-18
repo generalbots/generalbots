@@ -128,3 +128,34 @@ timer-mode-long-break = 긴 휴식
 
 # Calculator modes (#2542)
 calculator-mode-scientific = 공학용
+
+# monitoring alerts i18n (#2542)
+monitoring-category-application = 애플리케이션
+monitoring-time-last-24h = 최근 24시간
+monitoring-time-last-7d = 최근 7일
+monitoring-time-last-30d = 최근 30일
+monitoring-status-acknowledged = 확인됨
+monitoring-alert-name = 알림 이름 *
+monitoring-alert-severity = 심각도 *
+monitoring-select-severity = 심각도 선택
+monitoring-alert-category = 카테고리 *
+monitoring-select-category = 카테고리 선택
+monitoring-alert-condition = 조건
+monitoring-alert-metric = 지표 *
+monitoring-select-metric = 지표 선택
+monitoring-metric-load-average = 평균 부하
+monitoring-metric-request-rate = 요청률 (req/s)
+monitoring-metric-response-time = 응답 시간 (ms)
+monitoring-metric-db-connections = DB 연결 수
+monitoring-metric-query-time = 쿼리 시간 (ms)
+monitoring-metric-replication-lag = 복제 지연 (s)
+monitoring-alert-operator = 연산자 *
+monitoring-operator-equal = 같음 (=)
+monitoring-operator-not-equal = 같지 않음 (!=)
+monitoring-alert-threshold = 임계값 *
+monitoring-alert-duration = 기간 *
+monitoring-duration-instant = 즉시
+monitoring-alert-evaluation-interval = 평가 간격
+monitoring-enable-alert-rule = 이 알림 규칙 사용
+monitoring-create-alert-rule = 알림 규칙 만들기
+monitoring-alert-details = 알림 세부 정보

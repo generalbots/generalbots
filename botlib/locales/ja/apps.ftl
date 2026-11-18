@@ -128,3 +128,34 @@ timer-mode-long-break = 長い休憩
 
 # Calculator modes (#2542)
 calculator-mode-scientific = 関数電卓
+
+# monitoring alerts i18n (#2542)
+monitoring-category-application = アプリケーション
+monitoring-time-last-24h = 過去24時間
+monitoring-time-last-7d = 過去7日間
+monitoring-time-last-30d = 過去30日間
+monitoring-status-acknowledged = 確認済み
+monitoring-alert-name = アラート名 *
+monitoring-alert-severity = 重大度 *
+monitoring-select-severity = 重大度を選択
+monitoring-alert-category = カテゴリ *
+monitoring-select-category = カテゴリを選択
+monitoring-alert-condition = 条件
+monitoring-alert-metric = メトリック *
+monitoring-select-metric = メトリックを選択
+monitoring-metric-load-average = 平均負荷
+monitoring-metric-request-rate = リクエスト率 (req/s)
+monitoring-metric-response-time = 応答時間 (ms)
+monitoring-metric-db-connections = DB接続数
+monitoring-metric-query-time = クエリ時間 (ms)
+monitoring-metric-replication-lag = レプリケーション遅延 (s)
+monitoring-alert-operator = 演算子 *
+monitoring-operator-equal = 等しい (=)
+monitoring-operator-not-equal = 等しくない (!=)
+monitoring-alert-threshold = しきい値 *
+monitoring-alert-duration = 期間 *
+monitoring-duration-instant = 即時
+monitoring-alert-evaluation-interval = 評価間隔
+monitoring-enable-alert-rule = このアラートルールを有効にする
+monitoring-create-alert-rule = アラートルールを作成
+monitoring-alert-details = アラート詳細

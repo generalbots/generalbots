@@ -128,3 +128,34 @@ timer-mode-long-break = 长休息
 
 # Calculator modes (#2542)
 calculator-mode-scientific = 科学
+
+# monitoring alerts i18n (#2542)
+monitoring-category-application = 应用程序
+monitoring-time-last-24h = 最近24小时
+monitoring-time-last-7d = 最近7天
+monitoring-time-last-30d = 最近30天
+monitoring-status-acknowledged = 已确认
+monitoring-alert-name = 告警名称 *
+monitoring-alert-severity = 严重性 *
+monitoring-select-severity = 选择严重性
+monitoring-alert-category = 类别 *
+monitoring-select-category = 选择类别
+monitoring-alert-condition = 条件
+monitoring-alert-metric = 指标 *
+monitoring-select-metric = 选择指标
+monitoring-metric-load-average = 平均负载
+monitoring-metric-request-rate = 请求率 (req/s)
+monitoring-metric-response-time = 响应时间 (ms)
+monitoring-metric-db-connections = 数据库连接数
+monitoring-metric-query-time = 查询时间 (ms)
+monitoring-metric-replication-lag = 复制延迟 (s)
+monitoring-alert-operator = 运算符 *
+monitoring-operator-equal = 等于 (=)
+monitoring-operator-not-equal = 不等于 (!=)
+monitoring-alert-threshold = 阈值 *
+monitoring-alert-duration = 持续时间 *
+monitoring-duration-instant = 立即
+monitoring-alert-evaluation-interval = 评估间隔
+monitoring-enable-alert-rule = 启用此告警规则
+monitoring-create-alert-rule = 创建告警规则
+monitoring-alert-details = 告警详情

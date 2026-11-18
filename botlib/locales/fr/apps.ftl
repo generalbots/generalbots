@@ -128,3 +128,34 @@ timer-mode-long-break = Pause longue
 
 # Calculator modes (#2542)
 calculator-mode-scientific = Scientifique
+
+# monitoring alerts i18n (#2542)
+monitoring-category-application = Application
+monitoring-time-last-24h = Dernières 24 heures
+monitoring-time-last-7d = 7 derniers jours
+monitoring-time-last-30d = 30 derniers jours
+monitoring-status-acknowledged = Acquitté
+monitoring-alert-name = Nom de l'alerte *
+monitoring-alert-severity = Gravité *
+monitoring-select-severity = Sélectionner la gravité
+monitoring-alert-category = Catégorie *
+monitoring-select-category = Sélectionner la catégorie
+monitoring-alert-condition = Condition
+monitoring-alert-metric = Métrique *
+monitoring-select-metric = Sélectionner la métrique
+monitoring-metric-load-average = Charge moyenne
+monitoring-metric-request-rate = Taux de requêtes (req/s)
+monitoring-metric-response-time = Temps de réponse (ms)
+monitoring-metric-db-connections = Connexions BD
+monitoring-metric-query-time = Temps de requête (ms)
+monitoring-metric-replication-lag = Retard de réplication (s)
+monitoring-alert-operator = Opérateur *
+monitoring-operator-equal = Égal à (=)
+monitoring-operator-not-equal = Différent de (!=)
+monitoring-alert-threshold = Seuil *
+monitoring-alert-duration = Durée *
+monitoring-duration-instant = Instantané
+monitoring-alert-evaluation-interval = Intervalle d'évaluation
+monitoring-enable-alert-rule = Activer cette règle d'alerte
+monitoring-create-alert-rule = Créer une règle d'alerte
+monitoring-alert-details = Détails de l'alerte

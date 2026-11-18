@@ -128,3 +128,34 @@ timer-mode-long-break = Long Break
 
 # Calculator modes (#2542)
 calculator-mode-scientific = Scientific
+
+# monitoring alerts i18n (#2542)
+monitoring-category-application = Application
+monitoring-time-last-24h = Last 24 hours
+monitoring-time-last-7d = Last 7 days
+monitoring-time-last-30d = Last 30 days
+monitoring-status-acknowledged = Acknowledged
+monitoring-alert-name = Alert Name *
+monitoring-alert-severity = Severity *
+monitoring-select-severity = Select severity
+monitoring-alert-category = Category *
+monitoring-select-category = Select category
+monitoring-alert-condition = Condition
+monitoring-alert-metric = Metric *
+monitoring-select-metric = Select metric
+monitoring-metric-load-average = Load Average
+monitoring-metric-request-rate = Request Rate (req/s)
+monitoring-metric-response-time = Response Time (ms)
+monitoring-metric-db-connections = DB Connections
+monitoring-metric-query-time = Query Time (ms)
+monitoring-metric-replication-lag = Replication Lag (s)
+monitoring-alert-operator = Operator *
+monitoring-operator-equal = Equal to (=)
+monitoring-operator-not-equal = Not equal to (!=)
+monitoring-alert-threshold = Threshold *
+monitoring-alert-duration = Duration *
+monitoring-duration-instant = Instant
+monitoring-alert-evaluation-interval = Evaluation Interval
+monitoring-enable-alert-rule = Enable this alert rule
+monitoring-create-alert-rule = Create Alert Rule
+monitoring-alert-details = Alert Details
