@@ -110,6 +110,8 @@ function bindViewToggle() {
 function bindUploadButton() {
     const uploadBtn = document.getElementById("upload-btn");
     if (uploadBtn) uploadBtn.addEventListener("click", triggerUpload);
+    const toolbarUploadBtn = document.getElementById("toolbar-upload-btn");
+    if (toolbarUploadBtn) toolbarUploadBtn.addEventListener("click", triggerUpload);
     window.uploadFile = triggerUpload;
     var fileInput = document.getElementById("file-input");
     if (!fileInput) {
@@ -124,6 +126,8 @@ function bindUploadButton() {
 
     var cameraBtn = document.getElementById("upload-camera-btn");
     if (cameraBtn) cameraBtn.addEventListener("click", triggerCameraUpload);
+    var toolbarCameraBtn = document.getElementById("toolbar-camera-btn");
+    if (toolbarCameraBtn) toolbarCameraBtn.addEventListener("click", triggerCameraUpload);
     var cameraInput = document.getElementById("camera-input");
     if (cameraInput) cameraInput.addEventListener("change", handleCameraInputChange);
 
@@ -131,13 +135,16 @@ function bindUploadButton() {
     // #file-input) so flat file selection still uploads as before.
     // #2510 — hide folder upload on platforms without webkitdirectory support.
     var folderBtn = document.getElementById("upload-folder-btn");
+    var toolbarFolderBtn = document.getElementById("toolbar-folder-btn");
     var folderInput = document.getElementById("folder-input");
     var supportsFolder = typeof document !== "undefined" && "webkitdirectory" in document.createElement("input");
     if (!supportsFolder) {
         if (folderBtn) folderBtn.style.display = "none";
+        if (toolbarFolderBtn) toolbarFolderBtn.style.display = "none";
         if (folderInput) folderInput.style.display = "none";
     } else {
         if (folderBtn) folderBtn.addEventListener("click", triggerFolderUpload);
+        if (toolbarFolderBtn) toolbarFolderBtn.addEventListener("click", triggerFolderUpload);
         if (folderInput) folderInput.addEventListener("change", handleFolderInputChange);
     }
 }
