@@ -38,6 +38,12 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sandbox/config", "GET", ""),
         // Tool manifests for the native surface tools (#1678)
         RoutePermission::new("/api/runs/tools", "GET", ""),
+
+        // Usage-ranked command/app statistics (#2372). Mounted by apps::installs::register
+        // but were absent from the default-deny catalogue, so even admins got
+        // 403 "No matching route permission found" before reaching the handler.
+        RoutePermission::new("/api/commands/stats", "GET", ""),
+        RoutePermission::new("/api/apps/install/stats", "GET", ""),
         // Built-in MCP server for generated apps (#1676)
         RoutePermission::new("/api/mcp/**", "GET", ""),
         RoutePermission::new("/api/mcp/**", "POST", ""),
