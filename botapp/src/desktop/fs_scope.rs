@@ -80,7 +80,11 @@ pub fn scopes() -> Vec<PathBuf> {
     };
 
     if let Ok(list) = std::env::var("GB_FS_SCOPES") {
-        for entry in list.split(std::path::MAIN_SEPARATOR) {
+        // Absolute paths, so the separator is the platform's *path list*
+        // separator (':' on Unix, ';' on Windows) — never the path component
+        // separator, which would split every root into fragments.
+        let list_separator = if cfg!(windows) { ';' } else { ':' };
+        for entry in list.split(list_separator) {
             let trimmed = entry.trim();
             if !trimmed.is_empty() {
                 push(PathBuf::from(trimmed));

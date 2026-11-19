@@ -13,7 +13,7 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
     // into the registry: every entry declares `launcher_visibility`, so the
     // `preview_apps` list is no longer needed to classify an app (it stays in
     // the product file and `/api/product` for compatibility).
-    let (enabled, hidden): (
+    let (enabled, mut hidden): (
         std::collections::HashSet<String>,
         std::collections::HashSet<String>,
     ) = botcore::product::PRODUCT_CONFIG
@@ -28,6 +28,22 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
             (enabled, hidden)
         })
         .unwrap_or_default();
+
+    // #2450 — the General Bots OS image ships no console, so an app that runs
+    // host commands is not a "preview" nice-to-have: it is refused, exactly
+    // like a `hidden_apps` entry. Listing it in the product file is not enough
+    // because the terminal is reachable through Preview mode there. A new
+    // host-executing app must be added to this list.
+    const HOST_EXECUTING_APPS: &[&str] = &["terminal"];
+    let os_edition = botcore::product::PRODUCT_CONFIG
+        .read()
+        .map(|config| config.edition.as_deref() == Some("os"))
+        .unwrap_or(false);
+    if os_edition {
+        for app in HOST_EXECUTING_APPS {
+            hidden.insert((*app).to_string());
+        }
+    }
 
     let derived: Vec<crate::core::bot::commands_derived::DerivedCommand> =
         crate::core::bot::commands_derived::derived_commands();
