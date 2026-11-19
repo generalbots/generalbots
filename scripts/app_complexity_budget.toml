@@ -281,7 +281,7 @@ loc = 560
 [apps."settings"]
 routes = 52
 js_modules = 30
-loc = 12286
+loc = 12303
 
 [apps."sheet"]
 routes = 0
