@@ -1,0 +1,125 @@
+# ops/office-slo.yaml — Office suite performance budgets (declarative, #2459)
+#
+# Publishes provisional performance budgets for the Office trio (Docs, Slides,
+# Sheets) as a versioned, reviewable artifact. This file declares targets and
+# measurement intent; it does NOT by itself enforce budgets in CI, collect
+# telemetry, or power dashboards/alerts.
+#
+# Status: PROVISIONAL / DECLARED (offline groundwork slice, #2459).
+# Enforcement, instrumentation, backend metrics, RUM, dashboards, alerting and
+# perf CI jobs remain deferred until implemented and wired with evidence.
+#
+# Scope notes:
+# - Client budgets are per active editor tab on a reference laptop class
+#   (mid-range, 5-year-old baseline over VPN) unless stated otherwise.
+# - "Published" here means committed in-repo for review/versioning; "enforced"
+#   requires CI/runtime instrumentation and gates (deferred).
+# - No PII/document content may be emitted by future telemetry implementing
+#   these budgets.
+
+version: 1
+issue: 2459
+status: provisional-declared
+owner: office-performance
+window_default: 7d
+reference_profile:
+  device_class: mid-range-laptop-5y
+  network_class: vpn-constrained
+  notes: >
+    Reference hardware/network profile for budget interpretation; exact CI/UAT
+    runner mapping is deferred to the perf harness/instrumentation work.
+
+apps:
+  docs:
+    budgets:
+      open_1mb_doc_p75_ms: 1000
+      keystroke_p95_ms: 16
+      scroll_fps_min: 60
+      export_pdf_25_pages_p95_s: 5
+      coedit_propagation_50_editors_p95_ms: 150
+      memory_per_tab_mb_max: 300
+    custom_marks:
+      - docs.open
+      - docs.first_paint_content
+      - docs.save
+      - docs.export
+      - docs.collab_propagation
+    notes: "Docs renders the whole article today; budgets target future optimized path."
+  slides:
+    budgets:
+      open_1mb_deck_p75_ms: 1000
+      keystroke_p95_ms: 16
+      scroll_fps_min: 60
+      slide_transition_p95_ms: 100
+      export_pdf_25_pages_p95_s: 5
+      coedit_propagation_50_editors_p95_ms: 150
+      memory_per_tab_mb_max: 300
+    custom_marks:
+      - slides.open
+      - slides.first_paint_content
+      - slides.save
+      - slides.export
+      - slides.slide_transition
+      - slides.recalc
+      - slides.collab_propagation
+    notes: "Fixed canvas/full-slide render path today; transition budget is declarative."
+  sheets:
+    budgets:
+      open_1mb_workbook_p75_ms: 1000
+      keystroke_p95_ms: 16
+      scroll_fps_min: 60
+      recalc_interactive_p95_ms: 100
+      export_pdf_25_pages_p95_s: 5
+      coedit_propagation_50_editors_p95_ms: 150
+      memory_per_tab_mb_max: 300
+    custom_marks:
+      - sheets.open
+      - sheets.first_paint_content
+      - sheets.save
+      - sheets.export
+      - sheets.recalc
+      - sheets.collab_propagation
+    notes: "Virtual grid exists; recalculation/export targets are declarative pending worker/calc isolation."
+
+cross_cutting:
+  web_vitals:
+    enabled: planned
+    metrics:
+      - LCP
+      - INP
+      - CLS
+      - FCP
+      - TTFB
+    sampling: required
+    pii_policy: no_document_content_no_pii
+  backend_metrics:
+    enabled: planned
+    style: prometheus-compatible
+    required_series:
+      - office_request_latency_seconds{app,endpoint}
+      - office_queue_depth{app}
+      - office_recalc_duration_seconds{app,workbook}
+      - office_workbook_memory_bytes{app,workbook}
+      - office_export_duration_seconds{app,format}
+  rum_dashboards:
+    enabled: planned
+    dimensions: [app, tenant]
+    alerting: planned
+  perf_ci:
+    enabled: planned
+    corpus: office_fidelity_corpus
+    regression_threshold_pct: 10
+    gate_on_pr: planned
+  profiling_runbook:
+    enabled: planned
+    required_topics: [frontend_flamegraph, rust_perf_tracing]
+    named_owner_per_app: required
+
+deferred:
+  - Client instrumentation/Web Vitals and custom marks collection
+  - Backend metrics emission and Prometheus exposure/endpoints
+  - Per-app/per-tenant RUM dashboards and alert thresholds
+  - Perf CI job on fidelity corpus with regression blocking
+  - Export progress/cancel UX and synchronous-path refactors
+  - Profiling runbook publication and named app owners
+  - Evidence-based enforcement and budget ratification from measured baselines
