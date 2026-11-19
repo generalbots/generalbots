@@ -23,6 +23,8 @@ var previewShellKeyHandler = null;
 function closeDrivePreview() {
   var modal = document.getElementById("preview-modal");
   if (modal) modal.remove();
+  var paneRoot = document.querySelector(".drive-container.gb-panes");
+  if (paneRoot) paneRoot.classList.remove("is-detail-open");
   if (previewShellObjectUrl) {
     URL.revokeObjectURL(previewShellObjectUrl);
     previewShellObjectUrl = null;
@@ -32,6 +34,14 @@ function closeDrivePreview() {
     previewShellKeyHandler = null;
   }
 }
+
+/* The shared pane contract's Back control emits gbpane:close; Drive's detail
+   is an overlay, so closing the pane must also dispose of the preview. */
+document.addEventListener("gbpane:close", function (event) {
+  if (event.target && event.target.classList && event.target.classList.contains("drive-container")) {
+    closeDrivePreview();
+  }
+});
 
 /* Builds the shared overlay: title, type badge, size, actions and body. */
 function openDrivePreviewShell(options) {
@@ -50,7 +60,7 @@ function openDrivePreviewShell(options) {
   });
 
   var shell = document.createElement("div");
-  shell.className = "gb-preview-shell";
+  shell.className = "gb-preview-shell gb-pane gb-pane-detail";
 
   var header = document.createElement("div");
   header.className = "gb-preview-header";
@@ -92,7 +102,14 @@ function openDrivePreviewShell(options) {
   shell.appendChild(header);
   shell.appendChild(body);
   overlay.appendChild(shell);
-  document.body.appendChild(overlay);
+  var paneRoot = document.querySelector(".drive-container.gb-panes");
+  (paneRoot || document.body).appendChild(overlay);
+  if (paneRoot && window.GBPanes && typeof window.GBPanes.init === "function") {
+    window.GBPanes.init(paneRoot);
+  }
+  if (paneRoot && window.matchMedia && window.matchMedia("(max-width: 767px)").matches) {
+    paneRoot.classList.add("is-detail-open");
+  }
 
   previewShellKeyHandler = function (event) {
     if (event.key === "Escape") closeDrivePreview();

@@ -8,10 +8,12 @@
 <link rel="stylesheet" href="/suite/crm/crm-detail-forms.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-bulk-drawers.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-crud.css?v=1">
+<link rel="stylesheet" href="/suite/css/gb-panes.css?v=1" />
+<script src="/suite/js/panes/01_contract.js?v=1"></script>
 <div class="gb-state gb-state-loading" role="status" aria-live="polite"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
 <div class="gb-state gb-state-error" role="alert" aria-live="assertive"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 
-<div class="crm-container gb-app" data-gb-app="crm">
+<div class="crm-container gb-app gb-panes" data-gb-app="crm" data-gb-panes data-gb-panes-primary=".crm-view" data-gb-panes-detail="#record-detail-panel" data-gb-panes-rows=".crm-table tbody tr" data-gb-panes-detail-mode="overlay">
     <!-- Header -->
     <header class="crm-header">
         <div class="crm-header-left">
@@ -67,7 +69,7 @@
     <!-- Pipeline View (Default) — columns are rendered from
          /api/crm/pipeline/stages (#1441 A4); the static six below are the
          offline fallback. -->
-    <div id="crm-pipeline-view" class="crm-view active">
+    <div id="crm-pipeline-view" class="crm-view gb-pane gb-pane-primary active">
         <div class="pipeline-container">
             <div class="pipeline-column" data-stage="new">
                 <div class="pipeline-header">
@@ -142,7 +144,7 @@
     </div>
 
     <!-- Opportunities List View (#1441 A3) -->
-    <div id="crm-opportunities-view" class="crm-view">
+    <div id="crm-opportunities-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-list-header">
             <div class="list-filters">
                 <input type="search" class="grid-search" data-grid="opportunities" data-i18n-placeholder="crm-filter-opportunities-placeholder">
@@ -197,7 +199,7 @@
     </div>
 
     <!-- Deals List View -->
-    <div id="crm-deals-view" class="crm-view">
+    <div id="crm-deals-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-list-header">
             <div class="list-filters">
                 <input type="search" class="grid-search" data-grid="deals" data-i18n-placeholder="crm-filter-deals-placeholder">
@@ -239,7 +241,7 @@
     </div>
 
     <!-- Accounts List View -->
-    <div id="crm-accounts-view" class="crm-view">
+    <div id="crm-accounts-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-list-header">
             <div class="list-filters">
                 <input type="search" class="grid-search" data-grid="accounts" data-i18n-placeholder="crm-filter-accounts-placeholder">
@@ -263,7 +265,7 @@
     </div>
 
     <!-- Contacts List View -->
-    <div id="crm-contacts-view" class="crm-view">
+    <div id="crm-contacts-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-list-header">
             <div class="list-filters">
                 <input type="search" class="grid-search" data-grid="contacts" data-i18n-placeholder="crm-filter-contacts-placeholder">
@@ -296,7 +298,7 @@
     </div>
 
     <!-- Campaigns View -->
-    <div id="crm-campaigns-view" class="crm-view">
+    <div id="crm-campaigns-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-bulk-bar">
             <button class="btn-primary" id="campaign-new-btn">New Campaign</button>
             <input type="search" class="grid-search" data-grid="campaigns" data-i18n-placeholder="crm-filter-campaigns-placeholder">
@@ -308,7 +310,7 @@
     <!-- #2015 — Quotes & Orders. The former standalone "Sales" app only
          wrapped these two read-only lists; they are fetched through the same
          /api/sales/* endpoints and rendered inside CRM now. -->
-    <div id="crm-quotes-view" class="crm-view">
+    <div id="crm-quotes-view" class="crm-view gb-pane gb-pane-primary">
         <div class="crm-list-header">
             <div class="list-filters">
                 <strong data-i18n="crm-quotes">Quotes</strong>
@@ -359,7 +361,7 @@
 </div>
 
 <!-- Record detail drawer (#1441 C1) — the fragment is loaded per record type -->
-<div id="record-detail-panel" class="crm-detail-panel" role="region" aria-live="polite" aria-label="Record details"></div>
+<div id="record-detail-panel" class="crm-detail-panel gb-pane gb-pane-detail" role="region" aria-live="polite" aria-label="Record details"></div>
 
 <!-- #1453 — campaign create form, loaded into the shared modal on demand -->
 <template id="campaign-form-template">

@@ -1,7 +1,9 @@
 <!-- Drive - File Management v1.0 -->
 <link rel="stylesheet" href="/suite/drive/drive.css" />
 <link rel="stylesheet" href="/suite/css/drive-identity.css?v=1" />
-<div class="gb-app drive-container" id="drive-app" data-gb-app="explorer">
+<link rel="stylesheet" href="/suite/css/gb-panes.css?v=1" />
+<script src="/suite/js/panes/01_contract.js?v=1"></script>
+<div class="gb-app drive-container gb-panes" id="drive-app" data-gb-app="explorer" data-gb-panes data-gb-panes-primary=".drive-main" data-gb-panes-detail=".gb-preview-shell" data-gb-panes-rows=".drive-file-item" data-gb-panes-detail-mode="overlay">
 <!-- Sidebar -->
 <aside class="drive-sidebar" id="drive-sidebar" data-tour="drive.nav">
 <div class="drive-sidebar-header">
@@ -106,7 +108,7 @@ Loading storage...
 </div>
 </aside>
 <!-- Main Content -->
-<main class="drive-main">
+<main class="drive-main gb-pane gb-pane-primary">
 <!-- Top-Level Tabs -->
 <div class="drive-top-tabs" id="drive-top-tabs" data-tour="drive.tabs">
 <!-- Home = the desktop user's real home folder (#1801). Shown only in the

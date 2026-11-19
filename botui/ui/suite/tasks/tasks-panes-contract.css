@@ -1,0 +1,20 @@
+/* Tasks adapter for the shared list+detail pane contract (#2415).
+   The legacy splitter only writes inline pixel widths; at medium and compact
+   the contract owns the boundary, so it is hidden and its inline width reset. */
+
+@media (min-width: 768px) and (max-width: 1024px), (max-width: 767px) {
+    .tasks-main > .tasks-splitter {
+        display: none;
+    }
+
+    .tasks-main > .tasks-list-panel {
+        flex: none !important;
+        width: auto !important;
+    }
+
+    .tasks-main > .task-detail-panel {
+        flex: 1 1 auto;
+        width: auto;
+        border-right: none;
+    }
+}

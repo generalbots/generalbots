@@ -1,0 +1,22 @@
+/* Mail adapter for the shared list+detail pane contract (#2415).
+   The contract itself lives in /suite/css/gb-panes.css; this file only
+   gives the new wrapper the space the mail layout used to give its children. */
+
+.mail-panes {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mail-panes > .mail-list {
+    flex: 1 1 50%;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.mail-panes > .mail-content {
+    flex: 1 1 50%;
+    min-height: 0;
+}
