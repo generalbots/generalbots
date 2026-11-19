@@ -5,6 +5,7 @@
     var isAwsProvider = helpers.isAwsProvider;
     var collectGuidance = helpers.collectGuidance;
     var renderFields = helpers.renderFields;
+    var renderProviderSourceSection = helpers.renderProviderSourceSection;
     var renderGuidance = helpers.renderGuidance;
     var renderSetupSteps = helpers.renderSetupSteps;
     var renderActions = helpers.renderActions;
@@ -245,6 +246,7 @@
             '<dl class="integrations-detail-meta"><div><dt>Category</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.category)) + '</dd></div>' +
             '<div><dt>Priority</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.priority)) + '</dd></div>' +
             '<div><dt>Module</dt><dd>' + namespace.escapeHtml(provider.module) + '</dd></div></dl>' + warning + expiryBanner(root, provider) +
+            (typeof renderProviderSourceSection === "function" ? renderProviderSourceSection(provider) : "") +
             credentialsBlock + adapterBlock +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Authentication</h4>' +
             '<span>' + namespace.escapeHtml(namespace.titleCase(provider.auth.method, "Not specified")) + '</span></div>' + renderFields(provider) + '</section>' +

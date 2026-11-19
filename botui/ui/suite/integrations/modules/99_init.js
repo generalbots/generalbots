@@ -11,7 +11,14 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("integrations");
         if (scope && scope.querySelectorAll) {
             roots = roots.concat(Array.from(scope.querySelectorAll(".integrations-app[data-integrations-app]")));
         }
-        roots.forEach(function (root) { namespace.initializeRoot(root); });
+        roots.forEach(function (root) {
+            // #2346 — the catalog-source tab owns its own delegated events so it
+            // keeps working even when the main initializer hits a bad payload.
+            if (typeof namespace.installProviderSourceEvents === "function") {
+                namespace.installProviderSourceEvents(root);
+            }
+            namespace.initializeRoot(root);
+        });
     }
 
     namespace.initializeAll = initializeAll;
