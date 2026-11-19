@@ -1,6 +1,7 @@
 //! Run a Codex prompt inside the VM.
 
 use axum::http::StatusCode;
+use base64::Engine;
 
 use crate::AgentService;
 use crate::vm;
