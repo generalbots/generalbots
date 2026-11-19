@@ -332,7 +332,10 @@ function rebuildAppsRegistry() {
   if (!authenticated && !noSecurityBuild) {
     try {
       if (window.__BOT_IS_PUBLIC__ !== true) {
-        var sess = JSON.parse(localStorage.getItem("gb_chat_default") || sessionStorage.getItem("gb_chat_default") || "null");
+        var sess = gbStoreGet("gb_chat_default", null);
+        if (!sess) {
+          try { sess = JSON.parse(sessionStorage.getItem("gb_chat_default") || "null"); } catch (e2) { sess = null; }
+        }
         if (sess && (sess.user_id || sess.userId)) authenticated = true;
       }
     } catch (e) { window.gbLogError ? gbLogError(e, "rebuildAppsRegistry") : console.error("rebuildAppsRegistry", e); }

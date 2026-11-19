@@ -8,7 +8,7 @@
  * page number or a citation lookup result.
  *
  * Every document write goes through commitArticle()/commitNode(): the changes
- * are prepared on a clone and committed with one execCommand("insertHTML") so
+ * are prepared on a clone and committed with one gbFormat("insertHTML") call so
  * each edit is a single native undo step and neighbouring markup is untouched.
  */
 (function (window) {
@@ -140,7 +140,7 @@
         range.selectNodeContents(a);
         sel.removeAllRanges();
         sel.addRange(range);
-        ok = !!document.execCommand("insertHTML", false, html);
+        ok = !!gbFormat("insertHTML", html);
         sel.removeAllRanges();
         for (var j = 0; j < saved.length; j++) sel.addRange(saved[j]);
       }
@@ -185,7 +185,7 @@
         sel.removeAllRanges();
         sel.addRange(range);
         a.focus();
-        ok = !!document.execCommand("insertHTML", false, html);
+        ok = !!gbFormat("insertHTML", html);
       }
     } catch (commitError) { ok = false; }
     if (!ok) {

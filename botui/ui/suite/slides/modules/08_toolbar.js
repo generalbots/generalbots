@@ -219,12 +219,8 @@ window.GBSlidesExport = function (event) {
   }
 
   if (format === "pdf") {
-    var printWindow = window.open("", "_blank");
-    if (printWindow) { try { printWindow.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "closeExportModal") : console.error("closeExportModal", e); } }
-    if (!printWindow) {
-      if (window.GBToasts && GBToasts.show) {
-        GBToasts.show("Export", "Pop-up bloqueado. Permita pop-ups para exportar PDF.", "error");
-      }
+    if (typeof gbPrintHtml !== "function") {
+      if (window.gbLogError) gbLogError(new Error("gbPrintHtml unavailable"), "GBSlidesExport");
       return false;
     }
     fetch("/api/slides/export", {
@@ -244,15 +240,10 @@ window.GBSlidesExport = function (event) {
           "page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;}" +
           ".slide:last-child{page-break-after:auto;break-after:auto;}</style>";
         var doc = html.replace(/<\/head>/i, printCss + "</head>");
-        printWindow.document.open();
-        printWindow.document.write(doc);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.onload = function () { printWindow.print(); };
+        gbPrintHtml(doc);
         closeExportModal();
       })
       .catch(function (error) {
-        printWindow.close();
         if (window.GBToasts && GBToasts.show) GBToasts.show("Export", error.message, "error");
       });
     return false;

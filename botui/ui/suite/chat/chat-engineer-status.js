@@ -61,18 +61,7 @@
     var sid = currentSession();
     if (!sid) return;
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(sid);
-      } else {
-        var ta = document.createElement("textarea");
-        ta.value = sid;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
+      await gbCopyText(sid);
       var btn = document.getElementById("chatStatusCopySession");
       if (btn) {
         btn.dataset.copied = "1";

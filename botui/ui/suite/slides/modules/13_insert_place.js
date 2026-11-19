@@ -144,7 +144,7 @@ SlidesInsertPlace.payload = function (item, options, at, overrides) {
 
 SlidesInsertPlace.rememberImage = function (id, alt, fit) {
   var all = {};
-  try { all = JSON.parse(window.localStorage.getItem(this.imageStoreKey) || "{}") || {}; } catch (e) { all = {}; }
+  try { all = gbStoreGet(this.imageStoreKey, {}) || {}; } catch (e) { all = {}; }
   all[id] = { alt: alt || "", fit: fit || "contain" };
   try { window.localStorage.setItem(this.imageStoreKey, JSON.stringify(all)); } catch (e) { /* storage disabled */ }
 };
@@ -169,7 +169,7 @@ SlidesInsertPlace.applyImageExtras = function () {
 };
 
 SlidesInsertPlace.readImages = function () {
-  try { return JSON.parse(window.localStorage.getItem(this.imageStoreKey) || "{}") || {}; }
+  try { return gbStoreGet(this.imageStoreKey, {}) || {}; }
   catch (e) { return {}; }
 };
 

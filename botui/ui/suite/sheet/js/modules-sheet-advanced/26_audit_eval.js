@@ -98,7 +98,7 @@
         }
         continue;
       }
-      var two = src.substr(i, 2);
+      var two = src.slice(i, i + 2);
       if (OPS[two]) {
         tokens.push({ type: "op", value: two, start: i, end: i + 2 });
         i += 2;
