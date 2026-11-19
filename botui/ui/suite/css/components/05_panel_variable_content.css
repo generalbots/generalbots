@@ -3,18 +3,18 @@
 }
 
 .panel-variable-content::-webkit-scrollbar-track {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface);
     border-radius: 6px;
 }
 
 .panel-variable-content::-webkit-scrollbar-thumb {
-    background: var(--border-light, #3a3a3a);
+    background: var(--border-light);
     border-radius: 6px;
-    border: 3px solid var(--surface, #1a1a1a);
+    border: 3px solid var(--surface);
 }
 
 .panel-variable-content::-webkit-scrollbar-thumb:hover {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
 }
 
 /* ===========================================

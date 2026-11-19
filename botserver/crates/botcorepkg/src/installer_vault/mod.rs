@@ -7,12 +7,17 @@
 //! `unseal`), so both trees name the same Vault step the same way.
 
 pub mod container_env;
+pub mod secret_store;
 mod credentials;
 mod initialize_local;
 mod kv_mount;
 mod seed_defaults;
 mod seeds_exist;
 mod unseal;
+mod vault_policy;
+
+#[cfg(test)]
+mod secret_store_tests;
 
 #[cfg(unix)]
 pub use credentials::fetch_vault_credentials_impl;

@@ -11,6 +11,24 @@ use diesel::prelude::*;
 use serde::Serialize;
 use std::sync::Arc;
 
+/// Every catalog handler returns the same sanitised JSON error envelope
+/// (`error`/`message`/`code`/`request_id`) instead of a bare `String`, so an
+/// anonymous storefront caller can never see a driver message, path or URL.
+type CatalogError = (StatusCode, Json<serde_json::Value>);
+
+fn sanitized_error<E: std::fmt::Display + ?Sized>(
+    status: StatusCode,
+    context: &str,
+    error: &E,
+) -> CatalogError {
+    (
+        status,
+        Json(crate::security::error_sanitizer::log_and_sanitize_json(
+            error, context, None,
+        )),
+    )
+}
+
 mod prod_schema {
     // Canonical definition lives in `botschema` (#1497).
     pub use botschema::products;
@@ -123,19 +141,15 @@ fn load_public_products(
 
 pub async fn list_products(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<CatalogProductResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CatalogProductResponse>>, CatalogError> {
     let pool = state.conn.clone();
     let mut conn = tokio::task::spawn_blocking(move || pool.get())
         .await
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: blocking pool", &e))?
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: db pool", &e))?;
 
-    let products = load_public_products(&mut conn).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Query error: {e}"),
-        )
-    })?;
+    let products = load_public_products(&mut conn)
+        .map_err(|e| sanitized_error(StatusCode::INTERNAL_SERVER_ERROR, "catalog: list products", &e))?;
 
     let public: Vec<CatalogProductResponse> = products
         .into_iter()
@@ -148,14 +162,14 @@ pub async fn list_products(
 pub async fn get_product_by_sku(
     State(state): State<Arc<AppState>>,
     Path(product_sku): Path<String>,
-) -> Result<Json<CatalogProductResponse>, (StatusCode, String)> {
+) -> Result<Json<CatalogProductResponse>, CatalogError> {
     use self::prod_schema::products::dsl;
 
     let pool = state.conn.clone();
     let mut conn = tokio::task::spawn_blocking(move || pool.get())
         .await
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: blocking pool", &e))?
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: db pool", &e))?;
 
     let product: Option<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
@@ -165,32 +179,33 @@ pub async fn get_product_by_sku(
         .select(CatalogProduct::as_select())
         .first(&mut conn)
         .optional()
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Query error: {e}"),
-            )
-        })?;
+        .map_err(|e| sanitized_error(StatusCode::INTERNAL_SERVER_ERROR, "catalog: product lookup", &e))?;
 
+    // `product_sku` is not echoed back: path input does not belong in an
+    // error body, and the stable envelope is enough for clients to branch on.
     match product {
         Some(p) => Ok(Json(p.into())),
         None => Err((
             StatusCode::NOT_FOUND,
-            format!("Product '{product_sku}' not found"),
+            Json(serde_json::json!({
+                "error": "not_found",
+                "message": "Product not found",
+                "code": "not_found",
+            })),
         )),
     }
 }
 
 pub async fn list_plans(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<CatalogProductResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CatalogProductResponse>>, CatalogError> {
     use self::prod_schema::products::dsl;
 
     let pool = state.conn.clone();
     let mut conn = tokio::task::spawn_blocking(move || pool.get())
         .await
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: blocking pool", &e))?
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: db pool", &e))?;
 
     let products: Vec<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
@@ -199,12 +214,7 @@ pub async fn list_plans(
         .select(CatalogProduct::as_select())
         .order(dsl::price.asc())
         .load(&mut conn)
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Query error: {e}"),
-            )
-        })?;
+        .map_err(|e| sanitized_error(StatusCode::INTERNAL_SERVER_ERROR, "catalog: list plans", &e))?;
 
     let public: Vec<CatalogProductResponse> = products
         .into_iter()
@@ -216,19 +226,15 @@ pub async fn list_plans(
 
 pub async fn prices_json(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<JsonLdItemList>, (StatusCode, String)> {
+) -> Result<Json<JsonLdItemList>, CatalogError> {
     let pool = state.conn.clone();
     let mut conn = tokio::task::spawn_blocking(move || pool.get())
         .await
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("Join error: {e}")))?
-        .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: blocking pool", &e))?
+        .map_err(|e| sanitized_error(StatusCode::SERVICE_UNAVAILABLE, "catalog: db pool", &e))?;
 
-    let products = load_public_products(&mut conn).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Query error: {e}"),
-        )
-    })?;
+    let products = load_public_products(&mut conn)
+        .map_err(|e| sanitized_error(StatusCode::INTERNAL_SERVER_ERROR, "catalog: prices", &e))?;
 
     let items: Vec<JsonLdListItem> = products
         .into_iter()

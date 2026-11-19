@@ -1,11 +1,14 @@
+/* #2324: the remaining gradient stops are per-app brand colours (a fixed
+   identity, not themeable chrome). Where an app maps to a semantic role it
+   uses var(--primary/--success/--error/--info) instead. */
 .app-icon.video {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--error), color-mix(in srgb, var(--error) 82%, black));
 }
 .app-icon.player {
     background: linear-gradient(135deg, #a855f7, #9333ea);
 }
 .app-icon.social {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    background: linear-gradient(135deg, var(--info), #0891b2);
 }
 .app-icon.learn {
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
@@ -14,7 +17,7 @@
     background: linear-gradient(135deg, #14b8a6, #0d9488);
 }
 .app-icon.analytics {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: linear-gradient(135deg, #6366f1, var(--primary));
 }
 .app-icon.dashboards {
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
@@ -26,25 +29,25 @@
     background: linear-gradient(135deg, #ec4899, #db2777);
 }
 .app-icon.workspace {
-    background: linear-gradient(135deg, #64748b, #475569);
+    background: linear-gradient(135deg, var(--surface-hover), color-mix(in srgb, var(--surface-hover) 82%, black));
 }
 .app-icon.designer {
     background: linear-gradient(135deg, #f97316, #ea580c);
 }
 .app-icon.editor {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, var(--success), #059669);
 }
 .app-icon.attendant {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 82%, black));
 }
 .app-icon.security {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
 }
 .app-icon.monitoring {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--error), color-mix(in srgb, var(--error) 82%, black));
 }
 .app-icon.settings {
-    background: linear-gradient(135deg, #71717a, #52525b);
+    background: linear-gradient(135deg, var(--surface-hover), color-mix(in srgb, var(--surface-hover) 82%, black));
 }
 
 .app-content {
@@ -153,7 +156,7 @@
 }
 
 .message-content ul li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
 }
 
 /* Nested bullets */
@@ -188,7 +191,7 @@
 /* Lists in bot messages */
 .message.bot .message-content ul li::marker,
 .message.bot .message-content ol li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
 }
 
 /* Paragraphs in messages */
@@ -250,7 +253,7 @@
 .message-content blockquote {
     margin: 12px 0;
     padding-left: 16px;
-    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary)));
     font-style: italic;
 }
 

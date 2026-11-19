@@ -143,17 +143,102 @@
     }
 }
 
+/* #2515 — phone editing contract. The old rule hid .toolbar-center outright,
+   which removed every command from the phone. Keep the cluster in the row and
+   let the row scroll horizontally; the #2290 overflow chevron still lists the
+   commands that do not fit. No desktop rule changes (all mobile-only). */
 @media (max-width: 768px) {
     .toolbar-center {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .toolbar-center::-webkit-scrollbar { display: none; }
+    .sheet-toolbar-row-main { flex-wrap: nowrap; }
+    .toolbar-left, .toolbar-right { flex: 0 0 auto; }
+    .sheet-name-input { max-width: 120px; }
+    .btn-primary span { display: none; }
+    .formula-input, .cell-address { font-size: var(--text-md); }
+}
+
+/* The fixed 240px sidebar becomes an off-canvas drawer with an explicit
+   toggle and a dismiss backdrop. Inline width/background on the aside are
+   overridden with !important so desktop styles stay byte-for-byte unchanged. */
+.gb-mobile-sidebar-toggle { display: none; }
+
+@media (max-width: 760px) {
+    .sheet-main { position: relative; }
+
+    .sheet-sidebar {
+        position: absolute !important;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: min(86vw, 320px) !important;
+        max-width: 86vw !important;
+        z-index: var(--z-fixed);
+        transform: translateX(-102%);
+        transition: transform 0.2s ease;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+    .sheet-main.sidebar-open .sheet-sidebar { transform: translateX(0); }
+
+    .sheet-backdrop {
         display: none;
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-sticky);
+        background: rgba(2, 6, 23, 0.6);
+    }
+    .sheet-main.sidebar-open .sheet-backdrop { display: block; }
+
+    .gb-mobile-sidebar-toggle { display: inline-flex; }
+    .gb-mobile-sidebar-close { width: 44px; height: 44px; flex: 0 0 44px; }
+
+    /* #2290 overflow sheet: every hidden command gets a 44px row on a phone. */
+    .toolbar-overflow-btn { min-width: 44px; min-height: 44px; }
+    .toolbar-overflow-menu .tb-overflow-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
     }
 
-    .sheet-name-input {
-        max-width: 150px;
-    }
+    /* Touch hit targets: controls and the tab strip move from 24–26px to the
+       44px class without changing desktop density. */
+    .sheet-toolbar .btn-icon,
+    .sheet-toolbar .gb-cp-trigger { min-width: 44px; min-height: 44px; }
+    .sheet-toolbar .btn-icon { height: 44px; }
+    .sidebar-tab, .sidebar-panel-btn { min-height: 44px; padding: 10px 12px; }
+    .ss-tab, .ss-tab-add { min-height: 44px; }
+    .formula-input, .cell-address { min-height: 44px; }
 
-    .btn-primary span {
-        display: none;
+    /* visualViewport bridge (mobile-viewport.js, loaded by desktop.html): the
+       keyboard does not shrink the layout viewport on iOS, so reserve its
+       height as padding on the flex column. The toolbar and formula bar stay
+       pinned at the top and the grid keeps its own scroller. */
+    #sheet-app {
+        box-sizing: border-box;
+        padding-bottom: var(--gb-vv-bottom, 0px);
+    }
+    .vg-cell { touch-action: manipulation; font-size: var(--text-sm) !important; }
+    .vg-scroll { -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+    .vg-header-row { height: 44px !important; }
+    .ss-col-head { line-height: 44px !important; font-size: var(--text-xs) !important; }
+
+    /* Pinch zoom is applied to the grid canvas by the mobile module; the shell
+       itself must never grow wider than the viewport. */
+    #sheet-app, .sheet-content, .sheet-main { max-width: 100vw; overflow-x: hidden; }
+    .sheet-content { zoom: var(--sheet-touch-zoom, 1); }
+
+    /* The 9px fill handle keeps its visual size but gains a 45px touch ring. */
+    .ss-fill-handle::after {
+        content: "";
+        position: absolute;
+        inset: -18px;
+        border-radius: 50%;
     }
 }
 

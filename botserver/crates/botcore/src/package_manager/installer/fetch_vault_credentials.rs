@@ -18,6 +18,10 @@ impl PackageManager {
                     .join("botserver-stack")
             });
 
+        // #2498 — the scoped sidecar token lives in the private credential
+        // store; `.env` only holds a VAULT_TOKEN_FILE reference. Resolve it
+        // from the store instead of reading a token value out of `.env`.
+        let _ = botcorepkg::installer_vault::secret_store::load_token_into_env();
         let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
         let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 

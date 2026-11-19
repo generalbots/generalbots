@@ -15,7 +15,29 @@ use botcore::shared::state::AppState;
 
 use super::anonymous_auth::{resolve_chat_user_uuid, resolve_token_user};
 
-type HandlerError = (StatusCode, String);
+/// Sanitised JSON error envelope shared by both tab handlers. Internal
+/// messages are logged and replaced with the canonical `SafeErrorResponse`
+/// body; client mistakes use the same shape with a stable `code`.
+type HandlerError = (StatusCode, Json<serde_json::Value>);
+
+fn sanitized_error<E: std::fmt::Display + ?Sized>(
+    context: &str,
+    error: &E,
+) -> HandlerError {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(crate::security::error_sanitizer::log_and_sanitize_json(
+            error, context, None,
+        )),
+    )
+}
+
+fn client_error(status: StatusCode, code: &str, message: &str) -> HandlerError {
+    (
+        status,
+        Json(serde_json::json!({ "error": code, "message": message, "code": code })),
+    )
+}
 
 const MAX_TABS: usize = 20;
 const MAX_TAB_JSON_BYTES: usize = 32 * 1024;
@@ -47,12 +69,8 @@ fn requester(headers: &HeaderMap) -> Result<Uuid, HandlerError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .unwrap_or_default();
-    let (user_raw, _roles) = resolve_token_user(token).ok_or_else(|| {
-        (
-            StatusCode::UNAUTHORIZED,
-            "Authentication required".to_string(),
-        )
-    })?;
+    let (user_raw, _roles) = resolve_token_user(token)
+        .ok_or_else(|| client_error(StatusCode::UNAUTHORIZED, "unauthorized", "Authentication required"))?;
     Ok(resolve_chat_user_uuid(&user_raw))
 }
 
@@ -64,18 +82,13 @@ pub async fn get_tabs(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+        .map_err(|e| sanitized_error("workspace tabs: db pool", &e))?;
     let row = user_workspace_tabs::dsl::user_workspace_tabs
         .find(user_id)
         .select(WorkspaceTabsRow::as_select())
         .get_result::<WorkspaceTabsRow>(&mut conn)
         .optional()
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("tabs lookup: {e}"),
-            )
-        })?;
+        .map_err(|e| sanitized_error("workspace tabs: lookup", &e))?;
     match row {
         Some(r) => Ok(Json(serde_json::json!({
             "tabs": r.tabs,
@@ -95,13 +108,18 @@ pub async fn put_tabs(
         .map(|s| s.len() > MAX_TAB_JSON_BYTES)
         .unwrap_or(true)
     {
-        return Err((
+        return Err(client_error(
             StatusCode::BAD_REQUEST,
-            "tabs payload too large".to_string(),
+            "payload_too_large",
+            "tabs payload too large",
         ));
     }
     if body.tabs.as_array().map(|a| a.len()).unwrap_or(0) > MAX_TABS {
-        return Err((StatusCode::BAD_REQUEST, "too many tabs".to_string()));
+        return Err(client_error(
+            StatusCode::BAD_REQUEST,
+            "too_many_tabs",
+            "too many tabs",
+        ));
     }
     let row = WorkspaceTabsRow {
         user_id,
@@ -111,7 +129,7 @@ pub async fn put_tabs(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
+        .map_err(|e| sanitized_error("workspace tabs: db pool", &e))?;
     diesel::insert_into(user_workspace_tabs::dsl::user_workspace_tabs)
         .values(&row)
         .on_conflict(user_workspace_tabs::dsl::user_id)
@@ -121,7 +139,7 @@ pub async fn put_tabs(
             user_workspace_tabs::dsl::updated_at.eq(row.updated_at),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("tabs save: {e}")))?;
+        .map_err(|e| sanitized_error("workspace tabs: save", &e))?;
     Ok(Json(serde_json::json!({
         "saved": true,
         "updated_at": row.updated_at.to_rfc3339(),

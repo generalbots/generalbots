@@ -3,8 +3,8 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    background: var(--bg, #fff);
-    color: var(--text, #222);
+    background: var(--bg);
+    color: var(--text);
 }
 
 .gb-preview-bar {
@@ -27,16 +27,16 @@
 
 .gb-preview-status {
     flex: 1;
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.gb-preview-status.busy { color: var(--primary, #3a7); }
-.gb-preview-status.ok { color: #2e7d32; }
-.gb-preview-status.warn { color: #b26a00; }
-.gb-preview-status.error { color: #c62828; }
+.gb-preview-status.busy { color: var(--primary); }
+.gb-preview-status.ok { color: var(--success); }
+.gb-preview-status.warn { color: var(--warning); }
+.gb-preview-status.error { color: var(--error); }
 
 .gb-preview-actions {
     display: flex;
@@ -63,7 +63,7 @@
     align-items: stretch;
     justify-content: center;
     overflow: auto;
-    background: #f6f5f2;
+    background: var(--surface);
 }
 
 .gb-preview-frame {
@@ -111,7 +111,7 @@
 .gb-preview-empty {
     margin: auto;
     padding: 24px;
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary);
     font-size: var(--text-xs);
 }
 
@@ -131,8 +131,8 @@
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: #2e7d32;
-    background: #e8f0ea;
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
     border-radius: 8px;
     padding: 14px 10px;
 }

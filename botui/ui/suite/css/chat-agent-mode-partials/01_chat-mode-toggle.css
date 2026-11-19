@@ -15,7 +15,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 .chat-loading-overlay {
   position: fixed;
   inset: 0;
-  background: var(--bg, #1a1a24);
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,8 +27,8 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 .chat-loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--border, #2a2a2a);
-  border-top-color: var(--accent, #84d669);
+  border: 3px solid var(--border);
+  border-top-color: var(--accent, var(--primary));
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -38,7 +38,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 }
 
 .chat-loading-text {
-  color: var(--text-muted, #888);
+  color: var(--text-muted, var(--text-secondary));
   font-family: 'Fira Code', monospace;
   font-size: var(--text-sm);
 }
@@ -117,9 +117,9 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 24px;
-    background: var(--surface, #1a1a24);
+    background: var(--surface);
     color: var(--text, var(--bg));
     font-family: 'Fira Code', monospace;
     font-size: var(--text-2xs);
@@ -238,7 +238,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     border: 1px solid var(--border, var(--border));
     border-radius: 8px;
     overflow: hidden;
-    background: var(--surface, #f8f9fa);
+    background: var(--surface);
 }
 
 .thought-process-header {
@@ -259,7 +259,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 }
 
 .thought-process-header:hover {
-    background: var(--hover, #e8e9ea);
+    background: var(--hover, var(--surface-hover));
 }
 
 .thought-process-toggle {

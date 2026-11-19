@@ -6,8 +6,8 @@
     align-items: center;
     gap: 8px;
     padding: 5px 12px;
-    background: color-mix(in srgb, #16a34a 7%, var(--b-toolbar));
-    border-bottom: 1px solid color-mix(in srgb, #16a34a 32%, var(--b-border));
+    background: color-mix(in srgb, var(--success) 7%, var(--b-toolbar));
+    border-bottom: 1px solid color-mix(in srgb, var(--success) 32%, var(--b-border));
     flex-shrink: 0;
     overflow-x: auto;
 }
@@ -16,7 +16,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #15803d;
+    color: var(--success);
     white-space: nowrap;
 }
 .browser-vm-tabs-list {
@@ -37,17 +37,17 @@
     gap: 6px;
     max-width: 210px;
     padding: 4px 9px;
-    border: 1px solid color-mix(in srgb, #16a34a 40%, var(--b-border));
+    border: 1px solid color-mix(in srgb, var(--success) 40%, var(--b-border));
     border-radius: 999px;
     background: var(--b-field);
     color: var(--b-text);
     font-size: var(--text-2xs);
     cursor: pointer;
 }
-.browser-vm-tab:hover { background: color-mix(in srgb, #16a34a 12%, var(--b-field)); }
+.browser-vm-tab:hover { background: color-mix(in srgb, var(--success) 12%, var(--b-field)); }
 .browser-vm-tab.active {
-    border-color: #16a34a;
-    box-shadow: 0 0 0 1px #16a34a inset;
+    border-color: var(--success);
+    box-shadow: 0 0 0 1px var(--success) inset;
 }
 .browser-vm-tab-title {
     overflow: hidden;
@@ -59,14 +59,14 @@
     font-size: var(--text-xs);
     line-height: 1;
 }
-.browser-vm-tab-close:hover { opacity: 1; color: #dc2626; }
+.browser-vm-tab-close:hover { opacity: 1; color: var(--error); }
 .browser-vm-badge {
     display: inline-flex;
     align-items: center;
     gap: 3px;
     padding: 1px 6px;
     border-radius: 999px;
-    background: #16a34a;
+    background: var(--success);
     color: #fff;
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -79,20 +79,20 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #dcfce7;
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
 }
 .browser-vm-tab-open {
-    border: 1px dashed color-mix(in srgb, #16a34a 55%, var(--b-border));
+    border: 1px dashed color-mix(in srgb, var(--success) 55%, var(--b-border));
     background: transparent;
-    color: #15803d;
+    color: var(--success);
     border-radius: 999px;
     padding: 3px 9px;
     font-size: var(--text-2xs);
     cursor: pointer;
     white-space: nowrap;
 }
-.browser-vm-tab-open:hover { background: color-mix(in srgb, #16a34a 12%, transparent); }
-.browser-vm-page { z-index: 2; background: #0f172a; }
+.browser-vm-tab-open:hover { background: color-mix(in srgb, var(--success) 12%, transparent); }
+.browser-vm-page { z-index: 2; background: var(--bg); }
 .browser-vm-page canvas {
     position: absolute;
     inset: 0;
@@ -108,14 +108,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: var(--text-2xs);
     pointer-events: none;
 }
 .browser-vm-shared {
     font-size: var(--text-2xs);
-    color: #15803d;
-    background: #dcfce7;
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 10%, var(--surface));
     border-radius: 999px;
     padding: 1px 5px;
 }

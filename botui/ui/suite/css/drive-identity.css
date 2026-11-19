@@ -20,7 +20,7 @@
     --drive-accent: hsl(var(--primary, 30 89% 55%));
     --drive-accent-soft: color-mix(in srgb, var(--drive-accent) 10%, transparent);
     --drive-accent-softer: color-mix(in srgb, var(--drive-accent) 6%, transparent);
-    --drive-accent-ink: color-mix(in srgb, var(--drive-accent) 72%, var(--text, #2c2c2c));
+    --drive-accent-ink: color-mix(in srgb, var(--drive-accent) 72%, var(--text));
     font-family: var(--id-font-sans, "Inter", "Fira Sans", system-ui, -apple-system, sans-serif);
     background: var(--bg);
 }

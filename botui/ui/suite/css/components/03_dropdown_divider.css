@@ -391,7 +391,7 @@
     overflow-y: scroll;
     overflow-x: hidden;
     scrollbar-width: auto;
-    scrollbar-color: var(--border-light, #3a3a3a) var(--surface, #1a1a1a);
+    scrollbar-color: var(--border-light) var(--surface);
 }
 
 @media (prefers-reduced-motion: reduce) {

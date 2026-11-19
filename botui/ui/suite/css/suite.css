@@ -2,8 +2,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--sentient-bg-primary, #0f172a);
-    color: var(--sentient-text-primary, #f8fafc);
+    background: var(--sentient-bg-primary, var(--bg));
+    color: var(--sentient-text-primary, var(--text));
     font-family: var(--sentient-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
 
@@ -12,8 +12,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    background: var(--sentient-bg-secondary, #1e293b);
-    border-bottom: 2px solid var(--sentient-border, #475569);
+    background: var(--sentient-bg-secondary, var(--surface));
+    border-bottom: 2px solid var(--sentient-border, var(--border));
     gap: 12px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.25);
@@ -43,7 +43,7 @@
 .toolbar-divider {
     width: 1px;
     height: 24px;
-    background: var(--sentient-border, #334155);
+    background: var(--sentient-border, var(--border));
     margin: 0 4px;
 }
 
@@ -56,14 +56,14 @@
     border: none;
     border-radius: var(--sentient-radius-sm, 4px);
     background: transparent;
-    color: var(--sentient-text-secondary, #94a3b8);
+    color: var(--sentient-text-secondary, var(--text-secondary));
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .btn-icon:hover {
-    background: var(--sentient-bg-tertiary, #334155);
-    color: var(--sentient-text-primary, #f8fafc);
+    background: var(--sentient-bg-tertiary, var(--surface-hover));
+    color: var(--sentient-text-primary, var(--text));
 }
 
 .btn-primary {
@@ -71,7 +71,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: var(--sentient-primary, #3b82f6);
+    background: var(--sentient-primary, var(--primary));
     color: #fff;
     border: none;
     border-radius: var(--sentient-radius-sm, 4px);
@@ -82,7 +82,7 @@
 }
 
 .btn-primary:hover {
-    background: var(--sentient-primary-hover, #2563eb);
+    background: var(--sentient-primary-hover, var(--primary-hover));
 }
 
 .docs-main {
@@ -93,8 +93,8 @@
 
 .docs-sidebar {
     width: 240px;
-    background: var(--sentient-bg-secondary, #1e293b);
-    border-right: 1px solid var(--sentient-border, #334155);
+    background: var(--sentient-bg-secondary, var(--surface));
+    border-right: 1px solid var(--sentient-border, var(--border));
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -102,14 +102,14 @@
 
 .sidebar-tabs {
     display: flex;
-    border-bottom: 1px solid var(--sentient-border, #334155);
+    border-bottom: 1px solid var(--sentient-border, var(--border));
 }
 
 .sidebar-tab {
     flex: 1;
     padding: 8px;
-    background: var(--sentient-bg-primary, #0f172a);
-    color: var(--sentient-text-secondary, #94a3b8);
+    background: var(--sentient-bg-primary, var(--bg));
+    color: var(--sentient-text-secondary, var(--text-secondary));
     border: none;
     cursor: pointer;
     font-size: var(--text-2xs);
@@ -117,9 +117,9 @@
 }
 
 .sidebar-tab.active {
-    background: var(--sentient-bg-secondary, #1e293b);
-    color: var(--sentient-text-primary, #f8fafc);
-    border-bottom: 2px solid var(--sentient-primary, #3b82f6);
+    background: var(--sentient-bg-secondary, var(--surface));
+    color: var(--sentient-text-primary, var(--text));
+    border-bottom: 2px solid var(--sentient-primary, var(--primary));
 }
 
 .sidebar-content {
@@ -129,9 +129,9 @@
 
 .sidebar-panel-btn {
     padding: 8px;
-    background: var(--sentient-bg-secondary, #1e293b);
-    color: var(--sentient-text-primary, #f8fafc);
-    border: 1px solid var(--sentient-border, #334155);
+    background: var(--sentient-bg-secondary, var(--surface));
+    color: var(--sentient-text-primary, var(--text));
+    border: 1px solid var(--sentient-border, var(--border));
     border-radius: var(--sentient-radius-sm, 4px);
     cursor: pointer;
     text-align: left;
@@ -141,14 +141,14 @@
 }
 
 .sidebar-panel-btn:hover {
-    background: var(--sentient-bg-tertiary, #334155);
+    background: var(--sentient-bg-tertiary, var(--surface-hover));
 }
 
 .docs-content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: var(--sentient-bg-primary, #0f172a);
+    background: var(--sentient-bg-primary, var(--bg));
     overflow-y: auto;
 }
 
@@ -165,16 +165,16 @@
     outline: none;
     font-size: var(--text-sm);
     line-height: 1.8;
-    color: var(--sentient-text-primary, #f8fafc);
+    color: var(--sentient-text-primary, var(--text));
 }
 
 .docs-status-bar {
     display: flex;
     justify-content: space-between;
     padding: 6px 16px;
-    background: var(--sentient-bg-primary, #0f172a);
-    border-top: 1px solid var(--sentient-border, #334155);
-    color: var(--sentient-text-secondary, #94a3b8);
+    background: var(--sentient-bg-primary, var(--bg));
+    border-top: 1px solid var(--sentient-border, var(--border));
+    color: var(--sentient-text-secondary, var(--text-secondary));
     font-size: var(--text-2xs);
     flex-shrink: 0;
 }
@@ -190,18 +190,18 @@
     align-items: center;
     gap: 4px;
     font-size: var(--text-2xs);
-    color: var(--sentient-text-secondary, #94a3b8);
+    color: var(--sentient-text-secondary, var(--text-secondary));
 }
 
 .gb-connection-status .dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #94a3b8;
+    background: var(--surface-hover);
 }
 
-.gb-connection-status.online .dot { background: #22c55e; }
-.gb-connection-status.offline .dot { background: #94a3b8; }
+.gb-connection-status.online .dot { background: var(--success); }
+.gb-connection-status.offline .dot { background: var(--surface-hover); }
 
 .modal-host {
     position: fixed;
@@ -220,7 +220,7 @@
 .docs-title-input {
     background: transparent;
     border: none;
-    color: var(--sentient-text-primary, #f8fafc);
+    color: var(--sentient-text-primary, var(--text));
     font-size: var(--text-sm);
     font-weight: 500;
     padding: 4px 8px;
@@ -230,11 +230,11 @@
 }
 
 .docs-title-input:focus {
-    background: var(--sentient-bg-tertiary, #334155);
+    background: var(--sentient-bg-tertiary, var(--surface-hover));
 }
 
 .save-status {
-    color: var(--sentient-text-secondary, #94a3b8);
+    color: var(--sentient-text-secondary, var(--text-secondary));
     font-size: var(--text-2xs);
 }
 
@@ -264,8 +264,8 @@
    window chrome. Lift them with a solid surface, a clear separator and a
    subtle elevation so icon buttons are easy to find. */
 .docs-toolbar, .sheet-toolbar, .slides-toolbar, .editor-toolbar, .paper-toolbar {
-  background: var(--surface-raised, #1e293b) !important;
-  border-bottom: 1px solid var(--border-color, #334155) !important;
+  background: var(--surface-raised, var(--surface)) !important;
+  border-bottom: 1px solid var(--border-color, var(--border)) !important;
   box-shadow: 0 1px 0 rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.12);
   min-height: 48px;
 }
@@ -279,7 +279,7 @@
 .slides-toolbar .btn-icon:hover, .editor-toolbar .btn-icon:hover,
 .paper-toolbar .btn-icon:hover {
   background: var(--surface-hover, rgba(255,255,255,.08));
-  border-color: var(--border-color, #334155);
+  border-color: var(--border-color, var(--border));
 }
 
 /* #2159 — Docs: visible A4 page separation while editing. The separator bands
@@ -287,10 +287,10 @@
    opened .docx does not get a stray stripe rhythm that disagrees with the
    real page height (#2184). */
 #docs-app .docs-editor {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 #docs-app .docs-doc-view, #docs-app article.docs-doc-view {
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: 0 1px 4px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08);
   margin: 24px auto;
   width: 816px;
@@ -316,7 +316,7 @@
 #docs-app article .gb-media img {
   max-width: 46%;
   max-height: 320px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
 }
 
@@ -326,7 +326,7 @@
 #docs-app article .gb-doc-page-break {
   display: block;
   border: 0;
-  border-top: 2px dashed #94a3b8;
+  border-top: 2px dashed var(--border-hover);
   margin: 26px 0 18px;
   padding-top: 6px;
   height: 0;
@@ -342,8 +342,8 @@
   font: 11px/1.4 system-ui, sans-serif;
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: #64748b;
-  background: #ffffff;
+  color: var(--text-tertiary);
+  background: var(--surface);
 }
 
 /* External suite icon SVGs: keep readable when app dark theme is active.

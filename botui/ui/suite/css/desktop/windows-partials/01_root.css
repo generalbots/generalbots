@@ -7,17 +7,17 @@
 /* Fallbacks cascade: new token → glass token → sentient → system defaults */
 
 :root {
-  --gb-bg: var(--bg-primary, var(--bg, var(--surface, #ffffff)));
+  --gb-bg: var(--bg-primary, var(--bg, var(--surface)));
   --app-bg: var(--gb-bg);
   /* #1970 — window chrome follows the active theme. `--surface` is published
      by the theme manager for every theme, so the title bar and status bar stop
      being permanently dark on light themes. */
-  --win-bg: var(--glass-bg, var(--surface, var(--card-bg, #161616)));
+  --win-bg: var(--glass-bg, var(--surface, var(--card-bg, var(--surface))));
   --win-blur: var(--glass-backdrop, blur(16px) saturate(150%));
   --win-radius: 14px;
   --win-border-width: 1.5px;
   --win-border-color: var(--glass-border-color, rgba(80,80,90,0.35));
-  --win-border-active: var(--accent-color, var(--gb-accent, #84d669));
+  --win-border-active: var(--accent-color, var(--gb-accent, var(--primary)));
   --win-shadow:
     0 1px 2px rgba(0,0,0,.18),
     0 6px 16px rgba(0,0,0,.16),
@@ -29,7 +29,7 @@
     0 28px 72px rgba(0,0,0,.34),
     inset 0 1px 0 rgba(255,255,255,.06);
   --win-titlebar-bg: var(--glass-bg, var(--win-bg));
-  --win-titlebar-text: var(--text-secondary, var(--text, #999));
+  --win-titlebar-text: var(--text-secondary, var(--text));
   --win-caption-hover: var(--win-chrome-highlight, rgba(255,255,255,0.08));
   --win-titlebar-sep: var(--glass-border-color, var(--border-color, var(--border, rgba(128,128,128,0.28))));
   /* Neutral bevel colours: a fixed white inset looked like a light-theme line
@@ -94,7 +94,7 @@
 
 .window-element {
   position: absolute;
-  background: var(--surface, #ffffff);
+  background: var(--surface);
   border-radius: var(--win-radius);
   box-shadow: var(--win-shadow);
   display: flex;

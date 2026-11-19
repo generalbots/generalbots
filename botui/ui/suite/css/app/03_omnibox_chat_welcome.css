@@ -60,7 +60,7 @@
 }
 
 .omnibox-message.user .message-content {
-    background: var(--primary, #3b82f6);
+    background: var(--primary);
     color: white;
     border-bottom-right-radius: 4px;
 }
@@ -111,15 +111,15 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    border-top: 1px solid var(--border, #334155);
-    background: var(--bg, #0f172a);
+    border-top: 1px solid var(--border);
+    background: var(--bg);
 }
 
 .omnibox-chat-input {
     flex: 1;
     padding: 8px 12px;
-    background: var(--surface, #1e293b);
-    border: 1px solid var(--border, #334155);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 20px;
     color: var(--text);
     font-size: var(--text-xs);
@@ -127,7 +127,7 @@
 }
 
 .omnibox-chat-input:focus {
-    border-color: var(--primary, #3b82f6);
+    border-color: var(--primary);
 }
 
 .omnibox-send-btn {
@@ -137,7 +137,7 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    background: var(--primary, #3b82f6);
+    background: var(--primary);
     border: none;
     border-radius: 50%;
     color: white;
@@ -146,7 +146,7 @@
 }
 
 .omnibox-send-btn:hover {
-    background: var(--primary-hover, #2563eb);
+    background: var(--primary-hover);
     transform: scale(1.05);
 }
 
@@ -156,8 +156,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    border-top: 1px solid var(--border, #334155);
-    background: var(--surface, #1e293b);
+    border-top: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .omnibox-back-btn,
@@ -182,7 +182,7 @@
 }
 
 .omnibox-expand-btn {
-    color: var(--primary, #3b82f6);
+    color: var(--primary);
 }
 
 /* Legacy header-search support */
@@ -193,7 +193,7 @@
     padding: 4px 12px;
     height: 28px;
     background: var(--surface, var(--glass-bg, rgba(255, 255, 255, 0.05)));
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--border)));
     border-radius: var(--radius-full);
     width: 100%;
     transition: all var(--transition-fast);
@@ -305,7 +305,7 @@
 .logo-icon {
     width: 32px;
     height: 32px;
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--text)));
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -345,9 +345,9 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--border)));
     background: var(--surface, var(--glass-bg, rgba(255, 255, 255, 0.05)));
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--text)));
     transition: all var(--transition-fast);
     backdrop-filter: blur(10px);
 }
@@ -365,8 +365,8 @@
 
 .icon-button.active {
     background: var(--accent-dim, rgba(212, 245, 5, 0.15));
-    border-color: var(--accent, var(--accent-color, #d4f505));
-    color: var(--accent, var(--accent-color, #d4f505));
+    border-color: var(--accent, var(--accent-color, var(--primary)));
+    color: var(--accent, var(--accent-color, var(--primary)));
 }
 
 .icon-button svg {

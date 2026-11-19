@@ -291,10 +291,12 @@
   font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
   resize: vertical;
 }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

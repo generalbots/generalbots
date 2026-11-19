@@ -9,7 +9,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary);
     padding: 8px 8px 6px;
 }
 
@@ -65,7 +65,7 @@
 .start-menu-app-label {
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text, #ddd);
+    color: var(--text);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -96,7 +96,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--primary, #88ccff);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -108,7 +108,7 @@
 .start-menu-user-name {
     font-size: var(--text-xs);
     font-weight: 500;
-    color: var(--text, #ddd);
+    color: var(--text);
 }
 
 .start-menu-power {
@@ -120,18 +120,18 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary);
 }
 
 .start-menu-power:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--error);
 }
 
 .start-menu-filter-empty {
     text-align: center;
     padding: 32px 16px;
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary);
     font-size: var(--text-sm);
 }
 
@@ -162,21 +162,21 @@
 #startBtn svg {
     width: 20px;
     height: 20px;
-    stroke: var(--text, #eee);
+    stroke: var(--text);
     transition: stroke 0.2s;
 }
 
 #startBtn:hover svg {
-    stroke: var(--primary, #88ccff);
+    stroke: var(--primary);
 }
 
 .start-menu-open #startBtn {
     background: rgba(255, 255, 255, 0.15);
-    border-color: var(--primary, #88ccff);
+    border-color: var(--primary);
 }
 
 .start-menu-open #startBtn svg {
-    stroke: var(--primary, #88ccff);
+    stroke: var(--primary);
 }
 
 /* ============================================ */
@@ -228,12 +228,12 @@ body.sidebar-hidden .chat-sidebar {
 .chat-sidebar-toggle svg {
     width: 22px;
     height: 22px;
-    stroke: var(--text-secondary, #888);
+    stroke: var(--text-secondary);
     transition: all 0.3s;
 }
 
 .chat-sidebar-toggle:hover svg {
-    stroke: var(--primary, #88ccff);
+    stroke: var(--primary);
 }
 
 .chat-sidebar.collapsed .chat-sidebar-toggle {
@@ -259,7 +259,7 @@ body.sidebar-hidden .chat-sidebar {
 .chat-sidebar-title {
     font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--text, #eee);
+    color: var(--text);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -269,8 +269,8 @@ body.sidebar-hidden .chat-sidebar {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--primary, #88ccff);
-    box-shadow: 0 0 8px var(--primary, #88ccff);
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
     animation: chatDotPulse 2s ease-in-out infinite;
 }
 
@@ -309,7 +309,7 @@ body.sidebar-hidden .chat-sidebar {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: var(--primary, #88ccff);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -330,7 +330,7 @@ body.sidebar-hidden .chat-sidebar {
 .chat-sidebar-conv-name {
     font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--text, #eee);
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -338,7 +338,7 @@ body.sidebar-hidden .chat-sidebar {
 
 .chat-sidebar-conv-preview {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #777);
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -347,7 +347,7 @@ body.sidebar-hidden .chat-sidebar {
 
 .chat-sidebar-conv-time {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #666);
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
@@ -361,14 +361,14 @@ body.sidebar-hidden .chat-sidebar {
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary);
     font-size: var(--text-xs);
     transition: all 0.2s;
 }
 
 .chat-sidebar-new-chat:hover {
-    border-color: var(--primary, #88ccff);
-    color: var(--primary, #88ccff);
+    border-color: var(--primary);
+    color: var(--primary);
     background: rgba(255, 255, 255, 0.04);
 }
 
@@ -393,7 +393,7 @@ body.sidebar-hidden .chat-sidebar {
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.15s;
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

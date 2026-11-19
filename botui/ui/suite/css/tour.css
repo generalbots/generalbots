@@ -36,8 +36,8 @@
   padding: 16px 18px 14px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   border-radius: 14px;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--text);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   opacity: 1;
   pointer-events: auto;
@@ -45,7 +45,7 @@
 
 .gb-tour-progress {
   margin: 0 0 6px;
-  color: #64748b;
+  color: var(--text-tertiary);
   font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -61,7 +61,7 @@
 
 .gb-tour-body {
   margin: 0 0 14px;
-  color: #334155;
+  color: var(--text-secondary);
   font-size: var(--text-xs);
   line-height: 1.5;
 }
@@ -84,10 +84,10 @@
   appearance: none;
   min-height: 32px;
   padding: 6px 13px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -95,12 +95,12 @@
 }
 
 .gb-tour-btn:hover {
-  border-color: #94a3b8;
-  background: #f8fafc;
+  border-color: var(--border-hover);
+  background: var(--surface);
 }
 
 .gb-tour-btn:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--primary-hover);
   outline-offset: 2px;
 }
 
@@ -110,26 +110,26 @@
 }
 
 .gb-tour-btn--primary {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
+  color: var(--id-on-accent);
 }
 
 .gb-tour-btn--primary:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
 }
 
 .gb-tour-btn--ghost {
   border-color: transparent;
   background: transparent;
-  color: #64748b;
+  color: var(--text-tertiary);
 }
 
 .gb-tour-btn--ghost:hover {
   border-color: transparent;
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
 }
 
 .gb-tour-prompt-layer {
@@ -147,15 +147,15 @@
   padding: 22px 24px 20px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   border-radius: 16px;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--text);
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
   opacity: 1;
 }
 
 .gb-tour-eyebrow {
   margin: 0 0 6px;
-  color: #2563eb;
+  color: var(--primary-hover);
   font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -170,7 +170,7 @@
 
 .gb-tour-prompt-body {
   margin: 0 0 18px;
-  color: #334155;
+  color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: 1.55;
 }
@@ -183,54 +183,54 @@
   .gb-tour-callout,
   .gb-tour-prompt {
     border-color: rgba(148, 163, 184, 0.28);
-    background: #111827;
-    color: #f8fafc;
+    background: var(--bg);
+    color: var(--text);
   }
 
   .gb-tour-progress {
-    color: #94a3b8;
+    color: var(--text-secondary);
   }
 
   .gb-tour-body,
   .gb-tour-prompt-body {
-    color: #cbd5e1;
+    color: var(--text-secondary);
   }
 
   .gb-tour-eyebrow {
-    color: #93c5fd;
+    color: var(--info);
   }
 
   .gb-tour-btn {
-    border-color: #475569;
-    background: #1e293b;
-    color: #f8fafc;
+    border-color: var(--border-light);
+    background: var(--surface);
+    color: var(--text);
   }
 
   .gb-tour-btn:hover {
-    border-color: #64748b;
-    background: #334155;
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
   }
 
   .gb-tour-btn--primary {
-    border-color: #3b82f6;
-    background: #3b82f6;
-    color: #ffffff;
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--id-on-accent);
   }
 
   .gb-tour-btn--primary:hover {
-    border-color: #2563eb;
-    background: #2563eb;
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
   }
 
   .gb-tour-btn--ghost {
     border-color: transparent;
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-secondary);
   }
 
   .gb-tour-btn--ghost:hover {
-    background: #1e293b;
-    color: #e2e8f0;
+    background: var(--surface);
+    color: var(--text-secondary);
   }
 }
 

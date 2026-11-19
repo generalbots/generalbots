@@ -26,6 +26,21 @@ const PowerMenu = (() => {
     { id: "shutdown", label: "power-menu-shutdown", fallback: "Shut down", icon: "M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" }
   ];
 
+  /** Tauri events are the shell bridge already used by the power menu (#2450).
+   *  Emitting a named event is a no-op when no native listener is attached. */
+  function emitShell(name) {
+    try {
+      var tauri = window.__TAURI__;
+      if (!tauri || !tauri.event || typeof tauri.event.emit !== "function") return;
+      var result = tauri.event.emit(name, {});
+      if (result && typeof result.catch === "function") {
+        result.catch(function (error) { console.warn("power menu: shell event", error); });
+      }
+    } catch (error) {
+      console.warn("power menu: shell event", error);
+    }
+  }
+
   function isOpen() {
     return document.getElementById(PANEL_ID) !== null;
   }
@@ -88,7 +103,10 @@ const PowerMenu = (() => {
   /** Asks before anything irreversible, then calls the audited endpoint. */
   async function run(action) {
     if (action === "lock") {
-      if (window.LockScreen) window.LockScreen.lock();
+      // Ask logind to lock the session as well; the webview overlay always
+      // requires the credential, even if no native listener exists (#2446).
+      emitShell("gb-lock-request");
+      if (window.LockScreen) window.LockScreen.lock("power-menu");
       return;
     }
 
@@ -101,6 +119,13 @@ const PowerMenu = (() => {
     }[action] || "Continue?";
     const ok = await ask(t(confirmKey, fallbackConfirm));
     if (!ok) return;
+
+    // Suspend/resume, lid-open and session-switch must never reveal an
+    // unlocked desktop: lock first, then hand the action to /api/system/power.
+    if (action === "suspend" || action === "restart" || action === "shutdown") {
+      emitShell("gb-lock-request");
+      if (window.LockScreen) window.LockScreen.lock("power-menu");
+    }
 
     try {
       const headers = window.GBShared && window.GBShared.auth

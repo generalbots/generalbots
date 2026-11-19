@@ -21,9 +21,9 @@ transform: translateY(-10px);
 }
 
 .vibe-quick-btn:hover {
-border-color: var(--accent) !important;
-color: var(--accent) !important;
-background: rgba(132, 214, 105, 0.06) !important;
+border-color: var(--accent);
+color: var(--accent);
+background: rgba(132, 214, 105, 0.06);
 transform: translateY(-2px);
 }
 
@@ -189,7 +189,7 @@ z-index: var(--z-sticky);
    intercept pointer input on narrower desktop windows. */
 .vibe-design-mode #vibeRunDockHost,
 .vibe-design-mode #vibeChatOverlay {
-display: none !important;
+display: none;
 }
 
 .vibe-canvas-toolbar button {
@@ -224,9 +224,9 @@ color: #64748b;
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

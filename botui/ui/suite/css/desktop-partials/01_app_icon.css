@@ -1,19 +1,19 @@
 .app-icon {
-    background: var(--surface-hover, #ffffff);
-    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
     /* removed border */
     /* removed border bottom */
 }
 
 .workspace-bg {
-    background-color: var(--bg, #fafdfa);
+    background-color: var(--bg);
 }
 
 .workspace-grid {
     background-image:
-        linear-gradient(to right, var(--border, #f0fdf4) 1px, transparent 1px),
-        linear-gradient(to bottom, var(--border, #f0fdf4) 1px, transparent 1px);
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
     background-size: 40px 40px;
 }
 
@@ -26,11 +26,11 @@
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: var(--surface-active, #333);
+    background: var(--surface-active, var(--surface-hover));
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-hover, #555);
+    background: var(--border-hover);
 }
 
 /* Window Manager Core Styles (replacing missing Tailwind classes) */
@@ -58,23 +58,23 @@
     height: 22px;
     padding: 0 8px;
     flex-shrink: 0;
-    background: var(--surface, #d4d4d4);
+    background: var(--surface);
     font-size: var(--text-2xs);
     line-height: 22px;
-    color: var(--text, #000);
+    color: var(--text);
     user-select: none;
-    border-top: 1px solid var(--border, #808080);
-    box-shadow: inset 0 1px 0 #ffffff, inset 1px 0 0 #ffffff,
-                inset 0 -1px 0 var(--border, #808080), inset -1px 0 0 var(--border, #808080);
+    border-top: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 var(--text), inset 1px 0 0 var(--text),
+                inset 0 -1px 0 var(--border), inset -1px 0 0 var(--border);
     font-family: "Fira Code", monospace;
     letter-spacing: 0.02em;
 }
 
 [data-theme="3dbevel"] .window-statusbar {
-    background: #c0c0c0;
-    color: #000000;
-    box-shadow: inset -1px -1px 0 #000000, inset 1px 1px 0 #ffffff,
-                inset -2px -2px 0 #808080, inset 2px 2px 0 #ffffff;
+    background: var(--surface-hover);
+    color: var(--text);
+    box-shadow: inset -1px -1px 0 var(--text), inset 1px 1px 0 var(--text),
+                inset -2px -2px 0 var(--text-tertiary), inset 2px 2px 0 var(--text);
 }
 
 .window-statusbar-status {
@@ -86,7 +86,7 @@
 }
 
 .window-statusbar-title {
-    color: var(--text-secondary, #404040);
+    color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -95,7 +95,7 @@
 
 .window-header {
     height: 40px;
-    background-color: var(--surface, #ffffff);
+    background-color: var(--surface);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -111,14 +111,14 @@
     font-family: "Fira Code", monospace;
     font-size: var(--text-2xs);
     font-weight: 700;
-    color: var(--accent, #16a34a); /* brand-600 */
+    color: var(--accent, var(--primary)); /* brand-600 */
     letter-spacing: 0.025em;
 }
 
 .window-header-controls {
     display: flex;
     gap: 12px;
-    color: var(--text-muted, #9ca3af);
+    color: var(--text-muted, var(--text-secondary));
 }
 
 .window-header button {
@@ -130,18 +130,18 @@
 }
 
 .window-header .btn-minimize:hover {
-    color: var(--text, #4b5563);
+    color: var(--text);
 }
 
 .window-header .btn-close:hover {
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 
 .window-body {
     position: relative;
     flex: 1 1 0%;
     overflow-y: auto;
-    background-color: var(--bg, #fafdfa);
+    background-color: var(--bg);
     padding: 16px;
 }
 
@@ -171,7 +171,7 @@
     border-style: solid;
 }
 .border-gray-200 {
-    border-color: #e5e7eb;
+    border-color: var(--border-light);
 }
 .overflow-hidden {
     overflow: hidden;
@@ -221,7 +221,7 @@
     font-weight: 700;
 }
 .text-brand-600 {
-    color: var(--accent, #84d669);
+    color: var(--accent, var(--primary));
 }
 .tracking-wide {
     letter-spacing: 0.025em;
@@ -232,13 +232,13 @@
     margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
 }
 .text-gray-400 {
-    color: var(--text-muted, #9ca3af);
+    color: var(--text-muted, var(--text-secondary));
 }
 .hover\:text-gray-600:hover {
-    color: var(--text, #4b5563);
+    color: var(--text);
 }
 .hover\:text-red-500:hover {
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 .relative {
     position: relative;
@@ -250,12 +250,12 @@
     overflow-y: auto;
 }
 .bg-\[\#fafdfa\] {
-    background-color: var(--bg, #fafdfa);
+    background-color: var(--bg);
 }
 
 .window-header {
     height: 40px;
-    background-color: var(--surface, #ffffff);
+    background-color: var(--surface);
     border-bottom: 1px solid hsl(var(--border));
     display: flex;
     align-items: center;
@@ -270,7 +270,7 @@
     flex: 1;
     overflow-y: auto;
     position: relative;
-    background-color: var(--bg, #ffffff);
+    background-color: var(--bg);
 }
 
 /* No dim/overlay — windows float naturally above content */
@@ -294,13 +294,13 @@ body.window-maximized .window-element-glass {
 
 /* Ensure window body is opaque */
 .window-body {
-    background-color: var(--bg, #fafdfa) !important;
+    background-color: var(--bg) !important;
     opacity: 1 !important;
 }
 
 /* Ensure window element is fully opaque */
 .window-element {
-    background-color: var(--surface, #ffffff) !important;
+    background-color: var(--surface) !important;
     opacity: 1 !important;
 }
 
@@ -370,7 +370,7 @@ select.theme-dropdown {
 }
 
 .start-menu-search:focus-within {
-    border-color: var(--primary, #88ccff);
+    border-color: var(--primary);
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 0 3px rgba(136, 204, 255, 0.15);
 }
@@ -378,7 +378,7 @@ select.theme-dropdown {
 .start-menu-search svg {
     width: 18px;
     height: 18px;
-    stroke: var(--text-secondary, #888);
+    stroke: var(--text-secondary);
     flex-shrink: 0;
 }
 
@@ -387,13 +387,13 @@ select.theme-dropdown {
     background: none;
     border: none;
     outline: none;
-    color: var(--text, #eee);
+    color: var(--text);
     font-size: var(--text-sm);
     font-family: inherit;
 }
 
 .start-menu-search input::placeholder {
-    color: var(--text-secondary, #666);
+    color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

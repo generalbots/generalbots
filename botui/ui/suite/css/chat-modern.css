@@ -114,7 +114,7 @@
     left: 4px;
     font-size: var(--text-2xs);
     line-height: 1;
-    color: #a1a1aa;
+    color: var(--text-secondary);
     opacity: 0;
     transform: translateY(2px);
     transition: opacity 140ms ease, transform 140ms ease;
@@ -204,7 +204,7 @@
 }
 
 #chat-app .bot-message a {
-    color: #15803d !important;
+    color: var(--success) !important;
 }
 
 /* Historical reasoning-only completions were persisted as empty bot
@@ -219,8 +219,8 @@
     border-radius: 10px;
     padding: 12px 14px;
     font-size: var(--text-2xs);
-    background: #f4f4f5;
-    color: #27272a;
+    background: var(--surface);
+    color: var(--text-secondary);
 }
 
 #chat-app .bot-message code { font-size: var(--text-2xs); }
@@ -240,7 +240,7 @@
 /* ── Thinking block: part of the bubble, not a white card inside it ─── */
 
 #chat-app .thinking-section {
-    background: #f7f7f8;
+    background: var(--surface);
     border: 1px solid var(--gb-border-soft);
     border-radius: 12px;
     margin-bottom: 10px;
@@ -254,22 +254,22 @@
 }
 
 #chat-app .thinking-section .thinking-content {
-    color: #52525b;
+    color: var(--text-secondary);
     border-top: 1px solid var(--gb-border-soft);
 }
 
 [data-color-scheme="dark"] #chat-app .thinking-section {
-    background: #202025;
-    border-color: #313138;
+    background: var(--surface);
+    border-color: var(--border-light);
 }
 
 [data-color-scheme="dark"] #chat-app .thinking-section summary {
-    color: #a1a1aa;
+    color: var(--text-secondary);
 }
 
 [data-color-scheme="dark"] #chat-app .thinking-section .thinking-content {
-    color: #c4c4cc;
-    border-top-color: #313138;
+    color: var(--text-secondary);
+    border-top-color: var(--border-light);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

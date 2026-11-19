@@ -26,6 +26,16 @@
     --warning: #f59e0b;
     --error: #ef4444;
     --info: #3b82f6;
+
+    /* Semantic role aliases (#2324). These roles were referenced by apps but
+       only defined ad-hoc in individual themes, so the same intent resolved
+       to a different colour (or to nothing) outside those themes. Deriving
+       them from the canonical roles above makes them resolve in every theme.
+       No new colour values: a theme only has to tune the base role once. */
+    --surface-raised: var(--surface-hover);
+    --text-muted: var(--text-secondary);
+    --danger: var(--error);
+    --focus-ring: var(--primary);
 }
 
 [data-theme="dark"] {

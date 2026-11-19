@@ -4,14 +4,14 @@
     text-align: center;
     padding: 10px;
     margin-top: 12px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     font-size: var(--text-xs);
     text-decoration: underline;
     cursor: pointer;
 }
 
 .intent-detailed-link:hover {
-    color: var(--text, #ffffff);
+    color: var(--text);
 }
 
 /* ============================================ */
@@ -19,8 +19,8 @@
 /* ============================================ */
 
 .detail-panel {
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
 }
@@ -30,13 +30,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border);
 }
 
 .detail-panel-header h2 {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin: 0;
 }
 
@@ -58,16 +58,16 @@
     width: 32px;
     height: 32px;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .nav-btn:hover {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
 .nav-btn:disabled {
@@ -81,8 +81,8 @@
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    background: var(--surface-hover, #1e1e1e);
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover);
+    border-bottom: 1px solid var(--border);
 }
 
 .detail-status-badge {
@@ -91,7 +91,7 @@
     gap: 6px;
     padding: 4px 10px;
     background: rgba(245, 158, 11, 0.15);
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
     border-radius: 12px;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -107,20 +107,20 @@
 .detail-progress-text {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .detail-progress-bar {
     width: 100px;
     height: 6px;
-    background: var(--border, #2a2a2a);
+    background: var(--border);
     border-radius: 3px;
     overflow: hidden;
 }
 
 .detail-progress-bar-fill {
     height: 100%;
-    background: var(--accent, #d4f505);
+    background: var(--accent, var(--primary));
     border-radius: 3px;
 }
 
@@ -132,17 +132,17 @@
     width: 36px;
     height: 36px;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .action-btn-pause:hover {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--warning, #f59e0b);
-    border-color: var(--warning, #f59e0b);
+    background: var(--surface-hover);
+    color: var(--warning);
+    border-color: var(--warning);
 }
 
 /* ============================================ */
@@ -152,8 +152,8 @@
 .decision-panel {
     margin: 20px;
     padding: 20px;
-    background: var(--surface-hover, #1e1e1e);
-    border: 1px solid var(--accent, #d4f505);
+    background: var(--surface-hover);
+    border: 1px solid var(--accent, var(--primary));
     border-radius: 12px;
     box-shadow: 0 0 30px rgba(212, 245, 5, 0.1);
 }
@@ -171,13 +171,13 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .decision-label {
     font-size: var(--text-2xs);
     font-weight: 700;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -185,7 +185,7 @@
 .decision-title {
     font-size: var(--text-md);
     font-weight: 500;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin-bottom: 16px;
 }
 
@@ -211,29 +211,29 @@
 }
 
 .decision-btn-primary {
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     border: none;
 }
 
 .decision-btn-primary:hover {
-    background: var(--accent-hover, #bfdd04);
+    background: var(--accent-hover, var(--primary-hover));
     box-shadow: 0 0 15px rgba(212, 245, 5, 0.3);
 }
 
 .decision-btn-secondary {
     background: transparent;
-    color: var(--text, #ffffff);
-    border: 1px solid var(--border, #2a2a2a);
+    color: var(--text);
+    border: 1px solid var(--border);
 }
 
 .decision-btn-secondary:hover {
-    background: var(--surface, #161616);
-    border-color: var(--text-secondary, #888888);
+    background: var(--surface);
+    border-color: var(--text-secondary);
 }
 
 .decision-context {
-    background: var(--surface, #161616);
+    background: var(--surface);
     border-radius: 8px;
     padding: 16px;
 }
@@ -241,13 +241,13 @@
 .decision-context-label {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
 .decision-context-text {
     font-size: var(--text-sm);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     line-height: 1.6;
 }
 
@@ -257,13 +257,13 @@
 
 .status-section {
     padding: 20px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border);
 }
 
 .status-section-title {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 16px;
@@ -287,22 +287,22 @@
     justify-content: center;
     width: 20px;
     height: 20px;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .status-item-icon.warning {
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
 }
 
 .status-item-text {
     flex: 1;
     font-size: var(--text-sm);
-    color: var(--text, #ffffff);
+    color: var(--text);
 }
 
 .status-item-meta {
     font-size: var(--text-2xs);
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
 }
 
 .status-runtime {
@@ -316,11 +316,11 @@
     align-items: center;
     gap: 6px;
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
 }
 
 .runtime-item.active {
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 /* ============================================ */
@@ -341,14 +341,14 @@
 .progress-log-title {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .progress-log-toggle {
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     background: none;
     border: none;
     cursor: pointer;
@@ -356,7 +356,7 @@
 }
 
 .progress-log-toggle:hover {
-    color: var(--text, #ffffff);
+    color: var(--text);
 }
 
 /* Progress Log Items */
@@ -370,7 +370,7 @@
     display: flex;
     gap: 12px;
     padding: 16px;
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
     border-radius: 10px;
 }
 

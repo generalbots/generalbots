@@ -1,97 +1,87 @@
 use super::*;
+use botcorepkg::installer_vault::secret_store as secrets;
 
 impl PackageManager {
+    /// Read unseal keys from the private credential store, migrating a legacy
+    /// plaintext file once. The stack copy is always removed after migration.
+    fn unseal_keys(&self) -> Result<Vec<String>> {
+        if let Ok(value) = secrets::read(secrets::UNSEAL_KEYS_SECRET) {
+            let keys: Vec<String> = value
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .map(String::from)
+                .collect();
+            if !keys.is_empty() {
+                return Ok(keys);
+            }
+        }
+        let legacy = self.base_path.join("vault-unseal-keys");
+        if !legacy.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&legacy)?;
+        let keys: Vec<String> = content
+            .lines()
+            .filter_map(|line| {
+                line.strip_prefix("VAULT_UNSEAL_KEY_")
+                    .and_then(|rest| rest.split_once('='))
+                    .map(|(_, key)| key.trim().to_string())
+            })
+            .filter(|key| !key.is_empty())
+            .collect();
+        if !keys.is_empty() {
+            secrets::write(secrets::UNSEAL_KEYS_SECRET, &keys.join("\n"))?;
+        }
+        let _ = std::fs::remove_file(&legacy);
+        info!("Migrated unseal keys out of the user-owned stack");
+        Ok(keys)
+    }
+
+    fn unseal_key(&self, vault_bin: &std::path::Path, vault_addr: &str, key: &str) {
+        let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
+        let vault_bin_str = vault_bin.to_string_lossy().to_string();
+        let command = SafeCommand::new(&vault_bin_str)
+            .and_then(|c| c.env("VAULT_ADDR", vault_addr))
+            .and_then(|c| {
+                if ca_cert.is_file() {
+                    c.env("VAULT_CACERT", &ca_cert.to_string_lossy())
+                } else {
+                    Ok(c)
+                }
+            })
+            .and_then(|c| c.args(&["operator", "unseal"]))
+            .and_then(|c| c.trusted_arg(key))
+            .and_then(|c| c.execute());
+        match command {
+            Ok(output) if output.status.success() => {}
+            Ok(output) => warn!(
+                "Unseal step failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+            Err(error) => warn!("Unseal command could not run: {error}"),
+        }
+    }
+
     pub(super) fn unseal_vault(&self, vault_bin: &std::path::Path, vault_addr: &str) -> Result<()> {
         info!("Unsealing Vault...");
-        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
-        if unseal_keys_file.exists() {
-            let content = std::fs::read_to_string(&unseal_keys_file)?;
-            let keys: Vec<String> = content
-                .lines()
-                .filter_map(|line| {
-                    line.strip_prefix("VAULT_UNSEAL_KEY_")
-                        .and_then(|rest| rest.split_once('='))
-                        .map(|(_, key)| key.to_string())
-                })
-                .collect();
-
-            for (i, key) in keys.iter().take(3).enumerate() {
-                let unseal_cmd = format!(
-                    "{} operator unseal -tls-skip-verify -address={} {}",
-                    vault_bin.display(),
-                    vault_addr,
-                    key
-                );
-                let unseal_output = safe_sh_command(&unseal_cmd);
-                if let Some(ref output) = unseal_output {
-                    if !output.status.success() {
-                        warn!("Unseal step {} may have failed", i + 1);
-                    }
-                }
-            }
+        let keys = self.unseal_keys()?;
+        for key in keys.iter().take(3) {
+            self.unseal_key(vault_bin, vault_addr, key);
         }
         Ok(())
     }
 
-    /// Ensure .env file exists with Vault credentials
+    /// Ensure `.env` exists with a reference to the scoped token — never with
+    /// the token value or the root token (#2498).
     pub(super) fn ensure_env_file_exists(&self) -> Result<()> {
-        let init_json = self.base_path.join("conf/vault/init.json");
-        let env_file = std::path::PathBuf::from(".env");
-
-        if !init_json.exists() {
-            return Ok(()); // No init, no .env needed yet
-        }
-
-        let init_content = std::fs::read_to_string(&init_json)?;
-        let init_json_val: serde_json::Value = serde_json::from_str(&init_content)?;
-
-        let root_token = init_json_val["root_token"]
-            .as_str()
-            .context("No root_token in init.json")?;
-
-        let conf_path = self.base_path.join("conf");
-        let ca_cert = conf_path.join("system/certificates/ca/ca.crt");
         let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
-
-        let env_content = format!(
-            r#"
-# Vault Configuration (auto-generated)
-VAULT_ADDR={}
-VAULT_TOKEN={}
-VAULT_CACERT={}
-"#,
-            vault_addr,
-            root_token,
-            ca_cert.display()
-        );
-
-        if env_file.exists() {
-            // Reinstalling the stack changes the vault root token; replace the
-            // stale VAULT_* lines instead of keeping them.
-            let existing = std::fs::read_to_string(&env_file)?;
-            let mut kept: Vec<&str> = existing
-                .lines()
-                .filter(|line| {
-                    !line.starts_with("# Vault Configuration (auto-generated)")
-                        && !line.starts_with("VAULT_ADDR=")
-                        && !line.starts_with("VAULT_TOKEN=")
-                        && !line.starts_with("VAULT_CACERT=")
-                })
-                .collect();
-            while kept.last().is_some_and(|line| line.trim().is_empty()) {
-                kept.pop();
-            }
-            let mut content = kept.join("\n");
-            if !content.is_empty() {
-                content.push('\n');
-            }
-            content.push_str(env_content.trim_start());
-            std::fs::write(&env_file, content)?;
-        } else {
-            std::fs::write(&env_file, env_content.trim_start())?;
+        if vault_addr.is_empty() {
+            return Ok(());
         }
-
-        info!("Created .env with Vault credentials");
+        let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
+        let env_file = std::path::PathBuf::from(".env");
+        secrets::write_env_file(&env_file, &vault_addr, Some(&ca_cert))?;
+        info!("Created .env with a reference to the scoped Vault token");
         Ok(())
     }
 }

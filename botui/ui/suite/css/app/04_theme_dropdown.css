@@ -16,10 +16,10 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    background: var(--surface, var(--bg, #0a0a0a));
+    background: var(--surface, var(--bg));
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border: 1px solid var(--border, var(--border-color, var(--border)));
     border-radius: 8px;
     box-shadow: var(--shadow-xl);
     padding: 6px;
@@ -69,7 +69,7 @@
     padding: 8px 6px;
     border-radius: 6px;
     text-decoration: none;
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--text)));
     transition: background 0.1s;
     cursor: pointer;
     border: none;
@@ -96,7 +96,7 @@
 .app-item span {
     font-size: var(--text-2xs);
     font-weight: 500;
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--text)));
     white-space: nowrap;
 }
 
@@ -170,8 +170,8 @@
     gap: 8px;
     margin-top: var(--space-md);
     padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
-    color: var(--text, var(--text-primary, #ffffff));
+    border-top: 1px solid var(--border, var(--border-color, var(--border)));
+    color: var(--text, var(--text-primary, var(--text)));
     text-decoration: none;
     font-size: var(--text-sm);
     font-weight: 500;
@@ -195,8 +195,8 @@
 /* SETTINGS PANEL THEME FIX                     */
 /* ============================================ */
 .settings-panel {
-    background: var(--surface, var(--bg, #0a0a0a)) !important;
-    border-color: var(--border, var(--border-color, #2a2a2a)) !important;
+    background: var(--surface, var(--bg)) !important;
+    border-color: var(--border, var(--border-color, var(--border))) !important;
 }
 
 /* ============================================ */

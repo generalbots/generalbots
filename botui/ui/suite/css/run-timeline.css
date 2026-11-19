@@ -1,8 +1,8 @@
 /* Run timeline (#1668) — message-body card, accessible status text. */
 .run-card {
-    border: 1px solid var(--gb-border, #d7dbe2);
+    border: 1px solid var(--gb-border, var(--border));
     border-radius: 10px;
-    background: var(--gb-surface, #fff);
+    background: var(--gb-surface, var(--surface));
     margin: 8px 0;
     overflow: hidden;
     font-size: var(--text-xs);
@@ -13,26 +13,26 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: var(--gb-surface-muted, #f6f7f9);
+    background: var(--gb-surface-muted, var(--surface));
 }
 
 .run-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #8b949e;
+    background: var(--surface-hover);
     flex: 0 0 auto;
 }
 
 .run-card.running .run-dot {
-    background: #1f6feb;
+    background: var(--primary);
     animation: run-pulse 1.4s ease-in-out infinite;
 }
 
-.run-card.state-succeeded .run-dot { background: #1a7f37; }
-.run-card.state-failed .run-dot { background: #cf222e; }
-.run-card.state-cancelled .run-dot { background: #9a6700; }
-.run-card.waiting .run-dot { background: #9a6700; }
+.run-card.state-succeeded .run-dot { background: var(--success); }
+.run-card.state-failed .run-dot { background: var(--error); }
+.run-card.state-cancelled .run-dot { background: var(--warning); }
+.run-card.waiting .run-dot { background: var(--warning); }
 
 @keyframes run-pulse {
     0%, 100% { opacity: 1; }
@@ -48,7 +48,7 @@
 }
 
 .run-elapsed {
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
     font-variant-numeric: tabular-nums;
     /* #2014 — stable slot: "9s" and "1m 03s" must occupy the same width so the
        header cannot resize the card mid-run. */
@@ -58,7 +58,7 @@
 
 .run-toggle,
 .run-stop {
-    border: 1px solid var(--gb-border, #d7dbe2);
+    border: 1px solid var(--gb-border, var(--border));
     background: transparent;
     color: inherit;
     border-radius: 6px;
@@ -69,7 +69,7 @@
 
 .run-toggle:focus-visible,
 .run-stop:focus-visible {
-    outline: 2px solid #1f6feb;
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
 }
 
@@ -83,7 +83,7 @@
 .run-card.collapsed .run-body { display: none; }
 
 .run-summary {
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
 }
 
 .run-rows {
@@ -104,14 +104,14 @@
     font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
 }
 
 .run-row[data-status="error"] .run-row-status,
-.run-row[data-status="failed"] .run-row-status { color: #cf222e; }
+.run-row[data-status="failed"] .run-row-status { color: var(--error); }
 .run-row[data-status="ok"] .run-row-status,
-.run-row[data-status="succeeded"] .run-row-status { color: #1a7f37; }
-.run-row[data-status="running"] .run-row-status { color: #1f6feb; }
+.run-row[data-status="succeeded"] .run-row-status { color: var(--success); }
+.run-row[data-status="running"] .run-row-status { color: var(--primary); }
 
 .run-row-name {
     overflow-wrap: anywhere;
@@ -119,14 +119,14 @@
 
 /* #1807 — workspace stage detail and live elapsed timer. */
 .run-row-detail {
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
     font-size: var(--text-2xs);
     overflow-wrap: anywhere;
 }
 .run-row-detail[hidden] { display: none; }
 .run-row-meta {
     margin-left: auto;
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
     font-size: var(--text-2xs);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -140,10 +140,10 @@
 .run-row[data-phase="infra"] .run-row-name::before { content: "⚙ "; }
 .run-row[data-phase="agent"] .run-row-name::before { content: "✦ "; }
 .run-row[data-phase="tool"] .run-row-name::before { content: "▸ "; }
-.run-row[data-phase="infra"] .run-row-status { color: #6e7781; }
+.run-row[data-phase="infra"] .run-row-status { color: var(--text-tertiary); }
 .run-row[data-phase="agent"] .run-row-status { color: #8250df; }
 
-.run-row.run-error .run-row-name { color: #cf222e; }
+.run-row.run-error .run-row-name { color: var(--error); }
 
 .run-log {
     max-height: 220px;
@@ -151,16 +151,16 @@
     margin: 0;
     padding: 6px 8px;
     border-radius: 6px;
-    background: #0d1117;
-    color: #e6edf3;
+    background: var(--bg);
+    color: var(--text);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: var(--text-2xs);
     line-height: 1.45;
     white-space: pre-wrap;
 }
 
-.run-log-line.stderr { color: #ffa198; }
-.run-log-truncated { color: #d29922; display: block; margin-top: 4px; }
+.run-log-line.stderr { color: var(--error); }
+.run-log-truncated { color: var(--warning); display: block; margin-top: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
     .run-card.running .run-dot { animation: none; }
@@ -181,12 +181,12 @@
     gap: 8px;
     flex-wrap: wrap;
     padding: 6px 8px;
-    border: 1px solid #f59e0b;
+    border: 1px solid var(--warning);
     border-radius: 8px;
     background: rgba(245, 158, 11, 0.08);
 }
 .run-takeover[hidden] { display: none; }
 .run-takeover-hint {
     flex: 1 1 100%;
-    color: var(--gb-text-muted, #57606a);
+    color: var(--gb-text-muted, var(--text-secondary));
 }

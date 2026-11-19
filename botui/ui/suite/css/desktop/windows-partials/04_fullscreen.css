@@ -8,7 +8,7 @@
 .window-dot-fullscreen:hover { background: #0066d6; }
 .window-dot-fullscreen::after {
   content: "⤢";
-  color: #ffffff;
+  color: var(--text);
   font-size: var(--text-2xs);
   font-weight: 700;
   line-height: 1;

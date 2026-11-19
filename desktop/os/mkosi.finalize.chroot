@@ -36,6 +36,116 @@ systemctl enable nftables.service
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 
+# 5-secret. #2498 — the secret store lives OUTSIDE the kiosk-owned stack.
+#     root owns it, gbsvc (the sidecar) is the only group that can read it;
+#     gbdesk (compositor + webview) has no access at all. Vault listens on
+#     loopback over TLS with a client certificate and the sidecar keeps a
+#     scoped token, never the root token.
+install -d -m 0755 /etc/generalbots
+install -d -m 0750 -o root -g gbsvc /etc/generalbots/credentials
+
+# 5-secret-a. Root helper for provisioning/reading the credential directory.
+#     Only root and gbsvc may invoke it (sudoers below). Every open by a
+#     different UID is written to the audit log and refused. Source/destination
+#     paths are confined to /tmp/gb-secret-* so a caller cannot use the helper
+#     as a generic root file-write primitive.
+install -d -m 0755 /usr/local/libexec
+cat >/usr/local/libexec/gb-secrets <<'EOF'
+#!/bin/bash
+# General Bots OS secret-store helper (#2498).
+# Actions: store <name> <source> | read <name> <dest> | remove <name>
+set -euo pipefail
+
+STORE=/etc/generalbots/credentials
+SERVICE_UID="$(id -u gbsvc)"
+
+fail() { echo "gb-secrets: $*" >&2; exit 2; }
+
+valid_name() {
+    case "$1" in
+        ''|*[!A-Za-z0-9_.-]*) return 1 ;;
+        .*) return 1 ;;
+    esac
+    return 0
+}
+
+valid_tmp_path() {
+    case "$1" in
+        /tmp/gb-secret-*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# An open by anything other than the sidecar or root is audited and refused.
+authorize() {
+    local caller="${SUDO_UID:-$(id -u)}"
+    if [ "$caller" != "$SERVICE_UID" ] && [ "$caller" != "0" ]; then
+        logger -t gb-secrets -p authpriv.warn \
+            "denied secret store open by uid $caller (sidecar uid $SERVICE_UID)"
+        fail "access denied"
+    fi
+}
+
+action="${1:-}"
+name="${2:-}"
+valid_name "$name" || fail "invalid secret name"
+
+case "$action" in
+    store)
+        source="${3:-}"
+        valid_tmp_path "$source" || fail "source must be under /tmp/gb-secret-*"
+        [ -f "$source" ] || fail "missing source file"
+        authorize
+        install -m 0640 -o root -g gbsvc -- "$source" "$STORE/$name"
+        rm -f -- "$source"
+        logger -t gb-secrets -p authpriv.info "stored secret $name"
+        ;;
+    read)
+        dest="${3:-}"
+        valid_tmp_path "$dest" || fail "destination must be under /tmp/gb-secret-*"
+        authorize
+        [ -f "$STORE/$name" ] || fail "no such secret"
+        # Never use --preserve=ownership: the secret is copied, not handed out.
+        install -m 0600 -- "$STORE/$name" "$dest"
+        chown "${SUDO_UID:-0}:${SUDO_GID:-0}" -- "$dest"
+        logger -t gb-secrets -p authpriv.info "read secret $name"
+        ;;
+    remove)
+        authorize
+        rm -f -- "$STORE/$name"
+        logger -t gb-secrets -p authpriv.info "removed secret $name"
+        ;;
+    *)
+        fail "unknown action"
+        ;;
+esac
+EOF
+chmod 0750 /usr/local/libexec/gb-secrets
+chown root:gbsvc /usr/local/libexec/gb-secrets
+
+cat >/etc/sudoers.d/gb-secrets <<'EOF'
+# General Bots OS (#2498) — only the sidecar account may reach the root-owned
+# secret helper. The kiosk webview user is deliberately NOT listed here.
+gbsvc ALL=(root) NOPASSWD: /usr/local/libexec/gb-secrets
+EOF
+chmod 0440 /etc/sudoers.d/gb-secrets
+
+# 5-secret-b. #2498 — no plaintext login factor ships on the appliance. The
+#     admin credential lives in Zitadel; the lock screen verifies against it.
+#     Remove any legacy file from an older payload so the kiosk user cannot
+#     read it. The writer itself is being removed in the same change set.
+find /opt/general-bots /var/lib/gbdesk -name 'admin-credentials.json' -type f -delete 2>/dev/null || true
+
+# 5-secret-c. #2498 — build gate: no generated stack artifact may contain a
+#     plaintext Vault token or unseal key literal.
+for artifact in /opt/general-bots/.env /opt/general-bots/conf/vault/init.json \
+                /var/lib/gbdesk/.env /var/lib/gbdesk/conf/vault/init.json; do
+    if [ -f "$artifact" ] && grep -Eq 'VAULT_TOKEN=|root_token|VAULT_UNSEAL_KEY_[0-9]+=' "$artifact"; then
+        echo "ERROR: plaintext Vault secret found in $artifact (#2498)" >&2
+        exit 1
+    fi
+done
+
 # 5b. No first-boot wizard: on an appliance it blocks the console waiting
 #     for locale/keymap/root input before the kiosk shell can start (seen in
 #     the QEMU boot smoke: systemd-firstboot.service held serial input).

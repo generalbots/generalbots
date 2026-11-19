@@ -1,7 +1,8 @@
 /* #1852 — shell-mode Operating System panel. */
 
+/* Two attributes outrank the app's [hidden]-ignoring display rules. */
 [data-shell-only="true"][hidden] {
-  display: none !important;
+  display: none;
 }
 
 .os-grid {

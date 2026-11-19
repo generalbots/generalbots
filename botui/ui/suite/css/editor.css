@@ -3,22 +3,22 @@
     height: 100vh; /* Actually, inside a canvas it should take 100% */
     height: 100dvh; /* Actually, inside a canvas it should take 100% */
     width: 100%;
-    background-color: var(--surface, #1e293b);
-    color: var(--text, #f8fafc);
+    background-color: var(--surface);
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .botcoder-sidebar {
     width: 250px;
-    background-color: var(--surface-hover, #334155);
-    border-right: 1px solid var(--border, #475569);
+    background-color: var(--surface-hover);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
 }
 
 .botcoder-sidebar-header {
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border, #475569);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -33,7 +33,7 @@
 .botcoder-btn-icon {
     background: none;
     border: none;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, var(--text-secondary));
     cursor: pointer;
     font-size: var(--text-sm);
 }
@@ -66,28 +66,28 @@
 
 .botcoder-tabs {
     display: flex;
-    background-color: var(--surface-hover, #334155);
-    border-bottom: 1px solid var(--border, #475569);
+    background-color: var(--surface-hover);
+    border-bottom: 1px solid var(--border);
     overflow-x: auto;
 }
 
 .botcoder-tab {
     padding: 8px 16px;
     font-size: var(--text-xs);
-    border-right: 1px solid var(--border, #475569);
+    border-right: 1px solid var(--border);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: var(--surface-hover, #334155);
-    color: var(--text-muted, #94a3b8);
+    background-color: var(--surface-hover);
+    color: var(--text-muted, var(--text-secondary));
     position: relative;
 }
 
 .botcoder-tab.active {
-    background-color: var(--surface, #1e293b);
-    color: var(--text, #f8fafc);
-    border-top: 2px solid var(--accent, #3b82f6);
+    background-color: var(--surface);
+    color: var(--text);
+    border-top: 2px solid var(--accent, var(--primary));
 }
 
 .botcoder-tab-close {
@@ -96,15 +96,15 @@
     opacity: 0;
 }
 .botcoder-tab:hover .botcoder-tab-close { opacity: 1; }
-.botcoder-tab-close:hover { color: #ef4444; }
+.botcoder-tab-close:hover { color: var(--error); }
 
 .botcoder-toolbar {
     padding: 8px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--surface, #1e293b);
-    border-bottom: 1px solid var(--border, #475569);
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
 }
 
 .botcoder-current-file {
@@ -114,7 +114,7 @@
 
 .botcoder-file-status {
     font-size: var(--text-2xs);
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted, var(--text-secondary));
     margin-left: 12px;
 }
 
@@ -127,22 +127,22 @@
     padding: 6px 16px;
     font-size: var(--text-xs);
     font-weight: 500;
-    border: 1px solid var(--border, #475569);
+    border: 1px solid var(--border);
     border-radius: 4px;
     background-color: transparent;
-    color: var(--text, #f8fafc);
+    color: var(--text);
     cursor: pointer;
 }
 
-.botcoder-btn:hover { background-color: var(--surface-hover, #334155); }
+.botcoder-btn:hover { background-color: var(--surface-hover); }
 
 .botcoder-btn-primary {
-    background-color: var(--accent, #3b82f6);
-    border-color: var(--accent, #3b82f6);
+    background-color: var(--accent, var(--primary));
+    border-color: var(--accent, var(--primary));
 }
 
 .botcoder-btn-primary:hover {
-    background-color: #2563eb;
+    background-color: var(--primary-hover);
 }
 
 .monaco-editor-container {

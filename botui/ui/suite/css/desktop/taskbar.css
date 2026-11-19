@@ -111,14 +111,14 @@
   justify-content: center;
   position: relative;
   cursor: pointer;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   background: transparent;
   transition: background 140ms ease, color 140ms ease;
 }
 
 .toolbar-v15 .tray-btn:hover {
   background: rgba(127, 127, 127, 0.14);
-  color: var(--text, #111827);
+  color: var(--text);
 }
 
 .toolbar-v15 .tray-btn svg {
@@ -139,7 +139,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--primary));
   /* The badge is a dot. gb-toasts.js writes the unread count into it; keep
      that text out of the visible label-content-name check (the dot is also
      aria-hidden), so the button's accessible name stays "Notifications". */
@@ -159,7 +159,7 @@
   background: rgba(127, 127, 127, 0.10);
   border: 1px solid transparent;
   border-radius: 6px;
-  color: var(--muted, #888);
+  color: var(--muted, var(--text-secondary));
   width: 190px;
   transition: background 140ms ease, border-color 140ms ease;
 }
@@ -169,8 +169,8 @@
 }
 
 .toolbar-v15 .taskbar-search:focus-within {
-  background: var(--surface, #fff);
-  border-color: var(--accent, #84d669);
+  background: var(--surface);
+  border-color: var(--accent, var(--primary));
   box-shadow: 0 0 0 2px rgba(132, 214, 105, 0.18);
 }
 
@@ -186,13 +186,13 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text, #e8e8e8);
+  color: var(--text);
   font-family: inherit;
   font-size: var(--text-2xs);
 }
 
 .toolbar-v15 .taskbar-search input::placeholder {
-  color: var(--muted, #888);
+  color: var(--muted, var(--text-secondary));
 }
 
 /* ---------------------------------------- */
@@ -225,19 +225,19 @@
   width: 5px;
   height: 2px;
   border-radius: 2px;
-  background: var(--primary, var(--accent, #84d669));
+  background: var(--primary, var(--accent, var(--primary)));
 }
 
 .toolbar-v15 .taskbar-dock-item svg {
   width: 15px;
   height: 15px;
-  stroke: var(--text-secondary, #6b7280);
+  stroke: var(--text-secondary);
   transition: stroke 140ms ease;
 }
 
 .toolbar-v15 .taskbar-dock-item:hover svg,
 .toolbar-v15 .taskbar-dock-item.active svg {
-  stroke: var(--text, #111827);
+  stroke: var(--text);
 }
 
 /* ---------------------------------------- */
@@ -249,7 +249,7 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--text-2xs);
   font-weight: 500;
-  color: var(--text, #111827);
+  color: var(--text);
   text-align: right;
   line-height: 1.05;
   padding: 0 6px;
@@ -265,7 +265,7 @@
 .toolbar-v15 .taskbar-clock #clock-date {
   font-size: var(--text-2xs);
   font-weight: 400;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   letter-spacing: 0.01em;
 }
 
@@ -294,13 +294,13 @@
 #startBtn svg {
   width: 15px;
   height: 15px;
-  stroke: var(--text, #111827);
+  stroke: var(--text);
   transition: stroke 140ms ease;
 }
 
 #startBtn:hover svg,
 .start-menu-open #startBtn svg {
-  stroke: var(--primary, var(--accent, #2563eb));
+  stroke: var(--primary, var(--accent, var(--primary)));
 }
 
 .start-menu-open #startBtn {

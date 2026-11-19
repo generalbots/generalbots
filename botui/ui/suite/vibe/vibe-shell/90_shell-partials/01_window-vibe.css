@@ -9,22 +9,24 @@
    + tools). Every workspace surface — project sidebar, canvas, design
    surface, palm, chat — lives in its own floating window opened on
    demand from the toolbar. The legacy .vibe-body is never shown. */
+/* ID selectors outrank the generic .window-element sizing rules; no
+   important flag needed (issue #2323). */
 #window-vibe {
-    height: auto !important;
-    min-height: 0 !important;
+    height: auto;
+    min-height: 0;
 }
 
 #window-body-vibe,
 #window-vibe .vibe-container {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    height: auto;
+    min-height: 0;
+    max-height: none;
 }
 
 #window-body-vibe {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    height: auto;
+    min-height: 0;
+    max-height: none;
     overflow: hidden;
     display: block;
 }
@@ -37,7 +39,7 @@ body.vibe-toolbar-mode #window-vibe .vibe-container {
    full-app screens meant for whole-page apps; the compact vibe command row
    has no room for them and they would render huge — always hidden here. */
 #window-vibe .gb-state {
-    display: none !important;
+    display: none;
 }
 
 
@@ -320,4 +322,12 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 .vibe-shell-tb-btn:active:not(:disabled) {
     transform: translateY(1px);
 }
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

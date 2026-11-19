@@ -88,12 +88,16 @@
     function toggle(id, label, description, checked) {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #1e293b;">'
         + '<div><div style="color:#f8fafc;font-size:14px;">' + label + '</div><div style="color:#64748b;font-size:12px;">' + description + '</div></div>'
-        + '<label style="position:relative;width:42px;height:24px;cursor:pointer;"><input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + ' style="opacity:0;width:0;height:0;"><span style="position:absolute;top:0;left:0;right:0;bottom:0;background:' + (checked ? '#3b82f6' : '#334155') + ';border-radius:12px;transition:background 0.3s;"></span><span style="position:absolute;top:3px;left:' + (checked ? '21px' : '3px') + ';width:18px;height:18px;background:#fff;border-radius:50%;transition:left 0.3s;"></span></label>'
+        // #2325 — the visible track stays 24px tall; the label AND checkbox are 44x44 hit targets.
+        + '<label style="position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;cursor:pointer;">'
+        + '<input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + ' style="position:absolute;inset:0;opacity:0;width:44px;height:44px;margin:0;cursor:pointer;">'
+        + '<span style="display:block;width:44px;height:24px;background:' + (checked ? '#3b82f6' : '#334155') + ';border-radius:12px;transition:background 0.3s;pointer-events:none;"></span>'
+        + '<span style="position:absolute;top:13px;left:' + (checked ? '23px' : '3px') + ';width:18px;height:18px;background:#fff;border-radius:50%;transition:left 0.3s;pointer-events:none;"></span></label>'
         + '</div>';
     }
 
     modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:500px;max-height:85vh;overflow-y:auto;padding:24px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#f8fafc;">Privacy &amp; Data</h3><button onclick="document.getElementById(\'privacy-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#f8fafc;">Privacy &amp; Data</h3><button type="button" onclick="document.getElementById(\'privacy-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;">×</button></div>'
       + '<div style="background:#0f172a;border-radius:8px;padding:16px;margin-bottom:20px;">'
       + '<div style="color:#f8fafc;font-size:13px;font-weight:600;margin-bottom:8px;">Your data stays local</div>'
       + '<div style="color:#94a3b8;font-size:12px;line-height:1.5;">Chat history, memory, and settings are stored on your device. This build has no outbound telemetry, analytics, or crash reporting.</div>'
@@ -102,8 +106,8 @@
       + toggle("priv-memory", "Chat Memory", "Remember preferences across conversations", settings.save_memory)
       + '<div style="color:#64748b;font-size:12px;line-height:1.5;padding:12px 0;">Telemetry, usage statistics, and crash reports are permanently disabled and never leave this device.</div>'
       + '<div style="display:flex;gap:10px;margin-top:20px;">'
-      + '<button onclick="GBPrivacy.save()" style="flex:1;background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-weight:500;">Save</button>'
-      + '<button onclick="GBPrivacy.clearAll()" style="background:#dc2626;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-size:12px;">Delete All Data</button>'
+      + '<button type="button" onclick="GBPrivacy.save()" style="flex:1;min-height:44px;background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-weight:500;">Save</button>'
+      + '<button type="button" onclick="GBPrivacy.clearAll()" style="min-height:44px;background:#dc2626;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-size:12px;">Delete All Data</button>'
       + '</div></div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -112,7 +116,7 @@
       cb.addEventListener("change", function () {
         var span = this.parentElement.querySelectorAll("span");
         if (span[0]) span[0].style.background = this.checked ? "#3b82f6" : "#334155";
-        if (span[1]) span[1].style.left = this.checked ? "21px" : "3px";
+        if (span[1]) span[1].style.left = this.checked ? "23px" : "3px";
       });
     });
   }

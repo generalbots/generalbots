@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/suite/integrations/integrations-responsive.css">
 <link rel="stylesheet" href="/suite/integrations/integrations-sources.css">
 <link rel="stylesheet" href="/suite/integrations/integrations-runner.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-provenance.css">
 
 <div class="gb-app integrations-app" data-integrations-app data-gb-app="integrations">
     <div class="integrations-shell">
@@ -39,6 +40,8 @@
                     aria-selected="false" tabindex="-1" data-i18n="integrations-automations-tab">Automations</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="sources"
                     aria-selected="false" tabindex="-1" data-i18n="dashboards-data-sources">Data Sources</button>
+                <button class="integrations-tab" type="button" role="tab" data-tab="provider-source"
+                    aria-selected="false" tabindex="-1" data-i18n="integrations-catalog-source-tab">Catalog source</button>
             </div>
         </nav>
 
@@ -150,6 +153,20 @@
                 <div data-sources-view aria-busy="true"></div>
             </section>
 
+            <section class="integrations-panel" role="tabpanel" data-panel="provider-source" hidden>
+                <div class="integrations-section-heading">
+                    <div>
+                        <p class="integrations-eyebrow" data-i18n="integrations-catalog-source-eyebrow">Catalog provenance</p>
+                        <h2 data-i18n="integrations-catalog-source-title">Where providers come from</h2>
+                        <p data-i18n="integrations-catalog-source-desc">Inspect where every provider definition comes from and manage entries added by operators or the community.</p>
+                    </div>
+                    <button class="integrations-button integrations-button-subtle" type="button"
+                        data-provider-source-action="refresh-source" data-i18n="integrations-refresh-catalog-source">Refresh source</button>
+                </div>
+                <p class="integrations-result-status" data-provider-source-status role="status" aria-live="polite" data-i18n="integrations-loading-catalog-source">Loading catalog source</p>
+                <div data-provider-source-view aria-busy="true"></div>
+            </section>
+
         </main>
 
     </div>
@@ -175,6 +192,7 @@
 
 <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
+<script src="/suite/integrations/modules/02_source_kind.js"></script>
 <script src="/suite/integrations/modules/01_state.js?v=2"></script>
 <script src="/suite/integrations/modules/02_render.js?v=3"></script>
 <script src="/suite/integrations/modules/02a_render_test_cell.js?v=1"></script>
@@ -187,5 +205,7 @@
 <script src="/suite/integrations/modules/06_automations.js?v=2"></script>
 <script src="/suite/integrations/modules/06b_automations_events.js?v=1"></script>
 <script src="/suite/integrations/modules/07_sources.js"></script>
+<script src="/suite/integrations/modules/08_provider_source_data.js"></script>
+<script src="/suite/integrations/modules/08_provider_source_view.js"></script>
 <script src="/suite/integrations/modules/99_init.js"></script>
 <script src="/suite/integrations/tour.js?v=1"></script>

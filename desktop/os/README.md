@@ -146,6 +146,30 @@ Today the **botserver sidecar** and the **desktop/webview UI** run in the **same
 
 Until that split lands, treat compromises of the webview/renderer as potentially compromising the sidecar process under the same UID/session constraints of this unit. Changes to enforce separation belong in `desktop/linux/start.sh`, `botapp/**` (sidecar lifecycle), and additional `desktop/os/**` unit files — out of scope for the current hardening-only edit except this documentation.
 
+#### Secret-store boundary (#2498)
+
+The Vault root token, unseal keys and scoped sidecar token no longer live in the
+kiosk-owned stack. Provisioning keeps the root token in memory (init only),
+creates a scoped `gb-sidecar` Vault token and stores it with the unseal keys in
+`/etc/generalbots/credentials` — `root:gbsvc`, mode `0750`. The kiosk user
+(`gbdesk`) has no access to that directory; only the service account and root
+can. `.env` contains a `VAULT_TOKEN_FILE` reference instead of a token value,
+and Vault is reached over TLS with a client certificate rather than plain HTTP.
+
+The root-owned helper `/usr/local/libexec/gb-secrets` is the only way to write
+or read the store (sudoers grants it to `gbsvc` only). It confines source and
+destination paths to `/tmp/gb-secret-*`, and logs an `authpriv.warn` audit event
+whenever an open is attempted by a UID other than the sidecar or root. Legacy
+`vault-unseal-keys` and `admin-credentials.json` files are removed from the
+appliance at image build and on boot; `.env`/`init.json` are generated without
+`VAULT_TOKEN=`, `root_token` or unseal-key literals. A build gate in
+`mkosi.finalize.chroot` and a unit test in `installer_vault/secret_store_tests.rs`
+fail if those literals reappear.
+
+The systemd unit that runs the sidecar as `gbsvc` is a separate change owned by
+the OS-shell workstream; this image only provisions the account and the
+credential directory it needs.
+
 ### Verify and re-run `systemd-analyze security`
 
 On a booted appliance (or in the image environment after install), capture evidence:

@@ -154,17 +154,19 @@
 }
 
 .recent-icon.doc {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
     color: white;
 }
 
 .recent-icon.sheet {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 82%, black));
     color: white;
 }
 
+/* #2324: recent-item icon gradients keep their per-app brand literals;
+   semantic roles (success/warning/primary) use tokens. */
 .recent-icon.slides {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 82%, black));
     color: white;
 }
 
@@ -235,22 +237,22 @@
 }
 
 .app-icon.chat {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
 }
 .app-icon.people {
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 .app-icon.mail {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--error), color-mix(in srgb, var(--error) 82%, black));
 }
 .app-icon.meet {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    background: linear-gradient(135deg, var(--info), #0891b2);
 }
 .app-icon.calendar {
     background: linear-gradient(135deg, #a855f7, #9333ea);
 }
 .app-icon.tasks {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 82%, black));
 }
 .app-icon.project {
     background: linear-gradient(135deg, #14b8a6, #0d9488);
@@ -262,16 +264,16 @@
     background: linear-gradient(135deg, #ec4899, #db2777);
 }
 .app-icon.docs {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
 }
 .app-icon.sheet {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 82%, black));
 }
 .app-icon.slides {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 82%, black));
 }
 .app-icon.drive {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
+    background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 82%, black));
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

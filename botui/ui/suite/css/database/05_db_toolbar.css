@@ -14,8 +14,8 @@
   flex-shrink: 0;
   min-height: 48px;
   padding: 8px 14px;
-  background: var(--win-titlebar-bg, var(--surface-raised, #1b1b22));
-  border-bottom: 1px solid var(--win-titlebar-sep, var(--border, #2a2a33));
+  background: var(--win-titlebar-bg, var(--surface-raised, var(--surface)));
+  border-bottom: 1px solid var(--win-titlebar-sep, var(--border));
 }
 
 .db-toolbar-left {
@@ -26,7 +26,7 @@
 }
 
 .db-table-name {
-  color: var(--text, #f1f1f4);
+  color: var(--text);
   font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -36,7 +36,7 @@
 }
 
 .db-row-count {
-  color: var(--text-secondary, #8b8b96);
+  color: var(--text-secondary);
   font-size: var(--text-2xs);
   white-space: nowrap;
 }
@@ -60,10 +60,10 @@
   gap: 6px;
   height: 30px;
   padding: 0 11px;
-  border: 1px solid var(--border, #33333d);
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: var(--surface, #1e1e26);
-  color: var(--text-secondary, #c3c3cc);
+  background: var(--surface);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--text-2xs);
   font-weight: 500;
@@ -74,22 +74,22 @@
 
 .db-toolbar .db-btn:hover {
   background: var(--win-caption-hover, rgba(148, 163, 184, 0.12));
-  color: var(--text, #f1f1f4);
+  color: var(--text);
 }
 
 .db-toolbar .db-btn:focus-visible {
-  outline: 2px solid var(--primary, var(--accent, #3b82f6));
+  outline: 2px solid var(--primary, var(--accent, var(--primary)));
   outline-offset: 1px;
 }
 
 .db-toolbar .db-btn[aria-label="Export CSV"],
 .db-toolbar .db-btn[data-tool="export"] {
   /* Export/import are secondary, data-moving actions. */
-  color: var(--text-secondary, #b9b9c4);
+  color: var(--text-secondary);
 }
 
 .db-toolbar .db-btn-primary {
-  background: var(--primary, var(--accent, #3b82f6));
+  background: var(--primary, var(--accent, var(--primary)));
   border-color: transparent;
   color: #fff;
   font-weight: 600;
@@ -103,10 +103,10 @@
 .db-toolbar .db-select {
   height: 30px;
   padding: 0 8px;
-  border: 1px solid var(--border, #33333d);
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: var(--surface, #1e1e26);
-  color: var(--text-secondary, #c3c3cc);
+  background: var(--surface);
+  color: var(--text-secondary);
   font: inherit;
   font-size: var(--text-2xs);
 }

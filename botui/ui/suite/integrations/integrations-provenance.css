@@ -1,0 +1,151 @@
+/* #2346 — catalog source transparency and provider editor.
+   Type scale and layering come from the shared design tokens; no raw
+   font-size or z-index values here. */
+.integrations-app .integrations-source-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    margin: 0 6px 6px 0;
+    padding: 2px 9px;
+    border: 1px solid var(--integrations-border);
+    border-radius: 999px;
+    color: var(--integrations-muted);
+    background: var(--integrations-soft);
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+
+.integrations-app .integrations-source-pill.is-source-seeded-hardcoded {
+    border-color: var(--integrations-border);
+    color: var(--integrations-muted);
+}
+
+.integrations-app .integrations-source-pill.is-source-operator {
+    border-color: var(--integrations-success);
+    color: var(--integrations-success);
+    background: var(--integrations-success-bg);
+}
+
+.integrations-app .integrations-source-pill.is-source-community {
+    border-color: var(--integrations-accent);
+    color: var(--integrations-accent);
+    background: var(--integrations-accent-soft);
+}
+
+.integrations-app .integrations-source-pill.is-source-unknown {
+    border-color: var(--integrations-warning);
+    color: var(--integrations-warning);
+    background: var(--integrations-warning-bg);
+}
+
+.integrations-app .integrations-source-detail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.integrations-app .integrations-source-detail p {
+    flex: 1 1 240px;
+    margin: 0;
+}
+
+.integrations-app .integrations-source-table-wrap {
+    overflow-x: auto;
+    margin-top: 16px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-surface);
+}
+
+.integrations-app .integrations-source-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-2xs);
+}
+
+.integrations-app .integrations-source-table th,
+.integrations-app .integrations-source-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--integrations-border-soft);
+    text-align: left;
+    vertical-align: top;
+}
+
+.integrations-app .integrations-source-table th {
+    color: var(--integrations-faint);
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.integrations-app .integrations-source-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.integrations-app .integrations-source-table td strong {
+    display: block;
+    color: var(--integrations-text);
+    font-size: var(--text-xs);
+}
+
+.integrations-app .integrations-source-table td .integrations-button + .integrations-button {
+    margin-left: 6px;
+}
+
+.integrations-app .integrations-source-form,
+.integrations-app .integrations-source-add {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-elevated);
+}
+
+.integrations-app .integrations-source-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.integrations-app .integrations-source-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin-bottom: 12px;
+    color: var(--integrations-text);
+    font-size: var(--text-2xs);
+    font-weight: 650;
+}
+
+.integrations-app .integrations-source-field.is-wide {
+    width: 100%;
+}
+
+.integrations-app .integrations-source-field input,
+.integrations-app .integrations-source-field select,
+.integrations-app .integrations-source-field textarea {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-sm);
+    color: var(--integrations-text);
+    background: var(--integrations-surface);
+    font: inherit;
+    font-size: var(--text-2xs);
+}
+
+.integrations-app .integrations-source-field textarea {
+    resize: vertical;
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+@media (max-width: 720px) {
+    .integrations-app .integrations-source-table td .integrations-button + .integrations-button {
+        margin-left: 0;
+    }
+}

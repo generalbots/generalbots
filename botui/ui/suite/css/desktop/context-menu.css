@@ -8,8 +8,8 @@
   position: fixed;
   z-index: var(--z-context-menu, 1100);
   min-width: 180px;
-  background: var(--surface, #1a1a24);
-  border: 1px solid var(--border, #333);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
@@ -18,9 +18,9 @@
   /* Theme-aware hover fallback when --surface-hover is undefined. */
   --context-item-hover: var(
     --surface-hover,
-    color-mix(in srgb, var(--text, #e5e7eb) 10%, transparent)
+    color-mix(in srgb, var(--text) 10%, transparent)
   );
-  --context-item-focus: var(--primary, #3b82f6);
+  --context-item-focus: var(--primary);
 }
 
 .desktop-context-item {
@@ -31,7 +31,7 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: var(--text-xs);
-  color: var(--text, #e5e7eb);
+  color: var(--text);
   transition: background 0.15s;
   user-select: none;
   outline: none;

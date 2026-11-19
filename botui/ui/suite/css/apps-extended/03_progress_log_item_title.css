@@ -1,11 +1,11 @@
 .progress-log-item-title {
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #ffffff);
+    color: var(--text);
 }
 
 .progress-log-item-title a {
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-decoration: underline;
     font-weight: 400;
 }
@@ -14,21 +14,21 @@
     display: inline-flex;
     align-items: center;
     padding: 4px 10px;
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     border-radius: 10px;
     font-size: var(--text-2xs);
     font-weight: 600;
 }
 
 .progress-log-item-step.complete {
-    background: var(--success, #22c55e);
-    color: #ffffff;
+    background: var(--success);
+    color: var(--text);
 }
 
 .progress-log-item-step.pending {
-    background: var(--surface, #161616);
-    color: var(--text-secondary, #888888);
+    background: var(--surface);
+    color: var(--text-secondary);
 }
 
 .progress-log-sub-items {
@@ -51,14 +51,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
     font-size: var(--text-2xs);
 }
 
 .progress-log-sub-item-text {
     flex: 1;
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
 }
 
 .progress-log-sub-item-meta {
@@ -66,11 +66,11 @@
     align-items: center;
     gap: 8px;
     font-size: var(--text-2xs);
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
 }
 
 .progress-log-sub-item-meta .check {
-    color: var(--success, #22c55e);
+    color: var(--success);
 }
 
 /* ============================================ */
@@ -82,19 +82,19 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     transition: all 0.2s ease;
 }
 
 .search-bar:focus-within {
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--primary));
     box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.1);
 }
 
 .search-bar-icon {
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
     flex-shrink: 0;
 }
 
@@ -102,13 +102,13 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: var(--text, #ffffff);
+    color: var(--text);
     font-size: var(--text-sm);
     outline: none;
 }
 
 .search-bar-input::placeholder {
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
 }
 
 /* ============================================ */
@@ -120,25 +120,25 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text, #ffffff);
+    color: var(--text);
     font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .profile-selector:hover {
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
 }
 
 .profile-avatar {
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -151,7 +151,7 @@
 }
 
 .profile-dropdown-icon {
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
     margin-left: 4px;
 }
 
@@ -167,16 +167,16 @@
     width: 36px;
     height: 36px;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .notification-indicator:hover {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
 .notification-count {
@@ -186,8 +186,8 @@
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     border-radius: 9px;
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -213,19 +213,19 @@
     width: 64px;
     height: 64px;
     margin-bottom: 20px;
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
 }
 
 .empty-state-title {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin-bottom: 8px;
 }
 
 .empty-state-message {
     font-size: var(--text-sm);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     max-width: 300px;
     line-height: 1.5;
     margin-bottom: 20px;
@@ -236,8 +236,8 @@
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -247,7 +247,7 @@
 }
 
 .empty-state-action:hover {
-    background: var(--accent-hover, #bfdd04);
+    background: var(--accent-hover, var(--primary-hover));
 }
 
 /* ============================================ */

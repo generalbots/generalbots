@@ -227,6 +227,10 @@
             }
             namespace.loadSources(root);
         }
+        if (name === "provider-source" && state.providerSourceStatus === "idle" &&
+            typeof namespace.loadProviderDefinitions === "function") {
+            namespace.loadProviderDefinitions(root);
+        }
     }
 
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

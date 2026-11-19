@@ -46,7 +46,7 @@
 .window-body-glass {
   flex: 1;
   overflow-y: auto;
-  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
+  background: var(--app-bg, var(--gb-bg, var(--surface)));
   padding: 0;
   position: relative;
 }
@@ -55,7 +55,7 @@
   position: relative;
   flex: 1 1 0%;
   overflow-y: auto;
-  background: var(--bg, #fafdfa);
+  background: var(--bg);
   padding: 16px;
 }
 
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
+  background: var(--app-bg, var(--gb-bg, var(--surface)));
   transition: opacity 200ms var(--win-open-timing);
 }
 
@@ -90,7 +90,7 @@
   height: 26px;
   border-radius: 50%;
   border: 3px solid var(--shell-border, rgba(128, 128, 140, 0.25));
-  border-top-color: var(--accent-color, var(--gb-accent, #84d669));
+  border-top-color: var(--accent-color, var(--gb-accent, var(--primary)));
   animation: gbWindowSpin 800ms linear infinite;
 }
 
@@ -148,7 +148,7 @@ body.window-maximized .window-element.window-maximized-target {
 
 .window-resize-grip:hover,
 .window-resize-grip:focus-visible {
-  background-color: color-mix(in srgb, var(--gb-accent, #84d669) 18%, transparent);
+  background-color: color-mix(in srgb, var(--gb-accent, var(--primary)) 18%, transparent);
   outline: none;
   opacity: 1;
 }

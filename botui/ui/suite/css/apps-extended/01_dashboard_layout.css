@@ -13,7 +13,7 @@
     padding: 24px;
     min-height: calc(100vh - 64px);
     min-height: calc(100dvh - 64px);
-    background: var(--bg, #0a0a0a);
+    background: var(--bg);
 }
 
 .dashboard-layout.full-width {
@@ -55,7 +55,7 @@
 .dashboard-title h1 {
     font-size: var(--text-2xl);
     font-weight: 700;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin: 0;
 }
 
@@ -71,8 +71,8 @@
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background: var(--accent, #d4f505);
-    color: #000000;
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -82,7 +82,7 @@
 }
 
 .btn-new-intent:hover {
-    background: var(--accent-hover, #bfdd04);
+    background: var(--accent-hover, var(--primary-hover));
     box-shadow: 0 0 20px rgba(212, 245, 5, 0.3);
 }
 
@@ -101,7 +101,7 @@
     gap: 12px;
     flex-wrap: wrap;
     padding: 16px 0;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border);
 }
 
 .status-filter {
@@ -110,9 +110,9 @@
     gap: 8px;
     padding: 8px 16px;
     background: transparent;
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 20px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
@@ -120,15 +120,15 @@
 }
 
 .status-filter:hover {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--text, #ffffff);
-    border-color: var(--text-secondary, #888888);
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--text-secondary);
 }
 
 .status-filter.active {
-    background: var(--accent, #d4f505);
-    color: #000000;
-    border-color: var(--accent, #d4f505);
+    background: var(--accent, var(--primary));
+    color: var(--id-on-accent);
+    border-color: var(--accent, var(--primary));
 }
 
 .status-filter .icon {
@@ -146,7 +146,7 @@
     min-width: 22px;
     height: 22px;
     padding: 0 6px;
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
     border-radius: 11px;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -154,7 +154,7 @@
 
 .status-filter.active .count {
     background: rgba(0, 0, 0, 0.2);
-    color: #000000;
+    color: var(--text);
 }
 
 /* Time saved indicator */
@@ -165,7 +165,7 @@
     padding: 8px 16px;
     background: rgba(212, 245, 5, 0.1);
     border-radius: 20px;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
     font-size: var(--text-sm);
     font-weight: 600;
     margin-left: auto;
@@ -187,8 +187,8 @@
 }
 
 .intent-card {
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px;
     transition: all 0.2s ease;
@@ -200,7 +200,7 @@
 }
 
 .intent-card.selected {
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--primary));
     box-shadow: 0 0 20px rgba(212, 245, 5, 0.15);
 }
 
@@ -215,7 +215,7 @@
 .intent-title {
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin: 0;
 }
 
@@ -239,39 +239,39 @@
 .progress-bar {
     flex: 1;
     height: 8px;
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .progress-bar-fill {
     height: 100%;
-    background: var(--accent, #d4f505);
+    background: var(--accent, var(--primary));
     border-radius: 4px;
     transition: width 0.3s ease;
 }
 
 .progress-bar-fill.warning {
-    background: var(--warning, #f59e0b);
+    background: var(--warning);
 }
 
 .progress-bar-fill.danger {
-    background: var(--error, #ef4444);
+    background: var(--error);
 }
 
 .progress-text {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
     white-space: nowrap;
 }
 
 .progress-text.warning {
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
 }
 
 .progress-text.danger {
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 
 /* Intent Status Line */
@@ -285,7 +285,7 @@
 .intent-status-label {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -302,39 +302,39 @@
 
 .intent-status-badge.active {
     background: rgba(212, 245, 5, 0.15);
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .intent-status-badge.awaiting {
     background: rgba(245, 158, 11, 0.15);
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
 }
 
 .intent-status-badge.paused {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--text-secondary, #888888);
+    background: var(--surface-hover);
+    color: var(--text-secondary);
 }
 
 .intent-status-badge.complete {
     background: rgba(34, 197, 94, 0.15);
-    color: var(--success, #22c55e);
+    color: var(--success);
 }
 
 .intent-status-badge.blocked {
     background: rgba(239, 68, 68, 0.15);
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 
 /* Intent Description */
 .intent-description {
     font-size: var(--text-sm);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     margin-bottom: 12px;
     line-height: 1.5;
 }
 
 .intent-description.pending {
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
     font-style: italic;
 }
 
@@ -350,15 +350,15 @@
     display: inline-flex;
     align-items: center;
     padding: 6px 12px;
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
     border-radius: 8px;
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
 }
 
 .intent-meta-tag.highlight {
     background: rgba(212, 245, 5, 0.1);
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .intent-meta-tag .icon {
@@ -378,17 +378,17 @@
 
 .intent-health.good {
     background: rgba(212, 245, 5, 0.1);
-    color: var(--accent, #d4f505);
+    color: var(--accent, var(--primary));
 }
 
 .intent-health.warning {
     background: rgba(245, 158, 11, 0.15);
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
 }
 
 .intent-health.bad {
     background: rgba(239, 68, 68, 0.15);
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,10 @@
 "use strict";
 
 (function (namespace) {
+    function t(key, fallback) {
+        return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+    }
+
     function isAwsProvider(provider) {
         var id = provider.id.toLowerCase();
         var name = provider.name.toLowerCase();
@@ -149,6 +153,26 @@
         return '<span class="integrations-pill' + (className ? " " + className : "") + '">' + namespace.escapeHtml(label) + '</span>';
     }
 
+    function sourceClass(kind) {
+        return "is-source-" + String(namespace.sourceKind(kind)).replace(/:/g, "-");
+    }
+
+    /* #2346 — provenance block for the detail panel. Fourth wall stays intact:
+       the label and explanation explain what the source means instead of
+       pretending every catalog entry is first-party. */
+    function renderProviderSourceSection(provider) {
+        var kind = namespace.sourceKind(provider.source);
+        return '<section class="integrations-detail-section integrations-source-section">' +
+            '<div class="integrations-detail-section-head"><h4>' +
+            namespace.escapeHtml(t("integrations-source-detail-title", "Source and provenance")) + '</h4>' +
+            '<span>' + namespace.escapeHtml(namespace.providerSourceLabel(kind)) + '</span></div>' +
+            '<div class="integrations-source-detail">' +
+            '<span class="integrations-source-pill ' + sourceClass(kind) + '">' +
+            namespace.escapeHtml(namespace.providerSourceLabel(kind)) + '</span>' +
+            '<p class="integrations-readonly-note">' +
+            namespace.escapeHtml(namespace.providerSourceDescription(kind)) + '</p></div></section>';
+    }
+
     function renderActions(provider) {
         if (!provider.actions.length) {
             return '<p class="integrations-readonly-note">No actions are declared for this provider.</p>';
@@ -161,7 +185,8 @@
             var surfaces = Array.isArray(action.surfaces) ? action.surfaces : [];
             var badges = actionPill(risk, "") +
                 actionPill(action.requires_approval === true ? "Approval required" : "No approval", "") +
-                actionPill(action.implemented === true ? "Implemented" : "Planned", action.implemented === true ? "is-must" : "");
+                actionPill(action.implemented === true ? "Implemented" : "Planned", action.implemented === true ? "is-must" : "") +
+                actionPill(namespace.providerSourceLabel(action.source), sourceClass(action.source));
             var runButton = '<button class="integrations-button integrations-button-subtle integrations-run-button" type="button" data-run-action="' +
                 namespace.escapeHtml(action.name) + '" data-provider-slug="' + namespace.escapeHtml(provider.id) + '"' +
                 (action.implemented === true ? '' : ' data-planned="true"') + '>Run</button>';
@@ -400,6 +425,7 @@
     namespace.detailsHelpers = {
         isAwsProvider: isAwsProvider,
         collectGuidance: collectGuidance,
+        renderProviderSourceSection: renderProviderSourceSection,
         renderFields: renderFields,
         renderGuidance: renderGuidance,
         renderSetupSteps: renderSetupSteps,

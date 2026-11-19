@@ -301,6 +301,16 @@ jobs:
           python3 scripts/check_type_scale.py --self-test
           python3 scripts/check_type_scale.py --check
 
+      # #2323/#2324 — the design-system sweeps removed 99 !important rules and
+      # ~1 280 raw hex literals from component CSS. The shrink-only budget
+      # keeps that debt from creeping back: a new literal or a higher count in
+      # any component file fails the gate; token-definition files are exempt.
+      - name: CSS hygiene guard (#2323, #2324)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_css_hygiene.py --self-test
+          python3 scripts/check_css_hygiene.py --check
+
       # #2310 — one corrupt localStorage key used to throw inside the desktop
       # boot chain and leave the user with no way to clear it. Every JSON read
       # must go through gbStoreGet(), which self-heals and logs the dropped key.

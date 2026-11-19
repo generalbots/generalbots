@@ -162,29 +162,26 @@ pub fn seed_vault_defaults(
     info!("Provisioned secret/gbo/vdi path (default VDI connection configured at deploy time)");
 
     for (path, kv_pairs) in &defaults {
-        let mut args = vec![
-            "kv".to_string(),
-            "put".to_string(),
-            "-tls-skip-verify".to_string(),
-            format!("-address={}", vault_addr),
-            path.to_string(),
-        ];
+        let mut args = vec!["kv".to_string(), "put".to_string()];
+        if ca_cert.is_file() {
+            args.push("-ca-cert".to_string());
+            args.push(ca_cert.to_string_lossy().to_string());
+        } else {
+            args.push("-tls-skip-verify".to_string());
+        }
+        args.push(path.to_string());
         for (k, v) in kv_pairs.iter() {
             args.push(format!("{}={}", k, v));
         }
 
         let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+            .and_then(|c| c.env("VAULT_ADDR", vault_addr)?.env("VAULT_TOKEN", root_token)?)
             .and_then(|c| {
                 let mut cmd = c;
                 for arg in &args {
                     cmd = cmd.trusted_arg(arg)?;
                 }
                 Ok(cmd)
-            })
-            .and_then(|c| {
-                c.env("VAULT_ADDR", vault_addr)
-                    .and_then(|c| c.env("VAULT_TOKEN", root_token))
-                    .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
             })
             .and_then(|c| c.execute());
 

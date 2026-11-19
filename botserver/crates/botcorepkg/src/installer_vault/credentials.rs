@@ -31,6 +31,9 @@ pub fn fetch_vault_credentials_impl() -> HashMap<String, String> {
                 .join("botserver-stack")
         });
 
+    // #2498 — the token is referenced through VAULT_TOKEN_FILE, never stored
+    // in the user-owned `.env`. Resolve it from the private credential store.
+    let _ = super::secret_store::load_token_into_env();
     let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
     let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 

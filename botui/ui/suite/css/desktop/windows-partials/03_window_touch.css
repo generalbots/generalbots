@@ -45,10 +45,10 @@
   min-height: 28px;
   padding: 0 0.8rem;
   font-size: var(--text-2xs);
-  color: var(--win-titlebar-text, var(--text-secondary, #999));
+  color: var(--win-titlebar-text, var(--text-secondary));
   /* #1970 — the bar now derives from the themed title-bar token instead of a
      fixed dark glass colour, so it follows light and dark themes alike. */
-  background: var(--win-statusbar-bg, linear-gradient(180deg, color-mix(in srgb, var(--win-titlebar-bg) 90%, #ffffff 10%), var(--win-titlebar-bg)));
+  background: var(--win-statusbar-bg, linear-gradient(180deg, color-mix(in srgb, var(--win-titlebar-bg) 90%, var(--surface) 10%), var(--win-titlebar-bg)));
   border-top: 1px solid var(--win-titlebar-sep, rgba(128,128,128,0.28));
   box-shadow:
     inset 0 1px 0 var(--win-chrome-highlight, rgba(255,255,255,0.10)),
@@ -78,20 +78,20 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-color, var(--gb-accent, #d4f505));
-  box-shadow: 0 0 4px var(--accent-color, var(--gb-accent, #d4f505));
+  background: var(--accent-color, var(--gb-accent, var(--primary)));
+  box-shadow: 0 0 4px var(--accent-color, var(--gb-accent, var(--primary)));
 }
 
 .statusbar-item[data-state="warn"]::before,
 .status-item[data-state="warn"]::before {
-  background: var(--warning, #f59e0b);
-  box-shadow: 0 0 4px var(--warning, #f59e0b);
+  background: var(--warning);
+  box-shadow: 0 0 4px var(--warning);
 }
 
 .statusbar-item[data-state="error"]::before,
 .status-item[data-state="error"]::before {
-  background: var(--error-color, #ef4444);
-  box-shadow: 0 0 4px var(--error-color, #ef4444);
+  background: var(--error-color, var(--error));
+  box-shadow: 0 0 4px var(--error-color, var(--error));
 }
 
 /* Tooltips: any element carrying the data-tooltip attribute inside an app
@@ -112,7 +112,7 @@
   padding: 4px 8px;
   font-size: var(--text-2xs);
   line-height: 1.3;
-  color: var(--text, #fff);
+  color: var(--text);
   background: rgba(10,10,14,0.95);
   border: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.12));
   border-radius: 5px;
@@ -154,7 +154,7 @@
 }
 
 .window-statusbar .window-statusbar-status:focus-visible {
-  box-shadow: 0 0 0 2px var(--gb-accent, #22c55e);
+  box-shadow: 0 0 0 2px var(--gb-accent, var(--primary));
 }
 
 .window-statusbar-status::before {
@@ -163,8 +163,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--gb-accent, #22c55e);
-  box-shadow: 0 0 4px var(--gb-accent, #22c55e);
+  background: var(--gb-accent, var(--primary));
+  box-shadow: 0 0 4px var(--gb-accent, var(--primary));
 }
 
 .window-statusbar-status[data-state="loading"]::before,
@@ -172,34 +172,34 @@
 .window-statusbar-status[data-state="running"]::before,
 .window-statusbar-status[data-state="saving"]::before,
 .window-statusbar-status[data-state="connecting"]::before {
-  background: var(--gb-accent, #22c55e);
+  background: var(--gb-accent, var(--primary));
   animation: gb-status-pulse 1.2s ease-in-out infinite;
 }
 
 .window-statusbar-status[data-state="success"]::before,
 .window-statusbar-status[data-state="complete"]::before,
 .window-statusbar-status[data-state="connected"]::before {
-  background: #22c55e;
-  box-shadow: 0 0 4px #22c55e;
+  background: var(--success);
+  box-shadow: 0 0 4px var(--success);
 }
 
 .window-statusbar-status[data-state="warn"]::before,
 .window-statusbar-status[data-state="warning"]::before,
 .window-statusbar-status[data-state="paused"]::before {
-  background: var(--warning, #f59e0b);
-  box-shadow: 0 0 4px var(--warning, #f59e0b);
+  background: var(--warning);
+  box-shadow: 0 0 4px var(--warning);
 }
 
 .window-statusbar-status[data-state="error"]::before,
 .window-statusbar-status[data-state="failed"]::before,
 .window-statusbar-status[data-state="offline"]::before,
 .window-statusbar-status[data-state="disconnected"]::before {
-  background: var(--error-color, #ef4444);
-  box-shadow: 0 0 4px var(--error-color, #ef4444);
+  background: var(--error-color, var(--error));
+  box-shadow: 0 0 4px var(--error-color, var(--error));
 }
 
 .window-statusbar-status[data-state="idle"]::before {
-  background: #94a3b8;
+  background: var(--surface-hover);
   box-shadow: none;
 }
 
@@ -238,7 +238,7 @@
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: var(--gb-accent, #22c55e);
+  background: var(--gb-accent, var(--primary));
   transition: width 180ms ease;
 }
 
@@ -281,18 +281,18 @@
 
 .window-statusbar-connection[data-state="connected"],
 .window-statusbar-connection[data-state="online"] {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .window-statusbar-connection[data-state="warn"],
 .window-statusbar-connection[data-state="warning"] {
-  color: var(--warning, #f59e0b);
+  color: var(--warning);
 }
 
 .window-statusbar-connection[data-state="offline"],
 .window-statusbar-connection[data-state="disconnected"],
 .window-statusbar-connection[data-state="error"] {
-  color: var(--error-color, #ef4444);
+  color: var(--error-color, var(--error));
 }
 
 .window-statusbar-title {
@@ -324,7 +324,7 @@
   padding: 4px 8px;
   font-size: var(--text-2xs);
   line-height: 1.3;
-  color: var(--text, #fff);
+  color: var(--text);
   background: rgba(10, 10, 14, 0.95);
   border: 1px solid var(--win-titlebar-sep, rgba(255, 255, 255, 0.12));
   border-radius: 5px;
@@ -355,20 +355,20 @@
 /* Floating confirm/prompt tool windows (VB6-style, no native modals). */
 .gb-confirm-floating { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; min-width: 300px; }
 .gb-confirm-floating p { margin: 0 0 0.85rem; font-size: 0.85rem; line-height: 1.5; }
-.gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
+.gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
 .gb-confirm-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-.gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; background: var(--gb-surface, #fff); color: inherit; cursor: pointer; font-size: 0.8rem; }
-.gb-confirm-btn.primary { background: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); color: #fff; }
+.gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, var(--border)); border-radius: 5px; background: var(--gb-surface, var(--surface)); color: inherit; cursor: pointer; font-size: 0.8rem; }
+.gb-confirm-btn.primary { background: var(--gb-accent, var(--primary)); border-color: var(--gb-accent, var(--primary)); color: #fff; }
 
 /* Workspace tabs (#1168): browser-style persistent tab bar. */
-.gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, #eef1f5); border-bottom: 1px solid var(--gb-border, #d5dbe3); min-height: 34px; }
-.gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, #cbd5e1); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, #f8fafc); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
-.gb-ws-tab.active { background: var(--gb-surface, #fff); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
+.gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, var(--surface)); border-bottom: 1px solid var(--gb-border, var(--border)); min-height: 34px; }
+.gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, var(--border)); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, var(--surface)); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
+.gb-ws-tab.active { background: var(--gb-surface, var(--surface)); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
 .gb-ws-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gb-ws-tab-x { color: var(--gb-text-dim, #94a3b8); font-weight: 700; padding: 0 2px; }
-.gb-ws-tab-x:hover { color: #dc2626; }
-.gb-ws-tab-add { border: 1px dashed var(--gb-border, #cbd5e1); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, #64748b); }
-.gb-ws-tab-add:hover { color: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); }
+.gb-ws-tab-x { color: var(--gb-text-dim, var(--text-secondary)); font-weight: 700; padding: 0 2px; }
+.gb-ws-tab-x:hover { color: var(--error); }
+.gb-ws-tab-add { border: 1px dashed var(--gb-border, var(--border)); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, var(--text-secondary)); }
+.gb-ws-tab-add:hover { color: var(--gb-accent, var(--primary)); border-color: var(--gb-accent, var(--primary)); }
 
 /* #1304 — Settings/Admin open as a fixed-size modal dialog: no resize grip,
    no maximize, no window-level scrollbars (the app scrolls its own panes). */

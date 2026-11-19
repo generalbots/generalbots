@@ -222,11 +222,75 @@ font-size: var(--text-xl);
 cursor: pointer;
 z-index: var(--z-sticky);
 }
+
+/* ── Parked panel geometry (issue #2323) ───────────────────────────────
+   The vibe partial ships these values as inline styles. vibe-windows.js
+   strips those inline styles at init so the cascade owns state changes;
+   this ID-scoped block is their stylesheet equivalent. Relocated and
+   palette-mounted variants use ID+class selectors and win by precedence. */
+#vibeGraphPanel {
+    display: none;
+    position: absolute;
+    left: 5%;
+    top: 6%;
+    width: 90%;
+    height: 90%;
+    z-index: 80;
+    border: 1px solid var(--border, #d8dee9);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+    flex-direction: column;
+}
+
+#vibeMetricsPanel {
+    display: none;
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    width: 480px;
+    height: 400px;
+    z-index: 80;
+    border: 1px solid var(--border, #333);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface, #14142a);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    flex-direction: column;
+}
+
+#vibeNewProjectModal {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 90;
+}
+
+#vibeMembersModal {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 95;
+    align-items: center;
+    justify-content: center;
+}
+
+#vibeMembersModal > div {
+    width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--bg, #1a1a2e);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 20px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

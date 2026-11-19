@@ -32,8 +32,8 @@ body:not(.ai-panel-collapsed) #main-content {
     width: 320px;
     display: flex;
     flex-direction: column;
-    background: var(--surface, #111111);
-    border-left: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
     z-index: 50;
     transition: transform 0.3s ease;
 }
@@ -72,8 +72,8 @@ body[data-app="docs"] #main-content {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
-    background: var(--surface, #111111);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .ai-panel-title {
@@ -97,12 +97,12 @@ body[data-app="docs"] #main-content {
     font-size: var(--text-sm);
     font-weight: 600;
     margin: 0;
-    color: var(--text, #ffffff);
+    color: var(--text);
 }
 
 .ai-panel-title .ai-status {
     font-size: var(--text-2xs);
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary);
     margin: 2px 0 0 0;
 }
 
@@ -115,15 +115,15 @@ body[data-app="docs"] #main-content {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary);
     font-size: var(--text-md);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .ai-panel-toggle:hover {
-    background: var(--surface-hover, #1a1a1a);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
 /* =============================================================================
@@ -162,22 +162,22 @@ body[data-app="docs"] #main-content {
 }
 
 .ai-message.user .ai-message-bubble {
-    background: var(--primary, #3b82f6);
-    color: #ffffff;
+    background: var(--primary);
+    color: var(--id-on-accent);
     border-bottom-right-radius: 4px;
 }
 
 .ai-message.assistant .ai-message-bubble {
-    background: var(--surface-hover, #1a1a1a);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover);
+    color: var(--text);
     border-bottom-left-radius: 4px;
 }
 
 .ai-message-action {
     display: inline-block;
     padding: 8px 12px;
-    background: var(--primary, #3b82f6);
-    color: #ffffff;
+    background: var(--primary);
+    color: var(--id-on-accent);
     border-radius: 6px;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -194,7 +194,7 @@ body[data-app="docs"] #main-content {
     display: flex;
     gap: 4px;
     padding: 12px 14px;
-    background: var(--surface-hover, #1a1a1a);
+    background: var(--surface-hover);
     border-radius: 10px;
     width: fit-content;
 }
@@ -202,7 +202,7 @@ body[data-app="docs"] #main-content {
 .ai-typing-indicator span {
     width: 8px;
     height: 8px;
-    background: var(--text-secondary, #6b6b6b);
+    background: var(--text-secondary);
     border-radius: 50%;
     animation: ai-typing 1.4s infinite;
 }
@@ -234,14 +234,14 @@ body[data-app="docs"] #main-content {
 
 .ai-quick-actions {
     padding: 12px 16px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border);
 }
 
 .ai-quick-actions .quick-actions-label {
     display: block;
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 10px;
@@ -255,10 +255,10 @@ body[data-app="docs"] #main-content {
 
 .ai-quick-actions .quick-action-btn {
     padding: 6px 10px;
-    background: var(--surface-hover, #1a1a1a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: var(--text-secondary, #a1a1a1);
+    color: var(--text-secondary);
     font-family: inherit;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -267,9 +267,9 @@ body[data-app="docs"] #main-content {
 }
 
 .ai-quick-actions .quick-action-btn:hover {
-    background: var(--surface, #111111);
-    border-color: var(--primary, #3b82f6);
-    color: var(--primary, #3b82f6);
+    background: var(--surface);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 /* =============================================================================
@@ -280,29 +280,29 @@ body[data-app="docs"] #main-content {
     display: flex;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--border, #2a2a2a);
-    background: var(--surface, #111111);
+    border-top: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .ai-panel-input .ai-input {
     flex: 1;
     padding: 10px 14px;
-    background: var(--surface-hover, #1a1a1a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
     border-radius: 10px;
-    color: var(--text, #ffffff);
+    color: var(--text);
     font-family: inherit;
     font-size: var(--text-xs);
     transition: all 0.2s ease;
 }
 
 .ai-panel-input .ai-input::placeholder {
-    color: var(--text-secondary, #6b6b6b);
+    color: var(--text-secondary);
 }
 
 .ai-panel-input .ai-input:focus {
     outline: none;
-    border-color: var(--primary, #3b82f6);
+    border-color: var(--primary);
 }
 
 .ai-panel-input .ai-send-btn {
@@ -311,10 +311,10 @@ body[data-app="docs"] #main-content {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--primary, #3b82f6);
+    background: var(--primary);
     border: none;
     border-radius: 10px;
-    color: #ffffff;
+    color: var(--id-on-accent);
     font-size: var(--text-md);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -337,10 +337,10 @@ body[data-app="docs"] #main-content {
     display: none;
     align-items: center;
     justify-content: center;
-    background: var(--primary, #3b82f6);
+    background: var(--primary);
     border: none;
     border-radius: 50%;
-    color: #ffffff;
+    color: var(--id-on-accent);
     font-size: var(--text-2xl);
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -366,16 +366,16 @@ body.ai-panel-collapsed .ai-panel-fab {
 }
 
 .ai-panel-messages::-webkit-scrollbar-track {
-    background: var(--surface, #111111);
+    background: var(--surface);
 }
 
 .ai-panel-messages::-webkit-scrollbar-thumb {
-    background: var(--border, #2a2a2a);
+    background: var(--border);
     border-radius: 3px;
 }
 
 .ai-panel-messages::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary, #6b6b6b);
+    background: var(--text-secondary);
 }
 
 /* =============================================================================
