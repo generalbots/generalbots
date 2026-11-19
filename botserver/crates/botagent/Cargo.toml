@@ -10,6 +10,7 @@ repository = "https://github.com/generalbots/generalbots"
 [dependencies]
 botschema = { workspace = true, features = ["agents"] }
 base64 = { workspace = true }
+regex = { workspace = true }
 jsonwebtoken = { workspace = true }
 axum = { workspace = true }
 botcore = { workspace = true }

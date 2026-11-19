@@ -9,13 +9,15 @@
 /// Subscription providers are per-user accounts, not integration connections.
 pub const CLAUDE_CODE_SLUG: &str = "claude-code";
 pub const CHATGPT_PLAN_SLUG: &str = "chatgpt-plan";
+pub const CODEX_CLI_SLUG: &str = "codex-cli";
+pub const ANTIGRAVITY_SLUG: &str = "antigravity";
 
 /// Synthetic slug for an arbitrary OpenAI-compatible endpoint configured by
 /// the operator (base URL + model come from the connection configuration).
 pub const OPENAI_COMPATIBLE_SLUG: &str = "openai-compatible";
 
 pub fn is_subscription_provider(provider_slug: &str) -> bool {
-    matches!(provider_slug, CLAUDE_CODE_SLUG | CHATGPT_PLAN_SLUG)
+    matches!(provider_slug, CLAUDE_CODE_SLUG | CHATGPT_PLAN_SLUG | CODEX_CLI_SLUG | ANTIGRAVITY_SLUG)
 }
 
 /// True when `provider_slug` names an LLM provider this control plane can
@@ -95,6 +97,8 @@ pub fn llm_provider_defaults(provider_slug: &str) -> Option<(&'static str, &'sta
         // Subscription providers.
         CLAUDE_CODE_SLUG => ("https://api.anthropic.com/v1/messages", "claude-sonnet-5-5"),
         CHATGPT_PLAN_SLUG => ("https://chatgpt.com/backend-api/codex", "gpt-5-codex"),
+        CODEX_CLI_SLUG => ("https://api.openai.com/v1/chat/completions", "gpt-5-codex"),
+        ANTIGRAVITY_SLUG => ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "gemini-3.5-flash"),
         _ => return None,
     };
     Some(url_model)
@@ -115,6 +119,8 @@ pub fn llm_provider_keyless(provider_slug: &str) -> bool {
             | "kilo-xing"
             | CLAUDE_CODE_SLUG
             | CHATGPT_PLAN_SLUG
+            | CODEX_CLI_SLUG
+            | ANTIGRAVITY_SLUG
     )
 }
 

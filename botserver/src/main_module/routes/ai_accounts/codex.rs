@@ -35,6 +35,7 @@ pub(super) async fn connect_codex(
         "state": status.state,
         "status": map_claude_state(&status.state),
         "url": status.url,
+        "device_code": status.device_code,
         "message": status.message,
         "vm_name": row.vm_name,
     })))
@@ -69,6 +70,8 @@ pub async fn codex_code(
         "provider": ai_accounts::CODEX_CLI,
         "state": status.state,
         "status": map_claude_state(&status.state),
+        "url": status.url,
+        "device_code": status.device_code,
         "message": status.message,
     })))
 }

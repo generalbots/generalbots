@@ -1,4 +1,4 @@
-//! PTY bridge script that drives a Codex CLI login inside the VM.
+//! PTY bridge script that drives `codex login --device-auth` inside the VM.
 
 pub(super) const PTY_SCRIPT: &str = r#"import os, pty, select, time
 HOME = os.environ.get("GB_CODEX_HOME", "/home/codex")
@@ -6,7 +6,7 @@ TMP = os.environ.get("GB_CODEX_TMP", "/tmp")
 LOG = TMP + "/gb-codex-login.log"
 STATUS = TMP + "/gb-codex-login.status"
 CODE = TMP + "/gb-codex-code"
-CRED = HOME + "/.codex/credentials.json"
+CRED = HOME + "/.codex/auth.json"
 
 def set_status(value):
     try:
@@ -16,6 +16,7 @@ def set_status(value):
         pass
 
 os.environ["HOME"] = HOME
+os.environ["CODEX_HOME"] = HOME + "/.codex"
 try:
     os.chdir(HOME)
 except Exception:
@@ -30,24 +31,18 @@ for path in (LOG, CODE):
 set_status("starting")
 pid, fd = pty.fork()
 if pid == 0:
-    # Try common codex login commands; adjust as needed
-    for cmd in [["codex", "login"], ["codex", "auth", "login"], ["codex-login"]]:
+    # Device code flow: works in headless/VM environments.
+    # Prints a URL and a one-time code; user authorizes in browser.
+    for attempt in range(30):
         try:
-            os.execvp(cmd[0], cmd)
-        except FileNotFoundError:
-            continue
+            os.execvp("codex", ["codex", "login", "--device-auth"])
         except OSError as error:
-            if getattr(error, "errno", None) == 26:
+            if getattr(error, "errno", None) == 26 and attempt < 29:
                 time.sleep(0.5)
-                try:
-                    os.execvp(cmd[0], cmd)
-                except Exception:
-                    pass
+                continue
             raise
-    raise FileNotFoundError("codex login command not found")
 set_status("waiting")
 log = open(LOG, "wb", 0)
-sent = False
 deadline = time.time() + 1800
 while time.time() < deadline:
     ready, _, _ = select.select([fd], [], [], 0.5)
@@ -61,14 +56,15 @@ while time.time() < deadline:
         log.write(data)
         log.flush()
         text = data.decode("utf-8", "replace")
-        if "Invalid" in text or "error" in text.lower() or "failed" in text.lower():
-            sent = False
-            set_status("waiting")
-            try:
-                os.write(fd, b"\r")
-            except OSError:
-                pass
-    if not sent and os.path.exists(CODE):
+        if "Invalid" in text or "error" in text.lower() or "failed" in text.lower() or "expired" in text.lower():
+            set_status("error")
+    # Device flow auto-completes: just check for credential file
+    if os.path.exists(CRED):
+        set_status("linked")
+        time.sleep(2)
+        break
+    # Also check if user pasted a code (fallback for non-device flows)
+    if os.path.exists(CODE):
         code = ""
         try:
             with open(CODE, "r") as handle:
@@ -76,8 +72,10 @@ while time.time() < deadline:
         except Exception:
             code = ""
         if code:
-            os.write(fd, (code + "\r").encode())
-            sent = True
+            try:
+                os.write(fd, (code + "\r").encode())
+            except OSError:
+                pass
             set_status("verifying")
             try:
                 os.unlink(CODE)
@@ -89,8 +87,14 @@ while time.time() < deadline:
         break
 if os.path.exists(CRED):
     set_status("linked")
-elif sent:
-    set_status("error")
 else:
-    set_status("waiting")
+    phase = "waiting"
+    try:
+        with open(STATUS, "r") as handle:
+            phase = handle.read().strip()
+    except Exception:
+        pass
+    if phase not in ("linked", "error"):
+        set_status("waiting")
 "#;
+EOF

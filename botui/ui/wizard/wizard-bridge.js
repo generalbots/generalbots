@@ -255,13 +255,14 @@
       mock.ai[provider] = "unlinked";
       return Promise.resolve({ provider: provider, status: "unlinked" });
     },
-    aiCode: function () {
-      mock.ai["claude-code"] = "linked";
+    aiCode: function (provider, code) {
+      provider = provider || "claude-code";
+      mock.ai[provider] = "linked";
       return Promise.resolve({
-        provider: "claude-code",
+        provider: provider,
         state: "linked",
         status: "linked",
-        message: "Claude Code is connected inside your workspace."
+        message: provider + " is connected inside your workspace."
       });
     },
     aiUseChat: function (provider) {
@@ -359,10 +360,10 @@
         : mock.aiDisconnect(provider);
     },
 
-    aiCode: function (code, admin) {
+    aiCode: function (provider, code, admin) {
       return isDesktop
-        ? invoke("wizard_ai_code", { code: code, admin: admin })
-        : mock.aiCode(code);
+        ? invoke("wizard_ai_code", { provider: provider, code: code, admin: admin })
+        : mock.aiCode(provider, code);
     },
 
     aiUseChat: function (provider, admin) {

@@ -1,4 +1,4 @@
-//! Codex CLI login: install/start PTY, submit code, logout.
+//! Codex CLI login: install, start the PTY (device code flow), logout.
 
 use axum::http::StatusCode;
 
@@ -10,30 +10,37 @@ use super::paths::{CODEX_HOME, CODEX_USER, LOGIN_CODE, LOGIN_LOG, LOGIN_SCRIPT, 
 use super::pty::PTY_SCRIPT;
 use super::status::{run_script, status, CodexStatus};
 
+/// Guarantees the CLI and its `codex` identity exist before a login starts.
 async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
     let probe = "command -v codex >/dev/null 2>&1 && id -u codex >/dev/null 2>&1 && echo READY || echo MISSING";
     let (_, stdout, _) = run_script(state, vm_name, probe).await?;
     if stdout.trim() == "READY" {
         return Ok(());
     }
-    // Generic install placeholder: adjust to real Codex CLI install steps
     let install = format!(
         "id -u {user} >/dev/null 2>&1 || useradd -m -s /bin/bash {user}; \
          mkdir -p {home}/.codex; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.codex; \
-         echo 'Codex CLI install not configured yet' >&2; exit 3",
+         command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm); \
+         command -v codex >/dev/null 2>&1 || timeout 420 npm install -g @openai/codex >/tmp/codex-install.log 2>&1; \
+         command -v codex >/dev/null 2>&1 && echo INSTALLED || {{ tail -20 /tmp/codex-install.log 2>/dev/null; exit 3; }}",
         user = CODEX_USER,
         home = CODEX_HOME
     );
     let (ok, stdout, stderr) = run_script(state, vm_name, &install).await?;
-    if ok && stdout.contains("READY") {
+    if ok && stdout.contains("INSTALLED") {
         return Ok(());
     }
     Err(internal(format!(
-        "could not prepare Codex CLI in the workspace: {}",
-        if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+        "could not install the Codex CLI in the workspace: {}",
+        if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        }
     )))
 }
 
+/// Starts `codex login --device-auth` under a PTY inside the VM.
 pub async fn start_login(
     state: &AgentService,
     vm_name: &str,
@@ -58,9 +65,14 @@ pub async fn start_login(
     if !ok {
         return Err(internal(format!(
             "could not start the Codex login helper: {}",
-            if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+            if stderr.trim().is_empty() {
+                stdout.trim()
+            } else {
+                stderr.trim()
+            }
         )));
     }
+    // Poll for URL + device code
     for _ in 0..30 {
         let snapshot = status(state, vm_name).await?;
         if snapshot.url.is_some() || snapshot.state == "linked" || snapshot.state == "error" {
@@ -71,6 +83,8 @@ pub async fn start_login(
     status(state, vm_name).await
 }
 
+/// For device code flow, the user doesn't paste a code back — the CLI auto-completes.
+/// This function is kept for compatibility and manual code submission.
 pub async fn submit_code(
     state: &AgentService,
     vm_name: &str,
@@ -78,8 +92,12 @@ pub async fn submit_code(
 ) -> Result<CodexStatus, (StatusCode, String)> {
     let clean = code.trim();
     if clean.is_empty() || clean.len() > 4096 {
-        return Err((StatusCode::BAD_REQUEST, "Invalid authorization code".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Invalid authorization code".to_string(),
+        ));
     }
+    // For device flow, write the code to the file (PTY picks it up)
     let script = format!(
         "printf '%s' '{payload}' | base64 -d > {path}; \
          chown {user}:{user} {path}; chmod 600 {path}",
@@ -89,7 +107,10 @@ pub async fn submit_code(
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not deliver the Codex code: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not deliver the Codex code: {}",
+            stderr.trim()
+        )));
     }
     for _ in 0..40 {
         let snapshot = status(state, vm_name).await?;
@@ -101,6 +122,7 @@ pub async fn submit_code(
     status(state, vm_name).await
 }
 
+/// Removes the VM-local credentials.
 pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
     let script = format!(
         "su {user} -s /bin/sh -c 'rm -rf {home}/.codex' 2>/dev/null || true; \
@@ -113,7 +135,23 @@ pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not clear Codex credentials: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not clear Codex credentials: {}",
+            stderr.trim()
+        )));
     }
     Ok(())
 }
+
+fn internal(msg: String) -> (StatusCode, String) {
+    tracing::error!("{msg}");
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Codex account operation failed".to_string(),
+    )
+}
+
+fn b64(value: &str) -> String {
+    base64::engine::general_purpose::STANDARD.encode(value.as_bytes())
+}
+EOF

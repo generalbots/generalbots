@@ -414,6 +414,9 @@ mod tests {
         assert_eq!(normalize_provider("Claude"), Some("claude-code"));
         assert_eq!(normalize_provider("chatgpt"), Some("chatgpt-plan"));
         assert_eq!(normalize_provider("openai-plan"), Some("chatgpt-plan"));
+        assert_eq!(normalize_provider("codex"), Some("codex-cli"));
+        assert_eq!(normalize_provider("codex-cli"), Some("codex-cli"));
+        assert_eq!(normalize_provider("antigravity"), Some("antigravity"));
         assert_eq!(normalize_provider("kilo"), None);
     }
 

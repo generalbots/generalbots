@@ -133,7 +133,7 @@
     }
   }
 
-  function update(provider, nextStatus, message) {
+  function update(provider, nextStatus, message, data) {
     var badge = document.querySelector('[data-ai-status="' + provider + '"]');
     if (badge) badge.textContent = label(nextStatus);
     var connect = document.querySelector('[data-ai-connect="' + provider + '"]');
@@ -142,7 +142,19 @@
     if (disconnect) disconnect.hidden = nextStatus !== "linked";
     var row = document.querySelector('[data-ai-code-row="' + provider + '"]');
     if (row) row.hidden = !(nextStatus === "connecting" || nextStatus === "waiting");
-    if (message) status(message);
+    // Show device/auth code if provided
+    if (data && (data.device_code || data.auth_code)) {
+      var code = data.device_code || data.auth_code;
+      var codeMsg = "Code: " + code + " — open the URL and enter this code in your browser.";
+      status(codeMsg);
+    } else if (message) {
+      status(message);
+    }
+    // Open URL if provided
+    if (data && data.url) {
+      var w = window.open(data.url, "_blank", "noopener,noreferrer");
+      if (w) { try { w.opener = null; } catch (e) {} }
+    }
   }
 
   function botId() {
@@ -164,8 +176,7 @@
             body: "{}",
           })
             .then(function (data) {
-              if (data.url) window.open(data.url, "_blank", "noopener");
-              update(provider, data.status || data.state || "connecting", data.message || "");
+              update(provider, data.status || data.state || "connecting", data.message || "", data);
               if (!pollTimer) pollTimer = setInterval(load, 3000);
             })
             .catch(function (error) { update(provider, "error", error.message); })
@@ -195,7 +206,7 @@
             body: JSON.stringify({ code: code }),
           })
             .then(function (data) {
-              update(provider, data.status || data.state || "connecting", data.message || "");
+              update(provider, data.status || data.state || "connecting", data.message || "", data);
               if (input) input.value = "";
               load();
             })

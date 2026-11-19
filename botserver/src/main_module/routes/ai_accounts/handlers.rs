@@ -139,12 +139,12 @@ pub async fn status(
             .map_err(|(code, message)| err_upstream(code, &message))?;
         match vm {
             Some(row) => {
-                let (st, url, msg) = if provider == ai_accounts::CODEX_CLI {
+                let (st, url, extra, msg) = if provider == ai_accounts::CODEX_CLI {
                     let s = botagent::codex::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
-                    (s.state, s.url, s.message)
+                    (s.state, s.url, json!({"device_code": s.device_code}), s.message)
                 } else {
                     let s = botagent::antigravity::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
-                    (s.state, s.url, s.message)
+                    (s.state, s.url, json!({"auth_code": s.auth_code}), s.message)
                 };
                 let mapped = map_claude_state(&st);
                 if st == "linked" {
@@ -152,7 +152,13 @@ pub async fn status(
                 } else {
                     let _ = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped.as_str(), None, None, Some(&row.vm_name));
                 }
-                json!({ "provider": provider, "status": mapped, "state": st, "url": url, "message": msg, "vm_name": row.vm_name })
+                let mut obj = json!({ "provider": provider, "status": mapped, "state": st, "url": url, "message": msg, "vm_name": row.vm_name });
+                if let Some(extra_obj) = extra.as_object() {
+                    for (k, v) in extra_obj {
+                        obj[k] = v.clone();
+                    }
+                }
+                obj
             }
             None => ai_accounts::list_accounts(&state.conn, user.user_id)
                 .into_iter()
