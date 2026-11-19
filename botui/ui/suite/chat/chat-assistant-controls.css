@@ -298,7 +298,7 @@
 body.gb-printing #chat-app {
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: var(--z-blocker);
     background: #fff !important;
     background-image: none !important;
 }

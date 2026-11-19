@@ -21,7 +21,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 0;
+        z-index: var(--z-base);
         overflow: hidden;
         pointer-events: none;
     }

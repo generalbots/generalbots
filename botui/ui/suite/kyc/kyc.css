@@ -58,7 +58,7 @@
 .kyc-score-fill.high{background:#22c55e}
 .kyc-score-fill.medium{background:#f59e0b}
 .kyc-score-fill.low{background:#ef4444}
-.kyc-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
+.kyc-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:var(--z-dropdown)}
 .kyc-modal-overlay.visible{display:flex}
 .kyc-modal{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:8px;width:90%;max-width:500px;max-height:80vh;overflow:hidden}
 .kyc-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-color,#334155)}

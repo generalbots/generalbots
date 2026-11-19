@@ -4,7 +4,7 @@
 
 .gb-titlebar {
     position: relative;
-    z-index: 200;
+    z-index: var(--z-header);
     display: flex;
     align-items: center;
     height: 36px;

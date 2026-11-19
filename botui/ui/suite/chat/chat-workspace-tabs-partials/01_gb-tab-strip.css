@@ -151,7 +151,7 @@
 
 .gb-context-menu {
     position: fixed;
-    z-index: 10050;
+    z-index: var(--z-system);
     min-width: 150px;
     background: var(--surface, var(--card, #1a1a24));
     border: 1px solid var(--border, var(--border-color, #2a2a2a));

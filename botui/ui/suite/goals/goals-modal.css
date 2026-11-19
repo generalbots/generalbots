@@ -5,7 +5,7 @@
 #goals-modal:not(:empty) {
     position: fixed;
     inset: 0;
-    z-index: 1200;
+    z-index: var(--z-modal-backdrop);
     display: flex;
     align-items: center;
     justify-content: center;

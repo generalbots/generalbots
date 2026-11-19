@@ -256,7 +256,7 @@
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     max-height: 400px;
     overflow: hidden;
-    z-index: 1002;
+    z-index: var(--z-dropdown);
 }
 
 .omnibox.active .omnibox-panel {
@@ -269,7 +269,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .omnibox.active ~ .omnibox-backdrop {

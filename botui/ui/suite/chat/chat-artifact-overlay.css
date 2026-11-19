@@ -8,7 +8,7 @@
 .gb-artifact-overlay {
     position: fixed;
     inset: 0;
-    z-index: 96000;
+    z-index: var(--z-blocker);
     display: flex;
     align-items: stretch;
     justify-content: center;

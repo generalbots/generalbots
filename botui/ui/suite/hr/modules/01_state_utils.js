@@ -32,7 +32,7 @@ return { first: parts[0] || '', last: parts.slice(1).join(' ') };
 
 function showFeedback(msg, type) {
   let el = document.getElementById('hr-feedback');
-  if (!el) { el = document.createElement('div'); el.id = 'hr-feedback'; el.style.cssText = 'position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;color:#fff;transition:opacity .3s'; document.body.appendChild(el); }
+  if (!el) { el = document.createElement('div'); el.id = 'hr-feedback'; el.style.cssText = 'position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:var(--z-system);color:#fff;transition:opacity .3s'; document.body.appendChild(el); }
   el.textContent = msg;
   el.style.background = type === 'error' ? '#ef4444' : '#22c55e';
   el.style.opacity = '1';

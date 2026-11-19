@@ -45,7 +45,7 @@
     flex-direction: column;
     border: 1px solid hsl(var(--border));
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 /* Issue #725: inverted 3D bevel status bar for every app window.
@@ -277,14 +277,14 @@
 
 /* Maximized window fills workspace */
 body.window-maximized .window-element {
-    z-index: 9998 !important;
+    z-index: var(--z-system) !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
     height: calc(100dvh - 56px) !important;
     width: 100% !important;
 }
 body.window-maximized .window-element-glass {
-    z-index: 9998 !important;
+    z-index: var(--z-system) !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
     height: calc(100dvh - 56px) !important;
@@ -320,7 +320,7 @@ select.theme-dropdown {
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(6px);
-    z-index: 9999;
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;

@@ -228,7 +228,7 @@
 .gb-drive-picker-overlay {
     position: fixed;
     inset: 0;
-    z-index: 95000;
+    z-index: var(--z-blocker);
     display: flex;
     align-items: center;
     justify-content: center;

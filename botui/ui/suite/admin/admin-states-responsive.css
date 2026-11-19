@@ -55,7 +55,7 @@
         position: fixed;
         left: -260px;
         top: 56px;
-        z-index: 100;
+        z-index: var(--z-sticky);
         transition: left 0.3s;
     }
 

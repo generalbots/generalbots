@@ -251,7 +251,7 @@
             node.style.cssText =
                 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
                 'background:rgba(17,24,39,.92);color:#fff;padding:8px 14px;' +
-                'border-radius:999px;font:13px system-ui,sans-serif;z-index:2147483647;' +
+                'border-radius:999px;font:13px system-ui,sans-serif;z-index:var(--z-top);' +
                 'opacity:0;transition:opacity .18s;pointer-events:none;';
             host.appendChild(node);
         }

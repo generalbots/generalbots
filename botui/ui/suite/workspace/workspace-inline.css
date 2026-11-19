@@ -160,7 +160,7 @@
         min-width: 280px;
         max-height: 400px;
         overflow-y: auto;
-        z-index: 100;
+        z-index: var(--z-sticky);
     }
 
     .slash-menu.hidden {

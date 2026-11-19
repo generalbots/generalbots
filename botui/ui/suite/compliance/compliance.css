@@ -99,7 +99,7 @@
 .compliance-table-header h3 { font-size: 14px; font-weight: 600; margin: 0; }
 .compliance-table-scroll { overflow-x: auto; }
 .compliance-empty { text-align: center; padding: 40px 20px; color: var(--text-secondary, #94a3b8); font-size: 13px; }
-.compliance-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.compliance-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: none; align-items: center; justify-content: center; z-index: var(--z-dropdown); }
 .compliance-modal-overlay.visible { display: flex; }
 .compliance-modal { background: var(--surface, #1e293b); border: 1px solid var(--border, #334155); border-radius: 8px; width: 90%; max-width: 500px; max-height: 80vh; overflow: hidden; }
 .compliance-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border, #334155); }

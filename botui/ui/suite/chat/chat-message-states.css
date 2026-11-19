@@ -135,7 +135,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    z-index: 10000;
+    z-index: var(--z-system);
     transform: translateY(-100%);
     transition: transform 0.3s ease;
 }
@@ -224,7 +224,7 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.3s ease;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 .new-message-indicator.visible {

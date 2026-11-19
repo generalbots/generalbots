@@ -13,7 +13,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         if (!el) {
             el = document.createElement('div');
             el.id = 'compliance-feedback';
-            el.style.cssText = 'position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity 0.3s';
+            el.style.cssText = 'position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:var(--z-system);transition:opacity 0.3s';
             document.body.appendChild(el);
         }
         el.textContent = msg;

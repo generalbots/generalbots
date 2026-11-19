@@ -22,7 +22,7 @@
 .suggestion-chip:hover,
 .suggestion-button:hover {
   border-color: var(--accent, #2563eb);
-  z-index: 100;
+  z-index: var(--z-sticky);
 }
 
 /* Dark theme suggestion buttons */

@@ -12,7 +12,7 @@
   border: 1px solid rgba(132, 214, 105, 0.4);
   border-radius: 14px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
-  z-index: 2147483000;
+  z-index: var(--z-top);
   overflow: hidden;
   backdrop-filter: blur(14px);
 }

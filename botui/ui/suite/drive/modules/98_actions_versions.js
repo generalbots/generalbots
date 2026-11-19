@@ -13,7 +13,7 @@ async function showVersionHistory(path) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "version-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var container = document.createElement("div");
     container.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);overflow:hidden;";
     var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:1.125rem;">Version History: ' + escapeHtml(fileName) + '</h3><button onclick="document.getElementById(\'version-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>';

@@ -46,7 +46,7 @@
   -webkit-backdrop-filter: var(--shell-blur);
   border-top: 1px solid var(--shell-border);
   pointer-events: auto;
-  z-index: 2000;
+  z-index: var(--z-system);
   box-sizing: border-box;
 }
 

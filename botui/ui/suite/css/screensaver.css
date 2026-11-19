@@ -4,7 +4,7 @@
   --gbss-cyan: #5ad8ff;
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: var(--z-blocker);
   background: #02040b;
   cursor: none;
   overflow: hidden;

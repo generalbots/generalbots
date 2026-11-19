@@ -22,7 +22,7 @@
     display: flex;
     align-items: center;
     padding: 0 12px;
-    z-index: 2000;
+    z-index: var(--z-system);
     position: relative;
 }
 
@@ -136,7 +136,7 @@
     flex-direction: column;
     border: 3px solid var(--glass-border-color, rgba(255, 255, 255, 0.15));
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-sticky);
     animation: windowOpenIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -209,7 +209,7 @@
     background: rgba(136, 204, 255, 0.2);
     border: 2px solid rgba(136, 204, 255, 0.5);
     border-radius: 12px;
-    z-index: 99999;
+    z-index: var(--z-blocker);
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s;
@@ -247,7 +247,7 @@
     inset: 0;
     background: var(--wall-vignette, radial-gradient(ellipse at 20% 50%, hsla(210, 80%, 60%, 0.08) 0%, transparent 50%));
     pointer-events: none;
-    z-index: 0;
+    z-index: var(--z-base);
 }
 
 /* ============================================ */
@@ -256,7 +256,7 @@
 
 @media (max-width: 768px) {
     .start-menu { width: 100vw; max-height: 70vh; border-radius: 20px 20px 0 0; margin-top: auto; }
-    .chat-sidebar { width: 100%; height: auto; position: absolute; bottom: 56px; z-index: 300; border-radius: 16px 16px 0 0; }
+    .chat-sidebar { width: 100%; height: auto; position: absolute; bottom: 56px; z-index: var(--z-fixed); border-radius: 16px 16px 0 0; }
     .chat-sidebar.collapsed { width: 51px; border-radius: 16px 0 0 16px; }
 }
 

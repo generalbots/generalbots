@@ -196,7 +196,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 .format-popup.hidden {
@@ -328,7 +328,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     animation: fadeIn 0.2s ease;
 }
 

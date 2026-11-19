@@ -380,7 +380,7 @@
         color: white;
         border: none;
         cursor: pointer;
-        z-index: 100;
+        z-index: var(--z-sticky);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 

@@ -179,7 +179,7 @@
   padding: 2.5rem 1rem;
 }
 
-.mem-modal { display: none; position: fixed; inset: 0; z-index: 1000; }
+.mem-modal { display: none; position: fixed; inset: 0; z-index: var(--z-dropdown); }
 .mem-modal.open { display: block; }
 .mem-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .5); }
 .mem-modal-box {

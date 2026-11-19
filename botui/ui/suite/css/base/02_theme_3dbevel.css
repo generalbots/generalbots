@@ -125,7 +125,7 @@ body.no-animations .spinner {
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .header-left {
@@ -229,7 +229,7 @@ body.no-animations .spinner {
     padding: 6px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     display: none;
-    z-index: 1001;
+    z-index: var(--z-dropdown);
 }
 
 .settings-panel {
@@ -244,7 +244,7 @@ body.no-animations .spinner {
     min-width: 320px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     display: none;
-    z-index: 1001;
+    z-index: var(--z-dropdown);
 }
 
 .apps-dropdown.show,

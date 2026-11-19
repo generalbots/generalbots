@@ -65,7 +65,7 @@
   font-size: .84rem;
 }
 
-.auto-modal { display: none; position: fixed; inset: 0; z-index: 1000; }
+.auto-modal { display: none; position: fixed; inset: 0; z-index: var(--z-dropdown); }
 .auto-modal.open { display: block; }
 .auto-backdrop {
   position: absolute;

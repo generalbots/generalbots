@@ -7,7 +7,7 @@
 .gb-tour-prompt-layer {
   position: fixed;
   inset: 0;
-  z-index: 2147483000;
+  z-index: var(--z-blocker);
 }
 
 .gb-tour-layer {
@@ -16,7 +16,7 @@
 
 .gb-tour-spotlight {
   position: fixed;
-  z-index: 0;
+  z-index: var(--z-base);
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.92);
   box-shadow: 0 0 0 9999px rgba(8, 15, 30, 0.78);
@@ -133,7 +133,7 @@
 }
 
 .gb-tour-prompt-layer {
-  z-index: 2147483001;
+  z-index: var(--z-top);
   display: flex;
   align-items: center;
   justify-content: center;

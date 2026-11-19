@@ -105,7 +105,7 @@
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
     overflow-y: auto;
-    z-index: 100;
+    z-index: var(--z-sticky);
     display: none;
 }
 

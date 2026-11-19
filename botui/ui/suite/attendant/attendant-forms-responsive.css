@@ -75,7 +75,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                z-index: 1001;
+                z-index: var(--z-dropdown);
             }
 
             .toast {
@@ -154,7 +154,7 @@
                     top: 0;
                     bottom: 0;
                     width: 320px;
-                    z-index: 500;
+                    z-index: var(--z-dropdown);
                 }
 
                 .queue-sidebar.mobile-show {

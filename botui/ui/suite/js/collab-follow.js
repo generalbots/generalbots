@@ -26,7 +26,7 @@
     panel.className = "gb-follow-panel";
     panel.style.cssText =
       "position:fixed;top:0;left:0;display:none;background:#1e293b;border:1px solid #334155;" +
-      "border-radius:8px;padding:6px;z-index:100000;min-width:200px;max-height:320px;overflow-y:auto;" +
+      "border-radius:8px;padding:6px;z-index:var(--z-blocker);min-width:200px;max-height:320px;overflow-y:auto;" +
       "box-shadow:0 8px 24px rgba(0,0,0,.4);";
     document.body.appendChild(panel);
     return panel;

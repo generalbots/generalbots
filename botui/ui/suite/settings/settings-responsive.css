@@ -15,7 +15,7 @@
             top: 0;
             bottom: 0;
             width: 280px;
-            z-index: 200;
+            z-index: var(--z-header);
             transition: left 0.3s ease;
         }
 
@@ -28,7 +28,7 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 199;
+            z-index: var(--z-sticky);
         }
 
         .sidebar-overlay.show {

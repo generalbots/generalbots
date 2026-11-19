@@ -182,7 +182,7 @@
 .vibe-generated-layer {
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: var(--z-base);
     pointer-events: none;
     opacity: .72;
 }

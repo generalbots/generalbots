@@ -222,7 +222,7 @@ body {
   border-radius: var(--radius);
   padding: 12px 20px;
   box-shadow: var(--shadow);
-  z-index: 2000;
+  z-index: var(--z-system);
   transform: translateY(100px);
   opacity: 0;
   transition: all 0.3s ease;

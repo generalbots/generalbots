@@ -34,7 +34,7 @@
 .gb-camera {
     position: fixed;
     inset: 0;
-    z-index: 21000;
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,7 +137,7 @@
 .gb-voice-mode {
     position: fixed;
     inset: 0;
-    z-index: 20000;
+    z-index: var(--z-system);
     display: none;
     align-items: center;
     justify-content: center;

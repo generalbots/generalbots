@@ -204,7 +204,7 @@
 
 /* == Context menu ==================================================== */
 .gb-drv-ctx {
-    position: fixed; z-index: 200;
+    position: fixed; z-index: var(--z-header);
     background: var(--id-surface-solid); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-sm); box-shadow: var(--id-shadow-float);
     padding: var(--id-space-1); min-width: 160px;
@@ -269,7 +269,7 @@
 
 /* == Upload progress toast =========================================== */
 .gb-drv-upload-toast {
-    position: fixed; bottom: 24px; right: 24px; z-index: 300;
+    position: fixed; bottom: 24px; right: 24px; z-index: var(--z-fixed);
     background: var(--id-surface-solid); border: 1px solid var(--id-line);
     border-radius: var(--id-radius-card); box-shadow: var(--id-shadow-float);
     padding: var(--id-space-3) var(--id-space-4); min-width: 260px;
@@ -293,7 +293,7 @@
 
 /* == Drag-and-drop overlay =========================================== */
 .gb-drv-drop-overlay {
-    display: none; position: absolute; inset: 0; z-index: 100;
+    display: none; position: absolute; inset: 0; z-index: var(--z-sticky);
     background: rgba(var(--id-accent-rgb, 99,102,241), .06);
     border: 2px dashed var(--id-accent);
     border-radius: var(--id-radius-card);
@@ -319,7 +319,7 @@
 /* == Toast (non-blocking error/info) ================================= */
 .gb-drv-toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    z-index: 400;
+    z-index: var(--z-window);
     padding: var(--id-space-2) var(--id-space-4);
     border-radius: var(--id-radius-card); box-shadow: var(--id-shadow-float);
     font-size: var(--id-text-sm); font-family: var(--id-font-sans);

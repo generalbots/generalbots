@@ -1,5 +1,5 @@
             #gbBootSplash {
-                position: fixed; inset: 0; z-index: 2147483000;
+                position: fixed; inset: 0; z-index: var(--z-top);
                 display: flex; flex-direction: column; gap: 14px;
                 align-items: center; justify-content: center;
                 background: var(--bg, #0f1117);

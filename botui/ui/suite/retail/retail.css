@@ -53,7 +53,7 @@
 @media(max-width:768px){.retail-stats{grid-template-columns:repeat(2,1fr)}.retail-grid{grid-template-columns:1fr}}
 
 /* Modals (create/edit flows) */
-.retail-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:3000}
+.retail-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:var(--z-overlay)}
 .retail-modal-dialog{background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:12px;width:min(440px,92vw);max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.5)}
 .retail-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-color,#334155)}
 .retail-modal-header h2{margin:0;font-size:16px;color:var(--text-primary,#f8fafc)}

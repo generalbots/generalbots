@@ -85,7 +85,7 @@
     visibility: hidden;
     transform: translateY(-10px);
     transition: all 0.2s ease;
-    z-index: 1100;
+    z-index: var(--z-popover);
 }
 
 .settings-panel.show {

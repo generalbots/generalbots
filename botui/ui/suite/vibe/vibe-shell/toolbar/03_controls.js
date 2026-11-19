@@ -66,7 +66,7 @@
                 var ov = toolbarEl("div", "vibe-busy-overlay");
                 ov.id = "vibeBusyOverlay";
                 ov.style.cssText =
-                    "position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;" +
+                    "position:fixed;inset:0;z-index:var(--z-top);display:flex;align-items:center;justify-content:center;" +
                     "background:rgba(8,10,20,.55);backdrop-filter:blur(2px);cursor:progress;";
                 ov.innerHTML =
                     '<div style="background:#141628;border:1px solid rgba(255,255,255,.18);border-radius:12px;' +

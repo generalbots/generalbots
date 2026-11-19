@@ -418,5 +418,11 @@
     --z-tooltip: 1500;
     --z-overlay: 1600;
     --z-system: 2000;
+    /* Full-screen blockers: boot splash, screensaver, tour backdrop, a
+       fullscreened window. Nothing app-owned may escape these. */
+    --z-blocker: 3000;
+    /* Only content that has to beat a blocker: a tour step above the
+       tour backdrop, the command palette above a splash. */
+    --z-top: 4000;
 }
 

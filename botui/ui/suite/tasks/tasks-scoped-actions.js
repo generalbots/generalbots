@@ -122,7 +122,7 @@ function showAppUrlNotification(appUrl) {
       padding: 16px 24px;
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(34, 197, 94, 0.4);
-      z-index: 10001;
+      z-index: var(--z-system);
       max-width: 400px;
       animation: slideInRight 0.5s ease;
     `;
@@ -222,7 +222,7 @@ function showToast(message, type = "info", duration = 4000, onClick = null) {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 10000;
+            z-index: var(--z-system);
             display: flex;
             flex-direction: column;
             gap: 8px;

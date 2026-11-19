@@ -67,7 +67,7 @@
     border-left: 1px solid var(--border-color, #e5e7eb);
     box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
     transition: right .25s ease;
-    z-index: 1200;
+    z-index: var(--z-modal-backdrop);
     display: flex;
     flex-direction: column;
 }

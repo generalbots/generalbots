@@ -217,7 +217,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 200;
+    z-index: var(--z-header);
 }
 
 .drop-overlay.visible {

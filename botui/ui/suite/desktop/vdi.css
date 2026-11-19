@@ -298,7 +298,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .modal-overlay.hidden {
@@ -372,7 +372,7 @@
     position: fixed;
     top: 16px;
     right: 16px;
-    z-index: 2000;
+    z-index: var(--z-system);
     display: flex;
     flex-direction: column;
     gap: 8px;

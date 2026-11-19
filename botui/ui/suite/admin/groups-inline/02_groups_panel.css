@@ -7,7 +7,7 @@
     height: calc(100vh - 56px);
     background: var(--surface);
     border-left: 1px solid var(--border);
-    z-index: 100;
+    z-index: var(--z-sticky);
     transition: right 0.3s ease;
     display: flex;
     flex-direction: column;

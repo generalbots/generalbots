@@ -29,7 +29,7 @@
   inset: 0;
   background: var(--wall-vignette);
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--z-base);
 }
 
 /* ============================================ */

@@ -224,7 +224,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("research");
                 host.setAttribute("aria-atomic", "true");
                 host.style.cssText =
                     "position:fixed;bottom:16px;left:16px;background:#1e293b;color:#e2e8f0;" +
-                    "padding:8px 12px;border-radius:6px;font-size:13px;z-index:9999;opacity:0;" +
+                    "padding:8px 12px;border-radius:6px;font-size:13px;z-index:var(--z-system);opacity:0;" +
                     "transition:opacity .2s;box-shadow:0 4px 12px rgba(0,0,0,.3)";
                 document.body.appendChild(host);
             }

@@ -262,7 +262,7 @@
 
     var menu = document.createElement("div");
     menu.id = "user-menu";
-    menu.style.cssText = "position:fixed;left:12px;bottom:52px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:190px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5)";
+    menu.style.cssText = "position:fixed;left:12px;bottom:52px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:190px;z-index:var(--z-blocker);box-shadow:0 4px 20px rgba(0,0,0,0.5)";
 
     var header = document.createElement("div");
     header.style.cssText = "padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)";

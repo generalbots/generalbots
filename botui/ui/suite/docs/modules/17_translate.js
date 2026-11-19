@@ -82,7 +82,7 @@ function openTranslateModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   host.innerHTML = [
-    '<div class="docs-modal" id="translate-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+    '<div class="docs-modal" id="translate-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
     '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:360px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;">',
     '<h3 style="margin:0;font-size:16px;">Translate document</h3>',
     '<label style="font-size:12px;color:#94a3b8;">Target language',

@@ -67,7 +67,7 @@
       container.style.position = "fixed";
       container.style.right = "16px";
       container.style.bottom = "16px";
-      container.style.zIndex = "10000";
+      container.style.zIndex = "var(--z-system)";
       document.body.appendChild(container);
     }
     var notification = document.createElement("div");

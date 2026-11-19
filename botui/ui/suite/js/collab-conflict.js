@@ -36,7 +36,7 @@
     if (document.getElementById(CSS_ID)) return;
     var css = [
       "#gb-conflict-banner{position:fixed;top:0;left:50%;transform:translateX(-50%);",
-      "width:560px;max-width:94vw;z-index:100001;margin-top:12px;display:none;",
+      "width:560px;max-width:94vw;z-index:var(--z-blocker);margin-top:12px;display:none;",
       "background:#7f1d1d;border:1px solid #b91c1c;border-radius:10px;",
       "box-shadow:0 10px 30px rgba(0,0,0,.4);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}",
       "#gb-conflict-banner.gbc-open{display:block;}",

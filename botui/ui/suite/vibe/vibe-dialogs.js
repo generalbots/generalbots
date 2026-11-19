@@ -112,7 +112,7 @@
             float.style.position = "fixed";
             float.style.top = "20%";
             float.style.left = "30%";
-            float.style.zIndex = "9999";
+            float.style.zIndex = "var(--z-system)";
             float.style.background = "var(--gb-surface, #fff)";
             float.style.border = "1px solid var(--gb-border, #ccc)";
             float.style.borderRadius = "8px";

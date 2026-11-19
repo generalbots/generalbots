@@ -157,7 +157,7 @@ window.GBExternalSave = (function () {
       box.style.position = "fixed";
       box.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 240)) + "px";
       box.style.top = Math.min(rect.bottom + 6, window.innerHeight - 160) + "px";
-      box.style.zIndex = "12000";
+      box.style.zIndex = "var(--z-system)";
       document.body.appendChild(box);
       var dismiss = function (event) {
         if (!box.contains(event.target)) {

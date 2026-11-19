@@ -53,7 +53,7 @@ body.window-maximized .window-element.window-maximized-target.window-fullscreen-
   resize: none !important;
   overflow: hidden !important;
   /* Above the taskbar (2000) for the CSS fallback, harmless for the API. */
-  z-index: 2147483000 !important;
+  z-index: var(--z-blocker) !important;
 }
 
 /* Tool windows and fixed modal dialogs never offer fullscreen. */

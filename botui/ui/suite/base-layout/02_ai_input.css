@@ -378,7 +378,7 @@
         width: 320px;
         transform: translateX(0);
         transition: transform 0.3s ease;
-        z-index: 100;
+        z-index: var(--z-sticky);
     }
     
     .suite-ai-panel.collapsed {

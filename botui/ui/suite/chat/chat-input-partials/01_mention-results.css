@@ -109,7 +109,7 @@
     min-width: 280px;
     max-width: 350px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    z-index: 10000;
+    z-index: var(--z-system);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -254,7 +254,7 @@
     max-height: 100px;
     overflow-y: auto;
     position: relative;
-    z-index: 0;
+    z-index: var(--z-base);
     flex: 1; /* Take available space */
 }
 @media (prefers-reduced-motion: reduce) {

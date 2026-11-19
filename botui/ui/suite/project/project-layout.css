@@ -399,7 +399,7 @@
     inset: 0;
     background: hsla(var(--foreground) / 0.18);
     border-radius: inherit;
-    z-index: 0;
+    z-index: var(--z-base);
 }
 
 .gantt-bar-label {

@@ -105,7 +105,7 @@
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
     overflow-y: auto;
-    z-index: 100;
+    z-index: var(--z-sticky);
     display: none;
 }
 
@@ -410,7 +410,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     opacity: 0;
     visibility: hidden;
     transition: all 0.2s ease;

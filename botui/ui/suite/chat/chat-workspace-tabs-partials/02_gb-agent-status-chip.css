@@ -128,7 +128,7 @@
 .gb-artifact-panel {
   position: fixed; top: 0; right: 0; width: 50vw; min-width: 380px; height: 100vh;
   background: var(--bg, #0f0f18); border-left: 1px solid var(--border, #333);
-  z-index: 90000; display: flex; flex-direction: column;
+  z-index: var(--z-blocker); display: flex; flex-direction: column;
   animation: slideInRight 0.2s ease;
 }
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -188,7 +188,7 @@
 .gb-vm-preview {
   position: fixed;
   inset: 0;
-  z-index: 10050;
+  z-index: var(--z-system);
   background: rgba(0, 0, 0, 0.72);
   display: flex;
   align-items: center;

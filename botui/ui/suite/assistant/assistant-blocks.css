@@ -309,7 +309,7 @@
 
 /* == Lightbox == */
 .gb-lightbox {
-    position: fixed; inset: 0; z-index: 200;
+    position: fixed; inset: 0; z-index: var(--z-header);
     display: flex; align-items: center; justify-content: center;
 }
 .gb-lightbox-backdrop {

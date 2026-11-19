@@ -8,7 +8,7 @@
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  z-index: 9999;
+  z-index: var(--z-system);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,7 +288,7 @@
 .gb-power-menu {
   position: fixed;
   inset: 0;
-  z-index: 200000;
+  z-index: var(--z-blocker);
   display: flex;
   align-items: center;
   justify-content: center;

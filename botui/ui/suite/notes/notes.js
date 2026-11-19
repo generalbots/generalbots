@@ -111,7 +111,7 @@
         card.style.left = origX + "px";
         card.style.top = origY + "px";
         card.style.width = rect.width + "px";
-        card.style.zIndex = "1000";
+        card.style.zIndex = "var(--z-dropdown)";
         card.style.cursor = "grabbing";
         try { card.setPointerCapture(e.pointerId); } catch (err) { window.gbLogError ? gbLogError(err, "render") : console.error("render", err); }
         function moveTo(x, y) {

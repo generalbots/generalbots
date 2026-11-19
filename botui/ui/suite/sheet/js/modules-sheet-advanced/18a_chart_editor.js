@@ -31,7 +31,7 @@ window.SheetChartEditor = (function () {
     box.setAttribute("role", "dialog");
     box.setAttribute("aria-label", "Edit chart");
     box.style.cssText =
-      "position:fixed;z-index:4000;min-width:250px;padding:14px;border-radius:8px;" +
+      "position:fixed;z-index:var(--z-overlay);min-width:250px;padding:14px;border-radius:8px;" +
       "background:var(--sheet-bg-elevated,#1e293b);color:var(--sheet-fg,#f8fafc);" +
       "border:1px solid var(--sheet-border,#334155);box-shadow:0 10px 30px rgba(0,0,0,.45);" +
       "font:13px system-ui,sans-serif;";

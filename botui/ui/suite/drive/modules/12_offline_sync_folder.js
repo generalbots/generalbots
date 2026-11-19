@@ -250,7 +250,7 @@
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "sync-settings-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var supported = supportsFolderSync();
     modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:460px;padding:24px;">'
       + '<h3 style="margin:0 0 16px;color:#f8fafc;">Offline Sync</h3>'

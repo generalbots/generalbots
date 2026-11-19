@@ -2,7 +2,7 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 10000;
+    z-index: var(--z-system);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -510,7 +510,7 @@
     display: none;
     flex-direction: column;
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 .mention-dropdown.visible {

@@ -110,7 +110,7 @@ background: var(--surface);
 opacity: 0.95;
 backdrop-filter: blur(4px);
 position: relative;
-z-index: 101;
+z-index: var(--z-sticky);
 }
 
 .vibe-canvas-header-right {
@@ -182,7 +182,7 @@ background: #fff;
 border-bottom: 1px solid #d8dee9;
 color: #334155;
 position: relative;
-z-index: 101;
+z-index: var(--z-sticky);
 }
 
 /* Drawing needs the entire workbench. Floating run/chat panels otherwise
@@ -319,7 +319,7 @@ flex-direction: column;
 overflow: hidden;
 border: 1px solid var(--border);
 color: var(--text);
-z-index: 100;
+z-index: var(--z-sticky);
 }
 
 .vibe-chat-header {
@@ -441,7 +441,7 @@ border: none;
 color: white;
 font-size: 20px;
 cursor: pointer;
-z-index: 100;
+z-index: var(--z-sticky);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

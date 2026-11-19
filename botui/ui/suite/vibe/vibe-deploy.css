@@ -23,7 +23,7 @@ border: none;
 color: white;
 font-size: 20px;
 cursor: pointer;
-z-index: 100;
+z-index: var(--z-sticky);
 }
 
 .vibe-deployment-panel-inner {
@@ -39,7 +39,7 @@ max-width: 90%;
 max-height: 80vh;
 overflow-y: auto;
 border: 1px solid var(--border);
-z-index: 1000;
+z-index: var(--z-dropdown);
 }
 
 .vibe-deploy-header {

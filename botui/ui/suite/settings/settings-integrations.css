@@ -255,7 +255,7 @@
 .settings-mcp-preview-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10001;
+  z-index: var(--z-system);
   background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;

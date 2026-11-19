@@ -14,7 +14,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 180px;
     padding: 6px 0;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .context-menu.hidden {
@@ -55,7 +55,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     opacity: 1;
     transition: opacity 0.2s ease;
 }

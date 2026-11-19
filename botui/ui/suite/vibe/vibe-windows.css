@@ -192,7 +192,7 @@
 .vibe-exec-overlay {
     position: absolute;
     inset: 0;
-    z-index: 200;
+    z-index: var(--z-header);
     display: flex;
     flex-direction: column;
     align-items: center;

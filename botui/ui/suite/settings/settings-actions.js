@@ -141,7 +141,7 @@
             toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.setAttribute('aria-atomic', 'true');
             toast.textContent = message;
-            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:10000;animation:fadeIn 0.3s';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:var(--z-system);animation:fadeIn 0.3s';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }

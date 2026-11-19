@@ -34,7 +34,7 @@
       // suite-wide components.css, so the dialog must not depend on it.
       overlay.style.cssText =
         "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;" +
-        "padding:16px;background:rgba(0,0,0,.7);z-index:12000;" +
+        "padding:16px;background:rgba(0,0,0,.7);z-index:var(--z-system);" +
         "opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s ease";
       overlay.innerHTML =
         '<div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="gbPinTitle" ' +

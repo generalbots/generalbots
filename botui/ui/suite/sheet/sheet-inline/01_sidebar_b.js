@@ -33,7 +33,7 @@ function saveSheet(arg) {
             if (window.__LOADED_SHEET) window.__LOADED_SHEET.id = j.id;
         }
         var notif = document.createElement('div');
-        notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:var(--z-system);box-shadow:0 4px 12px rgba(0,0,0,0.3);';
         notif.textContent = '✓ Sheet saved';
         document.body.appendChild(notif);
         setTimeout(function() { notif.remove(); }, 2000);

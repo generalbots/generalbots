@@ -192,7 +192,7 @@
     border-right: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
     display: flex;
     flex-direction: column;
-    z-index: 100;
+    z-index: var(--z-sticky);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     flex-shrink: 0;

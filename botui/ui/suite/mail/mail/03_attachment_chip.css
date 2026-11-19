@@ -19,7 +19,7 @@
         display: flex;
         position: fixed;
         inset: 64px 0 0 0;
-        z-index: 100;
+        z-index: var(--z-sticky);
     }
 }
 
@@ -34,7 +34,7 @@
         display: flex;
         position: fixed;
         inset: 64px 0 0 0;
-        z-index: 100;
+        z-index: var(--z-sticky);
         width: 280px;
     }
     .modal-content {
@@ -202,7 +202,7 @@
     border: 1px solid #334155;
     border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 100;
+    z-index: var(--z-sticky);
     min-width: 160px;
 }
 

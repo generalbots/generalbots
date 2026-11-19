@@ -40,7 +40,7 @@
                 margin-top: 4px;
                 padding: 8px;
                 display: none;
-                z-index: 100;
+                z-index: var(--z-sticky);
             }
 
             .status-dropdown.show {

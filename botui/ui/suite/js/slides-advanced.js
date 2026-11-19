@@ -201,7 +201,7 @@
       if (!ui) {
         ui = document.createElement("div");
         ui.id = "gb-slides-rehearsal-ui";
-        ui.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;z-index:1000;color:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;";
+        ui.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;z-index:var(--z-dropdown);color:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;";
         document.body.appendChild(ui);
       }
       const idx = this.rehearsal.currentSlide;

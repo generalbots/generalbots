@@ -17,7 +17,7 @@ body.docs-presenting article {
     outline: none !important;
 }
 .docs-present-exitbar {
-    position: fixed; right: 18px; bottom: 18px; z-index: 4000;
+    position: fixed; right: 18px; bottom: 18px; z-index: var(--z-overlay);
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; border-radius: 999px;
     background: rgba(17, 24, 39, .92); color: #f9fafb;
