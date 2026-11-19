@@ -225,3 +225,8 @@ fraud-col-transactions = 取引
 fraud-col-blocked = ブロック
 fraud-col-review = レビュー
 fraud-col-false-positive = 誤検知
+
+drive-upload-queue-body = {count} 件のアップロードが完了していません。再試行しますか?
+drive-upload-queue-retry = 再試行
+drive-upload-queue-discard = 破棄
+drive-upload-queue-recovered = 復元した {count} 件のファイルをアップロードしました

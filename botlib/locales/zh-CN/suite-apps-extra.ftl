@@ -225,3 +225,8 @@ fraud-col-transactions = 交易
 fraud-col-blocked = 已拦截
 fraud-col-review = 审核
 fraud-col-false-positive = 误报
+
+drive-upload-queue-body = 有 {count} 个上传未完成，是否重试？
+drive-upload-queue-retry = 重试
+drive-upload-queue-discard = 丢弃
+drive-upload-queue-recovered = 已上传 {count} 个恢复的文件

@@ -225,3 +225,8 @@ fraud-col-transactions = Transaktionen
 fraud-col-blocked = Blockiert
 fraud-col-review = Prüfung
 fraud-col-false-positive = Falsch positiv
+
+drive-upload-queue-body = {count} Upload(s) wurden nicht abgeschlossen. Erneut versuchen?
+drive-upload-queue-retry = Erneut versuchen
+drive-upload-queue-discard = Verwerfen
+drive-upload-queue-recovered = {count} wiederhergestellte Datei(en) hochgeladen

@@ -233,3 +233,8 @@ docs-footnotes-empty = No footnotes
 docs-page-x-of-y = Page X of Y
 docs-toc-empty = No headings found.
 tax-emit = Issue
+
+drive-upload-queue-body = {count} upload(s) did not finish. Retry?
+drive-upload-queue-retry = Retry
+drive-upload-queue-discard = Discard
+drive-upload-queue-recovered = Uploaded {count} recovered file(s)

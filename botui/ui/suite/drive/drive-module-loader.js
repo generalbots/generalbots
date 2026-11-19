@@ -9,6 +9,8 @@
         '/suite/drive/modules/05_files.js',
         '/suite/drive/modules/05_files_lists.js',
         '/suite/drive/modules/05_files_tabs.js',
+        '/suite/drive/modules/05b_photo_compress.js',
+        '/suite/drive/modules/05c_upload_queue.js',
         '/suite/drive/modules/05_upload.js',
         '/suite/drive/modules/06_render.js',
         '/suite/drive/modules/07_events.js',

@@ -233,3 +233,8 @@ docs-footnotes-empty = Sem notas de rodapé
 docs-page-x-of-y = Página X de Y
 docs-toc-empty = Nenhum título encontrado.
 tax-emit = Emitir
+
+drive-upload-queue-body = {count} envio(s) não terminaram. Tentar de novo?
+drive-upload-queue-retry = Tentar de novo
+drive-upload-queue-discard = Descartar
+drive-upload-queue-recovered = {count} arquivo(s) recuperado(s) enviado(s)
