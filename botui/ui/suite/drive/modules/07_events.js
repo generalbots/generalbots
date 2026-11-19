@@ -218,19 +218,79 @@ function bindDragAndDrop() {
 }
 
 function bindContextMenu() {
+    // #2419 — right-click stays the desktop path; touch gets a long-press
+    // shortcut and a visible "..." button (the discoverable path on iOS).
+    let lastGestureOpen = 0;
+
+    function openFileMenu(event, path) {
+        lastGestureOpen = Date.now();
+        showContextMenuFor(event, path);
+        const menu = document.getElementById("context-menu");
+        if (menu && window.gbGestures) {
+            window.gbGestures.clampToViewport(menu, event.clientX, event.clientY);
+        }
+    }
+
     document.addEventListener("contextmenu", function(e) {
         const fileEl = e.target.closest(".file-card, .drive-file-item");
         if (fileEl) {
             e.preventDefault();
-            showContextMenuFor(e, fileEl.dataset.path);
+            openFileMenu(e, fileEl.dataset.path);
         }
     });
     document.addEventListener("click", function(e) {
         const menu = document.getElementById("context-menu");
         if (menu && !menu.contains(e.target)) {
+            // A touch long-press is followed by a synthetic click; do not let
+            // the outside-dismiss handler close the menu we just opened.
+            if (Date.now() - lastGestureOpen < 700) return;
             menu.classList.add("hidden");
             menu.style.display = "none";
         }
     });
+
+    const gestures = window.gbGestures;
+    if (!gestures || !gestures.isCoarsePointer()) return;
+
+    gestures.onLongPress(document, function(e) {
+        if (!e.target || !e.target.closest) return;
+        if (e.target.closest("input, button, a, .btn-icon-sm")) return;
+        const fileEl = e.target.closest(".file-card, .drive-file-item");
+        if (fileEl) openFileMenu(e, fileEl.dataset.path);
+    }, { tolerance: 12 });
+
+    function addOverflowButtons() {
+        document.querySelectorAll(".file-card:not([data-gb-overflow])").forEach(function(card) {
+            card.setAttribute("data-gb-overflow", "1");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "file-card-more";
+            btn.setAttribute("aria-label", window.gbT ? window.gbT("label-more", "More") : "More");
+            btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+            // Inline geometry: css/ is owned by another agent in this batch.
+            btn.style.cssText = "position:absolute;top:4px;right:4px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:var(--surface,rgba(0,0,0,.45));color:inherit;cursor:pointer;z-index:2";
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openFileMenu(e, card.dataset.path);
+            });
+            card.appendChild(btn);
+        });
+    }
+
+    addOverflowButtons();
+    if (typeof MutationObserver !== "undefined") {
+        const root = document.getElementById("drive-app") || document.body;
+        let scheduled = false;
+        const observer = new MutationObserver(function() {
+            if (scheduled) return;
+            scheduled = true;
+            requestAnimationFrame(function() {
+                scheduled = false;
+                addOverflowButtons();
+            });
+        });
+        observer.observe(root, { childList: true, subtree: true });
+    }
 }
 

@@ -1,29 +1,13 @@
         function createNode(type, x, y) {
             const template = nodeTemplates[type];
-            if (!template) {
-                console.warn('No template found for node type:', type);
-                return null;
-            }
-
+            if (!template) { console.warn('No template found for node type:', type); return null; }
             const id = 'node-' + state.nextNodeId++;
-            const node = {
-                id,
-                type,
-                x,
-                y,
-                fields: {}
-            };
-
-            // Initialize field values
-            template.fields.forEach(field => {
-                node.fields[field.name] = field.default;
-            });
-
+            const node = { id, type, x, y, fields: {} };
+            template.fields.forEach(field => { node.fields[field.name] = field.default; });
             state.nodes.set(id, node);
             renderNode(node);
             saveToHistory();
             updateStatusBar();
-
             return node;
         }
 
@@ -35,71 +19,61 @@
             let fieldsHtml = '';
             template.fields.forEach(field => {
                 const value = node.fields[field.name] || '';
-                if (field.type === 'textarea') {
-                    fieldsHtml += `
-                        <div class="node-field">
-                            <label class="node-field-label">${field.label}</label>
-                            <textarea class="node-field-input" data-field="${field.name}" rows="2">${value}</textarea>
-                        </div>
-                    `;
-                } else if (field.type === 'select') {
-                    const options = field.options.map(opt =>
-                        `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
-                    ).join('');
-                    fieldsHtml += `
-                        <div class="node-field">
-                            <label class="node-field-label">${field.label}</label>
-                            <select class="node-field-select" data-field="${field.name}">${options}</select>
-                        </div>
-                    `;
-                } else {
-                    fieldsHtml += `
-                        <div class="node-field">
-                            <label class="node-field-label">${field.label}</label>
-                            <input type="text" class="node-field-input" data-field="${field.name}" value="${value}">
-                        </div>
-                    `;
-                }
+                let control;
+                if (field.type === 'textarea') control = `<textarea class="node-field-input" data-field="${field.name}" rows="2">${value}</textarea>`;
+                else if (field.type === 'select') control = `<select class="node-field-select" data-field="${field.name}">${field.options.map(opt => `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`).join('')}</select>`;
+                else control = `<input type="text" class="node-field-input" data-field="${field.name}" value="${value}">`;
+                fieldsHtml += `<div class="node-field"><label class="node-field-label">${field.label}</label>${control}</div>`;
             });
 
             let portsHtml = '';
-            if (template.hasInput) {
-                portsHtml += `<div class="node-port input" data-port="input"></div>`;
-            }
-            if (template.hasOutput) {
-                portsHtml += `<div class="node-port output" data-port="output"></div>`;
-            }
-            if (template.hasOutputTrue) {
-                portsHtml += `<div class="node-port output-true" data-port="true" title="True"></div>`;
-            }
-            if (template.hasOutputFalse) {
-                portsHtml += `<div class="node-port output-false" data-port="false" title="False"></div>`;
-            }
+            if (template.hasInput) portsHtml += '<div class="node-port input" data-port="input"></div>';
+            if (template.hasOutput) portsHtml += '<div class="node-port output" data-port="output"></div>';
+            if (template.hasOutputTrue) portsHtml += '<div class="node-port output-true" data-port="true" title="True"></div>';
+            if (template.hasOutputFalse) portsHtml += '<div class="node-port output-false" data-port="false" title="False"></div>';
 
+            const coarse = window.gbGestures && window.gbGestures.isCoarsePointer();
+            const overflowBtn = coarse
+                ? '<button type="button" class="node-more" aria-label="' + (window.gbT ? window.gbT('label-more', 'More') : 'More') + '" style="margin-left:auto;border:0;background:transparent;color:inherit;cursor:pointer;min-width:44px;min-height:32px;">&#8943;</button>'
+                : '';
             const nodeEl = document.createElement('div');
             nodeEl.className = 'node';
             nodeEl.id = node.id;
             nodeEl.style.left = node.x + 'px';
             nodeEl.style.top = node.y + 'px';
-            nodeEl.innerHTML = `
-                <div class="node-header ${typeClass}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                        ${getNodeIcon(node.type)}
-                    </svg>
-                    ${node.type}
-                </div>
-                <div class="node-body">
-                    ${fieldsHtml}
-                </div>
-                ${portsHtml}
-            `;
+            nodeEl.innerHTML = `<div class="node-header ${typeClass}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">${getNodeIcon(node.type)}</svg>${node.type}${overflowBtn}</div><div class="node-body">${fieldsHtml}</div>${portsHtml}`;
 
-            // Make draggable
-            nodeEl.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('node-port')) return;
+            // Pointer events with capture. Mouse drags immediately (desktop
+            // behaviour unchanged); touch nodes wait for a long press so a
+            // finger moving over the canvas pans instead of moving a node.
+            nodeEl.style.touchAction = 'none';
+            nodeEl.addEventListener('pointerdown', (e) => {
+                if (e.target.classList.contains('node-port') || !e.isPrimary) return;
+                if (e.pointerType !== 'mouse') return;
                 selectNode(node.id);
-                startNodeDrag(e, node);
+                startNodeDrag(e, node, nodeEl);
             });
+            if (window.gbGestures) {
+                window.gbGestures.onLongPress(nodeEl, function (e, start) {
+                    selectNode(node.id);
+                    startNodeDrag({ pointerId: start.id, clientX: start.x, clientY: start.y }, node, nodeEl);
+                }, { includeMouse: false, tolerance: 12 });
+                const moreBtn = nodeEl.querySelector('.node-more');
+                if (moreBtn) {
+                    moreBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        selectNode(node.id);
+                        const menu = document.getElementById('context-menu');
+                        if (menu) {
+                            const rect = moreBtn.getBoundingClientRect();
+                            menu.style.left = rect.left + 'px';
+                            menu.style.top = (rect.bottom + 4) + 'px';
+                            menu.classList.add('visible');
+                            if (window.gbGestures) window.gbGestures.clampToViewport(menu, rect.left, rect.bottom + 4);
+                        }
+                    });
+                }
+            }
 
             // Field change handlers
             nodeEl.querySelectorAll('.node-field-input, .node-field-select').forEach(input => {
@@ -109,15 +83,33 @@
                 });
             });
 
-            // Port handlers for connections
+            // Port handlers for connections. Capture keeps pointerup on the
+            // source port; elementFromPoint resolves the actual target port.
             nodeEl.querySelectorAll('.node-port').forEach(port => {
-                port.addEventListener('mousedown', (e) => {
+                port.style.touchAction = 'none';
+                let activePortPointer = null;
+                port.addEventListener('pointerdown', (e) => {
+                    if (!e.isPrimary) return;
                     e.stopPropagation();
+                    activePortPointer = e.pointerId;
+                    gbCapturePointer(port, e.pointerId);
                     startConnection(node.id, port.dataset.port);
                 });
-                port.addEventListener('mouseup', (e) => {
+                port.addEventListener('pointerup', (e) => {
+                    if (activePortPointer !== e.pointerId) return;
                     e.stopPropagation();
-                    endConnection(node.id, port.dataset.port);
+                    activePortPointer = null;
+                    gbReleasePointer(port, e.pointerId);
+                    const under = document.elementFromPoint(e.clientX, e.clientY);
+                    const target = under && under.closest ? under.closest('.node-port') : null;
+                    if (target) endConnection(target.closest('.node').id, target.dataset.port);
+                    else { state.isConnecting = false; state.connectionStart = null; }
+                });
+                port.addEventListener('pointercancel', (e) => {
+                    if (activePortPointer !== e.pointerId) return;
+                    activePortPointer = null;
+                    state.isConnecting = false;
+                    state.connectionStart = null;
                 });
             });
 
@@ -136,9 +128,7 @@
                 'SEND MAIL': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
                 'GET': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
                 'POST': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
-                'SAVE': '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
-                'WAIT': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-                'SET BOT MEMORY': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>',
+                'SAVE': '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>', 'WAIT': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 'SET BOT MEMORY': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>',
                 'GET BOT MEMORY': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="7 10 12 15 17 10"/>',
                 'SET USER MEMORY': '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
                 'GET USER MEMORY': '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
@@ -146,34 +136,41 @@
             return icons[type] || '<circle cx="12" cy="12" r="10"/>';
         }
 
-        // Node dragging
-        function startNodeDrag(e, node) {
+        // Node dragging — pointer capture keeps the gesture alive outside the
+        // node and works with both mouse and touch (#2419).
+        function startNodeDrag(e, node, el) {
+            const nodeEl = el || document.getElementById(node.id);
+            if (!nodeEl) return;
             state.isDragging = true;
-            const nodeEl = document.getElementById(node.id);
+            const pointerId = e.pointerId;
             const startX = e.clientX;
             const startY = e.clientY;
             const origX = node.x;
             const origY = node.y;
+            gbCapturePointer(nodeEl, pointerId);
 
-            function onMove(e) {
-                const dx = (e.clientX - startX) / state.zoom;
-                const dy = (e.clientY - startY) / state.zoom;
-                node.x = snapToGrid(origX + dx);
-                node.y = snapToGrid(origY + dy);
+            function onMove(ev) {
+                if (ev.pointerId !== pointerId) return;
+                node.x = snapToGrid(origX + (ev.clientX - startX) / state.zoom);
+                node.y = snapToGrid(origY + (ev.clientY - startY) / state.zoom);
                 nodeEl.style.left = node.x + 'px';
                 nodeEl.style.top = node.y + 'px';
                 updateConnections();
             }
 
-            function onUp() {
+            function onUp(ev) {
+                if (ev.pointerId !== pointerId) return;
                 state.isDragging = false;
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
+                nodeEl.removeEventListener('pointermove', onMove);
+                nodeEl.removeEventListener('pointerup', onUp);
+                nodeEl.removeEventListener('pointercancel', onUp);
+                gbReleasePointer(nodeEl, pointerId);
                 saveToHistory();
             }
 
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
+            nodeEl.addEventListener('pointermove', onMove);
+            nodeEl.addEventListener('pointerup', onUp);
+            nodeEl.addEventListener('pointercancel', onUp);
         }
 
         // Node selection
