@@ -1,0 +1,29 @@
+[Unit]
+Description=General Bots logind lock/resume bridge (#2446)
+Documentation=https://github.com/generalbots/generalbots/issues/2446
+# logind emits Lock/Unlock and PrepareForSleep on the system bus. The bridge
+# writes a state file and re-locks on resume; it never authenticates a user.
+After=systemd-logind.service
+Wants=systemd-logind.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/systemd/system/generalbots-lock-monitor.sh
+Restart=on-failure
+RestartSec=5
+# gdbus monitor uses the system bus BecomeMonitor method, which is restricted
+# to uid 0; the rest of the unit is sandboxed and drops every capability.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/run/user
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
