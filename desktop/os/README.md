@@ -18,6 +18,37 @@ When comparing the two shell-replacement options, option **B** won:
 | Shell attack surface | X clients can grab/XTEST each other; multi-DE stack | one Wayland compositor, one known client, no ssh server, no terminal emulator |
 | Crash model | DM respawns session | `Restart=always` — same semantics, fewer processes |
 
+
+## Boot escape hatch (deliberate, documented decision — #2468)
+
+The shipped appliance has **no boot-time root shell escape hatch**. This is
+intentional:
+
+- `getty@tty1.service`, `rescue.service`, and `emergency.service` are masked in
+  `mkosi.finalize.chroot`.
+- tty1 is reserved exclusively for `generalbots-shell.service` (the kiosk
+  compositor/session), and the image ships with no SSH server and no terminal
+  emulator.
+- There is no supported key sequence at boot (e.g. kernel command-line `init=`,
+  `systemd.unit=rescue.target`, `rd.break`, GRUB edit, or serial console login)
+  that provides a root shell on the shipped, locked-down image. Recovery is
+  **reprovisioning from a fresh image**.
+
+Rationale: an unattended/appliance laptop must not expose a local privilege
+boundary that bypasses the account/lock model or exposes secrets on disk.
+Treating "nothing works" as an undocumented failure is wrong; treating "no shell
+by default" as a deliberate, documented security posture is the intended state.
+
+If a development/custom/operator image explicitly requires debug access, that
+image must opt in by changing the build (for example: unmask the relevant
+units, provide an authenticated local console or serial access, and document the
+credential/key handling) and accept the resulting security tradeoff. Such
+overrides are not part of the shipped appliance contract.
+
+Remaining #2468 work (deferred): branded recovery screen after repeated shell
+failures, safe mode, one-click redacted diagnostics bundle/export, and explicit
+time-boxed remote-support controls.
+
 ## Files (the build key artifacts)
 
 | File | Purpose |
