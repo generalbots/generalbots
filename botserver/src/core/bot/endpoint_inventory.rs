@@ -373,6 +373,9 @@ pub fn all_routes() -> impl Iterator<Item = &'static ApiEndpoint> {
 }
 
 #[cfg(test)]
+mod endpoint_inventory_tests;
+
+#[cfg(test)]
 mod inventory_summary_tests {
     use super::*;
 
