@@ -98,7 +98,7 @@ pub fn delivery_policy_block() -> String {
 /// server local time; the fallback prompt in `prompt.rs` already has the date,
 /// so the block is kept short to avoid doubling it.
 #[must_use]
-fn today_block() -> String {
+pub(super) fn today_block() -> String {
     let now = chrono::Local::now();
     format!(
         "Today is {} ({}).",

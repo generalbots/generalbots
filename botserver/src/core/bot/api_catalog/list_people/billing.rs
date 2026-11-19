@@ -1,7 +1,7 @@
 use super::super::*;
 
 /// Lists invoices (branch-scoped, read-only).
-pub(super) async fn list_invoices(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+pub(in crate::core::bot::api_catalog) async fn list_invoices(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let rows: Vec<InvoiceRow> = diesel::sql_query(
@@ -28,7 +28,7 @@ pub(super) async fn list_invoices(state: &Arc<AppState>, bot_uuid: &Uuid) -> Res
 }
 
 /// Lists payments (branch-scoped, read-only).
-pub(super) async fn list_payments(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+pub(in crate::core::bot::api_catalog) async fn list_payments(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let rows: Vec<PaymentRow> = diesel::sql_query(
@@ -56,7 +56,7 @@ pub(super) async fn list_payments(state: &Arc<AppState>, bot_uuid: &Uuid) -> Res
 }
 
 /// Lists quotes (branch-scoped, read-only).
-pub(super) async fn list_quotes(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+pub(in crate::core::bot::api_catalog) async fn list_quotes(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let rows: Vec<QuoteRow> = diesel::sql_query(

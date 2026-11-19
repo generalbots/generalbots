@@ -35,8 +35,8 @@ pub async fn execute_command(
     let cmd_meta = commands_list().iter().find(|c| c.name == name).copied();
     crate::apps::record_command_usage(
         name,
-        cmd_meta.map(|c| c.app.as_str()),
-        cmd_meta.map(|c| c.label.as_str()),
+        cmd_meta.map(|c| c.app),
+        cmd_meta.map(|c| c.label),
     );
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {

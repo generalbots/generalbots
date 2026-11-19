@@ -3,9 +3,9 @@ use botcore::shared::state::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::doc_delta;
-use super::native_tools::{persist, send};
-use super::types::SessionIdentity;
+use super::super::doc_delta;
+use super::super::native_tools::{persist, send};
+use super::super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 struct DrivePublisher {

@@ -59,9 +59,9 @@ pub(crate) async fn resolve_bot_llm_provider(
         // #2239 — Claude Code runs inside the user's agent VM; refuse to wake
         // or provision it when Agent/VM is disabled for this conversation.
         if resolved.provider == crate::core::ai_accounts::CLAUDE_CODE
-            && !super::agent_turn::is_enabled(session_id)
+            && !super::super::agent_turn::is_enabled(session_id)
         {
-            return Err(super::agent_turn::DISABLED_MESSAGE.to_string());
+            return Err(super::super::agent_turn::DISABLED_MESSAGE.to_string());
         }
         let provider =
             crate::llm::subscription::build(state, user_id, session_id, bot_uuid, &resolved)
@@ -147,7 +147,7 @@ pub(crate) async fn resolve_bot_llm_provider(
 
 /// When the answer mode is Data/Chart, generates and sends the specialized
 /// response; returns true when the pipeline has already replied.
-pub(super) async fn respond_in_answer_mode(
+pub(crate) async fn respond_in_answer_mode(
     sink: &dyn ChannelSink,
     state: &Arc<AppState>,
     user_text: &str,
@@ -203,7 +203,7 @@ pub(super) async fn respond_in_answer_mode(
 /// `--- Informacoes de Contexto ---` containing score and document lines.
 pub(super) fn extract_kb_sources_from_messages(
     messages: &serde_json::Value,
-) -> Vec<super::activity::KbSource> {
+) -> Vec<super::super::activity::KbSource> {
     let Some(arr) = messages.as_array() else {
         return Vec::new();
     };
@@ -233,7 +233,7 @@ pub(super) fn extract_kb_sources_from_messages(
                     .nth(1)
                     .unwrap_or("")
                     .to_string();
-                sources.push(super::activity::KbSource {
+                sources.push(super::super::activity::KbSource {
                     document: doc,
                     excerpt,
                     score,

@@ -32,6 +32,7 @@ pub const API_CALL_TRIGGER: &str = "\"__api_call__\":";
 /// and the discovery commands all agree on the same per-app actions.
 pub use crate::apps::commands::{AppCommand, command_by_name};
 
+#[derive(Debug, Clone, Copy)]
 pub struct ApiEndpoint {
     pub method: &'static str,
     pub path: &'static str,

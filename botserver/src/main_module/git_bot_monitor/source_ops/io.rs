@@ -113,7 +113,7 @@ impl botautotask::types::BotSourceOps for GitBotSourceOps {
         message: &str,
     ) -> Result<Vec<String>, botautotask::types::BoxError> {
         let name = bot_name_for_id(&self.pool, bot_id)?;
-        super::bot_config::write_config_files(&self.pool, &name, files, message).map_err(Into::into)
+        super::super::bot_config::write_config_files(&self.pool, &name, files, message).map_err(Into::into)
     }
 
     fn read_source(

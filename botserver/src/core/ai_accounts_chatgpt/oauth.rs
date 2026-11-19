@@ -102,7 +102,7 @@ pub(super) async fn exchange(
 }
 
 /// Reads the stored token, refreshing it when it is close to expiry.
-pub(super) async fn access_token(user_id: Uuid) -> Result<(String, Option<String>), String> {
+pub(crate) async fn access_token(user_id: Uuid) -> Result<(String, Option<String>), String> {
     let manager = botcoresecrets::SecretsManager::get()
         .map_err(|error| format!("Vault is unavailable: {error}"))?;
     let path = crate::llm::subscription::chatgpt_vault_path(user_id);

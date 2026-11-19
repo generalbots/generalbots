@@ -141,6 +141,7 @@ pub use blocks::{
     response_language_block,
 };
 pub(crate) use blocks::{wants_drawing, with_structured_tools};
+use blocks::{api_catalog_enabled, today_block};
 
 #[cfg(test)]
 mod tests;

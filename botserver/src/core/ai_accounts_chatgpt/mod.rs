@@ -241,8 +241,8 @@ async fn callback(
 
 mod oauth;
 
-pub use oauth::access_token;
-pub(super) use oauth::exchange;
+pub(crate) use oauth::access_token;
+use oauth::exchange;
 
 /// Removes the Vault token and marks the account unlinked.
 pub async fn disconnect(pool: &DbPool, user_id: Uuid) -> Result<(), String> {

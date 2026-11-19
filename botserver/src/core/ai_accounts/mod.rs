@@ -58,8 +58,8 @@ pub fn normalize_provider(value: &str) -> Option<&'static str> {
 
 mod db;
 pub use db::{
-    choose_for_request, ensure_user, is_linked, linked_account, list_accounts, mark_linked,
-    update_status, LinkedAccount,
+    choose_for_request, default_model, ensure_user, is_linked, is_subscription_provider,
+    linked_account, list_accounts, mark_linked, update_status, LinkedAccount,
 };
 
 #[cfg(test)]

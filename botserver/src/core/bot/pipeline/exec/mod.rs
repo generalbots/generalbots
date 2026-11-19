@@ -395,7 +395,6 @@ pub async fn process_message_internal(
         ui_automation_enabled,
         &media_type,
         &model_preference,
-        &session_context,
         project_context.as_ref(),
         &mut attachment_note,
         &mut messages,

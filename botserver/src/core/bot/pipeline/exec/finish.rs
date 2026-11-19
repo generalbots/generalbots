@@ -1,13 +1,13 @@
-use super::types::{PipelineError, PipelineResult, SessionIdentity};
+use super::super::types::{PipelineError, PipelineResult, SessionIdentity};
 
 pub(super) async fn stream_and_finalize(
     identity: &SessionIdentity<'_>,
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
     messages: &[serde_json::Value],
     user_text: &str,
-    #[cfg(feature = "integrations")] mentions: &super::super::mentions::ParsedMentions,
+    #[cfg(feature = "integrations")] mentions: &[botlib::models::MentionRef],
     is_switcher_replay: bool,
-    model_preference: &Option<String>,
+    model_preference: &str,
     agent_enabled: bool,
 ) -> PipelineResult<()> {
     let SessionIdentity {

@@ -1,4 +1,4 @@
-use super::types::{PipelineResult, SessionIdentity};
+use super::super::types::{PipelineResult, SessionIdentity};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn prepare_messages_and_maybe_finish(
@@ -6,12 +6,11 @@ pub(super) async fn prepare_messages_and_maybe_finish(
     parsed: &serde_json::Value,
     user_text: &str,
     agent_enabled: bool,
-    route: &crate::core::bot::ws::stream::routing::RoutingDecision,
+    route: &crate::core::bot::ws::stream::routing::Decision,
     active_switchers: &[String],
     ui_automation_enabled: bool,
     media_type: &str,
-    model_preference: &Option<String>,
-    session_context: &std::collections::HashMap<String, String>,
+    model_preference: &str,
     project_context: Option<&serde_json::Value>,
     attachment_note: &mut Option<String>,
     messages: &mut Vec<serde_json::Value>,
@@ -131,7 +130,7 @@ pub(super) async fn prepare_messages_and_maybe_finish(
     // #1549/#1637: the tier now selects a real model in
     // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
     // secondary shaping hint, not the routing mechanism.
-    super::super::turn_context::apply_model_preference(messages, &model_preference);
+    super::super::turn_context::apply_model_preference(messages, model_preference);
     super::super::turn_context::apply_session_context(messages, &session_context);
 
     let routing = super::super::turn_context::TurnRouting {

@@ -18,4 +18,4 @@ pub(crate) mod source_ops;
 pub use archive::run_archive_pass;
 pub use import::run_import_pass;
 pub use loop_ops::start;
-pub use source_ops::GitBotSourceOps;
+pub(crate) use source_ops::GitBotSourceOps;

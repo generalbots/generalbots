@@ -310,4 +310,4 @@ pub(super) async fn build_and_stream(
 
 mod helpers;
 pub(crate) use helpers::resolve_bot_llm_provider;
-pub(super) use helpers::respond_in_answer_mode;
+pub(crate) use helpers::respond_in_answer_mode;

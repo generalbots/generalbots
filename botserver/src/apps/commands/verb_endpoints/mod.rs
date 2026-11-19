@@ -8,6 +8,7 @@ use serde_json::{Map, Value};
 /// invents a path. `renames` translates the curated parameter names onto the
 /// field names the handler deserializes; `defaults` fills a required field the
 /// verb does not carry (never a value the user asked for).
+#[derive(Debug, Clone, Copy)]
 pub struct VerbEndpoint {
     /// Curated command name, e.g. `docs.get`.
     pub verb: &'static str,

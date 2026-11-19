@@ -1,7 +1,7 @@
 use super::super::*;
 
 /// Lists support tickets (branch-scoped, read-only).
-pub(super) async fn list_tickets(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+pub(in crate::core::bot::api_catalog) async fn list_tickets(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let rows: Vec<TicketRow> = diesel::sql_query(

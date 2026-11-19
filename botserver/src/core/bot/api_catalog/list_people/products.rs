@@ -3,7 +3,7 @@ use diesel::OptionalExtension;
 use uuid::Uuid;
 
 /// Lists products/services (branch-scoped, read-only).
-pub(super) async fn list_products(
+pub(in crate::core::bot::api_catalog) async fn list_products(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     category: Option<&str>,
@@ -53,7 +53,7 @@ pub(super) async fn list_products(
 }
 
 /// Creates a product in the catalog (chat command, branch-scoped).
-pub(super) async fn create_product_item(
+pub(in crate::core::bot::api_catalog) async fn create_product_item(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     params: &serde_json::Map<String, Value>,
@@ -150,7 +150,7 @@ pub(super) async fn create_product_item(
 }
 
 /// Updates a product in the catalog (chat command, branch-scoped).
-pub(super) async fn update_product_item(
+pub(in crate::core::bot::api_catalog) async fn update_product_item(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     params: &serde_json::Map<String, Value>,

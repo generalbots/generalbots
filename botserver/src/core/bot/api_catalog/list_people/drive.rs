@@ -6,7 +6,7 @@ use super::super::*;
 /// `{slug}.gborg` with the bot directory as a key prefix, while a standalone
 /// bot owns `{bot}.gbai`. Every `drive.*` command goes through this so the
 /// chat side addresses exactly the Drive the UI and the file keywords use.
-pub(super) fn catalog_drive_location(
+pub(in crate::core::bot::api_catalog) fn catalog_drive_location(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
 ) -> Result<botbasic_core::utils::BotDriveLocation, String> {
@@ -16,7 +16,7 @@ pub(super) fn catalog_drive_location(
     ))
 }
 /// Lists drive files under a folder (read-only, via the configured S3 repository).
-pub(super) async fn list_drive_files(
+pub(in crate::core::bot::api_catalog) async fn list_drive_files(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     path: Option<&str>,
@@ -77,7 +77,7 @@ pub(super) async fn list_drive_files(
     Ok(json!({ "count": items.len(), "bucket": bucket, "files": items }))
 }
 #[cfg(all(feature = "banking", feature = "products", feature = "tax"))]
-pub(super) async fn execute_tax(
+pub(in crate::core::bot::api_catalog) async fn execute_tax(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     service: Option<String>,
@@ -107,7 +107,7 @@ pub(super) async fn execute_tax(
     }
 }
 #[cfg(not(all(feature = "banking", feature = "products", feature = "tax")))]
-pub(super) async fn execute_tax(
+pub(in crate::core::bot::api_catalog) async fn execute_tax(
     _state: &Arc<AppState>,
     _bot_uuid: &Uuid,
     _service: Option<String>,
@@ -116,7 +116,7 @@ pub(super) async fn execute_tax(
     Err("tax calculation requires banking, products and tax features".to_string())
 }
 #[cfg(all(feature = "banking", feature = "products", feature = "tax"))]
-pub(super) fn calculate_anonymous_service_tax(
+pub(in crate::core::bot::api_catalog) fn calculate_anonymous_service_tax(
     conn: &mut diesel::PgConnection,
     branch_id: &Uuid,
     value: Option<&str>,
@@ -154,7 +154,7 @@ pub(super) fn calculate_anonymous_service_tax(
         "rate_source": source,
     }))
 }
-pub(super) async fn write_drive_file(
+pub(in crate::core::bot::api_catalog) async fn write_drive_file(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     path: &str,
@@ -179,7 +179,7 @@ pub(super) async fn write_drive_file(
 }
 /// Copies a file from one drive path to another (e.g. an attached invoice
 /// from `inbox/` into its `faturas/<month>/` folder).
-pub(super) async fn move_drive_file(
+pub(in crate::core::bot::api_catalog) async fn move_drive_file(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     from: &str,
