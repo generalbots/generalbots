@@ -6,7 +6,7 @@ os-net-readonly = La configuración de red la gestiona el dispositivo anfitrión
 os-power-title = Energía y batería
 os-power-subtitle = Batería, carga y comportamiento de energía
 os-power-status = Estado de energía
-os-power-readonly = Las acciones de energía requieren el backend del dispositivo y aún no están disponibles en esta versión.
+os-power-readonly = Muestra el estado de la batería y la alimentación de CA cuando la telemetría del host está disponible. Las notificaciones de batería baja se muestran al 20 %, 10 % y 5 %. La política de tapa y las acciones críticas configurables requieren compatibilidad con el backend y siguen siendo de solo lectura en esta compilación.
 os-display-title = Pantalla
 os-display-subtitle = Brillo, escala y pantallas externas
 os-display-status = Estado de la pantalla
@@ -34,3 +34,18 @@ os-diagnostics-readonly = La recopilación de diagnósticos es de solo lectura y
 os-backend-pending = Esperando el backend del sistema…
 os-backend-unavailable = El endpoint del backend del sistema no está disponible en esta versión. Esta página es de solo lectura.
 os-backend-connected = Conectado al backend del sistema.
+
+# #2445 — battery/power status details
+os-yes = Sí
+os-no = No
+os-power-present = Batería presente
+os-power-percent = Carga
+os-power-state = Estado
+os-power-ac = Alimentación de CA
+os-power-ac-online = Conectada
+os-power-ac-offline = Desconectada
+os-power-time-remaining = Tiempo restante estimado
+os-power-minutes = {minutes} min
+os-power-sources = Fuentes de energía detectadas
+os-power-thresholds-note = Las notificaciones de batería baja se muestran al 20 %, 10 % y 5 % cuando la telemetría del host está disponible.
+os-power-policy-note = La política de tapa y las acciones críticas configurables (suspender/hibernar/apagar) requieren compatibilidad con el backend y siguen sin estar disponibles en esta compilación.

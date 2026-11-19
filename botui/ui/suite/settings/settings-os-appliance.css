@@ -14,3 +14,11 @@
   font-size: var(--text-xs);
   color: var(--text-secondary, darkgray);
 }
+
+/* #2445 — power/battery details */
+.os-power-grid { display: grid; gap: 6px; }
+.os-power-row { display: flex; justify-content: space-between; gap: 12px; }
+.os-power-label { color: var(--text-secondary, darkgray); }
+.os-power-value { color: var(--text-primary, inherit); font-weight: 500; }
+.os-power-notes { margin: 10px 0 0; padding-left: 18px; color: var(--text-secondary, darkgray); font-size: var(--text-xs); }
+.os-power-notes li { margin: 4px 0; }

@@ -6,7 +6,7 @@ os-net-readonly = ネットワーク構成はホスト機器で管理されま�
 os-power-title = 電源とバッテリー
 os-power-subtitle = バッテリー、充電、電源の動作
 os-power-status = 電源の状態
-os-power-readonly = 電源操作には OS アプライアンスのバックエンドが必要で、このビルドではまだ利用できません。
+os-power-readonly = ホストのテレメトリが利用可能な場合、バッテリーとAC電源の状態を表示します。バッテリー残量低下の通知は20%、10%、5%で表示されます。蓋の動作ポリシーと設定可能な重大アクションにはバックエンド対応が必要で、このビルドでは読み取り専用のままです。
 os-display-title = ディスプレイ
 os-display-subtitle = 明るさ、拡大縮小、外部ディスプレイ
 os-display-status = ディスプレイの状態
@@ -34,3 +34,18 @@ os-diagnostics-readonly = 診断情報の収集は読み取り専用で、OS 診
 os-backend-pending = OS バックエンドを待機しています…
 os-backend-unavailable = このビルドでは OS バックエンドのエンドポイントを利用できません。このページは読み取り専用です。
 os-backend-connected = OS バックエンドに接続しました。
+
+# #2445 — battery/power status details
+os-yes = はい
+os-no = いいえ
+os-power-present = バッテリーあり
+os-power-percent = 充電量
+os-power-state = 状態
+os-power-ac = AC電源
+os-power-ac-online = 接続中
+os-power-ac-offline = 未接続
+os-power-time-remaining = 推定残り時間
+os-power-minutes = {minutes} 分
+os-power-sources = 検出された電源
+os-power-thresholds-note = ホストのテレメトリが利用可能な場合、バッテリー残量低下の通知は20%、10%、5%で表示されます。
+os-power-policy-note = 蓋の動作ポリシーと設定可能な重大アクション（スリープ/ハイバネート/シャットダウン）にはバックエンド対応が必要で、このビルドでは利用できません。

@@ -6,7 +6,7 @@ os-net-readonly = 网络配置由主机设备管理。当 OS 后端可用时，�
 os-power-title = 电源和电池
 os-power-subtitle = 电池、充电和电源行为
 os-power-status = 电源状态
-os-power-readonly = 电源操作需要 OS 设备后端，在此构建中尚不可用。
+os-power-readonly = 当主机遥测可用时显示电池和交流供电状态。电量低通知会在 20%、10% 和 5% 时显示。合盖策略和可配置的严重电量操作需要后端支持，在此构建中仍为只读。
 os-display-title = 显示
 os-display-subtitle = 亮度、缩放和外接显示器
 os-display-status = 显示状态
@@ -34,3 +34,18 @@ os-diagnostics-readonly = 诊断收集为只读，并依赖 OS 诊断后端。
 os-backend-pending = 正在等待 OS 后端…
 os-backend-unavailable = 此构建中 OS 后端端点不可用。此页面为只读。
 os-backend-connected = 已连接到 OS 后端。
+
+# #2445 — battery/power status details
+os-yes = 是
+os-no = 否
+os-power-present = 有电池
+os-power-percent = 电量
+os-power-state = 状态
+os-power-ac = 交流供电
+os-power-ac-online = 已连接
+os-power-ac-offline = 未连接
+os-power-time-remaining = 预计剩余时间
+os-power-minutes = {minutes} 分钟
+os-power-sources = 检测到的电源
+os-power-thresholds-note = 当主机遥测可用时，会在 20%、10% 和 5% 显示电量低通知。
+os-power-policy-note = 合盖策略和可配置的严重电量操作（挂起/休眠/关机）需要后端支持，在此构建中不可用。

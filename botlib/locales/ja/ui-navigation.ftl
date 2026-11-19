@@ -188,3 +188,16 @@ taskbar-power-unknown = 電源コントロールを利用できません
 taskbar-os-overflow = その他のインジケーター
 taskbar-os-overflow-aria = 非表示のインジケーターを表示
 taskbar-open-settings = 設定を開く
+
+# #2445 — battery/power status (tray + OS settings)
+taskbar-battery-charging-unknown = 充電中
+taskbar-battery-full = フル充電
+taskbar-battery-present = バッテリーあり
+taskbar-battery-full-pct = {percent}% — フル充電
+taskbar-battery-charging-pct = {percent}% — 充電中
+taskbar-battery-discharging-pct = {percent}% — バッテリー駆動
+taskbar-battery-pct = {percent}% — {state}
+taskbar-battery-low-notify = バッテリー残量低下: {percent}%
+taskbar-battery-critical-notify = バッテリー残量危険: {percent}%
+taskbar-power-ac-only = AC電源
+taskbar-power-summary = バッテリー {percent}%

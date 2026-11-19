@@ -335,6 +335,10 @@ pub(crate) fn tail(path: &Path, lines: usize) -> String {
     all[start..].join("\n")
 }
 
+
+/// #2445 — battery/AC status from `/sys/class/power_supply`.
+pub(crate) use crate::os_power_data::read_power_status;
+
 #[cfg(test)]
 mod tests {
     use super::*;

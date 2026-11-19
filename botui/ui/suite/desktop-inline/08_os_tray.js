@@ -10,12 +10,26 @@
     { id: "trayPower", key: "power", labelKey: "taskbar-power", defaultLabel: "Power", statusKey: "taskbar-power-unknown", defaultStatus: "Power controls unavailable", priority: "low" }
   ];
 
-  function t(key, fallback) {
+  var powerState = {
+    data: null,
+    lastFetchOk: false,
+    notified: {},
+    pollTimer: null,
+    pollMs: 30000
+  };
+
+  function t(key, fallback, params) {
+    var v = fallback;
     if (typeof window._t === "function") {
-      var v = window._t(key, fallback);
-      if (v && v !== key) return v;
+      var r = window._t(key, fallback);
+      if (r && r !== key) v = r;
     }
-    return fallback;
+    if (params && v) {
+      Object.keys(params).forEach(function (k) {
+        v = String(v).split("{" + k + "}").join(String(params[k]));
+      });
+    }
+    return v;
   }
 
   function edition() {
@@ -46,6 +60,102 @@
     });
   }
 
+  function indicatorByKey(key) {
+    for (var i = 0; i < INDICATORS.length; i++) {
+      if (INDICATORS[i].key === key) return INDICATORS[i];
+    }
+    return null;
+  }
+
+  function batteryStatusText(data) {
+    if (!data || !data.present) return t("taskbar-battery-none", "No battery");
+    var pct = typeof data.percent === "number" ? data.percent : null;
+    var state = String(data.state || "").toLowerCase();
+    var charging = state === "charging" || (state === "unknown" && data.ac_online && pct !== null && pct < 100);
+    var full = state === "full" || (pct === 100 && data.ac_online);
+    var discharging = state === "discharging";
+    if (pct === null) {
+      if (charging) return t("taskbar-battery-charging-unknown", "Charging");
+      if (full) return t("taskbar-battery-full", "Fully charged");
+      return t("taskbar-battery-present", "Battery present");
+    }
+    if (full) return t("taskbar-battery-full-pct", "{percent}% — fully charged", { percent: pct });
+    if (charging) return t("taskbar-battery-charging-pct", "{percent}% — charging", { percent: pct });
+    if (discharging) return t("taskbar-battery-discharging-pct", "{percent}% — on battery", { percent: pct });
+    return t("taskbar-battery-pct", "{percent}% — {state}", { percent: pct, state: data.state || "unknown" });
+  }
+
+  function batteryLevelClass(data) {
+    if (!data || !data.present || typeof data.percent !== "number") return "none";
+    var state = String(data.state || "").toLowerCase();
+    if (state === "charging") return "charging";
+    if (state === "full" || data.percent === 100) return "full";
+    if (data.percent <= 5) return "critical";
+    if (data.percent <= 20) return "low";
+    return "ok";
+  }
+
+  function powerControlStatusText(data) {
+    if (!data) return t("taskbar-power-unknown", "Power controls unavailable");
+    if (!data.present && data.ac_online) return t("taskbar-power-ac-only", "AC power");
+    if (data.present && typeof data.percent === "number") {
+      return t("taskbar-power-summary", "{percent}% battery", { percent: data.percent });
+    }
+    return t("taskbar-power-unknown", "Power controls unavailable");
+  }
+
+  function updateBatteryUi() {
+    var btn = byId("trayBattery");
+    var powerBtn = byId("trayPower");
+    var data = powerState.data;
+    var status = batteryStatusText(data);
+    if (btn) {
+      btn.title = status;
+      btn.setAttribute("aria-label", t("taskbar-battery", "Battery") + ": " + status);
+      btn.setAttribute("data-power-level", batteryLevelClass(data));
+      var dot = btn.querySelector(".os-tray-dot");
+      if (dot) {
+        var warn = data && data.present && typeof data.percent === "number" && data.percent <= 20 && String(data.state || "").toLowerCase() !== "charging";
+        dot.hidden = !warn;
+      }
+    }
+    if (powerBtn) {
+      var pstatus = powerControlStatusText(data);
+      powerBtn.title = pstatus;
+      powerBtn.setAttribute("aria-label", t("taskbar-power", "Power") + ": " + pstatus);
+    }
+    // keep overflow menu labels fresh on next rebuild
+  }
+
+  function maybeNotifyThresholds(data) {
+    if (!data || !data.present || typeof data.percent !== "number") return;
+    var state = String(data.state || "").toLowerCase();
+    if (state === "charging" || state === "full") {
+      // reset lower thresholds so they can fire again on next discharge
+      if (data.percent > 20) powerState.notified = {};
+      return;
+    }
+    [20, 10, 5].forEach(function (threshold) {
+      if (data.percent <= threshold && !powerState.notified[threshold]) {
+        powerState.notified[threshold] = true;
+        var msg = t("taskbar-battery-low-notify", "Battery low: {percent}%", { percent: data.percent });
+        if (threshold <= 5) msg = t("taskbar-battery-critical-notify", "Battery critical: {percent}%", { percent: data.percent });
+        announce(msg);
+        if (typeof window.Notification === "function" && window.Notification.permission === "granted") {
+          try { new window.Notification(t("taskbar-battery", "Battery"), { body: msg }); } catch (e) { /* ignore */ }
+        }
+      }
+    });
+  }
+
+  function announce(msg) {
+    var live = byId("osTrayLiveStatus");
+    if (live) {
+      live.textContent = "";
+      setTimeout(function () { live.textContent = msg; }, 20);
+    }
+  }
+
   function openPopover(ind, btn) {
     var pop = byId("osTrayPopover");
     if (!pop) return;
@@ -54,7 +164,11 @@
     var status = byId("osTrayPopoverStatus");
     var settings = byId("osTrayPopoverSettings");
     if (title) title.textContent = t(ind.labelKey, ind.defaultLabel);
-    if (status) status.textContent = t(ind.statusKey, ind.defaultStatus);
+    if (status) {
+      if (ind.key === "battery") status.textContent = batteryStatusText(powerState.data);
+      else if (ind.key === "power") status.textContent = powerControlStatusText(powerState.data);
+      else status.textContent = t(ind.statusKey, ind.defaultStatus);
+    }
     if (settings) {
       settings.onclick = function () { closePopover(); openSettings(btn.getAttribute("data-settings-target") || "os"); };
     }
@@ -78,6 +192,18 @@
     if (menu) menu.hidden = true;
     var ob = byId("trayOsOverflow");
     if (ob) ob.setAttribute("aria-expanded", "false");
+  }
+
+  function currentStatusKey(ind) {
+    if (ind.key === "battery") return null;
+    if (ind.key === "power") return null;
+    return ind.statusKey;
+  }
+
+  function currentStatusText(ind) {
+    if (ind.key === "battery") return batteryStatusText(powerState.data);
+    if (ind.key === "power") return powerControlStatusText(powerState.data);
+    return t(ind.statusKey, ind.defaultStatus);
   }
 
   function rebuildOverflow() {
@@ -110,7 +236,7 @@
         item.type = "button";
         item.className = "os-tray-overflow-item";
         item.setAttribute("role", "menuitem");
-        item.textContent = t(ind.labelKey, ind.defaultLabel) + ": " + t(ind.statusKey, ind.defaultStatus);
+        item.textContent = t(ind.labelKey, ind.defaultLabel) + ": " + currentStatusText(ind);
         item.addEventListener("click", function () {
           closeOverflow();
           openSettings((byId(ind.id) && byId(ind.id).getAttribute("data-settings-target")) || "os");
@@ -121,6 +247,62 @@
       overflowBtn.hidden = true;
       closeOverflow();
     }
+  }
+
+  function fetchPowerStatus() {
+    if (edition() !== "os") return Promise.resolve();
+    var urls = ["/api/system/power/status", "/api/system/os/power/status"];
+    function tryUrl(i) {
+      if (i >= urls.length) {
+        powerState.lastFetchOk = false;
+        updateBatteryUi();
+        rebuildOverflow();
+        return Promise.resolve();
+      }
+      return fetch(urls[i], { headers: { Accept: "application/json" }, credentials: "same-origin" })
+        .then(function (r) {
+          if (r.status === 404 && i + 1 < urls.length) return tryUrl(i + 1);
+          if (!r.ok) throw new Error(String(r.status));
+          return r.json();
+        })
+        .then(function (data) {
+          if (data && typeof data === "object") {
+            powerState.data = data;
+            powerState.lastFetchOk = true;
+            updateBatteryUi();
+            maybeNotifyThresholds(data);
+            rebuildOverflow();
+            // refresh open popover if showing battery/power
+            var pop = byId("osTrayPopover");
+            if (pop && !pop.hidden) {
+              var expanded = document.querySelector(".os-tray-btn[aria-expanded='true']");
+              if (expanded) {
+                var ind = indicatorByKey(expanded.getAttribute("data-os-key"));
+                if (ind && (ind.key === "battery" || ind.key === "power")) {
+                  var status = byId("osTrayPopoverStatus");
+                  if (status) status.textContent = ind.key === "battery" ? batteryStatusText(powerState.data) : powerControlStatusText(powerState.data);
+                }
+              }
+            }
+          }
+        })
+        .catch(function () {
+          if (i + 1 < urls.length) return tryUrl(i + 1);
+          powerState.lastFetchOk = false;
+          updateBatteryUi();
+          rebuildOverflow();
+        });
+    }
+    return tryUrl(0);
+  }
+
+  function startPolling() {
+    if (powerState.pollTimer) return;
+    fetchPowerStatus();
+    powerState.pollTimer = setInterval(fetchPowerStatus, powerState.pollMs);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) fetchPowerStatus();
+    });
   }
 
   function wire() {
@@ -135,6 +317,7 @@
       if (!btn || btn.dataset.osWired === "1") return;
       btn.dataset.osWired = "1";
       btn.dataset.priority = ind.priority;
+      btn.dataset.osKey = ind.key;
       btn.addEventListener("click", function (e) {
         e.preventDefault();
         togglePopover(ind, btn);
@@ -189,6 +372,7 @@
     });
     window.addEventListener("resize", rebuildOverflow);
     rebuildOverflow();
+    startPolling();
   }
 
   if (document.readyState === "loading") {

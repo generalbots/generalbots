@@ -6,7 +6,7 @@ os-net-readonly = A configuração de rede é gerenciada pelo dispositivo anfitr
 os-power-title = Energia e bateria
 os-power-subtitle = Bateria, carregamento e comportamento de energia
 os-power-status = Estado de energia
-os-power-readonly = Ações de energia exigem o backend do sistema e ainda não estão disponíveis nesta versão.
+os-power-readonly = Mostra o status da bateria e da energia CA quando a telemetria do host está disponível. Notificações de bateria fraca são exibidas em 20%, 10% e 5%. A política da tampa e ações críticas configuráveis exigem suporte de backend e permanecem somente leitura nesta compilação.
 os-display-title = Tela
 os-display-subtitle = Brilho, escala e monitores externos
 os-display-status = Estado da tela
@@ -34,3 +34,18 @@ os-diagnostics-readonly = A coleta de diagnóstico é somente leitura e depende 
 os-backend-pending = Aguardando o backend do sistema…
 os-backend-unavailable = Endpoint do backend do sistema indisponível nesta versão. Esta página é somente leitura.
 os-backend-connected = Conectado ao backend do sistema.
+
+# #2445 — battery/power status details
+os-yes = Sim
+os-no = Não
+os-power-present = Bateria presente
+os-power-percent = Carga
+os-power-state = Estado
+os-power-ac = Energia CA
+os-power-ac-online = Conectada
+os-power-ac-offline = Desconectada
+os-power-time-remaining = Tempo restante estimado
+os-power-minutes = {minutes} min
+os-power-sources = Fontes de energia detectadas
+os-power-thresholds-note = Notificações de bateria fraca são exibidas em 20%, 10% e 5% quando a telemetria do host está disponível.
+os-power-policy-note = A política da tampa e ações críticas configuráveis (suspender/hibernar/desligar) exigem suporte de backend e permanecem indisponíveis nesta compilação.

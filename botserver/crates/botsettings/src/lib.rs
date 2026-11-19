@@ -6,6 +6,7 @@ pub mod on_device_ai;
 pub mod ops;
 pub mod os;
 pub mod os_data;
+pub mod os_power_data;
 pub mod permission_inheritance;
 pub mod rbac;
 #[cfg(feature = "rbac")]

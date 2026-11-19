@@ -6,7 +6,7 @@ os-net-readonly = 네트워크 구성은 호스트 장치에서 관리합니다.
 os-power-title = 전원 및 배터리
 os-power-subtitle = 배터리, 충전 및 전원 동작
 os-power-status = 전원 상태
-os-power-readonly = 전원 작업에는 OS 어플라이언스 백엔드가 필요하며 이 빌드에서는 아직 사용할 수 없습니다.
+os-power-readonly = 호스트 원격 측정 데이터를 사용할 수 있으면 배터리 및 AC 전원 상태를 표시합니다. 배터리 부족 알림은 20%, 10%, 5%에서 표시됩니다. 덮개 동작 정책과 구성 가능한 위험 시 작업은 백엔드 지원이 필요하며 이 빌드에서는 읽기 전용으로 유지됩니다.
 os-display-title = 디스플레이
 os-display-subtitle = 밝기, 배율 및 외부 디스플레이
 os-display-status = 디스플레이 상태
@@ -34,3 +34,18 @@ os-diagnostics-readonly = 진단 수집은 읽기 전용이며 OS 진단 백엔�
 os-backend-pending = OS 백엔드를 기다리는 중…
 os-backend-unavailable = 이 빌드에서는 OS 백엔드 엔드포인트를 사용할 수 없습니다. 이 페이지는 읽기 전용입니다.
 os-backend-connected = OS 백엔드에 연결되었습니다.
+
+# #2445 — battery/power status details
+os-yes = 예
+os-no = 아니요
+os-power-present = 배터리 있음
+os-power-percent = 충전량
+os-power-state = 상태
+os-power-ac = AC 전원
+os-power-ac-online = 연결됨
+os-power-ac-offline = 연결 안 됨
+os-power-time-remaining = 예상 남은 시간
+os-power-minutes = {minutes}분
+os-power-sources = 감지된 전원
+os-power-thresholds-note = 호스트 원격 측정 데이터를 사용할 수 있으면 배터리 부족 알림이 20%, 10%, 5%에서 표시됩니다.
+os-power-policy-note = 덮개 동작 정책과 구성 가능한 위험 시 작업(절전/최대 절전/종료)은 백엔드 지원이 필요하며 이 빌드에서는 사용할 수 없습니다.

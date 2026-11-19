@@ -26,8 +26,8 @@ use std::sync::Arc;
 
 use crate::os_data::{
     expected_log_path, journal_tail, log_file_for, log_file_infos, read_disks, read_hostname,
-    read_kernel, read_os, read_services, read_timezone, read_uptime, tail, DiskInfo, LogFileInfo,
-    ServiceInfo, SERVICES,
+    read_kernel, read_os, read_power_status, read_services, read_timezone, read_uptime, tail,
+    DiskInfo, LogFileInfo, ServiceInfo, SERVICES,
 };
 
 const DEFAULT_LOG_LINES: usize = 200;
@@ -50,6 +50,9 @@ pub fn configure_os_routes() -> Router<Arc<AppState>> {
         .route("/api/system/os/services/restart", post(restart_service))
         .route("/api/system/os/logs", get(os_logs))
         .route("/api/system/os/logs/download", get(os_logs_download))
+        // #2445 — battery/AC status for tray and Power & Battery settings.
+        .route("/api/system/power/status", get(power_status))
+        .route("/api/system/os/power/status", get(power_status))
         // #2444 — the shell's power menu. Locks and sign-out are driven from
         // the UI; suspend/restart/shutdown need root and go through the
         // image's fixed-action helper.
@@ -291,6 +294,18 @@ pub async fn os_logs_download(
         body,
     )
         .into_response()
+}
+
+
+/// #2445 — battery/AC status from `/sys/class/power_supply` (gated like OS panel).
+pub async fn power_status(
+    Extension(user): Extension<AuthenticatedUser>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if let Err(response) = authorize(&user, &headers) {
+        return response.into_response();
+    }
+    Json(read_power_status()).into_response()
 }
 
 /// #2444 — the only path to a power action on the appliance.
