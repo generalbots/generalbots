@@ -95,7 +95,7 @@ async function loadLocalModels(el) {
     html += '<p class="gb-set-desc" style="margin-top:12px;font-weight:600">' + esc(t("installable")) + '</p>';
     available.forEach(function(m) { html += modelRow(m); });
   }
-  html += '<div id="gbLocalMsg"></div>';
+  html += '<div id="gbLocalMsg" role="status" aria-live="polite"></div>';
   container.innerHTML = html;
   if (lr && !lr.installed) { renderInstallButton(container); }
   bindModelActions(container);
