@@ -111,20 +111,20 @@
         var providerSlug = form.elements.provider.value;
         var actionKey = form.elements.action.value;
         var schedule = form.elements.schedule.value;
-        var paramsText = (form.elements.params.value || "").trim();
-        var params = {};
-        if (paramsText) {
-            try { params = JSON.parse(paramsText); } catch (e) {
-                errorNode.textContent = t("integrations-automation-json-invalid", "Parameters must be valid JSON.");
-                errorNode.hidden = false;
-                return;
-            }
-        }
         if (!providerSlug || !actionKey || !botId()) {
             errorNode.textContent = t("integrations-automation-required", "Provider and action are required.");
             errorNode.hidden = false;
             return;
         }
+        var collected = typeof namespace.collectAutomationParams === "function"
+            ? namespace.collectAutomationParams(form)
+            : { params: {}, error: "" };
+        if (collected.error) {
+            errorNode.textContent = collected.error;
+            errorNode.hidden = false;
+            return;
+        }
+        var params = collected.params;
         namespace.fetchJson(base(), {
             method: "POST",
             body: { provider: providerSlug, action: actionKey, schedule: schedule, params: params }

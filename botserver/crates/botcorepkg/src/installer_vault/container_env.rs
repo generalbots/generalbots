@@ -101,7 +101,6 @@ fn scoped_token(
         std::process::id()
     ));
     std::fs::write(&policy, secrets::SIDECAR_POLICY_TEXT)?;
-    let policy_arg = policy.to_string_lossy().to_string();
     // `vault policy write` needs a file inside the container; stream it with
     // `incus file push` through the helper below, then remove it immediately.
     push_transient_file(container_name, &policy, "/tmp/gb-sidecar-policy.hcl")?;

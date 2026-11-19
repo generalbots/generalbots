@@ -4,7 +4,7 @@
 //! credential store (or migrated from a legacy stack file once). The persisted
 //! `init.json` no longer contains the root token.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
 use log::{info, warn};
 use std::path::{Path, PathBuf};

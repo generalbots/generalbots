@@ -35,25 +35,51 @@ Why the **tarball** and not the `.deb`: the distro package step in
 
 ## CI
 
-`.github/workflows/desktop-os-iso.yml`:
+`.github/workflows/desktop-os-iso.yml` builds the ONLY image published as
+`generalbots-os.iso`. It is a reusable workflow called by `release.yml` with
+the pinned tag being released, and it can be dispatched manually with an
+explicit tag. There is no `github.server_url` gate: GitHub and ALM both build
+the same pinned image.
 
-1. resolves the newest release that actually carries
-   `generalbots-linux-x86_64.tar.gz` (`latest` or an explicit tag) and
-   unpacks it under `desktop/os/mkosi.extra/opt/general-bots/` — **no source
-   build, binaries come from the release channel**;
-2. runs `mkosi build` inside a **privileged `debian:sid` toolchain
+1. requires a **pinned tag** (`vMAJOR.MINOR.PATCH`) — `latest` is rejected.
+   When `release.yml` calls it (that release is only published at the end),
+   the tarball comes from the same run's `linux-installer` artifact and its
+   name and `SHA256SUMS-linux` must match the pinned tag; manual dispatch
+   downloads the stable tarball and checksums from the pinned tag's release
+   assets (the optional `tarball_sha256` input is an extra pin);
+2. unpacks it under `desktop/os/mkosi.extra/opt/general-bots/` — **no source
+   build, binaries come from the pinned build**;
+3. runs `mkosi build` inside a **privileged `debian:sid` toolchain
    container** (mkosi 27.1 + a sid tools tree; the *image* stays trixie —
    El Torito needs systemd-repart ≥ 261 and trixie ships 257); the
    privileged container lifts the host's unprivileged-userns AppArmor
    restriction;
-3. names the artifact `generalbots-os.iso` — a hybrid ISO via El Torito
-   (mkosi 27.1 from the Debian pool plus a Debian **sid** build-time tools
-   tree, since El Torito needs systemd-repart ≥ 261 and trixie ships 257;
-   the produced system remains Debian 13 trixie);
-4. runs the best-effort **QEMU boot smoke** (`mkosi vm`, text serial console
-   — logs kernel, systemd journal and the kiosk shell startup; never blocks
-   publication, log always uploaded);
-5. publishes the image plus `SHA256SUMS-os` as workflow artifacts.
+4. names the hybrid ISO (El Torito, UEFI bootable) `generalbots-os.iso` —
+   the produced system remains Debian 13 trixie;
+5. runs a **REQUIRED QEMU boot smoke** (`mkosi vm`, text serial console) and
+   fails unless `Started General Bots kiosk shell` appears in the log; the
+   log is uploaded as `vm-smoke.log` either way;
+6. asserts with `scripts/build_iso.sh --verify-appliance` that the image
+   really is the OS: `/etc/os-release` (`ID=general-bots-os`),
+   `/opt/general-bots/start.sh` and
+   `/usr/lib/systemd/system/generalbots-shell.service` are read from inside
+   the root filesystem, not from a directory listing;
+7. uploads `generalbots-os.iso`, `SHA256SUMS-os` and `vm-smoke.log` as the
+   `generalbots-os-appliance` artifact. `release.yml` attaches the ISO and
+   its checksum file to the pinned release, next to
+   `generalbots-payload.iso` — a GRUB data medium built by
+   `scripts/build_iso.sh` that is explicitly **not** a bootable OS.
+
+To assert the identity of a built appliance locally (needs `guestfish` from
+`libguestfs-tools`):
+
+```bash
+scripts/build_iso.sh --verify-appliance dist/generalbots-os.iso
+```
+
+The carrier has its own checker (`scripts/build_iso.sh --verify
+dist/generalbots-payload.iso`); it cannot pass the appliance assertions
+because it has no root filesystem at all.
 
 ## Install / run
 
@@ -212,7 +238,8 @@ laptop user expects. Each block names the issue it answers.
 
 1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates
    via systemd-sysupdate once the image ships as a real kernel).
-2. Swap the "newest release carrying the tarball" resolution for a **pinned
-   tag + checksum** for reproducible image builds.
-3. Drop in the vendored installers (`installers/` in the tarball directory)
+2. Drop in the vendored installers (`installers/` in the tarball directory)
    for an offline-first appliance that needs no internet on first boot.
+
+The "newest release carrying the tarball" resolution is gone: CI now requires
+a pinned tag plus the checksums of that same pin (see step 1 above).

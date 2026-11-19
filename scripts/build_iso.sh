@@ -1,31 +1,32 @@
 #!/usr/bin/env bash
-# General Bots OS — bootable ISO built from the packaged Linux tree (#2110).
+# General Bots payload carrier — NOT an operating system (#2440).
 #
-# One release carries Linux, Windows, macOS and this ISO. The image is a
-# hybrid (BIOS + UEFI) El Torito ISO produced by `grub-mkrescue`/`xorriso`
-# from the SAME tarball the release publishes:
+# One release carries Linux, Windows, macOS, a payload carrier and the real OS.
+# This script builds the carrier: a hybrid (BIOS + UEFI) El Torito ISO produced
+# by `grub-mkrescue`/`xorriso` from the SAME tarball the release publishes:
 #
 #   /general-bots/        the unpacked `generalbots-<version>-linux-x86_64`
 #                         tree (start.sh, generalbots, botserver, ui/, ...)
 #   /general-bots/VERSION product version of the payload
 #   /SHA256SUMS-linux     checksums shipped by the Linux packaging step
-#   /README.txt           what the image is and how to use it
+#   /README.txt           states that this is a carrier, not a bootable OS
 #   /boot/grub/grub.cfg   GRUB menu (BIOS + UEFI firmware)
 #
-# This is NOT the kiosk appliance: that image needs a Debian 13 rootfs and a
-# systemd-repart/mkosi toolchain and lives in its own workflow
-# (`desktop-os-iso.yml`, recipe `desktop/os/`). This ISO is the offline "carry
-# the release on one medium" image; it boots GRUB on BIOS and UEFI firmware and
-# carries the installer payload so a machine without network still has it.
+# The kiosk appliance is built from `desktop/os/mkosi.conf` by
+# `desktop-os-iso.yml` and is the ONLY image published as `generalbots-os.iso`.
+# This carrier is published as `generalbots-payload.iso`; it has no kernel, no
+# root filesystem and no `generalbots-shell.service` — it just puts the
+# installer on one medium for machines without network access.
 #
 # Usage:
 #   scripts/build_iso.sh --payload dist/generalbots-7.0.35-linux-x86_64.tar.gz \
-#                        --out dist/generalbots-os.iso --version 7.0.35
-#   scripts/build_iso.sh --verify dist/generalbots-os.iso
+#                        --out dist/generalbots-payload.iso --version 7.0.35
+#   scripts/build_iso.sh --verify dist/generalbots-payload.iso
+#   scripts/build_iso.sh --verify-appliance dist/generalbots-os.iso
 #
 # Options:
-#   --payload PATH   tarball (.tar.gz) or unpacked tree placed on the ISO
-#   --out FILE       output ISO (default: dist/generalbots-os.iso)
+#   --payload PATH   tarball (.tar.gz) or unpacked tree placed on the carrier
+#   --out FILE       output ISO (default: dist/generalbots-payload.iso)
 #   --label TEXT     ISO volume label (default: GENERALBOTS)
 #   --version VER    product version written to /general-bots/VERSION
 #   --kernel FILE    kernel copied to /boot/vmlinuz (optional; adds a boot entry)
@@ -33,13 +34,15 @@
 #   --work DIR       scratch directory (default: a fresh mktemp -d)
 #   --keep           keep the scratch directory
 #   --max-mb N       refuse an ISO larger than N MiB (default: 1900)
-#   --verify ISO     verify an existing ISO instead of building one
-#   --expect PATH    extra path that must exist inside the ISO (repeatable)
+#   --verify ISO     verify a payload carrier (El Torito + /general-bots)
+#   --verify-appliance ISO  assert the mkosi appliance identity, payload and shell
+#   --expect PATH    extra path that must exist inside the carrier (repeatable)
 #   -h, --help       this help
 #
-# Tools (installed by the release job, no network use here):
-#   sudo apt-get install -y grub-pc-bin grub-efi-amd64-bin grub-common \
-#                           xorriso mtools
+# Tools (installed by CI, no network use here):
+#   carrier:   sudo apt-get install -y grub-pc-bin grub-efi-amd64-bin \
+#                                          grub-common xorriso mtools
+#   appliance: sudo apt-get install -y libguestfs-tools   (guestfish)
 #
 # Exit codes: 0 success, 1 build/verification failure, 2 usage error.
 set -euo pipefail
@@ -47,7 +50,7 @@ set -euo pipefail
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 PAYLOAD=
-OUT="dist/generalbots-os.iso"
+OUT="dist/generalbots-payload.iso"
 LABEL="GENERALBOTS"
 VERSION=
 KERNEL=
@@ -56,6 +59,7 @@ WORK=
 KEEP=0
 MAX_MB=1900
 VERIFY_ISO=
+VERIFY_APPLIANCE=
 EXPECT=()
 
 log() { printf '[build_iso] %s\n' "$*"; }
@@ -63,24 +67,27 @@ die() { printf '[build_iso] error: %s\n' "$*" >&2; exit 1; }
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/build_iso.sh --payload PATH --out FILE [options]
-       scripts/build_iso.sh --verify ISO [--expect PATH ...]
+Usage: scripts/build_iso.sh --payload PATH --out FILE [options]  (payload carrier)
+       scripts/build_iso.sh --verify ISO [--expect PATH ...]     (carrier)
+       scripts/build_iso.sh --verify-appliance ISO               (mkosi OS image)
 
-  --payload PATH   tarball (.tar.gz) or unpacked tree placed on the ISO
-  --out FILE       output ISO (default: dist/generalbots-os.iso)
-  --label TEXT     ISO volume label (default: GENERALBOTS)
-  --version VER    product version written to /general-bots/VERSION
-  --kernel FILE    kernel copied to /boot/vmlinuz (optional; adds a boot entry)
-  --initrd FILE    initramfs copied to /boot/initrd.img (requires --kernel)
-  --work DIR       scratch directory (default: a fresh mktemp -d)
-  --keep           keep the scratch directory
-  --max-mb N       refuse an ISO larger than N MiB (default: 1900)
-  --verify ISO     verify an existing ISO instead of building one
-  --expect PATH    extra path that must exist inside the ISO (repeatable)
-  -h, --help       this help
+  --payload PATH        tarball (.tar.gz) or unpacked tree placed on the carrier
+  --out FILE            output ISO (default: dist/generalbots-payload.iso)
+  --label TEXT          ISO volume label (default: GENERALBOTS)
+  --version VER         product version written to /general-bots/VERSION
+  --kernel FILE         kernel copied to /boot/vmlinuz (optional; adds a boot entry)
+  --initrd FILE         initramfs copied to /boot/initrd.img (requires --kernel)
+  --work DIR            scratch directory (default: a fresh mktemp -d)
+  --keep                keep the scratch directory
+  --max-mb N            refuse an ISO larger than N MiB (default: 1900)
+  --verify ISO          verify a payload carrier instead of building one
+  --verify-appliance ISO  assert OS identity, payload and kiosk shell unit
+  --expect PATH         extra path that must exist inside the carrier (repeatable)
+  -h, --help            this help
 
-Tools: grub-mkrescue (grub-common), xorriso, mtools:
-  sudo apt-get install -y grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools
+Tools:
+  carrier:   sudo apt-get install -y grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools
+  appliance: sudo apt-get install -y libguestfs-tools
 USAGE
 }
 
@@ -100,6 +107,7 @@ while [ $# -gt 0 ]; do
     --keep) KEEP=1; shift ;;
     --max-mb) need_value "$@"; MAX_MB="$2"; shift 2 ;;
     --verify) need_value "$@"; VERIFY_ISO="$2"; shift 2 ;;
+    --verify-appliance) need_value "$@"; VERIFY_APPLIANCE="$2"; shift 2 ;;
     --expect) need_value "$@"; EXPECT+=("$2"); shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) printf '[build_iso] error: unknown option %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -113,8 +121,9 @@ require_tool() {
 iso_size() { stat -c %s "$1"; }
 
 # ---------------------------------------------------------------------------
-# Verification: El Torito boot record (BIOS + UEFI) and the payload on the ISO.
-# The image is listed through xorriso, so no loop mount (and no root) is needed.
+# Carrier verification: El Torito boot record (BIOS + UEFI) and the tarball
+# payload on the ISO. The carrier is listed through xorriso, so no loop mount
+# (and no root) is needed.
 # ---------------------------------------------------------------------------
 verify_iso() {
   local iso="$1"
@@ -161,11 +170,58 @@ verify_iso() {
       || die "$iso is missing expected path /${extra}"
   done
 
-  log "verified ${iso} ($(( bytes / 1048576 )) MiB): El Torito BIOS+UEFI, payload present"
+  log "verified ${iso} ($(( bytes / 1048576 )) MiB): payload carrier, El Torito BIOS+UEFI, payload present"
 }
 
+# ---------------------------------------------------------------------------
+# Appliance verification (#2440). The mkosi image is a GPT disk with an El
+# Torito boot catalog: listing its ISO layer only shows boot files, so the
+# kiosk identity must be checked INSIDE the root filesystem. guestfish does
+# that read-only without mounting or root on the host.
+# ---------------------------------------------------------------------------
+verify_appliance() {
+  local image="$1"
+  [ -f "$image" ] || die "appliance image not found: $image"
+  require_tool guestfish "libguestfs-tools"
+  local bytes
+  bytes=$(iso_size "$image")
+  [ "$bytes" -gt 1048576 ] \
+    || die "appliance image is suspiciously small (${bytes} bytes): $image"
+
+  local path answer
+  for path in \
+    /etc/os-release \
+    /opt/general-bots/start.sh \
+    /usr/lib/systemd/system/generalbots-shell.service; do
+    answer=$(guestfish --ro -a "$image" -i -- exists "$path" 2>/dev/null) \
+      || die "guestfish cannot inspect ${image}; expected the mkosi image from desktop/os/mkosi.conf"
+    [ "$answer" = "true" ] \
+      || die "${image} is NOT the General Bots OS appliance: missing ${path} (carrier images have no root filesystem)"
+  done
+
+  local os_release unit
+  os_release=$(guestfish --ro -a "$image" -i -- cat /etc/os-release 2>/dev/null) \
+    || die "guestfish cannot read /etc/os-release from $image"
+  grep -qx 'ID=general-bots-os' <<<"$os_release" \
+    || die "${image} has no 'ID=general-bots-os' in /etc/os-release: $(tr '\n' ' ' <<<"$os_release" | cut -c1-120)"
+
+  unit=$(guestfish --ro -a "$image" -i -- cat /usr/lib/systemd/system/generalbots-shell.service 2>/dev/null) \
+    || die "guestfish cannot read the kiosk shell unit from $image"
+  grep -qF '/opt/general-bots/start.sh' <<<"$unit" \
+    || die "${image} has a generalbots-shell.service that does not reference /opt/general-bots/start.sh"
+
+  log "verified ${image} ($(( bytes / 1048576 )) MiB): OS identity, payload entry point and kiosk shell unit present"
+}
+
+if [ -n "$VERIFY_ISO" ] && [ -n "$VERIFY_APPLIANCE" ]; then
+  die "use either --verify (carrier) or --verify-appliance (mkosi appliance), not both"
+fi
 if [ -n "$VERIFY_ISO" ]; then
   verify_iso "$VERIFY_ISO"
+  exit 0
+fi
+if [ -n "$VERIFY_APPLIANCE" ]; then
+  verify_appliance "$VERIFY_APPLIANCE"
   exit 0
 fi
 
@@ -245,22 +301,21 @@ if [ -n "$KERNEL" ]; then
 fi
 
 cat > "$STAGING/README.txt" <<EOF
-General Bots ${VERSION:-unversioned} — bootable ISO
-===================================================
+General Bots ${VERSION:-unversioned} — payload carrier, NOT a bootable OS
+========================================================================
 
-This image boots GRUB on BIOS and UEFI firmware and carries the complete
-General Bots Linux desktop payload, so a machine without network access can
-install the suite from the same medium as the release download.
+This is a payload carrier, not a bootable operating system. GRUB is present
+only so BIOS/UEFI firmware can show a menu; there is no kernel, no root
+filesystem and no kiosk shell on this medium. The General Bots OS is a
+separate image (generalbots-os.iso, built from desktop/os with mkosi) that
+boots straight into generalbots-shell.service.
 
   /general-bots/        the unpacked generalbots-linux-x86_64 tree
-                        (run ./start.sh inside it to install and start)
+                        (copy it to a target machine and run ./start.sh)
   /SHA256SUMS-linux     checksums of the packaged artifacts
-  /boot/grub/grub.cfg   boot menu
+  /boot/grub/grub.cfg   GRUB menu
 
-Use it as a data medium: copy /general-bots to the target machine and run
-./start.sh. This is not the kiosk appliance image (see desktop/os).
-
-The ISO is unsigned. Verify it with the release SHA256SUMS-os.
+Use it as a data medium only. Verify it with SHA256SUMS-payload.
 EOF
 
 {

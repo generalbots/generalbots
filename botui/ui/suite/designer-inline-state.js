@@ -18,137 +18,41 @@
         };
 
         // Node Templates
+        // One line per node type: kept compact so this state module stays
+        // below the 450-line limit (the interaction code below needs room).
         const nodeTemplates = {
-            'TALK': {
-                fields: [
-                    { name: 'message', label: 'Message', type: 'textarea', default: 'Hello!' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'HEAR': {
-                fields: [
-                    { name: 'variable', label: 'Variable', type: 'text', default: 'response' },
-                    { name: 'type', label: 'Type', type: 'select', options: ['STRING', 'NUMBER', 'DATE', 'EMAIL', 'PHONE'], default: 'STRING' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'SET': {
-                fields: [
-                    { name: 'variable', label: 'Variable', type: 'text', default: 'value' },
-                    { name: 'expression', label: 'Expression', type: 'text', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'IF': {
-                fields: [
-                    { name: 'condition', label: 'Condition', type: 'text', default: 'value = 1' }
-                ],
-                hasInput: true,
-                hasOutput: false,
-                hasOutputTrue: true,
-                hasOutputFalse: true
-            },
-            'FOR': {
-                fields: [
-                    { name: 'variable', label: 'Item Variable', type: 'text', default: 'item' },
-                    { name: 'collection', label: 'Collection', type: 'text', default: 'items' }
-                ],
-                hasInput: true,
-                hasOutput: true,
-                hasLoopOutput: true
-            },
-            'SWITCH': {
-                fields: [
-                    { name: 'expression', label: 'Expression', type: 'text', default: 'value' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'CALL': {
-                fields: [
-                    { name: 'procedure', label: 'Procedure', type: 'text', default: '' },
-                    { name: 'arguments', label: 'Arguments', type: 'text', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'SEND MAIL': {
-                fields: [
-                    { name: 'to', label: 'To', type: 'text', default: '' },
-                    { name: 'subject', label: 'Subject', type: 'text', default: '' },
-                    { name: 'body', label: 'Body', type: 'textarea', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'GET': {
-                fields: [
-                    { name: 'url', label: 'URL', type: 'text', default: '' },
-                    { name: 'variable', label: 'Result Variable', type: 'text', default: 'result' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'POST': {
-                fields: [
-                    { name: 'url', label: 'URL', type: 'text', default: '' },
-                    { name: 'body', label: 'Body', type: 'textarea', default: '' },
-                    { name: 'variable', label: 'Result Variable', type: 'text', default: 'result' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'SAVE': {
-                fields: [
-                    { name: 'filename', label: 'Filename', type: 'text', default: 'data.csv' },
-                    { name: 'data', label: 'Data', type: 'text', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'WAIT': {
-                fields: [
-                    { name: 'duration', label: 'Duration (seconds)', type: 'text', default: '5' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'SET BOT MEMORY': {
-                fields: [
-                    { name: 'key', label: 'Key', type: 'text', default: '' },
-                    { name: 'value', label: 'Value', type: 'text', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'GET BOT MEMORY': {
-                fields: [
-                    { name: 'key', label: 'Key', type: 'text', default: '' },
-                    { name: 'variable', label: 'Variable', type: 'text', default: 'value' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'SET USER MEMORY': {
-                fields: [
-                    { name: 'key', label: 'Key', type: 'text', default: '' },
-                    { name: 'value', label: 'Value', type: 'text', default: '' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            },
-            'GET USER MEMORY': {
-                fields: [
-                    { name: 'key', label: 'Key', type: 'text', default: '' },
-                    { name: 'variable', label: 'Variable', type: 'text', default: 'value' }
-                ],
-                hasInput: true,
-                hasOutput: true
-            }
+            'TALK': { fields: [{ name: 'message', label: 'Message', type: 'textarea', default: 'Hello!' }], hasInput: true, hasOutput: true },
+            'HEAR': { fields: [{ name: 'variable', label: 'Variable', type: 'text', default: 'response' }, { name: 'type', label: 'Type', type: 'select', options: ['STRING', 'NUMBER', 'DATE', 'EMAIL', 'PHONE'], default: 'STRING' }], hasInput: true, hasOutput: true },
+            'SET': { fields: [{ name: 'variable', label: 'Variable', type: 'text', default: 'value' }, { name: 'expression', label: 'Expression', type: 'text', default: '' }], hasInput: true, hasOutput: true },
+            'IF': { fields: [{ name: 'condition', label: 'Condition', type: 'text', default: 'value = 1' }], hasInput: true, hasOutput: false, hasOutputTrue: true, hasOutputFalse: true },
+            'FOR': { fields: [{ name: 'variable', label: 'Item Variable', type: 'text', default: 'item' }, { name: 'collection', label: 'Collection', type: 'text', default: 'items' }], hasInput: true, hasOutput: true, hasLoopOutput: true },
+            'SWITCH': { fields: [{ name: 'expression', label: 'Expression', type: 'text', default: 'value' }], hasInput: true, hasOutput: true },
+            'CALL': { fields: [{ name: 'procedure', label: 'Procedure', type: 'text', default: '' }, { name: 'arguments', label: 'Arguments', type: 'text', default: '' }], hasInput: true, hasOutput: true },
+            'SEND MAIL': { fields: [{ name: 'to', label: 'To', type: 'text', default: '' }, { name: 'subject', label: 'Subject', type: 'text', default: '' }, { name: 'body', label: 'Body', type: 'textarea', default: '' }], hasInput: true, hasOutput: true },
+            'GET': { fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'result' }], hasInput: true, hasOutput: true },
+            'POST': { fields: [{ name: 'url', label: 'URL', type: 'text', default: '' }, { name: 'body', label: 'Body', type: 'textarea', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'result' }], hasInput: true, hasOutput: true },
+            'SAVE': { fields: [{ name: 'filename', label: 'Filename', type: 'text', default: 'data.csv' }, { name: 'data', label: 'Data', type: 'text', default: '' }], hasInput: true, hasOutput: true },
+            'WAIT': { fields: [{ name: 'duration', label: 'Duration (seconds)', type: 'text', default: '5' }], hasInput: true, hasOutput: true },
+            'SET BOT MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'value', label: 'Value', type: 'text', default: '' }], hasInput: true, hasOutput: true },
+            'GET BOT MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'value' }], hasInput: true, hasOutput: true },
+            'SET USER MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'value', label: 'Value', type: 'text', default: '' }], hasInput: true, hasOutput: true },
+            'GET USER MEMORY': { fields: [{ name: 'key', label: 'Key', type: 'text', default: '' }, { name: 'variable', label: 'Result Variable', type: 'text', default: 'value' }], hasInput: true, hasOutput: true }
         };
+
+        // Pointer capture is shared by the canvas and the node/port drag code
+        // in designer-inline-nodes.js (loaded after this file).
+        function gbCapturePointer(el, pointerId) {
+            if (!el || !el.setPointerCapture) return;
+            try { el.setPointerCapture(pointerId); } catch (error) {
+                if (window.gbLogError) window.gbLogError(error, "designer.capture");
+            }
+        }
+        function gbReleasePointer(el, pointerId) {
+            if (!el || !el.releasePointerCapture) return;
+            try { el.releasePointerCapture(pointerId); } catch (error) {
+                if (window.gbLogError) window.gbLogError(error, "designer.release");
+            }
+        }
 
         // Initialize
         function initDesigner() {
@@ -384,7 +288,8 @@
             });
         }
 
-        // Canvas Interaction
+        // Canvas Interaction (#2419): one finger on empty canvas pans, two
+        // fingers pinch-zoom, nodes own their own long-press/select gesture.
         function initCanvasInteraction() {
             const canvas = document.getElementById('canvas');
             const container = document.getElementById('canvas-container');
@@ -393,33 +298,72 @@
                 console.warn('initCanvasInteraction: canvas or canvas-container not found');
                 return;
             }
+            canvas.style.touchAction = 'none';
+            const pointers = new Map();
+            let panStart = null;
+            let pinchStart = null;
 
-            // Pan with middle mouse or space+drag
-            let isPanning = false;
-            let panStart = { x: 0, y: 0 };
+            function isBackground(target) {
+                return target === canvas || (target && (target.id === 'canvas-inner' || target.id === 'connections-layer'));
+            }
 
-            canvas.addEventListener('mousedown', (e) => {
-                if (e.button === 1 || (e.button === 0 && e.target === canvas)) {
-                    isPanning = true;
+            function points() {
+                return Array.from(pointers.values());
+            }
+
+            canvas.addEventListener('pointerdown', (e) => {
+                if (e.target.closest && e.target.closest('.node')) return;
+                const middleMouse = e.pointerType === 'mouse' && e.button === 1;
+                if (!middleMouse && e.button !== 0) return;
+                if (!isBackground(e.target) && !middleMouse) return;
+                pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                gbCapturePointer(canvas, e.pointerId);
+                if (pointers.size === 1) {
                     panStart = { x: e.clientX - state.pan.x, y: e.clientY - state.pan.y };
                     canvas.style.cursor = 'grabbing';
+                } else if (pointers.size === 2) {
+                    panStart = null;
+                    const p = points();
+                    const gap = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+                    pinchStart = { gap: gap, zoom: state.zoom };
                 }
             });
 
-            document.addEventListener('mousemove', (e) => {
-                if (isPanning) {
+            canvas.addEventListener('pointermove', (e) => {
+                if (!pointers.has(e.pointerId)) return;
+                pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (pointers.size >= 2 && pinchStart) {
+                    const p = points();
+                    const gap = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1;
+                    state.zoom = Math.min(Math.max(pinchStart.zoom * gap / pinchStart.gap, 0.25), 2);
+                    updateCanvasTransform();
+                    updateZoomDisplay();
+                    return;
+                }
+                if (panStart) {
                     state.pan.x = e.clientX - panStart.x;
                     state.pan.y = e.clientY - panStart.y;
                     updateCanvasTransform();
                 }
             });
 
-            document.addEventListener('mouseup', () => {
-                isPanning = false;
-                canvas.style.cursor = 'default';
-            });
+            function endPointer(e) {
+                if (!pointers.has(e.pointerId)) return;
+                pointers.delete(e.pointerId);
+                gbReleasePointer(canvas, e.pointerId);
+                if (pointers.size < 2) pinchStart = null;
+                if (pointers.size === 1) {
+                    const remaining = points()[0];
+                    panStart = { x: remaining.x - state.pan.x, y: remaining.y - state.pan.y };
+                } else if (pointers.size === 0) {
+                    panStart = null;
+                    canvas.style.cursor = 'default';
+                }
+            }
+            canvas.addEventListener('pointerup', endPointer);
+            canvas.addEventListener('pointercancel', endPointer);
 
-            // Zoom with scroll
+            // Zoom with scroll (desktop behaviour unchanged)
             container.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 const delta = e.deltaY > 0 ? -0.1 : 0.1;

@@ -74,34 +74,39 @@ function loadTaskStats() {
   if (!splitter || !main || !leftPanel) return;
 
   var isDragging = false;
+  var activePointer = null;
   var startX = 0;
   var startWidth = 0;
+  splitter.style.touchAction = "none";
 
-  splitter.addEventListener("mousedown", function (e) {
+  splitter.addEventListener("pointerdown", function (e) {
+    if (!e.isPrimary) return;
     isDragging = true;
+    activePointer = e.pointerId;
     startX = e.clientX;
     startWidth = leftPanel.offsetWidth;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
+    if (splitter.setPointerCapture) splitter.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
 
-  document.addEventListener("mousemove", function (e) {
-    if (!isDragging) return;
-
-    var diff = e.clientX - startX;
-    var newWidth = Math.max(200, Math.min(600, startWidth + diff));
+  splitter.addEventListener("pointermove", function (e) {
+    if (!isDragging || e.pointerId !== activePointer) return;
+    var newWidth = Math.max(200, Math.min(600, startWidth + e.clientX - startX));
     leftPanel.style.flex = "0 0 " + newWidth + "px";
     leftPanel.style.width = newWidth + "px";
   });
 
-  document.addEventListener("mouseup", function () {
-    if (isDragging) {
-      isDragging = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    }
-  });
+  function stopDrag(e) {
+    if (!isDragging || (e && e.pointerId !== activePointer)) return;
+    isDragging = false;
+    activePointer = null;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }
+  splitter.addEventListener("pointerup", stopDrag);
+  splitter.addEventListener("pointercancel", stopDrag);
 })();
 
 // =============================================================================

@@ -6,18 +6,19 @@
   border: 1px solid var(--border-color, rgba(127,127,127,0.25));
   border-radius: 8px;
   background: var(--surface-2, rgba(127,127,127,0.06));
-  color: var(--text-secondary, #6b7280);
-  font-size: 13px;
+  color: var(--text-secondary, darkgray);
+  font-size: var(--text-xs);
 }
 .os-hint {
   margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  font-size: var(--text-xs);
+  color: var(--text-secondary, darkgray);
 }
 
+/* #2445 — power/battery details */
 .os-power-grid { display: grid; gap: 6px; }
 .os-power-row { display: flex; justify-content: space-between; gap: 12px; }
-.os-power-label { color: var(--text-secondary, #6b7280); }
+.os-power-label { color: var(--text-secondary, darkgray); }
 .os-power-value { color: var(--text-primary, inherit); font-weight: 500; }
-.os-power-notes { margin: 10px 0 0; padding-left: 18px; color: var(--text-secondary, #6b7280); font-size: 13px; }
+.os-power-notes { margin: 10px 0 0; padding-left: 18px; color: var(--text-secondary, darkgray); font-size: var(--text-xs); }
 .os-power-notes li { margin: 4px 0; }

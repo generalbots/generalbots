@@ -13,7 +13,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: var(--warning, darkorange);
   border: 1px solid rgba(20,22,35,0.8);
 }
 .os-tray-dot[hidden] { display: none; }
@@ -28,7 +28,7 @@
   min-width: 220px;
   max-width: 280px;
   background: var(--shell-bg, rgba(20,22,35,0.94));
-  color: var(--text, #e5e7eb);
+  color: var(--text, lightgray);
   border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
   border-radius: 10px;
   box-shadow: var(--shell-shadow, 0 4px 24px rgba(0,0,0,0.3));
@@ -51,14 +51,14 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--text-md);
   line-height: 1;
   padding: 0 4px;
   border-radius: 4px;
 }
 .os-tray-popover-close:hover,
 .os-tray-popover-close:focus-visible { background: rgba(127,127,127,0.18); outline: none; }
-.os-tray-popover-status { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary, #9ca3af); }
+.os-tray-popover-status { margin: 0 0 10px; font-size: var(--text-xs); color: var(--text-secondary, darkgray); }
 .os-tray-popover-actions { display: flex; justify-content: flex-end; }
 .os-tray-overflow-menu { min-width: 180px; padding: 6px; }
 .os-tray-overflow-item {
@@ -70,7 +70,7 @@
   padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .os-tray-overflow-item:hover,
 .os-tray-overflow-item:focus-visible { background: rgba(127,127,127,0.18); outline: none; }

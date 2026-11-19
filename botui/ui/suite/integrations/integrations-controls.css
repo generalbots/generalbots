@@ -248,3 +248,67 @@
     font-size: 0.78rem;
     opacity: 0.85;
 }
+
+/* #2339 — connected search/sort and copy affordances. */
+.integrations-app .integrations-connected-toolbar {
+    grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px);
+    margin-bottom: 12px;
+}
+
+.integrations-app .integrations-sort-control {
+    display: grid;
+    gap: 7px;
+}
+
+.integrations-app .integrations-sort-control select {
+    min-height: 42px;
+    padding: 0 10px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-sm);
+    background: var(--integrations-surface);
+    color: var(--integrations-text);
+    font: inherit;
+}
+
+.integrations-app .integrations-copy-button {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: var(--text-2xs);
+}
+
+/* #2339 — schema-assisted automation fields and per-source trust summary. */
+.integrations-app .integrations-automation-schema:not(:empty) {
+    margin-bottom: 0.8rem;
+    padding: 0.75rem;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-surface-soft);
+}
+
+.integrations-app .integrations-automation-schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.65rem;
+}
+
+.integrations-app .integrations-automation-schema-grid select,
+.integrations-app .integrations-automation-schema-grid textarea {
+    font: inherit;
+    color: var(--integrations-text);
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--integrations-radius-sm);
+    border: 1px solid var(--integrations-border);
+    background: var(--integrations-surface);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.integrations-app .integrations-source-trust:not(:empty) {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-sm);
+    background: var(--integrations-surface-soft);
+    color: var(--integrations-muted);
+    font-size: var(--text-2xs);
+}

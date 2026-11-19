@@ -49,7 +49,7 @@ install -d -m 0750 -o root -g gbsvc /etc/generalbots/credentials
 #     different UID is written to the audit log and refused. Source/destination
 #     paths are confined to /tmp/gb-secret-* so a caller cannot use the helper
 #     as a generic root file-write primitive.
-install -d -m 0755 /usr/local/libexec
+install -d -m 0755 /usr/local/libexec /etc/sudoers.d
 cat >/usr/local/libexec/gb-secrets <<'EOF'
 #!/bin/bash
 # General Bots OS secret-store helper (#2498).

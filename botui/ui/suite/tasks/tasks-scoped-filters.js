@@ -120,32 +120,39 @@
     splitter.dataset.gbSplitterBound = "1";
 
     var dragging = false;
+    var activePointer = null;
     var startX = 0;
     var startWidth = 0;
+    splitter.style.touchAction = "none";
 
-    splitter.addEventListener("mousedown", function (e) {
+    splitter.addEventListener("pointerdown", function (e) {
+      if (!e.isPrimary) return;
       dragging = true;
+      activePointer = e.pointerId;
       startX = e.clientX;
       startWidth = leftPanel.offsetWidth;
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
+      if (splitter.setPointerCapture) splitter.setPointerCapture(e.pointerId);
       e.preventDefault();
     });
 
-    document.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
-      var diff = e.clientX - startX;
-      var nextWidth = Math.max(200, Math.min(600, startWidth + diff));
+    splitter.addEventListener("pointermove", function (e) {
+      if (!dragging || e.pointerId !== activePointer) return;
+      var nextWidth = Math.max(200, Math.min(600, startWidth + e.clientX - startX));
       leftPanel.style.flex = "0 0 " + nextWidth + "px";
       leftPanel.style.width = nextWidth + "px";
     });
 
-    document.addEventListener("mouseup", function () {
-      if (!dragging) return;
+    function stopDrag(e) {
+      if (!dragging || (e && e.pointerId !== activePointer)) return;
       dragging = false;
+      activePointer = null;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-    });
+    }
+    splitter.addEventListener("pointerup", stopDrag);
+    splitter.addEventListener("pointercancel", stopDrag);
   }
 
   function onHtmxAfterRequest(evt) {

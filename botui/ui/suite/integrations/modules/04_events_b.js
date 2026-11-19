@@ -41,6 +41,10 @@
             namespace.loadSources(root);
         } else if (action === "mcp-toggle" && button && button.dataset.mcpName) {
             namespace.toggleMcpServer(root, button.dataset.mcpName, button.dataset.mcpEnabled === "true");
+        } else if (action === "mcp-remove" && button && button.dataset.mcpName) {
+            if (typeof namespace.removeMcpServer === "function") {
+                namespace.removeMcpServer(root, button.dataset.mcpName);
+            }
         } else if (action === "retry-catalog") {
             namespace.loadCatalog(root);
         } else if (action === "show-all-providers") {

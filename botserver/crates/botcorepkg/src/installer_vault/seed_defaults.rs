@@ -175,7 +175,7 @@ pub fn seed_vault_defaults(
         }
 
         let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
-            .and_then(|c| c.env("VAULT_ADDR", vault_addr)?.env("VAULT_TOKEN", root_token)?)
+            .and_then(|c| Ok(c.env("VAULT_ADDR", vault_addr)?.env("VAULT_TOKEN", root_token)?))
             .and_then(|c| {
                 let mut cmd = c;
                 for arg in &args {
