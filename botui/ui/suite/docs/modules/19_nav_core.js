@@ -201,4 +201,72 @@
     return Array.prototype.slice.call(article.querySelectorAll("h1,h2,h3,h4,h5,h6"));
   }
   NS.headings = headings;
+
+  /* Accessible in-app prompt/confirm. Native window.prompt/confirm block the
+   * UI, cannot be themed and break the surrounding dialog's focus contract.
+   * Each call renders one focus-trapped dialog and resolves on submit/cancel. */
+  function ask(kind, message, value) {
+    var host = document.getElementById("docs-modal-container");
+    if (!host || typeof Promise === "undefined") return Promise.resolve(null);
+    var restore = document.activeElement;
+    var isPrompt = kind === "prompt";
+    var okLabel = NS.escapeHtml(tr("docs-dialog-ok", "OK"));
+    var cancelLabel = NS.escapeHtml(tr("docs-dialog-cancel", "Cancel"));
+    host.innerHTML = [
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:10000;">',
+      '<div class="gb-qp-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-ask-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;">',
+      '<h3 id="gb-ask-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(message) + "</h3>",
+      isPrompt
+        ? '<label style="display:block;margin-bottom:12px;">' + NS.escapeHtml(message) +
+          '<input id="gb-ask-input" type="text" style="display:block;width:100%;margin-top:6px;padding:8px;box-sizing:border-box;" /></label>'
+        : "",
+      '<div style="display:flex;justify-content:flex-end;gap:8px;">',
+      '<button type="button" id="gb-ask-cancel" class="gb-fr-btn">' + cancelLabel + "</button>",
+      '<button type="button" id="gb-ask-ok" class="gb-fr-btn gb-fr-primary">' + okLabel + "</button>",
+      "</div></div></div>"
+    ].join("");
+    return new Promise(function (resolve) {
+      var input = document.getElementById("gb-ask-input");
+      var cancel = document.getElementById("gb-ask-cancel");
+      var ok = document.getElementById("gb-ask-ok");
+      var focusables = input ? [input, cancel, ok] : [cancel, ok];
+      var done = function (result) {
+        document.removeEventListener("keydown", onKey, true);
+        host.innerHTML = "";
+        if (restore && restore.focus) restore.focus();
+        resolve(result);
+      };
+      var onKey = function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          done(null);
+        } else if (event.key === "Tab") {
+          var index = focusables.indexOf(document.activeElement);
+          if (index < 0) return;
+          var next = event.shiftKey
+            ? (index - 1 + focusables.length) % focusables.length
+            : (index + 1) % focusables.length;
+          event.preventDefault();
+          focusables[next].focus();
+        }
+      };
+      document.addEventListener("keydown", onKey, true);
+      cancel.addEventListener("click", function () { done(null); });
+      ok.addEventListener("click", function () {
+        done(isPrompt ? (input ? input.value : "") : true);
+      });
+      if (input) {
+        input.value = value == null ? "" : String(value);
+        input.focus();
+        input.select();
+      } else {
+        cancel.focus();
+      }
+    });
+  }
+  NS.ask = ask;
+  NS.dialogPrompt = function (message, value) { return ask("prompt", message, value); };
+  NS.dialogConfirm = function (message) {
+    return ask("confirm", message).then(function (result) { return result === true; });
+  };
 })();

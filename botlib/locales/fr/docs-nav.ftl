@@ -68,3 +68,5 @@ docs-qp-variable = Valeur pour {$name}
 docs-qp-edit = Modifier
 docs-qp-new-content = Nouveau contenu
 docs-qp-propagate-ask = Ce bloc lié est utilisé {$n} fois. Propager la mise à jour ?
+docs-dialog-ok = OK
+docs-dialog-cancel = Annuler

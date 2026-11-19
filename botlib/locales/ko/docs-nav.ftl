@@ -68,3 +68,5 @@ docs-qp-variable = {$name} 값
 docs-qp-edit = 편집
 docs-qp-new-content = 새 콘텐츠
 docs-qp-propagate-ask = 연결된 파트가 {$n}회 사용됩니다. 업데이트를 전파할까요?
+docs-dialog-ok = 확인
+docs-dialog-cancel = 취소

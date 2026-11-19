@@ -68,3 +68,5 @@ docs-qp-variable = {$name} の値
 docs-qp-edit = 編集
 docs-qp-new-content = 新しい内容
 docs-qp-propagate-ask = このリンク部品は {$n} 回使用されています。更新を反映しますか？
+docs-dialog-ok = OK
+docs-dialog-cancel = キャンセル

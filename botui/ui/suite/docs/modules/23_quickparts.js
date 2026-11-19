@@ -242,16 +242,18 @@
         var editId = edit.getAttribute("data-qp-edit");
         var editable = all().filter(function (item) { return item.id === editId; })[0];
         if (!editable) return;
-        var next = window.prompt(tr("docs-qp-new-content", "New content"), editable.content);
-        if (next == null || !String(next).trim()) return;
-        var article = NS.getArticle();
-        var linked = article ? article.querySelectorAll('[data-gb-quickpart="' + editId + '"]').length : 0;
-        var propagate = linked > 0 && window.confirm(tr(
-          "docs-qp-propagate-ask",
-          "This linked part is used {$n} times. Propagate the update?",
-          { n: linked }
-        ));
-        NS.updateQuickPart(editId, String(next), propagate);
+        NS.dialogPrompt(tr("docs-qp-new-content", "New content"), editable.content).then(function (next) {
+          if (next == null || !String(next).trim()) return;
+          var article = NS.getArticle();
+          var linked = article ? article.querySelectorAll('[data-gb-quickpart="' + editId + '"]').length : 0;
+          var apply = function (propagate) { NS.updateQuickPart(editId, String(next), propagate); };
+          if (linked === 0) { apply(false); return; }
+          NS.dialogConfirm(tr(
+            "docs-qp-propagate-ask",
+            "This linked part is used {$n} times. Propagate the update?",
+            { n: linked }
+          )).then(apply);
+        });
         return;
       }
       var copy = event.target.closest("[data-qp-copy]");
@@ -259,11 +261,20 @@
       if (!copy && !link) return;
       var id = (copy || link).getAttribute(copy ? "data-qp-copy" : "data-qp-link");
       var part = all().filter(function (item) { return item.id === id; })[0];
+      var names = part ? variablesOf(part.content) : [];
       var values = {};
-      if (part) variablesOf(part.content).forEach(function (name) {
-        values[name] = window.prompt(tr("docs-qp-variable", "Value for {$name}", { name: name }), "");
-      });
-      NS.insertQuickPart(id, !!link, values);
+      var collect = function (index) {
+        if (index >= names.length) {
+          NS.insertQuickPart(id, !!link, values);
+          return;
+        }
+        var name = names[index];
+        NS.dialogPrompt(tr("docs-qp-variable", "Value for {$name}", { name: name }), "").then(function (value) {
+          values[name] = value == null ? "" : String(value);
+          collect(index + 1);
+        });
+      };
+      collect(0);
     });
   };
 

@@ -68,3 +68,5 @@ docs-qp-variable = {$name} 的值
 docs-qp-edit = 编辑
 docs-qp-new-content = 新内容
 docs-qp-propagate-ask = 此链接部件被使用了 {$n} 次。是否传播更新？
+docs-dialog-ok = 确定
+docs-dialog-cancel = 取消

@@ -68,3 +68,5 @@ docs-qp-variable = Value for {$name}
 docs-qp-edit = Edit
 docs-qp-new-content = New content
 docs-qp-propagate-ask = This linked part is used {$n} times. Propagate the update?
+docs-dialog-ok = OK
+docs-dialog-cancel = Cancel

@@ -68,3 +68,5 @@ docs-qp-variable = Wert für {$name}
 docs-qp-edit = Bearbeiten
 docs-qp-new-content = Neuer Inhalt
 docs-qp-propagate-ask = Dieser verknüpfte Baustein wird {$n}-mal verwendet. Aktualisierung übernehmen?
+docs-dialog-ok = OK
+docs-dialog-cancel = Abbrechen
