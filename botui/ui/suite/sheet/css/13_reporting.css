@@ -1,0 +1,331 @@
+/* Sheets print, reporting and scheduled delivery (#2438) — local-only
+   preview UI. Loaded after 12_controls.css; every class is ss-rpt-prefixed. */
+
+.ss-rpt-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1160;
+  display: flex;
+  flex-direction: column;
+  width: min(860px, 95vw);
+  max-height: 88vh;
+  margin: auto;
+  overflow: hidden;
+  background: var(--sheet-bg-elevated, #1e293b);
+  color: var(--sheet-fg, #f8fafc);
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+}
+
+.ss-rpt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sheet-border, #334155);
+}
+
+.ss-rpt-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ss-rpt-close {
+  background: none;
+  border: none;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.ss-rpt-close:hover,
+.ss-rpt-close:focus-visible {
+  color: var(--sheet-fg, #f8fafc);
+}
+
+.ss-rpt-local-note,
+.ss-rpt-preview-note,
+.ss-rpt-dash-note,
+.ss-rpt-sched-note {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 12px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.ss-rpt-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--sheet-border, #334155);
+}
+
+.ss-rpt-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--sheet-muted, #94a3b8);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ss-rpt-tab[aria-selected="true"] {
+  color: var(--sheet-fg, #f8fafc);
+  border-bottom-color: #3b82f6;
+}
+
+.ss-rpt-status {
+  margin: 0;
+  padding: 6px 16px;
+  min-height: 20px;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 12px;
+}
+
+.ss-rpt-status-error {
+  color: #f87171;
+}
+
+.ss-rpt-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+}
+
+.ss-rpt-section {
+  margin-bottom: 18px;
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 6px;
+  padding: 10px 12px 14px;
+}
+
+.ss-rpt-section-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ss-rpt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ss-rpt-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ss-rpt-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ss-rpt-label {
+  min-width: 140px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ss-rpt-input {
+  padding: 6px 8px;
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  background: var(--sheet-bg, #0f172a);
+  color: var(--sheet-fg, #f8fafc);
+  font-size: 12px;
+  min-width: 130px;
+}
+
+.ss-rpt-checkbox {
+  accent-color: #3b82f6;
+}
+
+.ss-rpt-button,
+.ss-rpt-button-small,
+.ss-rpt-button-quiet {
+  padding: 6px 12px;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  background: #3b82f6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ss-rpt-button-small {
+  padding: 3px 8px;
+  margin-left: 8px;
+}
+
+.ss-rpt-button-quiet {
+  background: transparent;
+  border-color: var(--sheet-border, #334155);
+  color: var(--sheet-muted, #94a3b8);
+}
+
+.ss-rpt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ss-rpt-list-item,
+.ss-rpt-empty,
+.ss-rpt-summary {
+  padding: 6px 8px;
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ss-rpt-empty,
+.ss-rpt-summary {
+  color: var(--sheet-muted, #94a3b8);
+}
+
+.ss-rpt-item-label {
+  overflow-wrap: anywhere;
+}
+
+.ss-rpt-page {
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  padding: 18px 16px;
+  margin: 12px auto;
+  max-width: 620px;
+  background: var(--sheet-bg, #0f172a);
+}
+
+.ss-rpt-page-header,
+.ss-rpt-page-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 11px;
+  border-bottom: 1px solid var(--sheet-border, #334155);
+  padding-bottom: 4px;
+}
+
+.ss-rpt-page-footer {
+  border-bottom: none;
+  border-top: 1px solid var(--sheet-border, #334155);
+  padding: 4px 0 0;
+}
+
+.ss-rpt-page-slot {
+  flex: 1 1 0;
+}
+
+.ss-rpt-page-slot:nth-child(2) {
+  text-align: center;
+}
+
+.ss-rpt-page-slot:nth-child(3) {
+  text-align: right;
+}
+
+.ss-rpt-page-titles {
+  margin: 8px 0 2px;
+  color: #93c5fd;
+  font-size: 11px;
+}
+
+.ss-rpt-page-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 2px;
+  margin: 10px 0;
+}
+
+.ss-rpt-page-cell {
+  border: 1px solid var(--sheet-border, #334155);
+  padding: 3px;
+  font-size: 10px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.ss-rpt-page-cell-title {
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+.ss-rpt-page-break {
+  border-top: 2px dashed #64748b;
+  margin: 8px auto;
+  max-width: 620px;
+  padding-top: 4px;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 11px;
+  text-align: center;
+}
+
+.ss-rpt-dash-canvas {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(70px, auto);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ss-rpt-widget {
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  padding: 8px;
+  overflow: hidden;
+  background: var(--sheet-bg, #0f172a);
+}
+
+.ss-rpt-widget-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+
+.ss-rpt-widget-source,
+.ss-rpt-widget-kpi,
+.ss-rpt-widget-table {
+  margin: 2px 0;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.ss-rpt-widget svg {
+  width: 100%;
+  height: 30px;
+}
+
+@media print {
+  .ss-rpt-dialog {
+    position: static;
+    box-shadow: none;
+    max-height: none;
+    border: none;
+  }
+  .ss-rpt-tabs,
+  .ss-rpt-close,
+  .ss-rpt-button,
+  .ss-rpt-button-small,
+  .ss-rpt-button-quiet {
+    display: none;
+  }
+}
