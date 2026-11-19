@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/suite/css/save-menu.css?v=1" /> <!-- #2047 save target menu -->
 <!-- GB Fluent CSS modules --> <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
 <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=15" /> <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
-<link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=4" /> <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
+<link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=4" /> <link rel="stylesheet" href="/suite/css/desktop/taskbar-os-tray.css?v=1" /> <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
 <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" /> <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
 <link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" /> <link rel="stylesheet" href="/suite/css/desktop/context-menu.css?v=1" />
 <link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" /> <link rel="stylesheet" href="/suite/css/screensaver.css?v=2" />
@@ -110,7 +110,32 @@
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <input type="search" id="taskbarSearch" data-i18n-placeholder="taskbar-search" aria-label="Universal search" data-i18n-aria-label="taskbar-search" autocomplete="off">
 </div> </div>
 <div class="taskbar-center" id="taskbar-center"></div> <div class="taskbar-right">
-<div class="taskbar-tray"> <!-- #1648 — the usage panel finally has a caller. -->
+<div class="taskbar-tray" id="taskbarTray"> <!-- #2465 OS tray: host indicators, shown only in OS edition -->
+<span class="os-tray-group" id="osTrayGroup" data-os-tray="true" hidden>
+  <button class="tray-btn os-tray-btn" id="trayBattery" type="button" data-os-indicator="battery" data-settings-target="os-power" title="Battery" data-i18n-title="taskbar-battery" aria-label="Battery status" data-i18n-aria-label="taskbar-battery-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+  </button>
+  <button class="tray-btn os-tray-btn" id="trayNetworkStatus" type="button" data-os-indicator="network" data-settings-target="os-network" title="Network" data-i18n-title="taskbar-network" aria-label="Network status" data-i18n-aria-label="taskbar-network-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+  </button>
+  <button class="tray-btn os-tray-btn" id="trayVolume" type="button" data-os-indicator="volume" data-settings-target="os-sound" title="Volume" data-i18n-title="taskbar-volume" aria-label="Volume" data-i18n-aria-label="taskbar-volume-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+  </button>
+  <button class="tray-btn os-tray-btn" id="trayBrightness" type="button" data-os-indicator="brightness" data-settings-target="os-display" title="Brightness" data-i18n-title="taskbar-brightness" aria-label="Brightness" data-i18n-aria-label="taskbar-brightness-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+  </button>
+  <button class="tray-btn os-tray-btn" id="trayUpdate" type="button" data-os-indicator="update" data-settings-target="updates" title="Updates" data-i18n-title="taskbar-updates" aria-label="Update status" data-i18n-aria-label="taskbar-updates-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span class="os-tray-dot" id="trayUpdateBadge" hidden aria-hidden="true"></span>
+  </button>
+  <button class="tray-btn os-tray-btn" id="trayPower" type="button" data-os-indicator="power" data-settings-target="os-power" title="Power" data-i18n-title="taskbar-power" aria-label="Power" data-i18n-aria-label="taskbar-power-aria" aria-haspopup="dialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+  </button>
+  <button class="tray-btn os-tray-overflow-btn" id="trayOsOverflow" type="button" title="More indicators" data-i18n-title="taskbar-os-overflow" aria-label="Show hidden indicators" data-i18n-aria-label="taskbar-os-overflow-aria" aria-haspopup="menu" aria-expanded="false" hidden>
+    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+  </button>
+</span>
+<!-- #1648 — the usage panel finally has a caller. -->
 <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" data-i18n-title="taskbar-usage" aria-label="Usage and cost" data-i18n-aria-label="taskbar-usage" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
 </button> <span class="tray-btn-wrap"> <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -123,6 +148,17 @@
 <div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" data-i18n-title="taskbar-datetime" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})"> <div id="clock-time">00:00</div>
 <div id="clock-date">01/01/2026</div> </div>
 </div> </div><!-- /taskbar-shell -->
+<div class="os-tray-popover" id="osTrayPopover" role="dialog" aria-modal="false" aria-label="Indicator details" hidden>
+  <div class="os-tray-popover-head">
+    <strong id="osTrayPopoverTitle"></strong>
+    <button type="button" class="os-tray-popover-close" id="osTrayPopoverClose" aria-label="Close" data-i18n-aria-label="action-close">×</button>
+  </div>
+  <p class="os-tray-popover-status" id="osTrayPopoverStatus" role="status" aria-live="polite"></p>
+  <div class="os-tray-popover-actions">
+    <button type="button" class="btn-secondary btn-sm" id="osTrayPopoverSettings" data-i18n="taskbar-open-settings">Open settings</button>
+  </div>
+</div>
+<div class="os-tray-overflow-menu" id="osTrayOverflowMenu" role="menu" aria-label="Hidden indicators" data-i18n-aria-label="taskbar-os-overflow-aria" hidden></div>
 </footer> </div>
 </div> <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
 <script src="/suite/desktop-inline/04_auth_fullscreen_a.js"></script> <script src="/suite/desktop-inline/04_auth_fullscreen_b.js"></script> <script src="/suite/desktop-inline/05_offline_shell.js"></script>
@@ -250,6 +286,6 @@
 <script src="/suite/js/ui-orchestrator/01_overlay.js?v=6"></script> <script src="/suite/js/ui-orchestrator/02_steps_a.js?v=9"></script> <script src="/suite/js/ui-orchestrator/02_steps_b.js?v=9"></script> <script src="/suite/js/ui-orchestrator/02b_steps_menu.js?v=1"></script>
 <script src="/suite/js/ui-orchestrator/99_execute.js?v=6"></script> <script src="/suite/js/external-save.js?v=1"></script>
 <script src="/suite/js/gb-search.js"></script>
-<script src="/suite/desktop-inline/06_taskbar_search.js"></script> <script src="/suite/desktop-inline/07_new_project_modal.js"></script>
+<script src="/suite/desktop-inline/06_taskbar_search.js"></script> <script src="/suite/desktop-inline/07_new_project_modal.js"></script> <script src="/suite/desktop-inline/08_os_tray.js?v=1"></script>
 <script src="/suite/js/simple-context-menu.js?v=1"></script>
 </body> </html>

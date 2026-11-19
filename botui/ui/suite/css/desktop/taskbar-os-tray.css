@@ -1,0 +1,83 @@
+/* #2465 — OS edition taskbar tray indicators (host facts only). */
+.os-tray-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.os-tray-group[hidden] { display: none !important; }
+.os-tray-btn { position: relative; }
+.os-tray-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 1px solid rgba(20,22,35,0.8);
+}
+.os-tray-dot[hidden] { display: none; }
+.os-tray-overflow-btn[hidden] { display: none !important; }
+.os-tray-btn.is-overflow-hidden { display: none !important; }
+
+.os-tray-popover,
+.os-tray-overflow-menu {
+  position: absolute;
+  right: 8px;
+  bottom: calc(var(--gb-chrome-bottom, 30px) + 6px);
+  min-width: 220px;
+  max-width: 280px;
+  background: var(--shell-bg, rgba(20,22,35,0.94));
+  color: var(--text, #e5e7eb);
+  border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
+  border-radius: 10px;
+  box-shadow: var(--shell-shadow, 0 4px 24px rgba(0,0,0,0.3));
+  backdrop-filter: var(--shell-blur, blur(24px));
+  -webkit-backdrop-filter: var(--shell-blur, blur(24px));
+  padding: 10px;
+  z-index: calc(var(--z-system, 1000) + 2);
+}
+.os-tray-popover[hidden],
+.os-tray-overflow-menu[hidden] { display: none; }
+.os-tray-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.os-tray-popover-close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.os-tray-popover-close:hover,
+.os-tray-popover-close:focus-visible { background: rgba(127,127,127,0.18); outline: none; }
+.os-tray-popover-status { margin: 0 0 10px; font-size: 13px; color: var(--text-secondary, #9ca3af); }
+.os-tray-popover-actions { display: flex; justify-content: flex-end; }
+.os-tray-overflow-menu { min-width: 180px; padding: 6px; }
+.os-tray-overflow-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.os-tray-overflow-item:hover,
+.os-tray-overflow-item:focus-visible { background: rgba(127,127,127,0.18); outline: none; }
+
+@media (max-width: 1280px) {
+  .toolbar-v15 .taskbar-tray.is-tray-compact .os-tray-btn[data-priority="low"] { display: none; }
+}
+@media (max-width: 1024px) {
+  .toolbar-v15 .taskbar-tray.is-tray-compact .os-tray-btn[data-priority="med"] { display: none; }
+}

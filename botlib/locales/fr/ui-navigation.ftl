@@ -165,3 +165,26 @@ tasks-today = Today
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = Suggestion ou rapport de bogue...
+
+# OS tray indicators (#2465)
+taskbar-battery = Batterie
+taskbar-battery-aria = État de la batterie
+taskbar-battery-none = Aucune batterie
+taskbar-network = Réseau
+taskbar-network-aria = État du réseau
+taskbar-network-wired = Filaire uniquement
+taskbar-volume = Volume
+taskbar-volume-aria = Volume
+taskbar-volume-unknown = Volume indisponible
+taskbar-brightness = Luminosité
+taskbar-brightness-aria = Luminosité
+taskbar-brightness-unknown = Luminosité indisponible
+taskbar-updates = Mises à jour
+taskbar-updates-aria = État des mises à jour
+taskbar-updates-unknown = État des mises à jour indisponible
+taskbar-power = Alimentation
+taskbar-power-aria = Alimentation
+taskbar-power-unknown = Contrôles d’alimentation indisponibles
+taskbar-os-overflow = Plus d’indicateurs
+taskbar-os-overflow-aria = Afficher les indicateurs masqués
+taskbar-open-settings = Ouvrir les paramètres

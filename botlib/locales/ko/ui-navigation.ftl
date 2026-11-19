@@ -165,3 +165,26 @@ tasks-today = Today
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = 제안 또는 버그 신고...
+
+# OS tray indicators (#2465)
+taskbar-battery = 배터리
+taskbar-battery-aria = 배터리 상태
+taskbar-battery-none = 배터리 없음
+taskbar-network = 네트워크
+taskbar-network-aria = 네트워크 상태
+taskbar-network-wired = 유선 전용
+taskbar-volume = 볼륨
+taskbar-volume-aria = 볼륨
+taskbar-volume-unknown = 볼륨을 사용할 수 없음
+taskbar-brightness = 밝기
+taskbar-brightness-aria = 밝기
+taskbar-brightness-unknown = 밝기를 사용할 수 없음
+taskbar-updates = 업데이트
+taskbar-updates-aria = 업데이트 상태
+taskbar-updates-unknown = 업데이트 상태를 사용할 수 없음
+taskbar-power = 전원
+taskbar-power-aria = 전원
+taskbar-power-unknown = 전원 제어를 사용할 수 없음
+taskbar-os-overflow = 추가 표시기
+taskbar-os-overflow-aria = 숨겨진 표시기 보기
+taskbar-open-settings = 설정 열기

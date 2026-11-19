@@ -166,3 +166,26 @@ tour-integrations-catalog-body = Cards show availability and health. Open one to
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = Suggestion or bug report...
+
+# OS tray indicators (#2465)
+taskbar-battery = Battery
+taskbar-battery-aria = Battery status
+taskbar-battery-none = No battery
+taskbar-network = Network
+taskbar-network-aria = Network status
+taskbar-network-wired = Wired only
+taskbar-volume = Volume
+taskbar-volume-aria = Volume
+taskbar-volume-unknown = Volume unavailable
+taskbar-brightness = Brightness
+taskbar-brightness-aria = Brightness
+taskbar-brightness-unknown = Brightness unavailable
+taskbar-updates = Updates
+taskbar-updates-aria = Update status
+taskbar-updates-unknown = Update status unavailable
+taskbar-power = Power
+taskbar-power-aria = Power
+taskbar-power-unknown = Power controls unavailable
+taskbar-os-overflow = More indicators
+taskbar-os-overflow-aria = Show hidden indicators
+taskbar-open-settings = Open settings

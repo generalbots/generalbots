@@ -129,3 +129,26 @@ nav-organizations = Organizations
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = Sugerencia o informe de error...
+
+# OS tray indicators (#2465)
+taskbar-battery = Batería
+taskbar-battery-aria = Estado de la batería
+taskbar-battery-none = Sin batería
+taskbar-network = Red
+taskbar-network-aria = Estado de la red
+taskbar-network-wired = Solo cableada
+taskbar-volume = Volumen
+taskbar-volume-aria = Volumen
+taskbar-volume-unknown = Volumen no disponible
+taskbar-brightness = Brillo
+taskbar-brightness-aria = Brillo
+taskbar-brightness-unknown = Brillo no disponible
+taskbar-updates = Actualizaciones
+taskbar-updates-aria = Estado de actualizaciones
+taskbar-updates-unknown = Estado de actualizaciones no disponible
+taskbar-power = Energía
+taskbar-power-aria = Energía
+taskbar-power-unknown = Controles de energía no disponibles
+taskbar-os-overflow = Más indicadores
+taskbar-os-overflow-aria = Mostrar indicadores ocultos
+taskbar-open-settings = Abrir configuración
