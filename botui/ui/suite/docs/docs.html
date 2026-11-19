@@ -126,6 +126,9 @@
                     <button class="btn-icon" id="quickPartsBtn" title="Content library" aria-label="Content library" data-i18n-title="docs-qp-library" data-i18n-aria-label="docs-qp-library">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
                     </button>
+                    <button class="btn-icon" id="structureBtn" data-gb-structure-open data-i18n-title="docs-structure-open" data-i18n-aria-label="docs-structure-open">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><path d="M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+                    </button>
                     <button class="btn-icon" id="citeBtn" title="Citations &amp; References" aria-label="Citations and references" onclick="window.DocsAuthoring && window.DocsAuthoring.openReferences()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     </button>
@@ -281,6 +284,13 @@
 <script src="/suite/docs/modules/39_equations_model.js"></script>
 <script src="/suite/docs/modules/40_equations_dialogs.js"></script>
 <script src="/suite/docs/modules/41_equations_init.js"></script>
+<script src="/suite/docs/modules/42_structure_core.js"></script>
+<script src="/suite/docs/modules/43_structure_numbering.js"></script>
+<script src="/suite/docs/modules/44_structure_fields.js"></script>
+<script src="/suite/docs/modules/45_structure_captions.js"></script>
+<script src="/suite/docs/modules/46_structure_dialog.js"></script>
+<script src="/suite/docs/modules/47_structure_panels.js"></script>
+<script src="/suite/docs/modules/48_structure_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -291,3 +301,4 @@
 <link rel="stylesheet" href="/suite/docs/docs-language.css">
 <link rel="stylesheet" href="/suite/docs/docs-tables.css">
 <link rel="stylesheet" href="/suite/docs/docs-equations.css">
+<link rel="stylesheet" href="/suite/docs/docs-structure.css">
