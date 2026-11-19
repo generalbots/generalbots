@@ -75,6 +75,10 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 | Cross-sheet refs not satisfied by the single-worksheet evaluator | `=Sheet2!A1` | `#REF!` (parsed and rendered, but not resolved) |
 | Recalculation capped at 1000 dependent cells | a large model | cycles logged and skipped; the cap still applies |
 
+### Formula auditing
+
+The toolbar's formula-auditing button opens a local-only panel with seven tabs: **Trace**, **Evaluate**, **Watch**, **Errors**, **Circular refs**, **Formula text** and **Dependency map**. It builds a precedent/dependent graph over in-memory cells with cycle detection, and a bounded local evaluator that handles nested calls such as `IF(SUMIF(...))` with a step-by-step trace of sub-expressions and their source offsets. Watch pins cells for refresh; Errors reports cached error values with a local likely cause and suggested fix; Formula text swaps displayed values for their formulas in place; Dependency map lists precedents and dependents. All analysis is labelled local-only: it reads the browser's in-memory cells and makes no server call, so it does not guarantee parity with the server's function evaluator. Server-side graph exposure, evaluator parity and live cross-sheet recalculation are not implemented.
+
 ### Charts
 
 | Type | Status |

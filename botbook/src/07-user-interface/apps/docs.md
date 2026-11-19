@@ -34,7 +34,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Table of Contents | Generated navigation for the document |
 | Header & Footer | Page furniture |
 | Insert Table / Image | Structured and visual content |
-| Insert Equation | Mathematical notation |
+| Insert Equation | Equation editor opened from the toolbar's equation button: a symbol palette and six templates (fraction, root, integral, sum, matrix, cases) with a LaTeX-style input and live MathML preview. Equations are inserted inline or as display blocks with an accessible description; display equations are numbered per section with right-aligned numbers, and a reference picker inserts cross-references that update on demand. An equation list searches, re-edits, renumbers and deletes equations. LaTeX source is kept as a searchable, re-editable attribute. DOCX OMML round-trip, server persistence and print-quality layout are not implemented |
 | Insert Footnote / Endnote | Scholarly referencing |
 | Insert Page Break | Page control |
 | From Template | Start from an existing template |
