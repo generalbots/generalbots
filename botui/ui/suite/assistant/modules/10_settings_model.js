@@ -54,7 +54,9 @@ var T = {"pt-BR":{
   privLocal:"Suas conversas ficam neste computador. Nada é enviado para fora.",
   privNet:"Suas conversas são enviadas ao servidor da sua organização (%h).",
   privExt:"Suas conversas são enviadas a um servidor externo (%h).",
-  noImageReading:"O texto de imagens e digitalizações é lido neste computador; fotos e gráficos ainda não são interpretados."},
+  noImageReading:"O texto de imagens e digitalizações é lido neste computador; fotos e gráficos ainda não são interpretados.",
+  serverDown:"O serviço do assistente não está respondendo. Tente de novo em alguns segundos; se continuar, feche o aplicativo e abra outra vez.",
+  retry:"Tentar de novo"},
 en:{
   now:"Now",where:"Where the assistant thinks",local:"On this computer",
   own:"Own server or key",free:"Free model",
@@ -99,7 +101,9 @@ en:{
   privLocal:"Your conversations stay on this computer. Nothing is sent outside.",
   privNet:"Your conversations are sent to your organization’s server (%h).",
   privExt:"Your conversations are sent to an external host (%h).",
-  noImageReading:"Text in images and scans is read on this computer; photos and charts are not interpreted yet."}};
+  noImageReading:"Text in images and scans is read on this computer; photos and charts are not interpreted yet.",
+  serverDown:"The assistant service is not answering. Try again in a few seconds; if it persists, close the app and open it again.",
+  retry:"Try again"}};
 function t(key) {
   var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en";
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
@@ -220,7 +224,12 @@ function renderFull(panel) {
     html += '<p class="gb-set-hint gb-set-warn">' + esc(t("errAdmin")) + '</p>';
   }
   if (cfgError) {
-    html += '<p class="gb-set-hint gb-set-warn">' + esc(cfgError) + '</p>';
+    /* A network error (the server is not answering) says so in words; an HTTP
+       status keeps its code for support. */
+    var down = !/^HTTP /.test(cfgError);
+    html += '<div class="gb-gar-down" role="alert"><p class="gb-set-warn">' +
+      esc(down ? t("serverDown") : t("errGeneric") + " (" + cfgError + ")") + '</p>' +
+      '<button class="gb-set-btn-sm" id="gbModelRetry">' + esc(t("retry")) + '</button></div>';
   }
   html += '</div>';
 
@@ -243,7 +252,7 @@ function renderFull(panel) {
   }
 
   /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
-  if (!readOnly && G) {
+  if (!readOnly && G && !cfgError) {
     html += G.guide() + G.compare(currentMode, modes, cfg);
   }
 
@@ -254,6 +263,8 @@ function renderFull(panel) {
   panel.innerHTML = html;
   if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
+  var retry = document.getElementById("gbModelRetry");
+  if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
   if (!readOnly) { bindModeCards(panel); if (G) { G.bindGuide(panel, modes); } }
 }
 

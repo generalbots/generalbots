@@ -481,7 +481,6 @@
 .gb-drive-container { flex: 1; overflow: auto; }
 .gb-drive-container .drive-sidebar { background: var(--id-surface); }
 .gb-settings-view { overflow: auto; padding: var(--id-space-6); position: relative; z-index: 1; }
-.gb-settings-container { max-width: 600px; margin: 0 auto; }
 /* ================================================================
    Responsive
    ================================================================ */

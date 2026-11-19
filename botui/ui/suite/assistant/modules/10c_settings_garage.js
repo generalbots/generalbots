@@ -15,10 +15,10 @@ var L = {"pt-BR":{
   title:"Oficina do assistente", lead:"Ajuste onde e como o seu assistente pensa.",
   dash:"Painel", engine:"Motor em uso", privacy:"Privacidade", features:"Recursos ligados",
   fDocs:"Documentos", fOcr:"Texto em imagens", fWeb:"Pesquisa na web", fWebOff:"Pesquisa na web (desligada)", fPhotos:"Fotos e gráficos",
-  where:"Escolha o motor", whereSub:"Compare as três formas de usar o assistente. Clique em uma para ver os detalhes e ativar.",
+  where:"Escolha o motor", whereSub:"Compare as três formas de usar o assistente. Clique no cartão de uma delas para ver os detalhes e ativar.",
   local:"Neste computador", own:"Servidor ou chave própria", free:"Modelo gratuito",
   subLocal:"Privado e sem internet", subOwn:"O da sua organização", subFree:"Pronto para usar",
-  inUse:"Em uso", suggested:"Sugerido",
+  inUse:"Em uso", suggested:"Sugerido", ctaOpen:"Ver e ativar", ctaAdjust:"Ver ajustes",
   rPrivacy:"Seus textos", rOffline:"Sem internet", rCost:"Custo", rDocs:"PDF, Word e texto",
   rOcr:"Texto em imagens e digitalizações", rWeb:"Pesquisa na web", rPhotos:"Entender fotos e gráficos", rNeeds:"Você precisa de",
   stayHere:"Ficam neste computador", goServer:"Vão ao servidor que você indicar", goNet:"Ficam na rede da sua organização", goExt:"Vão a um provedor externo",
@@ -42,7 +42,7 @@ en:{
   where:"Choose the engine", whereSub:"Compare the three ways to use the assistant. Click one to see the details and turn it on.",
   local:"On this computer", own:"Own server or key", free:"Free model",
   subLocal:"Private and offline", subOwn:"Your organization’s", subFree:"Ready to use",
-  inUse:"In use", suggested:"Suggested",
+  inUse:"In use", suggested:"Suggested", ctaOpen:"See and turn on", ctaAdjust:"See settings",
   rPrivacy:"Your text", rOffline:"Without internet", rCost:"Cost", rDocs:"PDF, Word and text",
   rOcr:"Text in images and scans", rWeb:"Web search", rPhotos:"Understand photos and charts", rNeeds:"You need",
   stayHere:"Stays on this computer", goServer:"Goes to the server you set", goNet:"Stays in your organization’s network", goExt:"Goes to an external provider",
@@ -101,7 +101,7 @@ function dashboard(cfg, shortName, privacyText) {
   var where = mode ? g(mode === "own_key" ? "own" : mode) : "";
   var html = '<div class="gb-gar-hero">' + ICONS.wrench +
     '<div><h2 class="gb-gar-title">' + esc(g("title")) + '</h2><p class="gb-gar-lead">' + esc(g("lead")) + '</p></div></div>';
-  html += '<div class="gb-set-card gb-gar-dash"><div class="gb-gar-dash-head"><span class="gb-gar-kicker">' + esc(g("dash")) + '</span></div>' +
+  html += '<div class="gb-set-card gb-gar-dash">' +
     '<div class="gb-gar-dash-main"><div><span class="gb-gar-kicker">' + esc(g("engine")) + '</span>' +
     '<div class="gb-gar-engine gb-set-model-name">' + esc(name) + '</div></div>' +
     (where ? '<span class="gb-gar-where">' + (ICONS[mode] || "") + esc(where) + '</span>' : '') + '</div>';
@@ -117,44 +117,114 @@ function dashboard(cfg, shortName, privacyText) {
   return html;
 }
 
-/* ---- Guide ---- */
+/* ---- Guide: two questions as cards; the answer selects the option below ---- */
+var GI = {
+  lock: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  globe: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>',
+  server: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01M6 17.5h.01"/></svg>',
+  none: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>'
+};
+var GL = {"pt-BR":{
+  step:"Pergunta %n de 2", back:"Voltar",
+  q1help:"Pense em processos, dados pessoais e documentos internos. Na dúvida, considere que não podem.",
+  q1noD:"Processos, dados pessoais, documentos internos", q1yesD:"Textos públicos, rascunhos, pesquisas",
+  q2s:"Sua organização tem um servidor de IA dentro da rede interna?",
+  q2sHelp:"Pergunte à equipe de TI. É um endereço como https://ia.orgao.gov.br.",
+  q2sYesD:"A TI fornece o endereço e a chave", q2sNoD:"Usar só este computador",
+  q2help:"Por exemplo, uma chave da OpenAI ou do Azure contratada pelo órgão, ou um servidor próprio.",
+  q2yesD:"Tenho o endereço e a chave", q2noD:"Quero começar sem configurar nada",
+  pick:"Indicamos para você", gains:"O que você tem com esta opção",
+  recOwnNet:"Use o servidor da sua organização: os textos ficam dentro da rede, e a TI cuida da capacidade.",
+  recLocalTight:"Use Neste computador: nada sai daqui. A placa de vídeo dá conta dos modelos menores; feche outros programas pesados antes de usar.",
+  open:"Abrir esta opção"},
+en:{
+  step:"Question %n of 2", back:"Back",
+  q1help:"Think of case files, personal data and internal documents. If in doubt, assume they cannot.",
+  q1noD:"Case files, personal data, internal documents", q1yesD:"Public text, drafts, research",
+  q2s:"Does your organization have an AI server inside its internal network?",
+  q2sHelp:"Ask your IT team. It is an address such as https://ai.agency.gov.",
+  q2sYesD:"IT provides the address and the key", q2sNoD:"Use this computer only",
+  q2help:"For example an OpenAI or Azure key your organization pays for, or its own server.",
+  q2yesD:"I have the address and the key", q2noD:"I want to start without setting anything up",
+  pick:"Our suggestion for you", gains:"What you get with this option",
+  recOwnNet:"Use your organization’s server: your text stays inside the network, and IT looks after the capacity.",
+  recLocalTight:"Use On this computer: nothing leaves it. The graphics card handles the smaller models; close other heavy programs first.",
+  open:"Open this option"}};
+function gl(k) { var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en"; return (GL[lang] && GL[lang][k]) || GL.en[k] || g(k); }
+
 function guide() {
   return '<div class="gb-set-card gb-gar-guide" id="gbGarGuide"><div class="gb-gar-guide-head"><strong>' + esc(g("guide")) + '</strong> ' +
-    '<span class="gb-set-hint">' + esc(g("guideSub")) + '</span></div><div class="gb-gar-guide-body"></div></div>';
+    '<span class="gb-set-hint">' + esc(g("guideSub")) + '</span></div><div class="gb-gar-guide-body" aria-live="polite"></div></div>';
 }
 function bindGuide(panel, modes) {
   var box = panel.querySelector("#gbGarGuide .gb-gar-guide-body");
   if (!box) return;
   var hw = localHardware(modes);
-  function ask(q, a, b, onA, onB) {
-    box.innerHTML = '<p class="gb-gar-q">' + esc(q) + '</p><div class="gb-gar-answers">' +
-      '<button class="gb-set-btn-sm" data-a="1">' + esc(a) + '</button><button class="gb-set-btn-sm" data-a="2">' + esc(b) + '</button></div>';
-    box.querySelector('[data-a="1"]').addEventListener("click", onA);
-    box.querySelector('[data-a="2"]').addEventListener("click", onB);
+  function choice(i, icon, title, desc) {
+    return '<button type="button" class="gb-gar-choice" data-a="' + i + '"><span class="gb-gar-choice-icon">' + icon + '</span>' +
+      '<span class="gb-gar-choice-text"><strong>' + esc(title) + '</strong><small>' + esc(desc) + '</small></span></button>';
+  }
+  /* opts: [{icon, title, desc, go}] */
+  function ask(step, q, help, opts, back) {
+    box.innerHTML = '<div class="gb-gar-step"><span class="gb-gar-dots"><i class="on"></i><i class="' + (step > 1 ? "on" : "") + '"></i></span>' +
+      esc(gl("step").replace("%n", String(step))) + (back ? '<button type="button" class="gb-gar-back" data-back="1">' + esc(gl("back")) + '</button>' : '') + '</div>' +
+      '<p class="gb-gar-q">' + esc(q) + '</p><p class="gb-set-hint gb-gar-help">' + esc(help) + '</p>' +
+      '<div class="gb-gar-choices">' + opts.map(function (o, i) { return choice(i, o.icon, o.title, o.desc); }).join("") + '</div>';
+    opts.forEach(function (o, i) { box.querySelector('[data-a="' + i + '"]').addEventListener("click", o.go); });
+    if (back) { box.querySelector('[data-back="1"]').addEventListener("click", back); }
+    var first = box.querySelector(".gb-gar-choice");
+    if (first && step > 1) { first.focus(); }
+  }
+  function scrollTo(el) {
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (el && el.scrollIntoView) { el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" }); }
   }
   function result(mode, text) {
     var grid = panel.querySelector("#gbGarGrid");
     if (grid) grid.setAttribute("data-rec", mode);
-    box.innerHTML = '<p class="gb-gar-rec">' + esc(text) + '</p><div class="gb-gar-answers">' +
-      '<button class="gb-set-btn-sm gb-set-btn-accent" data-go="1">' + esc(g("showMe")) + '</button>' +
-      '<button class="gb-set-btn-sm" data-again="1">' + esc(g("restart")) + '</button></div>';
+    /* The suggested option is selected in the table and its details open below. */
+    var head = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
+    if (head && !head.disabled) { head.click(); }
+    var f = facts(mode, A._modelShared && A._modelShared.cfg, hw);
+    var gains = ["privacy", "offline", "cost", "needs"].map(function (k) {
+      return '<li><span class="gb-gar-mark ' + f[k].k + '" aria-hidden="true"></span><span><b>' + esc(g(ROWS.filter(function (r) { return r[0] === k; })[0][1])) +
+        ':</b> ' + esc(f[k].t) + '</span></li>';
+    }).join("");
+    box.innerHTML = '<div class="gb-gar-result"><span class="gb-gar-kicker">' + esc(gl("pick")) + '</span>' +
+      '<div class="gb-gar-result-name">' + (ICONS[mode] || "") + esc(g(mode === "own_key" ? "own" : mode)) + '</div>' +
+      '<p class="gb-gar-rec">' + esc(text) + '</p>' +
+      '<p class="gb-gar-gains-title">' + esc(gl("gains")) + '</p><ul class="gb-gar-gains">' + gains + '</ul>' +
+      '<div class="gb-gar-answers"><button class="gb-set-btn-sm gb-set-btn-accent" data-go="1">' + esc(gl("open")) + '</button>' +
+      '<button class="gb-set-btn-sm" data-again="1">' + esc(g("restart")) + '</button></div></div>';
     box.querySelector('[data-go="1"]').addEventListener("click", function () {
-      var head = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
-      if (head) { head.click(); }
-      var detail = document.getElementById("gbModeDetail");
-      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (detail && detail.scrollIntoView) { detail.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" }); }
+      var h = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
+      if (h && !h.classList.contains("gb-set-mode-selected")) { h.click(); }
+      scrollTo(document.getElementById("gbModeDetail"));
     });
     box.querySelector('[data-again="1"]').addEventListener("click", start);
+  }
+  function secret() {
+    ask(2, gl("q2s"), gl("q2sHelp"), [
+      { icon: GI.server, title: g("q2yes"), desc: gl("q2sYesD"), go: function () { result("own_key", gl("recOwnNet")); } },
+      { icon: ICONS.local, title: g("q2no"), desc: gl("q2sNoD"), go: function () {
+        if (!machineFits(hw)) { result("own_key", g("recLocalSlow")); return; }
+        result("local", hw.vram_gb >= 10 ? g("recLocal") : gl("recLocalTight"));
+      } }
+    ], start);
+  }
+  function open() {
+    ask(2, g("q2"), gl("q2help"), [
+      { icon: GI.server, title: g("q2yes"), desc: gl("q2yesD"), go: function () { result("own_key", g("recOwn")); } },
+      { icon: GI.none, title: g("q2no"), desc: gl("q2noD"), go: function () { result("free", g("recFree")); } }
+    ], start);
   }
   function start() {
     var grid = panel.querySelector("#gbGarGrid");
     if (grid) grid.removeAttribute("data-rec");
-    ask(g("q1"), g("q1no"), g("q1yes"),
-      function () { return machineFits(hw) ? result("local", g("recLocal")) : result("own_key", g("recLocalSlow")); },
-      function () { ask(g("q2"), g("q2yes"), g("q2no"),
-        function () { result("own_key", g("recOwn")); },
-        function () { result("free", g("recFree")); }); });
+    ask(1, g("q1"), gl("q1help"), [
+      { icon: GI.lock, title: g("q1no"), desc: gl("q1noD"), go: secret },
+      { icon: GI.globe, title: g("q1yes"), desc: gl("q1yesD"), go: open }
+    ], null);
   }
   start();
 }
@@ -171,9 +241,12 @@ function facts(mode, cfg, hw) {
     var machine = machineFits(hw)
       ? g("machineOk").replace("%d", hw.device || "").replace("%v", String(hw.vram_gb || 0))
       : g("machineSlow");
+    var V = A._modelMachine ? A._modelMachine.verdict(hw, S().localModels) : null;
+    if (V && V.tone !== "none") { machine += " · " + V.short; }
+    var kind = !V ? (machineFits(hw) ? "yes" : "no") : V.tone === "good" ? "yes" : V.tone === "mid" ? "part" : "no";
     return { privacy: cell("yes", g("stayHere")), offline: cell("yes", g("works")), cost: cell("yes", g("costFree")),
       docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")),
-      needs: cell(machineFits(hw) ? "yes" : "no", g("needLocal")), note: machine };
+      needs: cell(kind, g("needLocal")), note: machine };
   }
   if (mode === "own_key") {
     return { privacy: cell(scope === "network" ? "yes" : "part", scope === "network" ? g("goNet") : g("goServer")),
@@ -199,8 +272,10 @@ function compare(currentMode, modes, cfg) {
     html += '<button class="gb-set-mode-card gb-gar-head' + (active ? " gb-set-mode-active" : "") + '" data-mode="' + m + '" data-col="' + m + '"' + (avail ? "" : " disabled") + ' role="columnheader">' +
       ICONS[m] + '<span class="gb-set-mode-label">' + esc(g(m === "own_key" ? "own" : m)) + '</span>' +
       '<span class="gb-set-mode-sub">' + esc(g(m === "own_key" ? "subOwn" : (m === "local" ? "subLocal" : "subFree"))) + '</span>' +
-      (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
-      '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></button>';
+      '<span class="gb-gar-head-badges">' + (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
+      '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
+      '<span class="gb-gar-head-cta">' + esc(active ? g("ctaAdjust") : g("ctaOpen")) +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></button>';
   });
   ROWS.forEach(function (row) {
     html += '<div class="gb-gar-label" role="rowheader">' + esc(g(row[1])) + '</div>';

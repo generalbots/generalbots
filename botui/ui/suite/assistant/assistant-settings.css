@@ -3,7 +3,7 @@
 /* == Layout: nav + panel side by side =============================== */
 .gb-settings-container {
     display: flex; gap: var(--id-space-6);
-    width: 100%; max-width: 880px; margin: 0 auto;
+    width: 100%; margin: 0;
     padding: var(--id-space-6) var(--id-space-4);
     height: 100%; overflow: hidden;
     box-sizing: border-box;
@@ -43,7 +43,7 @@
 
 /* -- Panel (right, scrollable) -- */
 .gb-set-panel {
-    flex: 1; min-width: 0; max-width: 672px;
+    flex: 1; min-width: 0;
     overflow-y: auto; scrollbar-gutter: stable;
     /* Left/top: room for focus rings. Right: the cards keep their distance
        from the scrollbar instead of sitting under it. */

@@ -166,14 +166,9 @@ async function loadLocalModels() {
   var cfg = S().cfg;
   var lr = cfg && cfg.local_runtime;
   var hw = localModels.hardware || {};
-  var hwLine = hw.cuda_usable
-    ? t("hw").replace("%d",hw.device||"?").replace("%v",String(hw.vram_gb||0)).replace("%f",String(hw.vram_free_gb||0)).replace("%r",String(hw.ram_gb||0))
-    : t("hwCpu").replace("%r",String(hw.ram_gb||0));
-  var html = engineSection(lr);
-  html += '<p class="gb-set-model-meta gb-set-hw">' + esc(hwLine);
-  if (hw.driver) html += ' &middot; ' + esc(t("hwDriver").replace("%drv",hw.driver));
-  if (hw.cuda_usable) html += ' &middot; ' + esc(t("hwCuda"));
-  html += '<br>' + esc(t("privLocal")) + ' ' + esc(t("noImageReading")) + '</p>';
+  var html = A._modelMachine ? A._modelMachine.card(hw, localModels, !!(lr && lr.running && lr.loaded_model)) : '';
+  html += engineSection(lr);
+  html += '<p class="gb-set-model-meta gb-set-hw">' + esc(t("privLocal")) + ' ' + esc(t("noImageReading")) + '</p>';
   var installed = [], available = [];
   (localModels.tiers || []).forEach(function(tier) {
     (tier.models || []).forEach(function(m) {
@@ -275,7 +270,8 @@ function modelRow(m, lr) {
     '<div class="gb-set-model-info"><span class="gb-set-model-row-name">' + esc(m.name) + ' <small>' + esc(m.quant) + '</small></span>' +
     '<span class="gb-badge' + badge + '">' + esc(statusLabel) + '</span>' +
     (recommended ? '<span class="gb-badge gb-gar-rec-badge">' + esc(tr("Recomendado para este computador", "Recommended for this computer")) + '</span>' : '') + '</div>' +
-    '<div class="gb-gar-meters">' + sizeMeter(m) + fitMeter(m) + '</div>' +
+    '<div class="gb-gar-meters">' + sizeMeter(m) + (A._modelMachine ? '' : fitMeter(m)) + '</div>' +
+    (A._modelMachine ? A._modelMachine.affinityBar(m, models.hardware) : '') +
     capsChips(m) +
     '<div class="gb-set-model-meta">' + meta + '</div>' +
     (failedHere ? '<div class="gb-set-warn">' + esc(S().errText(lr.last_failure.code)) + '</div>' : '') +
