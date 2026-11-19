@@ -67,6 +67,13 @@ is administrator + loopback only and written to the audit log; the request runs
 through `/usr/local/libexec/gb-power`, a root-owned helper with a fixed action
 list. Nothing from the request reaches a command line.
 
+The OS shell also exposes read-only battery/AC telemetry: tray indicators and
+the Power & Battery settings page poll `GET /api/system/power/status`
+(sysfs-backed, OS-panel-gated) when available to show presence, charge, state,
+AC status and estimated remaining time, and emit low-battery notifications at
+20%, 10%, and 5% while discharging (#2445). Lid policy and configurable
+critical actions remain follow-up work.
+
 logind no longer powers the machine off on a key press: the image sets
 `HandlePowerKey=ignore`, keeps the lid suspending, and denies the kiosk user
 logind's `PowerOff`/`Reboot`/`Suspend` (and NetworkManager's system settings)

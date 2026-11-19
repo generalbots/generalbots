@@ -45,7 +45,12 @@ The desktop is a window manager over a persistent app rail:
   host indicators (battery, network, volume, brightness, updates, power) with
   a quick-action popover and settings shortcuts; indicators collapse into an
   overflow menu on narrow widths and show explicit unavailable states when
-  host telemetry APIs are not present (#2465).
+  host telemetry APIs are not present (#2465). Battery and power indicators
+  poll `GET /api/system/power/status` (sysfs-backed, OS-panel-gated) when
+  available to show live charge/state/AC and estimated time remaining with
+  level colors, and announce low-battery notifications at 20%, 10%, and 5%
+  while discharging; lid policy and configurable critical actions remain
+  follow-up work (#2445).
 - **Maximized windows** use `position: fixed` and fill the viewport above the
   taskbar, covering the app rail; the taskbar stays reachable to restore or
   switch windows.
