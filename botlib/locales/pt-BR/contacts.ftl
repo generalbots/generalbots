@@ -384,3 +384,9 @@ people-search-empty-hint = Execute uma pesquisa para ver os resultados.
 people-search-name-placeholder = ex.: Maria
 people-search-email-placeholder = maria@empresa.com
 people-search-tags-placeholder = vip, parceiro, lead
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+people-load-error-title = Não foi possível carregar os contatos
+people-load-error-desc = O serviço de contatos não respondeu. Verifique sua conexão e tente novamente.

@@ -362,3 +362,14 @@ monitoring-system-stable = System has been stable
 # Chat header / app chrome (#2542)
 recycle-empty-failed = Empty failed.
 recycle-restore-failed = Restore failed.
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = No plugins installed
+plugins-state-empty-desc = A plugin adds tools and channels to this bot. Upload a manifest to install one.
+plugins-state-empty-action = Upload a manifest
+
+# #2328 — plugin upload error states
+plugins-upload-failed = Upload failed
+plugins-upload-bad-response = Upload response invalid

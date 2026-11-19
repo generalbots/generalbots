@@ -196,3 +196,20 @@ mail-placeholder-imap-server = imap.example.com
 mail-placeholder-smtp-server = smtp.example.com
 mail-placeholder-username-or-email = 用户名或邮箱
 mail-placeholder-password = ••••••••
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+mail-state-empty-title = 此文件夹是空的
+mail-state-empty-desc = 新邮件会送到这里。如果需要对方面先开口，您可以自己写一封。
+mail-state-empty-action = 写一封邮件
+mail-state-loading = 正在加载邮件…
+mail-templates-empty-title = 还没有模板
+mail-templates-empty-desc = 模板会保存您经常发送的主题和正文，免去重复输入。
+mail-templates-empty-action = 创建模板
+mail-signatures-empty-title = 还没有签名
+mail-signatures-empty-desc = 签名会自动附加到您发送的邮件。只需填写一次姓名、职位和联系方式。
+mail-signatures-empty-action = 创建签名
+mail-rules-empty-title = 还没有规则
+mail-rules-empty-desc = 规则会自动归档、加星或删除来信，例如某个发件人的所有邮件。
+mail-rules-empty-action = 创建规则

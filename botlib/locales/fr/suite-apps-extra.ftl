@@ -230,3 +230,12 @@ drive-upload-queue-body = {count} envoi(s) ne sont pas terminés. Réessayer ?
 drive-upload-queue-retry = Réessayer
 drive-upload-queue-discard = Abandonner
 drive-upload-queue-recovered = {count} fichier(s) récupéré(s) envoyé(s)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = Aucune liste pour le moment
+lists-state-empty-desc = Une liste regroupe des contacts ou des entreprises pour les cibler ensemble.
+lists-state-empty-action = Créer votre première liste
+minutes-state-empty-title = Aucune réunion planifiée
+minutes-state-empty-desc = Planifiez une réunion : transcription, résumé et actions arrivent ici.

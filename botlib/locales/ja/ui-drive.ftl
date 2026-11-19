@@ -79,3 +79,13 @@ drive-drop-hint = ここにファイルまたはフォルダをドロップし�
 # semantic i18n key (#2542)
 drive-search-all-placeholder = すべてのファイルを検索…
 drive-search-all-aria-label = 名前と内容ですべてのファイルを検索
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+drive-starred-empty-title = スター付きのファイルはありません
+drive-starred-empty-desc = ファイルにスターを付けるか ⋮ メニューを使うと、ワンクリックで開けます。
+drive-shared-empty-title = 共有ファイルはありません
+drive-shared-empty-desc = 共有されたファイルがここに表示されます。自分のファイルを共有してレビューを始めましょう。
+drive-list-error-title = この一覧を読み込めませんでした
+drive-list-error-desc = Drive が時間内に応答しませんでした。接続を確認して再試行してください。

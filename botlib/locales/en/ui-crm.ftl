@@ -193,3 +193,22 @@ crm-placeholder-search-contacts = Search contacts...
 
 # Chat header / app chrome (#2542)
 crm-lost-reason-title = Why was the deal lost?
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = No opportunities yet
+crm-opps-empty-desc = An opportunity tracks a possible sale from first contact to close.
+crm-opps-empty-action = Create an opportunity
+crm-deals-empty-title = No deals yet
+crm-deals-empty-desc = Deals in every stage appear here, with the amount and the owner.
+crm-deals-empty-action = Add a deal
+crm-accounts-empty-title = No accounts yet
+crm-accounts-empty-desc = An account is a company you sell to. Contacts and deals are grouped under it.
+crm-accounts-empty-action = Add an account
+crm-contacts-empty-title = No contacts yet
+crm-contacts-empty-desc = People you talk to live here: name, e-mail, phone and the account they belong to.
+crm-contacts-empty-action = Add a contact
+crm-campaigns-empty-title = No campaigns yet
+crm-campaigns-empty-desc = A campaign groups the outreach that brings leads into the pipeline.
+crm-campaigns-empty-action = Create a campaign

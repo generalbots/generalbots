@@ -357,3 +357,26 @@ products-placeholder-cost = 0,00
 billing-notes-placeholder = Observações adicionais para o cliente...
 billing-invoice-notes-placeholder = Instruções de pagamento ou observações adicionais...
 billing-remove-line-item = Remover item da linha
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = Ainda não há produtos
+products-state-empty-desc = Os produtos que você adiciona ao catálogo aparecem aqui, prontos para venda.
+products-state-empty-action = Adicionar o primeiro produto
+products-state-empty-services-title = Ainda não há serviços
+products-state-empty-services-desc = Os serviços que você oferece aparecem aqui com preço e unidade.
+products-state-empty-services-action = Adicionar o primeiro serviço
+products-state-empty-pricelists-title = Ainda não há tabelas de preços
+products-state-empty-pricelists-desc = Uma tabela de preços agrupa produtos em uma moeda e vigência.
+products-state-empty-pricelists-action = Criar uma tabela de preços
+billing-payments-empty-title = Ainda não há pagamentos registrados
+billing-payments-empty-desc = Os pagamentos registrados em uma fatura aparecem aqui com forma e data.
+billing-quotes-empty-title = Ainda não há orçamentos
+billing-quotes-empty-desc = Envie um orçamento ao cliente e ele é acompanhado aqui até ser aceito.
+billing-inventory-empty-title = Ainda não há itens em estoque
+billing-inventory-empty-desc = Os bens em estoque e a quantidade disponível aparecem aqui depois que você os adiciona.
+billing-gl-empty-title = Ainda não há contas contábeis
+billing-gl-empty-desc = Todo lançamento precisa de uma conta. Cadastre-as para gerar o balancete e as demonstrações.
+billing-procurement-empty-title = Ainda não há pedidos de compra
+billing-procurement-empty-desc = Os pedidos de compra enviados a fornecedores são acompanhados aqui até o recebimento.

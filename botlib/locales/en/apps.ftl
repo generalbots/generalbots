@@ -1275,3 +1275,10 @@ calculator-aria-to-unit = To unit
 
 # Chat header / app chrome (#2542)
 notes-board = Notes board
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = No notes yet
+notes-empty-desc = Sticky notes stay on your board until you delete them. Capture a thought before it goes.
+notes-empty-action = Create your first note

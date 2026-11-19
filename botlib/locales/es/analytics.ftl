@@ -195,3 +195,11 @@ analytics-category-feature-request = Solicitud de función
 
 # semantic i18n key (#2542)
 analytics-category-general-inquiry = Consulta general
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+analytics-state-empty-activity-title = Todavía no hay actividad registrada
+analytics-state-empty-activity-desc = Las conversaciones, llamadas de herramientas e inicios de sesión aparecen aquí al ocurrir.
+analytics-state-empty-queries-title = Todavía no hay preguntas
+analytics-state-empty-queries-desc = Las preguntas más frecuentes aparecen aquí cuando se use el bot.

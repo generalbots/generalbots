@@ -22,3 +22,9 @@ timeclock-loading-panel = 正在加载面板…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = 员工 UUID
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = 还没有记录
+timeclock-state-empty-desc = 打卡后，此面板会显示当天工时、加班和审批。

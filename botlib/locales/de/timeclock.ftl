@@ -22,3 +22,9 @@ timeclock-loading-panel = Übersicht wird geladen…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = Mitarbeiter-UUID
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = Noch keine Einträge
+timeclock-state-empty-desc = Stempeln Sie ein; dieses Dashboard zeigt Tag, Überstunden und Genehmigungen.

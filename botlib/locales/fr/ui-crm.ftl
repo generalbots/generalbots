@@ -186,3 +186,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = Rechercher des contacts...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = Aucune opportunité pour le moment
+crm-opps-empty-desc = Une opportunité suit une vente possible du premier contact à la conclusion.
+crm-opps-empty-action = Créer une opportunité
+crm-deals-empty-title = Aucune affaire pour le moment
+crm-deals-empty-desc = Les affaires de chaque étape apparaissent ici, avec le montant et le responsable.
+crm-deals-empty-action = Ajouter une affaire
+crm-accounts-empty-title = Aucun compte pour le moment
+crm-accounts-empty-desc = Un compte est une entreprise à laquelle vous vendez. Contacts et affaires y sont rattachés.
+crm-accounts-empty-action = Ajouter un compte
+crm-contacts-empty-title = Aucun contact pour le moment
+crm-contacts-empty-desc = Les personnes avec qui vous échangez sont ici : nom, e-mail, téléphone et compte de rattachement.
+crm-contacts-empty-action = Ajouter un contact
+crm-campaigns-empty-title = Aucune campagne pour le moment
+crm-campaigns-empty-desc = Une campagne regroupe les actions qui amènent des prospects dans le pipeline.
+crm-campaigns-empty-action = Créer une campagne

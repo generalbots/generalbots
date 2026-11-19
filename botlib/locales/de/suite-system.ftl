@@ -358,3 +358,14 @@ monitoring-no-recent-incidents = Keine aktuellen Vorfälle
 
 # semantic i18n key (#2542)
 monitoring-system-stable = Das System war stabil
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = Keine Plugins installiert
+plugins-state-empty-desc = Ein Plugin fügt diesem Bot Werkzeuge und Kanäle hinzu. Laden Sie ein Manifest hoch, um eines zu installieren.
+plugins-state-empty-action = Manifest hochladen
+
+# #2328 — plugin upload error states
+plugins-upload-failed = Upload fehlgeschlagen
+plugins-upload-bad-response = Upload-Antwort ungültig

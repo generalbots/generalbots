@@ -51,3 +51,10 @@ tickets-sla-col-time = SLA까지 남은 시간
 
 # semantic i18n key (#2542)
 tickets-sla-no-risk = 향후 24시간 내 위험에 처한 티켓이 없습니다.
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tickets-state-empty-title = 아직 티켓이 없습니다
+tickets-state-empty-desc = 티켓은 채팅, 이메일, 웹 양식에서 도착합니다. 직접 열어 흐름을 확인해 보세요.
+tickets-state-empty-action = 티켓 열기

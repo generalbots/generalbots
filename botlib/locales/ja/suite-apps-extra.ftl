@@ -230,3 +230,12 @@ drive-upload-queue-body = {count} 件のアップロードが完了していま�
 drive-upload-queue-retry = 再試行
 drive-upload-queue-discard = 破棄
 drive-upload-queue-recovered = 復元した {count} 件のファイルをアップロードしました
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = まだリストがありません
+lists-state-empty-desc = リストは連絡先や企業をまとめ、まとめて対象にできます。
+lists-state-empty-action = 最初のリストを作成
+minutes-state-empty-title = 予定された会議はありません
+minutes-state-empty-desc = 会議を予定すると、文字起こし・要約・アクションがここに残ります。

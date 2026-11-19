@@ -195,3 +195,11 @@ analytics-category-feature-request = 功能请求
 
 # semantic i18n key (#2542)
 analytics-category-general-inquiry = 一般咨询
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+analytics-state-empty-activity-title = 还没有记录活动
+analytics-state-empty-activity-desc = 对话、工具调用和登录会实时显示在这里。
+analytics-state-empty-queries-title = 还没有提问
+analytics-state-empty-queries-desc = 机器人被使用后，最常问的问题会显示在这里。

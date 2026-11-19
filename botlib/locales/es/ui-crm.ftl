@@ -190,3 +190,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = Buscar contactos...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = Todavía no hay oportunidades
+crm-opps-empty-desc = Una oportunidad sigue una venta posible desde el primer contacto hasta el cierre.
+crm-opps-empty-action = Crear una oportunidad
+crm-deals-empty-title = Todavía no hay negocios
+crm-deals-empty-desc = Los negocios de todas las etapas aparecen aquí, con importe y responsable.
+crm-deals-empty-action = Agregar un negocio
+crm-accounts-empty-title = Todavía no hay cuentas
+crm-accounts-empty-desc = Una cuenta es una empresa a la que vendes. Los contactos y negocios se agrupan en ella.
+crm-accounts-empty-action = Agregar una cuenta
+crm-contacts-empty-title = Todavía no hay contactos
+crm-contacts-empty-desc = Las personas con las que hablas están aquí: nombre, correo, teléfono y la cuenta a la que pertenecen.
+crm-contacts-empty-action = Agregar un contacto
+crm-campaigns-empty-title = Todavía no hay campañas
+crm-campaigns-empty-desc = Una campaña agrupa las acciones que traen clientes potenciales al embudo.
+crm-campaigns-empty-action = Crear una campaña

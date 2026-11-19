@@ -230,3 +230,12 @@ drive-upload-queue-body = 有 {count} 个上传未完成，是否重试？
 drive-upload-queue-retry = 重试
 drive-upload-queue-discard = 丢弃
 drive-upload-queue-recovered = 已上传 {count} 个恢复的文件
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = 还没有列表
+lists-state-empty-desc = 列表把联系人或公司归在一起，便于统一触达。
+lists-state-empty-action = 创建第一个列表
+minutes-state-empty-title = 没有安排的会议
+minutes-state-empty-desc = 安排会议后，记录、摘要和待办都会留在这里。

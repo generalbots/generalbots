@@ -652,3 +652,15 @@ tasks-progress-minimize = Minimize progress
 tasks-progress-output = Task output
 tasks-progress-region = Task progress
 tasks-terminal-log = Live agent activity
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = No tasks yet
+tasks-state-empty-desc = Describe what you need done in the box above and the assistant turns it into a task.
+tasks-state-empty-action = Start with an intent
+calendar-state-empty-calendars-title = No calendars yet
+calendar-state-empty-calendars-desc = A calendar holds your events. Create one to start scheduling.
+calendar-state-empty-upcoming-title = Nothing scheduled
+calendar-state-empty-upcoming-desc = Your next appointments show up here so the day never surprises you.
+calendar-state-empty-upcoming-action = Schedule an event

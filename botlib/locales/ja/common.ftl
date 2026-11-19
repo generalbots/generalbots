@@ -375,3 +375,13 @@ deploy-custom-domain-placeholder = app.example.com
 action-print = 印刷
 action-history = 履歴
 action-previous = 前へ
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = 読み込み中…
+gb-state-empty-title = まだ何もありません
+gb-state-empty-desc = 表示できる内容はまだありません。
+gb-state-error-title = この内容を読み込めませんでした
+gb-state-error-desc = リクエストに失敗しました。接続を確認して、もう一度お試しください。
+gb-state-retry = 再試行

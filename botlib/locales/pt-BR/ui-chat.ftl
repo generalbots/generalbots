@@ -194,3 +194,10 @@ chat-conversation-rename-failed = Falha ao renomear a conversa
 chat-conversation-renamed = Conversa renomeada
 chat-conversation-title = Título da conversa
 chat-conversation-untitled = Conversa sem título
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+chat-empty-title = Comece a conversa
+chat-empty-desc = Digite uma mensagem abaixo ou escolha uma sugestão quando o bot oferecer.
+chat-empty-action = Escrever a primeira mensagem

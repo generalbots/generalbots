@@ -822,3 +822,13 @@ admin-onboarding-team-51-plus = 50+ Personen
 admin-ops-configure-alerts = Warnungen konfigurieren
 admin-ops-trace-search-placeholder = Trace-ID suchen...
 admin-ops-traces-slow = Langsam (>500 ms)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+workspace-state-empty-recent-title = Noch nichts geöffnet
+workspace-state-empty-recent-desc = Geöffnete Seiten erscheinen hier, damit Sie dort weitermachen, wo Sie aufgehört haben.
+workspace-state-empty-favorites-title = Noch keine Favoriten
+workspace-state-empty-favorites-desc = Markieren Sie eine Seite als Favorit, um sie oben in der Seitenleiste zu halten.
+workspace-state-empty-pages-title = Noch keine Seiten
+workspace-state-empty-pages-desc = Seiten sind die Notizen und Dokumente dieses Arbeitsbereichs. Legen Sie die erste an.

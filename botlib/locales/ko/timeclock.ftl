@@ -22,3 +22,9 @@ timeclock-loading-panel = 대시보드를 불러오는 중…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = 직원 UUID
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = 아직 기록이 없습니다
+timeclock-state-empty-desc = 출근을 기록하면 이 대시보드에 하루 근무, 초과 근무, 승인이 표시됩니다.

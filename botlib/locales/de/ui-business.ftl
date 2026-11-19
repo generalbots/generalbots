@@ -350,3 +350,26 @@ products-placeholder-cost = 0,00
 billing-notes-placeholder = Zusätzliche Hinweise für den Kunden...
 billing-invoice-notes-placeholder = Zahlungsanweisungen oder zusätzliche Hinweise...
 billing-remove-line-item = Position entfernen
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = Noch keine Produkte
+products-state-empty-desc = Produkte, die Sie dem Katalog hinzufügen, erscheinen hier und sind verkaufsbereit.
+products-state-empty-action = Erstes Produkt hinzufügen
+products-state-empty-services-title = Noch keine Dienstleistungen
+products-state-empty-services-desc = Angebotene Dienstleistungen erscheinen hier mit Preis und Einheit.
+products-state-empty-services-action = Erste Dienstleistung hinzufügen
+products-state-empty-pricelists-title = Noch keine Preislisten
+products-state-empty-pricelists-desc = Eine Preisliste gruppiert Produkte unter einer Währung und einem Gültigkeitszeitraum.
+products-state-empty-pricelists-action = Preisliste erstellen
+billing-payments-empty-title = Noch keine Zahlungen erfasst
+billing-payments-empty-desc = Zahlungen, die Sie zu einer Rechnung erfassen, erscheinen hier mit Art und Datum.
+billing-quotes-empty-title = Noch keine Angebote
+billing-quotes-empty-desc = Senden Sie einem Kunden ein Angebot; es wird hier bis zur Annahme verfolgt.
+billing-inventory-empty-title = Noch keine Lagergüter
+billing-inventory-empty-desc = Lagerartikel und ihr Bestand erscheinen hier, sobald Sie sie anlegen.
+billing-gl-empty-title = Noch keine Sachkonten
+billing-gl-empty-desc = Jede Buchung braucht ein Konto. Legen Sie sie an, um Saldenliste und Abschlüsse zu erstellen.
+billing-procurement-empty-title = Noch keine Bestellungen
+billing-procurement-empty-desc = Bestellungen bei Lieferanten werden hier bis zum Wareneingang verfolgt.

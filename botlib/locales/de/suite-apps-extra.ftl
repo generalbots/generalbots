@@ -230,3 +230,12 @@ drive-upload-queue-body = {count} Upload(s) wurden nicht abgeschlossen. Erneut v
 drive-upload-queue-retry = Erneut versuchen
 drive-upload-queue-discard = Verwerfen
 drive-upload-queue-recovered = {count} wiederhergestellte Datei(en) hochgeladen
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = Noch keine Listen
+lists-state-empty-desc = Eine Liste gruppiert Kontakte oder Unternehmen, um sie gemeinsam anzusprechen.
+lists-state-empty-action = Erste Liste erstellen
+minutes-state-empty-title = Keine Besprechungen geplant
+minutes-state-empty-desc = Planen Sie eine Besprechung; Transkript, Zusammenfassung und Aufgaben landen hier.

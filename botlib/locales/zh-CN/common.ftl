@@ -375,3 +375,13 @@ deploy-custom-domain-placeholder = app.example.com
 action-print = 打印
 action-history = 历史
 action-previous = 上一个
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = 正在加载…
+gb-state-empty-title = 这里还没有内容
+gb-state-empty-desc = 这里还没有可显示的内容。
+gb-state-error-title = 无法加载此内容
+gb-state-error-desc = 请求失败。请检查网络连接后重试。
+gb-state-retry = 重试

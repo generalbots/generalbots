@@ -362,3 +362,14 @@ monitoring-system-stable = O sistema está estável
 # Chat header / app chrome (#2542)
 recycle-empty-failed = Falha ao esvaziar.
 recycle-restore-failed = Falha ao restaurar.
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = Nenhum plugin instalado
+plugins-state-empty-desc = Um plugin adiciona ferramentas e canais a este bot. Envie um manifesto para instalar.
+plugins-state-empty-action = Enviar um manifesto
+
+# #2328 — plugin upload error states
+plugins-upload-failed = Falha no envio
+plugins-upload-bad-response = Resposta de envio inválida

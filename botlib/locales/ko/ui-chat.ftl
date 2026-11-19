@@ -172,3 +172,10 @@ projector-code-info = code.rs
 
 # Projector viewer control (#2542)
 chat-projector-rotate = 회전
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+chat-empty-title = 대화를 시작하세요
+chat-empty-desc = 아래에 메시지를 입력하거나 봇이 제안하는 항목을 선택하세요.
+chat-empty-action = 첫 메시지 작성

@@ -238,3 +238,12 @@ drive-upload-queue-body = {count} upload(s) did not finish. Retry?
 drive-upload-queue-retry = Retry
 drive-upload-queue-discard = Discard
 drive-upload-queue-recovered = Uploaded {count} recovered file(s)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = No lists yet
+lists-state-empty-desc = A list groups contacts or companies so you can target them together.
+lists-state-empty-action = Create your first list
+minutes-state-empty-title = No meetings scheduled
+minutes-state-empty-desc = Schedule a meeting and the transcript, summary and actions land here.

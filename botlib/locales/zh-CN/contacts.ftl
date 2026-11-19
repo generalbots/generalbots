@@ -384,3 +384,9 @@ people-search-empty-hint = 运行搜索以查看结果。
 people-search-name-placeholder = 例如：Maria
 people-search-email-placeholder = maria@example.com
 people-search-tags-placeholder = vip, 合作伙伴, 潜在客户
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+people-load-error-title = 无法加载联系人
+people-load-error-desc = 联系人服务没有响应。请检查网络连接后重试。

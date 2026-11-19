@@ -822,3 +822,13 @@ admin-onboarding-team-51-plus = 50人以上
 admin-ops-configure-alerts = アラートを設定
 admin-ops-trace-search-placeholder = トレースIDを検索...
 admin-ops-traces-slow = 遅い (>500ms)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+workspace-state-empty-recent-title = まだ何も開いていません
+workspace-state-empty-recent-desc = 開いたページがここに表示され、続きから再開できます。
+workspace-state-empty-favorites-title = まだお気に入りがありません
+workspace-state-empty-favorites-desc = ページをお気に入りにすると、サイドバーの上部に固定されます。
+workspace-state-empty-pages-title = まだページがありません
+workspace-state-empty-pages-desc = ページはこのワークスペースのメモと文書です。最初のページを作成しましょう。

@@ -172,3 +172,10 @@ projector-code-info = code.rs
 
 # Projector viewer control (#2542)
 chat-projector-rotate = Girar
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+chat-empty-title = Empieza la conversación
+chat-empty-desc = Escribe un mensaje abajo o elige una sugerencia cuando el bot la ofrezca.
+chat-empty-action = Escribir el primer mensaje

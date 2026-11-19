@@ -1270,3 +1270,10 @@ calculator-swap-units = Intercambiar unidades
 calculator-aria-amount = Cantidad
 calculator-aria-from-unit = Unidad de origen
 calculator-aria-to-unit = Unidad de destino
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = Todavía no hay notas
+notes-empty-desc = Las notas adhesivas siguen en tu tablero hasta que las borres. Captura una idea antes de que se vaya.
+notes-empty-action = Crear tu primera nota

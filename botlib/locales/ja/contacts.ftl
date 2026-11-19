@@ -384,3 +384,9 @@ people-search-empty-hint = 検索を実行すると結果が表示されます�
 people-search-name-placeholder = 例: マリア
 people-search-email-placeholder = maria@example.com
 people-search-tags-placeholder = vip, パートナー, リード
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+people-load-error-title = 連絡先を読み込めませんでした
+people-load-error-desc = 連絡先サービスが応答しませんでした。接続を確認して再試行してください。

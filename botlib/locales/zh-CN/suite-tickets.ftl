@@ -51,3 +51,10 @@ tickets-sla-col-time = 距离 SLA 的时间
 
 # semantic i18n key (#2542)
 tickets-sla-no-risk = 未来 24 小时内没有风险工单。
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tickets-state-empty-title = 还没有工单
+tickets-state-empty-desc = 工单来自聊天、邮件和网页表单。您也可以自己开一张来体验流程。
+tickets-state-empty-action = 创建工单

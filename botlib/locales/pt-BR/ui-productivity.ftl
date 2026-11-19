@@ -652,3 +652,15 @@ tasks-progress-minimize = Minimizar progresso
 tasks-progress-output = Saída da tarefa
 tasks-progress-region = Progresso da tarefa
 tasks-terminal-log = Atividade do agente ao vivo
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = Ainda não há tarefas
+tasks-state-empty-desc = Descreva acima o que precisa ser feito e o assistente transforma isso em uma tarefa.
+tasks-state-empty-action = Começar com uma intenção
+calendar-state-empty-calendars-title = Ainda não há calendários
+calendar-state-empty-calendars-desc = Um calendário guarda seus eventos. Crie um para começar a agendar.
+calendar-state-empty-upcoming-title = Nada agendado
+calendar-state-empty-upcoming-desc = Seus próximos compromissos aparecem aqui para o dia não te surpreender.
+calendar-state-empty-upcoming-action = Agendar um evento

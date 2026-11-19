@@ -350,3 +350,26 @@ products-placeholder-cost = 0.00
 billing-notes-placeholder = 고객을 위한 추가 메모...
 billing-invoice-notes-placeholder = 결제 안내 또는 추가 메모...
 billing-remove-line-item = 항목 삭제
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = 아직 제품이 없습니다
+products-state-empty-desc = 카탈로그에 추가한 제품이 여기에 표시되어 바로 판매할 수 있습니다.
+products-state-empty-action = 첫 제품 추가
+products-state-empty-services-title = 아직 서비스가 없습니다
+products-state-empty-services-desc = 제공하는 서비스가 가격과 단위와 함께 여기에 표시됩니다.
+products-state-empty-services-action = 첫 서비스 추가
+products-state-empty-pricelists-title = 아직 가격표가 없습니다
+products-state-empty-pricelists-desc = 가격표는 제품을 하나의 통화와 유효 기간으로 묶습니다.
+products-state-empty-pricelists-action = 가격표 만들기
+billing-payments-empty-title = 아직 기록된 결제가 없습니다
+billing-payments-empty-desc = 청구서에 등록한 결제가 방법 및 날짜와 함께 여기에 표시됩니다.
+billing-quotes-empty-title = 아직 견적이 없습니다
+billing-quotes-empty-desc = 고객에게 견적을 보내면 승인될 때까지 여기에서 추적됩니다.
+billing-inventory-empty-title = 아직 재고 품목이 없습니다
+billing-inventory-empty-desc = 재고 품목과 보유 수량은 등록하면 여기에 표시됩니다.
+billing-gl-empty-title = 아직 계정과목이 없습니다
+billing-gl-empty-desc = 모든 전표에는 계정과목이 필요합니다. 등록하면 시산표와 재무제표를 만들 수 있습니다.
+billing-procurement-empty-title = 아직 구매 주문이 없습니다
+billing-procurement-empty-desc = 공급업체에 발주한 주문은 입고될 때까지 여기에서 추적됩니다.

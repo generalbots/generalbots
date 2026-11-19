@@ -195,3 +195,11 @@ analytics-category-feature-request = Feature Request
 
 # semantic i18n key (#2542)
 analytics-category-general-inquiry = General Inquiry
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+analytics-state-empty-activity-title = No activity recorded yet
+analytics-state-empty-activity-desc = Conversations, tool calls and sign-ins appear here as they happen.
+analytics-state-empty-queries-title = No questions asked yet
+analytics-state-empty-queries-desc = The questions people ask most show up here once the bot has been used.

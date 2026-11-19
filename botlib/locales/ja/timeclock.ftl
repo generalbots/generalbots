@@ -22,3 +22,9 @@ timeclock-loading-panel = ダッシュボードを読み込み中…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = 従業員UUID
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = まだ記録がありません
+timeclock-state-empty-desc = 打刻すると、このダッシュボードに一日の勤務、残業、承認が表示されます。

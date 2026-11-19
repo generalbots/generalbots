@@ -79,3 +79,13 @@ drive-drop-hint = 将文件或文件夹拖放到此处以上传
 # semantic i18n key (#2542)
 drive-search-all-placeholder = 搜索所有文件…
 drive-search-all-aria-label = 按名称和内容搜索所有文件
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+drive-starred-empty-title = 没有星标文件
+drive-starred-empty-desc = 给文件加星或使用 ⋮ 菜单，即可一键找到。
+drive-shared-empty-title = 没有共享文件
+drive-shared-empty-desc = 与您共享的文件会显示在这里。共享您的文件即可开始评审。
+drive-list-error-title = 无法加载此列表
+drive-list-error-desc = Drive 未能及时响应。请检查网络连接后重试。

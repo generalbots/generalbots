@@ -196,3 +196,20 @@ mail-placeholder-imap-server = imap.example.com
 mail-placeholder-smtp-server = smtp.example.com
 mail-placeholder-username-or-email = 사용자 이름 또는 이메일
 mail-placeholder-password = ••••••••
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+mail-state-empty-title = 이 폴더는 비어 있습니다
+mail-state-empty-desc = 새 메시지가 여기에 도착합니다. 대화를 시작해야 한다면 직접 작성하세요.
+mail-state-empty-action = 메시지 작성
+mail-state-loading = 이메일을 불러오는 중…
+mail-templates-empty-title = 아직 템플릿이 없습니다
+mail-templates-empty-desc = 템플릿은 자주 보내는 제목과 본문을 저장해 다시 입력할 필요가 없습니다.
+mail-templates-empty-action = 템플릿 만들기
+mail-signatures-empty-title = 아직 서명이 없습니다
+mail-signatures-empty-desc = 서명은 보내는 메시지에 추가됩니다. 이름, 직함, 연락처를 한 번만 입력하세요.
+mail-signatures-empty-action = 서명 만들기
+mail-rules-empty-title = 아직 규칙이 없습니다
+mail-rules-empty-desc = 규칙은 수신 메일을 자동으로 분류, 별표, 삭제합니다. 예를 들어 특정 발신자의 모든 메일입니다.
+mail-rules-empty-action = 규칙 만들기

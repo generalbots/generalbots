@@ -357,3 +357,26 @@ products-placeholder-cost = 0.00
 billing-notes-placeholder = Additional notes for the customer...
 billing-invoice-notes-placeholder = Payment instructions or additional notes...
 billing-remove-line-item = Remove line item
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = No products yet
+products-state-empty-desc = Products you add to the catalog show up here, ready to be sold.
+products-state-empty-action = Add your first product
+products-state-empty-services-title = No services yet
+products-state-empty-services-desc = Services you offer appear here with their price and unit.
+products-state-empty-services-action = Add your first service
+products-state-empty-pricelists-title = No price lists yet
+products-state-empty-pricelists-desc = A price list groups products under one currency and validity window.
+products-state-empty-pricelists-action = Create a price list
+billing-payments-empty-title = No payments recorded yet
+billing-payments-empty-desc = Payments you register against an invoice appear here with their method and date.
+billing-quotes-empty-title = No quotes yet
+billing-quotes-empty-desc = Send a quote to a customer and it is tracked here until it is accepted.
+billing-inventory-empty-title = No inventory items yet
+billing-inventory-empty-desc = Stocked goods and their on-hand quantity are listed here once you add them.
+billing-gl-empty-title = No ledger accounts yet
+billing-gl-empty-desc = Every posting needs an account. Add them to build the trial balance and the statements.
+billing-procurement-empty-title = No purchase orders yet
+billing-procurement-empty-desc = Purchase orders you place with suppliers are tracked here until they are received.

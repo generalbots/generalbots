@@ -350,3 +350,26 @@ products-placeholder-cost = 0.00
 billing-notes-placeholder = 给客户的补充说明...
 billing-invoice-notes-placeholder = 付款说明或补充备注...
 billing-remove-line-item = 删除行项目
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = 还没有产品
+products-state-empty-desc = 添加到目录的产品会显示在这里，随时可以销售。
+products-state-empty-action = 添加第一个产品
+products-state-empty-services-title = 还没有服务
+products-state-empty-services-desc = 提供的服务会连同价格和单位显示在这里。
+products-state-empty-services-action = 添加第一个服务
+products-state-empty-pricelists-title = 还没有价格表
+products-state-empty-pricelists-desc = 价格表把产品归入同一币种和有效期。
+products-state-empty-pricelists-action = 创建价格表
+billing-payments-empty-title = 还没有付款记录
+billing-payments-empty-desc = 针对发票登记的付款会连同方式和日期显示在这里。
+billing-quotes-empty-title = 还没有报价单
+billing-quotes-empty-desc = 向客户发出报价单后，会在接受前一直在这里跟踪。
+billing-inventory-empty-title = 还没有库存项目
+billing-inventory-empty-desc = 库存商品和现有数量在添加后会显示在这里。
+billing-gl-empty-title = 还没有会计科目
+billing-gl-empty-desc = 每笔分录都需要会计科目。添加后即可生成试算平衡表和报表。
+billing-procurement-empty-title = 还没有采购订单
+billing-procurement-empty-desc = 向供应商下的采购订单会在这里跟踪，直到收货。

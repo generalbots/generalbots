@@ -822,3 +822,13 @@ admin-onboarding-team-51-plus = Más de 50 personas
 admin-ops-configure-alerts = Configurar alertas
 admin-ops-trace-search-placeholder = Buscar ID de traza...
 admin-ops-traces-slow = Lento (>500ms)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+workspace-state-empty-recent-title = Nada abierto todavía
+workspace-state-empty-recent-desc = Las páginas que abres aparecen aquí, para continuar donde lo dejaste.
+workspace-state-empty-favorites-title = Todavía no hay favoritos
+workspace-state-empty-favorites-desc = Marca una página como favorita para mantenerla arriba en la barra lateral.
+workspace-state-empty-pages-title = Todavía no hay páginas
+workspace-state-empty-pages-desc = Las páginas son las notas y documentos de este espacio. Crea la primera.
