@@ -7,7 +7,9 @@ use botcore::shared::state::AppState;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+use super::antigravity::connect_antigravity;
 use super::claude::connect_claude;
+use super::codex::connect_codex;
 use super::shared::{
     agent_service, ensure_user, err, err_db, err_upstream, map_claude_state, provider_or_error,
     ApiError,
@@ -27,7 +29,11 @@ pub async fn list(
             { "id": "claude-code", "label": "Claude Code", "kind": "subscription",
               "description": "Run the unmodified Claude Code CLI in your agent VM; credentials stay there." },
             { "id": "chatgpt-plan", "label": "ChatGPT plan", "kind": "subscription",
-              "description": "Sign in with ChatGPT and use your plan allowance (open-source client flow)." }
+              "description": "Sign in with ChatGPT and use your plan allowance (open-source client flow)." },
+            { "id": "codex-cli", "label": "Codex", "kind": "subscription",
+              "description": "Connect your Codex/CLI subscription (flow in progress)." },
+            { "id": "antigravity", "label": "Antigravity", "kind": "subscription",
+              "description": "Connect your Antigravity account (flow in progress)." }
         ]
     }))
 }
@@ -45,6 +51,8 @@ pub async fn connect(
     match provider {
         ai_accounts::CLAUDE_CODE => connect_claude(locale, &state, user.user_id).await,
         ai_accounts::CHATGPT_PLAN => connect_chatgpt(&state, user.user_id).await,
+        ai_accounts::CODEX_CLI => connect_codex(locale, &state, user.user_id).await,
+        ai_accounts::ANTIGRAVITY => connect_antigravity(locale, &state, user.user_id).await,
         _ => Err(err(
             locale,
             StatusCode::BAD_REQUEST,
@@ -90,25 +98,9 @@ pub async fn status(
                     .await
                     .map_err(|(code, message)| err_upstream(code, &message))?;
                 if status.state == "linked" {
-                    let _ = ai_accounts::mark_linked(
-                        &state.conn,
-                        user.user_id,
-                        ai_accounts::CLAUDE_CODE,
-                        None,
-                        None,
-                        Some(&row.vm_name),
-                        None,
-                    );
+                    let _ = ai_accounts::mark_linked(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, None, None, Some(&row.vm_name), None);
                 } else {
-                    let _ = ai_accounts::update_status(
-                        &state.conn,
-                        user.user_id,
-                        ai_accounts::CLAUDE_CODE,
-                        map_claude_state(&status.state),
-                        None,
-                        None,
-                        Some(&row.vm_name),
-                    );
+                    let _ = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, map_claude_state(&status.state), None, None, Some(&row.vm_name));
                 }
                 json!({
                     "provider": ai_accounts::CLAUDE_CODE,
@@ -119,38 +111,22 @@ pub async fn status(
                     "vm_name": row.vm_name,
                 })
             }
-            None => ai_accounts_chatgpt::status(&state.conn, user.user_id),
+            None => ai_accounts::list_accounts(&state.conn, user.user_id)
+                .into_iter()
+                .find(|a| a.get("provider").and_then(Value::as_str) == Some(ai_accounts::CLAUDE_CODE))
+                .unwrap_or_else(|| json!({"provider": ai_accounts::CLAUDE_CODE, "status": "unlinked"})),
         }
-    } else {
+    } else if provider == ai_accounts::CHATGPT_PLAN {
         let row = ai_accounts_chatgpt::status(&state.conn, user.user_id);
-        if row.get("status").and_then(Value::as_str) == Some("unlinked")
-            && ai_accounts_chatgpt::pending_for(user.user_id)
-        {
+        if row.get("status").and_then(Value::as_str) == Some("unlinked") && ai_accounts_chatgpt::pending_for(user.user_id) {
             return Ok(Json(json!({
-                "account": {
-                    "provider": ai_accounts::CHATGPT_PLAN,
-                    "status": "connecting",
-                    "message": "Finish the ChatGPT sign-in in your browser."
-                },
+                "account": { "provider": ai_accounts::CHATGPT_PLAN, "status": "connecting", "message": "Finish the ChatGPT sign-in in your browser." },
                 "checked_at": chrono::Utc::now().to_rfc3339(),
             })));
         }
         if row.get("status").and_then(Value::as_str) == Some("linked") {
-            // A stored refresh token can still be expired; surface the honest
-            // state instead of reporting a dead account as linked.
-            if ai_accounts_chatgpt::access_token(user.user_id)
-                .await
-                .is_err()
-            {
-                let _ = ai_accounts::update_status(
-                    &state.conn,
-                    user.user_id,
-                    ai_accounts::CHATGPT_PLAN,
-                    "expired",
-                    None,
-                    None,
-                    None,
-                );
+            if ai_accounts_chatgpt::access_token(user.user_id).await.is_err() {
+                let _ = ai_accounts::update_status(&state.conn, user.user_id, ai_accounts::CHATGPT_PLAN, "expired", None, None, None);
                 return Ok(Json(json!({
                     "account": { "provider": ai_accounts::CHATGPT_PLAN, "status": "expired" },
                     "checked_at": chrono::Utc::now().to_rfc3339(),
@@ -158,6 +134,36 @@ pub async fn status(
             }
         }
         row
+    } else if provider == ai_accounts::CODEX_CLI || provider == ai_accounts::ANTIGRAVITY {
+        let vm = botagent::vm::get_user_vm(agent_service(locale)?, &user.user_id)
+            .map_err(|(code, message)| err_upstream(code, &message))?;
+        match vm {
+            Some(row) => {
+                let (st, url, msg) = if provider == ai_accounts::CODEX_CLI {
+                    let s = botagent::codex::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
+                    (s.state, s.url, s.message)
+                } else {
+                    let s = botagent::antigravity::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
+                    (s.state, s.url, s.message)
+                };
+                let mapped = map_claude_state(&st);
+                if st == "linked" {
+                    let _ = ai_accounts::mark_linked(&state.conn, user.user_id, provider, None, None, Some(&row.vm_name), None);
+                } else {
+                    let _ = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped.as_str(), None, None, Some(&row.vm_name));
+                }
+                json!({ "provider": provider, "status": mapped, "state": st, "url": url, "message": msg, "vm_name": row.vm_name })
+            }
+            None => ai_accounts::list_accounts(&state.conn, user.user_id)
+                .into_iter()
+                .find(|a| a.get("provider").and_then(Value::as_str) == Some(provider))
+                .unwrap_or_else(|| json!({"provider": provider, "status": "unlinked"})),
+        }
+    } else {
+        ai_accounts::list_accounts(&state.conn, user.user_id)
+            .into_iter()
+            .find(|a| a.get("provider").and_then(Value::as_str) == Some(provider))
+            .unwrap_or_else(|| json!({"provider": provider, "status": "unlinked"}))
     };
     Ok(Json(json!({
         "account": account,
@@ -197,6 +203,24 @@ pub async fn disconnect(
         ai_accounts::CHATGPT_PLAN => {
             ai_accounts_chatgpt::disconnect(&state.conn, user.user_id)
                 .await
+                .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        }
+        ai_accounts::CODEX_CLI => {
+            if let Some(service) = crate::core::bot::agent_vm_hook::service() {
+                if let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user.user_id) {
+                    let _ = botagent::codex::logout(service, &row.vm_name).await;
+                }
+            }
+            ai_accounts::update_status(&state.conn, user.user_id, provider, "unlinked", None, None, None)
+                .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
+        }
+        ai_accounts::ANTIGRAVITY => {
+            if let Some(service) = crate::core::bot::agent_vm_hook::service() {
+                if let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user.user_id) {
+                    let _ = botagent::antigravity::logout(service, &row.vm_name).await;
+                }
+            }
+            ai_accounts::update_status(&state.conn, user.user_id, provider, "unlinked", None, None, None)
                 .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
         }
         _ => {

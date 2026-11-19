@@ -254,12 +254,13 @@ pub async fn wizard_ai_disconnect(
 
 #[tauri::command]
 pub async fn wizard_ai_code(
+    provider: String,
     code: String,
     admin: super::AdminDraft,
 ) -> Result<serde_json::Value, String> {
     api_request(
         reqwest::Method::POST,
-        "/api/ai-accounts/claude-code/code",
+        &format!("/api/ai-accounts/{provider}/code"),
         &admin,
         Some(serde_json::json!({ "code": code })),
         90,
