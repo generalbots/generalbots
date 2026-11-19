@@ -423,7 +423,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: gb
           POSTGRES_PASSWORD: gb
@@ -508,7 +508,7 @@ jobs:
     timeout-minutes: 90
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: gb
           POSTGRES_PASSWORD: gb
@@ -683,7 +683,7 @@ jobs:
     timeout-minutes: 120
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: gb
           POSTGRES_PASSWORD: gb
@@ -808,7 +808,7 @@ jobs:
     timeout-minutes: 180
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: gb
           POSTGRES_PASSWORD: gb

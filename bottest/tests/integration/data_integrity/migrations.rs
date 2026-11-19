@@ -31,6 +31,18 @@ pub fn migration_versions(dir: &Path) -> Result<Vec<String>, String> {
     Ok(versions)
 }
 
+/// The version diesel stores in `__diesel_schema_migrations` for a migration
+/// directory. Diesel derives it from the directory name by taking the part
+/// before the first `_` and removing every `-` (`migrations_internals::
+/// version_from_string`), so `6.0.0-01-core` is recorded as `6.0.001core`.
+pub fn canonical_version(directory: &str) -> String {
+    directory
+        .split('_')
+        .next()
+        .unwrap_or(directory)
+        .replace('-', "")
+}
+
 /// Versions diesel recorded as applied.
 pub fn applied_versions(conn: &mut PgConnection) -> Result<Vec<String>, String> {
     #[derive(diesel::QueryableByName)]
