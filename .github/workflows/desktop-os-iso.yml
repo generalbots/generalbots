@@ -4,54 +4,65 @@ name: General Bots OS (kiosk appliance image)
 # the General Bots desktop shell IS the OS — Wayland kiosk (cage), no
 # display manager, no user shell. Recipe: desktop/os/README.md.
 #
-# Per project rules there is NO source build here: the workflow downloads
-# the desktop edition release tarball (generalbots-linux-x86_64.tar.gz — the
-# always-present artifact; the .deb/rpm/AppImage bundler step is best-effort
-# and has historically produced nothing), unpacks it into
+# #2440 — this is the ONLY image published as `generalbots-os.iso`: it boots
+# straight into generalbots-shell.service. `scripts/build_iso.sh` produces a
+# separate `generalbots-payload.iso` carrier, which is not an operating system.
+# `release.yml` calls this workflow with the pinned release tag and attaches
+# the image + SHA256SUMS-os to that release.
+#
+# Per project rules there is NO source build here: the workflow takes the
+# desktop edition tarball either from the caller run's `linux-installer`
+# artifact (release.yml — that tag has not been published yet) or from the
+# pinned tag's release asset, always requires the pinned tag and verifies the
+# tarball against the checksums of that same pin. It unpacks it into
 # desktop/os/mkosi.extra/opt/general-bots/ and lets mkosi bake the image
-# inside a privileged debian:trixie container (mkosi 27, same tree as the
+# inside a privileged debian:sid container (mkosi 27, same tree as the
 # target; the host runner's mkosi is not used).
 #
-# Artifacts (workflow-level):
-#   generalbots-os.iso — hybrid ISO (El Torito, UEFI bootable)
-#   SHA256SUMS-os, vm-smoke.log
+# Both GitHub and ALM can run this workflow: there is no server_url gate,
+# only the pinned-tag gate. "latest" is rejected because it silently changes
+# the payload and makes the image unreproducible (README, hardening step 2).
 #
 # The recipe pins mkosi 27.1 by building inside a Debian sid toolchain
 # container and a Debian sid build-time tools tree, because El Torito output
 # needs systemd-repart ≥ 261 (trixie ships 257). The produced system is still
 # pure Debian 13 (trixie).
 #
-# The kiosk appliance is a separate track from the product release: since
-# #2110 the release publishes `generalbots-os.iso` built by
-# `scripts/build_iso.sh` from the same Linux tarball (`release.yml` -> `iso`).
-# This workflow keeps producing the full Debian appliance (with its own boot
-# smoke) and uploads it as `generalbots-os-appliance`; it is not attached to a
-# release automatically.
+# Artifacts (workflow-level):
+#   generalbots-os.iso — hybrid ISO (El Torito, UEFI bootable)
+#   SHA256SUMS-os, vm-smoke.log
+# The QEMU boot smoke and the in-image assertions are REQUIRED: a failed or
+# inconclusive smoke fails the workflow and therefore the release.
 
 on:
-  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
   workflow_call:
     inputs:
       release:
-        description: "Release to take the tarball from ('latest' or e.g. v7.0.0)"
-        required: false
+        description: "Pinned product tag (vMAJOR.MINOR.PATCH) supplying the desktop tarball"
+        required: true
         type: string
       artifact:
-        description: "Download linux-installer from the current run instead of a release"
+        description: "Optional linux-installer artifact from the caller run (release.yml), still pinned by 'release'"
+        required: false
+        type: string
+      tarball_sha256:
+        description: "Optional extra pin: expected SHA-256 of generalbots-linux-x86_64.tar.gz"
         required: false
         type: string
   workflow_dispatch:
     inputs:
       release:
-        description: "Release to take the tarball from ('latest' or e.g. v7.0.0)"
-        required: false
-        default: "latest"
+        description: "Pinned product tag (vMAJOR.MINOR.PATCH); 'latest' is rejected"
+        required: true
         type: string
-  push:
-    branches: [main]
-    paths:
-      - "desktop/os/**"
-      - ".github/workflows/desktop-os-iso.yml"
+      artifact:
+        description: "Optional linux-installer artifact from the current run, still pinned by 'release'"
+        required: false
+        type: string
+      tarball_sha256:
+        description: "Optional extra pin: expected SHA-256 of generalbots-linux-x86_64.tar.gz"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -59,11 +70,28 @@ permissions:
 jobs:
   image:
     name: Build the appliance image (mkosi on Debian trixie)
-    if: ${{ github.server_url == 'https://github.com' }}
+    # No github.server_url condition: GitHub and ALM both build the same
+    # pinned image. The pin is required and validated below, not inferred
+    # from "the newest release that has a tarball".
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
+      - name: Require a pinned release tag
+        env:
+          RELEASE_TAG: ${{ inputs.release || github.event.inputs.release }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${RELEASE_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::a pinned vMAJOR.MINOR.PATCH tag is required (got '${RELEASE_TAG:-<empty>}'); 'latest' is not a pin"
+            exit 1
+          fi
+          echo "pinned payload tag: ${RELEASE_TAG}"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Build the recipe from the pinned tag, not from the caller's main.
+          ref: ${{ inputs.release || github.event.inputs.release }}
+          fetch-depth: 1
 
       - name: Stage the license texts and notices in the image
         # #2480 — the image must carry its own license record: the MIT text for
@@ -79,45 +107,71 @@ jobs:
           install -m 0644 desktop/os/licenses/NOTICE "$dest/NOTICE"
           ls -l "$dest"
 
-      - name: Download the desktop artifact from the caller run
-        if: ${{ inputs.artifact != '' }}
+      - name: Download the caller-run installer artifact
+        if: ${{ inputs.artifact != '' || github.event.inputs.artifact != '' }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ${{ inputs.artifact }}
+          name: ${{ inputs.artifact || github.event.inputs.artifact }}
           path: /tmp/general-bots-artifact
+          merge-multiple: true
 
-      - name: Fetch and unpack the release tarball into the image payload
+      - name: Fetch, checksum-pin and unpack the tarball
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT: ${{ inputs.artifact }}
+          RELEASE_TAG: ${{ inputs.release || github.event.inputs.release }}
+          ARTIFACT: ${{ inputs.artifact || github.event.inputs.artifact }}
+          EXPECTED_SHA256: ${{ inputs.tarball_sha256 || github.event.inputs.tarball_sha256 }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mkdir -p desktop/os/mkosi.extra/opt/general-bots
+          VERSION="${RELEASE_TAG#v}"
           if [ -n "${ARTIFACT:-}" ]; then
-            # release-all.yml passes the linux-installer artifact produced in
-            # the same run, so the image never waits for the release publish.
-            TARBALL="/tmp/general-bots-artifact/generalbots-linux-x86_64.tar.gz"
-            test -f "$TARBALL" || {
-              echo "artifact ${ARTIFACT} carries no generalbots-linux-x86_64.tar.gz" >&2
-              exit 1
-            }
-            echo "using artifact ${ARTIFACT} from the current run"
+            # release.yml calls this workflow before publish creates the
+            # release, so the tarball comes from that run's linux job. It is
+            # still pinned: the tag is validated and the tarball name and
+            # checksum must match that same build.
+            TARBALL=
+            for candidate in /tmp/general-bots-artifact/generalbots-*-linux-x86_64.tar.gz; do
+              [ -f "$candidate" ] || continue
+              TARBALL="$candidate"
+              break
+            done
+            [ -n "$TARBALL" ] \
+              || { echo "::error::artifact ${ARTIFACT} carries no generalbots-*-linux-x86_64.tar.gz" >&2; exit 1; }
+            SUMS=/tmp/general-bots-artifact/SHA256SUMS-linux
           else
-            # "latest" means "the newest release whose assets actually carry
-            # the desktop tarball" — a plain latest/download URL 404s on the
-            # ALM tags (botserver/botui assets only).
-            REL="${{ inputs.release || github.event.inputs.release }}"
-            if [ -z "$REL" ] || [ "$REL" = "latest" ]; then
-              REL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-                | python3 -c 'import json,sys; print(next((r["tag_name"] for r in json.load(sys.stdin) if any(a["name"] == "generalbots-linux-x86_64.tar.gz" for a in r["assets"])), ""))')
-              test -n "$REL" || { echo 'no release carries generalbots-linux-x86_64.tar.gz' >&2; exit 1; }
-              echo "using release $REL"
-            fi
+            # Manual dispatch from an already published release (works on
+            # GitHub and ALM — both use the same release asset URL shape).
+            base="${SERVER_URL}/${REPOSITORY}/releases/download/${RELEASE_TAG}"
             TARBALL=/tmp/general-bots.tar.gz
-            curl -fL -o "$TARBALL" \
-              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${REL}/generalbots-linux-x86_64.tar.gz"
+            curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
+              -o "$TARBALL" "${base}/generalbots-linux-x86_64.tar.gz"
+            SUMS=/tmp/SHA256SUMS-linux
+            curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
+              -o "$SUMS" "${base}/SHA256SUMS-linux" \
+              || { echo "::error::pinned release ${RELEASE_TAG} has no SHA256SUMS-linux" >&2; exit 1; }
           fi
+          asset=$(basename "$TARBALL")
+          case "$asset" in
+            "generalbots-${VERSION}-linux-x86_64.tar.gz"|generalbots-linux-x86_64.tar.gz) : ;;
+            *) echo "::error::tarball ${asset} does not belong to pinned tag ${RELEASE_TAG}" >&2; exit 1 ;;
+          esac
+          # Reproducible pin (README, hardening step 2): the tarball must
+          # match SHA256SUMS-linux from the SAME pin, not a floating release.
+          [ -f "$SUMS" ] \
+            || { echo "::error::no SHA256SUMS-linux for pinned tag ${RELEASE_TAG}" >&2; exit 1; }
+          want=$(awk -v n="$asset" '$2 == n { print $1; exit }' "$SUMS")
+          [ -n "$want" ] \
+            || { echo "::error::SHA256SUMS-linux of ${RELEASE_TAG} has no entry for ${asset}" >&2; exit 1; }
+          echo "${want}  ${TARBALL}" | sha256sum -c - \
+            || { echo "::error::tarball does not match the pinned checksum" >&2; exit 1; }
+          if [ -n "${EXPECTED_SHA256:-}" ] && [ "$EXPECTED_SHA256" != "$want" ]; then
+            echo "::error::tarball_sha256 pin (${EXPECTED_SHA256}) does not match ${RELEASE_TAG} (${want})" >&2
+            exit 1
+          fi
+          echo "pinned payload: ${RELEASE_TAG} (${asset}) sha256=${want}"
+          mkdir -p desktop/os/mkosi.extra/opt/general-bots
           tar -xzf "$TARBALL" \
             -C desktop/os/mkosi.extra/opt/general-bots --strip-components=1
           test -x desktop/os/mkosi.extra/opt/general-bots/start.sh
@@ -125,13 +179,16 @@ jobs:
           test -d desktop/os/mkosi.extra/opt/general-bots/ui/suite
           du -sh desktop/os/mkosi.extra/opt/general-bots
 
-      - name: Build the image and boot-test it (mkosi inside Debian trixie)
+      - name: Build the image, REQUIRED boot smoke, assert the appliance
+        # No continue-on-error: the QEMU smoke and the in-image assertions
+        # gate the release together with the mkosi build itself.
         run: |
           set -euo pipefail
           mkdir -p dist
           docker run --privileged --rm \
             -v "$PWD/desktop/os:/work" \
             -v "$PWD/dist:/out" \
+            -v "$PWD:/repo:ro" \
             -w /work \
             debian:sid bash -c '
               set -euxo pipefail
@@ -144,35 +201,50 @@ jobs:
               # Toolchain container is sid only because trixie ships mkosi
               # 25.3 (no El Torito) and its dependency systemd-tpm is not
               # installable there; the image built below stays Debian 13.
-              apt-get install -y --no-install-recommends mkosi
+              # libguestfs-tools provides guestfish for the in-image assertions.
+              apt-get install -y --no-install-recommends mkosi libguestfs-tools
               mkosi --version
               mkosi --output-dir /out build
-              RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1)
+              RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1) || true
               test -n "$RAW" || { echo "mkosi produced no .raw output" >&2; exit 1; }
-              # Boot smoke (best effort) on the ORIGINAL output name — mkosi
+              # Required QEMU boot smoke on the ORIGINAL output name — mkosi
               # vm resolves the image from the config output, so the rename
               # to .iso must happen afterwards. The plain vm verb boots with
-              # a text console: kernel, systemd journal and (if everything
-              # works) the kiosk shell start line land in the log. timeout
-              # always fires (the VM keeps running), so the marker decides.
-              timeout 480 mkosi --output-dir /out vm > /out/vm-smoke.log 2>&1 || true
-              if grep -aq "Started General Bots kiosk shell" /out/vm-smoke.log; then
-                echo "boot smoke: green (kiosk shell started)"
-              else
-                echo "::warning::boot smoke did not confirm the kiosk shell — last log lines follow"
+              # a text console: kernel, systemd journal and the kiosk shell
+              # start line land in the log. A running VM makes timeout return
+              # 124, which is accepted only WITH the shell-start marker.
+              set +e
+              timeout 480 mkosi --output-dir /out vm > /out/vm-smoke.log 2>&1
+              smoke_rc=$?
+              set -e
+              echo "mkosi vm exit code: ${smoke_rc}"
+              if [ "$smoke_rc" -ne 0 ] && [ "$smoke_rc" -ne 124 ]; then
+                echo "QEMU boot smoke failed with exit ${smoke_rc}" >&2
                 tail -80 /out/vm-smoke.log || true
+                exit 1
               fi
+              grep -aq "Started General Bots kiosk shell" /out/vm-smoke.log || {
+                echo "QEMU boot smoke did not confirm generalbots-shell.service" >&2
+                tail -80 /out/vm-smoke.log || true
+                exit 1
+              }
+              echo "boot smoke: green (kiosk shell started)"
               # El Torito is always on (mkosi.conf): the raw file is a hybrid
               # ISO image; give it the name people expect.
               mv "$RAW" /out/generalbots-os.iso
               rm -f /out/generalbots-os
+              # Prove this really is the OS, not the GRUB payload carrier:
+              # /etc/os-release identity, payload entry point and shell unit
+              # are read from inside the image's root filesystem.
+              /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
             '
 
       - name: Checksums
         run: |
           set -euo pipefail
-          test -f dist/generalbots-os.iso
-          (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os)
+          test -s dist/generalbots-os.iso
+          test -s dist/vm-smoke.log
+          (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os && sha256sum -c SHA256SUMS-os)
           ls -lh dist
 
       - name: Upload image artifacts
@@ -183,5 +255,5 @@ jobs:
             dist/generalbots-os.iso
             dist/SHA256SUMS-os
             dist/vm-smoke.log
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
