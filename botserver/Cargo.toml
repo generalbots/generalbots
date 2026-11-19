@@ -408,7 +408,6 @@ redis = { workspace = true, features = ["tokio-comp"], optional = true }
 sysinfo = { workspace = true, optional = true }
 
 # UI Enhancement (progress-bars feature, provided by botcore)
-smartstring = { workspace = true }
 
 # Memory allocator (jemalloc feature)
 mimalloc = { workspace = true, optional = true }

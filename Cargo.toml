@@ -353,7 +353,6 @@ native-tls = "0.2"
 
 # ─── REGEX / TEXT ───
 regex = "1.11"
-smartstring = "1.0.1"
 urlencoding = "2.1"
 url = "2.5"
 

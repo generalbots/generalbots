@@ -49,7 +49,6 @@ reqwest = { workspace = true }
 rhai = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-smartstring = { workspace = true }
 sysinfo = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["fs", "process", "time"] }
 tower = { workspace = true }

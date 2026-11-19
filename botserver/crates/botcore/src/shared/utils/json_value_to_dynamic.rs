@@ -21,7 +21,9 @@ pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
         ),
         Value::Object(obj) => Dynamic::from(
             obj.iter()
-                .map(|(k, v)| (SmartString::from(k), json_value_to_dynamic(v)))
+                // #2552 — rhai's own key type, so we no longer name smartstring
+                // directly (rhai still depends on it transitively).
+                .map(|(k, v)| (ImmutableString::from(k.as_str()), json_value_to_dynamic(v)))
                 .collect::<rhai::Map>(),
         ),
     }
