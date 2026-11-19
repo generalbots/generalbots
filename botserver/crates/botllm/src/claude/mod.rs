@@ -172,6 +172,15 @@ mod tests {
         assert_eq!(messages[0].role, "user");
         assert_eq!(messages[0].content, "Hello");
     }
+
+    #[test]
+    fn stream_deltas_keep_their_spaces() {
+        let client = ClaudeClient::new("https://api.anthropic.com".to_string(), None);
+        let native = r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" mundo "}}"#;
+        assert_eq!(client.process_sse_data(native, "claude-opus-5-5").0.as_deref(), Some(" mundo "));
+        let compat = r#"{"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":" olá"}}]}"#;
+        assert_eq!(client.process_sse_data(compat, "claude-opus-5-5").0.as_deref(), Some(" olá"));
+    }
 }
 
 mod azure;

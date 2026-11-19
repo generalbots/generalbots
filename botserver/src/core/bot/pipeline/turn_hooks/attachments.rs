@@ -163,8 +163,14 @@ async fn ingest_single_attachment(
             }
             Err(error) => {
                 log::error!("chat attachment store failed: {error}");
+                let raw = error.to_string();
+                let reason = if raw.contains("StorageFull") {
+                    "the disk of this computer is almost full".to_string()
+                } else {
+                    raw.chars().take(200).collect()
+                };
                 user_text =
-                    format!("{user_text}\n\n📎 {fname} (the upload could not be stored: {error})");
+                    format!("{user_text}\n\n📎 {fname} (the upload could not be stored: {reason})");
             }
         }
     } else {
@@ -238,6 +244,17 @@ async fn ingest_single_attachment(
                 "The user attached '{fname}' (stored at inbox/{fname}). No text extractor is available for this format, so you cannot read its content. Say the file is stored and ask the user to paste the relevant text (or to convert it). Never invent its content."
             ),
         });
+    } else if let Some(text) = excerpt {
+        // The file could not be kept (Drive full or missing) but its text was
+        // already read: the person still gets an answer about it.
+        let how = if read_by_ocr {
+            "It has no text layer, so text recognition (OCR) on this computer read the text below from its pixels: it may contain recognition errors."
+        } else {
+            "Its extracted text is reproduced below."
+        };
+        attachment_note = Some(format!(
+            "The user attached '{fname}'. The file could not be stored, so it is not in Drive and no tool can open it; tell the user in one short sentence that the file was read but not saved. {how} Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+        ));
     }
     AttachmentResult {
         user_text,

@@ -354,6 +354,7 @@ function renderModeDetail(panel, mode) {
   if (mode === "local") renderLocalDetail(detail);
   else if (mode === "own_key") renderOwnKeyDetail(detail);
   else if (mode === "free") renderFreeDetail(detail);
+  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(detail);
 }
 
 function renderLocalDetail(el) {

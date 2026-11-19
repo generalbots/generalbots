@@ -20,7 +20,7 @@ var P = [
     url:"https://api.openai.com/v1/chat/completions", models:["gpt-5.6-sol","gpt-5-mini"],
     keys:"https://platform.openai.com/api-keys", list:"https://platform.openai.com/docs/models" },
   { id:"anthropic", name:"Anthropic", co:"Claude", pt:"Claude Opus, Sonnet e Haiku", en:"Claude Opus, Sonnet and Haiku",
-    url:"https://api.anthropic.com", test:"https://api.anthropic.com/v1/chat/completions",
+    url:"https://api.anthropic.com",
     models:["claude-sonnet-5-5","claude-opus-5-5","claude-haiku-5-5"],
     keys:"https://console.anthropic.com/settings/keys", list:"https://docs.anthropic.com/en/docs/about-claude/models" },
   { id:"gemini", name:"Google Gemini", co:"Google", pt:"Gemini pelo Google AI Studio", en:"Gemini through Google AI Studio",
@@ -76,7 +76,10 @@ var L = { "pt-BR": {
   ok:"Funcionou: o modelo respondeu em %ms ms.", fail:"Não funcionou (%e).",
   e401:"a chave foi recusada", e400:"o provedor recusou o pedido: confira a chave e o modelo",e404:"modelo ou endereço não encontrado", e429:"limite de uso atingido",
   eConn:"o servidor não respondeu", eTimeout:"o servidor demorou demais",
-  sent:"O que você escrever e anexar vai para %h, fora deste computador." },
+  sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:",
+  acpIntro:"Use um agente de IA que você já assina, como Claude Code, Codex ou Gemini CLI. O ACP (Agent Client Protocol) é o padrão aberto que liga o assistente a esses agentes: você instala o agente, entra com a sua conta e as respostas vêm dele.",
+  acpSoon:"Chega na próxima versão. Hoje dá para usar os mesmos provedores com uma chave de API, em Servidor ou chave própria.",
+  install:"Instalar", acpWarn:"O agente roda neste computador e pode ler arquivos e executar comandos: cada permissão será pedida a você." },
 en: {
   intro:"Pick the provider. The address fills itself in; you only choose the model and paste the key.",
   search:"Search providers", connect:"Connect", inUse:"In use", none:"No provider by that name.",
@@ -91,7 +94,10 @@ en: {
   ok:"It worked: the model answered in %ms ms.", fail:"It did not work (%e).",
   e401:"the key was refused", e400:"the provider refused the request: check the key and the model",e404:"model or address not found", e429:"usage limit reached",
   eConn:"the server did not answer", eTimeout:"the server took too long",
-  sent:"What you write and attach goes to %h, outside this computer." } };
+  sent:"What you write and attach goes to %h, outside this computer.", said:"The provider said:",
+  acpIntro:"Use an AI agent you already subscribe to, such as Claude Code, Codex or Gemini CLI. ACP (Agent Client Protocol) is the open standard that connects the assistant to these agents: you install the agent, sign in with your account and the answers come from it.",
+  acpSoon:"Arrives in the next version. Today you can use the same providers with an API key, under Own server or key.",
+  install:"Install", acpWarn:"The agent runs on this computer and can read files and run commands: every permission will be asked of you." } };
 function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 function g(k) { var l = pt() ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
@@ -213,7 +219,7 @@ function renderSetup(el, id) {
         if (/40[13]$/.test(e)) { why = g("e401"); } else if (/400$/.test(e)) { why = g("e400"); } else if (/404$/.test(e)) { why = g("e404"); }
         else if (/429$/.test(e)) { why = g("e429"); } else if (e === "connection_refused" || e === "request_failed") { why = g("eConn"); }
         else if (e === "timeout") { why = g("eTimeout"); }
-        say("gb-set-warn", g("fail").replace("%e", why));
+        say("gb-set-warn", g("fail").replace("%e", why) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
       })
       .catch(function (e) { say("gb-set-warn", g("fail").replace("%e", String(e && e.message || e))); });
   });
@@ -228,5 +234,27 @@ function renderSetup(el, id) {
   });
 }
 
-A._modelProviders = { render: renderOwnKey, list: P };
+/* ---- Agents through ACP: the list is shown, installing comes next (#2577) ---- */
+var AGENTS = [
+  { logo:"anthropic", name:"Claude Code", co:"Anthropic" }, { logo:"openai", name:"Codex", co:"OpenAI" },
+  { logo:"gemini", name:"Gemini CLI", co:"Google" }, { logo:"copilot", name:"GitHub Copilot", co:"GitHub" },
+  { logo:"cursor", name:"Cursor Agent", co:"Cursor" }, { logo:"qwen", name:"Qwen Code", co:"Alibaba" },
+  { logo:"kimi", name:"Kimi CLI", co:"Moonshot AI" }, { logo:"mistral", name:"Mistral Vibe", co:"Mistral" },
+  { logo:"zhipu", name:"GLM Agent", co:"Zhipu" }, { logo:"ibm", name:"Bob", co:"IBM" },
+  { logo:"", name:"Junie", co:"JetBrains" }
+];
+function renderAcp(el) {
+  var soon = A.locale && A.locale.startsWith("pt") ? "Em breve" : "Coming soon";
+  el.innerHTML = '<div class="gb-prov">' +
+    '<p class="gb-set-desc">' + esc(g("acpIntro")) + '</p>' +
+    '<p class="gb-set-hint gb-prov-soon">' + esc(g("acpSoon")) + '</p>' +
+    '<div class="gb-prov-list" role="list">' + AGENTS.map(function (a) {
+      return '<div class="gb-prov-row is-soon" role="listitem">' + logo(a.logo) +
+        '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(a.name) + ' <span class="gb-prov-co">' + esc(a.co) + '</span></div></div>' +
+        '<button type="button" class="gb-prov-btn" disabled title="' + esc(soon) + '">' + esc(g("install")) + '</button></div>';
+    }).join("") + '</div>' +
+    '<p class="gb-set-hint">' + esc(g("acpWarn")) + '</p></div>';
+}
+
+A._modelProviders = { render: renderOwnKey, renderAcp: renderAcp, list: P };
 })();

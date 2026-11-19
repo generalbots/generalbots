@@ -206,12 +206,13 @@ impl ClaudeClient {
     }
 
     /// Process SSE data and extract content/reasoning
-    pub(super) fn process_sse_data(&self, data: &str, model_name: &str) -> (Option<String>, Option<String>) {
+    /// Claude sends text in small deltas such as " the": each delta is passed on
+    /// exactly as received. Trimming it (the generic model handler does) glued
+    /// the words of every answer together.
+    pub(super) fn process_sse_data(&self, data: &str, _model_name: &str) -> (Option<String>, Option<String>) {
         if data == "[DONE]" {
             return (None, None);
         }
-
-        let handler = get_handler(model_name);
 
         // Try Azure/OpenAI format first (chat.completion.chunk)
         if let Ok(chunk) = serde_json::from_str::<AzureStreamChunk>(data) {
@@ -228,10 +229,7 @@ impl ClaudeClient {
                         // Get content
                         if let Some(text) = &delta.content {
                             if !text.is_empty() {
-                                let processed = handler.process_content(text);
-                                if !processed.is_empty() {
-                                    return (Some(processed), None);
-                                }
+                                return (Some(text.clone()), None);
                             }
                         }
                     }
@@ -245,10 +243,7 @@ impl ClaudeClient {
             if event.event_type.as_str() == "content_block_delta" {
                 if let Some(delta) = event.delta {
                     if delta.delta_type == "text_delta" && !delta.text.is_empty() {
-                        let processed = handler.process_content(&delta.text);
-                        if !processed.is_empty() {
-                            return (Some(processed), None);
-                        }
+                        return (Some(delta.text.clone()), None);
                     } else if delta.delta_type == "thinking_delta" && !delta.thinking.is_empty() {
                         return (None, Some(delta.thinking.clone()));
                     }
