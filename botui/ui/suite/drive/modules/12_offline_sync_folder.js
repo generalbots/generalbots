@@ -77,7 +77,7 @@
   }
 
   function saveManifest(manifest) {
-    try { localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch (e) {}
+    try { localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch (e) { window.gbLogError ? gbLogError(e, "saveManifest") : console.error("saveManifest", e); }
   }
 
   function fileToBase64(file) {

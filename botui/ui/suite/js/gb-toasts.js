@@ -54,22 +54,22 @@ const GBToasts = (() => {
     if (!text) return;
     var target = kind === "error" ? regions.assertive : regions.polite;
     var other = kind === "error" ? regions.polite : regions.assertive;
-    try { other.textContent = ""; } catch (e) {}
+    try { other.textContent = ""; } catch (e) { window.gbLogError ? gbLogError(e, "announceToast") : console.error("announceToast", e); }
     try {
       target.textContent = "";
       setTimeout(function () {
-        try { target.textContent = text; } catch (e) {}
+        try { target.textContent = text; } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
         setTimeout(function () {
-          try { if (target.textContent === text) target.textContent = ""; } catch (e) {}
+          try { if (target.textContent === text) target.textContent = ""; } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
         }, 1500);
       }, 20);
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
   }
 
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications.slice(0, 50)));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "persist") : console.error("persist", e); }
   }
 
   function show(title, message, kind, options) {
@@ -190,7 +190,7 @@ const GBToasts = (() => {
       e.stopPropagation();
       var appId = btn.getAttribute("data-app");
       var params = {};
-      try { params = JSON.parse(btn.getAttribute("data-params") || "{}"); } catch (_) {}
+      try { params = JSON.parse(btn.getAttribute("data-params") || "{}"); } catch (_) { window.gbLogError ? gbLogError(_, "toggleCenter") : console.error("toggleCenter", _); }
       if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
         window.WindowManager.openDeepLink(appId, params);
       }

@@ -31,7 +31,7 @@
     });
     // Persist through notepad.js autosave (it listens for input events).
     if (changed) {
-      try { ed.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+      try { ed.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) { window.gbLogError ? gbLogError(e, "apply") : console.error("apply", e); }
     }
   }
   registerWhenReady(0);

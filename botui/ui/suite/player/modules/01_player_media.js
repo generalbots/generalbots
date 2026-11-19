@@ -60,7 +60,7 @@
 
         try {
             const headers = { "Content-Type": "application/json" };
-            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) {}
+            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) { window.gbLogError ? gbLogError(e, "loadFromDrive") : console.error("loadFromDrive", e); }
             const response = await fetch("/api/files/download", {
                 method: "POST",
                 headers: headers,
@@ -72,7 +72,7 @@
             }
 
             const blob = await response.blob();
-            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {} activeBlobUrl = null; }
+            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "loadFromDrive") : console.error("loadFromDrive", e); } activeBlobUrl = null; }
             const url = URL.createObjectURL(blob);
             activeBlobUrl = url;
 
@@ -118,7 +118,7 @@
                 throw new Error("this file cannot be previewed in the player");
             }
             const blob = await response.blob();
-            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {} activeBlobUrl = null; }
+            if (activeBlobUrl) { try { URL.revokeObjectURL(activeBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "openMedia") : console.error("openMedia", e); } activeBlobUrl = null; }
             const blobUrl = URL.createObjectURL(blob);
             activeBlobUrl = blobUrl;
             if (type === "image") showImageViewer(blobUrl);
@@ -157,25 +157,25 @@
         try {
             const v = document.getElementById("video-element");
             if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
         try {
             const a = document.getElementById("audio-element");
             if (a) { a.pause(); a.removeAttribute("src"); a.load(); }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
         try {
             const f = document.getElementById("document-frame");
             if (f && f.src && f.src.startsWith("blob:")) { f.removeAttribute("src"); }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
         try {
             const img = document.getElementById("image-element");
             if (img && img.src && img.src.startsWith("blob:")) { img.removeAttribute("src"); }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
         if (activeBlobUrl) {
-            try { URL.revokeObjectURL(activeBlobUrl); } catch (e) {}
+            try { URL.revokeObjectURL(activeBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
             activeBlobUrl = null;
         }
         if (typeof window.revokePlayerBlobUrl === "function") {
-            try { window.revokePlayerBlobUrl(); } catch (e) {}
+            try { window.revokePlayerBlobUrl(); } catch (e) { window.gbLogError ? gbLogError(e, "hideAllPlayers") : console.error("hideAllPlayers", e); }
         }
         currentPlayer = null;
     }
@@ -340,7 +340,7 @@
         try {
             const encodedPath = String(currentFile.path || '').split('/').map(encodeURIComponent).join('/');
             const headers = {};
-            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) {}
+            try { Object.assign(headers, typeof playerAuthHeaders === 'function' ? playerAuthHeaders() : {}); } catch (e) { window.gbLogError ? gbLogError(e, "downloadFile") : console.error("downloadFile", e); }
             const resp = await fetch(`/api/player/default/stream/${encodedPath}`, { headers });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             const blob = await resp.blob();

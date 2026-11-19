@@ -26,7 +26,7 @@
   }
 
   function saveStats(stats) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) { window.gbLogError ? gbLogError(e, "saveStats") : console.error("saveStats", e); }
   }
 
   function getToday() { return new Date().toISOString().split("T")[0]; }

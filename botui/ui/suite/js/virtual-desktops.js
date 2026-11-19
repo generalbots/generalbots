@@ -48,7 +48,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "persist") : console.error("persist", e); }
     mirrorToProfile();
     window.dispatchEvent(new CustomEvent("gb-desktops-changed", { detail: { desktops: state.desktops.slice(), current: state.current } }));
   }
@@ -78,7 +78,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
           /* Best-effort virtual desktop persistence. */
           console.debug("[gb-virtual-desktops] Persist failed:", err);
         });
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "mirrorToProfile") : console.error("mirrorToProfile", e); }
     }, 1200);
   }
 
@@ -110,7 +110,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
           state.current = Math.min(saved.current || 0, state.desktops.length - 1);
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "restoreFromProfile") : console.error("restoreFromProfile", e); }
           done(true);
         })
         .catch(function () { done(false); });

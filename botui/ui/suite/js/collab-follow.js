@@ -36,7 +36,7 @@
     var p = build();
     p.innerHTML = "";
     var list = [];
-    try { list = (getPresence && getPresence().list()) || []; } catch (_) {}
+    try { list = (getPresence && getPresence().list()) || []; } catch (_) { window.gbLogError ? gbLogError(_, "render") : console.error("render", _); }
 
     var header = document.createElement("div");
     header.textContent = window.gbT
@@ -75,7 +75,7 @@
       row.appendChild(name);
       row.appendChild(hint);
       row.addEventListener("click", function () {
-        try { getPresence().follow(u.user_id); } catch (_) {}
+        try { getPresence().follow(u.user_id); } catch (_) { window.gbLogError ? gbLogError(_, "render") : console.error("render", _); }
         hide();
       });
       p.appendChild(row);

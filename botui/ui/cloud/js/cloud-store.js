@@ -81,7 +81,7 @@ async function loadOrgsForPurchase() {
     const orgs = await res.json();
     const sel = document.getElementById('purchase-org');
     sel.innerHTML = orgs.map(o => `<option value="${o.id}">${escapeHtml(o.name)}</option>`).join('');
-  } catch (_) {}
+  } catch (_) { window.gbLogError ? gbLogError(_, "loadOrgsForPurchase") : console.error("loadOrgsForPurchase", _); }
 }
 
 async function confirmPurchase() {

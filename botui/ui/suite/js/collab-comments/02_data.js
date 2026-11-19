@@ -286,7 +286,7 @@
     S.inputEl.value = newValue;
     var caret = at + name.length + 2; // after "@name "
     S.inputEl.focus();
-    try { S.inputEl.setSelectionRange(caret, caret); } catch (_) {}
+    try { S.inputEl.setSelectionRange(caret, caret); } catch (_) { window.gbLogError ? gbLogError(_, "applyMention") : console.error("applyMention", _); }
     hideMentions();
   }
 

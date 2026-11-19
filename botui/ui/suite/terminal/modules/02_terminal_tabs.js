@@ -270,7 +270,7 @@
                 if (ws && ws.readyState !== WebSocket.OPEN) {
                     wsStatus.textContent = 'WS: ' + t('terminal-ws-timeout', 'Timeout');
                     setTermStatus('WS: ' + t('terminal-ws-timeout', 'Timeout'), 'error');
-                    try { ws.close(); } catch (ignore) { }
+                    try { ws.close(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "onerror") : console.error("onerror", ignore); }
                 }
             }, 10000);
         }
@@ -313,7 +313,7 @@
                 switchingVm = true;
                 if (reconnectTimer) clearTimeout(reconnectTimer);
                 if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-                    try { ws.close(); } catch (ignore) { }
+                    try { ws.close(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "reconnect") : console.error("reconnect", ignore); }
                 } else {
                     connect();
                 }

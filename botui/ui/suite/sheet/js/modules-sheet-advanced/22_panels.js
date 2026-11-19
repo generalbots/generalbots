@@ -10,7 +10,7 @@
         var token = window.getGBAccessToken();
         if (token) return token;
       }
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "accessToken") : console.error("accessToken", _); }
     return (
       localStorage.getItem("gb-access-token") ||
       sessionStorage.getItem("gb-access-token") ||

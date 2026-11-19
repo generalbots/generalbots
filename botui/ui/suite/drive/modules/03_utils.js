@@ -197,7 +197,7 @@ function compressImageForUpload(file, opts) {
                             try {
                                 blob.name = outName;
                                 blob.lastModified = Date.now();
-                            } catch (_e) {}
+                            } catch (_e) { window.gbLogError ? gbLogError(_e, "finish") : console.error("finish", _e); }
                             resolve(blob);
                         }
                     }

@@ -40,11 +40,11 @@
       share_usage_stats: false,
       crash_reports: false,
     });
-    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(safe)); } catch (e) {}
+    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(safe)); } catch (e) { window.gbLogError ? gbLogError(e, "saveSettings") : console.error("saveSettings", e); }
     try {
       localStorage.removeItem(LEGACY_TELEMETRY_KEY);
       localStorage.removeItem(LEGACY_TELEMETRY_LOG);
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "saveSettings") : console.error("saveSettings", e); }
   }
 
   function isTelemetryEnabled() {
@@ -69,7 +69,7 @@
 
     try {
       indexedDB.deleteDatabase("gb_drive_offline");
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "clearUserDataNow") : console.error("clearUserDataNow", e); }
 
     if (typeof showNotification === "function") {
       showNotification("All data cleared. Reloading...", "success");

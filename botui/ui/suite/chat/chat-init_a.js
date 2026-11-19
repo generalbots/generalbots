@@ -11,7 +11,7 @@ function proceedWithChatInit() {
       ChatState.ws.onmessage = null;
       ChatState.ws.close();
     }
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "proceedWithChatInit") : console.error("proceedWithChatInit", e); }
 
   var botName = (typeof window.GBResolveActiveBot === "function")
     ? window.GBResolveActiveBot()
@@ -88,10 +88,10 @@ function proceedWithChatInit() {
     var lsKeys = ["gb-access-token", "management_token", "token", "id_token", "gb_token",
       "management_email", "management_name", "management_is_admin", "gb-refresh-token"];
     var ssKeys = ["gb-access-token", "token", "id_token", "gb_token", "gb-refresh-token"];
-    lsKeys.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
-    ssKeys.forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} });
+    lsKeys.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); } });
+    ssKeys.forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); } });
     if (window.GBSecurity && window.GBSecurity.clearTokens) {
-      try { window.GBSecurity.clearTokens(); } catch (e) {}
+      try { window.GBSecurity.clearTokens(); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
     }
   }
 
@@ -106,15 +106,15 @@ function proceedWithChatInit() {
     if (urlTok) {
       u.searchParams.delete("token");
       window.history.replaceState({}, "", u.pathname + u.search + u.hash);
-      try { localStorage.removeItem("gb-access-token"); } catch (e) {}
-      try { localStorage.removeItem("management_token"); } catch (e) {}
-      try { localStorage.removeItem("token"); } catch (e) {}
-      try { localStorage.removeItem("id_token"); } catch (e) {}
-      try { localStorage.removeItem("gb_token"); } catch (e) {}
+      try { localStorage.removeItem("gb-access-token"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
+      try { localStorage.removeItem("management_token"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
+      try { localStorage.removeItem("token"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
+      try { localStorage.removeItem("id_token"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
+      try { localStorage.removeItem("gb_token"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
       if (window.GBSecurity && window.GBSecurity.setTokens) {
         window.GBSecurity.setTokens(urlTok, sessionStorage.getItem("gb-refresh-token"), null, true);
       } else {
-        try { sessionStorage.setItem("gb-access-token", urlTok); } catch (e) {}
+        try { sessionStorage.setItem("gb-access-token", urlTok); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
       }
     } else {
       // Migrate any legacy persisted bearer token into transient auth state once,
@@ -132,15 +132,15 @@ function proceedWithChatInit() {
           if (window.GBSecurity && window.GBSecurity.setTokens) {
             window.GBSecurity.setTokens(legacyPersisted, sessionStorage.getItem("gb-refresh-token"), null, true);
           } else {
-            try { sessionStorage.setItem("gb-access-token", legacyPersisted); } catch (e) {}
+            try { sessionStorage.setItem("gb-access-token", legacyPersisted); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
           }
         }
         ["gb-access-token", "management_token", "token", "id_token", "gb_token"].forEach(function (k) {
-          try { localStorage.removeItem(k); } catch (e) {}
+          try { localStorage.removeItem(k); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
         });
       }
     }
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
 
   var authUrl = "/api/auth?bot_name=" + encodeURIComponent(botName);
   if (requestedSession) {
@@ -182,7 +182,7 @@ function proceedWithChatInit() {
       // the poisoned value and reopening the server-default bot.
       if (auth.bot_id === "00000000-0000-0000-0000-000000000000") {
         var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
-        try { localStorage.removeItem("gb_selected_bot"); } catch (e) {}
+        try { localStorage.removeItem("gb_selected_bot"); } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
         var canFallback = (!window.__gbBotFallbackDone || window.__gbBotFallbackFor !== botName) &&
           botName !== fallbackBot;
         if (canFallback) {
@@ -205,7 +205,7 @@ function proceedWithChatInit() {
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
         localStorage.setItem("gb.chat.session." + botName, auth.session_id);
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "clearStaleChatAuthTokens") : console.error("clearStaleChatAuthTokens", e); }
 
       window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {
         detail: { session_id: auth.session_id },

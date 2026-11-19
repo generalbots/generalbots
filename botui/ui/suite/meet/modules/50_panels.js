@@ -69,7 +69,7 @@
                 try {
                     osc.stop();
                     ctx.close();
-                } catch (e) {}
+                } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
             }, 350);
             if (window.showNotification) window.showNotification('Playing test tone...');
         } catch (err) {

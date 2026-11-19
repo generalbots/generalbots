@@ -289,7 +289,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 body: JSON.stringify({reaction_type: 'like'})
             }).then(function(){
                 htmx.trigger('#social-content', 'refresh');
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "likePost")
+                                    : console.error("likePost", fetchError);
+              });
         };
 
         window.commentPost = function(postId) {
@@ -302,7 +306,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             }).then(function(){
                 input.value = '';
                 htmx.trigger('#social-content', 'refresh');
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "commentPost")
+                                    : console.error("commentPost", fetchError);
+              });
         };
 
         window.sharePost = function(postId) {
@@ -312,7 +320,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
                 body: JSON.stringify({reaction_type: 'share'})
             }).then(function(){
                 if (window.GBAlerts) window.GBAlerts.info('Social', 'Post shared!');
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "sharePost")
+                                    : console.error("sharePost", fetchError);
+              });
         };
 
         window.deletePost = async function(postId) {
@@ -330,7 +342,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
             if (!confirmed) return;
             fetch('/api/social/posts/' + postId, {method:'DELETE'}).then(function(){
                 htmx.trigger('#social-content', 'refresh');
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "sharePost")
+                                    : console.error("if", fetchError);
+              });
         };
     })();
 

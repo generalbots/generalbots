@@ -349,6 +349,6 @@
                 "_blank",
                 "noopener,noreferrer",
             );
-            if (w) { try { w.opener = null; } catch (e) {} }
+            if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "exportDashboard") : console.error("exportDashboard", e); } }
         }
     }

@@ -61,7 +61,7 @@ window.toggleIndexAllDrive = function (el) {
   var enabled = !!el.checked;
   try {
     localStorage.setItem("gb-index-all-drive", enabled ? "true" : "false");
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "toggleIndexAllDrive") : console.error("toggleIndexAllDrive", e); }
   showToast(
     enabled
       ? "Drive files enabled as chat context"

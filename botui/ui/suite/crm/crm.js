@@ -113,7 +113,11 @@
                 method: 'PUT', headers: authHeaders()
             }).then(function() {
                 document.body.dispatchEvent(new CustomEvent('crm:stage-changed'));
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "authHeaders")
+                                    : console.error("if", fetchError);
+              });
         });
     }
 

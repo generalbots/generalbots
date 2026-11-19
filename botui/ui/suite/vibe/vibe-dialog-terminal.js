@@ -19,7 +19,7 @@
 
     function writeTerm(text) {
         if (term) {
-            try { term.write(text); } catch (ignore) { }
+            try { term.write(text); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "writeTerm") : console.error("writeTerm", ignore); }
         }
     }
 
@@ -31,14 +31,14 @@
     function disposeTerminal() {
         tornDown = true;
         if (ws) {
-            try { ws.close(); } catch (ignore) { }
+            try { ws.close(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "disposeTerminal") : console.error("disposeTerminal", ignore); }
             ws = null;
         }
         var oldTerm = term;
         term = null;
         fitAddon = null;
         if (oldTerm) {
-            try { oldTerm.dispose(); } catch (ignore) { }
+            try { oldTerm.dispose(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "disposeTerminal") : console.error("disposeTerminal", ignore); }
         }
     }
 
@@ -90,7 +90,7 @@
 
     function fit() {
         if (fitAddon) {
-            try { fitAddon.fit(); } catch (ignore) { }
+            try { fitAddon.fit(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "fit") : console.error("fit", ignore); }
         }
     }
 

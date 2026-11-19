@@ -203,7 +203,7 @@
       try {
         var errorResponse = JSON.parse(xhr.responseText || "{}");
         errorMsg = errorResponse.error || errorResponse.message || errorMsg;
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
       intentResult.innerHTML = '<span class="intent-error">✗ ' + escapeText(errorMsg) + "</span>";
       intentResult.style.display = "block";
     }

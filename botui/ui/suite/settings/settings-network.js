@@ -57,7 +57,7 @@
       if (window.localStorage) {
         window.localStorage.setItem(STORAGE_KEY, mode);
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "saveMode") : console.error("saveMode", e); }
   }
 
   function token() {

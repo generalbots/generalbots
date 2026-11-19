@@ -45,7 +45,7 @@ function gbChatConfirm(message, title, onConfirm) {
     try {
       window.GBModal.confirm(message, title || gbChatText("chat-confirm-title", "Confirm"), function () { onConfirm && onConfirm(); });
       return;
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "gbChatConfirm") : console.error("gbChatConfirm", e); }
   }
   // No native confirm() fallback per suite policy (#2297/#1395).
   chatNotice(gbChatText("chat-confirm-unavailable", "Confirmation unavailable"), "warning");
@@ -82,7 +82,7 @@ function attachMessageActions(div, sender, content) {
       if (ok) {
         chatNotice(gbChatText("chat-message-copied", "Message copied"), "success");
         btn.dataset.copied = "1";
-        setTimeout(function(){ try{ delete btn.dataset.copied; }catch(e){} }, 1200);
+        setTimeout(function(){ try{ delete btn.dataset.copied; }catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); } }, 1200);
       } else {
         chatNotice(gbChatText("chat-copy-failed", "Copy failed"), "warning");
       }
@@ -95,9 +95,9 @@ function attachMessageActions(div, sender, content) {
     var input = document.getElementById("messageInput");
     if (input) {
       input.value = t;
-      try { input.focus(); } catch (e) {}
-      try { input.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
-      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
+      try { input.focus(); } catch (e) { window.gbLogError ? gbLogError(e, "makeBtn") : console.error("makeBtn", e); }
+      try { input.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) { window.gbLogError ? gbLogError(e, "makeBtn") : console.error("makeBtn", e); }
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { window.gbLogError ? gbLogError(e, "makeBtn") : console.error("makeBtn", e); }
     } else {
       chatNotice(gbChatText("chat-edit-unavailable", "Composer unavailable"), "warning");
     }
@@ -134,9 +134,9 @@ function attachMessageActions(div, sender, content) {
             if (Array.isArray(ChatState.localMessages)) {
               ChatState.localMessages = ChatState.localMessages.filter(function (m) { return m && m.id !== div.dataset.messageId; });
             }
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "makeBtn") : console.error("makeBtn", e); }
         }
-        if (typeof updateScrollButton === "function") try { updateScrollButton(); } catch (e) {}
+        if (typeof updateScrollButton === "function") try { updateScrollButton(); } catch (e) { window.gbLogError ? gbLogError(e, "makeBtn") : console.error("makeBtn", e); }
       }
     );
   });

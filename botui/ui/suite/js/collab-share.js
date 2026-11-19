@@ -289,7 +289,7 @@
             try {
               navigator.clipboard.writeText(btn.getAttribute("data-copy"));
               btn.textContent = T("share-copied", "Copied");
-            } catch (_) {}
+            } catch (_) { window.gbLogError ? gbLogError(_, "refresh") : console.error("refresh", _); }
           });
         });
         list.querySelectorAll("[data-revoke]").forEach(function (btn) {

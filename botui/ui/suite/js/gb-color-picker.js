@@ -45,7 +45,7 @@
     var list = loadRecent().filter(function (c) { return c !== hex; });
     list.unshift(hex);
     if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) {}
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) { window.gbLogError ? gbLogError(e, "saveRecent") : console.error("saveRecent", e); }
   }
 
   function injectCss() {
@@ -184,7 +184,7 @@
     popover.style.display = "block";
     position();
     var hex = popover.querySelector(".gb-cp-hex");
-    if (hex) { try { hex.focus(); hex.select(); } catch (e) {} }
+    if (hex) { try { hex.focus(); hex.select(); } catch (e) { window.gbLogError ? gbLogError(e, "open") : console.error("open", e); } }
   }
 
   function close() {

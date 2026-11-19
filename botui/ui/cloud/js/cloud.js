@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const signupBtn = document.getElementById('sidebar-signup');
     if (signupBtn) signupBtn.style.display = 'none';
 
-    try { loadDashboardOrgs(token).catch(() => {}); } catch (_) {}
-    try { loadDashboardPlans(token).catch(() => {}); } catch (_) {}
+    try { loadDashboardOrgs(token).catch(() => {}); } catch (_) { window.gbLogError ? gbLogError(_, "initNavActive") : console.error("initNavActive", _); }
+    try { loadDashboardPlans(token).catch(() => {}); } catch (_) { window.gbLogError ? gbLogError(_, "initNavActive") : console.error("initNavActive", _); }
 
     // Check super-admin status from server
     try {
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (avatarEl) avatarEl.title = gbT('cloud-role-super-admin', 'Super Admin');
         }
       }
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "initNavActive") : console.error("initNavActive", _); }
   } else {
     // Anonymous: show sign-up prompt in sidebar
     const emailEl = document.getElementById('sidebar-email');

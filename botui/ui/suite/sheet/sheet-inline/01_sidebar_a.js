@@ -101,7 +101,11 @@ function newSheet(arg) {
             if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
             if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
         }
-    });
+    })
+      .catch(function (fetchError) {
+        window.gbLogError ? gbLogError(fetchError, "newSheet")
+                            : console.error("newSheet", fetchError);
+      });
 }
 function loadSidebar(arg) {
     var ctx = _sheetCtx(arg);
@@ -155,7 +159,7 @@ function loadSheet(id, cell) {
         if (window.SheetDefaults) window.SheetDefaults.setActiveSheetInstance(ctx.inst);
     }
     window.__SHEET_INITIAL_ID = id;
-    try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) {}
+    try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) { window.gbLogError ? gbLogError(_, "loadSheet") : console.error("loadSheet", _); }
     document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0, windowId: ctx.winId }, bubbles: true }));
     var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
     if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';

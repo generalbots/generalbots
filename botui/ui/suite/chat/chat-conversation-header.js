@@ -12,13 +12,13 @@
     var token = "";
     try {
       if (typeof window.getGBAccessToken === "function") token = window.getGBAccessToken() || "";
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     if (!token) {
       try {
         if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
           token = window.GBSecurity.getToken() || "";
         }
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     }
     if (!token) {
       try {
@@ -28,7 +28,7 @@
           window.localStorage.getItem("gb_token") ||
           window.sessionStorage.getItem("gb_token") ||
           "";
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     }
     if (token) headers.Authorization = "Bearer " + token;
     return headers;
@@ -68,7 +68,7 @@
           return (s.title || "").trim();
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "fetchSessionTitle") : console.error("fetchSessionTitle", e); }
     return "";
   }
 
@@ -140,7 +140,7 @@
 
   function clearMessagesUi() {
     if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
-      try { window.GBChatVirtual.clear(); } catch (e) {}
+      try { window.GBChatVirtual.clear(); } catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
     }
     var pane = document.getElementById("messages");
     if (pane) pane.innerHTML = "";
@@ -149,9 +149,9 @@
     try {
       var key = "gb_chat_history_" + (currentSessionId() || "default");
       localStorage.removeItem(key);
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
     if (typeof window.hideThinkingIndicator === "function") {
-      try { window.hideThinkingIndicator(); } catch (e) {}
+      try { window.hideThinkingIndicator(); } catch (e) { window.gbLogError ? gbLogError(e, "clearMessagesUi") : console.error("clearMessagesUi", e); }
     }
   }
 
@@ -224,7 +224,7 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 200);
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); } }, 200);
     notify(t("chat-conversation-exported", "Conversation exported"), "success");
   }
 
@@ -267,7 +267,7 @@
         notify(t("chat-conversation-deleted", "Conversation deleted"), "success");
         // Start a fresh conversation in place
         if (typeof window.ChatSwitchBot === "function") {
-          try { await window.ChatSwitchBot(currentBotName()); } catch (e) {}
+          try { await window.ChatSwitchBot(currentBotName()); } catch (e) { window.gbLogError ? gbLogError(e, "deleteConversation") : console.error("deleteConversation", e); }
         } else {
           window.dispatchEvent(new CustomEvent("gb-chat-session-changed", { detail: { deleted: true } }));
         }

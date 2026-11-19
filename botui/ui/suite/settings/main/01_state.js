@@ -124,7 +124,7 @@ window.downloadDataExport = async function downloadDataExport() {
     var ct = (res.headers.get('Content-Type') || '').toLowerCase();
     if (!res.ok || ct.indexOf('application/zip') === -1) {
       var msg = 'Export failed';
-      try { var j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+      try { var j = await res.json(); if (j && j.message) msg = j.message; } catch (e) { window.gbLogError ? gbLogError(e, "notify") : console.error("notify", e); }
       notify(msg, 'error');
       return;
     }

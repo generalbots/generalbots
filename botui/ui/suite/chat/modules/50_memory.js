@@ -19,7 +19,7 @@
   }
 
   function saveMemory(mem) {
-    try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
+    try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) { window.gbLogError ? gbLogError(e, "saveMemory") : console.error("saveMemory", e); }
   }
 
   // GB7-16 — the server is the durable copy: localStorage keeps the fast path,
@@ -106,7 +106,7 @@
   }
 
   function clearMemory() {
-    try { localStorage.removeItem(storageKey()); } catch (e) {}
+    try { localStorage.removeItem(storageKey()); } catch (e) { window.gbLogError ? gbLogError(e, "clearMemory") : console.error("clearMemory", e); }
   }
 
   document.addEventListener("gb-ws-frame", function (e) {

@@ -17,7 +17,7 @@ function vmTrackBlobUrl(box, blobUrl) {
       if (box.isConnected) return;
       var urls = box._gbBlobUrls || [];
       for (var i = 0; i < urls.length; i++) {
-        try { URL.revokeObjectURL(urls[i]); } catch (e) {}
+        try { URL.revokeObjectURL(urls[i]); } catch (e) { window.gbLogError ? gbLogError(e, "vmTrackBlobUrl") : console.error("vmTrackBlobUrl", e); }
       }
       box._gbBlobUrls = [];
       box._gbBlobObserver.disconnect();
@@ -217,7 +217,7 @@ function vmShowPreviewUrl(url, path) {
   var overlay = document.getElementById("gb-vm-preview");
   if (overlay) {
     if (overlay._gbBlobUrl) {
-      try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) {}
+      try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "vmShowPreviewUrl") : console.error("vmShowPreviewUrl", e); }
     }
   }
   if (!overlay) {
@@ -227,7 +227,7 @@ function vmShowPreviewUrl(url, path) {
     overlay.addEventListener("click", function (e) {
       if (e.target === overlay || e.target.classList.contains("gb-vm-preview-close")) {
         if (overlay._gbBlobUrl) {
-          try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) {}
+          try { URL.revokeObjectURL(overlay._gbBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "vmShowPreviewUrl") : console.error("vmShowPreviewUrl", e); }
           overlay._gbBlobUrl = null;
         }
         overlay.remove();
@@ -252,7 +252,7 @@ function vmShowPreviewUrl(url, path) {
   vmFetchBlobUrl(url)
     .then(function (blobUrl) {
       if (!overlay.isConnected) {
-        try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+        try { URL.revokeObjectURL(blobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "vmShowPreviewUrl") : console.error("vmShowPreviewUrl", e); }
         return;
       }
       overlay._gbBlobUrl = blobUrl;

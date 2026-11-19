@@ -48,7 +48,7 @@ async function loadOrgs() {
             if (!rr.ok) continue;
             const rd = await rr.json();
             o.resCount += (rd.resources || []).length;
-          } catch (_) {}
+          } catch (_) { window.gbLogError ? gbLogError(_, "loadOrgs") : console.error("loadOrgs", _); }
         }
       } catch (_) { o.wsCount = 0; o.resCount = 0; }
     }

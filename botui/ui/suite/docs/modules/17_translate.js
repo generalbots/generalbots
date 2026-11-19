@@ -22,7 +22,7 @@ async function translateDocument(lang) {
       credentials: "same-origin",
       body: JSON.stringify({ id: docId, content: original })
     });
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "translateDocument") : console.error("translateDocument", e); }
 
   var translated = "";
   try {
@@ -69,11 +69,11 @@ async function translateDocument(lang) {
       credentials: "same-origin",
       body: JSON.stringify({ id: docId, content: article.innerHTML })
     });
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "translateDocument") : console.error("translateDocument", e); }
 
   if (typeof setSaveStatus === "function") setSaveStatus("Translated to " + lang, false);
   if (window.GBCollabVersions && typeof window.GBCollabVersions.snapshot === "function") {
-    try { window.GBCollabVersions.snapshot({ resourceType: "docs", resourceId: String(docId), content: article.innerHTML }); } catch (e) {}
+    try { window.GBCollabVersions.snapshot({ resourceType: "docs", resourceId: String(docId), content: article.innerHTML }); } catch (e) { window.gbLogError ? gbLogError(e, "translateDocument") : console.error("translateDocument", e); }
   }
   return true;
 }

@@ -21,7 +21,7 @@
     for (var i = 0; i < localStorage.length; i++) {
       var key = localStorage.key(i);
       if (key && key.indexOf("gb_") === 0) {
-        try { data[key] = localStorage.getItem(key); } catch (e) {}
+        try { data[key] = localStorage.getItem(key); } catch (e) { window.gbLogError ? gbLogError(e, "collectLocalStorageData") : console.error("collectLocalStorageData", e); }
       }
     }
     return data;
@@ -35,7 +35,7 @@
         try {
           var messages = gbStoreGet(key, null);
           sessions.push({ session_key: key, messages: messages });
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "collectChatHistory") : console.error("collectChatHistory", e); }
       }
     }
     return sessions;

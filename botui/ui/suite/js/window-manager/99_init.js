@@ -142,7 +142,7 @@ window.toggleChatSidebar = function () {
   // so settings and the rail never ignore each other (#1810).
   try {
     localStorage.setItem("gb-show-sidebar", "true");
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "toggleChatSidebar") : console.error("toggleChatSidebar", e); }
   document.body.classList.remove("sidebar-hidden");
   window.dispatchEvent(new CustomEvent("gb-sidebar-visibility-changed", {
     detail: { show: true },

@@ -25,12 +25,12 @@
                 M.state.env = savedEnv;
                 envSel.value = savedEnv;
             }
-        } catch (e) { }
+        } catch (e) { window.gbLogError ? gbLogError(e, "sidebar") : console.error("sidebar", e); }
         envSel.addEventListener("change", function () {
             M.state.env = envSel.value;
             M.state.table = null;
             M.state.page = 1;
-            try { localStorage.setItem("gb-vibe-db-env", M.state.env); } catch (e) { }
+            try { localStorage.setItem("gb-vibe-db-env", M.state.env); } catch (e) { window.gbLogError ? gbLogError(e, "sidebar") : console.error("sidebar", e); }
             M.refreshCtxChip();
             var label = document.getElementById("vibeDbTableLabel");
             if (label) label.textContent = M.state.env === "dev" ? "dev database (_dev twin)" : "production database";

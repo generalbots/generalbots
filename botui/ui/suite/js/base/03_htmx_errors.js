@@ -53,7 +53,7 @@
       try {
         window.showNotification(msg, kind, ms);
         return;
-      } catch (err) {}
+      } catch (err) { window.gbLogError ? gbLogError(err, "notify") : console.error("notify", err); }
     }
     notifyFallback(msg, kind, ms);
   }
@@ -96,7 +96,7 @@
       if (detail && detail.requestConfig && detail.requestConfig.path) {
         return detail.requestConfig.path;
       }
-    } catch (err) {}
+    } catch (err) { window.gbLogError ? gbLogError(err, "getRequestPath") : console.error("getRequestPath", err); }
     return "";
   }
 
@@ -113,7 +113,7 @@
         if (elt.getAttribute("hx-patch")) return "patch";
         if (elt.getAttribute("hx-get")) return "get";
       }
-    } catch (err) {}
+    } catch (err) { window.gbLogError ? gbLogError(err, "getVerb") : console.error("getVerb", err); }
     return "get";
   }
 
@@ -140,10 +140,10 @@
       try {
         target.setAttribute("aria-busy", "false");
         target.classList.remove("htmx-request");
-      } catch (err) {}
+      } catch (err) { window.gbLogError ? gbLogError(err, "clearBusy") : console.error("clearBusy", err); }
     }
     if (elt && elt.classList) {
-      try { elt.classList.remove("htmx-request"); } catch (err) {}
+      try { elt.classList.remove("htmx-request"); } catch (err) { window.gbLogError ? gbLogError(err, "clearBusy") : console.error("clearBusy", err); }
     }
   }
 
@@ -191,7 +191,7 @@
     if (status !== 401 && status !== 403) return false;
     var path = getRequestPath(detail);
     if (window.GBSecurity && typeof window.GBSecurity.handleUnauthorized === "function") {
-      try { window.GBSecurity.handleUnauthorized(path); } catch (err) {}
+      try { window.GBSecurity.handleUnauthorized(path); } catch (err) { window.gbLogError ? gbLogError(err, "handleAuthFlow") : console.error("handleAuthFlow", err); }
     } else if (status === 401) {
       window.dispatchEvent(new CustomEvent("gb:auth:unauthorized", { detail: { url: path } }));
     }
@@ -257,7 +257,7 @@
       if (target && target.id === "main-content") {
         try {
           target.setAttribute("aria-busy", "true");
-        } catch (err) {}
+        } catch (err) { window.gbLogError ? gbLogError(err, "install") : console.error("install", err); }
         announceToScreenReader("Loading content...");
       }
     });
@@ -268,7 +268,7 @@
         try {
           target.setAttribute("aria-busy", "false");
           target.focus();
-        } catch (err) {}
+        } catch (err) { window.gbLogError ? gbLogError(err, "install") : console.error("install", err); }
         announceToScreenReader("Content loaded");
       }
     });
@@ -315,11 +315,11 @@
         try {
           htmx.trigger(detail.elt, "htmx:trigger");
           return;
-        } catch (err) {}
+        } catch (err) { window.gbLogError ? gbLogError(err, "install") : console.error("install", err); }
       }
       var triggers = target.querySelectorAll("[hx-get], [hx-head]");
       if (triggers.length > 0 && typeof htmx !== "undefined") {
-        try { htmx.trigger(triggers[0], "htmx:trigger"); return; } catch (err) {}
+        try { htmx.trigger(triggers[0], "htmx:trigger"); return; } catch (err) { window.gbLogError ? gbLogError(err, "install") : console.error("install", err); }
       }
       var activeApp = document.querySelector(".app-item.active");
       if (activeApp) activeApp.click();

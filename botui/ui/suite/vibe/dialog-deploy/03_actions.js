@@ -74,7 +74,7 @@
     function previewApp() {
         if (!M.state.projectId) return;
         var previewWindow = window.open("about:blank", "_blank");
-        if (previewWindow) { try { previewWindow.opener = null; } catch (e) {} }
+        if (previewWindow) { try { previewWindow.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "previewApp") : console.error("previewApp", e); } }
         if (!previewWindow) {
             var grid = document.getElementById("vibeDeployMain");
             if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Allow pop-ups to open the app preview.</div>';

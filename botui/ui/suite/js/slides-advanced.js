@@ -31,7 +31,7 @@
   const ANIM_KEY = "gb-slides-animations";
 
   function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
-  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
+  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) { window.gbLogError ? gbLogError(_, "writeObj") : console.error("writeObj", _); } }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
 
   const TRANSITIONS = ["none", "fade", "slide-left", "slide-right", "slide-up", "slide-down", "zoom-in", "zoom-out", "push-left", "push-right", "wipe-left", "wipe-right", "split-vertical", "split-horizontal", "reveal"];

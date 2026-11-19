@@ -168,7 +168,7 @@
     // botserver restart (which resets the server-side poller state) does not
     // re-send a milestone the user already saw.
     function rememberMilestone(runId, label) {
-        try { sessionStorage.setItem("vibe-milestone-" + runId, label); } catch (ignore) { }
+        try { sessionStorage.setItem("vibe-milestone-" + runId, label); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "rememberMilestone") : console.error("rememberMilestone", ignore); }
     }
 
     function isStaleMilestone(runId, label) {

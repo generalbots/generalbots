@@ -34,7 +34,7 @@
                     __u.searchParams.delete("name");
                     window.history.replaceState({}, "", __u.pathname + __u.search + __u.hash);
                 }
-            } catch (e) {}
+            } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
             // #1894 — the desktop hides the WebView default context menu so it
             // feels native. Debugging keeps it behind an explicit flag, never
             // always-on: ?gb_debug_context_menu=1 or the stored preference.
@@ -46,7 +46,7 @@
                 ) {
                     window.gbDebugContextMenu = true;
                 }
-            } catch (e) {}
+            } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
             // #2085 — the splash window must not run the shell auth gate.
             window.__GB_IS_SPLASH__ = /(^|\/)splash\.html$/.test(window.location.pathname);
             window.__BOT_IS_PUBLIC__ = false;

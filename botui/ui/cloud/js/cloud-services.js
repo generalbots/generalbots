@@ -45,7 +45,7 @@ async function loadServices(token) {
       const orgs = orgData.organizations || [];
       if (orgs.length) currentPlan = orgs[0].plan || 'free';
     }
-  } catch (_) {}
+  } catch (_) { window.gbLogError ? gbLogError(_, "loadServices") : console.error("loadServices", _); }
   renderPlanSummary();
 
   try {

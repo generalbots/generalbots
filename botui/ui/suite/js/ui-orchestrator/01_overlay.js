@@ -258,7 +258,7 @@
           current: S.ACTIVE ? S.ACTIVE.completed : 1,
           total: S.ACTIVE ? S.ACTIVE.total : 1,
         });
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "reportStep") : console.error("reportStep", e); }
     }
   }
 
@@ -305,7 +305,7 @@
       var interval = setInterval(function () {
         elapsed += 100;
         var ok = false;
-        try { ok = predicate(); } catch (e) {}
+        try { ok = predicate(); } catch (e) { window.gbLogError ? gbLogError(e, "waitFor") : console.error("waitFor", e); }
         if (ok || elapsed >= timeoutMs) {
           clearInterval(interval);
           resolve(ok);

@@ -50,10 +50,10 @@ const botCoderTerminal = {
         if (window.FitAddon) {
             this.fitAddon = new window.FitAddon.FitAddon();
             this.term.loadAddon(this.fitAddon);
-            setTimeout(() => { try { this.fitAddon.fit(); } catch (ignore) { } }, 100);
+            setTimeout(() => { try { this.fitAddon.fit(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "init") : console.error("init", ignore); } }, 100);
         }
         window.addEventListener('resize', () => {
-            if (this.fitAddon) { try { this.fitAddon.fit(); } catch (ignore) { } }
+            if (this.fitAddon) { try { this.fitAddon.fit(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "init") : console.error("init", ignore); } }
         });
         
         this.term.onData(data => {

@@ -78,7 +78,7 @@ function deleteProject(p, force) {
                     try {
                         localStorage.removeItem("gb-vibe-project-id");
                         sessionStorage.removeItem("gb-vibe-project-id");
-                    } catch (ignore) { }
+                    } catch (ignore) { window.gbLogError ? gbLogError(ignore, "refreshCombo") : console.error("refreshCombo", ignore); }
                     if (window.VibeWindows && typeof window.VibeWindows.closeVibeSubwindows === "function") {
                         window.VibeWindows.closeVibeSubwindows();
                     }

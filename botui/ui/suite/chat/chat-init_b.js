@@ -214,7 +214,7 @@ function initChat() {
           (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
         if (typingElsewhere) return;
         if (String(input.value || "").trim() !== "") return;
-        try { input.focus({ preventScroll: true }); } catch (e) {}
+        try { input.focus({ preventScroll: true }); } catch (e) { window.gbLogError ? gbLogError(e, "schedule") : console.error("schedule", e); }
       }, 15000);
     }
     ["mousemove","keydown","click","scroll","touchstart"].forEach(function (ev) {

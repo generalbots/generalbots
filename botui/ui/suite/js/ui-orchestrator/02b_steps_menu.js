@@ -31,7 +31,7 @@
         try {
           el.click();
         } catch (e) {
-          try { el.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e2) {}
+          try { el.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e2) { window.gbLogError ? gbLogError(e2, "moveCursorTo") : console.error("moveCursorTo", e2); }
         }
         reportStep("Menu → " + label, "done");
         setTimeout(function () {
@@ -103,7 +103,7 @@
         try {
           el.click();
         } catch (e) {
-          try { el.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e2) {}
+          try { el.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e2) { window.gbLogError ? gbLogError(e2, "moveCursorTo") : console.error("moveCursorTo", e2); }
         }
         waitFor(function () {
           var anchors = document.querySelectorAll('a[download], a[href^="blob:"]').length;

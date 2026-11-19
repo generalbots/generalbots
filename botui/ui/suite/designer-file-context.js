@@ -59,7 +59,11 @@
         }
         fetch('/suite/editor.html').then(function (r) { return r.text(); }).then(function (html) {
             window.WindowManager._injectBodyContent(winId, html);
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "openDesignerInTextEditor")
+                                : console.error("if", fetchError);
+          });
     }
 
     window.gbDesignerFileCtx = designerFileCtx;

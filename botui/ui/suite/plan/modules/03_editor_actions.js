@@ -93,7 +93,7 @@
           const u = JSON.parse(msg.content);
           if (u.type === "task") Store.updateTask(u.id, u);
           else if (u.type === "status") Store.updateTask(u.id, { status: u.status });
-        } catch (_) {}
+        } catch (_) { window.gbLogError ? gbLogError(_, "onEdit") : console.error("onEdit", _); }
       }
     });
   }

@@ -7,7 +7,7 @@ async function showVersionHistory(path) {
     var fileName = path.split("/").pop() || "file";
     var storageKey = "gb_file_versions_" + (bucket || "") + "_" + path;
     var localVersions = [];
-    try { localVersions = gbStoreGet(storageKey, []); } catch (e) {}
+    try { localVersions = gbStoreGet(storageKey, []); } catch (e) { window.gbLogError ? gbLogError(e, "showVersionHistory") : console.error("showVersionHistory", e); }
 
     var modal = document.getElementById("version-modal");
     if (modal) modal.remove();
@@ -85,7 +85,7 @@ async function restoreVersion(path, index, bucket) {
     var targetBucket = bucket || driveBucketForPath(path);
     var storageKey = "gb_file_versions_" + (targetBucket || "") + "_" + path;
     var versions = [];
-    try { versions = gbStoreGet(storageKey, []); } catch (e) {}
+    try { versions = gbStoreGet(storageKey, []); } catch (e) { window.gbLogError ? gbLogError(e, "restoreVersion") : console.error("restoreVersion", e); }
     if (!versions[index] || !versions[index].content) { showNotification("Version data not available", "error"); return; }
     try {
         await apiRequest("/write", {
@@ -105,8 +105,8 @@ function saveFileVersion(path, content, bucket) {
     var versionBucket = bucket || driveBucketForPath(path);
     var storageKey = "gb_file_versions_" + (versionBucket || "") + "_" + path;
     var versions = [];
-    try { versions = gbStoreGet(storageKey, []); } catch (e) {}
+    try { versions = gbStoreGet(storageKey, []); } catch (e) { window.gbLogError ? gbLogError(e, "saveFileVersion") : console.error("saveFileVersion", e); }
     versions.unshift({ timestamp: Date.now(), label: "Auto-save", size: content.length, content: content });
     if (versions.length > 20) versions = versions.slice(0, 20);
-    try { localStorage.setItem(storageKey, JSON.stringify(versions)); } catch (e) {}
+    try { localStorage.setItem(storageKey, JSON.stringify(versions)); } catch (e) { window.gbLogError ? gbLogError(e, "saveFileVersion") : console.error("saveFileVersion", e); }
 }

@@ -18,7 +18,7 @@
   function write(list) {
     try {
       localStorage.setItem(KEY, JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "write") : console.error("write", e); }
   }
 
   function render() {
@@ -113,7 +113,7 @@
         card.style.width = rect.width + "px";
         card.style.zIndex = "1000";
         card.style.cursor = "grabbing";
-        try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        try { card.setPointerCapture(e.pointerId); } catch (err) { window.gbLogError ? gbLogError(err, "render") : console.error("render", err); }
         function moveTo(x, y) {
           const list2 = read();
           const at = indexOfKey(list2, key);

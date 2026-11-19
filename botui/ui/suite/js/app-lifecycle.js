@@ -15,10 +15,10 @@
     b.intervals.forEach(clearInterval);
     b.timeouts.forEach(clearTimeout);
     b.sockets.forEach(function (ws) {
-      try { ws.close(); } catch (e) {}
+      try { ws.close(); } catch (e) { window.gbLogError ? gbLogError(e, "cleanup") : console.error("cleanup", e); }
     });
     b.cleanups.forEach(function (fn) {
-      try { fn(); } catch (e) {}
+      try { fn(); } catch (e) { window.gbLogError ? gbLogError(e, "cleanup") : console.error("cleanup", e); }
     });
     registry[appId] = { intervals: [], timeouts: [], sockets: [], cleanups: [] };
   }

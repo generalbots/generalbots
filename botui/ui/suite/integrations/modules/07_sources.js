@@ -248,8 +248,8 @@
             event.preventDefault();
             var permissions = [];
             var domains = [];
-            try { permissions = JSON.parse(button.dataset.resourcePermissions || "[]"); } catch (e) {}
-            try { domains = JSON.parse(button.dataset.resourceDomains || "[]"); } catch (e) {}
+            try { permissions = JSON.parse(button.dataset.resourcePermissions || "[]"); } catch (e) { window.gbLogError ? gbLogError(e, "bindUiPreview") : console.error("bindUiPreview", e); }
+            try { domains = JSON.parse(button.dataset.resourceDomains || "[]"); } catch (e) { window.gbLogError ? gbLogError(e, "bindUiPreview") : console.error("bindUiPreview", e); }
             showUiPreview(button.dataset.mcpName, button.dataset.resourceIndex, permissions, domains);
         });
     }

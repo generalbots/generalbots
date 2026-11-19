@@ -11,7 +11,7 @@
         catch (e) { return []; }
     }
     function save(mem) {
-        try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
+        try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) { window.gbLogError ? gbLogError(e, "save") : console.error("save", e); }
     }
     function token() {
         return localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";

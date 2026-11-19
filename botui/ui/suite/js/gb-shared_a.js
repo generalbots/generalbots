@@ -435,6 +435,6 @@
   ].forEach(function (k) {
     try {
       if (typeof eval(k) !== "undefined") _I[k] = eval(k);
-    } catch (_e) {}
+    } catch (_e) { window.gbLogError ? gbLogError(_e, "gbFormatCurrency") : console.error("gbFormatCurrency", _e); }
   });
 })();

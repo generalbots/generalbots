@@ -151,7 +151,7 @@
                     // used project — not projects[0] — is restored across
                     // sessions; fall back to the in-session value.
                     try { storedId = localStorage.getItem("gb-vibe-project-id") || 
-                                     sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (ignore) { }
+                                     sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (ignore) { window.gbLogError ? gbLogError(ignore, "loadProjects") : console.error("loadProjects", ignore); }
                     var preferred = projects.find(function (p) {
                         var id = p.project_id || p.id;
                         return storedId && String(id) === String(storedId);

@@ -52,7 +52,7 @@
   function clear(k) {
     var s = store();
     if (!s) return;
-    try { s.removeItem(key(k)); } catch (_) {}
+    try { s.removeItem(key(k)); } catch (_) { window.gbLogError ? gbLogError(_, "clear") : console.error("clear", _); }
   }
 
   function has(k) { return load(k) !== null; }

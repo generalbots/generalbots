@@ -16,7 +16,7 @@
   const STORAGE_KEY = "gb-minutes-meetings";
 
   function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
-  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
+  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) { window.gbLogError ? gbLogError(_, "writeArr") : console.error("writeArr", _); } }
   function uid() { return "mt_" + Math.random().toString(36).slice(2, 12); }
 
   function createMeeting(opts) {

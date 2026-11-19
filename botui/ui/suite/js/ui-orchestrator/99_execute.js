@@ -135,7 +135,7 @@
           moveCursorTo(rect, function () {
             highlightFlash(found);
             pulseClick();
-            try { found.click(); } catch (e) {}
+            try { found.click(); } catch (e) { window.gbLogError ? gbLogError(e, "moveCursorTo") : console.error("moveCursorTo", e); }
             reportStep("Focused " + result.type + " '" + result.title + "'", "done");
             setTimeout(function () {
               if (S.focusRing) S.focusRing.style.display = "none";

@@ -69,11 +69,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) this.data = JSON.parse(raw);
-      } catch (_) {}
+      } catch (_) { window.gbLogError ? gbLogError(_, "load") : console.error("load", _); }
       if (!this.data.tasks || !this.data.tasks.length) this.seed();
     },
     save: function () {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (_) {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); } catch (_) { window.gbLogError ? gbLogError(_, "save") : console.error("save", _); }
     },
     seed: function () {
       const now = today();

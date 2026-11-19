@@ -60,7 +60,7 @@ const ControlCenter = (() => {
         const root = document.documentElement;
         const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
         root.setAttribute("data-theme", next);
-        try { localStorage.setItem("gb-theme", next); } catch (e) {}
+        try { localStorage.setItem("gb-theme", next); } catch (e) { window.gbLogError ? gbLogError(e, "bind") : console.error("bind", e); }
         theme.textContent = next === "dark" ? "☀️ Light" : "🌙 Dark";
       });
     }

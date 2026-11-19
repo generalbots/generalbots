@@ -119,13 +119,13 @@
     D.WORKSHEET_INDEX = idx;
     var inst = D.getActiveSheetInstance ? D.getActiveSheetInstance() : null;
     if (inst) inst.worksheetIndex = idx;
-    try { sessionStorage.setItem("sheet_active_index", String(idx)); } catch (_) {}
+    try { sessionStorage.setItem("sheet_active_index", String(idx)); } catch (_) { window.gbLogError ? gbLogError(_, "renameWorksheet") : console.error("renameWorksheet", _); }
   });
 
   try {
     const saved = parseInt(sessionStorage.getItem("sheet_active_index") || "0", 10);
     if (!isNaN(saved) && saved >= 0) D.WORKSHEET_INDEX = saved;
-  } catch (_) {}
+  } catch (_) { window.gbLogError ? gbLogError(_, "renameWorksheet") : console.error("renameWorksheet", _); }
 
   D.SheetAPI = SheetAPI;
 })();

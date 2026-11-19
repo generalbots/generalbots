@@ -82,7 +82,7 @@ function docsApplyFontSize(value) {
         return;
       }
     }
-  } catch (e0) {}
+  } catch (e0) { window.gbLogError ? gbLogError(e0, "docsApplyFontSize") : console.error("docsApplyFontSize", e0); }
   var span = document.createElement('span');
   span.style.fontSize = n + "pt";
   try {
@@ -108,13 +108,13 @@ function docsApplyFontSize(value) {
       while (f.firstChild) inner.appendChild(f.firstChild);
       if (f.parentNode) f.parentNode.replaceChild(inner, f);
     }
-  } catch (e3) {}
+  } catch (e3) { window.gbLogError ? gbLogError(e3, "docsApplyFontSize") : console.error("docsApplyFontSize", e3); }
   try {
     var nr = document.createRange();
     nr.selectNodeContents(span);
     sel.removeAllRanges();
     sel.addRange(nr);
-  } catch (e4) {}
+  } catch (e4) { window.gbLogError ? gbLogError(e4, "docsApplyFontSize") : console.error("docsApplyFontSize", e4); }
   var sizeInput = document.getElementById("docFontSize") || (document.querySelector("#window-body-docs #docFontSize"));
   if (sizeInput) sizeInput.value = String(n);
   article.dispatchEvent(new Event("input", { bubbles: true }));
@@ -147,7 +147,7 @@ function docsApplyFontFamily(value) {
           return;
         }
       }
-    } catch (e0) {}
+    } catch (e0) { window.gbLogError ? gbLogError(e0, "docsApplyFontFamily") : console.error("docsApplyFontFamily", e0); }
     var span = document.createElement('span');
     span.style.fontFamily = value;
     try {
@@ -170,7 +170,7 @@ function docsApplyFontFamily(value) {
         while (f.firstChild) inner.appendChild(f.firstChild);
         if (f.parentNode) f.parentNode.replaceChild(inner, f);
       }
-    } catch (e4) {}
+    } catch (e4) { window.gbLogError ? gbLogError(e4, "docsApplyFontFamily") : console.error("docsApplyFontFamily", e4); }
     var nr = document.createRange();
     nr.selectNodeContents(span);
     sel.removeAllRanges();

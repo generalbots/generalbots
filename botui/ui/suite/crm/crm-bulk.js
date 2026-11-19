@@ -92,7 +92,11 @@
                     (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
                 window.reloadCrmGrid(grid);
             });
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "bulk")
+                                : console.error("if", fetchError);
+          });
     }
 
     // #2313 — the loss reason is CRM gold: churn analysis, win-back campaigns
@@ -185,7 +189,11 @@
                     notice('opportunities', 'Closed ' + done + (failed ? ', failed ' + failed : ''));
                     window.reloadCrmGrid('opportunities');
                 }
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "askLostReason")
+                                    : console.error("askLostReason", fetchError);
+              });
         });
     }
 
@@ -242,7 +250,11 @@
                         (r.failed && r.failed.length ? ', failed ' + r.failed.length : ''));
                     window.reloadCrmGrid('contacts');
                 });
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "gbConfirm")
+                                    : console.error("gbConfirm", fetchError);
+              });
         });
     });
 
@@ -261,7 +273,11 @@
                     URL.revokeObjectURL(url);
                     notice(grid, total ? ('Exported ' + total + ' rows') : 'Export downloaded');
                 });
-            });
+            })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "exportCsv")
+                                : console.error("exportCsv", fetchError);
+          });
     }
 
     function importCsv(grid, endpoint, input) {
@@ -286,10 +302,19 @@
                                     (result.errors && result.errors.length ? ', errors ' + result.errors.length : ''));
                                 window.reloadCrmGrid(grid);
                             });
+                        }).catch(function (fetchError) {
+                            window.gbLogError ? gbLogError(fetchError, "importCsv")
+                                              : console.error("importCsv", fetchError);
                         });
                     });
                 });
+            }).catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "importCsv")
+                                  : console.error("importCsv", fetchError);
             });
+        }).catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "importCsv")
+                              : console.error("importCsv", fetchError);
         });
         input.value = '';
     }
@@ -350,7 +375,11 @@
             window.closeCrmModal();
             notice('campaigns', editing ? 'Campaign updated' : 'Campaign created');
             refreshCampaigns();
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "onClick")
+                                : console.error("onClick", fetchError);
+          });
     });
 
     // Campaign edit — same modal and same delegated submit, with the id seeded.
@@ -385,7 +414,11 @@
                 }).then(function(resp) {
                     notice('campaigns', resp.ok ? 'Send dispatched' : 'Send failed (' + resp.status + ')');
                     refreshCampaigns();
-                });
+                })
+                  .catch(function (fetchError) {
+                    window.gbLogError ? gbLogError(fetchError, "gbConfirm")
+                                        : console.error("gbConfirm", fetchError);
+                  });
             });
             return;
         }

@@ -239,8 +239,8 @@ function showProbeError(botName) {
 // desktop shell intact.
 function recoverFromUnavailableBot() {
   var fallbackBot = window.__INITIAL_BOT_NAME__ || "default";
-  try { localStorage.removeItem("gb_selected_bot"); } catch (e) {}
-  try { localStorage.removeItem("gb.chat.session." + (ChatState.botUnavailableFor || ChatState.currentBotName || "")); } catch (e) {}
+  try { localStorage.removeItem("gb_selected_bot"); } catch (e) { window.gbLogError ? gbLogError(e, "recoverFromUnavailableBot") : console.error("recoverFromUnavailableBot", e); }
+  try { localStorage.removeItem("gb.chat.session." + (ChatState.botUnavailableFor || ChatState.currentBotName || "")); } catch (e) { window.gbLogError ? gbLogError(e, "recoverFromUnavailableBot") : console.error("recoverFromUnavailableBot", e); }
   ChatState.botUnavailable = false;
   ChatState.botUnavailableFor = null;
   ChatState.botAccess = null;

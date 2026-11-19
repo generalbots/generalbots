@@ -53,7 +53,7 @@
           return st;
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "turnInfo") : console.error("turnInfo", e); }
     return t("chat-status-idle", "Idle");
   }
 
@@ -87,7 +87,7 @@
       if (typeof window.showToast === "function") {
         window.showToast(t("chat-status-copied", "Copied"), "success");
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
   }
 
   function ensureStrip() {
@@ -161,7 +161,7 @@
     if (conn && typeof MutationObserver !== "undefined") {
       try {
         new MutationObserver(scheduleUpdate).observe(conn, { attributes: true, childList: true, subtree: true, characterData: true });
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "bind") : console.error("bind", e); }
     }
     var picker = document.getElementById("modelPicker");
     if (picker) picker.addEventListener("change", scheduleUpdate);

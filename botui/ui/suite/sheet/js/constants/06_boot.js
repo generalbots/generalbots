@@ -359,7 +359,7 @@
           if (savedIndex < 0 || savedIndex >= loaded.worksheets.length) savedIndex = 0;
           D.WORKSHEET_INDEX = savedIndex;
           if (inst) inst.worksheetIndex = savedIndex;
-          try { sessionStorage.setItem("sheet_active_index", String(savedIndex)); } catch (_) {}
+          try { sessionStorage.setItem("sheet_active_index", String(savedIndex)); } catch (_) { window.gbLogError ? gbLogError(_, "bootSheet") : console.error("bootSheet", _); }
           var ws = loaded.worksheets[savedIndex];
           if (ws.data) {
             for (var cellRef in ws.data) {

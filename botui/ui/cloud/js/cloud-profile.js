@@ -16,7 +16,7 @@ async function loadProfile(token) {
     document.getElementById('profile-name').value = data.name || '';
     document.getElementById('profile-email').value = data.email || '';
     document.getElementById('profile-company').value = data.company || '';
-  } catch (_) {}
+  } catch (_) { window.gbLogError ? gbLogError(_, "loadProfile") : console.error("loadProfile", _); }
 }
 
 document.getElementById('profile-form').addEventListener('submit', async (e) => {

@@ -41,7 +41,7 @@
       timestamp: Date.now(),
     });
     if (actionLog.length > MAX_LOG) actionLog = actionLog.slice(0, MAX_LOG);
-    try { localStorage.setItem("gb_sandbox_log", JSON.stringify(actionLog.slice(0, 50))); } catch (e) {}
+    try { localStorage.setItem("gb_sandbox_log", JSON.stringify(actionLog.slice(0, 50))); } catch (e) { window.gbLogError ? gbLogError(e, "logAction") : console.error("logAction", e); }
   }
 
   function loadLog() {

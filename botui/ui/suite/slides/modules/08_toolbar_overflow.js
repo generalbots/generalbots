@@ -31,9 +31,9 @@
       var entry = document.createElement("button"); entry.type = "button"; entry.className = "tb-overflow-item"; entry.textContent = labelFor(orig);
       entry.addEventListener("click", function (ev) {
         ev.preventDefault(); ev.stopPropagation(); closeAllMenus();
-        try { orig.scrollIntoView({ block: "nearest", inline: "center" }); } catch (e) {}
+        try { orig.scrollIntoView({ block: "nearest", inline: "center" }); } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); }
         if (tag === "button" || orig.getAttribute("role") === "button") orig.click();
-        else if (tag === "select" || tag === "input" || tag === "label") { try { orig.focus(); } catch (e) {} if (tag !== "select") { try { orig.click(); } catch (e) {} } }
+        else if (tag === "select" || tag === "input" || tag === "label") { try { orig.focus(); } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); } if (tag !== "select") { try { orig.click(); } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); } } }
         else orig.click();
       });
       menu.appendChild(entry);

@@ -138,7 +138,7 @@
             window.GBUiOrchestrator.focusEntity(r);
           } else {
             var w = window.open(r.url, "_blank", "noopener,noreferrer");
-            if (w) { try { w.opener = null; } catch (e) {} }
+            if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "onclick") : console.error("onclick", e); } }
           }
         };
         p.appendChild(item);

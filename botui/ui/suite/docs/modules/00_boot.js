@@ -53,13 +53,13 @@
     var token = "";
     try {
       if (typeof window.getGBAccessToken === "function") token = window.getGBAccessToken() || "";
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "docsAccessToken") : console.error("docsAccessToken", e); }
     if (!token) {
       try {
         if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
           token = window.GBSecurity.getToken() || "";
         }
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "docsAccessToken") : console.error("docsAccessToken", e); }
     }
     if (!token) {
       try {
@@ -69,7 +69,7 @@
           window.localStorage.getItem("gb_token") ||
           window.sessionStorage.getItem("gb_token") ||
           "";
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "docsAccessToken") : console.error("docsAccessToken", e); }
     }
     return token || "";
   }

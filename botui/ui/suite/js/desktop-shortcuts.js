@@ -45,14 +45,14 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
   function writeItems(items) {
     try {
       localStorage.setItem(storeKey(), JSON.stringify(items));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "writeItems") : console.error("writeItems", e); }
     // Stamp + push-through so other devices converge (#1159).
     var latest = readItems();
     if (mod.syncToDrive) {
       latest.forEach(function (i) { if (!i.updatedAt) i.updatedAt = Date.now(); });
       try {
         localStorage.setItem(storeKey(), JSON.stringify(latest));
-      } catch (e2) {}
+      } catch (e2) { window.gbLogError ? gbLogError(e2, "writeItems") : console.error("writeItems", e2); }
       mod.syncToDrive();
     }
   }
@@ -277,7 +277,7 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
       var t = localStorage.getItem("gb-access-token") ||
         sessionStorage.getItem("gb-access-token");
       if (t) h["Authorization"] = "Bearer " + t;
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "authHeaders") : console.error("authHeaders", e); }
     return h;
   }
 

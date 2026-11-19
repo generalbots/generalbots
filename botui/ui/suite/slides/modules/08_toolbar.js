@@ -220,7 +220,7 @@ window.GBSlidesExport = function (event) {
 
   if (format === "pdf") {
     var printWindow = window.open("", "_blank");
-    if (printWindow) { try { printWindow.opener = null; } catch (e) {} }
+    if (printWindow) { try { printWindow.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "closeExportModal") : console.error("closeExportModal", e); } }
     if (!printWindow) {
       if (window.GBToasts && GBToasts.show) {
         GBToasts.show("Export", "Pop-up bloqueado. Permita pop-ups para exportar PDF.", "error");

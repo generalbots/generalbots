@@ -33,7 +33,7 @@
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "save") : console.error("save", e); }
   }
 
   function announce(text) {

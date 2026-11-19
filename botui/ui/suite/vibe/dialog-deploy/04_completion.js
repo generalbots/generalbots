@@ -80,7 +80,7 @@
     // deployed app ALWAYS opens at {app}.generalbots.org.
     function openAppTab(envName) {
         var w = window.open("about:blank", "_blank");
-        if (w) { try { w.opener = null; } catch (e) {} }
+        if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openAppTab") : console.error("openAppTab", e); } }
         if (!w) {
             var grid = document.getElementById("vibeDeployMain");
             if (grid) grid.innerHTML = '<div class="vibe-empty" role="alert" aria-live="assertive">Allow pop-ups to open the deployed app.</div>';

@@ -24,7 +24,7 @@
   // undeclared identifiers that would abort this module and break gbLog.
   ["escapeHtml","storeGet","copyText","printHtml","format","read","runtimeToken","token","headers","isDesktop","tauriInvoke","absoluteUrl","notify","anchorDownload","reportSaved","download","saveBlob","gbFormatDate","gbFormatTime","gbFormatDateTime","gbFormatNumber","gbFormatCurrency"].forEach(function (k) {
     if (_I[k] == null) {
-      try { if (typeof eval(k) !== "undefined") _I[k] = eval(k); } catch (_e) {}
+      try { if (typeof eval(k) !== "undefined") _I[k] = eval(k); } catch (_e) { window.gbLogError ? gbLogError(_e, "js") : console.error("js", _e); }
     }
   });
   escapeHtml = escapeHtml || _I.escapeHtml;
@@ -71,6 +71,41 @@
     isDebugEnabled: gbDebugEnabled,
   };
 
+  // #2301 — one way to report a failure that was caught. The suite used to
+  // have ~350 `catch (e) { window.gbLogError ? gbLogError(e, "error") : console.error("error", e); }` blocks: the error vanished, the UI silently did
+  // nothing, and nothing reached the server log. Every one of those now calls
+  // this, which logs once per context per 30 s (a failing poll or keystroke
+  // handler must not flood the console) and forwards to the client error
+  // reporter when it is loaded. Returns the error so `return gbLogError(...)`
+  // keeps the caller's flow.
+  var reportedAt = {};
+  var REPORT_WINDOW_MS = 30000;
+
+  function gbLogError(error, context) {
+    var where = context || "unknown";
+    var message = error && error.message ? error.message : String(error);
+    var now = Date.now();
+    var repeated = false;
+    try {
+      repeated = reportedAt[where] && now - reportedAt[where] < REPORT_WINDOW_MS;
+      reportedAt[where] = now;
+    } catch (e) {
+      repeated = false;
+    }
+    if (!repeated) gbLog.error("[gb] " + where + ": " + message, error);
+    try {
+      if (window.ErrorReporter && window.ErrorReporter.report) {
+        window.ErrorReporter.report(
+          error instanceof Error ? error : new Error(message),
+          { context: where, repeated: repeated }
+        );
+      }
+    } catch (e) {
+      gbLog.debug("gbLogError: reporter unavailable", e);
+    }
+    return error;
+  }
+
   var html = { escape: escapeHtml };
   var auth = { token: token, headers: headers };
   var downloadKit = { download: download, saveBlob: saveBlob, isDesktop: isDesktop };
@@ -85,6 +120,7 @@
     log: gbLog,
   };
   window.gbLog = gbLog;
+  window.gbLogError = window.gbLogError || gbLogError;
   window.gbStoreGet = storeGet;
   window.gbCopyText = copyText;
   window.gbFormat = format;

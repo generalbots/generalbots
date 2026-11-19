@@ -49,7 +49,7 @@
             window.WindowManager.openDeepLink(appId, {}, { ownerId: "chat" });
             resolve(true);
             return;
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "openApp") : console.error("openApp", e); }
         }
         resolve(false);
         return;
@@ -144,7 +144,7 @@
         } catch (e) {
           try {
             el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-          } catch (e2) {}
+          } catch (e2) { window.gbLogError ? gbLogError(e2, "moveCursorTo") : console.error("moveCursorTo", e2); }
         }
         reportStep("Clicked '" + (visibleText(el) || step.label || "") + "'", "done");
         setTimeout(function () {
@@ -188,7 +188,7 @@
     var isEditable = el.isContentEditable === true;
     return new Promise(function (resolve) {
       moveCursorTo(rect, function () {
-        try { el.focus(); } catch (e) {}
+        try { el.focus(); } catch (e) { window.gbLogError ? gbLogError(e, "moveCursorTo") : console.error("moveCursorTo", e); }
         // #2184 — document apps expose a structured fill hook: a single hint
         // step draws a whole document (headings, bullets, paragraphs) instead
         // of dumping the value as one blob of text.
@@ -201,7 +201,7 @@
               resolve(true);
             }, 300);
             return;
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
         }
         if (isEditable) {
           el.textContent = value;
@@ -392,11 +392,11 @@
         if (submitBtn) {
           highlightFlash(submitBtn);
           pulseClick();
-          try { submitBtn.click(); } catch (e) {}
+          try { submitBtn.click(); } catch (e) { window.gbLogError ? gbLogError(e, "moveCursorTo") : console.error("moveCursorTo", e); }
         }
         try {
           form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "moveCursorTo") : console.error("moveCursorTo", e); }
         setTimeout(function () {
           S.focusRing.style.display = "none";
           resolve(true);

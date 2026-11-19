@@ -101,7 +101,7 @@ window.GBNotepad = window.GBNotepad || {};
       try { localStorage.setItem("gb-notepad-last", last); } catch (e) { console.error("Notepad save failed:", e); }
     }
     renderList(last || names()[0]);
-    sel.addEventListener("change", function () { try { localStorage.setItem("gb-notepad-last", sel.value); } catch (e) {} });
+    sel.addEventListener("change", function () { try { localStorage.setItem("gb-notepad-last", sel.value); } catch (e) { window.gbLogError ? gbLogError(e, "persist") : console.error("persist", e); } });
   };
 })(window.GBNotepad);
 

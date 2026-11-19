@@ -47,13 +47,13 @@
         var t2 = global.getGBAccessToken();
         if (t2) return t2;
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "getAuthToken") : console.error("getAuthToken", e); }
     var keys = ["gb-access-token", "management_token", "token", "id_token", "gb_token"];
     for (var i = 0; i < keys.length; i++) {
       try {
         var v = localStorage.getItem(keys[i]) || sessionStorage.getItem(keys[i]);
         if (v) return v;
-      } catch (e2) {}
+      } catch (e2) { window.gbLogError ? gbLogError(e2, "getAuthToken") : console.error("getAuthToken", e2); }
     }
     return null;
   }

@@ -19,7 +19,7 @@ h.test("LISTS: mounts after load (readyState complete)", function () {
     JSON: JSON, Date: Date,
   };
   sandbox.window = sandbox;
-  try { h.loadScript("lists/lists.js", sandbox); } catch(e) {}
+  try { h.loadScript("lists/lists.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   h.assert(doc.getElementById("listsList"), "lists grid marker present");
 });
 
@@ -35,7 +35,7 @@ h.test("LISTS: one listener per control (type change/search handler source guard
     JSON: JSON, Date: Date,
   };
   sandbox.window = sandbox;
-  try { h.loadScript("lists/lists.js", sandbox); } catch(e) {}
+  try { h.loadScript("lists/lists.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   var formSubmits = h.countListeners(doc.getElementById("list-form"), "submit");
   h.assert(formSubmits <= 1, "expected <=1 submit listener on list-form, got " + formSubmits);
 });

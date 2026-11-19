@@ -224,7 +224,7 @@
       dragging = false;
       document.body.style.userSelect = previousUserSelect;
       if (pointerId != null) {
-        try { header.releasePointerCapture(pointerId); } catch (_e) {}
+        try { header.releasePointerCapture(pointerId); } catch (_e) { window.gbLogError ? gbLogError(_e, "endDrag") : console.error("endDrag", _e); }
       }
       pointerId = null;
       document.removeEventListener("pointermove", onMove);
@@ -254,7 +254,7 @@
       initialTop = parseInt(el.style.top || "0", 10) || 0;
       previousUserSelect = document.body.style.userSelect;
       document.body.style.userSelect = "none";
-      try { header.setPointerCapture(e.pointerId); } catch (_e) {}
+      try { header.setPointerCapture(e.pointerId); } catch (_e) { window.gbLogError ? gbLogError(_e, "onDown") : console.error("onDown", _e); }
       // Registered on document: captured pointer events target the header but
       // still bubble here, so synthetic streams without capture also work.
       document.addEventListener("pointermove", onMove);
@@ -343,7 +343,7 @@
       resizing = false;
       document.body.style.userSelect = previousUserSelect;
       if (pointerId != null) {
-        try { grip.releasePointerCapture(pointerId); } catch (_e) {}
+        try { grip.releasePointerCapture(pointerId); } catch (_e) { window.gbLogError ? gbLogError(_e, "endResize") : console.error("endResize", _e); }
       }
       pointerId = null;
       document.removeEventListener("pointermove", onResizeMove);
@@ -390,7 +390,7 @@
       startH = rect.height;
       previousUserSelect = document.body.style.userSelect;
       document.body.style.userSelect = "none";
-      try { grip.setPointerCapture(e.pointerId); } catch (_e) {}
+      try { grip.setPointerCapture(e.pointerId); } catch (_e) { window.gbLogError ? gbLogError(_e, "onResizeUp") : console.error("onResizeUp", _e); }
       document.addEventListener("pointermove", onResizeMove);
       document.addEventListener("pointerup", onResizeUp);
       document.addEventListener("pointercancel", onResizeUp);

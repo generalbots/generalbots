@@ -18,7 +18,7 @@ h.test("WEATHER: mounts after load (readyState complete)", function () {
     gbT: function(k,f){return f;},
   };
   sandbox.window = sandbox;
-  try { h.loadScript("weather/weather-render.js", sandbox); } catch(e) {}
+  try { h.loadScript("weather/weather-render.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   h.loadScript("weather/weather.js", sandbox);
   h.assert(doc.getElementById("weatherGo"), "weather search marker present");
 });
@@ -33,7 +33,7 @@ h.test("WEATHER: one listener per control (Search)", function () {
     gbT: function(k,f){return f;},
   };
   sandbox.window = sandbox;
-  try { h.loadScript("weather/weather-render.js", sandbox); } catch(e) {}
+  try { h.loadScript("weather/weather-render.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   h.loadScript("weather/weather.js", sandbox);
   var clicks = h.countListeners(doc.getElementById("weatherGo"), "click");
   h.assert(clicks <= 1, "expected <=1 click listener on weatherGo, got " + clicks);

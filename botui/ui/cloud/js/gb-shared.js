@@ -135,6 +135,51 @@
     try { return new Intl.NumberFormat(loc, o).format(n); } catch (e) { return String(n); }
   }
 
+  // #2301 — a caught failure has to leave a trace. Cloud pages used empty
+  // `catch (e) { window.gbLogError ? gbLogError(e, "gbFormatNumber") : console.error("gbFormatNumber", e); }` blocks too; this logs once per context per 30 s and posts
+  // to the client error endpoint when the page is signed in.
+  var reportedAt = {};
+  var REPORT_WINDOW_MS = 30000;
+
+  function gbLogError(error, context) {
+    var where = context || "unknown";
+    var message = error && error.message ? error.message : String(error);
+    var now = Date.now();
+    var repeated = false;
+    try {
+      repeated = reportedAt[where] && now - reportedAt[where] < REPORT_WINDOW_MS;
+      reportedAt[where] = now;
+    } catch (e) {
+      repeated = false;
+    }
+    if (!repeated && typeof console !== "undefined" && console.error) {
+      console.error("[gb] " + where + ": " + message, error);
+    }
+    if (repeated) return error;
+    try {
+      var body = JSON.stringify({
+        errors: [{
+          type: (error && error.name) || "Error",
+          message: message,
+          stack: error && error.stack,
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+          context: { context: where }
+        }]
+      });
+      fetch("/api/client-errors", {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: body
+      }).catch(function (sendError) {
+        if (console && console.warn) console.warn("[gb] error report failed", sendError);
+      });
+    } catch (e) {
+      if (console && console.debug) console.debug("[gb] error report unavailable", e);
+    }
+    return error;
+  }
+
   // ---------------------------------------------------------------------
   // #2297 — in-page dialogs. Native alert()/confirm()/prompt() block the whole
   // tab, ignore the app's theme and language, and are indistinguishable from a
@@ -285,6 +330,7 @@
   window.gbAlert = window.gbAlert || gbAlert;
   window.gbConfirm = window.gbConfirm || gbConfirm;
   window.gbPrompt = window.gbPrompt || gbPrompt;
+  window.gbLogError = window.gbLogError || gbLogError;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);
   // Legacy global used by few remaining call sites; a page-local declaration

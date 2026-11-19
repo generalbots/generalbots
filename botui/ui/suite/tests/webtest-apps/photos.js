@@ -23,7 +23,7 @@ h.test("PHOTOS: mounts after load (readyState complete)", function () {
     gbT: function(k,f){return f;},
   };
   sandbox.window = sandbox;
-  try { h.loadScript("photos/photos.js", sandbox); } catch(e) {}
+  try { h.loadScript("photos/photos.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   h.assert(doc.getElementById("photosGrid"), "photos grid marker present");
 });
 
@@ -42,7 +42,7 @@ h.test("PHOTOS: one listener per control (Refresh)", function () {
     gbT: function(k,f){return f;},
   };
   sandbox.window = sandbox;
-  try { h.loadScript("photos/photos.js", sandbox); } catch(e) {}
+  try { h.loadScript("photos/photos.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
   var clicks = h.countListeners(doc.getElementById("photosRefresh"), "click");
   h.assert(clicks <= 1, "expected <=1 click listener on photosRefresh, got " + clicks);
 });

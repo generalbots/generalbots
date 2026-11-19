@@ -120,7 +120,7 @@ function finalizeStreaming() {
   }
   if (el) {
     if (window.GBChatVirtual && typeof window.GBChatVirtual.remove === "function") {
-      try { window.GBChatVirtual.remove(el); } catch (e) {}
+      try { window.GBChatVirtual.remove(el); } catch (e) { window.gbLogError ? gbLogError(e, "finalizeStreaming") : console.error("finalizeStreaming", e); }
     }
     el.remove();
   } else if (sid && window.GBChatVirtual && typeof window.GBChatVirtual.remove === "function") {
@@ -133,7 +133,7 @@ function finalizeStreaming() {
           break;
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "finalizeStreaming") : console.error("finalizeStreaming", e); }
   }
   var transcript = document.getElementById("messages");
   if (transcript) transcript.removeAttribute("aria-busy");
@@ -268,9 +268,9 @@ function processMessage(data) {
           try {
             polite.textContent = announce;
             setTimeout(function () {
-              try { if (polite.textContent === announce) polite.textContent = ""; } catch (e2) {}
+              try { if (polite.textContent === announce) polite.textContent = ""; } catch (e2) { window.gbLogError ? gbLogError(e2, "setTimeout") : console.error("setTimeout", e2); }
             }, 1500);
-          } catch (e1) {}
+          } catch (e1) { window.gbLogError ? gbLogError(e1, "setTimeout") : console.error("setTimeout", e1); }
         }, 50);
       }
     } catch (eAnn) { /* announcement best-effort */ }
@@ -316,9 +316,9 @@ function processMessage(data) {
               try {
                 politeStart.textContent = startAnnounce;
                 setTimeout(function () {
-                  try { if (politeStart.textContent === startAnnounce) politeStart.textContent = ""; } catch (e2) {}
+                  try { if (politeStart.textContent === startAnnounce) politeStart.textContent = ""; } catch (e2) { window.gbLogError ? gbLogError(e2, "setTimeout") : console.error("setTimeout", e2); }
                 }, 1200);
-              } catch (e1) {}
+              } catch (e1) { window.gbLogError ? gbLogError(e1, "setTimeout") : console.error("setTimeout", e1); }
             }, 40);
           }
         }

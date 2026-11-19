@@ -109,7 +109,7 @@ async function doCheckout(e) {
         email = claims.email || claims.sub || '';
         orgName = claims.org_name || claims.org || '';
       }
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "doCheckout") : console.error("doCheckout", _); }
   }
 
   try {

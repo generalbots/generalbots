@@ -321,7 +321,7 @@ function setupWizardFinish() {
       localStorage.setItem("gb_display_name", displayName);
       localStorage.setItem("gb_llm_provider", SetupWizardState.selections.llm_provider || "local");
       localStorage.setItem("gb_setup_wizard_done", "true");
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "setupWizardFinish") : console.error("setupWizardFinish", e); }
     hideSetupWizard();
     if (window.GBToasts) GBToasts.show("Welcome", "Welcome, " + displayName + "! You're all set.", "success");
     return;

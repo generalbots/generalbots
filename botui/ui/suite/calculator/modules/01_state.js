@@ -68,7 +68,7 @@ window.GBCalc = window.GBCalc || {};
   app.writeStore = function (key, value) {
     try {
       localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(value));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "writeStore") : console.error("writeStore", e); }
   };
 
   app.loadState = function () {

@@ -93,7 +93,7 @@ function onTaskCompleted(data, appUrl) {
   if (appUrl) {
     showToast(`App ready! Click to open: ${appUrl}`, "success", 10000, () => {
       const w = window.open(appUrl, "_blank", "noopener,noreferrer");
-      if (w) { try { w.opener = null; } catch (e) {} }
+      if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "onTaskCompleted") : console.error("onTaskCompleted", e); } }
     }, 100);
     addAgentLog("success", `[COMPLETE] Task #${taskId}: ${title}`);
     addAgentLog("success", `[URL] ${appUrl}`);

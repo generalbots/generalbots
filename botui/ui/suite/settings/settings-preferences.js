@@ -74,7 +74,7 @@
                     });
                 }
             }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "currentUserIsAdmin") : console.error("currentUserIsAdmin", e); }
         return localStorage.getItem('management_is_admin') === 'true';
     }
 
@@ -100,10 +100,10 @@
             if (u && u.roles && u.roles.length) {
                 try {
                     var stored = {};
-                    try { stored = gbStoreGet('gb-user', {}) || {}; } catch (e) {}
+                    try { stored = gbStoreGet('gb-user', {}) || {}; } catch (e) { window.gbLogError ? gbLogError(e, "applySettingsRbac") : console.error("applySettingsRbac", e); }
                     stored.roles = u.roles;
                     localStorage.setItem('gb-user', JSON.stringify(stored));
-                } catch (e) {}
+                } catch (e) { window.gbLogError ? gbLogError(e, "applySettingsRbac") : console.error("applySettingsRbac", e); }
                 applySettingsRbac();
             }
         })

@@ -15,7 +15,7 @@
       }
       if(op.op==="patch_field" && op.id){
         var el2=container.querySelector('[data-record-id="'+op.id+'"]');
-        if(el2){ var f={}; try{f=JSON.parse(el2.dataset.fields||"{}");}catch(e){} f[op.field]=op.value; el2.dataset.fields=JSON.stringify(f); if(op.field==="title"||op.field==="name") el2.textContent=String(op.value); }
+        if(el2){ var f={}; try{f=JSON.parse(el2.dataset.fields||"{}");}catch (e) { window.gbLogError ? gbLogError(e, "applyToContainer") : console.error("applyToContainer", e); } f[op.field]=op.value; el2.dataset.fields=JSON.stringify(f); if(op.field==="title"||op.field==="name") el2.textContent=String(op.value); }
       }
       if(op.op==="delete_record" && op.id){ var d=container.querySelector('[data-record-id="'+op.id+'"]'); if(d) d.remove(); }
       if(op.op==="reorder" && op.id && container){ var el3=container.querySelector('[data-record-id="'+op.id+'"]'); if(el3 && typeof op.index==="number"){ var ref=container.children[op.index]; if(ref) container.insertBefore(el3, ref); else container.appendChild(el3); } }
