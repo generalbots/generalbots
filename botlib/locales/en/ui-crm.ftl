@@ -212,3 +212,10 @@ crm-contacts-empty-action = Add a contact
 crm-campaigns-empty-title = No campaigns yet
 crm-campaigns-empty-desc = A campaign groups the outreach that brings leads into the pipeline.
 crm-campaigns-empty-action = Create a campaign
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = No audit entries yet
+crm-audit-unavailable = Audit unavailable ({ $status })
+crm-campaign-metrics-sent = Sent { $sent } · delivered { $delivered } · opened { $opened } · clicked { $clicked }

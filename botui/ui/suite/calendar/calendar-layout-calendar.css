@@ -1,0 +1,246 @@
+/* Calendar Module Styles */
+
+/* Calendar Container */
+.calendar-container {
+    display: flex;
+    /* The shared `.gb-app` surface (mindfulness.css) is a column flex box.
+       The calendar is a two-pane ROW (sidebar + grid); inheriting column made
+       the sidebar take the full height and collapsed .calendar-main to 0px —
+       the app looked blank (UAT #2262). */
+    flex-direction: row;
+    height: 100%;
+    min-height: 0;
+    background: var(--background, var(--bg-primary, #0a0a0f));
+    color: var(--foreground, var(--text-primary, #ffffff));
+}
+
+/* Sidebar */
+.calendar-sidebar {
+    width: 260px;
+    border-right: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.calendar-sidebar.collapsed {
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h2 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0;
+}
+
+.sidebar-actions {
+    padding: 16px;
+}
+
+.btn-primary-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary-full:hover {
+    opacity: 0.9;
+}
+
+/* Mini Calendar */
+.mini-calendar {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.mini-calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.mini-calendar-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.mini-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.mini-calendar-weekdays span {
+    text-align: center;
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    color: var(--muted-foreground);
+    padding: 4px 0;
+}
+
+.mini-calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.mini-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: var(--text-2xs);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+}
+
+.mini-day:hover {
+    background: var(--accent);
+}
+
+.mini-day.other-month {
+    color: var(--muted-foreground);
+}
+
+.mini-day.today {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.mini-day.selected {
+    background: var(--accent);
+    border: 2px solid var(--primary);
+}
+
+.mini-day.has-events::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+}
+
+/* Sidebar Sections */
+.sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section h3 {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin: 0 0 12px 0;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+/* Calendars List */
+.calendars-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.calendar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.calendar-item:hover {
+    background: var(--accent);
+}
+
+.calendar-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.calendar-checkbox.checked::after {
+    content: "✓";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--text-2xs);
+}
+
+.calendar-name {
+    flex: 1;
+    font-size: var(--text-xs);
+}
+
+/* Upcoming Events */
+.upcoming-events {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.upcoming-event {
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

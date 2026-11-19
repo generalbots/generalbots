@@ -205,3 +205,10 @@ crm-contacts-empty-action = 연락처 추가
 crm-campaigns-empty-title = 아직 캠페인이 없습니다
 crm-campaigns-empty-desc = 캠페인은 잠재 고객을 파이프라인으로 가져오는 활동을 묶습니다.
 crm-campaigns-empty-action = 캠페인 만들기
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = 아직 감사 기록이 없습니다
+crm-audit-unavailable = 감사를 사용할 수 없습니다 ({ $status })
+crm-campaign-metrics-sent = 발송 { $sent } · 전달 { $delivered } · 열람 { $opened } · 클릭 { $clicked }

@@ -14,7 +14,7 @@
     var status = document.getElementById("gbPreviewStatus");
     var title = document.getElementById("gbPreviewName");
     if (title && name) title.textContent = String(name).split("/").pop();
-    if (status) status.textContent = "Preview";
+    if (status) status.textContent = (typeof window.gbT === "function" ? window.gbT("preview-window-title", "Preview") : "Preview");
     host.innerHTML = "";
     var ext = String(name || url).split(".").pop().toLowerCase();
     if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"].indexOf(ext) !== -1) {

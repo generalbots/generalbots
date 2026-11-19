@@ -53,7 +53,7 @@
       }
       if (op.op === "finalize") {
         var s = document.getElementById("saveStatus");
-        if (s) s.textContent = "Saved to Drive";
+        if (s) s.textContent = (typeof window.gbT === "function" ? window.gbT("docs-saved-to-drive", "Saved to Drive") : "Saved to Drive");
       }
     });
   }

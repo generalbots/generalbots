@@ -246,7 +246,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
                 if (!url) return;
                 const safe = String(url).replace(/"/g, "&quot;").trim();
                 if (!/^(https?:|data:image\/|\/)/i.test(safe)) {
-                    GBModal.alert("Only http(s), data:image or site-relative URLs are allowed.");
+                    GBModal.alert((typeof window.gbT === "function" ? window.gbT("paper-url-scheme-invalid", "Only http(s), data:image or site-relative URLs are allowed.") : "Only http(s), data:image or site-relative URLs are allowed."));
                     return;
                 }
                 gbFormat("insertHTML", `<img src="${safe}" style="max-width: 100%;">`);

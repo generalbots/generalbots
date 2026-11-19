@@ -87,7 +87,7 @@
                 var rotated = await namespace.fetchJson(rotateUrl, { method: "POST", body: { secrets: secrets } });
                 clearFormInputs(form, { secretsOnly: true });
                 progress.hidden = true;
-                successLine.textContent = "Credentials rotated. Credential version is now v" + namespace.text(rotated.credential_version, "?") + ".";
+                successLine.textContent = (typeof window.gbT === "function" ? window.gbT("integrations-credentials-rotated", "Credentials rotated. Credential version is now v") : "Credentials rotated. Credential version is now v") + namespace.text(rotated.credential_version, "?") + ".";
                 successLine.hidden = false;
                 namespace.announce(root, provider.name + " credentials rotated");
                 state.rotateTarget = null;
@@ -334,7 +334,7 @@
             var form = root.querySelector("[data-connect-form]");
             if (!form) return;
             var submit = form.querySelector('[type="submit"]');
-            if (submit) submit.textContent = "Rotate credentials";
+            if (submit) submit.textContent = (typeof window.gbT === "function" ? window.gbT("integrations-rotate-credentials", "Rotate credentials") : "Rotate credentials");
             var first = form.querySelector('input[type="password"]') || form.querySelector('[data-connect-input="true"]');
             if (first && typeof first.focus === "function") first.focus();
         });

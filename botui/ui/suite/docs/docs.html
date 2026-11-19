@@ -18,12 +18,12 @@
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group">
                     <select class="docs-select" id="docStyleSelect" title="Paragraph style" aria-label="Paragraph style" onchange="window.DocsEditor && window.DocsEditor.applyBlockStyle(this.value)">
-                        <option value="p">Normal</option>
-                        <option value="h1">Heading 1</option>
-                        <option value="h2">Heading 2</option>
-                        <option value="h3">Heading 3</option>
-                        <option value="blockquote">Quote</option>
-                        <option value="pre">Code</option>
+                        <option value="p" data-i18n="docs-style-normal">Normal</option>
+                        <option value="h1" data-i18n="docs-heading-1">Heading 1</option>
+                        <option value="h2" data-i18n="docs-heading-2">Heading 2</option>
+                        <option value="h3" data-i18n="docs-heading-3">Heading 3</option>
+                        <option value="blockquote" data-i18n="docs-style-quote">Quote</option>
+                        <option value="pre" data-i18n="docs-style-code">Code</option>
                     </select>
                     <select class="docs-select docs-font-family" id="docFontFamily" title="Font family" aria-label="Font family" data-i18n-title="docs-font-family" data-i18n-aria-label="docs-font-family" onchange="window.DocsEditor && window.DocsEditor.applyFontFamily(this.value)">
                         <option value="">Font</option>

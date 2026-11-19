@@ -146,7 +146,7 @@
         if (typeof A.renderInstructions === "function") {
             A.renderInstructions(panel);
         } else {
-            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
+            panel.innerHTML = '<p class="gb-set-hint">' + (typeof window.gbT === "function" ? window.gbT("label-loading", "Loading...") : "Loading...") + '</p>';
         }
     }
 
@@ -387,7 +387,7 @@
                 panel.innerHTML = sectionError(e);
             });
         } else {
-            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
+            panel.innerHTML = '<p class="gb-set-hint">' + (typeof window.gbT === "function" ? window.gbT("label-loading", "Loading...") : "Loading...") + '</p>';
         }
     }
 

@@ -108,7 +108,7 @@
       return Promise.resolve();
     }
     if (!isMergeableId(payload.sheet_id)) {
-      showToast("Save or open a sheet before merging cells", false);
+      showToast((typeof window.gbT === "function" ? window.gbT("sheet-merge-no-sheet", "Save or open a sheet before merging cells") : "Save or open a sheet before merging cells"), false);
       return Promise.resolve();
     }
     return fetch("/api/sheet/merge", {
@@ -136,7 +136,7 @@
     const payload = rangePayload();
     if (!payload) return Promise.resolve();
     if (!isMergeableId(payload.sheet_id)) {
-      showToast("Save or open a sheet before unmerging cells", false);
+      showToast((typeof window.gbT === "function" ? window.gbT("sheet-unmerge-no-sheet", "Save or open a sheet before unmerging cells") : "Save or open a sheet before unmerging cells"), false);
       return Promise.resolve();
     }
     return fetch("/api/sheet/unmerge", {

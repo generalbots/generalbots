@@ -83,7 +83,7 @@
     });
 
     if (collapsed) {
-      collapsed.addEventListener("click", function (e) {
+      var openFeedback = function (e) {
         e.stopPropagation();
         // expand sidebar if collapsed to show the box
         var sidebar = qs("#chatSidebar") || qs(".chat-sidebar");
@@ -94,6 +94,14 @@
           var ta = qs("#sidebarFeedbackText");
           if (ta) { try { ta.focus(); } catch (err) { window.gbLogError ? gbLogError(err, "setTimeout") : console.error("setTimeout", err); } }
         }, 150);
+      };
+      collapsed.addEventListener("click", openFeedback);
+      // role="button" needs Enter/Space to behave like a button.
+      collapsed.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          openFeedback(e);
+        }
       });
     }
 

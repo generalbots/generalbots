@@ -105,7 +105,7 @@
     var params = new URLSearchParams(window.location.search);
     var token = (params.get(TOKEN_PARAM) || "").trim();
     if (!token) {
-      showError("This link is missing its share token.");
+      showError((typeof window.gbT === "function" ? window.gbT("docs-share-missing-token", "This link is missing its share token.") : "This link is missing its share token."));
       return;
     }
     fetch(ENDPOINT + encodeURIComponent(token), {
@@ -123,10 +123,10 @@
       })
       .catch(function (error) {
         if (error && error.message === "gone") {
-          showError("This shared link is no longer available.");
+          showError((typeof window.gbT === "function" ? window.gbT("docs-share-unavailable", "This shared link is no longer available.") : "This shared link is no longer available."));
           return;
         }
-        showError("The shared document could not be opened. Try again later.");
+        showError((typeof window.gbT === "function" ? window.gbT("docs-share-open-failed", "The shared document could not be opened. Try again later.") : "The shared document could not be opened. Try again later."));
       });
   }
 

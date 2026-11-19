@@ -66,9 +66,9 @@
         if (window.AgentExecutor && steps.length) {
           var proceed = true;
           if (window.GBModal && window.GBModal.confirm) {
-            proceed = window.confirm('Open ' + steps.length + ' app(s) suggested by the plan?');
+            proceed = window.confirm((typeof window.gbT === "function" ? window.gbT("concierge-open", "Open") : "Open") + ' ' + steps.length + ' app(s) suggested by the plan?');
           } else {
-            proceed = window.confirm('Open ' + steps.length + ' app(s) suggested by the plan?');
+            proceed = window.confirm((typeof window.gbT === "function" ? window.gbT("concierge-open", "Open") : "Open") + ' ' + steps.length + ' app(s) suggested by the plan?');
           }
           if (!proceed) {
             if (stepsBox && stepsBox.querySelector('.concierge-empty')) {} 
@@ -83,7 +83,7 @@
         }
       })
       .catch(function (err) {
-        if (stepsBox) stepsBox.innerHTML = '<div class="concierge-empty">Planning failed: ' + escapeHtml((err && err.message) ? err.message : 'check the API.') + '</div>';
+        if (stepsBox) stepsBox.innerHTML = '<div class="concierge-empty">' + (typeof window.gbT === "function" ? window.gbT("concierge-planning-failed", "Planning failed:") : "Planning failed:") + ' ' + escapeHtml((err && err.message) ? err.message : 'check the API.') + '</div>';
       });
   }
 

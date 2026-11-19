@@ -139,7 +139,7 @@ function showResults(results) {
     if (total === 0) {
         const item = document.createElement('div');
         item.className = 'summary-item';
-        item.textContent = 'No specific actions detected. Try being more explicit with tasks, dates, or email mentions.';
+        item.textContent = (typeof window.gbT === "function" ? window.gbT("paper-quicknote-no-actions", "No specific actions detected. Try being more explicit with tasks, dates, or email mentions.") : "No specific actions detected. Try being more explicit with tasks, dates, or email mentions.");
         summaryEl.appendChild(item);
     } else {
         const addSummary = (count, label) => {

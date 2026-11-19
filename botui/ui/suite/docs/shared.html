@@ -11,19 +11,19 @@
     <!-- #2253 — a share link is opened by a reader with no session. This page
          is deliberately standalone: no desktop shell, no toolbar, no editor. -->
     <header class="docs-shared-bar">
-        <span class="docs-shared-title" id="sharedTitle">Shared document</span>
-        <span class="docs-shared-badge" id="sharedBadge" hidden>Read-only</span>
+        <span class="docs-shared-title" id="sharedTitle" data-i18n="docs-shared-title">Shared document</span>
+        <span class="docs-shared-badge" id="sharedBadge" hidden data-i18n="docs-shared-readonly">Read-only</span>
     </header>
 
     <main class="docs-shared-main">
-        <p class="docs-shared-state" id="sharedState" role="status">Loading shared document…</p>
+        <p class="docs-shared-state" id="sharedState" role="status" data-i18n="docs-shared-loading">Loading shared document…</p>
         <div class="docs-shared-pages" id="sharedPages" hidden>
             <article class="docs-shared-doc" id="sharedDoc" contenteditable="false" spellcheck="false"></article>
         </div>
     </main>
 
     <footer class="docs-shared-footer" id="sharedFooter">
-        <span id="sharedNotice">This document was shared as a read-only link.</span>
+        <span id="sharedNotice" data-i18n="docs-shared-notice">This document was shared as a read-only link.</span>
     </footer>
 
     <script src="/suite/docs/shared-viewer.js"></script>

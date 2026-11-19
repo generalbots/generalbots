@@ -209,3 +209,10 @@ crm-contacts-empty-action = Agregar un contacto
 crm-campaigns-empty-title = Todavía no hay campañas
 crm-campaigns-empty-desc = Una campaña agrupa las acciones que traen clientes potenciales al embudo.
 crm-campaigns-empty-action = Crear una campaña
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = Aún no hay registros de auditoría
+crm-audit-unavailable = Auditoría no disponible ({ $status })
+crm-campaign-metrics-sent = Enviados { $sent } · entregados { $delivered } · abiertos { $opened } · clicados { $clicked }

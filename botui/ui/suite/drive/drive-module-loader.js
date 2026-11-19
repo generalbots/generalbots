@@ -14,6 +14,7 @@
         '/suite/drive/modules/05_upload.js',
         '/suite/drive/modules/06_render.js',
         '/suite/drive/modules/07_events.js',
+        '/suite/drive/modules/07b_events_menus.js',
         '/suite/drive/modules/08_modals.js',
         '/suite/drive/modules/08_modals_editor.js',
         '/suite/drive/modules/08_preview_parse.js',

@@ -79,7 +79,7 @@
         var container = document.getElementById('db-grid-container');
         if (container) {
             container.setAttribute('aria-busy', 'true');
-            container.innerHTML = '<div class="db-loading" role="status">Loading table data...</div>';
+            container.innerHTML = '<div class="db-loading" role="status">' + (typeof window.gbT === "function" ? window.gbT("database-table-loading", "Loading table data...") : "Loading table data...") + '</div>';
         }
         try {
             var data = await DB.fetchJson(url);

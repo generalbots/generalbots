@@ -79,7 +79,7 @@
     popover.className = "gb-cp-pop";
     popover.style.display = "none";
     popover.setAttribute("role", "dialog");
-    popover.setAttribute("aria-label", "Choose colour");
+    popover.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("color-picker-choose", "Choose colour") : "Choose colour"));
     document.body.appendChild(popover);
     document.addEventListener("mousedown", function (e) {
       if (!active) return;
@@ -117,7 +117,7 @@
         }).join("") + "</div>"
       : '<div class="gb-cp-empty">No recent colours</div>';
     p.innerHTML =
-      '<div class="gb-cp-title">Palette</div>' +
+      '<div class="gb-cp-title">' + (typeof window.gbT === "function" ? window.gbT("color-picker-palette", "Palette") : "Palette") + '</div>' +
       '<div class="gb-cp-grid">' + PALETTE.map(function (c) {
         return '<button type="button" class="gb-cp-cell" data-color="' + c + '" title="' + c + '" style="background:' + c + '"></button>';
       }).join("") + "</div>" +

@@ -97,7 +97,7 @@
         const key = btn.dataset.delTs;
         // #2297 — GBModal falls back to the native dialog on its own, so the
         // branch on window.GBModal.confirm here was dead weight.
-        window.GBModal.confirm("Delete this note?", function () {
+        window.GBModal.confirm((typeof window.gbT === "function" ? window.gbT("notepad-delete-confirm", "Delete this note?") : "Delete this note?"), function () {
           remove(key);
         });
       });

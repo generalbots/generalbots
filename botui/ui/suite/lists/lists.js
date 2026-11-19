@@ -141,13 +141,13 @@ async function loadLists() {
             if (!Array.isArray(allLists)) allLists = [];
             renderLists();
         } else {
-            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">Failed to load lists. <button type="button" id="lists-retry-btn" style="margin-left:8px;">Retry</button></div>';
+            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">' + (typeof window.gbT === "function" ? window.gbT("lists-load-failed", "Failed to load lists.") : "Failed to load lists.") + ' <button type="button" id="lists-retry-btn" style="margin-left:8px;">' + (typeof window.gbT === "function" ? window.gbT("action-retry", "Retry") : "Retry") + '</button></div>';
             var btn = document.getElementById('lists-retry-btn');
             if (btn) btn.addEventListener('click', loadLists);
         }
     } catch (e) {
         console.error('loadLists:', e);
-        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">Failed to load lists. <button type="button" id="lists-retry-btn" style="margin-left:8px;">Retry</button></div>';
+        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:#ef4444">' + (typeof window.gbT === "function" ? window.gbT("lists-load-failed", "Failed to load lists.") : "Failed to load lists.") + ' <button type="button" id="lists-retry-btn" style="margin-left:8px;">' + (typeof window.gbT === "function" ? window.gbT("action-retry", "Retry") : "Retry") + '</button></div>';
         var btn2 = document.getElementById('lists-retry-btn');
         if (btn2) btn2.addEventListener('click', loadLists);
     }

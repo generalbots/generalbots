@@ -265,7 +265,7 @@
                         html += '</tr>';
                     });
                     html += '</tbody></table>';
-                    result.innerHTML = '<div class="db-success" role="status">Query returned ' + data.rows.length + ' row(s).</div>' + html;
+                    result.innerHTML = '<div class="db-success" role="status">' + (typeof window.gbT === "function" ? window.gbT("database-query-returned", "Query returned") : "Query returned") + ' ' + data.rows.length + ' row(s).</div>' + html;
                 } else if (data.error) {
                     result.innerHTML = '<div class="db-error" role="alert">' + DB.sanitize(data.error) + '</div>';
                 } else {

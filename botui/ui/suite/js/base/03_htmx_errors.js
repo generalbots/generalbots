@@ -224,7 +224,7 @@
       htmxRetryConfig.retryCount.set(retryKey, currentRetries + 1);
       var delay = htmxRetryConfig.retryDelay * Math.pow(2, currentRetries);
       notify(
-        "Request failed. Retrying in " + (delay / 1000) + "s... (" +
+        (typeof window.gbT === "function" ? window.gbT("htmx-request-retrying", "Request failed. Retrying in") : "Request failed. Retrying in") + " " + (delay / 1000) + "s... (" +
           (currentRetries + 1) + "/" + htmxRetryConfig.maxRetries + ")",
         "warning",
         delay

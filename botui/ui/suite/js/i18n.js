@@ -182,6 +182,9 @@
     return text;
   }
 
+  // Shared with i18n-elements.js (element/page translation).
+  window.__gbI18nShared = { t: t };
+
   // Translation with an authored fallback for dynamically built strings.
   // `t()` intentionally returns the key when the catalogue is missing it; UI
   // code that renders its own DOM should use this helper so a missing
@@ -191,75 +194,6 @@
     return value === key ? fallback : value;
   }
 
-  function elementParams(element) {
-    const paramsAttr = element.getAttribute("data-i18n-params");
-    if (!paramsAttr) return null;
-    try {
-      return JSON.parse(paramsAttr);
-    } catch (e) {
-      console.warn("i18n: Invalid params JSON", paramsAttr);
-      return null;
-    }
-  }
-
-  function translateElement(element) {
-    const key = element.getAttribute("data-i18n");
-    if (key) {
-      const params = elementParams(element);
-      const value = t(key, params);
-      // A missing catalogue entry returns the key. Keep the authored English
-      // text in that case instead of replacing it with a raw identifier.
-      if (value !== key) element.textContent = value;
-    }
-
-    // Opt-in HTML translation for strings that intentionally carry markup
-    // (e.g. a link inside a sentence). Only catalogue content is injected.
-    const htmlKey = element.getAttribute("data-i18n-html");
-    if (htmlKey) {
-      const value = t(htmlKey, elementParams(element));
-      if (value !== htmlKey) element.innerHTML = value;
-    }
-
-    const placeholderKey = element.getAttribute("data-i18n-placeholder");
-    if (placeholderKey) {
-      const value = t(placeholderKey);
-      if (value !== placeholderKey) element.setAttribute("placeholder", value);
-    }
-
-    const titleKey = element.getAttribute("data-i18n-title");
-    if (titleKey) {
-      const value = t(titleKey);
-      if (value !== titleKey) element.setAttribute("title", value);
-    }
-
-    const ariaLabelKey = element.getAttribute("data-i18n-aria-label");
-    if (ariaLabelKey) {
-      const value = t(ariaLabelKey);
-      if (value !== ariaLabelKey) element.setAttribute("aria-label", value);
-    }
-
-    const valueKey = element.getAttribute("data-i18n-value");
-    if (valueKey) {
-      const value = t(valueKey);
-      if (value !== valueKey) element.setAttribute("value", value);
-    }
-  }
-
-  function translatePage(root) {
-    const container = root || document;
-
-    const elements = container.querySelectorAll(
-      "[data-i18n], [data-i18n-html], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label], [data-i18n-value]",
-    );
-
-    elements.forEach(translateElement);
-
-    const titleKey = document.documentElement.getAttribute("data-i18n-document-title");
-    if (titleKey) {
-      const value = t(titleKey);
-      if (value !== titleKey) document.title = value;
-    }
-  }
 
   async function setLocale(locale) {
     if (locale === currentLocale && isInitialized) {
@@ -283,7 +217,7 @@
       /* persistence is optional */
     }
     await loadTranslations(locale);
-    translatePage();
+    window.__gbI18nShared.translatePage();
 
     const lang = locale.split("-")[0];
     // Keep the full BCP-47 tag on <html> so font/line-breaking and assistive
@@ -310,11 +244,11 @@
     }
 
     document.body.addEventListener("htmx:afterSwap", (event) => {
-      translatePage(event.detail.target);
+      window.__gbI18nShared.translatePage(event.detail.target);
     });
 
     document.body.addEventListener("htmx:afterSettle", (event) => {
-      translatePage(event.detail.target);
+      window.__gbI18nShared.translatePage(event.detail.target);
     });
 
     const observer = new MutationObserver((mutations) => {
@@ -330,10 +264,10 @@
                 node.hasAttribute("data-i18n-aria-label") ||
                 node.hasAttribute("data-i18n-value"))
             ) {
-              translateElement(node);
+              window.__gbI18nShared.translateElement(node);
             }
             if (node.querySelectorAll) {
-              translatePage(node);
+              window.__gbI18nShared.translatePage(node);
             }
           }
         });
@@ -421,12 +355,12 @@
 
     if (document.readyState === "loading") {
       (function(){ var __cb = () => {
-        translatePage();
+        window.__gbI18nShared.translatePage();
         setupBodyListeners();
         setTimeout(announceLocale, 0);
       }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
-      translatePage();
+      window.__gbI18nShared.translatePage();
       setupBodyListeners();
       setTimeout(announceLocale, 0);
     }
@@ -468,8 +402,6 @@
     getCurrentLocale,
     getFallbackLocale: () => fallbackLocale,
     getAvailableLocales,
-    translatePage,
-    translateElement,
     clearCache,
   };
 

@@ -1,0 +1,235 @@
+/**
+ * Research Module Styles
+ * AI-Powered Search & Discovery
+ */
+
+/* Research Container */
+.research-container {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    background: var(--background, var(--bg-primary, #0a0a0f));
+    color: var(--foreground, var(--text-primary, #ffffff));
+}
+
+/* Sidebar */
+.research-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: width 0.2s ease;
+}
+
+.research-sidebar.collapsed {
+    width: 60px;
+}
+
+.research-sidebar.collapsed .sidebar-header h2,
+.research-sidebar.collapsed .section-header h3,
+.research-sidebar.collapsed .sidebar-section h3,
+.research-sidebar.collapsed .focus-btn span,
+.research-sidebar.collapsed .prompts-grid,
+.research-sidebar.collapsed .collections-list,
+.research-sidebar.collapsed .recent-list,
+.research-sidebar.collapsed .category-name,
+.research-sidebar.collapsed .category-count {
+    display: none;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h2 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Focus Modes */
+.focus-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.focus-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: var(--text-2xs);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.focus-btn:hover {
+    background: var(--accent);
+}
+
+.focus-btn.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+.research-sidebar.collapsed .focus-btn {
+    padding: 8px;
+    justify-content: center;
+}
+
+/* Sidebar Sections */
+.sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section h3 {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin: 0 0 12px 0;
+    letter-spacing: 0.5px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+.btn-icon-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+
+.btn-icon-sm:hover {
+    background: var(--accent);
+    color: var(--foreground);
+}
+
+/* Collections */
+.collections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.collection-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    font-size: var(--text-xs);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.collection-item:hover {
+    background: var(--accent);
+}
+
+.collection-icon {
+    font-size: var(--text-sm);
+}
+
+/* Recent Searches */
+.recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: var(--text-2xs);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.recent-item:hover {
+    background: var(--accent);
+    color: var(--foreground);
+}
+
+/* Prompts */
+.prompts-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.prompt-chip {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: var(--text-2xs);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.prompt-chip:hover {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+/* Source Categories */
+.sources-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

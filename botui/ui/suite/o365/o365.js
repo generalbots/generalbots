@@ -152,7 +152,7 @@ async function loadSettings(){
         if(accountEl)accountEl.textContent='Not connected';
         if(badgeEl){badgeEl.textContent='Not connected';badgeEl.className='o365-badge o365-badge-disconnected';badgeEl.style.display='inline-block'}
         if(syncEl&&data.last_sync)syncEl.textContent=gbFormatDateTime(new Date(data.last_sync));
-        else if(syncEl)syncEl.textContent='Never';
+        else if(syncEl)syncEl.textContent=(typeof window.gbT === "function" ? window.gbT("o365-never", "Never") : "Never");
     }
 }
 
@@ -196,7 +196,7 @@ async function syncNow(){
     if(syncEl)syncEl.textContent='Syncing...';
     var data=await apiCall('/api/o365/sync',{method:'POST'});
     if(!data){
-        if(syncEl)syncEl.textContent='Never';
+        if(syncEl)syncEl.textContent=(typeof window.gbT === "function" ? window.gbT("o365-never", "Never") : "Never");
         return;
     }
     loadAll();

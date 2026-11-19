@@ -391,12 +391,12 @@ function gbSheetShowLoadError(host, info) {
     title.textContent = info.message || 'The spreadsheet could not be loaded.';
     var hint = document.createElement('div');
     hint.style.cssText = 'font-size:13px;color:var(--sheet-muted, #94a3b8);margin-bottom:16px;';
-    hint.textContent = 'Nothing was opened and nothing can be saved. The Drive file is unchanged.';
+    hint.textContent = (typeof window.gbT === "function" ? window.gbT("sheet-save-nothing-open", "Nothing was opened and nothing can be saved. The Drive file is unchanged.") : "Nothing was opened and nothing can be saved. The Drive file is unchanged.");
     box.appendChild(title);
     box.appendChild(hint);
     if (info.bucket && info.path && window.WindowManager && window.WindowManager.openDeepLink) {
         var retry = document.createElement('button');
-        retry.textContent = 'Retry';
+        retry.textContent = (typeof window.gbT === "function" ? window.gbT("action-retry", "Retry") : "Retry");
         retry.style.cssText = 'padding:6px 14px;border-radius:6px;border:1px solid var(--sheet-border, #334155);' +
             'background:var(--sheet-bg-elevated, #1e293b);color:inherit;cursor:pointer;';
         retry.addEventListener('click', function () {

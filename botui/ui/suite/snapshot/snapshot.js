@@ -72,9 +72,9 @@
       try {
         var blob = await (await fetch(dataUrl)).blob();
         await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        toast("Copied to clipboard", "success");
+        toast((typeof window.gbT === "function" ? window.gbT("snapshot-copied", "Copied to clipboard") : "Copied to clipboard"), "success");
       } catch (e) {
-        toast("Copy failed: clipboard or permissions not available", "error");
+        toast((typeof window.gbT === "function" ? window.gbT("snapshot-copy-failed", "Copy failed: clipboard or permissions not available") : "Copy failed: clipboard or permissions not available"), "error");
         console.error("Snapshot copy failed:", e);
       }
     });
@@ -87,7 +87,7 @@
         a.download = "snapshot-" + Date.now() + ".png";
         a.click();
       } catch (e) {
-        toast("Download failed", "error");
+        toast((typeof window.gbT === "function" ? window.gbT("app-kit-download-failed", "Download failed") : "Download failed"), "error");
         console.error("Snapshot download failed:", e);
       }
     });
