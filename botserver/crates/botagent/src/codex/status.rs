@@ -45,9 +45,18 @@ pub fn extract_device_url(log: &str) -> Option<String> {
     None
 }
 
+/// The transcript without terminal colour/cursor codes, which the CLI wraps
+/// around the code (an escape before `ABCD-12345` defeats a word boundary).
+fn strip_ansi(log: &str) -> String {
+    Regex::new(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07")
+        .map(|re| re.replace_all(log, "").into_owned())
+        .unwrap_or_else(|_| log.to_string())
+}
+
 /// Extracts the one-time device code from the Codex CLI transcript.
-/// Codex prints: "Enter code: XXXX-XXXX" or "Code: XXXX-XXXX"
+/// Codex prints: "Enter this one-time code ... \n   XXXX-XXXXX" in colour.
 pub fn extract_device_code(log: &str) -> Option<String> {
+    let log = &strip_ansi(log);
     // Pattern: "code: XXXX-XXXX" or "enter code XXXX-XXXX" or "XXXX-XXXX"
     let re = Regex::new(r"(?i)(?:code|enter)[:\s]+([A-Z0-9]{4,8}-[A-Z0-9]{4,8})").ok()?;
     if let Some(cap) = re.captures(log) {
@@ -134,4 +143,15 @@ pub async fn status(
         device_code: code,
         message: message.to_string(),
     })
+}
+
+#[cfg(test)]
+mod device_code_tests {
+    use super::extract_device_code;
+
+    #[test]
+    fn the_code_is_found_inside_terminal_colours() {
+        let log = "2. Enter this one-time code (expires in 15 minutes)\n   \x1b[94mABCD-12EFG\x1b[0m\n";
+        assert_eq!(extract_device_code(log).as_deref(), Some("ABCD-12EFG"));
+    }
 }
