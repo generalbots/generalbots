@@ -4,7 +4,7 @@ use serde_json::Value;
 /// Drive API root.
 pub(crate) const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
 /// Folder mime type — the only one that is a directory rather than a blob.
-pub(super) const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
+pub(crate) const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// The field mask keeps responses small; the default projection omits nothing
 /// we need but is much larger.
 pub(super) const FILE_FIELDS: &str =

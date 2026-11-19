@@ -1,4 +1,5 @@
 use super::*;
+use botschema::calendar_events;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConflictCheckRequest {
