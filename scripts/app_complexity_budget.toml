@@ -10,8 +10,8 @@
 
 [defaults]
 routes = 153
-js_modules = 104
-loc = 28015
+js_modules = 115
+loc = 28051
 
 [apps."about"]
 routes = 0
@@ -71,7 +71,7 @@ loc = 3377
 [apps."chat"]
 routes = 30
 js_modules = 90
-loc = 27443
+loc = 27423
 
 [apps."clock"]
 routes = 0
@@ -106,22 +106,22 @@ loc = 1456
 [apps."designer"]
 routes = 0
 js_modules = 21
-loc = 5852
+loc = 5793
 
 [apps."desktop"]
 routes = 4
 js_modules = 62
-loc = 28015
+loc = 28051
 
 [apps."docs"]
 routes = 0
-js_modules = 104
-loc = 18747
+js_modules = 105
+loc = 18954
 
 [apps."drive"]
 routes = 26
 js_modules = 34
-loc = 10695
+loc = 10755
 
 [apps."editor"]
 routes = 1
@@ -150,8 +150,8 @@ loc = 1309
 
 [apps."integrations"]
 routes = 7
-js_modules = 14
-loc = 5577
+js_modules = 23
+loc = 7033
 
 [apps."jukebox"]
 routes = 6
@@ -280,18 +280,18 @@ loc = 560
 
 [apps."settings"]
 routes = 52
-js_modules = 29
-loc = 12006
+js_modules = 30
+loc = 12220
 
 [apps."sheet"]
 routes = 0
-js_modules = 100
-loc = 24775
+js_modules = 115
+loc = 27647
 
 [apps."slides"]
 routes = 0
-js_modules = 92
-loc = 20864
+js_modules = 93
+loc = 21097
 
 [apps."social"]
 routes = 6
@@ -306,7 +306,7 @@ loc = 412
 [apps."tasks"]
 routes = 0
 js_modules = 25
-loc = 17702
+loc = 17714
 
 [apps."tax"]
 routes = 5
@@ -341,7 +341,7 @@ loc = 364
 [apps."vibe"]
 routes = 31
 js_modules = 64
-loc = 14279
+loc = 14410
 
 [apps."video"]
 routes = 34
