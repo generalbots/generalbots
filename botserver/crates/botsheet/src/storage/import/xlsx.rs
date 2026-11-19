@@ -6,14 +6,14 @@ pub fn parse_xlsx_to_worksheets(
     ext: &str,
 ) -> Result<Vec<crate::types::Worksheet>, String> {
     if ext == "ods" {
-        return super::import_ods::parse_ods_to_worksheets(bytes);
+        return super::super::import_ods::parse_ods_to_worksheets(bytes);
     }
 
     if ext == "xlsx" || ext == "xlsm" || ext == "xls" {
         // Repair the OOXML forms the reader cannot parse (self-closing
         // `<mergeCell/>`, emitted by our own export) and never let a library
         // panic escape into a request handler (#2152).
-        let package = match super::xlsx_normalize::normalise_merge_cells(bytes) {
+        let package = match super::super::xlsx_normalize::normalise_merge_cells(bytes) {
             Ok(package) => package,
             Err(error) => {
                 log::warn!("xlsx normalisation skipped: {error}");
@@ -50,7 +50,7 @@ pub fn parse_xlsx_to_worksheets(
                     }
 
                     let key = format!("{},{}", row - 1, col - 1);
-                    let style = super::xlsx_write::extract_cell_style(cell);
+                    let style = super::super::xlsx_write::extract_cell_style(cell);
 
                     // Format code (e.g. "$#,##0.00") so the type survives round-trip.
                     let number_format = cell
@@ -100,9 +100,9 @@ pub fn parse_xlsx_to_worksheets(
                         },
                     );
                 }
-                let layout = super::xlsx_layout::extract_layout(sheet);
-                let hyperlinks = super::xlsx_layout::extract_hyperlinks(sheet);
-                let structures = super::xlsx_layout::extract_structures(sheet);
+                let layout = super::super::xlsx_layout::extract_layout(sheet);
+                let hyperlinks = super::super::xlsx_layout::extract_hyperlinks(sheet);
+                let structures = super::super::xlsx_layout::extract_structures(sheet);
                 worksheets.push(crate::types::Worksheet {
                     name: sheet.name().to_string(),
                     data,
@@ -113,21 +113,21 @@ pub fn parse_xlsx_to_worksheets(
                     merged_cells: layout.merged_cells,
                     filters: None,
                     hidden_rows: layout.hidden_rows,
-                    validations: super::xlsx_rules::extract_validations(sheet),
-                    conditional_formats: super::xlsx_rules::extract_conditional_formats(sheet),
+                    validations: super::super::xlsx_rules::extract_validations(sheet),
+                    conditional_formats: super::super::xlsx_rules::extract_conditional_formats(sheet),
                     charts: None,
                     comments: None,
                     protection: None,
                     array_formulas: None,
                     tables: structures.tables,
                     hidden_columns: layout.hidden_columns,
-                    sheet_state: sheet_visibility(sheet),
+                    sheet_state: super::sheet_visibility(sheet),
                     hyperlinks,
-                    print_setup: super::xlsx_layout::extract_print_setup(sheet),
+                    print_setup: super::super::xlsx_layout::extract_print_setup(sheet),
                     autofilter: structures.autofilter,
                     row_page_breaks: structures.row_page_breaks,
                     column_page_breaks: structures.column_page_breaks,
-                    images: super::xlsx_layout::extract_images(sheet),
+                    images: super::super::xlsx_layout::extract_images(sheet),
                     print_areas: None,
                     rich_text: None,
                 });
@@ -144,13 +144,13 @@ pub fn parse_xlsx_to_worksheets(
                 }
 
                 #[cfg(feature = "xlsx")]
-                if let Ok(format_map) = super::format_codes::extract_cell_format_codes(bytes) {
-                    super::format_codes::apply_format_codes(&mut worksheets, &format_map);
+                if let Ok(format_map) = super::super::format_codes::extract_cell_format_codes(bytes) {
+                    super::super::format_codes::apply_format_codes(&mut worksheets, &format_map);
                 }
 
                 // umya drops charts on read; extract from the raw package.
                 #[cfg(feature = "xlsx")]
-                match super::chart_read::extract_charts(bytes, &worksheets) {
+                match super::super::chart_read::extract_charts(bytes, &worksheets) {
                     Ok(charts_by_ws) => {
                         for (ws_index, charts) in charts_by_ws.into_iter().enumerate() {
                             if !charts.is_empty() {
@@ -164,13 +164,13 @@ pub fn parse_xlsx_to_worksheets(
                 }
 
                 // Print areas + titles live in workbook defined names (#788 E11).
-                let print_areas = super::xlsx_layout::extract_print_areas(&workbook);
+                let print_areas = super::super::xlsx_layout::extract_print_areas(&workbook);
                 for (sheet_index, areas) in print_areas {
                     if let Some(ws) = worksheets.get_mut(sheet_index) {
                         ws.print_areas = Some(areas);
                     }
                 }
-                let print_titles = super::xlsx_layout::extract_print_titles(&workbook);
+                let print_titles = super::super::xlsx_layout::extract_print_titles(&workbook);
                 for (sheet_index, titles) in print_titles {
                     if let Some(ws) = worksheets.get_mut(sheet_index) {
                         let setup = ws.print_setup.get_or_insert_with(Default::default);
@@ -180,7 +180,7 @@ pub fn parse_xlsx_to_worksheets(
 
                 // Rich-text runs (E6): umya flattens them, so recover from the
                 // raw sharedStrings.xml + sheet parts.
-                let rich_text_by_sheet = super::xlsx_rich_text::extract_rich_text_all(bytes);
+                let rich_text_by_sheet = super::super::xlsx_rich_text::extract_rich_text_all(bytes);
                 for (sheet_index, rich_text) in rich_text_by_sheet {
                     if let Some(ws) = worksheets.get_mut(sheet_index) {
                         ws.rich_text = Some(rich_text);
@@ -188,7 +188,7 @@ pub fn parse_xlsx_to_worksheets(
                 }
 
                 // Cell comments / notes (gap 27): recover from xl/commentsN.xml.
-                let comments_by_sheet = super::xlsx_comments::extract_comments(bytes);
+                let comments_by_sheet = super::super::xlsx_comments::extract_comments(bytes);
                 for (sheet_index, comments) in comments_by_sheet {
                     if let Some(ws) = worksheets.get_mut(sheet_index) {
                         for key in comments.keys() {
