@@ -103,6 +103,18 @@ scope root itself is refused. An injected script can therefore no longer wipe
 ## What the image still does not do
 
 - Secure Boot signing, TPM-sealed unseal keys and A/B updates are future work.
+  The current image is unsigned (`SecureBoot=no`, unsigned UKI); on machines
+  that refuse to boot with Secure Boot enabled, disable Secure Boot in firmware
+  as a temporary fallback (see `desktop/os/README.md`).
+- Data at rest is not encrypted in the image recipe: there is no LUKS mapping,
+  no TPM-sealed disk key, and no `systemd-cryptenroll` provisioning flow.
+  Scheduled snapshot/backup, "Export my data", and "Reset this PC" are not
+  implemented yet.
+- Peripheral, accessibility, and display runtime integration is incomplete:
+  image groundwork packages/config exist for Bluetooth/printing/input tools,
+  AT-SPI/Orca/Squeekboard, and brightness/display sensors, but Settings/UI
+  wiring, lock/wizard/runtime behavior, and hardware verification remain
+  follow-up work.
 - The Vault token and unseal keys still live in the stack directory owned by
   `gbdesk`; separating the sidecar into a system account is the next step.
 - There is no password check on the lock overlay yet.

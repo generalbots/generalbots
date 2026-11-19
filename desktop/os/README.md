@@ -240,6 +240,40 @@ laptop user expects. Each block names the issue it answers.
 | Sandbox | `bubblewrap` + `libseccomp2`, `WEBKIT_FORCE_SANDBOX=1`, `LIBSEAT_BACKEND=logind` (#2500) |
 | Power | `/usr/local/libexec/gb-power` (fixed action list) + `sudoers.d/gb-power`, logind `HandlePowerKey=ignore`, polkit rule denying logind/NetworkManager power and network actions to `gbdesk` (#2444, #2502) |
 
+
+## Secure Boot boot failure fallback (#2478, offline docs slice)
+
+The current appliance image is **unsigned** (`SecureBoot=no`,
+`UnifiedKernelImages=unsigned`). On laptops with Secure Boot enabled by default,
+firmware may refuse to boot it. Until signed boot artifacts and release
+enforcement land, the documented fallback is:
+
+1. Power off the machine and open firmware/UEFI setup.
+2. Find **Secure Boot** and set it to **Disabled** (or clear/unenroll keys only
+   if your firmware requires that to disable enforcement — prefer the explicit
+   Disable toggle when available).
+3. Save changes and boot the General Bots OS medium again.
+
+Common firmware keys/menu names (vary by vendor/model/firmware revision):
+
+| Vendor / firmware | Setup key(s) | Secure Boot location (typical names) |
+|---|---|---|
+| Dell | `F2` (Setup), `F12` (Boot menu) | `Boot Configuration` / `Secure Boot` / `Secure Boot Enable` |
+| HP | `Esc` then `F10` (BIOS Setup) | `Security` / `Secure Boot Configuration` / `Secure Boot` |
+| Lenovo (ThinkPad/IdeaPad) | `F1` or `Enter`+`F1` (ThinkPad), `F2`/`Fn+F2` (IdeaPad) | `Security` / `Secure Boot` |
+| ASUS | `F2` or `Del` | `Boot` or `Security` / `Secure Boot` / `OS Type` (`Other OS`) |
+| Acer | `F2` (sometimes requires Supervisor password first) | `Security` / `Secure Boot` / `Set Supervisor Password` then disable |
+| MSI | `Del` | `Settings` / `Security` / `Secure Boot` |
+| Microsoft Surface | hold `Volume Up` while pressing Power | `Security` / `Secure Boot` / change certificate/profile |
+| Generic UEFI/AMI/Award/Phoenix | `Del`, `F2`, `Esc`, `F10`, or `F12` | `Boot`, `Security`, or `Authentication` / `Secure Boot` |
+
+Notes: keep UEFI mode enabled unless your hardware requires legacy/CSM for a
+separate reason; do not enable CSM as part of this fallback. This is a
+temporary workaround for the unsigned development/current image, not a security
+recommendation. Signed UKI/bootloader, MOK enrolment for unsigned-developer
+flows, release-build key enforcement, QEMU/OVMF Secure Boot CI tests, and
+recovery-screen integration are tracked/follow-up work (#2478, #2468).
+
 ## Next hardening steps (mkosi supports all of them)
 
 1. Signed boot chain (Secure Boot UKI/bootloader) — tracked by #2478. When
