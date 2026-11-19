@@ -184,8 +184,22 @@ async function doActivate(id) {
   }
 }
 
+// #2301 — a failed model action used to look like a no-op: the panel simply
+// re-rendered and the user had no way to tell the request never landed.
+function reportActionFailure(what, err) {
+  var msg = document.getElementById("gbLocalMsg");
+  if (msg) {
+    msg.innerHTML = '<p class="gb-set-warn">' +
+      esc(t("actionFailed")
+        .replace("%a", what).replace("%r", String(err && err.message || err))) +
+      '</p>';
+  }
+  console.error("local model " + what + " failed:", err);
+}
+
 async function doDelete(id) {
-  try { await A.apiFetch("/api/llm/local/models/" + encodeURIComponent(id), { method: "DELETE" }); } catch (e) {}
+  try { await A.apiFetch("/api/llm/local/models/" + encodeURIComponent(id), { method: "DELETE" }); }
+  catch (e) { reportActionFailure(t("remove"), e); }
   var panel = document.getElementById("gbSetPanel"); if (panel) A.renderModelFull(panel);
 }
 
@@ -194,12 +208,13 @@ async function doDownload(id) {
     var r = await A.apiFetch("/api/llm/local/models/" + encodeURIComponent(id) + "/download", { method: "POST" });
     var d = await r.json();
     if (d.job_id) startJobPoller(d.job_id);
-  } catch (e) {}
+  } catch (e) { reportActionFailure(t("install"), e); }
   var panel = document.getElementById("gbSetPanel"); if (panel) A.renderModelFull(panel);
 }
 
 async function doCancelJob(jobId) {
-  try { await A.apiFetch("/api/llm/local/jobs/" + encodeURIComponent(jobId) + "/cancel", { method: "POST" }); } catch (e) {}
+  try { await A.apiFetch("/api/llm/local/jobs/" + encodeURIComponent(jobId) + "/cancel", { method: "POST" }); }
+  catch (e) { reportActionFailure(t("cancel"), e); }
   stopJobPoller(jobId);
   var panel = document.getElementById("gbSetPanel"); if (panel) A.renderModelFull(panel);
 }
