@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/suite/slides/slides-table-media.css" />
 <link rel="stylesheet" href="/suite/slides/slides-object-model.css" />
 <link rel="stylesheet" href="/suite/slides/slides-delivery.css" />
+<link rel="stylesheet" href="/suite/slides/slides-masters.css" />
 
 <div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar" role="toolbar" aria-label="Presentation toolbar">
@@ -49,6 +50,9 @@
                     </button>
                     <button class="btn-icon" id="masterBtn" hx-post="/suite/slides/forms/master" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Master Slide" aria-label="Master Slide">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </button>
+                    <button class="btn-icon" id="slMastersBtn" type="button" data-i18n-title="slides-masters-open" data-i18n-aria-label="slides-masters-open-aria">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M3 9h18M8 19h8M12 15v4"/></svg>
                     </button>
                     <button class="btn-icon" id="exportBtn" hx-post="/suite/slides/forms/export" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Export" aria-label="Export" data-i18n-title="action-export" data-i18n-aria-label="action-export">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -262,6 +266,12 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/57_delivery_handouts.js"></script>
 <script src="/suite/slides/modules/58_delivery_recording.js"></script>
 <script src="/suite/slides/modules/59_delivery_init.js"></script>
+<script src="/suite/slides/modules/60_masters_state.js"></script>
+<script src="/suite/slides/modules/61_masters_cascade.js"></script>
+<script src="/suite/slides/modules/62_masters_dialog.js"></script>
+<script src="/suite/slides/modules/63_masters_panels_a.js"></script>
+<script src="/suite/slides/modules/64_masters_panels_b.js"></script>
+<script src="/suite/slides/modules/65_masters_init.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>
 <script>
