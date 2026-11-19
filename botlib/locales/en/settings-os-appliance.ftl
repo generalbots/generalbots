@@ -6,7 +6,7 @@ os-net-readonly = Network configuration is managed by the host appliance. This p
 os-power-title = Power & Battery
 os-power-subtitle = Battery, charging and power behavior
 os-power-status = Power status
-os-power-readonly = Power actions require the OS appliance backend and are not available in this build yet.
+os-power-readonly = Shows battery and AC status when host telemetry is available. Low-battery notifications fire at 20%, 10%, and 5%. Lid policy and configurable critical actions require backend support and remain read-only in this build.
 os-display-title = Display
 os-display-subtitle = Brightness, scaling and external displays
 os-display-status = Display status
@@ -34,3 +34,18 @@ os-diagnostics-readonly = Diagnostic collection is read-only and depends on the 
 os-backend-pending = Waiting for OS backend…
 os-backend-unavailable = OS backend endpoint unavailable in this build. This page is read-only.
 os-backend-connected = Connected to OS backend.
+
+# #2445 — battery/power status details
+os-yes = Yes
+os-no = No
+os-power-present = Battery present
+os-power-percent = Charge
+os-power-state = State
+os-power-ac = AC power
+os-power-ac-online = Online
+os-power-ac-offline = Offline
+os-power-time-remaining = Estimated time remaining
+os-power-minutes = {minutes} min
+os-power-sources = Power sources detected
+os-power-thresholds-note = Low-battery notifications are shown at 20%, 10%, and 5% when host telemetry is available.
+os-power-policy-note = Lid policy and configurable critical actions (suspend/hibernate/shutdown) require backend support and remain unavailable in this build.

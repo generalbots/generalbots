@@ -14,3 +14,10 @@
   font-size: 13px;
   color: var(--text-secondary, #6b7280);
 }
+
+.os-power-grid { display: grid; gap: 6px; }
+.os-power-row { display: flex; justify-content: space-between; gap: 12px; }
+.os-power-label { color: var(--text-secondary, #6b7280); }
+.os-power-value { color: var(--text-primary, inherit); font-weight: 500; }
+.os-power-notes { margin: 10px 0 0; padding-left: 18px; color: var(--text-secondary, #6b7280); font-size: 13px; }
+.os-power-notes li { margin: 4px 0; }

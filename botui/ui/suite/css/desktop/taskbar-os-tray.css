@@ -81,3 +81,20 @@
 @media (max-width: 1024px) {
   .toolbar-v15 .taskbar-tray.is-tray-compact .os-tray-btn[data-priority="med"] { display: none; }
 }
+
+/* #2445 battery/power states */
+.os-tray-btn[data-power-level="low"] { color: #f59e0b; }
+.os-tray-btn[data-power-level="critical"] { color: #ef4444; }
+.os-tray-btn[data-power-level="charging"] { color: #22c55e; }
+.os-tray-btn[data-power-level="full"] { color: #22c55e; }
+.os-tray-live-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

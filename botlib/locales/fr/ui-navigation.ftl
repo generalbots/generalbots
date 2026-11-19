@@ -188,3 +188,16 @@ taskbar-power-unknown = Contrôles d’alimentation indisponibles
 taskbar-os-overflow = Plus d’indicateurs
 taskbar-os-overflow-aria = Afficher les indicateurs masqués
 taskbar-open-settings = Ouvrir les paramètres
+
+# #2445 — battery/power status (tray + OS settings)
+taskbar-battery-charging-unknown = En charge
+taskbar-battery-full = Complètement chargée
+taskbar-battery-present = Batterie présente
+taskbar-battery-full-pct = {percent} % — complètement chargée
+taskbar-battery-charging-pct = {percent} % — en charge
+taskbar-battery-discharging-pct = {percent} % — sur batterie
+taskbar-battery-pct = {percent} % — {state}
+taskbar-battery-low-notify = Batterie faible : {percent} %
+taskbar-battery-critical-notify = Batterie critique : {percent} %
+taskbar-power-ac-only = Alimentation secteur
+taskbar-power-summary = {percent} % de batterie

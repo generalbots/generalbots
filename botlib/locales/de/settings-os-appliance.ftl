@@ -6,7 +6,7 @@ os-net-readonly = Die Netzwerkkonfiguration wird vom Host-Gerät verwaltet. Dies
 os-power-title = Energie und Akku
 os-power-subtitle = Akku, Laden und Energieverhalten
 os-power-status = Energiestatus
-os-power-readonly = Energieaktionen erfordern das OS-Appliance-Backend und sind in diesem Build noch nicht verfügbar.
+os-power-readonly = Zeigt Akku- und Netzstatus an, wenn Host-Telemetrie verfügbar ist. Benachrichtigungen bei niedrigem Akkustand werden bei 20 %, 10 % und 5 % angezeigt. Deckelrichtlinie und konfigurierbare kritische Aktionen erfordern Backend-Unterstützung und bleiben in diesem Build schreibgeschützt.
 os-display-title = Anzeige
 os-display-subtitle = Helligkeit, Skalierung und externe Bildschirme
 os-display-status = Anzeigestatus
@@ -34,3 +34,18 @@ os-diagnostics-readonly = Die Diagnosesammlung ist schreibgeschützt und hängt 
 os-backend-pending = Warte auf OS-Backend…
 os-backend-unavailable = OS-Backend-Endpunkt in diesem Build nicht verfügbar. Diese Seite ist schreibgeschützt.
 os-backend-connected = Mit OS-Backend verbunden.
+
+# #2445 — battery/power status details
+os-yes = Ja
+os-no = Nein
+os-power-present = Akku vorhanden
+os-power-percent = Ladung
+os-power-state = Status
+os-power-ac = Netzbetrieb
+os-power-ac-online = Verbunden
+os-power-ac-offline = Getrennt
+os-power-time-remaining = Geschätzte verbleibende Zeit
+os-power-minutes = {minutes} Min.
+os-power-sources = Erkannte Energiequellen
+os-power-thresholds-note = Benachrichtigungen bei niedrigem Akkustand werden bei 20 %, 10 % und 5 % angezeigt, wenn Host-Telemetrie verfügbar ist.
+os-power-policy-note = Deckelrichtlinie und konfigurierbare kritische Aktionen (Ruhezustand/Hibernate/Herunterfahren) erfordern Backend-Unterstützung und sind in diesem Build nicht verfügbar.

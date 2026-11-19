@@ -188,3 +188,16 @@ taskbar-power-unknown = 电源控制不可用
 taskbar-os-overflow = 更多指示器
 taskbar-os-overflow-aria = 显示隐藏的指示器
 taskbar-open-settings = 打开设置
+
+# #2445 — battery/power status (tray + OS settings)
+taskbar-battery-charging-unknown = 正在充电
+taskbar-battery-full = 已充满
+taskbar-battery-present = 有电池
+taskbar-battery-full-pct = {percent}% — 已充满
+taskbar-battery-charging-pct = {percent}% — 正在充电
+taskbar-battery-discharging-pct = {percent}% — 使用电池
+taskbar-battery-pct = {percent}% — {state}
+taskbar-battery-low-notify = 电池电量低：{percent}%
+taskbar-battery-critical-notify = 电池电量严重不足：{percent}%
+taskbar-power-ac-only = 交流供电
+taskbar-power-summary = 电池 {percent}%

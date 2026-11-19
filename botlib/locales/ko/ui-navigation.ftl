@@ -188,3 +188,16 @@ taskbar-power-unknown = 전원 제어를 사용할 수 없음
 taskbar-os-overflow = 추가 표시기
 taskbar-os-overflow-aria = 숨겨진 표시기 보기
 taskbar-open-settings = 설정 열기
+
+# #2445 — battery/power status (tray + OS settings)
+taskbar-battery-charging-unknown = 충전 중
+taskbar-battery-full = 완전히 충전됨
+taskbar-battery-present = 배터리 있음
+taskbar-battery-full-pct = {percent}% — 완전히 충전됨
+taskbar-battery-charging-pct = {percent}% — 충전 중
+taskbar-battery-discharging-pct = {percent}% — 배터리 사용 중
+taskbar-battery-pct = {percent}% — {state}
+taskbar-battery-low-notify = 배터리 부족: {percent}%
+taskbar-battery-critical-notify = 배터리 매우 부족: {percent}%
+taskbar-power-ac-only = AC 전원
+taskbar-power-summary = 배터리 {percent}%

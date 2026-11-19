@@ -6,7 +6,7 @@ os-net-readonly = La configuration réseau est gérée par l’appareil hôte. C
 os-power-title = Alimentation et batterie
 os-power-subtitle = Batterie, charge et comportement d’alimentation
 os-power-status = État de l’alimentation
-os-power-readonly = Les actions d’alimentation nécessitent le backend de l’appareil et ne sont pas encore disponibles dans cette version.
+os-power-readonly = Affiche l’état de la batterie et de l’alimentation secteur lorsque la télémétrie de l’hôte est disponible. Les notifications de batterie faible s’affichent à 20 %, 10 % et 5 %. La politique du capot et les actions critiques configurables nécessitent la prise en charge du backend et restent en lecture seule dans cette version.
 os-display-title = Affichage
 os-display-subtitle = Luminosité, mise à l’échelle et écrans externes
 os-display-status = État de l’affichage
@@ -34,3 +34,18 @@ os-diagnostics-readonly = La collecte de diagnostics est en lecture seule et dé
 os-backend-pending = En attente du backend système…
 os-backend-unavailable = Point de terminaison du backend système indisponible dans cette version. Cette page est en lecture seule.
 os-backend-connected = Connecté au backend système.
+
+# #2445 — battery/power status details
+os-yes = Oui
+os-no = Non
+os-power-present = Batterie présente
+os-power-percent = Charge
+os-power-state = État
+os-power-ac = Alimentation secteur
+os-power-ac-online = Branchée
+os-power-ac-offline = Débranchée
+os-power-time-remaining = Temps restant estimé
+os-power-minutes = {minutes} min
+os-power-sources = Sources d’alimentation détectées
+os-power-thresholds-note = Les notifications de batterie faible s’affichent à 20 %, 10 % et 5 % lorsque la télémétrie de l’hôte est disponible.
+os-power-policy-note = La politique du capot et les actions critiques configurables (suspendre/hiberner/éteindre) nécessitent la prise en charge du backend et restent indisponibles dans cette version.
