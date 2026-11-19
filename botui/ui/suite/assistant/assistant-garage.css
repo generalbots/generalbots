@@ -35,7 +35,7 @@
 
 /* -- Marks and chips -- */
 .gb-gar-mark { flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center;
-    justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; margin-top: 1px; }
+    justify-content: center; font-size: var(--id-text-xs); font-weight: 700; line-height: 1; margin-top: 1px; }
 .gb-gar-mark.yes { background: var(--id-success-soft); color: var(--id-success-text); }
 .gb-gar-mark.yes::before { content: "\2713"; }
 .gb-gar-mark.part { background: var(--id-warn-soft); color: var(--id-warn-text); }
@@ -177,3 +177,7 @@
 .gb-mac-mid .gb-mac-fit-pct { color: var(--id-warn-text); }
 .gb-mac-bad .gb-mac-fit-pct { color: var(--id-danger-text); }
 @media (max-width: 640px) { .gb-mac-row { grid-template-columns: 1fr; gap: 2px; } }
+@media (prefers-reduced-motion: reduce) {
+    .gb-gar-choice, .gb-gar-head-cta svg { transition: none; }
+    .gb-gar-choice:hover { transform: none; }
+}

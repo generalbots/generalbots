@@ -25,7 +25,6 @@ raw-hex:botui/ui/suite/analytics/partials/business-reports-cards.css 4
 raw-hex:botui/ui/suite/analytics/partials/business-reports-layout.css 5
 raw-hex:botui/ui/suite/analytics/partials/business-reports-metrics.css 15
 raw-hex:botui/ui/suite/assistant/assistant-blocks.css 6
-raw-hex:botui/ui/suite/assistant/assistant-chat.css 1
 raw-hex:botui/ui/suite/assistant/assistant-drive.css 5
 raw-hex:botui/ui/suite/assistant/assistant-feedback.css 4
 raw-hex:botui/ui/suite/assistant/titlebar.css 11

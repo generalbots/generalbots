@@ -143,7 +143,7 @@ A.blockAttachmentRead = function (ev) {
             row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
-            (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
+            (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + A.t("blocks.unit-chars", "chars")) : "") +
             (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#a16207">' + t("Truncado","Truncated") + '</span></div>' : "") });
     /* Make the block clickable to open the file preview */
     if (typeof A.makeAttachClickable === "function" && (s.name || s.file)) {
@@ -171,7 +171,7 @@ A.blockDriveList = function (ev) {
     }).join("");
     var total = s.total || items.length;
     return block({ icon: "folder-open", title: t("Listagem no Drive","Drive listing"),
-        summary: (s.path||s.query||"") + " · " + total + " " + t("itens","items"),
+        summary: (s.path||s.query||"") + " · " + total + " " + A.t("blocks.unit-items", "items"),
         status: mapStatus(ev.status), activityId: ev.id, bodyHtml: rows });
 };
 
@@ -185,7 +185,7 @@ A.blockDriveSearch = function (ev) {
     }).join("");
     var total = s.total || items.length;
     return block({ icon: "magnifying-glass", title: t("Pesquisa no Drive","Drive search"),
-        summary: (s.query||"") + " · " + total + " " + t("resultados","results"),
+        summary: (s.query||"") + " · " + total + " " + A.t("blocks.unit-results", "results"),
         status: mapStatus(ev.status), activityId: ev.id, bodyHtml: rows });
 };
 
@@ -206,7 +206,7 @@ A.blockKbSearch = function (ev) {
             (r.excerpt ? '<div class="gb-block-source-excerpt">' + esc(r.excerpt) + '</div>' : '') + '</div>';
     }).join("");
     return block({ icon: "magnifying-glass", title: t("Base de conhecimento","Knowledge base"),
-        summary: total + " " + t("fontes","sources"), status: mapStatus(ev.status),
+        summary: total + " " + A.t("blocks.unit-sources", "sources"), status: mapStatus(ev.status),
         activityId: ev.id, bodyHtml: rows });
 };
 
@@ -431,7 +431,11 @@ A.addMsgToolbar = function (el, content, retryable) {
     if (content) {
         var cp = document.createElement("button"); cp.className = "gb-msg-toolbar-btn"; cp.title = t("Copiar","Copy");
         cp.innerHTML = I("copy", 14);
-        cp.addEventListener("click", function () { navigator.clipboard.writeText(content).catch(function () {}); });
+        cp.addEventListener("click", function () {
+            navigator.clipboard.writeText(content).catch(function (err) {
+                console.warn("[assistant] toolbar copy failed", err);
+            });
+        });
         tb.appendChild(cp);
     }
     if (retryable) {

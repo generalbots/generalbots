@@ -200,5 +200,9 @@ window.GBAssistantLocales["en"] = {
     "assistant.print":         "Print / PDF",
     "feedback.good":           "Good answer",
     "feedback.bad":            "Bad answer",
-    "feedback.comment":        "What could be better?"
+    "feedback.comment":        "What could be better?",
+    "blocks.unit-chars":       "chars",
+    "blocks.unit-items":       "items",
+    "blocks.unit-results":     "results",
+    "blocks.unit-sources":     "sources"
 };
