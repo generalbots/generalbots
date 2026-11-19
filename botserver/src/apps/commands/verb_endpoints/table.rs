@@ -1,4 +1,4 @@
-use super::VerbEndpoint;
+use super::{bind, VerbEndpoint};
 use std::sync::OnceLock;
 
 mod table_part1;
