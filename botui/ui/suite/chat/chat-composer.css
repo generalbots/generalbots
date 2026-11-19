@@ -479,3 +479,36 @@ textarea#messageInput {
     scroll-behavior: auto !important;
   }
 }
+
+/* #2516 — keyboard-aware chat layout.
+   mobile-viewport.js publishes --gb-vv-height from window.visualViewport; on
+   a phone with the on-screen keyboard open this is the only height that
+   excludes the keyboard. Without it a bottom-anchored composer sits under the
+   keyboard and the user types blind. */
+@media (max-width: 768px) {
+  #chat-app {
+    height: var(--gb-vv-height, 100dvh) !important;
+    max-height: var(--gb-vv-height, 100dvh) !important;
+    overflow: hidden;
+  }
+  #chat-app footer {
+    position: relative;
+    z-index: 2;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    margin-bottom: var(--gb-vv-bottom, 0px);
+  }
+  /* While typing, the suggestion chips lose priority to the message and the
+     send button: they are the first thing to go, not the composer. */
+  .gb-keyboard-open #chat-app .suggestions-container {
+    display: none;
+  }
+}
+
+/* #2516 — a table pasted by the model must scroll inside its bubble, never
+   force the whole conversation to scroll horizontally. */
+.bot-message table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}

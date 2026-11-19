@@ -193,7 +193,11 @@
         var content = container.querySelector(".message-content");
         if (!content) return;
         if (content.classList.contains("gb-long-handled")) return;
-        if (content.scrollHeight <= 480) return;
+        // #2516 — the collapse threshold is a viewport, not a desktop
+        // constant: 480px already fills a phone screen, and half a screen is
+        // the point where an answer stops being scannable.
+        var collapseAt = Math.max(240, Math.round((window.innerHeight || 800) * 0.5));
+        if (content.scrollHeight <= collapseAt) return;
         content.classList.add("gb-long-handled", "gb-long-collapsed");
         var showAllLabel = (typeof gbT === "function") ? gbT("chat-code-show-all", "Show all") : "Show all";
         var collapseLabel = (typeof gbT === "function") ? gbT("chat-collapse", "Collapse") : "Collapse";

@@ -27,11 +27,23 @@ form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; 
 }
 
 if (input) {
-// BBSIA: grow the composer with its content, never past 180px.
+// BBSIA: grow the composer with its content, never past 180px (#2516).
+// On a phone the 180px cap is taller than the space left once the keyboard
+// is open, so the ceiling is the smaller of 180px and a third of the visible
+// viewport (published as --gb-vv-height by mobile-viewport.js).
+var composerMax = function () {
+  var fixed = 180;
+  var vv = window.visualViewport;
+  var visible = vv && vv.height ? vv.height : window.innerHeight;
+  if (visible && visible < 900) {
+    fixed = Math.min(fixed, Math.round(visible * 0.3));
+  }
+  return Math.max(64, fixed);
+};
 var autoGrow = function () {
   if (input.tagName !== "TEXTAREA") return;
   input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 180) + "px";
+  input.style.height = Math.min(input.scrollHeight, composerMax()) + "px";
 };
 input.addEventListener("input", autoGrow);
 

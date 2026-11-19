@@ -124,6 +124,13 @@ const SIDEBAR_STATE_KEY = "gb.chatSidebar.collapsed";
 window.toggleChatSidebar = function () {
   const sidebar = document.getElementById("chatSidebar");
   if (!sidebar) return;
+  // #2416 — on a phone the rail is an off-canvas drawer; collapsing it to a
+  // 51px column would hide the conversation list again.
+  if (window.MobileNav && window.matchMedia &&
+      window.matchMedia("(max-width: 768px)").matches) {
+    window.MobileNav.toggle();
+    return;
+  }
   const collapsed = sidebar.classList.toggle("collapsed");
   try {
     localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? "1" : "0");
