@@ -19,8 +19,8 @@ async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     let install = format!(
         "id -u {user} >/dev/null 2>&1 || useradd -m -s /bin/bash {user}; \
          mkdir -p {home}/.gemini/antigravity-cli; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.gemini; \
-         command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm); \
-         command -v agy >/dev/null 2>&1 || timeout 420 npm install -g @google/antigravity-cli >/tmp/antigravity-install.log 2>&1; \
+         command -v curl >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q curl ca-certificates); \
+         command -v agy >/dev/null 2>&1 || {{ curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/agy-install.sh && HOME=/root timeout 420 bash /tmp/agy-install.sh >/tmp/antigravity-install.log 2>&1 && install -m 0755 /root/.local/bin/agy /usr/local/bin/agy; }}; \
          command -v agy >/dev/null 2>&1 && echo INSTALLED || {{ tail -20 /tmp/antigravity-install.log 2>/dev/null; exit 3; }}",
         user = ANTIGRAVITY_USER,
         home = ANTIGRAVITY_HOME

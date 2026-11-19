@@ -95,6 +95,14 @@ en: {
 function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 function g(k) { var l = pt() ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
+/** An error code from the server in the person's words. */
+function reason(code) {
+  var e = String(code || "");
+  if (/40[13]$/.test(e)) { return g("e401"); } if (/400$/.test(e)) { return g("e400"); } if (/404$/.test(e)) { return g("e404"); }
+  if (/429$/.test(e)) { return g("e429"); } if (e === "connection_refused" || e === "request_failed") { return g("eConn"); }
+  if (e === "timeout") { return g("eTimeout"); }
+  return e;
+}
 function host(u) { try { return new URL(u).hostname; } catch (e) { return ""; } }
 function logo(id) {
   var svg = (A._providerLogos || {})[id];
@@ -183,7 +191,8 @@ function renderSetup(el, id) {
       '<div class="gb-set-form-actions">' +
         '<button type="button" class="gb-set-btn-sm" id="gbProvTest">' + esc(g("test")) + '</button>' +
         '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" id="gbProvSave">' + esc(g("use")) + '</button>' +
-      '</div><div id="gbProvMsg" role="status"></div></div></div>';
+      '</div><div id="gbProvMsg" role="status"></div></div>' +
+    '<div id="gbProvKeyModels"></div></div>';
 
   el.querySelector(".gb-prov-back").addEventListener("click", function () { renderOwnKey(el); });
   var sel = el.querySelector("#gbProvModel"), other = el.querySelector("#gbProvModelOther");
@@ -209,11 +218,7 @@ function renderSetup(el, id) {
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d.reachable && d.model_responded) { say("gb-set-hint gb-set-ok", g("ok").replace("%ms", String(d.latency_ms || "?"))); return; }
-        var e = String(d.error || ""), why = e;
-        if (/40[13]$/.test(e)) { why = g("e401"); } else if (/400$/.test(e)) { why = g("e400"); } else if (/404$/.test(e)) { why = g("e404"); }
-        else if (/429$/.test(e)) { why = g("e429"); } else if (e === "connection_refused" || e === "request_failed") { why = g("eConn"); }
-        else if (e === "timeout") { why = g("eTimeout"); }
-        say("gb-set-warn", g("fail").replace("%e", why) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
+        say("gb-set-warn", g("fail").replace("%e", reason(d.error)) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
       })
       .catch(function (e) { say("gb-set-warn", g("fail").replace("%e", String(e && e.message || e))); });
   });
@@ -226,7 +231,13 @@ function renderSetup(el, id) {
       el.querySelector("#gbProvKey").value = "";
     });
   });
+  if (A._keyModels) {
+    A._keyModels.mount(el.querySelector("#gbProvKeyModels"), {
+      id: p ? p.id : "org", name: p ? p.name : g("orgT"), keyOptional: !p,
+      url: function () { return read().url; }, key: function () { return read().key; }
+    });
+  }
 }
 
-A._modelProviders = { render: renderOwnKey, list: P };
+A._modelProviders = { render: renderOwnKey, list: P, t: g, reason: reason, esc: esc };
 })();

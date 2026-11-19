@@ -49,6 +49,10 @@ if pid == 0:
 set_status("waiting")
 log = open(LOG, "wb", 0)
 sent = False
+# agy opens with a menu ("Select login method: > 1. Google OAuth"):
+# Enter picks the highlighted Google sign-in once.
+seen = ""
+menu_done = False
 deadline = time.time() + 1800
 while time.time() < deadline:
     ready, _, _ = select.select([fd], [], [], 0.5)
@@ -62,6 +66,14 @@ while time.time() < deadline:
         log.write(data)
         log.flush()
         text = data.decode("utf-8", "replace")
+        seen = (seen + text)[-4000:]
+        if not menu_done and "login method" in seen.lower():
+            time.sleep(0.5)
+            try:
+                os.write(fd, b"\r")
+            except OSError:
+                pass
+            menu_done = True
         if "Invalid" in text or "error" in text.lower() or "failed" in text.lower() or "expired" in text.lower():
             sent = False
             set_status("waiting")
