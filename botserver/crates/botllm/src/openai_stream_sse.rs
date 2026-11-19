@@ -102,9 +102,18 @@ pub(crate) async fn consume_sse_stream(
                             .or_else(|| data["choices"][0]["delta"]["reasoning_content"].as_str())
                             .map(|s| s.to_string());
 
-                        // Always accumulate reasoning from separate API field
+                        // Reasoning in the API's own field goes out as it
+                        // arrives, like the reasoning found inside the content:
+                        // the thinking is on screen while the model thinks,
+                        // not only once the answer has ended.
                         if let Some(ref reasoning) = reasoning_text {
-                            reasoning_from_field.push_str(reasoning);
+                            if !reasoning.is_empty() {
+                                reasoning_from_field.push_str(reasoning);
+                                let reasoning_chunk = serde_json::json!({
+                                    "__reasoning__": reasoning
+                                }).to_string();
+                                let _ = tx.send(reasoning_chunk).await;
+                            }
                         }
 
                         // Process content through handler — this extracts think-tag reasoning
@@ -117,9 +126,11 @@ pub(crate) async fn consume_sse_stream(
                                 }
                                 if !processed.reasoning.is_empty() {
                                     reasoning_from_content.push_str(&processed.reasoning);
-                                    // Stream reasoning chunks live to the frontend
+                                    // Stream reasoning chunks live to the frontend, as
+                                    // they came: the receiver joins them, so trimming
+                                    // each one glued the words together.
                                     let reasoning_chunk = serde_json::json!({
-                                        "__reasoning__": processed.reasoning.trim()
+                                        "__reasoning__": processed.reasoning
                                     }).to_string();
                                     let _ = tx.send(reasoning_chunk).await;
                                 }
@@ -174,22 +185,11 @@ pub(crate) async fn consume_sse_stream(
             line_buffer = line_buffer[pos..].to_string();
         }
 
-        // Combine all reasoning from both sources
-        let mut total_reasoning = reasoning_from_field;
-        if !reasoning_from_content.is_empty() {
-            if !total_reasoning.is_empty() {
-                total_reasoning.push('\n');
-            }
-            total_reasoning.push_str(&reasoning_from_content);
-        }
-
-        // Send accumulated reasoning to frontend as a thinking block
-        if !total_reasoning.is_empty() {
-            let reasoning_msg = serde_json::json!({
-                "__reasoning__": total_reasoning.trim()
-            }).to_string();
-            let _ = tx.send(reasoning_msg).await;
-            info!("LLM reasoning sent: {} bytes", total_reasoning.len());
+        // Both kinds of reasoning were streamed above, chunk by chunk: nothing
+        // is sent again here.
+        let total_reasoning = reasoning_from_field.len() + reasoning_from_content.len();
+        if total_reasoning > 0 {
+            info!("LLM reasoning sent: {} bytes", total_reasoning);
         }
 
         // After streaming ends, send every accumulated tool call. Parallel
@@ -225,7 +225,7 @@ pub(crate) async fn consume_sse_stream(
         }
 
         trace!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",
-            total_size, content_sent, total_reasoning.len(), first_bytes, last_bytes);
+            total_size, content_sent, total_reasoning, first_bytes, last_bytes);
 
         Ok(())
 }
@@ -275,6 +275,30 @@ mod sse_tests {
         .await;
 
         assert_eq!(emitted.concat(), "Hello");
+    }
+
+    #[tokio::test]
+    async fn reasoning_in_its_own_field_is_forwarded_as_it_arrives() {
+        let thinking = |text: &str| {
+            format!("data: {{\"choices\":[{{\"delta\":{{\"reasoning_content\":\"{text}\"}}}}]}}\n\n")
+        };
+        let emitted = run(vec![
+            &thinking("Let me "),
+            &thinking("think."),
+            &content_delta("Answer"),
+            "data: [DONE]\n\n",
+        ])
+        .await;
+
+        assert_eq!(
+            emitted,
+            vec![
+                serde_json::json!({ "__reasoning__": "Let me " }).to_string(),
+                serde_json::json!({ "__reasoning__": "think." }).to_string(),
+                "Answer".to_string(),
+            ],
+            "each reasoning delta once, before the answer, and nothing after it"
+        );
     }
 
     #[tokio::test]

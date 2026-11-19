@@ -23,11 +23,6 @@ function fmtBytes(b) {
 }
 var pt = function () { return A.locale && A.locale.startsWith("pt"); };
 function t(ptT, enT) { return pt() ? ptT : enT; }
-// Catalogue-backed translation for rollout summaries (#2542): the surrounding
-// `t(pt, en)` literals predate the catalogues, these five do not need to stay.
-function gbt(key, fallback) {
-    return window.gbT ? window.gbT(key, fallback) : fallback;
-}
 
 /* ---- Status mapping ---- */
 function mapStatus(s) {
@@ -148,7 +143,7 @@ A.blockAttachmentRead = function (ev) {
             row(t("Arquivo","File"), s.name||s.file) +
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
-            (s.chars_read ? row(gbt("assistant-rows-read","Read"), s.chars_read + " " + gbt("assistant-rows-chars","chars")) : "") +
+            (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
             (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#a16207">' + t("Truncado","Truncated") + '</span></div>' : "") });
     /* Make the block clickable to open the file preview */
     if (typeof A.makeAttachClickable === "function" && (s.name || s.file)) {
@@ -176,7 +171,7 @@ A.blockDriveList = function (ev) {
     }).join("");
     var total = s.total || items.length;
     return block({ icon: "folder-open", title: t("Listagem no Drive","Drive listing"),
-        summary: (s.path||s.query||"") + " · " + total + " " + gbt("assistant-rows-items","items"),
+        summary: (s.path||s.query||"") + " · " + total + " " + t("itens","items"),
         status: mapStatus(ev.status), activityId: ev.id, bodyHtml: rows });
 };
 
@@ -190,7 +185,7 @@ A.blockDriveSearch = function (ev) {
     }).join("");
     var total = s.total || items.length;
     return block({ icon: "magnifying-glass", title: t("Pesquisa no Drive","Drive search"),
-        summary: (s.query||"") + " · " + total + " " + gbt("assistant-rows-results","results"),
+        summary: (s.query||"") + " · " + total + " " + t("resultados","results"),
         status: mapStatus(ev.status), activityId: ev.id, bodyHtml: rows });
 };
 
@@ -211,7 +206,7 @@ A.blockKbSearch = function (ev) {
             (r.excerpt ? '<div class="gb-block-source-excerpt">' + esc(r.excerpt) + '</div>' : '') + '</div>';
     }).join("");
     return block({ icon: "magnifying-glass", title: t("Base de conhecimento","Knowledge base"),
-        summary: total + " " + gbt("assistant-rows-sources","sources"), status: mapStatus(ev.status),
+        summary: total + " " + t("fontes","sources"), status: mapStatus(ev.status),
         activityId: ev.id, bodyHtml: rows });
 };
 
@@ -279,7 +274,7 @@ A.blockError = function (ev) {
     var s = ev.summary || ev.data || ev;
     return block({ icon: "warning-circle", title: t("Erro","Error"),
         summary: s.message || s.error || "", status: "failed", activityId: ev.id,
-        footerHtml: '<button class="gb-set-btn-sm gb-msg-retry" onclick="(function(){var A=GBAssistant,u=document.querySelectorAll(\'#gbMessages .gb-msg-user\'),l=u[u.length-1];if(!l)return;var t=(l.dataset.originalContent||\'\').trim();if(!t)return;this.closest(\'.gb-msg-assistant\').remove();A.lastCompletedContent=\'\';A.lastCompletedTime=0;A.showThinking();if(!A.sendMessage(t)){A.hideThinking();A.renderErrorCode(\'model_unreachable\');}}).call(this)">' +
+        footerHtml: '<button class="gb-set-btn-sm gb-msg-retry" onclick="GBAssistant.regenerateFrom(this.closest(\'.gb-msg-assistant\'))">' +
             esc(t("Tentar de novo","Try again")) + '</button>' });
 };
 
@@ -391,4 +386,59 @@ A.onActivityEvent = function (frame) {
     if (!A.isUserScrolledUp || !A.isUserScrolledUp()) { A.scrollToBottom(false); }
 };
 
+/* ---- Attachment card ---- */
+function truncMiddle(s, max) { if (!s || s.length <= max) return s; var h = Math.floor((max-3)/2); return s.substring(0,h) + "..." + s.substring(s.length-h); }
+
+A.attachCard = function (file, opts) {
+    opts = opts || {};
+    var name = file.name || (typeof file === "string" ? file : "");
+    var size = file.size || file.size_bytes || 0;
+    var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
+    var icon = fileIcon(name); var tint = fileTint(name);
+    var overLimit = size > 8 * 1024 * 1024;
+    var card = document.createElement("div");
+    card.className = "gb-attach-card" + (overLimit ? " gb-attach-error" : "");
+    if (isImage && file instanceof File && !overLimit) {
+        var thumb = document.createElement("img");
+        thumb.className = "gb-attach-thumb";
+        try { thumb.src = URL.createObjectURL(file); } catch (e) { /* */ }
+        card.appendChild(thumb);
+    }
+    var displayName = truncMiddle(name, 28);
+    var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
+    html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
+    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
+    if (opts.removable !== false) {
+        html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';
+    }
+    card.insertAdjacentHTML("beforeend", html);
+    if (opts.onRemove) { var rm = card.querySelector(".gb-attach-remove"); if (rm) rm.addEventListener("click", opts.onRemove); }
+    /* Auto-detect drivePath from history attachment objects. */
+    if (!opts.drivePath && file && typeof file === "object" && !(file instanceof File)) {
+        var dp = file.drive_path || file.drivePath || (file.name ? "inbox/" + file.name : "");
+        if (dp) { opts = Object.assign({}, opts, { drivePath: dp }); }
+    }
+    /* Make clickable for preview (unless removable = composer) */
+    if (typeof A.makeAttachClickable === "function" && !opts.removable) {
+        A.makeAttachClickable(card, file, opts);
+    }
+    return card;
+};
+
+/* ---- Hover toolbar ---- */
+A.addMsgToolbar = function (el, content, retryable) {
+    var tb = document.createElement("div"); tb.className = "gb-msg-toolbar";
+    if (content) {
+        var cp = document.createElement("button"); cp.className = "gb-msg-toolbar-btn"; cp.title = t("Copiar","Copy");
+        cp.innerHTML = I("copy", 14);
+        cp.addEventListener("click", function () { navigator.clipboard.writeText(content).catch(function () {}); });
+        tb.appendChild(cp);
+    }
+    if (retryable) {
+        var rt = document.createElement("button"); rt.className = "gb-msg-toolbar-btn"; rt.title = t("Tentar de novo","Try again");
+        rt.innerHTML = I("arrows-clockwise", 14);
+        rt.addEventListener("click", function () { A.regenerateFrom(el); }); tb.appendChild(rt);
+    }
+    el.appendChild(tb);
+};
 })();

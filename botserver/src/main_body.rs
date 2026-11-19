@@ -364,6 +364,19 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         trace!("ensure_llama_servers_running completed");
     }
 
+    // After the legacy launcher has had a chance to start the runtime (or
+    // discover an orphan on the port), enforce the stored model choice.
+    // An orphan from a previous session that loaded a different model is
+    // replaced.  This is edition-gated because runtime_ctl lives in
+    // botsettings::on_device_ai which is gbgov-only.
+    #[cfg(feature = "gbgov")]
+    {
+        let state_for_ctl = app_state.clone();
+        tokio::spawn(async move {
+            crate::boot_runtime_ctl::enforce_stored_model(state_for_ctl).await;
+        });
+    }
+
     start_background_services(app_state.clone(), &app_state.conn).await;
 
     crate::main_module::start_automation_service(app_state.clone());

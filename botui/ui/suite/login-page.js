@@ -77,6 +77,12 @@
         }
     } catch (e) { /* storage disabled */ }
 
+    /* ---- redirect target ---- */
+    var params = new URLSearchParams(window.location.search);
+    var explicitTarget = params.get("return_to") || params.get("redirect") || "";
+    if (/\/(login|signup)(\?|$)/.test(explicitTarget)) { explicitTarget = ""; }
+    var target = explicitTarget || "/suite/desktop.html";
+
     /* ---- accent: restore from localStorage (user choice) or server ---- */
     (function loadAccent() {
         var stored = null;
@@ -91,13 +97,14 @@
             if (p && p.accent && window.GBIdentity && !stored) {
                 window.GBIdentity.apply(p.accent);
             }
+            /* Editions on the assistant shell go straight to it after the
+               sign-in: the legacy desktop page would paint first and only
+               then hand over. */
+            if (p && p.shell === "assistant" && !explicitTarget) {
+                target = "/suite/assistant/assistant.html";
+            }
         }).catch(function () { /* keep defaults */ });
     })();
-
-    /* ---- redirect target ---- */
-    var params = new URLSearchParams(window.location.search);
-    var target = params.get("return_to") || params.get("redirect") || "/suite/desktop.html";
-    if (/\/(login|signup)(\?|$)/.test(target)) { target = "/suite/desktop.html"; }
 
     function redirect(token, email) {
         try {

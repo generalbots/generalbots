@@ -138,6 +138,9 @@ async fn handle_get_config(
         None
     };
 
+    // Probe the actual running runtime to report what model it really has.
+    let runtime_probe = super::on_device_ai::runtime_ctl::probe().await;
+
     let inconsistent = write_sets::is_inconsistent(&url, &model);
 
     let mut resp = json!({
@@ -149,11 +152,18 @@ async fn handle_get_config(
         "has_key": !key.trim().is_empty(),
         "local_runtime": {
             "installed": runtime.installed,
-            "runtime_reachable": runtime.runtime_reachable,
+            "runtime_reachable": runtime_probe.reachable,
+            "running": runtime_probe.reachable,
+            "loaded_model": if runtime_probe.loaded_model.is_empty() { serde_json::Value::Null } else { serde_json::json!(runtime_probe.loaded_model) },
             "active_model": active_local_model,
+            "last_failure": super::on_device_ai::runtime_ctl::last_failure()
+                .map(|(model, code)| json!({ "model": model, "code": code })),
             "installing": runtime.installing,
             "install_job": runtime.install_job,
             "install_info": runtime.install_info,
+            "build": runtime.build,
+            "available_build": runtime.available_build,
+            "update_available": runtime.update_available,
         },
     });
     if inconsistent {
@@ -261,6 +271,39 @@ async fn handle_put_config(
 
     let (new_central, new_per_bot) = write_sets::compute(&central, &per_bot, &target);
 
+    // ── Step 1: for local mode, ensure the runtime FIRST ───────────────
+    // If the runtime fails, nothing is persisted and the previous mode stays.
+    let mut runtime_restarted = false;
+    if req.mode == ModelMode::Local {
+        let config_mgr = ConfigManager::new(state.conn.clone());
+        let gpu_layers = config_mgr
+            .get_config(&nil, "llm-server-gpu-layers", Some(""))
+            .unwrap_or_default();
+        let ctx_size = config_mgr
+            .get_config(&nil, "llm-server-ctx-size", Some(""))
+            .unwrap_or_default();
+        let model_file = new_central.get("model").cloned().unwrap_or_default();
+
+        use super::on_device_ai::runtime_ctl;
+        let result =
+            match runtime_ctl::desired_from_config(&model_file, &gpu_layers, &ctx_size) {
+                Some(desired) => runtime_ctl::ensure_or_restore(&desired).await,
+                None => runtime_ctl::EnsureOutcome::Failed(
+                    "Model file not found on disk.".to_string(),
+                ),
+            };
+
+        if let Some(reason) = result.error_message() {
+            log::error!("[model_config] runtime ensure failed: {reason}");
+            return Err(api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                runtime_ctl::failure_code(reason),
+            ));
+        }
+        runtime_restarted = matches!(result, runtime_ctl::EnsureOutcome::Started);
+    }
+
+    // ── Step 2: runtime healthy (or not local) -- persist the choice ───
     secrets
         .put_secret(CENTRAL_LLM_PATH, new_central.clone())
         .await
@@ -276,7 +319,7 @@ async fn handle_put_config(
             api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
         })?;
 
-    // ── hot-swap the running provider ───────────────────────────────────
+    // ── Step 3: hot-swap the running provider ───────────────────────────
     let swap_url = new_central.get("url").cloned().unwrap_or_default();
     let swap_model = new_central.get("model").cloned();
     let swapped = {
@@ -295,10 +338,12 @@ async fn handle_put_config(
         "effective_on_next_turn": true,
         "restart_required": !swapped,
         "provider_swapped": swapped,
+        "runtime_restarted": runtime_restarted,
     })))
 }
 
 mod test_endpoint;
+mod engine_update;
 mod local_runtime;
 pub(crate) mod write_sets;
 

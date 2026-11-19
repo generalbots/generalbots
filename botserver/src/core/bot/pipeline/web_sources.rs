@@ -297,12 +297,13 @@ pub fn prompt_block(results: &[WebSearchResult]) -> String {
          - Order newest first when dates are available, one per topic. never \
          repeat a headline or a URL.\n\
          - Every item is ONE line in this exact shape: \
-         `- **[headline](ARTICLE_URL)** — outlet, published YYYY-MM-DD`.\n\
+         `- **[headline](ARTICLE_URL)** — outlet, YYYY-MM-DD`: the date alone, \
+         with no word before it, so the line reads the same in any language.\n\
          - Use the ARTICLE_URL printed for that item, verbatim. Never cite a \
          section, tag, home or \"tudo sobre\" index page; those are not articles \
          and were already removed. Never invent a URL, an outlet or a date.\n\
-         - When an item shows `published: not shown`, say the date is not shown \
-         by that source instead of guessing one. Prefer items with real \
+         - When an item shows `published: not shown`, end its line after the \
+         outlet instead of guessing a date. Prefer items with real \
          publication dates for time-sensitive news requests.\n\
          - If the material does not answer the question, say clearly in one \
          line what is missing. Never pad the list with filler.\n\
@@ -402,7 +403,7 @@ mod web_source_tests {
         ]);
         assert!(block.contains("NEWS DIGEST CONTRACT"));
         assert!(
-            block.contains("never repeat a headline"),
+            block.contains("Never repeat a headline"),
             "contract missing"
         );
         assert!(block.contains(

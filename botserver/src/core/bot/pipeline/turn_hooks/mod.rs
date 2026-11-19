@@ -12,6 +12,7 @@ mod attachments;
 mod computer_action;
 mod informational;
 mod media;
+mod text_recognition;
 
 pub(super) use attachments::ingest_attachment;
 pub(super) use computer_action::propose_computer_action;

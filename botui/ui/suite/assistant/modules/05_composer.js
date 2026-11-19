@@ -156,6 +156,9 @@
             return;
         }
         A.renderUserMessage(text, files);
+        /* The wait shows at once: the server's first frame can take seconds
+           (reading an attachment, a web search) and the screen stood still. */
+        A.showThinking();
         clearInputs();
         if (files.length > 0) {
             A.pendingFiles = [];
@@ -163,7 +166,13 @@
             encodeAndSend(text, files, messageType);
             return;
         }
-        A.sendMessage(text, null, messageType);
+        sendNow(text, null, messageType);
+    }
+
+    /* A message that could not leave (connection closed) must not keep the
+       wait on screen. */
+    function sendNow(text, files, messageType) {
+        if (!A.sendMessage(text, files, messageType)) { A.hideThinking(); }
     }
 
     function encodeAndSend(text, fileList, messageType) {
@@ -179,11 +188,11 @@
                         content_base64: String(reader.result).split(",")[1] || "",
                     });
                     remaining--;
-                    if (remaining === 0) { A.sendMessage(text, encoded, messageType); }
+                    if (remaining === 0) { sendNow(text, encoded, messageType); }
                 };
                 reader.onerror = function () {
                     remaining--;
-                    if (remaining === 0) { A.sendMessage(text, encoded.length ? encoded : null, messageType); }
+                    if (remaining === 0) { sendNow(text, encoded.length ? encoded : null, messageType); }
                 };
                 reader.readAsDataURL(file);
             })(fileList[i]);

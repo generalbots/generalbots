@@ -276,7 +276,10 @@ sha256 = ""
 
 # Platform-specific llama.cpp variants
 # =====================================
-# These are alternative builds for different platforms/GPU support
+# These are alternative builds for different platforms/GPU support.
+# The Windows builds are pinned to b12483: b7345 cannot open the model
+# families published after it (Qwen3.5 fails with "unknown model
+# architecture"). Linux and macOS stay on b7345 until they are verified.
 
 [components.llm_linux_vulkan]
 name = "Llama.cpp Server (Linux Vulkan)"
@@ -322,46 +325,48 @@ sha256 = "bec6b805cf7533f66b38f29305429f521dcb2be6b25dbce73a18df448ec55cc5"
 
 [components.llm_win_cpu_x64]
 name = "Llama.cpp Server (Windows x64 CPU)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cpu-x64.zip"
-filename = "llama-b7345-bin-win-cpu-x64.zip"
-sha256 = "ea449082c8e808a289d9a1e8331f90a0379ead4dd288a1b9a2d2c0a7151836cd"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/llama-b12483-bin-win-cpu-x64.zip"
+filename = "llama-b12483-bin-win-cpu-x64.zip"
+sha256 = "7c3ec4ff5cdddc272cb1d6b52a05c8751dc566c7105750c10ed3688bbdbf8fa8"
 
 [components.llm_win_cpu_arm64]
 name = "Llama.cpp Server (Windows ARM64 CPU)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cpu-arm64.zip"
-filename = "llama-b7345-bin-win-cpu-arm64.zip"
-sha256 = "91e3ff43c123c7c30decfe5a44c291827c1e47359abaa2fbad1eb5392b3a0d85"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/llama-b12483-bin-win-cpu-arm64.zip"
+filename = "llama-b12483-bin-win-cpu-arm64.zip"
+sha256 = "bbf6f781a01fb0f3ce0adc17a96ebda8200477dc58b8f6c0367ab7317db1b5b8"
 
 [components.llm_win_cuda12]
 name = "Llama.cpp Server (Windows CUDA 12.4)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cuda-12.4-x64.zip"
-filename = "llama-b7345-bin-win-cuda-12.4-x64.zip"
-sha256 = "7a82aba2662fa7d4477a7a40894de002854bae1ab8b0039888577c9a2ca24cae"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/llama-b12483-bin-win-cuda-12.4-x64.zip"
+filename = "llama-b12483-bin-win-cuda-12.4-x64.zip"
+sha256 = "89dcd32dcd0d0b99daaa5150ff0107cb2f47a6dc5a269e23c2c10e86ba4cc9f2"
 
 [components.llm_win_cuda13]
-name = "Llama.cpp Server (Windows CUDA 13.1)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cuda-13.1-x64.zip"
-filename = "llama-b7345-bin-win-cuda-13.1-x64.zip"
-sha256 = "06ea715cefb07e9862394e6d1ffa066f4c33add536b1f1aa058723f86ae05572"
+name = "Llama.cpp Server (Windows CUDA 13.5)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/llama-b12483-bin-win-cuda-13.5-x64.zip"
+filename = "llama-b12483-bin-win-cuda-13.5-x64.zip"
+sha256 = "3467a6cf27418a5265428e3eaea1249daa7aba40ca75b594dca47083104cbe3e"
 
 [components.llm_win_vulkan]
 name = "Llama.cpp Server (Windows Vulkan)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-vulkan-x64.zip"
-filename = "llama-b7345-bin-win-vulkan-x64.zip"
-sha256 = "3e948bee438f46c8ea0a3faf0416549391ee945ffa624b25bc1f73d60d668679"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/llama-b12483-bin-win-vulkan-x64.zip"
+filename = "llama-b12483-bin-win-vulkan-x64.zip"
+sha256 = "7859e96ba91201a41e2769d4456fe86e8968ba93c6794eeb4fe49b7537a17628"
 
-# CUDA runtime libraries (required for CUDA builds on Windows)
+# CUDA runtime libraries. The Windows CUDA builds are installed together with
+# the matching archive, so the engine does not depend on a CUDA toolkit being
+# present on the machine (or on its exact minor version).
 [components.cudart_win_cuda12]
 name = "CUDA Runtime (Windows CUDA 12.4)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/cudart-llama-bin-win-cuda-12.4-x64.zip"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/cudart-llama-bin-win-cuda-12.4-x64.zip"
 filename = "cudart-llama-bin-win-cuda-12.4-x64.zip"
 sha256 = "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6"
 
 [components.cudart_win_cuda13]
-name = "CUDA Runtime (Windows CUDA 13.1)"
-url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/cudart-llama-bin-win-cuda-13.1-x64.zip"
-filename = "cudart-llama-bin-win-cuda-13.1-x64.zip"
-sha256 = "f96935e7e385e3b2d0189239077c10fe8fd7e95690fea4afec455b1b6c7e3f18"
+name = "CUDA Runtime (Windows CUDA 13.5)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12483/cudart-llama-bin-win-cuda-13.5-x64.zip"
+filename = "cudart-llama-bin-win-cuda-13.5-x64.zip"
+sha256 = "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba"
 
 # Optional larger models (uncomment to include)
 # [models.gpt_oss_20b]

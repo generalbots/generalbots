@@ -43,6 +43,12 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
             "terminal_available".to_string(),
             serde_json::json!(cfg!(feature = "terminal") && cfg!(feature = "agent-vm")),
         );
+        // Whether a chat turn can be grounded on a web search. The assistant
+        // shows its switch (Settings > Modelo) only when this is true.
+        object.insert(
+            "web_search_available".to_string(),
+            serde_json::json!(cfg!(any(feature = "research", feature = "web-search"))),
+        );
         // #1969 — the desktop client resolves peers and home sites through one
         // fixed relay (`peer.generalbots.org`). Publishing it here keeps the
         // host out of the frontend and out of reach of ad-hoc discovery.

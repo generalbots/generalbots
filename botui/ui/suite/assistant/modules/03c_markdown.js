@@ -189,9 +189,12 @@
     /* ================================================================
        Reasoning disclosure
        ================================================================ */
-    function reasoningHtml(text, elapsed) {
+    /* `live`: the model is still thinking, no answer text has arrived yet. */
+    function reasoningHtml(text, elapsed, live) {
         if (!text) { return ""; }
-        var summary = elapsed > 0
+        var summary = live
+            ? escapeHtml(A.t("assistant.thinking", "Thinking")) + (elapsed > 0 ? " · " + elapsed + " s" : "")
+            : elapsed > 0
             ? escapeHtml(A.t("assistant.thought-for", "Thought for")) + " " + elapsed + " s"
             : escapeHtml(A.t("assistant.reasoning", "Reasoning"));
         return '<details class="gb-reasoning"><summary>' +
@@ -238,4 +241,14 @@
             '<div class="gb-citations-list">' + items + '</div></details>';
     }
     A.citationsHtml = citationsHtml;
+
+    /** Sources that arrive after the answer go under the last answer. */
+    A.onCitations = function (citations) {
+        var all = document.querySelectorAll("#gbMessages > .gb-msg-assistant");
+        var el = all.length ? all[all.length - 1] : null;
+        if (!el || !citations.length || el.querySelector(".gb-citations")) { return; }
+        var toolbar = el.querySelector(".gb-msg-toolbar");
+        if (toolbar) { toolbar.insertAdjacentHTML("beforebegin", citationsHtml(citations)); }
+        else { el.insertAdjacentHTML("beforeend", citationsHtml(citations)); }
+    };
 })();

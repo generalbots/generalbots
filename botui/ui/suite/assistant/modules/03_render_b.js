@@ -91,7 +91,7 @@
         }
         /* Find or create the block stack for this turn */
         var stack = el.querySelector(".gb-block-stack");
-        var elapsed = A.thinkingElapsed();
+        var elapsed = A._thoughtSeconds || A.thinkingElapsed();
         if (reasoning && typeof A.blockThinking === "function") {
             var thinkEl = A.blockThinking(elapsed, reasoning);
             if (stack) {
@@ -183,7 +183,7 @@
             model_auth:        "assistant.error-model-auth",
             model_rate_limited:"assistant.error-model-rate-limited",
             model_error:       "assistant.error-model-error",
-            timeout:           "assistant.error-timeout",
+            timeout: "assistant.error-timeout", context_exceeded: "assistant.error-context-exceeded",
         };
         var key = i18nMap[code] || "assistant.error-generic";
         var msg = A.t(key, fallbackMsg || A.t("assistant.error-generic", "An error occurred."));

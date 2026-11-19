@@ -44,16 +44,29 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
 @keyframes spin{to{transform:rotate(360deg)}}
 .status{font-size:11px;color:rgb(255 255 255/.50);flex:1;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-/* Row 3: progress bar flush to bottom edge */
-.bar-wrap{height:3px;background:rgb(255 255 255/.08);border-radius:0;
-  box-shadow:0 0 6px rgb(255 255 255/.06)}
-.bar{height:100%;width:0%;border-radius:0 2px 2px 0;
-  background:rgb(255 255 255/.45);
-  box-shadow:0 0 8px rgb(255 255 255/.18);
+/* Row 3: rainbow progress bar. The fill and its glow share one gradient laid
+   out over the full track width, so the colours are revealed as the bar
+   grows instead of being squeezed. The glow is a blurred copy of the fill;
+   the page clips it (body overflow), so it never leaves the splash card. */
+.bar-wrap{position:relative;height:9px;margin-bottom:16px;border-radius:999px;
+  background:rgb(255 255 255/.13);box-shadow:inset 0 0 0 1px rgb(255 255 255/.07);
+  --track:calc(100vw - 48px);
+  --rainbow:linear-gradient(90deg,#ff3b6b 0%,#ff8a1f 16%,#ffd60a 33%,#3ddc68 50%,#22c8f0 66%,#5a6bff 83%,#c04dff 100%)}
+.bar,.bar-glow{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:999px;
+  background-image:var(--rainbow);background-size:var(--track) 100%;background-repeat:no-repeat;
   transition:width 600ms cubic-bezier(.22,1,.36,1)}
+.bar-glow{filter:blur(9px) saturate(1.6);opacity:.95;transform:scaleY(1.9);pointer-events:none}
+.bar{overflow:hidden;box-shadow:inset 0 1px 0 rgb(255 255 255/.35)}
+/* Moving highlight along the filled part */
+.bar::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,transparent 0%,transparent 38%,rgb(255 255 255/.6) 50%,transparent 62%,transparent 100%);
+  background-size:var(--track) 100%;background-repeat:no-repeat;
+  animation:shine 2.2s linear infinite}
+@keyframes shine{from{background-position:calc(var(--track) * -1) 0}to{background-position:var(--track) 0}}
 @media(prefers-reduced-motion:reduce){
   .spinner{animation:none;border-top-color:rgb(255 255 255/.35)}
-  .bar{transition:none}
+  .bar,.bar-glow{transition:none}
+  .bar::after{animation:none;display:none}
 }
 </style>
 </head>
@@ -79,6 +92,7 @@ body{display:flex;flex-direction:column;user-select:none;-webkit-user-select:non
   </div>
   <div class="bar-wrap" role="progressbar" id="splashProgress"
        aria-label="Startup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="bar-glow" id="splashBarGlow" aria-hidden="true"></div>
     <div class="bar" id="splashBar"></div>
   </div>
 </div>
@@ -130,6 +144,7 @@ var readyLabel=pt?"Pronto.":"Ready.";
 
 /* Progress state */
 var barEl=document.getElementById("splashBar");
+var glowEl=document.getElementById("splashBarGlow");
 var progressEl=document.getElementById("splashProgress");
 var statusEl=document.getElementById("splashStatus");
 var spinnerEl=document.getElementById("splashSpinner");
@@ -143,6 +158,7 @@ function setBar(value,text){
   var next=Math.max(currentValue,Math.min(100,Math.round(value)));
   currentValue=next;
   if(barEl)barEl.style.width=next+"%";
+  if(glowEl)glowEl.style.width=next+"%";
   if(progressEl){progressEl.setAttribute("aria-valuenow",String(next));
     progressEl.setAttribute("aria-valuetext",next+"%")}
   if(text&&statusEl)statusEl.textContent=text;
@@ -153,10 +169,17 @@ function setBar(value,text){
 }
 
 /* Public API: take max of fake and pushed */
-window.gbSplashProgress=function(value,text){
+/* Wording for the keys the shell pushes, in the language of this page. */
+var shellLabels={
+  "splash-starting-services":pt?"Iniciando serviços...":"Starting services...",
+  "splash-loading-interface":pt?"Carregando a interface...":"Loading interface...",
+  "splash-opening-workspace":pt?"Abrindo a área de trabalho...":"Opening workspace...",
+  "splash-ready":readyLabel
+};
+window.gbSplashProgress=function(value,text,key){
   pushedValue=Math.max(pushedValue,value);
   var effective=Math.max(fakeValue,pushedValue);
-  setBar(effective,text||undefined);
+  setBar(effective,(key&&shellLabels[key])||text||undefined);
 };
 
 /* Version API */

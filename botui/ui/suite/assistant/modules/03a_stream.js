@@ -87,8 +87,11 @@
                 var elapsedEl = el.querySelector(".gb-thinking-elapsed");
                 if (elapsedEl) { elapsedEl.textContent = secs + " s"; }
             }, 1000);
-            // Safety watchdog: if no server frame arrives within the timeout,
-            // replace the indicator with a timeout error card (#2562).
+        }
+        // Safety watchdog: if no server frame arrives within the timeout,
+        // replace the indicator with a timeout error card (#2562). Every
+        // call (the server's keep-alive frames included) starts it again.
+        if (document.getElementById("gbThinking")) {
             if (thinkingWatchdog) { clearTimeout(thinkingWatchdog); }
             thinkingWatchdog = setTimeout(function () {
                 if (document.getElementById("gbThinking")) {
@@ -115,7 +118,7 @@
         return Math.floor((Date.now() - thinkingStartTime) / 1000);
     };
 
-    A.resetThinkingTimer = function () { thinkingStartTime = 0; };
+    A.resetThinkingTimer = function () { thinkingStartTime = 0; A._thoughtSeconds = 0; };
 
     /* ================================================================
        Streaming
@@ -126,6 +129,7 @@
         A.isStreaming = true;
         A.streamingContent = "";
         A.streamingReasoning = "";
+        A._thoughtSeconds = 0;
         var el = document.createElement("div");
         el.className = "gb-msg-assistant gb-streaming";
         el.setAttribute("aria-busy", "true");
@@ -137,6 +141,8 @@
 
     A.appendStream = function (chunk, reasoning) {
         if (!A.streamingEl) { return; }
+        /* The thinking ends when the answer starts: keep how long it took. */
+        if (chunk && !A.streamingContent && A.streamingReasoning) { A._thoughtSeconds = A.thinkingElapsed(); }
         if (chunk) { A.streamingContent += chunk; }
         if (reasoning) { A.streamingReasoning += reasoning; }
         var now = Date.now();
@@ -158,7 +164,8 @@
         var elapsed = A.thinkingElapsed();
         var html = "";
         if (A.streamingReasoning) {
-            html += A.reasoningHtml(A.streamingReasoning, elapsed);
+            var answering = !!A.streamingContent;
+            html += A.reasoningHtml(A.streamingReasoning, answering ? (A._thoughtSeconds || elapsed) : elapsed, !answering);
         }
         var cleaned = typeof A.cleanProtocol === "function"
             ? A.cleanProtocol(A.streamingContent) : A.streamingContent;

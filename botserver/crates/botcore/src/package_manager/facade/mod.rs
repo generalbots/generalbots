@@ -34,6 +34,9 @@ mod install_system_packages;
 mod install_binary;
 mod setup_port_forwarding;
 mod collapse_single_subdirectory;
+mod llm_engine;
+
+pub use llm_engine::{pinned_engine_build, pinned_engine_url, ENGINE_BUILD_FILE};
 
 use safe_incus::*;
 use collapse_single_subdirectory::*;

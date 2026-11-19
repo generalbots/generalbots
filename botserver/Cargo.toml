@@ -243,6 +243,10 @@ gbgov = [
     # backend is unavailable without a WSL2/Incus wrapper; the server
     # detects this at startup and disables agent mode gracefully.
     "agent-vm",
+    # Web search for a chat turn. Compiled in, off for every turn unless the
+    # person turns the switch on in Settings > Modelo (the pipeline never
+    # searches by itself in this edition).
+    "web-search",
     "embed-ui",
     # Infrastructure the two apps rely on; `botcore/default` is deliberately
     # not enabled, so each botcore capability is named here.
@@ -543,6 +547,18 @@ bottimeclock = { workspace = true, optional = true }
 botmodelsbridge = { workspace = true }
 botcloud = { workspace = true, optional = true }
 botproviders = { workspace = true, optional = true }
+
+# Text recognition for images and scanned PDFs attached to a chat, with the
+# engine that ships with Windows (same `windows` version sysinfo already uses).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Data_Pdf",
+    "Foundation_Collections",
+    "Globalization",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Storage_Streams",
+] }
 
 [dev-dependencies]
 mockito = { workspace = true }

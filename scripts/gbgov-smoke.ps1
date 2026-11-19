@@ -3,7 +3,7 @@
 # Boots the `gbgov` build of botserver against an isolated stack directory and
 # a local deterministic mock model, then checks that the product profile is
 # Chat + Drive only, that the suite shell is served, that the agent workspace
-# is not routed, and that a chat turn is answered by the mock.
+# is compiled in and routed, and that a chat turn is answered by the mock.
 #
 # Usage (CI and local):
 #   pwsh scripts/gbgov-smoke.ps1 -Binary target\debug\botserver.exe
@@ -109,7 +109,10 @@ try {
     if ($p.suite_default_app -ne 'chat') { throw "suite_default_app expected 'chat', got '$($p.suite_default_app)'" }
     if ($p.edition -ne 'desktop') { throw "edition expected 'desktop', got '$($p.edition)'" }
     $compiled = @($p.compiled_features)
-    foreach ($absent in 'agent-vm', 'terminal', 'database', 'research', 'sheet', 'editor', 'mail') {
+    # The agent workspace is part of the edition (it reports itself unavailable
+    # where its backend is missing); the office and data apps are not.
+    if ($compiled -notcontains 'agent-vm') { throw "feature 'agent-vm' must be compiled into the edition" }
+    foreach ($absent in 'terminal', 'database', 'research', 'sheet', 'editor', 'mail') {
         if ($compiled -contains $absent) { throw "feature '$absent' must not be compiled into the edition" }
     }
     Write-Host "product OK: apps=$($apps -join ',') compiled=$($compiled -join ',')"
@@ -118,13 +121,14 @@ try {
     if ($d.Content.Length -lt 256 -or $d.Content -notmatch '<html|<!DOCTYPE html') { throw '/suite/desktop.html is not the suite shell' }
     Write-Host "suite shell OK ($($d.Content.Length) bytes)"
 
-    # The agent workspace is not part of the edition: its routes must not exist.
+    # The agent workspace is part of the edition: its routes must exist (any
+    # answer but "no such route"; an empty request is rightly refused).
     $agentStatus = 0
     try {
         $agentStatus = (Invoke-WebRequest -Uri "$base/api/agent/drive/save" -Method POST -Body '{}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 10).StatusCode
     } catch { if ($_.Exception.Response) { $agentStatus = [int]$_.Exception.Response.StatusCode } }
-    if ($agentStatus -ne 404) { throw "POST /api/agent/drive/save expected 404, got $agentStatus" }
-    Write-Host 'agent workspace routes absent OK'
+    if ($agentStatus -eq 404 -or $agentStatus -eq 0) { throw "POST /api/agent/drive/save: the agent workspace route is missing (status $agentStatus)" }
+    Write-Host "agent workspace routes present OK (status $agentStatus)"
 
     $reply = ''
     for ($attempt = 1; $attempt -le 3 -and -not $reply; $attempt++) {

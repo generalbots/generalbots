@@ -12,7 +12,19 @@ function fmtEta(s){if(!s&&s!==0)return"";if(s<60)return s+"s";if(s<3600)return M
 var jobPollers = {};
 var T = {"pt-BR":{
   now:"Agora",where:"Onde o assistente pensa",local:"Neste computador",
-  own:"Servidor da sua organização ou chave",free:"Modelo gratuito hospedado",
+  own:"Servidor ou chave própria",free:"Modelo gratuito",
+  subLocal:"Nada sai deste computador",subOwn:"Servidor da sua organização ou chave de um provedor",
+  subFree:"Hospedado fora deste computador",
+  useFree:"Usar o modelo gratuito",useOwn:"Usar este servidor",inUse:"Em uso agora.",
+  switching:"Trocando o modelo...",
+  loadingLocal:"Carregando o modelo neste computador. Pode levar até dois minutos.",
+  errEngineOld:"O motor local instalado é mais antigo que este modelo e não consegue abri-lo. Atualize o motor local ou escolha outro modelo.",
+  errMemory:"Não há memória livre suficiente para este modelo. Feche outros programas ou escolha um modelo menor.",
+  errStart:"O modelo não pôde ser iniciado neste computador.",
+  errVault:"A escolha não pôde ser gravada: o cofre de segredos não está disponível.",
+  errNotDownloaded:"Este modelo ainda não foi baixado.",
+  errGeneric:"Não foi possível trocar o modelo.",
+  localFailed:"O modelo local %m não pôde ser iniciado.",
   hw:"Placa: %d, memória: %v GB VRAM (%f GB livre), %r GB RAM",
   hwCpu:"Processador (sem GPU dedicada), %r GB RAM",
   hwDriver:"Driver: %drv",hwCuda:"Aceleração CUDA disponível",
@@ -24,7 +36,6 @@ var T = {"pt-BR":{
   endpoint:"URL do endpoint",model:"Modelo",key:"Chave de API",
   keyStored:"chave armazenada",test:"Testar",save:"Salvar",
   testOk:"Alcançável, latência %ms ms",testFail:"Falha: %e",
-  actionFailed:"%a falhou: %r",
   saved:"Salvo. Vale a partir da próxima mensagem.",
   swapped:"Pronto. O novo modelo já está ativo.",
   errAdmin:"Somente o administrador pode alterar o modelo.",
@@ -34,7 +45,8 @@ var T = {"pt-BR":{
   inconsistent:"A configuração do modelo está inconsistente.",
   restoreFree:"Restaurar modelo gratuito",
   freeNote:"Tudo que você escrever e anexar é enviado a %h.",
-  noModels:"No local models available.",
+  freeHost:"um provedor externo",freeLimits:"Não precisa de chave. Os limites de uso são menores.",
+  noModels:"Nenhum modelo local disponível.",
   comfortable:"confortável nesta máquina",tight:"apertado nesta máquina",
   wontRun:"não roda (precisa de %v GB)",
   fits:"cabe nesta máquina",nofit:"não cabe (precisa %v GB)",serverOnly:"apenas servidor",
@@ -42,10 +54,24 @@ var T = {"pt-BR":{
   privLocal:"Suas conversas ficam neste computador. Nada é enviado para fora.",
   privNet:"Suas conversas são enviadas ao servidor da sua organização (%h).",
   privExt:"Suas conversas são enviadas a um servidor externo (%h).",
-  noImageReading:"Leitura de imagens não disponível com as opções atuais."},
+  noImageReading:"O texto de imagens e digitalizações é lido neste computador; fotos e gráficos ainda não são interpretados.",
+  serverDown:"O serviço do assistente não está respondendo. Tente de novo em alguns segundos; se continuar, feche o aplicativo e abra outra vez.",
+  retry:"Tentar de novo"},
 en:{
   now:"Now",where:"Where the assistant thinks",local:"On this computer",
-  own:"Your organization’s server or provider key",free:"Free hosted model",
+  own:"Own server or key",free:"Free model",
+  subLocal:"Nothing leaves this computer",subOwn:"Your organization’s server or a provider key",
+  subFree:"Hosted outside this computer",
+  useFree:"Use the free model",useOwn:"Use this server",inUse:"In use now.",
+  switching:"Switching the model...",
+  loadingLocal:"Loading the model on this computer. This can take up to two minutes.",
+  errEngineOld:"The installed local engine is older than this model and cannot open it. Update the local engine or choose another model.",
+  errMemory:"There is not enough free memory for this model. Close other programs or choose a smaller model.",
+  errStart:"The model could not be started on this computer.",
+  errVault:"The choice could not be saved: the secret store is not available.",
+  errNotDownloaded:"This model has not been downloaded yet.",
+  errGeneric:"The model could not be switched.",
+  localFailed:"The local model %m could not be started.",
   hw:"Device: %d, memory: %v GB VRAM (%f GB free), %r GB RAM",
   hwCpu:"Processor (no dedicated GPU), %r GB RAM",
   hwDriver:"Driver: %drv",hwCuda:"CUDA acceleration available",
@@ -57,7 +83,6 @@ en:{
   endpoint:"Endpoint URL",model:"Model",key:"API key",
   keyStored:"key stored",test:"Test",save:"Save",
   testOk:"Reachable, latency %ms ms",testFail:"Failed: %e",
-  actionFailed:"%a failed: %r",
   saved:"Saved. Takes effect from the next message.",
   swapped:"Ready. The new model is now active.",
   errAdmin:"Only the administrator can change the model.",
@@ -67,6 +92,7 @@ en:{
   inconsistent:"The model configuration is inconsistent.",
   restoreFree:"Restore free model",
   freeNote:"Everything you write and attach is sent to %h.",
+  freeHost:"an external provider",freeLimits:"No key needed. Usage limits are lower.",
   noModels:"No local models available.",
   comfortable:"comfortable for this machine",tight:"tight for this machine",
   wontRun:"won’t run (needs %v GB)",
@@ -75,7 +101,9 @@ en:{
   privLocal:"Your conversations stay on this computer. Nothing is sent outside.",
   privNet:"Your conversations are sent to your organization’s server (%h).",
   privExt:"Your conversations are sent to an external host (%h).",
-  noImageReading:"Image reading not available with the current options."}};
+  noImageReading:"Text in images and scans is read on this computer; photos and charts are not interpreted yet.",
+  serverDown:"The assistant service is not answering. Try again in a few seconds; if it persists, close the app and open it again.",
+  retry:"Try again"}};
 function t(key) {
   var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en";
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
@@ -86,7 +114,7 @@ function inlineConfirm(text, onYes) {
   var overlay = document.createElement("div");
   overlay.className = "gb-inline-dialog";
   var A2 = window.GBAssistant;
-  var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue?") : "OK";
+  var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue") : "OK";
   var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
   overlay.innerHTML =
     '<div class="gb-inline-dialog-backdrop"></div>' +
@@ -107,49 +135,71 @@ function inlineConfirm(text, onYes) {
   overlay.querySelector('[data-act="yes"]').addEventListener("click", function () { close(); onYes(); });
 }
 
+/* Server error code -> sentence. Unknown codes keep the code in brackets. */
+var ERR = { engine_too_old:"errEngineOld", not_enough_memory:"errMemory", runtime_start_failed:"errStart",
+  vault_not_enabled:"errVault", vault_write_failed:"errVault", model_not_downloaded:"errNotDownloaded",
+  admin_required:"errAdmin" };
+function errText(code) {
+  var c = String(code || "");
+  return ERR[c] ? t(ERR[c]) : t("errGeneric") + (c ? " (" + c + ")" : "");
+}
+/* One switch at a time: every mode and action button waits while it runs. */
+function setBusy(on, msgEl, text) {
+  var panel = document.getElementById("gbSetPanel");
+  if (panel) { if (on) panel.setAttribute("aria-busy", "true"); else panel.removeAttribute("aria-busy"); }
+  if (on && msgEl) { msgEl.innerHTML = '<p class="gb-set-busy" role="status">' + esc(text || t("switching")) + '</p>'; }
+}
+
 /* state — exposed through A._modelShared for the split local-models module */
 var cfg = null, modes = null, localModels = null, readOnly = false;
 var cfgError = null;
 var pendingStatus = null; /* {html, isOk} shown after the next re-render */
+var viewMode = null;      /* the mode card being viewed; kept when a list refreshes */
 A._modelShared = {
   get cfg() { return cfg; },
   get localModels() { return localModels; },
   set localModels(v) { localModels = v; },
   t: t,
+  shortName: shortName,
+  errText: errText,
+  setBusy: setBusy,
   inlineConfirm: inlineConfirm,
-  refreshAfterChange: function () { refreshAfterChange(); }
+  refreshAfterChange: function () { return refreshAfterChange(); },
+  /* Lists changed (download, removal, engine install) but the model in use did not. */
+  refreshKeepingView: function () {
+    var panel = document.getElementById("gbSetPanel");
+    return panel ? A.renderModelFull(panel, true) : null;
+  },
+  /* A switch asked from the chat's model menu failed: Modelo opens with the reason. */
+  showFailure: function (code) {
+    pendingStatus = { html: '<p class="gb-set-warn">' + esc(errText(code)) + '</p>' };
+    if (typeof A.openSettings === "function") { A.openSettings("model"); }
+  }
 };
 
-A.renderModelFull = function (panel) {
+A.renderModelFull = function (panel, keepView) {
+  if (!keepView) { viewMode = null; }
   readOnly = false;
   cfgError = null;
   cfg = null;
   modes = [];
 
-  /* Chain with .then() — avoids async/await edge cases in WebView2. */
-  return A.apiFetch("/api/llm/config").then(function (r) {
-    if (r.status === 401 || r.status === 403) { readOnly = true; return null; }
-    if (r.ok) { return r.json(); }
-    cfgError = "HTTP " + r.status; return null;
-  }).catch(function (e) { cfgError = e.message || String(e); return null;
-  }).then(function (cfgData) {
-    if (cfgData) { cfg = cfgData; }
-    if (readOnly) { return null; }
-    return A.apiFetch("/api/llm/config/modes").then(function (r2) {
-      if (r2.ok) { return r2.json(); }
-      return null;
-    }).catch(function () { return null; });
-  }).then(function (modesData) {
-    if (modesData) { modes = modesData.modes || modesData || []; }
-    return A.apiFetch("/api/llm/runtime/status").then(function (r3) {
-      if (r3.ok) { return r3.json(); }
-      return null;
-    }).catch(function () { return null; });
-  }).then(function (runtimeData) {
-    if (runtimeData && cfg && !cfg.local_runtime) { cfg.local_runtime = runtimeData; }
-    renderFull(panel);
-  }).catch(function (e) {
-    cfgError = cfgError || (e.message || String(e));
+  /* The three reads run together: each waits on the local engine probe, so
+     one after the other they took about seven seconds when it is stopped. */
+  function getJson(path) {
+    return A.apiFetch(path).then(function (r) {
+      return r.ok ? r.json().then(function (d) { return { data: d }; }) : { status: r.status };
+    }).catch(function (e) { return { error: e.message || String(e) }; });
+  }
+  return Promise.all([
+    getJson("/api/llm/config"), getJson("/api/llm/config/modes"), getJson("/api/llm/runtime/status")
+  ]).then(function (res) {
+    var c = res[0], m = res[1], rt = res[2];
+    if (c.status === 401 || c.status === 403) { readOnly = true; }
+    else if (c.data) { cfg = c.data; }
+    else { cfgError = c.status ? "HTTP " + c.status : (c.error || ""); }
+    if (m.data) { modes = m.data.modes || m.data || []; }
+    if (rt.data && cfg && !cfg.local_runtime) { cfg.local_runtime = rt.data; }
     renderFull(panel);
   });
 };
@@ -160,17 +210,26 @@ function renderFull(panel) {
   var scope = cfg ? cfg.endpoint_scope : (A.destination && A.destination.scope || "");
   var host = cfg ? cfg.endpoint_host : (A.destination && A.destination.host || "");
   var currentMode = cfg ? (cfg.mode || "") : "";
+  var G = A._modelGarage;
 
-  var html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>';
-  html += '<div class="gb-set-field"><span class="gb-set-label">' +
-    esc(A.t("settings.current-model","")) + '</span>' +
-    '<span class="gb-set-value gb-set-model-name">' + esc(shortName(modelName)) + '</span></div>';
-  html += destLine(scope, host);
+  var html;
+  if (G) {
+    html = G.dashboard(cfg, privacyText(scope, host)) + '<div class="gb-gar-dash-warn">';
+  } else {
+    html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
+      '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
+      '<span class="gb-set-value gb-set-model-name">' + esc(shortName(modelName)) + '</span></div>' + destLine(scope, host);
+  }
   if (readOnly) {
     html += '<p class="gb-set-hint gb-set-warn">' + esc(t("errAdmin")) + '</p>';
   }
   if (cfgError) {
-    html += '<p class="gb-set-hint gb-set-warn">' + esc(cfgError) + '</p>';
+    /* A network error (the server is not answering) says so in words; an HTTP
+       status keeps its code for support. */
+    var down = !/^HTTP /.test(cfgError);
+    html += '<div class="gb-gar-down" role="alert"><p class="gb-set-warn">' +
+      esc(down ? t("serverDown") : t("errGeneric") + " (" + cfgError + ")") + '</p>' +
+      '<button class="gb-set-btn-sm" id="gbModelRetry">' + esc(t("retry")) + '</button></div>';
   }
   html += '</div>';
 
@@ -183,14 +242,18 @@ function renderFull(panel) {
       '<div id="gbRestoreMsg"></div></div>';
   }
 
-  /* Mode cards — always shown unless read-only (admin restriction) */
-  if (!readOnly) {
-    html += '<h3 class="gb-set-section-title">' + esc(t("where")) + '</h3>';
-    html += '<div class="gb-set-modes" id="gbModelModes">';
-    html += modeCard("local", currentMode);
-    html += modeCard("own_key", currentMode);
-    html += modeCard("free", currentMode);
-    html += '</div>';
+  /* The stored local model did not start: say why, offer the way out */
+  var lf = cfg && cfg.local_runtime && cfg.local_runtime.last_failure;
+  if (lf && !cfg.inconsistent) {
+    html += '<div class="gb-set-card gb-set-warn-card">' +
+      '<p class="gb-set-warn">' + esc(t("localFailed").replace("%m", shortName(lf.model))) + ' ' + esc(errText(lf.code)) + '</p>' +
+      (currentMode === "local" ? '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbRestoreFree">' +
+      esc(t("useFree")) + '</button><div id="gbRestoreMsg"></div>' : '') + '</div>';
+  }
+
+  /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
+  if (!readOnly && G && !cfgError) {
+    html += G.guide() + G.compare(currentMode, modes, cfg);
   }
 
   if (pendingStatus) {
@@ -198,8 +261,19 @@ function renderFull(panel) {
     pendingStatus = null;
   }
   panel.innerHTML = html;
+  if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
-  if (!readOnly) { bindModeCards(panel); }
+  var retry = document.getElementById("gbModelRetry");
+  if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
+  if (!readOnly) { bindModeCards(panel); if (G) { G.bindGuide(panel, modes); } }
+}
+
+/* The dashboard's privacy line, already escaped. */
+function privacyText(scope, host) {
+  if (scope === "machine") return esc(t("privLocal"));
+  if (scope === "network") return esc(t("privNet").replace("%h", host || ""));
+  if (scope === "external") return '<span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span>';
+  return '';
 }
 
 function shortName(m) { if (!m) return "—"; var s=m; var i=s.lastIndexOf("/"); if(i>=0)s=s.substring(i+1); var c=s.indexOf(":"); if(c>0)s=s.substring(0,c); return s||m; }
@@ -209,26 +283,6 @@ function destLine(scope, host) {
   if (scope === "network") return '<p class="gb-set-privacy">' + esc(t("privNet").replace("%h", host || "")) + '</p>';
   if (scope === "external") return '<p class="gb-set-privacy"><span class="gb-set-external-warn">' + esc(t("privExt").replace("%h", host || "")) + '</span></p>';
   return '';
-}
-
-function modeCard(id, currentMode) {
-  var sel = currentMode === id;
-  var cls = "gb-set-mode-card" + (sel ? " gb-set-mode-active" : "");
-  var label = t(id === "own_key" ? "own" : id);
-  var modeData = modes && modes.find(function(m){return m.id===id});
-  var avail = !modeData || modeData.available !== false;
-  /* Icon per mode */
-  var icons = {
-    local: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-    own_key: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-    free: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
-  };
-  var icon = icons[id] || "";
-  return '<button class="' + cls + '" data-mode="' + id + '"' + (avail ? '' : ' disabled') + '>' +
-    icon +
-    '<span class="gb-set-mode-label">' + esc(label) + '</span>' +
-    (sel ? '<span class="gb-badge gb-badge-active">' + esc(t("active")) + '</span>' : '') +
-    '</button>';
 }
 
 function bindRestoreButton() {
@@ -243,14 +297,17 @@ function bindRestoreButton() {
 /** Shared PUT /api/llm/config handler for free, own_key and restore. */
 function doSwitchMode(body, msgEl, disableBtn) {
   if (disableBtn) { disableBtn.disabled = true; }
+  setBusy(true, msgEl, body.mode === "local" ? t("loadingLocal") : t("switching"));
   A.apiFetch("/api/llm/config", { method: "PUT", body: JSON.stringify(body) })
     .then(function (r) {
-      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      return r.json().catch(function () { return { error: "http_" + r.status }; })
+        .then(function (d) { return { ok: r.ok, data: d }; });
     })
     .then(function (res) {
-      var d = res.data;
+      var d = res.data || {};
+      setBusy(false);
       if (!res.ok || d.error) {
-        if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(d.error || "Error") + '</p>'; }
+        if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(errText(d.error)) + '</p>'; }
         if (disableBtn) { disableBtn.disabled = false; }
         return;
       }
@@ -262,8 +319,9 @@ function doSwitchMode(body, msgEl, disableBtn) {
       }
       refreshAfterChange();
     })
-    .catch(function (e) {
-      if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
+    .catch(function () {
+      setBusy(false);
+      if (msgEl) { msgEl.innerHTML = '<p class="gb-set-warn">' + esc(errText("")) + '</p>'; }
       if (disableBtn) { disableBtn.disabled = false; }
     });
 }
@@ -272,15 +330,18 @@ function bindModeCards(panel) {
   panel.querySelectorAll(".gb-set-mode-card").forEach(function(btn) {
     btn.addEventListener("click", function() {
       var mode = btn.getAttribute("data-mode");
-      panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) { b.classList.remove("gb-set-mode-active"); });
-      btn.classList.add("gb-set-mode-active");
       renderModeDetail(panel, mode);
     });
   });
-  if (cfg) renderModeDetail(panel, cfg.mode || "local");
+  if (cfg) renderModeDetail(panel, viewMode || cfg.mode || "local");
 }
 
 function renderModeDetail(panel, mode) {
+  panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) {
+    b.classList.toggle("gb-set-mode-selected", b.getAttribute("data-mode") === mode);
+  });
+  if (A._modelGarage) { A._modelGarage.markView(mode); }
+  viewMode = mode;
   var existing = document.getElementById("gbModeDetail");
   if (existing) existing.remove();
   var detail = document.createElement("div");
@@ -314,7 +375,7 @@ function renderOwnKeyDetail(el) {
     '<input class="gb-set-input" id="gbOwnKey" type="password" placeholder="sk-..." autocomplete="off"/>' +
     '<div class="gb-set-form-actions">' +
       '<button class="gb-set-btn-sm" id="gbOwnTest">' + esc(t("test")) + '</button>' +
-      '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbOwnSave">' + esc(t("save")) + '</button>' +
+      '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbOwnSave">' + esc(t("useOwn")) + '</button>' +
     '</div><div id="gbOwnMsg"></div></div>';
   document.getElementById("gbOwnTest").addEventListener("click", doTestEndpoint);
   document.getElementById("gbOwnSave").addEventListener("click", doSaveOwnKey);
@@ -355,12 +416,12 @@ function doSaveOwnKey() {
 
 /* ---- Free detail ---- */
 function renderFreeDetail(el) {
-  var modeData = modes && modes.find(function(m){return m.id==="free"});
-  var note = modeData && modeData.note ? modeData.note : "";
-  var host = cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : "cloud provider";
+  var note = t("freeLimits");
+  var host = cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost");
   el.innerHTML = '<p class="gb-set-desc">' + esc(t("freeNote").replace("%h", host)) + '</p>' +
     (note ? '<p class="gb-set-hint">' + esc(note) + '</p>' : '') +
-    (cfg && cfg.mode !== "free" ? '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbFreeSave">' + esc(t("save")) + '</button>' : '') +
+    (cfg && cfg.mode !== "free" ? '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbFreeSave">' + esc(t("useFree")) + '</button>'
+      : '<p class="gb-set-hint gb-set-ok">' + esc(t("inUse")) + '</p>') +
     '<div id="gbFreeMsg"></div>';
   var saveBtn = document.getElementById("gbFreeSave");
   if (saveBtn) {

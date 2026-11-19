@@ -68,6 +68,9 @@
                 if (mode === "inbox") {
                     D.loadInboxFiles();
                 } else {
+                    /* Back from the attachments tab: these are the person's
+                       own files again (rename, delete, their own endpoints). */
+                    D.inboxMode = false;
                     D.scope = "user";
                     D.path = "";
                     D.refreshFiles();

@@ -232,7 +232,12 @@
 
   /* ---- apply to document ---- */
 
+  /* The accent last applied, wherever it came from (the person's choice or
+     the product's default), so a theme change can derive it again. */
+  var applied = null;
+
   function apply(hex) {
+    applied = hex;
     var d = isDark() ? deriveDark(hex) : derive(hex);
     var s = document.documentElement.style;
     s.setProperty("--id-accent", d.accent);
@@ -282,6 +287,7 @@
     deriveDark: deriveDark,
     isDark: isDark,
     apply: apply,
+    reapply: function () { return applied ? apply(applied) : null; },
     presets: presets,
     validate: validate,
     contrastPair: contrastPair

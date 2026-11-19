@@ -5,10 +5,9 @@
  * Assistant messages: Copy (markdown source), Regenerate.
  * User messages: Copy, Edit (inline editor, resend from that point).
  *
- * #2562 — Regenerate and Edit now truncate the server-side history so a
- * reload shows exactly what the person last saw: Regenerate drops the
- * last assistant message and re-asks; Edit drops from the edited user
- * message onward and sends the edited text.
+ * #2562 — Regenerate and Edit truncate the server-side history so a reload
+ * shows exactly what the person last saw: both drop from the user message
+ * onward and send it again (Edit with the new text).
  */
 
 (function () {
@@ -30,6 +29,42 @@
         }
         return -1;
     }
+
+    /* ================================================================
+       Regenerate (also the retry of an error card)
+       ================================================================ */
+    /** Asks again the question that `answerEl` answers. The stored history is
+     *  cut from that question onward and the question is sent once more, so
+     *  it is stored a single time and a reload shows what is on screen. On an
+     *  older answer the turns after it go too, as with Edit. */
+    A.regenerateFrom = function (answerEl) {
+        if (A.isStreaming || !answerEl) { return; }
+        var userEl = answerEl.previousElementSibling;
+        while (userEl && !userEl.classList.contains("gb-msg-user")) {
+            userEl = userEl.previousElementSibling;
+        }
+        if (!userEl) { return; }
+        var userText = (userEl.dataset.originalContent || userEl.textContent || "").trim();
+        if (!userText) { return; }
+        var idx = msgIndex(userEl);
+        while (userEl.nextElementSibling) { userEl.nextElementSibling.remove(); }
+        /* Clear the dedup state: a regenerated response often has the same
+           content and must not be silently dropped (#2562). */
+        A.lastCompletedContent = "";
+        A.lastCompletedTime = 0;
+        A.showThinking();
+        function resend() {
+            if (!A.sendMessage(userText)) {
+                A.hideThinking();
+                if (typeof A.renderErrorCode === "function") { A.renderErrorCode("model_unreachable"); }
+            }
+        }
+        if (idx >= 0 && typeof A.truncateHistory === "function") {
+            A.truncateHistory(A.currentSessionId || A.sessionId || "", idx).then(resend);
+        } else {
+            resend();
+        }
+    };
 
     /* ================================================================
        Assistant toolbar: Copy + Regenerate
@@ -62,40 +97,12 @@
 
         /* Regenerate */
         var regen = document.createElement("button");
-        regen.className = "gb-msg-toolbar-btn";
+        regen.className = "gb-msg-toolbar-btn gb-regen-btn";
         regen.title = t("Regenerar", "Regenerate");
         regen.setAttribute("aria-label", t("Regenerar", "Regenerate"));
         regen.innerHTML = I("arrows-clockwise", 14) + '<span class="gb-toolbar-label">' +
             A.escapeHtml(t("Regenerar", "Regenerate")) + '</span>';
-        regen.addEventListener("click", function () {
-            if (A.isStreaming) { return; }
-            /* Find the last user message before this assistant message */
-            var userMsgs = document.querySelectorAll("#gbMessages .gb-msg-user");
-            var lastUser = userMsgs.length ? userMsgs[userMsgs.length - 1] : null;
-            if (!lastUser) { return; }
-            var userText = (lastUser.dataset.originalContent || lastUser.textContent || "").trim();
-            if (!userText) { return; }
-            /* The assistant message index in the stored history */
-            var idx = msgIndex(el);
-            /* Remove this assistant message from DOM */
-            el.remove();
-            /* Truncate server history from this message onward, then resend.
-               Clear the dedup state first: a regenerated response often has
-               the same content and must not be silently dropped (#2562). */
-            A.lastCompletedContent = "";
-            A.lastCompletedTime = 0;
-            A.showThinking();
-            if (idx >= 0 && typeof A.truncateHistory === "function") {
-                var sid = A.currentSessionId || A.sessionId || "";
-                A.truncateHistory(sid, idx).then(function () {
-                    if (typeof A.sendMessage === "function") {
-                        A.sendMessage(userText);
-                    }
-                });
-            } else if (typeof A.sendMessage === "function") {
-                A.sendMessage(userText);
-            }
-        });
+        regen.addEventListener("click", function () { A.regenerateFrom(el); });
         tb.appendChild(regen);
 
         el.appendChild(tb);

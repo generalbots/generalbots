@@ -3,7 +3,7 @@
 /* == Layout: nav + panel side by side =============================== */
 .gb-settings-container {
     display: flex; gap: var(--id-space-6);
-    width: 100%; max-width: 880px; margin: 0 auto;
+    width: 100%; margin: 0;
     padding: var(--id-space-6) var(--id-space-4);
     height: 100%; overflow: hidden;
     box-sizing: border-box;
@@ -43,12 +43,19 @@
 
 /* -- Panel (right, scrollable) -- */
 .gb-set-panel {
-    flex: 1; min-width: 0; max-width: 640px;
-    overflow-y: auto; padding-bottom: var(--id-space-8);
+    flex: 1; min-width: 0;
+    overflow-y: auto; scrollbar-gutter: stable;
+    /* Left/top: room for focus rings. Right: the cards keep their distance
+       from the scrollbar instead of sitting under it. */
+    padding: var(--id-space-1) var(--id-space-5) var(--id-space-8) var(--id-space-1);
     align-self: stretch;
 }
-.gb-set-panel::-webkit-scrollbar { width: 6px; }
-.gb-set-panel::-webkit-scrollbar-thumb { background: var(--id-scrollbar-thumb); border-radius: 3px; }
+.gb-set-panel::-webkit-scrollbar { width: 12px; }
+.gb-set-panel::-webkit-scrollbar-track { background: transparent; margin: var(--id-space-2) 0; }
+.gb-set-panel::-webkit-scrollbar-thumb {
+    background: var(--id-scrollbar-thumb); background-clip: padding-box;
+    border: 4px solid transparent; border-radius: 999px; min-height: 48px; }
+.gb-set-panel::-webkit-scrollbar-thumb:hover { background-color: var(--id-muted); }
 
 /* -- Card -- */
 .gb-set-card {
@@ -221,7 +228,15 @@
 .gb-set-mode-card:hover { border-color: var(--id-accent); }
 .gb-set-mode-card:disabled { opacity: .4; cursor: not-allowed; }
 .gb-set-mode-active { border-color: var(--id-accent); background: var(--id-accent-soft); color: var(--id-accent-text); font-weight: 500; }
-.gb-set-mode-label { display: block; }
+.gb-set-mode-selected { box-shadow: 0 0 0 2px var(--id-accent); border-color: var(--id-accent); }
+.gb-set-mode-label { display: block; font-weight: 500; }
+.gb-set-mode-sub { display: block; font-size: var(--id-text-xs); font-weight: 400; color: var(--id-muted); }
+.gb-set-busy { display: flex; align-items: center; gap: var(--id-space-2); font-size: var(--id-text-sm); color: var(--id-muted); }
+.gb-set-busy::before { content: ""; width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%;
+    border: 2px solid var(--id-line); border-top-color: var(--id-accent); animation: gbSetSpin .8s linear infinite; }
+@keyframes gbSetSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gb-set-busy::before { animation: none; } }
+#gbSetPanel[aria-busy="true"] button { pointer-events: none; opacity: .55; }
 .gb-set-mode-icon { flex-shrink: 0; }
 .gb-set-mode-detail { margin-top: 0; }
 .gb-set-model-row {
@@ -247,7 +262,25 @@
 .gb-set-btn-accent:hover { background: var(--id-accent-hover); }
 .gb-set-btn-danger { color: var(--id-danger); border-color: var(--id-danger-line); }
 .gb-set-btn-danger:hover { background: var(--id-danger-soft); }
-.gb-dl-progress { display: flex; align-items: center; gap: var(--id-space-2); }
+.gb-dl-progress { display: flex; align-items: center; gap: var(--id-space-2); flex-wrap: wrap; width: 100%; }
+.gb-dl-bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: var(--id-fill); overflow: hidden; }
+.gb-dl-bar > i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--id-accent);
+    transition: width var(--id-dur-fast) var(--id-ease); }
+.gb-dl-bar-wait > i { width: 35%; animation: gbDlWait 1.4s ease-in-out infinite; }
+@keyframes gbDlWait { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .gb-dl-bar-wait > i { animation: none; width: 100%; opacity: .5; } }
+/* The engine comes first, in its own inner card */
+.gb-set-engine { border: 1px solid var(--id-line); border-radius: var(--id-radius-control);
+    padding: var(--id-space-3) var(--id-space-4); margin-bottom: var(--id-space-3); background: var(--id-fill); }
+.gb-set-engine .gb-set-model-info { justify-content: space-between; }
+.gb-set-hw { margin: 0 0 var(--id-space-2); line-height: 1.5; }
+.gb-set-list-title { font-size: var(--id-text-sm); font-weight: 600; color: var(--id-ink);
+    margin: var(--id-space-4) 0 var(--id-space-1); }
+.gb-set-model-caps { font-size: var(--id-text-sm); color: var(--id-text); margin-top: 2px; }
+/* The model being downloaded stands out as an inner card */
+.gb-set-model-row-busy { border: 1px solid var(--id-accent); border-radius: var(--id-radius-control);
+    background: var(--id-accent-soft); padding: var(--id-space-3) var(--id-space-4); margin: var(--id-space-2) 0; }
+.gb-set-model-row-busy:last-child { border-bottom: 1px solid var(--id-accent); }
 .gb-dl-text { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-set-form { display: flex; flex-direction: column; gap: var(--id-space-2); }
 .gb-set-input {

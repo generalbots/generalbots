@@ -3440,6 +3440,7 @@ dependencies = [
  "uuid",
  "vaultrs",
  "walkdir",
+ "windows 0.61.3",
  "x509-parser 0.15.1",
  "zip",
 ]

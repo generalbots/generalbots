@@ -232,6 +232,20 @@ fn push_version(splash: &WebviewWindow) {
     let _ = splash.eval(&script);
 }
 
+/// Progress with a catalogue key. The page receives the key next to the
+/// text and shows its own wording for it, in the language of the page: this
+/// process has no locale on Windows (`LANG` is unset there), so its text
+/// would be English under a Portuguese page.
+fn push_progress_key(splash: &WebviewWindow, value: u8, key: &str) {
+    let script = format!(
+        "if(typeof window.gbSplashProgress==='function')window.gbSplashProgress({},{},{});",
+        value,
+        json!(i18n::t(key)),
+        json!(key)
+    );
+    let _ = splash.eval(&script);
+}
+
 fn push_progress(splash: &WebviewWindow, value: u8, text: &str) {
     let script = format!(
         "if(typeof window.gbSplashProgress==='function')window.gbSplashProgress({},{});",
@@ -263,23 +277,23 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
             if let Some(main) = handle.get_webview_window("main") {
                 if !saw_main {
                     saw_main = true;
-                    push_progress(&splash, 70, &i18n::t("splash-loading-interface"));
+                    push_progress_key(&splash, 70, "splash-loading-interface");
                 }
                 if let Ok(url) = main.url() {
                     if url.as_str().contains(BOOT_READY_FRAGMENT) {
                         info!("splash: boot-ready fragment seen; closing");
-                        push_progress(&splash, 100, &i18n::t("splash-ready"));
+                        push_progress_key(&splash, 100, "splash-ready");
                         std::thread::sleep(Duration::from_millis(120));
                         hide(&handle);
                         return;
                     }
                 }
             } else if !saw_main {
-                push_progress(&splash, 15, &i18n::t("splash-starting-services"));
+                push_progress_key(&splash, 15, "splash-starting-services");
             }
             if Instant::now() >= deadline {
                 warn!("splash: boot-ready fragment never arrived; hiding the splash");
-                push_progress(&splash, 100, &i18n::t("splash-opening-workspace"));
+                push_progress_key(&splash, 100, "splash-opening-workspace");
                 std::thread::sleep(Duration::from_millis(120));
                 hide(&handle);
                 return;

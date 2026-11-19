@@ -13,6 +13,7 @@ pub mod ci_gate;
 pub mod episodic_memory;
 pub mod evaluation;
 pub mod local;
+pub(crate) mod local_context;
 pub mod smart_router;
 pub mod observability;
 pub mod pipeline;

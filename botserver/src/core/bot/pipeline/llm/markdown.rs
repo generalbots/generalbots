@@ -1,8 +1,23 @@
 //! Markdown-to-HTML conversion applied to the final answer.
 
+/// The final answer as the shell in use expects it. The assistant shell
+/// renders Markdown itself, and Markdown is not read inside HTML: converting
+/// bold and bullets here left the links inside them on screen as plain text.
+pub(super) fn for_shell(content: &str) -> String {
+    let assistant_shell = botcore::product::PRODUCT_CONFIG
+        .read()
+        .map(|config| config.shell.as_deref() == Some("assistant"))
+        .unwrap_or(false);
+    if assistant_shell {
+        content.to_string()
+    } else {
+        convert_markdown(content)
+    }
+}
+
 /// Converts the model's `**bold**` and `- ` bullets into the HTML the chat
 /// renderer expects. A stray `**` leaves the text untouched.
-pub(super) fn convert_markdown(content: &str) -> String {
+fn convert_markdown(content: &str) -> String {
     let mut converted = content
         .split("**")
         .enumerate()

@@ -49,6 +49,22 @@ pub fn encode(content: &str, meta: &MessageMeta) -> String {
     format!("{content}\n{META_SEPARATOR}{json}")
 }
 
+/// What is stored as the answer of a turn the person stopped: the text that
+/// was on screen, or an ellipsis when none had arrived yet (a mark that reads
+/// the same in every language).
+pub fn stopped_answer(partial: &str, reasoning: &str) -> String {
+    let visible = if partial.trim().is_empty() {
+        "…"
+    } else {
+        partial.trim_end()
+    };
+    let meta = MessageMeta {
+        reasoning: reasoning.trim().to_string(),
+        ..Default::default()
+    };
+    encode(visible, &meta)
+}
+
 /// Splits stored content into (visible_content, metadata).
 pub fn decode(stored: &str) -> (&str, Option<MessageMeta>) {
     if let Some(pos) = stored.find(META_SEPARATOR) {
@@ -64,6 +80,23 @@ pub fn decode(stored: &str) -> (&str, Option<MessageMeta>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_stopped_turn_keeps_what_was_on_screen() {
+        let stored = stopped_answer("Half an answer \n", " thinking ");
+        let (content, meta) = decode(&stored);
+        assert_eq!(content, "Half an answer");
+        assert_eq!(meta.map(|m| m.reasoning), Some("thinking".to_string()));
+    }
+
+    #[test]
+    fn a_turn_stopped_before_any_text_leaves_a_mark() {
+        assert_eq!(stopped_answer("  ", ""), "…");
+        let stored = stopped_answer("", "was thinking");
+        let (content, meta) = decode(&stored);
+        assert_eq!(content, "…");
+        assert_eq!(meta.map(|m| m.reasoning), Some("was thinking".to_string()));
+    }
 
     #[test]
     fn roundtrip_with_reasoning() {

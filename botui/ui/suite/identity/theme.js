@@ -37,10 +37,15 @@
     function applyTheme(pref) {
         var effective = resolve(pref);
         document.documentElement.setAttribute("data-theme", effective);
-        /* Re-derive accent so contrast checks use the correct paper. */
+        /* Re-derive accent so contrast checks use the correct paper. The
+           accent in use may be the product's default (never stored): the
+           one last applied counts, the stored choice is the fallback. */
         if (window.GBIdentity) {
             var hex = null;
             try { hex = localStorage.getItem("gb-accent"); } catch (e) { /* */ }
+            if (typeof window.GBIdentity.reapply === "function" && window.GBIdentity.reapply()) {
+                return;
+            }
             if (hex) {
                 window.GBIdentity.apply(hex);
             }

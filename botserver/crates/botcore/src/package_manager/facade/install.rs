@@ -67,6 +67,9 @@ impl PackageManager {
             let binary_name = component.effective_binary_name();
             self.download_and_install(&url, &name, binary_name.as_deref())
                 .await?;
+            if name == "llm" {
+                self.finish_llm_install(&url).await?;
+            }
         }
         if !component.data_download_list.is_empty() {
             let cache_base = self.base_path.parent().unwrap_or(&self.base_path);

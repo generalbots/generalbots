@@ -53,7 +53,11 @@ impl LLMProvider for OpenAIClient {
             32768
         };
 
-        let messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+        let mut messages = OpenAIClient::ensure_token_limit(raw_messages, context_limit);
+        if OpenAIClient::is_loopback_endpoint(&self.base_url) {
+            messages = OpenAIClient::lead_with_one_system_message(&messages);
+            messages = self.fit_local_context(&messages, tools).await;
+        }
 
         let estimated_tokens = OpenAIClient::estimate_messages_tokens(&messages);
         if let Err(e) = self.rate_limiter.acquire(estimated_tokens).await {

@@ -23,6 +23,7 @@ pub(super) async fn send_classified_error(
         LlmErrorCode::ModelRateLimited => "error-model-rate-limited",
         LlmErrorCode::ModelError => "error-model-error",
         LlmErrorCode::Timeout => "error-model-timeout",
+        LlmErrorCode::ContextExceeded => "error-model-context",
     };
     let msg = {
         let translated = botcore::i18n::t(&locale, i18n_key);
