@@ -11,10 +11,10 @@
 .theme-dropdown {
     width: 100%;
     padding: 10px 14px;
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text, #ffffff);
+    color: var(--text);
     font-size: var(--text-sm);
     font-family: inherit;
     cursor: pointer;
@@ -27,24 +27,24 @@
 }
 
 .theme-dropdown:hover {
-    border-color: var(--text-secondary, #888888);
+    border-color: var(--text-secondary);
 }
 
 .theme-dropdown:focus {
     outline: none;
-    border-color: var(--primary, #d4f505);
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.15);
 }
 
 .theme-dropdown option {
-    background: var(--surface, #161616);
-    color: var(--text, #ffffff);
+    background: var(--surface);
+    color: var(--text);
     padding: 8px;
 }
 
 .theme-dropdown optgroup {
-    background: var(--bg, #0a0a0a);
-    color: var(--text-secondary, #888888);
+    background: var(--bg);
+    color: var(--text-secondary);
     font-weight: 600;
     font-style: normal;
 }
@@ -123,44 +123,48 @@
     padding: 0 2px;
 }
 
-/* Theme Preview Colors */
+/* Theme Preview Colors
+ * #2324: the literals in these .theme-* swatch rules are deliberate. Each
+ * swatch paints a miniature of a shipped theme, so the palette values are the
+ * data being displayed; making them follow the active theme would make every
+ * preview identical. They are not component colours. */
 .theme-dark .theme-option-inner {
-    background: #0f172a;
-    color: #f8fafc;
+    background: var(--bg);
+    color: var(--text);
 }
 .theme-dark .theme-option-header {
-    background: #1e293b;
+    background: var(--surface);
 }
 .theme-dark .theme-option-dot {
-    background: #3b82f6;
+    background: var(--primary);
 }
 .theme-dark .theme-option-line {
-    background: #334155;
+    background: var(--surface-hover);
 }
 
 .theme-light .theme-option-inner {
-    background: #f8fafc;
-    color: #1e293b;
+    background: var(--surface);
+    color: var(--text);
 }
 .theme-light .theme-option-header {
-    background: #ffffff;
+    background: var(--surface);
 }
 .theme-light .theme-option-dot {
-    background: #3b82f6;
+    background: var(--primary);
 }
 .theme-light .theme-option-line {
-    background: #e2e8f0;
+    background: var(--surface-hover);
 }
 
 .theme-blue .theme-option-inner {
     background: #0c1929;
-    color: #f8fafc;
+    color: var(--text);
 }
 .theme-blue .theme-option-header {
     background: #1a2f47;
 }
 .theme-blue .theme-option-dot {
-    background: #0ea5e9;
+    background: var(--info);
 }
 .theme-blue .theme-option-line {
     background: #2d4a6f;
@@ -168,7 +172,7 @@
 
 .theme-purple .theme-option-inner {
     background: #1a0a2e;
-    color: #f8fafc;
+    color: var(--text);
 }
 .theme-purple .theme-option-header {
     background: #2d1b4e;
@@ -182,13 +186,13 @@
 
 .theme-green .theme-option-inner {
     background: #0a1f15;
-    color: #f8fafc;
+    color: var(--text);
 }
 .theme-green .theme-option-header {
     background: #14332a;
 }
 .theme-green .theme-option-dot {
-    background: #22c55e;
+    background: var(--success);
 }
 .theme-green .theme-option-line {
     background: #28604f;
@@ -196,7 +200,7 @@
 
 .theme-orange .theme-option-inner {
     background: #1a1008;
-    color: #f8fafc;
+    color: var(--text);
 }
 .theme-orange .theme-option-header {
     background: #2d1c0f;
@@ -209,17 +213,17 @@
 }
 
 .theme-sentient .theme-option-inner {
-    background: #0a0a0a;
-    color: #ffffff;
+    background: var(--bg);
+    color: var(--text);
 }
 .theme-sentient .theme-option-header {
-    background: #161616;
+    background: var(--surface);
 }
 .theme-sentient .theme-option-dot {
     background: #d4f505;
 }
 .theme-sentient .theme-option-line {
-    background: #2a2a2a;
+    background: var(--surface);
 }
 
 /* Retro Theme Previews */
@@ -267,7 +271,7 @@
 
 .theme-y2kglow .theme-option-inner {
     background: #000033;
-    color: #ffffff;
+    color: var(--text);
 }
 .theme-y2kglow .theme-option-header {
     background: #000066;
@@ -280,11 +284,11 @@
 }
 
 .theme-arcadeflash .theme-option-inner {
-    background: #000000;
+    background: var(--bg);
     color: #ff0000;
 }
 .theme-arcadeflash .theme-option-header {
-    background: #1a1a1a;
+    background: var(--bg);
 }
 .theme-arcadeflash .theme-option-dot {
     background: #ffff00;

@@ -1,18 +1,18 @@
 
 .window-element .window-header,
 .window-element-glass .window-header-glass {
-    border-bottom: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, #ececef));
+    border-bottom: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, var(--border)));
 }
 
-/* #1970 — this pin painted every app-window status bar #fafafa regardless of
+/* #1970 — this pin painted every app-window status bar var(--surface) regardless of
    theme. Derive it from the themed title-bar tokens so light and dark (or any
    custom) themes keep one chrome colour. */
 .window-element .window-statusbar,
 .window-element-glass .window-statusbar {
-    border-top: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, #ececef));
+    border-top: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, var(--border)));
     box-shadow: none;
-    background: var(--win-statusbar-bg, var(--win-titlebar-bg, #fafafa));
-    color: var(--win-titlebar-text, #71717a);
+    background: var(--win-statusbar-bg, var(--win-titlebar-bg, var(--surface)));
+    color: var(--win-titlebar-text, var(--text));
 }
 
 
@@ -23,7 +23,7 @@
     border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
     border-radius: 14px;
     overflow: hidden;
-    background: var(--gb-surface, #fff);
+    background: var(--gb-surface, var(--surface));
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
 }
 
@@ -34,13 +34,13 @@
     gap: 10px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--gb-border, rgba(24, 24, 27, 0.10));
-    background: var(--gb-surface, #fff);
+    background: var(--gb-surface, var(--surface));
 }
 
 #chat-app .gb-inline-artifact-title {
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: var(--gb-text, #18181b);
+    color: var(--gb-text, var(--text));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -53,15 +53,15 @@
     border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.14));
     border-radius: 7px;
     background: transparent;
-    color: var(--gb-muted, #71717a);
+    color: var(--gb-muted, var(--text-secondary));
     font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
 }
 
 #chat-app .gb-inline-artifact-btn:hover {
-    color: var(--gb-accent, #16a34a);
-    border-color: var(--gb-accent, #16a34a);
+    color: var(--gb-accent, var(--primary));
+    border-color: var(--gb-accent, var(--primary));
 }
 
 #chat-app .gb-inline-artifact-frame {
@@ -115,7 +115,7 @@
     font-weight: 500;
     letter-spacing: 0.02em;
     text-transform: none;
-    color: #a1a1aa;
+    color: var(--text-secondary);
 }
 #chat-app .gb-console[open] > summary.gb-console-head::after { content: "Hide log"; }
 #chat-app .gb-console:not([open]) > pre { display: none; }
@@ -171,13 +171,13 @@
     gap: 8px;
     padding: 7px 10px;
     border-bottom: 1px solid rgba(24, 24, 27, 0.06);
-    background: #f7f7f8;
+    background: var(--surface);
 }
 .gb-live-artifact-title {
     flex: 1;
     font-size: var(--text-2xs);
     font-weight: 600;
-    color: #52525b;
+    color: var(--text-secondary);
 }
 .gb-live-artifact-body iframe {
     display: block;
@@ -191,7 +191,7 @@
    own box. Shapes animate in as the model emits them. */
 .gb-live-artifact-badge {
     font-size: var(--text-2xs);
-    color: #71717a;
+    color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -255,14 +255,14 @@
     flex: 1;
     font-size: var(--text-sm);
     font-weight: 600;
-    color: #18181b;
+    color: var(--text);
 }
 .gb-drive-picker-close {
     border: 0;
     background: transparent;
     font-size: var(--text-xl);
     line-height: 1;
-    color: #71717a;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 2px 6px;
 }
@@ -273,7 +273,7 @@
     gap: 2px;
     padding: 8px 14px;
     font-size: var(--text-2xs);
-    color: #52525b;
+    color: var(--text-secondary);
     border-bottom: 1px solid rgba(24, 24, 27, 0.05);
 }
 .gb-drive-picker-crumb-btn {
@@ -281,16 +281,16 @@
     background: transparent;
     padding: 2px 4px;
     border-radius: 5px;
-    color: #4f46e5;
+    color: var(--primary);
     font: inherit;
     cursor: pointer;
 }
-.gb-drive-picker-crumb-btn:hover { background: #eef2ff; }
-.gb-drive-picker-sep { color: #a1a1aa; }
+.gb-drive-picker-crumb-btn:hover { background: var(--primary-light); }
+.gb-drive-picker-sep { color: var(--text-secondary); }
 .gb-drive-picker-status {
     padding: 10px 14px;
     font-size: var(--text-2xs);
-    color: #71717a;
+    color: var(--text-secondary);
 }
 .gb-drive-picker-list {
     overflow: auto;
@@ -310,10 +310,10 @@
     background: transparent;
     text-align: left;
     font: inherit;
-    color: #18181b;
+    color: var(--text);
     cursor: pointer;
 }
-.gb-drive-picker-row:hover { background: #f4f4f5; }
+.gb-drive-picker-row:hover { background: var(--surface); }
 .gb-drive-picker-icon { flex: none; font-size: var(--text-md); }
 .gb-drive-picker-name {
     flex: 1;
@@ -322,13 +322,13 @@
     white-space: nowrap;
     font-size: var(--text-xs);
 }
-.gb-drive-picker-meta { flex: none; font-size: var(--text-2xs); color: #a1a1aa; }
+.gb-drive-picker-meta { flex: none; font-size: var(--text-2xs); color: var(--text-secondary); }
 .gb-drive-picker-attach {
     flex: none;
     padding: 2px 9px;
     border-radius: 999px;
-    background: #eef2ff;
-    color: #4f46e5;
+    background: var(--primary-light);
+    color: var(--primary);
     font-size: var(--text-2xs);
     font-weight: 600;
 }

@@ -43,7 +43,7 @@
 }
 
 .message-content ul li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
     font-size: 1.1em;
 }
 
@@ -74,7 +74,7 @@
 }
 
 .message-content ol li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
     font-weight: 600;
 }
 
@@ -112,12 +112,12 @@
 /* Lists in bot messages with better contrast */
 .message.bot .message-content ul li::marker,
 .message.bot .message-content ol li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
 }
 
 .message.bot .message-content ul ul li::marker,
 .message.bot .message-content ol ol li::marker {
-    color: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    color: var(--chat-color1, var(--accent, var(--primary)));
     opacity: 0.8;
 }
 
@@ -153,14 +153,14 @@
 .message.user .message-content h1,
 .message.user .message-content h2,
 .message.user .message-content h3 {
-    color: var(--chat-fg1, var(--text, #ffffff));
+    color: var(--chat-fg1, var(--text));
 }
 
 /* Headings in bot messages */
 .message.bot .message-content h1,
 .message.bot .message-content h2,
 .message.bot .message-content h3 {
-    color: var(--text, #1a1a1a);
+    color: var(--text);
 }
 
 /* Code blocks */
@@ -199,7 +199,7 @@
 .message-content blockquote {
     margin: 6px 0;
     padding-left: 12px;
-    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
+    border-left: 3px solid var(--chat-color1, var(--accent, var(--primary)));
     font-style: italic;
 }
 
@@ -235,8 +235,8 @@
 }
 
 .message-content thead th {
-    background: var(--chat-color1, var(--accent, var(--primary, #3b82f6)));
-    color: #ffffff;
+    background: var(--chat-color1, var(--accent, var(--primary)));
+    color: var(--text);
     font-weight: 600;
     white-space: nowrap;
 }

@@ -3,23 +3,23 @@
     /* #1676 — the message list is a height-constrained flex column; without
        this the card is shrunk to 0 px and the iframe becomes invisible. */
     flex: 0 0 auto;
-    border: 1px solid var(--gb-border, #d7dbe2);
+    border: 1px solid var(--gb-border, var(--border));
     border-radius: 10px;
     margin: 8px 0;
     overflow: hidden;
-    background: var(--gb-surface, #fff);
+    background: var(--gb-surface, var(--surface));
 }
 .gb-app-head {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    background: var(--gb-surface-muted, #f6f7f9);
+    background: var(--gb-surface-muted, var(--surface));
 }
 .gb-app-title { font-weight: 600; flex: 1 1 auto; overflow-wrap: anywhere; }
-.gb-app-status { font-size: var(--text-2xs); color: var(--gb-text-muted, #57606a); }
+.gb-app-status { font-size: var(--text-2xs); color: var(--gb-text-muted, var(--text-secondary)); }
 .gb-app-btn {
-    border: 1px solid var(--gb-border, #d7dbe2);
+    border: 1px solid var(--gb-border, var(--border));
     background: transparent;
     border-radius: 4px;
     padding: 1px 7px;
@@ -33,8 +33,8 @@
     width: 100%;
     padding: 20px;
     border: 0;
-    background: var(--gb-surface-muted, #f6f7f9);
-    color: var(--gb-text-muted, #57606a);
+    background: var(--gb-surface-muted, var(--surface));
+    color: var(--gb-text-muted, var(--text-secondary));
     cursor: pointer;
     font: inherit;
 }
@@ -45,7 +45,7 @@
 /* #1680 — mobile full-screen sheet and visible focus. */
 .gb-app-btn:focus-visible,
 .gb-app-poster:focus-visible {
-    outline: 2px solid #1f6feb;
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
 @media (max-width: 640px) {

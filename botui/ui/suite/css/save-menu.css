@@ -8,7 +8,7 @@
   padding: 4px;
   border: 1px solid var(--gb-border, rgba(0, 0, 0, 0.14));
   border-radius: 8px;
-  background: var(--gb-surface, #ffffff);
+  background: var(--gb-surface, var(--surface));
   color: var(--gb-text, inherit);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }

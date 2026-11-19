@@ -40,17 +40,17 @@
   min-height: var(--gb-pane-bar);
   height: var(--gb-pane-bar);
   padding: 0 12px;
-  border: 1px solid var(--border, #334155);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface, #1e293b);
-  color: var(--text, #f8fafc);
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
 }
 
 .gb-pane-back:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
+  outline: 2px solid var(--accent, var(--primary));
   outline-offset: 2px;
 }
 
@@ -108,7 +108,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--border, #334155);
+    background: var(--border);
     cursor: col-resize;
     touch-action: none;
   }
@@ -118,11 +118,11 @@
     width: 2px;
     height: 36px;
     border-radius: 2px;
-    background: var(--text-tertiary, #94a3b8);
+    background: var(--text-tertiary);
   }
 
   .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-panes-resize:focus-visible {
-    outline: 2px solid var(--accent, #3b82f6);
+    outline: 2px solid var(--accent, var(--primary));
     outline-offset: -2px;
   }
 

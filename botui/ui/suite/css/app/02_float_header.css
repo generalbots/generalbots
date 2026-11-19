@@ -7,10 +7,10 @@
     left: 0;
     right: 0;
     height: var(--header-height);
-    background: var(--bg, var(--surface, #0a0a0a));
+    background: var(--bg, var(--surface));
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-bottom: 1px solid var(--border, var(--border-color, var(--border)));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -57,7 +57,7 @@
     gap: 4px;
     padding: 6px 10px;
     border-radius: var(--radius-md);
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: var(--text-2xs);
     font-weight: 500;
@@ -67,13 +67,13 @@
 
 .app-tab:hover {
     background: var(--surface-hover, var(--bg-hover, rgba(255, 255, 255, 0.1)));
-    color: var(--text, var(--text-primary, #ffffff));
+    color: var(--text, var(--text-primary, var(--text)));
 }
 
 .app-tab.active {
     background: var(--primary-light, rgba(212, 245, 5, 0.15));
-    color: var(--primary, var(--accent-color, #d4f505));
-    border-color: var(--primary, var(--accent-color, #d4f505));
+    color: var(--primary, var(--accent-color, var(--primary)));
+    border-color: var(--primary, var(--accent-color, var(--primary)));
 }
 
 .app-tab svg {
@@ -161,13 +161,13 @@
     padding: 6px 12px;
     height: 36px;
     background: var(--surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--border, #2a2a2a);
+    border: 1px solid var(--border);
     border-radius: 18px;
     transition: all 0.2s ease;
 }
 
 .omnibox.active .omnibox-input-area {
-    border-color: var(--primary, #3b82f6);
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     border-radius: 12px 12px 0 0;
 }
@@ -184,21 +184,21 @@
 
 .omnibox.chat-mode .bot-icon {
     display: block !important;
-    color: var(--primary, #3b82f6);
+    color: var(--primary);
 }
 
 .omnibox-input {
     flex: 1;
     border: none;
     background: transparent;
-    color: var(--text, #f8fafc);
+    color: var(--text);
     font-size: var(--text-xs);
     outline: none;
     min-width: 0;
 }
 
 .omnibox-input::placeholder {
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted, var(--text-secondary));
 }
 
 .omnibox-hints {
@@ -210,7 +210,7 @@
 .omnibox-shortcut {
     padding: 2px 6px;
     background: var(--surface-hover, rgba(255, 255, 255, 0.1));
-    border: 1px solid var(--border, #334155);
+    border: 1px solid var(--border);
     border-radius: 4px;
     font-size: var(--text-2xs);
     color: var(--text-secondary);
@@ -234,11 +234,11 @@
 
 .omnibox-mode-toggle:hover {
     background: var(--surface-hover);
-    color: var(--primary, #3b82f6);
+    color: var(--primary);
 }
 
 .omnibox.chat-mode .omnibox-mode-toggle {
-    color: var(--primary, #3b82f6);
+    color: var(--primary);
     background: rgba(59, 130, 246, 0.1);
 }
 
@@ -249,8 +249,8 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--surface, #1e293b);
-    border: 1px solid var(--border, #334155);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -296,7 +296,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted, var(--text-secondary));
     padding: 4px 8px;
     margin-bottom: 4px;
 }
@@ -317,7 +317,7 @@
     background: transparent;
     border: none;
     border-radius: 8px;
-    color: var(--text, #f8fafc);
+    color: var(--text);
     cursor: pointer;
     transition: all 0.15s;
     text-align: left;

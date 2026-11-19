@@ -57,7 +57,7 @@
   font-size: var(--text-2xs);
   line-height: 1;
   color: #fff;
-  background: var(--primary, #84d669);
+  background: var(--primary);
   border-radius: 50%;
   width: 14px;
   height: 14px;
@@ -72,7 +72,7 @@
   font-size: var(--text-2xs);
   line-height: 1.25;
   text-align: center;
-  color: var(--text, #eee);
+  color: var(--text);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   overflow: hidden;
   display: -webkit-box;

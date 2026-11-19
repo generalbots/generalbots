@@ -29,7 +29,7 @@
 }
 
 #chat-app .gb-attachment {
-    background: var(--surface, #f4f4f5) !important;
+    background: var(--surface) !important;
     border: 1px solid var(--gb-border);
     border-radius: 10px;
     padding: 4px 8px;
@@ -41,7 +41,7 @@
 }
 
 #chat-app .gb-attachment-btn {
-    color: var(--text, #3f3f46) !important;
+    color: var(--text) !important;
 }
 
 #chat-app .gb-attachment-btn:hover {
@@ -81,7 +81,7 @@
     resize: none;
 }
 
-#chat-app #messageInput::placeholder { color: var(--text, #a1a1aa); }
+#chat-app #messageInput::placeholder { color: var(--text); }
 #chat-app #messageInput:focus { outline: none; }
 
 #chat-app #sendBtn {
@@ -91,7 +91,7 @@
     border: 0;
     border-radius: 50%;
     background: var(--gb-accent);
-    color: var(--surface, #fff);
+    color: var(--surface);
     font-size: var(--text-md);
     display: grid;
     place-items: center;
@@ -112,7 +112,7 @@
     cursor: pointer;
 }
 
-#chat-app .file-btn:hover { background: color-mix(in srgb, var(--text, #18181b) 5%, transparent); }
+#chat-app .file-btn:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
 
 /* ── Suggestions ───────────────────────────────────────────────────── */
 
@@ -127,7 +127,7 @@
     border-radius: 999px;
     border: 1px solid var(--gb-border);
     background: var(--gb-surface);
-    color: var(--text, #52525b);
+    color: var(--text);
     font-size: var(--text-2xs);
     line-height: 1.2;
     box-shadow: none;
@@ -175,7 +175,7 @@
     border: 1px solid transparent;
 }
 
-#chat-app .gb-tab:hover { background: color-mix(in srgb, var(--text, #18181b) 5%, transparent); }
+#chat-app .gb-tab:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
 
 #chat-app .gb-tab.active {
     background: var(--gb-accent-soft);
@@ -189,7 +189,7 @@
     height: 26px;
     border-radius: 8px;
     color: var(--gb-muted);
-    border: 1px dashed color-mix(in srgb, var(--text, #18181b) 18%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 #chat-app .gb-tab-new:hover {
@@ -228,7 +228,7 @@
 }
 
 #chat-app .gb-tab-overflow:hover {
-    background: color-mix(in srgb, var(--text, #18181b) 5%, transparent);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
     color: var(--gb-text);
 }
 
@@ -247,8 +247,8 @@
     overflow-y: auto;
     padding: 5px;
     border-radius: 12px;
-    border: 1px solid var(--gb-border, color-mix(in srgb, var(--text, #18181b) 14%, transparent));
-    background: var(--gb-surface, var(--surface, #fff));
+    border: 1px solid var(--gb-border, color-mix(in srgb, var(--text) 14%, transparent));
+    background: var(--gb-surface, var(--surface));
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
 }
 
@@ -261,7 +261,7 @@
     border: 0;
     border-radius: 8px;
     background: transparent;
-    color: var(--gb-text, var(--text, #18181b));
+    color: var(--gb-text, var(--text));
     font-size: var(--text-2xs);
     text-align: left;
     cursor: pointer;
@@ -272,7 +272,7 @@
 }
 
 .gb-tab-overflow-item.active {
-    color: var(--gb-accent, #16a34a);
+    color: var(--gb-accent, var(--primary));
     font-weight: 600;
 }
 
@@ -283,7 +283,7 @@
     height: 5px;
     margin-left: 6px;
     border-radius: 50%;
-    background: var(--gb-accent, #16a34a);
+    background: var(--gb-accent, var(--primary));
     vertical-align: middle;
 }
 

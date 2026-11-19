@@ -58,7 +58,7 @@
   animation: gb-typing-pulse 1.5s ease-in-out infinite;
 }
 .gb-login-btn:hover {
-  background: #334155 !important;
+  background: var(--surface-hover) !important;
 }
 .gb-connection-status {
   display: inline-flex;
@@ -70,10 +70,10 @@
   border-radius: 4px;
 }
 .gb-connection-status.online {
-  color: #22c55e;
+  color: var(--success);
 }
 .gb-connection-status.offline {
-  color: #f87171;
+  color: var(--error);
 }
 .gb-connection-status .dot {
   width: 6px;
@@ -82,11 +82,11 @@
   display: inline-block;
 }
 .gb-connection-status.online .dot {
-  background: #22c55e;
-  box-shadow: 0 0 4px #22c55e;
+  background: var(--success);
+  box-shadow: 0 0 4px var(--success);
 }
 .gb-connection-status.offline .dot {
-  background: #f87171;
+  background: var(--error);
 }
 /* Visible keyboard focus for the dark collaboration theme (a11y). */
 .btn-icon:focus-visible,

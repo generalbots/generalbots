@@ -14,7 +14,7 @@
   gap: 4px;
   padding: 8px;
   text-align: center;
-  color: var(--text, #eee);
+  color: var(--text);
   font-family: "Fira Code", "Fira Sans", monospace;
 }
 
@@ -28,7 +28,7 @@
 
 .gb-widget-clock-date {
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #bbb);
+  color: var(--text-secondary);
 }
 
 .gb-widget-calendar-grid {
@@ -47,7 +47,7 @@
   border-radius: 6px;
   font-size: var(--text-2xs);
   cursor: pointer;
-  color: var(--text, #ddd);
+  color: var(--text);
 }
 
 .gb-widget-calendar-cell:hover {
@@ -55,13 +55,13 @@
 }
 
 .gb-widget-calendar-cell.today {
-  background: var(--primary, var(--accent, #84d669));
+  background: var(--primary, var(--accent, var(--primary)));
   color: #06120a;
   font-weight: 700;
 }
 
 .gb-widget-calendar-cell.other {
-  color: var(--text-tertiary, #556);
+  color: var(--text-tertiary);
 }
 
 .gb-widget-meters {
@@ -89,7 +89,7 @@
 .gb-widget-meter-fill {
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary, #84d669), var(--accent, #84d669));
+  background: linear-gradient(90deg, var(--primary), var(--accent, var(--primary)));
   transition: width 400ms ease;
 }
 
@@ -116,7 +116,7 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text, #eee);
+  color: var(--text);
   font-family: "Fira Code", monospace;
   font-size: var(--text-md);
   text-align: right;
@@ -125,7 +125,7 @@
 .gb-wcalc-preview {
   min-height: 14px;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #9ba);
+  color: var(--text-secondary);
 }
 
 .gb-wcalc-pad {
@@ -138,7 +138,7 @@
 .gb-wcalc-key {
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #ddd);
+  color: var(--text);
   border-radius: 6px;
   font-size: var(--text-xs);
   font-family: inherit;
@@ -153,7 +153,7 @@
 }
 
 .gb-wcalc-key[data-key="="] {
-  background: var(--primary, #84d669);
+  background: var(--primary);
   color: #06120a;
   font-weight: 700;
 }
@@ -173,7 +173,7 @@
   border: none;
   outline: none;
   background: transparent;
-  color: var(--text, #eee);
+  color: var(--text);
   font-family: "Fira Code", monospace;
   font-size: var(--text-xs);
   line-height: 1.45;
@@ -185,7 +185,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 /* ── Todo widget ── */
@@ -199,13 +199,13 @@
   border-radius: 6px;
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #eee);
+  color: var(--text);
   font-size: var(--text-2xs);
   outline: none;
 }
 
 .gb-wtodo-input:focus {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary);
 }
 
 .gb-wtodo-list {
@@ -235,7 +235,7 @@
 
 .gb-wtodo-item.done .gb-wtodo-text {
   text-decoration: line-through;
-  color: var(--text-secondary, #888);
+  color: var(--text-secondary);
 }
 
 .gb-wtodo-text {
@@ -269,16 +269,16 @@
 .gb-wbatt-fill {
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, var(--primary, #84d669), #22c55e);
+  background: linear-gradient(90deg, var(--primary), var(--success));
   transition: width 400ms ease;
 }
 
 .gb-wbatt-fill.low {
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--warning), var(--error));
 }
 
 .gb-wbatt-fill.charging {
-  background: linear-gradient(90deg, #22c55e, #84d669);
+  background: linear-gradient(90deg, var(--success), #84d669);
 }
 
 .gb-wbatt-pct {
@@ -290,7 +290,7 @@
 
 .gb-wbatt-state {
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

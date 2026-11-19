@@ -1,6 +1,11 @@
 /* ============================================ */
 /* GB FLUENT — Wallpaper (per-theme mesh gradient) */
 /* ============================================ */
+/* #2324: the preset gradients below are intentional literal colours. Each
+   body[data-wallpaper] block is a self-contained piece of visual art (a user
+   choice), not UI chrome that should follow the active theme — replacing
+   these with semantic tokens would collapse every wallpaper into one colour.
+   General UI chrome in this file uses tokens. */
 
 :root {
   --wall: linear-gradient(135deg,
@@ -194,7 +199,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
 
 .wallpaper-option {
   position: relative;
-  border: 2px solid var(--border-color, #334155);
+  border: 2px solid var(--border-color, var(--border));
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -205,12 +210,12 @@ body[data-wallpaper="coral"] .workspace-v15 {
 }
 
 .wallpaper-option:hover {
-  border-color: var(--primary, #3b82f6);
+  border-color: var(--primary);
   transform: translateY(-2px);
 }
 
 .wallpaper-option.active {
-  border-color: var(--primary, #3b82f6);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 
@@ -232,7 +237,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
   display: block;
   padding: 8px 6px;
   font-size: var(--text-xs);
-  color: var(--text, #e5e7eb);
+  color: var(--text);
 }
 
 .wallpaper-check {
@@ -242,7 +247,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--primary, #3b82f6);
+  background: var(--primary);
   color: #fff;
   display: flex;
   align-items: center;

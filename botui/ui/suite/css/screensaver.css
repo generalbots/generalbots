@@ -1,6 +1,6 @@
 /* GB Screensaver (#1151) */
 #gb-screensaver {
-  --gbss-accent: var(--accent, #d4f505);
+  --gbss-accent: var(--accent, var(--primary));
   --gbss-cyan: #5ad8ff;
   position: fixed;
   inset: 0;

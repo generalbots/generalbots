@@ -37,8 +37,8 @@
     max-width: 520px;
     max-height: calc(100vh - 32px);
     max-height: calc(100dvh - 32px);
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 16px;
     overflow: hidden;
     display: flex;
@@ -70,8 +70,8 @@
     max-width: 480px;
     max-height: calc(100vh - 32px);
     max-height: calc(100dvh - 32px);
-    background: var(--surface, #161616);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
     display: flex;
@@ -101,13 +101,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text, #ffffff);
+    color: var(--text);
     margin: 0;
 }
 
@@ -120,14 +120,14 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .modal-close:hover {
-    background: var(--surface-hover, #1e1e1e);
-    color: var(--text, #ffffff);
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
 .modal-body {
@@ -141,7 +141,7 @@
     justify-content: flex-end;
     gap: 12px;
     padding: 16px 24px;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border);
 }
 
 /* Form styles within modals */
@@ -159,29 +159,29 @@
     display: block;
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text-secondary, #888888);
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
 .form-input {
     width: 100%;
     padding: 12px 14px;
-    background: var(--bg, #0a0a0a);
-    border: 1px solid var(--border, #2a2a2a);
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--text, #ffffff);
+    color: var(--text);
     font-size: var(--text-sm);
     transition: all 0.2s ease;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--accent, #d4f505);
+    border-color: var(--accent, var(--primary));
     box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.1);
 }
 
 .form-input::placeholder {
-    color: var(--text-tertiary, #666666);
+    color: var(--text-tertiary);
 }
 
 textarea.form-input {

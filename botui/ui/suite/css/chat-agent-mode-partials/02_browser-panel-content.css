@@ -38,7 +38,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    background: #1e1e1e;
+    background: var(--surface);
     border-bottom: 1px solid #333;
     font-family: 'Fira Code', monospace;
     font-size: var(--text-2xs);
@@ -49,12 +49,12 @@
 .terminal-panel-content {
     flex: 1;
     overflow-y: auto;
-    background: #1e1e1e;
+    background: var(--surface);
     padding: 8px 12px;
     font-family: 'Fira Code', monospace;
     font-size: var(--text-2xs);
     line-height: 1.5;
-    color: #d4d4d4;
+    color: var(--text-secondary);
 }
 
 .terminal-line {
@@ -63,11 +63,11 @@
 }
 
 .terminal-line.stderr {
-    color: #f87171;
+    color: var(--error);
 }
 
 .terminal-line.stdout {
-    color: #d4d4d4;
+    color: var(--text-secondary);
 }
 
 /* ============================================
@@ -124,12 +124,12 @@
 }
 
 .badge-bred {
-    background: #f59e0b;
+    background: var(--warning);
     color: var(--bg);
 }
 
 .badge-wild {
-    background: #ef4444;
+    background: var(--error);
     color: var(--bg);
 }
 

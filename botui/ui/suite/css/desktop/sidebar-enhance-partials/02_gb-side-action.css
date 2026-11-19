@@ -1,7 +1,7 @@
 
 .gb-side-action:hover {
-  background: var(--primary, var(--accent, #84d669));
-  border-color: var(--primary, var(--accent, #84d669));
+  background: var(--primary, var(--accent, var(--primary)));
+  border-color: var(--primary, var(--accent, var(--primary)));
   color: #111;
 }
 
@@ -14,7 +14,7 @@
   flex: 1;
   min-width: 0;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #777);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -25,8 +25,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 6px #22c55e;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
   font-size: 0;
   flex-shrink: 0;
 }
@@ -37,7 +37,7 @@
   border-radius: 999px;
   padding: 1px 8px;
   background: rgba(34, 197, 94, 0.18);
-  color: #4ade80;
+  color: var(--success);
   font-size: var(--text-2xs);
   font-weight: 600;
   box-shadow: none;
@@ -69,12 +69,12 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .gb-side-apps-count {
   font-size: var(--text-2xs);
-  color: var(--text-tertiary, #667);
+  color: var(--text-tertiary);
   background: var(--surface-hover, rgba(255, 255, 255, 0.07));
   border-radius: 999px;
   padding: 1px 7px;
@@ -117,7 +117,7 @@
 }
 
 .gb-side-switch input:checked + .gb-side-switch-slider {
-  background: var(--primary, #84d669);
+  background: var(--primary);
 }
 
 .gb-side-switch input:checked + .gb-side-switch-slider::before {
@@ -148,7 +148,7 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .gb-side-app-tile-preview {
@@ -172,12 +172,12 @@
   border-radius: 6px;
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text, #eee);
+  color: var(--text);
   outline: none;
 }
 
 .gb-side-apps-search:focus {
-  border-color: var(--primary, #84d669);
+  border-color: var(--primary);
 }
 
 .gb-side-apps-grid {
@@ -215,7 +215,7 @@
   font-size: var(--text-2xs);
   line-height: 1.15;
   text-align: center;
-  color: var(--text-secondary, #aaa);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,7 +241,7 @@
   border: none;
   border-radius: 50%;
   background: var(--surface-hover, rgba(0, 0, 0, 0.55));
-  color: var(--text-secondary, #ccc);
+  color: var(--text-secondary);
   font-size: var(--text-2xs);
   line-height: 12px;
   cursor: pointer;
@@ -255,7 +255,7 @@
 }
 
 .gb-side-app-hide:hover {
-  background: #e5484d;
+  background: var(--error);
   color: #fff;
 }
 
@@ -264,7 +264,7 @@
   padding: 6px 4px;
   font-size: var(--text-2xs);
   line-height: 1.35;
-  color: var(--text-tertiary, #889);
+  color: var(--text-tertiary);
 }
 
 /* ── Manage apps: bottom-of-rail entry + compact ON/OFF checklist ── */
@@ -283,7 +283,7 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-secondary, #b8b8c0);
+  color: var(--text-secondary);
   font-size: var(--text-2xs);
   text-align: left;
   cursor: pointer;
@@ -292,7 +292,7 @@
 .gb-side-manage-btn:hover,
 .gb-side-manage-btn[aria-expanded="true"] {
   background: var(--win-caption-hover, rgba(255, 255, 255, 0.09));
-  color: var(--text, #eee);
+  color: var(--text);
 }
 
 .gb-side-manage-btn svg {
@@ -328,7 +328,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .gb-side-manage-close {
@@ -336,14 +336,14 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: 1;
   cursor: pointer;
 }
 
 .gb-side-manage-close:hover {
-  color: var(--text, #fff);
+  color: var(--text);
 }
 
 .gb-side-manage-all {
@@ -353,14 +353,14 @@
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
   border-radius: 5px;
   background: transparent;
-  color: var(--text-secondary, #b8b8c0);
+  color: var(--text-secondary);
   font-size: var(--text-2xs);
   cursor: pointer;
 }
 
 .gb-side-manage-all:hover {
-  border-color: var(--primary, #84d669);
-  color: var(--text, #eee);
+  border-color: var(--primary);
+  color: var(--text);
 }
 
 .gb-side-manage-list {
@@ -374,7 +374,7 @@
   gap: 6px;
   padding: 3px 2px;
   font-size: var(--text-2xs);
-  color: var(--text, #ddd);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -387,7 +387,7 @@
   flex-shrink: 0;
   width: 12px;
   height: 12px;
-  accent-color: var(--primary, #84d669);
+  accent-color: var(--primary);
   cursor: pointer;
 }
 
@@ -401,7 +401,7 @@
 .gb-side-manage-empty {
   margin-top: 4px;
   font-size: var(--text-2xs);
-  color: var(--text-tertiary, #889);
+  color: var(--text-tertiary);
 }
 
 .chat-sidebar {

@@ -46,12 +46,12 @@
 .chat-sidebar-toggle svg {
   width: 20px;
   height: 20px;
-  stroke: var(--text-secondary, #888);
+  stroke: var(--text-secondary);
   transition: all 300ms;
 }
 
 .chat-sidebar-toggle:hover svg {
-  stroke: var(--primary, var(--accent, #84d669));
+  stroke: var(--primary, var(--accent, var(--primary)));
 }
 
 .chat-sidebar-content {
@@ -102,7 +102,7 @@
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--text, #eee);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,8 +112,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary, var(--accent, #84d669));
-  box-shadow: 0 0 8px var(--primary, var(--accent, #84d669));
+  background: var(--primary, var(--accent, var(--primary)));
+  box-shadow: 0 0 8px var(--primary, var(--accent, var(--primary)));
   animation: chatDotPulse 2s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -136,14 +136,14 @@
   font-family: inherit;
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text, #eee);
+  color: var(--text);
   background: var(--surface-hover, rgba(255,255,255,0.07));
   transition: all 180ms;
   flex-shrink: 0;
 }
 
 .chat-sidebar-new-chat:hover {
-  background: var(--primary, var(--accent, #84d669));
+  background: var(--primary, var(--accent, var(--primary)));
   color: #111;
 }
 
@@ -164,7 +164,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text, #ddd);
+  color: var(--text);
   transition: background 150ms;
   user-select: none;
 }
@@ -180,7 +180,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
   transition: color 150ms;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .sidebar-app-link:hover .sidebar-app-icon {
-  color: var(--primary, var(--accent, #84d669));
+  color: var(--primary, var(--accent, var(--primary)));
 }
 
 .sidebar-app-label {
@@ -208,7 +208,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary, #777);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 

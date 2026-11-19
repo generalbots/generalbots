@@ -3,18 +3,18 @@
 }
 
 .scrollable::-webkit-scrollbar-track {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface);
     border-radius: 5px;
 }
 
 .scrollable::-webkit-scrollbar-thumb {
-    background: var(--border-light, #3a3a3a);
+    background: var(--border-light);
     border-radius: 5px;
-    border: 2px solid var(--surface, #1a1a1a);
+    border: 2px solid var(--surface);
 }
 
 .scrollable::-webkit-scrollbar-thumb:hover {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
 }
 
 /* Thin scrollbar variant */
@@ -22,7 +22,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
-    scrollbar-color: var(--border, #2a2a2a) transparent;
+    scrollbar-color: var(--border) transparent;
 }
 
 .scrollable-thin::-webkit-scrollbar {
@@ -34,12 +34,12 @@
 }
 
 .scrollable-thin::-webkit-scrollbar-thumb {
-    background: var(--border, #2a2a2a);
+    background: var(--border);
     border-radius: 3px;
 }
 
 .scrollable-thin::-webkit-scrollbar-thumb:hover {
-    background: var(--border-light, #3a3a3a);
+    background: var(--border-light);
 }
 
 /* ===========================================
@@ -71,7 +71,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-right: 1px solid var(--border, #2a2a2a);
+    border-right: 1px solid var(--border);
     height: 100%;
 }
 
@@ -84,7 +84,7 @@
     flex-direction: column;
     gap: 12px;
     scrollbar-width: auto;
-    scrollbar-color: var(--border-light, #3a3a3a) var(--surface, #1a1a1a);
+    scrollbar-color: var(--border-light) var(--surface);
 }
 
 .panel-list-scroll::-webkit-scrollbar {
@@ -92,18 +92,18 @@
 }
 
 .panel-list-scroll::-webkit-scrollbar-track {
-    background: var(--surface, #1a1a1a);
+    background: var(--surface);
     border-radius: 5px;
 }
 
 .panel-list-scroll::-webkit-scrollbar-thumb {
-    background: var(--border-light, #3a3a3a);
+    background: var(--border-light);
     border-radius: 5px;
-    border: 2px solid var(--surface, #1a1a1a);
+    border: 2px solid var(--surface);
 }
 
 .panel-list-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
 }
 
 /* Fixed detail panel (RIGHT side) */
@@ -119,8 +119,8 @@
    =========================================== */
 
 .card-status {
-    background: var(--surface-hover, #1e1e1e);
-    border: 2px solid var(--border, #2a2a2a);
+    background: var(--surface-hover);
+    border: 2px solid var(--border);
     border-radius: 16px;
     padding: 16px 20px;
     cursor: pointer;
@@ -137,40 +137,40 @@
     left: 0;
     width: 5px;
     height: 100%;
-    background: var(--text-secondary, #666);
+    background: var(--text-secondary);
     transition: background 0.2s ease;
 }
 
 .card-status:hover {
-    border-color: var(--border-hover, #4a4a4a);
-    background: var(--surface, #161616);
+    border-color: var(--border-hover);
+    background: var(--surface);
 }
 
 .card-status.selected {
-    border-color: var(--primary, #c5f82a);
-    box-shadow: 0 0 0 2px var(--primary, #c5f82a);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary);
 }
 
 /* Status colors */
 .card-status.status-running::before {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
 }
 .card-status.status-complete::before,
 .card-status.status-completed::before {
-    background: var(--success, #22c55e);
+    background: var(--success);
 }
 .card-status.status-error::before,
 .card-status.status-failed::before {
-    background: var(--error, #ef4444);
+    background: var(--error);
 }
 .card-status.status-pending::before {
-    background: var(--text-secondary, #666);
+    background: var(--text-secondary);
 }
 .card-status.status-paused::before {
-    background: var(--info, #3b82f6);
+    background: var(--info);
 }
 .card-status.status-awaiting::before {
-    background: var(--warning, #f59e0b);
+    background: var(--warning);
 }
 
 /* ===========================================
@@ -182,27 +182,27 @@
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: var(--text-secondary, #666);
+    background: var(--text-secondary);
     transition: all 0.3s ease;
 }
 
 .dot-status.running {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
     box-shadow: 0 0 8px var(--primary-light, rgba(197, 248, 42, 0.5));
     animation: dot-pulse 1.5s ease-in-out infinite;
 }
 
 .dot-status.completed {
-    background: var(--primary, #c5f82a);
+    background: var(--primary);
 }
 
 .dot-status.pending {
-    background: var(--text-tertiary, #666);
+    background: var(--text-tertiary);
 }
 
 .dot-status.error,
 .dot-status.failed {
-    background: var(--error, #ef4444);
+    background: var(--error);
 }
 
 @keyframes dot-pulse {
@@ -225,8 +225,8 @@
 
 .badge-step {
     padding: 4px 12px;
-    background: var(--primary, #c5f82a);
-    color: var(--bg, #0a0a0a);
+    background: var(--primary);
+    color: var(--bg);
     border-radius: 4px;
     font-size: var(--text-2xs);
     font-weight: 600;
@@ -234,12 +234,12 @@
 }
 
 .badge-step.pending {
-    background: var(--surface, #1a1a1a);
-    color: var(--text-secondary, #888);
+    background: var(--surface);
+    color: var(--text-secondary);
 }
 
 .badge-step.completed {
-    background: var(--success, #22c55e);
+    background: var(--success);
     color: #fff;
 }
 
@@ -258,34 +258,34 @@
 
 .badge-status.running {
     background: rgba(197, 248, 42, 0.15);
-    color: var(--primary, #c5f82a);
+    color: var(--primary);
 }
 
 .badge-status.completed,
 .badge-status.complete {
     background: rgba(34, 197, 94, 0.15);
-    color: var(--success, #22c55e);
+    color: var(--success);
 }
 
 .badge-status.error,
 .badge-status.failed {
     background: rgba(239, 68, 68, 0.15);
-    color: var(--error, #ef4444);
+    color: var(--error);
 }
 
 .badge-status.pending {
-    background: var(--surface, #1a1a1a);
-    color: var(--text-secondary, #888);
+    background: var(--surface);
+    color: var(--text-secondary);
 }
 
 .badge-status.paused {
     background: rgba(59, 130, 246, 0.15);
-    color: var(--info, #3b82f6);
+    color: var(--info);
 }
 
 .badge-status.awaiting {
     background: rgba(245, 158, 11, 0.15);
-    color: var(--warning, #f59e0b);
+    color: var(--warning);
 }
 
 /* ===========================================
@@ -293,8 +293,8 @@
    =========================================== */
 
 .tree-section {
-    border: 1px solid var(--border, #2a2a2a);
-    background: var(--surface, #161616);
+    border: 1px solid var(--border);
+    background: var(--surface);
     border-radius: 8px;
     margin: 8px 16px;
     overflow: hidden;
@@ -313,19 +313,19 @@
 }
 
 .tree-row:hover {
-    background: var(--surface-hover, #1e1e1e);
+    background: var(--surface-hover);
 }
 
 .tree-name {
     flex: 1;
     font-size: var(--text-sm);
     font-weight: 500;
-    color: var(--text, #fff);
+    color: var(--text);
 }
 
 .tree-children {
     display: none;
-    background: var(--bg, #0a0a0a);
+    background: var(--bg);
 }
 
 .tree-section.expanded .tree-children {
@@ -333,7 +333,7 @@
 }
 
 .tree-child {
-    border-bottom: 1px solid var(--border, #2a2a2a);
+    border-bottom: 1px solid var(--border);
     padding-left: 24px;
 }
 
@@ -351,7 +351,7 @@
 .tree-item-name {
     flex: 1;
     font-size: var(--text-xs);
-    color: var(--text-secondary, #888);
+    color: var(--text-secondary);
 }
 
 .tree-item-check {
@@ -361,7 +361,7 @@
 }
 
 .tree-item-check.completed {
-    color: var(--success, #22c55e);
+    color: var(--success);
 }
 
 /* ===========================================
@@ -376,7 +376,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-top: 1px solid var(--border, #2a2a2a);
+    border-top: 1px solid var(--border);
 }
 
 /* Variable-height panel with internal scroll */
@@ -393,7 +393,7 @@
     min-height: 0;
     overflow-y: scroll;
     scrollbar-width: auto;
-    scrollbar-color: var(--border-light, #3a3a3a) var(--surface, #1a1a1a);
+    scrollbar-color: var(--border-light) var(--surface);
 }
 
 @media (prefers-reduced-motion: reduce) {

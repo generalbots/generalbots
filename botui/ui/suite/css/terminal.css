@@ -3,8 +3,8 @@
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: #0f172a;
-    color: #f8fafc;
+    background: var(--bg);
+    color: var(--text);
     font-family: "Fira Code", "Cascadia Code", monospace;
 }
 
@@ -12,8 +12,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #1e293b;
-    border-bottom: 1px solid #334155;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     min-height: 36px;
     flex-shrink: 0;
 }
@@ -32,21 +32,21 @@
     padding: 6px 14px;
     font-size: var(--text-2xs);
     cursor: pointer;
-    border-right: 1px solid #334155;
-    color: #94a3b8;
+    border-right: 1px solid var(--border);
+    color: var(--text-secondary);
     white-space: nowrap;
     transition: background 0.15s, color 0.15s;
 }
 
 .term-tab:hover {
     background: rgba(255,255,255,0.05);
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .term-tab.active {
-    background: #0f172a;
-    color: #f8fafc;
-    border-bottom: 2px solid #3b82f6;
+    background: var(--bg);
+    color: var(--text);
+    border-bottom: 2px solid var(--primary);
 }
 
 .term-tab-label {
@@ -61,13 +61,13 @@
 }
 .term-tab-close:hover {
     opacity: 1;
-    color: #ef4444;
+    color: var(--error);
 }
 
 .term-tab-add {
     background: none;
     border: none;
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: var(--text-md);
     cursor: pointer;
     padding: 4px 10px;
@@ -75,7 +75,7 @@
 }
 .term-tab-add:hover {
     background: rgba(255,255,255,0.1);
-    color: #f8fafc;
+    color: var(--text);
 }
 
 .term-actions {
@@ -93,15 +93,15 @@
 }
 
 .term-vm-label {
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: var(--text-2xs);
     font-weight: 600;
 }
 
 #termVmSelect {
-    background: #0f172a;
-    color: #e2e8f0;
-    border: 1px solid #334155;
+    background: var(--bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
     border-radius: 4px;
     font-size: var(--text-2xs);
     padding: 3px 6px;
@@ -111,13 +111,13 @@
 
 #termVmSelect:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--primary);
 }
 
 .term-action-btn {
     background: none;
-    border: 1px solid #334155;
-    color: #94a3b8;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
     font-size: var(--text-2xs);
     padding: 3px 10px;
     border-radius: 4px;
@@ -126,8 +126,8 @@
 }
 .term-action-btn:hover {
     background: rgba(255,255,255,0.08);
-    color: #f8fafc;
-    border-color: #475569;
+    color: var(--text);
+    border-color: var(--border-light);
 }
 
 .term-body {
@@ -156,15 +156,15 @@
     align-items: center;
     gap: 6px;
     padding: 3px 12px;
-    background: #1e293b;
-    border-top: 1px solid #334155;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
     font-size: var(--text-2xs);
-    color: #64748b;
+    color: var(--text-tertiary);
     flex-shrink: 0;
 }
 
 .term-status-sep {
-    color: #334155;
+    color: var(--text-secondary);
 }
 
 .botcoder-terminal-container,

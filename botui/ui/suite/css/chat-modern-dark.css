@@ -46,18 +46,18 @@
 }
 
 [data-color-scheme="dark"] #chat-app .bot-message pre {
-    background: var(--surface, #101013);
-    color: #e4e4e7;
+    background: var(--surface);
+    color: var(--text);
 }
 
 [data-color-scheme="dark"] #chat-app .run-card {
-    background: var(--surface, #18181c);
+    background: var(--surface);
     border-color: var(--gb-border-soft);
 }
-[data-color-scheme="dark"] #chat-app .run-title { color: #c4c4cc; }
+[data-color-scheme="dark"] #chat-app .run-title { color: var(--text-secondary); }
 [data-color-scheme="dark"] .window-element,
 [data-color-scheme="dark"] .window-element-glass {
-    border-color: var(--gb-border-strong, #3f3f46);
+    border-color: var(--gb-border-strong, var(--border-light));
 }
 
 /* Only the window that hosts the chat uses a neutral frame. The theme's
@@ -67,26 +67,26 @@
 .window-element:has(#chat-app),
 .window-element-glass:has(#chat-app).window-focused,
 .window-element:has(#chat-app).window-focused {
-    border-color: var(--gb-border-strong, #d4d4d8);
+    border-color: var(--gb-border-strong, var(--border-light));
 }
 
 /* The window loading indicator inherited the theme's near-black green.
    A neutral track + brand arc is the same information without the hard edge. */
 .gb-window-loading-spinner {
-    border-color: #e4e4e7;
-    border-top-color: #16a34a;
+    border-color: var(--border-light);
+    border-top-color: var(--success);
 }
 
 [data-color-scheme="dark"] .window-element-glass:has(#chat-app),
 [data-color-scheme="dark"] .window-element:has(#chat-app),
 [data-color-scheme="dark"] .window-element-glass:has(#chat-app).window-focused,
 [data-color-scheme="dark"] .window-element:has(#chat-app).window-focused {
-    border-color: #3f3f46;
+    border-color: var(--border-light);
 }
 
 [data-color-scheme="dark"] .gb-window-loading-spinner {
-    border-color: #3f3f46;
-    border-top-color: #4ade80;
+    border-color: var(--border-light);
+    border-top-color: var(--success);
 }
 
 /* Run cards are flex children of the transcript. Without an explicit
@@ -107,38 +107,38 @@
 [data-color-scheme="dark"] .window-element:has(#chat-app) .window-header,
 [data-color-scheme="dark"] .window-element-glass .window-header-glass,
 [data-color-scheme="dark"] .window-element .window-header {
-    background: var(--surface, #1b1b1f);
-    border-bottom-color: #313138;
+    background: var(--surface);
+    border-bottom-color: var(--border-light);
 }
 
 [data-color-scheme="dark"] .window-element-glass .window-title,
 [data-color-scheme="dark"] .window-element .window-title {
-    color: #ededf0;
+    color: var(--text);
 }
 
 [data-color-scheme="dark"] .window-element-glass:has(#chat-app) .window-body,
 [data-color-scheme="dark"] .window-element:has(#chat-app) .window-body,
 [data-color-scheme="dark"] .window-element-glass .window-body,
 [data-color-scheme="dark"] .window-element .window-body {
-    background: var(--bg, #131316);
+    background: var(--bg);
 }
 
 [data-color-scheme="dark"] .window-element-glass:has(#chat-app) .window-statusbar,
 [data-color-scheme="dark"] .window-element:has(#chat-app) .window-statusbar,
 [data-color-scheme="dark"] .window-element-glass .window-statusbar,
 [data-color-scheme="dark"] .window-element .window-statusbar {
-    background: var(--bg, #131316);
-    border-top-color: #313138;
-    color: #a1a1aa;
+    background: var(--bg);
+    border-top-color: var(--border-light);
+    color: var(--text-secondary);
 }
 
 [data-color-scheme="dark"] #chat-app footer {
-    background: var(--bg, #131316);
+    background: var(--bg);
 }
 
 [data-color-scheme="dark"] #chat-app .input-container {
-    background: var(--surface, #1b1b1f);
-    border-color: #3f3f46;
+    background: var(--surface);
+    border-color: var(--border-light);
 }
 
 [data-color-scheme="dark"] #chat-app .input-container:focus-within {
@@ -147,7 +147,7 @@
 }
 
 
-/* Suggestion chips inherit the light-mode #52525b text, which is almost
+/* Suggestion chips inherit the light-mode var(--surface-hover) text, which is almost
    invisible on the dark canvas. */
 [data-color-scheme="dark"] #chat-app .suggestion-chip,
 [data-color-scheme="dark"] #chat-app .suggestion-button {

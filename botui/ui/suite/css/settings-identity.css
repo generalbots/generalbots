@@ -18,7 +18,7 @@
     --settings-accent: hsl(var(--primary, 30 89% 55%));
     --settings-accent-soft: color-mix(in srgb, var(--settings-accent) 10%, transparent);
     --settings-accent-softer: color-mix(in srgb, var(--settings-accent) 6%, transparent);
-    --settings-accent-ink: color-mix(in srgb, var(--settings-accent) 72%, var(--text, #2c2c2c));
+    --settings-accent-ink: color-mix(in srgb, var(--settings-accent) 72%, var(--text));
     grid-template-columns: 236px 1fr;
     font-family: var(--id-font-sans, "Inter", "Fira Sans", system-ui, -apple-system, sans-serif);
     color: var(--text);

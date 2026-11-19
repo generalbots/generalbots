@@ -2,7 +2,7 @@
 /* The actual per-bot CSS is fetched dynamically and injected as a <style> tag. */
 
 .bot-theme {
-    --bot-primary: var(--primary-color, #4F46E5);
-    --bot-secondary: var(--secondary-color, #6366F1);
-    --bot-bg: var(--bg-color, #ffffff);
+    --bot-primary: var(--primary-color, var(--primary));
+    --bot-secondary: var(--secondary-color, var(--surface-hover));
+    --bot-bg: var(--bg-color, var(--bg));
 }

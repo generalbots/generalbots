@@ -2,17 +2,17 @@
   width: 130px;
   padding: 6px 10px;
   border-radius: 7px;
-  border: 1px solid var(--border, #2a3550);
-  background: var(--bg-secondary, #1e293b);
-  color: var(--text, #f1f5f9);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary, var(--surface));
+  color: var(--text);
   font-size: var(--text-2xs);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .db-filter-input:focus {
-  border-color: var(--primary, #3b82f6);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 /* ─── Data grid ───────────────────────────────────────────────────────────── */
@@ -46,8 +46,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(var(--surface, #1a2438), var(--surface, #161f31));
-  color: var(--text-secondary, #8b98b5);
+  background: linear-gradient(var(--surface), var(--surface));
+  color: var(--text-secondary);
   font-weight: 600;
   font-size: var(--text-2xs);
   text-transform: uppercase;
@@ -55,8 +55,8 @@
   text-align: left;
   padding: 0;
   height: 38px;
-  border-bottom: 1px solid var(--border, #2a3550);
-  border-right: 1px solid var(--border, #263351);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   white-space: nowrap;
   user-select: none;
   overflow: hidden;
@@ -76,7 +76,7 @@
 }
 
 .db-th-inner:hover {
-  color: var(--text, #f1f5f9);
+  color: var(--text);
 }
 
 .db-th-label {
@@ -91,7 +91,7 @@
 
 .db-sort-arrow {
   font-size: var(--text-2xs);
-  color: var(--primary, #3b82f6);
+  color: var(--primary);
   flex-shrink: 0;
 }
 
@@ -118,7 +118,7 @@
 }
 
 .db-resize-handle:hover::after {
-  background: var(--primary, #3b82f6);
+  background: var(--primary);
 }
 
 .db-corner,
@@ -126,9 +126,9 @@
   position: sticky;
   left: 0;
   z-index: 12;
-  background: var(--surface, #1a2438);
-  border-bottom: 1px solid var(--border, #2a3550);
-  border-right: 1px solid var(--border, #2a3550);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   text-align: center !important;
 }
 
@@ -152,14 +152,14 @@
 .db-th .db-th-check input,
 .db-corner input,
 .db-th-check input {
-  accent-color: var(--primary, #3b82f6);
+  accent-color: var(--primary);
   cursor: pointer;
 }
 
 .db-grid tbody td {
   padding: 7px 12px;
-  border-bottom: 1px solid var(--border, #1e2943);
-  border-right: 1px solid var(--border, #1e2943);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   max-width: 320px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -174,15 +174,15 @@
 }
 
 .db-grid tbody tr:hover td {
-  background: var(--surface-hover, #182239);
+  background: var(--surface-hover);
 }
 
 .db-grid tbody tr.db-selected td {
-  background: color-mix(in srgb, var(--primary, #3b82f6) 12%, var(--surface, #0f172a));
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
 }
 
 .db-grid tbody tr.db-selected:hover td {
-  background: color-mix(in srgb, var(--primary, #3b82f6) 16%, var(--surface, #0f172a));
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
 }
 
 .db-rownum {
@@ -192,17 +192,17 @@
   width: 46px;
   min-width: 46px;
   text-align: center;
-  color: var(--text-muted, #5b6780);
+  color: var(--text-muted, var(--text-secondary));
   font-family: "Fira Code", "JetBrains Mono", monospace;
   font-size: var(--text-2xs);
-  background: var(--surface, #101a2e);
-  border-right: 1px solid var(--border, #263351) !important;
+  background: var(--surface);
+  border-right: 1px solid var(--border) !important;
   cursor: pointer;
 }
 
 .db-grid tbody tr:hover .db-rownum {
-  color: var(--text-secondary, #8b98b5);
-  background: var(--surface-hover, #182239);
+  color: var(--text-secondary);
+  background: var(--surface-hover);
 }
 
 .db-td-check {
@@ -212,13 +212,13 @@
   width: 36px;
   min-width: 36px;
   text-align: center;
-  background: var(--surface, #101a2e);
-  border-right: 1px solid var(--border, #263351) !important;
+  background: var(--surface);
+  border-right: 1px solid var(--border) !important;
 }
 
 .db-td-check input,
 .db-th-check input {
-  accent-color: var(--primary, #3b82f6);
+  accent-color: var(--primary);
   cursor: pointer;
 }
 
@@ -237,7 +237,7 @@
 }
 
 .db-td.active-cell {
-  box-shadow: inset 0 0 0 2px var(--primary, #3b82f6);
+  box-shadow: inset 0 0 0 2px var(--primary);
   position: relative;
   z-index: 3;
 }
@@ -251,10 +251,10 @@
   box-sizing: border-box;
   height: 28px;
   padding: 4px 8px;
-  border: 2px solid var(--primary, #3b82f6);
+  border: 2px solid var(--primary);
   border-radius: 6px;
-  background: var(--bg-secondary, #1e293b);
-  color: var(--text, #f1f5f9);
+  background: var(--bg-secondary, var(--surface));
+  color: var(--text);
   font-size: var(--text-2xs);
   outline: none;
 }
@@ -262,14 +262,14 @@
 .db-inline-check {
   width: 18px;
   height: 18px;
-  accent-color: var(--primary, #3b82f6);
+  accent-color: var(--primary);
   margin: 4px;
   cursor: pointer;
 }
 
 /* ─── Cell value styles ───────────────────────────────────────────────────── */
 .db-null {
-  color: var(--text-muted, #5b6780);
+  color: var(--text-muted, var(--text-secondary));
   font-style: italic;
   opacity: 0.75;
 }
@@ -283,7 +283,7 @@
 .db-dt {
   font-family: "Fira Code", "JetBrains Mono", monospace;
   font-size: var(--text-2xs);
-  color: var(--text-secondary, #8b98b5);
+  color: var(--text-secondary);
 }
 
 .db-bool {
@@ -298,17 +298,17 @@
 }
 
 .db-bool-on {
-  background: color-mix(in srgb, #22c55e 16%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
 }
 
 .db-bool-off {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
 }
 
 .db-link {
-  color: var(--primary, #3b82f6);
+  color: var(--primary);
   text-decoration: none;
 }
 
@@ -323,7 +323,7 @@
 }
 
 .db-str {
-  color: var(--text, #f1f5f9);
+  color: var(--text);
 }
 
 /* ─── Type badges / PK ────────────────────────────────────────────────────── */
@@ -342,15 +342,17 @@
   flex-shrink: 0;
 }
 
+/* #2324: data-type badge colours are a fixed categorical code (legend-like
+   data, not themeable chrome). Semantic types already use role tokens. */
 .db-type-uuid    { background: #8b5cf6; }
-.db-type-number  { background: #3b82f6; }
-.db-type-decimal { background: #06b6d4; }
-.db-type-bool    { background: #22c55e; }
-.db-type-datetime{ background: #f59e0b; }
+.db-type-number  { background: var(--primary); }
+.db-type-decimal { background: var(--info); }
+.db-type-bool    { background: var(--success); }
+.db-type-datetime{ background: var(--warning); }
 .db-type-date    { background: #ec4899; }
-.db-type-json    { background: #64748b; }
-.db-type-text    { background: #10b981; }
-.db-type-any     { background: #94a3b8; }
+.db-type-json    { background: var(--surface-hover); }
+.db-type-text    { background: var(--success); }
+.db-type-any     { background: var(--surface-hover); }
 
 .db-pk-badge {
   display: inline-block;
@@ -359,8 +361,8 @@
   font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: #fbbf24;
-  background: color-mix(in srgb, #fbbf24 14%, transparent);
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   flex-shrink: 0;
 }
 
@@ -384,7 +386,7 @@
   justify-content: center;
   height: 100%;
   min-height: 280px;
-  color: var(--text-secondary, #8b98b5);
+  color: var(--text-secondary);
   gap: 12px;
 }
 
