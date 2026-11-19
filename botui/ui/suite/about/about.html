@@ -1,4 +1,5 @@
 <script src="/suite/about/about-inline.js"></script>
+<script src="/suite/about/licenses/licenses.js"></script>
 
 <div class="about-container">
     <!-- Header with Logo and Branding -->
@@ -184,7 +185,30 @@
                 </svg>
                 <span data-i18n="about-documentation-link">Documentation</span>
             </a>
+            <button type="button" class="resource-link" onclick="window.gbOpenLicenses &amp;&amp; window.gbOpenLicenses()" aria-controls="gb-licenses-panel">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 3 2 7l10 4 10-4-10-4z"/>
+                    <path d="M2 17l10 4 10-4M2 12l10 4 10-4"/>
+                </svg>
+                <span data-i18n="about-licenses-link">Third-party licenses</span>
+            </button>
         </div>
+    </section>
+
+    <!-- #2480 — the notice and component record shipped with the appliance,
+         reachable without a terminal. ?tab=licenses opens it directly. -->
+    <section class="gb-licenses" id="gb-licenses-panel" hidden aria-labelledby="gb-licenses-heading">
+        <h2 id="gb-licenses-heading" data-i18n="about-licenses-title">Third-party licenses</h2>
+        <p class="section-description" data-i18n="about-licenses-desc">Licenses and source pointers for every component bundled with General Bots.</p>
+        <p class="gb-licenses-path">
+            <span data-i18n="about-licenses-path">Installed at</span>
+            <code>/usr/share/doc/general-bots/licenses/</code>
+        </p>
+        <div id="gb-licenses-status" class="gb-licenses-status" role="status" aria-live="polite"></div>
+        <h3 data-i18n="about-licenses-notice-title">Notice</h3>
+        <pre id="gb-licenses-notice" class="gb-licenses-text" tabindex="0"></pre>
+        <h3 data-i18n="about-licenses-record-title">Component record</h3>
+        <pre id="gb-licenses-record" class="gb-licenses-text" tabindex="0"></pre>
     </section>
 
     <!-- Footer -->

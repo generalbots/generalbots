@@ -65,6 +65,20 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Stage the license texts and notices in the image
+        # #2480 — the image must carry its own license record: the MIT text for
+        # General Bots, the component table and the NOTICE. Without this the ISO
+        # would distribute AGPL components with no notice at all.
+        run: |
+          set -euo pipefail
+          python3 scripts/check_third_party_licenses.py
+          dest=desktop/os/mkosi.extra/usr/share/doc/general-bots/licenses
+          install -d "$dest"
+          install -m 0644 LICENSE "$dest/LICENSE"
+          install -m 0644 LICENSES-desktop.md "$dest/LICENSES-desktop.md"
+          install -m 0644 desktop/os/licenses/NOTICE "$dest/NOTICE"
+          ls -l "$dest"
+
       - name: Download the desktop artifact from the caller run
         if: ${{ inputs.artifact != '' }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0

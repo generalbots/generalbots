@@ -288,6 +288,51 @@
 .built-with a:hover {
     text-decoration: underline;
 }
+/* #2480 — third-party license record, opened from Resources or ?tab=licenses */
+button.resource-link {
+    cursor: pointer;
+    font: inherit;
+}
+
+.gb-licenses {
+    margin-bottom: 3rem;
+}
+
+.gb-licenses[hidden] {
+    display: none;
+}
+
+.gb-licenses-path {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.gb-licenses-path code {
+    font-family: monospace;
+    overflow-wrap: anywhere;
+}
+
+.gb-licenses-status:empty {
+    display: none;
+}
+
+.gb-licenses-status[data-state="error"] {
+    color: var(--danger, #ef4444);
+}
+
+.gb-licenses-text {
+    max-height: 24rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

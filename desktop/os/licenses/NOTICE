@@ -1,0 +1,31 @@
+General Bots — desktop and appliance edition
+Third-party notices
+
+This image contains General Bots, licensed under the MIT License. The full
+text is in this directory as LICENSE. Copyright (c) General Bots.
+
+It also distributes third-party components. Each one keeps the license text
+that shipped with it, in its own directory under this directory:
+
+    licenses/<component>/
+
+The authoritative record — component, version, SPDX license identifier,
+upstream source URL and where the text is shipped — is LICENSES-desktop.md in
+this directory. The same file lives at the root of the General Bots source
+repository.
+
+Several components are copyleft and their licenses require the corresponding
+source to remain available:
+
+    MinIO, MinIO Client (mc), Stalwart, NocoDB   AGPL-3.0
+    Forgejo, Forgejo Actions Runner, Roundcube   GPL-3.0
+    HashiCorp Vault                              BUSL-1.1 (not open source)
+
+Their source is obtained from the URLs in LICENSES-desktop.md. None of this
+applies to General Bots' own code, which is MIT.
+
+Distribution packages installed from Debian carry their own copyright and
+license files under /usr/share/doc/<package>/copyright.
+
+No terminal is needed to reach this file: Settings -> About -> Licenses opens
+this directory.
