@@ -164,6 +164,7 @@ A._modelShared = {
   errText: errText,
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
+  doSwitchMode: function (body, msgEl, btn) { return doSwitchMode(body, msgEl, btn); },
   refreshAfterChange: function () { return refreshAfterChange(); },
   /* Lists changed (download, removal, engine install) but the model in use did not. */
   refreshKeepingView: function () {
@@ -361,57 +362,9 @@ function renderLocalDetail(el) {
   }
 }
 
-/* ---- Own Key detail ---- */
+/* ---- Own Key detail: the provider list lives in 10e_settings_providers.js ---- */
 function renderOwnKeyDetail(el) {
-  var ep = (cfg && cfg.mode === "own_key" && cfg.endpoint_host) ? cfg.endpoint_host : "";
-  var md = (cfg && cfg.mode === "own_key") ? cfg.model : "";
-  var hasKey = cfg && cfg.has_key;
-  el.innerHTML = '<div class="gb-set-form">' +
-    '<label class="gb-set-label">' + esc(t("endpoint")) + '</label>' +
-    '<input class="gb-set-input" id="gbOwnEndpoint" value="' + esc(ep) + '" placeholder="https://api.example.com/v1/chat/completions"/>' +
-    '<label class="gb-set-label">' + esc(t("model")) + '</label>' +
-    '<input class="gb-set-input" id="gbOwnModel" value="' + esc(md) + '" placeholder="gpt-4o-mini"/>' +
-    '<label class="gb-set-label">' + esc(t("key")) + (hasKey ? ' <small>(' + esc(t("keyStored")) + ')</small>' : '') + '</label>' +
-    '<input class="gb-set-input" id="gbOwnKey" type="password" placeholder="sk-..." autocomplete="off"/>' +
-    '<div class="gb-set-form-actions">' +
-      '<button class="gb-set-btn-sm" id="gbOwnTest">' + esc(t("test")) + '</button>' +
-      '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbOwnSave">' + esc(t("useOwn")) + '</button>' +
-    '</div><div id="gbOwnMsg"></div></div>';
-  document.getElementById("gbOwnTest").addEventListener("click", doTestEndpoint);
-  document.getElementById("gbOwnSave").addEventListener("click", doSaveOwnKey);
-}
-
-async function doTestEndpoint() {
-  var ep = document.getElementById("gbOwnEndpoint").value.trim();
-  var md = document.getElementById("gbOwnModel").value.trim();
-  var key = document.getElementById("gbOwnKey").value;
-  var msg = document.getElementById("gbOwnMsg"); if (!msg) return;
-  msg.innerHTML = '<p class="gb-set-hint">' + esc(A.t("assistant.connecting","Testing...")) + '</p>';
-  try {
-    var body = { endpoint: ep, model: md }; if (key) body.api_key = key;
-    var r = await A.apiFetch("/api/llm/config/test", { method: "POST", body: JSON.stringify(body) });
-    var d = await r.json();
-    if (d.reachable && d.model_responded) {
-      msg.innerHTML = '<p class="gb-set-hint gb-set-ok">' + esc(t("testOk").replace("%ms", String(d.latency_ms||"?"))) + '</p>';
-    } else {
-      var errText = d.error || "unreachable";
-      msg.innerHTML = '<p class="gb-set-warn">' + esc(t("testFail").replace("%e", errText)) + '</p>';
-    }
-  } catch (e) { msg.innerHTML = '<p class="gb-set-warn">' + esc(String(e)) + '</p>'; }
-}
-
-function doSaveOwnKey() {
-  var ep = document.getElementById("gbOwnEndpoint").value.trim();
-  var md = document.getElementById("gbOwnModel").value.trim();
-  var key = document.getElementById("gbOwnKey").value;
-  var msg = document.getElementById("gbOwnMsg"); if (!msg) return;
-  var saveBtn = document.getElementById("gbOwnSave");
-  var host = ""; try { host = new URL(ep).hostname; } catch(e) { host = ep; }
-  inlineConfirm(t("confirmExt").replace("%h", host), function () {
-    var body = { mode: "own_key", endpoint: ep, model: md }; if (key) body.api_key = key;
-    doSwitchMode(body, msg, saveBtn);
-    var keyEl = document.getElementById("gbOwnKey"); if (keyEl) keyEl.value = "";
-  });
+  if (A._modelProviders) { A._modelProviders.render(el); }
 }
 
 /* ---- Free detail ---- */
