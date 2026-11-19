@@ -11,7 +11,11 @@ use super::{provider_by_id, providers};
 fn provider_status_is_derived_and_never_contradicts_the_registry() {
     for seed in super::providers::all() {
         let item = super::expand(seed);
-        let implemented = item.actions.iter().filter(|action| action.implemented).count();
+        let implemented = item
+            .actions
+            .iter()
+            .filter(|action| action.implemented)
+            .count();
         assert_eq!(
             item.status,
             super::derived_status(seed, implemented, item.adapter_present),
@@ -93,7 +97,10 @@ fn basecamp_and_twitch_are_wired_and_render_partial() {
     assert_eq!(found.len(), ids.len(), "a catalog provider is missing");
     for provider in found {
         let id = provider.id;
-        assert!(provider.adapter_present, "{id} must have a registered adapter");
+        assert!(
+            provider.adapter_present,
+            "{id} must have a registered adapter"
+        );
         assert_ne!(provider.status, Status::Built, "{id} cannot render built");
         assert_eq!(
             provider.status,
@@ -135,7 +142,12 @@ fn no_provider_is_built_with_an_unanswered_action() {
         } else if !missing.is_empty() && item.adapter_present {
             // Partial is the honest badge; the payload already names the gap
             // per action (implemented:false), which is what the UI greys out.
-            assert_eq!(item.status, Status::Partial, "{} status must be partial", seed.id);
+            assert_eq!(
+                item.status,
+                Status::Partial,
+                "{} status must be partial",
+                seed.id
+            );
         }
     }
 }
@@ -202,7 +214,6 @@ fn dropbox_advertises_only_the_actions_it_implements() {
         );
     }
 }
-
 
 /// #2048 — the `status` query parameter used to filter on the seed literal,
 /// so `?status=built` listed providers with no adapter and

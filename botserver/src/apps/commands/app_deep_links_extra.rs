@@ -157,21 +157,26 @@ pub static APP_DEEP_LINKS_EXTRA: &[(&str, &[DeepLinkParam])] = &[
         }],
     ),
     ("notepad", &[]),
-    ("preview", &[
-        DeepLinkParam {
-            key: "file",
-            description: "file name or path",
-            example: "output/report.pdf",
-        },
-        DeepLinkParam {
-            key: "bucket",
-            description: "optional bucket",
-            example: "default.gbai",
-        },
-    ]),
+    (
+        "preview",
+        &[
+            DeepLinkParam {
+                key: "file",
+                description: "file name or path",
+                example: "output/report.pdf",
+            },
+            DeepLinkParam {
+                key: "bucket",
+                description: "optional bucket",
+                example: "default.gbai",
+            },
+        ],
+    ),
 ];
 
 /// Every declared deep-link table, core first.
 pub fn all_deep_links() -> impl Iterator<Item = &'static (&'static str, &'static [DeepLinkParam])> {
-    APP_DEEP_LINKS_CORE.iter().chain(APP_DEEP_LINKS_EXTRA.iter())
+    APP_DEEP_LINKS_CORE
+        .iter()
+        .chain(APP_DEEP_LINKS_EXTRA.iter())
 }

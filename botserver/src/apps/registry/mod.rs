@@ -125,7 +125,9 @@ fn definition(spec: AppSpec, kind: AppKind, widget: Option<WidgetSpec>) -> AppDe
         kind,
         launcher_visibility: LauncherVisibility::Preview,
         owner: ownership.map(|entry| entry.owner).unwrap_or(UNOWNED),
-        status: ownership.map(|entry| entry.status).unwrap_or(AppStatus::Preview),
+        status: ownership
+            .map(|entry| entry.status)
+            .unwrap_or(AppStatus::Preview),
         widget,
         launcher_default: false,
     }
@@ -293,13 +295,7 @@ mod launcher_split_guard_tests {
     /// letting them pass silently) makes a new unclassified registry entry
     /// fail the guard.
     const REGISTRY_ONLY: &[&str] = &[
-        "about",
-        "clock",
-        "database",
-        "desktop",
-        "editor",
-        "research",
-        "terminal",
+        "about", "clock", "database", "desktop", "editor", "research", "terminal",
     ];
 
     fn registry_visibility() -> std::collections::HashMap<String, LauncherVisibility> {

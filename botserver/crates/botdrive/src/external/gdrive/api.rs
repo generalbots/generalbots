@@ -1,4 +1,6 @@
-use super::parse::{classify_status, parse_page, percent_encode, CHANGE_FIELDS, DRIVE_API, FILE_FIELDS};
+use super::parse::{
+    classify_status, parse_page, percent_encode, CHANGE_FIELDS, DRIVE_API, FILE_FIELDS,
+};
 use crate::external::types::{DeltaPage, SyncError};
 use serde_json::Value;
 

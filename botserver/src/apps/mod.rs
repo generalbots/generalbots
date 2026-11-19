@@ -32,6 +32,20 @@ struct AppInstallStats {
 
 static INSTALLS: OnceLock<Arc<AppInstallStats>> = OnceLock::new();
 
+#[derive(Clone, Default)]
+pub struct CommandUsageEntry {
+    pub count: u64,
+    pub app: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Default)]
+pub struct CommandUsageStats {
+    entries: Mutex<HashMap<String, CommandUsageEntry>>,
+}
+
+static COMMAND_STATS: OnceLock<Arc<CommandUsageStats>> = OnceLock::new();
+
 #[derive(serde::Deserialize)]
 pub struct InstallBody {
     app_id: Option<String>,
@@ -46,6 +60,7 @@ pub struct AgentPlanBody {
 mod agent_plan_handler;
 mod bot_launcher_apps;
 mod catalog_handler;
+mod command_stats_handler;
 mod install_handler;
 mod installs;
 
@@ -55,5 +70,6 @@ pub use installs::*;
 pub use agent_plan_handler::*;
 use bot_launcher_apps::*;
 pub use catalog_handler::*;
+pub use command_stats_handler::*;
 pub use install_handler::*;
 pub use installs::register;

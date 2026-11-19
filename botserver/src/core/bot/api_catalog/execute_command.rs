@@ -30,6 +30,14 @@ pub async fn execute_command(
         Value::Object(map) => map,
         _ => return Err("'params' must be a JSON object".to_string()),
     };
+
+    // #2372 — command usage stats (catalog command name).
+    let cmd_meta = commands_list().iter().find(|c| c.name == name).copied();
+    crate::apps::record_command_usage(
+        name,
+        cmd_meta.map(|c| c.app.as_str()),
+        cmd_meta.map(|c| c.label.as_str()),
+    );
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
         "service.tax" | "tax.calculate" => {

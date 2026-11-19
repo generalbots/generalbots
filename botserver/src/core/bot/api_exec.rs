@@ -160,7 +160,16 @@ pub async fn exec_endpoint(
     path_template: &str,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    exec_endpoint_gated(state, user_id, bot_uuid, method, path_template, params, true).await
+    exec_endpoint_gated(
+        state,
+        user_id,
+        bot_uuid,
+        method,
+        path_template,
+        params,
+        true,
+    )
+    .await
 }
 
 /// Same loopback hop, but for a caller that has ALREADY passed the consent
@@ -178,7 +187,16 @@ pub async fn exec_endpoint_trusted(
     path_template: &str,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    exec_endpoint_gated(state, user_id, bot_uuid, method, path_template, params, false).await
+    exec_endpoint_gated(
+        state,
+        user_id,
+        bot_uuid,
+        method,
+        path_template,
+        params,
+        false,
+    )
+    .await
 }
 
 async fn exec_endpoint_gated(
@@ -214,6 +232,9 @@ async fn exec_endpoint_gated(
             "endpoint {method_upper} {path} requires the admin role"
         ));
     }
+
+    // #2372 — count command/API executions (usage stats).
+    crate::apps::record_command_usage(&format!("{method_upper} {path_template}"), None, None);
 
     #[cfg(feature = "consent")]
     if check_consent {
