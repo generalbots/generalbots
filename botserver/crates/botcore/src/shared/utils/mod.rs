@@ -7,7 +7,7 @@ pub(crate) use crate::config::DriveConfig;
 pub(crate) use indicatif::{ProgressBar, ProgressStyle};
 pub(crate) use log::{debug, warn};
 pub(crate) use reqwest::{Certificate, Client};
-pub(crate) use rhai::{Array, Dynamic, ImmutableString};
+pub(crate) use rhai::{Array, Dynamic};
 pub(crate) use serde_json::Value;
 pub(crate) use std::error::Error;
 pub(crate) use std::time::Duration;
