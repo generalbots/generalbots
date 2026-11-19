@@ -97,8 +97,12 @@ window.CampStudio.actions = {
     }
   },
 
-  async run(id) {
-    if (!confirm("Run this campaign now?")) return;
+  run(id) {
+    // #2297 — the shared modal replaces the blocking native confirm.
+    GBModal.confirm("Run this campaign now?", function () { this.runConfirmed(id); }.bind(this));
+  },
+
+  async runConfirmed(id) {
     try {
       await window.CampStudio.api.update(decodeURIComponent(id), { status: "running" });
       GBModal.alert("Campaign is now running!");
@@ -177,8 +181,11 @@ window.CampStudio.actions = {
     }
   },
 
-  async remove(id) {
-    if (!confirm("Delete this campaign permanently?")) return;
+  remove(id) {
+    GBModal.confirm("Delete this campaign permanently?", function () { this.removeConfirmed(id); }.bind(this));
+  },
+
+  async removeConfirmed(id) {
     try {
       await window.CampStudio.api.remove(decodeURIComponent(id));
       window.CampStudio.monitor.load();

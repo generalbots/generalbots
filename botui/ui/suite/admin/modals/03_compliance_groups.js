@@ -206,8 +206,8 @@ function saveGroup() {
 }
 
 function deleteGroup(groupId) {
-  if (!confirm(t("admin-notify-delete-group-confirm", "Delete this group? This action cannot be undone."))) return;
-
+  // #2297 — themed confirm instead of the blocking native dialog.
+  GBModal.confirm(t("admin-notify-delete-group-confirm", "Delete this group? This action cannot be undone."), function () {
   fetch(`/api/directory/groups/${groupId}/delete`, { method: "DELETE" })
     .then((response) => response.json())
     .then((data) => {
@@ -220,6 +220,7 @@ function deleteGroup(groupId) {
       }
     })
     .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
+  });
 }
 
 // =============================================================================

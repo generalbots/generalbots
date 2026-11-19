@@ -68,19 +68,27 @@ window.GBNotepad = window.GBNotepad || {};
     ta.addEventListener("change", persist);
     sel.addEventListener("change", function () { ta.value = loadIndex()[current()] || ""; });
     root.querySelector("#gb-notepad-new").addEventListener("click", function () {
-      var name = prompt(t("notepad-new-name", "Note name:"), "note-" + new Date().toISOString().slice(0, 10));
-      if (!name) return;
-      var i = loadIndex();
-      if (i[name] === undefined) { i[name] = ""; saveIndex(i); }
-      renderList(name); mark(false);
+      // #2297 — themed modal input; native prompt() blocks the whole desktop.
+      GBModal.prompt(
+        t("notepad-new-name", "Note name:"),
+        "note-" + new Date().toISOString().slice(0, 10),
+        function (name) {
+          if (!name) return;
+          var i = loadIndex();
+          if (i[name] === undefined) { i[name] = ""; saveIndex(i); }
+          renderList(name); mark(false);
+        }
+      );
     });
     root.querySelector("#gb-notepad-del").addEventListener("click", function () {
       if (!current()) return;
-      if (!confirm(t("notepad-delete-confirm", "Delete this note?") + " " + current())) return;
-      var i = loadIndex(); delete i[current()]; saveIndex(i);
-      var next = names()[0] || "";
-      renderList(next);
-      try { localStorage.setItem("gb-notepad-last", next); } catch (e) { console.error("Notepad save failed:", e); }
+      var note = current();
+      GBModal.confirm(t("notepad-delete-confirm", "Delete this note?") + " " + note, function () {
+        var i = loadIndex(); delete i[note]; saveIndex(i);
+        var next = names()[0] || "";
+        renderList(next);
+        try { localStorage.setItem("gb-notepad-last", next); } catch (e) { console.error("Notepad save failed:", e); }
+      });
     });
 
     if (!names().length) {

@@ -64,8 +64,9 @@ grid.innerHTML = `
 `;
 }
 
-async function postJob() {
-const position = prompt('Job title / position:');
+function postJob() {
+// #2297 — themed modal input: the native prompt blocks the whole desktop.
+GBModal.prompt('Job title / position:', async function (position) {
 if (!position) return;
 const department = document.getElementById('empDeptFilter') ? document.getElementById('empDeptFilter').value : '';
 try {
@@ -81,6 +82,7 @@ try {
   console.error('Post job failed', e);
   showFeedback('Failed to post job', 'error');
 }
+});
 }
 
 function viewJob(id) {
@@ -111,27 +113,33 @@ async function runPayroll() {
   } catch (e) { console.error('Run payroll failed', e); showFeedback('Payroll run failed', 'error'); }
 }
 
-async function startReview() {
-  const name = prompt('Review cycle name:', 'Q' + (new Date().getMonth() + 1) + ' ' + new Date().getFullYear() + ' review');
-  if (!name) return;
-  try {
-    await fetchApi('/review-cycles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-    await loadPerformance();
-    loadStats();
-    showFeedback('Review cycle started', 'success');
-  } catch (e) { console.error('Start review failed', e); showFeedback('Failed to start review', 'error'); }
+function startReview() {
+  const suggested = 'Q' + (new Date().getMonth() + 1) + ' ' + new Date().getFullYear() + ' review';
+  GBModal.prompt('Review cycle name:', suggested, async function (name) {
+    if (!name) return;
+    try {
+      await fetchApi('/review-cycles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      await loadPerformance();
+      loadStats();
+      showFeedback('Review cycle started', 'success');
+    } catch (e) { console.error('Start review failed', e); showFeedback('Failed to start review', 'error'); }
+  });
 }
 
-async function addCourse() {
-  const course = prompt('Course name:');
-  if (!course) return;
-  const provider = prompt('Provider:', '') || '';
-  const duration = prompt('Duration (e.g. 4h):', '') || '';
-  try {
-    await fetchApi('/training', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ course, provider, duration, assigned: 0, completed: 0, status: 'open' }) });
-    await loadTraining();
-    showFeedback('Course added', 'success');
-  } catch (e) { console.error('Add course failed', e); showFeedback('Failed to add course', 'error'); }
+function addCourse() {
+  // Three fields, asked one at a time — each answered in the themed modal.
+  GBModal.prompt('Course name:', function (course) {
+    if (!course) return;
+    GBModal.prompt('Provider:', '', function (provider) {
+      GBModal.prompt('Duration (e.g. 4h):', '', async function (duration) {
+        try {
+          await fetchApi('/training', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ course, provider: provider || '', duration: duration || '', assigned: 0, completed: 0, status: 'open' }) });
+          await loadTraining();
+          showFeedback('Course added', 'success');
+        } catch (e) { console.error('Add course failed', e); showFeedback('Failed to add course', 'error'); }
+      });
+    });
+  });
 }
 
 Object.assign(app, {

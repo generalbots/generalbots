@@ -74,15 +74,11 @@
     Array.from(board.querySelectorAll("[data-del-ts]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         const key = btn.dataset.delTs;
-        var question = (window.GBModal && window.GBModal.confirm) ? null : "Delete this note?";
-        if (question && !confirm(question)) return;
-        if (window.GBModal && window.GBModal.confirm) {
-          window.GBModal.confirm("Delete this note?", function () {
-            remove(key);
-          });
-          return;
-        }
-        remove(key);
+        // #2297 — GBModal falls back to the native dialog on its own, so the
+        // branch on window.GBModal.confirm here was dead weight.
+        window.GBModal.confirm("Delete this note?", function () {
+          remove(key);
+        });
       });
     });
     Array.from(board.querySelectorAll(".note-card")).forEach(function (card) {

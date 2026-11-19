@@ -122,7 +122,8 @@ Object.assign(app, {
     },
 
     showNewStatement() {
-        const period = prompt('Statement period (e.g. 2026-08):');
+        // #2297 — themed modal input instead of the blocking native prompt.
+        GBModal.prompt('Statement period (e.g. 2026-08):', (period) => {
         if (!period) return;
         const accountId = (this.state.accounts[0] || {}).id;
         if (!accountId) { this.toast('Add an account first'); return; }
@@ -135,6 +136,7 @@ Object.assign(app, {
         .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(() => { this.toast('Statement generated'); this.loadStatements(); })
         .catch(err => this.toast('Failed: ' + err.message));
+        });
     }
 });
 })(window.BankingApp);

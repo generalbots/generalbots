@@ -248,14 +248,16 @@
         if (overlay) overlay.style.display = 'none';
     }
 
-    async function removeConnection(id) {
-        if (!confirm('Remove this connection?')) return;
-        try {
-            await fetch(API_BASE + '/connections/' + id, { method: 'DELETE' });
-            loadConnections();
-        } catch (e) {
-            console.error('removeConnection:', e);
-        }
+    function removeConnection(id) {
+        // #2297 — themed confirm instead of the blocking native dialog.
+        GBModal.confirm('Remove this connection?', async function () {
+            try {
+                await fetch(API_BASE + '/connections/' + id, { method: 'DELETE' });
+                loadConnections();
+            } catch (e) {
+                console.error('removeConnection:', e);
+            }
+        });
     }
 
     function sendAuth() {

@@ -215,12 +215,14 @@ async function connectAccount(){
     loadAll();
 }
 
-async function disconnectAccount(){
-    if(!confirm('Disconnect o365 account?'))return;
+function disconnectAccount(){
+    // #2297 — themed confirm instead of the blocking native dialog.
+    GBModal.confirm('Disconnect o365 account?', async function(){
     var data=await apiCall('/api/o365/disconnect',{method:'POST'});
     if(!data) return;
     showFeedback('Account disconnected','success');
     loadAll();
+    });
 }
 
 function showModal(id){ return kit.showModal(id); }

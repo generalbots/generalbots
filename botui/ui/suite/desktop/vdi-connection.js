@@ -25,8 +25,9 @@
         }
     }
 
-    async function deleteSavedConnection(id) {
-        if (!confirm('Delete this connection?')) return;
+    function deleteSavedConnection(id) {
+        // #2297 — themed confirm instead of the blocking native dialog.
+        GBModal.confirm('Delete this connection?', async function () {
         var host = api();
         // Prefer the owner module's implementation (it keeps its internal list
         // and re-renders); only fall back to the endpoint when absent.
@@ -41,6 +42,7 @@
         } catch (e) {
             notify('Delete failed', 'error');
         }
+        });
     }
 
     function connectSaved(id) {

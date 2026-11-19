@@ -116,15 +116,19 @@ Object.assign(app, {
     },
 
     inviteAgent() {
-        const name = prompt('Agent name:');
-        if (!name) return;
-        const email = prompt('Agent email:', '') || '';
-        const skills = prompt('Skills (comma separated):', '') || '';
-        this.api('/api/handoff/agents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, skills })
-        }).then(() => { this.loadAgents(); }).catch(e => GBModal.alert('Invite failed: ' + e.message));
+        // #2297 — one field at a time, each in the themed modal.
+        GBModal.prompt('Agent name:', (name) => {
+            if (!name) return;
+            GBModal.prompt('Agent email:', '', (email) => {
+                GBModal.prompt('Skills (comma separated):', '', (skills) => {
+                    this.api('/api/handoff/agents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email: email || '', skills: skills || '' })
+                    }).then(() => { this.loadAgents(); }).catch(e => GBModal.alert('Invite failed: ' + e.message));
+                });
+            });
+        });
     },
 
     exportAgents() {

@@ -246,10 +246,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         renderDashboard();
     }
 
-    async function createFramework() {
-        var name = prompt('Framework name (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS or custom):');
+    function createFramework() {
+        // #2297 — themed modal input instead of the blocking native prompt.
+        GBModal.prompt('Framework name (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS or custom):', async function (name) {
         if (!name) return;
-        var version = prompt('Version (default 1.0.0):') || '1.0.0';
+        GBModal.prompt('Version (default 1.0.0):', '1.0.0', async function (enteredVersion) {
+        var version = enteredVersion || '1.0.0';
         var data = await apiCall('/api/compliance/frameworks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -263,6 +265,8 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
             showFeedback('Framework created', 'success');
             loadFrameworks();
         }
+        });
+        });
     }
 
     function openFramework(name) {

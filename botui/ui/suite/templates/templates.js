@@ -161,8 +161,11 @@ async function saveTemplate(e) {
     } catch (err) { console.error('saveTemplate:', err); }
 }
 
-async function deleteTemplate(id) {
-    if (!confirm('Delete this template?')) return;
+function deleteTemplate(id) {
+    GBModal.confirm('Delete this template?', function () { deleteTemplateConfirmed(id); });
+}
+
+async function deleteTemplateConfirmed(id) {
     try {
         await fetch('/api/crm/templates/' + id, { method: 'DELETE' });
         allTemplates = allTemplates.filter(function(t) { return t.id !== id; });

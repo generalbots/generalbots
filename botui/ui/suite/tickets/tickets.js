@@ -55,15 +55,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
     };
 
     window.assignTicket = function (ticketId) {
-        var assignee = prompt("Assign to (email or name):");
-        if (!assignee) return;
-        fetch("/api/tickets/" + ticketId + "/assign", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ assignee: assignee })
-        }).then(function(r) {
-            if (!r.ok) GBModal.alert("Could not assign ticket. Use an existing user email.");
-            htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
+        // #2297 — themed modal input instead of the blocking native prompt.
+        GBModal.prompt("Assign to (email or name):", function (assignee) {
+            if (!assignee) return;
+            fetch("/api/tickets/" + ticketId + "/assign", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ assignee: assignee })
+            }).then(function(r) {
+                if (!r.ok) GBModal.alert("Could not assign ticket. Use an existing user email.");
+                htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
+            });
         });
     };
 
@@ -85,11 +87,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
     };
 
     window.deleteTicket = function (ticketId) {
-        if (!confirm("Are you sure you want to delete this ticket?")) return;
-        fetch("/api/tickets/" + ticketId, { method: "DELETE" }).then(function() {
-            document.getElementById("ticket-detail").innerHTML =
-                '<div class="ticket-detail-empty"><p>Select a case to view details</p></div>';
-            refreshTicketsList();
+        GBModal.confirm("Are you sure you want to delete this ticket?", function () {
+            fetch("/api/tickets/" + ticketId, { method: "DELETE" }).then(function() {
+                document.getElementById("ticket-detail").innerHTML =
+                    '<div class="ticket-detail-empty"><p>Select a case to view details</p></div>';
+                refreshTicketsList();
+            });
         });
     };
 

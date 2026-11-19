@@ -223,8 +223,9 @@ console.error('Save failed', err);
 }
 }
 
-async function terminateEmployee(id) {
-if (!confirm('Are you sure you want to terminate this employee?')) return;
+function terminateEmployee(id) {
+// #2297 — themed confirm instead of the blocking native dialog.
+GBModal.confirm('Are you sure you want to terminate this employee?', async function () {
 const emp = employeesData.find(e => e.id === id);
 if (!emp) return;
 try {
@@ -243,6 +244,7 @@ loadEmployees();
 } catch (e) {
 console.error('Terminate failed', e);
 }
+});
 }
 
 Object.assign(app, {
