@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/suite/slides/slides-object-model.css" />
 <link rel="stylesheet" href="/suite/slides/slides-delivery.css" />
 <link rel="stylesheet" href="/suite/slides/slides-masters.css" />
+<link rel="stylesheet" href="/suite/slides/slides-analytics.css" />
 
 <div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar" role="toolbar" aria-label="Presentation toolbar">
@@ -68,6 +69,12 @@
                     </button>
                     <button class="btn-icon" id="slDeliveryToolsBtn" type="button" data-i18n-title="slides-delivery-tools-open" data-i18n-aria-label="slides-delivery-tools-open">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.56V21h-4v-.04A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1H3v-4h.04A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06L7.03 4.24l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.56V3h4v.04A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.15.6.68 1.03 1.3 1.04H21v4h-.3A1.7 1.7 0 0 0 19.4 15z"></path></svg>
+                    </button>
+                    <button class="btn-icon" id="slAnalyticsConsoleBtn" type="button" data-i18n-title="slides-analytics-console-open" data-i18n-aria-label="slides-analytics-open">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+                    </button>
+                    <button class="btn-icon" id="slAnalyticsToolsBtn" type="button" data-i18n-title="slides-analytics-tools" data-i18n-aria-label="slides-analytics-tools">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>
                     </button>
                     <button class="btn-icon" id="sorterBtn" hx-post="/suite/slides/fragments/sorter" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Slide sorter" aria-label="Slide sorter" data-i18n-title="slides-sorter" data-i18n-aria-label="slides-sorter">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="14" y2="12"></line><line x1="4" y1="18" x2="14" y2="18"></line><polyline points="18 8 21 11 18 14"></polyline><line x1="21" y1="11" x2="17" y2="11"></line></svg>
@@ -272,6 +279,15 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/63_masters_panels_a.js"></script>
 <script src="/suite/slides/modules/64_masters_panels_b.js"></script>
 <script src="/suite/slides/modules/65_masters_init.js"></script>
+<script src="/suite/slides/modules/66_analytics_state.js"></script>
+<script src="/suite/slides/modules/67_analytics_compute.js"></script>
+<script src="/suite/slides/modules/68_analytics_qa.js"></script>
+<script src="/suite/slides/modules/69_analytics_polls.js"></script>
+<script src="/suite/slides/modules/70_analytics_follow.js"></script>
+<script src="/suite/slides/modules/71_analytics_dialog.js"></script>
+<script src="/suite/slides/modules/72_analytics_panels_a.js"></script>
+<script src="/suite/slides/modules/73_analytics_panels_b.js"></script>
+<script src="/suite/slides/modules/74_analytics_init.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>
 <script>
