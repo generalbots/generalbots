@@ -602,3 +602,8 @@ code-word-wrap = 自动换行
 
 # Artifact download (#2542)
 artifact-drawing-not-started = 绘图尚未开始。
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = API 错误
+app-kit-download-complete = 下载完成
+app-kit-download-failed = 下载失败

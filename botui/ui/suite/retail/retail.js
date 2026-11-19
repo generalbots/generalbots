@@ -229,14 +229,9 @@ async function submitBranch(e){
     var payload={code:document.getElementById('branchCode').value.trim(),name:name,address:document.getElementById('branchAddress').value.trim(),manager:document.getElementById('branchManager').value.trim(),status:document.getElementById('branchStatus').value,stock_value:document.getElementById('branchStock').value};
     var url=state.editingBranchId?('/api/retail/branches/'+state.editingBranchId):'/api/retail/branches';
     var method=state.editingBranchId?'PUT':'POST';
-    try{
-        var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
-        var headers = {'Content-Type':'application/json'};
-        if (token) headers.Authorization = 'Bearer ' + token;
-        var r=await fetch(url,{method:method,headers:headers,body:JSON.stringify(payload)});
-        if(!r.ok)throw new Error('HTTP '+r.status);
-        closeModal('retailBranchModal');showFeedback('Branch saved','success');loadBranches();
-    }catch(err){showFeedback('Save failed: '+err.message,'error');}
+    var saved = await apiCall(url, {method:method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    if(!saved) return;
+    closeModal('retailBranchModal');showFeedback('Branch saved','success');loadBranches();
 }
 
 async function submitPromo(e){

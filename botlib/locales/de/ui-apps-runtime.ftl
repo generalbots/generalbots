@@ -602,3 +602,8 @@ code-word-wrap = Zeilenumbruch
 
 # Artifact download (#2542)
 artifact-drawing-not-started = Die Zeichnung wurde noch nicht begonnen.
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = API-Fehler
+app-kit-download-complete = Download abgeschlossen
+app-kit-download-failed = Download fehlgeschlagen

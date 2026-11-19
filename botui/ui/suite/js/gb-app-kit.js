@@ -16,6 +16,11 @@
       .replace(/'/g, "&#39;");
   }
 
+  function t(key, fallback) {
+    if (typeof global.gbT === "function") return global.gbT(key, fallback);
+    return fallback;
+  }
+
   function showFeedback(appId, msg, type) {
     var id = String(appId || "gb-app") + "-feedback";
     var el = document.getElementById(id);
@@ -53,6 +58,42 @@
     return null;
   }
 
+  // Raw-response sibling of apiCall: same auth header, no JSON parsing, so a
+  // blob download or a binary response never needs its own Bearer logic.
+  async function apiRaw(url, options) {
+    var opts = options ? Object.assign({}, options) : {};
+    var headers = Object.assign({}, (options && options.headers) || {});
+    var hasAuth = Object.keys(headers).some(function (k) {
+      return String(k).toLowerCase() === "authorization";
+    });
+    if (!hasAuth) {
+      var token = getAuthToken();
+      if (token) headers.Authorization = "Bearer " + token;
+    }
+    opts.headers = headers;
+    var r = await fetch(url, opts);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r;
+  }
+
+  async function download(appId, url, fileName) {
+    try {
+      var r = await apiRaw(url);
+      var blob = await r.blob();
+      var href = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = href;
+      a.download = fileName || "download";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(href); }, 2000);
+      showFeedback(appId, t("app-kit-download-complete", "Download complete"), "success");
+    } catch (e) {
+      showFeedback(appId, t("app-kit-download-failed", "Download failed") + ": " + e.message, "error");
+    }
+  }
+
   async function apiCall(appId, url, options) {
     try {
       var opts = options ? Object.assign({}, options) : {};
@@ -71,7 +112,7 @@
       var t = await r.text();
       return t ? JSON.parse(t) : null;
     } catch (e) {
-      showFeedback(appId, "API error: " + e.message, "error");
+      showFeedback(appId, t("app-kit-api-error", "API error") + ": " + e.message, "error");
       return null;
     }
   }
@@ -212,6 +253,8 @@
     escapeHtml: escapeHtml,
     showFeedback: showFeedback,
     getAuthToken: getAuthToken,
+    apiRaw: apiRaw,
+    download: download,
     apiCall: apiCall,
     mountSignaturePad: mountSignaturePad,
     clearSignatureCanvas: clearSignatureCanvas,

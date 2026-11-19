@@ -602,3 +602,8 @@ code-word-wrap = 줄 바꿈
 
 # Artifact download (#2542)
 artifact-drawing-not-started = 그리기가 아직 시작되지 않았습니다.
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = API 오류
+app-kit-download-complete = 다운로드 완료
+app-kit-download-failed = 다운로드 실패

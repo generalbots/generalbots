@@ -602,3 +602,8 @@ code-word-wrap = 折り返し
 
 # Artifact download (#2542)
 artifact-drawing-not-started = 描画はまだ始まっていません。
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = API エラー
+app-kit-download-complete = ダウンロード完了
+app-kit-download-failed = ダウンロード失敗

@@ -824,3 +824,8 @@ assistant-rows-sources = fontes
 
 # Artifact download (#2542)
 artifact-drawing-not-started = O desenho ainda não começou.
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = Erro de API
+app-kit-download-complete = Download concluído
+app-kit-download-failed = Falha no download

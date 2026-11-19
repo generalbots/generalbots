@@ -602,3 +602,8 @@ code-word-wrap = Retour à la ligne
 
 # Artifact download (#2542)
 artifact-drawing-not-started = Le dessin n'a pas encore commencé.
+
+# Shared app kit toasts (#2521)
+app-kit-api-error = Erreur d'API
+app-kit-download-complete = Téléchargement terminé
+app-kit-download-failed = Échec du téléchargement

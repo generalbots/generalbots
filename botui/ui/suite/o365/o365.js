@@ -172,25 +172,7 @@ function navigateTo(index){
 
 function downloadFile(fileId, fileName){
     showFeedback('Starting download...','success');
-    var token = (window.GBAppKit && window.GBAppKit.getAuthToken) ? window.GBAppKit.getAuthToken() : (localStorage.getItem('gb_token') || '');
-    var headers = {};
-    if (token) headers.Authorization = 'Bearer ' + token;
-    return fetch('/api/o365/onedrive/download/'+fileId, { headers: headers }).then(function(r){
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        return r.blob();
-    }).then(function(blob){
-        var url=URL.createObjectURL(blob);
-        var a=document.createElement('a');
-        a.href=url;
-        a.download=fileName || ('o365-file-'+fileId);
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(function(){URL.revokeObjectURL(url);},2000);
-        showFeedback('Download complete','success');
-    }).catch(function(e){
-        showFeedback('Download failed: '+e.message,'error');
-    });
+    return kit.download('o365', '/api/o365/onedrive/download/'+fileId, fileName || ('o365-file-'+fileId));
 }
 
 function showCreateMeeting(){
