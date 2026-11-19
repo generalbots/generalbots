@@ -2,8 +2,10 @@
 <!-- Dynamics nomenclature: Quote → Invoice → Payment -->
 
 <link rel="stylesheet" href="/suite/billing/billing.css" />
+<link rel="stylesheet" href="/suite/css/gb-panes.css?v=1" />
+<script src="/suite/js/panes/01_contract.js?v=1"></script>
 
-<div class="billing-container gb-app" data-gb-app="billing">
+<div class="billing-container gb-app gb-panes" data-gb-app="billing" data-gb-panes data-gb-panes-primary="#billingInvoicesSlot, .billing-view" data-gb-panes-detail="#billing-modal" data-gb-panes-rows=".billing-table tbody tr" data-gb-panes-detail-mode="overlay">
     <!-- Header -->
     <header class="billing-header">
         <div class="billing-header-left">
@@ -104,10 +106,10 @@
 <div id="billingSummarySlot"></div>
 
     <!-- Invoices View (Default) -->
-<div id="billingInvoicesSlot"></div>
+<div id="billingInvoicesSlot" class="gb-pane gb-pane-primary"></div>
 
     <!-- Payments View -->
-    <div id="billing-payments-view" class="billing-view">
+    <div id="billing-payments-view" class="billing-view gb-pane gb-pane-primary">
         <div class="billing-list-header">
             <div class="list-filters">
                 <select
@@ -185,7 +187,7 @@
     </div>
 
     <!-- Quotes View -->
-    <div id="billing-quotes-view" class="billing-view">
+    <div id="billing-quotes-view" class="billing-view gb-pane gb-pane-primary">
         <div class="billing-list-header">
             <div class="list-filters">
                 <select
@@ -264,7 +266,7 @@
     </div>
 
     <!-- Inventory View -->
-    <div id="billing-inventory-view" class="billing-view">
+    <div id="billing-inventory-view" class="billing-view gb-pane gb-pane-primary">
         <div class="billing-list-header">
             <div class="list-filters">
                 <span class="billing-filter-label" data-i18n="erp-inventory">Inventory</span>
@@ -288,7 +290,7 @@
     </div>
 
     <!-- GL View -->
-    <div id="billing-gl-view" class="billing-view">
+    <div id="billing-gl-view" class="billing-view gb-pane gb-pane-primary">
         <div class="billing-list-header">
             <div class="list-filters">
                 <button
@@ -332,7 +334,7 @@
     </div>
 
     <!-- Procurement View -->
-    <div id="billing-procurement-view" class="billing-view">
+    <div id="billing-procurement-view" class="billing-view gb-pane gb-pane-primary">
         <div class="billing-list-header">
             <div class="list-filters">
                 <span class="billing-filter-label" data-i18n="erp-procurement">Purchase Orders</span>
@@ -357,7 +359,7 @@
 </div>
 
 <!-- Modal for forms -->
-<div id="billing-modal" class="billing-modal">
+<div id="billing-modal" class="billing-modal gb-pane gb-pane-detail">
     <div class="billing-modal-backdrop" onclick="closeBillingModal()"></div>
 <div id="billingModalSlot"></div>
 </div>

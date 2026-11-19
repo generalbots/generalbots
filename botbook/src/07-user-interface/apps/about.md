@@ -51,6 +51,13 @@ The About page provides comprehensive product information for General Bots Suite
 | **Storage** | MinIO bucket configuration |
 | **Runtime** | Rust version and build info |
 
+### Third-party licenses
+
+The **Third-party licenses** control opens a panel with the installed license
+directory, the NOTICE text and a component record. `?tab=licenses` opens it
+directly. The build-time license check is in
+`scripts/check_third_party_licenses.py`.
+
 ### Copyright
 
 | Field | Description |

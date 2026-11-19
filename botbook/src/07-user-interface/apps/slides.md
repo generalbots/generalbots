@@ -24,6 +24,11 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Notes | Speaker notes per slide |
 | Duplicate / Delete | Buttons on each thumbnail in the slide rail |
 | Reorder slides | Toolbar sorter: drag or use ↑/↓, then Save writes the deck order |
+| Insert hub | Searchable insert dialog with live preview and Drive media, opened from the Insert button |
+| Animation timeline | Per-slide effect list with entrance, emphasis and exit effects, motion paths, paragraph builds, start triggers and a build scrubber. Reduced motion — from the OS setting or the deck flag — shows final states immediately, and a failed effect never blocks advancing |
+| Transitions gallery | Duration, direction, easing and advance settings, with apply-to-all and per-slide overrides. Authored animation data is kept locally; no server persistence endpoint exists yet |
+| Review menu | Outline view (editable title/bullet hierarchy with promote/demote, drag and keyboard reorder, paste-bullets from Word), deck-wide find/replace across text, tables, charts and notes with per-match review and undoable replace-all, sections, bulk slide actions, a notes workspace, an accessibility panel for missing alt text and a deck-properties dialog. All review metadata is labelled local-only and stored in the browser; no server persistence exists yet |
+| Diagram editor | The **Diagrams** toolbar button opens a local-only editor with six auto-layout presets (process, cycle, hierarchy, org chart, matrix, pyramid, list) whose nodes reflow on add, remove, promote and demote; a flowchart mode with shape ports and orthogonal connectors that follow node moves; a local CSV/paste org chart from name/title/reports-to rows with cycle-safe hierarchy; and 16 searchable vendored SVG icons. Diagrams live in a deck-scoped browser layer that never writes slide elements or the server. PPTX native shape/connector export and a guide/snap system are not implemented |
 
 ### Presenting
 

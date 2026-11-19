@@ -1,5 +1,6 @@
 <link rel="stylesheet" href="/suite/analytics/analytics-dashboard.css?v=1" />
 <link rel="stylesheet" href="/suite/analytics/analytics-loading-responsive.css?v=1" />
+<link rel="stylesheet" href="/suite/analytics/analytics-docs.css?v=1" />
 
 <div class="analytics-container" id="analytics-app" data-gb-app="analytics">
     <header class="analytics-header">
@@ -49,6 +50,8 @@
                 <option value="30d" data-i18n="analytics-last-30d">
                     Last 30 Days
                 </option>
+                <option value="90d" data-i18n="analytics-docs-last-quarter">
+                </option>
             </select>
             <button
                 class="btn-refresh"
@@ -81,6 +84,7 @@
             class="analytics-tab active"
             role="tab"
             data-tab="product"
+            aria-selected="true"
             onclick="showAnalyticsTab('product')"
         >
             Product
@@ -89,10 +93,19 @@
             class="analytics-tab"
             role="tab"
             data-tab="operations"
+            aria-selected="false"
             onclick="showAnalyticsTab('operations')"
         >
             Operations
         </button>
+        <button
+            class="analytics-tab"
+            role="tab"
+            data-tab="documents"
+            aria-selected="false"
+            onclick="showAnalyticsTab('documents')"
+            data-i18n="analytics-docs-tab"
+        ></button>
     </nav>
 
     <section class="analytics-pane active" id="analytics-product-pane">
@@ -403,13 +416,34 @@
         </div>
     </section>
 
+    <section class="analytics-pane" id="analytics-documents-pane">
+        <div
+            id="analyticsDocsSlot"
+            role="region"
+            data-i18n-aria-label="analytics-docs-title"
+            aria-live="polite"
+        >
+            <div class="chart-loading" role="status">
+                <div class="spinner" aria-hidden="true"></div>
+                <span data-i18n="analytics-docs-status-loading"></span>
+            </div>
+        </div>
+    </section>
+
     <link rel="stylesheet" href="/suite/analytics/analytics-dashboard.css?v=1" />
 <link rel="stylesheet" href="/suite/analytics/analytics-loading-responsive.css?v=1" />
     <link rel="stylesheet" href="/suite/analytics/analytics-ops.css?v=1" />
+    <link rel="stylesheet" href="/suite/analytics/analytics-docs.css?v=1" />
     <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="status-loading">Loading…</span></div>
 <div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/analytics/analytics-templates.js?v=1"></script>
 <script src="/suite/analytics/analytics-ops-templates.js?v=1"></script>
 <script src="/suite/analytics/analytics-ops.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-01-schema.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-02-template.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-03-model.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-04-render.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-05-csv.js?v=1"></script>
+<script src="/suite/analytics/analytics-docs-06-controller.js?v=1"></script>
 <script src="/suite/analytics/analytics.js?v=2"></script>
 </div>

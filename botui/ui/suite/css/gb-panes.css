@@ -1,0 +1,217 @@
+/* General Bots — shared list+detail pane contract (#2415).
+ *
+ * Form factor is decided by MEASURED VIEWPORT WIDTH ONLY (no UA / device
+ * sniffing):
+ *   wide     >= 1025px : apps keep their own layout, this file is a no-op.
+ *   medium    768..1024: two panes separated by a labelled resize handle.
+ *   compact   <  768px : one pane at a time. Selecting a row in the primary
+ *                        pane pushes the detail pane; Back returns to the
+ *                        list with its scroll offset, filter and selection.
+ *
+ * Opt in: add .gb-panes to the group root and .gb-pane.gb-pane-primary /
+ * .gb-pane.gb-pane-detail to the two surfaces. 01_contract.js reads the
+ * data-gb-panes-* attributes, injects the Back and resize controls and wires
+ * the state restore. Details that are drawers/modals declare
+ * data-gb-panes-detail-mode="overlay".
+ *
+ * Load this file AFTER the app's own stylesheet so the contract wins ties.
+ * Wide layout is deliberately untouched — no rule here applies >= 1025px.
+ */
+
+:root {
+  --gb-pane-primary-size: 42%;
+  --gb-pane-bar: 44px;
+  --gb-pane-handle: 8px;
+}
+
+/* Base — neutral on wide screens. */
+.gb-pane {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Back control — present in every pane contract, shown only in compact. */
+.gb-pane-back {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: var(--gb-pane-bar);
+  min-height: var(--gb-pane-bar);
+  height: var(--gb-pane-bar);
+  padding: 0 12px;
+  border: 1px solid var(--border, #334155);
+  border-radius: 8px;
+  background: var(--surface, #1e293b);
+  color: var(--text, #f8fafc);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.gb-pane-back:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.gb-pane-back svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/* Resize handle — injected by 01_contract.js; only used at medium width. */
+.gb-panes-resize {
+  display: none;
+}
+
+/* Visually hidden polite live region for pane transitions. */
+.gb-panes-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * MEDIUM (768–1024): two panes + labelled resize handle              *
+ * ------------------------------------------------------------------ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) {
+    display: grid;
+    grid-template-columns: var(--gb-pane-primary-size) var(--gb-pane-handle) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-pane {
+    display: block;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* Some apps position the detail as a full-screen overlay at this width;
+     inside the contract it is an in-flow second pane instead. */
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-pane-detail {
+    position: static;
+    inset: auto;
+    z-index: auto;
+  }
+
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-panes-resize {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--border, #334155);
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-panes-resize::after {
+    content: "";
+    width: 2px;
+    height: 36px;
+    border-radius: 2px;
+    background: var(--text-tertiary, #94a3b8);
+  }
+
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-panes-resize:focus-visible {
+    outline: 2px solid var(--accent, #3b82f6);
+    outline-offset: -2px;
+  }
+
+  /* Overlay details keep their own positioning at medium; the list is the
+     primary surface and the drawer/modal is the second one. No Back here. */
+  .gb-panes[data-gb-panes-detail-mode="overlay"] .gb-pane-back {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * COMPACT (< 768): one pane at a time                                 *
+ * ------------------------------------------------------------------ */
+@media (max-width: 767px) {
+  .gb-panes {
+    position: relative;
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gb-panes > .gb-pane {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+  }
+
+  .gb-panes:not([data-gb-panes-detail-mode="overlay"]) > .gb-pane-detail {
+    position: static;
+    inset: auto;
+    z-index: auto;
+  }
+
+  .gb-panes > .gb-pane-detail,
+  .gb-panes[data-gb-panes-detail-mode="overlay"] .gb-pane-detail {
+    display: none;
+  }
+
+  .gb-panes.is-detail-open > .gb-pane-primary {
+    display: none;
+  }
+
+  .gb-panes.is-detail-open > .gb-pane-detail {
+    display: block;
+  }
+
+  .gb-panes .gb-pane-back {
+    display: inline-flex;
+  }
+
+  .gb-panes .gb-panes-resize {
+    display: none;
+  }
+
+  /* Never fall back to horizontal page scrolling on a narrow viewport. */
+  html:has(.gb-panes),
+  body:has(.gb-panes) {
+    overflow-x: hidden;
+  }
+
+  /* A drawer/modal detail becomes a full-screen pane in compact. */
+  .gb-panes[data-gb-panes-detail-mode="overlay"].is-detail-open .gb-pane-detail {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay, 1600);
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+    right: auto;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion — no sliding/fading pane transitions                 *
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .gb-panes,
+  .gb-panes *,
+  .gb-panes *::before,
+  .gb-panes *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

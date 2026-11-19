@@ -16,6 +16,19 @@ Analytics is the data visualization and reporting app in General Bots Suite. Tra
 
 ## Features
 
+### Documents tab
+
+The Documents tab groups office metrics into four areas: adoption, review cycle
+and approval SLA, risk and compliance, and content and storage. It reuses the
+page's date-range selector and shows an explicit no-data state when the
+aggregation API has no response — it does not synthesize figures.
+
+Small cells are suppressed before rendering, and the CSV export contains the
+same suppressed values shown on screen. Scope selectors cover tenant,
+workspace and department. Aggregation, server-side suppression and refresh are
+not implemented in the browser bundle; the tab renders whatever the API
+returns.
+
 ### Dashboard Overview
 
 Dashboards are collections of widgets that display your data visually.

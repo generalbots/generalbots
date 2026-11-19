@@ -1,0 +1,219 @@
+/* Slides diagram authoring — local-only layer + accessible editor (#2488). */
+
+.sl-diag-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sl-diag-layer-badge,
+.sl-diag-local-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #cbd5e1);
+  background: var(--surface-raised-1, #293548);
+  border: 1px solid var(--border, #475569);
+}
+
+.sl-diag-layer > .sl-diag-local-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 3;
+}
+
+.sl-diag-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--primary, var(--accent, #3b82f6));
+  pointer-events: none;
+}
+
+.sl-diag-connector,
+.sl-diag-connector-tip { opacity: 0.85; }
+
+.sl-diag-node {
+  --sd-node-color: var(--surface-raised-2, #334155);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  text-align: center;
+  color: var(--text, #f8fafc);
+  background: var(--sd-node-color);
+  border: 1px solid var(--border, #64748b);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.sl-diag-node:hover { border-color: var(--primary, var(--accent, #3b82f6)); }
+.sl-diag-node:active { cursor: grabbing; }
+.sl-diag-node.is-grouped { border-style: dashed; }
+
+.sl-diag-node:focus-visible,
+.sl-diag-dialog button:focus-visible,
+.sl-diag-dialog input:focus-visible,
+.sl-diag-dialog textarea:focus-visible {
+  outline: 2px solid var(--primary, var(--accent, #3b82f6));
+  outline-offset: 2px;
+}
+
+.sl-diag-node-text { font-size: 13px; line-height: 1.25; word-break: break-word; }
+.sl-diag-node-title { font-size: 11px; color: var(--text-secondary, #cbd5e1); }
+.sl-diag-icon { flex: none; }
+
+.sl-diag-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.sl-diag-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(820px, 94vw);
+  max-height: 88vh;
+  color: var(--text, #f8fafc);
+  background: var(--surface, #0f172a);
+  border: 1px solid var(--border, #475569);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
+}
+
+.sl-diag-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #475569);
+}
+
+.sl-diag-dialog-title { flex: 1; margin: 0; font-size: 17px; }
+
+.sl-diag-close {
+  border: 0;
+  background: transparent;
+  color: var(--text, #f8fafc);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.sl-diag-status {
+  min-height: 20px;
+  padding: 6px 16px;
+  font-size: 12px;
+  color: var(--text-secondary, #cbd5e1);
+  border-bottom: 1px solid var(--border, #475569);
+}
+
+.sl-diag-dialog-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 16px 20px;
+  overflow: auto;
+}
+
+.sl-diag-section {
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border, #475569);
+  border-radius: 8px;
+}
+
+.sl-diag-legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
+
+.sl-diag-preset,
+.sl-diag-node-controls button,
+.sl-diag-actions button,
+.sl-diag-btn-org {
+  margin: 3px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text, #f8fafc);
+  background: var(--surface-raised-1, #293548);
+  border: 1px solid var(--border, #475569);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sl-diag-preset:hover,
+.sl-diag-node-controls button:hover,
+.sl-diag-actions button:hover,
+.sl-diag-btn-org:hover { border-color: var(--primary, var(--accent, #3b82f6)); }
+
+.sl-diag-hint,
+.sl-diag-empty,
+.sl-diag-icon-empty { font-size: 12px; color: var(--text-secondary, #cbd5e1); }
+
+.sl-diag-node-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.sl-diag-node-item.is-selected { border-color: var(--primary, var(--accent, #3b82f6)); }
+
+.sl-diag-node-editor { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sl-diag-field { display: flex; align-items: center; gap: 8px; }
+.sl-diag-field-label { font-size: 12px; color: var(--text-secondary, #cbd5e1); }
+
+.sl-diag-field-input,
+.sl-diag-field-level,
+.sl-diag-icon-search,
+.sl-diag-org-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text, #f8fafc);
+  background: var(--surface-raised-1, #293548);
+  border: 1px solid var(--border, #475569);
+  border-radius: 6px;
+}
+
+.sl-diag-org-input { width: 100%; resize: vertical; font-family: inherit; }
+
+.sl-diag-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 4px;
+  max-height: 128px;
+  overflow: auto;
+}
+
+.sl-diag-icon-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  color: var(--text, #f8fafc);
+  background: var(--surface-raised-1, #293548);
+  border: 1px solid var(--border, #475569);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sl-diag-icon-grid button.is-selected { border-color: var(--primary, var(--accent, #3b82f6)); }
+.sl-diag-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+
+@media (max-width: 720px) {
+  .sl-diag-dialog-body { grid-template-columns: 1fr; }
+}

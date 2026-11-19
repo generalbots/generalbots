@@ -1,0 +1,285 @@
+/* Docs equation editor (#2483) — local styles, no CDN assets. */
+
+.gb-deq-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.gb-deq-dialog {
+  width: 620px;
+  max-width: 94vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  overflow: hidden;
+  color: #f8fafc;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.55);
+}
+
+.gb-deq-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gb-deq-body {
+  overflow: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gb-deq-section,
+.gb-deq-field,
+.gb-deq-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gb-deq-section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.gb-deq-field-label {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.gb-deq-field textarea,
+.gb-deq-field input,
+.gb-deq-body input[type="search"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  color: #f8fafc;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  font: inherit;
+}
+
+.gb-deq-field textarea {
+  font-family: "Courier New", ui-monospace, monospace;
+  resize: vertical;
+}
+
+.gb-deq-options {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.gb-deq-placement {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gb-deq-radio,
+.gb-deq-check {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.gb-deq-preview {
+  min-height: 44px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.gb-deq-preview math {
+  font-size: 1.1em;
+}
+
+.gb-deq-palette,
+.gb-deq-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gb-deq-symbol,
+.gb-deq-template,
+.gb-deq-btn,
+.gb-deq-row-btn {
+  padding: 5px 10px;
+  color: #e2e8f0;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.gb-deq-symbol {
+  min-width: 34px;
+  font-size: 17px;
+}
+
+.gb-deq-symbol:hover,
+.gb-deq-template:hover,
+.gb-deq-btn:hover,
+.gb-deq-row-btn:hover {
+  background: #475569;
+}
+
+.gb-deq-symbol:focus-visible,
+.gb-deq-template:focus-visible,
+.gb-deq-btn:focus-visible,
+.gb-deq-row-btn:focus-visible,
+.gb-deq-field input:focus-visible,
+.gb-deq-field textarea:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.gb-deq-status {
+  min-height: 16px;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+.gb-deq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.gb-deq-primary {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+  font-weight: 600;
+}
+
+.gb-deq-primary:hover {
+  background: #1d4ed8;
+}
+
+.gb-deq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gb-deq-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 5px;
+}
+
+.gb-deq-row-title {
+  flex: 1;
+  overflow: hidden;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gb-deq-row-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.gb-deq-danger {
+  color: #fecaca;
+  border-color: #7f1d1d;
+}
+
+.gb-deq-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Equation nodes inside the article. Display equations are spans so that a
+ * single insertHTML step never splits a surrounding paragraph. */
+.docs-eq {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  vertical-align: baseline;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.docs-eq:hover,
+.docs-eq:focus-visible {
+  outline: 1px solid #93c5fd;
+}
+
+.docs-eq-display {
+  display: flex;
+  width: 100%;
+  margin: 8px 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.docs-eq-display > math {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.docs-eq-num {
+  flex: 0 0 auto;
+  min-width: 3em;
+  margin-left: auto;
+  color: #475569;
+  text-align: right;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9em;
+}
+
+.docs-eq-ref {
+  padding: 0 2px;
+  color: #1d4ed8;
+  cursor: pointer;
+  border-bottom: 1px dotted #1d4ed8;
+}
+
+.docs-eq math {
+  font-family: "Cambria Math", "STIX Two Math", Georgia, serif;
+}
+
+.docs-eq mi {
+  font-style: italic;
+}
+
+.docs-eq mn,
+.docs-eq mo {
+  font-style: normal;
+}

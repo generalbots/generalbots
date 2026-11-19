@@ -301,5 +301,7 @@ document.getElementById('list-form-type').addEventListener('change', function() 
     document.getElementById('query-group').style.display = this.value === 'dynamic' ? 'block' : 'none';
 });
 
+// #2537: minimal hook — the segment builder refreshes this grid after save.
+window.GBListsRefresh = loadLists;
 loadLists();
 })();

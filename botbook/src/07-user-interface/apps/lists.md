@@ -43,6 +43,7 @@ Lists is a contact management and segmentation system within General Bots Suite.
 | **Complex Logic** | AND/OR conditions |
 | **Real-Time** | Instant segment updates |
 | **Preview** | See matching contacts before saving |
+| **Structured segment builder** | Dynamic lists are authored as nested AND/OR conditions over contact fields, tags, owner, lifecycle, deal data, consent per channel and list membership. The preview reports matched and suppressed recipients; when the preview endpoint is absent the result is labelled as an offline sample estimate, not live data |
 
 ### Import CSV
 

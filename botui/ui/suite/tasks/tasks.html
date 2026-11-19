@@ -7,6 +7,9 @@
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-detail-sections.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-log-detail.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped-detail-layout.css?v=1" />
+<link rel="stylesheet" href="/suite/tasks/tasks-panes-contract.css?v=1" />
+<link rel="stylesheet" href="/suite/css/gb-panes.css?v=1" />
+<script src="/suite/js/panes/01_contract.js?v=1"></script>
 <div class="gb-state gb-state-loading" role="status" aria-live="polite" aria-atomic="true"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
 <div class="gb-state gb-state-error" role="alert" aria-live="assertive" aria-atomic="true"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/collab-comments/01_helpers.js"></script>
@@ -99,9 +102,9 @@
 </div>
 </div>
 <!-- Main Two-Column Layout with Splitter -->
-<main class="tasks-main">
+<main class="tasks-main gb-panes" data-gb-panes data-gb-panes-primary=".tasks-list-panel" data-gb-panes-detail=".task-detail-panel" data-gb-panes-rows=".task-card">
 <!-- Left Panel: Task Cards List -->
-<section class="tasks-list-panel">
+<section class="tasks-list-panel gb-pane gb-pane-primary">
 <div class="tasks-list-scroll" id="task-list" hx-get="/api/ui/tasks?filter=all" hx-trigger="load, taskCreated from:div throttle:2s" hx-swap="innerHTML transition:false" aria-live="polite" aria-busy="true"
      data-gb-states="list"
      data-gb-empty-icon="✅"
@@ -122,7 +125,7 @@
 <!-- Splitter -->
 <div class="tasks-splitter" id="tasks-splitter"></div>
 <!-- Right Panel: Task Detail -->
-<aside class="task-detail-panel" id="task-detail-panel">
+<aside class="task-detail-panel gb-pane gb-pane-detail" id="task-detail-panel">
 <!-- Detail content loaded dynamically -->
 <div class="detail-empty" id="detail-empty">
 <div class="empty-icon">📋</div>

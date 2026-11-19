@@ -15,7 +15,11 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Capability | Notes |
 |---|---|
 | Formatting | Rich text with headings, quotes, lists, inline code and links |
-| Find & Replace | Search within the document |
+| Find & Replace | Search within the document, with regular-expression, formatting and scope options; replace-all is one undoable action |
+| Navigation pane | Heading tree with bookmarks and drag-to-reorder, opened from the Navigation pane control |
+| Quick parts and autotext | Reusable content blocks with variables and `/shortcut` expansion |
+| Language tools | Local-first spelling, style and readability review. Suggestions are accepted individually and reversed with one undo; no document text is sent to a server and AI assistance is off by default |
+| Table editing | A contextual Table tools toolbar for insert/delete rows and columns, merge/split cells, header toggle, banding, borders/shading, padding, vertical alignment, width/autofit and column sort; text↔table conversion and `Ctrl+Alt+T` to reopen the tools. Structural edits keep valid table markup and are one undo step. An accessibility check lists missing header scope, uneven column counts and unlabelled tables and jumps to each one |
 | Undo / Redo | Standard history |
 | **Track Changes** | Record edits as suggestions rather than applying them silently |
 | **Compare Documents** | Diff two documents against each other |
@@ -30,7 +34,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Table of Contents | Generated navigation for the document |
 | Header & Footer | Page furniture |
 | Insert Table / Image | Structured and visual content |
-| Insert Equation | Mathematical notation |
+| Insert Equation | Equation editor opened from the toolbar's equation button: a symbol palette and six templates (fraction, root, integral, sum, matrix, cases) with a LaTeX-style input and live MathML preview. Equations are inserted inline or as display blocks with an accessible description; display equations are numbered per section with right-aligned numbers, and a reference picker inserts cross-references that update on demand. An equation list searches, re-edits, renumbers and deletes equations. LaTeX source is kept as a searchable, re-editable attribute. DOCX OMML round-trip, server persistence and print-quality layout are not implemented |
 | Insert Footnote / Endnote | Scholarly referencing |
 | Insert Page Break | Page control |
 | From Template | Start from an existing template |
