@@ -15,6 +15,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Capability | Notes |
 |---|---|
 | New Slide | Add a slide to the deck |
+| Masters and brand kit | A local **masters** workspace adds a three-level cascade (master → layout → slide) with an effective-style inspector that shows which level each value inherits from or overrides. Theme tokens (dk1/lt1/dk2/lt2, accent1–6, major/minor fonts, effects) are referenced by default; a layout editor creates, renames and duplicates layouts with nine placeholder roles, per-layout geometry, background, footer and number. A theme or layout can be applied to a selection or all slides while preserving explicit overrides, with a before/after affected-slide preview — changing a master token updates only non-overriding slides. A brand kit holds approved fonts, palette and logo with a warn/block lock against off-brand content, plus a local versioned template library. All data is deck-scoped browser storage labelled "Local only — not saved to the server": real PPTX slideMaster/slideLayout/theme parts, PPTX import and server persistence are not implemented |
 | Master Slide | Define the shared layout slides inherit from |
 | Add Text / Image | Text boxes and pictures |
 | Add Shape | Includes rectangle, circle and triangle insert tools |
