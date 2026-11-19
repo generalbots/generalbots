@@ -150,7 +150,7 @@ pub async fn status(
                 if st == "linked" {
                     let _ = ai_accounts::mark_linked(&state.conn, user.user_id, provider, None, None, Some(&row.vm_name), None);
                 } else {
-                    let _ = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped.as_str(), None, None, Some(&row.vm_name));
+                    let _ = ai_accounts::update_status(&state.conn, user.user_id, provider, mapped, None, None, Some(&row.vm_name));
                 }
                 let mut obj = json!({ "provider": provider, "status": mapped, "state": st, "url": url, "message": msg, "vm_name": row.vm_name });
                 if let Some(extra_obj) = extra.as_object() {
