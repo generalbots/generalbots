@@ -27,7 +27,13 @@
         <button class="min-tab" data-tab-trigger="signatures" hx-get="/suite/minutes/fragments/signatures" hx-target="#min-content" hx-swap="innerHTML" data-i18n="minutes-tab-signatures">Assinaturas</button>
     </nav>
 
-    <div class="min-content" id="min-content" hx-get="/suite/minutes/fragments/upcoming" hx-trigger="load delay:0" hx-swap="innerHTML">
+    <div class="min-content" id="min-content" hx-get="/suite/minutes/fragments/upcoming" hx-trigger="load delay:0" hx-swap="innerHTML"
+         data-gb-states="list"
+         data-gb-empty-icon="🗓️"
+         data-gb-empty-title="minutes-state-empty-title"
+         data-gb-empty-title-fallback="No meetings scheduled"
+         data-gb-empty-desc="minutes-state-empty-desc"
+         data-gb-empty-desc-fallback="Schedule a meeting and the transcript, summary and actions land here.">
         <p class="min-loading" role="status" aria-live="polite" data-i18n="minutes-loading-upcoming">Carregando próximas reuniões…</p>
     </div>
 </div>

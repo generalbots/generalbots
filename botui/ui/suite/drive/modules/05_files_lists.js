@@ -4,16 +4,58 @@
 // Split from 05_files.js for #1731. Loaded right after the core file;
 // every function here is a global like the rest of the Drive modules.
 
+function driveSkeleton(host) {
+    if (host && window.gbStates) window.gbStates.skeleton(host, "list");
+    else if (host) host.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div></div>';
+}
+
+function driveEmpty(host, spec) {
+    if (!host) return;
+    if (window.gbStates) {
+        window.gbStates.empty(host, spec);
+        return;
+    }
+    host.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3></h3><p></p></div>';
+    var h3 = host.querySelector("h3");
+    var p = host.querySelector("p");
+    if (h3) h3.textContent = gbT(spec.titleKey, spec.titleFallback);
+    if (p) p.textContent = gbT(spec.descKey, spec.descFallback);
+}
+
+function driveError(host, retry) {
+    if (!host) return;
+    if (window.gbStates) {
+        window.gbStates.error(host, {
+            errorTitleKey: "drive-list-error-title",
+            errorTitleFallback: "This list could not be loaded",
+            errorDescKey: "drive-list-error-desc",
+            errorDescFallback: "Drive did not answer in time. Check your connection and try again.",
+            shape: "list",
+            retry: retry,
+        });
+        return;
+    }
+    host.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3></h3></div>';
+    var h3 = host.querySelector("h3");
+    if (h3) h3.textContent = gbT("drive-list-error-title", "This list could not be loaded");
+}
+
 async function loadStarredFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
+    driveSkeleton(content);
     try {
         const params = new URLSearchParams();
         params.set("scope", currentScope);
         const items = await apiRequest("/favorite?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>No starred files</h3><p>Click the ☆ button on any file (or its ⋮ menu) to add it here.</p></div>';
+            driveEmpty(content, {
+                icon: "⭐",
+                titleKey: "drive-starred-empty-title",
+                titleFallback: "No starred files",
+                descKey: "drive-starred-empty-desc",
+                descFallback: "Star any file, or use its ⋮ menu, to keep it one click away.",
+            });
             return;
         }
         var html = '<div class="file-list">';
@@ -24,7 +66,7 @@ async function loadStarredFiles() {
         html += '</div>';
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>No starred files</h3></div>';
+        driveError(content, loadStarredFiles);
     }
 }
 
@@ -95,13 +137,19 @@ window.toggleStar = toggleStar;
 async function loadSharedFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state" role="status" aria-live="polite" aria-busy="true"><div class="spinner" aria-hidden="true"></div><p>Loading...</p></div>';
+    driveSkeleton(content);
     try {
         const params = new URLSearchParams();
         params.set("scope", currentScope);
         const items = await apiRequest("/shared?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h3>No shared files</h3><p>Files shared with you will appear here.</p></div>';
+            driveEmpty(content, {
+                icon: "🤝",
+                titleKey: "drive-shared-empty-title",
+                titleFallback: "No shared files",
+                descKey: "drive-shared-empty-desc",
+                descFallback: "Files shared with you appear here. Share one of yours to start a review.",
+            });
             return;
         }
         var html = '<div class="file-list">';
@@ -112,6 +160,6 @@ async function loadSharedFiles() {
         html += '</div>';
         content.innerHTML = html;
     } catch (err) {
-        content.innerHTML = '<div class="empty-state" role="alert" aria-live="assertive"><h3>No shared files</h3></div>';
+        driveError(content, loadSharedFiles);
     }
 }

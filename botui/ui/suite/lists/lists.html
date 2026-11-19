@@ -39,7 +39,7 @@
                 </svg>
                 Export
             </button>
-            <button class="btn-primary" onclick="showListModal()">
+            <button class="btn-primary" id="new-list-btn" onclick="showListModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -51,9 +51,19 @@
     <div class="lists-grid" id="listsList"
          hx-get="/api/crm/lists"
          hx-trigger="load"
-         hx-swap="innerHTML">
-        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
-            Loading lists...
+         hx-swap="innerHTML"
+         data-gb-states="cards"
+         data-gb-empty-icon="📋"
+         data-gb-empty-title="lists-state-empty-title"
+         data-gb-empty-title-fallback="No lists yet"
+         data-gb-empty-desc="lists-state-empty-desc"
+         data-gb-empty-desc-fallback="A list groups contacts or companies so you can target them together."
+         data-gb-empty-action="lists-state-empty-action"
+         data-gb-empty-action-fallback="Create your first list"
+         data-gb-empty-action-target="new-list-btn">
+        <div class="loading-state" role="status" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <p data-i18n="gb-state-loading">Loading&hellip;</p>
         </div>
     </div>
 </div>

@@ -31,7 +31,13 @@
         <button type="button" class="tc-tab" role="tab" id="tc-tab-reports" aria-selected="false" aria-controls="tc-content" tabindex="-1" data-tab-trigger="reports" hx-get="/suite/timeclock/fragments/reports" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="timeclock-reports">Reports</button>
     </nav>
 
-    <div class="tc-content" id="tc-content" role="tabpanel" aria-live="polite" aria-labelledby="tc-tab-dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML">
+    <div class="tc-content" id="tc-content" role="tabpanel" aria-live="polite" aria-labelledby="tc-tab-dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-trigger="load delay:0" hx-swap="innerHTML"
+         data-gb-states="list"
+         data-gb-empty-icon="⏱️"
+         data-gb-empty-title="timeclock-state-empty-title"
+         data-gb-empty-title-fallback="No entries yet"
+         data-gb-empty-desc="timeclock-state-empty-desc"
+         data-gb-empty-desc-fallback="Clock in and this dashboard shows your day, overtime and approvals.">
         <p class="tc-loading" data-i18n="timeclock-loading-panel">Loading dashboard…</p>
     </div>
 </div>

@@ -233,12 +233,29 @@ function renderChatEmptyState() {
   card.setAttribute("role", "status");
   var title = document.createElement("p");
   title.className = "gb-chat-empty-title";
-  title.textContent = "Start a conversation with " + botName;
+  title.textContent = tr(
+    "chat-empty-title",
+    "Start a conversation with " + botName
+  );
   var hint = document.createElement("p");
   hint.className = "gb-chat-empty-hint";
-  hint.textContent = "Type a message below, or pick a suggestion when your bot offers one.";
+  hint.textContent = tr(
+    "chat-empty-desc",
+    "Type a message below, or pick a suggestion when your bot offers one."
+  );
   card.appendChild(title);
   card.appendChild(hint);
+  /* #2328 — an empty conversation is the highest-intent moment: give it the
+   * primary action (focus the composer) instead of only explaining it. */
+  var action = document.createElement("button");
+  action.type = "button";
+  action.className = "gb-chat-empty-action";
+  action.textContent = tr("chat-empty-action", "Write the first message");
+  action.addEventListener("click", function () {
+    var input = document.getElementById("messageInput");
+    if (input && typeof input.focus === "function") input.focus();
+  });
+  card.appendChild(action);
   messages.appendChild(card);
 }
 

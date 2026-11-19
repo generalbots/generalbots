@@ -153,14 +153,23 @@
             hx-trigger="load"
             hx-swap="innerHTML"
             aria-live="polite"
+            data-gb-states="list"
+            data-gb-empty-icon="📝"
+            data-gb-empty-title="mail-templates-empty-title"
+            data-gb-empty-title-fallback="No templates yet"
+            data-gb-empty-desc="mail-templates-empty-desc"
+            data-gb-empty-desc-fallback="A template saves a subject and body you send often, so you never retype it."
+            data-gb-empty-action="mail-templates-empty-action"
+            data-gb-empty-action-fallback="Create a template"
+            data-gb-empty-action-target="mail-new-template-btn"
         >
-            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading templates…</span></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span data-i18n="gb-state-loading">Loading…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewTemplate()" data-i18n="mail-dialog-new-template">
+            <button class="btn-primary" id="mail-new-template-btn" onclick="createNewTemplate()" data-i18n="mail-dialog-new-template">
                 + New Template
             </button>
         </div>
@@ -193,14 +202,23 @@
             hx-trigger="load"
             hx-swap="innerHTML"
             aria-live="polite"
+            data-gb-states="list"
+            data-gb-empty-icon="✍️"
+            data-gb-empty-title="mail-signatures-empty-title"
+            data-gb-empty-title-fallback="No signatures yet"
+            data-gb-empty-desc="mail-signatures-empty-desc"
+            data-gb-empty-desc-fallback="A signature is appended to the messages you send. Add your name, role and contact details once."
+            data-gb-empty-action="mail-signatures-empty-action"
+            data-gb-empty-action-fallback="Create a signature"
+            data-gb-empty-action-target="mail-new-signature-btn"
         >
-            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading signatures…</span></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span data-i18n="gb-state-loading">Loading…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewSignature()" data-i18n="mail-dialog-new-signature">
+            <button class="btn-primary" id="mail-new-signature-btn" onclick="createNewSignature()" data-i18n="mail-dialog-new-signature">
                 + New Signature
             </button>
         </div>
@@ -233,12 +251,21 @@
             hx-trigger="load"
             hx-swap="innerHTML"
             aria-live="polite"
+            data-gb-states="list"
+            data-gb-empty-icon="🪄"
+            data-gb-empty-title="mail-rules-empty-title"
+            data-gb-empty-title-fallback="No rules yet"
+            data-gb-empty-desc="mail-rules-empty-desc"
+            data-gb-empty-desc-fallback="A rule files, stars or deletes incoming mail automatically — for example everything from a given sender."
+            data-gb-empty-action="mail-rules-empty-action"
+            data-gb-empty-action-fallback="Create a rule"
+            data-gb-empty-action-target="mail-new-rule-btn"
         >
-            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>Loading rules…</span></div>
+            <div class="loading-state" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span data-i18n="gb-state-loading">Loading…</span></div>
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>
-            <button class="btn-primary" onclick="createNewRule()" data-i18n="mail-dialog-new-rule">
+            <button class="btn-primary" id="mail-new-rule-btn" onclick="createNewRule()" data-i18n="mail-dialog-new-rule">
                 + New Rule
             </button>
         </div>

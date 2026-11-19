@@ -102,8 +102,17 @@
 <main class="tasks-main">
 <!-- Left Panel: Task Cards List -->
 <section class="tasks-list-panel">
-<div class="tasks-list-scroll" id="task-list" hx-get="/api/ui/tasks?filter=all" hx-trigger="load, taskCreated from:div throttle:2s" hx-swap="innerHTML transition:false" aria-live="polite" aria-busy="true">
-<!-- Loading state - replaced by HTMX -->
+<div class="tasks-list-scroll" id="task-list" hx-get="/api/ui/tasks?filter=all" hx-trigger="load, taskCreated from:div throttle:2s" hx-swap="innerHTML transition:false" aria-live="polite" aria-busy="true"
+     data-gb-states="list"
+     data-gb-empty-icon="✅"
+     data-gb-empty-title="tasks-state-empty-title"
+     data-gb-empty-title-fallback="No tasks yet"
+     data-gb-empty-desc="tasks-state-empty-desc"
+     data-gb-empty-desc-fallback="Describe what you need done in the box above and the assistant turns it into a task."
+     data-gb-empty-action="tasks-state-empty-action"
+     data-gb-empty-action-fallback="Start with an intent"
+     data-gb-empty-action-target="quick-intent-input">
+<!-- Loading state - replaced by HTMX; gb-states.js keeps the skeleton/empty/error shapes -->
 <div class="loading-state" role="status" aria-live="polite" aria-atomic="true">
 <div class="loading-spinner" aria-hidden="true"></div>
 <p data-i18n="tasks-loading-tasks">Loading tasks...</p>

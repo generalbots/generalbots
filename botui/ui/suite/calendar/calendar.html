@@ -127,6 +127,12 @@
                 hx-get="/api/ui/calendar/calendars"
                 hx-trigger="load once"
                 hx-swap="innerHTML"
+                data-gb-states="list"
+                data-gb-empty-icon="📅"
+                data-gb-empty-title="calendar-state-empty-calendars-title"
+                data-gb-empty-title-fallback="No calendars yet"
+                data-gb-empty-desc="calendar-state-empty-calendars-desc"
+                data-gb-empty-desc-fallback="A calendar holds your events. Create one to start scheduling."
             >
                 <!-- Calendars loaded here -->
             </div>
@@ -141,6 +147,15 @@
                 hx-get="/api/ui/calendar/upcoming"
                 hx-trigger="load once"
                 hx-swap="innerHTML"
+                data-gb-states="list"
+                data-gb-empty-icon="🗓️"
+                data-gb-empty-title="calendar-state-empty-upcoming-title"
+                data-gb-empty-title-fallback="Nothing scheduled"
+                data-gb-empty-desc="calendar-state-empty-upcoming-desc"
+                data-gb-empty-desc-fallback="Your next appointments show up here so the day never surprises you."
+                data-gb-empty-action="calendar-state-empty-upcoming-action"
+                data-gb-empty-action-fallback="Schedule an event"
+                data-gb-empty-action-target="new-event-btn"
             >
                 <!-- Upcoming events loaded here -->
             </div>
