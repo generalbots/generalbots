@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="/suite/slides/slides.css?v=3" />
 <link rel="stylesheet" href="/suite/slides/slides-insert.css" />
 <link rel="stylesheet" href="/suite/slides/slides-animation.css" />
+<link rel="stylesheet" href="/suite/slides/slides-outline.css" />
 
 <div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar" role="toolbar" aria-label="Presentation toolbar">
@@ -72,6 +73,8 @@
                 </button>
             </div>
         </div>
+        <div class="slides-tools-panel-host" id="slides-tools-panel-host"></div>
+        <div class="slides-tools-status" id="slides-tools-status" role="status" aria-live="polite"></div>
 
         <div class="slides-toolbar-row slides-toolbar-row-format">
             <div class="toolbar-format">
@@ -194,6 +197,15 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/16_anim_timeline.js"></script>
 <script src="/suite/slides/modules/17_anim_transitions.js"></script>
 <script src="/suite/slides/modules/18_anim_init.js"></script>
+<script src="/suite/slides/modules/20_outline_shared.js"></script>
+<script src="/suite/slides/modules/21_outline_view.js"></script>
+<script src="/suite/slides/modules/22_find_replace.js"></script>
+<script src="/suite/slides/modules/23_sections.js"></script>
+<script src="/suite/slides/modules/24_bulk_ops.js"></script>
+<script src="/suite/slides/modules/25_notes_workspace.js"></script>
+<script src="/suite/slides/modules/26_accessibility.js"></script>
+<script src="/suite/slides/modules/27_deck_properties.js"></script>
+<script src="/suite/slides/modules/28_outline_init.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>
 <script>
