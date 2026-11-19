@@ -46,6 +46,19 @@ systemctl enable power-profiles-daemon.service || true
 systemctl enable thermald.service || true
 systemctl enable systemd-oomd.service || true
 
+# 15. Peripheral, accessibility and display groundwork (#2462/#2469/#2456,
+#     offline image/config slice). Services are enabled where safe; UI/runtime
+#     integration, pairing/print dialogs, OSK invocation at lock/wizard, AT-SPI
+#     session wiring, output/brightness control paths and hardware verification
+#     remain deferred follow-up work.
+systemctl enable bluetooth.service || true
+systemctl enable cups.service || true
+systemctl enable avahi-daemon.service || true
+systemctl enable iio-sensor-proxy.service || true
+# AT-SPI bus/socket units are typically user-session activatable; enable common
+# system targets if present without failing the image build.
+systemctl enable at-spi-dbus-bus.service || true
+
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 
