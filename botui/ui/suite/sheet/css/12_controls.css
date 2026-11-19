@@ -4,7 +4,7 @@
 .ss-ctrl-dialog {
   position: fixed;
   inset: 0;
-  z-index: 1150;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   flex-direction: column;
   width: min(720px, 94vw);
@@ -16,7 +16,7 @@
   border: 1px solid var(--sheet-border, #334155);
   border-radius: 8px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .ss-ctrl-header {
@@ -30,7 +30,7 @@
 
 .ss-ctrl-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -38,7 +38,7 @@
   background: none;
   border: none;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 22px;
+  font-size: var(--text-2xl);
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
@@ -54,7 +54,7 @@
   margin: 0;
   padding: 8px 16px;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   background: rgba(148, 163, 184, 0.08);
 }
 
@@ -73,7 +73,7 @@
   color: var(--sheet-muted, #94a3b8);
   padding: 8px 10px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-tab[aria-selected="true"] {
@@ -86,7 +86,7 @@
   padding: 6px 16px;
   min-height: 20px;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-status-error {
@@ -116,7 +116,7 @@
 .ss-ctrl-label {
   display: block;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-input {
@@ -125,7 +125,7 @@
   border-radius: 4px;
   background: var(--sheet-bg, #0f172a);
   color: var(--sheet-fg, #f8fafc);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   min-width: 140px;
 }
 
@@ -137,7 +137,7 @@
   background: #3b82f6;
   color: #fff;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-button-small {
@@ -163,7 +163,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-list {
@@ -180,7 +180,7 @@
   padding: 6px 8px;
   border: 1px solid var(--sheet-border, #334155);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }
 
@@ -193,7 +193,7 @@
   border: 1px dashed #64748b;
   border-radius: 4px;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 20px;
+  font-size: var(--text-xl);
   text-align: center;
   opacity: 0.7;
 }
@@ -202,7 +202,7 @@
   padding: 4px 12px;
   background: #7c3aed;
   color: #fff;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 
@@ -215,7 +215,7 @@
 .ss-ctrl-badge-blocked {
   padding: 2px 6px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-badge-approved {
@@ -231,7 +231,7 @@
 .ss-ctrl-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-table th,
@@ -247,7 +247,7 @@
   border: 1px solid var(--sheet-border, #334155);
   border-radius: 4px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-ctrl-snapshot-badge[data-status="sheet-ctrl-snap-tampered"] {

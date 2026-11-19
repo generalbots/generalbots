@@ -4,7 +4,7 @@
 
 .gb-review-btn {
   background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
-  border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer;
+  border-radius: 5px; padding: 5px 10px; font-size: var(--text-2xs); cursor: pointer;
   margin: 2px 4px 2px 0;
 }
 .gb-review-btn:hover { background: #334155; }
@@ -17,11 +17,11 @@
 .gb-review-textarea {
   width: 100%; min-height: 70px; box-sizing: border-box; background: #0f172a;
   color: #f8fafc; border: 1px solid #475569; border-radius: 5px; padding: 8px;
-  font: inherit; font-size: 13px; resize: vertical;
+  font: inherit; font-size: var(--text-xs); resize: vertical;
 }
-.gb-review-field { display: block; margin: 8px 0; font-size: 12px; color: #cbd5e1; }
+.gb-review-field { display: block; margin: 8px 0; font-size: var(--text-2xs); color: #cbd5e1; }
 .gb-review-empty, .gb-review-local-note, .gb-review-preview-note {
-  color: #94a3b8; font-size: 12px; font-style: italic; margin: 8px 0;
+  color: #94a3b8; font-size: var(--text-2xs); font-style: italic; margin: 8px 0;
 }
 
 /* ---- in-document markup ------------------------------------------------ */
@@ -43,28 +43,28 @@
 .gb-review-balloon {
   pointer-events: auto; background: #1e293b; border: 1px solid #475569;
   border-left: 3px solid #60a5fa; border-radius: 6px; padding: 8px 10px;
-  font-size: 12px; color: #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+  font-size: var(--text-2xs); color: #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
 }
 .gb-review-balloon-delete { border-left-color: #f87171; }
 .gb-review-balloon-insert { border-left-color: #22c55e; }
 .gb-review-balloon-format { border-left-color: #a78bfa; }
 .gb-review-balloon-head { display: flex; justify-content: space-between; gap: 6px; }
-.gb-review-balloon-time, .gb-review-time { color: #94a3b8; font-size: 11px; }
+.gb-review-balloon-time, .gb-review-time { color: #94a3b8; font-size: var(--text-2xs); }
 .gb-review-balloon-meta { margin: 4px 0; color: #cbd5e1; }
 .gb-review-kind {
   display: inline-block; background: #334155; color: #e2e8f0; border-radius: 999px;
-  padding: 1px 8px; font-size: 11px; margin-left: 4px;
+  padding: 1px 8px; font-size: var(--text-2xs); margin-left: 4px;
 }
 .gb-review-balloon-diff { margin: 4px 0; }
 .gb-review-balloon-actions { margin-top: 6px; }
 .gb-review-balloon-btn {
   background: #2563eb; color: #fff; border: none; border-radius: 4px;
-  padding: 3px 8px; font-size: 11px; cursor: pointer; margin-right: 4px;
+  padding: 3px 8px; font-size: var(--text-2xs); cursor: pointer; margin-right: 4px;
 }
 
 /* ---- dialog shell ------------------------------------------------------ */
 .gb-review-backdrop {
-  position: fixed; inset: 0; background: rgba(2, 6, 23, .7); z-index: 120;
+  position: fixed; inset: 0; background: rgba(2, 6, 23, .7); z-index: var(--z-modal-backdrop);
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
 .gb-review-dialog {
@@ -72,9 +72,9 @@
   border-radius: 10px; width: min(880px, 96vw); max-height: 90vh;
   display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
 }
-.gb-review-dialog-title { margin: 0; padding: 14px 18px 6px; font-size: 16px; }
+.gb-review-dialog-title { margin: 0; padding: 14px 18px 6px; font-size: var(--text-md); }
 .gb-review-dialog-body { padding: 6px 18px; overflow-y: auto; flex: 1; }
-.gb-review-status { padding: 8px 18px; color: #93c5fd; font-size: 12px; min-height: 18px; }
+.gb-review-status { padding: 8px 18px; color: #93c5fd; font-size: var(--text-2xs); min-height: 18px; }
 .gb-review-dialog-footer { padding: 8px 18px 14px; text-align: right; border-top: 1px solid #1e293b; }
 
 /* ---- workspace tabs ---------------------------------------------------- */
@@ -82,15 +82,15 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   padding: 6px 0 10px; border-bottom: 1px solid #1e293b;
 }
-.gb-review-modebar label { font-size: 12px; color: #cbd5e1; margin-right: 4px; }
+.gb-review-modebar label { font-size: var(--text-2xs); color: #cbd5e1; margin-right: 4px; }
 .gb-review-modebar select, .gb-review-filter, .gb-review-role-select {
   background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
-  border-radius: 4px; padding: 4px 6px; font-size: 12px;
+  border-radius: 4px; padding: 4px 6px; font-size: var(--text-2xs);
 }
 .gb-review-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 4px; }
 .gb-review-tab {
   background: #1e293b; color: #94a3b8; border: 1px solid #334155;
-  border-radius: 5px 5px 0 0; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  border-radius: 5px 5px 0 0; padding: 6px 12px; font-size: var(--text-2xs); cursor: pointer;
 }
 .gb-review-tab[aria-selected="true"] { background: #2563eb; color: #fff; border-color: #2563eb; }
 .gb-review-tabpane { padding: 8px 0; }
@@ -99,7 +99,7 @@
 /* ---- changes ----------------------------------------------------------- */
 .gb-review-change, .gb-review-thread, .gb-review-hunk {
   background: #1e293b; border: 1px solid #334155; border-radius: 6px;
-  padding: 8px 10px; margin-bottom: 8px; font-size: 12px;
+  padding: 8px 10px; margin-bottom: 8px; font-size: var(--text-2xs);
 }
 .gb-review-change-head, .gb-review-thread-head, .gb-review-hunk-head,
 .gb-review-reply-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -109,29 +109,29 @@
 }
 .gb-review-bulk-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
-  padding: 4px 0; color: #cbd5e1; font-size: 12px;
+  padding: 4px 0; color: #cbd5e1; font-size: var(--text-2xs);
 }
 
 /* ---- comments ---------------------------------------------------------- */
 .gb-review-comments-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .gb-review-thread.gb-review-resolved { opacity: .6; }
-.gb-review-thread-anchor { color: #94a3b8; font-size: 11px; margin-left: auto; }
+.gb-review-thread-anchor { color: #94a3b8; font-size: var(--text-2xs); margin-left: auto; }
 .gb-review-quote {
   margin: 6px 0; padding: 4px 8px; border-left: 3px solid #475569;
-  color: #cbd5e1; font-size: 12px;
+  color: #cbd5e1; font-size: var(--text-2xs);
 }
 .gb-review-reply { margin: 6px 0 0 16px; padding: 6px 8px; border-left: 2px solid #334155; }
 .gb-review-mention {
   background: #1d4ed8; color: #fff; border-radius: 999px; padding: 1px 6px;
-  font-size: 11px; white-space: nowrap;
+  font-size: var(--text-2xs); white-space: nowrap;
 }
 
 /* ---- compare ----------------------------------------------------------- */
 .gb-review-compare-inputs { display: flex; gap: 10px; flex-wrap: wrap; }
-.gb-review-compare-inputs label { flex: 1 1 240px; font-size: 12px; color: #cbd5e1; }
+.gb-review-compare-inputs label { flex: 1 1 240px; font-size: var(--text-2xs); color: #cbd5e1; }
 .gb-review-hunk-text, .gb-review-merge-text {
   background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
-  border-radius: 4px; padding: 8px; font-size: 12px; white-space: pre-wrap;
+  border-radius: 4px; padding: 8px; font-size: var(--text-2xs); white-space: pre-wrap;
   max-height: 180px; overflow: auto;
 }
 .gb-review-hunk-delete { border-left-color: #f87171; }
@@ -145,10 +145,10 @@
   background: #1e293b; border: 1px solid #334155; border-radius: 6px;
   padding: 8px 12px; min-width: 120px;
 }
-.gb-review-metric-label { display: block; color: #94a3b8; font-size: 11px; }
-.gb-review-metric-value { display: block; color: #f8fafc; font-size: 18px; }
+.gb-review-metric-label { display: block; color: #94a3b8; font-size: var(--text-2xs); }
+.gb-review-metric-value { display: block; color: #f8fafc; font-size: var(--text-lg); }
 .gb-review-author-table, .gb-review-perm-table {
-  width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px;
+  width: 100%; border-collapse: collapse; font-size: var(--text-2xs); margin-bottom: 12px;
 }
 .gb-review-author-table th, .gb-review-author-table td,
 .gb-review-perm-table th, .gb-review-perm-table td {

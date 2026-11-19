@@ -4,7 +4,7 @@
 .ss-structured-dialog {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -17,7 +17,7 @@
   border: 1px solid var(--sheet-border, #334155);
   border-radius: 8px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .ss-structured-header {
@@ -31,7 +31,7 @@
 
 .ss-structured-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -39,7 +39,7 @@
   background: none;
   border: none;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 22px;
+  font-size: var(--text-2xl);
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
@@ -72,7 +72,7 @@
   flex: 1 1 auto;
   min-width: 160px;
   color: #86efac;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-status-error {
@@ -85,7 +85,7 @@
   border-left: 3px solid #f59e0b;
   background: rgba(245, 158, 11, 0.08);
   color: var(--sheet-muted, #cbd5e1);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-form {
@@ -99,7 +99,7 @@
   flex-direction: column;
   gap: 4px;
   color: var(--sheet-fg, #f8fafc);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-input {
@@ -124,7 +124,7 @@
   border-radius: 4px;
   color: var(--sheet-fg, #f8fafc);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-btn:hover:not(:disabled) {
@@ -160,7 +160,7 @@
   border-radius: 4px;
   background: var(--sheet-bg, #0f172a);
   color: var(--sheet-muted, #cbd5e1);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-preview .ss-spark {
@@ -193,12 +193,12 @@
   margin: 0;
   color: var(--sheet-muted, #94a3b8);
   font-style: italic;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-subtitle {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -218,7 +218,7 @@
 .ss-structured-slicer-count {
   margin: 0;
   color: var(--sheet-muted, #cbd5e1);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-table-host {
@@ -231,7 +231,7 @@
 .ss-structured-grid {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-grid th,
@@ -257,14 +257,14 @@
 .ss-structured-goalseek-engine {
   margin: 0;
   color: var(--sheet-muted, #94a3b8);
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 
 .ss-structured-goalseek-result {
   margin: 0;
   color: #7dd3fc;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .ss-spark {
