@@ -8,7 +8,7 @@ pub fn configure_video_ui_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/suite/video", get(handle_video_list_page))
         .route("/suite/video/upload", get(handle_video_upload_page))
-        .route("/suite/video/:id", get(handle_video_detail_page))
+        .route("/suite/video/detail/:id", get(handle_video_detail_page))
 }
 
 pub async fn handle_video_list_page(
@@ -85,7 +85,7 @@ function escapeHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;')
 function renderVideos(projects) {
 const grid = document.getElementById('videoGrid');
 if (!projects || projects.length === 0) { grid.innerHTML = '<div class="empty-state"><h3>No videos yet</h3><p>Upload your first video to get started</p></div>'; return; }
-grid.innerHTML = projects.map(p => '<div class="video-card" onclick="window.location=\'/suite/video/'+escapeHtml(p.id)+'\'"><div class="video-thumbnail"><img src="'+escapeHtml(p.thumbnail_url||'/assets/video-placeholder.png')+'" alt="'+escapeHtml(p.name)+'"></div><div class="video-info"><div class="video-title">'+escapeHtml(p.name)+'</div><div class="video-meta">'+escapeHtml(p.status)+' &bull; '+escapeHtml(formatDate(p.created_at))+'</div></div></div>').join('');
+grid.innerHTML = projects.map(p => '<div class="video-card" onclick="window.location=\'/suite/video/detail/'+escapeHtml(p.id)+'\'"><div class="video-thumbnail"><img src="'+escapeHtml(p.thumbnail_url||'/assets/video-placeholder.png')+'" alt="'+escapeHtml(p.name)+'"></div><div class="video-info"><div class="video-title">'+escapeHtml(p.name)+'</div><div class="video-meta">'+escapeHtml(p.status)+' &bull; '+escapeHtml(formatDate(p.created_at))+'</div></div></div>').join('');
 }
 function formatDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString(); }
 loadVideos();

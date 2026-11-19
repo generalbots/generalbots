@@ -92,7 +92,7 @@ pub async fn handle_learn_create_page() -> Html<String> {
 
                 if (response.ok) {
                     const course = await response.json();
-                    window.location = `/suite/learn/${course.id}`;
+                    window.location = `/suite/learn/course/${course.id}`;
                 } else {
                     alert('Failed to create course');
                 }

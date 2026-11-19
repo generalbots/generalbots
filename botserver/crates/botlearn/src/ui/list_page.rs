@@ -137,7 +137,7 @@ pub async fn handle_learn_list_page() -> Html<String> {
             }
 
             grid.innerHTML = courses.map(c => `
-                <div class="course-card" onclick="window.location='/suite/learn/${c.id}'">
+                <div class="course-card" onclick="window.location='/suite/learn/course/${c.id}'">
                     <div class="course-thumbnail" style="${c.thumbnail_url ? '' : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);'}">
                         ${c.thumbnail_url ? `<img src="${c.thumbnail_url}" alt="${c.title}">` : ''}
                         <span class="course-badge">${c.category || 'General'}</span>
