@@ -1,0 +1,302 @@
+/* Local-only formula auditing UI (#2491). Scoped to .sheet-audit-* so the
+   existing grid, charts and accessibility panel are unaffected. */
+
+.sheet-audit-dialog {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9000;
+  width: min(880px, calc(100vw - 48px));
+  max-height: min(720px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sheet-surface, var(--sentient-bg-primary, #ffffff));
+  color: var(--sheet-text, var(--sentient-text-primary, #1f2937));
+  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.35));
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+}
+
+.sheet-audit-dialog:focus { outline: none; }
+
+.sheet-audit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+}
+
+.sheet-audit-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+
+.sheet-audit-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--sheet-accent-soft, rgba(59, 130, 246, 0.14));
+  color: var(--sheet-accent, #2563eb);
+  cursor: help;
+}
+
+.sheet-audit-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sheet-audit-close:hover { background: rgba(127, 127, 127, 0.16); }
+
+.sheet-audit-local-note {
+  margin: 8px 14px 4px;
+  color: var(--sheet-muted, #6b7280);
+  font-size: 11px;
+}
+
+.sheet-audit-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+}
+
+.sheet-audit-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: inherit;
+  padding: 8px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sheet-audit-tab[aria-selected="true"] {
+  border-bottom-color: var(--sheet-accent, #2563eb);
+  color: var(--sheet-accent, #2563eb);
+  font-weight: 600;
+}
+
+.sheet-audit-status {
+  margin: 6px 14px;
+  min-height: 18px;
+  color: var(--sheet-muted, #6b7280);
+  font-size: 12px;
+}
+
+.sheet-audit-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 4px 14px 16px;
+}
+
+.sheet-audit-section { min-height: 120px; }
+.sheet-audit-section[hidden] { display: none; }
+
+.sheet-audit-controls,
+.sheet-audit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.sheet-audit-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sheet-audit-field-label {
+  font-size: 11px;
+  color: var(--sheet-muted, #6b7280);
+}
+
+.sheet-audit-input,
+.sheet-audit-select {
+  min-width: 140px;
+  padding: 5px 7px;
+  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.4));
+  border-radius: 5px;
+  background: var(--sheet-bg, inherit);
+  color: inherit;
+  font: inherit;
+}
+.sheet-audit-formula-input { width: min(520px, 100%); resize: vertical; }
+
+.sheet-audit-btn,
+.sheet-audit-btn-small {
+  padding: 6px 10px;
+  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.4));
+  border-radius: 5px;
+  background: var(--sheet-button-bg, rgba(127, 127, 127, 0.1));
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.sheet-audit-btn-small { padding: 3px 7px; font-size: 11px; }
+.sheet-audit-btn:hover,
+.sheet-audit-btn-small:hover { border-color: var(--sheet-accent, #2563eb); }
+
+.sheet-audit-hint,
+.sheet-audit-note,
+.sheet-audit-empty {
+  margin: 6px 0;
+  color: var(--sheet-muted, #6b7280);
+  font-size: 11px;
+}
+.sheet-audit-summary { margin: 8px 0 4px; font-weight: 600; }
+
+.sheet-audit-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.sheet-audit-trace-item,
+.sheet-audit-watch-item,
+.sheet-audit-error-item,
+.sheet-audit-cycle-item,
+.sheet-audit-map-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.2));
+  border-radius: 5px;
+}
+.sheet-audit-trace-ref,
+.sheet-audit-watch-ref,
+.sheet-audit-map-ref,
+.sheet-audit-error-location {
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sheet-audit-trace-detail,
+.sheet-audit-watch-formula,
+.sheet-audit-watch-sheet,
+.sheet-audit-watch-value,
+.sheet-audit-error-cause,
+.sheet-audit-error-fix,
+.sheet-audit-map-counts {
+  color: var(--sheet-muted, #6b7280);
+  overflow-wrap: anywhere;
+}
+.sheet-audit-error-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #b91c1c;
+}
+.sheet-audit-error-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px 3px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--sheet-muted, #6b7280);
+  border-bottom: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.2));
+}
+.sheet-audit-cycle-item { flex-direction: column; align-items: flex-start; }
+.sheet-audit-cycle-path { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.sheet-audit-expression {
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: 5px;
+  background: rgba(127, 127, 127, 0.1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.sheet-audit-code-active {
+  background: var(--sheet-accent, #2563eb);
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+.sheet-audit-steps {
+  margin: 6px 0;
+  padding-left: 22px;
+  max-height: 190px;
+  overflow: auto;
+}
+.sheet-audit-step {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 5px;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sheet-audit-step.is-active {
+  background: rgba(37, 99, 235, 0.14);
+  border-radius: 4px;
+}
+.sheet-audit-result-text { margin: 8px 0 0; font-weight: 600; }
+
+.sheet-audit-text-output {
+  margin: 8px 0 0;
+  padding: 8px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--sheet-border, rgba(127, 127, 127, 0.25));
+  border-radius: 5px;
+  background: rgba(127, 127, 127, 0.08);
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* View-only formula swap. The workbook cell data is untouched. */
+.sheet-audit-formula-view {
+  color: var(--sheet-accent, #2563eb);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+/* Trace arrows live inside the virtual grid's scrolled body, so they scroll
+   with the cells. They never receive pointer events. */
+.sheet-audit-arrows {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+.sheet-audit-arrow {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 1.6;
+  opacity: 0.85;
+}
+.sheet-audit-arrow.is-dependent { stroke: #dc2626; }
+.sheet-audit-arrowhead { fill: #2563eb; }
+
+@media (max-width: 640px) {
+  .sheet-audit-dialog {
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+  .sheet-audit-tabs { gap: 0; }
+  .sheet-audit-tab { padding: 6px; font-size: 11px; }
+}

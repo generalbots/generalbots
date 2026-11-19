@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/suite/sheet/css/06_modal_validation_print.css" />
 <link rel="stylesheet" href="/suite/sheet/css/07_charts_responsive.css" />
 <link rel="stylesheet" href="/suite/sheet/css/08_a11y.css" />
+<link rel="stylesheet" href="/suite/sheet/css/09_sheet_audit.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 <link rel="stylesheet" href="/suite/sheet/css/99_theme.css" />
 
@@ -67,6 +68,9 @@
                     </button>
                     <button class="btn-icon" id="a11yCheckBtn" type="button" onclick="if(window.SheetA11yChecker)window.SheetA11yChecker.togglePanel();" title="Check accessibility" aria-label="Check accessibility" data-i18n-title="sheet-a11y-checker-run" data-i18n-aria-label="sheet-a11y-checker-run">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </button>
+                    <button class="btn-icon" id="sheetAuditBtn" type="button" title="Open formula auditing" aria-label="Open formula auditing" data-i18n-title="sheet-audit-open" data-i18n-aria-label="sheet-audit-open">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="3" x2="12" y2="8"></line><line x1="12" y1="16" x2="12" y2="21"></line><line x1="3" y1="12" x2="8" y2="12"></line><line x1="16" y1="12" x2="21" y2="12"></line></svg>
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
@@ -242,3 +246,13 @@
 <script src="/suite/sheet/sheet-inline/04_toolbar_overflow.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/23_delta.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/24_a11y_checker.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/25_audit_graph.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/25a_audit_reports.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/26_audit_eval.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/26a_audit_engine.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/27_audit_panel.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/28_audit_sections.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/28a_audit_sections2.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/29_audit_overlay.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/30_audit_boot.js"></script>
+
