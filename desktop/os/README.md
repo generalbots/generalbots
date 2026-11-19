@@ -272,6 +272,41 @@ laptop user expects. Each block names the issue it answers.
 | Power | `/usr/local/libexec/gb-power` (fixed action list) + `sudoers.d/gb-power`, logind `HandlePowerKey=ignore`, polkit rule denying logind/NetworkManager power and network actions to `gbdesk` (#2444, #2502) |
 
 
+
+## Image size and offline provisioner payload budget (#2441, offline docs slice)
+
+`mkosi.conf` currently sets `Format=disk` and `OutputSize=16G` for the grow-on-
+boot appliance image. The `GeneralBotsOS` artifact produced by the desktop OS
+build is the bootable appliance medium; writing it to USB/SSD requires enough
+target capacity for the image plus first-boot growth (stack data, databases,
+Drive objects, models, and workspace content live under `/var/lib/gbdesk`).
+
+This image recipe currently ships the General Bots payload
+(`mkosi.extra/opt/general-bots/`) but does **not** yet bundle the full
+provisioner installer/model payload required for a truly offline first boot
+(Vault, PostgreSQL, Valkey, MinIO, Qdrant, Zitadel, and the local LLM
+runtime/model as planned by `botserver/src/main_module/wizard_provision/
+component_plan.rs` and verified via `botserver/3rdparty.toml` checksums).
+`desktop/linux/start.sh` already supports `GB_DESKTOP_OFFLINE=1` and
+`--provision`; when `installers/` (and any required model artifacts) are
+present in the expected cache/install location, provisioning can avoid network
+downloads.
+
+Offline payload layout expectation (follow-up/build integration required):
+- include the desktop installer/component archives required by the desktop plan
+  under the image's installer payload location, with checksums matching
+  `3rdparty.toml`;
+- treat the local model as an explicit, size-disclosed opt-in artifact (not a
+  silent download) and budget its size separately (the default local model path
+  is ~1.8 GB in current plans);
+- document and enforce a USB-write/image budget in CI/build once the payload is
+  bundled (total image + payload must fit the documented target medium with
+  room for first-boot provisioning and updates).
+
+Until the payload is bundled and verified by CI/build (`GB_DESKTOP_OFFLINE=1`,
+QEMU `-net none` reaching chat UI), first boot may still require internet access
+for component downloads on networks/interfaces that are available.
+
 ## Secure Boot boot failure fallback (#2478, offline docs slice)
 
 The current appliance image is **unsigned** (`SecureBoot=no`,
