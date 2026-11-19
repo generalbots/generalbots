@@ -12,7 +12,6 @@ docs-lang-tab-glossary = 用語集
 docs-lang-tab-language = 言語とプライバシー
 docs-lang-tab-report = レポート
 docs-lang-accept = 適用
-docs-lang-ignore = 無視
 docs-lang-refresh = 更新
 docs-lang-applied = 提案を適用しました。
 docs-lang-undone = 変更を元に戻しました。

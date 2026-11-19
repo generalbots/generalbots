@@ -12,7 +12,6 @@ docs-lang-tab-glossary = 术语表
 docs-lang-tab-language = 语言和隐私
 docs-lang-tab-report = 报告
 docs-lang-accept = 接受
-docs-lang-ignore = 忽略
 docs-lang-refresh = 刷新
 docs-lang-applied = 已应用建议。
 docs-lang-undone = 已撤销更改。

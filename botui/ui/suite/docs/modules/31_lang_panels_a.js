@@ -35,7 +35,7 @@
         esc(tr("docs-lang-accept", "Accept")) + "</button>");
     }
     buttons.push('<button type="button" class="docs-lang-btn" data-action="ignore" data-index="' + index + '">' +
-      esc(tr("docs-lang-ignore", "Ignore")) + "</button>");
+      esc(tr("docs-lang-ignore-once", "Ignore once")) + "</button>");
     if (item.kind === "spelling") {
       buttons.push('<button type="button" class="docs-lang-btn" data-action="ignore-all" data-index="' + index + '">' +
         esc(tr("docs-lang-ignore-all", "Ignore all")) + "</button>");

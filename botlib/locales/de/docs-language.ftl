@@ -12,7 +12,6 @@ docs-lang-tab-glossary = Glossar
 docs-lang-tab-language = Sprache und Datenschutz
 docs-lang-tab-report = Bericht
 docs-lang-accept = Übernehmen
-docs-lang-ignore = Ignorieren
 docs-lang-refresh = Aktualisieren
 docs-lang-applied = Vorschlag übernommen.
 docs-lang-undone = Änderung rückgängig gemacht.

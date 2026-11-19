@@ -122,7 +122,12 @@
     if (action === "ignore-all") { NS.ignoreIssue(index, true); return; }
     if (action === "add-word") {
       var input = document.getElementById("docs-lang-new-word");
-      var added = input && NS.addCustomWord(input.value);
+      var value = input ? String(input.value || "").trim() : "";
+      if (!value) {
+        NS.status(tr("docs-lang-enter-value", "Enter a value."));
+        return;
+      }
+      var added = NS.addCustomWord(value);
       NS.status(tr(added ? "docs-lang-saved-locally" : "docs-lang-duplicate",
         added ? "Saved in this browser." : "Already in the list."));
       rerender();

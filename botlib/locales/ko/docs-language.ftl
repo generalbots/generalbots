@@ -12,7 +12,6 @@ docs-lang-tab-glossary = 용어집
 docs-lang-tab-language = 언어 및 개인정보
 docs-lang-tab-report = 보고서
 docs-lang-accept = 수락
-docs-lang-ignore = 무시
 docs-lang-refresh = 새로 고침
 docs-lang-applied = 제안을 적용했습니다.
 docs-lang-undone = 변경을 되돌렸습니다.
