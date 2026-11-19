@@ -82,7 +82,7 @@ pub fn create_scoped_token(
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        Err(error) => return Err(error.context("Cannot install Vault policy")),
+        Err(error) => return Err(anyhow::anyhow!("Cannot install Vault policy: {error}")),
     }
 
     let command = with_tls(
