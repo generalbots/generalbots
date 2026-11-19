@@ -117,7 +117,10 @@
             ? body.slice(0, BODY_PREVIEW_CHARS) + "\n… " + t("integrations-runner-response-truncated", "response truncated")
             : body;
         var items = runs.map(function (run, index) {
-            var when = run.at ? new Date(run.at).toLocaleTimeString() : t("integrations-runner-run-label", "run");
+            // #2329 — one time shape across the suite, from the suite preference.
+            var when = run.at && window.gbFormatTime
+                ? window.gbFormatTime(run.at)
+                : t("integrations-runner-run-label", "run");
             var label = when + " — " + String(run.summary || t("integrations-runner-outcome", "Outcome")).slice(0, 80);
             return '<li><button type="button" class="integrations-button integrations-button-subtle" data-run-history-select="' + index + '"' +
                 (index === selected ? ' aria-current="true"' : '') + '>' + namespace.escapeHtml(label) + '</button> ' +

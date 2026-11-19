@@ -130,7 +130,10 @@
 
     function logEntriesMarkup(item, id) {
         var rows = readLog(id).map(function (entry) {
-            var when = entry.at ? new Date(entry.at).toLocaleString() : t("integrations-automation-log-entry", "run");
+            // #2329 — same date/time contract as the rest of the suite.
+            var when = entry.at && window.gbFormatDateTime
+                ? window.gbFormatDateTime(entry.at)
+                : t("integrations-automation-log-entry", "run");
             var status = entry.status === "error"
                 ? t("integrations-automation-status-error", "failed")
                 : t("integrations-automation-status-ok", "completed");

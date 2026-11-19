@@ -16,7 +16,11 @@
   function numberText(n) {
     if (n == null || isNaN(Number(n))) return String(n == null ? "" : n);
     try {
-      return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+      // #2329 — announce numbers in the suite locale, not the browser's.
+      if (window.gbFormatNumber) {
+        return window.gbFormatNumber(Number(n), { maximumFractionDigits: 2 });
+      }
+      return String(n);
     } catch (e) {
       return String(n);
     }
