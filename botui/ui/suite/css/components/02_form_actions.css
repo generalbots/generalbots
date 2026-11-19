@@ -36,6 +36,7 @@
     width: 100%;
     max-width: 520px;
     max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
     background: var(--surface, #161616);
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 16px;
@@ -68,6 +69,7 @@
     width: 100%;
     max-width: 480px;
     max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
     background: var(--surface, #161616);
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 12px;
@@ -91,6 +93,7 @@
 .modal-full .modal-content {
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
 }
 
 .modal-header {

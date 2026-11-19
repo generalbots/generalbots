@@ -217,8 +217,11 @@
 
 .snap-hint.visible { opacity: 1; }
 .snap-hint-left { top: 56px; left: 0; width: 50vw; height: calc(100vh - 56px); }
+.snap-hint-left { top: 56px; left: 0; width: 50vw; height: calc(100dvh - 56px); }
 .snap-hint-right { top: 56px; right: 0; width: 50vw; height: calc(100vh - 56px); }
+.snap-hint-right { top: 56px; right: 0; width: 50vw; height: calc(100dvh - 56px); }
 .snap-hint-top { top: 56px; left: 0; width: 100vw; height: 100vh; }
+.snap-hint-top { top: 56px; left: 0; width: 100vw; height: 100dvh; }
 
 /* ============================================ */
 /* PHASE 6 — DYNAMIC BACKGROUND                 */

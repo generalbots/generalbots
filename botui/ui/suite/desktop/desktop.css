@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-primary, #1a1a2e);
     color: var(--text-primary, #e0e0e0);
 }
@@ -115,7 +116,10 @@
 }
 
 .vdi-session {
+    /* #2411 — dynamic viewport first-class: the URL bar must not clip the
+       session, and 100vh is kept only as the pre-dvh fallback line. */
     height: calc(100vh - 80px);
+    height: calc(100dvh - 80px);
     display: flex;
     flex-direction: column;
 }

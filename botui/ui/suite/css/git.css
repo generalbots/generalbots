@@ -1,6 +1,7 @@
 .botcoder-git-container {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     width: 100%;
     background-color: var(--surface, #1e293b);
     color: var(--text, #f8fafc);

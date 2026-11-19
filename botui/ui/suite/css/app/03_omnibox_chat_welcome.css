@@ -249,6 +249,8 @@
         left: 8px;
         right: 8px;
         max-height: calc(100vh - 80px);
+        /* #2411 — the panel must not extend under the phone's URL bar. */
+        max-height: calc(100dvh - 80px);
         border-radius: 12px;
         border: 1px solid var(--border);
     }

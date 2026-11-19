@@ -280,12 +280,14 @@ body.window-maximized .window-element {
     z-index: 9998 !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
+    height: calc(100dvh - 56px) !important;
     width: 100% !important;
 }
 body.window-maximized .window-element-glass {
     z-index: 9998 !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
+    height: calc(100dvh - 56px) !important;
     width: 100% !important;
     border-radius: 0 !important;
 }
