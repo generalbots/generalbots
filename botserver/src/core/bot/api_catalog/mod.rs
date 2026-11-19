@@ -142,6 +142,7 @@ mod commands_list;
 mod database_verbs;
 mod docs_verbs;
 mod execute_command;
+mod execute_integrations;
 mod find_api_entries;
 mod is_api_call_trigger;
 mod list_people;
