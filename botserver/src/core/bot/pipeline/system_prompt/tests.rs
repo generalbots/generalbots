@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod prompt_assembly_tests {
-    use super::{
+    use super::super::{
         canvas_drawing_block, capability_block, client_locale, delivery_policy_block,
         response_language_block, with_structured_tools,
     };
@@ -123,7 +123,7 @@ mod prompt_assembly_tests {
 
 #[cfg(test)]
 mod api_catalog_gate_tests {
-    use super::api_catalog_enabled;
+    use super::super::api_catalog_enabled;
 
     #[test]
     fn catalogue_is_on_by_default_and_for_unset_values() {

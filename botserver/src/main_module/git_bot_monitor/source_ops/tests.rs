@@ -1,7 +1,5 @@
 use super::{flatten, tables::split_table_blocks};
 
-use super::{flatten, split_table_blocks};
-
 #[test]
 fn flatten_strips_generated_subdirectories() {
     assert_eq!(

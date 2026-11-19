@@ -1,7 +1,5 @@
 use super::{decode_jwt_payload, pkce_challenge};
 
-use super::{decode_jwt_payload, pkce_challenge};
-
 #[test]
 fn pkce_challenge_is_url_safe() {
     let challenge = pkce_challenge("verifier");
