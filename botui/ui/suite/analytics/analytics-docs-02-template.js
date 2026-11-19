@@ -16,7 +16,7 @@
     function field(definition) {
         return (
             '<div class="docs-field">' +
-            '<label for="' + definition.id + '" data-i18n="' + definition.labelKey + '"></label>' +
+            '<label for="' + definition.id + '" data-i18n=' + definition.labelKey + '></label>' +
             '<select id="' + definition.id + '" data-docs-scope="' + definition.name + '">' +
             '<option value="" data-i18n="analytics-docs-all"></option>' +
             "</select>" +
@@ -27,14 +27,14 @@
     function tableMarkup(table) {
         var headers = table.columns
             .map(function (column) {
-                return '<th scope="col" data-i18n="' + column.labelKey + '"></th>';
+                return '<th scope="col" data-i18n=' + column.labelKey + '></th>';
             })
             .join("");
         var colspan = table.columns.length;
         return (
             '<article class="docs-card">' +
             '<table class="docs-table" data-docs-table="' + table.id + '">' +
-            '<caption data-i18n="' + table.captionKey + '"></caption>' +
+            '<caption data-i18n=' + table.captionKey + '></caption>' +
             "<thead><tr>" + headers + "</tr></thead>" +
             '<tbody data-docs-body="' + table.id + '">' +
             '<tr class="docs-message"><td colspan="' + colspan + '" role="status">' +
@@ -48,7 +48,7 @@
     function groupMarkup(section) {
         return (
             '<section class="docs-group" aria-labelledby="docs-group-' + section.id + '">' +
-            '<h3 id="docs-group-' + section.id + '" data-i18n="' + section.labelKey + '"></h3>' +
+            '<h3 id="docs-group-' + section.id + '" data-i18n=' + section.labelKey + '></h3>' +
             '<div class="docs-grid">' +
             section.tables.map(tableMarkup).join("") +
             "</div></section>"
