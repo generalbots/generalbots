@@ -659,7 +659,10 @@ jobs:
           # audits the real gate against botserver.
           rm -rf /tmp/a11y-static
           cp -a botui/ui /tmp/a11y-static
-          sed -i 's#<script src="/suite/desktop-inline/04_auth_fullscreen.js"></script>##' \
+          # The auth gate was split into 04_auth_fullscreen_a.js + _b.js
+          # (#2305); match both halves (and the old single name) or the removal
+          # silently no-ops and the audit redirects to login.
+          sed -i -E 's#<script src="/suite/desktop-inline/04_auth_fullscreen(_a|_b)?\.js"></script> *##g' \
             /tmp/a11y-static/suite/desktop.html
           sed -i 's#</head>#<style>html.gb-auth-gate body > * { visibility: visible !important; } html.gb-auth-gate::after { display: none !important; }</style></head>#' \
             /tmp/a11y-static/suite/desktop.html
@@ -744,8 +747,10 @@ jobs:
           # redirects to /suite/login.html when its fetch races the page boot.
           # Remove it from the checked-out copy so Lighthouse audits the real
           # botserver-served shell; /api/product is still asserted above and the
-          # login page itself is audited separately below.
-          sed -i 's#<script src="/suite/desktop-inline/04_auth_fullscreen.js"></script>##' \
+          # login page itself is audited separately below. The gate was split
+          # into 04_auth_fullscreen_a.js + _b.js (#2305), so match both halves
+          # (and the old single name) or the removal silently no-ops.
+          sed -i -E 's#<script src="/suite/desktop-inline/04_auth_fullscreen(_a|_b)?\.js"></script> *##g' \
             botui/ui/suite/desktop.html
           sed -i 's#</head>#<style>html.gb-auth-gate body > * { visibility: visible !important; } html.gb-auth-gate::after { display: none !important; }</style></head>#' \
             botui/ui/suite/desktop.html
