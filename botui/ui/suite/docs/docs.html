@@ -175,6 +175,21 @@
                     <button class="btn-icon" id="trackChangesBtn" hx-post="/suite/docs/fragments/track-changes" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" title="Track Changes" aria-label="Track changes">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                     </button>
+                    <span class="toolbar-divider"></span>
+                    <div class="toolbar-group" role="group" data-i18n-aria-label="docs-review-group">
+                        <button class="btn-icon" id="docsReviewOpenBtn" type="button" data-gb-review-open="panel" data-i18n-title="docs-review-open" data-i18n-aria-label="docs-review-open">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="docsReviewSuggestBtn" type="button" aria-pressed="false" data-i18n-title="docs-review-suggest" data-i18n-aria-label="docs-review-suggest">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.1 14a5 5 0 1 0-6.2 0c.9.7 1.1 1.3 1.1 2h4c0-.7.2-1.3 1.1-2z"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="docsReviewCompareBtn" type="button" data-gb-review-open="compare" data-i18n-title="docs-review-compare" data-i18n-aria-label="docs-review-compare">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="21"></line><path d="M8 7L4 12l4 5"></path><path d="M16 7l4 5-4 5"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="docsReviewDashBtn" type="button" data-gb-review-open="dashboard" data-i18n-title="docs-review-dashboard" data-i18n-aria-label="docs-review-dashboard">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                        </button>
+                    </div>
                     <button class="btn-icon" id="presentBtn" type="button" title="Present" aria-label="Present" onclick="window.DocsPresent && DocsPresent.toggle()">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </button>
@@ -291,6 +306,15 @@
 <script src="/suite/docs/modules/46_structure_dialog.js"></script>
 <script src="/suite/docs/modules/47_structure_panels.js"></script>
 <script src="/suite/docs/modules/48_structure_init.js"></script>
+<script src="/suite/docs/modules/49_review_state.js"></script>
+<script src="/suite/docs/modules/50_review_model.js"></script>
+<script src="/suite/docs/modules/51_review_marks.js"></script>
+<script src="/suite/docs/modules/52_review_comments.js"></script>
+<script src="/suite/docs/modules/53_review_compare.js"></script>
+<script src="/suite/docs/modules/54_review_dashboard.js"></script>
+<script src="/suite/docs/modules/55_review_permissions.js"></script>
+<script src="/suite/docs/modules/56_review_dialogs.js"></script>
+<script src="/suite/docs/modules/57_review_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -302,3 +326,4 @@
 <link rel="stylesheet" href="/suite/docs/docs-tables.css">
 <link rel="stylesheet" href="/suite/docs/docs-equations.css">
 <link rel="stylesheet" href="/suite/docs/docs-structure.css">
+<link rel="stylesheet" href="/suite/docs/docs-review.css">

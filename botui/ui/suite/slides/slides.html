@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/suite/slides/slides-outline.css" />
 <link rel="stylesheet" href="/suite/slides/slides-diagrams.css" />
 <link rel="stylesheet" href="/suite/slides/slides-table-media.css" />
+<link rel="stylesheet" href="/suite/slides/slides-object-model.css" />
 
 <div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar" role="toolbar" aria-label="Presentation toolbar">
@@ -137,6 +138,13 @@
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
+                <div class="toolbar-group" role="group" data-i18n-aria-label="slides-om-open-aria">
+                    <button class="btn-icon" id="slObjectModelBtn" type="button" data-i18n-title="slides-om-open" data-i18n-aria-label="slides-om-open-aria">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1"/><circle cx="17" cy="8" r="4"/><path d="M8 16v5M5 18.5h6M14 17h7"/></svg>
+                        <span data-i18n="slides-om-open"></span>
+                    </button>
+                </div>
+                <span class="toolbar-divider"></span>
                 <div class="toolbar-group" role="group" aria-label="Element">
                     <button class="btn-icon" id="slDeleteBtn" title="Delete element" aria-label="Delete element"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
                 </div>
@@ -231,6 +239,13 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/43_stm_media_browser.js"></script>
 <script src="/suite/slides/modules/44_stm_media_controls.js"></script>
 <script src="/suite/slides/modules/45_stm_captions_init.js"></script>
+<script src="/suite/slides/modules/46_om_state.js"></script>
+<script src="/suite/slides/modules/47_om_ops.js"></script>
+<script src="/suite/slides/modules/47_om_ops_media.js"></script>
+<script src="/suite/slides/modules/48_om_canvas.js"></script>
+<script src="/suite/slides/modules/49_om_dialog.js"></script>
+<script src="/suite/slides/modules/49_om_dialog_media.js"></script>
+<script src="/suite/slides/modules/50_om_init.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>
 <script>

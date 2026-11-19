@@ -1,0 +1,279 @@
+/* Sheets structured data & what-if (#2436) — local-only UI.
+   Loaded after 10_charting.css; prefixed ss-structured- / ss-spark. */
+
+.ss-structured-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: min(640px, 94vw);
+  max-height: 86vh;
+  margin: auto;
+  overflow: hidden;
+  background: var(--sheet-bg-elevated, #1e293b);
+  color: var(--sheet-fg, #f8fafc);
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+}
+
+.ss-structured-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sheet-border, #334155);
+}
+
+.ss-structured-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ss-structured-close {
+  background: none;
+  border: none;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.ss-structured-close:hover,
+.ss-structured-close:focus-visible {
+  color: var(--sheet-fg, #f8fafc);
+}
+
+.ss-structured-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ss-structured-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-top: 1px solid var(--sheet-border, #334155);
+}
+
+.ss-structured-status {
+  flex: 1 1 auto;
+  min-width: 160px;
+  color: #86efac;
+  font-size: 12px;
+}
+
+.ss-structured-status-error {
+  color: #fca5a5;
+}
+
+.ss-structured-local-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--sheet-muted, #cbd5e1);
+  font-size: 12px;
+}
+
+.ss-structured-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ss-structured-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--sheet-fg, #f8fafc);
+  font-size: 12px;
+}
+
+.ss-structured-input {
+  padding: 7px 8px;
+  background: var(--sheet-bg, #0f172a);
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  color: var(--sheet-fg, #f8fafc);
+  font: inherit;
+}
+
+.ss-structured-input:focus-visible,
+.ss-structured-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.ss-structured-btn {
+  padding: 7px 10px;
+  background: var(--sheet-bg, #0f172a);
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+  color: var(--sheet-fg, #f8fafc);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ss-structured-btn:hover:not(:disabled) {
+  border-color: #38bdf8;
+}
+
+.ss-structured-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ss-structured-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.ss-structured-danger {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+.ss-structured-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ss-structured-preview {
+  min-height: 34px;
+  padding: 4px 6px;
+  border: 1px dashed var(--sheet-border, #334155);
+  border-radius: 4px;
+  background: var(--sheet-bg, #0f172a);
+  color: var(--sheet-muted, #cbd5e1);
+  font-size: 12px;
+}
+
+.ss-structured-preview .ss-spark {
+  display: block;
+  width: 100%;
+  height: 28px;
+}
+
+.ss-structured-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ss-structured-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+}
+
+.ss-structured-list-row > span:first-child {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.ss-structured-empty {
+  margin: 0;
+  color: var(--sheet-muted, #94a3b8);
+  font-style: italic;
+  font-size: 12px;
+}
+
+.ss-structured-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ss-structured-slicer-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ss-structured-chip[aria-pressed="true"],
+.ss-structured-slicer-values .ss-structured-btn[aria-pressed="true"] {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.ss-structured-slicer-count {
+  margin: 0;
+  color: var(--sheet-muted, #cbd5e1);
+  font-size: 12px;
+}
+
+.ss-structured-table-host {
+  max-height: 34vh;
+  overflow: auto;
+  border: 1px solid var(--sheet-border, #334155);
+  border-radius: 4px;
+}
+
+.ss-structured-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ss-structured-grid th,
+.ss-structured-grid td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--sheet-border, #334155);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ss-structured-grid thead th {
+  position: sticky;
+  top: 0;
+  background: var(--sheet-bg-elevated, #1e293b);
+  color: var(--sheet-muted, #cbd5e1);
+  font-weight: 600;
+}
+
+.ss-structured-iterations td:last-child {
+  color: #86efac;
+}
+
+.ss-structured-goalseek-engine {
+  margin: 0;
+  color: var(--sheet-muted, #94a3b8);
+  font-size: 11px;
+}
+
+.ss-structured-goalseek-result {
+  margin: 0;
+  color: #7dd3fc;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ss-spark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+[data-ref] .ss-spark {
+  pointer-events: none;
+}
