@@ -41,9 +41,19 @@ pub fn extract_auth_url(log: &str) -> Option<String> {
     None
 }
 
+/// The transcript without terminal colour/cursor codes, which the CLI wraps
+/// around the code (an escape before `ABCD-12345` defeats a word boundary).
+fn strip_ansi(log: &str) -> String {
+    Regex::new(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07")
+        .map(|re| re.replace_all(log, "").into_owned())
+        .unwrap_or_else(|_| log.to_string())
+}
+
 /// Extracts the authorization code from the Antigravity CLI transcript.
 /// In SSH mode, agy prints: "Enter the code: XXXXXXXX" or "Code: XXXXXXXX"
+
 pub fn extract_auth_code(log: &str) -> Option<String> {
+    let log = &strip_ansi(log);
     let re = Regex::new(r"(?i)(?:code|enter)[:\s]+([A-Za-z0-9_-]{6,})").ok()?;
     if let Some(cap) = re.captures(log) {
         let code = cap.get(1)?.as_str().to_string();
