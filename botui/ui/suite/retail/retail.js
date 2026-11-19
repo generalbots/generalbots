@@ -2,36 +2,18 @@
 if (window.GBAppLifecycle) GBAppLifecycle.begin("retail");
 var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all',editingBranchId:null,editingPromoId:null};
 
-function escapeHtml(value){ return (window.GBAppKit && window.GBAppKit.escapeHtml) ? window.GBAppKit.escapeHtml(value) : String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('retail', msg, type); }
-async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('retail', url, options); try{var opts=options?Object.assign({},options):{};var headers=Object.assign({},(options&&options.headers)||{});var hasAuth=false;Object.keys(headers).forEach(function(k){if(String(k).toLowerCase()==='authorization')hasAuth=true;});if(!hasAuth){var token=(window.GBAppKit&&window.GBAppKit.getAuthToken)?window.GBAppKit.getAuthToken():(localStorage.getItem('gb_token')||localStorage.getItem('gb-access-token')||sessionStorage.getItem('gb-access-token')||'');if(token)headers.Authorization='Bearer '+token;}opts.headers=headers;var r=await fetch(url,opts);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
+// #2521 — the shared skeleton is js/gb-app-kit.js; this app keeps no copy of it.
+var kit = window.GBAppKit;
+function escapeHtml(value){ return kit.escapeHtml(value); }
+function showFeedback(msg,type){ return kit.showFeedback('retail', msg, type); }
+function apiCall(url,options){ return kit.apiCall('retail', url, options); }
 
 function switchTab(tab,btn){
     state.currentTab=tab;
-    if (window.GBAppKit && window.GBAppKit.switchTab) {
-        window.GBAppKit.switchTab(tab, btn, {
-            tabSelector: '.retail-tabs [role="tab"], .retail-tabs .retail-tab',
-            panelSelector: '.retail-panel'
-        });
-        return;
-    }
-    var tabs = Array.prototype.slice.call(document.querySelectorAll('.retail-tabs [role="tab"], .retail-tabs .retail-tab'));
-    tabs.forEach(function(t){
-        var active = t === btn;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', active ? 'true' : 'false');
-        t.tabIndex = active ? 0 : -1;
+    kit.switchTab(tab, btn, {
+        tabSelector: '.retail-tabs [role="tab"], .retail-tabs .retail-tab',
+        panelSelector: '.retail-panel'
     });
-    document.querySelectorAll('.retail-panel').forEach(function(p){
-        p.classList.remove('active');
-        p.hidden = true;
-    });
-    var panel=document.getElementById('panel-'+tab);
-    if(panel){
-        panel.classList.add('active');
-        panel.hidden = false;
-        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
-    }
 }
 
 function getFilteredStock(){
@@ -221,8 +203,8 @@ async function apiPost(url, body){
     });
 }
 
-function openModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id); var el=document.getElementById(id);if(el)el.style.display='flex'; }
-function closeModal(id){ if (window.GBAppKit && window.GBAppKit.hideModal) return window.GBAppKit.hideModal(id); var el=document.getElementById(id);if(el)el.style.display='none'; }
+function openModal(id){ return kit.showModal(id); }
+function closeModal(id){ return kit.hideModal(id); }
 
 function showCreateBranch(){state.editingBranchId=null;['branchCode','branchName','branchAddress','branchManager','branchStock','branchStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='branchStatus')?'active':'';});openModal('retailBranchModal');}
 function showCreatePromo(){state.editingPromoId=null;['promoName','promoType','promoDiscount','promoFrom','promoTo','promoStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='promoStatus')?'active':'';});openModal('retailPromoModal');}

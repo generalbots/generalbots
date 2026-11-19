@@ -5,43 +5,20 @@ var signatures=[];
 var certificates=[];
 var currentTab='verifications';
 var selectedSignDoc=null;
-var signaturePad=null;
-var drawing=false;
-var lastX=0;
-var lastY=0;
 
-function escapeHtml(str){ if (window.GBAppKit && window.GBAppKit.escapeHtml) return window.GBAppKit.escapeHtml(str); if(str==null||str==='') return ''; var d=document.createElement('div'); d.textContent=String(str); return d.innerHTML; }
-function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('kyc', msg, type); }
-async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('kyc', url, options); try{var opts=options?Object.assign({},options):{};var headers=Object.assign({},(options&&options.headers)||{});var hasAuth=false;Object.keys(headers).forEach(function(k){if(String(k).toLowerCase()==='authorization')hasAuth=true;});if(!hasAuth){var token=(window.GBAppKit&&window.GBAppKit.getAuthToken)?window.GBAppKit.getAuthToken():(localStorage.getItem('gb_token')||localStorage.getItem('gb-access-token')||sessionStorage.getItem('gb-access-token')||'');if(token)headers.Authorization='Bearer '+token;}opts.headers=headers;var r=await fetch(url,opts);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
+// #2521 — the shared skeleton is js/gb-app-kit.js; this app keeps no copy of it.
+var kit = window.GBAppKit;
+function escapeHtml(str){ return kit.escapeHtml(str); }
+function showFeedback(msg,type){ return kit.showFeedback('kyc', msg, type); }
+function apiCall(url,options){ return kit.apiCall('kyc', url, options); }
 
 function switchTab(tab,btn){
     currentTab=tab;
-    if (window.GBAppKit && window.GBAppKit.switchTab) {
-        window.GBAppKit.switchTab(tab, btn, {
-            tabSelector: '.kyc-tabs [role="tab"]',
-            panelSelector: '.kyc-panel',
-            panelId: function(t){ return t === 'verifications' ? 'panel-verifications' : 'kyc-panel-' + t; }
-        });
-        return;
-    }
-    var tabs = Array.prototype.slice.call(document.querySelectorAll('.kyc-tabs [role="tab"]'));
-    tabs.forEach(function(t){
-        var active = t === btn;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', active ? 'true' : 'false');
-        t.tabIndex = active ? 0 : -1;
+    kit.switchTab(tab, btn, {
+        tabSelector: '.kyc-tabs [role="tab"]',
+        panelSelector: '.kyc-panel',
+        panelId: function(t){ return t === 'verifications' ? 'panel-verifications' : 'kyc-panel-' + t; }
     });
-    document.querySelectorAll('.kyc-panel').forEach(function(p){
-        p.classList.remove('active');
-        p.hidden = true;
-    });
-    var panel=document.getElementById(tab==='verifications' ? 'panel-verifications' : 'kyc-panel-'+tab);
-    if(panel){
-        panel.classList.add('active');
-        panel.hidden = false;
-        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
-    }
-    if (btn && btn.focus) { /* focus managed by caller when keyboard */ }
 }
 
 function updateStats(){
@@ -151,53 +128,13 @@ function openSignaturePad(docId){
     if(area)area.style.display='block';
     var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
-    if (window.GBAppKit && window.GBAppKit.mountSignaturePad) {
-        window.GBAppKit.mountSignaturePad(canvas);
-    } else {
-        // Fallback: local mount (behavior-preserving)
-        var parent = canvas.parentElement;
-        if(parent){
-            var w = Math.min(parent.clientWidth || 500, 800);
-            canvas.width = Math.max(300, w);
-            canvas.height = 200;
-        }
-        var ctx=canvas.getContext('2d');
-        ctx.fillStyle='#0f172a';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.strokeStyle='#f8fafc';
-        ctx.lineWidth=2;
-        ctx.lineCap='round';
-        canvas.hasDrawn = false;
-        function getPos(e){
-            var rect = canvas.getBoundingClientRect();
-            var clientX, clientY;
-            if(e.touches && e.touches.length){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-            else if(e.changedTouches && e.changedTouches.length){ clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
-            else { clientX = e.clientX; clientY = e.clientY; }
-            return { x: clientX - rect.left, y: clientY - rect.top };
-        }
-        canvas.onmousedown=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
-        canvas.onmousemove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
-        canvas.onmouseup=function(){drawing=false};
-        canvas.onmouseleave=function(){drawing=false};
-        canvas.ontouchstart=function(e){drawing=true; var p=getPos(e); lastX=p.x; lastY=p.y; canvas.hasDrawn=true; e.preventDefault();};
-        canvas.ontouchmove=function(e){if(!drawing)return; var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; e.preventDefault();};
-        canvas.ontouchend=function(e){drawing=false; e.preventDefault();};
-        canvas.ontouchcancel=function(){drawing=false;};
-    }
+    kit.mountSignaturePad(canvas);
 }
 
 function clearSignature(){
     var canvas=document.getElementById('kyc-signature-canvas');
     if(!canvas)return;
-    if (window.GBAppKit && window.GBAppKit.clearSignatureCanvas) {
-        window.GBAppKit.clearSignatureCanvas(canvas);
-    } else {
-        var ctx=canvas.getContext('2d');
-        ctx.fillStyle='#0f172a';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        canvas.hasDrawn = false;
-    }
+    kit.clearSignatureCanvas(canvas);
 }
 
 async function submitSignature(){
@@ -237,8 +174,8 @@ async function renewCertificate(){
     if(data){hideModal('renew-modal');showFeedback('Certificate renewed','success');loadCertificates()}
 }
 
-function showModal(id){ if (window.GBAppKit && window.GBAppKit.showModal) return window.GBAppKit.showModal(id, {className:'visible'}); var el=document.getElementById(id);if(el)el.classList.add('visible'); }
-function hideModal(id){ if (window.GBAppKit && window.GBAppKit.hideModal) return window.GBAppKit.hideModal(id, {className:'visible'}); var el=document.getElementById(id);if(el)el.classList.remove('visible'); }
+function showModal(id){ return kit.showModal(id, {className:'visible'}); }
+function hideModal(id){ return kit.hideModal(id, {className:'visible'}); }
 
 function bindDelegated(){
     var root = document.querySelector('[data-gb-app="kyc"]') || document;

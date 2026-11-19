@@ -2,38 +2,19 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("biometry");
 (function(){
 var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc:null,signaturePad:null,drawing:false,lastX:0,lastY:0,livenessActive:false};
 
-function escapeHtml(str){ if (window.GBAppKit && window.GBAppKit.escapeHtml) return window.GBAppKit.escapeHtml(str); if(str==null||str==='') return ''; var d=document.createElement('div'); d.textContent=String(str); return d.innerHTML; }
-function showFeedback(msg,type){ if (window.GBAppKit && window.GBAppKit.showFeedback) return window.GBAppKit.showFeedback('biometry', msg, type); }
-async function apiCall(url,options){ if (window.GBAppKit && window.GBAppKit.apiCall) return window.GBAppKit.apiCall('biometry', url, options); try{var opts=options?Object.assign({},options):{};var headers=Object.assign({},(options&&options.headers)||{});var hasAuth=false;Object.keys(headers).forEach(function(k){if(String(k).toLowerCase()==='authorization')hasAuth=true;});if(!hasAuth){var token=(window.GBAppKit&&window.GBAppKit.getAuthToken)?window.GBAppKit.getAuthToken():(localStorage.getItem('gb_token')||localStorage.getItem('gb-access-token')||sessionStorage.getItem('gb-access-token')||'');if(token)headers.Authorization='Bearer '+token;}opts.headers=headers;var r=await fetch(url,opts);if(!r.ok)throw new Error('HTTP '+r.status);var t=await r.text();return t?JSON.parse(t):null}catch(e){showFeedback('API error: '+e.message,'error');return null} }
+// #2521 — the shared skeleton is js/gb-app-kit.js; this app keeps no copy of it.
+var kit = window.GBAppKit;
+function escapeHtml(str){ return kit.escapeHtml(str); }
+function showFeedback(msg,type){ return kit.showFeedback('biometry', msg, type); }
+function apiCall(url,options){ return kit.apiCall('biometry', url, options); }
 
 function switchTab(tab,btn){
     state.currentTab=tab;
-    if (window.GBAppKit && window.GBAppKit.switchTab) {
-        window.GBAppKit.switchTab(tab, btn, {
-            tabSelector: '.bio-tabs [role="tab"]',
-            panelSelector: '.bio-panel',
-            panelId: function(t){ return (t==='signatures'||t==='certificates') ? ('bio-panel-'+t) : ('panel-'+t); }
-        });
-        return;
-    }
-    var tabs = Array.prototype.slice.call(document.querySelectorAll('.bio-tabs [role="tab"]'));
-    tabs.forEach(function(t){
-        var active = t === btn;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', active ? 'true' : 'false');
-        t.tabIndex = active ? 0 : -1;
+    kit.switchTab(tab, btn, {
+        tabSelector: '.bio-tabs [role="tab"]',
+        panelSelector: '.bio-panel',
+        panelId: function(t){ return (t==='signatures'||t==='certificates') ? ('bio-panel-'+t) : ('panel-'+t); }
     });
-    document.querySelectorAll('.bio-panel').forEach(function(p){
-        p.classList.remove('active');
-        p.hidden = true;
-    });
-    var panelId = (tab==='signatures'||tab==='certificates') ? ('bio-panel-'+tab) : ('panel-'+tab);
-    var panel=document.getElementById(panelId);
-    if(panel){
-        panel.classList.add('active');
-        panel.hidden = false;
-        if (btn && btn.id) panel.setAttribute('aria-labelledby', btn.id);
-    }
 }
 
 function updateStats(){
@@ -176,23 +157,13 @@ function openSignaturePad(docId){
     if(area)area.style.display='block';
     var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
-    if (window.GBAppKit && window.GBAppKit.mountSignaturePad) {
-        window.GBAppKit.mountSignaturePad(canvas, state);
-    } else {
-        var parent = canvas.parentElement;
-        if(parent){ var w = Math.min(parent.clientWidth || 500, 800); canvas.width = Math.max(300, w); canvas.height = 200; }
-        var ctx=canvas.getContext('2d'); ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#f8fafc';ctx.lineWidth=2;ctx.lineCap='round';
-    }
+    kit.mountSignaturePad(canvas, state);
 }
 
 function clearSignature(){
     var canvas=document.getElementById('bio-signature-canvas');
     if(!canvas)return;
-    if (window.GBAppKit && window.GBAppKit.clearSignatureCanvas) {
-        window.GBAppKit.clearSignatureCanvas(canvas, state);
-    } else {
-        var ctx=canvas.getContext('2d'); ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
-    }
+    kit.clearSignatureCanvas(canvas, state);
     state.hasDrawn = false;
 }
 
