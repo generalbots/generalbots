@@ -52,6 +52,11 @@ Under the **Default** theme Settings uses the assistant identity: a quiet 236px 
 |---------|---------|
 | Email — Mentions and replies | Email when someone mentions you in a comment |
 | Email — Weekly Digest | Monday 09:00 summary in your profile timezone: messages, conversations, Drive files, scheduled tasks and mentions. Settings shows the last successful send, the next run or the last delivery error |
+
+Digest days and deadline labels are computed in the profile's IANA timezone
+(for example `America/New_York`), including daylight-saving shifts. Numeric
+offsets such as `UTC-03:00` remain supported. An unknown zone is reported once
+in the server log and falls back to UTC rather than silently changing the date.
 | Email — Marketing | Product news and updates |
 | Push | Browser push notifications |
 | In-App | Real-time badges and banners |

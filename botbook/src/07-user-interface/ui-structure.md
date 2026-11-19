@@ -91,6 +91,28 @@ gone — the scale already has a tier for it.
 - `scripts/check_z_index_scale.py` fails CI on a literal value at 100 or above,
   or any negative value, anywhere under `botui/ui/suite`.
 
+### Type scale
+
+Suite text uses one rem-based scale, declared in
+`botui/ui/suite/css/base/01_root.css` (mirrored in `css/app/01_root.css`), so
+browser zoom and OS text scaling enlarge every surface together:
+
+| Token | Reference size | Typical use |
+|-------|----------------|-------------|
+| `--text-2xs` | 12 px | readability floor — badges, chips, captions |
+| `--text-xs` | 13 px | table headers, compact labels |
+| `--text-sm` | 14 px | body and default UI text |
+| `--text-md` | 16 px | emphasised body |
+| `--text-lg` / `--text-xl` | 18 / 20 px | section and panel titles |
+| `--text-2xl` / `--text-3xl` | 24 / 32 px | page titles, hero numbers |
+| `--text-4xl` … `--text-6xl` | 40 / 48 / 72 px | empty-state art, clocks, weather |
+
+App authors use `font-size: var(--text-sm)` and never a raw px size.
+`scripts/check_type_scale.py` fails CI on raw px font sizes, on sizes below
+the 12 px floor, and on `rem`/`em` fallbacks that resolve below it. A dense
+grid may set `data-density="compact"` on its own root; only then do the two
+smallest steps drop to 11/12 px, and only inside that subtree.
+
 ## Minimal Interface
 
 The Minimal interface (`botui/ui/minimal/`) prioritizes speed and simplicity. It loads fast, uses minimal resources, and focuses on essential chat interactions.
