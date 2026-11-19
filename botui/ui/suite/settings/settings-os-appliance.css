@@ -6,11 +6,11 @@
   border: 1px solid var(--border-color, rgba(127,127,127,0.25));
   border-radius: 8px;
   background: var(--surface-2, rgba(127,127,127,0.06));
-  color: var(--text-secondary, #6b7280);
-  font-size: 13px;
+  color: var(--text-secondary, darkgray);
+  font-size: var(--text-xs);
 }
 .os-hint {
   margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  font-size: var(--text-xs);
+  color: var(--text-secondary, darkgray);
 }
