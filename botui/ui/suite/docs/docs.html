@@ -46,7 +46,7 @@
                     <button class="btn-icon" id="pageBreakBtn" title="Insert Page Break (Ctrl+Enter)" aria-label="Insert Page Break" onclick="window.DocsEditor && window.DocsEditor.insertPageBreak()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="4 2"></line></svg>
                     </button>
-                    <button class="btn-icon" id="findReplaceBtn" hx-post="/suite/docs/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Find &amp; Replace" aria-label="Find and replace">
+                    <button class="btn-icon" id="findReplaceBtn" title="Find and replace" aria-label="Find and replace" data-i18n-title="docs-find-title" data-i18n-aria-label="docs-find-title">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
                     <button class="btn-icon" id="printBtn" hx-post="/suite/docs/forms/print" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Print" aria-label="Print" data-i18n-title="action-print" data-i18n-aria-label="action-print">
@@ -114,6 +114,12 @@
                     <button class="btn-icon" id="equationBtn" title="Insert Equation" aria-label="Insert equation" onclick="window.DocsAuthoring && window.DocsAuthoring.openEquationModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="7" y1="9" x2="7" y2="15"></line><line x1="11" y1="6" x2="11" y2="18"></line><line x1="15" y1="9" x2="15" y2="15"></line><line x1="19" y1="6" x2="19" y2="18"></line></svg>
                     </button>
+                    <button class="btn-icon" id="bookmarkBtn" title="Add bookmark" aria-label="Add bookmark" data-i18n-title="docs-bm-add" data-i18n-aria-label="docs-bm-add">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+                    </button>
+                    <button class="btn-icon" id="quickPartsBtn" title="Content library" aria-label="Content library" data-i18n-title="docs-qp-library" data-i18n-aria-label="docs-qp-library">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+                    </button>
                     <button class="btn-icon" id="citeBtn" title="Citations &amp; References" aria-label="Citations and references" onclick="window.DocsAuthoring && window.DocsAuthoring.openReferences()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     </button>
@@ -141,6 +147,9 @@
                 </div>
                 <span class="toolbar-divider"></span>
                 <div class="toolbar-group" role="group" aria-label="Review" data-i18n-aria-label="campaign-wizard-review">
+                    <button class="btn-icon" id="navPaneBtn" title="Navigation pane" aria-label="Navigation pane" data-i18n-title="docs-nav-pane" data-i18n-aria-label="docs-nav-pane">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="14" y2="12"></line><line x1="4" y1="18" x2="17" y2="18"></line></svg>
+                    </button>
                     <button class="btn-icon" id="tocBtn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" title="Table of Contents" aria-label="Table of contents" data-i18n-title="docs-toc" data-i18n-aria-label="docs-toc">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </button>
@@ -178,6 +187,7 @@
                 <button class="sidebar-panel-btn" data-i18n="docs-toc" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1H3z"/><path d="M3 10h18v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Table of contents</button>
                 <button class="sidebar-panel-btn" data-i18n="docs-ai-panel" hx-post="/suite/docs/fragments/ai" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><line x1="12" y1="3" x2="12" y2="8"/><circle cx="9" cy="13.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="1.2" fill="currentColor" stroke="none"/><line x1="9" y1="16.5" x2="15" y2="16.5"/></svg> AI panel</button>
                 <div id="docs-panel-body" style="margin-top:8px;"></div>
+                <div id="docs-nav-pane" class="gb-nav-pane"></div>
             </div>
         </aside>
 
@@ -234,9 +244,16 @@
 <script src="/suite/docs/modules/14_toc_anchors.js"></script>
 <script src="/suite/docs/modules/15_readonly.js"></script>
 <script src="/suite/docs/modules/18_toolbar_overflow.js"></script>
+<script src="/suite/docs/modules/19_nav_core.js"></script>
+<script src="/suite/docs/modules/20_nav_pane.js"></script>
+<script src="/suite/docs/modules/21_find_replace.js"></script>
+<script src="/suite/docs/modules/22_bookmarks.js"></script>
+<script src="/suite/docs/modules/23_quickparts.js"></script>
+<script src="/suite/docs/modules/24_nav_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
 
 
 <link rel="stylesheet" href="/suite/docs/docs-present.css">
+<link rel="stylesheet" href="/suite/docs/docs-nav.css">
