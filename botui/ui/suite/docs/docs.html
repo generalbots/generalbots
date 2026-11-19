@@ -190,6 +190,24 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
                         </button>
                     </div>
+                    <span class="toolbar-divider"></span>
+                    <div class="toolbar-group" role="group" data-i18n-aria-label="docs-forms-group">
+                        <button class="btn-icon" id="docsFormsTemplatesBtn" type="button" data-gb-forms-open="templates" data-i18n-title="docs-forms-templates" data-i18n-aria-label="docs-forms-templates">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="9" x2="9" y2="21"></line></svg>
+                        </button>
+                        <button class="btn-icon" id="docsFormsControlsBtn" type="button" data-gb-forms-open="controls" data-i18n-title="docs-forms-controls" data-i18n-aria-label="docs-forms-controls">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9h10M7 13h6"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="docsFormsMergeBtn" type="button" data-gb-forms-open="merge" data-i18n-title="docs-forms-merge" data-i18n-aria-label="docs-forms-merge">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"></path><path d="M16 5l4 7-4 7"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="docsFormsSignBtn" type="button" data-gb-forms-open="sign" data-i18n-title="docs-forms-sign" data-i18n-aria-label="docs-forms-sign">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17c3-1 3-8 6-8s2 8 5 8 3-5 7-6"></path><line x1="3" y1="21" x2="21" y2="21"></line></svg>
+                        </button>
+                        <button class="btn-icon" id="docsFormsProtectBtn" type="button" aria-pressed="false" data-gb-forms-open="protect" data-i18n-title="docs-forms-protect" data-i18n-aria-label="docs-forms-protect">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+                        </button>
+                    </div>
                     <button class="btn-icon" id="presentBtn" type="button" title="Present" aria-label="Present" onclick="window.DocsPresent && DocsPresent.toggle()">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                     </button>
@@ -315,6 +333,16 @@
 <script src="/suite/docs/modules/55_review_permissions.js"></script>
 <script src="/suite/docs/modules/56_review_dialogs.js"></script>
 <script src="/suite/docs/modules/57_review_init.js"></script>
+<script src="/suite/docs/modules/58_forms_state.js"></script>
+<script src="/suite/docs/modules/59_forms_templates.js"></script>
+<script src="/suite/docs/modules/60_forms_controls.js"></script>
+<script src="/suite/docs/modules/61_forms_merge.js"></script>
+<script src="/suite/docs/modules/62_forms_dialog_shell.js"></script>
+<script src="/suite/docs/modules/63_forms_dialog_templates.js"></script>
+<script src="/suite/docs/modules/64_forms_dialog_merge.js"></script>
+<script src="/suite/docs/modules/65_forms_dialog_security.js"></script>
+<script src="/suite/docs/modules/66_forms_protection.js"></script>
+<script src="/suite/docs/modules/67_forms_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -327,3 +355,4 @@
 <link rel="stylesheet" href="/suite/docs/docs-equations.css">
 <link rel="stylesheet" href="/suite/docs/docs-structure.css">
 <link rel="stylesheet" href="/suite/docs/docs-review.css">
+<link rel="stylesheet" href="/suite/docs/docs-forms.css">
