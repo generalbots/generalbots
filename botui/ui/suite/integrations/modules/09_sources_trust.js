@@ -42,7 +42,7 @@
         if (sync) {
             var when = sync.at && window.gbFormatDateTime
                 ? window.gbFormatDateTime(sync.at)
-                : new Date(sync.at).toLocaleString();
+                : String(sync.at);
             lines.push(t("integrations-source-last-sync", "Last sync: { $when }", { when: when }));
             if (sync.error) {
                 lines.push(t("integrations-source-sync-error", "Last sync error: { $error }", { error: sync.error }));

@@ -194,10 +194,10 @@
     var now = new Date();
     if (timeEl) timeEl.textContent = window.gbFormatTime
       ? gbFormatTime(now, { hour: "2-digit", minute: "2-digit" })
-      : now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      : [String(now.getHours()).padStart(2, "0"), String(now.getMinutes()).padStart(2, "0")].join(":");
     if (dateEl) dateEl.textContent = window.gbFormatDate
       ? gbFormatDate(now, { weekday: "long", month: "long", day: "numeric" })
-      : now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+      : now.toDateString();
   }
   function setStatus(element, message, level) {
     if (!element) return;
