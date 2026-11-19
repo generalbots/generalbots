@@ -47,30 +47,6 @@ pub struct Validator {
     result: ValidationResult,
 }
 
-static SSRF_BLOCKED_HOSTS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-    vec![
-        "localhost",
-        "127.0.0.1",
-        "0.0.0.0",
-        "::1",
-        "[::1]",
-        "169.254.169.254",
-        "metadata.google.internal",
-        "instance-data",
-        "linklocal.amazonaws.com",
-        "169.254.169.254",
-        "10.0.0.0",
-        "10.255.255.255",
-        "172.16.0.0",
-        "172.31.255.255",
-        "192.168.0.0",
-        "192.168.255.255",
-        "fc00:",
-        "fd00:",
-        "fe80:",
-    ]
-});
-
 #[cfg(test)]
 mod tests {
     use super::*;
