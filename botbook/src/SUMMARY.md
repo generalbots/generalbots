@@ -839,6 +839,7 @@
    - [Consent System](./13-ai-os/consent.md)
    - [Unified Settings App](./13-ai-os/unified-settings.md)
    - [Peer Network (P2P), Privacy and Data Retention](./13-ai-os/peer-network.md)
+   - [Laptop Appliance](./13-ai-os/appliance.md)
 
 ---
 

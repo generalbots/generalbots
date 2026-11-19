@@ -63,6 +63,34 @@ The Suite interface is best suited for enterprise deployments requiring full fun
 
 You can access the Suite interface via web at `http://localhost:3000/suite` or as a native desktop application using the `botui` Tauri app (see BotUI Desktop).
 
+### Stacking order
+
+The Suite has one stacking scale, declared once in
+`botui/ui/suite/css/base/01_root.css` and mirrored in `css/app/01_root.css`:
+
+| Token | Value | Layer |
+|-------|-------|-------|
+| `--z-below` / `--z-base` | -1 / 0 | behind content, page background |
+| `--z-raised` / `--z-content` | 10 / 20 | cards, in-flow decoration |
+| `--z-sticky` / `--z-header` / `--z-fixed` | 100 / 200 / 300 | sticky bars, headers, fixed chrome |
+| `--z-window` | 400 | floating window base (the window manager raises the focused window with an inline value above it) |
+| `--z-dropdown` / `--z-popover` / `--z-context-menu` | 1000 / 1100 | menus, selects, popovers |
+| `--z-modal-backdrop` / `--z-modal` | 1200 / 1300 | dialogs |
+| `--z-toast` / `--z-tooltip` | 1400 / 1500 | notifications, tooltips |
+| `--z-overlay` | 1600 | app-owned overlay panels (artifact viewer, sandbox panel, chart editor) |
+| `--z-system` | 2000 | shell chrome: start menu, command palette, power menu |
+| `--z-blocker` | 3000 | full-screen blockers: boot splash, screensaver, tour backdrop, fullscreen window |
+| `--z-top` | 4000 | the rare surface that must beat a blocker (tour step) |
+
+Rules for app authors:
+
+- Name a token for every value at 100 or above. `z-index: 9999` to "win" is
+gone — the scale already has a tier for it.
+- Integers 1-99 stay legal; they order siblings inside one component's own
+  stacking context (a card above its own shadow) and nothing else.
+- `scripts/check_z_index_scale.py` fails CI on a literal value at 100 or above,
+  or any negative value, anywhere under `botui/ui/suite`.
+
 ## Minimal Interface
 
 The Minimal interface (`botui/ui/minimal/`) prioritizes speed and simplicity. It loads fast, uses minimal resources, and focuses on essential chat interactions.
