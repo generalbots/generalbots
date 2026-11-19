@@ -40,7 +40,7 @@ fn anthropic_messages_url(endpoint: &str) -> Option<String> {
 }
 
 /// `error.message`, `error` or `message` from a provider's JSON error body.
-fn provider_message(body: &str) -> Option<String> {
+pub(super) fn provider_message(body: &str) -> Option<String> {
     let v: Value = serde_json::from_str(body).ok()?;
     let msg = v.pointer("/error/message").and_then(|m| m.as_str())
         .or_else(|| v.get("error").and_then(|m| m.as_str()))

@@ -308,6 +308,23 @@ pub(super) async fn build_and_stream(
     Ok(())
 }
 
+/// The address the turn's model will be called at: the account picked in the
+/// chat's model menu, else the bot's `llm-url`, else the `LLM_URL` override.
+/// Used to decide whether attached files can be sent as images.
+pub(crate) async fn turn_llm_url(state: &Arc<AppState>, bot_uuid: Uuid, model_preference: &str) -> String {
+    if let Some(choice) = botsettings::model_config::accounts::resolve_choice(model_preference).await {
+        return choice.url;
+    }
+    if let Ok(val) = std::env::var("LLM_URL") {
+        if !val.is_empty() {
+            return val;
+        }
+    }
+    botcore::config::ConfigManager::new(state.conn.clone())
+        .get_config(&bot_uuid, "llm-url", Some(""))
+        .unwrap_or_default()
+}
+
 /// Resolves the per-bot LLM provider (Vault config → env override), logging
 /// the host/model pair. Returns None when llm-url is empty (global fallback).
 ///
@@ -335,6 +352,31 @@ pub(crate) async fn resolve_bot_llm_provider(
     let llm_provider = cfg
         .get_config(&bot_uuid, "llm-provider", Some(""))
         .unwrap_or_default();
+
+    // A model picked in the chat's menu from a provider account (Settings >
+    // Modelo): that account's address, key and model answer this turn.
+    if let Some(choice) = botsettings::model_config::accounts::resolve_choice(model_preference).await {
+        let host = url::Url::parse(&choice.url)
+            .ok()
+            .and_then(|u| u.host_str().map(str::to_string))
+            .unwrap_or_default();
+        botlog::safe_info!("BOT {bot_uuid} account model: host=[{host}] model=[{}]", choice.model);
+        let provider = crate::llm::provider_factory::create_llm_provider_from_url(
+            &choice.url,
+            Some(choice.model.clone()),
+            None,
+            None,
+        );
+        return Ok(Some((
+            Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
+                provider,
+                choice.model.clone(),
+                choice.key.clone(),
+            )) as Arc<dyn botlib::traits::LLMProvider>,
+            choice.key,
+            choice.model,
+        )));
+    }
 
     // #1652/#1653/#1654 — subscription accounts are resolved per user before
     // any HTTP provider is built. `choose_for_request` refuses to fall back

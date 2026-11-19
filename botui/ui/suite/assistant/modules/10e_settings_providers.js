@@ -79,7 +79,7 @@ var L = { "pt-BR": {
   sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:",
   acpIntro:"Use um agente de IA que você já assina, como Claude Code, Codex ou Gemini CLI. O ACP (Agent Client Protocol) é o padrão aberto que liga o assistente a esses agentes: você instala o agente, entra com a sua conta e as respostas vêm dele.",
   acpSoon:"Chega na próxima versão. Hoje dá para usar os mesmos provedores com uma chave de API, em Servidor ou chave própria.",
-  install:"Instalar", acpWarn:"O agente roda neste computador e pode ler arquivos e executar comandos: cada permissão será pedida a você." },
+  install:"Instalar", acpWarn:"O agente roda dentro de uma máquina virtual isolada, criada para ele: sua conta e o que ele executa ficam lá dentro, não no seu Windows." },
 en: {
   intro:"Pick the provider. The address fills itself in; you only choose the model and paste the key.",
   search:"Search providers", connect:"Connect", inUse:"In use", none:"No provider by that name.",
@@ -97,7 +97,7 @@ en: {
   sent:"What you write and attach goes to %h, outside this computer.", said:"The provider said:",
   acpIntro:"Use an AI agent you already subscribe to, such as Claude Code, Codex or Gemini CLI. ACP (Agent Client Protocol) is the open standard that connects the assistant to these agents: you install the agent, sign in with your account and the answers come from it.",
   acpSoon:"Arrives in the next version. Today you can use the same providers with an API key, under Own server or key.",
-  install:"Install", acpWarn:"The agent runs on this computer and can read files and run commands: every permission will be asked of you." } };
+  install:"Install", acpWarn:"The agent runs inside an isolated virtual machine created for it: your account and what it runs stay there, not on your Windows." } };
 function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 function g(k) { var l = pt() ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
@@ -234,7 +234,7 @@ function renderSetup(el, id) {
   });
 }
 
-/* ---- Agents through ACP: the list is shown, installing comes next (#2577) ---- */
+/* ---- Agents: the list is shown; connecting comes with the agent-VM flow (#2574, #2576) ---- */
 var AGENTS = [
   { logo:"anthropic", name:"Claude Code", co:"Anthropic" }, { logo:"openai", name:"Codex", co:"OpenAI" },
   { logo:"gemini", name:"Gemini CLI", co:"Google" }, { logo:"copilot", name:"GitHub Copilot", co:"GitHub" },

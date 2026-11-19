@@ -95,6 +95,7 @@
             var data = await r.json();
             A.tiers = data.tiers || [];
             A.defaultModel = data.default_model || "";
+            A.accounts = data.accounts || [];
             if (data.destination) { A.destination = data.destination; }
             try {
                 A.selectedModel = localStorage.getItem("gb-model-preference");
@@ -103,7 +104,8 @@
                after the model in use changes (Settings > Modelo), the old
                name must not stay on the status line nor go out with a turn. */
             var offered = A.selectedModel === data.default_model ||
-                A.tiers.some(function (tier) { return tier.model === A.selectedModel; });
+                A.tiers.some(function (tier) { return tier.model === A.selectedModel; }) ||
+                A.accounts.some(function (a) { return (a.models || []).some(function (m) { return m.value === A.selectedModel; }); });
             if (A.selectedModel && !offered) {
                 A.selectedModel = null;
                 try { localStorage.removeItem("gb-model-preference"); } catch (e) { /* ignore */ }

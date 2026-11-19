@@ -71,3 +71,17 @@
 .gb-prov-row.is-soon .gb-prov-btn:disabled { opacity: .5; cursor: not-allowed; }
 .gb-prov-soon { margin: 0; padding: 8px 12px; border-radius: var(--id-radius-sm);
     background: var(--id-warn-soft); color: var(--id-warn-text); }
+
+/* Chat model menu: one collapsible group per provider account */
+.gb-model-group { border-top: 1px solid var(--id-line-soft); }
+.gb-model-group-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0;
+    background: transparent; color: var(--id-ink); font: inherit; font-size: var(--id-text-sm); font-weight: 600; cursor: pointer; text-align: left; }
+.gb-model-group-head:hover { background: var(--id-accent-soft); }
+.gb-model-group-logo { display: inline-flex; width: 16px; height: 16px; }
+.gb-model-group-logo svg { width: 16px; height: 16px; }
+.gb-model-group-name { flex: 1; }
+.gb-model-group-count { font-size: var(--id-text-xs); font-weight: 500; color: var(--id-muted); }
+.gb-model-group-caret { transition: transform var(--id-dur-fast) var(--id-ease); }
+.gb-model-group.open .gb-model-group-caret { transform: rotate(180deg); }
+.gb-model-group-list { display: none; padding-left: 12px; }
+.gb-model-group.open .gb-model-group-list { display: block; }

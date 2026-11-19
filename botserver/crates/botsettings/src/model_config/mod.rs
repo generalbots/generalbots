@@ -343,6 +343,7 @@ async fn handle_put_config(
 }
 
 mod test_endpoint;
+pub mod accounts;
 mod engine_update;
 mod local_runtime;
 pub(crate) mod write_sets;
@@ -414,6 +415,9 @@ pub fn configure_routes() -> Router<Arc<AppState>> {
         .route("/api/llm/config", put(handle_put_config))
         .route("/api/llm/config/test", post(test_endpoint::handle_test))
         .route("/api/llm/config/modes", get(handle_modes))
+        .route("/api/llm/accounts", get(accounts::handle_list).put(accounts::handle_save))
+        .route("/api/llm/accounts/models", post(accounts::handle_models))
+        .route("/api/llm/accounts/:id", axum::routing::delete(accounts::handle_delete))
         .route("/api/llm/runtime/status", get(local_runtime::handle_status))
         .route("/api/llm/runtime/install", post(local_runtime::handle_install))
         .route("/api/llm/runtime/jobs/:id", get(local_runtime::handle_job_status))
