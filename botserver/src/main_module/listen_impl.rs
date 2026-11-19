@@ -44,8 +44,9 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
     // interface because the product is not `no_security`; the bind address now
     // follows the same rule as the desktop edition and stays on loopback
     // unless the operator sets BOTSERVER_HOST explicitly *and* opts in with
-    // GB_ALLOW_LAN=1 (the "Allow other devices on my network" switch, off by
-    // default, mirrored by the image's nftables set).
+    // GB_ALLOW_LAN=1 (an environment flag, off by default; the image's
+    // nftables `gb_lan_allowed` set is the matching host-side gate — no
+    // Settings switch exists yet).
     let lan_opt_in = std::env::var("GB_ALLOW_LAN")
         .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
         .unwrap_or(false);

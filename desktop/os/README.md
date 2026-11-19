@@ -176,7 +176,7 @@ laptop user expects. Each block names the issue it answers.
 | Surface | What is in the image |
 |---|---|
 | Networking | NetworkManager + `wpasupplicant` + `firmware-iwlwifi` + `wireless-regdb` + `rfkill`; `systemd-networkd` disabled; DNS via `systemd-resolved` (#2453) |
-| Firewall | `nftables` default-deny inbound, loaded at boot; loopback-only stack; LAN exposure is opt-in through `GB_ALLOW_LAN=1` plus the `gb_lan_allowed` set (#2477) |
+| Firewall | `nftables` default-deny inbound, loaded at boot; loopback-only stack; LAN exposure is opt-in through `GB_ALLOW_LAN=1` plus the `gb_lan_allowed` set — there is no UI switch yet (#2477) |
 | Sound | PipeWire + WirePlumber + `pipewire-alsa` + ALSA UCM + GStreamer plugins; `/dev/snd` allowed in the unit (#2455) |
 | Time/locale | `systemd-timesyncd`, `tzdata`, `locales`, `console-setup`, `keyboard-configuration`; `/etc/locale.gen`, `/etc/default/keyboard`, `/etc/timezone` written at build time (#2458) |
 | Removable media | `udisks2` + `gvfs` + `exfatprogs`/`ntfs-3g`/`dosfstools` (#2460) |

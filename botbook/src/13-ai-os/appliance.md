@@ -27,8 +27,9 @@ Inbound traffic is denied by an nftables ruleset loaded at boot. The provisioned
 stack (botserver, Vault, PostgreSQL, Valkey, MinIO, Qdrant, Zitadel) listens on
 loopback, and `botserver` binds loopback in shell mode even when
 `no_security=false`. Exposing the suite to the LAN is a deliberate act: set
-`GB_ALLOW_LAN=1` (the "Allow other devices on my network" switch, off by
-default) and add the client address to the `gb_lan_allowed` nftables set.
+`GB_ALLOW_LAN=1` in the sidecar environment and add the client address to the
+`gb_lan_allowed` nftables set. There is no Settings switch for this yet; the
+appliance ships closed.
 
 ## Sound
 
@@ -41,10 +42,15 @@ them.
 ## Time, locale and keyboard
 
 `systemd-timesyncd` keeps the clock right (a wrong clock breaks TLS and OTP).
-`tzdata` plus `localectl` means the zone is real data with DST, not a fixed
-offset table; `locales` and `console-setup`/`keyboard-configuration` mean the
-language and keymap are settings, not a hard `C.UTF-8`/`us` lock. Settings →
-Time & Language writes these files.
+`tzdata` is the real zone database, so a name resolves with DST instead of a
+fixed offset, and `locales` plus `console-setup`/`keyboard-configuration` are
+installed with a generated `en_US.UTF-8` and a `/etc/default/keyboard` file
+rather than a hard `C.UTF-8`/`us` lock.
+
+The suite's Settings → Language & region zone picker is still client-side
+(it stores `gb-timezone` and formats dates in the browser); it does not yet
+call `timedatectl`/`localectl`, so the image's zone, keymap and locale change
+by editing those files or with `timedatectl set-timezone`.
 
 ## Removable media
 
