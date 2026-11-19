@@ -45,6 +45,21 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         }
     }
 
+    // #2479 — an image provisions a fixed component set, so an app whose
+    // service is absent must not be advertised: its pane cannot ever fill and
+    // the appliance has no terminal to explain that. Other deployments keep the
+    // app and only publish the requirement, because a component is installed on
+    // demand there.
+    let provisioned: Option<std::collections::HashSet<&str>> = if os_edition {
+        Some(
+            crate::main_module::wizard_provision::planned_component_ids()
+                .into_iter()
+                .collect(),
+        )
+    } else {
+        None
+    };
+
     let derived: Vec<crate::core::bot::commands_derived::DerivedCommand> =
         crate::core::bot::commands_derived::derived_commands();
 
@@ -68,7 +83,8 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
             // every other registry app is preview-only.
             let core = CORE_APPS.contains(&id);
             let compiled = core || is_app_compiled(id);
-            let is_hidden = hidden.contains(id);
+            let available = registry::is_available(a.requires, provisioned.as_ref());
+            let is_hidden = hidden.contains(id) || !available;
             let always = a.is_always_visible();
             let is_enabled = !is_hidden && (core || always || enabled.contains(id));
             let is_preview = !core && !is_hidden && !is_enabled;
@@ -120,6 +136,13 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "preview": is_preview,
                 "hidden": is_hidden,
                 "compiled": compiled,
+                // #2479 — what the app needs, and why it is withheld here.
+                "requires": a.requires,
+                "available": available,
+                "unavailable_reason": a
+                    .requires
+                    .filter(|_| !available)
+                    .map(registry::unavailable_reason),
                 "commands": commands,
                 "deep_link_params": commands::deep_link_params_for_app(id),
             })

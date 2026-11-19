@@ -52,6 +52,17 @@ fn progress(id: &str, state: &str, message: &str, started: Instant) {
 mod component_plan;
 use component_plan::component_plan;
 
+/// Component ids this host's provision plan installs (#2479).
+///
+/// The app catalog asks this before advertising an app that needs an external
+/// service (Mail needs Stalwart, Meet needs LiveKit, Vibe needs Incus): on an
+/// image that never installs the component the pane would open empty and the
+/// user has no terminal to find out why. Read from the live plan so the answer
+/// follows `GB_WIZARD_*` switches instead of a second, drifting list.
+pub(crate) fn planned_component_ids() -> Vec<&'static str> {
+    component_plan().into_iter().map(|c| c.id).collect()
+}
+
 /// Returns the first failure reason without including credentials or paths that
 /// the wizard cannot display.
 async fn provision_component(

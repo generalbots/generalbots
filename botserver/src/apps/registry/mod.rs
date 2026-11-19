@@ -7,6 +7,7 @@
 use serde::Serialize;
 
 pub use ownership::{ownership_of, AppOwnership, AppStatus, OWNERSHIP, UNOWNED};
+pub use requires::{is_available, unavailable_reason, AppRequirement};
 
 /// Launch surface of an application. Widgets additionally declare a
 /// [`WidgetSpec`] so the desktop can render them as live tiles.
@@ -65,6 +66,9 @@ pub struct AppDefinition {
     pub widget: Option<WidgetSpec>,
     /// Vibe-published apps may opt in to auto-pin on the launcher (#1160).
     pub launcher_default: bool,
+    /// Provision component this app cannot work without (#2479). `None` means
+    /// the app is self-contained.
+    pub requires: Option<AppRequirement>,
 }
 
 pub const CATEGORIES: &[(&str, &str)] = &[
@@ -130,6 +134,7 @@ fn definition(spec: AppSpec, kind: AppKind, widget: Option<WidgetSpec>) -> AppDe
             .unwrap_or(AppStatus::Preview),
         widget,
         launcher_default: false,
+        requires: None,
     }
 }
 
@@ -157,6 +162,13 @@ fn widget_app_always(spec: AppSpec, widget: WidgetSpec) -> AppDefinition {
 /// sees it (Vibe `publish` with `launcher: true`, #1160).
 pub fn with_launcher_default(mut definition: AppDefinition) -> AppDefinition {
     definition.launcher_default = true;
+    definition
+}
+
+/// Declares the provision component an app needs to load (#2479). Without it a
+/// laptop-only image advertises an app whose pane can never fill.
+pub fn requiring(mut definition: AppDefinition, requirement: AppRequirement) -> AppDefinition {
+    definition.requires = Some(requirement);
     definition
 }
 
@@ -205,6 +217,7 @@ pub fn all_apps() -> Vec<AppDefinition> {
 mod entries;
 mod entries_extra;
 mod ownership;
+mod requires;
 
 #[cfg(test)]
 mod gbgov_profile_tests;
