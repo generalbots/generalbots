@@ -202,6 +202,9 @@
           if (res && res.success) {
             g.lastRenderedRange = null;
             if (g.requestRange) g.requestRange();
+            if (typeof g.onCellValueChanged === "function") {
+              g.onCellValueChanged(g.selectedRow, g.selectedCol, val);
+            }
           }
         });
       };

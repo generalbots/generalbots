@@ -133,6 +133,11 @@
       if (res && res.success) {
         self.lastRenderedRange = null;
         self.requestRange();
+        if (typeof self.onCellValueChanged === "function") {
+          var dstRow = parseInt(cell.dataset.row, 10);
+          var dstCol = parseInt(cell.dataset.col, 10);
+          if (!isNaN(dstRow) && !isNaN(dstCol)) self.onCellValueChanged(dstRow, dstCol, val);
+        }
         return;
       }
       // A rejected edit used to stay on screen as if saved. Restore the
@@ -152,54 +157,20 @@
     }
   };
 
+  // The complete keyboard map lives in 04a_grid_keyboard.js (loaded next) so
+  // this file stays focused on writes/selection and under the 450-line limit.
   VirtualGrid.onCellKeyDown = function (e) {
+    if (typeof this.handleGridKeyDown === "function") {
+      return this.handleGridKeyDown(e, this);
+    }
     var cell = e.target;
     var row = parseInt(cell.dataset.row, 10);
     var col = parseInt(cell.dataset.col, 10);
     if (isNaN(row) || isNaN(col)) return;
-
-    var isEditing = (this.editingCell === cell);
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (isEditing) {
-        // Finish editing, move down
-        cell.blur();
-        this.selectCell(row + 1, col);
-        var next = this.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
-        if (!next && row + 1 < this.totalRows) {
-          this.scrollArea.scrollTop += rH(row + 1);
-        }
-      } else {
-        // Enter edit mode on selected cell
-        this.startEditingCell(cell);
-      }
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      if (isEditing) cell.blur();
-      this.selectCell(row, col + 1);
-    } else if (e.key === "ArrowDown" && !isEditing) {
-      e.preventDefault();
-      this.selectCell(row + 1, col);
-    } else if (e.key === "ArrowUp" && !isEditing) {
-      e.preventDefault();
-      if (row > 0) this.selectCell(row - 1, col);
-    } else if (e.key === "ArrowRight" && !isEditing) {
-      e.preventDefault();
-      this.selectCell(row, col + 1);
-    } else if (e.key === "ArrowLeft" && !isEditing) {
-      e.preventDefault();
-      if (col > 0) this.selectCell(row, col - 1);
-    } else if ((e.key === "F2") && !isEditing) {
-      e.preventDefault();
-      this.startEditingCell(cell);
-    } else if (isEditing) {
-      if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-        var ref = cell.dataset.ref || "";
-        var p = parseCellRef(ref);
-        if (p) window.GBCollab.debouncedTypingStart(p.row, p.col);
-      }
-    }
+    if (e.key === "ArrowDown") { e.preventDefault(); this.selectCell(row + 1, col); }
+    else if (e.key === "ArrowUp" && row > 0) { e.preventDefault(); this.selectCell(row - 1, col); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); this.selectCell(row, col + 1); }
+    else if (e.key === "ArrowLeft" && col > 0) { e.preventDefault(); this.selectCell(row, col - 1); }
   };
 
   VirtualGrid.startEditingCell = function (cell) {

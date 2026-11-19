@@ -208,6 +208,16 @@
   D.HEADER_WIDTH = HEADER_WIDTH;
   D.OVERSCAN = OVERSCAN;
   D.MAX_VISIBLE_ROWS = MAX_VISIBLE_ROWS;
+  // Accessibility (#2493): one translation entry point so every grid/announcement
+  // string goes through the shared gbT catalogue with an authored English fallback.
+  D.a11yT = function (key, fallback, params) {
+    if (typeof window.gbT === "function") {
+      try { return window.gbT(key, fallback, params) || fallback; }
+      catch (e) { console.warn("[sheet-a11y] translation failed for " + key, e); }
+    }
+    return fallback;
+  };
+
   D.currentSheetId = currentSheetId;
   D.colName = colName;
   D.colIdx = colIdx;

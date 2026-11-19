@@ -64,6 +64,10 @@
     this.selectionOverlay.style.cssText = "position:absolute;border:2px solid #3b82f6;background:rgba(59,130,246,0.08);pointer-events:none;z-index:10;display:none;";
     this.bodyInner.appendChild(this.selectionOverlay);
 
+    // Accessibility (#2493): install ARIA grid semantics, live region and the
+    // virtualised row-proxy layer before the tree is attached to the document.
+    if (typeof this.initA11y === "function") this.initA11y();
+
     this.scrollArea.addEventListener("scroll", this.onScroll.bind(this), { passive: true });
     // track active instance on interaction (#2270)
     var self = this;
@@ -98,6 +102,7 @@
     const cols = this.visibleColRange();
     this.headerRow.innerHTML = "";
     const corner = document.createElement("div");
+    corner.setAttribute("role", "columnheader");
     corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;";
     this.headerRow.appendChild(corner);
     // Virtualized headers: absolute-positioned inside the translated header
@@ -106,6 +111,8 @@
       const h = document.createElement("div");
       h.className = "ss-col-head";
       h.dataset.col = c;
+      h.setAttribute("role", "columnheader");
+      h.setAttribute("aria-colindex", String(c + 1));
       h.textContent = colName(c);
       h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-muted, var(--sheet-muted, #94a3b8));text-align:center;line-height:24px;font-size:11px;border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;box-sizing:border-box;";
       this.headerRow.appendChild(h);
@@ -120,6 +127,10 @@
     } else {
       node = document.createElement("div");
       node.className = "vg-cell";
+      // Accessibility (#2493): a stable id per pooled DOM node. The row proxies
+      // reference these ids with aria-owns as the virtual window scrolls.
+      node.id = (this.a11yGridId || "gb-sheet-grid") + "-cell-" + this.pool.length;
+      node.setAttribute("role", "gridcell");
       node.contentEditable = "false";
       node.tabIndex = -1;
       node.style.cssText = "position:absolute;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
@@ -127,6 +138,9 @@
       node.addEventListener("dblclick", this.onCellDblClick.bind(this));
       node.addEventListener("blur", this.onCellBlur.bind(this));
       node.addEventListener("keydown", this.onCellKeyDown.bind(this));
+      if (typeof this.onCellFocusA11y === "function") {
+        node.addEventListener("focus", this.onCellFocusA11y.bind(this));
+      }
       this.bodyInner.appendChild(node);
       this.pool.push(node);
     }
@@ -147,6 +161,7 @@
     for (let i = this.usedCount; i < this.pool.length; i++) {
       this.pool[i].style.display = "none";
     }
+    if (typeof this.syncA11yRows === "function") this.syncA11yRows(range);
   };
 
   // #2025 — a cell with an explicit fill (a value the bot wrote with a
@@ -334,6 +349,9 @@
         node.style.zIndex = this.canSpill(row, c, cellData) ? "2" : "1";
       }
       node.style.overflow = cellData && this.canSpill(row, c, cellData) ? "visible" : "hidden";
+      if (typeof this.updateCellA11y === "function") {
+        this.updateCellA11y(node, row, c, cellData);
+      }
     }
   };
 

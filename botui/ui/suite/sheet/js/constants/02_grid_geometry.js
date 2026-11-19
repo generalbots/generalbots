@@ -41,6 +41,14 @@
       __totalColsWidth: 0,
       host: null,
       instance: null,
+      // Accessibility (#2493): virtualised ARIA row proxies, polite live region
+      // and the debounce timer for announcements. No full-cell DOM is created.
+      a11yRowGroup: null,
+      a11yRowPool: [],
+      a11yLive: null,
+      a11yAnnounceTimer: 0,
+      a11yGridId: null,
+      a11yLastSelectionKey: null,
     };
   }
 

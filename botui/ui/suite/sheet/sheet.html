@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/suite/sheet/css/05_modal_find_replace.css" />
 <link rel="stylesheet" href="/suite/sheet/css/06_modal_validation_print.css" />
 <link rel="stylesheet" href="/suite/sheet/css/07_charts_responsive.css" />
+<link rel="stylesheet" href="/suite/sheet/css/08_a11y.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 <link rel="stylesheet" href="/suite/sheet/css/99_theme.css" />
 
@@ -63,6 +64,9 @@
                     </button>
                     <button class="btn-icon" id="advancedActionsBtn" type="button" onclick="openSheetPanel('advanced-ranges')" title="Advanced Actions" aria-label="Advanced actions" data-i18n-title="sheet-advanced-ranges" data-i18n-aria-label="sheet-advanced-ranges">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                    <button class="btn-icon" id="a11yCheckBtn" type="button" onclick="if(window.SheetA11yChecker)window.SheetA11yChecker.togglePanel();" title="Check accessibility" aria-label="Check accessibility" data-i18n-title="sheet-a11y-checker-run" data-i18n-aria-label="sheet-a11y-checker-run">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
@@ -148,10 +152,15 @@
         </div>
     </div>
 
-    <div class="formula-bar" style="display:flex;align-items:center;padding:6px 12px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));gap:12px;flex-shrink:0;">
-        <input type="text" id="cellAddress" class="cell-address" readonly value="" style="width:80px;padding:4px 8px;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));border:1px solid var(--sheet-border, var(--sheet-border, #334155));border-radius:4px;font-size:13px;font-weight:500;font-family:monospace;text-align:center;color:var(--sheet-fg, var(--sheet-fg, #f8fafc));" />
-        <span class="formula-icon" style="color:var(--sheet-muted, var(--sheet-muted, #94a3b8));font-style:italic;font-weight:500;font-size:14px;">fx</span>
-        <input type="text" id="formulaInput" class="formula-input" placeholder="Enter value or formula" data-i18n-placeholder="sheet-formula-placeholder" style="flex:1;padding:6px 10px;border:1px solid var(--sheet-border, var(--sheet-border, #334155));border-radius:4px;font-size:13px;font-family:monospace;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));" />
+    <div class="formula-bar" role="group" aria-label="Formula bar" data-i18n-aria-label="sheet-a11y-formula-bar-label" style="display:flex;align-items:center;padding:6px 12px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));gap:12px;flex-shrink:0;">
+        <label for="cellAddress" class="sr-only" data-i18n="sheet-a11y-name-box-label">Name box, enter a cell reference</label>
+        <input type="text" id="cellAddress" class="cell-address" value="" autocomplete="off" spellcheck="false"
+               aria-label="Name box, enter a cell reference" data-i18n-aria-label="sheet-a11y-name-box-label"
+               data-i18n-placeholder="sheet-a11y-name-box-placeholder" placeholder="A1"
+               style="width:80px;padding:4px 8px;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));border:1px solid var(--sheet-border, var(--sheet-border, #334155));border-radius:4px;font-size:13px;font-weight:500;font-family:monospace;text-align:center;color:var(--sheet-fg, var(--sheet-fg, #f8fafc));" />
+        <span class="formula-icon" aria-hidden="true" style="color:var(--sheet-muted, var(--sheet-muted, #94a3b8));font-style:italic;font-weight:500;font-size:14px;">fx</span>
+        <label for="formulaInput" class="sr-only" data-i18n="sheet-a11y-formula-bar-label">Formula bar</label>
+        <input type="text" id="formulaInput" class="formula-input" placeholder="Enter value or formula" data-i18n-placeholder="sheet-formula-placeholder" aria-label="Formula bar" data-i18n-aria-label="sheet-a11y-formula-bar-label" style="flex:1;padding:6px 10px;border:1px solid var(--sheet-border, var(--sheet-border, #334155));border-radius:4px;font-size:13px;font-family:monospace;background:var(--sheet-bg-elevated, var(--sheet-bg-elevated, #1e293b));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));" />
     </div>
     <div class="sheet-main">
         <aside class="sheet-sidebar" id="sheet-sidebar" style="width:240px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));display:flex;flex-direction:column;">
@@ -224,9 +233,12 @@
 <script src="/suite/sheet/js/constants/01_constants.js"></script>
 <script src="/suite/sheet/js/constants/02_grid_geometry.js"></script>
 <script src="/suite/sheet/js/constants/03_grid_render.js"></script>
+<script src="/suite/sheet/js/constants/03a_grid_a11y.js"></script>
 <script src="/suite/sheet/js/constants/04_grid_editing.js"></script>
+<script src="/suite/sheet/js/constants/04a_grid_keyboard.js"></script>
 <script src="/suite/sheet/js/constants/05_sheet_api.js"></script>
 <script src="/suite/sheet/js/constants/06_boot.js"></script>
 
 <script src="/suite/sheet/sheet-inline/04_toolbar_overflow.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/23_delta.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/24_a11y_checker.js"></script>
