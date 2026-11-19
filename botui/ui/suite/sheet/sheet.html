@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/suite/sheet/css/08_a11y.css" />
 <link rel="stylesheet" href="/suite/sheet/css/09_sheet_audit.css" />
 <link rel="stylesheet" href="/suite/sheet/css/10_charting.css" />
+<link rel="stylesheet" href="/suite/sheet/css/11_structured.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 <link rel="stylesheet" href="/suite/sheet/css/99_theme.css" />
 
@@ -70,6 +71,22 @@
                     <button class="btn-icon" id="advancedActionsBtn" type="button" onclick="openSheetPanel('advanced-ranges')" title="Advanced Actions" aria-label="Advanced actions" data-i18n-title="sheet-advanced-ranges" data-i18n-aria-label="sheet-advanced-ranges">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                     </button>
+                    <span class="toolbar-divider"></span>
+                    <div class="toolbar-group">
+                        <button class="btn-icon" id="structuredSparkBtn" type="button" onclick="if(window.SheetStructured)window.SheetStructured.open('sparkline')" title="" data-i18n-title="sheet-structured-sparklines" data-i18n-aria-label="sheet-structured-sparklines">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 17 9 11 13 14 21 5"></polyline></svg>
+                        </button>
+                        <button class="btn-icon" id="structuredSlicerBtn" type="button" onclick="if(window.SheetStructured)window.SheetStructured.open('slicer')" title="" data-i18n-title="sheet-structured-slicer" data-i18n-aria-label="sheet-structured-slicer">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"></path></svg>
+                        </button>
+                        <button class="btn-icon" id="structuredGoalSeekBtn" type="button" onclick="if(window.SheetStructured)window.SheetStructured.open('goalseek')" title="" data-i18n-title="sheet-structured-goalseek" data-i18n-aria-label="sheet-structured-goalseek">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="3" x2="12" y2="9"></line></svg>
+                        </button>
+                        <button class="btn-icon" id="structuredScenariosBtn" type="button" onclick="if(window.SheetStructured)window.SheetStructured.open('scenarios')" title="" data-i18n-title="sheet-structured-scenarios" data-i18n-aria-label="sheet-structured-scenarios">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"></path></svg>
+                        </button>
+                    </div>
+                    <span class="toolbar-divider"></span>
                     <button class="btn-icon" id="a11yCheckBtn" type="button" onclick="if(window.SheetA11yChecker)window.SheetA11yChecker.togglePanel();" title="Check accessibility" aria-label="Check accessibility" data-i18n-title="sheet-a11y-checker-run" data-i18n-aria-label="sheet-a11y-checker-run">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                     </button>
@@ -268,4 +285,10 @@
 <script src="/suite/sheet/js/modules-sheet-advanced/35_charting_overlays.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/36_charting_render.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/37_charting_picker.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/38_structured_core.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/39_structured_sparklines.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/40_structured_slicer.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/41_structured_goalseek.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/42_structured_scenarios.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/43_structured_boot.js"></script>
 
