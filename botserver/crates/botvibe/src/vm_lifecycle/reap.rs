@@ -278,12 +278,17 @@ impl VmLifecycle {
         Ok(rows.into_iter().map(|row| row.into_vm()).collect())
     }
 
-    /// Idle reaper + expiry sweep (#1181 / #1167). Stops VMs that have been
-    /// idle (no `updated_at` change) longer than `idle_secs` and deletes VMs
-    /// older than `max_age_secs`. Returns the container names affected so the
-    /// caller can log them. Running/awaiting VMs are never touched unless they
-    /// exceed the max age (expiry), which also forces a stop.
-    pub fn reap(&self, idle_secs: i64, max_age_secs: i64) -> Result<Vec<String>, String> {
+    /// Idle reaper (#1181 / #1167, corrected by #2570). Stops VMs that have been
+    /// idle (no `updated_at` change) longer than `idle_secs` and returns the
+    /// container names affected so the caller can log them.
+    ///
+    /// #2570 — a project is never destroyed by the clock. The previous sweep
+    /// deleted every non-production VM older than seven days, so a user who
+    /// came back to a project found their work gone with no warning and no way
+    /// to recover it. Stopping frees the RAM; deleting frees nothing the user
+    /// asked to give up. Deletion stays an explicit action (`delete`,
+    /// `delete_all_for_project`).
+    pub fn reap(&self, idle_secs: i64) -> Result<Vec<String>, String> {
         let vms = self.list_all()?;
         let now = chrono::Utc::now();
         let mut reaped: Vec<String> = Vec::new();
@@ -292,21 +297,13 @@ impl VmLifecycle {
                 continue;
             }
             // #1271 — production VMs are never reaped: they run forever once
-            // deployed (the prod-VM guard keeps them up). Only dev/staging
-            // VMs are subject to idle-stop and expiry.
+            // deployed (the prod-VM guard keeps them up).
             if vm.env == "production" {
                 continue;
             }
             let idle = now.signed_duration_since(vm.updated_at).num_seconds();
-            let age = now.signed_duration_since(vm.created_at).num_seconds();
-            if age > max_age_secs {
-                // Expired: delete outright (containers are disposable).
-                match self.delete(vm.id) {
-                    Ok(()) => reaped.push(format!("{} (expired, deleted)", vm.container_name)),
-                    Err(e) => log::error!("Vibe reaper: expire {} failed: {e}", vm.container_name),
-                }
-            } else if idle > idle_secs {
-                // Idle: stop the container, keep the record for restart.
+            if idle > idle_secs {
+                // Idle: stop the container, keep the record and its disks.
                 match self.stop(vm.id) {
                     Ok(_) => reaped.push(format!("{} (idle, stopped)", vm.container_name)),
                     Err(e) => log::error!("Vibe reaper: idle-stop {} failed: {e}", vm.container_name),

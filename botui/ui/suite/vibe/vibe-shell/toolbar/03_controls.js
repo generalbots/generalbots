@@ -163,7 +163,7 @@
                     }
                 } else {
                     // #1402 — the persisted selection can outlive its project
-                    // (deleted in another session, or evicted by the branch
+                    // (deleted in another session, or removed by the branch
                     // cap). Project-gated commands (Run, Deploy, ...) must
                     // stay disabled when the id no longer resolves, instead of
                     // firing "SELECT A PROJECT FIRST" onto a ghost project.

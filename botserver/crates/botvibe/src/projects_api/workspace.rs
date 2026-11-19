@@ -6,7 +6,6 @@ pub(crate) async fn create_project(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(rbac): Extension<ProjectRbac>,
     Extension(metering): Extension<Arc<VMetering>>,
-    Extension(lifecycle): Extension<Arc<VmLifecycle>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateProjectRequest>,
 ) -> ApiResult {
@@ -49,24 +48,15 @@ pub(crate) async fn create_project(
             "project names ending in '-dev' are reserved for dev-twin bots".into(),
         );
     }
-    // Disk-guard eviction: a branch keeps at most
-    // VIBE_MAX_PROJECTS_PER_KIND (default 2) projects of each kind. Creating
-    // beyond the cap evicts the OLDEST same-kind project with full asset
-    // cleanup (VMs, published site, workspace dir) so workspaces and stopped
-    // VM containers cannot grow without bound and exhaust the host disk.
-    match crate::eviction::evict_oldest_if_needed(
+    // Disk guard: a branch keeps at most VIBE_MAX_PROJECTS_PER_KIND (default
+    // 2) projects of each kind. #2570 — reaching the cap is a refusal, not a
+    // silent delete of the oldest project: the caller is told to remove one.
+    if let Err(e) = crate::eviction::enforce_project_cap(
         &registry,
-        &lifecycle,
         branch_id,
         req.project_type.as_deref().unwrap_or("bot"),
-    )
-    .await
-    {
-        Ok(evicted) if !evicted.is_empty() => {
-            log::info!("Vibe: eviction completed for branch {branch_id}: {evicted:?}");
-        }
-        Ok(_) => {}
-        Err(e) => return err_response(format!("project eviction failed: {e}")),
+    ) {
+        return err_response(e);
     }
     match registry.create(&req) {
         Ok(p) => {

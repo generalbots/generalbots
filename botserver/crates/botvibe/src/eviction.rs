@@ -1,17 +1,18 @@
-//! Project eviction policy — a branch keeps at most
-//! `VIBE_MAX_PROJECTS_PER_KIND` (default 2) projects of each kind
-//! (bot / website / custom). Creating a project beyond the cap evicts the
-//! OLDEST project of the same kind on that branch, reclaiming every asset it
-//! owns: Incus VMs, published proxy site (payload + route + Caddy block) and
-//! the on-disk workspace directory. Without eviction the workspace tree and
-//! stopped VM containers grow without bound and exhaust the host disk.
+//! Project cap policy — a branch keeps at most `VIBE_MAX_PROJECTS_PER_KIND`
+//! (default 2) projects of each kind (bot / website / custom).
 //!
-//! Eviction mirrors `delete_project` semantics: asset cleanup is best-effort
-//! (logged, never fatal), the project row delete is the source of truth.
+//! `#2570` — reaching the cap REFUSES the new project. It used to satisfy the
+//! cap by deleting the oldest project of the same kind on that branch, wiping
+//! its Incus VMs, published site, domains, databases and workspace without the
+//! owner being asked; a project that a user left alone for a while could vanish
+//! between visits. A cap is a limit on growth, not a licence to destroy data, so
+//! the user now gets an explicit error and deletes something themselves.
+//!
+//! Asset cleanup still exists for the paths that genuinely delete (explicit
+//! project delete, branch delete); it is best-effort and logged.
 
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::projects::{Project, ProjectRegistry};
@@ -25,19 +26,6 @@ pub fn max_projects_per_kind() -> usize {
         .and_then(|v| v.trim().parse::<usize>().ok())
         .filter(|v| *v >= 1)
         .unwrap_or(2)
-}
-
-/// Decide which project names to evict. `existing` is (created_at, name)
-/// pairs, any order; the OLDEST are returned first until the survivor count
-/// fits within `max`. Pure — unit-tested.
-pub fn pick_evictions(existing: &[(DateTime<Utc>, String)], max: usize) -> Vec<String> {
-    if existing.len() <= max {
-        return Vec::new();
-    }
-    let mut sorted: Vec<&(DateTime<Utc>, String)> = existing.iter().collect();
-    sorted.sort_by_key(|a| a.0);
-    let overflow = existing.len() - max;
-    sorted.iter().take(overflow).map(|(_, n)| n.clone()).collect()
 }
 
 /// Delete every asset owned by a project (best-effort, errors returned as
@@ -106,21 +94,18 @@ pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<
     errors
 }
 
-/// Enforce the per-kind cap on `branch_id` before creating a new project of
-/// `project_type`. Evicts oldest same-kind projects (with full asset cleanup)
-/// and returns their names; hard failures (DB) surface as Err.
-pub async fn evict_oldest_if_needed(
+/// Refuse a new `project_type` project on `branch_id` once the branch already
+/// holds `max_projects_per_kind()` of them (`#2570`).
+///
+/// Runs before the insert, so the branch is allowed to hold exactly `cap`
+/// projects: a newcomer is the `cap + 1`-th and gets a message naming the cap
+/// and the kind, which the projects pane can show as-is.
+pub fn enforce_project_cap(
     registry: &ProjectRegistry,
-    lifecycle: &Arc<VmLifecycle>,
     branch_id: Uuid,
     project_type: &str,
-) -> Result<Vec<String>, String> {
+) -> Result<(), String> {
     let cap = max_projects_per_kind();
-    // This runs BEFORE the new project row is inserted: the newcomer takes
-    // one slot, so at most `cap - 1` same-kind projects may survive on the
-    // branch. (Keeping `cap` here would allow cap+1 rows to exist between
-    // eviction and insert.)
-    let keep = cap.saturating_sub(1);
     let query = crate::projects::ListProjectsQuery {
         branch_id: Some(branch_id),
         project_type: Some(project_type.to_string()),
@@ -129,78 +114,19 @@ pub async fn evict_oldest_if_needed(
         offset: None,
         all_branches: false,
     };
-    let existing: Vec<Project> = registry.list(&query)?;
-    let pairs: Vec<(DateTime<Utc>, String)> =
-        existing.iter().map(|p| (p.created_at, p.name.clone())).collect();
-    let victims = pick_evictions(&pairs, keep);
-    if victims.is_empty() {
-        return Ok(Vec::new());
+    let existing = registry.list(&query)?;
+    if existing.len() >= cap {
+        return Err(format!(
+            "this workspace already has {count} {project_type} project(s), the limit is {cap}; delete one to create another",
+            count = existing.len()
+        ));
     }
-
-    let mut evicted = Vec::new();
-    for name in victims {
-        let Some(p) = existing.iter().find(|p| p.name == name) else {
-            continue;
-        };
-        let id = p.id;
-        for e in delete_project_assets(p, lifecycle).await {
-            log::warn!("Vibe eviction {name}: asset cleanup: {e}");
-        }
-        match registry.delete(id) {
-            Ok(true) => {
-                log::info!(
-                    "Vibe: evicted project '{name}' (id={id}, kind={project_type}) — per-branch cap {cap} reached"
-                );
-                evicted.push(name);
-            }
-            Ok(false) => log::warn!("Vibe eviction: project {id} already gone"),
-            Err(e) => return Err(format!("evict project '{name}': {e}")),
-        }
-    }
-    Ok(evicted)
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn ts(days_ago: i64) -> DateTime<Utc> {
-        Utc::now() - chrono::Duration::days(days_ago)
-    }
-
-    #[test]
-    fn no_eviction_under_cap() {
-        let existing = vec![(ts(3), "a".into()), (ts(1), "b".into())];
-        assert!(pick_evictions(&existing, 2).is_empty());
-    }
-
-    #[test]
-    fn evicts_oldest_first() {
-        let existing = vec![
-            (ts(1), "new".into()),
-            (ts(9), "oldest".into()),
-            (ts(5), "mid".into()),
-        ];
-        assert_eq!(pick_evictions(&existing, 2), vec!["oldest".to_string()]);
-    }
-
-    #[test]
-    fn evicts_multiple_when_far_over_cap() {
-        let existing: Vec<_> = (0..5)
-            .map(|i| (ts(i), format!("p{i}")))
-            .collect();
-        // ts(i) = now - i days → p4 is the oldest, p0 the newest. Cap 2 →
-        // evict p4, p3, p2 in that order (oldest first).
-        assert_eq!(
-            pick_evictions(&existing, 2),
-            vec!["p4".to_string(), "p3".to_string(), "p2".to_string()]
-        );
-    }
-
-    #[test]
-    fn empty_branch_needs_no_eviction() {
-        assert!(pick_evictions(&[], 2).is_empty());
-    }
 
     #[test]
     fn cap_env_override() {

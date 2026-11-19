@@ -51,21 +51,17 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure vm_instances schema failed: {e}"),
     }
 
-    // #1181/#1167 — Agent VM idle reaper + expiry sweep. Runs once at boot
-    // (expiry sweep for orphaned VMs from crashed runs) and then every 10
-    // minutes: stops VMs idle > 30 min, deletes VMs older than 7 days.
+    // #1181/#1167 — Agent VM idle reaper. Runs once at boot (catches VMs left
+    // running by a crashed session) and then every 10 minutes. #2570 — it only
+    // stops idle VMs (5 min by default): nothing here ever deletes a project.
     {
         let lifecycle = vm_lifecycle.clone();
         tokio::spawn(async move {
             let idle_secs: i64 = std::env::var("GB_VIBE_VM_IDLE_SECS")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(30 * 60);
-            let max_age_secs: i64 = std::env::var("GB_VIBE_VM_MAX_AGE_SECS")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(7 * 24 * 3600);
-            let run = |label: &str| match lifecycle.reap(idle_secs, max_age_secs) {
+                .unwrap_or(5 * 60);
+            let run = |label: &str| match lifecycle.reap(idle_secs) {
                 Ok(reaped) if !reaped.is_empty() => {
                     info!("Vibe VM reaper ({label}): {}", reaped.join(", "));
                 }
