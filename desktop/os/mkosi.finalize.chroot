@@ -239,19 +239,32 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
 # 6. Brand the OS identity everywhere an OS screen reads it: boot tools,
 #    `hostnamectl`, the Plymouth theme selector and desktop icon lookups.
-cat >/etc/os-release <<'EOF'
+#    #2443 (offline slice): carry image version/channel/build metadata in
+#    /etc/os-release when provided by the build environment; Settings → About
+#    and update-channel UI/runtime wiring remain follow-up work.
+GB_OS_VERSION="${GB_OS_VERSION:-${GB_DESKTOP_VERSION:-1}}"
+GB_OS_CHANNEL="${GB_OS_CHANNEL:-stable}"
+GB_OS_BUILD_DATE="${GB_OS_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)}"
+GB_OS_BUILD_ID="${GB_OS_BUILD_ID:-${GB_BUILD_ID:-dev}}"
+cat >/etc/os-release <<EOF
 NAME="General Bots OS"
-PRETTY_NAME="General Bots OS (Debian 13 base)"
+PRETTY_NAME="General Bots OS ${GB_OS_VERSION} (${GB_OS_CHANNEL}, Debian 13 base)"
 ID=general-bots-os
 ID_LIKE=debian
-VERSION_ID="1"
-VERSION="1 (trixie)"
+VERSION_ID="${GB_OS_VERSION}"
+VERSION="${GB_OS_VERSION} (trixie)"
 VERSION_CODENAME=trixie
+BUILD_ID="${GB_OS_BUILD_ID}"
+IMAGE_ID="generalbots-os"
+IMAGE_VERSION="${GB_OS_VERSION}"
+GB_UPDATE_CHANNEL="${GB_OS_CHANNEL}"
+GB_BUILD_DATE="${GB_OS_BUILD_DATE}"
 HOME_URL="https://generalbots.org"
 DOCUMENTATION_URL="https://docs.generalbots.org"
 SUPPORT_URL="https://github.com/generalbots/generalbots/issues"
 LOGO=general-bots
 EOF
+ln -sf /etc/os-release /usr/lib/os-release
 
 # 7. #2500 — WebKitGTK must never fall back to an unsandboxed web process.
 #    WEBKIT_FORCE_SANDBOX makes a bwrap failure fatal and visible instead of
