@@ -27,6 +27,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Insert hub | Searchable insert dialog with live preview and Drive media, opened from the Insert button |
 | Animation timeline | Per-slide effect list with entrance, emphasis and exit effects, motion paths, paragraph builds, start triggers and a build scrubber. Reduced motion — from the OS setting or the deck flag — shows final states immediately, and a failed effect never blocks advancing |
 | Transitions gallery | Duration, direction, easing and advance settings, with apply-to-all and per-slide overrides. Authored animation data is kept locally; no server persistence endpoint exists yet |
+| Review menu | Outline view (editable title/bullet hierarchy with promote/demote, drag and keyboard reorder, paste-bullets from Word), deck-wide find/replace across text, tables, charts and notes with per-match review and undoable replace-all, sections, bulk slide actions, a notes workspace, an accessibility panel for missing alt text and a deck-properties dialog. All review metadata is labelled local-only and stored in the browser; no server persistence exists yet |
 
 ### Presenting
 

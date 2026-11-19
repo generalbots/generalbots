@@ -19,6 +19,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Navigation pane | Heading tree with bookmarks and drag-to-reorder, opened from the Navigation pane control |
 | Quick parts and autotext | Reusable content blocks with variables and `/shortcut` expansion |
 | Language tools | Local-first spelling, style and readability review. Suggestions are accepted individually and reversed with one undo; no document text is sent to a server and AI assistance is off by default |
+| Table editing | A contextual Table tools toolbar for insert/delete rows and columns, merge/split cells, header toggle, banding, borders/shading, padding, vertical alignment, width/autofit and column sort; text↔table conversion and `Ctrl+Alt+T` to reopen the tools. Structural edits keep valid table markup and are one undo step. An accessibility check lists missing header scope, uneven column counts and unlabelled tables and jumps to each one |
 | Undo / Redo | Standard history |
 | **Track Changes** | Record edits as suggestions rather than applying them silently |
 | **Compare Documents** | Diff two documents against each other |
