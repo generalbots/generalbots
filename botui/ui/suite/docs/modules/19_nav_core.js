@@ -217,8 +217,8 @@
       '<div class="gb-qp-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-ask-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;">',
       '<h3 id="gb-ask-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(message) + "</h3>",
       isPrompt
-        ? '<label style="display:block;margin-bottom:12px;">' + NS.escapeHtml(message) +
-          '<input id="gb-ask-input" type="text" style="display:block;width:100%;margin-top:6px;padding:8px;box-sizing:border-box;" /></label>'
+        ? '<input id="gb-ask-input" type="text" aria-label="' + NS.escapeHtml(message) +
+          '" style="display:block;width:100%;margin-bottom:12px;padding:8px;box-sizing:border-box;" />'
         : "",
       '<div style="display:flex;justify-content:flex-end;gap:8px;">',
       '<button type="button" id="gb-ask-cancel" class="gb-fr-btn">' + cancelLabel + "</button>",
