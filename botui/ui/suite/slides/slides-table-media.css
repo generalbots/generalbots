@@ -1,0 +1,253 @@
+/* Slides table & media authoring (#2487). Scoped to the STM namespace so it
+ * cannot change the look of existing Slides modules. */
+
+.stm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  padding: 24px;
+}
+
+.stm-dialog {
+  width: min(680px, 100%);
+  max-height: min(86vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #e2e8f0;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  font-family: inherit;
+}
+
+.stm-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #1e293b;
+}
+.stm-dialog-header h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.stm-dialog-close {
+  background: transparent;
+  border: 0;
+  color: #94a3b8;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.stm-dialog-close:hover, .stm-dialog-close:focus-visible { color: #f8fafc; background: #1e293b; }
+
+.stm-dialog-body { padding: 16px 18px; overflow-y: auto; flex: 1 1 auto; }
+.stm-dialog-body > p { margin: 0 0 12px; line-height: 1.5; }
+.stm-dialog-status {
+  min-height: 32px;
+  padding: 8px 18px;
+  color: #a5b4fc;
+  font-size: 12px;
+  border-top: 1px solid #1e293b;
+}
+.stm-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid #1e293b;
+}
+
+.stm-btn {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.stm-btn:hover:not(:disabled) { background: #334155; }
+.stm-btn:focus-visible, .stm-media-card:focus-visible, .stm-media-frame:focus-visible,
+.stm-field-label input:focus-visible, .stm-field-label select:focus-visible,
+.stm-field-label textarea:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.stm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.stm-btn-primary { background: #4f46e5; border-color: #6366f1; color: #fff; }
+.stm-btn-primary:hover:not(:disabled) { background: #4338ca; }
+
+.stm-local-note {
+  margin: 0 0 12px !important;
+  padding: 7px 10px;
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  color: #fcd34d;
+  font-size: 11px;
+}
+
+.stm-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.stm-field-label input, .stm-field-label select, .stm-field-label textarea,
+.stm-tab-page > input[type="search"] {
+  width: 100%;
+  box-sizing: border-box;
+  background: #020617;
+  border: 1px solid #475569;
+  border-radius: 5px;
+  color: #f8fafc;
+  padding: 7px 9px;
+  font-family: inherit;
+  font-size: 12px;
+}
+.stm-field-label textarea { resize: vertical; }
+.stm-check-row { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 0 0 12px; }
+.stm-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; }
+.stm-check input { accent-color: #6366f1; }
+
+.stm-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #1e293b; }
+.stm-tabs .stm-btn { border-radius: 6px 6px 0 0; border-bottom-color: transparent; }
+.stm-tabs .stm-btn[aria-selected="true"] { background: #312e81; color: #fff; }
+.stm-tab-page { padding-top: 4px; }
+
+.stm-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.stm-media-grid > p { color: #94a3b8; font-size: 12px; }
+.stm-media-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  background: #111c33;
+  cursor: pointer;
+  min-width: 0;
+}
+.stm-media-card:hover { border-color: #6366f1; }
+.stm-media-card[hidden] { display: none; }
+.stm-card-active { border-color: #818cf8; box-shadow: 0 0 0 1px #818cf8 inset; }
+.stm-thumb-wrap { height: 86px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; background: #020617; }
+.stm-thumb { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; }
+.stm-thumb-audio { display: flex; align-items: center; justify-content: center; font-size: 34px; color: #a5b4fc; }
+.stm-card-name {
+  font-size: 11px;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stm-card-meta { font-size: 10px; color: #94a3b8; min-height: 12px; }
+
+.stm-transcript { margin: 0 0 12px; max-height: 200px; overflow-y: auto; border: 1px solid #1e293b; border-radius: 6px; }
+.stm-transcript > p { padding: 10px; color: #94a3b8; font-size: 12px; }
+.stm-transcript-cue {
+  display: flex;
+  gap: 10px;
+  padding: 6px 9px;
+  border-bottom: 1px solid #1e293b;
+  font-size: 12px;
+}
+.stm-cue-time { color: #a5b4fc; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stm-caption-styles { display: flex; flex-wrap: wrap; gap: 12px; }
+.stm-caption-styles .stm-field-label { flex: 1 1 140px; }
+.stm-preview-player { width: 100%; max-height: 52vh; background: #000; }
+.stm-preview-note { color: #94a3b8; font-size: 11px; }
+
+.stm-table-panel {
+  position: fixed;
+  right: 16px;
+  top: 150px;
+  z-index: 8000;
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 12px;
+  color: #e2e8f0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+.stm-table-panel[hidden] { display: none; }
+.stm-panel-hint { margin: 0 0 10px; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+.stm-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stm-control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: #111c33;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+}
+.stm-control-group:nth-child(odd) { grid-column: auto; }
+.stm-control-legend { flex-basis: 100%; font-size: 11px; font-weight: 600; color: #a5b4fc; }
+.stm-control-group .stm-btn { padding: 5px 8px; font-size: 11px; }
+.stm-widths { display: flex; flex-wrap: wrap; gap: 4px; }
+.stm-widths input { width: 58px; background: #020617; border: 1px solid #475569; border-radius: 4px; color: #f8fafc; padding: 4px; font-size: 11px; }
+
+.stm-media-layer { position: absolute; inset: 0; pointer-events: none; }
+.stm-media-frame {
+  position: absolute;
+  border: 1px dashed transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.stm-media-frame:hover, .stm-media-frame:focus-visible { border-color: #818cf8; }
+.stm-media-node { width: 100%; height: 100%; object-fit: contain; }
+.stm-media-duration {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  font-size: 10px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.stm-media-duration:empty { display: none; }
+
+.sl-element table.stm-table { width: 100%; height: 100%; border-collapse: collapse; font-size: 12px; color: #0f172a; background: #fff; }
+.sl-element table.stm-table th,
+.sl-element table.stm-table td {
+  border: 1px solid #cbd5e1;
+  padding: var(--stm-pad, 4px);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.sl-element table.stm-table.stm-tbl-noborders th,
+.sl-element table.stm-table.stm-tbl-noborders td { border-color: transparent; }
+.sl-element table.stm-table.stm-tbl-header th { background: #e2e8f0; font-weight: 600; }
+.sl-element table.stm-table.stm-tbl-banded tbody tr:nth-child(even) td { background: #f1f5f9; }
+.sl-element table.stm-table.stm-tbl-style-grid th,
+.sl-element table.stm-table.stm-tbl-style-grid td { border-width: 2px; border-color: #94a3b8; }
+.sl-element table.stm-table.stm-tbl-style-striped tbody tr:nth-child(odd) td { background: #eef2ff; }
+.sl-element table.stm-table.stm-tbl-style-minimal th,
+.sl-element table.stm-table.stm-tbl-style-minimal td { border: 0; border-bottom: 1px solid #cbd5e1; }
+.sl-element table.stm-table.stm-tbl-align-center th,
+.sl-element table.stm-table.stm-tbl-align-center td { text-align: center; }
+.sl-element table.stm-table.stm-tbl-align-right th,
+.sl-element table.stm-table.stm-tbl-align-right td { text-align: right; }
+.sl-element table.stm-table .stm-cell-selected { outline: 2px solid #6366f1; outline-offset: -2px; }

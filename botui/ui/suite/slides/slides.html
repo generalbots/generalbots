@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/suite/slides/slides-animation.css" />
 <link rel="stylesheet" href="/suite/slides/slides-outline.css" />
 <link rel="stylesheet" href="/suite/slides/slides-diagrams.css" />
+<link rel="stylesheet" href="/suite/slides/slides-table-media.css" />
 
 <div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar" role="toolbar" aria-label="Presentation toolbar">
@@ -129,6 +130,13 @@
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
+                <div class="toolbar-group" role="group" data-i18n-aria-label="slides-stm-open-aria">
+                    <button class="btn-icon" id="slTableMediaBtn" type="button" data-i18n-title="slides-stm-open" data-i18n-aria-label="slides-stm-open-aria">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 9h18M9 9v8M15 9v8M8 21h8"/></svg>
+                        <span data-i18n="slides-stm-open"></span>
+                    </button>
+                </div>
+                <span class="toolbar-divider"></span>
                 <div class="toolbar-group" role="group" aria-label="Element">
                     <button class="btn-icon" id="slDeleteBtn" title="Delete element" aria-label="Delete element"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
                 </div>
@@ -216,6 +224,13 @@ if (typeof htmx === 'undefined') {
 <script src="/suite/slides/modules/36_diag_dialog_views.js"></script>
 <script src="/suite/slides/modules/37_diag_canvas.js"></script>
 <script src="/suite/slides/modules/38_diag_init.js"></script>
+<script src="/suite/slides/modules/40_stm_state.js"></script>
+<script src="/suite/slides/modules/41_stm_table_model.js"></script>
+<script src="/suite/slides/modules/42_stm_table_editor.js"></script>
+<script src="/suite/slides/modules/42b_stm_table_panel.js"></script>
+<script src="/suite/slides/modules/43_stm_media_browser.js"></script>
+<script src="/suite/slides/modules/44_stm_media_controls.js"></script>
+<script src="/suite/slides/modules/45_stm_captions_init.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
 <script src="/suite/slides/modules/08_toolbar_overflow.js"></script>
 <script>
