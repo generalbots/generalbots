@@ -85,6 +85,8 @@ The toolbar's formula-auditing button opens a local-only panel with seven tabs: 
 |------|--------|
 | Bar, Line, Pie, Scatter, Area | Partial — charts render as SVG overlays anchored to grid coordinates; data is snapshotted rather than bound to a range |
 
+The toolbar's **Advanced charts** button opens a local-only type picker with a live preview. It adds twelve further locally rendered SVG types — waterfall, histogram, Pareto, box and whisker, heatmap, treemap, sunburst, combo (bar with a secondary-axis line), and stacked and clustered column and bar variants — bound to a cell range with minimum/maximum clamping. Trendlines (linear, exponential, moving average), error bars, reference lines, target bands and variance callouts can be overlaid. Colour choices include a colour-blind-safe and a high-contrast palette with contrast checks. Every chart carries alt text and a data-table fallback, and the picker is keyboard accessible with a focus trap and a polite status region. The rendering is explicitly labelled local-only: it draws the chart definition in the browser and makes no server call, so it does not guarantee XLSX chart-part round-trip, PDF/PNG export, server dynamic named ranges or print parity.
+
 ### Filters
 
 | Filter | Status |
