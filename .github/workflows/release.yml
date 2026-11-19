@@ -585,16 +585,14 @@ jobs:
           $stage = 'dist\installers'
           $resources = 'botserver\botserver-installers'
           New-Item -ItemType Directory -Force $stage, $resources | Out-Null
-          $runtimeDlls = @(
-            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
-            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
-            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
-          )
-          foreach ($name in $runtimeDlls) {
-            $dll = Join-Path "$($pg.FullName)\bin" $name
-            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
-            Copy-Item $dll $stage -Force
-            Copy-Item $dll $resources -Force
+          # Stage every DLL the installer ships: the transitive set changes
+          # between PostgreSQL releases (16.16 dropped libwinpthread-1.dll),
+          # so a hardcoded list breaks the build on every minor bump.
+          $libpq = Join-Path "$($pg.FullName)\bin" 'libpq.dll'
+          if (-not (Test-Path $libpq)) { throw "libpq.dll is missing from the PostgreSQL install" }
+          Get-ChildItem "$($pg.FullName)\bin" -Filter '*.dll' | ForEach-Object {
+            Copy-Item $_.FullName $stage -Force
+            Copy-Item $_.FullName $resources -Force
           }
 
       - uses: ./.github/actions/rust-setup
