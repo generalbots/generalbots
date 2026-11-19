@@ -98,6 +98,10 @@ impl LLMProvider for OpenAIClient {
         if !use_stream {
             info!("Setting stream=false for model: {}", model);
         }
+        let messages = crate::media_parts::openai_messages(
+            &messages,
+            crate::media_parts::sees_images(&self.base_url),
+        );
         let mut request_body = serde_json::json!({
             "model": model,
             "messages": messages,

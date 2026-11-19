@@ -17,6 +17,28 @@ pub(crate) struct AttachmentResult {
     /// When set, the attachment was stored but its media content could not be
     /// read; the value is a short reason code (e.g. `image_reader_unavailable`).
     pub media_fail_reason: Option<&'static str>,
+    /// Images and PDFs for a model that can see them (`botllm::media_parts`).
+    pub media: Vec<Value>,
+}
+
+/// Largest image a vision model receives (Anthropic's limit per image).
+const MAX_VISION_IMAGE: usize = 5 * 1024 * 1024;
+/// Largest PDF Claude receives as a document.
+const MAX_VISION_PDF: usize = 32 * 1024 * 1024;
+
+fn image_media_type(name: &str) -> Option<&'static str> {
+    let lower = name.to_lowercase();
+    if lower.ends_with(".png") {
+        Some("image/png")
+    } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        Some("image/jpeg")
+    } else if lower.ends_with(".gif") {
+        Some("image/gif")
+    } else if lower.ends_with(".webp") {
+        Some("image/webp")
+    } else {
+        None
+    }
 }
 
 /// Stores a base64 attachment under `inbox/` and produces the system block
@@ -30,6 +52,7 @@ pub(crate) async fn ingest_attachment(
     bot_name: &str,
     parsed: &Value,
     user_text: String,
+    vision: bool,
 ) -> AttachmentResult {
     let files: Vec<Value> = parsed
         .get("files")
@@ -37,14 +60,16 @@ pub(crate) async fn ingest_attachment(
         .cloned()
         .unwrap_or_default();
     if files.is_empty() {
-        return ingest_single_attachment(state, bot_uuid, bot_name, parsed, user_text).await;
+        return ingest_single_attachment(state, bot_uuid, bot_name, parsed, user_text, vision).await;
     }
     let mut text = user_text;
     let mut notes: Vec<String> = Vec::new();
+    let mut media: Vec<Value> = Vec::new();
     for file in files {
         let single = serde_json::json!({ "file": file });
-        let result = ingest_single_attachment(state, bot_uuid, bot_name, &single, text).await;
+        let result = ingest_single_attachment(state, bot_uuid, bot_name, &single, text, vision).await;
         text = result.user_text;
+        media.extend(result.media);
         if let Some(note) = result.note {
             notes.push(note);
         }
@@ -57,6 +82,7 @@ pub(crate) async fn ingest_attachment(
             Some(notes.join("\n\n"))
         },
         media_fail_reason: None,
+        media,
     }
 }
 
@@ -66,6 +92,7 @@ async fn ingest_single_attachment(
     bot_name: &str,
     parsed: &Value,
     user_text: String,
+    vision: bool,
 ) -> AttachmentResult {
     let mut user_text = user_text;
     let mut attachment_note: Option<String> = None;
@@ -74,6 +101,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            media: Vec::new(),
         };
     };
     let fname = file
@@ -90,24 +118,26 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            media: Vec::new(),
         };
     }
     // #1947 — the composer sends attachments inline as base64. A file that is
     // too large never reaches the server intact, and the user only saw their
     // message without the attachment. Report the limit explicitly.
-    const MAX_ATTACHMENT_B64: usize = 12 * 1024 * 1024;
+    const MAX_ATTACHMENT_B64: usize = 68 * 1024 * 1024; // 50 MB of file as base64
     if b64.len() > MAX_ATTACHMENT_B64 {
         log::warn!(
             "chat attachment too large: {fname} ({} base64 bytes, limit {MAX_ATTACHMENT_B64})",
             b64.len()
         );
         user_text = format!(
-            "{user_text}\n\n📎 {fname} (larger than 8 MB and was not stored — share it from Drive or split it)"
+            "{user_text}\n\n📎 {fname} (larger than 50 MB and was not stored — share it from Drive or split it)"
         );
         return AttachmentResult {
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            media: Vec::new(),
         };
     }
     let data = match base64::engine::general_purpose::STANDARD.decode(b64) {
@@ -121,6 +151,7 @@ async fn ingest_single_attachment(
                 user_text,
                 note: attachment_note,
                 media_fail_reason: None,
+                media: Vec::new(),
             };
         }
     };
@@ -137,6 +168,22 @@ async fn ingest_single_attachment(
         None
     };
     let read_by_ocr = recognised.is_some();
+    // A model that can see gets the file itself too: symbols, stamps,
+    // signatures, layout and pictures are lost in plain text.
+    let mut vision_media: Vec<Value> = Vec::new();
+    if vision {
+        if let Some(mt) = image_media_type(&fname).filter(|_| data.len() <= MAX_VISION_IMAGE) {
+            vision_media.push(serde_json::json!({ "type": "image", "media_type": mt, "data": b64 }));
+        } else if pdf && data.len() <= MAX_VISION_PDF {
+            vision_media.push(serde_json::json!({ "type": "pdf", "media_type": "application/pdf", "data": b64 }));
+        }
+    }
+    let sees_file = !vision_media.is_empty();
+    let seen = if sees_file {
+        " The file itself is also attached to this message: look at it and use what you see (symbols, stamps, signatures, layout, colors, pictures), not only the text."
+    } else {
+        ""
+    };
     if recognised.is_some() {
         excerpt = recognised;
     }
@@ -196,11 +243,17 @@ async fn ingest_single_attachment(
             data.len()
         );
         attachment_note = Some(match excerpt {
+            Some(text) if read_by_ocr && sees_file => format!(
+                "The user attached '{fname}'. The file is stored at inbox/{fname}.{seen} Text recognition (OCR) on this computer also read the text below from its pixels; it may contain recognition errors, so trust what you see where they differ.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+            ),
             Some(text) if read_by_ocr => format!(
                 "The user attached '{fname}'. The file is stored at inbox/{fname}. It has no text layer, so text recognition (OCR) on this computer read the text below from its pixels: it may contain recognition errors, and pictures, stamps, signatures and layout are not described. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
             ),
             Some(text) => format!(
-                "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+                "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below.{seen} Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+            ),
+            None if sees_file => format!(
+                "The user attached '{fname}' (stored at inbox/{fname}). No text was found in it, but the file itself is attached to this message: look at it and answer from what you see. Never invent details you cannot see."
             ),
             None if media => media_note.unwrap_or_else(|| {
                 // #2561 — determine whether any image-processing path is
@@ -252,13 +305,19 @@ async fn ingest_single_attachment(
         } else {
             "Its extracted text is reproduced below."
         };
+        let how = format!("{how}{seen}");
         attachment_note = Some(format!(
             "The user attached '{fname}'. The file could not be stored, so it is not in Drive and no tool can open it; tell the user in one short sentence that the file was read but not saved. {how} Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+        ));
+    } else if sees_file {
+        attachment_note = Some(format!(
+            "The user attached '{fname}'. The file could not be stored, so it is not in Drive; tell the user in one short sentence that it was not saved. No text was found in it, but the file itself is attached to this message: look at it and answer from what you see. Never invent details you cannot see."
         ));
     }
     AttachmentResult {
         user_text,
         note: attachment_note,
         media_fail_reason,
+        media: vision_media,
     }
 }

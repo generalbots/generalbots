@@ -275,7 +275,7 @@ impl ClaudeClient {
             thinking,
         };
 
-        let request_body = serde_json::to_string(&request)?;
+        let request_body = Self::body_with_media(&request, messages)?;
         trace!(
             "CLAUDE Streaming request: model={}, messages={}, body_len={}",
             model_name,

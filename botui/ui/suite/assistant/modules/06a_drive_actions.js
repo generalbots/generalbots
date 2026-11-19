@@ -259,7 +259,7 @@
 
     /* ---- Use file in conversation (item 4) ---- */
     function useFileInChat(path, name) {
-        var MAX_ATTACH = 8 * 1024 * 1024;
+        var MAX_ATTACH = 50 * 1024 * 1024;
         D.showToast(A.t("drive.fetching", "Carregando arquivo..."));
         /* Inbox files live in the bot's Drive layout (resolved by the server
            via bot_drive_location). The generic /api/files/download-binary with
@@ -295,7 +295,7 @@
         }).then(function (blob) {
             if (blob.size > MAX_ATTACH) {
                 D.showToast(
-                    A.t("attach.too-big", "Arquivo grande demais (limite de 8 MB por arquivo): ") + name,
+                    A.t("attach.too-big", "Arquivo grande demais (limite de 50 MB por arquivo): ") + name,
                     "error"
                 );
                 return;

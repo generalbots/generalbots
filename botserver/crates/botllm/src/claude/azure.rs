@@ -122,6 +122,28 @@ impl ClaudeClient {
         (system_prompt, claude_messages)
     }
 
+    /// The request as JSON, with the images and PDFs attached to this turn
+    /// (`media` on any message) put on the last user message as Anthropic
+    /// content blocks. Without media it is the plain request.
+    pub(super) fn body_with_media(
+        request: &ClaudeRequest,
+        messages: &Value,
+    ) -> Result<String, serde_json::Error> {
+        let media = crate::media_parts::collect(messages);
+        if media.is_empty() {
+            return serde_json::to_string(request);
+        }
+        let mut body = serde_json::to_value(request)?;
+        if let Some(last_user) = body["messages"]
+            .as_array_mut()
+            .and_then(|arr| arr.iter_mut().rev().find(|m| m["role"] == "user"))
+        {
+            let text = last_user["content"].as_str().unwrap_or("").to_string();
+            last_user["content"] = crate::media_parts::anthropic_blocks(&media, &text);
+        }
+        serde_json::to_string(&body)
+    }
+
     /// Sanitizes a string by removing invalid UTF-8 surrogate characters
     pub(super) fn sanitize_utf8(input: &str) -> String {
         input.chars()

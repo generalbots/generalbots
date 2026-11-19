@@ -226,10 +226,17 @@ pub async fn process_message_internal(
         None
     };
 
-    let attachment =
-        super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
+    let vision = has_file && {
+        let url = super::enriched_llm::turn_llm_url(state, bot_uuid, &model_preference).await;
+        botllm::media_parts::sees_images(&url)
+    };
+    let attachment = super::turn_hooks::ingest_attachment(
+        state, bot_uuid, bot_name, &parsed, user_text, vision,
+    )
+    .await;
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
+    let attachment_media = attachment.media;
     let media_fail_reason = attachment.media_fail_reason;
 
     // Emit the completed/failed attachment activity.
@@ -275,8 +282,8 @@ pub async fn process_message_internal(
             let done = act.completed(summary);
             super::activity::emit_activity(sink, &early_run, &done).await;
         } else {
-            let reason = if file_size > 12 * 1024 * 1024 {
-                "File exceeds the 8 MB limit"
+            let reason = if file_size > 50 * 1024 * 1024 {
+                "File exceeds the 50 MB limit"
             } else {
                 "Could not store or read the file"
             };
@@ -541,7 +548,13 @@ pub async fn process_message_internal(
     // #1641 — attachment content is a separate system block so it never gets
     // persisted as if the user had typed the whole file.
     if let Some(note) = attachment_note.take() {
-        messages.push(serde_json::json!({"role": "system", "content": note}));
+        let mut block = serde_json::json!({"role": "system", "content": note});
+        // The files themselves, for a model that can see them; each client
+        // turns them into its provider's content parts (botllm::media_parts).
+        if !attachment_media.is_empty() {
+            block["media"] = serde_json::Value::Array(attachment_media);
+        }
+        messages.push(block);
     }
 
     // #1644 — results of approved browser/terminal actions are fed back into

@@ -39,7 +39,7 @@ impl LLMProvider for VertexClient {
         } else {
             serde_json::json!({
                 "model": model,
-                "messages": raw_messages,
+                "messages": crate::media_parts::openai_messages(raw_messages, true),
                 "stream": false
             })
         };
@@ -151,7 +151,7 @@ impl LLMProvider for VertexClient {
         } else {
             serde_json::json!({
                 "model": model,
-                "messages": raw_messages,
+                "messages": crate::media_parts::openai_messages(raw_messages, true),
                 "stream": true
             })
         };

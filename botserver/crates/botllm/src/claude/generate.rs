@@ -29,7 +29,7 @@ impl LLMProvider for ClaudeClient {
             thinking: None,
         };
 
-        let body = serde_json::to_string(&request)?;
+        let body = Self::body_with_media(&request, messages)?;
         trace!("CLAUDE request: model={}, body_len={}", model_name, body.len());
 
         let start = Instant::now();

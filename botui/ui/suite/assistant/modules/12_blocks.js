@@ -395,7 +395,7 @@ A.attachCard = function (file, opts) {
     var size = file.size || file.size_bytes || 0;
     var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
     var icon = fileIcon(name); var tint = fileTint(name);
-    var overLimit = size > 8 * 1024 * 1024;
+    var overLimit = size > 50 * 1024 * 1024;
     var card = document.createElement("div");
     card.className = "gb-attach-card" + (overLimit ? " gb-attach-error" : "");
     if (isImage && file instanceof File && !overLimit) {
@@ -407,7 +407,7 @@ A.attachCard = function (file, opts) {
     var displayName = truncMiddle(name, 28);
     var html = '<span class="gb-attach-icon"' + (tint ? ' style="' + tint + '"' : '') + '>' + I(icon, 16) + '</span>';
     html += '<span class="gb-attach-name"' + (name.length > 28 ? ' title="' + esc(name) + '"' : '') + '>' + esc(displayName) + '</span>';
-    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 8 MB","Limit: 8 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
+    html += '<span class="gb-attach-size">' + (overLimit ? esc(t("Limite: 50 MB","Limit: 50 MB")) : (size > 0 ? fmtBytes(size) : '')) + '</span>';
     if (opts.removable !== false) {
         html += '<button class="gb-attach-remove" aria-label="' + esc(t("Remover","Remove")) + '">' + I("x-circle", 16) + '</button>';
     }
