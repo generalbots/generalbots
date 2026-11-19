@@ -19,7 +19,7 @@ pub use auth::{
     refresh_token_optional_secret, TokenSet,
 };
 pub use parse::{classify_status, parse_page};
-pub(crate) use parse::{percent_encode, DRIVE_API};
+pub(crate) use parse::{percent_encode, DRIVE_API, FOLDER_MIME};
 
 #[cfg(test)]
 #[path = "../gdrive_tests.rs"]

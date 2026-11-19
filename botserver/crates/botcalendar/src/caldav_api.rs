@@ -1,4 +1,5 @@
 use super::*;
+use botschema::{calendar_events, calendars};
 
 
 // The DAV router lives in the `caldav` module; it is re-exported above so the

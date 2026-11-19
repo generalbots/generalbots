@@ -3,6 +3,7 @@
 
 use super::*;
 use serde_json::json;
+use crate::external::SyncError;
 
 #[test]
 fn files_list_page_is_parsed() {

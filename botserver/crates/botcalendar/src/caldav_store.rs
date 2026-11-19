@@ -15,6 +15,7 @@ use botsecurity_core::response_error::ResponseError;
 use super::{calendar_events, calendars, record_to_event, CalendarEventRecord, CalendarRecord, DbPool};
 use crate::caldav_http::{not_found, unavailable};
 use crate::caldav_xml;
+use botschema::{calendar_events, calendars};
 
 /// Upper bound on the events one `REPORT` may return, so a client that asks for
 /// an unbounded range cannot make the server materialize an entire table.
