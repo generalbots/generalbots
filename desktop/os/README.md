@@ -167,6 +167,23 @@ systemd-analyze security desktop/os/mkosi.extra/usr/lib/systemd/system/generalbo
 ```
 
 
+## Runtime stack (what the image actually provides)
+
+The appliance is a laptop, not only a kiosk: the package list in `mkosi.conf`
+and the configuration written by `mkosi.finalize.chroot` cover the surfaces a
+laptop user expects. Each block names the issue it answers.
+
+| Surface | What is in the image |
+|---|---|
+| Networking | NetworkManager + `wpasupplicant` + `firmware-iwlwifi` + `wireless-regdb` + `rfkill`; `systemd-networkd` disabled; DNS via `systemd-resolved` (#2453) |
+| Firewall | `nftables` default-deny inbound, loaded at boot; loopback-only stack; LAN exposure is opt-in through `GB_ALLOW_LAN=1` plus the `gb_lan_allowed` set (#2477) |
+| Sound | PipeWire + WirePlumber + `pipewire-alsa` + ALSA UCM + GStreamer plugins; `/dev/snd` allowed in the unit (#2455) |
+| Time/locale | `systemd-timesyncd`, `tzdata`, `locales`, `console-setup`, `keyboard-configuration`; `/etc/locale.gen`, `/etc/default/keyboard`, `/etc/timezone` written at build time (#2458) |
+| Removable media | `udisks2` + `gvfs` + `exfatprogs`/`ntfs-3g`/`dosfstools` (#2460) |
+| Session | `dbus-user-session`; `/usr/local/bin/gb-session` waits for the user manager's bus before exec'ing cage; user services (PipeWire, portals, gvfs) enabled via `default.target.wants` (#2449) |
+| Sandbox | `bubblewrap` + `libseccomp2`, `WEBKIT_FORCE_SANDBOX=1`, `LIBSEAT_BACKEND=logind` (#2500) |
+| Power | `/usr/local/libexec/gb-power` (fixed action list) + `sudoers.d/gb-power`, logind `HandlePowerKey=ignore`, polkit rule denying logind/NetworkManager power and network actions to `gbdesk` (#2444, #2502) |
+
 ## Next hardening steps (mkosi supports all of them)
 
 1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates

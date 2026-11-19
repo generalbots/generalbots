@@ -3,8 +3,13 @@ Description=General Bots kiosk shell (cage + General Bots desktop)
 Documentation=https://github.com/generalbots/generalbots
 # Serve nothing until user sessions and the network are up; getty@tty1 is
 # masked at build time (mkosi.finalize.chroot) — there is no greeter.
-After=systemd-user-sessions.service systemd-networkd.service systemd-logind.service plymouth-quit-wait.service
+After=systemd-user-sessions.service NetworkManager.service systemd-logind.service plymouth-quit-wait.service
 Wants=network-online.target plymouth-quit-wait.service
+# #2449 — the kiosk must run inside a real user manager, not a bare private
+# bus: PipeWire, WirePlumber, the xdg-desktop-portal stack, gvfs and every
+# future user service are socket-activated by it, and `systemctl --user`
+# only works when user@<uid> is up. PAMName=login makes pam_systemd create
+# the logind session (and thus user@.service); gb-session waits for its bus.
 Conflicts=getty@tty1.service
 ConditionPathExists=/opt/general-bots/start.sh
 
@@ -27,6 +32,15 @@ StandardError=journal
 WorkingDirectory=/var/lib/gbdesk
 Environment=HOME=/var/lib/gbdesk
 Environment=WLR_BACKENDS=drm
+# #2449 — the session bus and runtime dir belong to the user manager.
+Environment=XDG_RUNTIME_DIR=/run/user/%U
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+# #2500 — a web process that cannot be sandboxed must fail loudly instead of
+# running page content with the kiosk user's full access.
+Environment=WEBKIT_FORCE_SANDBOX=1
+Environment=LIBSEAT_BACKEND=logind
+# #2455 — PipeWire finds its runtime socket here; ALSA clients are routed to it.
+Environment=PIPEWIRE_RUNTIME_DIR=/run/user/%U
 # ---------------------------------------------------------------------------
 # Kiosk hardening (documented). Each directive below is intentionally explicit.
 # ---------------------------------------------------------------------------
@@ -73,11 +87,21 @@ BindPaths=/run/user/%U
 PrivateDevices=yes
 DevicePolicy=closed
 DeviceAllow=/dev/dri rw
-DeviceAllow=/dev/dri/card0 rw
-DeviceAllow=/dev/dri/renderD128 rw
+DeviceAllow=/dev/dri/card* rw
+DeviceAllow=/dev/dri/renderD* rw
 DeviceAllow=char-drm rw
 DeviceAllow=/dev/tty0 rw
 DeviceAllow=/dev/tty1 rw
+# #2455 — sound: the compositor/Meet/Player need the PCM and control nodes.
+DeviceAllow=/dev/snd/* rw
+DeviceAllow=char-snd rw
+# #2504 — camera and microphone capture (granted per origin by the shell, not
+# blanket: see botapp/src/desktop/webkit_permissions.rs).
+DeviceAllow=/dev/video* rw
+DeviceAllow=/dev/media* rw
+# #2453/#2455 — libinput reads keyboards, touchpads and the kiosk's own keys.
+DeviceAllow=/dev/input/* rw
+DeviceAllow=char-input rw
 
 # --- Kernel / control surfaces ---
 ProtectKernelTunables=yes
@@ -140,7 +164,11 @@ UMask=0077
 # and the General Bots launcher as its single application. The launcher starts
 # the botserver sidecar and hosts the desktop webview in the *same* user/session
 # context today (see "Security domain boundary" in desktop/os/README.md).
-ExecStart=/usr/bin/dbus-run-session -- /usr/bin/cage /opt/general-bots/start.sh
+# #2449 — gb-session waits for the user manager's bus (PAMName=login /
+# pam_systemd / user@.service), then execs cage with the launcher. If the bus
+# never appears it falls back to a private dbus-run-session, so the kiosk
+# still boots instead of dying on a race at startup.
+ExecStart=/usr/local/bin/gb-session
 Restart=always
 RestartSec=3
 

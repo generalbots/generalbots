@@ -281,3 +281,60 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Power menu (#2444) ──
+   Opened from the start menu, the control center and the kiosk close request
+   (#2450). Above every window and modal, including the lock overlay. */
+.gb-power-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 200000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.gb-power-box {
+  min-width: 240px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #111111);
+  border: 1px solid var(--border, #d5d9e0);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+}
+.gb-power-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #666666);
+  padding: 4px 8px 8px;
+}
+.gb-power-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gb-power-item:hover,
+.gb-power-item:focus-visible {
+  background: rgba(127, 127, 127, 0.14);
+  outline: none;
+}
+.gb-power-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent, #3b7ddd);
+}
+.gb-power-cancel {
+  margin-top: 4px;
+  color: var(--text-secondary, #666666);
+}

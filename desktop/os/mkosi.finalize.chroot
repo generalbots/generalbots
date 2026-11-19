@@ -21,8 +21,17 @@ systemctl mask getty@tty1.service
 #    documented recovery procedure is reprovisioning from a fresh image.
 systemctl mask rescue.service emergency.service
 
-# 4. Kiosk shell + networking for the setup wizard's first-run provisioning.
-systemctl enable generalbots-shell.service systemd-networkd.service systemd-resolved.service
+# 4. Services. Networking is NetworkManager (#2453 — Wi-Fi needs a
+#    supplicant and a D-Bus API; systemd-networkd alone cannot join a WPA
+#    network), DNS stays systemd-resolved, the clock is set by timesyncd
+#    (#2458), and nftables applies the default-deny ruleset before anything
+#    can listen (#2477).
+systemctl disable systemd-networkd.service 2>/dev/null || true
+systemctl enable generalbots-shell.service
+systemctl enable NetworkManager.service
+systemctl enable systemd-resolved.service
+systemctl enable systemd-timesyncd.service
+systemctl enable nftables.service
 
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
@@ -32,8 +41,65 @@ install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 #     the QEMU boot smoke: systemd-firstboot.service held serial input).
 systemctl mask systemd-firstboot.service
 printf 'general-bots-os\n' >/etc/hostname
+
+# 5a. #2449 — session entry point. Wait for the user manager's bus, then exec
+#     cage with the launcher. The fallback keeps the kiosk bootable if the
+#     user manager is slow or absent (a private bus still lets GTK start).
+cat >/usr/local/bin/gb-session <<'EOF'
+#!/bin/sh
+# General Bots OS session entry point (#2449).
+set -u
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+bus="$XDG_RUNTIME_DIR/bus"
+tries=0
+while [ ! -S "$bus" ] && [ "$tries" -lt 40 ]; do
+    tries=$((tries + 1))
+    sleep 0.5
+done
+if [ -S "$bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$bus"
+    exec /usr/bin/cage /opt/general-bots/start.sh
+fi
+echo "gb-session: user bus never appeared, falling back to a private session" >&2
+exec /usr/bin/dbus-run-session -- /usr/bin/cage /opt/general-bots/start.sh
+EOF
+chmod 0755 /usr/local/bin/gb-session
+
+# 5a-bis. #2455/#2449 — per-user services the kiosk relies on are enabled for
+#     every user through default.target.wants, so PipeWire, the portals or gvfs
+#     do not need to be spawned by hand from start.sh. A unit missing in this
+#     base image is skipped instead of failing the build.
+for unit in pipewire.socket pipewire-pulse.socket wireplumber.service \
+            xdg-desktop-portal.service xdg-desktop-portal-gtk.service \
+            xdg-desktop-portal-wlr.service gvfs-daemon.service; do
+    if [ -f "/usr/lib/systemd/user/$unit" ]; then
+        install -d -m 0755 /etc/systemd/user/default.target.wants
+        ln -sf "/usr/lib/systemd/user/$unit" "/etc/systemd/user/default.target.wants/$unit"
+    fi
+done
+
+# 5c. #2458 — locale and keymap ship as data, not as a hard C.UTF-8 lock:
+#     Settings → Time & Language rewrites these files through localectl, so
+#     a Brazilian or Japanese laptop is not stuck on a US keyboard.
+cat >/etc/locale.gen <<'EOF'
+C.UTF-8 UTF-8
+en_US.UTF-8 UTF-8
+EOF
+locale-gen
 printf 'LANG=C.UTF-8\n' >/etc/locale.conf
+cat >/etc/default/keyboard <<'EOF'
+XKBMODEL="pc105"
+XKBLAYOUT="us"
+XKBVARIANT=""
+XKBOPTIONS=""
+BACKSPACE="guess"
+EOF
 printf 'KEYMAP=us\n' >/etc/vconsole.conf
+# The clock defaults to UTC; the setup wizard / Settings pick a real zone and
+# localectl writes it here. A wrong clock is a TLS and OTP failure, so the
+# timezone file must exist even before the user chooses.
+printf 'UTC\n' >/etc/timezone
+ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
 # 6. Brand the OS identity everywhere an OS screen reads it: boot tools,
 #    `hostnamectl`, the Plymouth theme selector and desktop icon lookups.
@@ -50,3 +116,148 @@ DOCUMENTATION_URL="https://docs.generalbots.org"
 SUPPORT_URL="https://github.com/generalbots/generalbots/issues"
 LOGO=general-bots
 EOF
+
+# 7. #2500 — WebKitGTK must never fall back to an unsandboxed web process.
+#    WEBKIT_FORCE_SANDBOX makes a bwrap failure fatal and visible instead of
+#    silently running page content as the user that owns the database.
+install -d -m 0755 /etc/environment.d
+cat >/etc/environment.d/50-general-bots.conf <<'EOF'
+WEBKIT_FORCE_SANDBOX=1
+LIBSEAT_BACKEND=logind
+EOF
+
+# 8. #2444 — the ACPI power key and the lid are logind's business by default,
+#    and logind's default for the power key is an instant poweroff with no
+#    confirmation. The kiosk owns power from the shell (menu → power API), so
+#    the physical key is ignored here and the shell maps it when it can ask.
+#    The lid suspends as on any laptop; resume re-locks (#2446).
+install -d -m 0755 /etc/systemd/logind.conf.d
+cat >/etc/systemd/logind.conf.d/50-general-bots-power.conf <<'EOF'
+# General Bots OS (#2444/#2446) — power actions are explicit.
+# The power key no longer kills the machine: the shell shows its power menu
+# (or the lock screen) and the user confirms. A long press is the firmware's
+# business (hard power-off) and cannot be intercepted here.
+HandlePowerKey=ignore
+HandlePowerKeyLongPress=poweroff
+HandleSuspendKey=ignore
+HandleHibernateKey=ignore
+HandleLidSwitch=suspend
+HandleLidSwitchExternalPower=suspend
+HandleLidSwitchDocked=ignore
+# Resume must return to an authenticated screen, not to the session.
+LidSwitchIgnoreInhibited=no
+EOF
+
+# 9. #2502 — the session bus is not a power API. Page script (or any app the
+#    webview renders) must not be able to call logind's PowerOff/Reboot/
+#    Suspend, change the network, or open a screencast. Denied here for the
+#    kiosk user; the only path is the audited power endpoint in botserver.
+install -d -m 0755 /etc/polkit-1/rules.d
+cat >/etc/polkit-1/rules.d/50-general-bots-kiosk.rules <<'EOF'
+// General Bots OS (#2502) — the kiosk user is not allowed to drive logind or
+// NetworkManager directly. Power and network changes go through the shell's
+// audited API (admin + loopback), which calls the root helper below.
+polkit.addRule(function (action, subject) {
+    var denied = [
+        "org.freedesktop.login1.power-off",
+        "org.freedesktop.login1.power-off-multiple-sessions",
+        "org.freedesktop.login1.reboot",
+        "org.freedesktop.login1.reboot-multiple-sessions",
+        "org.freedesktop.login1.suspend",
+        "org.freedesktop.login1.suspend-multiple-sessions",
+        "org.freedesktop.login1.hibernate",
+        "org.freedesktop.login1.hibernate-multiple-sessions",
+        "org.freedesktop.login1.set-wall-message",
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.settings.modify.system",
+        "org.freedesktop.NetworkManager.settings.modify.own"
+    ];
+    if (subject.user === "gbdesk" && denied.indexOf(action.id) !== -1) {
+        return polkit.Result.NO;
+    }
+});
+EOF
+
+# 9b. The one privileged operation the shell needs is power, and it runs
+#     through a root-owned helper with a fixed action whitelist — never a
+#     generic `systemctl` grant, which would hand back everything the polkit
+#     rule above just denied.
+install -d -m 0755 /usr/local/libexec /etc/sudoers.d
+cat >/usr/local/libexec/gb-power <<'EOF'
+#!/bin/sh
+# General Bots OS power helper (#2444). Fixed action list, no arguments pass
+# through to another program, no shell expansion.
+set -eu
+action="${1:-}"
+case "$action" in
+    poweroff) exec /usr/bin/systemctl poweroff --no-block ;;
+    reboot)   exec /usr/bin/systemctl reboot --no-block ;;
+    suspend)  exec /usr/bin/systemctl suspend --no-block ;;
+    signout)  exec /usr/bin/loginctl terminate-user gbdesk ;;
+    *)        echo "gb-power: unknown action" >&2; exit 2 ;;
+esac
+EOF
+chmod 0755 /usr/local/libexec/gb-power
+cat >/etc/sudoers.d/gb-power <<'EOF'
+# General Bots OS (#2444) — the kiosk user may call exactly one helper, and
+# only for the four documented actions.
+gbdesk ALL=(root) NOPASSWD: /usr/local/libexec/gb-power poweroff, \
+    /usr/local/libexec/gb-power reboot, \
+    /usr/local/libexec/gb-power suspend, \
+    /usr/local/libexec/gb-power signout
+EOF
+chmod 0440 /etc/sudoers.d/gb-power
+
+# 10. #2477 — a laptop joins untrusted networks. Default-deny inbound; the
+#     whole provisioned stack (botserver, Vault, PostgreSQL, Valkey, MinIO,
+#     Qdrant, Zitadel) listens on loopback only, so nothing on the café Wi-Fi
+#     can reach the login form or the API. Outbound is unrestricted (the
+#     setup wizard, model downloads and normal browsing need it), and the
+#     documented opt-in to expose the suite is `GB_ALLOW_LAN=1`, which flips
+#     botserver's bind address and adds an nftables rule.
+install -d -m 0755 /etc/nftables.d
+cat >/etc/nftables.conf <<'EOF'
+#!/usr/sbin/nft -f
+# General Bots OS (#2477) — a laptop is a machine that joins café Wi-Fi.
+# Nothing listens on the LAN by default. Explicitly allowed: established and
+# related traffic, loopback, DHCP and IPv6 neighbour discovery.
+flush ruleset
+
+table inet gb_filter {
+    # Empty by default: no address may reach the suite ports until the user
+    # turns on "Allow other devices on my network" in Settings → Network.
+    set gb_lan_allowed {
+        type ipv4_addr
+        flags interval
+        elements = { }
+    }
+
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        iif lo accept
+        ct state established,related accept
+        ct state invalid drop
+
+        # DHCP client / server replies, mDNS-free by design.
+        udp sport 67 udp dport 68 accept
+        # IPv6 neighbour discovery and router advertisement.
+        icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert, nd-router-solicit } accept
+        icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem } accept
+        # Administrative ICMP for diagnostics (ping from the machine itself).
+        icmp type echo-request limit rate 5/second accept
+
+        # Opt-in LAN exposure (#2477): the shell adds addresses to this set
+        # when the user turns on "Allow other devices on my network".
+        ip saddr @gb_lan_allowed tcp dport { 8080, 3000, 4000, 5000 } accept
+        log prefix "gb-input-drop: " level warn limit rate 5/minute
+    }
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+EOF
+chmod 0755 /etc/nftables.conf
