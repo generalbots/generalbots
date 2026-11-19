@@ -34,6 +34,50 @@ impl ClaudeCodeProvider {
     }
 }
 
+/// Runs prompts through the `codex` CLI inside the user's agent VM (#2574).
+pub struct CodexCliProvider {
+    service: Arc<AgentService>,
+    vm_name: String,
+    model: String,
+}
+
+impl std::fmt::Debug for CodexCliProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodexCliProvider")
+            .field("vm_name", &self.vm_name)
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
+impl CodexCliProvider {
+    pub fn new(service: Arc<AgentService>, vm_name: String, model: String) -> Self {
+        Self { service, vm_name, model }
+    }
+}
+
+/// Runs prompts through the `antigravity` CLI inside the user's agent VM (#2576).
+pub struct AntigravityProvider {
+    service: Arc<AgentService>,
+    vm_name: String,
+    model: String,
+}
+
+impl std::fmt::Debug for AntigravityProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AntigravityProvider")
+            .field("vm_name", &self.vm_name)
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
+impl AntigravityProvider {
+    pub fn new(service: Arc<AgentService>, vm_name: String, model: String) -> Self {
+        Self { service, vm_name, model }
+    }
+}
+
 fn boxed(message: String) -> Box<dyn std::error::Error + Send + Sync> {
     Box::new(std::io::Error::other(message))
 }
@@ -67,6 +111,68 @@ impl botlib::traits::LLMProvider for ClaudeCodeProvider {
         let prompt = flatten_prompt(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
         botagent::claude::run_prompt(&self.service, &self.vm_name, &prompt, selected)
+            .await
+            .map_err(|(_, error)| boxed(error))
+    }
+
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        config: &Value,
+        tx: mpsc::Sender<String>,
+        model: &str,
+        key: &str,
+        _tools: Option<&Vec<Value>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let text = self.generate(prompt, config, model, key).await?;
+        send_in_chunks(&tx, &text).await;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl botlib::traits::LLMProvider for CodexCliProvider {
+    async fn generate(
+        &self,
+        prompt: &str,
+        config: &Value,
+        model: &str,
+        _key: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let prompt = flatten_prompt(prompt, config);
+        let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
+        botagent::codex::run_prompt(&self.service, &self.vm_name, &prompt, selected)
+            .await
+            .map_err(|(_, error)| boxed(error))
+    }
+
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        config: &Value,
+        tx: mpsc::Sender<String>,
+        model: &str,
+        key: &str,
+        _tools: Option<&Vec<Value>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let text = self.generate(prompt, config, model, key).await?;
+        send_in_chunks(&tx, &text).await;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl botlib::traits::LLMProvider for AntigravityProvider {
+    async fn generate(
+        &self,
+        prompt: &str,
+        config: &Value,
+        model: &str,
+        _key: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let prompt = flatten_prompt(prompt, config);
+        let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
+        botagent::antigravity::run_prompt(&self.service, &self.vm_name, &prompt, selected)
             .await
             .map_err(|(_, error)| boxed(error))
     }
@@ -171,8 +277,6 @@ pub async fn build(
 ) -> Result<Arc<dyn botlib::traits::LLMProvider>, String> {
     match resolved.provider.as_str() {
         crate::core::ai_accounts::CLAUDE_CODE => {
-            // #2239 — never provision/wake the agent workspace when Agent/VM is
-            // disabled for this conversation turn.
             if !crate::core::bot::pipeline::agent_turn::is_enabled(session_id) {
                 return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
             }
@@ -193,11 +297,32 @@ pub async fn build(
                 resolved.model.clone(),
             )))
         }
+        crate::core::ai_accounts::CODEX_CLI => {
+            if !crate::core::bot::pipeline::agent_turn::is_enabled(session_id) {
+                return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
+            }
+            let service = crate::core::bot::agent_vm_hook::service()
+                .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
+            let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid)
+                .await
+                .ok_or_else(|| "Sign in to use your Codex subscription in the agent workspace.".to_string())?;
+            Ok(Arc::new(CodexCliProvider::new(service.clone(), row.vm_name, resolved.model.clone())))
+        }
+        crate::core::ai_accounts::ANTIGRAVITY => {
+            if !crate::core::bot::pipeline::agent_turn::is_enabled(session_id) {
+                return Err(crate::core::bot::pipeline::agent_turn::DISABLED_MESSAGE.to_string());
+            }
+            let service = crate::core::bot::agent_vm_hook::service()
+                .ok_or_else(|| "The agent workspace is not available in this build.".to_string())?;
+            let row = crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid)
+                .await
+                .ok_or_else(|| "Sign in to use your Antigravity account in the agent workspace.".to_string())?;
+            Ok(Arc::new(AntigravityProvider::new(service.clone(), row.vm_name, resolved.model.clone())))
+        }
         crate::core::ai_accounts::CHATGPT_PLAN => {
             let manager = botcoresecrets::SecretsManager::get()
                 .map_err(|error| format!("Secrets are unavailable: {error}"))?;
             let path = chatgpt_vault_path(user_id);
-            let secret = manager
                 .get_secret(&path)
                 .await
                 .map_err(|error| format!("Could not read the ChatGPT plan token: {error}"))?;

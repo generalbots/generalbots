@@ -75,16 +75,22 @@
     var agentOptions = AGENTS.map(function (agent) {
       return '<option value="' + agent + '">' + agent + "</option>";
     }).join("");
+    var title = provider === "claude-code" ? "Claude Code" : provider === "chatgpt-plan" ? "ChatGPT plan" : provider === "codex-cli" ? "Codex" : provider === "antigravity" ? "Antigravity" : provider;
+    var desc = provider === "claude-code"
+      ? "Runs the Claude Code CLI inside your agent VM; the credential never leaves it."
+      : provider === "chatgpt-plan"
+      ? "Uses your ChatGPT plan through the local OAuth loopback; the token lives in Vault."
+      : provider === "codex-cli"
+      ? "Codex CLI subscription flow (setup in progress)."
+      : provider === "antigravity"
+      ? "Antigravity account flow (setup in progress)."
+      : "AI account subscription.";
     return (
       '<div class="setting-row" data-ai-account="' + escapeHtml(provider) + '" style="display:block;padding:14px 0;border-bottom:1px solid var(--border,#262b36)">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
           '<div>' +
-            '<strong>' + (provider === "claude-code" ? "Claude Code" : "ChatGPT plan") + "</strong>" +
-            '<div style="font-size:12px;color:var(--text-muted,#8b93a7)">' +
-              (provider === "claude-code"
-                ? "Runs the Claude Code CLI inside your agent VM; the credential never leaves it."
-                : "Uses your ChatGPT plan through the local OAuth loopback; the token lives in Vault.") +
-            "</div>" +
+            '<strong>' + title + "</strong>" +
+            '<div style="font-size:12px;color:var(--text-muted,#8b93a7)">' + desc + "</div>" +
           "</div>" +
           '<span class="badge" data-ai-status="' + escapeHtml(provider) + '">' + label(account.status) + "</span>" +
         "</div>" +
@@ -99,10 +105,10 @@
               '<button type="button" class="btn-secondary btn-sm" data-ai-use="' + escapeHtml(provider) + '">Use for Vibe</button>'
             : "") +
         "</div>" +
-        (provider === "claude-code"
-          ? '<div data-ai-code-row="claude-code" hidden style="margin-top:10px">' +
-              '<input type="text" data-ai-code="claude-code" placeholder="Paste the authorization code from Claude" style="width:min(520px,100%);padding:8px 10px;border:1px solid var(--border,#334155);border-radius:6px;background:var(--bg,#14142a);color:var(--text,#eee)" />' +
-              '<button type="button" class="btn-primary btn-sm" data-ai-submit="claude-code" style="margin-left:8px">Submit code</button>' +
+        (provider === "claude-code" || provider === "codex-cli" || provider === "antigravity"
+          ? '<div data-ai-code-row="' + escapeHtml(provider) + '" hidden style="margin-top:10px">' +
+              '<input type="text" data-ai-code="' + escapeHtml(provider) + '" placeholder="Paste the authorization code" style="width:min(520px,100%);padding:8px 10px;border:1px solid var(--border,#334155);border-radius:6px;background:var(--bg,#14142a);color:var(--text,#eee)" />' +
+              '<button type="button" class="btn-primary btn-sm" data-ai-submit="' + escapeHtml(provider) + '" style="margin-left:8px">Submit code</button>' +
             "</div>"
           : "") +
       "</div>"
@@ -135,7 +141,7 @@
     if (connect) connect.hidden = nextStatus === "linked";
     if (disconnect) disconnect.hidden = nextStatus !== "linked";
     var row = document.querySelector('[data-ai-code-row="' + provider + '"]');
-    if (row) row.hidden = !(provider === "claude-code" && (nextStatus === "connecting" || nextStatus === "waiting"));
+    if (row) row.hidden = !(nextStatus === "connecting" || nextStatus === "waiting");
     if (message) status(message);
   }
 
@@ -184,7 +190,7 @@
           var code = input ? input.value.trim() : "";
           if (!code) return;
           submit.disabled = true;
-          json("/api/ai-accounts/claude-code/code", {
+          json("/api/ai-accounts/" + encodeURIComponent(provider) + "/code", {
             method: "POST",
             body: JSON.stringify({ code: code }),
           })

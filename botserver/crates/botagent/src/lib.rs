@@ -12,7 +12,9 @@
 //! artifact into the image so a cold container needs no package download.
 
 pub mod api;
+pub mod antigravity;
 pub mod claude;
+pub mod codex;
 pub mod keys;
 pub mod models;
 pub mod sandbox;

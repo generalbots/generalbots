@@ -90,7 +90,7 @@ pub fn mark_linked(
 pub fn is_subscription_provider(provider: &str) -> bool {
     matches!(
         normalize_provider(provider),
-        Some(CLAUDE_CODE) | Some(CHATGPT_PLAN)
+        Some(CLAUDE_CODE) | Some(CHATGPT_PLAN) | Some(CODEX_CLI) | Some(ANTIGRAVITY)
     )
 }
 
@@ -99,6 +99,8 @@ pub fn default_model(provider: &str) -> &'static str {
     match normalize_provider(provider) {
         Some(CLAUDE_CODE) => "claude-sonnet-4-5",
         Some(CHATGPT_PLAN) => botllm::openai_responses::DEFAULT_MODEL,
+        Some(CODEX_CLI) => "codex-default",
+        Some(ANTIGRAVITY) => "antigravity-default",
         _ => "",
     }
 }
@@ -190,6 +192,8 @@ fn provider_label(provider: &str) -> &'static str {
     match provider {
         CLAUDE_CODE => "Claude Code",
         CHATGPT_PLAN => "ChatGPT plan",
+        CODEX_CLI => "Codex",
+        ANTIGRAVITY => "Antigravity",
         _ => "AI",
     }
 }

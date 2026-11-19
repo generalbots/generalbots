@@ -7,12 +7,16 @@
 //! `handlers` carries the status/list surface, `claude` the Claude Code login
 //! flows, `use_for` the Vibe/chat assignment and `shared` the common helpers.
 
+mod antigravity;
 mod claude;
+mod codex;
 mod handlers;
 mod shared;
 mod use_for;
 
+pub use antigravity::{antigravity_code, AntigravityCodeBody};
 pub use claude::{claude_code, ClaudeCodeBody};
+pub use codex::{codex_code, CodexCodeBody};
 pub use handlers::{connect, disconnect, list, reconnect, status};
 pub use use_for::{use_for_chat, use_for_vibe, UseForVibeBody};
 
@@ -38,4 +42,6 @@ pub fn router() -> Router<Arc<AppState>> {
             post(use_for_chat),
         )
         .route("/api/ai-accounts/claude-code/code", post(claude_code))
+        .route("/api/ai-accounts/codex-cli/code", post(codex_code))
+        .route("/api/ai-accounts/antigravity/code", post(antigravity_code))
 }
