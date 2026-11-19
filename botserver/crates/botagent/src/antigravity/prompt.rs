@@ -1,6 +1,7 @@
 //! Run an Antigravity prompt inside the VM (headless mode).
 
 use axum::http::StatusCode;
+use base64::Engine;
 
 use crate::AgentService;
 use crate::vm;
@@ -64,4 +65,3 @@ pub async fn run_prompt(
         Ok(output)
     }
 }
-EOF

@@ -21,7 +21,7 @@ pub struct AntigravityStatus {
 /// Extracts the authorization URL from the Antigravity CLI transcript.
 /// In SSH/remote mode, agy prints: "Visit https://... to authenticate"
 pub fn extract_auth_url(log: &str) -> Option<String> {
-    let re = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    let re = Regex::new(r#"https://[^\s\x1b\x07<>'"`]+"#).ok()?;
     for cap in re.captures_iter(log) {
         let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
         if url.contains("google") || url.contains("antigravity") || url.contains("auth") || url.contains("oauth") {
@@ -31,7 +31,7 @@ pub fn extract_auth_url(log: &str) -> Option<String> {
         }
     }
     // Fallback: first https URL
-    let re2 = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    let re2 = Regex::new(r#"https://[^\s\x1b\x07<>'"`]+"#).ok()?;
     for cap in re2.captures_iter(log) {
         let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
         if url.len() > 20 {
@@ -127,4 +127,3 @@ pub async fn status(
         message: message.to_string(),
     })
 }
-EOF

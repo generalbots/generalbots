@@ -97,4 +97,3 @@ else:
     if phase not in ("linked", "error"):
         set_status("waiting")
 "#;
-EOF

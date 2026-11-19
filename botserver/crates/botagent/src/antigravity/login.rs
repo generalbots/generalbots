@@ -135,16 +135,3 @@ pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     }
     Ok(())
 }
-
-fn internal(msg: String) -> (StatusCode, String) {
-    tracing::error!("{msg}");
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "Antigravity account operation failed".to_string(),
-    )
-}
-
-fn b64(value: &str) -> String {
-    base64::engine::general_purpose::STANDARD.encode(value.as_bytes())
-}
-EOF
