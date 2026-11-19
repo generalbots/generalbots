@@ -41,23 +41,25 @@
 /* Deploy = publish to production: violet (distinct from green Run and amber
    Pause) so the dev (Run) / prod (Deploy) split reads at a glance. */
 .vibe-shell-tb-deploy .vibe-shell-tb-icon { color: #a78bfa; }
-.vibe-shell-tb-deploy {
-    border-color: rgba(167, 139, 250, 0.55) !important;
+/* Modifiers are paired with the base class so they outrank the generic
+   .vibe-shell-tb-btn:hover:not(:disabled) rule without the important flag. */
+.vibe-shell-tb-btn.vibe-shell-tb-deploy {
+    border-color: rgba(167, 139, 250, 0.55);
 }
-.vibe-shell-tb-deploy:hover {
-    background: rgba(167, 139, 250, 0.12) !important;
+.vibe-shell-tb-btn.vibe-shell-tb-deploy:hover:not(:disabled) {
+    background: rgba(167, 139, 250, 0.12);
     box-shadow: 0 0 6px rgba(167, 139, 250, 0.4);
 }
 .vibe-shell-tb-pause .vibe-shell-tb-icon { color: #f59e0b; }
 .vibe-shell-tb-stop .vibe-shell-tb-icon { color: #ef4444; }
 
 /* Danger/delete and accent buttons in row 2 stay recognizable. */
-.vibe-shell-tb-danger {
-    color: #ef4444 !important;
+.vibe-shell-tb-btn.vibe-shell-tb-danger {
+    color: #ef4444;
 }
-.vibe-shell-tb-danger:hover {
-    background: rgba(239, 68, 68, 0.12) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
+.vibe-shell-tb-btn.vibe-shell-tb-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* Run/idle status is NOT a toolbar badge — it lives in the per-window
@@ -100,11 +102,6 @@
     opacity: 1;
     transform: translate(-50%, 0);
 }
-/* The rule only guards against any stale element. */
-.vibe-shell-status {
-    display: none !important;
-}
-
 /* ── Internal panes hidden in toolbar mode ────────────────────────── */
 body.vibe-toolbar-mode .vibe-ribbon,
 body.vibe-toolbar-mode .vibe-body,
@@ -113,7 +110,7 @@ body.vibe-toolbar-mode #vibeGraphPanel:not(.vibe-tool-relocated):not(.vibe-palet
 body.vibe-toolbar-mode #vibeMetricsPanel:not(.vibe-tool-relocated):not(.vibe-palette-mounted),
 body.vibe-toolbar-mode #vibeDialogMask:not(.vibe-palette-mounted),
 body.vibe-toolbar-mode #vibeMembersModal:not(.vibe-tool-relocated):not(.vibe-palette-mounted) {
-    display: none !important;
+    display: none;
 }
 
 /* ── Floating palette windows ─────────────────────────────────────── */
@@ -124,10 +121,12 @@ div[id^="window-body-"].vibe-shell-palette-body {
     background: var(--bg, #0d0d1f);
 }
 
+/* Inline geometry is stripped by vibe-windows.js at init; ID+class wins over
+   the parked-panel ID rules (issue #2323). */
 #vibeGraphPanel.vibe-palette-mounted,
 #vibeMetricsPanel.vibe-palette-mounted {
-    position: static !important;
-    display: flex !important;
+    position: static;
+    display: flex;
     width: 100%;
     height: 100%;
     right: auto;
@@ -138,9 +137,9 @@ div[id^="window-body-"].vibe-shell-palette-body {
 }
 
 #vibeMembersModal.vibe-palette-mounted {
-    position: static !important;
+    position: static;
     inset: auto;
-    display: block !important;
+    display: block;
     background: transparent;
     overflow-y: auto;
     height: 100%;
@@ -154,8 +153,8 @@ div[id^="window-body-"].vibe-shell-palette-body {
 }
 
 #vibeDialogMask.vibe-palette-mounted {
-    position: static !important;
-    display: block !important;
+    position: static;
+    display: block;
     inset: auto;
     background: transparent;
     overflow-y: auto;
@@ -191,8 +190,9 @@ div[id^="window-body-"].vibe-shell-palette-body {
     overflow-x: auto;
 }
 
+/* In the compact toolbar shell the pipeline is owned by the Vibe canvas. */
 body.vibe-toolbar-mode .vibe-shell-flow {
-    display: none !important;
+    display: none;
 }
 
 .vibe-shell-flow-svg {
@@ -321,4 +321,12 @@ body.vibe-toolbar-mode .vibe-shell-flow {
 .vibe-shell-tb-btn.vibe-shell-tb-disabled:hover {
   filter: none;
 }
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

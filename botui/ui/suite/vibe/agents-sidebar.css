@@ -182,7 +182,7 @@
 .as-workspace-actions {
     /* Always visible: Info ⓘ and Delete 🗑 are core commands and users could
        not discover them behind a hover-only reveal. */
-    display: flex !important;
+    display: flex;
     position: absolute;
     right: 6px;
     top: 50%;
@@ -240,4 +240,12 @@
     width: 8px;
     transition: transform 0.15s;
 }
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

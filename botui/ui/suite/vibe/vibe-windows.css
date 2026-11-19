@@ -43,19 +43,20 @@
    ("window inside a window" design fix). */
 #vibeGraphPanel.vibe-tool-relocated,
 #vibeMetricsPanel.vibe-tool-relocated {
-    right: auto !important;
-    bottom: auto !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-height: none !important;
-    border: none !important;
-    border-radius: 0 !important;
+    right: auto;
+    bottom: auto;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
 }
 
+/* The floating window already supplies its own title bar. */
 .vibe-tool-relocated .vibe-panel-chrome {
-    display: none !important;
+    display: none;
 }
 
 .vibe-transport-btn.run:hover { color: #22c55e; border-color: #22c55e; }
@@ -138,8 +139,9 @@
 
 /* New-Project + Members float inside their windows (never full-screen).
    New Project FILLS its fixed-height window (product spec: complete fields
-   view, no dead space) — the popup inlines position:static/height:auto, so
-   the fill must be forced with !important. */
+   view, no dead space). The parked panels' geometry lives in the stylesheet
+   (vibe-workbench.css) — vibe-windows.js strips the partial's inline styles
+   at init — so ID+class precedence is enough, no important flag. */
 [id^="window-body-"] #vibeNewProjectModal,
 [id^="window-body-"] #vibeMembersModal {
     position: absolute;
@@ -147,11 +149,11 @@
     z-index: 10;
 }
 [id^="window-body-"] #vibeNewProjectModal.vibe-tool-relocated {
-    position: static !important;
-    inset: auto !important;
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
+    position: static;
+    inset: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
 }
 
 /* #1382 — a modal parked in the stash host (after close) must stay hidden
@@ -159,7 +161,7 @@
    parked copy keeps its inline display:none authoritatively. */
 #vibeHiddenPanels #vibeNewProjectModal,
 #vibeHiddenPanels #vibeMembersModal {
-    display: none !important;
+    display: none;
 }
 
 /* Members is a compact popup: content-sized, scrollable, no absolute fill. */
@@ -267,10 +269,14 @@
     --border: color-mix(in srgb, var(--text, #263630) 18%, var(--surface, #fcfbf8));
 }
 
-/* Relocated modal panels: no second backdrop, no second z-order layer. */
-.vibe-tool-relocated {
-    background: transparent !important;
-    z-index: auto !important;
+/* Relocated modal panels: no second backdrop, no second z-order layer.
+   ID+class selectors beat the parked-panel ID rules in vibe-workbench.css. */
+#vibeGraphPanel.vibe-tool-relocated,
+#vibeMetricsPanel.vibe-tool-relocated,
+#vibeNewProjectModal.vibe-tool-relocated,
+#vibeMembersModal.vibe-tool-relocated {
+    background: transparent;
+    z-index: auto;
 }
 
 /* New Project: the WM window is titled "New Project" with its own ✕ — the
@@ -288,7 +294,7 @@
     padding: 0;
 }
 .vibe-tool-relocated .vibe-np-head {
-    display: none !important;
+    display: none;
 }
 .vibe-tool-relocated .vibe-np-dialog {
     width: auto;
@@ -303,7 +309,7 @@
    black backdrop; when a stale copy was displayed (or relocated into the
    popup) it painted a black flash at 0,0. Relocated: never paint a backdrop. */
 #vibeMembersModal.vibe-tool-relocated {
-    background: transparent !important;
+    background: transparent;
 }
 
 /* Members: the parked modal is inline-styled; neutralize the card chrome so
@@ -311,14 +317,14 @@
    Scoped to the members modal — the graph/metrics panels have their own
    functional child divs that must keep their layout. */
 #vibeMembersModal.vibe-tool-relocated > div {
-    width: auto !important;
-    max-width: none !important;
-    max-height: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    padding: 14px 16px !important;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    padding: 14px 16px;
 }
 
 /* Only the member list scrolls internally — the popup itself stays fixed
@@ -344,11 +350,12 @@
     flex-direction: row;
     min-height: 0;
 }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

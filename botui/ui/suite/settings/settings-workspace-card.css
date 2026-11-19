@@ -1,9 +1,10 @@
 /* #1881 — pinned "This workspace" card. Always first, in every edition and
    with Preview OFF: it is read-only status, never an editor. */
 
-/* Registry-owned visibility (#1889) must beat .nav-item's flex display. */
+/* Registry-owned visibility (#1889): class+class+attribute outranks
+   .nav-item's flex display without the important flag. */
 .settings-nav .nav-item[hidden] {
-    display: none !important;
+    display: none;
 }
 
 .workspace-card {

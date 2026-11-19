@@ -58,6 +58,19 @@
         return host;
     }
 
+    // The partial ships panel geometry inline. Left in place it beats every
+    // stylesheet state rule, which is what forced the important-flag pile-up
+    // in vibe-windows.css (issue #2323). Strip it once per panel so the cascade
+    // owns geometry; call this for re-injected panels too, not just at init.
+    function stripInlineGeometry(el) {
+        if (!el) return;
+        el.removeAttribute("style");
+        if (el.id === "vibeMembersModal") {
+            var card = el.querySelector(":scope > div");
+            if (card) card.removeAttribute("style");
+        }
+    }
+
     // Re-injecting the vibe partial (desktop relaunch, htmx body swap)
     // duplicates every panel id in the document. The stale copies become the
     // "ghost windows/metrics/graphs" reported by users: duplicated tool
@@ -97,6 +110,7 @@
                 var stale = wmBody.querySelector("#" + spec.elId);
                 if (stale) stale.remove();
                 fresh.classList.add("vibe-tool-relocated");
+                stripInlineGeometry(fresh);
                 wmBody.appendChild(fresh);
             }
             // The panel may have been parked hidden after a close: bring it
@@ -116,16 +130,10 @@
         });
         if (!body) return;
         el.classList.add("vibe-tool-relocated");
-        if (spec.popup) {
-            el.classList.add("vibe-popup-panel");
-            // The partial ships with inline position:fixed (modal overlay); a
-            // popup must flow inside its window instead, and inline styles
-            // beat CSS so set them here.
-            el.style.position = "static";
-            el.style.inset = "auto";
-            el.style.width = "auto";
-            el.style.height = "auto";
-        }
+        if (spec.popup) el.classList.add("vibe-popup-panel");
+        stripInlineGeometry(el);
+        // Geometry is owned by CSS (vibe-workbench.css base + the relocated
+        // rules below), so no inline overrides and no important flag needed.
         el.style.display = el.getAttribute("data-vibe-panel-display") || spec.display || "flex";
         body.appendChild(el);
         // The WindowManager body ships with an empty `.gb-window-content`
@@ -235,6 +243,8 @@
         Object.keys(hidden).forEach(function (elId) {
             var el = document.getElementById(elId);
             if (!el) return;
+            // Hand geometry to the parked-panel ID rules in vibe-workbench.css.
+            stripInlineGeometry(el);
             el.setAttribute("data-vibe-panel-display", hidden[elId]);
             el.style.display = "none";
         });
