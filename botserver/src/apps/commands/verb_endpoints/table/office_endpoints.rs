@@ -1,6 +1,6 @@
 use super::{bind, VerbEndpoint};
 
-pub(super) static PART1: &[VerbEndpoint] = &[
+pub(super) static OFFICE_ENDPOINTS: &[VerbEndpoint] = &[
     // ——— #2037 — Docs (crates/botdocs) ———
     bind("docs.list", "GET", "/api/docs/list", &[], &[]),
     bind("docs.create", "POST", "/api/docs/new", &[], &[]),

@@ -1,20 +1,38 @@
 use super::super::types::{PipelineResult, SessionIdentity};
 
-#[allow(clippy::too_many_arguments)]
+/// Immutable inputs for a single prompt-building turn. Bundling them keeps
+/// `prepare_messages_and_maybe_finish` under the argument-count limit without
+/// suppressing the lint.
+#[derive(Clone, Copy)]
+pub(super) struct TurnPromptInputs<'a> {
+    pub(super) parsed: &'a serde_json::Value,
+    pub(super) user_text: &'a str,
+    pub(super) agent_enabled: bool,
+    pub(super) route: &'a crate::core::bot::ws::stream::routing::Decision,
+    pub(super) active_switchers: &'a [String],
+    pub(super) ui_automation_enabled: bool,
+    pub(super) media_type: &'a str,
+    pub(super) model_preference: &'a str,
+    pub(super) project_context: Option<&'a serde_json::Value>,
+}
+
 pub(super) async fn prepare_messages_and_maybe_finish(
     identity: &SessionIdentity<'_>,
-    parsed: &serde_json::Value,
-    user_text: &str,
-    agent_enabled: bool,
-    route: &crate::core::bot::ws::stream::routing::Decision,
-    active_switchers: &[String],
-    ui_automation_enabled: bool,
-    media_type: &str,
-    model_preference: &str,
-    project_context: Option<&serde_json::Value>,
+    inputs: &TurnPromptInputs<'_>,
     attachment_note: &mut Option<String>,
     messages: &mut Vec<serde_json::Value>,
 ) -> PipelineResult<bool> {
+    let TurnPromptInputs {
+        parsed,
+        user_text,
+        agent_enabled,
+        route,
+        active_switchers,
+        ui_automation_enabled,
+        media_type,
+        model_preference,
+        project_context,
+    } = *inputs;
     let SessionIdentity {
         sink,
         state,

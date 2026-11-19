@@ -1,6 +1,6 @@
 use super::{bind, VerbEndpoint};
 
-pub(super) static PART2: &[VerbEndpoint] = &[
+pub(super) static BROWSER_MEDIA_ENDPOINTS: &[VerbEndpoint] = &[
     bind(
         "canvas.update",
         "PUT",

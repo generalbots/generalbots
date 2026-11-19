@@ -1,6 +1,6 @@
 use super::super::ApiEndpoint;
 
-pub(super) static PART_B: &[ApiEndpoint] = &[
+pub(super) static CRM_SALES_AND_COMPLIANCE: &[ApiEndpoint] = &[
         ApiEndpoint {
             method: "GET",
             path: "/api/bots/:bot_id/integration-connections/:connection_id/events",

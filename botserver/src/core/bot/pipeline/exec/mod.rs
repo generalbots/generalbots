@@ -385,17 +385,20 @@ pub async fn process_message_internal(
     );
 
     let mut messages = Vec::new();
+    let prompt_inputs = context::TurnPromptInputs {
+        parsed: &parsed,
+        user_text: &user_text,
+        agent_enabled,
+        route: &route,
+        active_switchers: &active_switchers,
+        ui_automation_enabled,
+        media_type: &media_type,
+        model_preference: &model_preference,
+        project_context: project_context.as_ref(),
+    };
     if context::prepare_messages_and_maybe_finish(
         identity,
-        &parsed,
-        &user_text,
-        agent_enabled,
-        &route,
-        &active_switchers,
-        ui_automation_enabled,
-        &media_type,
-        &model_preference,
-        project_context.as_ref(),
+        &prompt_inputs,
         &mut attachment_note,
         &mut messages,
     )

@@ -18,10 +18,8 @@ fn storage_limits_are_reported_in_bytes() {
 }
 
 #[test]
-fn unlimited_metrics_are_always_allowed() {
-    let result = manager()
-        .check_limit("private-cloud", UsageMetric::Bots, u64::MAX)
-        .expect("known plan");
+fn unlimited_metrics_are_always_allowed() -> Result<(), Box<dyn std::error::Error>> {
+    let result = manager().check_limit("private-cloud", UsageMetric::Bots, u64::MAX)?;
     assert!(result.is_allowed());
     assert!(!result.is_warning_threshold(0.0));
     match result {
@@ -32,17 +30,16 @@ fn unlimited_metrics_are_always_allowed() {
             assert_eq!(remaining, None);
             assert_eq!(percentage_used, 0.0);
         }
-        LimitCheckResult::Exceeded { .. } => panic!("unlimited must not be exceeded"),
+        LimitCheckResult::Exceeded { .. } => return Err("unlimited must not be exceeded".into()),
     }
+    Ok(())
 }
 
 #[test]
-fn the_limit_is_exclusive_at_the_boundary() {
+fn the_limit_is_exclusive_at_the_boundary() -> Result<(), Box<dyn std::error::Error>> {
     let manager = manager();
     // One below the limit is allowed, exactly at the limit is exceeded.
-    let allowed = manager
-        .check_limit("shared", UsageMetric::Bots, 4)
-        .expect("known plan");
+    let allowed = manager.check_limit("shared", UsageMetric::Bots, 4)?;
     match allowed {
         LimitCheckResult::Allowed {
             remaining,
@@ -51,12 +48,10 @@ fn the_limit_is_exclusive_at_the_boundary() {
             assert_eq!(remaining, Some(1));
             assert!((percentage_used - 80.0).abs() < 0.01);
         }
-        LimitCheckResult::Exceeded { .. } => panic!("4/5 must be allowed"),
+        LimitCheckResult::Exceeded { .. } => return Err("4/5 must be allowed".into()),
     }
 
-    let exceeded = manager
-        .check_limit("shared", UsageMetric::Bots, 5)
-        .expect("known plan");
+    let exceeded = manager.check_limit("shared", UsageMetric::Bots, 5)?;
     assert!(matches!(
         exceeded,
         LimitCheckResult::Exceeded {
@@ -66,6 +61,7 @@ fn the_limit_is_exclusive_at_the_boundary() {
     ));
     assert!(exceeded.is_warning_threshold(100.0));
     assert!(!exceeded.is_warning_threshold(101.0));
+    Ok(())
 }
 
 #[test]
@@ -77,41 +73,43 @@ fn an_unknown_plan_fails_the_check() {
 }
 
 #[test]
-fn proration_charges_the_difference_when_upgrading() {
+fn proration_charges_the_difference_when_upgrading() -> Result<(), Box<dyn std::error::Error>> {
     let manager = manager();
     // 399 -> 9999 over a 30 day period with 15 days left:
     // (9999/30*15) - (399/30*15) = 4999.5 - 199.5 = 4800 exactly.
     match manager
         .calculate_proration("shared", "private-cloud", 15, 30)
-        .expect("both plans priced")
+        .ok_or("both plans priced")?
     {
         ProrationType::ChargeNow(amount) => assert_eq!(amount, 4800),
-        other => panic!("expected a charge, got {other:?}"),
+        other => return Err(format!("expected a charge, got {other:?}").into()),
     }
+    Ok(())
 }
 
 #[test]
-fn proration_rounds_up_a_fractional_charge_or_credit() {
+fn proration_rounds_up_a_fractional_charge_or_credit() -> Result<(), Box<dyn std::error::Error>> {
     let manager = manager();
     // 399 -> 9999 with 1 day left: 333.3 - 13.3 = 320.0 exactly; use 7 days
     // over 30 to force a fraction: 2333.1 - 93.1 = 2240.0. 3 days: 999.9 - 39.9.
     // 1 day over a 7 day period: 1428.43 - 57.0 = 1371.43 -> ceil 1372.
     match manager
         .calculate_proration("shared", "private-cloud", 1, 7)
-        .expect("both plans priced")
+        .ok_or("both plans priced")?
     {
         ProrationType::ChargeNow(amount) => assert_eq!(amount, 1372),
-        other => panic!("expected a charge, got {other:?}"),
+        other => return Err(format!("expected a charge, got {other:?}").into()),
     }
 
     // Downgrading 9999 -> 399 for 1 of 7 days yields a credit.
     match manager
         .calculate_proration("private-cloud", "shared", 1, 7)
-        .expect("both plans priced")
+        .ok_or("both plans priced")?
     {
         ProrationType::Credit(amount) => assert_eq!(amount, 1372),
-        other => panic!("expected a credit, got {other:?}"),
+        other => return Err(format!("expected a credit, got {other:?}").into()),
     }
+    Ok(())
 }
 
 #[test]
@@ -188,10 +186,10 @@ fn downgrade_to_an_unlimited_plan_is_never_blocked() {
 }
 
 #[test]
-fn comparison_reports_limit_direction_and_features() {
+fn comparison_reports_limit_direction_and_features() -> Result<(), Box<dyn std::error::Error>> {
     let comparison = manager()
         .compare_plans("free", "shared")
-        .expect("both plans exist");
+        .ok_or("both plans exist")?;
 
     assert_eq!(comparison.from_plan, "free");
     assert_eq!(comparison.to_plan, "shared");
@@ -206,22 +204,24 @@ fn comparison_reports_limit_direction_and_features() {
         .limit_changes
         .iter()
         .find(|change| change.metric == UsageMetric::Bots)
-        .expect("bots are compared");
+        .ok_or("bots are compared")?;
     assert_eq!(bots.direction, ChangeDirection::Increase);
 
     let storage = comparison
         .limit_changes
         .iter()
         .find(|change| change.metric == UsageMetric::StorageBytes)
-        .expect("storage is compared");
+        .ok_or("storage is compared")?;
     assert_eq!(storage.direction, ChangeDirection::Increase);
+    Ok(())
 }
 
 #[test]
-fn comparison_detects_removed_features_and_unlimited_transitions() {
+fn comparison_detects_removed_features_and_unlimited_transitions(
+) -> Result<(), Box<dyn std::error::Error>> {
     let comparison = manager()
         .compare_plans("private-cloud", "shared")
-        .expect("both plans exist");
+        .ok_or("both plans exist")?;
 
     assert_eq!(comparison.feature_changes.removed, ["sso"]);
     assert!(comparison.feature_changes.added.is_empty());
@@ -237,8 +237,9 @@ fn comparison_detects_removed_features_and_unlimited_transitions() {
         .limit_changes
         .iter()
         .find(|change| change.metric == UsageMetric::Bots)
-        .expect("bots are compared");
+        .ok_or("bots are compared")?;
     assert_eq!(bots.direction, ChangeDirection::Decrease);
     assert_eq!(bots.from, LimitValue::Unlimited);
     assert_eq!(bots.to, LimitValue::Limited(5));
+    Ok(())
 }

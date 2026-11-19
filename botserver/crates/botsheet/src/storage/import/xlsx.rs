@@ -208,7 +208,8 @@ pub fn parse_xlsx_to_worksheets(
     Err("Failed to parse spreadsheet".to_string())
 }
 
-#[cfg(all(test, feature = "xlsx"))]
+#[cfg(test)]
+#[cfg(feature = "xlsx")]
 mod orientation_tests {
     use super::parse_xlsx_to_worksheets;
 

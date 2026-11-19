@@ -1,6 +1,6 @@
 use super::super::ApiEndpoint;
 
-pub(super) static PART_C: &[ApiEndpoint] = &[
+pub(super) static PLAYER_DASHBOARDS_AND_VIBE: &[ApiEndpoint] = &[
     ApiEndpoint {
         method: "POST",
         path: "/api/ui/research/web/summarize",

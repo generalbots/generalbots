@@ -1,6 +1,6 @@
 use super::super::*;
 
-pub(super) static PART_3: &[AppCommand] = &[
+pub(super) static BROWSER_VIDEO_AND_PHOTOS: &[AppCommand] = &[
     cmd(
         "video",
         "video.project.captions",
