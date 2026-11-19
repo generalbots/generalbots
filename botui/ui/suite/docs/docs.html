@@ -156,6 +156,9 @@
                     <button class="btn-icon" id="spellcheckBtn" onclick="openSpellcheck()" title="Spellcheck" aria-label="Spellcheck">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M18 14l3 3-3 3"></path></svg>
                     </button>
+                    <button class="btn-icon" id="langToolsBtn" onclick="window.DocsLangOpen && DocsLangOpen()" title="Language tools" aria-label="Language tools" data-i18n-title="docs-lang-tools" data-i18n-aria-label="docs-lang-tools">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
+                    </button>
                     <button class="btn-icon" id="translateBtn" onclick="openTranslateModal()" title="Translate" aria-label="Translate">T</button>
                     <button class="btn-icon" id="commentsBtn" onclick="openDocComments()" title="Comments" aria-label="Comments" data-i18n-title="comments-title" data-i18n-aria-label="comments-title">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -250,6 +253,16 @@
 <script src="/suite/docs/modules/22_bookmarks.js"></script>
 <script src="/suite/docs/modules/23_quickparts.js"></script>
 <script src="/suite/docs/modules/24_nav_init.js"></script>
+<script src="/suite/docs/modules/25_lang_core.js"></script>
+<script src="/suite/docs/modules/25b_lang_data.js"></script>
+<script src="/suite/docs/modules/26_lang_spell.js"></script>
+<script src="/suite/docs/modules/27_lang_style.js"></script>
+<script src="/suite/docs/modules/28_lang_thesaurus.js"></script>
+<script src="/suite/docs/modules/29_lang_readability.js"></script>
+<script src="/suite/docs/modules/30_lang_dialog.js"></script>
+<script src="/suite/docs/modules/31_lang_panels_a.js"></script>
+<script src="/suite/docs/modules/31_lang_panels_b.js"></script>
+<script src="/suite/docs/modules/32_lang_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -257,3 +270,4 @@
 
 <link rel="stylesheet" href="/suite/docs/docs-present.css">
 <link rel="stylesheet" href="/suite/docs/docs-nav.css">
+<link rel="stylesheet" href="/suite/docs/docs-language.css">
