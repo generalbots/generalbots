@@ -10,6 +10,12 @@ pub fn commands_list() -> Vec<&'static AppCommand> {
 /// without a giant system prompt. Keep entries grouped by domain.
 mod endpoints;
 
+/// #2372 — how many usage-ranked commands may join the named shortlist.
+///
+/// The baseline list stays in place so a fresh install still has a working
+/// surface; this only lets real usage add the busiest extra commands on top.
+const USAGE_RANKED_COMMANDS: usize = 4;
+
 /// Full REST surface (method, path, one-line summary). Not injected — only
 /// searched on demand through `api.find`, so the LLM knows the entire scale
 /// without a giant system prompt. Keep entries grouped by domain.
@@ -86,20 +92,45 @@ pub fn api_command_instructions(role: &str) -> String {
             "billing.quote.list",
         ]
     };
-    lines.push("Common commands you may call directly:".to_string());
-    for name in prompt_commands {
-        if let Some(cmd) = command_by_name(name) {
-            let params = cmd
-                .params
-                .iter()
-                .map(|(n, d)| format!("{n}: {d}"))
-                .collect::<Vec<_>>()
-                .join("; ");
-            lines.push(format!(
-                "- {name}: {summary} (params: {params})",
-                summary = cmd.summary
-            ));
+    // #2372 — the busiest curated commands join the fixed shortlist, so the
+    // named surface follows what people actually run. Capped, deduplicated and
+    // role-filtered: an admin-only command recorded by an admin never reaches a
+    // regular user's prompt.
+    let mut listed: Vec<&'static str> = prompt_commands.to_vec();
+    let mut ranked_added = 0usize;
+    // Filter before capping: the stats map also holds raw `METHOD /path` keys
+    // from api.exec, and on a busy deployment they outnumber curated commands.
+    // A fixed pre-filter window would let those raw keys fill every slot and
+    // hide the curated commands entirely, so inspect the full ranking and cap
+    // only the entries that survive the filter.
+    for (name, _count) in crate::apps::top_commands(usize::MAX) {
+        if ranked_added >= USAGE_RANKED_COMMANDS {
+            break;
         }
+        let Some(command) = command_by_name(&name) else {
+            continue;
+        };
+        if listed.contains(&command.name) || (command.admin_only && role != "admin") {
+            continue;
+        }
+        listed.push(command.name);
+        ranked_added += 1;
+    }
+    lines.push("Common commands you may call directly:".to_string());
+    for name in listed {
+        let Some(cmd) = command_by_name(name) else {
+            continue;
+        };
+        let params = cmd
+            .params
+            .iter()
+            .map(|(n, d)| format!("{n}: {d}"))
+            .collect::<Vec<_>>()
+            .join("; ");
+        lines.push(format!(
+            "- {name}: {summary} (params: {params})",
+            summary = cmd.summary
+        ));
     }
     let rules = if cfg!(feature = "gbgov") {
         "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
@@ -185,5 +216,46 @@ mod prompt_surface_tests {
         assert!(!prompt.contains("notes.create"));
         assert!(!prompt.contains("database.rows.insert"));
         assert!(!prompt.contains("sheet.cells.set"));
+    }
+
+    /// #2372 — a curated command the deployment actually runs joins the
+    /// shortlist, so "common commands" follows usage instead of a fixed list.
+    #[test]
+    fn usage_ranked_commands_reach_the_prompt() {
+        crate::apps::record_command_usage("settings.read", Some("settings"), Some("Read settings"));
+        let prompt = api_command_instructions("user");
+        assert!(
+            prompt.contains("settings.read"),
+            "usage-ranked command missing from the prompt"
+        );
+    }
+
+    /// #2372 — the ranking never proposes an admin-only command to a user.
+    #[cfg(not(feature = "gbgov"))]
+    #[test]
+    fn admin_only_usage_ranked_commands_are_role_filtered() {
+        for _ in 0..10 {
+            crate::apps::record_command_usage("database.rows.delete", Some("database"), None);
+        }
+        assert!(!api_command_instructions("user").contains("database.rows.delete"));
+        assert!(api_command_instructions("admin").contains("database.rows.delete"));
+    }
+
+    /// #2372 — raw `METHOD /path` keys must not crowd curated commands out of
+    /// a fixed pre-filter window. They are filtered by `command_by_name`
+    /// before the shortlist cap is applied.
+    #[test]
+    fn raw_endpoint_usage_does_not_hide_curated_commands() {
+        for index in 0..80 {
+            let key = format!("GET /api/zz.rank.raw.{index}");
+            for _ in 0..100 {
+                crate::apps::record_command_usage(&key, None, None);
+            }
+        }
+        crate::apps::record_command_usage("chat.resume", Some("chat"), None);
+        assert!(
+            api_command_instructions("user").contains("chat.resume"),
+            "curated command hidden behind raw endpoint keys"
+        );
     }
 }
