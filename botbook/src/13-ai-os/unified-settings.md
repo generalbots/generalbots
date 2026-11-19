@@ -64,6 +64,12 @@ typed service-name confirmation and writes an `os_service_restart` entry to
 the audit log. New OS endpoints enforce shell mode, administrator access and
 a loopback host; hiding the panel in the browser is not the security gate.
 
+### OS appliance pages (#2466, OS edition)
+
+The OS edition navigation now includes appliance pages for **Network**, **Power & Battery**, **Display**, **Sound**, **Keyboard & Region**, **Storage & Reset**, **Users**, and **Diagnostics**. These nodes are registered in `settings/nav-registry.js` as `editions: ["os"]`, `scope: "admin"`, `control: "shell"` and are hidden in cloud/desktop editions.
+
+Each page renders a read-only status section that explains what is unavailable and why; it attempts the corresponding `/api/os/*` endpoint and degrades gracefully to an explicit unavailable/read-only state when the backend is not present (no localStorage stubs, no destructive actions). Real gated backend routes (shell mode + admin + loopback, sanitized errors) remain follow-up work. Labels are localized through `settings-os-appliance.ftl` in all 8 supported locales.
+
 ## Verification
 
 - Desktop launcher → Settings opens the unified page.

@@ -41,7 +41,11 @@ The desktop is a window manager over a persistent app rail:
 - **Taskbar** — one 30 px strip (`--taskbar-h`) pinned to the viewport edge:
   Start and universal search on the left, running apps centred, tray and clock
   on the right. It is a single global element, so it does not inherit chat
-  styles and does not grow a second row.
+  styles and does not grow a second row. In the **OS edition** the tray adds
+  host indicators (battery, network, volume, brightness, updates, power) with
+  a quick-action popover and settings shortcuts; indicators collapse into an
+  overflow menu on narrow widths and show explicit unavailable states when
+  host telemetry APIs are not present (#2465).
 - **Maximized windows** use `position: fixed` and fill the viewport above the
   taskbar, covering the app rail; the taskbar stays reachable to restore or
   switch windows.
