@@ -1,6 +1,6 @@
 /* Slides masters / layouts / theme / brand kit (#2429) — local-only UI. */
 .sm-overlay {
-    position: fixed; inset: 0; z-index: 9000;
+    position: fixed; inset: 0; z-index: var(--z-modal-backdrop);
     background: rgba(2, 6, 23, 0.72);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
@@ -11,42 +11,42 @@
     background: #111827; color: #f8fafc;
     border: 1px solid #334155; border-radius: 10px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
-    font-family: system-ui, -apple-system, sans-serif; font-size: 13px;
+    font-family: system-ui, -apple-system, sans-serif; font-size: var(--text-xs);
 }
 .sm-dialog-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; border-bottom: 1px solid #1f2937;
 }
-.sm-dialog-title { margin: 0; font-size: 17px; font-weight: 650; }
+.sm-dialog-title { margin: 0; font-size: var(--text-lg); font-weight: 650; }
 .sm-dialog-close {
     background: transparent; border: 0; color: #94a3b8;
-    font-size: 22px; line-height: 1; cursor: pointer; padding: 2px 8px;
+    font-size: var(--text-2xl); line-height: 1; cursor: pointer; padding: 2px 8px;
 }
 .sm-dialog-close:hover { color: #f8fafc; }
 .sm-dialog-body { overflow-y: auto; padding: 12px 18px 18px; flex: 1; }
 .sm-dialog-status {
     min-height: 34px; padding: 8px 18px; border-top: 1px solid #1f2937;
-    color: #93c5fd; font-size: 12px; background: #0b1220;
+    color: #93c5fd; font-size: var(--text-2xs); background: #0b1220;
 }
 .sm-section {
     border: 1px solid #1f2937; border-radius: 8px;
     padding: 12px 14px; margin: 0 0 14px; background: #0f172a;
 }
-.sm-section-title { margin: 0 0 10px; font-size: 14px; font-weight: 620; color: #e2e8f0; }
-.sm-subtitle { margin: 14px 0 8px; font-size: 12px; font-weight: 600; color: #cbd5e1; }
-.sm-hint { margin: 0 0 10px; color: #94a3b8; font-size: 12px; }
+.sm-section-title { margin: 0 0 10px; font-size: var(--text-sm); font-weight: 620; color: #e2e8f0; }
+.sm-subtitle { margin: 14px 0 8px; font-size: var(--text-2xs); font-weight: 600; color: #cbd5e1; }
+.sm-hint { margin: 0 0 10px; color: #94a3b8; font-size: var(--text-2xs); }
 .sm-local-note {
     margin: 0 0 14px; padding: 7px 10px; border-radius: 6px;
-    background: #1e293b; color: #fbbf24; font-size: 12px;
+    background: #1e293b; color: #fbbf24; font-size: var(--text-2xs);
     border: 1px dashed #f59e0b;
 }
 .sm-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin: 8px 0; }
-.sm-field { display: flex; flex-direction: column; gap: 3px; color: #94a3b8; font-size: 11px; flex: 1 1 180px; }
+.sm-field { display: flex; flex-direction: column; gap: 3px; color: #94a3b8; font-size: var(--text-2xs); flex: 1 1 180px; }
 .sm-inline-field { flex: 0 1 200px; }
 .sm-field input, .sm-field select, .sm-token-input, .sm-inherit-input,
 .sm-select, .sm-geo-input {
     background: #1e293b; border: 1px solid #334155; border-radius: 5px;
-    color: #f8fafc; padding: 6px 8px; font-size: 12px; min-width: 0;
+    color: #f8fafc; padding: 6px 8px; font-size: var(--text-2xs); min-width: 0;
 }
 .sm-field input:focus, .sm-field select:focus, .sm-token-input:focus,
 .sm-inherit-input:focus, .sm-geo-input:focus {
@@ -54,19 +54,19 @@
 }
 .sm-btn {
     background: #1e293b; border: 1px solid #334155; border-radius: 5px;
-    color: #e2e8f0; padding: 7px 11px; font-size: 12px; cursor: pointer;
+    color: #e2e8f0; padding: 7px 11px; font-size: var(--text-2xs); cursor: pointer;
 }
 .sm-btn:hover { background: #334155; }
 .sm-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
 .sm-btn-primary { background: #2563eb; border-color: #2563eb; color: #fff; }
 .sm-btn-primary:hover { background: #1d4ed8; }
-.sm-check { display: inline-flex; align-items: center; gap: 6px; color: #cbd5e1; font-size: 12px; margin: 6px 0; }
+.sm-check { display: inline-flex; align-items: center; gap: 6px; color: #cbd5e1; font-size: var(--text-2xs); margin: 6px 0; }
 .sm-check input { accent-color: #3b82f6; }
 .sm-token-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 8px; margin-top: 12px;
 }
-.sm-token { display: flex; flex-direction: column; gap: 3px; color: #94a3b8; font-size: 11px; position: relative; }
+.sm-token { display: flex; flex-direction: column; gap: 3px; color: #94a3b8; font-size: var(--text-2xs); position: relative; }
 .sm-token-input { padding-right: 26px; width: 100%; }
 .sm-swatch {
     position: absolute; right: 7px; top: 22px; width: 13px; height: 13px;
@@ -76,7 +76,7 @@
 .sm-inherit-row {
     display: grid; grid-template-columns: 130px 1fr 150px 160px auto auto;
     gap: 6px; align-items: center;
-    padding: 4px 6px; border-radius: 4px; background: #111827; font-size: 11px;
+    padding: 4px 6px; border-radius: 4px; background: #111827; font-size: var(--text-2xs);
 }
 .sm-inherit-prop { color: #cbd5e1; }
 .sm-inherit-value { color: #93c5fd; font-family: monospace; overflow: hidden; text-overflow: ellipsis; }
@@ -87,16 +87,16 @@
     max-height: 190px; overflow-y: auto; border: 1px solid #1f2937;
     border-radius: 6px; padding: 8px; background: #0b1220;
 }
-.sm-diff-row { padding: 3px 0; color: #e2e8f0; font-size: 11px; }
+.sm-diff-row { padding: 3px 0; color: #e2e8f0; font-size: var(--text-2xs); }
 .sm-diff-detail { display: block; color: #94a3b8; font-family: monospace; white-space: nowrap; }
 .sm-geo-grid { display: flex; flex-direction: column; gap: 4px; }
-.sm-geo-row { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.sm-geo-row { display: flex; align-items: center; gap: 6px; font-size: var(--text-2xs); }
 .sm-geo-role { width: 130px; color: #cbd5e1; }
 .sm-geo-input { width: 72px; padding: 4px 6px; }
 .sm-template-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .sm-template-row {
     display: flex; align-items: center; gap: 8px; padding: 5px 8px;
-    border-radius: 4px; background: #111827; font-size: 11px; color: #cbd5e1;
+    border-radius: 4px; background: #111827; font-size: var(--text-2xs); color: #cbd5e1;
 }
 .sm-template-row span { flex: 1; }
 @media (max-width: 720px) {
