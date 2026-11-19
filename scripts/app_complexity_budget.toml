@@ -11,7 +11,7 @@
 [defaults]
 routes = 153
 js_modules = 115
-loc = 28051
+loc = 28052
 
 [apps."about"]
 routes = 0
@@ -111,7 +111,7 @@ loc = 5793
 [apps."desktop"]
 routes = 4
 js_modules = 62
-loc = 28051
+loc = 28052
 
 [apps."docs"]
 routes = 0
@@ -281,7 +281,7 @@ loc = 560
 [apps."settings"]
 routes = 52
 js_modules = 30
-loc = 12220
+loc = 12286
 
 [apps."sheet"]
 routes = 0
@@ -306,7 +306,7 @@ loc = 412
 [apps."tasks"]
 routes = 0
 js_modules = 25
-loc = 17714
+loc = 17236
 
 [apps."tax"]
 routes = 5

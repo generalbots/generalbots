@@ -83,10 +83,10 @@
 }
 
 /* #2445 battery/power states */
-.os-tray-btn[data-power-level="low"] { color: #f59e0b; }
-.os-tray-btn[data-power-level="critical"] { color: #ef4444; }
-.os-tray-btn[data-power-level="charging"] { color: #22c55e; }
-.os-tray-btn[data-power-level="full"] { color: #22c55e; }
+.os-tray-btn[data-power-level="low"] { color: var(--warning, darkorange); }
+.os-tray-btn[data-power-level="critical"] { color: var(--error, tomato); }
+.os-tray-btn[data-power-level="charging"] { color: var(--success, mediumseagreen); }
+.os-tray-btn[data-power-level="full"] { color: var(--success, mediumseagreen); }
 .os-tray-live-status {
   position: absolute;
   width: 1px;
