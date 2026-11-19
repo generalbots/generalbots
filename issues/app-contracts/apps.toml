@@ -138,6 +138,11 @@ routes = ["/api/minutes", "/api/minutes/documents", "/api/minutes/forms/action"]
 [app.monitoring]
 routes = ["/api/monitoring", "/api/monitoring/alerts", "/api/monitoring/activity/latest"]
 
+[app.notepad]
+no_api = true
+reason = "plain text editor: the single textarea saves locally with no server route"
+issue = 2119
+
 [app.notes]
 no_api = true
 reason = "local notes pad: text lives in browser storage and is exported by the client"
@@ -166,6 +171,11 @@ routes = ["/api/ui/plugins", "/api/ui/plugins/upload"]
 
 [app.pos]
 routes = ["/api/pos", "/api/pos/orders", "/api/pos/products"]
+
+[app.preview]
+no_api = true
+reason = "renders the last generated local artifact; finalize-only client surface"
+issue = 2119
 
 [app.products]
 routes = ["/api/products", "/api/products/categories", "/api/catalog/products"]

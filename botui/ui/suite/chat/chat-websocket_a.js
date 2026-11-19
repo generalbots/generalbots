@@ -190,7 +190,7 @@ function showProbeError(botName) {
     statusEl.className = "connection-status disconnected";
     statusEl.style.display = "flex";
     statusEl.style.cursor = "pointer";
-    statusEl.title = "Retry connection";
+    statusEl.title = (typeof window.gbT === "function" ? window.gbT("chat-retry-connection", "Retry connection") : "Retry connection");
     statusEl.onclick = retryProbe;
     var statusText = statusEl.querySelector(".connection-text");
     if (statusText) statusText.textContent = message + " — click to retry";
@@ -263,7 +263,7 @@ function showBotUnavailable(botName) {
     statusEl.className = "connection-status disconnected";
     statusEl.style.display = "flex";
     statusEl.style.cursor = "pointer";
-    statusEl.title = "Open the default bot";
+    statusEl.title = (typeof window.gbT === "function" ? window.gbT("chat-open-default-bot", "Open the default bot") : "Open the default bot");
     statusEl.onclick = function () { recoverFromUnavailableBot(); };
     var statusText = statusEl.querySelector(".connection-text");
     if (statusText) statusText.textContent = message + " — open the default bot";
@@ -277,7 +277,7 @@ function showBotUnavailable(botName) {
       stateMsg.textContent = message + ". ";
       var link = document.createElement("a");
       link.href = "#";
-      link.textContent = "Open the default bot →";
+      link.textContent = (typeof window.gbT === "function" ? window.gbT("chat-open-default-bot-arrow", "Open the default bot →") : "Open the default bot →");
       link.onclick = function (e) { if (e && e.preventDefault) e.preventDefault(); recoverFromUnavailableBot(); };
       stateMsg.appendChild(link);
     }

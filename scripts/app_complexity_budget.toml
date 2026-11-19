@@ -10,38 +10,38 @@
 
 [defaults]
 routes = 153
-js_modules = 74
-loc = 27938
+js_modules = 104
+loc = 28015
 
 [apps."about"]
 routes = 0
-js_modules = 1
-loc = 585
+js_modules = 2
+loc = 759
 
 [apps."analytics"]
 routes = 33
-js_modules = 5
-loc = 3006
+js_modules = 11
+loc = 4208
 
 [apps."attendant"]
 routes = 17
 js_modules = 7
-loc = 3462
+loc = 3549
 
 [apps."automations"]
 routes = 9
 js_modules = 2
-loc = 1127
+loc = 1143
 
 [apps."banking"]
 routes = 9
 js_modules = 5
-loc = 956
+loc = 966
 
 [apps."billing"]
 routes = 27
 js_modules = 1
-loc = 1699
+loc = 1801
 
 [apps."browser"]
 routes = 17
@@ -51,32 +51,32 @@ loc = 1100
 [apps."calculator"]
 routes = 0
 js_modules = 4
-loc = 871
+loc = 909
 
 [apps."calendar"]
 routes = 7
-js_modules = 3
-loc = 3256
+js_modules = 4
+loc = 3532
 
 [apps."campaigns"]
 routes = 2
 js_modules = 1
-loc = 1075
+loc = 1094
 
 [apps."canvas"]
 routes = 15
-js_modules = 8
-loc = 3093
+js_modules = 10
+loc = 3377
 
 [apps."chat"]
 routes = 30
-js_modules = 74
-loc = 22019
+js_modules = 90
+loc = 27443
 
 [apps."clock"]
 routes = 0
 js_modules = 1
-loc = 596
+loc = 682
 
 [apps."clock-widget"]
 routes = 0
@@ -86,72 +86,72 @@ loc = 0
 [apps."compliance"]
 routes = 30
 js_modules = 1
-loc = 907
+loc = 920
 
 [apps."concierge"]
 routes = 0
 js_modules = 1
-loc = 221
+loc = 237
 
 [apps."crm"]
 routes = 51
-js_modules = 5
-loc = 3114
+js_modules = 6
+loc = 3434
 
 [apps."database"]
 routes = 11
-js_modules = 5
-loc = 1395
+js_modules = 6
+loc = 1456
 
 [apps."designer"]
 routes = 0
-js_modules = 20
-loc = 5719
+js_modules = 21
+loc = 5852
 
 [apps."desktop"]
 routes = 4
 js_modules = 62
-loc = 27938
+loc = 28015
 
 [apps."docs"]
 routes = 0
-js_modules = 18
-loc = 2660
+js_modules = 104
+loc = 18747
 
 [apps."drive"]
 routes = 26
-js_modules = 30
-loc = 9560
+js_modules = 34
+loc = 10695
 
 [apps."editor"]
 routes = 1
 js_modules = 5
-loc = 1255
+loc = 1327
 
 [apps."fraud"]
 routes = 8
 js_modules = 1
-loc = 941
+loc = 962
 
 [apps."goals"]
 routes = 11
 js_modules = 7
-loc = 1947
+loc = 1974
 
 [apps."handoff"]
 routes = 5
 js_modules = 5
-loc = 791
+loc = 803
 
 [apps."hr"]
 routes = 4
 js_modules = 6
-loc = 1291
+loc = 1309
 
 [apps."integrations"]
 routes = 7
-js_modules = 10
-loc = 4447
+js_modules = 14
+loc = 5577
 
 [apps."jukebox"]
 routes = 6
@@ -161,152 +161,162 @@ loc = 603
 [apps."kyc"]
 routes = 5
 js_modules = 1
-loc = 377
+loc = 418
 
 [apps."learn"]
 routes = 12
 js_modules = 1
-loc = 1633
+loc = 1645
 
 [apps."lists"]
 routes = 0
-js_modules = 1
-loc = 560
+js_modules = 10
+loc = 2137
 
 [apps."mail"]
 routes = 36
 js_modules = 6
-loc = 4145
+loc = 4393
 
 [apps."meet"]
 routes = 13
 js_modules = 10
-loc = 2555
+loc = 2594
 
 [apps."memory"]
 routes = 0
 js_modules = 2
-loc = 722
+loc = 720
 
 [apps."minutes"]
 routes = 1
-js_modules = 1
-loc = 340
+js_modules = 2
+loc = 366
 
 [apps."monitoring"]
 routes = 0
 js_modules = 7
-loc = 8110
+loc = 8294
+
+[apps."notepad"]
+routes = 0
+js_modules = 2
+loc = 180
 
 [apps."notes"]
 routes = 0
-js_modules = 1
-loc = 195
+js_modules = 2
+loc = 425
 
 [apps."o365"]
 routes = 10
 js_modules = 1
-loc = 405
+loc = 478
 
 [apps."paper"]
 routes = 0
-js_modules = 4
-loc = 3628
+js_modules = 6
+loc = 4102
 
 [apps."people"]
 routes = 1
 js_modules = 4
-loc = 1862
+loc = 1955
 
 [apps."photos"]
 routes = 0
 js_modules = 2
-loc = 674
+loc = 903
 
 [apps."plan"]
 routes = 0
 js_modules = 4
-loc = 1029
+loc = 1035
 
 [apps."player"]
 routes = 0
 js_modules = 3
-loc = 1812
+loc = 1983
 
 [apps."plugins"]
 routes = 0
 js_modules = 0
-loc = 84
+loc = 173
 
 [apps."pos"]
 routes = 0
 js_modules = 1
-loc = 290
+loc = 351
+
+[apps."preview"]
+routes = 0
+js_modules = 0
+loc = 0
 
 [apps."products"]
 routes = 19
 js_modules = 0
-loc = 1545
+loc = 1631
 
 [apps."project"]
 routes = 0
-js_modules = 3
-loc = 2274
+js_modules = 4
+loc = 2380
 
 [apps."recycle"]
 routes = 0
 js_modules = 1
-loc = 203
+loc = 249
 
 [apps."research"]
 routes = 0
 js_modules = 2
-loc = 2540
+loc = 2622
 
 [apps."retail"]
 routes = 0
 js_modules = 1
-loc = 472
+loc = 560
 
 [apps."settings"]
 routes = 52
-js_modules = 23
-loc = 10348
+js_modules = 29
+loc = 12006
 
 [apps."sheet"]
 routes = 0
-js_modules = 34
-loc = 7799
+js_modules = 100
+loc = 24775
 
 [apps."slides"]
 routes = 0
-js_modules = 10
-loc = 2233
+js_modules = 92
+loc = 20864
 
 [apps."social"]
 routes = 6
 js_modules = 1
-loc = 1260
+loc = 1315
 
 [apps."store"]
 routes = 35
 js_modules = 1
-loc = 372
+loc = 412
 
 [apps."tasks"]
 routes = 0
-js_modules = 23
-loc = 17364
+js_modules = 25
+loc = 17702
 
 [apps."tax"]
 routes = 5
 js_modules = 1
-loc = 884
+loc = 927
 
 [apps."templates"]
 routes = 1
 js_modules = 1
-loc = 513
+loc = 524
 
 [apps."terminal"]
 routes = 0
@@ -316,39 +326,39 @@ loc = 688
 [apps."tickets"]
 routes = 5
 js_modules = 1
-loc = 1657
+loc = 1735
 
 [apps."timeclock"]
 routes = 19
 js_modules = 1
-loc = 271
+loc = 367
 
 [apps."timer"]
 routes = 0
 js_modules = 1
-loc = 214
+loc = 364
 
 [apps."vibe"]
 routes = 31
 js_modules = 64
-loc = 14156
+loc = 14279
 
 [apps."video"]
 routes = 34
 js_modules = 1
-loc = 597
+loc = 668
 
 [apps."vision"]
 routes = 2
 js_modules = 1
-loc = 496
+loc = 536
 
 [apps."weather"]
 routes = 0
-js_modules = 1
-loc = 491
+js_modules = 2
+loc = 619
 
 [apps."workspace"]
 routes = 7
 js_modules = 1
-loc = 550
+loc = 575

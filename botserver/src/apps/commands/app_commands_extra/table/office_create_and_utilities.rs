@@ -1,6 +1,6 @@
 use super::super::*;
 
-pub(super) static PART_1: &[AppCommand] = &[
+pub(super) static OFFICE_CREATE_AND_UTILITIES: &[AppCommand] = &[
     // ——— #2035 — office verbs: create/edit/export, not just open. Execution
     // still goes through api.exec (api.find returns the matching endpoint); the
     // deep link keeps the app reachable when the model only has the command.

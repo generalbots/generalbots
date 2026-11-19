@@ -210,3 +210,10 @@ crm-contacts-empty-action = Adicionar um contato
 crm-campaigns-empty-title = Ainda não há campanhas
 crm-campaigns-empty-desc = Uma campanha agrupa as ações que trazem leads para o funil.
 crm-campaigns-empty-action = Criar uma campanha
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = Ainda não há registros de auditoria
+crm-audit-unavailable = Auditoria indisponível ({ $status })
+crm-campaign-metrics-sent = Enviados { $sent } · entregues { $delivered } · abertos { $opened } · clicados { $clicked }

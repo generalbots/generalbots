@@ -49,7 +49,7 @@
                             if (!url) return;
                             const safe = String(url).trim();
                             if (!/^https?:\/\//i.test(safe)) {
-                                GBModal.alert("Links must start with http:// or https://");
+                                GBModal.alert((typeof window.gbT === "function" ? window.gbT("paper-link-scheme-invalid", "Links must start with http:// or https://") : "Links must start with http:// or https://"));
                                 return;
                             }
                             gbFormat("createLink", safe);

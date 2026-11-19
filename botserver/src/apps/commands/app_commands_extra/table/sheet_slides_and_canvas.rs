@@ -1,6 +1,6 @@
 use super::super::*;
 
-pub(super) static PART_5: &[AppCommand] = &[
+pub(super) static SHEET_SLIDES_AND_CANVAS: &[AppCommand] = &[
     cmd(
         "sheet",
         "sheet.worksheets.add",

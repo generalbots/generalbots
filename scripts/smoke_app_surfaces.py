@@ -317,7 +317,9 @@ def main() -> int:
     except json.JSONDecodeError as error:
         raise SystemExit(f"FAIL catalog: GET {catalog} is not JSON ({error})") from error
     catalog_entries = {item.get("id"): item for item in payload.get("apps", [])}
-    registry_ids = {app_id for app_id, _ in suite_all}
+    # `suite_all` includes the synthetic `desktop-shell` label for the shell
+    # page — it is not a catalog app, so only real registry ids belong here.
+    registry_ids = {app_id for app_id, _ in registry_entries()}
     missing = sorted(app_id for app_id in registry_ids if app_id not in catalog_entries)
     if missing:
         raise SystemExit(

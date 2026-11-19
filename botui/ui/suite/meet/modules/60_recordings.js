@@ -195,7 +195,7 @@
         if (!win) return;
         try { win.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "playRecording") : console.error("playRecording", e); }
         // Build the player with DOM APIs: the URL never becomes markup (#2340).
-        win.document.title = 'Recording';
+        win.document.title = (typeof window.gbT === "function" ? window.gbT("meet-recording", "Recording") : "Recording");
         var video = win.document.createElement('video');
         video.src = url;
         video.controls = true;

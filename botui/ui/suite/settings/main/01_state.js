@@ -116,7 +116,7 @@ window.downloadDataExport = async function downloadDataExport() {
     }
   };
   try {
-    notify('Preparing export…');
+    notify((typeof window.gbT === "function" ? window.gbT("settings-export-preparing", "Preparing export…") : "Preparing export…"));
     var res = await fetch('/api/user/data/export', {
       method: 'POST',
       headers: token ? { 'Authorization': 'Bearer ' + token } : {}
@@ -139,8 +139,8 @@ window.downloadDataExport = async function downloadDataExport() {
     a.click();
     a.remove();
     URL.revokeObjectURL(a.href);
-    notify('Export downloaded');
+    notify((typeof window.gbT === "function" ? window.gbT("settings-export-downloaded", "Export downloaded") : "Export downloaded"));
   } catch (e) {
-    notify('Export failed', 'error');
+    notify((typeof window.gbT === "function" ? window.gbT("browser-export-failed", "Export failed") : "Export failed"), 'error');
   }
 };

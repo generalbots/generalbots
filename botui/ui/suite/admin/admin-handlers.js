@@ -25,12 +25,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("adminpanel");
 
   window.showTscDetails = window.showTscDetails || function (category) {
     var name = String(category || "category");
-    notify("TSC Details", "Details for " + name + " controls are not available in this view yet.");
+    notify((typeof window.gbT === "function" ? window.gbT("admin-tsc-details", "TSC Details") : "TSC Details"), "Details for " + name + " controls are not available in this view yet.");
   };
 
   window.showControlRemediation = window.showControlRemediation || function (controlId) {
     var id = String(controlId || "");
-    notify("Remediation", id ? ("Remediation workflow for control " + id + " is not configured yet.") : "No control selected.");
+    notify((typeof window.gbT === "function" ? window.gbT("admin-remediation", "Remediation") : "Remediation"), id ? ("Remediation workflow for control " + id + " is not configured yet.") : "No control selected.");
   };
 
   window.filterControls = window.filterControls || function (severity) {

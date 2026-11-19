@@ -38,7 +38,7 @@
     if (!items.length) {
       var empty = document.createElement("div");
       empty.className = "tb-overflow-item";
-      empty.textContent = "No hidden commands";
+      empty.textContent = (typeof window.gbT === "function" ? window.gbT("sheet-overflow-empty", "No hidden commands") : "No hidden commands");
       empty.setAttribute("aria-disabled", "true");
       menu.appendChild(empty);
       return;
@@ -94,8 +94,8 @@
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "toolbar-overflow-btn";
-    btn.setAttribute("aria-label", "More commands");
-    btn.setAttribute("title", "More commands");
+    btn.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("sheet-overflow-more", "More commands") : "More commands"));
+    btn.setAttribute("title", (typeof window.gbT === "function" ? window.gbT("sheet-overflow-more", "More commands") : "More commands"));
     btn.setAttribute("aria-haspopup", "menu");
     btn.setAttribute("aria-expanded", "false");
     btn.innerHTML =

@@ -14,7 +14,7 @@
     section.id = "lists-checklist";
     var heading = document.createElement("h2");
     heading.className = "lists-checklist-title";
-    heading.textContent = "Checklist";
+    heading.textContent = (typeof window.gbT === "function" ? window.gbT("lists-checklist", "Checklist") : "Checklist");
     var list = document.createElement("ul");
     list.id = "lists-items";
     list.className = "lists-checklist-items";

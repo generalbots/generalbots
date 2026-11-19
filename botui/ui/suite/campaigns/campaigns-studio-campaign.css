@@ -1,0 +1,234 @@
+.campaigns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.campaign-card {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.15s ease;
+}
+
+.campaign-card:hover {
+    border-color: var(--accent, #d4f505);
+    transform: translateY(-2px);
+}
+
+.campaign-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.campaign-card-title {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0;
+}
+
+.campaign-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.campaign-status.draft {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.campaign-status.scheduled {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.campaign-status.running {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.campaign-status.completed {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+}
+
+.campaign-channels {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.campaign-channel-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: var(--text-2xs);
+    color: var(--text-secondary, #888);
+}
+
+.campaign-metrics {
+    display: flex;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.campaign-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.campaign-metric-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--accent, #d4f505);
+}
+
+.campaign-metric-label {
+    font-size: var(--text-2xs);
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+.campaign-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.campaign-action-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border, #333);
+    border-radius: 4px;
+    color: var(--text-secondary, #888);
+    font-size: var(--text-2xs);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.campaign-action-btn:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #f8fafc);
+    border-color: var(--text-secondary, #888);
+}
+
+.campaign-action-btn.primary {
+    background: var(--accent, #d4f505);
+    color: var(--bg, #0a0a0a);
+    border-color: var(--accent, #d4f505);
+}
+
+.campaign-action-btn.primary:hover {
+    opacity: 0.9;
+}
+
+/* ============ Campaign Studio ============ */
+.studio-modal-content {
+    width: min(960px, 94vw);
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.crm-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.studio-editor-area {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.studio-editor-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px;
+    background: var(--surface-2, #111827);
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.studio-tool-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text, #e2e8f0);
+    border-radius: 4px;
+    min-width: 28px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: var(--text-xs);
+}
+
+.studio-tool-btn:hover {
+    border-color: var(--accent, #3b82f6);
+    background: var(--surface-active, #1e293b);
+}
+
+.studio-tool-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border, #333);
+    margin: 0 4px;
+}
+
+.studio-var-label {
+    font-size: var(--text-2xs);
+    color: var(--text-secondary, #888);
+    margin-right: 4px;
+}
+
+.studio-var-btn {
+    border: 1px dashed var(--accent, #3b82f6);
+    background: transparent;
+    color: var(--accent, #3b82f6);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: var(--text-2xs);
+    cursor: pointer;
+    font-family: monospace;
+}
+
+.studio-var-btn:hover {
+    background: var(--accent, #3b82f6);
+    color: #fff;
+}
+
+.studio-var {
+    background: rgba(59, 130, 246, 0.15);
+    border-radius: 3px;
+    padding: 0 3px;
+    color: var(--accent, #3b82f6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

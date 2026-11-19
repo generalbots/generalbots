@@ -197,8 +197,8 @@
     button.type = "button";
     button.id = "gb-toc-insert";
     button.className = "btn-icon";
-    button.textContent = "Inserir no documento";
-    button.title = "Insert a table of contents with links to every heading";
+    button.textContent = (typeof window.gbT === "function" ? window.gbT("docs-toc-insert", "Insert into document") : "Insert into document");
+    button.title = (typeof window.gbT === "function" ? window.gbT("docs-toc-insert-title", "Insert a table of contents with links to every heading") : "Insert a table of contents with links to every heading");
     button.style.cssText =
       "background:#0f766e;color:white;border:none;padding:4px 10px;border-radius:4px;" +
       "cursor:pointer;font-size:12px;margin-left:6px;";

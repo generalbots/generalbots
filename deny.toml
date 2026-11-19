@@ -37,6 +37,11 @@ ignore = [
     { id = "RUSTSEC-2024-0370", reason = "proc-macro-error is unmaintained (proc-macro, build time only). Accepted 2026-11-06, tracked in #2553." },
     { id = "RUSTSEC-2024-0429", reason = "Unsound Iterator/DoubleEndedIterator impls in glib 0.18 (transitive via the Tauri GTK desktop stack on Linux). Fixed by the GTK4 stack upgrade on the desktop track; no runtime exposure on the server. Accepted 2026-11-06, tracked in #2553." },
     { id = "RUSTSEC-2026-0249", reason = "smartstring is unmaintained and still required by rhai 1.27 (transitive only — no code in this repo names it). Accepted 2026-11-06, direct uses removed under #2552; the ignore retires when rhai drops it." },
+    { id = "RUSTSEC-2026-0370", reason = "zvariant is unmaintained (D-Bus wire format, transitive via zbus 5 -> tauri-plugin-notification on the Linux desktop). No safe upgrade until Tauri ships zbus 6; no server runtime exposure. Accepted 2026-11-19, tracked in #2553." },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names is unmaintained (same zbus 5 -> tauri-plugin-notification chain on the Linux desktop). No safe upgrade until Tauri ships zbus 6. Accepted 2026-11-19, tracked in #2553." },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive is unmaintained (its derive macros moved into zbus 6; transitive via zbus 5 -> tauri-plugin-notification on the Linux desktop). Accepted 2026-11-19, tracked in #2553." },
+    { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained and used across the workspace for date arithmetic. Unmaintained only — no vulnerability, so no exploit path; migration to jiff/time is a separate project. Accepted 2026-11-19, tracked in #2553." },
+    { id = "RUSTSEC-2026-0555", reason = "chrono-tz is unmaintained (IANA timezone data for botsettings, paired with chrono). Migration is part of the chrono replacement. Accepted 2026-11-19, tracked in #2553." },
 ]
 
 [licenses]

@@ -211,7 +211,7 @@ function dialChatSocket(seq) {
     clearChatConnectTimeout();
     updateConnectionStatus("disconnected");
     if (!ChatState.disconnectNotified) {
-      notify("Disconnected from chat server", "error");
+      notify((typeof window.gbT === "function" ? window.gbT("chat-disconnected", "Disconnected from chat server") : "Disconnected from chat server"), "error");
       ChatState.disconnectNotified = true;
     }
     // Keep dialling forever with a capped backoff. The old code stopped after

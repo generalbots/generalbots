@@ -50,11 +50,11 @@ function loadDriveFileIntoEditor(linkParams) {
           if (window.updatePageCount) window.updatePageCount();
         }
         var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
-        if (statusEl) statusEl.textContent = 'Opened from VM';
+        if (statusEl) statusEl.textContent = (typeof window.gbT === "function" ? window.gbT("docs-vm-opened", "Opened from VM") : "Opened from VM");
       })
       .catch(function (err) {
         var statusEl = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
-        if (statusEl) statusEl.textContent = 'Failed to open from VM: ' + err.message;
+        if (statusEl) statusEl.textContent = (typeof window.gbT === "function" ? window.gbT("docs-vm-open-failed", "Failed to open from VM:") : "Failed to open from VM:") + ' ' + err.message;
       });
     return;
   }
@@ -72,7 +72,7 @@ function loadDriveFileIntoEditor(linkParams) {
   if (!bucket) {
     var noBucketStatus = (document.querySelector('[id^="window-body-docs"]') || document).querySelector('#saveStatus');
     if (noBucketStatus) {
-      noBucketStatus.textContent = 'This link names no bucket: open the document from Drive so its bucket is known.';
+      noBucketStatus.textContent = (typeof window.gbT === "function" ? window.gbT("docs-link-no-bucket", "This link names no bucket: open the document from Drive so its bucket is known.") : "This link names no bucket: open the document from Drive so its bucket is known.");
     }
     console.warn('[docs] deep link has no bucket for:', file);
     return;

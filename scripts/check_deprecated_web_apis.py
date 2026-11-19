@@ -8,8 +8,10 @@ the one place where a modern replacement will be swapped in.
 
 The UI allows exactly these exceptions, and this gate fails on anything else:
 
-* `botui/ui/suite/js/gb-shared.js` — the single `document.execCommand` call
-  (`gbFormat`) and the single `execCommand("copy")` fallback (`gbCopyText`).
+* `botui/ui/suite/js/gb-shared_a.js` and `gb-shared_b.js` — the single
+  `document.execCommand` call (`gbFormat`) and the single
+  `execCommand("copy")` fallback (`gbCopyText`), split from the original
+  `gb-shared.js` for #2305.
 * `botui/ui/suite/<app>/vendored` and any `vendor/` path segment.
 
 Usage
@@ -37,7 +39,8 @@ SKIP_SEGMENTS = ("vendor", "node_modules")
 # loads the security bootstrap twice (v6 and v7). That is tracked as its own
 # issue (#2332) because the fix changes load order; #2340 must not duplicate it.
 EXEMPT = {
-    Path("botui/ui/suite/js/gb-shared.js"),
+    Path("botui/ui/suite/js/gb-shared_a.js"),
+    Path("botui/ui/suite/js/gb-shared_b.js"),
     Path("botui/ui/suite/settings/index.html"),
 }
 
@@ -86,7 +89,7 @@ def check(root: Path) -> int:
             print(f"{path.relative_to(root)}:{line}: {name} — {hint}")
             violations += 1
     if violations:
-        print(f"\n{violations} deprecated API use(s) outside js/gb-shared.js.")
+        print(f"\n{violations} deprecated API use(s) outside js/gb-shared_a.js.")
         return 1
     print("no deprecated web API usage")
     return 0

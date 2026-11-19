@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="/suite/js/chrome.css?v=1" /> <!-- Local JS requirements per AGENTS.md / UI.md -->
 <script src="/suite/js/boot-budget.js"></script> <script>window.GBBootBudget && window.GBBootBudget.init("desktop");</script>
 <script src="/suite/js/vendor/htmx.min.js"></script> <script src="/suite/js/gb-shared_a.js"></script> <script src="/suite/js/gb-shared_b.js"></script> <script src="/suite/js/error-reporter.js?v=2"></script> <script src="/suite/js/gb-icons.js?v=1"></script>
-<script src="/suite/js/i18n.js?v=9"></script> <script src="/suite/js/app-i18n.js?v=1"></script> <script src="/suite/js/i18n-format.js?v=1"></script> <link rel="stylesheet" href="/suite/css/tour.css?v=1" /> <script src="/suite/js/tour.js?v=2"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
+<script src="/suite/js/i18n.js?v=9"></script> <script src="/suite/js/i18n-elements.js?v=1"></script> <script src="/suite/js/app-i18n.js?v=1"></script> <script src="/suite/js/i18n-format.js?v=1"></script> <link rel="stylesheet" href="/suite/css/tour.css?v=1" /> <script src="/suite/js/tour.js?v=2"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
 <script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"></script> <script src="/suite/js/security-bootstrap/99_init.js?v=6"></script>
 <script src="/suite/js/vendor/marked.min.js"></script> <script src="/suite/js/window-manager/01_registry.js?v=131"></script>
 <script src="/suite/js/window-manager/02_class_core.js?v=131"></script> <script src="/suite/js/window-manager/03_window_chrome.js?v=131"></script>
@@ -92,7 +92,7 @@
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> </div>
 <div class="chat-sidebar-collapsed-icon" data-app="settings" title="Settings" data-i18n-title="sidebar-collapsed-settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> </div>
-<div class="chat-sidebar-collapsed-icon" id="sidebarFeedbackCollapsed" title="Feedback" aria-label="Feedback">
+<div class="chat-sidebar-collapsed-icon" id="sidebarFeedbackCollapsed" role="button" tabindex="0" title="Feedback" aria-label="Feedback">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
 </div> <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account" data-i18n-title="sidebar-collapsed-account"></div> </div>
 </aside> <!-- Main Wrapper -->

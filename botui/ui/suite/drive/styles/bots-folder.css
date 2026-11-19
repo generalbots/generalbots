@@ -1,0 +1,236 @@
+/* Drive Module v2.0 — Bots Tab Styles */
+/* ── Top Level Tabs ────────────────────────────────────────── */
+.drive-top-tabs {
+    display: flex;
+    gap: 0;
+    height: var(--drive-tab-height, 48px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.top-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--drive-transition, 0.18s ease);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+.top-tab:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.top-tab.active {
+    color: hsl(var(--primary, 217 91% 60%));
+    border-bottom-color: hsl(var(--primary, 217 91% 60%));
+    background: transparent;
+}
+
+.top-tab svg {
+    flex-shrink: 0;
+}
+
+/* ── Bot List Sidebar ──────────────────────────────────────── */
+.drive-bot-list {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.bot-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 4px;
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    color: var(--text-muted, var(--text-secondary));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bot-search {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--text-xs);
+    margin: 0 4px 4px;
+    width: calc(100% - 8px);
+    box-sizing: border-box;
+}
+
+.bot-search:focus {
+    outline: none;
+    border-color: hsl(var(--primary, 217 91% 60%));
+}
+
+.bot-search::placeholder {
+    color: var(--text-secondary);
+}
+
+.bot-list-items {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.bot-item {
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: var(--text-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+}
+
+.bot-item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.bot-item.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: hsl(var(--primary, 217 91% 60%));
+}
+
+/* ── Bot Cards (grid) ──────────────────────────────────────── */
+.bot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--drive-card-radius, 10px);
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: var(--drive-transition, 0.18s ease);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.bot-card:hover {
+    border-color: hsl(var(--primary, 217 91% 60%));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bot-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary, #6366f1), #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.bot-card-name {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.bot-card-stats {
+    font-size: var(--text-2xs);
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+}
+
+.bot-card-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ── Folder Tiles ──────────────────────────────────────────── */
+.folder-tiles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    padding: 20px 20px 0;
+}
+
+.folder-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--drive-card-radius, 10px);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--drive-transition, 0.18s ease);
+}
+
+.folder-tile:hover {
+    border-color: hsl(var(--primary, 217 91% 60%));
+    background: rgba(99, 102, 241, 0.05);
+    transform: translateY(-1px);
+}
+
+.folder-tile-icon {
+    font-size: var(--text-3xl);
+    margin-bottom: 10px;
+    color: hsl(var(--primary, 217 91% 60%));
+}
+
+.folder-tile-icon svg {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+}
+
+.folder-tile-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text);
+    word-break: break-all;
+}
+
+.folder-tile-desc {
+    font-size: var(--text-2xs);
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ── Secondary toolbar (for bot detail view) ─────────────── */
+.drive-toolbar-secondary {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px 8px;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.drive-toolbar-secondary h4 {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

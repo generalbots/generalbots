@@ -354,7 +354,7 @@ function vmGroupAttachments(anchor) {
       });
     } else if (olderCards.length) {
       applyOlderState(false);
-      toggle.textContent = "Show all (" + allCards.length + ")";
+      toggle.textContent = (typeof window.gbT === "function" ? window.gbT("chat-folder-show-all", "Show all") : "Show all") + " (" + allCards.length + ")";
       toggle.dataset.collapsed = "1";
       toggle.addEventListener("click", function () {
         var showAll = toggle.dataset.collapsed === "1";
@@ -362,7 +362,7 @@ function vmGroupAttachments(anchor) {
         toggle.textContent = showAll ? "Show only new" : "Show all (" + allCards.length + ")";
       });
     } else {
-      toggle.textContent = "Hide";
+      toggle.textContent = (typeof window.gbT === "function" ? window.gbT("action-hide", "Hide") : "Hide");
       toggle.dataset.collapsed = "0";
       toggle.addEventListener("click", function () {
         var collapsed = toggle.dataset.collapsed === "1";

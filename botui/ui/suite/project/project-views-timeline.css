@@ -1,0 +1,241 @@
+
+.gantt-timeline-header .timeline-day {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 0.5rem 0;
+    border-right: 1px solid var(--border-color);
+}
+
+.gantt-timeline-header .tl-label {
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Timeline ------------------------------------------------------------ */
+
+.timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 1rem;
+}
+
+.timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: hsl(var(--card));
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.timeline-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.timeline-date {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 84px;
+}
+
+.timeline-name {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.timeline-end {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- List ----------------------------------------------------------------- */
+
+.task-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.task-list-table thead th {
+    text-align: left;
+    padding: 0.625rem 0.875rem;
+    background: hsl(var(--card));
+    color: var(--text-muted);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+}
+
+.task-list-table tbody tr {
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.task-list-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.task-list-table td {
+    padding: 0.625rem 0.875rem;
+    color: var(--text-primary);
+}
+
+/* ---- Status badges -------------------------------------------------------- */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+}
+
+.status-badge.status-not-started {
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.status-badge.status-in-progress {
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+    background: hsla(38 92% 50% / 0.08);
+}
+
+.status-badge.status-completed {
+    color: var(--success-color);
+    border-color: var(--success-color);
+    background: hsla(142 76% 36% / 0.08);
+}
+
+/* ---- Board ----------------------------------------------------------------- */
+
+.board-columns {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    height: 100%;
+    overflow-x: auto;
+    align-items: flex-start;
+}
+
+.board-column {
+    width: 290px;
+    min-width: 290px;
+    background: hsl(var(--card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+}
+
+.board-column h3 {
+    padding: 0.75rem 1rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.column-tasks {
+    flex: 1;
+    padding: 0.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.board-card {
+    padding: 0.75rem;
+    background: hsl(var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.board-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: var(--sentient-shadow-md, 0 4px 6px -1px hsla(var(--foreground) / 0.1));
+}
+
+.card-title {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.card-meta {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.card-progress {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+}
+
+.empty-card {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ---- Resources ------------------------------------------------------------- */
+
+.resource-table {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+}
+
+/* ---- Details panel --------------------------------------------------------- */
+
+.details-panel {
+    width: 320px;
+    background: hsl(var(--card));
+    border-left: 1px solid var(--border-color);
+    transition: width 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -30,7 +30,7 @@
 .gb-large-dialog-title {
   margin: 0;
   padding: 14px 18px 6px;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 650;
   color: #f8fafc;
 }
@@ -41,7 +41,7 @@
   border-left: 3px solid #f59e0b;
   background: rgba(245, 158, 11, 0.1);
   color: #fcd34d;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .gb-large-dialog-body {
@@ -57,7 +57,7 @@
   min-height: 20px;
   padding: 6px 18px;
   color: #93c5fd;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   border-top: 1px solid #334155;
 }
 
@@ -92,7 +92,7 @@
 
 .gb-large-section-title {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: #cbd5e1;
 }
 
@@ -124,7 +124,7 @@
   border-radius: 6px;
   background: rgba(34, 197, 94, 0.12);
   color: #86efac;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .gb-large-banner-warn {
@@ -132,7 +132,7 @@
   color: #fcd34d;
 }
 
-.gb-large-failure { margin: 8px 0 0; font-size: 12px; min-height: 16px; }
+.gb-large-failure { margin: 8px 0 0; font-size: var(--text-2xs); min-height: 16px; }
 .gb-large-failure-ok { color: #86efac; }
 .gb-large-failure-error { color: #fca5a5; }
 
@@ -156,13 +156,13 @@
 .gb-large-block[contenteditable="false"] { color: #64748b; cursor: default; }
 .gb-large-block[contenteditable="true"]:focus { outline: 1px solid #60a5fa; background: #0f172a; }
 
-.gb-large-baseline-title { margin: 0 0 6px; font-size: 13px; color: #cbd5e1; }
-.gb-large-baseline-note { margin: 0 0 8px; font-size: 11px; color: #fcd34d; }
+.gb-large-baseline-title { margin: 0 0 6px; font-size: var(--text-xs); color: #cbd5e1; }
+.gb-large-baseline-note { margin: 0 0 8px; font-size: var(--text-2xs); color: #fcd34d; }
 
 .gb-large-baseline-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -174,4 +174,4 @@
 }
 
 .gb-large-baseline-table th { background: #1e293b; color: #cbd5e1; }
-.gb-large-deferred { margin: 8px 0 0; font-size: 11px; color: #94a3b8; }
+.gb-large-deferred { margin: 8px 0 0; font-size: var(--text-2xs); color: #94a3b8; }

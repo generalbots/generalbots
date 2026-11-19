@@ -120,7 +120,7 @@
         var sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
-        committed = !!document.execCommand("insertHTML", false, html);
+        committed = !!gbFormat("insertHTML", html);
       }
     } catch (error) { committed = false; }
     if (!committed) {
@@ -149,7 +149,7 @@
         var sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
-        committed = !!document.execCommand("insertHTML", false, html);
+        committed = !!gbFormat("insertHTML", html);
       }
     } catch (error) { committed = false; }
     if (!committed) {

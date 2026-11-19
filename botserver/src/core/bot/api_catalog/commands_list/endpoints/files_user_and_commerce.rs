@@ -1,6 +1,6 @@
 use super::super::ApiEndpoint;
 
-pub(super) static PART_A: &[ApiEndpoint] = &[
+pub(super) static FILES_USER_AND_COMMERCE: &[ApiEndpoint] = &[
         // Drive / files
         ApiEndpoint {
             method: "GET",

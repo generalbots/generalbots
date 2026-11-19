@@ -1,7 +1,7 @@
 /* Slides native-style chart authoring (#2486) — local-only editor, preview,
  * canvas chart wrapper and link/a11y indicators. Prefix: gbch-. */
 .gbch-overlay {
-  position: fixed; inset: 0; z-index: 9600;
+  position: fixed; inset: 0; z-index: var(--z-modal-backdrop);
   background: rgba(15, 23, 42, .55);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
@@ -75,12 +75,12 @@
   min-width: 84px; max-width: 130px; padding: 4px 6px;
   border: 1px solid #cbd5e1; border-radius: 4px; font-size: .82rem;
 }
-.gbch-grid-cell .gbch-btn { padding: 3px 7px; font-size: .72rem; }
+.gbch-grid-cell .gbch-btn { padding: 3px 7px; font-size: var(--text-2xs); }
 .gbch-grid-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .gbch-link-status { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
 .gbch-badge {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
-  font-size: .68rem; font-weight: 700; letter-spacing: .04em;
+  font-size: var(--text-2xs); font-weight: 700; letter-spacing: .04em;
   background: #e2e8f0; color: #334155;
 }
 .gbch-badge-danger { background: #fee2e2; color: #b91c1c; }

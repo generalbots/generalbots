@@ -205,3 +205,10 @@ crm-contacts-empty-action = 連絡先を追加
 crm-campaigns-empty-title = まだキャンペーンがありません
 crm-campaigns-empty-desc = キャンペーンは見込み客をパイプラインに導く施策をまとめます。
 crm-campaigns-empty-action = キャンペーンを作成
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = 監査エントリはまだありません
+crm-audit-unavailable = 監査を利用できません ({ $status })
+crm-campaign-metrics-sent = 送信 { $sent } · 配信 { $delivered } · 開封 { $opened } · クリック { $clicked }

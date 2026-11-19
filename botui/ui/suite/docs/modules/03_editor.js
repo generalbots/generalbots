@@ -87,7 +87,7 @@ function ensureDocArticle() {
     if (typeof attachEditorHandlers === "function") attachEditorHandlers(host);
   }
   article.setAttribute("data-gb-field", "body");
-  if (!article.getAttribute("aria-label")) article.setAttribute("aria-label", "document body");
+  if (!article.getAttribute("aria-label")) article.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("docs-article-aria-label", "document body") : "document body"));
   if (typeof docsEnsureArticleDocId === "function") {
     docsEnsureArticleDocId(article);
   } else if (article.dataset && (!article.dataset.docId || article.dataset.docId === "current")) {

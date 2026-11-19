@@ -49,7 +49,7 @@ jobs:
       - name: Pin RustSec advisory DB (checkout + record commit)
         run: |
           set -euo pipefail
-          adb_commit="02e2517f457a359fc6d3440ea4560c8ea188fee8"
+          adb_commit="074ea9a7ed619f511b5b7374c7a97e98d1e98be4"
           git clone https://github.com/RustSec/advisory-db /tmp/advisory-db
           git -C /tmp/advisory-db checkout "$adb_commit"
           echo "RUSTSEC_ADVISORY_DB_PATH=/tmp/advisory-db" >> "$GITHUB_ENV"

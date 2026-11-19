@@ -235,16 +235,7 @@
     url.searchParams.set("session", sid);
     var text = url.toString();
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-      }
+      await gbCopyText(text);
       notify(t("chat-conversation-link-copied", "Conversation link copied"), "success");
     } catch (e) {
       notify(t("chat-conversation-link-copy-failed", "Failed to copy link"), "error");

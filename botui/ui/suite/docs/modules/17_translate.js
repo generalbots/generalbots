@@ -106,7 +106,7 @@ function openTranslateModal() {
       var sel = document.getElementById("translate-lang");
       var lang = sel ? sel.value : "English";
       btn.disabled = true;
-      btn.textContent = "Translating...";
+      btn.textContent = (typeof window.gbT === "function" ? window.gbT("docs-translating", "Translating...") : "Translating...");
       await translateDocument(lang);
       closeTranslateModal();
     };

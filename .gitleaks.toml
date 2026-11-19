@@ -126,6 +126,22 @@ description = "curl examples in the API documentation."
 paths = ['''^botbook/''', '''^docs/''']
 
 # ---------------------------------------------------------------------------
+# i18n catalog keys that look like key assignments
+# ---------------------------------------------------------------------------
+# The generic-api-key rule treats any `<word>Key = "..."` assignment as a
+# credential. The Docs large-save module stores its Fluent catalog key in a
+# `messageKey` field, and the two HTTP-status suffixes (`-413`, `-inc-413`)
+# carry enough entropy to trip the rule. The values are translation keys that
+# resolve in `botlib/locales/*/docs-large.ftl`, never credentials. The hit is
+# both in history (commit 90eff1766) and in HEAD, so a file-scoped entry is the
+# only offline fix (#2533).
+[[allowlists]]
+description = "Docs large-save Fluent catalog keys in a messageKey field, not credentials."
+paths = ['''^botui/ui/suite/docs/modules/87_large_save\.js$''']
+regexTarget = "match"
+regexes = ['''messageKey = "docs-large-save(-inc)?-413"''']
+
+# ---------------------------------------------------------------------------
 # Prose false positives
 # ---------------------------------------------------------------------------
 # The generic-api-key rule treats "<word>:" followed by a slash-separated list

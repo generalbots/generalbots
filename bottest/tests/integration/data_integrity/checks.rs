@@ -1,6 +1,8 @@
 //! (a) Migrations produce the schema `botschema` declares — and the seeded
 //! dataset really is a nested org -> branch -> bot tree.
 
+use std::collections::HashSet;
+
 use uuid::Uuid;
 
 use super::common::{connect, database_url, ensure_dataset, repo_root, strict};
@@ -33,14 +35,33 @@ fn migrations_apply_from_scratch() {
         on_disk.len(),
         dir.display()
     );
-    let missing: Vec<&String> = on_disk.iter().filter(|v| !applied.contains(v)).collect();
+    // `__diesel_schema_migrations` stores diesel's canonical version (the
+    // directory name up to the first `_`, dashes removed), not the directory
+    // name. Compare in that space and report the readable directory name.
+    let applied_set: HashSet<&str> = applied.iter().map(String::as_str).collect();
+    let on_disk_canonical: Vec<(String, &String)> = on_disk
+        .iter()
+        .map(|directory| (migrations::canonical_version(directory), directory))
+        .collect();
+    let on_disk_set: HashSet<&str> = on_disk_canonical
+        .iter()
+        .map(|(canonical, _)| canonical.as_str())
+        .collect();
+    let missing: Vec<&String> = on_disk_canonical
+        .iter()
+        .filter(|(canonical, _)| !applied_set.contains(canonical.as_str()))
+        .map(|pair| pair.1)
+        .collect();
     assert!(
         missing.is_empty(),
         "{} migration(s) were never applied, e.g. {:?}",
         missing.len(),
         missing.iter().take(5).collect::<Vec<_>>()
     );
-    let extra: Vec<&String> = applied.iter().filter(|v| !on_disk.contains(v)).collect();
+    let extra: Vec<&String> = applied
+        .iter()
+        .filter(|version| !on_disk_set.contains(version.as_str()))
+        .collect();
     assert!(
         extra.is_empty(),
         "the database has {} migration(s) that are not on disk, e.g. {:?}",
@@ -48,10 +69,10 @@ fn migrations_apply_from_scratch() {
         extra.iter().take(5).collect::<Vec<_>>()
     );
     assert_eq!(
-        on_disk.len(),
+        on_disk_canonical.len(),
         applied.len(),
         "migration count on disk ({}) differs from applied ({})",
-        on_disk.len(),
+        on_disk_canonical.len(),
         applied.len()
     );
     eprintln!(

@@ -1,28 +1,30 @@
 use super::AppCommand;
 use std::sync::OnceLock;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod browser_video_and_photos;
+mod docs_and_sheet_crud;
+mod office_create_and_utilities;
+mod sheet_slides_and_canvas;
+mod system_store_and_media;
 
 static ALL: OnceLock<Vec<AppCommand>> = OnceLock::new();
 
 pub fn all() -> &'static [AppCommand] {
     ALL.get_or_init(|| {
+        // Order follows the historical split order so the catalog keeps the
+        // same deterministic ordering of commands.
         let mut v = Vec::with_capacity(
-            part1::PART_1.len()
-                + part2::PART_2.len()
-                + part3::PART_3.len()
-                + part4::PART_4.len()
-                + part5::PART_5.len(),
+            office_create_and_utilities::OFFICE_CREATE_AND_UTILITIES.len()
+                + system_store_and_media::SYSTEM_STORE_AND_MEDIA.len()
+                + browser_video_and_photos::BROWSER_VIDEO_AND_PHOTOS.len()
+                + docs_and_sheet_crud::DOCS_AND_SHEET_CRUD.len()
+                + sheet_slides_and_canvas::SHEET_SLIDES_AND_CANVAS.len(),
         );
-        v.extend_from_slice(part1::PART_1);
-        v.extend_from_slice(part2::PART_2);
-        v.extend_from_slice(part3::PART_3);
-        v.extend_from_slice(part4::PART_4);
-        v.extend_from_slice(part5::PART_5);
+        v.extend_from_slice(office_create_and_utilities::OFFICE_CREATE_AND_UTILITIES);
+        v.extend_from_slice(system_store_and_media::SYSTEM_STORE_AND_MEDIA);
+        v.extend_from_slice(browser_video_and_photos::BROWSER_VIDEO_AND_PHOTOS);
+        v.extend_from_slice(docs_and_sheet_crud::DOCS_AND_SHEET_CRUD);
+        v.extend_from_slice(sheet_slides_and_canvas::SHEET_SLIDES_AND_CANVAS);
         v
     })
     .as_slice()

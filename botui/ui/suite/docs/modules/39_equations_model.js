@@ -4,7 +4,7 @@
  * Equations live in the article as <span class="docs-eq" contenteditable=false>
  * wrapping native MathML. LaTeX source, placement and numbering metadata are
  * data attributes, so equations stay searchable and re-editable. Every
- * insertion, edit and deletion is committed through one execCommand("insertHTML")
+ * insertion, edit and deletion is committed through one gbFormat("insertHTML") call
  * over the exact target range: one native undo step, no surrounding markup
  * corruption. The outerHTML path is only a fallback for engines/stubs without
  * execCommand. */
@@ -112,7 +112,7 @@
       if (sel && document.execCommand) {
         sel.removeAllRanges();
         sel.addRange(range);
-        ok = !!document.execCommand("insertHTML", false, html);
+        ok = !!gbFormat("insertHTML", html);
       }
     } catch (error) { ok = false; }
     if (!ok) {
@@ -147,7 +147,7 @@
       if (sel && document.execCommand) {
         sel.removeAllRanges();
         sel.addRange(range);
-        ok = !!document.execCommand("insertHTML", false, html);
+        ok = !!gbFormat("insertHTML", html);
       }
     } catch (commitError) { ok = false; }
     if (!ok) {

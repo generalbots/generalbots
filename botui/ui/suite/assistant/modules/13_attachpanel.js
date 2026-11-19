@@ -353,7 +353,7 @@ function renderCode(body, text, name) {
 
 function renderCsv(body, text) {
     var rows = text.split("\n").filter(function (r) { return r.trim(); });
-    if (rows.length === 0) { body.innerHTML = '<p class="gb-attach-panel-empty">Empty</p>'; return; }
+    if (rows.length === 0) { body.innerHTML = '<p class="gb-attach-panel-empty">' + (typeof window.gbT === "function" ? window.gbT("label-empty", "Empty") : "Empty") + '</p>'; return; }
     var html = '<table class="gb-attach-panel-table"><thead><tr>';
     var header = rows[0].split(",");
     for (var h = 0; h < header.length; h++) { html += '<th>' + esc(header[h].trim()) + '</th>'; }

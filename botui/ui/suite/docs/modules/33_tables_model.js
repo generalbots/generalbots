@@ -8,7 +8,7 @@
  * balanced thead/tbody/tr/th/td, valid scope and consistent spans.
  *
  * Everything lives in window.DocsTables. All DOM changes go through
- * replaceTable(), which replaces the table with one execCommand("insertHTML")
+ * replaceTable(), which replaces the table with one gbFormat("insertHTML") call
  * (a single native undo step) plus a fallback for stubs/older engines. */
 (function (window) {
   var NS = (window.DocsTables = window.DocsTables || {});

@@ -135,10 +135,13 @@
     if (btn) {
       var s = getState();
       var onCount = (s.web?1:0) + (s.agent?1:0) + (s.appAutomation?1:0);
-      btn.title = "Chat controls: Web " + (s.web?"on":"off") + ", Agent " + (s.agent?"on":"off") + ", Live generation " + (s.appAutomation?"on":"off") + ", Media " + s.mediaType;
-      btn.setAttribute("aria-label", btn.title);
+      btn.title = (typeof window.gbT === "function" ? window.gbT("chat-controls-web", "Chat controls: Web") : "Chat controls: Web") + " " + (s.web?"on":"off") + ", Agent " + (s.agent?"on":"off") + ", Live generation " + (s.appAutomation?"on":"off") + ", Media " + s.mediaType;
       var badge = btn.querySelector(".chat-controls-badge");
       if (badge) badge.textContent = String(onCount);
+      // The badge number is visible text, so WCAG 2.5.3 ("Label in Name") needs
+      // it in the accessible name as a bare token — axe strips parentheticals
+      // from both sides before comparing, so "(2)" would not match.
+      btn.setAttribute("aria-label", btn.title + ", " + onCount);
     }
     var panel = document.getElementById("chatControlsPanel");
     if (!panel) return;
@@ -188,7 +191,7 @@
     panel.className = "chat-controls-panel";
     panel.style.display = "none";
     panel.innerHTML =
-      '<div class="chat-controls-title">Chat controls</div>' +
+      '<div class="chat-controls-title">' + (typeof window.gbT === "function" ? window.gbT("chat-controls-title", "Chat controls") : "Chat controls") + '</div>' +
       '<label class="chat-controls-row"><input type="checkbox" id="cc-web"> <span>Web</span><small>Use web/search for current info</small></label>' +
       '<label class="chat-controls-row"><input type="checkbox" id="cc-agent"> <span>Agent (VM)</span><small>Allow workspace/VM execution</small></label>' +
       '<label class="chat-controls-row"><input type="checkbox" id="cc-app"> <span>Live generation</span><small>Generate in apps (docs/canvas) via UI hints</small></label>' +

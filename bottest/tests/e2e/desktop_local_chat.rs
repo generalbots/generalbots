@@ -95,21 +95,6 @@ pub use bottest::desktop::suite_chat::{
     SUITE_CHAT_WS_PATH,
 };
 
-/// Minimal desktop-local product fallback (kept for local contract compatibility).
-#[allow(dead_code)]
-fn desktop_local_product_fallback() -> &'static str {
-    "name=General Bots\n\
-apps=chat,drive\n\
-suite_default_app=chat\n\
-sidebar=true\n\
-search_enabled=false\n\
-menu_launcher_enabled=true\n\
-no_security=false\n\
-shell_mode=true\n\
-edition=desktop\n\
-theme=sentient\n"
-}
-
 /// Environment variables for desktop-local botserver with deterministic mock LLM.
 pub fn desktop_local_botserver_env(
     stack_path: &Path,
@@ -117,12 +102,6 @@ pub fn desktop_local_botserver_env(
     mock_llm: &MockLLM,
 ) -> BTreeMap<String, String> {
     desktop_local_botserver_env_shared(stack_path, installers_path, mock_llm)
-}
-
-/// Resolve repo `.product.desktop-local` source path.
-#[allow(dead_code)]
-fn repo_desktop_local_product_path() -> PathBuf {
-    bottest::desktop::suite_chat::repo_desktop_local_product_path()
 }
 
 /// Ensure stack has a `.product.desktop-local` profile.

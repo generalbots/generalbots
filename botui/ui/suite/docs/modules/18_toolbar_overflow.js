@@ -23,7 +23,7 @@
     menu.innerHTML = "";
     var items = actionableElements(container).filter(function (el) { return !isFullyVisible(container, el); });
     if (!items.length) {
-      var empty = document.createElement("div"); empty.className = "tb-overflow-item"; empty.textContent = "No hidden commands"; empty.setAttribute("aria-disabled", "true");
+      var empty = document.createElement("div"); empty.className = "tb-overflow-item"; empty.textContent = (typeof window.gbT === "function" ? window.gbT("docs-overflow-empty", "No hidden commands") : "No hidden commands"); empty.setAttribute("aria-disabled", "true");
       menu.appendChild(empty); return;
     }
     items.forEach(function (orig) {
@@ -44,7 +44,7 @@
     container.__tbOverflowInit = true;
     var btn = document.createElement("button");
     btn.type = "button"; btn.className = "toolbar-overflow-btn";
-    btn.setAttribute("aria-label", "More commands"); btn.setAttribute("title", "More commands");
+    btn.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("docs-overflow-more", "More commands") : "More commands")); btn.setAttribute("title", (typeof window.gbT === "function" ? window.gbT("docs-overflow-more", "More commands") : "More commands"));
     btn.setAttribute("aria-haspopup", "menu"); btn.setAttribute("aria-expanded", "false");
     btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 6 15 12 9 18"></polyline><polyline points="4 6 10 12 4 18"></polyline></svg>';
     var menu = document.createElement("div"); menu.className = "toolbar-overflow-menu"; menu.hidden = true; menu.setAttribute("role", "menu"); menu.__tbBtn = btn;

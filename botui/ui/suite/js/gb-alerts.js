@@ -43,7 +43,7 @@
     var list = listEl();
     if (!list) return;
     if (notifications.length === 0) {
-      list.innerHTML = '<div class="notifications-empty"><span>🔔</span><p>No notifications</p></div>';
+      list.innerHTML = '<div class="notifications-empty"><span>🔔</span><p>' + (typeof window.gbT === "function" ? window.gbT("notification-empty", "No notifications") : "No notifications") + '</p></div>';
       return;
     }
     list.innerHTML = notifications.map(function (n, i) {

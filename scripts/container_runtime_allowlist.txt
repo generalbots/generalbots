@@ -9,9 +9,3 @@
 # a stale entry, so this file can only get shorter.
 
 runtime-lxc:botserver/crates/botbasic_ai/src/keywords/code_sandbox/execute_file.rs
-runtime-lxc:botserver/crates/botcore/src/package_manager/facade/safe_lxc.rs
-runtime-lxc:botserver/crates/botcorepkg/src/facade_container.rs
-runtime-lxc:botserver/crates/botcorepkg/src/facade_download/download.rs
-runtime-lxc:botserver/crates/botsecurity-protection/src/protection/caddy_hardener.rs
-runtime-lxc:botserver/crates/botsecurity-protection/src/protection/dns_hardener.rs
-runtime-lxc:botserver/crates/botsecurity-protection/src/protection/fail2ban.rs

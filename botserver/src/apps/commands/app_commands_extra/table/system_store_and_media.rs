@@ -1,6 +1,6 @@
 use super::super::*;
 
-pub(super) static PART_2: &[AppCommand] = &[
+pub(super) static SYSTEM_STORE_AND_MEDIA: &[AppCommand] = &[
     cmd(
         "plugins",
         "plugins.enable",

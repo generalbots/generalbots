@@ -14,11 +14,26 @@
   "use strict";
 
   var CANONICAL_SRC = "/suite/js/i18n.js";
+  // i18n.js delegates element/page translation to this sibling module, so the
+  // canonical loader is only "ready" once both scripts have loaded.
+  var ELEMENTS_SRC = "/suite/js/i18n-elements.js";
   var pending = [];
   var loading = false;
 
   function canonicalReady() {
     return !!(window.i18n && typeof window.i18n.translatePage === "function");
+  }
+
+  function flushPending() {
+    var queue = pending.slice();
+    pending.length = 0;
+    queue.forEach(function (cb) {
+      try {
+        cb();
+      } catch (e) {
+        console.warn("gbTranslations: delegated call failed", e);
+      }
+    });
   }
 
   function runWhenReady(callback) {
@@ -32,16 +47,17 @@
     var script = document.createElement("script");
     script.src = CANONICAL_SRC;
     script.onload = function () {
-      loading = false;
-      var queue = pending.slice();
-      pending.length = 0;
-      queue.forEach(function (cb) {
-        try {
-          cb();
-        } catch (e) {
-          console.warn("gbTranslations: delegated call failed", e);
-        }
-      });
+      var elements = document.createElement("script");
+      elements.src = ELEMENTS_SRC;
+      elements.onload = function () {
+        loading = false;
+        flushPending();
+      };
+      elements.onerror = function () {
+        loading = false;
+        console.warn("gbTranslations: could not load the element translator");
+      };
+      document.head.appendChild(elements);
     };
     script.onerror = function () {
       loading = false;

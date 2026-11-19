@@ -159,7 +159,7 @@ function renderResults(data) {
     })) : []);
 
   if (!items.length) {
-    resultsBody.innerHTML = '<div class="empty-state">No results found</div>';
+    resultsBody.innerHTML = '<div class="empty-state">' + (typeof window.gbT === "function" ? window.gbT("label-no-results", "No results found") : "No results found") + '</div>';
     return;
   }
 
@@ -194,14 +194,14 @@ async function loadHistory() {
     const items = Array.isArray(data) ? data : (data.items || data.data || []);
     renderHistory(items);
   } catch (err) {
-    historyList.innerHTML = '<div class="empty-state">Could not load history</div>';
+    historyList.innerHTML = '<div class="empty-state">' + (typeof window.gbT === "function" ? window.gbT("vision-history-load-failed", "Could not load history") : "Could not load history") + '</div>';
   }
 }
 
 function renderHistory(items) {
   const historyList = document.getElementById('historyList');
   if (!items.length) {
-    historyList.innerHTML = '<div class="empty-state">No history items</div>';
+    historyList.innerHTML = '<div class="empty-state">' + (typeof window.gbT === "function" ? window.gbT("vision-history-empty", "No history items") : "No history items") + '</div>';
     return;
   }
   historyList.innerHTML = items.map(item => {
@@ -229,7 +229,7 @@ function renderHistory(items) {
 }
 
 document.getElementById('btnClearResults').addEventListener('click', () => {
-  document.getElementById('resultsBody').innerHTML = '<div class="empty-state">Upload an image to analyze</div>';
+  document.getElementById('resultsBody').innerHTML = '<div class="empty-state">' + (typeof window.gbT === "function" ? window.gbT("vision-upload-prompt", "Upload an image to analyze") : "Upload an image to analyze") + '</div>';
   document.getElementById('resultsArea').style.display = 'none';
   selectedFile = null;
   fileInput.value = '';

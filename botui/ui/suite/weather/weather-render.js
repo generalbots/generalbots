@@ -77,11 +77,11 @@
     var notice = document.createElement("div");
     notice.className = "weather-stale";
     notice.setAttribute("role", "status");
-    notice.textContent = "As of " + clock(d.updated) + " \u2014 couldn't refresh. ";
+    notice.textContent = (typeof window.gbT === "function" ? window.gbT("weather-as-of", "As of") : "As of") + " " + clock(d.updated) + " \u2014 couldn't refresh. ";
     var button = document.createElement("button");
     button.type = "button";
     button.className = "weather-retry";
-    button.textContent = "Retry";
+    button.textContent = (typeof window.gbT === "function" ? window.gbT("action-retry", "Retry") : "Retry");
     button.addEventListener("click", retry);
     notice.appendChild(button);
     current.appendChild(notice);
@@ -92,7 +92,7 @@
     var current = document.getElementById("weatherCurrent");
     if (!current) return;
     current.innerHTML =
-      '<div class="weather-empty">Weather is offline and no saved data exists. ' +
+      '<div class="weather-empty">' + (typeof window.gbT === "function" ? window.gbT("weather-offline-empty", "Weather is offline and no saved data exists.") : "Weather is offline and no saved data exists.") + ' ' +
       "Try again later or search another city.</div>";
     var forecast = document.getElementById("weatherForecast");
     if (forecast) forecast.innerHTML = "";

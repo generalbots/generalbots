@@ -399,43 +399,13 @@
     </div>
 </div>
 
-<!-- Modal for forms -->
-<div id="crm-modal" class="crm-modal">
-    <div class="crm-modal-backdrop" onclick="closeCrmModal()"></div>
-    <div class="crm-modal-content" id="crm-modal-content"></div>
-</div>
+<!-- Shared modal + campaign form template, split into an HTMX fragment to keep
+     this file under the 450-line limit (both nodes are read from event
+     handlers only, so loading them with the app is safe). -->
+<div hx-get="/suite/crm/partials/overlays.html?v=1" hx-trigger="load" hx-swap="innerHTML"></div>
 
 <!-- Record detail drawer (#1441 C1) — the fragment is loaded per record type -->
 <div id="record-detail-panel" class="crm-detail-panel gb-pane gb-pane-detail" role="region" aria-live="polite" aria-label="Record details"></div>
-
-<!-- #1453 — campaign create form, loaded into the shared modal on demand -->
-<template id="campaign-form-template">
-    <form id="campaignForm" class="crm-form">
-        <div class="crm-form-group">
-            <label class="crm-form-label" data-i18n="label-name">Name</label>
-            <input type="text" name="name" class="crm-form-input" required>
-        </div>
-        <div class="crm-form-group">
-            <label class="crm-form-label" data-i18n="crm-field-channel">Channel</label>
-            <select name="channel" class="crm-form-select">
-                <option value="email" data-i18n="attendant-channel-email">Email</option>
-                <option value="whatsapp">WhatsApp</option>
-            </select>
-        </div>
-        <div class="crm-form-group">
-            <label class="crm-form-label" data-i18n="crm-field-budget">Budget</label>
-            <input type="number" name="budget" class="crm-form-input" min="0" step="0.01">
-        </div>
-        <div class="crm-form-group">
-            <label class="crm-form-label" data-i18n="crm-field-scheduled-at">Scheduled at</label>
-            <input type="datetime-local" name="scheduled_at" class="crm-form-input">
-        </div>
-        <div class="crm-form-actions">
-            <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()" data-i18n="action-cancel">Cancel</button>
-            <button type="submit" class="crm-form-btn primary" data-i18n="action-create">Create</button>
-        </div>
-    </form>
-</template>
 
 <!-- #1441 P2 — audit trail drawer, opened from the header History button -->
 <div id="crm-audit-drawer" class="crm-audit-drawer">
@@ -448,6 +418,7 @@
 
 <script src="/suite/crm/crm.js?v=6"></script>
 <script src="/suite/crm/crm-bulk.js?v=4"></script>
+<script src="/suite/crm/crm-bulk-campaigns.js?v=1"></script>
 <script src="/suite/crm/crm-records.js?v=3"></script>
 <script src="/suite/crm/crm-stages.js?v=2"></script>
 <script src="/suite/crm/crm-quotes.js?v=1"></script>

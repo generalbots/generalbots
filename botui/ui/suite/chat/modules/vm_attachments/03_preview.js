@@ -121,7 +121,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
     vmFetchBlobUrl(url, box).then(function (blobUrl) {
       if (box.isConnected) audio.src = blobUrl;
     }).catch(function () {
-      if (box.isConnected) hint.textContent = "Could not load audio preview.";
+      if (box.isConnected) hint.textContent = (typeof window.gbT === "function" ? window.gbT("chat-preview-audio-load-failed", "Could not load audio preview.") : "Could not load audio preview.");
     });
   } else if (kind === "pdf" || kind === "html") {
     var frame = document.createElement("iframe");
@@ -137,7 +137,7 @@ function vmToggleInlinePreview(card, url, path, convId) {
       if (!box.isConnected) return;
       var note = document.createElement("div");
       note.className = "gb-attachment-inline-note";
-      note.textContent = "Could not load the preview.";
+      note.textContent = (typeof window.gbT === "function" ? window.gbT("chat-preview-load-failed", "Could not load the preview.") : "Could not load the preview.");
       body.appendChild(note);
     });
   } else if (kind === "office") {
@@ -271,6 +271,6 @@ function vmShowPreviewUrl(url, path) {
     })
     .catch(function () {
       var existingBody = overlay.querySelector(".gb-vm-preview-body");
-      if (existingBody) existingBody.textContent = "Could not load preview.";
+      if (existingBody) existingBody.textContent = (typeof window.gbT === "function" ? window.gbT("chat-preview-overlay-failed", "Could not load preview.") : "Could not load preview.");
     });
 }

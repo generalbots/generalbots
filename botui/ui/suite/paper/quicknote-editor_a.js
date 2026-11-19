@@ -318,7 +318,7 @@ function insertCheckbox() {
 
     const span = document.createElement('span');
     span.setAttribute('contenteditable', 'true');
-    span.textContent = 'New task';
+    span.textContent = (typeof window.gbT === "function" ? window.gbT("paper-quicknote-new-task", "New task") : "New task");
 
     checkbox.appendChild(input);
     checkbox.appendChild(document.createTextNode(' '));

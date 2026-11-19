@@ -240,7 +240,8 @@
     --id-accent-text: hsl(32 96% 72%);
     --id-accent-soft: color-mix(in srgb, hsl(30 89% 55%) 12%, transparent);
     --id-accent-glow: color-mix(in srgb, hsl(30 89% 55%) 26%, transparent);
-    --id-on-accent: hsl(0 0% 100%);
+    /* Ink, not white: white on this accent is 2.45:1 (see accent.js). */
+    --id-on-accent: hsl(0 0% 17%);
 
     /* Surfaces and ink. */
     --id-paper: hsl(34 11% 12%);

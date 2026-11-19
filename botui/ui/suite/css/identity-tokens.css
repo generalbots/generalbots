@@ -20,7 +20,9 @@
   --id-accent-text: #B45309;
   --id-accent-soft: rgb(242 140 40 / .1);
   --id-accent-glow: rgb(242 140 40 / .26);
-  --id-on-accent: #ffffff;
+  /* Ink, not white: white on the reference orange is 2.45:1. This matches the
+     reference-orange on-accent that identity/accent.js derives (#2C2C2C). */
+  --id-on-accent: #2C2C2C;
   --id-paper: #FFF8F2;
 
   /* == Ink & neutrals ================================================== */

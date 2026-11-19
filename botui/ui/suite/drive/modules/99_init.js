@@ -178,7 +178,7 @@ if (__deepPath) {
             var contentEl = document.getElementById("drive-content") || document.getElementById("file-grid");
             if (!contentEl) return;
             var detail = reason ? "<p>" + escapeHtml(humanizeError(reason)) + "</p>" : "";
-            contentEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>Not found in the current Drive</h3><p>The linked path could not be resolved.</p>' + detail + '</div>';
+            contentEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>' + (typeof window.gbT === "function" ? window.gbT("drive-link-not-found", "Not found in the current Drive") : "Not found in the current Drive") + '</h3><p>' + (typeof window.gbT === "function" ? window.gbT("drive-link-unresolved", "The linked path could not be resolved.") : "The linked path could not be resolved.") + '</p>' + detail + '</div>';
         }
         try {
             await loadFiles(__deepPath, __deepBucket || undefined);

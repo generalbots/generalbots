@@ -113,7 +113,7 @@
   function printHtml(html) {
     var frame = document.createElement("iframe");
     frame.setAttribute("aria-hidden", "true");
-    frame.setAttribute("title", "Print preview");
+    frame.setAttribute("title", (typeof window.gbT === "function" ? window.gbT("docs-layout-print-preview", "Print preview") : "Print preview"));
     frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
     frame.addEventListener(
       "load",

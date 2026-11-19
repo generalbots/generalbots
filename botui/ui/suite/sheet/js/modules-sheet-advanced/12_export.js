@@ -85,7 +85,7 @@
   function exportFormat(format, ext) {
     const id = currentSheetId();
     if (!isExportableId(id)) {
-      showToast("Save or open a sheet before exporting", false);
+      showToast((typeof window.gbT === "function" ? window.gbT("sheet-export-no-sheet", "Save or open a sheet before exporting") : "Save or open a sheet before exporting"), false);
       return Promise.resolve();
     }
     return fetch("/api/sheet/export", {
@@ -110,7 +110,7 @@
         download(blob, filename);
         // The anchor is removed shortly after the click, so this toast is the
         // persistent confirmation the user (and the UI automation) can observe.
-        showToast("Exported " + filename, true);
+        showToast((typeof window.gbT === "function" ? window.gbT("sheet-exported", "Exported") : "Exported") + " " + filename, true);
       })
       .catch(function (err) {
         const msg = (err && err.message) ? String(err.message) : "Export failed";

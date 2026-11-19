@@ -137,7 +137,7 @@
       li.setAttribute("data-result", item.result);
       li.tabIndex = 0;
       li.setAttribute("role", "button");
-      li.setAttribute("aria-label", "Use result " + item.result + " from " + item.expr);
+      li.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("calculator-use-result", "Use result") : "Use result") + " " + item.result + " from " + item.expr);
       var exprLine = document.createElement("span");
       exprLine.className = "h-expr";
       exprLine.textContent = item.expr;

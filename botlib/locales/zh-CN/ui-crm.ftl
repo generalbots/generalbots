@@ -205,3 +205,10 @@ crm-contacts-empty-action = 添加联系人
 crm-campaigns-empty-title = 还没有营销活动
 crm-campaigns-empty-desc = 营销活动汇总为销售漏斗带来潜在客户的外联动作。
 crm-campaigns-empty-action = 创建营销活动
+
+# -----------------------------------------------------------------------------
+# #2328 — audit drawer + campaign metrics state copy
+# -----------------------------------------------------------------------------
+crm-audit-empty = 暂无审计记录
+crm-audit-unavailable = 审计不可用（{ $status }）
+crm-campaign-metrics-sent = 已发送 { $sent } · 已送达 { $delivered } · 已打开 { $opened } · 已点击 { $clicked }

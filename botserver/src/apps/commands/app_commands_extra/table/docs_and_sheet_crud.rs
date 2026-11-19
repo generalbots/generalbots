@@ -1,6 +1,6 @@
 use super::super::*;
 
-pub(super) static PART_4: &[AppCommand] = &[
+pub(super) static DOCS_AND_SHEET_CRUD: &[AppCommand] = &[
     // ——— #2037 — the office vertical's full verb set (each maps to an endpoint
     // that already exists). Combined with the create/export verbs above.
     cmd(
