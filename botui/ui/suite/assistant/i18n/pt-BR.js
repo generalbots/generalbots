@@ -200,5 +200,9 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.print":         "Imprimir / PDF",
     "feedback.good":           "Boa resposta",
     "feedback.bad":            "Resposta ruim",
-    "feedback.comment":        "O que poderia melhorar?"
+    "feedback.comment":        "O que poderia melhorar?",
+    "blocks.unit-chars":       "caracteres",
+    "blocks.unit-items":       "itens",
+    "blocks.unit-results":     "resultados",
+    "blocks.unit-sources":     "fontes"
 };

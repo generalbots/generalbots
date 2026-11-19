@@ -44,7 +44,7 @@
 }
 .gb-set-range-reset {
     border: 0; background: none; color: var(--id-gray-400); cursor: pointer;
-    font-size: 16px; line-height: 1; padding: 2px; border-radius: 4px;
+    font-size: var(--id-text-lg); line-height: 1; padding: 2px; border-radius: 4px;
 }
 .gb-set-range-reset:hover { color: var(--id-ink); background: var(--id-fill); }
 
