@@ -45,6 +45,15 @@
     { id: "audit", group: "admin", depth: "advanced", editions: ALL, scope: "admin" },
     { id: "organizations", group: "admin", depth: "advanced", editions: ALL, scope: "admin" },
 
+    { id: "os-network", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-power", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-display", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-sound", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-keyboard", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-storage-reset", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-users", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+    { id: "os-diagnostics", group: "system", depth: "advanced", editions: ["os"], scope: "admin", control: "shell" },
+
     { id: "os", group: "system", depth: "advanced", editions: ["desktop", "os"], scope: "admin", control: "shell" },
     { id: "updates", group: "system", depth: "essential", editions: ["desktop", "os"], scope: "personal", control: "shell" },
     { id: "system", group: "system", depth: "essential", editions: ALL, scope: "personal" },

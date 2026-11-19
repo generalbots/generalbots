@@ -165,3 +165,26 @@ tasks-today = Today
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = 建议或错误报告...
+
+# OS tray indicators (#2465)
+taskbar-battery = 电池
+taskbar-battery-aria = 电池状态
+taskbar-battery-none = 无电池
+taskbar-network = 网络
+taskbar-network-aria = 网络状态
+taskbar-network-wired = 仅有线连接
+taskbar-volume = 音量
+taskbar-volume-aria = 音量
+taskbar-volume-unknown = 音量不可用
+taskbar-brightness = 亮度
+taskbar-brightness-aria = 亮度
+taskbar-brightness-unknown = 亮度不可用
+taskbar-updates = 更新
+taskbar-updates-aria = 更新状态
+taskbar-updates-unknown = 更新状态不可用
+taskbar-power = 电源
+taskbar-power-aria = 电源
+taskbar-power-unknown = 电源控制不可用
+taskbar-os-overflow = 更多指示器
+taskbar-os-overflow-aria = 显示隐藏的指示器
+taskbar-open-settings = 打开设置

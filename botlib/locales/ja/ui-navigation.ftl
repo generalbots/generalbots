@@ -165,3 +165,26 @@ tasks-today = Today
 
 # semantic i18n key (#2542)
 sidebar-feedback-placeholder = 提案やバグ報告...
+
+# OS tray indicators (#2465)
+taskbar-battery = バッテリー
+taskbar-battery-aria = バッテリーの状態
+taskbar-battery-none = バッテリーなし
+taskbar-network = ネットワーク
+taskbar-network-aria = ネットワークの状態
+taskbar-network-wired = 有線のみ
+taskbar-volume = 音量
+taskbar-volume-aria = 音量
+taskbar-volume-unknown = 音量を利用できません
+taskbar-brightness = 明るさ
+taskbar-brightness-aria = 明るさ
+taskbar-brightness-unknown = 明るさを利用できません
+taskbar-updates = 更新
+taskbar-updates-aria = 更新の状態
+taskbar-updates-unknown = 更新の状態を利用できません
+taskbar-power = 電源
+taskbar-power-aria = 電源
+taskbar-power-unknown = 電源コントロールを利用できません
+taskbar-os-overflow = その他のインジケーター
+taskbar-os-overflow-aria = 非表示のインジケーターを表示
+taskbar-open-settings = 設定を開く
