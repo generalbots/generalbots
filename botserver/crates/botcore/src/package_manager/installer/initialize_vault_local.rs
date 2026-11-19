@@ -145,96 +145,58 @@ impl PackageManager {
             .filter_map(|v| v.as_str().map(String::from))
             .collect();
 
-        // Set VAULT_TOKEN early so it's available for all subsequent operations
-        std::env::set_var("VAULT_TOKEN", &root_token);
+        // #2498 — the root token stays in memory for init-time CLI calls only.
+        // Persist a scoped token in the private credential store instead.
+        let scoped = botcorepkg::installer_vault::secret_store::create_scoped_token(
+            &vault_addr, &root_token, &ca_cert, &vault_bin,
+        )?;
+        botcorepkg::installer_vault::secret_store::write(
+            botcorepkg::installer_vault::secret_store::VAULT_TOKEN_SECRET, &scoped,
+        )?;
+        botcorepkg::installer_vault::secret_store::write(
+            botcorepkg::installer_vault::secret_store::UNSEAL_KEYS_SECRET,
+            &unseal_keys.join("\n"),
+        )?;
+        botcorepkg::installer_vault::secret_store::load_token_into_env()?;
 
-        // Save init.json
+        // Save a sanitized init.json: no root token and no unseal keys.
         let init_json = self.base_path.join("conf/vault/init.json");
         std::fs::create_dir_all(
             init_json.parent()
                 .ok_or_else(|| anyhow::anyhow!("Invalid init.json path: no parent directory"))?
         )?;
-        std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
+        let safe_json = serde_json::to_string_pretty(
+            &botcorepkg::installer_vault::secret_store::sanitized_init_json(&init_json_val),
+        )?;
+        std::fs::write(&init_json, safe_json)?;
         {
             let abs = crate::os_abstraction::get_abstraction();
             let _ = abs.set_readonly_owner(&init_json)
                 .map_err(|e| warn!("Failed to set permissions on {}: {}", init_json.display(), e));
         }
-        info!("Created {} (chmod 600)", init_json.display());
+        info!("Created {} (no secret material)", init_json.display());
 
-        // Create .env file with Vault credentials
+        // `.env` references the scoped token; it never contains a token value.
         let env_file = std::path::PathBuf::from(".env");
-        let env_content = format!(
-            r#"
-# Vault Configuration (auto-generated)
-VAULT_ADDR={}
-VAULT_TOKEN={}
-VAULT_CACERT={}
-"#,
-            vault_addr,
-            root_token,
-            ca_cert.display()
-        );
-
-        if env_file.exists() {
-            // The stack can be erased and provisioned again, and every new Vault
-            // has a different root token. Replace the stale credentials while
-            // keeping every unrelated variable in `.env`.
-            let existing = std::fs::read_to_string(&env_file)?;
-            let mut kept: Vec<&str> = existing
-                .lines()
-                .filter(|line| {
-                    !line.starts_with("# Vault Configuration (auto-generated)")
-                        && !line.starts_with("VAULT_ADDR=")
-                        && !line.starts_with("VAULT_TOKEN=")
-                        && !line.starts_with("VAULT_CACERT=")
-                })
-                .collect();
-            while kept.last().is_some_and(|line| line.trim().is_empty()) {
-                kept.pop();
-            }
-            let mut content = kept.join("\n");
-            if !content.is_empty() {
-                content.push('\n');
-            }
-            content.push_str(env_content.trim_start());
-            std::fs::write(&env_file, content)?;
-            info!("Updated Vault credentials in .env");
-        } else {
-            std::fs::write(&env_file, env_content.trim_start())?;
-            info!("Created .env with Vault config");
-        }
+        botcorepkg::installer_vault::secret_store::write_env_file(
+            &env_file, &vault_addr, Some(&ca_cert),
+        )?;
         {
             let abs = crate::os_abstraction::get_abstraction();
             let _ = abs.set_readonly_owner(&env_file)
                 .map_err(|e| warn!("Failed to set permissions on {}: {}", env_file.display(), e));
         }
 
-        // Create vault-unseal-keys file in botserver directory (next to .env)
-        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
-        let keys_content: String = unseal_keys
-            .iter()
-            .enumerate()
-            .map(|(i, key)| {
-                format!("VAULT_UNSEAL_KEY_{}={key}\n", i + 1)
-            })
-            .collect();
-
-        std::fs::write(&unseal_keys_file, keys_content)?;
-
-        {
-            let abs = crate::os_abstraction::get_abstraction();
-            let _ = abs.set_readonly_owner(&unseal_keys_file)
-                .map_err(|e| warn!("Failed to set permissions on {}: {}", unseal_keys_file.display(), e));
+        // Migration: remove the legacy plaintext unseal-key file.
+        let legacy_keys = self.base_path.join("vault-unseal-keys");
+        if legacy_keys.exists() {
+            let _ = std::fs::remove_file(&legacy_keys);
         }
-        info!("Created {} (chmod 600)", unseal_keys_file.display());
 
-        // Unseal Vault (need 3 keys)
+        // Unseal Vault (need 3 keys from the private store)
         self.unseal_vault(&vault_bin, &vault_addr)?;
 
-        info!("Vault initialized and unsealed successfully");
-        info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
-        info!("✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)");
+        info!("Vault initialized and unsealed; scoped token stored outside the stack");
 
         // Enable the KV2 secrets engine at 'secret/' (idempotent).
         self.ensure_kv_mount(&vault_addr, &root_token, &ca_cert, &vault_bin);

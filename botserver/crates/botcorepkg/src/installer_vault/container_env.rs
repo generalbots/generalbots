@@ -1,171 +1,282 @@
 //! Vault bootstrap and `.env` generation for a container-hosted Vault.
 //!
-//! Split out of `facade_container.rs`, which crossed the 450-line hard limit
-//! with the #2001 container-download verification (#1933). `facade_container`
-//! re-exports both entry points, so existing call sites are unchanged.
+//! #2498 — the root token and the unseal keys are kept in memory / in the
+//! private credential store, never in the user-owned stack. The token persisted
+//! for the sidecar is a scoped `gb-sidecar` token, not the root token.
 
 use crate::facade_container::{get_container_ip, safe_incus};
+use crate::installer_vault::secret_store as secrets;
 use anyhow::{Context, Result};
+use botlib::security::SafeCommand;
 use log::{info, warn};
-use std::fmt::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
-    info!("Initializing Vault...");
-    std::thread::sleep(std::time::Duration::from_secs(5));
-    let output = safe_incus(&[
-        "exec", container_name, "--", "bash", "-c",
-        "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
-    ]);
-    let output = match output {
-        Some(o) => o,
-        None => return Err(anyhow::anyhow!("Failed to execute vault init command")),
-    };
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if stderr.contains("already initialized") {
-            info!("Vault already initialized, skipping file generation");
-            return Ok(());
-        }
-        return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));
-    }
-    let init_output = String::from_utf8_lossy(&output.stdout);
-    let init_json: serde_json::Value =
-        serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
-    let unseal_keys = init_json["unseal_keys_b64"]
-        .as_array().context("No unseal keys in output")?;
-    let root_token = init_json["root_token"]
-        .as_str().context("No root token in output")?;
-    let unseal_keys_file = PathBuf::from("vault-unseal-keys");
-    let mut unseal_content = String::new();
-    for (i, key) in unseal_keys.iter().enumerate() {
-        if i < 3 {
-            let _ = writeln!(unseal_content, "VAULT_UNSEAL_KEY_{}={}", i + 1, key.as_str().unwrap_or(""));
-        }
-    }
-    std::fs::write(&unseal_keys_file, &unseal_content)?;
-    #[cfg(unix)]
-    {
-        
-        let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
-    }
-    info!("Created {}", unseal_keys_file.display());
-    let env_file = PathBuf::from(".env");
-    let env_content = format!(
-        "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\n",
-        ip, root_token
-    );
-    if env_file.exists() {
-        let existing = std::fs::read_to_string(&env_file)?;
-        if existing.contains("VAULT_ADDR=") {
-            warn!(".env already contains VAULT_ADDR, not overwriting");
-        } else {
-            let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-            use std::io::Write;
-            file.write_all(env_content.as_bytes())?;
-            info!("Appended Vault config to .env");
-        }
+/// Run a shell script inside a container. The script is passed as a single
+/// trusted `-c` argument (URLs and Vault flags contain characters rejected by
+/// plain argument validation). The script is built only from code-controlled
+/// values plus transient secret material that never lands on disk.
+fn incus_exec(container_name: &str, script: &str) -> Result<std::process::Output> {
+    SafeCommand::new("incus")
+        .context("Cannot run incus")?
+        .args(&["exec", container_name, "--", "bash", "-c"])?
+        .trusted_shell_script_arg(script)?
+        .execute()
+        .context("Cannot execute command in container")
+}
+
+fn host_ca_cert() -> Option<PathBuf> {
+    let base = std::env::var("BOTSERVER_STACK_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let candidate = base.join("conf/system/certificates/ca/ca.crt");
+    if candidate.is_file() {
+        Some(candidate)
     } else {
-        std::fs::write(&env_file, env_content.trim_start())?;
-        info!("Created .env with Vault config");
+        None
     }
-    for i in 0..3 {
-        if let Some(key) = unseal_keys.get(i) {
-            let key_str = key.as_str().unwrap_or("");
-            let unseal_cmd = format!(
-                "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}", key_str
-            );
-            let unseal_output = safe_incus(&["exec", container_name, "--", "bash", "-c", &unseal_cmd]);
-            if let Some(output) = unseal_output {
-                if !output.status.success() {
-                    warn!("Unseal step {} may have failed", i + 1);
-                }
-            } else {
-                warn!("Unseal step {} command failed to execute", i + 1);
-            }
-        }
+}
+
+/// Discover whether the container listener uses TLS and build both the address
+/// the host uses and the in-container loopback address.
+fn vault_listener(container_name: &str, ip: &str) -> (String, String, Option<PathBuf>) {
+    let tls = incus_exec(
+        container_name,
+        "test -f /opt/gbo/conf/system/certificates/vault/server.crt && echo tls || echo plain",
+    )
+    .map(|output| {
+        output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "tls"
+    })
+    .unwrap_or(false);
+
+    if tls {
+        (
+            format!("https://{ip}:8200"),
+            "https://127.0.0.1:8200".to_string(),
+            host_ca_cert(),
+        )
+    } else {
+        warn!(
+            "Vault container {container_name} has no TLS certificate; using loopback-only plain HTTP"
+        );
+        (
+            format!("http://{ip}:8200"),
+            "http://127.0.0.1:8200".to_string(),
+            None,
+        )
     }
-    info!("Vault initialized and unsealed successfully");
+}
+
+/// Run a Vault CLI command inside the container. The root token is passed in
+/// the transient environment of this one command, never written to a file.
+fn vault_in_container(
+    container_name: &str,
+    local_addr: &str,
+    token: Option<&str>,
+    args: &[&str],
+) -> Result<std::process::Output> {
+    let mut script = String::new();
+    if let Some(token) = token {
+        script.push_str(&format!(
+            "VAULT_ADDR={local_addr} VAULT_TOKEN={token} "
+        ));
+    } else {
+        script.push_str(&format!("VAULT_ADDR={local_addr} "));
+    }
+    script.push_str("/opt/gbo/bin/vault");
+    for arg in args.iter().filter(|arg| !arg.is_empty()) {
+        script.push(' ');
+        script.push_str(arg);
+    }
+    incus_exec(container_name, &script)
+}
+
+fn scoped_token(
+    container_name: &str,
+    local_addr: &str,
+    root_token: &str,
+    ca_cert: Option<&Path>,
+) -> Result<String> {
+    let policy = std::env::temp_dir().join(format!(
+        "gb-vault-policy-{}.hcl",
+        std::process::id()
+    ));
+    std::fs::write(&policy, secrets::SIDECAR_POLICY_TEXT)?;
+    let policy_arg = policy.to_string_lossy().to_string();
+    // `vault policy write` needs a file inside the container; stream it with
+    // `incus file push` through the helper below, then remove it immediately.
+    push_transient_file(container_name, &policy, "/tmp/gb-sidecar-policy.hcl")?;
+    let _ = std::fs::remove_file(&policy);
+
+    let write = vault_in_container(
+        container_name,
+        local_addr,
+        Some(root_token),
+        &["policy", "write", secrets::SIDECAR_POLICY, "/tmp/gb-sidecar-policy.hcl"],
+    )?;
+    delete_in_container(container_name, "/tmp/gb-sidecar-policy.hcl");
+    if !write.status.success() {
+        return Err(anyhow::anyhow!(
+            "Cannot install scoped Vault policy: {}",
+            String::from_utf8_lossy(&write.stderr)
+        ));
+    }
+
+    let tls_flag = if ca_cert.is_some() {
+        "-ca-cert=/opt/gbo/conf/system/certificates/ca/ca.crt"
+    } else {
+        "-tls-skip-verify"
+    };
+    let output = vault_in_container(
+        container_name,
+        local_addr,
+        Some(root_token),
+        &[
+            "token",
+            "create",
+            &format!("-policy={}", secrets::SIDECAR_POLICY),
+            "-ttl=720h",
+            "-renewable=true",
+            "-format=json",
+            tls_flag,
+        ],
+    )?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Cannot create scoped Vault token: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).context("Cannot parse scoped token response")?;
+    let token = json["auth"]["client_token"]
+        .as_str()
+        .context("No client_token in scoped token response")?;
+    Ok(token.to_string())
+}
+
+fn push_transient_file(container_name: &str, source: &Path, destination: &str) -> Result<()> {
+    let source_arg = source.to_string_lossy().to_string();
+    let target = format!("{container_name}:{destination}");
+    let output = safe_incus(&["file", "push", &source_arg, &target])
+        .context("Cannot copy transient policy into container")?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Cannot copy transient policy into container"));
+    }
     Ok(())
 }
 
+fn delete_in_container(container_name: &str, path: &str) {
+    let script = format!("rm -f {path}");
+    let _ = incus_exec(container_name, &script);
+}
+
+/// Initialize a container-hosted Vault, unseal it, and persist only a scoped
+/// token plus the unseal keys in the private credential store.
+pub fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
+    info!("Initializing Vault...");
+    std::thread::sleep(std::time::Duration::from_secs(5));
+
+    let (vault_addr, local_addr, ca_cert) = vault_listener(container_name, ip);
+    let tls_flag = if ca_cert.is_some() {
+        "-ca-cert=/opt/gbo/conf/system/certificates/ca/ca.crt"
+    } else {
+        "-tls-skip-verify"
+    };
+    let output = vault_in_container(
+        container_name,
+        &local_addr,
+        None,
+        &[
+            "operator",
+            "init",
+            "-key-shares=5",
+            "-key-threshold=3",
+            "-format=json",
+            tls_flag,
+        ],
+    )?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("already initialized") {
+            info!("Vault already initialized, skipping secret generation");
+            return Ok(());
+        }
+        return Err(anyhow::anyhow!("Failed to initialize Vault: {stderr}"));
+    }
+
+    let init_json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).context("Failed to parse Vault init output")?;
+    let unseal_keys: Vec<String> = init_json["unseal_keys_b64"]
+        .as_array()
+        .context("No unseal keys in output")?
+        .iter()
+        .filter_map(|key| key.as_str().map(String::from))
+        .collect();
+    let root_token = init_json["root_token"]
+        .as_str()
+        .context("No root token in output")?;
+
+    let token = scoped_token(container_name, &local_addr, root_token, ca_cert.as_deref())?;
+    secrets::write(secrets::VAULT_TOKEN_SECRET, &token)?;
+    secrets::write(secrets::UNSEAL_KEYS_SECRET, &unseal_keys.join("\n"))?;
+
+    for (index, key) in unseal_keys.iter().take(3).enumerate() {
+        let output = vault_in_container(
+            container_name,
+            &local_addr,
+            None,
+            &["operator", "unseal", tls_flag, key],
+        )?;
+        if !output.status.success() {
+            warn!("Unseal step {} may have failed", index + 1);
+        }
+    }
+
+    // Migration: earlier releases left unseal keys in the user-owned stack.
+    let legacy_keys = PathBuf::from("vault-unseal-keys");
+    if legacy_keys.exists() {
+        let _ = std::fs::remove_file(&legacy_keys);
+    }
+    secrets::write_env_file(&PathBuf::from(".env"), &vault_addr, ca_cert.as_deref())?;
+
+    info!("Vault initialized; scoped token stored outside the stack");
+    Ok(())
+}
+
+/// Regenerate `.env` from the private store for an already initialized Vault.
+/// The returned text contains no token value.
 pub fn generate_env_from_vault(container_name: &str) -> Result<String> {
     let container_ip = get_container_ip(container_name)?;
-    info!("Generating .env from vault at {}", container_ip);
-    let output = safe_incus(&[
-        "exec", container_name, "--", "bash", "-c",
-        "cat /opt/gbo/data/core/raft/raft_state 2>/dev/null || echo 'not_initialized'",
-    ]);
-    let initialized = match output {
-        Some(o) => o.status.success(),
-        None => false,
-    };
-    if !initialized {
-        return Err(anyhow::anyhow!(
-            "Vault in container {} is not initialized. Please initialize it first with: \
-incus exec {} -- /opt/gbo/bin/vault operator init -key-shares=1 -key-threshold=1",
-            container_name, container_name
-        ));
-    }
-    let unseal_output = safe_incus(&[
-        "exec", container_name, "--", "bash", "-c",
-        "VAULT_ADDR=http://127.0.0.1:8200 vault status -format=json",
-    ]);
-    let sealed = match unseal_output {
-        Some(o) if o.status.success() => {
-            let status: serde_json::Value = serde_json::from_str(
-                &String::from_utf8_lossy(&o.stdout)
-            ).unwrap_or_default();
-            status["sealed"].as_bool().unwrap_or(true)
-        }
-        _ => true,
-    };
-    if sealed {
-        return Err(anyhow::anyhow!(
-            "Vault in container {} is sealed. Please unseal it first with: \
-incus exec {} -- /opt/gbo/bin/vault operator unseal <key>",
-            container_name, container_name
-        ));
-    }
-    let token_output = safe_incus(&[
-        "exec", container_name, "--", "bash", "-c",
-        "cat /root/.vault-token 2>/dev/null || echo ''",
-    ]);
-    let root_token = match token_output {
-        Some(o) => String::from_utf8_lossy(&o.stdout).trim().to_string(),
-        None => String::new(),
-    };
-    if root_token.is_empty() {
-        return Err(anyhow::anyhow!(
-            "Could not find root token in vault container. Please ensure vault is properly initialized."
-        ));
-    }
-    let env_content = format!(
-        "# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\n",
-        container_ip, root_token
-    );
-    let env_file = PathBuf::from(".env");
-    if env_file.exists() {
-        let existing = std::fs::read_to_string(&env_file)?;
-        if existing.contains("VAULT_ADDR=") {
-            info!(".env already contains VAULT_ADDR, updating...");
-            let updated: String = existing
-                .lines()
-                .filter(|line| !line.starts_with("VAULT_ADDR=") && !line.starts_with("VAULT_TOKEN="))
-                .collect::<Vec<_>>()
-                .join("\n");
-            std::fs::write(&env_file, format!("{}\n{}", updated.trim(), env_content))?;
-        } else {
-            let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-            use std::io::Write;
-            file.write_all(env_content.as_bytes())?;
-        }
+    let (vault_addr, local_addr, ca_cert) = vault_listener(container_name, &container_ip);
+    info!("Generating .env from vault at {vault_addr}");
+
+    let tls_flag = if ca_cert.is_some() {
+        "-ca-cert=/opt/gbo/conf/system/certificates/ca/ca.crt"
     } else {
-        std::fs::write(&env_file, env_content.trim_start())?;
+        "-tls-skip-verify"
+    };
+    let status = vault_in_container(
+        container_name,
+        &local_addr,
+        None,
+        &["status", "-format=json", tls_flag],
+    )?;
+    if !status.status.success() {
+        return Err(anyhow::anyhow!(
+            "Vault in container {container_name} is not reachable or still sealed"
+        ));
     }
-    info!("Generated .env with Vault config from container {}", container_name);
-    Ok(format!(
-        "VAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}",
-        container_ip, root_token
-    ))
+
+    // Never fall back to `/root/.vault-token` (the root token): the sidecar
+    // token must have come from first-run provisioning.
+    secrets::load_token_into_env()?;
+    if secrets::read(secrets::VAULT_TOKEN_SECRET).is_err() {
+        return Err(anyhow::anyhow!(
+            "No scoped Vault token in the credential store; re-run first-run provisioning"
+        ));
+    }
+
+    secrets::write_env_file(&PathBuf::from(".env"), &vault_addr, ca_cert.as_deref())?;
+    info!("Generated .env with a reference to the scoped Vault token");
+    secrets::env_lines(&vault_addr, ca_cert.as_deref())
 }

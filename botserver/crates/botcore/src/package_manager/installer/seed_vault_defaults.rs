@@ -210,7 +210,7 @@ impl PackageManager {
 
     /// Recover existing Vault installation (already initialized but may be sealed)
     pub(super) fn recover_existing_vault(&self) -> Result<()> {
-
+        use botcorepkg::installer_vault::secret_store as secrets;
 
         info!("Recovering existing Vault installation...");
 
@@ -224,47 +224,44 @@ impl PackageManager {
         #[cfg(not(target_os = "windows"))]
         let vault_bin = self.base_path.join("bin/vault/vault");
 
-        // Try to read existing unseal keys
-        let unseal_keys_file = self.base_path.join("vault-unseal-keys");
-        let unseal_keys = if unseal_keys_file.exists() {
-            info!("Found existing vault-unseal-keys file");
-            let content = std::fs::read_to_string(&unseal_keys_file)?;
-            content
+        // #2498 — unseal keys come from the private credential store. Migrate a
+        // legacy stack file once, then delete it so the shell cannot read it.
+        let unseal_keys = if let Ok(value) = secrets::read(secrets::UNSEAL_KEYS_SECRET) {
+            value
                 .lines()
-                .filter_map(|line| {
-                    line.strip_prefix("VAULT_UNSEAL_KEY_")
-                        .and_then(|rest| rest.split_once('='))
-                        .map(|(_, key)| key.to_string())
-                })
+                .filter(|line| !line.trim().is_empty())
+                .map(String::from)
                 .collect::<Vec<_>>()
         } else {
-            Vec::new()
+            let legacy = self.base_path.join("vault-unseal-keys");
+            let keys = if legacy.exists() {
+                let content = std::fs::read_to_string(&legacy)?;
+                content
+                    .lines()
+                    .filter_map(|line| {
+                        line.strip_prefix("VAULT_UNSEAL_KEY_")
+                            .and_then(|rest| rest.split_once('='))
+                            .map(|(_, key)| key.trim().to_string())
+                    })
+                    .filter(|key| !key.is_empty())
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            if !keys.is_empty() {
+                secrets::write(secrets::UNSEAL_KEYS_SECRET, &keys.join("\n"))?;
+                let _ = std::fs::remove_file(&legacy);
+                info!("Migrated unseal keys out of the user-owned stack");
+            }
+            keys
         };
 
-        // Prefer a token supplied by the launcher (for example a token kept
-        // outside the repository), then fall back to the original init data.
-        let init_json = self.base_path.join("conf/vault/init.json");
-        let root_token = std::env::var("VAULT_TOKEN")
-            .ok()
-            .filter(|token| !token.trim().is_empty())
-            .or_else(|| {
-                if init_json.exists() {
-                    let content = std::fs::read_to_string(&init_json).ok()?;
-                    let json = serde_json::from_str::<serde_json::Value>(&content).ok()?;
-                    json.get("root_token")
-                        .and_then(|value| value.as_str())
-                        .map(String::from)
-                } else {
-                    None
-                }
-            });
-
-        // Unseal if we have keys
+        // Unseal if we have keys.
         if !unseal_keys.is_empty() {
-            info!("Unsealing Vault with existing keys...");
-            for (i, key) in unseal_keys.iter().take(3).enumerate() {
+            info!("Unsealing Vault with keys from the private credential store...");
+            for key in unseal_keys.iter().take(3) {
                 let unseal_cmd = format!(
-                    "{} operator unseal -tls-skip-verify -address={} {}",
+                    "{} operator unseal -address={} {}",
                     vault_bin.display(),
                     vault_addr,
                     key
@@ -272,53 +269,29 @@ impl PackageManager {
                 let unseal_output = safe_sh_command(&unseal_cmd);
                 if let Some(ref output) = unseal_output {
                     if !output.status.success() {
-                        warn!("Unseal step {} may have failed", i + 1);
+                        warn!("Unseal step may have failed: {}", String::from_utf8_lossy(&output.stderr).trim());
                     }
                 }
             }
         }
 
-        // Create .env if we have root token
-        if let Some(ref token) = root_token {
-            let env_file = std::path::PathBuf::from(".env");
-            let env_content = format!(
-                r#"
-# Vault Configuration (auto-generated)
-VAULT_ADDR={}
-VAULT_TOKEN={}
-VAULT_CACERT={}
-"#,
-                vault_addr,
-                token,
-                ca_cert.display()
-            );
+        // #2498 — only the scoped sidecar token is persisted, never the root
+        // token from init.json. `.env` is rewritten with a VAULT_TOKEN_FILE
+        // reference; no token value is written to the user-owned stack.
+        secrets::load_token_into_env()?;
+        let scoped_token = secrets::read(secrets::VAULT_TOKEN_SECRET);
+        secrets::write_env_file(&std::path::PathBuf::from(".env"), &vault_addr, Some(&ca_cert))?;
 
-            if env_file.exists() {
-                let existing = std::fs::read_to_string(&env_file)?;
-                if !existing.contains("VAULT_ADDR=") {
-                    let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-                    file.write_all(env_content.as_bytes())?;
-                    info!("Appended Vault config to .env");
+        match scoped_token {
+            Ok(token) => {
+                self.ensure_kv_mount(&vault_addr, &token, &ca_cert, &vault_bin);
+                if self.vault_seeds_exist(&vault_addr, &token, &ca_cert, &vault_bin)? {
+                    info!("Vault credentials already exist, skipping seed on recovery");
+                } else {
+                    let _ = self.seed_vault_defaults(&vault_addr, &token, &ca_cert, &vault_bin);
                 }
-            } else {
-                std::fs::write(&env_file, env_content.trim_start())?;
-                info!("Created .env with Vault config");
             }
-            std::env::set_var("VAULT_TOKEN", token);
-        } else {
-            warn!("No root token found - Vault may need manual recovery");
-        }
-
-        // Seed defaults ONLY if not already present (skip during recovery to preserve credentials)
-        if let Some(ref token) = root_token {
-            // A surviving Vault whose `secret/` mount is missing would make
-            // every put below fail; ensure the mount before probing/seeding.
-            self.ensure_kv_mount(&vault_addr, token, &ca_cert, &vault_bin);
-            if self.vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
-                info!("Vault credentials already exist, skipping seed on recovery");
-            } else {
-                let _ = self.seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);
-            }
+            Err(_) => warn!("No scoped Vault token in the credential store — re-run first-run provisioning"),
         }
 
         info!("Vault recovery complete");

@@ -12,26 +12,23 @@ impl PackageManager {
             "vault" => {
                 format!(
                     r"Vault Server:
-  URL: http://{}:8200
-  UI:  http://{}:8200/ui
+  URL: https://{}:8200
+  UI:  https://{}:8200/ui
 
 ✓ Vault initialized and unsealed automatically
-✓ Created .env with VAULT_ADDR, VAULT_TOKEN
-✓ Created vault-unseal-keys (chmod 600)
+✓ .env references the scoped sidecar token (VAULT_TOKEN_FILE)
+✓ root token discarded; unseal keys stored in the private credential store
 
 Files created:
-  .env                 - Vault connection config
-  vault-unseal-keys    - Unseal keys for auto-unseal
+  .env               - Vault address and token-file reference only
+  <credential store> - scoped token and unseal keys (outside the stack)
 
-On server restart, run:
-  botserver vault unseal
-
-Or manually:
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <key>
+Vault is reached over TLS with a client certificate. On restart the sidecar
+re-unseals from the credential store automatically.
 
 For other auto-unseal options (TPM, HSM, Transit), see:
   https://generalbots.github.io/botbook/chapter-08/secrets-management.html",
-                    ip, ip, self.tenant
+                    ip, ip
                 )
             }
             "vector_db" => {
