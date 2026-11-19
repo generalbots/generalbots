@@ -33,6 +33,32 @@ systemctl enable systemd-resolved.service
 systemctl enable systemd-timesyncd.service
 systemctl enable nftables.service
 
+# 14. Firmware, power/thermal and memory-pressure survival (#2464, offline
+#     image/config slice). fwupd exposes device firmware updates (UI wiring in
+#     Settings deferred), power-profiles-daemon/thermald manage laptop power and
+#     thermals, systemd-zram-generator + /etc/systemd/zram-generator.conf provide
+#     compressed swap, and systemd-oomd uses drop-ins/config in mkosi.extra to
+#     prefer killing recoverable workloads before the shell/compositor. Intel/AMD
+#     microcode packages are installed so the initramfs can load CPU updates
+#     early; loaded-revision reporting in diagnostics is a follow-up (#2468).
+systemctl enable fwupd-refresh.timer || true
+systemctl enable power-profiles-daemon.service || true
+systemctl enable thermald.service || true
+systemctl enable systemd-oomd.service || true
+
+# 15. Peripheral, accessibility and display groundwork (#2462/#2469/#2456,
+#     offline image/config slice). Services are enabled where safe; UI/runtime
+#     integration, pairing/print dialogs, OSK invocation at lock/wizard, AT-SPI
+#     session wiring, output/brightness control paths and hardware verification
+#     remain deferred follow-up work.
+systemctl enable bluetooth.service || true
+systemctl enable cups.service || true
+systemctl enable avahi-daemon.service || true
+systemctl enable iio-sensor-proxy.service || true
+# AT-SPI bus/socket units are typically user-session activatable; enable common
+# system targets if present without failing the image build.
+systemctl enable at-spi-dbus-bus.service || true
+
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 
@@ -213,19 +239,32 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
 # 6. Brand the OS identity everywhere an OS screen reads it: boot tools,
 #    `hostnamectl`, the Plymouth theme selector and desktop icon lookups.
-cat >/etc/os-release <<'EOF'
+#    #2443 (offline slice): carry image version/channel/build metadata in
+#    /etc/os-release when provided by the build environment; Settings → About
+#    and update-channel UI/runtime wiring remain follow-up work.
+GB_OS_VERSION="${GB_OS_VERSION:-${GB_DESKTOP_VERSION:-1}}"
+GB_OS_CHANNEL="${GB_OS_CHANNEL:-stable}"
+GB_OS_BUILD_DATE="${GB_OS_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)}"
+GB_OS_BUILD_ID="${GB_OS_BUILD_ID:-${GB_BUILD_ID:-dev}}"
+cat >/etc/os-release <<EOF
 NAME="General Bots OS"
-PRETTY_NAME="General Bots OS (Debian 13 base)"
+PRETTY_NAME="General Bots OS ${GB_OS_VERSION} (${GB_OS_CHANNEL}, Debian 13 base)"
 ID=general-bots-os
 ID_LIKE=debian
-VERSION_ID="1"
-VERSION="1 (trixie)"
+VERSION_ID="${GB_OS_VERSION}"
+VERSION="${GB_OS_VERSION} (trixie)"
 VERSION_CODENAME=trixie
+BUILD_ID="${GB_OS_BUILD_ID}"
+IMAGE_ID="generalbots-os"
+IMAGE_VERSION="${GB_OS_VERSION}"
+GB_UPDATE_CHANNEL="${GB_OS_CHANNEL}"
+GB_BUILD_DATE="${GB_OS_BUILD_DATE}"
 HOME_URL="https://generalbots.org"
 DOCUMENTATION_URL="https://docs.generalbots.org"
 SUPPORT_URL="https://github.com/generalbots/generalbots/issues"
 LOGO=general-bots
 EOF
+ln -sf /etc/os-release /usr/lib/os-release
 
 # 7. #2500 — WebKitGTK must never fall back to an unsandboxed web process.
 #    WEBKIT_FORCE_SANDBOX makes a bwrap failure fatal and visible instead of

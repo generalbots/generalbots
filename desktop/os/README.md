@@ -18,6 +18,37 @@ When comparing the two shell-replacement options, option **B** won:
 | Shell attack surface | X clients can grab/XTEST each other; multi-DE stack | one Wayland compositor, one known client, no ssh server, no terminal emulator |
 | Crash model | DM respawns session | `Restart=always` — same semantics, fewer processes |
 
+
+## Boot escape hatch (deliberate, documented decision — #2468)
+
+The shipped appliance has **no boot-time root shell escape hatch**. This is
+intentional:
+
+- `getty@tty1.service`, `rescue.service`, and `emergency.service` are masked in
+  `mkosi.finalize.chroot`.
+- tty1 is reserved exclusively for `generalbots-shell.service` (the kiosk
+  compositor/session), and the image ships with no SSH server and no terminal
+  emulator.
+- There is no supported key sequence at boot (e.g. kernel command-line `init=`,
+  `systemd.unit=rescue.target`, `rd.break`, GRUB edit, or serial console login)
+  that provides a root shell on the shipped, locked-down image. Recovery is
+  **reprovisioning from a fresh image**.
+
+Rationale: an unattended/appliance laptop must not expose a local privilege
+boundary that bypasses the account/lock model or exposes secrets on disk.
+Treating "nothing works" as an undocumented failure is wrong; treating "no shell
+by default" as a deliberate, documented security posture is the intended state.
+
+If a development/custom/operator image explicitly requires debug access, that
+image must opt in by changing the build (for example: unmask the relevant
+units, provide an authenticated local console or serial access, and document the
+credential/key handling) and accept the resulting security tradeoff. Such
+overrides are not part of the shipped appliance contract.
+
+Remaining #2468 work (deferred): branded recovery screen after repeated shell
+failures, safe mode, one-click redacted diagnostics bundle/export, and explicit
+time-boxed remote-support controls.
+
 ## Files (the build key artifacts)
 
 | File | Purpose |
@@ -229,18 +260,64 @@ laptop user expects. Each block names the issue it answers.
 | Firewall | `nftables` default-deny inbound, loaded at boot; loopback-only stack; LAN exposure is opt-in through `GB_ALLOW_LAN=1` plus the `gb_lan_allowed` set — there is no UI switch yet (#2477) |
 | Sound | PipeWire + WirePlumber + `pipewire-alsa` + ALSA UCM + GStreamer plugins; `/dev/snd` allowed in the unit (#2455) |
 | Graphics/compositing (#2481, offline slice) | Mesa userspace (`libgl1-mesa-dri`, EGL/GBM), VA-API/VDPAU/Vulkan stacks (`mesa-va-drivers`, `mesa-vdpau-drivers`, `mesa-vulkan-drivers`, `intel-media-va-driver`, `i965-va-driver`, `gstreamer1.0-vaapi`, `vainfo`/`vdpauinfo`) and common Intel/AMD firmware blobs so WebKitGTK/media can use hardware acceleration on supported laptops; `llvmpipe` remains the documented QEMU/software fallback. Runtime/hardware verification (vainfo profiles, CPU threshold, compositing path, battery comparison, diagnostics strings) is CI/hardware-gated follow-up. |
+| Firmware/power/memory (#2464, offline slice) | `fwupd` (device firmware), `power-profiles-daemon` and `thermald` (profiles/thermal), `intel-microcode`/`amd64-microcode` (early CPU updates via initramfs when supported), `systemd-zram-generator` with `/etc/systemd/zram-generator.conf` (RAM-sized compressed swap) and `systemd-oomd` with slice/service drop-ins that prefer reclaiming workloads before the kiosk shell/compositor. Settings/Firmware UI, tray power-profile selector, diagnostics telemetry, microcode/firmware status UI, and 4 GB soak/runtime verification are CI/hardware-gated follow-ups. |
+| Peripherals (#2462, offline slice) | Bluetooth stack (`bluez`), printing/discovery groundwork (`cups`, `cups-client`, `cups-filters`, `printer-driver-all`, `avahi-daemon`, `libnss-mdns`) and input/layout tooling (`libinput-tools`, `xkb-data`) installed; `bluetooth.service`, `cups.service`, and `avahi-daemon.service` enabled in finalize. Touchpad Settings/live preview, tray BT/pairing UI, print dialogs/app integration, runtime layout switching/Fn-key handling, and hardware tests remain deferred. |
+| OS accessibility (#2469, offline slice) | AT-SPI, screen reader and on-screen keyboard packages (`at-spi2-core`, `orca`, `squeekboard`) installed as groundwork. Lock/wizard/on-demand OSK integration, shell screen-reader wiring, magnifier/high-contrast/sticky-slow-bounce keys runtime behavior/persistence, and screen-recorded verification remain deferred. |
+| Display/sensors (#2456, offline slice) | `brightnessctl`, `ddcutil`, and `iio-sensor-proxy` installed/enabled as groundwork for backlight/external-display/rotation handling. Settings UI, hot-plug/output arrangement, night-light, saved brightness-at-boot, and hardware/QEMU verification remain deferred. |
+| Data at rest / recovery (#2470, honest state) | **Not implemented in this image recipe:** no LUKS mapping, no TPM-sealed disk key, no `systemd-cryptenroll` provisioning flow, and no scheduled snapshot/backup or "Export my data"/"Reset this PC" implementation. Previous false claims were removed from `mkosi.conf.d/20-secure-boot.conf`; implementation and verification remain follow-up work. |
 | Time/locale | `systemd-timesyncd`, `tzdata`, `locales`, `console-setup`, `keyboard-configuration`; `/etc/locale.gen`, `/etc/default/keyboard`, `/etc/timezone` written at build time (#2458) |
 | Removable media | `udisks2` + `gvfs` + `exfatprogs`/`ntfs-3g`/`dosfstools` (#2460) |
 | Session | `dbus-user-session`; `/usr/local/bin/gb-session` waits for the user manager's bus before exec'ing cage; user services (PipeWire, portals, gvfs) enabled via `default.target.wants` (#2449) |
 | Sandbox | `bubblewrap` + `libseccomp2`, `WEBKIT_FORCE_SANDBOX=1`, `LIBSEAT_BACKEND=logind` (#2500) |
 | Power | `/usr/local/libexec/gb-power` (fixed action list) + `sudoers.d/gb-power`, logind `HandlePowerKey=ignore`, polkit rule denying logind/NetworkManager power and network actions to `gbdesk` (#2444, #2502) |
 
+
+## Secure Boot boot failure fallback (#2478, offline docs slice)
+
+The current appliance image is **unsigned** (`SecureBoot=no`,
+`UnifiedKernelImages=unsigned`). On laptops with Secure Boot enabled by default,
+firmware may refuse to boot it. Until signed boot artifacts and release
+enforcement land, the documented fallback is:
+
+1. Power off the machine and open firmware/UEFI setup.
+2. Find **Secure Boot** and set it to **Disabled** (or clear/unenroll keys only
+   if your firmware requires that to disable enforcement — prefer the explicit
+   Disable toggle when available).
+3. Save changes and boot the General Bots OS medium again.
+
+Common firmware keys/menu names (vary by vendor/model/firmware revision):
+
+| Vendor / firmware | Setup key(s) | Secure Boot location (typical names) |
+|---|---|---|
+| Dell | `F2` (Setup), `F12` (Boot menu) | `Boot Configuration` / `Secure Boot` / `Secure Boot Enable` |
+| HP | `Esc` then `F10` (BIOS Setup) | `Security` / `Secure Boot Configuration` / `Secure Boot` |
+| Lenovo (ThinkPad/IdeaPad) | `F1` or `Enter`+`F1` (ThinkPad), `F2`/`Fn+F2` (IdeaPad) | `Security` / `Secure Boot` |
+| ASUS | `F2` or `Del` | `Boot` or `Security` / `Secure Boot` / `OS Type` (`Other OS`) |
+| Acer | `F2` (sometimes requires Supervisor password first) | `Security` / `Secure Boot` / `Set Supervisor Password` then disable |
+| MSI | `Del` | `Settings` / `Security` / `Secure Boot` |
+| Microsoft Surface | hold `Volume Up` while pressing Power | `Security` / `Secure Boot` / change certificate/profile |
+| Generic UEFI/AMI/Award/Phoenix | `Del`, `F2`, `Esc`, `F10`, or `F12` | `Boot`, `Security`, or `Authentication` / `Secure Boot` |
+
+Notes: keep UEFI mode enabled unless your hardware requires legacy/CSM for a
+separate reason; do not enable CSM as part of this fallback. This is a
+temporary workaround for the unsigned development/current image, not a security
+recommendation. Signed UKI/bootloader, MOK enrolment for unsigned-developer
+flows, release-build key enforcement, QEMU/OVMF Secure Boot CI tests, and
+recovery-screen integration are tracked/follow-up work (#2478, #2468).
+
 ## Next hardening steps (mkosi supports all of them)
 
-1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates
-   via systemd-sysupdate once the image ships as a real kernel).
-2. Drop in the vendored installers (`installers/` in the tarball directory)
-   for an offline-first appliance that needs no internet on first boot.
+1. Signed boot chain (Secure Boot UKI/bootloader) — tracked by #2478. When
+   implemented and verified, at-rest encryption with documented unlock/recovery
+   (LUKS/TPM) — tracked by #2470. **Not implemented in this image recipe yet**
+   (no signed UKI, no LUKS mapping, no TPM-sealed root/data flow).
+2. A/B or slot-based OS updates with rollback — tracked by #2443.
+3. Drop in the vendored installers (`installers/` in the tarball directory)
+   for an offline-first appliance that needs no internet on first boot —
+   tracked by #2441.
+
+The "newest release carrying the tarball" resolution is gone: CI now requires
+a pinned tag plus the checksums of that same pin (see the build steps above).
 
 The "newest release carrying the tarball" resolution is gone: CI now requires
 a pinned tag plus the checksums of that same pin (see step 1 above).
