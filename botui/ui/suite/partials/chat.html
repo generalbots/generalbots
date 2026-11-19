@@ -142,17 +142,12 @@
 <script src="/suite/js/vendor/marked.min.js"></script>
 <script src="/suite/js/vendor/katex/katex.min.js"></script>
 <script src="/suite/chat/chat-math.js?v=1"></script>
-<script src="/suite/js/vendor/chart.umd.min.js"></script>
 <script src="/suite/chat/chat-state.js?v=4"></script>
 <script src="/suite/chat/chat-switchers.js?v=4"></script>
 <script src="/suite/chat/chat-mentions.js?v=4"></script>
 <script src="/suite/js/external-save.js?v=1"></script>
 <script src="/suite/js/artifact-download.js?v=1"></script>
 <script src="/suite/chat/chat-sanitize.js?v=1"></script>
-<script src="/suite/chat/chat-artifacts.js?v=5"></script>
-<script src="/suite/chat/chat-live-artifact-svg.js?v=10"></script>
-<script src="/suite/chat/chat-artifact-overlay.js?v=1"></script>
-<script src="/suite/chat/chat-live-artifact.js?v=13"></script>
 <script src="/suite/chat/chat-drive-picker.js?v=2"></script>
 <script src="/suite/chat/chat-code-ux.js?v=2"></script>
 <script src="/suite/chat/chat-render.js?v=7"></script>
@@ -185,17 +180,6 @@
 <script src="/suite/chat/chat-init_b.js?v=27"></script>
 <script src="/suite/chat/chat-model-picker.js?v=5"></script>
 <script src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
-<script src="/suite/chat/modules/20_tabs.js?v=10"></script>
-<script src="/suite/chat/modules/20_tabs_render.js?v=10"></script>
-<script src="/suite/chat/modules/21_tabs_events.js?v=10"></script>
-<script src="/suite/chat/modules/21_tabs_events_boot.js?v=10"></script>
-<script src="/suite/chat/modules/multichat/01_state.js?v=64"></script>
-<script src="/suite/chat/modules/multichat/02_dom.js?v=68"></script>
-<script src="/suite/chat/modules/multichat/03_tabs.js?v=64"></script>
-<script src="/suite/chat/modules/multichat/04_socket.js?v=65"></script>
-<script src="/suite/chat/modules/multichat/05_send.js?v=65"></script>
-<script src="/suite/chat/modules/multichat/06_events.js?v=65"></script>
-<script src="/suite/chat/modules/multichat/07_boot.js?v=66"></script>
 <script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
 <script src="/suite/chat/modules/50_memory.js?v=1"></script>
 <script src="/suite/chat/modules/40_consent_cards.js?v=12"></script>
@@ -204,33 +188,13 @@
 <script src="/suite/chat/modules/30_citations.js?v=21"></script>
 <script src="/suite/chat/modules/60_computer_use.js?v=4"></script>
 <script src="/suite/chat/modules/61_terminal_use.js?v=4"></script>
-<script src="/suite/chat/modules/vm_attachments/01_state_mime.js?v=23"></script>
-<script src="/suite/chat/modules/vm_attachments/02_links.js?v=23"></script>
-<script src="/suite/chat/modules/vm_attachments/03_preview.js?v=24"></script>
-<script src="/suite/chat/modules/vm_attachments/04_bind.js?v=24"></script>
-<script src="/suite/chat/modules/vm_attachments/05_folder.js?v=25"></script>
-<script src="/suite/chat/modules/vm_attachments/05a_external_save.js?v=1"></script>
-<script src="/suite/chat/modules/vm_attachments/06_hydrate.js?v=24"></script>
-<script src="/suite/chat/modules/71_run_timeline.js?v=11"></script>
-<script src="/suite/chat/modules/71_run_timeline_rows.js?v=11"></script>
-<script src="/suite/chat/modules/71_run_timeline_frames.js?v=12"></script>
-<script src="/suite/chat/modules/72_surface_renderer.js?v=4"></script>
-<script src="/suite/chat/modules/72_surface_forms.js?v=5"></script>
-<script src="/suite/chat/modules/72_surface_cards.js?v=6"></script>
-<script src="/suite/chat/modules/74_viz.js?v=1"></script>
-<script src="/suite/chat/modules/73_app_frame.js?v=8"></script>
-<script src="/suite/chat/modules/74_subagents.js?v=1"></script>
 <script src="/suite/chat/modules/75_perf.js?v=2"></script>
-<script src="/suite/chat/modules/76_voice.js?v=5"></script>
-<script src="/suite/chat/modules/76_voice_duplex_audio.js?v=1"></script>
-<script src="/suite/chat/modules/76_voice_duplex_a.js?v=3"></script>
-<script src="/suite/chat/modules/76_voice_duplex_b.js?v=3"></script>
-<script src="/suite/chat/modules/77_camera_preview.js?v=1"></script>
-<script src="/suite/chat/modules/77_camera.js?v=3"></script>
-<script src="/suite/chat/modules/78_voice_mode.js?v=4"></script>
 <script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
 <script src="/suite/chat/chat-engineer-status.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <script src="/suite/js/gb-search.js"></script>
 <script src="/suite/chat/tour.js?v=1"></script>
+<!-- Optional surfaces are registered in boot-budget.js and injected after first
+     paint on desktop only; compact mode skips them and gates their buttons. -->
+<script>window.GBBootBudget && window.GBBootBudget.init("chat");</script>
 
