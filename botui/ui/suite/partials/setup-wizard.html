@@ -134,7 +134,7 @@
     <!-- Step 4: Training Files -->
     <div class="setup-step-content" id="setupStep4">
       <h3 data-i18n="setup-training-title">Train your Bot</h3>
-      <p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p>
+      <p data-i18n="setup-training-subtitle">Drop .pdf, .xls, .doc files for the initial training. You will have access to Drive and can change it later.</p>
       <div class="setup-form">
         <div class="setup-form-group">
           <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleSetupFileDrop(event)">
@@ -143,8 +143,8 @@
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
             </div>
-            <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
-            <p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p>
+            <p class="setup-drop-text" data-i18n="setup-drop-text">Drop files here or click to select</p>
+            <p class="setup-drop-hint" data-i18n="setup-drop-hint">.pdf, .xls, .doc — up to 10MB each</p>
             <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="handleSetupFileSelect(event)" />
             <button type="button" class="setup-btn setup-btn-secondary" data-i18n="setup-select-files" onclick="document.getElementById('setupFileInput').click()">Select Files</button>
           </div>
