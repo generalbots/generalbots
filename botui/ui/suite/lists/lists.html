@@ -39,6 +39,12 @@
                 </svg>
                 Export
             </button>
+            <button class="btn-secondary" id="segments-open-builder" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 6h16M4 12h10M4 18h7"/>
+                </svg>
+                <span data-i18n="segments-open-builder">Segment builder</span>
+            </button>
             <button class="btn-primary" onclick="showListModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -86,6 +92,11 @@
             <div class="crm-form-group" id="query-group" style="display:none">
                 <label>Query (for dynamic lists)</label>
                 <textarea name="query_text" id="list-form-query" rows="3" data-i18n-placeholder="lists-query-placeholder"></textarea>
+                <input type="hidden" name="segment_json" id="list-form-segment-json" value="">
+                <div class="lists-segment-authoring">
+                    <button type="button" class="btn-secondary" id="lists-build-segment" data-i18n="segments-open-builder">Segment builder</button>
+                    <span id="lists-segment-summary" class="lists-segment-summary" data-i18n="segments-summary-empty">No structured segment yet.</span>
+                </div>
             </div>
             <div class="crm-form-actions">
                 <button type="button" class="btn-secondary" onclick="hideListModal()">Cancel</button>
@@ -162,6 +173,81 @@
         </div>
     </div>
 </div>
+<!-- #2537: structured audience/segment builder. The free-text query field in
+     the list CRUD above is kept only for legacy lists; new dynamic lists are
+     authored here as { match, groups:[{ field, op, value }] } JSON. -->
+<div id="gb-segment-backdrop" class="gb-segment-backdrop" hidden>
+  <section id="gb-segment-dialog" class="gb-segment-dialog" role="dialog" aria-modal="true"
+           aria-labelledby="gb-segment-title" aria-describedby="gb-segment-subtitle">
+    <header class="gb-segment-header">
+      <h2 id="gb-segment-title" data-i18n="segments-dialog-title">Segment builder</h2>
+      <button type="button" id="gb-segment-close" class="gb-segment-icon-btn"
+              data-i18n-aria-label="action-close" data-i18n-title="action-close"
+              aria-label="Close" title="Close">×</button>
+    </header>
+    <p id="gb-segment-subtitle" class="gb-segment-subtitle" data-i18n="segments-dialog-subtitle">
+      Define who belongs to an audience, preview the result, then save it as a list.
+    </p>
+    <div class="gb-segment-body">
+      <div class="gb-segment-builder" id="gb-segment-builder">
+        <fieldset class="gb-segment-match gb-segment-root-match">
+          <legend data-i18n="segments-match-label">Match</legend>
+          <label><input type="radio" name="gb-segment-match" value="all" data-action="match" data-path="[]" checked>
+            <span data-i18n="segments-match-all">All conditions (AND)</span></label>
+          <label><input type="radio" name="gb-segment-match" value="any" data-action="match" data-path="[]">
+            <span data-i18n="segments-match-any">Any condition (OR)</span></label>
+        </fieldset>
+        <div id="gb-segment-conditions"></div>
+      </div>
+      <aside class="gb-segment-preview" aria-labelledby="gb-segment-preview-title">
+        <h3 id="gb-segment-preview-title" data-i18n="segments-preview-title">Preview</h3>
+        <div id="gb-segment-results" role="status" aria-live="polite">
+          <p id="gb-segment-source" class="gb-segment-source is-sample"
+             data-i18n="segments-preview-source-sample">SAMPLE DATA — OFFLINE ESTIMATE (not from server)</p>
+          <p class="gb-segment-count"><strong id="gb-segment-count-value">—</strong>
+            <span data-i18n="segments-preview-count-label">Matched contacts</span></p>
+          <p id="gb-segment-suppressed" class="gb-segment-suppressed"></p>
+        </div>
+        <table class="gb-segment-preview-table">
+          <thead><tr>
+            <th scope="col" data-i18n="segments-preview-col-name">Name</th>
+            <th scope="col" data-i18n="segments-preview-col-email">Email</th>
+            <th scope="col" data-i18n="segments-preview-col-status">Status</th>
+          </tr></thead>
+          <tbody id="gb-segment-preview-rows"></tbody>
+        </table>
+        <p id="gb-segment-preview-empty" class="gb-segment-preview-empty" data-i18n="segments-preview-empty">
+          No sample matches for these conditions.</p>
+        <p id="gb-segment-sample-note" class="gb-segment-sample-note" data-i18n="segments-sample-note">
+          Example rows from sample data, not real contacts.</p>
+      </aside>
+    </div>
+    <footer class="gb-segment-footer">
+      <span id="gb-segment-status" class="gb-segment-status" role="status" aria-live="polite"></span>
+      <label class="gb-segment-name" for="gb-segment-save-name">
+        <span data-i18n="segments-save-name-label">List name</span>
+        <input type="text" id="gb-segment-save-name" data-i18n-placeholder="segments-save-name-placeholder"
+               placeholder="Enter a name for this audience">
+        <span id="gb-segment-name-error" class="gb-segment-error" role="alert" hidden
+              data-i18n="segments-save-inline-error">Enter a list name before saving.</span>
+      </label>
+      <div class="gb-segment-footer-actions">
+        <button type="button" class="btn-secondary" id="gb-segment-cancel" data-i18n="action-cancel">Cancel</button>
+        <button type="button" class="btn-secondary" id="gb-segment-apply" data-i18n="segments-apply-to-list" hidden>Apply to this list</button>
+        <button type="button" class="btn-primary" id="gb-segment-save" data-i18n="segments-save">Save as list</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<script src="/suite/lists/modules/00_namespace.js"></script>
+<script src="/suite/lists/modules/01_field_catalog.js"></script>
+<script src="/suite/lists/modules/02_model.js"></script>
+<script src="/suite/lists/modules/03_sample_data.js"></script>
+<script src="/suite/lists/modules/04_preview.js"></script>
+<script src="/suite/lists/modules/05_render.js"></script>
+<script src="/suite/lists/modules/06_dialog.js"></script>
+<script src="/suite/lists/modules/99_init.js"></script>
 <!-- Every other suite app registers its delta renderer; the lists fragment did
      not, so `add_item`/`check`/`reorder` ops from chat were silently dropped
      (#2189). -->
