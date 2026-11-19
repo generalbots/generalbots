@@ -59,7 +59,6 @@ allow = [
 # scoped to the exact crate that needs them instead of being globally allowed.
 exceptions = [
     { allow = ["bzip2-1.0.6"], crate = "libbz2-rs-sys" },
-    { allow = ["NCSA"], crate = "libfuzzer-sys" },
     { allow = ["0BSD"], crate = "mailparse" },
     { allow = ["0BSD"], crate = "quoted_printable" },
     { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
@@ -78,6 +77,12 @@ multiple-versions = "warn"
 # reports as wildcards. They cannot resolve outside this repository, so this
 # stays a warning instead of a hard failure.
 wildcards = "warn"
+# cargo-deny 0.20.2 bug #908: with `allow-wildcard-paths = false`, every path
+# dep inherited via `workspace = true` also emits a spurious
+# `bug[unresolved-workspace-dependency]` diagnostic because the span lookup uses
+# the depending crate's id. Path deps can only resolve inside this repo, so
+# allowing them is correct and silences the false positives.
+allow-wildcard-paths = true
 
 [sources]
 unknown-registry = "deny"

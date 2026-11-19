@@ -116,7 +116,7 @@ jobs:
             echo "| file | size |"
             echo "|---|---|"
             for f in botserver botui; do
-              printf '| `%s` | %s |\n' "$f" "$(stat -c %s "$out/$f") bytes"
+              printf "| \`%s\` | %s |\n" "$f" "$(stat -c %s "$out/$f") bytes"
             done
             echo
             echo "Archive: $(stat -c %s "$RUNNER_TEMP/server-$profile.tar.gz") bytes"
