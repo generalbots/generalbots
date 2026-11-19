@@ -13,7 +13,12 @@
     /* ---- Model name helpers ---- */
     A.shortModelName = function (model) {
         if (!model) { return ""; }
-        /* A provider account's model: "acct:<provider>/<model>" */
+        /* A connected agent: "sub:<provider>"; an account's model: "acct:<provider>/<model>" */
+        if (/^sub:/.test(model)) {
+            var id = model.slice(4);
+            var hit = (A.linkedAgents || []).filter(function (x) { return x.id === id; })[0];
+            return hit ? hit.name : id;
+        }
         var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
@@ -52,6 +57,10 @@
 
     /* ---- Render / update ---- */
     A.renderModelPickers = function () {
+        if (A.loadLinkedAgents && !A._agentsAsked) {
+            A._agentsAsked = true;
+            A.loadLinkedAgents().then(function () { A.renderModelPickers(); });
+        }
         var pickers = document.querySelectorAll(".gb-model-picker");
         for (var p = 0; p < pickers.length; p++) { replaceWithButton(pickers[p]); }
         var btns = document.querySelectorAll(".gb-model-btn");
@@ -122,6 +131,7 @@
             menu.appendChild(item);
         }
 
+        addAgentGroup(menu);
         addAccountGroups(menu);
         addSwitchEntries(menu, dest);
 
@@ -181,44 +191,59 @@
         }).catch(function () { /* the menu keeps what it has */ });
     }
 
+    /* ---- Connected subscription agents (Settings > Modelo > Agente). They
+       run in the agent workspace, so picking one turns the Agent switch on. ---- */
+    function addAgentGroup(menu) {
+        var agents = A.linkedAgents || [];
+        if (!agents.length) { return; }
+        addGroup(menu, { id: "agents", name: tr("Agentes", "Agents"), logo: "" },
+            agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }),
+            function (value) {
+                if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
+                selectModel(value);
+            });
+    }
+
     /* ---- Provider accounts: one collapsible group per key, listing the
        models switched on in Settings > Modelo. The group holding the chosen
        model starts open. ---- */
     function addAccountGroups(menu) {
         (A.accounts || []).forEach(function (acc) {
-            var models = acc.models || [];
-            if (!models.length) { return; }
-            var open = models.some(function (m) { return m.value === A.selectedModel; });
-            var group = document.createElement("div");
-            group.className = "gb-model-group" + (open ? " open" : "");
-            var head = document.createElement("button");
-            head.type = "button";
-            head.className = "gb-model-group-head";
-            head.setAttribute("aria-expanded", String(open));
-            var svg = (A._providerLogos || {})[acc.id] || "";
-            head.innerHTML = (svg ? '<span class="gb-model-group-logo">' + svg + '</span>' : '') +
-                '<span class="gb-model-group-name">' + esc(acc.name || acc.id) + '</span>' +
-                '<span class="gb-model-group-count">' + models.length + '</span>' +
-                '<svg class="gb-model-group-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
-            head.addEventListener("click", function (e) {
-                e.stopPropagation();
-                var isOpen = group.classList.toggle("open");
-                head.setAttribute("aria-expanded", String(isOpen));
-            });
-            var list = document.createElement("div");
-            list.className = "gb-model-group-list";
-            models.forEach(function (m) {
-                var item = document.createElement("button");
-                item.className = "gb-model-menu-item" + (A.selectedModel === m.value ? " active" : "");
-                item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
-                item.addEventListener("click", function () { selectModel(m.value); });
-                list.appendChild(item);
-            });
-            group.appendChild(head);
-            group.appendChild(list);
-            var divider = menu.querySelector(".gb-model-menu-divider");
-            if (divider) { menu.insertBefore(group, divider); } else { menu.appendChild(group); }
+            if ((acc.models || []).length) { addGroup(menu, acc, acc.models, selectModel); }
         });
+    }
+
+    function addGroup(menu, acc, models, onPick) {
+        var open = models.some(function (m) { return m.value === A.selectedModel; });
+        var group = document.createElement("div");
+        group.className = "gb-model-group" + (open ? " open" : "");
+        var head = document.createElement("button");
+        head.type = "button";
+        head.className = "gb-model-group-head";
+        head.setAttribute("aria-expanded", String(open));
+        var svg = (A._providerLogos || {})[acc.logo || acc.id] || "";
+        head.innerHTML = (svg ? '<span class="gb-model-group-logo">' + svg + '</span>' : '') +
+            '<span class="gb-model-group-name">' + esc(acc.name || acc.id) + '</span>' +
+            '<span class="gb-model-group-count">' + models.length + '</span>' +
+            '<svg class="gb-model-group-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+        head.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = group.classList.toggle("open");
+            head.setAttribute("aria-expanded", String(isOpen));
+        });
+        var list = document.createElement("div");
+        list.className = "gb-model-group-list";
+        models.forEach(function (m) {
+            var item = document.createElement("button");
+            item.className = "gb-model-menu-item" + (A.selectedModel === m.value ? " active" : "");
+            item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
+            item.addEventListener("click", function () { onPick(m.value); });
+            list.appendChild(item);
+        });
+        group.appendChild(head);
+        group.appendChild(list);
+        var divider = menu.querySelector(".gb-model-menu-divider");
+        if (divider) { menu.insertBefore(group, divider); } else { menu.appendChild(group); }
     }
 
     function setPickersBusy(on) {

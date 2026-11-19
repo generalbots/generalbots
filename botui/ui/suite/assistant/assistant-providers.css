@@ -85,3 +85,12 @@
 .gb-model-group.open .gb-model-group-caret { transform: rotate(180deg); }
 .gb-model-group-list { display: none; padding-left: 12px; }
 .gb-model-group.open .gb-model-group-list { display: block; }
+
+/* Agent sign-in step under its row */
+.gb-prov-flow:empty { display: none; }
+.gb-prov-flow { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px 52px; }
+.gb-prov-flow .gb-set-hint { margin: 0; }
+.gb-prov-open { align-self: flex-start; text-decoration: none; }
+.gb-prov-code { font-size: var(--id-text-lg, 18px); letter-spacing: .12em; color: var(--id-ink); align-self: flex-start; }
+.gb-prov-flow .gb-set-form-actions { display: flex; gap: 8px; }
+.gb-prov-flow .gb-set-form-actions input { flex: 1; min-width: 0; }

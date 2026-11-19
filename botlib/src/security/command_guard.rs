@@ -78,8 +78,11 @@ impl SafeCommand {
     }
 
     pub fn shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus");
-        let is_windows_cmd = self.command == "cmd";
+        // By name, not path: on Windows the agent's Incus is a wrapper given
+        // as a full path (`AGENT_INCUS_BIN=C:\...\incus.exe`).
+        let name = normalise_command_name(&self.command);
+        let is_unix_shell = matches!(name.as_str(), "bash" | "sh" | "incus");
+        let is_windows_cmd = name == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
                 "shell_script_arg only allowed for bash/sh/cmd commands".to_string(),
@@ -137,8 +140,11 @@ impl SafeCommand {
         script: &str,
         trusted: bool,
     ) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus");
-        let is_windows_cmd = self.command == "cmd";
+        // By name, not path: on Windows the agent's Incus is a wrapper given
+        // as a full path (`AGENT_INCUS_BIN=C:\...\incus.exe`).
+        let name = normalise_command_name(&self.command);
+        let is_unix_shell = matches!(name.as_str(), "bash" | "sh" | "incus");
+        let is_windows_cmd = name == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
                 "shell_script_arg only allowed for bash/sh/cmd commands".to_string(),
