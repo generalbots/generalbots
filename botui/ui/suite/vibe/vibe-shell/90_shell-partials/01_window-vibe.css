@@ -106,7 +106,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-tb-run-group .vibe-shell-tb-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 
 .vibe-shell-tb-run-group .vibe-shell-tb-icon svg {
@@ -115,7 +115,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-tb-run-group .vibe-shell-tb-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text, #e8e8f2);
 }
 
@@ -154,7 +154,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-tb-deploy-group .vibe-shell-tb-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 
 .vibe-shell-tb-deploy-group .vibe-shell-tb-icon svg {
@@ -163,7 +163,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-tb-deploy-group .vibe-shell-tb-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 /* Window commands — 3 rows × 4 columns (#1383 review), then the close-all ✕. */
@@ -191,7 +191,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     border-radius: 3px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     display: inline-flex;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon svg {
@@ -199,7 +199,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     height: 11px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     white-space: nowrap;
     text-align: left;
 }
@@ -238,7 +238,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 
 .vibe-shell-tb-closeall .vibe-shell-tb-icon {
     color: #ef4444;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 700;
 }
 
@@ -254,7 +254,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-tb-field-label {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -272,7 +272,7 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     border-radius: 4px;
     background: var(--bg, #0d0d1f);
     color: var(--text, #e8e8f2);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     outline: none;
     cursor: pointer;

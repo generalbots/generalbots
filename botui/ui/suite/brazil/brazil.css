@@ -41,7 +41,7 @@
 /* Tables */
 .gb-table-wrapper { overflow-x: auto; background: var(--gb-input, #0f1419); border-radius: 6px; }
 .gb-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.gb-table th { text-align: left; padding: 0.6rem 0.8rem; background: rgba(255,255,255,.03); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.8; }
+.gb-table th { text-align: left; padding: 0.6rem 0.8rem; background: rgba(255,255,255,.03); font-weight: 600; text-transform: uppercase; font-size: var(--text-2xs); letter-spacing: 0.5px; opacity: 0.8; }
 .gb-table td { padding: 0.6rem 0.8rem; border-top: 1px solid var(--gb-border, #2a323d); }
 .gb-table tbody tr:hover { background: rgba(255,255,255,.02); }
 .gb-empty { text-align: center; opacity: 0.6; padding: 2rem; }

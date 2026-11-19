@@ -13,14 +13,14 @@
     padding: 12px 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
-.gb-recycle .recycle-toolbar h2 { margin: 0; font-size: 16px; }
+.gb-recycle .recycle-toolbar h2 { margin: 0; font-size: var(--text-md); }
 .gb-recycle .recycle-empty-btn {
     background: #ef4444;
     color: #fff;
     border: none;
     border-radius: 8px;
     padding: 7px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
 }
@@ -29,7 +29,7 @@
     border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     padding: 7px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     color: var(--text, #1f2430);
 }
@@ -43,24 +43,24 @@
     border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 .gb-recycle .recycle-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gb-recycle .recycle-time { font-size: 11px; color: #9ca3af; }
+.gb-recycle .recycle-time { font-size: var(--text-2xs); color: #9ca3af; }
 .gb-recycle .recycle-restore {
     background: #3b82f6;
     color: #fff;
     border: none;
     border-radius: 7px;
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 .gb-recycle .recycle-empty {
     text-align: center;
     color: #9ca3af;
     padding: 60px 0;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 @media (prefers-color-scheme: dark) {

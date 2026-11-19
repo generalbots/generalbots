@@ -79,7 +79,7 @@
             if (!raw) return null;
             var pos = JSON.parse(raw);
             if (typeof pos.left === "number" && typeof pos.top === "number") return pos;
-        } catch (ignore) { }
+        } catch (ignore) { window.gbLogError ? gbLogError(ignore, "loadPosition") : console.error("loadPosition", ignore); }
         return null;
     }
 
@@ -91,7 +91,7 @@
             var top = parseInt(win.style.top || "0", 10);
             try {
                 localStorage.setItem(S.PALETTE_POS_PREFIX + def.id, JSON.stringify({ left: left, top: top }));
-            } catch (ignore) { }
+            } catch (ignore) { window.gbLogError ? gbLogError(ignore, "savePositions") : console.error("savePositions", ignore); }
         });
     }
 
@@ -160,7 +160,7 @@
             else if (def.root === "vibeGraphPanel" && window.VibeGraph) window.VibeGraph.togglePanel(false);
             else if (def.root === "vibeMembersModal" && window.VibeMembers) window.VibeMembers.close();
             else if (def.kind === "dialog" && window.VibeDialogs) window.VibeDialogs.close();
-        } catch (ignore) { }
+        } catch (ignore) { window.gbLogError ? gbLogError(ignore, "deactivate") : console.error("deactivate", ignore); }
     }
 
     /* Park palette roots back into the stash before the WM destroys them. */

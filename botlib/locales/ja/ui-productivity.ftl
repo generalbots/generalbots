@@ -638,3 +638,15 @@ calendar-event-attendees-placeholder = メール1, メール2
 # semantic i18n key (#2542)
 db-sql-editor-placeholder = SELECT * FROM テーブル...
 db-sql-editor-aria-label = SQLクエリ
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = まだタスクがありません
+tasks-state-empty-desc = 上でやるべきことを書くと、アシスタントがタスクに変換します。
+tasks-state-empty-action = 意図から始める
+calendar-state-empty-calendars-title = まだカレンダーがありません
+calendar-state-empty-calendars-desc = カレンダーは予定を保持します。作成して予定を入れましょう。
+calendar-state-empty-upcoming-title = 予定はありません
+calendar-state-empty-upcoming-desc = 次の予定がここに表示されるので、急な予定に慌てません。
+calendar-state-empty-upcoming-action = 予定を作成

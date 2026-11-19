@@ -47,13 +47,13 @@ const LockScreen = (() => {
     setInterval(tick, 1000);
     const unlock = () => {
       overlay.remove();
-      try { localStorage.setItem(LOCK_KEY, "0"); } catch (e) {}
+      try { localStorage.setItem(LOCK_KEY, "0"); } catch (e) { window.gbLogError ? gbLogError(e, "lock") : console.error("lock", e); }
     };
     overlay.addEventListener("click", unlock);
     overlay.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === "Escape") unlock();
     });
-    try { localStorage.setItem(LOCK_KEY, String(Date.now())); } catch (e) {}
+    try { localStorage.setItem(LOCK_KEY, String(Date.now())); } catch (e) { window.gbLogError ? gbLogError(e, "lock") : console.error("lock", e); }
   }
 
   function tick() {

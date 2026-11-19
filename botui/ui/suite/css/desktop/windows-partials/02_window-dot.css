@@ -13,11 +13,11 @@
 
 .window-dot-close          { background: #ff5f57; }
 .window-dot-close:hover    { background: #ff3b30; }
-.window-dot-close::after   { content: "✕"; color: #4a0000; font-size: 8px; font-weight: 700; line-height: 1; }
+.window-dot-close::after   { content: "✕"; color: #4a0000; font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
 
 .window-dot-minimize       { background: #febc2e; }
 .window-dot-minimize:hover { background: #f5a623; }
-.window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: 10px; font-weight: 700; line-height: 1; }
+.window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: var(--text-2xs); font-weight: 700; line-height: 1; }
 
 
 .window-header-glass:hover .window-dot::after,
@@ -180,5 +180,17 @@ body.window-maximized .window-element.window-maximized-target {
 
   .window-body {
     padding: 12px;
+  }
+}
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  .window-dot::after,
+  .gb-window-loading,
+  .gb-window-loading-spinner,
+  .gb-window-content {
+    animation: none !important;
+    transition: none !important;
   }
 }

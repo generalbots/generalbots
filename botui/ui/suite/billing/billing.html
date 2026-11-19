@@ -176,6 +176,12 @@
                 hx-get="/api/ui/billing/payments"
                 hx-trigger="load"
                 aria-live="polite"
+                data-gb-states="table"
+                data-gb-empty-icon="💳"
+                data-gb-empty-title="billing-payments-empty-title"
+                data-gb-empty-title-fallback="No payments recorded yet"
+                data-gb-empty-desc="billing-payments-empty-desc"
+                data-gb-empty-desc-fallback="Payments you register against an invoice appear here with their method and date."
             ></tbody>
         </table>
     </div>
@@ -249,6 +255,12 @@
                 hx-get="/api/ui/billing/quotes"
                 hx-trigger="load"
                 aria-live="polite"
+                data-gb-states="table"
+                data-gb-empty-icon="📄"
+                data-gb-empty-title="billing-quotes-empty-title"
+                data-gb-empty-title-fallback="No quotes yet"
+                data-gb-empty-desc="billing-quotes-empty-desc"
+                data-gb-empty-desc-fallback="Send a quote to a customer and it is tracked here until it is accepted."
             ></tbody>
         </table>
     </div>
@@ -266,6 +278,12 @@
             hx-trigger="load"
             role="status"
             aria-live="polite"
+            data-gb-states="table"
+            data-gb-empty-icon="📦"
+            data-gb-empty-title="billing-inventory-empty-title"
+            data-gb-empty-title-fallback="No inventory items yet"
+            data-gb-empty-desc="billing-inventory-empty-desc"
+            data-gb-empty-desc-fallback="Stocked goods and their on-hand quantity are listed here once you add them."
         >
             <!-- Inventory loaded via HTMX -->
         </div>
@@ -304,6 +322,12 @@
             hx-trigger="load"
             role="status"
             aria-live="polite"
+            data-gb-states="table"
+            data-gb-empty-icon="📒"
+            data-gb-empty-title="billing-gl-empty-title"
+            data-gb-empty-title-fallback="No ledger accounts yet"
+            data-gb-empty-desc="billing-gl-empty-desc"
+            data-gb-empty-desc-fallback="Every posting needs an account. Add them to build the trial balance and the statements."
         >
             <!-- GL loaded via HTMX -->
         </div>
@@ -322,6 +346,12 @@
             hx-trigger="load"
             role="status"
             aria-live="polite"
+            data-gb-states="table"
+            data-gb-empty-icon="🧾"
+            data-gb-empty-title="billing-procurement-empty-title"
+            data-gb-empty-title-fallback="No purchase orders yet"
+            data-gb-empty-desc="billing-procurement-empty-desc"
+            data-gb-empty-desc-fallback="Purchase orders you place with suppliers are tracked here until they are received."
         >
             <!-- Procurement loaded via HTMX -->
         </div>

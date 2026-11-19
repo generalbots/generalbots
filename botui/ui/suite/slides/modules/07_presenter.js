@@ -49,11 +49,11 @@
     if (document.getElementById(CSS_ID)) return;
     var css = [
       ".sl-laser-dot{position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;",
-      "background:rgba(239,68,68,.25);border:2px solid #ef4444;pointer-events:none;z-index:100001;",
+      "background:rgba(239,68,68,.25);border:2px solid #ef4444;pointer-events:none;z-index:var(--z-blocker);",
       "box-shadow:0 0 12px 3px rgba(239,68,68,.55);transition:opacity .4s ease;opacity:0;}",
       ".sl-laser-dot.on{opacity:1;}",
       "#gb-qa-panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:94vw;",
-      "background:#0f172a;border-left:1px solid #334155;z-index:100000;display:flex;flex-direction:column;",
+      "background:#0f172a;border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;",
       "box-shadow:-8px 0 24px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .2s ease;",
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}",
       "#gb-qa-panel.gqa-open{transform:translateX(0);}",

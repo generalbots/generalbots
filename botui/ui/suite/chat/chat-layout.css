@@ -2,7 +2,7 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 10000;
+    z-index: var(--z-system);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -50,13 +50,13 @@
 }
 
 .toast-icon {
-    font-size: 20px;
+    font-size: var(--text-xl);
     line-height: 1;
 }
 
 .toast-message {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #e5e5e5);
 }
 
@@ -66,7 +66,7 @@
     color: var(--text-secondary, #888);
     cursor: pointer;
     padding: 4px;
-    font-size: 18px;
+    font-size: var(--text-lg);
     line-height: 1;
     transition: color 0.15s ease;
 }
@@ -228,7 +228,7 @@
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
     border-radius: 6px;
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text, #e5e5e5);
     white-space: nowrap;
     opacity: 0;
@@ -276,7 +276,7 @@
     position: absolute;
     top: 100%;
     margin-top: 2px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1;
     color: var(--text-secondary, #9aa0aa);
     white-space: nowrap;
@@ -337,7 +337,7 @@
     background: transparent;
     color: rgba(255, 255, 255, 0.9);
     font: inherit;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-decoration: underline;
     cursor: pointer;
@@ -413,7 +413,7 @@
 .gb-image-fallback {
     display: inline-block;
     color: var(--text-secondary, #888);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 /* Thinking Section - collapsible reasoning block */
@@ -451,14 +451,14 @@
 
 .thinking-section[open] summary::after {
     content: '▲';
-    font-size: 0.7em;
+    font-size: var(--text-2xs);
     margin-left: auto;
     opacity: 0.5;
 }
 
 .thinking-section:not([open]) summary::after {
     content: '▼';
-    font-size: 0.7em;
+    font-size: var(--text-2xs);
     margin-left: auto;
     opacity: 0.5;
 }
@@ -510,7 +510,7 @@
     display: none;
     flex-direction: column;
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 .mention-dropdown.visible {
@@ -520,7 +520,7 @@
 .mention-header {
     padding: 10px 14px;
     border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888);
     text-transform: uppercase;

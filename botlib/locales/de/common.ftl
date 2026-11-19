@@ -375,3 +375,13 @@ deploy-custom-domain-placeholder = app.beispiel.com
 action-print = Drucken
 action-history = Verlauf
 action-previous = Zurück
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = Wird geladen…
+gb-state-empty-title = Hier ist noch nichts
+gb-state-empty-desc = Hier gibt es noch nichts anzuzeigen.
+gb-state-error-title = Dieser Inhalt konnte nicht geladen werden
+gb-state-error-desc = Die Anfrage ist fehlgeschlagen. Prüfen Sie die Verbindung und versuchen Sie es erneut.
+gb-state-retry = Erneut versuchen

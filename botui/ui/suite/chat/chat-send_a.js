@@ -145,7 +145,7 @@ function sendMessage(messageContent, extra) {
     } else if (window.__driveRecentFiles) {
       driveFiles = window.__driveRecentFiles;
     }
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "sendMessage") : console.error("sendMessage", e); }
 
   var modelPicker = document.getElementById("modelPicker");
   var selectedModel = modelPicker ? modelPicker.value : "auto";
@@ -166,7 +166,7 @@ function sendMessage(messageContent, extra) {
       if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
         return crypto.randomUUID();
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "generateTurnMessageId") : console.error("generateTurnMessageId", e); }
     return "m-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
   }
 

@@ -79,3 +79,13 @@ drive-drop-hint = Dateien oder Ordner hier ablegen, um sie hochzuladen
 # semantic i18n key (#2542)
 drive-search-all-placeholder = Alle Dateien durchsuchen…
 drive-search-all-aria-label = Alle Dateien nach Name und Inhalt durchsuchen
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+drive-starred-empty-title = Keine markierten Dateien
+drive-starred-empty-desc = Markieren Sie eine Datei oder nutzen Sie ihr ⋮-Menü, um sie mit einem Klick zu erreichen.
+drive-shared-empty-title = Keine freigegebenen Dateien
+drive-shared-empty-desc = Mit Ihnen geteilte Dateien erscheinen hier. Teilen Sie eine eigene, um eine Prüfung zu starten.
+drive-list-error-title = Diese Liste konnte nicht geladen werden
+drive-list-error-desc = Drive hat nicht rechtzeitig geantwortet. Prüfen Sie die Verbindung und versuchen Sie es erneut.

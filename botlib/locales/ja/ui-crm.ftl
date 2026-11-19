@@ -186,3 +186,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = 連絡先を検索...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = まだ商談がありません
+crm-opps-empty-desc = 商談は見込みのある販売を初回接触から成約まで追跡します。
+crm-opps-empty-action = 商談を作成
+crm-deals-empty-title = まだ取引がありません
+crm-deals-empty-desc = 各ステージの取引が金額と担当者とともにここに表示されます。
+crm-deals-empty-action = 取引を追加
+crm-accounts-empty-title = まだ取引先がありません
+crm-accounts-empty-desc = 取引先は販売先の企業です。連絡先と取引はそこにまとまります。
+crm-accounts-empty-action = 取引先を追加
+crm-contacts-empty-title = まだ連絡先がありません
+crm-contacts-empty-desc = やり取りする相手がここにあります。名前、メール、電話、所属取引先です。
+crm-contacts-empty-action = 連絡先を追加
+crm-campaigns-empty-title = まだキャンペーンがありません
+crm-campaigns-empty-desc = キャンペーンは見込み客をパイプラインに導く施策をまとめます。
+crm-campaigns-empty-action = キャンペーンを作成

@@ -186,3 +186,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = 搜索联系人...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = 还没有销售机会
+crm-opps-empty-desc = 销售机会跟踪一笔可能的销售，从首次接触到成交。
+crm-opps-empty-action = 创建销售机会
+crm-deals-empty-title = 还没有交易
+crm-deals-empty-desc = 各个阶段的交易都会连同金额和负责人显示在这里。
+crm-deals-empty-action = 添加交易
+crm-accounts-empty-title = 还没有客户公司
+crm-accounts-empty-desc = 客户公司是您的销售对象，联系人和交易都归属于它。
+crm-accounts-empty-action = 添加客户公司
+crm-contacts-empty-title = 还没有联系人
+crm-contacts-empty-desc = 您交流的人都在这里：姓名、电子邮件、电话及其所属客户公司。
+crm-contacts-empty-action = 添加联系人
+crm-campaigns-empty-title = 还没有营销活动
+crm-campaigns-empty-desc = 营销活动汇总为销售漏斗带来潜在客户的外联动作。
+crm-campaigns-empty-action = 创建营销活动

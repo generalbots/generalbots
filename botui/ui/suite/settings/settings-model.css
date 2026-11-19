@@ -7,18 +7,18 @@
 }
 
 #model-section .mdl-current strong {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
 #model-section .mdl-muted {
     color: var(--text-muted, #8b93a7);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 #model-section .mdl-warn {
     color: var(--danger, #f87171);
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin: 8px 0;
 }
 
@@ -58,12 +58,12 @@
 }
 
 #model-section .mdl-mode-label {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
 }
 
 #model-section .mdl-badge {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--accent, #7c9cff);
@@ -77,7 +77,7 @@
 }
 
 #model-section .mdl-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #8b93a7);
     margin-top: 6px;
 }
@@ -88,7 +88,7 @@
     border-radius: 8px;
     background: var(--surface, transparent);
     color: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 #model-section .mdl-actions {
@@ -98,6 +98,6 @@
 }
 
 #model-section .mdl-hint {
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin: 6px 0;
 }

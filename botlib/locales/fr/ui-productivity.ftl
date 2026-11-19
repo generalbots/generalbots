@@ -638,3 +638,15 @@ calendar-event-attendees-placeholder = email1, email2
 # semantic i18n key (#2542)
 db-sql-editor-placeholder = SELECT * FROM table...
 db-sql-editor-aria-label = Requête SQL
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = Aucune tâche pour le moment
+tasks-state-empty-desc = Décrivez ci-dessus ce qu'il faut faire et l'assistant en fait une tâche.
+tasks-state-empty-action = Commencer par une intention
+calendar-state-empty-calendars-title = Aucun calendrier pour le moment
+calendar-state-empty-calendars-desc = Un calendrier contient vos événements. Créez-en un pour commencer à planifier.
+calendar-state-empty-upcoming-title = Rien de planifié
+calendar-state-empty-upcoming-desc = Vos prochains rendez-vous apparaissent ici pour éviter les surprises.
+calendar-state-empty-upcoming-action = Planifier un événement

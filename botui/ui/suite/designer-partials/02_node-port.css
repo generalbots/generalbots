@@ -58,7 +58,7 @@
     padding: 24px 16px;
     text-align: center;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .properties-content {
@@ -70,7 +70,7 @@
 }
 
 .property-group-title {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-secondary);
@@ -82,7 +82,7 @@
 }
 
 .property-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     margin-bottom: 4px;
     color: var(--text-primary);
 }
@@ -94,7 +94,7 @@
     border-radius: 4px;
     padding: 8px 10px;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .property-input:focus {
@@ -128,7 +128,7 @@
     display: flex;
     align-items: center;
     padding: 0 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     gap: 16px;
 }
@@ -185,7 +185,7 @@
     padding: 4px;
     min-width: 160px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     display: none;
 }
 
@@ -200,7 +200,7 @@
     padding: 8px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .context-menu-item:hover {
@@ -225,7 +225,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .modal-overlay.visible {
@@ -253,7 +253,7 @@
 
 .modal-title {
     font-weight: 600;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .modal-close {
@@ -314,11 +314,11 @@
 
 .file-name {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .file-path {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 

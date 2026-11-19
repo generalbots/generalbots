@@ -80,7 +80,7 @@ window.GBSlidesEndPresent = function () {
         console.debug("[gb-slides] Exit fullscreen failed:", err);
       });
     }
-  } catch (error) {}
+  } catch (error) { window.gbLogError ? gbLogError(error, "GBSlidesEndPresent") : console.error("GBSlidesEndPresent", error); }
   if (window.SlidesPresenter && window.SlidesPresenter.releasePresenter) {
     window.SlidesPresenter.releasePresenter();
   }
@@ -96,7 +96,7 @@ window.GBSlidesStartPresent = function () {
         console.debug("[gb-slides] Fullscreen request failed:", err);
       });
     }
-  } catch (error) {}
+  } catch (error) { window.gbLogError ? gbLogError(error, "GBSlidesStartPresent") : console.error("GBSlidesStartPresent", error); }
   if (window.SlidesPresenter && window.SlidesPresenter.takePresenter) {
     window.SlidesPresenter.takePresenter();
   }
@@ -162,7 +162,7 @@ document.addEventListener("click", function (e) {
     $$(".sidebar-content").forEach(function (c) {
       c.style.display = c.dataset.sidebarContent === which ? "flex" : "none";
     });
-    try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) {}
+    try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) { window.gbLogError ? gbLogError(_, "refreshSlideView") : console.error("refreshSlideView", _); }
   }
 });
 
@@ -214,7 +214,7 @@ window.deletePresentation = deletePresentation;
 
 function initSidebar() {
   var saved = null;
-  try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) {}
+  try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) { window.gbLogError ? gbLogError(_, "initSidebar") : console.error("initSidebar", _); }
   if (saved) {
     var btn = document.querySelector('[data-sidebar-tab="' + saved + '"]');
     if (btn) btn.click();
@@ -352,7 +352,7 @@ function initCollab() {
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { window.gbLogError ? gbLogError(_, "onEdit") : console.error("onEdit", _); }
     }
   });
 }

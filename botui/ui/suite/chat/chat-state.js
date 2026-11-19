@@ -4,7 +4,7 @@ var ChatState = {
   // #2229 — when set, addMessage appends to this container (e.g. a
   // DocumentFragment during history replay) instead of the live #messages node.
   appendTarget: null,
-  clientId: (function() { try { return (localStorage.getItem("gb.client.id") || ""); } catch(e) { return ""; } })() || (function() { var id = "c" + Math.random().toString(36).substring(2) + Date.now().toString(36); try { localStorage.setItem("gb.client.id", id); } catch(e) {} return id; })(),
+  clientId: (function() { try { return (localStorage.getItem("gb.client.id") || ""); } catch(e) { return ""; } })() || (function() { var id = "c" + Math.random().toString(36).substring(2) + Date.now().toString(36); try { localStorage.setItem("gb.client.id", id); } catch (e) { window.gbLogError ? gbLogError(e, "chat-state") : console.error("chat-state", e); } return id; })(),
   currentUserId: null,
   currentBotId: "default",
   currentBotName: "default",
@@ -41,7 +41,7 @@ function getChatAccessToken() {
       var t = window.GBSecurity.getToken();
       if (t) return t;
     }
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "getChatAccessToken") : console.error("getChatAccessToken", e); }
   try {
     return sessionStorage.getItem("gb-access-token") || "";
   } catch (e) {

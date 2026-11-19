@@ -71,7 +71,7 @@ function vibeReplayStore(eventData) {
         buf.push({ at: Date.now(), event: eventData });
         if (buf.length > VIBE_REPLAY_MAX) buf = buf.slice(buf.length - VIBE_REPLAY_MAX);
         localStorage.setItem(VIBE_REPLAY_KEY, JSON.stringify(buf));
-    } catch (e) { }
+    } catch (e) { window.gbLogError ? gbLogError(e, "vibeReplayStore") : console.error("vibeReplayStore", e); }
 }
 
 function vibeReplayBuffered() {
@@ -261,7 +261,7 @@ function connectTaskProgressWs(taskId) {
     if (taskProgressWs) {
         try {
             taskProgressWs.close();
-        } catch (ignore) { }
+        } catch (ignore) { window.gbLogError ? gbLogError(ignore, "connectTaskProgressWs") : console.error("connectTaskProgressWs", ignore); }
     }
     taskProgressWs = new WebSocket(url);
 

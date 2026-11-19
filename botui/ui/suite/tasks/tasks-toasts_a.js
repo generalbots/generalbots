@@ -8,7 +8,7 @@ function showToast(message, type = "info", duration = 4000, onClick = null) {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 10000;
+            z-index: var(--z-system);
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -80,7 +80,7 @@ function gbConfirm(message, title) {
       }
     }
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
     overlay.innerHTML = '<div style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:16px;min-width:280px;max-width:420px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">' +
       '<div style="font-weight:600;margin-bottom:8px">' + String(t).replace(/</g, "&lt;") + '</div>' +
       '<div style="margin-bottom:14px;white-space:pre-wrap">' + String(message).replace(/</g, "&lt;") + '</div>' +
@@ -119,7 +119,7 @@ function gbPrompt(message, defaultValue, title) {
       } catch (e) { /* fallback */ }
     }
     const overlay = document.createElement("div");
-    overlay.style.cssText = "position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:var(--z-system);display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)";
     overlay.innerHTML = '<div style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:10px;padding:16px;min-width:300px;max-width:420px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.4)">' +
       '<div style="font-weight:600;margin-bottom:8px">' + String(t).replace(/</g, "&lt;") + '</div>' +
       '<div style="margin-bottom:8px;white-space:pre-wrap">' + String(message).replace(/</g, "&lt;") + '</div>' +

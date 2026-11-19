@@ -172,3 +172,10 @@ projector-code-info = code.rs
 
 # Projector viewer control (#2542)
 chat-projector-rotate = 旋转
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+chat-empty-title = 开始对话
+chat-empty-desc = 在下方输入消息，或选择机器人给出的建议。
+chat-empty-action = 写第一条消息

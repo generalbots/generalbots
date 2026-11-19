@@ -325,7 +325,7 @@ function rebuildAppsRegistry() {
       localStorage.getItem("gb-access-token") ||
       sessionStorage.getItem("gb-access-token")
     );
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "rebuildAppsRegistry") : console.error("rebuildAppsRegistry", e); }
   // Authenticated suite sessions may use cookie/session flows without exposing
   // a token in gb-access-token/GBSecurity; keep privileged apps when an active
   // non-public user session is present so the desktop can open them.
@@ -335,7 +335,7 @@ function rebuildAppsRegistry() {
         var sess = JSON.parse(localStorage.getItem("gb_chat_default") || sessionStorage.getItem("gb_chat_default") || "null");
         if (sess && (sess.user_id || sess.userId)) authenticated = true;
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "rebuildAppsRegistry") : console.error("rebuildAppsRegistry", e); }
   }
   if (!authenticated && !noSecurityBuild) {
     // Anonymous visitors get the conversation only: no Drive, no workspace

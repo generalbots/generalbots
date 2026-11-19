@@ -18,14 +18,14 @@
 }
 
 .section-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #ffffff);
     flex: 1;
 }
 
 .section-step-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 12px;
     background: var(--primary, #c5f82a);
     color: var(--bg, #0a0a0a);
@@ -34,7 +34,7 @@
 }
 
 .section-status-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 12px;
     border-radius: 4px;
     font-weight: 500;
@@ -97,13 +97,13 @@
 }
 
 .child-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text, #e0e0e0);
     flex: 1;
 }
 
 .child-step-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 10px;
     background: var(--primary, #c5f82a);
     color: var(--bg, #0a0a0a);
@@ -112,7 +112,7 @@
 }
 
 .child-status-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 10px;
     border-radius: 4px;
     min-width: 70px;
@@ -138,7 +138,7 @@
     align-items: center;
     gap: 12px;
     padding: 10px 20px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .item-dot {
@@ -174,12 +174,12 @@
 }
 
 .item-duration {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
 }
 
 .item-check {
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .item-check.completed {
@@ -238,7 +238,7 @@
 }
 
 .detail-section-box .section-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.5px;
     color: var(--text-muted, #666);
@@ -292,7 +292,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.5px;
     color: var(--text-muted, #666);
@@ -319,7 +319,7 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
 }
 
@@ -331,7 +331,7 @@
 .terminal-output-rich {
     padding: 16px 20px;
     font-family: "JetBrains Mono", "Fira Code", "Monaco", monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.7;
     flex: 1;
     min-height: 0;
@@ -365,7 +365,7 @@
     color: var(--bg, #0a0a0a);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -392,7 +392,7 @@
 }
 
 .status-section-box .status-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     color: var(--text, #fff);
     margin-bottom: 12px;
@@ -414,12 +414,12 @@
 
 .status-section-box .status-current .status-text {
     color: var(--text, #e0e0e0);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .status-section-box .status-time {
     margin-left: auto;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-muted, #666);
 }
 
@@ -443,7 +443,7 @@
     padding: 4px 10px;
     background: var(--surface-active, #1a1a24);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
 }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

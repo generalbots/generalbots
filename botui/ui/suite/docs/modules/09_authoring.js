@@ -67,7 +67,7 @@
       "article.docs-doc-view .eq-sqrt{display:inline-flex;align-items:center;margin:0 2px;}",
       "article.docs-doc-view .eq-sqrt-rad{border-top:1px solid #0f172a;padding:0 2px;}",
       "#gb-refs-panel{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:94vw;",
-      "background:#0f172a;border-left:1px solid #334155;z-index:100000;display:flex;flex-direction:column;",
+      "background:#0f172a;border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;",
       "box-shadow:-8px 0 24px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .2s ease;",
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}",
       "#gb-refs-panel.gref-open{transform:translateX(0);}",
@@ -165,7 +165,7 @@
     var host = document.getElementById("docs-modal-container");
     if (!host) return;
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
       '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;">',
       '<h3 style="margin:0;font-size:16px;">Insert table</h3>',
       '<div style="display:flex;gap:14px;">',
@@ -201,7 +201,7 @@
     var host = document.getElementById("docs-modal-container");
     if (!host) return;
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
       '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:460px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;">',
       '<h3 style="margin:0;font-size:16px;">Insert image</h3>',
       '<label style="font-size:12px;color:#94a3b8;">Image URL<input id="img-url" type="text" placeholder="https://…" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;"/></label>',

@@ -31,7 +31,7 @@
         var pid = M.projectId();
         if (!pid) return "no project selected";
         var name = "";
-        try { name = sessionStorage.getItem("gb-vibe-project-name") || ""; } catch (e) { }
+        try { name = sessionStorage.getItem("gb-vibe-project-name") || ""; } catch (e) { window.gbLogError ? gbLogError(e, "dbName") : console.error("dbName", e); }
         var slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "app";
         return "app_…_" + slug + (M.state.env === "dev" ? "_dev" : "");
     }

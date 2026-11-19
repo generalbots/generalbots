@@ -33,9 +33,9 @@
   const HF_KEY = "gb-docs-hf";
 
   function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
-  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
+  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) { window.gbLogError ? gbLogError(_, "writeArr") : console.error("writeArr", _); } }
   function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
-  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
+  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) { window.gbLogError ? gbLogError(_, "writeObj") : console.error("writeObj", _); } }
   function uid() { return "fn_" + Math.random().toString(36).slice(2, 10); }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
   function t(key, fallback, params) { return window.gbT ? window.gbT(key, fallback, params) : fallback; }

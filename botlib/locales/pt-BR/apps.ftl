@@ -1273,3 +1273,10 @@ calculator-aria-to-unit = Unidade de destino
 
 # Chat header / app chrome (#2542)
 notes-board = Quadro de notas
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = Ainda não há notas
+notes-empty-desc = As notas adesivas ficam no seu quadro até você excluí-las. Registre uma ideia antes que ela passe.
+notes-empty-action = Criar sua primeira nota

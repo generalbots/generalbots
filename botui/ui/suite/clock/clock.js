@@ -50,7 +50,7 @@ window.GBClockApp = window.GBClockApp || {};
       if (Intl.supportedValuesOf) zones = Intl.supportedValuesOf("timeZone");
     } catch (e) { /* keep fallback list */ }
     var guess = "";
-    try { guess = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    try { guess = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { window.gbLogError ? gbLogError(e, "fillTimezones") : console.error("fillTimezones", e); }
     // #1950/#1981 — a system zone such as Etc/UTC, Asia/Calcutta or a fixed
     // offset is not always in `supportedValuesOf`, and the old code then fell
     // back to the first alphabetical option (Africa/Abidjan), so the clock

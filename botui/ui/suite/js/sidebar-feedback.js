@@ -28,8 +28,8 @@
       if (product.edition) lines.push("- Edition: " + product.edition);
     }
     lines.push("- Bot: " + getBotName());
-    try { lines.push("- URL: " + window.location.href); } catch (e) {}
-    try { lines.push("- User agent: " + navigator.userAgent); } catch (e) {}
+    try { lines.push("- URL: " + window.location.href); } catch (e) { window.gbLogError ? gbLogError(e, "buildBody") : console.error("buildBody", e); }
+    try { lines.push("- User agent: " + navigator.userAgent); } catch (e) { window.gbLogError ? gbLogError(e, "buildBody") : console.error("buildBody", e); }
     return lines.join("\n");
   }
 
@@ -92,7 +92,7 @@
         }
         setTimeout(function () {
           var ta = qs("#sidebarFeedbackText");
-          if (ta) { try { ta.focus(); } catch (err) {} }
+          if (ta) { try { ta.focus(); } catch (err) { window.gbLogError ? gbLogError(err, "setTimeout") : console.error("setTimeout", err); } }
         }, 150);
       });
     }

@@ -1,6 +1,6 @@
 .theme-name {
     text-align: center;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text);
 }
@@ -20,7 +20,7 @@
     border: none;
     padding: 10px 20px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
 }
 
@@ -97,7 +97,7 @@
 .wallpaper-name {
   display: block;
   padding: 8px 6px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: #e5e7eb;
 }
 .wallpaper-check {
@@ -146,7 +146,7 @@
 }
 .api-key-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #93c5fd;
   background: rgba(59, 130, 246, 0.12);
   padding: 2px 8px;
@@ -155,7 +155,7 @@
 }
 .api-key-meta,
 .webhook-events {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #94a3b8;
 }
 .api-key-actions,
@@ -171,12 +171,12 @@
   border: 1px solid rgba(34, 197, 94, 0.35);
   border-radius: 10px;
   background: rgba(34, 197, 94, 0.08);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .api-key-secret {
   display: block;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: #86efac;
   word-break: break-all;
   margin: 8px 0;
@@ -199,7 +199,7 @@
 }
 .webhook-deliveries table {
   width: 100%;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 /* #1675 — MCP server management embedded in Settings. */
@@ -232,7 +232,7 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 .settings-mcp-badge.is-healthy {
@@ -245,7 +245,7 @@
 }
 .settings-mcp-status {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #64748b;
   min-height: 16px;
 }
@@ -255,7 +255,7 @@
 .settings-mcp-preview-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10001;
+  z-index: var(--z-system);
   background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;

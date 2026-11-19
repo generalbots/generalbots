@@ -1272,3 +1272,10 @@ calculator-swap-units = Einheiten tauschen
 calculator-aria-amount = Betrag
 calculator-aria-from-unit = Von Einheit
 calculator-aria-to-unit = Zu Einheit
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = Noch keine Notizen
+notes-empty-desc = Haftnotizen bleiben auf Ihrer Pinnwand, bis Sie sie löschen. Halten Sie einen Gedanken fest, bevor er weg ist.
+notes-empty-action = Erste Notiz erstellen

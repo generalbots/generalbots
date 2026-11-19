@@ -175,7 +175,16 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load" aria-live="polite"></tbody>
+            <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load" aria-live="polite"
+                   data-gb-states="table"
+                   data-gb-empty-icon="🎯"
+                   data-gb-empty-title="crm-opps-empty-title"
+                   data-gb-empty-title-fallback="No opportunities yet"
+                   data-gb-empty-desc="crm-opps-empty-desc"
+                   data-gb-empty-desc-fallback="An opportunity tracks a possible sale from first contact to close."
+                   data-gb-empty-action="crm-opps-empty-action"
+                   data-gb-empty-action-fallback="Create an opportunity"
+                   data-gb-empty-action-target="crm-new-btn"></tbody>
         </table>
         <div class="crm-bulk-bar" id="opps-bulk-bar">
             <span class="crm-bulk-count" id="opps-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
@@ -230,7 +239,16 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load" aria-live="polite"></tbody>
+            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load" aria-live="polite"
+                   data-gb-states="table"
+                   data-gb-empty-icon="🤝"
+                   data-gb-empty-title="crm-deals-empty-title"
+                   data-gb-empty-title-fallback="No deals yet"
+                   data-gb-empty-desc="crm-deals-empty-desc"
+                   data-gb-empty-desc-fallback="Deals in every stage appear here, with the amount and the owner."
+                   data-gb-empty-action="crm-deals-empty-action"
+                   data-gb-empty-action-fallback="Add a deal"
+                   data-gb-empty-action-target="crm-new-btn"></tbody>
         </table>
         <div class="crm-bulk-bar" id="deals-bulk-bar">
             <span class="crm-bulk-count" id="deals-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
@@ -260,7 +278,16 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load" aria-live="polite"></tbody>
+            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load" aria-live="polite"
+                   data-gb-states="table"
+                   data-gb-empty-icon="🏢"
+                   data-gb-empty-title="crm-accounts-empty-title"
+                   data-gb-empty-title-fallback="No accounts yet"
+                   data-gb-empty-desc="crm-accounts-empty-desc"
+                   data-gb-empty-desc-fallback="An account is a company you sell to. Contacts and deals are grouped under it."
+                   data-gb-empty-action="crm-accounts-empty-action"
+                   data-gb-empty-action-fallback="Add an account"
+                   data-gb-empty-action-target="crm-new-btn"></tbody>
         </table>
     </div>
 
@@ -285,7 +312,16 @@
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load" aria-live="polite"></tbody>
+            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load" aria-live="polite"
+                   data-gb-states="table"
+                   data-gb-empty-icon="👤"
+                   data-gb-empty-title="crm-contacts-empty-title"
+                   data-gb-empty-title-fallback="No contacts yet"
+                   data-gb-empty-desc="crm-contacts-empty-desc"
+                   data-gb-empty-desc-fallback="People you talk to live here — name, e-mail, phone and the account they belong to."
+                   data-gb-empty-action="crm-contacts-empty-action"
+                   data-gb-empty-action-fallback="Add a contact"
+                   data-gb-empty-action-target="crm-new-btn"></tbody>
         </table>
         <div class="crm-bulk-bar" id="contacts-bulk-bar">
             <span class="crm-bulk-count" id="contacts-bulk-count" role="status" aria-live="polite" aria-atomic="true">0 selected</span>
@@ -304,7 +340,16 @@
             <input type="search" class="grid-search" data-grid="campaigns" data-i18n-placeholder="crm-filter-campaigns-placeholder">
             <span class="crm-bulk-result" id="campaign-result" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
-        <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML" role="status" aria-live="polite"></div>
+        <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML" role="status" aria-live="polite"
+             data-gb-states="cards"
+             data-gb-empty-icon="📣"
+             data-gb-empty-title="crm-campaigns-empty-title"
+             data-gb-empty-title-fallback="No campaigns yet"
+             data-gb-empty-desc="crm-campaigns-empty-desc"
+             data-gb-empty-desc-fallback="A campaign groups the outreach that brings leads into the pipeline."
+             data-gb-empty-action="crm-campaigns-empty-action"
+             data-gb-empty-action-fallback="Create a campaign"
+             data-gb-empty-action-target="campaign-new-btn"></div>
     </div>
 
     <!-- #2015 — Quotes & Orders. The former standalone "Sales" app only

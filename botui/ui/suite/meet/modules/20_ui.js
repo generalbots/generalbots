@@ -20,7 +20,7 @@
     function showFloatingReaction(emoji) {
         var el = document.createElement('div');
         el.textContent = emoji;
-        el.style.cssText = 'position:fixed;bottom:120px;font-size:2rem;pointer-events:none;z-index:999;transition:all 2s ease-out;opacity:1;';
+        el.style.cssText = 'position:fixed;bottom:120px;font-size:2rem;pointer-events:none;z-index:var(--z-dropdown);transition:all 2s ease-out;opacity:1;';
         el.style.left = (Math.random() * 60 + 20) + '%';
         document.body.appendChild(el);
 

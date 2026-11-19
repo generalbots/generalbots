@@ -24,7 +24,7 @@
   function ensureCss() {
     if (document.getElementById(CSS_ID)) return;
     var css = [
-      "#gb-share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100001;",
+      "#gb-share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:var(--z-blocker);",
       "display:none;align-items:center;justify-content:center;}",
       "#gb-share-overlay.gbs-open{display:flex;}",
       "#gb-share-dialog{width:440px;max-width:94vw;background:#0f172a;border:1px solid #334155;",
@@ -289,7 +289,7 @@
             try {
               navigator.clipboard.writeText(btn.getAttribute("data-copy"));
               btn.textContent = T("share-copied", "Copied");
-            } catch (_) {}
+            } catch (_) { window.gbLogError ? gbLogError(_, "refresh") : console.error("refresh", _); }
           });
         });
         list.querySelectorAll("[data-revoke]").forEach(function (btn) {

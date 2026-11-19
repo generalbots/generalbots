@@ -31,7 +31,7 @@
 }
 
 .status-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.2px;
     color: var(--text-muted, #666);
@@ -51,7 +51,7 @@
 }
 
 .status-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     color: var(--text-primary, #e0e0e0);
 }
@@ -60,7 +60,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .runtime-label,
@@ -105,7 +105,7 @@
 }
 
 .action-text {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-primary, #e0e0e0);
     flex: 1;
 }
@@ -114,7 +114,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin-left: auto;
 }
 
@@ -150,12 +150,12 @@
 }
 
 .decision-text {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-muted, #888);
 }
 
 .decision-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 10px;
     background: var(--bg-tertiary, #1a1a24);
     border-radius: 4px;
@@ -181,7 +181,7 @@
 }
 
 .progress-log-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.2px;
     color: var(--text-muted, #666);
@@ -254,13 +254,13 @@
 }
 
 .section-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary, #e0e0e0);
 }
 
 .section-details-link {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
     cursor: pointer;
     transition: color 0.2s;
@@ -272,7 +272,7 @@
 
 .section-step-badge {
     margin-left: auto;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 10px;
     background: var(--accent-yellow, #d4e94c);
     color: var(--bg-primary, #0a0a0f);
@@ -281,7 +281,7 @@
 }
 
 .section-status-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 10px;
     border-radius: 4px;
     font-weight: 500;
@@ -345,12 +345,12 @@
 }
 
 .child-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #aaa);
 }
 
 .child-details-link {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #555);
     cursor: pointer;
     transition: color 0.2s;
@@ -362,7 +362,7 @@
 
 .child-step-badge {
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 8px;
     background: var(--accent-yellow, #d4e94c);
     color: var(--bg-primary, #0a0a0f);
@@ -371,7 +371,7 @@
 }
 
 .child-status-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 8px;
     border-radius: 4px;
 }
@@ -398,7 +398,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 20px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .item-dot {
@@ -433,12 +433,12 @@
 }
 
 .item-duration {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
 }
 
 .item-check {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .item-check.completed {

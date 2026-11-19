@@ -112,7 +112,7 @@ async function captureScreenshot() {
             gallery.innerHTML = '<div class="screenshot-thumb">' +
                 gbt("browser-capture", "Capture") + '</div>' + gallery.innerHTML;
         }
-    } catch(e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "captureScreenshot") : console.error("captureScreenshot", e); }
 }
 
 async function exportTest() {

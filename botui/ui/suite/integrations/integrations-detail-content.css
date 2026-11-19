@@ -17,20 +17,20 @@
 
 .integrations-app .integrations-detail-section h4 {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-sm);
     letter-spacing: -.01em;
 }
 
 .integrations-app .integrations-detail-section-head span {
     color: var(--integrations-faint);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-guidance {
     margin: 0;
     padding-left: 18px;
     color: var(--integrations-muted);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-guidance li + li {
@@ -53,7 +53,7 @@
     justify-content: space-between;
     gap: 10px;
     color: var(--integrations-text);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -61,7 +61,7 @@
     display: inline-flex;
     gap: 5px;
     color: var(--integrations-faint);
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -84,7 +84,7 @@
 .integrations-app .integrations-field-help {
     margin: -2px 0 0;
     color: var(--integrations-faint);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-action-list {
@@ -112,7 +112,7 @@
 
 .integrations-app .integrations-action-title strong {
     display: block;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-action-verb {
@@ -120,7 +120,7 @@
     margin-bottom: 4px;
     color: var(--integrations-accent);
     font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 800;
     letter-spacing: .05em;
 }
@@ -128,13 +128,13 @@
 .integrations-app .integrations-action p {
     margin: 8px 0 0;
     color: var(--integrations-muted);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-action-details {
     margin-top: 10px;
     color: var(--integrations-muted);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-action-details summary {
@@ -162,7 +162,7 @@
     border-radius: var(--integrations-radius-sm);
     color: var(--integrations-accent);
     text-decoration: none;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 750;
 }
 
@@ -193,7 +193,7 @@
 .integrations-app .integrations-connect-help {
     margin: 0;
     color: var(--integrations-muted);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-connect-form .integrations-field input {
@@ -214,7 +214,7 @@
 .integrations-app .integrations-field-error {
     margin: 0;
     color: var(--integrations-error);
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -231,7 +231,7 @@
 .integrations-app .integrations-connect-success {
     margin: 0;
     color: var(--integrations-success);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -241,7 +241,7 @@
     border-radius: var(--integrations-radius-sm);
     color: var(--integrations-error);
     background: var(--integrations-error-bg);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -254,12 +254,12 @@
     display: block;
     margin-top: 3px;
     color: var(--integrations-faint);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-faint-text {
     color: var(--integrations-faint);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-expiry-warning {
@@ -282,7 +282,7 @@
 .integrations-app .integrations-test-action {
     min-height: 28px;
     padding: 3px 8px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-test-action:disabled {

@@ -101,7 +101,11 @@ function newSheet(arg) {
             if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
             if (window.SheetCore && window.SheetCore.refreshWidths) window.SheetCore.refreshWidths();
         }
-    });
+    })
+      .catch(function (fetchError) {
+        window.gbLogError ? gbLogError(fetchError, "newSheet")
+                            : console.error("newSheet", fetchError);
+      });
 }
 function loadSidebar(arg) {
     var ctx = _sheetCtx(arg);
@@ -155,7 +159,7 @@ function loadSheet(id, cell) {
         if (window.SheetDefaults) window.SheetDefaults.setActiveSheetInstance(ctx.inst);
     }
     window.__SHEET_INITIAL_ID = id;
-    try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) {}
+    try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) { window.gbLogError ? gbLogError(_, "loadSheet") : console.error("loadSheet", _); }
     document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0, windowId: ctx.winId }, bubbles: true }));
     var host = _q(ctx, '#sheet-content') || document.getElementById('sheet-content');
     if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';
@@ -370,7 +374,7 @@ function sheetNotify(message, isError) {
     var notif = document.createElement('div');
     notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:' +
         (isError ? '#ef4444' : '#10b981') +
-        ';color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        ';color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:var(--z-system);box-shadow:0 4px 12px rgba(0,0,0,0.3);';
     notif.textContent = message;
     document.body.appendChild(notif);
     setTimeout(function() { notif.remove(); }, isError ? 5000 : 2000);

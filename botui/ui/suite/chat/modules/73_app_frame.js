@@ -213,7 +213,7 @@
 
     function unloadFrame(host) {
         if (!host.frame) return;
-        try { host.frame.remove(); } catch (e) {}
+        try { host.frame.remove(); } catch (e) { window.gbLogError ? gbLogError(e, "unloadFrame") : console.error("unloadFrame", e); }
         host.frame = null;
         if (host.blobUrl) {
             URL.revokeObjectURL(host.blobUrl);

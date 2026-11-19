@@ -638,3 +638,15 @@ calendar-event-attendees-placeholder = 이메일1, 이메일2
 # semantic i18n key (#2542)
 db-sql-editor-placeholder = SELECT * FROM 테이블...
 db-sql-editor-aria-label = SQL 쿼리
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = 아직 작업이 없습니다
+tasks-state-empty-desc = 위에 해야 할 일을 적으면 어시스턴트가 작업으로 바꿔 줍니다.
+tasks-state-empty-action = 의도로 시작하기
+calendar-state-empty-calendars-title = 아직 캘린더가 없습니다
+calendar-state-empty-calendars-desc = 캘린더에는 일정이 들어 있습니다. 하나 만들어 일정을 잡으세요.
+calendar-state-empty-upcoming-title = 예정된 일정이 없습니다
+calendar-state-empty-upcoming-desc = 다음 일정이 여기에 표시되어 하루를 놓치지 않습니다.
+calendar-state-empty-upcoming-action = 일정 잡기

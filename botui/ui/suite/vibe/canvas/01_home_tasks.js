@@ -9,10 +9,10 @@ stepsContainer.style.display = "none";
 var emptyState = document.getElementById("vibeCanvasEmpty");
 if (emptyState) emptyState.style.display = "flex";
 nodeIdCounter = 0;
-try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) {}
-try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) {}
-try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) {}
-try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) {}
+try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) { window.gbLogError ? gbLogError(e, "vibeGoHome") : console.error("vibeGoHome", e); }
+try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) { window.gbLogError ? gbLogError(e, "vibeGoHome") : console.error("vibeGoHome", e); }
+try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) { window.gbLogError ? gbLogError(e, "vibeGoHome") : console.error("vibeGoHome", e); }
+try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) { window.gbLogError ? gbLogError(e, "vibeGoHome") : console.error("vibeGoHome", e); }
 }
 
 function addTaskNode(title, description, meta) {

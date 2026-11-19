@@ -164,7 +164,7 @@ function setCaretPosition(element, offset) {
 
 function docsMintDocId() {
   if (typeof crypto !== "undefined" && crypto && typeof crypto.randomUUID === "function") {
-    try { return crypto.randomUUID(); } catch (e) {}
+    try { return crypto.randomUUID(); } catch (e) { window.gbLogError ? gbLogError(e, "docsMintDocId") : console.error("docsMintDocId", e); }
   }
   return "doc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 }

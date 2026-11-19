@@ -75,8 +75,8 @@
     background: var(--color-bg-secondary, #111);
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 8px;
-    font-size: 14px;
-    z-index: 1100;
+    font-size: var(--text-sm);
+    z-index: var(--z-popover);
     animation: slideIn 0.3s ease;
 }
 

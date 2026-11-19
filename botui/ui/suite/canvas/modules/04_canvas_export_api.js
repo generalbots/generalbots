@@ -404,7 +404,7 @@
                 if (origSaveHistory) origSaveHistory();
                 if (applyingRemote) return;
                 if (window.GBCollab && window.GBCollab.connected) {
-                    try { window.GBCollab.sendEdit({ content: JSON.stringify(C.elements || []) }); } catch (e) {}
+                    try { window.GBCollab.sendEdit({ content: JSON.stringify(C.elements || []) }); } catch (e) { window.gbLogError ? gbLogError(e, "saveHistory") : console.error("saveHistory", e); }
                 }
             };
         }

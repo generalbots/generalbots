@@ -137,8 +137,18 @@
         </div>
 
         <!-- Products Grid -->
-        <div id="products-grid" class="products-grid" hx-get="/api/ui/products/items" hx-trigger="load" role="region" aria-live="polite" aria-busy="true" aria-label="Products catalog">
-            <!-- Products loaded via HTMX -->
+        <div id="products-grid" class="products-grid" hx-get="/api/ui/products/items" hx-trigger="load"
+             role="region" aria-live="polite" aria-busy="true" aria-label="Products catalog"
+             data-gb-states="cards"
+             data-gb-empty-icon="📦"
+             data-gb-empty-title="products-state-empty-title"
+             data-gb-empty-title-fallback="No products yet"
+             data-gb-empty-desc="products-state-empty-desc"
+             data-gb-empty-desc-fallback="Products you add to the catalog show up here, ready to be sold."
+             data-gb-empty-action="products-state-empty-action"
+             data-gb-empty-action-fallback="Add your first product"
+             data-gb-empty-action-target="products-new-btn">
+            <!-- Products loaded via HTMX; the loading/empty/error states come from gb-states.js -->
         </div>
     </div>
 
@@ -153,7 +163,7 @@
                     <option value="recurring" data-i18n="products-type-recurring">Recurring</option>
                 </select>
             </div>
-            <button class="btn-primary" hx-get="/suite/products/partials/service-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
+            <button class="btn-primary" id="products-new-service-btn" hx-get="/suite/products/partials/service-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -172,7 +182,16 @@
                     <th data-i18n="products-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="services-table-body" hx-get="/api/ui/products/services" hx-trigger="load" aria-live="polite" aria-busy="true">
+            <tbody id="services-table-body" hx-get="/api/ui/products/services" hx-trigger="load" aria-live="polite" aria-busy="true"
+                   data-gb-states="table"
+                   data-gb-empty-icon="🛠️"
+                   data-gb-empty-title="products-state-empty-services-title"
+                   data-gb-empty-title-fallback="No services yet"
+                   data-gb-empty-desc="products-state-empty-services-desc"
+                   data-gb-empty-desc-fallback="Services you offer appear here with their price and unit."
+                   data-gb-empty-action="products-state-empty-services-action"
+                   data-gb-empty-action-fallback="Add your first service"
+                   data-gb-empty-action-target="products-new-service-btn">
             </tbody>
         </table>
     </div>
@@ -189,7 +208,7 @@
                     <option value="GBP">GBP</option>
                 </select>
             </div>
-            <button class="btn-primary" hx-get="/suite/products/partials/pricelist-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
+            <button class="btn-primary" id="products-new-pricelist-btn" hx-get="/suite/products/partials/pricelist-form.html" hx-target="#products-modal-content" hx-on::after-request="openProductsModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -209,7 +228,16 @@
                     <th data-i18n="products-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="pricelists-table-body" hx-get="/api/ui/products/pricelists" hx-trigger="load" aria-live="polite" aria-busy="true">
+            <tbody id="pricelists-table-body" hx-get="/api/ui/products/pricelists" hx-trigger="load" aria-live="polite" aria-busy="true"
+                   data-gb-states="table"
+                   data-gb-empty-icon="💲"
+                   data-gb-empty-title="products-state-empty-pricelists-title"
+                   data-gb-empty-title-fallback="No price lists yet"
+                   data-gb-empty-desc="products-state-empty-pricelists-desc"
+                   data-gb-empty-desc-fallback="A price list groups products under one currency and validity window."
+                   data-gb-empty-action="products-state-empty-pricelists-action"
+                   data-gb-empty-action-fallback="Create a price list"
+                   data-gb-empty-action-target="products-new-pricelist-btn">
             </tbody>
         </table>
     </div>
@@ -223,7 +251,7 @@
     </div>
 </div>
 
-<div id="products-toast" class="products-toast" role="status" aria-live="polite" style="display:none;position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:12px 14px;border-radius:8px;color:#fff;background:#323232;box-shadow:0 4px 12px rgba(0,0,0,.2);font-size:14px;line-height:1.4"></div>
+<div id="products-toast" class="products-toast" role="status" aria-live="polite" style="display:none;position:fixed;right:16px;bottom:16px;z-index:var(--z-system);max-width:360px;padding:12px 14px;border-radius:8px;color:#fff;background:#323232;box-shadow:0 4px 12px rgba(0,0,0,.2);font-size:14px;line-height:1.4"></div>
 
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script>

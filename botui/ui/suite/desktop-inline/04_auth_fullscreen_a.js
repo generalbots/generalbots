@@ -20,7 +20,7 @@
                     }
                     try {
                         localStorage.setItem('gb-access-token', cloudToken);
-                    } catch (e) {}
+                    } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
                     window.history.replaceState({}, '', u.pathname + u.search);
                 }
             })();
@@ -162,20 +162,20 @@
                                 var isAuth = false;
                                 try {
                                     isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
-                                } catch (e) {}
+                                } catch (e) { window.gbLogError ? gbLogError(e, "launch") : console.error("launch", e); }
                                 if (!isAuth) {
                                     try {
                                         isAuth = !!(localStorage.getItem("gb-access-token") ||
                                             sessionStorage.getItem("gb-access-token") ||
                                             localStorage.getItem("management_token"));
-                                    } catch (e) {}
+                                    } catch (e) { window.gbLogError ? gbLogError(e, "launch") : console.error("launch", e); }
                                 }
                                 // Login redirects back with ?token=... before any
                                 // storage exists yet — that counts as authenticated.
                                 if (!isAuth) {
                                     try {
                                         isAuth = new URLSearchParams(window.location.search).has("token");
-                                    } catch (e) {}
+                                    } catch (e) { window.gbLogError ? gbLogError(e, "launch") : console.error("launch", e); }
                                 }
                                 const sidebar = document.getElementById('chatSidebar');
                                 if (sidebar && !isAuth) {
@@ -194,7 +194,7 @@
                                             sessionStorage.getItem("gb-access-token") ||
                                             localStorage.getItem("management_token")) ||
                                             new URLSearchParams(window.location.search).has("token");
-                                    } catch (e) {}
+                                    } catch (e) { window.gbLogError ? gbLogError(e, "launch") : console.error("launch", e); }
                                 }
                                 if (!isAuthPriv) {
                                     authDenied = true;
@@ -324,7 +324,7 @@
                     menu.style.left = Math.min(x, window.innerWidth - 190) + "px";
                     menu.style.top = Math.min(y, window.innerHeight - 150) + "px";
                     menu.innerHTML =
-                        '<div class="desktop-context-item" onclick="if(window.openDeepLink){window.openDeepLink(\'settings\',{});}else{var t=window.open(\'/suite/settings/index.html\',\'_blank\');if(t){try{t.opener=null;}catch(e){}setTimeout(function(){window.focus();},50);}}">' +
+                        '<div class="desktop-context-item" onclick="if(window.openDeepLink){window.openDeepLink(\'settings\',{});}else{var t=window.open(\'/suite/settings/index.html\',\'_blank\');if(t){try{t.opener=null;}catch (e) { window.gbLogError ? gbLogError(e, "openDesktopMenu") : console.error("openDesktopMenu", e); }setTimeout(function(){window.focus();},50);}}">' +
                         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' +
                         '<span>Settings</span></div>' +
                         '<div class="desktop-context-item" onclick="window.location.reload()">' +

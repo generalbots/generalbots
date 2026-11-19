@@ -21,7 +21,7 @@ button {
     border-radius: 6px;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -54,7 +54,7 @@ button {
     border-radius: 6px;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -76,7 +76,7 @@ button {
     border-radius: 6px;
     background: transparent;
     color: hsl(var(--foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -142,7 +142,7 @@ button {
     border-radius: 6px;
     background: hsl(var(--destructive));
     color: hsl(var(--destructive-foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -155,12 +155,12 @@ button {
 /* Button sizes */
 .btn-sm {
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .btn-lg {
     padding: 14px 28px;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .btn-full {
@@ -192,13 +192,13 @@ button {
 
 /* Labels */
 .form-label {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: hsl(var(--foreground));
 }
 
 .form-label-sm {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -222,7 +222,7 @@ input[type="datetime-local"] {
     border-radius: 6px;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
     transition: all 0.15s ease;
 }
@@ -271,7 +271,7 @@ textarea {
     border-radius: 6px;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
     resize: vertical;
     min-height: 80px;
@@ -296,7 +296,7 @@ select {
     border-radius: 6px;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -331,7 +331,7 @@ select:focus {
 }
 
 .checkbox span {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: hsl(var(--foreground));
 }
 
@@ -351,7 +351,7 @@ select:focus {
 }
 
 .radio span {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: hsl(var(--foreground));
 }
 

@@ -26,7 +26,7 @@
     var host = document.createElement("div");
     host.id = "gb-orchestrator-overlay";
     host.style.cssText =
-      "position:fixed;top:0;left:0;width:0;height:0;z-index:2147483000;" +
+      "position:fixed;top:0;left:0;width:0;height:0;z-index:var(--z-top);" +
       "pointer-events:none;";
     ghostCursor = document.createElement("div");
     ghostCursor.id = "gb-ghost-cursor";
@@ -68,7 +68,7 @@
       "position:fixed;left:" + (rect.left + rect.width / 2 - 20) + "px;" +
       "top:" + (rect.top + rect.height / 2 - 20) + "px;width:40px;height:40px;" +
       "border-radius:50%;border:3px solid rgba(34,197,94,.9);" +
-      "z-index:2147483001;pointer-events:none;animation:gb-pulse .5s ease-out;";
+      "z-index:var(--z-top);pointer-events:none;animation:gb-pulse .5s ease-out;";
     if (!document.getElementById("gb-pulse-style")) {
       var st = document.createElement("style");
       st.id = "gb-pulse-style";
@@ -258,7 +258,7 @@
           current: S.ACTIVE ? S.ACTIVE.completed : 1,
           total: S.ACTIVE ? S.ACTIVE.total : 1,
         });
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "reportStep") : console.error("reportStep", e); }
     }
   }
 
@@ -305,7 +305,7 @@
       var interval = setInterval(function () {
         elapsed += 100;
         var ok = false;
-        try { ok = predicate(); } catch (e) {}
+        try { ok = predicate(); } catch (e) { window.gbLogError ? gbLogError(e, "waitFor") : console.error("waitFor", e); }
         if (ok || elapsed >= timeoutMs) {
           clearInterval(interval);
           resolve(ok);

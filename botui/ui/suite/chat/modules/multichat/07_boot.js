@@ -110,7 +110,7 @@
       if (id === "tab-default") return;
       if (!keep.some(function (tab) { return tab.id === id; })) {
         var rec = MC.tabs[id];
-        if (rec && rec.ws) { try { rec.ws.close(); } catch (e) {} }
+        if (rec && rec.ws) { try { rec.ws.close(); } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); } }
         delete MC.tabs[id];
       }
     });
@@ -255,7 +255,7 @@
       if (!GBTabs.state.tabs.some(function (st) { return st.id === id; })) {
         var rec = MC.tabs[id];
         if (rec && rec.pane && rec.pane.parentElement) rec.pane.parentElement.removeChild(rec.pane);
-        if (rec && rec.ws && rec.ws.readyState < WebSocket.CLOSING) { try { rec.ws.close(); } catch (e) {} }
+        if (rec && rec.ws && rec.ws.readyState < WebSocket.CLOSING) { try { rec.ws.close(); } catch (e) { window.gbLogError ? gbLogError(e, "start") : console.error("start", e); } }
         delete MC.tabs[id];
         if (MC.activeId === id) MC.activeId = "tab-default";
       }
@@ -326,13 +326,13 @@
     try {
       var msgs = document.getElementById("messages");
       if (msgs) msgs.innerHTML = "";
-    } catch (err) {}
+    } catch (err) { window.gbLogError ? gbLogError(err, "routed") : console.error("routed", err); }
     try {
       defTab.sessionId = null;
       if (window.ChatState) ChatState.currentSessionId = null;
       GBTabs.state.activeTabId = "tab-default";
       GBTabs.renderStrip && GBTabs.renderStrip();
-    } catch (err) {}
+    } catch (err) { window.gbLogError ? gbLogError(err, "routed") : console.error("routed", err); }
   });
 
   MC.ensureStockSurface = ensureStockSurface;

@@ -190,7 +190,7 @@
 
     html += `<div class="start-menu-footer">
       <div class="start-menu-user"><div class="start-menu-avatar">U</div><div class="start-menu-user-name">${tr('start-menu-user', 'User')}</div></div>
-      <div class="start-menu-power" onclick="window.location.href=(window.GB_LOGIN_URL||'/login')">
+      <div class="start-menu-power" role="button" tabindex="0" title="Power" data-i18n-title="power-menu-title" aria-label="Power" data-i18n-aria-label="power-menu-title" onclick="window.PowerMenu && window.PowerMenu.open()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </div>
     </div>`;

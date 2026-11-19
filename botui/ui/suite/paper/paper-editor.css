@@ -51,7 +51,7 @@
         border-radius: 4px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 13px;
+        font-size: var(--text-xs);
         cursor: pointer;
     }
 
@@ -87,7 +87,7 @@
         border-radius: 6px;
         background: linear-gradient(135deg, var(--primary), var(--chart-2));
         color: white;
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
@@ -129,7 +129,7 @@
     }
 
     .paper-title {
-        font-size: 36px;
+        font-size: var(--text-4xl);
         font-weight: 700;
         margin-bottom: 24px;
         outline: none;
@@ -142,7 +142,7 @@
     }
 
     .editor-content {
-        font-size: 16px;
+        font-size: var(--text-md);
         line-height: 1.7;
         outline: none;
         min-height: 400px;
@@ -154,17 +154,17 @@
     }
 
     .editor-content h1 {
-        font-size: 32px;
+        font-size: var(--text-3xl);
         font-weight: 700;
         margin: 24px 0 16px;
     }
     .editor-content h2 {
-        font-size: 24px;
+        font-size: var(--text-2xl);
         font-weight: 600;
         margin: 20px 0 12px;
     }
     .editor-content h3 {
-        font-size: 20px;
+        font-size: var(--text-xl);
         font-weight: 600;
         margin: 16px 0 8px;
     }
@@ -191,7 +191,7 @@
         padding: 2px 6px;
         border-radius: 4px;
         font-family: monospace;
-        font-size: 14px;
+        font-size: var(--text-sm);
     }
     .editor-content pre {
         background: var(--muted);
@@ -239,7 +239,7 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        z-index: 100;
+        z-index: var(--z-sticky);
     }
 
     .slash-menu.hidden {
@@ -248,7 +248,7 @@
 
     .slash-menu-header {
         padding: 8px 12px;
-        font-size: 11px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         text-transform: uppercase;
         color: var(--muted-foreground);
@@ -308,7 +308,7 @@
         justify-content: center;
         border-radius: 4px;
         background: var(--muted);
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 600;
     }
 
@@ -318,12 +318,12 @@
     }
 
     .slash-label {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 500;
     }
 
     .slash-desc {
-        font-size: 12px;
+        font-size: var(--text-2xs);
         color: var(--muted-foreground);
     }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

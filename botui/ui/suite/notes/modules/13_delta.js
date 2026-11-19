@@ -30,11 +30,11 @@
         if (String(list[i].ts) === String(key)) { list[i]._deltaId = opId; changed = true; break; }
       }
       if (changed) localStorage.setItem("gb-sticky-notes", JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "tagCard") : console.error("tagCard", e); }
     try {
       var card = document.querySelector('#notesBoard .note-card[data-ts="' + String(key) + '"], .notes-list .note-card[data-ts="' + String(key) + '"]');
       if (card) card.setAttribute("data-delta-id", String(opId));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "tagCard") : console.error("tagCard", e); }
   }
 
   function apply(payload) {

@@ -1272,3 +1272,10 @@ calculator-swap-units = Inverser les unités
 calculator-aria-amount = Quantité
 calculator-aria-from-unit = Unité source
 calculator-aria-to-unit = Unité cible
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = Aucune note pour le moment
+notes-empty-desc = Les notes restent sur votre tableau jusqu'à leur suppression. Notez une idée avant de la perdre.
+notes-empty-action = Créer votre première note

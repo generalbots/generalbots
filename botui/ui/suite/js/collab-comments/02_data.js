@@ -194,7 +194,7 @@
     if (typeof state.notify === "function") { state.notify(msg, type); return; }
     // Minimal fallback toast.
     var t = document.createElement("div");
-    t.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:100001;padding:10px 16px;border-radius:8px;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.3);background:" + (type === "error" ? "#ef4444" : "#3b82f6");
+    t.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:var(--z-blocker);padding:10px 16px;border-radius:8px;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.3);background:" + (type === "error" ? "#ef4444" : "#3b82f6");
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, 4000);
@@ -286,7 +286,7 @@
     S.inputEl.value = newValue;
     var caret = at + name.length + 2; // after "@name "
     S.inputEl.focus();
-    try { S.inputEl.setSelectionRange(caret, caret); } catch (_) {}
+    try { S.inputEl.setSelectionRange(caret, caret); } catch (_) { window.gbLogError ? gbLogError(_, "applyMention") : console.error("applyMention", _); }
     hideMentions();
   }
 

@@ -350,3 +350,26 @@ products-placeholder-cost = 0.00
 billing-notes-placeholder = お客様への追加メモ...
 billing-invoice-notes-placeholder = 支払い手順または追加メモ...
 billing-remove-line-item = 明細行を削除
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = まだ製品がありません
+products-state-empty-desc = カタログに追加した製品がここに表示され、販売できる状態になります。
+products-state-empty-action = 最初の製品を追加
+products-state-empty-services-title = まだサービスがありません
+products-state-empty-services-desc = 提供するサービスが価格と単位とともにここに表示されます。
+products-state-empty-services-action = 最初のサービスを追加
+products-state-empty-pricelists-title = まだ価格表がありません
+products-state-empty-pricelists-desc = 価格表は製品を1つの通貨と有効期間にまとめます。
+products-state-empty-pricelists-action = 価格表を作成
+billing-payments-empty-title = まだ支払いが記録されていません
+billing-payments-empty-desc = 請求書に対して登録した支払いが、方法と日付とともにここに表示されます。
+billing-quotes-empty-title = まだ見積りがありません
+billing-quotes-empty-desc = 顧客に見積りを送ると、承諾されるまでここで追跡されます。
+billing-inventory-empty-title = まだ在庫品目がありません
+billing-inventory-empty-desc = 在庫品と手持数量は、登録するとここに表示されます。
+billing-gl-empty-title = まだ勘定科目がありません
+billing-gl-empty-desc = すべての仕訳には勘定科目が必要です。登録すると残高試算表と財務諸表を作成できます。
+billing-procurement-empty-title = まだ発注がありません
+billing-procurement-empty-desc = 仕入先への発注は、入荷するまでここで追跡されます。

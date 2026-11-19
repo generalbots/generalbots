@@ -35,7 +35,7 @@
 }
 
 .db-sel-count {
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--primary, #3b82f6);
 }
@@ -58,7 +58,7 @@
 }
 
 .db-page-info {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #8b98b5);
   min-width: 90px;
   text-align: center;
@@ -84,7 +84,7 @@
 
 .db-sql-header h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--text, #f1f5f9);
 }
@@ -97,7 +97,7 @@
   background: transparent;
   color: var(--text, #e2e8f0);
   font-family: "Fira Code", "JetBrains Mono", monospace;
-  font-size: 13px;
+  font-size: var(--text-xs);
   resize: vertical;
   outline: none;
   line-height: 1.5;
@@ -122,7 +122,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
 }
 
 .db-modal-overlay {
@@ -155,7 +155,7 @@
 
 .db-modal-header h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text, #f1f5f9);
 }
@@ -166,7 +166,7 @@
 
 .db-form-group label {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-secondary, #8b98b5);
   margin-bottom: 6px;
@@ -180,7 +180,7 @@
   border: 1px solid var(--border, #2a3550);
   background: var(--bg-secondary, #1e293b);
   color: var(--text, #f1f5f9);
-  font-size: 13px;
+  font-size: var(--text-xs);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -198,7 +198,7 @@
 }
 
 .db-default-hint {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-muted, #5b6780);
   text-transform: uppercase;
@@ -232,7 +232,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #8b98b5);
   white-space: nowrap;
   cursor: pointer;
@@ -258,7 +258,7 @@
 }
 
 .db-fields-count {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -297,7 +297,7 @@
   border-radius: 9px;
   background: color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
   color: var(--primary, #3b82f6);
-  font-size: 16px;
+  font-size: var(--text-md);
   flex-shrink: 0;
 }
 
@@ -310,7 +310,7 @@
 
 .db-field-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text, #f1f5f9);
   word-break: break-all;
 }
@@ -327,7 +327,7 @@
 }
 
 .db-field-type {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-muted, #5b6780);
   font-family: "Fira Code", monospace;
 }
@@ -369,7 +369,7 @@
   background: color-mix(in srgb, #ef4444 12%, transparent);
   color: #ef4444;
   border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
 }
 
 .db-success {
@@ -379,7 +379,7 @@
   background: color-mix(in srgb, #22c55e 12%, transparent);
   color: #22c55e;
   border: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────────────────────── */

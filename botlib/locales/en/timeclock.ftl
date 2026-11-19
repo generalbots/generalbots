@@ -22,3 +22,9 @@ timeclock-loading-panel = Loading dashboard…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = Employee UUID
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = No entries yet
+timeclock-state-empty-desc = Clock in and this dashboard shows your day, overtime and approvals.

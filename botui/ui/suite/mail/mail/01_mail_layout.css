@@ -102,7 +102,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -165,7 +165,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-secondary);
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -337,7 +337,7 @@
 .mail-label {
     padding: 0.125rem 0.375rem;
     border-radius: 4px;
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 

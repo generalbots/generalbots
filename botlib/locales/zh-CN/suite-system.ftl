@@ -358,3 +358,14 @@ monitoring-no-recent-incidents = 近期无事件
 
 # semantic i18n key (#2542)
 monitoring-system-stable = 系统一直保持稳定
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = 未安装插件
+plugins-state-empty-desc = 插件为这个机器人添加工具和渠道。上传清单即可安装。
+plugins-state-empty-action = 上传清单
+
+# #2328 — plugin upload error states
+plugins-upload-failed = 上传失败
+plugins-upload-bad-response = 上传响应无效

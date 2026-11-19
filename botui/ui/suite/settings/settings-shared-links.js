@@ -348,7 +348,7 @@
       var params = new URLSearchParams(window.location.search);
       var mode = (window.localStorage && window.localStorage.getItem("gb_peer_network_mode")) || "offline";
       select.value = mode === "p2p" ? "p2p" : "offline";
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "wireMasterSwitch") : console.error("wireMasterSwitch", e); }
     button.addEventListener("click", function () {
       var chosen = select.value === "p2p" ? "p2p" : "offline";
       // #1865 — one implementation for both switches: Settings → Network owns

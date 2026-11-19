@@ -132,17 +132,34 @@ async function uploadPlan(plan) {
         var item = plan.files[i];
         updateUploadProgress(progressEl, i, total, item.relPath);
         try {
-            var file = await entryToFile(item);
+            // #2510 — a phone photo is 4-12 MB; downscale it before the
+            // base64 round-trip that an upload over cellular cannot afford.
+            var file = await gbcPrepareUploadFile(await entryToFile(item));
             var content = await readFileAsBase64(file);
+            var targetPath = basePath ? basePath + "/" + item.relPath : item.relPath;
+            // #2510 — remember the bytes before the network call, so a tab that
+            // dies mid-upload leaves a recoverable record instead of nothing.
+            var queueId = bucket + ":" + targetPath;
+            await gbcQueueRemember({
+                id: queueId,
+                bucket: bucket,
+                path: targetPath,
+                name: file.name,
+                size: file.size,
+                content: content,
+                scope: currentScope,
+                at: Date.now(),
+            });
             await apiRequest("/write", {
                 method: "POST",
                 body: JSON.stringify({
                     bucket: bucket,
-                    path: basePath ? basePath + "/" + item.relPath : item.relPath,
+                    path: targetPath,
                     content: content,
                     scope: currentScope,
                 }),
             });
+            await gbcQueueForget(queueId);
             uploaded++;
         } catch (err) {
             failed.push(item.relPath + " (" + uploadFailureReason(err) + ")");

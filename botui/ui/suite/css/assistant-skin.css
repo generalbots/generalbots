@@ -388,3 +388,14 @@
         display: none !important;
     }
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  .window-body .btn-primary, .window-body .btn.preview, .window-body button[type="submit"].primary,
+  .window-body .btn-secondary, .window-body .btn, .window-body .btn-ghost, .window-body button.secondary,
+  .window-body .tab {
+    animation: none !important;
+    transition: none !important;
+  }
+}

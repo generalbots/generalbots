@@ -39,7 +39,7 @@
   gap: 10px;
   padding: 32px 20px;
   border-radius: var(--mnd-radius);
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text-secondary, #9aa0aa);
   text-align: center;
   min-height: 120px;
@@ -97,7 +97,7 @@
   border: 1px solid var(--mnd-err);
   border-radius: 8px;
   color: var(--mnd-err);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .gb-app :is(button, a, input, select, textarea, [tabindex]):focus-visible {

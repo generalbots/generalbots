@@ -50,7 +50,7 @@
     border-radius: 14px 14px 14px 5px;
     color: var(--integrations-accent);
     background: var(--integrations-accent-soft);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 800;
     letter-spacing: .04em;
 }
@@ -82,7 +82,7 @@
     border-radius: 999px;
     color: var(--integrations-muted);
     background: var(--integrations-soft);
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 750;
     letter-spacing: .035em;
     line-height: 1.2;
@@ -103,7 +103,7 @@
     display: block;
     margin: 0;
     overflow: hidden;
-    font-size: 17px;
+    font-size: var(--text-lg);
     font-weight: 680;
     letter-spacing: -.015em;
     text-overflow: ellipsis;
@@ -115,7 +115,7 @@
     margin: 6px 0 0;
     overflow: hidden;
     color: var(--integrations-muted);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
 }
@@ -138,7 +138,7 @@
 .integrations-app .integrations-card-fact-label {
     display: block;
     color: var(--integrations-faint);
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 750;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -149,7 +149,7 @@
     margin: 3px 0 0;
     overflow: hidden;
     color: var(--integrations-text);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 620;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -166,7 +166,7 @@
     align-items: center;
     gap: 7px;
     color: var(--integrations-muted);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -184,7 +184,7 @@
 
 .integrations-app .integrations-card-link {
     color: var(--integrations-accent);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 750;
 }
 
@@ -239,19 +239,19 @@
     border-radius: 50%;
     color: var(--integrations-accent);
     background: var(--integrations-accent-soft);
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 800;
 }
 
 .integrations-app .integrations-state h3 {
-    font-size: 17px;
+    font-size: var(--text-lg);
 }
 
 .integrations-app .integrations-state p {
     max-width: 460px;
     margin: 7px 0 18px;
     color: var(--integrations-muted);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .integrations-app .integrations-state.is-error {

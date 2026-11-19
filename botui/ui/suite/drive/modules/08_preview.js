@@ -159,7 +159,7 @@ function showDrivePdfPreview(body, blob) {
   frame.src = url;
   body.appendChild(frame);
   var bar = drivePreviewNoticeBar(["Embedded PDF viewing depends on the browser."], [
-    drivePreviewButton("Open in new tab", function () { var w = window.open(url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} } })
+    drivePreviewButton("Open in new tab", function () { var w = window.open(url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "drivePreviewButton") : console.error("drivePreviewButton", e); } } })
   ]);
   body.insertBefore(bar, frame);
 }

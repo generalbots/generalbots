@@ -16,8 +16,8 @@
 
   function fmt(value, format) {
     const numeric = n(value);
-    if (typeof window.gbFormatNumber === "function") return esc(window.gbFormatNumber(numeric, { maximumFractionDigits: 2 }));
-    return esc(numeric.toLocaleString(format || "en-US", { maximumFractionDigits: 2 }));
+    if (typeof window.gbFormatNumber === "function") return esc(window.gbFormatNumber(numeric, { maximumFractionDigits: 2 }, format));
+    return esc(String(numeric));
   }
 
   function open(width, height, alt) {

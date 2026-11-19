@@ -55,17 +55,17 @@
         closeAllMenus();
         try {
           orig.scrollIntoView({ block: "nearest", inline: "center" });
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); }
         if (tag === "button" || orig.getAttribute("role") === "button") {
           orig.click();
         } else if (tag === "select" || tag === "input" || tag === "label") {
           try {
             orig.focus();
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); }
           if (tag !== "select") {
             try {
               orig.click();
-            } catch (e) {}
+            } catch (e) { window.gbLogError ? gbLogError(e, "buildMenu") : console.error("buildMenu", e); }
           }
         } else {
           orig.click();

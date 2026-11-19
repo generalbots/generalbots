@@ -12,7 +12,7 @@ const gallery = require("./30_gallery");
 
 async function main(TESTS) {
   fs.mkdirSync(VIDEOS_DIR, { recursive: true });
-  try { for (const f of fs.readdirSync(VIDEOS_DIR)) { try { fs.unlinkSync(path.join(VIDEOS_DIR, f)); } catch(e){} } } catch(e) {}
+  try { for (const f of fs.readdirSync(VIDEOS_DIR)) { try { fs.unlinkSync(path.join(VIDEOS_DIR, f)); } catch (e) { window.gbLogError ? gbLogError(e, "main") : console.error("main", e); } } } catch (e) { window.gbLogError ? gbLogError(e, "main") : console.error("main", e); }
 
   const server = await startServer();
   const browser = await chromium.launch({ headless: true });
@@ -41,7 +41,7 @@ async function main(TESTS) {
     const unnamed = fs.readdirSync(VIDEOS_DIR).filter(f => f.endsWith(".webm") && !results.some(r => f === r.id + ".webm") && f !== tc.id + ".webm");
     if (unnamed.length) {
       unnamed.sort((a,b) => fs.statSync(path.join(VIDEOS_DIR,b)).mtimeMs - fs.statSync(path.join(VIDEOS_DIR,a)).mtimeMs);
-      try { fs.renameSync(path.join(VIDEOS_DIR, unnamed[0]), path.join(VIDEOS_DIR, tc.id + ".webm")); } catch(e){}
+      try { fs.renameSync(path.join(VIDEOS_DIR, unnamed[0]), path.join(VIDEOS_DIR, tc.id + ".webm")); } catch (e) { window.gbLogError ? gbLogError(e, "main") : console.error("main", e); }
     }
 
     gbLog.debug(`[${res.pass?"PASS":"FAIL"}] ${tc.id}: ${tc.title} (${(dur/1000).toFixed(1)}s)`);

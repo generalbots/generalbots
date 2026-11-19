@@ -186,3 +186,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = Kontakte suchen...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = Noch keine Verkaufschancen
+crm-opps-empty-desc = Eine Verkaufschance verfolgt einen möglichen Verkauf vom Erstkontakt bis zum Abschluss.
+crm-opps-empty-action = Verkaufschance erstellen
+crm-deals-empty-title = Noch keine Abschlüsse
+crm-deals-empty-desc = Abschlüsse aller Phasen erscheinen hier mit Betrag und Verantwortlichem.
+crm-deals-empty-action = Abschluss hinzufügen
+crm-accounts-empty-title = Noch keine Unternehmen
+crm-accounts-empty-desc = Ein Unternehmen ist eine Firma, an die Sie verkaufen. Kontakte und Abschlüsse sind dort gruppiert.
+crm-accounts-empty-action = Unternehmen hinzufügen
+crm-contacts-empty-title = Noch keine Kontakte
+crm-contacts-empty-desc = Personen, mit denen Sie sprechen, stehen hier: Name, E-Mail, Telefon und zugehöriges Unternehmen.
+crm-contacts-empty-action = Kontakt hinzufügen
+crm-campaigns-empty-title = Noch keine Kampagnen
+crm-campaigns-empty-desc = Eine Kampagne bündelt die Ansprache, die Interessenten in die Pipeline bringt.
+crm-campaigns-empty-action = Kampagne erstellen

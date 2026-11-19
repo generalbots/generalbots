@@ -228,6 +228,26 @@
     --z-tooltip: 1500;
     --z-overlay: 1600;
     --z-system: 2000;
+    /* Full-screen blockers: boot splash, screensaver, tour backdrop, a
+       fullscreened window. Nothing app-owned may escape these. */
+    --z-blocker: 3000;
+    /* Only content that has to beat a blocker: a tour step above the
+       tour backdrop, the command palette above a splash. */
+    --z-top: 4000;
+
+    /* Type Scale (#2322) — keep in sync with css/base/01_root.css.
+       rem-based so browser/OS text scaling moves the whole scale. */
+    --text-2xs: 0.75rem;
+    --text-xs: 0.8125rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 2rem;
+    --text-4xl: 2.5rem;
+    --text-5xl: 3rem;
+    --text-6xl: 4.5rem;
 }
 
 /* ============================================ */
@@ -349,7 +369,7 @@
 }
 
 html {
-    font-size: 16px;
+    font-size: var(--text-md);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

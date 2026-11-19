@@ -60,7 +60,7 @@ const ControlCenter = (() => {
         const root = document.documentElement;
         const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
         root.setAttribute("data-theme", next);
-        try { localStorage.setItem("gb-theme", next); } catch (e) {}
+        try { localStorage.setItem("gb-theme", next); } catch (e) { window.gbLogError ? gbLogError(e, "bind") : console.error("bind", e); }
         theme.textContent = next === "dark" ? "☀️ Light" : "🌙 Dark";
       });
     }
@@ -80,8 +80,12 @@ const ControlCenter = (() => {
     }
     const power = panel.querySelector("#ccPower");
     if (power) {
+      // #2444 — Power opens the power menu (lock/sign out/suspend/restart/shut
+      // down) instead of a bare sign-out redirect.
       power.addEventListener("click", () => {
-        window.location.href = window.GB_LOGIN_URL || "/login";
+        close();
+        if (window.PowerMenu) window.PowerMenu.open();
+        else window.location.href = window.GB_LOGIN_URL || "/login";
       });
     }
   }

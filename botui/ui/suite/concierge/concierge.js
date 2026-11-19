@@ -24,7 +24,7 @@
   function writeHistory(list) {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "writeHistory") : console.error("writeHistory", e); }
   }
 
   function run(goal) {

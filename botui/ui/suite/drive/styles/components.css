@@ -14,7 +14,7 @@
 }
 
 .file-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     text-align: center;
     overflow: hidden;
@@ -36,11 +36,11 @@
     border: 1px solid var(--border, #2a2a3a);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 .selection-count {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #ffffff);
 }
@@ -141,14 +141,14 @@
 }
 
 .empty-state h3 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text, #ffffff);
     margin-bottom: 8px;
 }
 
 .empty-state p {
-    font-size: 14px;
+    font-size: var(--text-sm);
     margin-bottom: 20px;
 }
 
@@ -158,7 +158,7 @@
     border-radius: 8px;
     background: var(--primary, #3b82f6);
     color: white;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
 }
 
@@ -181,7 +181,7 @@
     border-radius: 8px;
     background: var(--surface, #12121a);
     color: var(--text, #ffffff);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
 }
 
@@ -212,7 +212,7 @@
     background: transparent;
     color: var(--text-secondary, #6b6b80);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
     transition: all 0.15s;
 }
 
@@ -245,7 +245,7 @@
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s;
@@ -264,7 +264,7 @@
     color: var(--text-secondary, #6b6b80);
     border: 1px solid var(--border, #2a2a3a);
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -281,7 +281,7 @@
     gap: 4px;
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     margin-left: 8px;
     text-transform: uppercase;
@@ -316,7 +316,7 @@
     padding: 10px 16px;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
@@ -347,7 +347,7 @@
 }
 
 .file-card-meta {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b80);
     margin-top: 4px;
 }
@@ -367,7 +367,7 @@
 }
 
 .division-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted, #6b7280);
@@ -377,7 +377,7 @@
 
 .division-item {
     padding: 6px 28px !important;
-    font-size: 13px !important;
+    font-size: var(--text-xs); !important;
 }
 
 .division-item.active {

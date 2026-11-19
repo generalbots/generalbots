@@ -52,7 +52,7 @@
         box-shadow: var(--shadow-lg);
         padding: 0.5rem 0;
         min-width: 160px;
-        z-index: 1000;
+        z-index: var(--z-dropdown);
     }
 
     .context-menu.hidden {
@@ -91,7 +91,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: var(--z-dropdown);
     }
 
     .modal.hidden {

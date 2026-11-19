@@ -79,3 +79,13 @@ drive-drop-hint = Drop files or folders here to upload
 # semantic i18n key (#2542)
 drive-search-all-placeholder = Search all files…
 drive-search-all-aria-label = Search all files by name and content
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+drive-starred-empty-title = No starred files
+drive-starred-empty-desc = Star any file, or use its ⋮ menu, to keep it one click away.
+drive-shared-empty-title = No shared files
+drive-shared-empty-desc = Files shared with you appear here. Share one of yours to start a review.
+drive-list-error-title = This list could not be loaded
+drive-list-error-desc = Drive did not answer in time. Check your connection and try again.

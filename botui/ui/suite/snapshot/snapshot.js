@@ -61,7 +61,7 @@
         }
       } finally {
         if (mediaStream) {
-          try { mediaStream.getTracks().forEach(function (t) { t.stop(); }); } catch (_) {}
+          try { mediaStream.getTracks().forEach(function (t) { t.stop(); }); } catch (_) { window.gbLogError ? gbLogError(_, "onerror") : console.error("onerror", _); }
           mediaStream = null;
         }
       }

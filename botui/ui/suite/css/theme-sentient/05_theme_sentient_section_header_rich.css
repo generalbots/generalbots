@@ -258,13 +258,13 @@
 /* Section/Child name */
 [data-theme="sentient"] .tree-name {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text);
 }
 
 [data-theme="sentient"] .tree-level-1 .tree-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
 }
 
@@ -301,7 +301,7 @@
     background: var(--accent);
     color: var(--bg);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     margin-left: auto;
     margin-right: 12px;
@@ -316,7 +316,7 @@
 
 /* Status text */
 [data-theme="sentient"] .tree-status {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-tertiary);
     min-width: 70px;
     text-align: right;
@@ -360,7 +360,7 @@
 }
 
 [data-theme="sentient"] .tree-level-1 .tree-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
 }
 

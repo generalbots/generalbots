@@ -350,3 +350,26 @@ products-placeholder-cost = 0,00
 billing-notes-placeholder = Notes supplémentaires pour le client...
 billing-invoice-notes-placeholder = Instructions de paiement ou notes supplémentaires...
 billing-remove-line-item = Supprimer la ligne
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+products-state-empty-title = Aucun produit pour le moment
+products-state-empty-desc = Les produits ajoutés au catalogue apparaissent ici, prêts à être vendus.
+products-state-empty-action = Ajouter votre premier produit
+products-state-empty-services-title = Aucun service pour le moment
+products-state-empty-services-desc = Les services proposés apparaissent ici avec leur prix et leur unité.
+products-state-empty-services-action = Ajouter votre premier service
+products-state-empty-pricelists-title = Aucune liste de prix pour le moment
+products-state-empty-pricelists-desc = Une liste de prix regroupe des produits sous une devise et une période de validité.
+products-state-empty-pricelists-action = Créer une liste de prix
+billing-payments-empty-title = Aucun paiement enregistré
+billing-payments-empty-desc = Les paiements enregistrés sur une facture apparaissent ici avec leur moyen et leur date.
+billing-quotes-empty-title = Aucun devis pour le moment
+billing-quotes-empty-desc = Envoyez un devis à un client : il est suivi ici jusqu'à son acceptation.
+billing-inventory-empty-title = Aucun article en stock
+billing-inventory-empty-desc = Les articles en stock et leur quantité disponible apparaissent ici dès que vous les ajoutez.
+billing-gl-empty-title = Aucun compte comptable
+billing-gl-empty-desc = Chaque écriture a besoin d'un compte. Ajoutez-les pour produire la balance et les états.
+billing-procurement-empty-title = Aucun bon de commande
+billing-procurement-empty-desc = Les bons de commande passés auprès des fournisseurs sont suivis ici jusqu'à réception.

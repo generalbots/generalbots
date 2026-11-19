@@ -12,7 +12,7 @@ function showFeedback(msg,type){
     if(!el){
         el=document.createElement('div');
         el.id='la-feedback';
-        el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s';
+        el.style.cssText='position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:var(--z-system);transition:opacity .3s';
         el.setAttribute('aria-atomic','true');
         document.body.appendChild(el);
     }

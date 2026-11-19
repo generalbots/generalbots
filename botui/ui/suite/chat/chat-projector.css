@@ -19,7 +19,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.9);
-    z-index: 9999;
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -76,11 +76,11 @@
 }
 
 .projector-icon {
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .projector-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text, #e5e5e5);
     max-width: 400px;
@@ -206,7 +206,7 @@
     margin: 0;
     padding: 16px;
     font-family: "Fira Code", monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.6;
     color: var(--text, #e5e5e5);
 }
@@ -374,7 +374,7 @@
 }
 
 .time-display {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     min-width: 80px;
     text-align: center;
@@ -416,7 +416,7 @@
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
     border-radius: 6px;
     color: var(--text, #e5e5e5);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 
@@ -424,7 +424,7 @@
 .image-info,
 .code-info,
 .zoom-level {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
 }
 
@@ -435,7 +435,7 @@
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
     border-radius: 6px;
     color: var(--text, #e5e5e5);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     text-align: center;
 }
 

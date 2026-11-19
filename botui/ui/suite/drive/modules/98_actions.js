@@ -100,7 +100,7 @@ async function exportPaths(paths, folder, bucket) {
             localStorage.getItem("gb-access-token") ||
             sessionStorage.getItem("gb-access-token") ||
             "";
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "exportPaths") : console.error("exportPaths", e); }
     var res = await fetch(API_BASE + "/export", {
         method: "POST",
         headers: Object.assign(

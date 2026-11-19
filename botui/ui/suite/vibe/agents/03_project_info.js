@@ -206,7 +206,7 @@ function showProjectInfo(p) {
     var float = document.createElement("div");
     float.className = "vibe-dialog vibe-dialog-float vibe-dialog-host-project";
     float.style.cssText =
-        "position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--gb-surface,#1a1a2e);" +
+        "position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:var(--z-system);background:var(--gb-surface,#1a1a2e);" +
         "border:1px solid var(--gb-border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
     renderProjectInfoHost(float, target, function () { float.remove(); });
     document.body.appendChild(float);

@@ -30,13 +30,13 @@
 
 [data-theme="sentient"] .time-saved-badge .time-label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 [data-theme="sentient"] .time-saved-badge .time-value {
     color: var(--accent);
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* ============================================ */
@@ -60,7 +60,7 @@
 [data-theme="sentient"] .progress-percentage {
     color: var(--accent);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* ============================================ */
@@ -70,7 +70,7 @@
 [data-theme="sentient"] .badge {
     padding: 4px 10px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -113,7 +113,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 /* ============================================ */
@@ -133,7 +133,7 @@
 }
 
 [data-theme="sentient"] .intent-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text);
 }
@@ -143,7 +143,7 @@
     align-items: center;
     gap: 8px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 [data-theme="sentient"] .intent-status.active {
@@ -163,7 +163,7 @@
     padding: 6px 12px;
     background: var(--surface-hover);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
 }
 
@@ -174,7 +174,7 @@
     padding: 6px 12px;
     background: var(--accent-light);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
 }
 
@@ -211,14 +211,14 @@
     margin-bottom: 12px;
     color: var(--accent);
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 [data-theme="sentient"] .decision-title {
     color: var(--text);
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     margin-bottom: 16px;
 }
@@ -228,7 +228,7 @@
     border-radius: 8px;
     padding: 16px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1.6;
     margin-bottom: 16px;
 }
@@ -247,7 +247,7 @@
     padding: 10px 20px;
     border-radius: 6px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -268,7 +268,7 @@
     padding: 12px 24px;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
     text-transform: uppercase;
@@ -320,7 +320,7 @@
     margin-bottom: 16px;
     color: var(--text);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -374,7 +374,7 @@
 
 [data-theme="sentient"] .progress-log-detail {
     color: var(--text-tertiary);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 [data-theme="sentient"] .progress-log-step {
@@ -384,7 +384,7 @@
     background: var(--accent);
     color: #000000;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 

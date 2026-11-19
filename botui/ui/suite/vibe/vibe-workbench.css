@@ -32,7 +32,7 @@ padding: 8px 16px;
 border: 1px solid var(--border);
 border-radius: 20px;
 background: var(--bg);
-font-size: 12px;
+font-size: var(--text-2xs);
 cursor: pointer;
 color: var(--text-muted);
 transition: all 0.15s;
@@ -49,7 +49,7 @@ justify-content: space-between;
 
 .as-logo-section h2 {
 margin: 0;
-font-size: 15px;
+font-size: var(--text-md);
 color: var(--text);
 font-weight: 800;
 display: flex;
@@ -61,7 +61,7 @@ gap: 8px;
 display: flex;
 gap: 12px;
 color: var(--text-muted);
-font-size: 14px;
+font-size: var(--text-sm);
 }
 
 .as-logo-icons span {
@@ -101,7 +101,7 @@ position: relative;
 
 .vibe-canvas-header {
 padding: 16px 24px;
-font-size: 11px;
+font-size: var(--text-2xs);
 color: var(--text-muted);
 font-weight: 600;
 letter-spacing: 0.5px;
@@ -110,7 +110,7 @@ background: var(--surface);
 opacity: 0.95;
 backdrop-filter: blur(4px);
 position: relative;
-z-index: 101;
+z-index: var(--z-sticky);
 }
 
 .vibe-canvas-header-right {
@@ -148,7 +148,7 @@ cursor: pointer;
 }
 
 .vibe-zoom-label {
-font-size: 11px;
+font-size: var(--text-2xs);
 margin: 0 8px;
 color: var(--text);
 }
@@ -182,7 +182,7 @@ background: #fff;
 border-bottom: 1px solid #d8dee9;
 color: #334155;
 position: relative;
-z-index: 101;
+z-index: var(--z-sticky);
 }
 
 /* Drawing needs the entire workbench. Floating run/chat panels otherwise
@@ -278,13 +278,13 @@ marker-end: url(#vibeArrowhead);
 }
 
 .vibe-empty-icon {
-font-size: 56px;
+font-size: var(--text-5xl);
 animation: float 3s ease-in-out infinite;
 }
 
 .vibe-empty-title {
 margin: 0;
-font-size: 22px;
+font-size: var(--text-2xl);
 font-weight: 800;
 color: var(--text);
 font-family: "Fira Code", monospace;
@@ -292,7 +292,7 @@ font-family: "Fira Code", monospace;
 
 .vibe-empty-desc {
 margin: 0;
-font-size: 14px;
+font-size: var(--text-sm);
 color: var(--text-muted);
 max-width: 440px;
 line-height: 1.6;
@@ -319,7 +319,7 @@ flex-direction: column;
 overflow: hidden;
 border: 1px solid var(--border);
 color: var(--text);
-z-index: 100;
+z-index: var(--z-sticky);
 }
 
 .vibe-chat-header {
@@ -338,12 +338,12 @@ gap: 8px;
 }
 
 .vibe-chat-agent-name {
-font-size: 12px;
+font-size: var(--text-2xs);
 font-weight: 600;
 }
 
 .vibe-chat-status-badge {
-font-size: 10px;
+font-size: var(--text-2xs);
 color: var(--text-muted);
 background: var(--surface-hover);
 padding: 2px 6px;
@@ -355,7 +355,7 @@ padding: 16px;
 display: flex;
 flex-direction: column;
 gap: 12px;
-font-size: 12px;
+font-size: var(--text-2xs);
 line-height: 1.5;
 min-height: 220px;
 max-height: 350px;
@@ -369,7 +369,7 @@ background: rgba(132, 214, 105, 0.12);
 color: var(--accent);
 padding: 8px 14px;
 border-radius: 8px;
-font-size: 11px;
+font-size: var(--text-2xs);
 text-align: center;
 }
 
@@ -400,7 +400,7 @@ flex: 1;
 background: transparent;
 border: none;
 color: var(--text);
-font-size: 13px;
+font-size: var(--text-xs);
 outline: none;
 font-family: "Segoe UI", system-ui, sans-serif;
 }
@@ -415,7 +415,7 @@ display: flex;
 align-items: center;
 justify-content: center;
 cursor: pointer;
-font-size: 14px;
+font-size: var(--text-sm);
 font-weight: bold;
 border: none;
 }
@@ -439,9 +439,9 @@ right: 16px;
 background: none;
 border: none;
 color: white;
-font-size: 20px;
+font-size: var(--text-xl);
 cursor: pointer;
-z-index: 100;
+z-index: var(--z-sticky);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

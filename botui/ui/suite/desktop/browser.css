@@ -199,7 +199,7 @@
 }
 
 .vm-tabstrip-label {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -215,7 +215,7 @@
 
 .vm-tabstrip-hint {
     margin-left: auto;
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     color: #86a894;
     white-space: nowrap;
 }
@@ -230,7 +230,7 @@
     border-radius: 999px;
     background: #0f1f16;
     color: #d7f5e3;
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 
@@ -267,7 +267,7 @@
     border-radius: 999px;
     background: #16a34a;
     color: #fff;
-    font-size: 0.55rem;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -275,7 +275,7 @@
 }
 
 .vm-tab-shared {
-    font-size: 0.55rem;
+    font-size: var(--text-2xs);
     color: #14532d;
     background: #bbf7d0;
     border-radius: 999px;

@@ -22,7 +22,7 @@
   function writeInstalled(list) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "writeInstalled") : console.error("writeInstalled", e); }
   }
 
   function isInstalled(id) {
@@ -85,7 +85,7 @@
           if (window.GBToasts && window.GBToasts.show) window.GBToasts.show('Store', 'Failed to open app: ' + (err && err.message ? err.message : 'error'), 'error');
         });
     } else {
-      var w = window.open(app.url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} }
+      var w = window.open(app.url, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openApp") : console.error("openApp", e); } }
     }
   }
 

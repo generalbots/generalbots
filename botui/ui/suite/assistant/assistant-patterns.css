@@ -9,7 +9,7 @@
     mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
 }
 /* CSS patterns: strip mask and gradient; the dynamic <style> sets the actual background.
-   z-index:1 places the pattern above the paper band (::after, z-index:0) so the
+   z-index:1 places the pattern above the paper band (::after, z-index:var(--z-base)) so the
    pattern is visible across the full area at a subtle opacity. */
 .gb-pattern-css.gb-main::before {
     -webkit-mask: none !important; mask: none !important;
@@ -20,7 +20,7 @@
 .gb-suggestion-remove {
     display: inline-flex; align-items: center; justify-content: center;
     width: 16px; height: 16px; margin-left: 4px; margin-right: -4px;
-    border-radius: 50%; font-size: 14px; line-height: 1;
+    border-radius: 50%; font-size: var(--text-sm); line-height: 1;
     color: var(--id-gray-400); cursor: pointer;
     transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
 }
@@ -60,7 +60,7 @@
 
 /* == In-page confirmation dialog (replaces confirm/alert) == */
 .gb-inline-dialog {
-    position: fixed; inset: 0; z-index: 300;
+    position: fixed; inset: 0; z-index: var(--z-fixed);
     display: flex; align-items: center; justify-content: center;
 }
 .gb-inline-dialog-backdrop {

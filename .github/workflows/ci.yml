@@ -280,6 +280,27 @@ jobs:
           python3 scripts/check_empty_promise_catches.py --self-test
           python3 scripts/check_empty_promise_catches.py --check
 
+      # #2321 — the suite had 120 distinct z-index values from -10 to 2147483647,
+      # so "the modal above its window, the toast above the modal" held by luck.
+      # Every suite-wide layer must name a --z-* token from the one scale;
+      # integers 1-99 stay legal for sibling order inside a single component.
+      - name: Z-index scale guard (#2321)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_z_index_scale.py --self-test
+          python3 scripts/check_z_index_scale.py --check
+
+      # #2322 — the suite authored 2 821 px font-size literals (671 below 12px),
+      # so type neither scaled with the user's zoom nor kept a rhythm. Every
+      # suite font-size must name a rem-based --text-* token from the scale in
+      # css/base/01_root.css; compact density may drop below the floor only
+      # inside an explicit [data-density="compact"] block.
+      - name: Type scale guard (#2322)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_type_scale.py --self-test
+          python3 scripts/check_type_scale.py --check
+
       # #2310 — one corrupt localStorage key used to throw inside the desktop
       # boot chain and leave the user with no way to clear it. Every JSON read
       # must go through gbStoreGet(), which self-heals and logs the dropped key.

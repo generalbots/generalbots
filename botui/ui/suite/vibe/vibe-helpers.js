@@ -30,7 +30,7 @@ function vibeAccessToken() {
         // is never replaced by an older one still carried in the URL.
         try {
             localStorage.setItem("gb-access-token", fromUrl);
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "vibeAccessToken") : console.error("vibeAccessToken", e); }
     }
     return fromUrl;
 }

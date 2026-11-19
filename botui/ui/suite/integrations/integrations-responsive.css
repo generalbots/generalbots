@@ -117,7 +117,7 @@
     .integrations-app .integrations-connected-table td::before {
         color: var(--integrations-faint);
         content: attr(data-label);
-        font-size: 9px;
+        font-size: var(--text-2xs);
         font-weight: 750;
         letter-spacing: .07em;
         text-transform: uppercase;

@@ -39,7 +39,7 @@ function initUptimeTooltips() {
                 font-size: 0.75rem;
                 color: var(--text);
                 pointer-events: none;
-                z-index: 1000;
+                z-index: var(--z-dropdown);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             `;
             document.body.appendChild(tooltip);

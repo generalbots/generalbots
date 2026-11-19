@@ -5,6 +5,8 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::{Emitter, Window};
 
+use super::fs_scope;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileItem {
     pub name: String,
@@ -58,7 +60,10 @@ fn upload_percent(done: u64, total: u64) -> u64 {
 /// Returns an error if the path does not exist or cannot be read.
 #[tauri::command]
 pub fn list_files(path: &str) -> Result<Vec<FileItem>, String> {
-    let base_path = Path::new(path);
+    // #2497 — the webview may only enumerate inside a configured scope, and
+    // never the secret store.
+    let scoped = fs_scope::resolve(path)?;
+    let base_path = scoped.as_path();
     let mut files = Vec::new();
 
     if !base_path.exists() {
@@ -98,8 +103,10 @@ pub fn list_files(path: &str) -> Result<Vec<FileItem>, String> {
 /// Returns an error if the source file is invalid or the copy operation fails.
 #[tauri::command]
 pub fn upload_file(window: Window, src_path: &str, dest_path: &str) -> Result<(), String> {
-    let src = PathBuf::from(src_path);
-    let dest_dir = PathBuf::from(dest_path);
+    // #2497 — both ends are scoped: a script cannot copy a secret out of the
+    // stack, nor write into a system directory.
+    let src = fs_scope::resolve(src_path)?;
+    let dest_dir = fs_scope::resolve(dest_path)?;
     let dest = upload_destination(&src, &dest_dir)?;
 
     if !dest_dir.exists() {
@@ -140,13 +147,18 @@ pub fn upload_file(window: Window, src_path: &str, dest_path: &str) -> Result<()
 /// Returns an error if the folder already exists or cannot be created.
 #[tauri::command]
 pub fn create_folder(path: &str, name: &str) -> Result<(), String> {
-    let full_path = Path::new(path).join(name);
+    // #2497 — `name` is a single segment, never `../` and never a reserved
+    // secret file name; the parent must be inside a scope.
+    let parent = fs_scope::resolve(path)?;
+    let safe_name = fs_scope::validate_name(name)?;
+    let full_path = parent.join(safe_name);
 
     if full_path.exists() {
         return Err("Folder already exists".into());
     }
 
     fs::create_dir(&full_path).map_err(|e| e.to_string())?;
+    log::info!("drive IPC: created folder {}", full_path.display());
     Ok(())
 }
 
@@ -156,7 +168,14 @@ pub fn create_folder(path: &str, name: &str) -> Result<(), String> {
 /// Returns an error if the path does not exist or the item cannot be deleted.
 #[tauri::command]
 pub fn delete_path(path: &str) -> Result<(), String> {
-    let target = Path::new(path);
+    // #2497 — deleting is the dangerous half: only a scoped path, never a
+    // secret file, and never a scope root itself (that would wipe the stack
+    // in one call).
+    let scoped = fs_scope::resolve(path)?;
+    if fs_scope::scopes().iter().any(|root| root == &scoped) {
+        return Err("Refusing to delete a root folder".to_string());
+    }
+    let target = scoped.as_path();
 
     if !target.exists() {
         return Err("Path does not exist".into());
@@ -167,6 +186,7 @@ pub fn delete_path(path: &str) -> Result<(), String> {
     } else {
         fs::remove_file(target).map_err(|e| e.to_string())?;
     }
+    log::info!("drive IPC: deleted {}", target.display());
 
     Ok(())
 }

@@ -1272,3 +1272,10 @@ calculator-swap-units = 交换单位
 calculator-aria-amount = 数量
 calculator-aria-from-unit = 原单位
 calculator-aria-to-unit = 目标单位
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = 还没有便签
+notes-empty-desc = 便签会一直留在面板上，直到您删除。抓住一闪而过的想法。
+notes-empty-action = 创建第一个便签

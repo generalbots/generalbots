@@ -7,7 +7,7 @@
     height: calc(100vh - 56px);
     background: var(--surface);
     border-left: 1px solid var(--border);
-    z-index: 100;
+    z-index: var(--z-sticky);
     transition: right 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -26,7 +26,7 @@
 }
 
 .panel-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
@@ -43,7 +43,7 @@
     border: none;
     background: none;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
@@ -93,7 +93,7 @@
 }
 
 .modal-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
@@ -109,7 +109,7 @@
 }
 
 .warning-text {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
 }
 
@@ -129,7 +129,7 @@
 
 .form-group label {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     margin-bottom: 8px;
 }
@@ -146,7 +146,7 @@
     border-radius: 8px;
     background: var(--bg);
     color: var(--text);
-    font-size: 14px;
+    font-size: var(--text-sm);
     box-sizing: border-box;
 }
 
@@ -161,7 +161,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .checkbox-label input {
@@ -202,7 +202,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: opacity 0.2s;
@@ -218,7 +218,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
 }
@@ -233,7 +233,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
 }

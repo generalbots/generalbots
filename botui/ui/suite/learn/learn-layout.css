@@ -37,7 +37,7 @@
 }
 
 .sidebar-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
@@ -62,7 +62,7 @@
 }
 
 .stats-icon {
-    font-size: 20px;
+    font-size: var(--text-xl);
 }
 
 .stats-grid {
@@ -81,13 +81,13 @@
 }
 
 .stat-value {
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-weight: 700;
     color: var(--primary-color);
 }
 
 .stat-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     text-align: center;
 }
@@ -99,7 +99,7 @@
 }
 
 .sidebar-section h3 {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -122,7 +122,7 @@
     background: none;
     border: none;
     color: var(--primary-color);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     padding: 0;
 }
@@ -163,14 +163,14 @@
 }
 
 .category-icon {
-    font-size: 16px;
+    font-size: var(--text-md);
     width: 24px;
     text-align: center;
 }
 
 .category-count {
     margin-left: auto;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 2px 8px;
     background: var(--bg-tertiary);
     border-radius: 10px;
@@ -200,7 +200,7 @@
 .difficulty-badge {
     padding: 4px 10px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -236,7 +236,7 @@
 }
 
 .cert-preview-item .cert-icon {
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .cert-preview-item .cert-info {
@@ -245,7 +245,7 @@
 }
 
 .cert-preview-item .cert-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -253,7 +253,7 @@
 }
 
 .cert-preview-item .cert-date {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
@@ -264,13 +264,13 @@
 }
 
 .empty-state-small span {
-    font-size: 24px;
+    font-size: var(--text-2xl);
     display: block;
     margin-bottom: 8px;
 }
 
 .empty-state-small p {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     margin: 0;
 }
 
@@ -320,7 +320,7 @@
     border-radius: 8px;
     cursor: pointer;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     transition: all 0.2s ease;
 }
 
@@ -337,7 +337,7 @@
 .tab .badge {
     padding: 2px 6px;
     border-radius: 8px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     background: rgba(255, 255, 255, 0.2);
 }
@@ -372,7 +372,7 @@
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-primary);
     outline: none;
 }
@@ -387,7 +387,7 @@
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-primary);
     cursor: pointer;
     outline: none;
@@ -406,7 +406,7 @@
 }
 
 .alert-icon {
-    font-size: 32px;
+    font-size: var(--text-3xl);
 }
 
 .alert-content {
@@ -421,7 +421,7 @@
 
 .alert-content p {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: #78350f;
 }
 
@@ -431,7 +431,7 @@
     color: white;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s ease;

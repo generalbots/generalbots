@@ -44,7 +44,7 @@
     }
 
     .sidebar-header h2 {
-        font-size: 18px;
+        font-size: var(--text-lg);
         font-weight: 600;
         margin: 0;
     }
@@ -61,7 +61,7 @@
         border-radius: 6px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 14px;
+        font-size: var(--text-sm);
     }
 
     .sidebar-search input:focus {
@@ -89,7 +89,7 @@
     }
 
     .sidebar-section h3 {
-        font-size: 12px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         text-transform: uppercase;
         color: var(--muted-foreground);
@@ -112,7 +112,7 @@
         border-radius: 8px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 12px;
+        font-size: var(--text-2xs);
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -123,6 +123,6 @@
     }
 
     .template-icon {
-        font-size: 20px;
+        font-size: var(--text-xl);
     }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

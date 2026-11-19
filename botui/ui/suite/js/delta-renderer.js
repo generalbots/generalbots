@@ -49,7 +49,7 @@
     var d = (e && e.detail) || {};
     var params = d.params || {};
     if (!params.delta) return;
-    try { apply(typeof params.delta === "string" ? JSON.parse(params.delta) : params.delta); } catch (_) {}
+    try { apply(typeof params.delta === "string" ? JSON.parse(params.delta) : params.delta); } catch (_) { window.gbLogError ? gbLogError(_, "apply") : console.error("apply", _); }
   });
   document.addEventListener("gb-doc-delta", function (e) {
     apply((e && e.detail) || {});

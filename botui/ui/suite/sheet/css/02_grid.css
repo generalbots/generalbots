@@ -40,7 +40,7 @@
     background: var(--sentient-bg-secondary, #f5f5f5);
     border: 1px solid var(--sentient-border, #e0e0e0);
     border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     font-family: monospace;
     text-align: center;
@@ -51,7 +51,7 @@
     color: var(--sentient-text-muted, #999);
     font-style: italic;
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .formula-input {
@@ -59,7 +59,7 @@
     padding: 6px 10px;
     border: 1px solid var(--sentient-border, #e0e0e0);
     border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-family: monospace;
     background: var(--sentient-bg-primary, #ffffff);
     color: var(--sentient-text-primary, #212121);
@@ -189,7 +189,7 @@
     border-radius: 4px;
     cursor: pointer;
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1;
     transition: background 0.15s ease;
 }
@@ -208,7 +208,7 @@
     border: 1px solid var(--sheet-tab-border, var(--sheet-border, #334155));
     border-radius: 4px 4px 0 0;
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.15s ease;
@@ -232,7 +232,7 @@
     border: none;
     color: #64748b;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1;
     padding: 0 2px;
     border-radius: 3px;

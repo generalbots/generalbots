@@ -196,3 +196,20 @@ mail-placeholder-imap-server = imap.example.com
 mail-placeholder-smtp-server = smtp.example.com
 mail-placeholder-username-or-email = ユーザー名またはメールアドレス
 mail-placeholder-password = ••••••••
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+mail-state-empty-title = このフォルダは空です
+mail-state-empty-desc = 新しいメッセージはここに届きます。会話を始めたいときは自分で書くこともできます。
+mail-state-empty-action = メッセージを書く
+mail-state-loading = メールを読み込み中…
+mail-templates-empty-title = まだテンプレートがありません
+mail-templates-empty-desc = テンプレートはよく送る件名と本文を保存し、入力し直す手間をなくします。
+mail-templates-empty-action = テンプレートを作成
+mail-signatures-empty-title = まだ署名がありません
+mail-signatures-empty-desc = 署名は送信するメッセージに付きます。名前、役職、連絡先を一度だけ登録してください。
+mail-signatures-empty-action = 署名を作成
+mail-rules-empty-title = まだルールがありません
+mail-rules-empty-desc = ルールは受信メールを自動で整理・スター付け・削除します。たとえば特定の差出人すべてです。
+mail-rules-empty-action = ルールを作成

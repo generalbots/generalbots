@@ -312,8 +312,17 @@
                 class="tickets-list-body"
                 hx-get="/api/ui/tickets"
                 hx-trigger="load"
+                data-gb-states="cards"
+                data-gb-empty-icon="🎫"
+                data-gb-empty-title="tickets-state-empty-title"
+                data-gb-empty-title-fallback="No tickets yet"
+                data-gb-empty-desc="tickets-state-empty-desc"
+                data-gb-empty-desc-fallback="Tickets arrive from chat, e-mail and the web form. Open one yourself to try the flow."
+                data-gb-empty-action="tickets-state-empty-action"
+                data-gb-empty-action-fallback="Open a ticket"
+                data-gb-empty-action-target="tickets-new-btn"
             >
-                <!-- Tickets loaded via HTMX -->
+                <!-- Tickets loaded via HTMX; states come from gb-states.js -->
             </div>
         </div>
 

@@ -9,7 +9,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -55,7 +55,7 @@
         position: fixed;
         left: -260px;
         top: 56px;
-        z-index: 100;
+        z-index: var(--z-sticky);
         transition: left 0.3s;
     }
 

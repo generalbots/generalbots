@@ -1,6 +1,6 @@
 
 .vibe-list-item .meta {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
 }
 
@@ -13,7 +13,7 @@
 .vibe-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-table th {
@@ -47,11 +47,11 @@
     padding: 40px;
     text-align: center;
     color: var(--text-muted, #666);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-status {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     padding: 3px 8px;
     border-radius: 10px;
     font-weight: 600;
@@ -117,7 +117,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1.6;
     padding: 12px;
 }
@@ -172,7 +172,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
     border-top: 1px solid var(--border, #333);
     background: var(--surface, #14142a);
@@ -185,7 +185,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     border-radius: 5px;
     cursor: pointer;
     color: var(--text, #ddd);
@@ -203,7 +203,7 @@
 .vibe-code-file .vibe-arrow {
     display: inline-block;
     width: 14px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
     flex-shrink: 0;
 }
@@ -235,7 +235,7 @@
     border: none;
     border-radius: 0;
     resize: none;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.6;
     background: #0d1117;
     padding: 14px;

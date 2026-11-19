@@ -241,7 +241,7 @@
     var host = document.getElementById("docs-modal-container");
     if (!host) return;
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
       '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;">',
       '<h3 style="margin:0;font-size:16px;">Insert equation</h3>',
       '<label style="font-size:12px;color:#94a3b8;">LaTeX (subset: \\frac, \\sqrt, ^ _, Greek &amp; symbols)<input id="eq-tex" type="text" placeholder="\\frac{a}{b} + x^2" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;margin-top:4px;font-family:monospace;"/></label>',

@@ -63,7 +63,7 @@
     for (const sheet of document.styleSheets) {
       try {
         for (const rule of sheet.cssRules) css += rule.cssText + "\n";
-      } catch (_) {}
+      } catch (_) { window.gbLogError ? gbLogError(_, "collectStyles") : console.error("collectStyles", _); }
     }
     return css;
   }

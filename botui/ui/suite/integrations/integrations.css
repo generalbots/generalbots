@@ -74,7 +74,7 @@
 .integrations-app .integrations-eyebrow {
     margin: 0 0 7px;
     color: var(--integrations-accent);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 750;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -98,7 +98,7 @@
     max-width: 650px;
     margin: 12px 0 0;
     color: var(--integrations-muted);
-    font-size: 15px;
+    font-size: var(--text-md);
 }
 
 .integrations-app .integrations-header-actions {
@@ -114,7 +114,7 @@
     gap: 8px;
     min-height: 40px;
     color: var(--integrations-muted);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     white-space: nowrap;
 }
 
@@ -180,7 +180,7 @@
     color: var(--integrations-muted);
     background: transparent;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 650;
 }
 

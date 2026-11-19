@@ -10,7 +10,7 @@
     gap: 8px;
 }
 
-.surface-head h3 { margin: 0; font-size: 15px; }
+.surface-head h3 { margin: 0; font-size: var(--text-md); }
 .surface-body { display: flex; flex-direction: column; gap: 10px; }
 .surface-text { margin: 0; white-space: pre-wrap; }
 .surface-muted { color: var(--gb-text-muted, #57606a); }
@@ -27,7 +27,7 @@
 .surface-callout.tone-error { border-color: #cf222e; background: #fff0f0; }
 
 .surface-table-wrap { overflow-x: auto; }
-.surface-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.surface-table { border-collapse: collapse; width: 100%; font-size: var(--text-xs); }
 .surface-table caption { text-align: left; font-weight: 600; padding-bottom: 4px; }
 .surface-table th,
 .surface-table td {
@@ -48,15 +48,15 @@
     border-radius: 8px;
     padding: 8px 10px;
 }
-.surface-metric-label { font-size: 12px; color: var(--gb-text-muted, #57606a); }
-.surface-metric-value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.surface-metric-delta { font-size: 12px; margin-top: 2px; }
+.surface-metric-label { font-size: var(--text-2xs); color: var(--gb-text-muted, #57606a); }
+.surface-metric-value { font-size: var(--text-xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+.surface-metric-delta { font-size: var(--text-2xs); margin-top: 2px; }
 .surface-metric-delta[data-trend="up"] { color: #1a7f37; }
 .surface-metric-delta[data-trend="down"] { color: #cf222e; }
 
 .surface-form { display: flex; flex-direction: column; gap: 8px; }
 .surface-field { display: flex; flex-direction: column; gap: 3px; }
-.surface-field label { font-weight: 600; font-size: 13px; }
+.surface-field label { font-weight: 600; font-size: var(--text-xs); }
 .surface-field input,
 .surface-field select,
 .surface-field textarea {
@@ -68,7 +68,7 @@
 .surface-field input[aria-invalid="true"],
 .surface-field select[aria-invalid="true"] { border-color: #cf222e; outline-color: #cf222e; }
 .surface-required { color: #cf222e; }
-.surface-help { color: var(--gb-text-muted, #57606a); font-size: 12px; }
+.surface-help { color: var(--gb-text-muted, #57606a); font-size: var(--text-2xs); }
 .surface-form-error { color: #cf222e; margin: 0; }
 
 .surface-submit {
@@ -94,7 +94,7 @@
     border-radius: 4px;
     padding: 1px 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 .surface-plan-controls button:disabled { opacity: 0.4; cursor: default; }
 
@@ -104,7 +104,7 @@
     border-radius: 6px;
     padding: 8px;
     overflow: auto;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.45;
     margin: 0;
 }

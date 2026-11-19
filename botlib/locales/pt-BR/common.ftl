@@ -361,3 +361,13 @@ deploy-custom-domain-placeholder = app.exemplo.com
 action-print = Imprimir
 action-history = Histórico
 action-previous = Anterior
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = Carregando…
+gb-state-empty-title = Ainda não há nada aqui
+gb-state-empty-desc = Ainda não há nada para mostrar aqui.
+gb-state-error-title = Não foi possível carregar este conteúdo
+gb-state-error-desc = A requisição falhou. Verifique sua conexão e tente novamente.
+gb-state-retry = Tentar novamente

@@ -16,13 +16,13 @@
 
 .gb-chat-empty-title {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--gb-text, #0f172a);
 }
 
 .gb-chat-empty-hint {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }

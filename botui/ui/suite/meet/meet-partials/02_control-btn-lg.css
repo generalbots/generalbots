@@ -23,7 +23,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 200;
+    z-index: var(--z-header);
     border: none;
     padding: 0;
     max-width: 100%;
@@ -191,7 +191,7 @@
     background: var(--surface);
     border-radius: 9999px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 150;
+    z-index: var(--z-sticky);
 }
 
 .reactions-popup.hidden {
@@ -259,7 +259,7 @@
     border-radius: 9999px;
     background: rgba(239, 68, 68, 0.18);
     color: #f87171;
-    font-size: 0.72rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 
@@ -362,7 +362,7 @@
 }
 
 .recording-item-meta {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #94a3b8);
 }
 

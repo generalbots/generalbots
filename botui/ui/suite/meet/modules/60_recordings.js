@@ -193,7 +193,7 @@
         var url = '/api/meet/recordings/' + encodeURIComponent(String(recordingId)) + '/file';
         var win = window.open('', '_blank');
         if (!win) return;
-        try { win.opener = null; } catch (e) {}
+        try { win.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "playRecording") : console.error("playRecording", e); }
         // Build the player with DOM APIs: the URL never becomes markup (#2340).
         win.document.title = 'Recording';
         var video = win.document.createElement('video');

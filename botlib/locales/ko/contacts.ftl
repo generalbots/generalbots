@@ -384,3 +384,9 @@ people-search-empty-hint = 검색을 실행하면 결과가 표시됩니다.
 people-search-name-placeholder = 예: 마리아
 people-search-email-placeholder = maria@example.com
 people-search-tags-placeholder = vip, 파트너, 리드
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+people-load-error-title = 연락처를 불러오지 못했습니다
+people-load-error-desc = 연락처 서비스가 응답하지 않았습니다. 연결을 확인한 후 다시 시도하세요.

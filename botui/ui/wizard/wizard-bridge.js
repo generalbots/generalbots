@@ -72,7 +72,7 @@
       };
     },
     saveDraft: function (draft) {
-      try { localStorage.setItem(mock.draftKey, JSON.stringify(draft)); } catch (e) {}
+      try { localStorage.setItem(mock.draftKey, JSON.stringify(draft)); } catch (e) { window.gbLogError ? gbLogError(e, "wizard-bridge") : console.error("wizard-bridge", e); }
       return Promise.resolve();
     },
     loadDraft: function () {

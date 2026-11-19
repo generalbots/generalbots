@@ -57,7 +57,7 @@
     padding: 8px 6px;
     margin: 0 0 0 4px;
     max-width: 150px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--gb-muted);
     cursor: pointer;
 }
@@ -76,7 +76,7 @@
     background: transparent !important;
     box-shadow: none !important;
     color: var(--gb-text) !important;
-    font-size: 14.5px;
+    font-size: var(--text-md);
     line-height: 1.45;
     resize: none;
 }
@@ -92,7 +92,7 @@
     border-radius: 50%;
     background: var(--gb-accent);
     color: var(--surface, #fff);
-    font-size: 16px;
+    font-size: var(--text-md);
     display: grid;
     place-items: center;
     cursor: pointer;
@@ -128,7 +128,7 @@
     border: 1px solid var(--gb-border);
     background: var(--gb-surface);
     color: var(--text, #52525b);
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     line-height: 1.2;
     box-shadow: none;
     transition: border-color 120ms ease, color 120ms ease, transform 120ms ease;
@@ -170,7 +170,7 @@
 #chat-app .gb-tab {
     padding: 5px 10px;
     border-radius: 8px;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     color: var(--gb-muted);
     border: 1px solid transparent;
 }
@@ -206,7 +206,7 @@
     border: 1px solid var(--gb-border);
     background: var(--gb-surface);
     color: var(--gb-muted);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 
@@ -222,7 +222,7 @@
     border: 1px solid transparent;
     background: transparent;
     color: var(--gb-muted);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 700;
     cursor: pointer;
 }
@@ -233,14 +233,14 @@
 }
 
 #chat-app .gb-tab-overflow-count {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     opacity: 0.75;
 }
 
 .gb-tab-overflow-menu {
     position: fixed;
-    z-index: 10050;
+    z-index: var(--z-system);
     min-width: 220px;
     max-width: min(320px, 80vw);
     max-height: min(360px, 60vh);
@@ -262,7 +262,7 @@
     border-radius: 8px;
     background: transparent;
     color: var(--gb-text, var(--text, #18181b));
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     text-align: left;
     cursor: pointer;
 }
@@ -289,7 +289,7 @@
 
 .gb-tab-overflow-glyph {
     flex: 0 0 auto;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .gb-tab-overflow-title {

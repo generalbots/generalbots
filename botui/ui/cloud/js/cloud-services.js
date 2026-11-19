@@ -45,7 +45,7 @@ async function loadServices(token) {
       const orgs = orgData.organizations || [];
       if (orgs.length) currentPlan = orgs[0].plan || 'free';
     }
-  } catch (_) {}
+  } catch (_) { window.gbLogError ? gbLogError(_, "loadServices") : console.error("loadServices", _); }
   renderPlanSummary();
 
   try {
@@ -147,17 +147,17 @@ function renderFilteredServices() {
 }
 
 async function cancelService(id) {
-  if (!confirm(gbT('cloud-services-cancel-confirm', 'Are you sure you want to cancel this service?'))) return;
+  if (!(await gbConfirm(gbT('cloud-services-cancel-confirm', 'Are you sure you want to cancel this service?')))) return;
   const token = requireAuth();
   try {
     const res = await cloudFetch(`${API_BASE}/services/${id}/cancel`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert(gbT('cloud-services-cancel-failed', 'Cancel failed')); return; }
+    if (!res.ok) { await gbAlert(gbT('cloud-services-cancel-failed', 'Cancel failed')); return; }
     await loadServices(token);
   } catch (err) {
-    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
+    await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

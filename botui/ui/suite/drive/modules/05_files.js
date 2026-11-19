@@ -180,7 +180,7 @@ function showUploadProgress(total) {
     el.setAttribute("role", "status");
     el.setAttribute("aria-live", "off");
     el.setAttribute("aria-atomic", "true");
-    el.style.cssText = "position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);";
+    el.style.cssText = "position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:var(--z-system);box-shadow:0 8px 24px rgba(0,0,0,0.4);";
     el.innerHTML = '<div style="color:#f8fafc;font-size:13px;margin-bottom:8px;" id="gb-upload-label">Preparing upload...</div>'
         + '<div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:100%;background:#3b82f6;border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
         + '<div style="color:#64748b;font-size:11px;margin-top:6px;" id="gb-upload-detail">0 / ' + total + '</div>';

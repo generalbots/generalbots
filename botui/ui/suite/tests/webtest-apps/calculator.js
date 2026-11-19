@@ -13,8 +13,8 @@ h.test("CALCULATOR: mounts after load (readyState complete)", function () {
   var doc = h.makeDocument({ readyState: "complete", ids: ids });
   var sandbox = { window: {}, document: doc, console: { warn: function () {}, error: function () {}, log: function () {} }, localStorage:{getItem:function(){return null;},setItem:function(){}}, JSON:JSON, Math:Math };
   sandbox.window = sandbox;
-  try { h.loadScript("js/calculator-engine.js", sandbox); } catch(e) {}
-  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ h.loadScript(p,sandbox);}catch(e){} });
+  try { h.loadScript("js/calculator-engine.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
+  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ h.loadScript(p,sandbox);}catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); } });
   h.assert(doc.getElementById("gb-calc-root"), "calculator root marker present");
 });
 
@@ -23,15 +23,15 @@ h.test("CALCULATOR: one listener per control (Copy)", function () {
   var doc = h.makeDocument({ readyState: "complete", ids: ids });
   var sandbox = { window: {}, document: doc, console: { warn: function () {}, error: function () {}, log: function () {} }, localStorage:{getItem:function(){return null;},setItem:function(){}}, JSON:JSON, Math:Math, navigator:{clipboard:{writeText:function(){return Promise.resolve();}}} };
   sandbox.window = sandbox;
-  try { h.loadScript("js/calculator-engine.js", sandbox); } catch(e) {}
-  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ h.loadScript(p,sandbox);}catch(e){} });
+  try { h.loadScript("js/calculator-engine.js", sandbox); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); }
+  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ h.loadScript(p,sandbox);}catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); } });
   var clicks = h.countListeners(doc.getElementById("gb-calc-copy"), "click");
   h.assert(clicks <= 1, "expected <=1 click listener on gb-calc-copy, got " + clicks);
 });
 
 h.test("CALCULATOR: hostile input as text", function () {
   var src = "";
-  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ src += "\n"+h.readFile(p);}catch(e){} });
+  ["calculator/modules/01_state.js","calculator/modules/02_render.js","calculator/modules/03_events.js","calculator/modules/99_init.js"].forEach(function(p){ try{ src += "\n"+h.readFile(p);}catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); } });
   h.assert(src.indexOf("textContent") !== -1 || src.indexOf(".value") !== -1 || src.indexOf("innerText") !== -1,
     "calculator should render values as text");
 });

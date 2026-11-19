@@ -195,3 +195,11 @@ analytics-category-feature-request = 기능 요청
 
 # semantic i18n key (#2542)
 analytics-category-general-inquiry = 일반 문의
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+analytics-state-empty-activity-title = 아직 기록된 활동이 없습니다
+analytics-state-empty-activity-desc = 대화, 도구 호출, 로그인이 발생하는 대로 여기에 표시됩니다.
+analytics-state-empty-queries-title = 아직 질문이 없습니다
+analytics-state-empty-queries-desc = 자주 묻는 질문은 봇이 사용되면 여기에 표시됩니다.

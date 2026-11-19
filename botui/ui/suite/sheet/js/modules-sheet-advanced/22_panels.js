@@ -10,7 +10,7 @@
         var token = window.getGBAccessToken();
         if (token) return token;
       }
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "accessToken") : console.error("accessToken", _); }
     return (
       localStorage.getItem("gb-access-token") ||
       sessionStorage.getItem("gb-access-token") ||
@@ -233,7 +233,7 @@
     modal.className = "ss-modal";
     modal.id = "pivot-modal";
     modal.style.cssText =
-      "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;";
+      "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:var(--z-dropdown);display:flex;align-items:center;justify-content:center;";
     modal.innerHTML =
       '<div class="ss-modal-content" style="background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:8px;max-width:640px;width:92%;max-height:86vh;overflow:auto;">' +
       '<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid var(--sheet-border, #334155);display:flex;justify-content:space-between;align-items:center;">' +

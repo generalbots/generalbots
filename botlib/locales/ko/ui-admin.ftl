@@ -822,3 +822,13 @@ admin-onboarding-team-51-plus = 50명 이상
 admin-ops-configure-alerts = 경고 구성
 admin-ops-trace-search-placeholder = 트레이스 ID 검색...
 admin-ops-traces-slow = 느림 (>500ms)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+workspace-state-empty-recent-title = 아직 연 것이 없습니다
+workspace-state-empty-recent-desc = 연 페이지가 여기에 표시되어 이어서 작업할 수 있습니다.
+workspace-state-empty-favorites-title = 아직 즐겨찾기가 없습니다
+workspace-state-empty-favorites-desc = 페이지를 즐겨찾기로 표시하면 사이드바 상단에 고정됩니다.
+workspace-state-empty-pages-title = 아직 페이지가 없습니다
+workspace-state-empty-pages-desc = 페이지는 이 워크스페이스의 메모와 문서입니다. 첫 페이지를 만들어 보세요.

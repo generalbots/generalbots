@@ -151,10 +151,19 @@
             hx-swap="innerHTML"
             aria-live="polite"
             aria-atomic="false"
+            data-gb-states="list"
+            data-gb-empty-icon="📭"
+            data-gb-empty-title="mail-state-empty-title"
+            data-gb-empty-title-fallback="This folder is empty"
+            data-gb-empty-desc="mail-state-empty-desc"
+            data-gb-empty-desc-fallback="New messages arrive here. Write one yourself if you need to start the conversation."
+            data-gb-empty-action="mail-state-empty-action"
+            data-gb-empty-action-fallback="Write a message"
+            data-gb-empty-action-target="compose-btn"
         >
             <div class="loading-state" role="status" aria-live="polite">
                 <div class="spinner" aria-hidden="true"></div>
-                <p>Loading emails...</p>
+                <p data-i18n="mail-state-loading">Loading emails…</p>
             </div>
         </div>
     </div>

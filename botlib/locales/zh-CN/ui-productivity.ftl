@@ -638,3 +638,15 @@ calendar-event-attendees-placeholder = 邮箱1, 邮箱2
 # semantic i18n key (#2542)
 db-sql-editor-placeholder = SELECT * FROM 表...
 db-sql-editor-aria-label = SQL 查询
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tasks-state-empty-title = 还没有任务
+tasks-state-empty-desc = 在上方描述需要完成的事情，助手会把它变成任务。
+tasks-state-empty-action = 从意图开始
+calendar-state-empty-calendars-title = 还没有日历
+calendar-state-empty-calendars-desc = 日历用来存放日程。创建一个即可开始安排。
+calendar-state-empty-upcoming-title = 没有安排
+calendar-state-empty-upcoming-desc = 接下来的日程会显示在这里，让您不会措手不及。
+calendar-state-empty-upcoming-action = 安排日程

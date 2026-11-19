@@ -9,18 +9,18 @@
 }
 
 .welcome-icon {
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .welcome-text strong {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-sm);
     margin-bottom: 4px;
     color: var(--text);
 }
 
 .welcome-text p {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     margin: 0;
 }
@@ -43,7 +43,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: var(--text-sm);
     flex-shrink: 0;
 }
 
@@ -55,7 +55,7 @@
     max-width: 80%;
     padding: 8px 12px;
     border-radius: 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.4;
 }
 
@@ -122,7 +122,7 @@
     border: 1px solid var(--border, #334155);
     border-radius: 20px;
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-xs);
     outline: none;
 }
 
@@ -170,7 +170,7 @@
     border: none;
     border-radius: 6px;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -214,7 +214,7 @@
     border: none;
     background: transparent;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     outline: none;
 }
 
@@ -227,7 +227,7 @@
     background: var(--bg-hover);
     border: 1px solid var(--border-color);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     font-family: inherit;
 }
@@ -276,7 +276,7 @@
     padding: 0 4px;
     background: var(--error-color);
     color: white;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     border-radius: 8px;
     display: flex;
@@ -328,7 +328,7 @@
 }
 
 .logo-text {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--text-primary);
     transition: color var(--transition-fast);
@@ -384,7 +384,7 @@
     border-radius: var(--radius-lg);
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-fast);

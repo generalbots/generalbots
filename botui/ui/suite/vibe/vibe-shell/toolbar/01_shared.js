@@ -52,7 +52,7 @@
                 return encodeURIComponent(k) + "=" + encodeURIComponent(String(params2[k]));
             }).join("&");
             var target = "/suite/desktop.html?app=" + encodeURIComponent(appId) + (qs ? "&" + qs : "");
-            var w = window.open(target, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} }
+            var w = window.open(target, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openSharedApp") : console.error("openSharedApp", e); } }
         }
     }
 

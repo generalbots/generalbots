@@ -9,7 +9,7 @@
 }
 
 .billing-header h1 {
-    font-size: 28px;
+    font-size: var(--text-2xl);
     font-weight: 600;
     margin: 0 0 8px 0;
     color: var(--text-primary);
@@ -42,7 +42,7 @@
 }
 
 .card-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
@@ -51,7 +51,7 @@
 .plan-badge {
     padding: 4px 12px;
     border-radius: 20px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -66,13 +66,13 @@
 }
 
 .plan-price .amount {
-    font-size: 48px;
+    font-size: var(--text-5xl);
     font-weight: 700;
     color: var(--text-primary);
 }
 
 .plan-price .period {
-    font-size: 16px;
+    font-size: var(--text-md);
     color: var(--text-secondary);
 }
 
@@ -101,7 +101,7 @@
 
 .renewal-label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .renewal-date {
@@ -131,12 +131,12 @@
 
 .usage-label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .usage-value {
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
@@ -191,12 +191,12 @@
 }
 
 .card-expiry {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
 .default-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 4px 8px;
     background: var(--accent-color);
     color: white;
@@ -228,7 +228,7 @@
 }
 
 .section-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
@@ -249,7 +249,7 @@
 .billing-table th {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
 }
 
@@ -266,7 +266,7 @@
     display: inline-block;
     padding: 4px 12px;
     border-radius: 20px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -377,7 +377,7 @@
 
 .modal-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: var(--text-xl);
     color: var(--text-primary);
 }
 

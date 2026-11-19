@@ -22,3 +22,9 @@ timeclock-loading-panel = Carregando painel…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = UUID do funcionário
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = Ainda não há registros
+timeclock-state-empty-desc = Registre o ponto e este painel mostra seu dia, horas extras e aprovações.

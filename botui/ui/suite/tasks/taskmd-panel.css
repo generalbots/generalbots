@@ -67,13 +67,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-tertiary, #666);
     margin-bottom: 12px;
 }
 
 .taskmd-url .url-icon {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .taskmd-url .url-path {
@@ -82,7 +82,7 @@
 }
 
 .taskmd-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text, #fff);
     margin: 0;
@@ -98,7 +98,7 @@
     align-items: center;
     padding: 6px 14px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -165,7 +165,7 @@
 
 .taskmd-section-header {
     padding: 10px 20px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.5px;
     color: var(--text-tertiary, #666);
@@ -198,18 +198,18 @@
 
 .status-title {
     flex: 1;
-    font-size: 15px;
+    font-size: var(--text-md);
     color: var(--text, #fff);
 }
 
 .status-text {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-secondary, #e0e0e0);
 }
 
 .status-time {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-tertiary, #666);
     display: flex;
     align-items: center;
@@ -225,7 +225,7 @@
 }
 
 .status-gear {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-muted, #444);
     cursor: pointer;
     transition: color 0.2s;
@@ -262,7 +262,7 @@
     padding: 4px 12px;
     background: var(--surface-hover, #1a1a1a);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     margin-left: 12px;
 }
@@ -349,13 +349,13 @@
 }
 
 .tree-level-1 .tree-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #ccc);
 }
 
 .tree-level-1 .tree-step-badge {
     background: var(--accent, #c5f82a);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 10px;
 }
 
@@ -366,7 +366,7 @@
 
 .tree-name {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #e0e0e0);
 }
@@ -376,7 +376,7 @@
     background: var(--accent, #c5f82a);
     color: var(--bg, #0a0a0a);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     margin-left: auto;
     margin-right: 12px;
@@ -399,7 +399,7 @@
 }
 
 .tree-status {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-tertiary, #666);
     min-width: 70px;
     text-align: right;

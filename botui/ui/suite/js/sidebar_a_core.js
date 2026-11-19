@@ -123,7 +123,7 @@
     try {
       if (name) localStorage.setItem("gb_selected_bot", name);
       else localStorage.removeItem("gb_selected_bot");
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "saveStoredBot") : console.error("saveStoredBot", e); }
   }
 
   function GBResolveActiveBot() {
@@ -209,7 +209,7 @@
     }
     try {
       sessionStorage.setItem("gb:new-conversation", "1");
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "newConversation") : console.error("newConversation", e); }
     window.location.reload();
   }
 
@@ -226,7 +226,7 @@
           if (payload.sub) return payload.sub;
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "getActiveUsername") : console.error("getActiveUsername", e); }
     return "User";
   }
 
@@ -248,6 +248,10 @@
           if (window.WindowManager._injectBodyContent) {
             window.WindowManager._injectBodyContent("settings", html);
           }
+        })
+        .catch(function (fetchError) {
+          window.gbLogError ? gbLogError(fetchError, "openSettingsWindow")
+                              : console.error("if", fetchError);
         });
     }
   }
@@ -258,7 +262,7 @@
 
     var menu = document.createElement("div");
     menu.id = "user-menu";
-    menu.style.cssText = "position:fixed;left:12px;bottom:52px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:190px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5)";
+    menu.style.cssText = "position:fixed;left:12px;bottom:52px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:190px;z-index:var(--z-blocker);box-shadow:0 4px 20px rgba(0,0,0,0.5)";
 
     var header = document.createElement("div");
     header.style.cssText = "padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)";
@@ -316,7 +320,11 @@
         var m3 = document.getElementById("user-menu");
         if (m3) m3.remove();
         window.location.href = window.GB_LOGIN_URL || "/login";
-      });
+      })
+        .catch(function (fetchError) {
+          window.gbLogError ? gbLogError(fetchError, "openSidebarUserMenu")
+                              : console.error("if", fetchError);
+        });
     });
     menu.appendChild(logoutBtn);
 

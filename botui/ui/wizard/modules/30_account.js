@@ -86,7 +86,9 @@
     if (provider !== "claude-code" && provider !== "chatgpt-plan") { return; }
     ensureAdmin();
     var nodes = finishAccountNodes();
-    B.saveAdmin(draft.admin).catch(function () {}).then(function () {
+    B.saveAdmin(draft.admin).catch(function (error) {
+      window.gbLogError ? gbLogError(error, "saveAdmin") : console.error("saveAdmin", error);
+    }).then(function () {
       return B.aiStatus(provider, draft.admin);
     }).then(function (data) {
       var account = (data && data.account) || data || {};
@@ -94,7 +96,9 @@
       renderFinishAccount(status, account.message || "");
       if (status === "linked") { finishUseChat(provider); }
       if (status === "connecting") { pollFinishAccount(provider); }
-    }).catch(function () {});
+    }).catch(function (error) {
+      window.gbLogError ? gbLogError(error, "aiStatus") : console.error("aiStatus", error);
+    });
 
     if (nodes.connect) {
       nodes.connect.addEventListener("click", function () {

@@ -18,7 +18,7 @@
   function write(list) {
     try {
       localStorage.setItem(KEY, JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "write") : console.error("write", e); }
   }
 
   function render() {
@@ -28,9 +28,30 @@
     const count = document.getElementById("notesCount");
     if (count) count.textContent = list.length + " note" + (list.length === 1 ? "" : "s");
     if (!list.length) {
-      board.innerHTML = '<div class="notes-empty">No notes yet — click “+ New Note”.</div>';
+      /* #2328 — an explanatory empty state with the primary action, instead of
+       * a bare sentence that leaves the user hunting for the button. */
       board.style.position = "";
       board.style.minHeight = "";
+      if (window.gbStates) {
+        window.gbStates.empty(board, {
+          icon: "🗒️",
+          titleKey: "notes-empty-title",
+          titleFallback: "No notes yet",
+          descKey: "notes-empty-desc",
+          descFallback: "Sticky notes stay on your board until you delete them. Capture a thought before it goes.",
+          actionKey: "notes-empty-action",
+          actionFallback: "Create your first note",
+          onAction: function () { add(); },
+        });
+      } else if (typeof window.gbT === "function") {
+        board.innerHTML = "";
+        var empty = document.createElement("div");
+        empty.className = "notes-empty";
+        empty.setAttribute("role", "status");
+        empty.setAttribute("aria-live", "polite");
+        empty.textContent = window.gbT("notes-empty-title", "No notes yet");
+        board.appendChild(empty);
+      }
       return;
     }
     const hasPos = list.some(function (n) { return n && typeof n.x === "number" && typeof n.y === "number"; });
@@ -111,9 +132,9 @@
         card.style.left = origX + "px";
         card.style.top = origY + "px";
         card.style.width = rect.width + "px";
-        card.style.zIndex = "1000";
+        card.style.zIndex = "var(--z-dropdown)";
         card.style.cursor = "grabbing";
-        try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        try { card.setPointerCapture(e.pointerId); } catch (err) { window.gbLogError ? gbLogError(err, "render") : console.error("render", err); }
         function moveTo(x, y) {
           const list2 = read();
           const at = indexOfKey(list2, key);

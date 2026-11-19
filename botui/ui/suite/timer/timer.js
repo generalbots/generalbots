@@ -77,7 +77,7 @@
     var s = r % 60;
     el.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
     if (window.top === window) {
-      try { document.title = el.textContent + " - Timer"; } catch (e) {}
+      try { document.title = el.textContent + " - Timer"; } catch (e) { window.gbLogError ? gbLogError(e, "updateDisplay") : console.error("updateDisplay", e); }
     }
   }
 
@@ -148,13 +148,13 @@
     if (!delivered) {
       try {
         if (typeof window.openDeepLink === "function") window.openDeepLink("chat", {});
-      } catch (e2) {}
+      } catch (e2) { window.gbLogError ? gbLogError(e2, "notifyBot") : console.error("notifyBot", e2); }
       var attempts = 0;
       var retry = setInterval(function () {
         attempts += 1;
         if (chatComposerReady()) {
           clearInterval(retry);
-          try { window.sendMessage(text); } catch (e3) {}
+          try { window.sendMessage(text); } catch (e3) { window.gbLogError ? gbLogError(e3, "notifyBot") : console.error("notifyBot", e3); }
           return;
         }
         if (attempts >= 20) clearInterval(retry);
@@ -164,7 +164,7 @@
       window.dispatchEvent(new CustomEvent("gb-timer-complete", {
         detail: { text: text, delivered: delivered },
       }));
-    } catch (e4) {}
+    } catch (e4) { window.gbLogError ? gbLogError(e4, "notifyBot") : console.error("notifyBot", e4); }
     return delivered;
   }
 
@@ -191,7 +191,7 @@
         ? window.gbDesktopNotificationsEnabled()
         : localStorage.getItem("gb-desktop-notifications") !== "false";
       if (notifAllowed) {
-        try { new Notification("Timer", { body: "Time's up!" }); } catch (e) {}
+        try { new Notification("Timer", { body: "Time's up!" }); } catch (e) { window.gbLogError ? gbLogError(e, "stop") : console.error("stop", e); }
       }
     }
     saveState();

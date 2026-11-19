@@ -239,7 +239,7 @@
       ["textboxes", "docs-find-scope-textboxes", "Text boxes"]
     ];
     var html = [
-      '<div class="docs-modal gb-fr-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+      '<div class="docs-modal gb-fr-backdrop" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
       '<div class="gb-fr-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-fr-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:620px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;">',
       '<h3 id="gb-fr-title" style="margin:0;font-size:16px;">' + NS.escapeHtml(tr("docs-find-title", "Find and replace")) + "</h3>",
       '<div class="gb-fr-grid">',

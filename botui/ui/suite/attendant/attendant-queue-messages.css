@@ -21,11 +21,11 @@
 
             .status-name {
                 font-weight: 600;
-                font-size: 14px;
+                font-size: var(--text-sm);
             }
 
             .status-text {
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 color: var(--text-secondary, #94a3b8);
             }
 
@@ -40,7 +40,7 @@
                 margin-top: 4px;
                 padding: 8px;
                 display: none;
-                z-index: 100;
+                z-index: var(--z-sticky);
             }
 
             .status-dropdown.show {
@@ -78,13 +78,13 @@
             }
 
             .stat-value {
-                font-size: 20px;
+                font-size: var(--text-xl);
                 font-weight: 600;
                 color: var(--accent-color);
             }
 
             .stat-label {
-                font-size: 11px;
+                font-size: var(--text-2xs);
                 color: var(--text-secondary);
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
@@ -105,7 +105,7 @@
                 border: 1px solid transparent;
                 border-radius: 20px;
                 color: var(--text-secondary, #94a3b8);
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 cursor: pointer;
                 transition: all 0.2s;
                 display: flex;
@@ -126,7 +126,7 @@
                 background: rgba(255, 255, 255, 0.2);
                 padding: 2px 6px;
                 border-radius: 10px;
-                font-size: 11px;
+                font-size: var(--text-2xs);
             }
 
             /* Conversation List */
@@ -180,16 +180,16 @@
 
             .customer-name {
                 font-weight: 500;
-                font-size: 14px;
+                font-size: var(--text-sm);
             }
 
             .conversation-time {
-                font-size: 11px;
+                font-size: var(--text-2xs);
                 color: var(--text-tertiary, #64748b);
             }
 
             .conversation-preview {
-                font-size: 13px;
+                font-size: var(--text-xs);
                 color: var(--text-secondary, #94a3b8);
                 white-space: nowrap;
                 overflow: hidden;
@@ -204,7 +204,7 @@
             }
 
             .channel-tag {
-                font-size: 10px;
+                font-size: var(--text-2xs);
                 padding: 2px 8px;
                 border-radius: 12px;
                 background: var(--border-light, #475569);
@@ -244,7 +244,7 @@
             }
 
             .priority-tag {
-                font-size: 11px;
+                font-size: var(--text-2xs);
                 padding: 2px 8px;
                 border-radius: 4px;
             }
@@ -264,7 +264,7 @@
             }
 
             .waiting-time {
-                font-size: 11px;
+                font-size: var(--text-2xs);
                 color: var(--text-tertiary, #64748b);
             }
 
@@ -338,16 +338,16 @@
                 align-items: center;
                 justify-content: center;
                 font-weight: 600;
-                font-size: 18px;
+                font-size: var(--text-lg);
             }
 
             .customer-details h3 {
-                font-size: 16px;
+                font-size: var(--text-md);
                 font-weight: 500;
             }
 
             .customer-status-line {
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 color: var(--text-secondary);
                 display: flex;
                 align-items: center;
@@ -396,7 +396,7 @@
                 border-radius: 6px;
                 background: var(--bg-tertiary);
                 color: var(--text-primary);
-                font-size: 13px;
+                font-size: var(--text-xs);
                 cursor: pointer;
                 transition: all 0.2s;
                 display: flex;

@@ -54,7 +54,7 @@ function persistLocalMessage(sender, content) {
     history.push({ sender: sender, content: content, ts: Date.now() });
     if (history.length > 500) history = history.slice(-500);
     localStorage.setItem(key, JSON.stringify(history));
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "persistLocalMessage") : console.error("persistLocalMessage", e); }
 }
 
 function loadLocalHistory() {
@@ -78,7 +78,7 @@ function listLocalSessions() {
       }
     }
     sessions.sort(function (a, b) { return b.ts - a.ts; });
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "listLocalSessions") : console.error("listLocalSessions", e); }
   return sessions;
 }
 

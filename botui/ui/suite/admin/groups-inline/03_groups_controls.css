@@ -22,7 +22,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
 }
@@ -37,7 +37,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
 }
@@ -52,7 +52,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
 }
@@ -63,7 +63,7 @@
 
 .btn-sm {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 /* Loading */

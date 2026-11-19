@@ -17,8 +17,8 @@
 
   function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
   function readArr(k) { try { return gbStoreGet(k, []); } catch (_) { return []; } }
-  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
-  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) {} }
+  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) { window.gbLogError ? gbLogError(_, "writeObj") : console.error("writeObj", _); } }
+  function writeArr(k, arr) { try { localStorage.setItem(k, JSON.stringify(arr)); } catch (_) { window.gbLogError ? gbLogError(_, "writeArr") : console.error("writeArr", _); } }
 
   P.listChartTypes = function () { return CHART_TYPES.slice(); };
   P.createChart = function (type, dataRange, position) {

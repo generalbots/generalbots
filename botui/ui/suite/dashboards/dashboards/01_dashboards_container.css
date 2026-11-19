@@ -22,7 +22,7 @@
 }
 
 .dashboards-header .header-title h2 {
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-weight: 600;
     margin: 0;
 }
@@ -53,7 +53,7 @@
     color: inherit;
     outline: none;
     width: 200px;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .dashboards-header .search-box input::placeholder {
@@ -66,7 +66,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 8px;
     color: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
 }
 
@@ -79,7 +79,7 @@
     color: #000;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: opacity 0.2s;
@@ -109,7 +109,7 @@
 }
 
 .sidebar-section h3 {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -132,7 +132,7 @@
     border-radius: 8px;
     color: var(--color-text-primary, #e5e5e5);
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -161,7 +161,7 @@
     padding: 8px 10px;
     background: var(--color-bg-tertiary, #1a1a1a);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .data-source-item .status {
@@ -190,7 +190,7 @@
     background: none;
     border: none;
     color: var(--color-accent, #d4f505);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
 }
 
@@ -239,13 +239,13 @@
 
 .dashboard-card-header h4 {
     margin: 0 0 4px 0;
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
 .dashboard-card-header p {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--color-text-secondary, #999);
 }
 
@@ -312,12 +312,12 @@
     padding: 4px 8px;
     background: var(--color-bg-tertiary, #1a1a1a);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--color-text-secondary, #999);
 }
 
 .dashboard-card-meta {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--color-text-tertiary, #666);
 }
 
@@ -340,7 +340,7 @@
 .viewer-toolbar h3 {
     flex: 1;
     margin: 0;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
 }
 
@@ -375,7 +375,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 6px;
     color: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
 }
 

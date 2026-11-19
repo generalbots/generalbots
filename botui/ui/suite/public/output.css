@@ -835,7 +835,7 @@ body {
 }
 
 .z-\[100\] {
-  z-index: 100;
+  z-index: var(--z-sticky);
 }
 
 .z-\[1\] {

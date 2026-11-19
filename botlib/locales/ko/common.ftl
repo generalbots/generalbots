@@ -375,3 +375,13 @@ deploy-custom-domain-placeholder = app.example.com
 action-print = 인쇄
 action-history = 기록
 action-previous = 이전
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = 불러오는 중…
+gb-state-empty-title = 아직 아무것도 없습니다
+gb-state-empty-desc = 아직 표시할 내용이 없습니다.
+gb-state-error-title = 이 내용을 불러오지 못했습니다
+gb-state-error-desc = 요청에 실패했습니다. 연결을 확인한 후 다시 시도하세요.
+gb-state-retry = 다시 시도

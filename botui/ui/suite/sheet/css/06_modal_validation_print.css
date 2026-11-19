@@ -32,7 +32,7 @@
 }
 
 .print-toolbar .checkbox-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .cnf-format-item.selected {

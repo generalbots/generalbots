@@ -57,7 +57,7 @@
       if (it.el.getAttribute && it.el.getAttribute("data-gb-vpin") === "1") return true;
       // Keep actively streaming/updating node live to avoid breaking getElementById consumers.
       if (it.el.id && /^streaming-/.test(it.el.id)) return true;
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "isPinned") : console.error("isPinned", e); }
     return false;
   }
 
@@ -72,11 +72,11 @@
       if (!it || !it.el) { changed = true; continue; }
       if (it.live) {
         if (it.el.isConnected && c.contains(it.el)) out.push(it);
-        else { changed = true; if (state.ro) try { state.ro.unobserve(it.el); } catch (e) {} }
+        else { changed = true; if (state.ro) try { state.ro.unobserve(it.el); } catch (e) { window.gbLogError ? gbLogError(e, "compactItems") : console.error("compactItems", e); } }
       } else {
         if (it.placeholder && it.placeholder.isConnected && c.contains(it.placeholder)) out.push(it);
         else if (it.el.isConnected && c.contains(it.el)) { it.live = true; out.push(it); changed = true; }
-        else { changed = true; if (state.ro) try { state.ro.unobserve(it.el); } catch (e) {} }
+        else { changed = true; if (state.ro) try { state.ro.unobserve(it.el); } catch (e) { window.gbLogError ? gbLogError(e, "compactItems") : console.error("compactItems", e); } }
       }
     }
     if (changed) state.items = out;
@@ -114,14 +114,14 @@
       if (typeof ChatState !== "undefined" && ChatState.appendTarget && el.parentNode === ChatState.appendTarget) {
         return;
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "register") : console.error("register", e); }
     // Dedup by identity (cheap tail check covers append-heavy path).
     for (var i = state.items.length - 1; i >= 0 && i >= state.items.length - 8; i--) {
       if (state.items[i].el === el) return;
     }
     if (el.__gbVirtIdx != null && state.items[el.__gbVirtIdx] && state.items[el.__gbVirtIdx].el === el) return;
     state.items.push({ el: el, h: (el.offsetHeight || 0), placeholder: null, live: true });
-    if (state.ro) try { state.ro.observe(el); } catch (e) {}
+    if (state.ro) try { state.ro.observe(el); } catch (e) { window.gbLogError ? gbLogError(e, "register") : console.error("register", e); }
     V.maybeEnable();
   };
 
@@ -136,7 +136,7 @@
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       state.items.push({ el: el, h: (el.offsetHeight || 0), placeholder: null, live: true });
-      if (state.ro) try { state.ro.observe(el); } catch (e) {}
+      if (state.ro) try { state.ro.observe(el); } catch (e) { window.gbLogError ? gbLogError(e, "registerAll") : console.error("registerAll", e); }
     }
   };
 
@@ -144,7 +144,7 @@
     // Materialize tracked items before external clears/rebuilds when possible.
     try {
       if (state.enabled && state.container) V.materializeRange(0, state.items.length);
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "clear") : console.error("clear", e); }
     reset();
   };
 
@@ -215,7 +215,7 @@
       if (wantLive) {
         if (!it.live) {
           if (it.placeholder && it.placeholder.parentNode === c) {
-            try { c.replaceChild(it.el, it.placeholder); } catch (e) {}
+            try { c.replaceChild(it.el, it.placeholder); } catch (e) { window.gbLogError ? gbLogError(e, "materializeRange") : console.error("materializeRange", e); }
           } else if (!it.el.isConnected || !c.contains(it.el)) {
             var before = null;
             for (var k = i + 1; k < state.items.length; k++) {
@@ -223,11 +223,11 @@
               var node = nk && (nk.live ? nk.el : nk.placeholder);
               if (node && node.parentNode === c) { before = node; break; }
             }
-            try { c.insertBefore(it.el, before); } catch (e2) {}
+            try { c.insertBefore(it.el, before); } catch (e2) { window.gbLogError ? gbLogError(e2, "materializeRange") : console.error("materializeRange", e2); }
           }
           it.live = true;
           it.placeholder = null;
-          if (state.ro) try { state.ro.observe(it.el); } catch (e3) {}
+          if (state.ro) try { state.ro.observe(it.el); } catch (e3) { window.gbLogError ? gbLogError(e3, "materializeRange") : console.error("materializeRange", e3); }
         } else if (!it.el.isConnected || !c.contains(it.el)) {
           // Unexpected DOM loss; drop logical liveness so range logic can recover.
           it.live = false;
@@ -368,9 +368,9 @@
     if (!el) return;
     for (var i = 0; i < state.items.length; i++) {
       if (state.items[i].el === el) {
-        if (state.ro) try { state.ro.unobserve(el); } catch (e) {}
+        if (state.ro) try { state.ro.unobserve(el); } catch (e) { window.gbLogError ? gbLogError(e, "remove") : console.error("remove", e); }
         if (state.items[i].placeholder && state.items[i].placeholder.parentNode) {
-          try { state.items[i].placeholder.parentNode.removeChild(state.items[i].placeholder); } catch (e2) {}
+          try { state.items[i].placeholder.parentNode.removeChild(state.items[i].placeholder); } catch (e2) { window.gbLogError ? gbLogError(e2, "remove") : console.error("remove", e2); }
         }
         state.items.splice(i, 1);
         V.updateDebug();

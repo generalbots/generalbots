@@ -1,7 +1,7 @@
 .comments-panel-title {
     font-weight: 600;
     color: #f8fafc;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 .comments-presence {
     background: #0f172a;
@@ -9,7 +9,7 @@
     border: 1px solid #334155;
     border-radius: 999px;
     padding: 2px 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -20,7 +20,7 @@
     background: none;
     border: none;
     color: #94a3b8;
-    font-size: 20px;
+    font-size: var(--text-xl);
     cursor: pointer;
     line-height: 1;
 }
@@ -37,7 +37,7 @@
 }
 .cm-loading, .cm-empty, .cm-error {
     color: #94a3b8;
-    font-size: 13px;
+    font-size: var(--text-xs);
     padding: 12px 0;
 }
 .cm-error {
@@ -62,15 +62,15 @@
 .cm-author {
     color: #93c5fd;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 .cm-time {
     color: #64748b;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 .cm-body {
     color: #e2e8f0;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
@@ -89,7 +89,7 @@
     flex-wrap: wrap;
 }
 .cm-react, .cm-reply-btn, .cm-del {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #94a3b8;
     cursor: pointer;
     user-select: none;
@@ -112,7 +112,7 @@
     border: 1px solid #334155;
     border-radius: 999px;
     padding: 2px 8px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #e2e8f0;
     cursor: pointer;
     user-select: none;
@@ -139,7 +139,7 @@
     border-radius: 8px;
     color: #f8fafc;
     padding: 9px 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     outline: none;
 }
 .comments-input:focus {
@@ -152,7 +152,7 @@
     color: #fff;
     padding: 0 16px;
     font-weight: 500;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
 }
 
@@ -185,7 +185,7 @@
     padding: 10px 16px;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
@@ -216,7 +216,7 @@
 }
 
 .file-card-meta {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b80);
     margin-top: 4px;
 }
@@ -236,7 +236,7 @@
 }
 
 .division-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted, #6b7280);
@@ -246,7 +246,7 @@
 
 .division-item {
     padding: 6px 28px !important;
-    font-size: 13px !important;
+    font-size: var(--text-xs); !important;
 }
 
 .division-item.active {

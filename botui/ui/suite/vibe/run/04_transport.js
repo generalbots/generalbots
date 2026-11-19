@@ -134,7 +134,7 @@
         // preview tab while the authenticated API request is in flight.
         previewWindowRef = window.open("about:blank", "_blank");
         var previewWindow = previewWindowRef;
-        if (previewWindow) { try { previewWindow.opener = null; } catch (e) {} }
+        if (previewWindow) { try { previewWindow.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "previewProject") : console.error("previewProject", e); } }
         if (!previewWindow) {
             uiMsg("⚠️ Allow pop-ups to open the project preview.");
             return;
@@ -207,7 +207,7 @@
         var host = (window.location.hostname || "").split(".").slice(-2).join(".");
         var direct = slug ? "https://" + slug + "." + host + "/" : null;
         var w = window.open("about:blank", "_blank");
-        if (w) { try { w.opener = null; } catch (e) {} }
+        if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openProdTab") : console.error("openProdTab", e); } }
         if (!w) {
             if (typeof vibeSafeMsg === "function") {
                 vibeSafeMsg("system", "⚠️ Deploy finished — allow pop-ups to open " + (direct || "your app") + ".");

@@ -4,7 +4,7 @@
 
 .gb-titlebar {
     position: relative;
-    z-index: 200;
+    z-index: var(--z-header);
     display: flex;
     align-items: center;
     height: 36px;
@@ -15,7 +15,7 @@
     user-select: none;
     -webkit-user-select: none;
     font-family: var(--id-font-sans, Inter, system-ui, -apple-system, sans-serif);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--id-muted, #5f6673);
 }
 
@@ -49,7 +49,7 @@
 .gb-titlebar-wordmark {
     font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--id-muted, #5f6673);
     white-space: nowrap;
     cursor: default;
@@ -64,7 +64,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--id-gray-400, #9ca3af);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     pointer-events: none;
     padding: 0 8px;
 }

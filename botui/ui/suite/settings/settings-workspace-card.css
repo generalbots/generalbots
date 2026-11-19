@@ -24,14 +24,14 @@
 
 .workspace-card-head h2 {
     margin: 0 0 4px;
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
 .workspace-line {
     margin: 0;
     color: var(--text-secondary, #9ca3af);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .workspace-badge {
@@ -41,7 +41,7 @@
     border: 1px solid var(--border, #2a2a2a);
     background: var(--surface-hover, #202027);
     color: var(--text, #e5e7eb);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -70,7 +70,7 @@
     border: 1px solid var(--border, #2a2a2a);
     background: transparent;
     color: var(--text-secondary, #9ca3af);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 

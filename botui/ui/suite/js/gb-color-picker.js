@@ -45,7 +45,7 @@
     var list = loadRecent().filter(function (c) { return c !== hex; });
     list.unshift(hex);
     if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) {}
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) { window.gbLogError ? gbLogError(e, "saveRecent") : console.error("saveRecent", e); }
   }
 
   function injectCss() {
@@ -56,7 +56,7 @@
       ".gb-cp-trigger{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:30px;height:26px;padding:0 5px;border:1px solid transparent;border-radius:6px;background:transparent;cursor:pointer;color:inherit;position:relative;}",
       ".gb-cp-trigger:hover{background:rgba(148,163,184,.14);}",
       ".gb-cp-swatch{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);flex:0 0 auto;}",
-      ".gb-cp-pop{position:fixed;z-index:10050;background:#1f2937;color:#f9fafb;border:1px solid #374151;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:10px;width:236px;font:12px/1.4 system-ui,sans-serif;}",
+      ".gb-cp-pop{position:fixed;z-index:var(--z-system);background:#1f2937;color:#f9fafb;border:1px solid #374151;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:10px;width:236px;font:12px/1.4 system-ui,sans-serif;}",
       ".gb-cp-title{font-size:11px;color:#9ca3af;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.04em;}",
       ".gb-cp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;}",
       ".gb-cp-cell{width:22px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,.12);cursor:pointer;padding:0;}",
@@ -184,7 +184,7 @@
     popover.style.display = "block";
     position();
     var hex = popover.querySelector(".gb-cp-hex");
-    if (hex) { try { hex.focus(); hex.select(); } catch (e) {} }
+    if (hex) { try { hex.focus(); hex.select(); } catch (e) { window.gbLogError ? gbLogError(e, "open") : console.error("open", e); } }
   }
 
   function close() {

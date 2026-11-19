@@ -45,7 +45,7 @@
     flex-direction: column;
     border: 1px solid hsl(var(--border));
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-sticky);
 }
 
 /* Issue #725: inverted 3D bevel status bar for every app window.
@@ -59,7 +59,7 @@
     padding: 0 8px;
     flex-shrink: 0;
     background: var(--surface, #d4d4d4);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 22px;
     color: var(--text, #000);
     user-select: none;
@@ -109,7 +109,7 @@
 
 .window-header .font-mono {
     font-family: "Fira Code", monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     color: var(--accent, #16a34a); /* brand-600 */
     letter-spacing: 0.025em;
@@ -126,7 +126,7 @@
     border: none;
     cursor: pointer;
     color: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .window-header .btn-minimize:hover {
@@ -277,14 +277,14 @@
 
 /* Maximized window fills workspace */
 body.window-maximized .window-element {
-    z-index: 9998 !important;
+    z-index: var(--z-system) !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
     height: calc(100dvh - 56px) !important;
     width: 100% !important;
 }
 body.window-maximized .window-element-glass {
-    z-index: 9998 !important;
+    z-index: var(--z-system) !important;
     top: 0 !important;
     height: calc(100vh - 56px) !important;
     height: calc(100dvh - 56px) !important;
@@ -320,7 +320,7 @@ select.theme-dropdown {
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(6px);
-    z-index: 9999;
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -388,7 +388,7 @@ select.theme-dropdown {
     border: none;
     outline: none;
     color: var(--text, #eee);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
 }
 

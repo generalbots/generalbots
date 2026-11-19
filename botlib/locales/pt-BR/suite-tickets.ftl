@@ -51,3 +51,10 @@ tickets-sla-col-time = Tempo até o SLA
 
 # semantic i18n key (#2542)
 tickets-sla-no-risk = Nenhum ticket em risco nas próximas 24h.
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tickets-state-empty-title = Ainda não há tickets
+tickets-state-empty-desc = Os tickets chegam do chat, do e-mail e do formulário web. Abra um você mesmo para testar o fluxo.
+tickets-state-empty-action = Abrir um ticket

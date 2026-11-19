@@ -40,11 +40,11 @@
       share_usage_stats: false,
       crash_reports: false,
     });
-    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(safe)); } catch (e) {}
+    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(safe)); } catch (e) { window.gbLogError ? gbLogError(e, "saveSettings") : console.error("saveSettings", e); }
     try {
       localStorage.removeItem(LEGACY_TELEMETRY_KEY);
       localStorage.removeItem(LEGACY_TELEMETRY_LOG);
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "saveSettings") : console.error("saveSettings", e); }
   }
 
   function isTelemetryEnabled() {
@@ -69,7 +69,7 @@
 
     try {
       indexedDB.deleteDatabase("gb_drive_offline");
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "clearUserDataNow") : console.error("clearUserDataNow", e); }
 
     if (typeof showNotification === "function") {
       showNotification("All data cleared. Reloading...", "success");
@@ -83,7 +83,7 @@
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "privacy-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-blocker);backdrop-filter:blur(8px);";
 
     function toggle(id, label, description, checked) {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #1e293b;">'

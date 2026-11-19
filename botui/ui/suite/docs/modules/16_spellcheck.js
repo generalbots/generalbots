@@ -19,7 +19,7 @@ function openSpellcheck() {
   if (!host) return;
   var st = window.gbT || function (_, fb) { return fb; };
   host.innerHTML = [
-    '<div class="docs-modal" id="spellcheck-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+    '<div class="docs-modal" id="spellcheck-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
     '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;max-height:80vh;">',
     '<div style="display:flex;align-items:center;justify-content:space-between;">',
     '<h3 style="margin:0;font-size:16px;">' + st('docs-spellcheck-title', 'Spell check') + '</h3>',

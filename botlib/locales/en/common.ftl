@@ -380,3 +380,13 @@ deploy-custom-domain-placeholder = app.example.com
 action-print = Print
 action-history = History
 action-previous = Previous
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+gb-state-loading = Loading…
+gb-state-empty-title = Nothing here yet
+gb-state-empty-desc = There is nothing to show here yet.
+gb-state-error-title = Could not load this content
+gb-state-error-desc = The request failed. Check your connection and try again.
+gb-state-retry = Try again

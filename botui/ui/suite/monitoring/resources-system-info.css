@@ -7,7 +7,7 @@
 }
 
 .interface-ip {
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 

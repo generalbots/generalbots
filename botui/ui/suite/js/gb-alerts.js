@@ -14,7 +14,7 @@
   function nowTime() {
     try {
       if (typeof gbFormatTime === "function") return gbFormatTime(new Date(), { hour: "2-digit", minute: "2-digit" });
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "nowTime") : console.error("nowTime", e); }
     try {
       return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date());
     } catch (e2) {
@@ -90,7 +90,7 @@
     renderList();
     if (panelEl() && btnEl()) openPanel();
     if (window.GBToasts && typeof window.GBToasts.show === "function") {
-      try { window.GBToasts.show(item.title, item.message, toastKind(item.type)); } catch (e) {}
+      try { window.GBToasts.show(item.title, item.message, toastKind(item.type)); } catch (e) { window.gbLogError ? gbLogError(e, "add") : console.error("add", e); }
     }
     return item;
   }
@@ -113,8 +113,8 @@
     if (n && n.action) {
       try {
         if (typeof n.action === "function") n.action();
-        else if (typeof n.action === "string") { var w = window.open(n.action, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) {} } }
-      } catch (e) {}
+        else if (typeof n.action === "string") { var w = window.open(n.action, "_blank", "noopener,noreferrer"); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "handleAction") : console.error("handleAction", e); } } }
+      } catch (e) { window.gbLogError ? gbLogError(e, "handleAction") : console.error("handleAction", e); }
     }
     dismiss(index);
   }

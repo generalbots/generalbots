@@ -230,7 +230,7 @@
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     overflow-x: auto;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }
 

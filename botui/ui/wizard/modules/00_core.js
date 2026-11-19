@@ -56,7 +56,9 @@
     var safe = W.clone(draft);
     safe.model.api_key = "";
     Object.keys(safe.services || {}).forEach(function (id) { safe.services[id].client_secret = ""; });
-    B.saveDraft(safe).catch(function () {});
+    B.saveDraft(safe).catch(function (error) {
+      window.gbLogError ? gbLogError(error, "persistDraft") : console.error("persistDraft", error);
+    });
   }
 
   function generatePassword() {

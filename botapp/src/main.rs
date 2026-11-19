@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use log::info;
-use tauri::Manager;
+use log::{info, warn};
+use tauri::{Emitter, Manager};
 
 mod build_info;
 mod desktop;
@@ -329,6 +329,22 @@ fn main() {
         desktop::update::check_release_update,
         desktop::update::open_release_url,
     ]);
+
+    // #2450 — under cage the main window is the only client the compositor
+    // has: a close request would end the session and come back as a black
+    // screen. In kiosk mode the request is intercepted and the shell's power
+    // menu is shown instead; the power API is the only path that really exits.
+    let builder = builder.on_window_event(|window, event| {
+        if !desktop::shell_mode() {
+            return;
+        }
+        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            if let Err(e) = window.emit("gb-power-menu", ()) {
+                warn!("could not ask the shell for its power menu: {e}");
+            }
+        }
+    });
 
     let app = builder
         .setup(|app| {

@@ -131,7 +131,7 @@
     visibility: hidden;
     transform: translateY(-10px);
     transition: all 0.2s ease;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .language-selector.open .language-dropdown {
@@ -277,7 +277,7 @@
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
+        z-index: var(--z-dropdown);
     }
 }
 </style>

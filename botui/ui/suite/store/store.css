@@ -19,11 +19,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 700;
 }
 .gb-store .store-title svg { width: 24px; height: 24px; color: #3b82f6; }
-.gb-store .store-title h1 { margin: 0; font-size: 20px; }
+.gb-store .store-title h1 { margin: 0; font-size: var(--text-xl); }
 .gb-store .store-search {
     flex: 1;
     min-width: 200px;
@@ -43,7 +43,7 @@
     outline: none;
     background: transparent;
     color: var(--text, #1f2430);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 .gb-store .store-cats {
     display: flex;
@@ -56,7 +56,7 @@
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 999px;
     padding: 6px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     color: var(--text, #1f2430);
 }
@@ -98,10 +98,10 @@
     flex-shrink: 0;
 }
 .gb-store .store-app-icon svg { width: 24px; height: 24px; }
-.gb-store .store-app-name { font-size: 14px; font-weight: 600; }
-.gb-store .store-app-cat { font-size: 11px; color: #6b7280; text-transform: capitalize; }
+.gb-store .store-app-name { font-size: var(--text-sm); font-weight: 600; }
+.gb-store .store-app-cat { font-size: var(--text-2xs); color: #6b7280; text-transform: capitalize; }
 .gb-store .store-app-desc {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #6b7280;
     line-height: 1.45;
     flex: 1;
@@ -118,7 +118,7 @@
     border: none;
     border-radius: 8px;
     padding: 7px 16px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
 }
@@ -133,11 +133,11 @@
     border: 1px solid #3b82f6;
     border-radius: 8px;
     padding: 7px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 .gb-store .store-installs {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: #9ca3af;
 }
 .gb-store .store-loading,

@@ -358,3 +358,14 @@ monitoring-no-recent-incidents = 최근 장애 없음
 
 # semantic i18n key (#2542)
 monitoring-system-stable = 시스템이 안정적입니다
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = 설치된 플러그인이 없습니다
+plugins-state-empty-desc = 플러그인은 이 봇에 도구와 채널을 추가합니다. 매니페스트를 업로드해 설치하세요.
+plugins-state-empty-action = 매니페스트 업로드
+
+# #2328 — plugin upload error states
+plugins-upload-failed = 업로드 실패
+plugins-upload-bad-response = 업로드 응답이 유효하지 않습니다

@@ -25,7 +25,7 @@
   border: none;
   background: transparent;
   color: var(--text-secondary, #999);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-family: inherit;
   padding: 6px 12px;
   border-radius: 8px;
@@ -55,7 +55,7 @@
 }
 
 .gb-clock-digital {
-  font-size: 52px;
+  font-size: var(--text-5xl);
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.1;
@@ -64,13 +64,13 @@
 }
 
 .gb-clock-date {
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text-secondary, #999);
 }
 
 /* #2261 — "GMT-3 · +0h vs local": the offset/diff line under the date. */
 .gb-clock-diff {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #999);
   font-variant-numeric: tabular-nums;
 }
@@ -82,7 +82,7 @@
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
   color: var(--text, #eee);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-xs);
   outline: none;
   max-width: 320px;
   width: 100%;
@@ -98,7 +98,7 @@
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
   color: var(--text, #ddd);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-xs);
   padding: 8px 18px;
   border-radius: 8px;
   cursor: pointer;
@@ -134,7 +134,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .gb-clock-laps li {
@@ -151,7 +151,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text-secondary, #999);
 }
 
@@ -163,7 +163,7 @@
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
   color: var(--text, #eee);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--text-md);
   text-align: center;
   outline: none;
   appearance: textfield;

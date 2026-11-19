@@ -9,7 +9,7 @@
   height: 28px;
 }
 .sl-insert-open-btn span {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -18,7 +18,7 @@
 .sl-insert-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,7 +36,7 @@
   border-radius: 10px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--text-xs)
 }
 
 /* Header ----------------------------------------------------------------- */
@@ -49,7 +49,7 @@
 }
 .sl-insert-title {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 700;
   letter-spacing: 0.2px;
   white-space: nowrap;
@@ -62,12 +62,12 @@
   border: 1px solid #334155;
   border-radius: 6px;
   color: #f8fafc;
-  font-size: 13px;
+  font-size: var(--text-xs)
 }
 .sl-insert-search::placeholder { color: #64748b; }
 .sl-insert-hint {
   color: #94a3b8;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   white-space: nowrap;
 }
 .sl-insert-close {
@@ -78,7 +78,7 @@
   border-radius: 6px;
   background: transparent;
   color: #94a3b8;
-  font-size: 20px;
+  font-size: var(--text-xl);
   line-height: 1;
   cursor: pointer;
 }
@@ -109,7 +109,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 .sl-insert-cat:hover { background: #1e293b; color: #f8fafc; }
@@ -159,12 +159,12 @@
   border-radius: 6px;
   background: #0f172a;
   color: #60a5fa;
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
-.sl-insert-preview-icon { width: 64px; height: 64px; font-size: 28px; }
+.sl-insert-preview-icon { width: 64px; height: 64px; font-size: var(--text-2xl) }
 .sl-insert-card-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   line-height: 1.25;
   text-align: center;
   overflow-wrap: anywhere;
@@ -192,7 +192,7 @@
 .sl-insert-glyph-mindmap,
 .sl-insert-glyph-field {
   color: #94a3b8;
-  font-size: 16px;
+  font-size: var(--text-md)
 }
 
 /* Preview and options side pane ----------------------------------------- */
@@ -236,7 +236,7 @@
 }
 .sl-insert-preview-caption {
   max-width: 100%;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #cbd5e1;
   text-align: center;
   overflow-wrap: anywhere;
@@ -308,7 +308,7 @@
 }
 .sl-insert-field-label {
   color: #94a3b8;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 .sl-insert-input {
@@ -318,7 +318,7 @@
   border: 1px solid #334155;
   border-radius: 5px;
   color: #f8fafc;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-family: inherit;
 }
 .sl-insert-input::placeholder { color: #64748b; }
@@ -333,14 +333,14 @@
   border: 1px solid #3b82f6;
   border-radius: 5px;
   color: #bfdbfe;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 .sl-insert-resolve:hover { background: #243449; }
 .sl-insert-layout-note {
   margin: 0;
   color: #64748b;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   line-height: 1.4;
 }
 
@@ -357,13 +357,13 @@
   flex: 1;
   margin: 0;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: var(--text-2xs)
 }
 .sl-insert-cancel,
 .sl-insert-insert {
   padding: 8px 16px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   cursor: pointer;
 }

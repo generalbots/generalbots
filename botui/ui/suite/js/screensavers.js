@@ -239,7 +239,7 @@
     createOverlay();
 
     var reduce = false;
-    try { reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    try { reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { window.gbLogError ? gbLogError(e, "start") : console.error("start", e); }
     if (reduce) overlay.classList.add("gb-ss-static");
 
     var canvas = overlay.querySelector("canvas");
@@ -336,7 +336,7 @@
     use: function (name) {
       if (SCENES.indexOf(name) === -1) return false;
       current = name;
-      try { localStorage.setItem("gb-screensaver", name); } catch (e) {}
+      try { localStorage.setItem("gb-screensaver", name); } catch (e) { window.gbLogError ? gbLogError(e, "use") : console.error("use", e); }
       return true;
     },
     current: function () { return current; },

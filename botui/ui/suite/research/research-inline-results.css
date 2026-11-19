@@ -20,11 +20,11 @@
     }
 
     .suggestion-icon {
-        font-size: 24px;
+        font-size: var(--text-2xl);
     }
 
     .suggestion-text {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 500;
     }
 
@@ -48,7 +48,7 @@
         border-radius: 20px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 13px;
+        font-size: var(--text-xs);
         cursor: pointer;
         transition: all 0.15s;
     }
@@ -92,7 +92,7 @@
     }
 
     .answer-content {
-        font-size: 15px;
+        font-size: var(--text-md);
         line-height: 1.8;
     }
 
@@ -118,7 +118,7 @@
         padding: 2px 6px;
         border-radius: 4px;
         font-family: monospace;
-        font-size: 13px;
+        font-size: var(--text-xs);
     }
 
     .answer-content pre {
@@ -140,7 +140,7 @@
         border-radius: 4px;
         background: var(--primary);
         color: var(--primary-foreground);
-        font-size: 10px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         cursor: pointer;
         vertical-align: super;
@@ -199,7 +199,7 @@
     }
 
     .related-questions h4 {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 600;
         color: var(--muted-foreground);
         margin: 0 0 12px 0;
@@ -220,7 +220,7 @@
         border-radius: 8px;
         background: var(--card);
         color: var(--foreground);
-        font-size: 14px;
+        font-size: var(--text-sm);
         text-align: left;
         cursor: pointer;
         transition: all 0.15s;
@@ -252,7 +252,7 @@
     }
 
     .sources-preview-header h4 {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 600;
         margin: 0;
     }
@@ -261,7 +261,7 @@
         background: none;
         border: none;
         color: var(--primary);
-        font-size: 13px;
+        font-size: var(--text-xs);
         cursor: pointer;
     }
 
@@ -300,7 +300,7 @@
         border-radius: 4px;
         background: var(--muted);
         color: var(--foreground);
-        font-size: 12px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         flex-shrink: 0;
     }
@@ -311,7 +311,7 @@
     }
 
     .source-title {
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
         margin-bottom: 4px;
         white-space: nowrap;
@@ -320,7 +320,7 @@
     }
 
     .source-domain {
-        font-size: 11px;
+        font-size: var(--text-2xs);
         color: var(--muted-foreground);
         display: flex;
         align-items: center;
@@ -356,7 +356,7 @@
     }
 
     .sources-header h3 {
-        font-size: 16px;
+        font-size: var(--text-md);
         font-weight: 600;
         margin: 0;
     }
@@ -396,20 +396,20 @@
         border-radius: 6px;
         background: var(--primary);
         color: var(--primary-foreground);
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 600;
         flex-shrink: 0;
     }
 
     .source-detail-title {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 600;
         line-height: 1.4;
         margin-bottom: 4px;
     }
 
     .source-detail-url {
-        font-size: 12px;
+        font-size: var(--text-2xs);
         color: var(--primary);
         text-decoration: none;
     }
@@ -419,7 +419,7 @@
     }
 
     .source-detail-snippet {
-        font-size: 13px;
+        font-size: var(--text-xs);
         color: var(--muted-foreground);
         line-height: 1.6;
         margin-bottom: 12px;
@@ -439,7 +439,7 @@
         border-radius: 4px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 11px;
+        font-size: var(--text-2xs);
         cursor: pointer;
         transition: all 0.15s;
     }

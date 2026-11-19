@@ -31,13 +31,13 @@
 
 .os-label {
   color: var(--text-secondary, #9ca3af);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .os-info-row code {
   color: var(--text, #e5e7eb);
   font-family: "Fira Code", monospace;
-  font-size: 13px;
+  font-size: var(--text-xs);
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -45,7 +45,7 @@
 .os-hint {
   margin: 12px 0 0;
   color: var(--text-secondary, #9ca3af);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   line-height: 1.5;
 }
 
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--text, #e5e7eb);
 }
 
@@ -97,7 +97,7 @@
 
 .os-status-text {
   color: var(--text-secondary, #9ca3af);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   text-transform: capitalize;
 }
 
@@ -111,13 +111,13 @@
 .os-disk-mount {
   color: var(--text, #e5e7eb);
   font-family: "Fira Code", monospace;
-  font-size: 13px;
+  font-size: var(--text-xs);
   overflow-wrap: anywhere;
 }
 
 .os-disk-meta {
   color: var(--text-secondary, #9ca3af);
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 
 .os-disk-bar {
@@ -158,7 +158,7 @@
   background: #0b0f14;
   color: #d1d5db;
   font-family: "Fira Code", monospace;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -193,13 +193,13 @@
 
 .os-log-file-service {
   color: var(--text, #e5e7eb);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .os-log-file-path {
   color: var(--text-secondary, #9ca3af);
   font-family: "Fira Code", monospace;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }
 
@@ -213,7 +213,7 @@
 .os-empty {
   margin: 0;
   color: var(--text-secondary, #9ca3af);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .os-error {

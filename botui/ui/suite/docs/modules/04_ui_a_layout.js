@@ -85,7 +85,7 @@ function injectEditorStyles() {
     ".toolbar-overflow-btn{position:sticky;right:0;margin-left:auto;flex:0 0 auto;display:none;align-items:center;justify-content:center;width:28px;min-width:28px;height:28px;border:1px solid #334155;border-radius:6px;background:#1e293b;color:#e2e8f0;cursor:pointer;box-shadow:-8px 0 8px -4px #1e293b;z-index:5;}",
     ".toolbar-overflow-btn.visible{display:inline-flex;}",
     ".toolbar-overflow-btn:hover{background:#334155;color:#f8fafc;}",
-    ".toolbar-overflow-menu{position:fixed;z-index:10050;min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:4px;}",
+    ".toolbar-overflow-menu{position:fixed;z-index:var(--z-system);min-width:180px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;padding:6px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:4px;}",
     ".toolbar-overflow-menu[hidden]{display:none;}",
     ".toolbar-overflow-menu .tb-overflow-item{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;}",
     ".toolbar-overflow-menu .tb-overflow-item:hover,.toolbar-overflow-menu .tb-overflow-item:focus{background:#334155;outline:none;}",
@@ -98,7 +98,7 @@ function openPageLayoutModal() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   host.innerHTML = [
-    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;\">",
+    "<div class=\"docs-modal\" style=\"position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);\">",
     "<div style=\"background:#1e293b;border:1px solid #334155;border-radius:12px;width:420px;max-width:90vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:14px;\">",
     "<h3 style=\"margin:0;font-size:16px;\">Page layout</h3>",
     "<label style=\"font-size:13px;\">Paper size<select id=\"pl-size\" style=\"margin-left:8px;padding:4px;\"><option value=\"a4\">A4</option><option value=\"letter\">Letter</option></select></label>",

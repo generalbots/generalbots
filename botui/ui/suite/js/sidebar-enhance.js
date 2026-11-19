@@ -40,14 +40,14 @@
           return parsed.filter(Boolean).slice(0, 16);
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "readPins") : console.error("readPins", e); }
     return DEFAULT_PINS.slice();
   }
 
   function savePins() {
     try {
       localStorage.setItem(PINS_KEY, JSON.stringify(state.pinned));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "savePins") : console.error("savePins", e); }
   }
 
   function findApp(id) {
@@ -81,7 +81,7 @@
           sessionStorage.getItem("gb-access-token") ||
           localStorage.getItem("management_token") ||
           "";
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "authToken") : console.error("authToken", e); }
     }
     return token;
   }

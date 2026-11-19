@@ -19,7 +19,7 @@ dialog.modal[open] {
     max-width: 100vw;
     max-height: 100vh;
     margin: auto;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     padding: 1rem;
 }
 

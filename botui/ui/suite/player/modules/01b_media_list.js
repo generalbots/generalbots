@@ -10,7 +10,7 @@
     let playerBlobUrl = null;
     function revokePlayerBlobUrl() {
         if (playerBlobUrl) {
-            try { URL.revokeObjectURL(playerBlobUrl); } catch (e) {}
+            try { URL.revokeObjectURL(playerBlobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "revokePlayerBlobUrl") : console.error("revokePlayerBlobUrl", e); }
             playerBlobUrl = null;
         }
     }

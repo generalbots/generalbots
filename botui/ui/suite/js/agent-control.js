@@ -110,7 +110,7 @@ const AgentControl = (() => {
     host.id = "gbAgentAskHost";
     host.innerHTML = html;
     host.style.cssText =
-      "position:fixed;top:25%;left:35%;z-index:9999;background:var(--gb-surface,#fff);" +
+      "position:fixed;top:25%;left:35%;z-index:var(--z-system);background:var(--gb-surface,#fff);" +
       "border:1px solid var(--gb-border,#ccc);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.25);" +
       "padding:1rem;min-width:320px;font-family:system-ui,sans-serif";
     document.body.appendChild(host);

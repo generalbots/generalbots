@@ -358,3 +358,14 @@ monitoring-no-recent-incidents = 最近のインシデントはありません
 
 # semantic i18n key (#2542)
 monitoring-system-stable = システムは安定しています
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+plugins-state-empty-title = プラグインがインストールされていません
+plugins-state-empty-desc = プラグインはこのボットにツールとチャネルを追加します。マニフェストをアップロードしてインストールします。
+plugins-state-empty-action = マニフェストをアップロード
+
+# #2328 — plugin upload error states
+plugins-upload-failed = アップロードに失敗しました
+plugins-upload-bad-response = アップロード応答が無効です

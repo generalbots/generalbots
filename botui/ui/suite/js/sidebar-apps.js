@@ -269,7 +269,7 @@ window.GBSidebarApps = window.GBSidebarApps || {};
       body.hidden = !sw.checked;
       try {
         localStorage.setItem(SWITCH_KEY, sw.checked ? "1" : "0");
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "filter") : console.error("filter", e); }
     });
     previewSwitch.addEventListener("change", function () {
       // Persisting calls refreshAppsCatalog(), which re-dispatches

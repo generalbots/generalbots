@@ -213,7 +213,11 @@ function openDriveEditorWindow(winId, fileName, htmlUrl, bucket, path, scope, ct
     fetch(htmlUrl).then(function (r) { return r.text(); }).then(function (html) {
         window.WindowManager._injectBodyContent(winId, html);
         if (typeof afterInject === "function") afterInject();
-    });
+    })
+      .catch(function (fetchError) {
+        window.gbLogError ? gbLogError(fetchError, "openDriveEditorWindow")
+                            : console.error("if", fetchError);
+      });
     return ctx;
 }
 
@@ -283,7 +287,11 @@ async function openFile(path, bucket) {
             fetch(cleanUrl).then(function (r) { return r.text(); }).then(function (html) {
                 var body = document.getElementById("window-body-" + winId);
                 if (body) window.WindowManager._injectBodyContent(winId, html);
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "openFile")
+                                    : console.error("if", fetchError);
+              });
             return;
         }
         // docx/pptx open in the Docs/Slides app window. The shell URL has no

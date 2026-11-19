@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=7" /> <link rel="stylesheet" href="/suite/js/multitasking.css?v=1" />
 <link rel="stylesheet" href="/suite/js/chrome.css?v=1" /> <!-- Local JS requirements per AGENTS.md / UI.md -->
 <script src="/suite/js/boot-budget.js"></script> <script>window.GBBootBudget && window.GBBootBudget.init("desktop");</script>
-<script src="/suite/js/vendor/htmx.min.js"></script> <script src="/suite/js/gb-shared_a.js"></script> <script src="/suite/js/gb-shared_b.js"></script> <script src="/suite/js/gb-icons.js?v=1"></script>
+<script src="/suite/js/vendor/htmx.min.js"></script> <script src="/suite/js/gb-shared_a.js"></script> <script src="/suite/js/gb-shared_b.js"></script> <script src="/suite/js/error-reporter.js?v=2"></script> <script src="/suite/js/gb-icons.js?v=1"></script>
 <script src="/suite/js/i18n.js?v=9"></script> <script src="/suite/js/app-i18n.js?v=1"></script> <script src="/suite/js/i18n-format.js?v=1"></script> <link rel="stylesheet" href="/suite/css/tour.css?v=1" /> <script src="/suite/js/tour.js?v=2"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
 <script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"></script> <script src="/suite/js/security-bootstrap/99_init.js?v=6"></script>
 <script src="/suite/js/vendor/marked.min.js"></script> <script src="/suite/js/window-manager/01_registry.js?v=131"></script>
@@ -39,6 +39,8 @@
 <script src="/suite/js/accessibility.js?v=1"></script> <script src="/suite/js/launcher-apps-prefs.js?v=1"></script> <script src="/suite/js/sidebar-apps.js?v=4"></script> <script src="/suite/js/launcher-apps-manage.js?v=1"></script>
 <script src="/suite/js/sidebar_a_core.js?v=19"></script> <script src="/suite/js/sidebar_b_events.js?v=19"></script> <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
 <link rel="stylesheet" href="/suite/css/mindfulness.css?v=1" /> <script src="/suite/js/app-lifecycle.js?v=1"></script>
+<!-- #2328 — shared loading/empty/error states for every data-dependent region -->
+<script src="/suite/js/gb-states.js?v=1"></script>
 <script src="/suite/js/widget-renderer.js?v=2"></script> <script src="/suite/js/widget-registry.js?v=2"></script>
 <script src="/suite/js/desktop-shortcuts.js?v=2"></script>
 <script src="/suite/js/pinned-launcher.js?v=3"></script> <script src="/suite/js/sidebar-enhance.js?v=5"></script>
@@ -46,6 +48,8 @@
 <script src="/suite/js/mission-control.js?v=1"></script> <script src="/suite/js/alt-tab.js?v=1"></script>
 <script src="/suite/js/taskbar-previews.js?v=1"></script> <script src="/suite/js/gb-toasts.js?v=3"></script> <script src="/suite/js/gb-alerts.js?v=1"></script> <script src="/suite/js/base/03_htmx_errors.js?v=3"></script> <script src="/suite/js/gb-modal.js?v=1"></script>
 <script src="/suite/js/gb-datetime.js?v=3"></script>
+<!-- #2516/#2416 — tiny, phone-critical, must not wait for the deferred batch -->
+<script src="/suite/js/mobile-viewport.js?v=1"></script> <script src="/suite/js/mobile-nav.js?v=1"></script>
 <script src="/suite/js/agent-executor.js?v=1"></script> <link rel="stylesheet" href="/suite/css/agent-control.css?v=1" />
 <script src="/suite/js/agent-control.js?v=1"></script> <script src="/suite/js/proactivity.js?v=4"></script>
 <script src="/suite/js/workspace-tabs.js?v=1"></script> <link rel="stylesheet" href="/suite/desktop-inline/02_base_layout.css">

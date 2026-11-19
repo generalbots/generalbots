@@ -46,7 +46,7 @@
   -webkit-backdrop-filter: var(--shell-blur);
   border-top: 1px solid var(--shell-border);
   pointer-events: auto;
-  z-index: 2000;
+  z-index: var(--z-system);
   box-sizing: border-box;
 }
 
@@ -188,7 +188,7 @@
   outline: none;
   color: var(--text, #e8e8e8);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--text-2xs);
 }
 
 .toolbar-v15 .taskbar-search input::placeholder {
@@ -247,7 +247,7 @@
 .toolbar-v15 .taskbar-clock {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   color: var(--text, #111827);
   text-align: right;
@@ -263,7 +263,7 @@
 }
 
 .toolbar-v15 .taskbar-clock #clock-date {
-  font-size: 8.5px;
+  font-size: var(--text-2xs);
   font-weight: 400;
   color: var(--text-secondary, #6b7280);
   letter-spacing: 0.01em;

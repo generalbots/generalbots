@@ -1,4 +1,4 @@
-.lead-detail-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+.lead-detail-title { margin: 0 0 4px; font-size: var(--text-lg); font-weight: 700; }
 .lead-detail-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
 .lead-detail-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border, #ccc); margin-bottom: 12px; }
 .crm-tab-btn { background: none; border: none; padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; color: var(--text, #222); }
@@ -7,14 +7,14 @@
 .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-muted, #eee); }
 .detail-label { color: var(--text-secondary, #666); }
 .folder-view-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.folder-view-path { font-family: "Fira Code", monospace; font-size: 12px; color: var(--text-secondary, #555); word-break: break-all; }
+.folder-view-path { font-family: "Fira Code", monospace; font-size: var(--text-2xs); color: var(--text-secondary, #555); word-break: break-all; }
 .folder-view-list ul.folder-view-items { list-style: none; margin: 0; padding: 0; }
 .folder-view-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 4px; }
 .folder-view-item:hover { background: var(--surface-hover, #f3f4f6); }
 .folder-view-icon { width: 20px; text-align: center; }
-.folder-view-name { flex: 1; font-size: 13px; }
-.folder-view-size { font-size: 11px; color: var(--text-secondary, #777); }
-.folder-view-loading, .folder-view-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 12px 0; }
+.folder-view-name { flex: 1; font-size: var(--text-xs); }
+.folder-view-size { font-size: var(--text-2xs); color: var(--text-secondary, #777); }
+.folder-view-loading, .folder-view-empty { color: var(--text-secondary, #777); font-size: var(--text-xs); padding: 12px 0; }
 
 /* ── #1441 P2 — bulk bar, checkboxes, CSV feedback, audit drawer ───────── */
 .crm-bulk-bar {
@@ -28,7 +28,7 @@
     background: var(--surface, #fff);
     flex-wrap: wrap;
 }
-.crm-bulk-count { font-size: 12px; color: var(--text-secondary, #666); min-width: 72px; }
+.crm-bulk-count { font-size: var(--text-2xs); color: var(--text-secondary, #666); min-width: 72px; }
 .crm-bulk-bar select {
     padding: 4px 8px;
     border: 1px solid var(--border-color, #e5e7eb);
@@ -36,7 +36,7 @@
     background: var(--surface, #fff);
     color: var(--text-primary, #111);
 }
-.crm-bulk-result { font-size: 12px; color: var(--text-secondary, #666); }
+.crm-bulk-result { font-size: var(--text-2xs); color: var(--text-secondary, #666); }
 .btn-danger {
     background: #dc2626;
     color: #fff;
@@ -67,7 +67,7 @@
     border-left: 1px solid var(--border-color, #e5e7eb);
     box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
     transition: right .25s ease;
-    z-index: 1200;
+    z-index: var(--z-modal-backdrop);
     display: flex;
     flex-direction: column;
 }
@@ -83,7 +83,7 @@
 .crm-audit-head button {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: var(--text-xl);
     cursor: pointer;
     color: var(--text-secondary, #666);
     line-height: 1;
@@ -96,10 +96,10 @@
     border-bottom: 1px solid var(--border-color, #f0f0f0);
     gap: 2px;
 }
-.crm-audit-when { font-size: 11px; color: var(--text-secondary, #888); }
-.crm-audit-action { font-size: 13px; font-weight: 500; word-break: break-all; }
-.crm-audit-actor { font-size: 12px; color: var(--text-secondary, #666); }
-.crm-audit-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 16px 0; }
+.crm-audit-when { font-size: var(--text-2xs); color: var(--text-secondary, #888); }
+.crm-audit-action { font-size: var(--text-xs); font-weight: 500; word-break: break-all; }
+.crm-audit-actor { font-size: var(--text-2xs); color: var(--text-secondary, #666); }
+.crm-audit-empty { color: var(--text-secondary, #777); font-size: var(--text-xs); padding: 16px 0; }
 
 /* ── #1449 — detail drawer (shared with audit drawer styling) ─────────── */
 .crm-detail-panel.open { right: 0; }
@@ -113,14 +113,14 @@
 .crm-detail-head button {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: var(--text-xl);
     cursor: pointer;
     color: var(--text-secondary, #666);
     line-height: 1;
 }
 .crm-detail-body { padding: 12px 16px; overflow-y: auto; }
-.crm-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 13px; }
-.crm-detail-label { font-size: 11px; color: var(--text-secondary, #888); display: inline-block; min-width: 54px; }
+.crm-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: var(--text-xs); }
+.crm-detail-label { font-size: var(--text-2xs); color: var(--text-secondary, #888); display: inline-block; min-width: 54px; }
 .crm-detail-actions {
     display: flex;
     gap: 8px;
@@ -151,7 +151,7 @@
     color: var(--text-primary, #111);
 }
 .pager-btn:hover { background: var(--surface-hover, #f3f4f6); }
-.pager-label { margin: 0 12px; font-size: 12px; color: var(--text-secondary, #666); }
+.pager-label { margin: 0 12px; font-size: var(--text-2xs); color: var(--text-secondary, #666); }
 
 /* ── #1455 — stage admin editor ─────────────────────────────────────── */
 .stage-toolbar {
@@ -163,7 +163,7 @@
 }
 
 .stage-admin-result {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--gb-accent, #3b82f6);
     min-height: 14px;
 }
@@ -184,7 +184,7 @@
     border-radius: 4px;
     color: inherit;
     cursor: pointer;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1;
     opacity: 0.55;
     padding: 2px 4px;

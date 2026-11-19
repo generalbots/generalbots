@@ -38,7 +38,7 @@
         (window.GBSecurity && typeof window.GBSecurity.getToken === "function" ? window.GBSecurity.getToken() : "") ||
         (window.GBAuthGuard && typeof window.GBAuthGuard.getToken === "function" ? window.GBAuthGuard.getToken() : "");
       if (token) headers.Authorization = "Bearer " + token;
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "authHeaders") : console.error("authHeaders", _); }
     return headers;
   }
 
@@ -56,14 +56,14 @@
 
   function revokeUrlFor(path) {
     if (objectUrls.has(path)) {
-      try { URL.revokeObjectURL(objectUrls.get(path)); } catch (_) {}
+      try { URL.revokeObjectURL(objectUrls.get(path)); } catch (_) { window.gbLogError ? gbLogError(_, "revokeUrlFor") : console.error("revokeUrlFor", _); }
       objectUrls.delete(path);
     }
   }
 
   function clearObjectUrls() {
     objectUrls.forEach(function (u) {
-      try { URL.revokeObjectURL(u); } catch (_) {}
+      try { URL.revokeObjectURL(u); } catch (_) { window.gbLogError ? gbLogError(_, "clearObjectUrls") : console.error("clearObjectUrls", _); }
     });
     objectUrls.clear();
   }
@@ -167,7 +167,7 @@
 
   function teardownObserver() {
     if (observer) {
-      try { observer.disconnect(); } catch (_) {}
+      try { observer.disconnect(); } catch (_) { window.gbLogError ? gbLogError(_, "teardownObserver") : console.error("teardownObserver", _); }
       observer = null;
     }
   }
@@ -340,7 +340,7 @@
         const lbEl = document.getElementById("photosLightbox");
         const img = document.getElementById("photosLbImg");
         if (img && img.dataset.tempUrl) {
-          try { URL.revokeObjectURL(img.dataset.tempUrl); } catch (_) {}
+          try { URL.revokeObjectURL(img.dataset.tempUrl); } catch (_) { window.gbLogError ? gbLogError(_, "bootPhotos") : console.error("bootPhotos", _); }
           delete img.dataset.tempUrl;
           img.removeAttribute("src");
         }
@@ -354,7 +354,7 @@
         if (e.target === lb) {
           const img = document.getElementById("photosLbImg");
           if (img && img.dataset.tempUrl) {
-            try { URL.revokeObjectURL(img.dataset.tempUrl); } catch (_) {}
+            try { URL.revokeObjectURL(img.dataset.tempUrl); } catch (_) { window.gbLogError ? gbLogError(_, "bootPhotos") : console.error("bootPhotos", _); }
             delete img.dataset.tempUrl;
             img.removeAttribute("src");
           }

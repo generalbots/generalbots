@@ -5,7 +5,7 @@
 }
 
 .start-menu-section-title {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -63,7 +63,7 @@
 }
 
 .start-menu-app-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     color: var(--text, #ddd);
     text-align: center;
@@ -100,13 +100,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: #000;
 }
 
 .start-menu-user-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text, #ddd);
 }
@@ -132,7 +132,7 @@
     text-align: center;
     padding: 32px 16px;
     color: var(--text-secondary, #777);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* ============================================ */
@@ -192,7 +192,7 @@
     border-right: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
     display: flex;
     flex-direction: column;
-    z-index: 100;
+    z-index: var(--z-sticky);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     flex-shrink: 0;
@@ -257,7 +257,7 @@ body.sidebar-hidden .chat-sidebar {
 }
 
 .chat-sidebar-title {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 700;
     color: var(--text, #eee);
     display: flex;
@@ -328,7 +328,7 @@ body.sidebar-hidden .chat-sidebar {
 }
 
 .chat-sidebar-conv-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text, #eee);
     white-space: nowrap;
@@ -337,7 +337,7 @@ body.sidebar-hidden .chat-sidebar {
 }
 
 .chat-sidebar-conv-preview {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #777);
     white-space: nowrap;
     overflow: hidden;
@@ -346,7 +346,7 @@ body.sidebar-hidden .chat-sidebar {
 }
 
 .chat-sidebar-conv-time {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #666);
     flex-shrink: 0;
 }
@@ -362,7 +362,7 @@ body.sidebar-hidden .chat-sidebar {
     gap: 8px;
     cursor: pointer;
     color: var(--text-secondary, #888);
-    font-size: 13px;
+    font-size: var(--text-xs);
     transition: all 0.2s;
 }
 

@@ -22,7 +22,7 @@
   border: 1px solid var(--gb-border, var(--b-border, #cbd5e1));
   padding: 6px 10px;
   min-width: 60px;
-  font-size: 15px;
+  font-size: var(--text-md);
   vertical-align: top;
   outline: none;
 }
@@ -93,7 +93,7 @@
 /* ---- Contextual toolbar ---- */
 #gb-docs-tbl-toolbar {
   position: fixed;
-  z-index: 100050;
+  z-index: var(--z-overlay);
   display: none;
   align-items: center;
   flex-wrap: wrap;
@@ -127,7 +127,7 @@
   border-radius: 6px;
   background: transparent;
   color: inherit;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 #gb-docs-tbl-toolbar button:hover,
@@ -143,7 +143,7 @@
 #gb-docs-tbl-toolbar .gb-dtbl-status {
   flex-basis: 100%;
   min-height: 14px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--gb-muted, #94a3b8);
   padding: 2px 4px 0;
 }
@@ -153,7 +153,7 @@
 .gb-dtbl-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100060;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -174,8 +174,8 @@
   flex-direction: column;
   gap: 12px;
 }
-.gb-dtbl-dialog h3 { margin: 0; font-size: 16px; }
-.gb-dtbl-dialog label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--gb-muted, #94a3b8); }
+.gb-dtbl-dialog h3 { margin: 0; font-size: var(--text-md) }
+.gb-dtbl-dialog label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-2xs); color: var(--gb-muted, #94a3b8); }
 .gb-dtbl-dialog textarea,
 .gb-dtbl-dialog input[type="text"],
 .gb-dtbl-dialog input[type="number"],
@@ -188,7 +188,7 @@
   background: var(--gb-bg, #0f172a);
   color: inherit;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-xs)
 }
 .gb-dtbl-dialog textarea { min-height: 130px; resize: vertical; font-family: monospace; }
 .gb-dtbl-dialog .gb-dtbl-actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -198,7 +198,7 @@
   border-radius: 6px;
   background: var(--gb-border, #334155);
   color: inherit;
-  font-size: 13px;
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 .gb-dtbl-dialog button.gb-dtbl-primary {
@@ -211,7 +211,7 @@
 .gb-dtbl-style-list button { text-align: left; }
 .gb-dtbl-style-list button[aria-pressed="true"] { border-color: var(--gb-accent, #2563eb); }
 
-.gb-dtbl-results { display: flex; flex-direction: column; gap: 6px; min-height: 60px; font-size: 13px; }
+.gb-dtbl-results { display: flex; flex-direction: column; gap: 6px; min-height: 60px; font-size: var(--text-xs) }
 .gb-dtbl-result {
   display: flex;
   align-items: center;
@@ -223,4 +223,4 @@
 }
 .gb-dtbl-result .gb-dtbl-issue { flex: 1; }
 .gb-dtbl-result button { padding: 4px 10px; }
-.gb-dtbl-status-line { min-height: 18px; font-size: 12px; color: var(--gb-muted, #94a3b8); }
+.gb-dtbl-status-line { min-height: 18px; font-size: var(--text-2xs); color: var(--gb-muted, #94a3b8); }

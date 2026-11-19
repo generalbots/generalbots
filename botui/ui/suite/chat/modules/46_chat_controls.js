@@ -55,7 +55,7 @@
           if (window.ChatWebSearch && typeof window.ChatWebSearch.isEnabled === "function") {
             webDefault = !!window.ChatWebSearch.isEnabled();
           }
-        } catch (e2) {}
+        } catch (e2) { window.gbLogError ? gbLogError(e2, "read") : console.error("read", e2); }
         return Object.assign({}, DEFAULTS, { web: webDefault });
       }
       var parsed = JSON.parse(raw);
@@ -77,7 +77,7 @@
   }
 
   function write(state) {
-    try { localStorage.setItem(storageKey(), JSON.stringify(state)); } catch (e) {}
+    try { localStorage.setItem(storageKey(), JSON.stringify(state)); } catch (e) { window.gbLogError ? gbLogError(e, "write") : console.error("write", e); }
   }
 
   var state = read();
@@ -90,7 +90,7 @@
           window.ChatWebSearch.setEnabled(state.web);
         }
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "syncWebToggle") : console.error("syncWebToggle", e); }
   }
 
   function getState() {
@@ -99,7 +99,7 @@
       if (window.ChatWebSearch && typeof window.ChatWebSearch.isEnabled === "function") {
         state.web = !!window.ChatWebSearch.isEnabled();
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "getState") : console.error("getState", e); }
     var agent = !!state.agent;
     var wanted = state.appAutomationWanted !== undefined
       ? !!state.appAutomationWanted

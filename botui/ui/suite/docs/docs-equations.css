@@ -3,7 +3,7 @@
 .gb-deq-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,7 +28,7 @@
 
 .gb-deq-title {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -50,13 +50,13 @@
 
 .gb-deq-section-title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: #94a3b8;
 }
 
 .gb-deq-field-label {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #cbd5e1;
 }
 
@@ -99,7 +99,7 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #cbd5e1;
 }
 
@@ -111,7 +111,7 @@
   border: 1px solid #cbd5e1;
   border-radius: 5px;
   color: #0f172a;
-  font-size: 17px;
+  font-size: var(--text-lg)
 }
 
 .gb-deq-preview math {
@@ -135,12 +135,12 @@
   border: 1px solid #475569;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-xs)
 }
 
 .gb-deq-symbol {
   min-width: 34px;
-  font-size: 17px;
+  font-size: var(--text-lg)
 }
 
 .gb-deq-symbol:hover,
@@ -162,7 +162,7 @@
 
 .gb-deq-status {
   min-height: 16px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #93c5fd;
 }
 
@@ -204,14 +204,14 @@
   flex: 1;
   overflow: hidden;
   font-family: "Courier New", ui-monospace, monospace;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gb-deq-row-btn {
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--text-2xs)
 }
 
 .gb-deq-danger {
@@ -221,7 +221,7 @@
 
 .gb-deq-empty {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #94a3b8;
 }
 

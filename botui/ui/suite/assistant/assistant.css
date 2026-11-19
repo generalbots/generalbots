@@ -30,7 +30,7 @@ body {
 /* Geometric pattern: accent colour through an alpha mask.
    The pattern layer sits on .gb-main so it does not cover the sidebar. */
 .gb-main::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: var(--z-base); pointer-events: none;
     background: linear-gradient(135deg, var(--id-accent-soft), var(--id-accent-light) 50%, var(--id-accent-soft));
     background-size: 200% 200%;
     -webkit-mask: url("/suite/assistant/pattern.png") center / cover no-repeat;
@@ -49,7 +49,7 @@ body {
    short 80px fade each side, ~88% paper so pattern breathes through.
    Uses the paper colour at 88% alpha via a custom property set by accent.js. */
 .gb-main::after {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: var(--z-base); pointer-events: none;
     background: linear-gradient(90deg,
         transparent 0,
         transparent calc(50% - 484px),
@@ -402,7 +402,7 @@ body {
 @media (max-width: 960px) {
     .gb-sidebar {
         position: fixed;
-        z-index: 100;
+        z-index: var(--z-sticky);
         height: calc(100vh - 36px);
         top: 36px;
     }

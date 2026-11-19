@@ -303,7 +303,7 @@
     background: var(--surface);
     border-left: 1px solid var(--border);
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
-    z-index: 200;
+    z-index: var(--z-header);
     transition: right 0.3s ease;
     display: flex;
     flex-direction: column;

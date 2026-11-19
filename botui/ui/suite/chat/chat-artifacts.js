@@ -342,7 +342,7 @@ function openArtifactPanel(content, sourceEl) {
         (window.GBSecurity && window.GBSecurity.getToken && window.GBSecurity.getToken()) ||
         sessionStorage.getItem("gb-access-token") ||
         "";
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "saveInternalArtifact") : console.error("saveInternalArtifact", e); }
     // #1548: save directly, without depending on the Drive app having been
     // opened first (DriveModule/apiRequest were only defined after that).
     return fetch("/api/files/write", {

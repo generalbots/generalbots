@@ -37,7 +37,7 @@ dialog.modal[open] {
     padding: 20px 16px;
     border-bottom: 1px solid var(--border);
     font-weight: 600;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .admin-header svg {
@@ -87,7 +87,7 @@ dialog.modal[open] {
     gap: 8px;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--text-sm);
     transition: color 0.2s;
 }
 
@@ -112,7 +112,7 @@ dialog.modal[open] {
 }
 
 .page-header h1 {
-    font-size: 28px;
+    font-size: var(--text-2xl);
     font-weight: 700;
     margin: 0 0 8px 0;
 }
@@ -172,13 +172,13 @@ dialog.modal[open] {
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: var(--text-2xl);
     font-weight: 700;
     line-height: 1;
 }
 
 .stat-label {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-secondary);
     margin-top: 4px;
 }
@@ -189,7 +189,7 @@ dialog.modal[open] {
 }
 
 .section h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0 0 16px 0;
 }
@@ -226,7 +226,7 @@ dialog.modal[open] {
 }
 
 .action-card span {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 @media (prefers-reduced-motion: reduce) {

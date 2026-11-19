@@ -12,6 +12,8 @@
         const getAvatarColor = scope.getAvatarColor;
 
         async function loadContacts() {
+            const host = document.getElementById("contacts-list");
+            if (host && window.gbStates) window.gbStates.skeleton(host, "list");
             try {
                 const params = new URLSearchParams();
                 if (state.filters.name) params.set("search", state.filters.name);
@@ -23,8 +25,27 @@
             } catch (error) {
                 console.error("Failed to load contacts:", error);
                 state.contacts = [];
-                renderEmptyState();
+                renderContactsError();
             }
+        }
+
+        /* #2328 — a failed request must not look like "no contacts yet":
+         * that hides the outage and offers the wrong action. */
+        function renderContactsError() {
+            const container = document.getElementById("contacts-list");
+            if (!container) return;
+            if (window.gbStates) {
+                window.gbStates.error(container, {
+                    errorTitleKey: "people-load-error-title",
+                    errorTitleFallback: "Contacts could not be loaded",
+                    errorDescKey: "people-load-error-desc",
+                    errorDescFallback: "The contacts service did not answer. Check your connection and try again.",
+                    shape: "list",
+                    retry: loadContacts,
+                });
+                return;
+            }
+            container.innerHTML = "";
         }
 
 

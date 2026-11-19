@@ -8,7 +8,7 @@
 }
 
 .gantt-timeline-header .tl-label {
-    font-size: 0.625rem;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
@@ -74,7 +74,7 @@
     padding: 0.625rem 0.875rem;
     background: hsl(var(--card));
     color: var(--text-muted);
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     border-bottom: 1px solid var(--border-color);
@@ -105,7 +105,7 @@
     gap: 0.25rem;
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: capitalize;
     border: 1px solid transparent;
@@ -283,7 +283,7 @@
 
 .td-grid label {
     display: block;
-    font-size: 0.625rem;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     color: var(--text-muted);
     margin-bottom: 0.125rem;
@@ -341,7 +341,7 @@
 
 .dep-type,
 .dep-lag {
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     white-space: nowrap;
 }

@@ -21,7 +21,7 @@
     skip.href = target ? "#desktop-content" : "#messages";
     skip.tabIndex = 0;
     skip.textContent = t("a11y-skip-to-content", "Skip to main content");
-    skip.style.cssText = "position:fixed;top:-100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:#fff;padding:10px 20px;border-radius:0 0 8px 8px;z-index:999999;font-size:14px;font-weight:600;transition:top 0.2s;";
+    skip.style.cssText = "position:fixed;top:-100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:#fff;padding:10px 20px;border-radius:0 0 8px 8px;z-index:var(--z-blocker);font-size:14px;font-weight:600;transition:top 0.2s;";
     skip.addEventListener("focus", function () { skip.style.top = "0"; });
     skip.addEventListener("blur", function () { skip.style.top = "-100px"; });
     document.body.insertBefore(skip, document.body.firstChild);
@@ -99,7 +99,7 @@
     if (modal) { modal.remove(); return; }
     modal = document.createElement("div");
     modal.id = "keyboard-help-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-blocker);backdrop-filter:blur(8px);";
 
     var shortcuts = [
       ["/", t("a11y-shortcut-focus-chat", "Focus chat input")],

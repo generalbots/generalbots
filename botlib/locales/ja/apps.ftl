@@ -1272,3 +1272,10 @@ calculator-swap-units = 単位を入れ替え
 calculator-aria-amount = 数量
 calculator-aria-from-unit = 変換元の単位
 calculator-aria-to-unit = 変換先の単位
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = まだメモがありません
+notes-empty-desc = 付箋は削除するまでボードに残ります。思いついたうちに記録しましょう。
+notes-empty-action = 最初のメモを作成

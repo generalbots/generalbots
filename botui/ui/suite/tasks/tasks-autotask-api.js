@@ -108,6 +108,10 @@
           .then(function (r) { return r.text(); })
           .then(function (html) {
             window.WindowManager._injectBodyContent("editor-" + ts, html);
+          })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "editItemSource")
+                                : console.error("if", fetchError);
           });
       })
       .catch(function () {

@@ -22,6 +22,7 @@ pub mod settings_profile;
 pub mod settings_ui;
 pub mod settings_usage;
 pub mod settings_webhooks;
+pub mod timezone;
 pub mod webhook_delivery;
 
 use axum::{

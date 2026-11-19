@@ -71,7 +71,7 @@ function toggleUserAttachmentPreview(chip, name) {
   if (existing && existing.classList && existing.classList.contains("gb-user-preview")) {
     var existingUrl = existing.dataset.blobUrl;
     if (existingUrl) {
-      try { URL.revokeObjectURL(existingUrl); } catch (e) {}
+      try { URL.revokeObjectURL(existingUrl); } catch (e) { window.gbLogError ? gbLogError(e, "toggleUserAttachmentPreview") : console.error("toggleUserAttachmentPreview", e); }
     }
     existing.remove();
     return;
@@ -115,7 +115,7 @@ function toggleUserAttachmentPreview(chip, name) {
     if (window.GBArtifactOverlay) window.GBArtifactOverlay.close(box);
     var blobUrl = box.dataset.blobUrl;
     if (blobUrl) {
-      try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+      try { URL.revokeObjectURL(blobUrl); } catch (e) { window.gbLogError ? gbLogError(e, "toggleUserAttachmentPreview") : console.error("toggleUserAttachmentPreview", e); }
     }
     box.remove();
   });

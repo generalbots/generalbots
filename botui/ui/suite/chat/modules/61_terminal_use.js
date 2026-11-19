@@ -268,7 +268,7 @@
     if (existing) { existing.remove(); return; }
     var overlay = document.createElement("div");
     overlay.id = "gb-terminal-audit";
-    overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:var(--z-system);display:flex;align-items:center;justify-content:center;";
     var panel = document.createElement("div");
     panel.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:760px;max-height:80vh;overflow:auto;padding:20px;color:#e2e8f0;font:13px system-ui;";
     panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +

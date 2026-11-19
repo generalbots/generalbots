@@ -41,7 +41,7 @@
       timestamp: Date.now(),
     });
     if (actionLog.length > MAX_LOG) actionLog = actionLog.slice(0, MAX_LOG);
-    try { localStorage.setItem("gb_sandbox_log", JSON.stringify(actionLog.slice(0, 50))); } catch (e) {}
+    try { localStorage.setItem("gb_sandbox_log", JSON.stringify(actionLog.slice(0, 50))); } catch (e) { window.gbLogError ? gbLogError(e, "logAction") : console.error("logAction", e); }
   }
 
   function loadLog() {
@@ -64,7 +64,7 @@
     if (panel) panel.remove();
     panel = document.createElement("div");
     panel.id = "gb-sandbox-panel";
-    panel.style.cssText = "position:fixed;top:0;right:0;width:380px;height:100vh;background:#1e293b;border-left:1px solid #334155;z-index:95000;display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.3);";
+    panel.style.cssText = "position:fixed;top:0;right:0;width:380px;height:100vh;background:#1e293b;border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.3);";
 
     var header = '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:14px;">Sandbox — Pending Approvals</h3><button onclick="document.getElementById(\'gb-sandbox-panel\').remove()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">×</button></div>';
 

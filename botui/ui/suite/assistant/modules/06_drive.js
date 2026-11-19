@@ -56,10 +56,11 @@
             if (isNaN(d.getTime())) return "";
             var now = new Date();
             var sameYear = d.getFullYear() === now.getFullYear();
-            var opts = sameYear
-                ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }
-                : { day: "numeric", month: "short", year: "numeric" };
-            return d.toLocaleDateString(A.locale || "pt-BR", opts);
+            // #2329 — the suite's date/time preference decides the shape, not
+            // the browser's ambient locale.
+            if (sameYear && window.gbFormatDateTime) return window.gbFormatDateTime(d);
+            if (window.gbFormatDate) return window.gbFormatDate(d);
+            return "";
         } catch (e) { return ""; }
     };
 

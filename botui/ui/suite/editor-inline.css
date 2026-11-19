@@ -25,16 +25,16 @@ html, body { height: 100%; margin: 0; padding: 0; }
             }
 
             .editor-title-icon {
-                font-size: 24px;
+                font-size: var(--text-2xl);
             }
 
             .editor-title-text {
-                font-size: 16px;
+                font-size: var(--text-md);
                 font-weight: 600;
             }
 
             .editor-path {
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 color: var(--text-secondary, #94a3b8);
             }
 
@@ -66,7 +66,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 padding: 8px 14px;
                 border: none;
                 border-radius: 6px;
-                font-size: 13px;
+                font-size: var(--text-xs);
                 font-weight: 500;
                 cursor: pointer;
                 transition: all 0.2s;
@@ -108,7 +108,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 border: 1px solid var(--border, #334155);
                 border-radius: 12px;
                 box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-                z-index: 1000;
+                z-index: var(--z-dropdown);
                 display: none;
                 flex-direction: column;
                 overflow: hidden;
@@ -128,7 +128,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
             }
 
             .magic-header h3 {
-                font-size: 14px;
+                font-size: var(--text-sm);
                 font-weight: 600;
                 display: flex;
                 align-items: center;
@@ -140,7 +140,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 border: none;
                 color: var(--text-secondary, #94a3b8);
                 cursor: pointer;
-                font-size: 18px;
+                font-size: var(--text-lg);
             }
 
             .magic-content {
@@ -164,7 +164,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .magic-result pre {
                 font-family: monospace;
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 white-space: pre-wrap;
                 overflow-x: auto;
             }
@@ -181,7 +181,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
 
             .btn-small {
                 padding: 6px 10px;
-                font-size: 12px;
+                font-size: var(--text-2xs);
             }
 
             .editor-content {
@@ -209,7 +209,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 text-align: right;
                 user-select: none;
                 font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "DejaVu Sans Mono", "Ubuntu Mono", monospace;
-                font-size: 13px;
+                font-size: var(--text-xs);
                 line-height: 1.6;
                 color: var(--text-secondary, #94a3b8);
             }
@@ -221,7 +221,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 border: none;
                 padding: 16px;
                 font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "DejaVu Sans Mono", "Ubuntu Mono", monospace;
-                font-size: 13px;
+                font-size: var(--text-xs);
                 line-height: 1.6;
                 resize: none;
                 outline: none;
@@ -239,7 +239,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
             .csv-table {
                 width: 100%;
                 border-collapse: collapse;
-                font-size: 13px;
+                font-size: var(--text-xs);
             }
 
             .csv-table th,
@@ -261,7 +261,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 color: var(--text-secondary, #94a3b8);
                 text-align: center;
                 padding: 8px 4px;
-                font-size: 12px;
+                font-size: var(--text-2xs);
             }
 
             .csv-input {
@@ -270,7 +270,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 border: none;
                 color: var(--text, #f8fafc);
                 padding: 8px 12px;
-                font-size: 13px;
+                font-size: var(--text-xs);
                 outline: none;
             }
 
@@ -285,7 +285,7 @@ html, body { height: 100%; margin: 0; padding: 0; }
                 padding: 6px 16px;
                 background: var(--surface, #1e293b);
                 border-top: 1px solid var(--border, #334155);
-                font-size: 12px;
+                font-size: var(--text-2xs);
                 color: var(--text-secondary, #94a3b8);
             }
 

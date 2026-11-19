@@ -108,9 +108,9 @@
         if (cellEl) {
           highlightFlash(cellEl);
           pulseClick();
-          try { cellEl.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); } catch (e) {}
-          try { cellEl.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); } catch (e) {}
-          try { cellEl.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e) {}
+          try { cellEl.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); } catch (e) { window.gbLogError ? gbLogError(e, "runCellStep") : console.error("runCellStep", e); }
+          try { cellEl.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); } catch (e) { window.gbLogError ? gbLogError(e, "runCellStep") : console.error("runCellStep", e); }
+          try { cellEl.dispatchEvent(new MouseEvent("click", { bubbles: true })); } catch (e) { window.gbLogError ? gbLogError(e, "runCellStep") : console.error("runCellStep", e); }
         }
         setTimeout(function () {
           var formula = document.getElementById("formulaInput");

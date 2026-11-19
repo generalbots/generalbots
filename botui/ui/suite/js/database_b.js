@@ -43,7 +43,7 @@ Object.assign(DB, {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'dbInsertTitle');
-        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:1000;';
+        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:var(--z-dropdown);';
         modal.innerHTML = '<div class="botcoder-modal-content" style="background:#fff;color:#111;border-radius:8px;padding:16px;width:min(720px,92vw);max-height:80vh;overflow:auto;">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">' +
             '<h3 id="dbInsertTitle" style="margin:0;" data-i18n="db-insert-row"></h3>' +

@@ -41,7 +41,7 @@
             }
             M.state = { files: [], current: null, savedContent: null, dirty: false, expandedFolders: {} };
             if (M.monacoInstance) {
-                try { M.monacoInstance.dispose(); } catch (ignore) { }
+                try { M.monacoInstance.dispose(); } catch (ignore) { window.gbLogError ? gbLogError(ignore, "teardown") : console.error("teardown", ignore); }
                 M.monacoInstance = null;
             }
             if (M.textarea) M.textarea.value = "";

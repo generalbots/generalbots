@@ -85,7 +85,7 @@
     visibility: hidden;
     transform: translateY(-10px);
     transition: all 0.2s ease;
-    z-index: 1100;
+    z-index: var(--z-popover);
 }
 
 .settings-panel.show {
@@ -95,7 +95,7 @@
 }
 
 .settings-panel-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888888);
     text-transform: uppercase;
@@ -112,7 +112,7 @@
     border-top: 1px solid var(--border, #2a2a2a);
     color: var(--text-primary, #ffffff);
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     border-radius: 8px;
     transition: background 0.2s ease;
@@ -170,7 +170,7 @@
 }
 
 .settings-shortcut-desc {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
@@ -385,6 +385,26 @@
 .skeleton-card {
     height: 120px;
     border-radius: 8px;
+}
+
+/* #2328 — loading shapes emitted by js/gb-states.js. The animated bars
+   reuse .skeleton above; these rules only give the wrapper its layout. */
+.gb-states-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.gb-states-skeleton-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.gb-states-skeleton-row .skeleton-text {
+    width: 100%;
 }
 
 @keyframes skeleton-loading {

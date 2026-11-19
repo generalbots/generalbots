@@ -147,7 +147,7 @@ module.exports = [
       await page.evaluate(activateStep(1));
       await page.waitForTimeout(300);
       const before = await page.evaluate(() => WindowManager.openWindows.length);
-      await page.evaluate(() => { try { WindowManager.openDeepLink("designer", {}); } catch(e){} });
+      await page.evaluate(() => { try { WindowManager.openDeepLink("designer", {}); } catch (e) { window.gbLogError ? gbLogError(e, "js") : console.error("js", e); } });
       await page.evaluate(completeStep(1, true));
       await page.waitForTimeout(W);
 

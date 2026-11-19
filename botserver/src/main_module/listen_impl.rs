@@ -39,7 +39,22 @@ pub(crate) async fn listen(app: Router, port: u16, no_security: bool) -> std::io
         host.trim(),
         "" | "127.0.0.1" | "localhost" | "::1" | "[::1]"
     );
-    let ip = if no_security || (desktop_edition && host_is_default) {
+    // #2477 — the General Bots OS appliance is a laptop on café Wi-Fi. Shell
+    // mode used to publish the login form, the API and the suite on every
+    // interface because the product is not `no_security`; the bind address now
+    // follows the same rule as the desktop edition and stays on loopback
+    // unless the operator sets BOTSERVER_HOST explicitly *and* opts in with
+    // GB_ALLOW_LAN=1 (an environment flag, off by default; the image's
+    // nftables `gb_lan_allowed` set is the matching host-side gate — no
+    // Settings switch exists yet).
+    let lan_opt_in = std::env::var("GB_ALLOW_LAN")
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let shell_edition = botcore::product::is_shell_mode();
+    let ip = if no_security
+        || ((desktop_edition || shell_edition) && host_is_default)
+        || (shell_edition && !lan_opt_in)
+    {
         std::net::IpAddr::from([127, 0, 0, 1])
     } else {
         std::net::IpAddr::from([0, 0, 0, 0])

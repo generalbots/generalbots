@@ -196,3 +196,20 @@ mail-placeholder-imap-server = imap.beispiel.de
 mail-placeholder-smtp-server = smtp.beispiel.de
 mail-placeholder-username-or-email = Benutzername oder E-Mail
 mail-placeholder-password = ••••••••
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+mail-state-empty-title = Dieser Ordner ist leer
+mail-state-empty-desc = Neue Nachrichten kommen hier an. Schreiben Sie selbst eine, wenn Sie das Gespräch beginnen möchten.
+mail-state-empty-action = Nachricht schreiben
+mail-state-loading = E-Mails werden geladen…
+mail-templates-empty-title = Noch keine Vorlagen
+mail-templates-empty-desc = Eine Vorlage speichert Betreff und Text, die Sie oft senden, damit Sie sie nie neu tippen.
+mail-templates-empty-action = Vorlage erstellen
+mail-signatures-empty-title = Noch keine Signaturen
+mail-signatures-empty-desc = Eine Signatur wird an Ihre Nachrichten angehängt. Name, Funktion und Kontaktdaten einmal eintragen.
+mail-signatures-empty-action = Signatur erstellen
+mail-rules-empty-title = Noch keine Regeln
+mail-rules-empty-desc = Eine Regel sortiert, markiert oder löscht eingehende Mail automatisch, etwa alles von einem Absender.
+mail-rules-empty-action = Regel erstellen

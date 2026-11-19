@@ -22,7 +22,7 @@
         color: var(--text-secondary, #888);
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 500;
     }
 
@@ -38,7 +38,7 @@
     }
 
     .tab-icon {
-        font-size: 16px;
+        font-size: var(--text-md);
     }
 
     .report-panel {
@@ -50,7 +50,7 @@
     }
 
     .report-section-title {
-        font-size: 18px;
+        font-size: var(--text-lg);
         font-weight: 600;
         color: var(--text, #fff);
         margin-bottom: 20px;

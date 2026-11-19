@@ -30,7 +30,7 @@
     if (document.getElementById(CSS_ID)) return;
     var css = [
       "#gb-versions-panel{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;",
-      "background:#0f172a;border-left:1px solid #334155;z-index:100000;display:flex;flex-direction:column;",
+      "background:#0f172a;border-left:1px solid #334155;z-index:var(--z-blocker);display:flex;flex-direction:column;",
       "box-shadow:-8px 0 24px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .2s ease;",
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}",
       "#gb-versions-panel.gbv-open{transform:translateX(0);}",

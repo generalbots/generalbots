@@ -68,7 +68,7 @@ body:has(.tasks-app) {
     border-radius: 20px;
     color: var(--text-secondary, #a1a1a1);
     font-family: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -84,14 +84,14 @@ body:has(.tasks-app) {
 }
 
 .filter-pill .pill-icon {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .filter-pill .pill-count {
     padding: 2px 8px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 
@@ -105,7 +105,7 @@ body:has(.tasks-app) {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .time-saved-badge .time-label {
@@ -142,7 +142,7 @@ body:has(.tasks-app) {
     border-radius: 10px;
     color: var(--text, #fff);
     font-family: inherit;
-    font-size: 15px;
+    font-size: var(--text-md);
     transition: all 0.2s ease;
 }
 
@@ -167,7 +167,7 @@ body:has(.tasks-app) {
     border-radius: 10px;
     color: var(--text, #fff) !important;
     font-family: inherit;
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -228,7 +228,7 @@ body:has(.tasks-app) {
 }
 
 .intent-result .result-message {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #fff);
     margin-bottom: 12px;
 }
@@ -243,7 +243,7 @@ body:has(.tasks-app) {
 
 .intent-result .intent-success {
     color: var(--success, var(--success, #22c55e));
-    font-size: 14px;
+    font-size: var(--text-sm);
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -255,7 +255,7 @@ body:has(.tasks-app) {
 
 .intent-result .intent-error {
     color: var(--error, var(--error, #ef4444));
-    font-size: 14px;
+    font-size: var(--text-sm);
     display: inline-flex;
     align-items: center;
     gap: 6px;

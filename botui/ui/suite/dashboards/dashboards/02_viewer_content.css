@@ -39,7 +39,7 @@
 
 .widget-header h5 {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
@@ -61,7 +61,7 @@
     gap: 10px;
     margin-bottom: 12px;
     color: var(--color-text-secondary, #999);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .query-input-wrapper {
@@ -77,7 +77,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 8px;
     color: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .query-input-wrapper input:focus {
@@ -105,7 +105,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 6px;
     color: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin-bottom: 12px;
 }
 
@@ -115,7 +115,7 @@
     gap: 10px;
     padding: 12px;
     color: var(--color-text-secondary, #999);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .query-results {
@@ -131,7 +131,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .modal-backdrop {
@@ -168,7 +168,7 @@
 
 .modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
 }
 
@@ -197,7 +197,7 @@
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-secondary, #999);
 }
@@ -211,7 +211,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 8px;
     color: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
 }
 
@@ -279,7 +279,7 @@
 }
 
 .template-option span {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -297,7 +297,7 @@
     border: 1px solid var(--color-border, #2a2a2a);
     border-radius: 8px;
     color: var(--color-text-primary, #e5e5e5);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -314,7 +314,7 @@
     border: none;
     border-radius: 8px;
     color: #000;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: opacity 0.2s;
@@ -333,7 +333,7 @@
 
 .widget-category h4 {
     margin: 0 0 12px 0;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -368,7 +368,7 @@
 }
 
 .widget-option span {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 

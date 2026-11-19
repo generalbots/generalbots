@@ -11,8 +11,8 @@ function connectWebSocket() {
   clearChatConnectTimeout();
   if (ChatState.ws) {
     // Detach lifecycles first: the superseded socket must not schedule dials.
-    try { ChatState.ws.onclose = null; ChatState.ws.onopen = null; ChatState.ws.onerror = null; } catch (e) {}
-    try { ChatState.ws.close(); } catch (e) {}
+    try { ChatState.ws.onclose = null; ChatState.ws.onopen = null; ChatState.ws.onerror = null; } catch (e) { window.gbLogError ? gbLogError(e, "connectWebSocket") : console.error("connectWebSocket", e); }
+    try { ChatState.ws.close(); } catch (e) { window.gbLogError ? gbLogError(e, "connectWebSocket") : console.error("connectWebSocket", e); }
   }
   updateConnectionStatus("connecting");
   probeBotAccess(function (state) {
@@ -58,8 +58,8 @@ function dialChatSocket(seq) {
     ChatState.wsConnectTimeout = null;
     if (seq !== chatDialSeq || ChatState.ws !== ws) return;
     if (ws.readyState !== WebSocket.CONNECTING) return;
-    try { ws.onclose = null; ws.onerror = null; } catch (e) {}
-    try { ws.close(); } catch (e) {}
+    try { ws.onclose = null; ws.onerror = null; } catch (e) { window.gbLogError ? gbLogError(e, "dialChatSocket") : console.error("dialChatSocket", e); }
+    try { ws.close(); } catch (e) { window.gbLogError ? gbLogError(e, "dialChatSocket") : console.error("dialChatSocket", e); }
     ChatState.ws = null;
     updateConnectionStatus("disconnected");
     ChatState.reconnectAttempts++;
@@ -86,14 +86,14 @@ function dialChatSocket(seq) {
         try {
           var contentObj = JSON.parse(data.content);
           if (contentObj.event === "change_theme") { applyThemeData(contentObj.data || {}); return; }
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "onmessage") : console.error("onmessage", e); }
       }
 
       if (data.type === "chat_status") { if (typeof setChatStatus === "function") setChatStatus(data.text || ""); return; }
       // #2098 — the server accepted our cancel; the turn is over.
       // #2179 — live document deltas streamed over the session WS.
       if (data.event === "gb-doc-delta") {
-        try { document.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data })); } catch (e) {}
+        try { document.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data })); } catch (e) { window.gbLogError ? gbLogError(e, "onmessage") : console.error("onmessage", e); }
         return;
       }
 
@@ -109,8 +109,8 @@ function dialChatSocket(seq) {
         try { GBTurn.observe(data); } catch (e) { console.warn("[WS] turn state failed:", e); }
       }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
-      if (data.seq) { try { window.dispatchEvent(new CustomEvent("gb-run-frame", { detail: { frame: data } })); } catch (e) {} }
-      if (data.type === "run_resume_done") { try { window.dispatchEvent(new CustomEvent("run_resume_done", { detail: data })); } catch (e) {} }
+      if (data.seq) { try { window.dispatchEvent(new CustomEvent("gb-run-frame", { detail: { frame: data } })); } catch (e) { window.gbLogError ? gbLogError(e, "onmessage") : console.error("onmessage", e); } }
+      if (data.type === "run_resume_done") { try { window.dispatchEvent(new CustomEvent("run_resume_done", { detail: data })); } catch (e) { window.gbLogError ? gbLogError(e, "onmessage") : console.error("onmessage", e); } }
       if (window.RunTimeline) { try { window.RunTimeline.handleFrame(data); } catch (e) { console.warn("[WS] run timeline frame failed:", e); } }
       // #1669 — trusted catalog surfaces and structured questions.
       if (data.type === "CUSTOM" && data.data && window.SurfaceRenderer) {

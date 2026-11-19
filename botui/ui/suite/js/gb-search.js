@@ -47,7 +47,7 @@
     panel.style.cssText =
       "position:fixed;top:48px;left:50%;transform:translateX(-50%);width:520px;max-width:92vw;" +
       "max-height:60vh;overflow-y:auto;background:#1b1b1f;border:1px solid #3a3a3f;" +
-      "border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:2147483002;" +
+      "border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:var(--z-top);" +
       "display:none;font-family:'Fira Code',monospace;font-size:13px;color:#e8e8e8;";
     document.body.appendChild(panel);
     panel.addEventListener("mousedown", function (e) { e.stopPropagation(); });
@@ -138,7 +138,7 @@
             window.GBUiOrchestrator.focusEntity(r);
           } else {
             var w = window.open(r.url, "_blank", "noopener,noreferrer");
-            if (w) { try { w.opener = null; } catch (e) {} }
+            if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "onclick") : console.error("onclick", e); } }
           }
         };
         p.appendChild(item);

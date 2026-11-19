@@ -16,7 +16,7 @@
     align-items: center;
     gap: 10px;
     padding: 5px 0;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-stage-row .idx {
@@ -26,7 +26,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     border: 1px solid var(--border, #444);
     color: var(--text-muted, #999);

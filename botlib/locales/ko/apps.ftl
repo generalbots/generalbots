@@ -1272,3 +1272,10 @@ calculator-swap-units = 단위 바꾸기
 calculator-aria-amount = 수량
 calculator-aria-from-unit = 원래 단위
 calculator-aria-to-unit = 대상 단위
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+notes-empty-title = 아직 메모가 없습니다
+notes-empty-desc = 메모는 삭제할 때까지 보드에 남습니다. 떠오른 생각을 바로 적어 두세요.
+notes-empty-action = 첫 메모 만들기

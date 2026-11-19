@@ -24,7 +24,7 @@
     var frame = document.createElement("iframe");
     frame.id = "gb-browser-frame";
     frame.sandbox = "allow-scripts allow-forms";
-    frame.style.cssText = "position:fixed;bottom:60px;right:24px;width:480px;height:360px;border:1px solid #334155;border-radius:10px;z-index:8000;background:#fff;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);";
+    frame.style.cssText = "position:fixed;bottom:60px;right:24px;width:480px;height:360px;border:1px solid #334155;border-radius:10px;z-index:var(--z-overlay);background:#fff;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);";
     document.body.appendChild(frame);
     browserFrame = frame;
     return frame;

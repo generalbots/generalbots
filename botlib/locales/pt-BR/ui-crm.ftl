@@ -191,3 +191,22 @@ crm-placeholder-search-contacts = Pesquisar contatos...
 
 # Chat header / app chrome (#2542)
 crm-lost-reason-title = Por que o negócio foi perdido?
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = Ainda não há oportunidades
+crm-opps-empty-desc = Uma oportunidade acompanha uma venda possível do primeiro contato ao fechamento.
+crm-opps-empty-action = Criar uma oportunidade
+crm-deals-empty-title = Ainda não há negócios
+crm-deals-empty-desc = Negócios em todas as etapas aparecem aqui, com valor e responsável.
+crm-deals-empty-action = Adicionar um negócio
+crm-accounts-empty-title = Ainda não há contas
+crm-accounts-empty-desc = Uma conta é uma empresa para a qual você vende. Contatos e negócios ficam agrupados nela.
+crm-accounts-empty-action = Adicionar uma conta
+crm-contacts-empty-title = Ainda não há contatos
+crm-contacts-empty-desc = As pessoas com quem você fala ficam aqui: nome, e-mail, telefone e a conta a que pertencem.
+crm-contacts-empty-action = Adicionar um contato
+crm-campaigns-empty-title = Ainda não há campanhas
+crm-campaigns-empty-desc = Uma campanha agrupa as ações que trazem leads para o funil.
+crm-campaigns-empty-action = Criar uma campanha

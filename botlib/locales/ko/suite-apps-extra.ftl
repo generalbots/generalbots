@@ -225,3 +225,17 @@ fraud-col-transactions = 거래
 fraud-col-blocked = 차단됨
 fraud-col-review = 검토
 fraud-col-false-positive = 오탐
+
+drive-upload-queue-body = 업로드 {count}건이 완료되지 않았습니다. 다시 시도할까요?
+drive-upload-queue-retry = 다시 시도
+drive-upload-queue-discard = 버리기
+drive-upload-queue-recovered = 복구한 파일 {count}개를 업로드했습니다
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = 아직 목록이 없습니다
+lists-state-empty-desc = 목록은 연락처나 기업을 묶어 함께 대상으로 삼을 수 있습니다.
+lists-state-empty-action = 첫 목록 만들기
+minutes-state-empty-title = 예정된 회의가 없습니다
+minutes-state-empty-desc = 회의를 예약하면 기록, 요약, 할 일이 여기에 남습니다.

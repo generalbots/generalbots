@@ -72,7 +72,7 @@
   function logout(returnTo) {
     try {
       Object.values(KEYS).forEach(function (k) { localStorage.removeItem(k); });
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "logout") : console.error("logout", _); }
     sessionStorage.setItem('gb-signed-out', 'true');
     window.location.href = loginUrl(returnTo);
   }

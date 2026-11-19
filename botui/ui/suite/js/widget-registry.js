@@ -51,7 +51,7 @@
   function writeStore() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(instances));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "writeStore") : console.error("writeStore", e); }
   }
 
   function changed() {

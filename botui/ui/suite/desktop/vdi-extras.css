@@ -9,7 +9,7 @@
     padding: 8px 16px;
     border: 1px solid transparent;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
@@ -17,7 +17,7 @@
 
 .btn-sm {
     padding: 5px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .btn-primary {
@@ -64,7 +64,7 @@
     border-radius: 6px;
     background: var(--vdi-bg);
     color: var(--vdi-text);
-    font-size: 13px;
+    font-size: var(--text-xs);
     outline: none;
     transition: border-color 0.15s;
 }
@@ -75,7 +75,7 @@
 
 .input-sm {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 select.input {

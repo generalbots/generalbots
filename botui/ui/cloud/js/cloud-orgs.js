@@ -48,7 +48,7 @@ async function loadOrgs() {
             if (!rr.ok) continue;
             const rd = await rr.json();
             o.resCount += (rd.resources || []).length;
-          } catch (_) {}
+          } catch (_) { window.gbLogError ? gbLogError(_, "loadOrgs") : console.error("loadOrgs", _); }
         }
       } catch (_) { o.wsCount = 0; o.resCount = 0; }
     }
@@ -82,7 +82,7 @@ function hideCreateOrg() { document.getElementById('create-org-modal').classList
 async function createOrg() {
   const name = document.getElementById('org-name-input').value.trim();
   const plan = document.getElementById('org-plan-select').value;
-  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
+  if (!name) return gbAlert(gbT('cloud-orgs-enter-name', 'Enter a name'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations', {
@@ -91,7 +91,7 @@ async function createOrg() {
     body: JSON.stringify({ name, plan })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.detail || gbT('cloud-error-create-failed', 'Failed to create'));
+  if (!res.ok) return gbAlert(data.detail || gbT('cloud-error-create-failed', 'Failed to create'));
   hideCreateOrg();
   document.getElementById('org-name-input').value = '';
   await loadOrgs();
@@ -109,8 +109,8 @@ function hideEditOrg() { document.getElementById('edit-org-modal').classList.rem
 async function updateOrg() {
   const orgId = document.getElementById('edit-org-modal').getAttribute('data-org-id');
   const name = document.getElementById('edit-org-name-input').value.trim();
-  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
-  if (!orgId) return alert(gbT('cloud-orgs-no-org', 'No organization selected'));
+  if (!name) return gbAlert(gbT('cloud-orgs-enter-name', 'Enter a name'));
+  if (!orgId) return gbAlert(gbT('cloud-orgs-no-org', 'No organization selected'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + orgId, {
@@ -118,7 +118,7 @@ async function updateOrg() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-orgs-update-failed', 'Failed to update')); }
+  if (!res.ok) { const d = await res.json(); return gbAlert(d.detail || gbT('cloud-orgs-update-failed', 'Failed to update')); }
   hideEditOrg();
   await loadOrgs();
   // Re-show detail with updated data
@@ -126,12 +126,12 @@ async function updateOrg() {
 }
 
 async function deleteOrg(orgId, name) {
-  if (!confirm(gbT('cloud-orgs-delete-confirm', 'Delete organization "{name}"?\n\nThis will also remove all workspaces and resources. This action cannot be undone.', { name: name }))) return;
+  if (!(await gbConfirm(gbT('cloud-orgs-delete-confirm', 'Delete organization "{name}"?\n\nThis will also remove all workspaces and resources. This action cannot be undone.', { name: name })))) return;
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + orgId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-error-delete-failed', 'Failed to delete')); }
+  if (!res.ok) { const d = await res.json(); return gbAlert(d.detail || gbT('cloud-error-delete-failed', 'Failed to delete')); }
   if (currentOrgId === orgId) showOrgList();
   await loadOrgs();
 }
@@ -218,8 +218,8 @@ function hideCreateWorkspace() { document.getElementById('create-ws-modal').clas
 async function createWorkspace() {
   const name = document.getElementById('ws-name-input').value.trim();
   const desc = document.getElementById('ws-desc-input').value.trim();
-  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
-  if (!currentOrgId) return alert(gbT('cloud-orgs-no-org', 'No organization selected'));
+  if (!name) return gbAlert(gbT('cloud-orgs-enter-name', 'Enter a name'));
+  if (!currentOrgId) return gbAlert(gbT('cloud-orgs-no-org', 'No organization selected'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces', {
@@ -228,7 +228,7 @@ async function createWorkspace() {
     body: JSON.stringify({ name, description: desc || null })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.detail || gbT('cloud-error-failed', 'Failed'));
+  if (!res.ok) return gbAlert(data.detail || gbT('cloud-error-failed', 'Failed'));
   hideCreateWorkspace();
   document.getElementById('ws-name-input').value = '';
   document.getElementById('ws-desc-input').value = '';
@@ -286,7 +286,7 @@ async function loadResources(wsId) {
 }
 
 async function removeResource(resId) {
-  if (!confirm(gbT('cloud-orgs-remove-resource-confirm', 'Remove this resource?'))) return;
+  if (!(await gbConfirm(gbT('cloud-orgs-remove-resource-confirm', 'Remove this resource?')))) return;
   const token = requireAuth();
   await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources/' + resId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
@@ -295,7 +295,7 @@ async function removeResource(resId) {
 }
 
 async function deleteWorkspace(wsId) {
-  if (!confirm(gbT('cloud-orgs-delete-workspace-confirm', 'Delete this workspace and all its resources?'))) return;
+  if (!(await gbConfirm(gbT('cloud-orgs-delete-workspace-confirm', 'Delete this workspace and all its resources?')))) return;
   const token = requireAuth();
   await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
@@ -327,7 +327,7 @@ async function confirmAssignResource() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ store_item_id: storeItemId, name })
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-error-failed', 'Failed')); }
+  if (!res.ok) { const d = await res.json(); return gbAlert(d.detail || gbT('cloud-error-failed', 'Failed')); }
   hideAssignResource();
   document.getElementById('assign-res-name').value = '';
   await loadResources(currentWsId);

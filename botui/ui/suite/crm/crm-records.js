@@ -192,7 +192,11 @@
                 else fillStageOptions(null);
                 if (window.htmx) htmx.process(content);
                 window.openCrmModal();
-            });
+            })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "openForm")
+                                : console.error("openForm", fetchError);
+          });
     }
 
     window.openCrmRecordForm = function(entity, record) {
@@ -264,7 +268,11 @@
             window.closeCrmModal();
             notice((id ? 'Updated ' : 'Created ') + entity);
             refreshEntity(entity);
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "formPayload")
+                                : console.error("if", fetchError);
+          });
     });
 
     // ── Detail drawer (#1441 C1) ───────────────────────────────────────────
@@ -321,7 +329,11 @@
             if (!resp.ok) { notice('Activity failed (' + resp.status + ')'); return; }
             form.reset();
             openRecordDetail(entity, id);
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "openRecordDetail")
+                                : console.error("if", fetchError);
+          });
     });
 
     // #2313 — the lost reason lives on the record form (input#crm-lost-reason,
@@ -368,7 +380,11 @@
                         .then(function(resp) {
                             notice(resp.ok ? entity + ' deleted' : 'Delete failed (' + resp.status + ')');
                             if (resp.ok) refreshEntity(entity);
-                        });
+                        })
+                      .catch(function (fetchError) {
+                        window.gbLogError ? gbLogError(fetchError, "fetchRecord")
+                                            : console.error("if", fetchError);
+                      });
                 });
             }
         }

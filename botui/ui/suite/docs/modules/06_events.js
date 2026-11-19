@@ -13,13 +13,13 @@ document.addEventListener("click", function (e) {
     $$(".sidebar-content").forEach(function (c) {
       c.style.display = c.dataset.sidebarContent === which ? "flex" : "none";
     });
-    try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) {}
+    try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) { window.gbLogError ? gbLogError(_, "js") : console.error("js", _); }
   }
 });
 
 function initSidebar() {
   var saved = null;
-  try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) {}
+  try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) { window.gbLogError ? gbLogError(_, "initSidebar") : console.error("initSidebar", _); }
   if (saved) {
     var btn = document.querySelector('[data-sidebar-tab="' + saved + '"]');
     if (btn) btn.click();

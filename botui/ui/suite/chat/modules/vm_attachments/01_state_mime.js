@@ -165,7 +165,7 @@ function vmSplitTarget(target) {
   var value = String(target || "");
   try {
     value = decodeURIComponent(value);
-  } catch (e) {}
+  } catch (e) { window.gbLogError ? gbLogError(e, "vmSplitTarget") : console.error("vmSplitTarget", e); }
   var slash = value.indexOf("/");
   if (slash === -1) return { conversationId: null, path: value };
   var head = value.slice(0, slash);
@@ -220,7 +220,7 @@ function vmOpenInOfficeApp(path, savedPath) {
       // #2171 — return focus to the chat composer.
       var input = document.querySelector("#chat-app textarea, .chat-input textarea, #messageInput");
       if (input && typeof input.focus === "function") input.focus({ preventScroll: true });
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
   }, 120);
 }
 
@@ -247,7 +247,7 @@ function vmOpenInOfficeAppVm(path, convId, vmPath) {
       }
       var input = document.querySelector("#chat-app textarea, .chat-input textarea, #messageInput");
       if (input && typeof input.focus === "function") input.focus({ preventScroll: true });
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "setTimeout") : console.error("setTimeout", e); }
   }, 120);
 }
 /* The Save-to-Drive actions call /api/agent/drive/save, which botserver only

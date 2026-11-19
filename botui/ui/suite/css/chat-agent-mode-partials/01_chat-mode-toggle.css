@@ -20,7 +20,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: var(--z-system);
   gap: 16px;
 }
 
@@ -40,7 +40,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 .chat-loading-text {
   color: var(--text-muted, #888);
   font-family: 'Fira Code', monospace;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .chat-content-wrapper {
@@ -69,7 +69,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
   }
 
   #messageInput {
-    font-size: 16px;
+    font-size: var(--text-md);
     padding: 12px 14px;
     border-radius: 16px;
   }
@@ -77,12 +77,12 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
   #sendBtn {
     width: 44px;
     height: 44px;
-    font-size: 18px;
+    font-size: var(--text-lg);
   }
 
   .suggestion-chip {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     margin: 2px;
   }
 
@@ -122,7 +122,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     background: var(--surface, #1a1a24);
     color: var(--text, var(--bg));
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -141,7 +141,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 }
 
 .quick-action-icon {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* ============================================
@@ -210,7 +210,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     border-radius: 8px;
     background: var(--accent);
     color: var(--bg);
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -248,7 +248,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     padding: 10px 14px;
     cursor: pointer;
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text, var(--text));
     background: var(--surface, var(--border));
@@ -264,7 +264,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 
 .thought-process-toggle {
     transition: transform 0.2s;
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .thought-process.expanded .thought-process-toggle {
@@ -274,7 +274,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
 .thought-process-body {
     display: none;
     padding: 12px 14px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.6;
     color: var(--text-secondary, var(--text-muted));
     border-top: 1px solid var(--border, var(--border));
@@ -309,7 +309,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text);
 }
@@ -321,7 +321,7 @@ AGENT / CHAT MODE TOGGLE - DISABLED FOR NOW
     border: 1px solid var(--border);
     border-radius: 4px;
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 

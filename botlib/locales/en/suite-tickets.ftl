@@ -51,3 +51,10 @@ tickets-sla-col-time = Time to SLA
 
 # semantic i18n key (#2542)
 tickets-sla-no-risk = No tickets at risk in the next 24h.
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+tickets-state-empty-title = No tickets yet
+tickets-state-empty-desc = Tickets arrive from chat, e-mail and the web form. Open one yourself to try the flow.
+tickets-state-empty-action = Open a ticket

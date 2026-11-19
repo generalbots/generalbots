@@ -5,7 +5,7 @@ SlideCanvas.addHandles = function (el) {
   this.removeHandles(el);
   var container = document.createElement("div");
   container.className = "sl-handles-container";
-  container.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;";
+  container.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:var(--z-sticky);";
   var self = this;
 
   HANDLE_POSITIONS.forEach(function (h) {
@@ -15,7 +15,7 @@ SlideCanvas.addHandles = function (el) {
     var sz = H_SZ;
     hd.style.cssText = "position:absolute;width:"+sz+"px;height:"+sz+
       "px;background:#3b82f6;border:1px solid #fff;border-radius:2px;"+
-      "cursor:"+h.cursor+";pointer-events:all;z-index:101;"+
+      "cursor:"+h.cursor+";pointer-events:all;z-index:var(--z-sticky);"+
       "top:calc("+(h.cy*100)+"% - "+(sz*h.cy)+"px - 1px);"+
       "left:calc("+(h.cx*100)+"% - "+(sz*h.cx)+"px - 1px);";
     self.makeResizeHandler(hd, el);
@@ -26,9 +26,9 @@ SlideCanvas.addHandles = function (el) {
   rot.className = "sl-rotator";
   rot.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - "+ROT_H_SZ+"px + 4px);"+
     "width:10px;height:10px;border-radius:50%;background:#10b981;border:2px solid #fff;"+
-    "cursor:grab;pointer-events:all;z-index:102;";
+    "cursor:grab;pointer-events:all;z-index:var(--z-sticky);";
   var line = document.createElement("div");
-  line.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - 1px);width:2px;height:"+ROT_OFF+"px;background:#10b981;pointer-events:none;z-index:101;";
+  line.style.cssText = "position:absolute;top:-"+ROT_OFF+"px;left:calc(50% - 1px);width:2px;height:"+ROT_OFF+"px;background:#10b981;pointer-events:none;z-index:var(--z-sticky);";
   container.appendChild(line);
 
   self.makeRotateHandler(rot, line, el);

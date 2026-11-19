@@ -9,7 +9,7 @@
         } else if (window.openDeepLink) {
             window.openDeepLink('integrations', params);
         } else {
-            var w = window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
+            var w = window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openIntegrationsWindow") : console.error("openIntegrationsWindow", e); } }
         }
         return false;
     };
@@ -23,7 +23,7 @@
         } else if (window.openDeepLink) {
             window.openDeepLink('about', {});
         } else {
-            var w = window.open('/suite/desktop.html?app=about', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
+            var w = window.open('/suite/desktop.html?app=about', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openAboutWindow") : console.error("openAboutWindow", e); } }
         }
         return false;
     };
@@ -63,7 +63,7 @@
             ? window.__gbDirectoryIssuer + (window.__gbDirectoryIssuer.indexOf('/ui') === -1 ? '/ui/console' : '')
             : null;
         if (target) {
-            var w = window.open(target, '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
+            var w = window.open(target, '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openZitadelConsole") : console.error("openZitadelConsole", e); } }
         } else {
             // #1887 — no issuer means the directory address is unavailable.
             // Never deep-link personal security into Administration; say what
@@ -141,7 +141,7 @@
             toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.setAttribute('aria-atomic', 'true');
             toast.textContent = message;
-            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:10000;animation:fadeIn 0.3s';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 24px;background:#333;color:#fff;border-radius:8px;z-index:var(--z-system);animation:fadeIn 0.3s';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
@@ -153,7 +153,7 @@
     function persistPref(key, value) {
         try {
             localStorage.setItem(key, String(value));
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "persistPref") : console.error("persistPref", e); }
     }
 
     var PREFERENCE_KEYS = {
@@ -366,7 +366,7 @@
         if (!base) {
             base = (window.location.origin || '').replace(/:(3000|8080)$/, ':4000');
         }
-        var w = window.open(base.replace(/\/$/, '') + '/cloud/billing', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) {} }
+        var w = window.open(base.replace(/\/$/, '') + '/cloud/billing', '_blank', 'noopener,noreferrer'); if (w) { try { w.opener = null; } catch (e) { window.gbLogError ? gbLogError(e, "openCloudBilling") : console.error("openCloudBilling", e); } }
         return false;
     };
 

@@ -22,3 +22,9 @@ timeclock-loading-panel = Chargement du tableau de bord…
 
 # semantic i18n key (#2542)
 timeclock-employee-placeholder = UUID de l'employé
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+timeclock-state-empty-title = Aucune entrée pour le moment
+timeclock-state-empty-desc = Pointez et ce tableau de bord montre votre journée, vos heures supplémentaires et les validations.

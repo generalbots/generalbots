@@ -21,7 +21,7 @@
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: var(--drive-transition, 0.18s ease);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
@@ -55,7 +55,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-muted, var(--text-secondary));
     text-transform: uppercase;
@@ -68,7 +68,7 @@
     border-radius: 6px;
     background: var(--surface);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin: 0 4px 4px;
     width: calc(100% - 8px);
     box-sizing: border-box;
@@ -91,7 +91,7 @@
 .bot-item {
     border-radius: 6px;
     padding: 8px 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -142,14 +142,14 @@
 }
 
 .bot-card-name {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text);
     margin-bottom: 6px;
 }
 
 .bot-card-stats {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     display: flex;
     gap: 12px;
@@ -186,7 +186,7 @@
 }
 
 .folder-tile-icon {
-    font-size: 32px;
+    font-size: var(--text-3xl);
     margin-bottom: 10px;
     color: hsl(var(--primary, 217 91% 60%));
 }
@@ -199,13 +199,13 @@
 
 .folder-tile-name {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text);
     word-break: break-all;
 }
 
 .folder-tile-desc {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     margin-top: 4px;
 }
@@ -215,20 +215,20 @@
     display: flex;
     align-items: center;
     padding: 16px 20px 8px;
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text);
 }
 
 .drive-toolbar-secondary h4 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
 /* ── Tab badges ──────────────────────────────────────────────── */
 .tab-badge {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     padding: 1px 6px;
     border-radius: 8px;
@@ -306,7 +306,7 @@
 .shares-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .shares-table th {
@@ -315,7 +315,7 @@
     font-weight: 600;
     color: var(--text-secondary, #888);
     border-bottom: 1px solid var(--border, #eee);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -330,7 +330,7 @@
 }
 
 .shares-table code {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     background: var(--surface, #f5f5f5);
     padding: 2px 6px;
     border-radius: 4px;
@@ -345,13 +345,13 @@
 }
 
 .share-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
     line-height: 1;
 }
 
 .perm-badge {
     display: inline-block;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 6px;
@@ -380,7 +380,7 @@
     border: none;
     padding: 5px 12px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: opacity 0.15s;
 }
@@ -429,18 +429,18 @@
 }
 
 .bot-config-name {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text);
 }
 
 .bot-config-desc {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
 .other-folders-heading {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;

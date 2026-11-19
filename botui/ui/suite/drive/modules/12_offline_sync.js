@@ -194,6 +194,6 @@
     _updateIndicator: updateIndicator,
   };
 
-  try { openDB().then(updateIndicator); } catch (e) {}
+  try { openDB().then(updateIndicator); } catch (e) { window.gbLogError ? gbLogError(e, "getSyncFolder") : console.error("getSyncFolder", e); }
   document.addEventListener("DOMContentLoaded", updateIndicator);
 })();

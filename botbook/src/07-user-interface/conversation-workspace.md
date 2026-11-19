@@ -80,6 +80,22 @@ to leave behind are removed once `vmGroupAttachments` moves the attachment
 cards into the `output` folder, so an older turn cannot keep a column of empty
 bullets outside the collapse control (#2008).
 
+### Agent VM lifetime
+
+The agent VM is a lightweight Incus container, not a full virtual machine. It
+**sleeps after five minutes without activity** (`GB_VIBE_VM_IDLE_SECS`, default
+300) and **wakes on the next request** — the first Run after a sleep pays a few
+seconds for the start. Deployed (production) VMs are exempt: they stay up and
+are reconciled to running every minute.
+
+Sleeping frees memory; it never frees your work. Nothing in the platform
+destroys a VM or project on a timer — the only paths that delete a container,
+its published site, its domains, its database and its workspace directory are
+an explicit **Delete project** (or account deletion). Reaching the per-kind
+project cap refuses the new project with a message instead of evicting the
+oldest one, so a project you have not opened for weeks is still there when you
+come back.
+
 ### Live terminal runs
 
 `terminal_run` opens a real PTY inside the user's agent VM and streams each

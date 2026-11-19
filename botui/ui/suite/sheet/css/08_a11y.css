@@ -109,7 +109,7 @@
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
     padding: 12px 14px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 .sheet-a11y-panel-header {
     display: flex;
@@ -118,7 +118,7 @@
     gap: 12px;
 }
 .sheet-a11y-panel-header h2 {
-    font-size: 15px;
+    font-size: var(--text-md);
     margin: 0;
 }
 .sheet-a11y-panel-close {
@@ -126,7 +126,7 @@
     border: 1px solid var(--sheet-border, #334155);
     border-radius: 4px;
     color: inherit;
-    font-size: 16px;
+    font-size: var(--text-md);
     line-height: 1;
     padding: 2px 8px;
     cursor: pointer;

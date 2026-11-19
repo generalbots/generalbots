@@ -296,7 +296,7 @@
       recent.unshift({ id, title, ts: Date.now() });
       recent = recent.slice(0, 10);
       localStorage.setItem("gb-recent-apps", JSON.stringify(recent));
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "_trackRecent") : console.error("_trackRecent", e); }
   },
 
   getRecentApps() {
@@ -317,7 +317,7 @@
           localStorage.setItem("gb-recent-apps", JSON.stringify(
             recent.filter((r) => resolved.some((a) => a.id === (r && r.id)))
           ));
-        } catch (e) {}
+        } catch (e) { window.gbLogError ? gbLogError(e, "getRecentApps") : console.error("getRecentApps", e); }
       }
       return resolved;
     } catch (e) {

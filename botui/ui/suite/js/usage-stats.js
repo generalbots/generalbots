@@ -26,7 +26,7 @@
   }
 
   function saveStats(stats) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) { window.gbLogError ? gbLogError(e, "saveStats") : console.error("saveStats", e); }
   }
 
   function getToday() { return new Date().toISOString().split("T")[0]; }
@@ -214,7 +214,7 @@
     if (modal) { modal.remove(); return; }
     modal = document.createElement("div");
     modal.id = "usage-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-blocker);backdrop-filter:blur(8px);";
     modal.innerHTML = '<div data-usage-box style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:640px;max-height:85vh;overflow:auto;padding:24px;color:#94a3b8;">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<h3 style="margin:0;color:#f8fafc;">' + escapeHtml(t("usage-title", "Usage & Cost")) + '</h3>' +

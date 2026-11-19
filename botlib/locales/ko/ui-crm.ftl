@@ -186,3 +186,22 @@ crm-placeholder-website = https://
 
 # semantic i18n key (#2542)
 crm-placeholder-search-contacts = 연락처 검색...
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+crm-opps-empty-title = 아직 영업 기회가 없습니다
+crm-opps-empty-desc = 영업 기회는 가능성 있는 판매를 첫 접촉부터 성사까지 추적합니다.
+crm-opps-empty-action = 영업 기회 만들기
+crm-deals-empty-title = 아직 거래가 없습니다
+crm-deals-empty-desc = 모든 단계의 거래가 금액 및 담당자와 함께 여기에 표시됩니다.
+crm-deals-empty-action = 거래 추가
+crm-accounts-empty-title = 아직 계정이 없습니다
+crm-accounts-empty-desc = 계정은 판매 대상 기업입니다. 연락처와 거래가 그 아래에 묶입니다.
+crm-accounts-empty-action = 계정 추가
+crm-contacts-empty-title = 아직 연락처가 없습니다
+crm-contacts-empty-desc = 대화하는 사람이 여기에 있습니다. 이름, 이메일, 전화번호, 소속 계정입니다.
+crm-contacts-empty-action = 연락처 추가
+crm-campaigns-empty-title = 아직 캠페인이 없습니다
+crm-campaigns-empty-desc = 캠페인은 잠재 고객을 파이프라인으로 가져오는 활동을 묶습니다.
+crm-campaigns-empty-action = 캠페인 만들기

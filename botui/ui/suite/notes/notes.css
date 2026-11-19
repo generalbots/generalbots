@@ -19,11 +19,11 @@
     border: none;
     border-radius: 8px;
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
 }
-.gb-notes .notes-count { font-size: 12px; color: var(--text-secondary); }
+.gb-notes .notes-count { font-size: var(--text-2xs); color: var(--text-secondary); }
 .gb-notes .notes-board {
     flex: 1;
     display: grid;
@@ -47,7 +47,7 @@
     outline: none;
     background: transparent;
     resize: none;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
     color: #1f2430;
     min-height: 80px;
@@ -58,13 +58,13 @@
     align-items: center;
     margin-top: 6px;
 }
-.gb-notes .note-time { font-size: 10px; color: rgba(31, 36, 48, 0.55); }
+.gb-notes .note-time { font-size: var(--text-2xs); color: rgba(31, 36, 48, 0.55); }
 .gb-notes .note-del {
     background: transparent;
     border: none;
     color: rgba(31, 36, 48, 0.55);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 .gb-notes .note-del:hover { color: var(--error); }
 .gb-notes .notes-empty {

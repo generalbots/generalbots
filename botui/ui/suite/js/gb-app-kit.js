@@ -27,7 +27,7 @@
     if (!el) {
       el = document.createElement("div");
       el.id = id;
-      el.style.cssText = "position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;transition:opacity .3s";
+      el.style.cssText = "position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:var(--z-system);transition:opacity .3s";
       document.body.appendChild(el);
     }
     el.textContent = msg;
@@ -47,13 +47,13 @@
         var t2 = global.getGBAccessToken();
         if (t2) return t2;
       }
-    } catch (e) {}
+    } catch (e) { window.gbLogError ? gbLogError(e, "getAuthToken") : console.error("getAuthToken", e); }
     var keys = ["gb-access-token", "management_token", "token", "id_token", "gb_token"];
     for (var i = 0; i < keys.length; i++) {
       try {
         var v = localStorage.getItem(keys[i]) || sessionStorage.getItem(keys[i]);
         if (v) return v;
-      } catch (e2) {}
+      } catch (e2) { window.gbLogError ? gbLogError(e2, "getAuthToken") : console.error("getAuthToken", e2); }
     }
     return null;
   }

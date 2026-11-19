@@ -52,7 +52,7 @@
   function clear(k) {
     var s = store();
     if (!s) return;
-    try { s.removeItem(key(k)); } catch (_) {}
+    try { s.removeItem(key(k)); } catch (_) { window.gbLogError ? gbLogError(_, "clear") : console.error("clear", _); }
   }
 
   function has(k) { return load(k) !== null; }
@@ -75,7 +75,7 @@
     banner.id = "gb-offline-banner";
     banner.setAttribute("role", "status");
     banner.style.cssText =
-      "position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100001;" +
+      "position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:var(--z-blocker);" +
       "background:#7c2d12;color:#fdba74;border:1px solid #9a3412;border-radius:999px;" +
       "padding:8px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.45);" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:none;" +

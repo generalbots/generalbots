@@ -186,13 +186,13 @@
       Array.from(scope.querySelectorAll(".sidebar-content")).forEach(function (c) {
         c.style.display = c.dataset.sidebarContent === which ? "flex" : "none";
       });
-      try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) {}
+      try { sessionStorage.setItem(SIDEBAR_TAB_KEY, which); } catch (_) { window.gbLogError ? gbLogError(_, "parseCellRef") : console.error("parseCellRef", _); }
     }
   });
 
   function initSidebar(context) {
     let saved = null;
-    try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) {}
+    try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) { window.gbLogError ? gbLogError(_, "initSidebar") : console.error("initSidebar", _); }
     var scope = context ? (context.closest ? context.closest('[id^="window-body-"]') : context) : document;
     if (saved && scope) {
       const btn = scope.querySelector('[data-sidebar-tab="' + saved + '"]');

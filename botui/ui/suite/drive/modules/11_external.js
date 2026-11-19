@@ -181,7 +181,7 @@ function showConnectorConsent(providerId) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "consent-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var items = scopes.map(function (scope, index) {
         var detail = descriptions[index] ? '<div style="color:#64748b;font-size:12px;">' + extEscape(descriptions[index]) + '</div>' : "";
         return '<li style="padding:6px 0;color:#cbd5e1;"><code style="font-size:12px;">' + extEscape(scope) + '</code>' + detail + '</li>';

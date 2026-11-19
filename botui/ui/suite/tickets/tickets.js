@@ -51,7 +51,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
         }).then(function() {
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
             refreshTicketsList();
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "changeTicketStatus")
+                                : console.error("changeTicketStatus", fetchError);
+          });
     };
 
     window.assignTicket = function (ticketId) {
@@ -65,7 +69,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
             }).then(function(r) {
                 if (!r.ok) GBModal.alert("Could not assign ticket. Use an existing user email.");
                 htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "assignTicket")
+                                    : console.error("assignTicket", fetchError);
+              });
         });
     };
 
@@ -83,7 +91,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
         }).then(function() {
             note.value = "";
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "addTicketNote")
+                                : console.error("addTicketNote", fetchError);
+          });
     };
 
     window.deleteTicket = function (ticketId) {
@@ -92,7 +104,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
                 document.getElementById("ticket-detail").innerHTML =
                     '<div class="ticket-detail-empty"><p>Select a case to view details</p></div>';
                 refreshTicketsList();
-            });
+            })
+              .catch(function (fetchError) {
+                window.gbLogError ? gbLogError(fetchError, "deleteTicket")
+                                    : console.error("deleteTicket", fetchError);
+              });
         });
     };
 
@@ -100,21 +116,33 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
         fetch("/api/tickets/" + ticketId + "/resolve", { method: "PUT" }).then(function() {
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
             refreshTicketsList();
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "resolveTicket")
+                                : console.error("resolveTicket", fetchError);
+          });
     };
 
     window.closeTicket = function (ticketId) {
         fetch("/api/tickets/" + ticketId + "/close", { method: "PUT" }).then(function() {
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
             refreshTicketsList();
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "closeTicket")
+                                : console.error("closeTicket", fetchError);
+          });
     };
 
     window.reopenTicket = function (ticketId) {
         fetch("/api/tickets/" + ticketId + "/reopen", { method: "PUT" }).then(function() {
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
             refreshTicketsList();
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "reopenTicket")
+                                : console.error("reopenTicket", fetchError);
+          });
     };
 
     window.refreshTicketsList = function () {
@@ -166,7 +194,11 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
                     + '<strong>AI Suggestion:</strong><br>' + suggestion
                     + '</div>';
             }
-        });
+        })
+          .catch(function (fetchError) {
+            window.gbLogError ? gbLogError(fetchError, "requestAiSuggestion")
+                                : console.error("requestAiSuggestion", fetchError);
+          });
     };
 
     document.addEventListener("keydown", function (e) {

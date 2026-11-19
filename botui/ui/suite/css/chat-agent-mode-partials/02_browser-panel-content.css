@@ -12,7 +12,7 @@
     height: 100%;
     color: var(--text-muted);
     font-family: 'Fira Code', monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 /* ============================================
@@ -41,7 +41,7 @@
     background: #1e1e1e;
     border-bottom: 1px solid #333;
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--accent);
 }
@@ -52,7 +52,7 @@
     background: #1e1e1e;
     padding: 8px 12px;
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
     color: #d4d4d4;
 }
@@ -95,7 +95,7 @@
     align-items: center;
     gap: 8px;
     font-family: 'Fira Code', monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text);
 }
@@ -112,7 +112,7 @@
     padding: 2px 8px;
     border-radius: 4px;
     font-family: 'Fira Code', monospace;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -135,7 +135,7 @@
 
 .agent-info-model {
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 
@@ -150,7 +150,7 @@
     align-items: center;
     gap: 4px;
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 
@@ -210,7 +210,7 @@
     align-items: center;
     gap: 12px;
     font-family: 'Fira Code', monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text);
 }
 
@@ -226,7 +226,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
-    font-size: 14px;
+    font-size: var(--text-sm);
     padding: 0;
 }
 
@@ -252,7 +252,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
-    font-size: 16px;
+    font-size: var(--text-md);
     padding: 0;
 }
 
@@ -279,7 +279,7 @@
     padding: 8px 14px;
     background: var(--surface, var(--border));
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text, var(--text));
 }
@@ -289,7 +289,7 @@
     color: var(--bg);
     padding: 1px 6px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .agent-todo-item {
@@ -298,7 +298,7 @@
     gap: 10px;
     padding: 8px 14px;
     border-top: 1px solid var(--border, var(--border));
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text, var(--text));
     transition: opacity 0.2s;
 }
@@ -323,7 +323,7 @@
     background: var(--accent);
     border-color: var(--accent);
     color: var(--bg);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

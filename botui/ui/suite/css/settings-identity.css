@@ -35,7 +35,7 @@
     margin-bottom: 0;
     border-bottom: none;
     gap: 10px;
-    font-size: 17px;
+    font-size: var(--text-lg);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
@@ -55,7 +55,7 @@
     border-radius: 8px;
     gap: 10px;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-secondary);
     transition: background 0.15s, color 0.15s;
@@ -83,7 +83,7 @@
 }
 
 :root[data-theme="default"] .nav-divider span {
-    font-size: 10.5px;
+    font-size: var(--text-2xs);
     letter-spacing: 0.08em;
     color: var(--text-secondary);
 }
@@ -94,7 +94,7 @@
 }
 
 :root[data-theme="default"] .back-link {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
     gap: 6px;
 }
@@ -114,7 +114,7 @@
 }
 
 :root[data-theme="default"] .section-header h1 {
-    font-size: 22px;
+    font-size: var(--text-2xl);
     font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.3;
@@ -122,7 +122,7 @@
 }
 
 :root[data-theme="default"] .section-header .subtitle {
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     line-height: 1.5;
     color: var(--text-secondary);
     margin: 0;
@@ -153,7 +153,7 @@
 
 :root[data-theme="default"] .workspace-card-head h2,
 :root[data-theme="default"] .card-header h2 {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
@@ -162,7 +162,7 @@
 :root[data-theme="default"] .workspace-line,
 :root[data-theme="default"] .card-header p,
 :root[data-theme="default"] .setting-desc {
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
     color: var(--text-secondary);
 }
@@ -171,7 +171,7 @@
     background: var(--settings-accent-soft);
     border-color: color-mix(in srgb, var(--settings-accent) 30%, transparent);
     color: var(--settings-accent-ink);
-    font-size: 10.5px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 0.04em;
 }
@@ -182,7 +182,7 @@
 }
 
 :root[data-theme="default"] .setting-title {
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text);
 }
@@ -194,7 +194,7 @@
 
 :root[data-theme="default"] .form-group label {
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     letter-spacing: 0.01em;
     color: var(--text-secondary);
@@ -214,7 +214,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     color: var(--text);
     box-shadow: none;
 }
@@ -239,7 +239,7 @@
     border-radius: 10px;
     color: #fff;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     font-weight: 600;
     box-shadow: none;
 }
@@ -256,7 +256,7 @@
     border-radius: 10px;
     color: var(--text);
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
@@ -332,4 +332,13 @@
 
 :root[data-theme="default"] .settings-main::-webkit-scrollbar-track {
     background: transparent;
+}
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="default"] .nav-item {
+    animation: none !important;
+    transition: none !important;
+  }
 }

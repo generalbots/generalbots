@@ -39,7 +39,7 @@
           };
         }
       }
-    } catch (_) {}
+    } catch (_) { window.gbLogError ? gbLogError(_, "readUser") : console.error("readUser", _); }
     const id = "anon-" + Math.random().toString(36).slice(2, 10);
     return { id: id, name: "Guest", color: pickColor(id) };
   }
@@ -256,7 +256,7 @@
     }.bind(this));
 
     ws.addEventListener("error", function () {
-      try { ws.close(); } catch (_) {}
+      try { ws.close(); } catch (_) { window.gbLogError ? gbLogError(_, "_open") : console.error("_open", _); }
     });
   };
 
@@ -392,7 +392,7 @@
   GBCollab.prototype.disconnect = function () {
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
     this._stopHeartbeat();
-    if (this.ws) { try { this.ws.close(); } catch (_) {} this.ws = null; }
+    if (this.ws) { try { this.ws.close(); } catch (_) { window.gbLogError ? gbLogError(_, "disconnect") : console.error("disconnect", _); } this.ws = null; }
   };
 
   GBCollab.prototype.getUser = function () { return this.user; };

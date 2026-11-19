@@ -27,7 +27,7 @@
 }
 
 .template-card-title {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text, #f8fafc);
     margin: 0;
@@ -37,7 +37,7 @@
     display: inline-flex;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -54,7 +54,7 @@
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--border, #333);
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #888);
     max-height: 60px;
     overflow: hidden;
@@ -73,7 +73,7 @@
     border-radius: 4px;
     background: transparent;
     color: var(--text-secondary, #888);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 
@@ -88,7 +88,7 @@
     background: rgba(59,130,246,0.1);
     border: 1px solid rgba(59,130,246,0.2);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: #60a5fa;
     cursor: pointer;
     font-family: monospace;

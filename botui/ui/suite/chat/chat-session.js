@@ -139,7 +139,7 @@ window.ChatSwitchBot = function (botName) {
           ChatState.ws.onmessage = null;
           ChatState.ws.close();
         }
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "ChatSwitchBot") : console.error("ChatSwitchBot", e); }
 
       ChatState.reconnectAttempts = 0;
       ChatState.currentUserId = auth.user_id;
@@ -148,12 +148,12 @@ window.ChatSwitchBot = function (botName) {
       ChatState.currentBotName = botName;
       try {
         localStorage.setItem("gb_chat_" + botName, JSON.stringify({ user_id: auth.user_id }));
-      } catch (e) {}
+      } catch (e) { window.gbLogError ? gbLogError(e, "ChatSwitchBot") : console.error("ChatSwitchBot", e); }
 
       // Swap the conversation view in place (not a reload).
       hideThinkingIndicator();
       if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
-        try { window.GBChatVirtual.clear(); } catch (e) {}
+        try { window.GBChatVirtual.clear(); } catch (e) { window.gbLogError ? gbLogError(e, "ChatSwitchBot") : console.error("ChatSwitchBot", e); }
       }
       var pane = document.getElementById("messages");
       if (pane) pane.innerHTML = "";
@@ -213,7 +213,7 @@ window.ChatSwitchBot = function (botName) {
     var local = loadLocalHistory();
     if (!local || local.length === 0) return;
     if (window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
-      try { window.GBChatVirtual.clear(); } catch (e) {}
+      try { window.GBChatVirtual.clear(); } catch (e) { window.gbLogError ? gbLogError(e, "restoreLocalHistory") : console.error("restoreLocalHistory", e); }
     }
     var pane = document.getElementById("messages");
     if (pane) pane.innerHTML = "";
@@ -223,7 +223,7 @@ window.ChatSwitchBot = function (botName) {
     });
     ChatState.suppressPersist = false;
     if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
-      try { window.GBChatVirtual.afterHistoryRender(); } catch (e) {}
+      try { window.GBChatVirtual.afterHistoryRender(); } catch (e) { window.gbLogError ? gbLogError(e, "restoreLocalHistory") : console.error("restoreLocalHistory", e); }
     }
     scrollToBottom(false);
     if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
@@ -245,7 +245,7 @@ window.ChatSwitchBot = function (botName) {
     var url = "/api/chat/history/sessions/" + encodeURIComponent(sessionId) +
       "/messages?limit=" + HISTORY_PAGE_TURNS + "&offset=" + (offsetTurns || 0);
     var grant = null;
-    try { grant = sessionStorage.getItem("gb-unlock:" + sessionId); } catch (e) {}
+    try { grant = sessionStorage.getItem("gb-unlock:" + sessionId); } catch (e) { window.gbLogError ? gbLogError(e, "fetchSessionHistory") : console.error("fetchSessionHistory", e); }
     if (grant) url += "&unlock_token=" + encodeURIComponent(grant);
     return fetch(url, { headers: headers });
   }
@@ -351,7 +351,7 @@ window.ChatSwitchBot = function (botName) {
             window.GBChatVirtual.clear();
             window.GBChatVirtual.registerAll(document.getElementById("messages"));
             if (typeof window.GBChatVirtual.afterHistoryRender === "function") window.GBChatVirtual.afterHistoryRender();
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "loadMoreHistory") : console.error("loadMoreHistory", e); }
         }
         ChatState.historyOffsetTurns = (ChatState.historyOffsetTurns || 0) + HISTORY_PAGE_TURNS;
         ChatState.historyHasMore = (data.has_more === true) ||
@@ -359,7 +359,7 @@ window.ChatSwitchBot = function (botName) {
         removeShowMoreControl();
         insertShowMoreControl(sessionId);
         if (typeof hydrateVmAttachments === "function") {
-          try { hydrateVmAttachments(document.getElementById("messages")); } catch (e) {}
+          try { hydrateVmAttachments(document.getElementById("messages")); } catch (e) { window.gbLogError ? gbLogError(e, "loadMoreHistory") : console.error("loadMoreHistory", e); }
         }
       })
       .catch(function () {
@@ -386,14 +386,14 @@ window.ChatSwitchBot = function (botName) {
         // turns the reader already sees unless this is an explicit open.
         if (!replace && pane && pane.childElementCount > 0) return;
         if (replace && window.GBChatVirtual && typeof window.GBChatVirtual.clear === "function") {
-          try { window.GBChatVirtual.clear(); } catch (e) {}
+          try { window.GBChatVirtual.clear(); } catch (e) { window.gbLogError ? gbLogError(e, "loadSessionHistory") : console.error("loadSessionHistory", e); }
         }
         if (pane) pane.innerHTML = "";
         ChatState.suppressPersist = true;
         renderHistoryMessages(data.messages, pane);
         ChatState.suppressPersist = false;
         if (window.GBChatVirtual && typeof window.GBChatVirtual.afterHistoryRender === "function") {
-          try { window.GBChatVirtual.afterHistoryRender(); } catch (e) {}
+          try { window.GBChatVirtual.afterHistoryRender(); } catch (e) { window.gbLogError ? gbLogError(e, "loadSessionHistory") : console.error("loadSessionHistory", e); }
         }
         ChatState.historyOffsetTurns = HISTORY_PAGE_TURNS;
         ChatState.historyHasMore = (data.has_more === true) ||

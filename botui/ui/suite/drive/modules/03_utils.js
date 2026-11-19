@@ -121,7 +121,7 @@ function showNotification(message, type) {
     const notification = document.createElement("div");
     notification.className = "drive-notification notification-" + (type || "info");
     notification.textContent = message;
-    notification.style.cssText = "position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;background:#333;color:#fff;z-index:9999;animation:slideIn 0.3s ease;";
+    notification.style.cssText = "position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;background:#333;color:#fff;z-index:var(--z-system);animation:slideIn 0.3s ease;";
     if (type === "error") notification.style.background = "#ef4444";
     if (type === "success") notification.style.background = "#22c55e";
     if (type === "warning") notification.style.background = "#f59e0b";
@@ -197,7 +197,7 @@ function compressImageForUpload(file, opts) {
                             try {
                                 blob.name = outName;
                                 blob.lastModified = Date.now();
-                            } catch (_e) {}
+                            } catch (_e) { window.gbLogError ? gbLogError(_e, "finish") : console.error("finish", _e); }
                             resolve(blob);
                         }
                     }

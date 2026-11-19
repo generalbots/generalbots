@@ -225,3 +225,17 @@ fraud-col-transactions = Transacciones
 fraud-col-blocked = Bloqueadas
 fraud-col-review = Revisión
 fraud-col-false-positive = Falso positivo
+
+drive-upload-queue-body = {count} carga(s) no terminaron. ¿Reintentar?
+drive-upload-queue-retry = Reintentar
+drive-upload-queue-discard = Descartar
+drive-upload-queue-recovered = Se subieron {count} archivo(s) recuperado(s)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+lists-state-empty-title = Todavía no hay listas
+lists-state-empty-desc = Una lista agrupa contactos o empresas para dirigirte a ellos en conjunto.
+lists-state-empty-action = Crear tu primera lista
+minutes-state-empty-title = No hay reuniones programadas
+minutes-state-empty-desc = Programa una reunión y la transcripción, el resumen y las acciones quedan aquí.

@@ -822,3 +822,13 @@ admin-onboarding-team-51-plus = 50 人以上
 admin-ops-configure-alerts = 配置告警
 admin-ops-trace-search-placeholder = 搜索跟踪 ID...
 admin-ops-traces-slow = 慢 (>500ms)
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+workspace-state-empty-recent-title = 还没有打开过内容
+workspace-state-empty-recent-desc = 打开过的页面会显示在这里，方便您接着上次继续。
+workspace-state-empty-favorites-title = 还没有收藏
+workspace-state-empty-favorites-desc = 将页面标为收藏，即可固定在侧边栏顶部。
+workspace-state-empty-pages-title = 还没有页面
+workspace-state-empty-pages-desc = 页面是这个工作区的笔记与文档。创建第一页吧。

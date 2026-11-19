@@ -135,7 +135,7 @@ function shareFolder(path, bucket) {
     if (modal) modal.remove();
     modal = document.createElement("div");
     modal.id = "share-folder-modal";
-    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);backdrop-filter:blur(8px);";
     var container = document.createElement("div");
     container.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:480px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);";
     container.innerHTML =

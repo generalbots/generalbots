@@ -79,3 +79,13 @@ drive-drop-hint = 여기에 파일이나 폴더를 끌어다 놓아 업로드하
 # semantic i18n key (#2542)
 drive-search-all-placeholder = 모든 파일 검색…
 drive-search-all-aria-label = 이름과 내용으로 모든 파일 검색
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+drive-starred-empty-title = 별표한 파일이 없습니다
+drive-starred-empty-desc = 파일에 별표를 하거나 ⋮ 메뉴를 사용하면 한 번의 클릭으로 열 수 있습니다.
+drive-shared-empty-title = 공유된 파일이 없습니다
+drive-shared-empty-desc = 공유받은 파일이 여기에 표시됩니다. 내 파일을 공유해 검토를 시작하세요.
+drive-list-error-title = 이 목록을 불러오지 못했습니다
+drive-list-error-desc = Drive가 제시간에 응답하지 않았습니다. 연결을 확인한 후 다시 시도하세요.

@@ -298,7 +298,7 @@
 body.gb-printing #chat-app {
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: var(--z-blocker);
     background: #fff !important;
     background-image: none !important;
 }
@@ -352,4 +352,17 @@ body.gb-printing #chat-app {
         white-space: pre-wrap;
         word-break: break-word;
     }
+}
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  #chat-app .gb-chat-header-btn,
+  #chat-app .message-actions,
+  #chat-app .message-action-btn,
+  #chat-app .gb-feedback-wrap,
+  #chat-app .gb-feedback-btn {
+    animation: none !important;
+    transition: none !important;
+  }
 }

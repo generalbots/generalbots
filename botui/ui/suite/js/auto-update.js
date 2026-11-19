@@ -169,7 +169,7 @@
     banner.style.cssText =
       "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);" +
       "background:#1e293b;border:1px solid #3b82f6;border-radius:12px;" +
-      "padding:16px 24px;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,0.4);" +
+      "padding:16px 24px;z-index:var(--z-blocker);box-shadow:0 8px 32px rgba(0,0,0,0.4);" +
       "max-width:520px;width:90%;color:#f8fafc;font-family:system-ui,sans-serif;";
 
     var header = document.createElement("div");

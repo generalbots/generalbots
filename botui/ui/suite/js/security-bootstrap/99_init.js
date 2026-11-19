@@ -42,12 +42,12 @@
         if (sameOrigin && token && !this._gbSkipAuth && !headers["authorization"]) {
           try {
             this.setRequestHeader("Authorization", "Bearer " + token);
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "send") : console.error("send", e); }
         }
         if (sameOrigin && sessionId && !this._gbSkipAuth && !headers["x-session-id"]) {
           try {
             this.setRequestHeader("X-Session-ID", sessionId);
-          } catch (e) {}
+          } catch (e) { window.gbLogError ? gbLogError(e, "send") : console.error("send", e); }
         }
 
         this.addEventListener("load", function () {

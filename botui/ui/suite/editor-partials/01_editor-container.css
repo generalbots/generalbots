@@ -80,7 +80,7 @@ body:has(.editor-container) {
     padding: 8px 14px;
     border: none;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -103,7 +103,7 @@ body:has(.editor-container) {
 
 .btn-small {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .editor-content {
@@ -141,7 +141,7 @@ body:has(.editor-container) {
     justify-content: space-between;
     gap: 6px;
     padding: 8px 12px;
-    font-size: 10.5px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -162,7 +162,7 @@ body:has(.editor-container) {
     border-radius: 4px;
     padding: 0 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.6;
 }
 
@@ -175,14 +175,14 @@ body:has(.editor-container) {
     flex: 1;
     overflow: auto;
     padding: 6px 4px;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     user-select: none;
 }
 
 .editor-tree-empty {
     padding: 12px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
 }
 
@@ -205,7 +205,7 @@ body:has(.editor-container) {
     width: 10px;
     display: inline-block;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .editor-tree-children {

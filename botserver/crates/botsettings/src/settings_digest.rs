@@ -6,11 +6,12 @@
 //! pure scheduling/formatting rules live here so both the job and the Settings
 //! API share one definition and can be unit-tested without a database or SMTP.
 
-use chrono::{
-    DateTime, Datelike, Duration, LocalResult, NaiveDateTime, Offset, TimeZone, Utc, Weekday,
-};
-use chrono_tz::Tz;
+use chrono::{DateTime, Datelike, Duration, LocalResult, NaiveDateTime, TimeZone, Utc, Weekday};
 use serde_json::Value;
+
+pub use crate::timezone::{
+    local_date, local_date_in, resolve_zone, timezone_offset_minutes, today_in, Zone,
+};
 
 /// `user_preferences` key that stores the last digest run.
 pub const DIGEST_STATUS_KEY: &str = "digest_status";
@@ -102,82 +103,6 @@ pub fn next_run_at(status: &Value, timezone: &str) -> Option<DateTime<Utc>> {
     }
 }
 
-/// A Settings timezone value resolved to something the digest can use.
-///
-/// `#2389` — Settings stores IANA names, which carry their own DST rules, so the
-/// calendar day and the Monday 09:00 instant are computed in the zone itself
-/// rather than from a fixed offset table. Explicit `UTC±hh:mm` values remain
-/// supported as a documented fallback for callers that never had a zone name.
-#[derive(Debug, Clone, Copy)]
-pub enum Zone {
-    Iana(Tz),
-    Fixed(i32),
-}
-
-/// Resolves a timezone value, warning instead of silently pretending it is UTC.
-pub fn resolve_zone(timezone: &str) -> Zone {
-    let value = timezone.trim();
-    if value.is_empty() || value.eq_ignore_ascii_case("utc") || value.eq_ignore_ascii_case("gmt") {
-        return Zone::Iana(Tz::UTC);
-    }
-    match value.parse::<Tz>() {
-        Ok(tz) => Zone::Iana(tz),
-        Err(_) => match parse_numeric_offset(value) {
-            Some(offset) => Zone::Fixed(offset),
-            None => {
-                log::warn!(
-                    "settings: unresolvable timezone {value:?}; falling back to UTC"
-                );
-                Zone::Iana(Tz::UTC)
-            }
-        },
-    }
-}
-
-/// UTC offset (minutes) at `at`, honouring the zone's daylight-saving rules.
-pub fn timezone_offset_minutes(timezone: &str, at: DateTime<Utc>) -> i32 {
-    match resolve_zone(timezone) {
-        // Zone offsets are whole minutes, so the division is exact.
-        Zone::Iana(tz) => at.with_timezone(&tz).offset().fix().local_minus_utc() / 60,
-        Zone::Fixed(offset) => offset,
-    }
-}
-
-/// The calendar day in the user's zone, which is what a "week ending" label
-/// means to the person receiving it (`#2389`).
-pub fn local_date_in(timezone: &str, at: DateTime<Utc>) -> String {
-    match resolve_zone(timezone) {
-        Zone::Iana(tz) => at.with_timezone(&tz).format("%Y-%m-%d").to_string(),
-        Zone::Fixed(offset) => (at + Duration::minutes(i64::from(offset)))
-            .format("%Y-%m-%d")
-            .to_string(),
-    }
-}
-
-fn parse_numeric_offset(value: &str) -> Option<i32> {
-    let rest = value
-        .strip_prefix("UTC")
-        .or_else(|| value.strip_prefix("GMT"))
-        .or_else(|| value.strip_prefix("utc"))
-        .or_else(|| value.strip_prefix("gmt"))?;
-    let rest = rest.trim();
-    if rest.is_empty() {
-        return Some(0);
-    }
-    let sign = if rest.starts_with('-') { -1 } else { 1 };
-    let rest = rest.trim_start_matches(['+', '-']);
-    let (hours, minutes) = match rest.split_once(':') {
-        Some((hours, minutes)) => (hours, minutes),
-        None => (rest, "0"),
-    };
-    let hours: i32 = hours.parse().ok()?;
-    let minutes: i32 = minutes.parse().ok()?;
-    if hours > 14 || minutes > 59 {
-        return None;
-    }
-    Some(sign * (hours * 60 + minutes))
-}
-
 /// Plain-text body sent through the platform notification sender.
 pub fn build_digest_body(
     username: &str,
@@ -222,7 +147,8 @@ mod tests {
     fn at(raw: &str) -> DateTime<Utc> {
         DateTime::parse_from_rfc3339(raw)
             .map(|parsed| parsed.with_timezone(&Utc))
-            .unwrap_or_else(|_| Utc::now())
+            // A malformed literal must fail the assertion, not panic.
+            .unwrap_or(DateTime::<Utc>::MIN_UTC)
     }
 
     #[test]
@@ -260,35 +186,6 @@ mod tests {
     }
 
     #[test]
-    fn timezone_values_map_to_expected_offsets() {
-        let winter = at("2026-01-15T12:00:00Z");
-        assert_eq!(timezone_offset_minutes("UTC", winter), 0);
-        assert_eq!(timezone_offset_minutes("America/Sao_Paulo", winter), -180);
-        assert_eq!(timezone_offset_minutes("Asia/Tokyo", winter), 540);
-        assert_eq!(timezone_offset_minutes("UTC+05:30", winter), 330);
-        assert_eq!(timezone_offset_minutes("GMT-03:00", winter), -180);
-        // #2389 — an unknown zone is an explicit UTC fallback, never a typo
-        // that quietly shifts every date by hours.
-        assert_eq!(timezone_offset_minutes("not-a-zone", winter), 0);
-    }
-
-    /// #2389 — the fixed table returned -300 all year, so a week label,
-    /// digest instant or "today" bucket was off by an hour for half the year.
-    #[test]
-    fn daylight_saving_transitions_are_honoured() {
-        // US DST starts 2026-03-08 and ends 2026-11-01.
-        let before_dst = at("2026-03-01T12:00:00Z");
-        let during_dst = at("2026-07-01T12:00:00Z");
-        let after_dst = at("2026-11-10T12:00:00Z");
-        assert_eq!(timezone_offset_minutes("America/New_York", before_dst), -300);
-        assert_eq!(timezone_offset_minutes("America/New_York", during_dst), -240);
-        assert_eq!(timezone_offset_minutes("America/New_York", after_dst), -300);
-        // Europe/London is UTC in winter and UTC+1 in summer.
-        assert_eq!(timezone_offset_minutes("Europe/London", before_dst), 0);
-        assert_eq!(timezone_offset_minutes("Europe/London", during_dst), 60);
-    }
-
-    #[test]
     fn next_run_across_a_dst_transition_keeps_local_monday_nine() {
         // Sent on Thursday 2026-10-29 14:00 UTC (EDT, UTC-4). The next Monday
         // 09:00 local is 2026-11-02, which is EST (UTC-5) after the change.
@@ -297,17 +194,6 @@ mod tests {
             next_run_at(&status, "America/New_York"),
             Some(at("2026-11-02T14:00:00Z"))
         );
-    }
-
-    /// #2389 — Sao Paulo keeps UTC-3 but is a day ahead of UTC at 23:30 local,
-    /// which is the case a naive UTC date gets wrong at every month boundary.
-    #[test]
-    fn local_date_follows_the_zone_at_month_boundaries() {
-        let late = at("2026-12-01T02:30:00Z"); // 2026-11-30 23:30 in Sao Paulo
-        assert_eq!(local_date_in("America/Sao_Paulo", late), "2026-11-30");
-        assert_eq!(local_date_in("UTC", late), "2026-12-01");
-        // Auckland is already on the next day.
-        assert_eq!(local_date_in("Pacific/Auckland", late), "2026-12-01");
     }
 
     #[test]

@@ -13,7 +13,7 @@ body {
     background: var(--id-paper, #FFF8F2);
     color: var(--id-ink, #2C2C2C);
     font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
-    font-size: var(--id-text-base, 14px);
+    font-size: var(--id-text-base, 0.875rem);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -42,7 +42,7 @@ body {
 .gb-login-wordmark {
     font-family: var(--id-font-logo, 'Fira Sans', sans-serif);
     font-weight: 600;
-    font-size: var(--id-text-3xl, 24px);
+    font-size: var(--id-text-3xl, 1.5rem);
     color: var(--id-ink, #2C2C2C);
     margin-bottom: var(--id-space-1, 4px);
 }
@@ -52,7 +52,7 @@ body {
 
 /* -- Subtitle -- */
 .gb-login-subtitle {
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--id-text-sm, 0.75rem);
     color: var(--id-muted, #5F6673);
     margin-bottom: var(--id-space-6, 24px);
 }
@@ -63,7 +63,7 @@ body {
 }
 .gb-login-field label {
     display: block;
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--id-text-sm, 0.75rem);
     font-weight: 500;
     color: var(--id-text, #4B5563);
     margin-bottom: var(--id-space-1, 4px);
@@ -78,7 +78,7 @@ body {
     background: var(--id-surface-solid, #fff);
     color: var(--id-ink, #2C2C2C);
     font-family: var(--id-font-sans, 'Inter', system-ui, sans-serif);
-    font-size: var(--id-text-base, 14px);
+    font-size: var(--id-text-base, 0.875rem);
     transition: border-color var(--id-dur-fast, 150ms) var(--id-ease-standard);
     outline: none;
 }
@@ -137,7 +137,7 @@ body {
     color: var(--id-on-accent, #fff);
     font-family: var(--id-font-heading, 'Fira Sans', sans-serif);
     font-weight: 600;
-    font-size: var(--id-text-md, 15px);
+    font-size: var(--id-text-md, 1rem);
     cursor: pointer;
     transition: background var(--id-dur-fast, 150ms) var(--id-ease-standard);
 }
@@ -162,7 +162,7 @@ body {
     background: rgba(220, 38, 38, .06);
     border: 1px solid rgba(220, 38, 38, .18);
     color: #b91c1c;
-    font-size: var(--id-text-sm, 12px);
+    font-size: var(--id-text-sm, 0.75rem);
     line-height: 1.5;
 }
 .gb-login-error a {

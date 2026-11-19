@@ -5,7 +5,7 @@
     background: var(--gb-surface, #fff);
     margin: 8px 0;
     overflow: hidden;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .run-card-head {
@@ -101,7 +101,7 @@
 
 .run-row-status {
     flex: 0 0 72px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--gb-text-muted, #57606a);
@@ -120,14 +120,14 @@
 /* #1807 — workspace stage detail and live elapsed timer. */
 .run-row-detail {
     color: var(--gb-text-muted, #57606a);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     overflow-wrap: anywhere;
 }
 .run-row-detail[hidden] { display: none; }
 .run-row-meta {
     margin-left: auto;
     color: var(--gb-text-muted, #57606a);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     /* #2014 — the 250 ms heartbeat rewrites this label ("9s" → "still working
@@ -154,7 +154,7 @@
     background: #0d1117;
     color: #e6edf3;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.45;
     white-space: pre-wrap;
 }

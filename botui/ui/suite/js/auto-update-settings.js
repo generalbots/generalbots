@@ -134,7 +134,7 @@
       modal.style.cssText =
         "position:fixed;top:0;left:0;width:100%;height:100%;" +
         "background:rgba(15,23,42,0.85);display:flex;align-items:center;" +
-        "justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
+        "justify-content:center;z-index:var(--z-blocker);backdrop-filter:blur(8px);";
       var text = notes || t("update-no-release-notes", "No release notes available.");
       modal.innerHTML =
         '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;' +

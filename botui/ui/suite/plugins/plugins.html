@@ -18,7 +18,16 @@
             <input type="file" id="fileInput" class="file-input" accept=".json">
         </div>
         <div id="plugins-status" class="plugins-status" role="status" aria-live="polite"></div>
-        <div id="plugin-list" hx-get="/api/ui/plugins" hx-trigger="load">
+        <div id="plugin-list" hx-get="/api/ui/plugins" hx-trigger="load"
+             data-gb-states="cards"
+             data-gb-empty-icon="🧩"
+             data-gb-empty-title="plugins-state-empty-title"
+             data-gb-empty-title-fallback="No plugins installed"
+             data-gb-empty-desc="plugins-state-empty-desc"
+             data-gb-empty-desc-fallback="A plugin adds tools and channels to this bot. Upload a manifest to install one."
+             data-gb-empty-action="plugins-state-empty-action"
+             data-gb-empty-action-fallback="Upload a manifest"
+             data-gb-empty-action-target="pluginUploadBtn">
             <div class="plugins-loading" data-i18n="plugins-loading">Loading plugins...</div>
         </div>
     </div>

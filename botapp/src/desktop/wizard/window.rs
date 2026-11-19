@@ -304,11 +304,20 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
 /// shadow area. The shadow flag is set only in the builder (recreate path);
 /// on the conf-created window the shadow is already present.
 fn apply_edition_chrome(window: &tauri::WebviewWindow) {
-    if !CUSTOM_HEADER {
+    // #2450 — the kiosk keeps no window chrome either: a decoration close
+    // button under cage ends the session, and there is no window manager to
+    // restore it. Kiosk mode also owns the whole display.
+    let kiosk = crate::desktop::shell_mode();
+    if !CUSTOM_HEADER && !kiosk {
         return;
     }
     if let Err(e) = window.set_decorations(false) {
         warn!("could not remove decorations from the main window: {e}");
+    }
+    if kiosk {
+        if let Err(e) = window.set_fullscreen(true) {
+            warn!("could not fullscreen the kiosk window: {e}");
+        }
     }
 }
 

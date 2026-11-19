@@ -213,7 +213,14 @@ window.addEventListener("gb:auth:login", function () {
     fetchUserInfo().then(function () { init(); });
 });
 
-function __safeInit() { try { init(); } catch (e) { console.error("[drive] init failed:", e); } }
+function __safeInit() {
+    try { init(); } catch (e) { console.error("[drive] init failed:", e); }
+    // #2510 — a tab killed mid-upload left bytes in IndexedDB; offer them back
+    // once the shell is bound, so recovery never delays the folder listing.
+    if (typeof gbcQueueOfferRecovery === "function") {
+        gbcQueueOfferRecovery().catch(function (e) { console.error("[drive] upload queue recovery failed:", e); });
+    }
+}
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", __safeInit);
 } else {

@@ -48,7 +48,7 @@
 }
 
 .sidebar-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
@@ -71,7 +71,7 @@
     border-radius: 20px;
     background: var(--background);
     color: var(--foreground);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -98,7 +98,7 @@
 }
 
 .sidebar-section h3 {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     color: var(--muted-foreground);
@@ -153,7 +153,7 @@
     background: transparent;
     border: none;
     color: var(--foreground);
-    font-size: 13px;
+    font-size: var(--text-xs);
     text-align: left;
     cursor: pointer;
     transition: background 0.15s;
@@ -164,7 +164,7 @@
 }
 
 .collection-icon {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* Recent Searches */
@@ -183,7 +183,7 @@
     background: transparent;
     border: none;
     color: var(--muted-foreground);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     text-align: left;
     cursor: pointer;
     transition: all 0.15s;
@@ -207,7 +207,7 @@
     border-radius: 14px;
     background: var(--background);
     color: var(--foreground);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -234,7 +234,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--foreground);
-    font-size: 13px;
+    font-size: var(--text-xs);
     text-align: left;
     cursor: pointer;
     transition: background 0.15s;
@@ -245,7 +245,7 @@
 }
 
 .category-icon {
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .category-name {
@@ -253,7 +253,7 @@
 }
 
 .category-count {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 2px 6px;
     border-radius: 10px;
     background: var(--muted);
@@ -306,7 +306,7 @@
     border: none;
     background: transparent;
     color: var(--foreground);
-    font-size: 16px;
+    font-size: var(--text-md);
     line-height: 1.5;
     resize: none;
     outline: none;
@@ -345,7 +345,7 @@
     border-radius: 16px;
     background: var(--muted);
     color: var(--muted-foreground);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     transition: all 0.15s;
 }
 
@@ -363,7 +363,7 @@
     border-radius: 8px;
     background: var(--primary);
     color: var(--primary-foreground);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -421,7 +421,7 @@
 
 .indicator-text {
     color: var(--muted-foreground);
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* Suggestions Panel */
@@ -439,7 +439,7 @@
 }
 
 .suggestions-panel h3 {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--muted-foreground);
     margin: 0 0 16px 0;

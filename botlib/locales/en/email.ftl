@@ -196,3 +196,20 @@ mail-placeholder-imap-server = imap.example.com
 mail-placeholder-smtp-server = smtp.example.com
 mail-placeholder-username-or-email = username or email
 mail-placeholder-password = ••••••••
+
+# -----------------------------------------------------------------------------
+# #2328 — loading / empty / error state copy
+# -----------------------------------------------------------------------------
+mail-state-empty-title = This folder is empty
+mail-state-empty-desc = New messages arrive here. Write one yourself if you need to start the conversation.
+mail-state-empty-action = Write a message
+mail-state-loading = Loading emails…
+mail-templates-empty-title = No templates yet
+mail-templates-empty-desc = A template saves a subject and a body you send often, so you never retype it.
+mail-templates-empty-action = Create a template
+mail-signatures-empty-title = No signatures yet
+mail-signatures-empty-desc = A signature is appended to the messages you send. Add your name, role and contact details once.
+mail-signatures-empty-action = Create a signature
+mail-rules-empty-title = No rules yet
+mail-rules-empty-desc = A rule files, stars or deletes incoming mail automatically, for example everything from a given sender.
+mail-rules-empty-action = Create a rule

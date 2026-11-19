@@ -9,7 +9,7 @@
 
             .form-label {
                 display: block;
-                font-size: 13px;
+                font-size: var(--text-xs);
                 color: var(--text-secondary);
                 margin-bottom: 6px;
             }
@@ -22,7 +22,7 @@
                 border-radius: 8px;
                 background: var(--bg-tertiary);
                 color: var(--text-primary);
-                font-size: 14px;
+                font-size: var(--text-sm);
             }
 
             .form-input:focus,
@@ -75,7 +75,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                z-index: 1001;
+                z-index: var(--z-dropdown);
             }
 
             .toast {
@@ -154,7 +154,7 @@
                     top: 0;
                     bottom: 0;
                     width: 320px;
-                    z-index: 500;
+                    z-index: var(--z-dropdown);
                 }
 
                 .queue-sidebar.mobile-show {

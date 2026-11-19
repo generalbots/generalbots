@@ -32,7 +32,7 @@
     border-bottom: none;
     border-radius: 8px 8px 0 0;
     color: var(--text-secondary, #888);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1;
     cursor: pointer;
     user-select: none;
@@ -63,7 +63,7 @@
 }
 
 .gb-tab-glyph {
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1;
 }
 
@@ -75,7 +75,7 @@
 
 .gb-tab-rename {
     width: 120px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 2px 4px;
     border: 1px solid var(--accent, #2563eb);
     border-radius: 4px;
@@ -98,7 +98,7 @@
 }
 
 .gb-tab-pin {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     line-height: 1;
     display: none;
 }
@@ -112,7 +112,7 @@
     border: none;
     color: inherit;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1;
     padding: 0 2px;
     opacity: 0.5;
@@ -136,7 +136,7 @@
     border-radius: 6px;
     color: var(--text-secondary, #888);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1;
     padding: 3px 9px;
     margin-left: 2px;
@@ -151,7 +151,7 @@
 
 .gb-context-menu {
     position: fixed;
-    z-index: 10050;
+    z-index: var(--z-system);
     min-width: 150px;
     background: var(--surface, var(--card, #1a1a24));
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
@@ -167,7 +167,7 @@
     border: none;
     text-align: left;
     color: var(--text, #e5e5e5);
-    font-size: 13px;
+    font-size: var(--text-xs);
     padding: 7px 10px;
     border-radius: 5px;
     cursor: pointer;
@@ -185,7 +185,7 @@
 
 .gb-tab-picker-title,
 .gb-tab-picker-section {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -202,13 +202,13 @@
 }
 
 .gb-tab-picker-glyph {
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1;
 }
 
 .gb-tab-picker-empty {
     color: var(--text-secondary, #888);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 8px 10px;
 }
 
@@ -231,7 +231,7 @@
     border: 1px solid var(--border, var(--border-color, #2a2a3a));
     background: var(--surface2, var(--surface, #1e1e2e));
     color: var(--text, #e5e5e5);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: border-color 0.15s ease, transform 0.15s ease;
 }
@@ -247,7 +247,7 @@
     border-radius: 50%;
     background: var(--accent, #2563eb);
     color: #fff;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     display: inline-flex;
     align-items: center;
@@ -290,7 +290,7 @@ sup.gb-cite-ref:hover {
     border-radius: 10px;
     background: var(--surface2, var(--surface, #1e1e2e));
     padding: 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .gb-consent-card.resolved {
@@ -305,7 +305,7 @@ sup.gb-cite-ref:hover {
 }
 
 .gb-consent-glyph {
-    font-size: 18px;
+    font-size: var(--text-lg);
     line-height: 1;
 }
 
@@ -315,7 +315,7 @@ sup.gb-cite-ref:hover {
 }
 
 .gb-consent-app {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     letter-spacing: 0.03em;
 }
@@ -338,7 +338,7 @@ sup.gb-cite-ref:hover {
     color: var(--text, #e5e5e5);
     border-radius: 7px;
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: filter 0.15s ease;
 }
@@ -372,7 +372,7 @@ sup.gb-cite-ref:hover {
 
 .gb-consent-outcome-time {
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
 }
 @media (prefers-reduced-motion: reduce) {

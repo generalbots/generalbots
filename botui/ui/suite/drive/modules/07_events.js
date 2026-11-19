@@ -157,9 +157,9 @@ function triggerUpload() {
 function triggerCameraUpload() {
     const explainedKey = "gb-drive-camera-explained-v1";
     let explained = false;
-    try { explained = localStorage.getItem(explainedKey) === "1"; } catch (_) {}
+    try { explained = localStorage.getItem(explainedKey) === "1"; } catch (_) { window.gbLogError ? gbLogError(_, "triggerCameraUpload") : console.error("triggerCameraUpload", _); }
     const proceed = function () {
-        try { localStorage.setItem(explainedKey, "1"); } catch (_) {}
+        try { localStorage.setItem(explainedKey, "1"); } catch (_) { window.gbLogError ? gbLogError(_, "proceed") : console.error("proceed", _); }
         const input = document.getElementById("camera-input");
         if (input) input.click();
     };

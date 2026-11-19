@@ -7,7 +7,7 @@
 .gb-tour-prompt-layer {
   position: fixed;
   inset: 0;
-  z-index: 2147483000;
+  z-index: var(--z-blocker);
 }
 
 .gb-tour-layer {
@@ -16,7 +16,7 @@
 
 .gb-tour-spotlight {
   position: fixed;
-  z-index: 0;
+  z-index: var(--z-base);
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.92);
   box-shadow: 0 0 0 9999px rgba(8, 15, 30, 0.78);
@@ -46,7 +46,7 @@
 .gb-tour-progress {
   margin: 0 0 6px;
   color: #64748b;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -54,7 +54,7 @@
 
 .gb-tour-title {
   margin: 0 0 6px;
-  font-size: 17px;
+  font-size: var(--text-lg);
   font-weight: 700;
   line-height: 1.3;
 }
@@ -62,7 +62,7 @@
 .gb-tour-body {
   margin: 0 0 14px;
   color: #334155;
-  font-size: 13px;
+  font-size: var(--text-xs);
   line-height: 1.5;
 }
 
@@ -89,7 +89,7 @@
   background: #ffffff;
   color: #0f172a;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   cursor: pointer;
 }
@@ -133,7 +133,7 @@
 }
 
 .gb-tour-prompt-layer {
-  z-index: 2147483001;
+  z-index: var(--z-top);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,7 +156,7 @@
 .gb-tour-eyebrow {
   margin: 0 0 6px;
   color: #2563eb;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -164,14 +164,14 @@
 
 .gb-tour-prompt-title {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: var(--text-xl);
   line-height: 1.25;
 }
 
 .gb-tour-prompt-body {
   margin: 0 0 18px;
   color: #334155;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   line-height: 1.55;
 }
 

@@ -11,7 +11,7 @@
   const TABLE_KEY = "gb-sheet-tables";
 
   function readObj(k) { try { return gbStoreGet(k, {}); } catch (_) { return {}; } }
-  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
+  function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) { window.gbLogError ? gbLogError(_, "writeObj") : console.error("writeObj", _); } }
 
   P.addConditionalFormat = function (range, type, opts) {
     const map = readObj(COND_KEY);

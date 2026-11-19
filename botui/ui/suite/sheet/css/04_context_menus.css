@@ -14,7 +14,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 180px;
     padding: 6px 0;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
 }
 
 .context-menu.hidden {
@@ -26,7 +26,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--sentient-text-primary, #212121);
     cursor: pointer;
     transition: background 0.1s ease;
@@ -37,7 +37,7 @@
 }
 
 .context-item .shortcut {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--sentient-text-muted, #999);
 }
 
@@ -55,7 +55,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     opacity: 1;
     transition: opacity 0.2s ease;
 }
@@ -88,7 +88,7 @@
 
 .modal-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--sentient-text-primary, #212121);
 }
@@ -101,7 +101,7 @@
     color: var(--sentient-text-muted, #999);
     border-radius: var(--sentient-radius-sm, 4px);
     cursor: pointer;
-    font-size: 20px;
+    font-size: var(--text-xl);
     display: flex;
     align-items: center;
     justify-content: center;
