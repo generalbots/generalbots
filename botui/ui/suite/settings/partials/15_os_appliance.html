@@ -1,0 +1,97 @@
+<link rel="stylesheet" href="/suite/settings/settings-os-appliance.css?v=1" />
+
+<section id="os-network-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-net-title">Network</h1>
+    <p class="subtitle" data-i18n="os-net-subtitle">Wi-Fi, Ethernet and connectivity for this device</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-net-status">Network status</h2></div>
+    <p class="os-hint" data-i18n="os-net-readonly">Network configuration is managed by the host appliance. This page shows status when the OS backend is available.</p>
+    <div id="os-net-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-power-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-power-title">Power & Battery</h1>
+    <p class="subtitle" data-i18n="os-power-subtitle">Battery, charging and power behavior</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-power-status">Power status</h2></div>
+    <p class="os-hint" data-i18n="os-power-readonly">Power actions require the OS appliance backend and are not available in this build yet.</p>
+    <div id="os-power-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-display-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-display-title">Display</h1>
+    <p class="subtitle" data-i18n="os-display-subtitle">Brightness, scaling and external displays</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-display-status">Display status</h2></div>
+    <p class="os-hint" data-i18n="os-display-readonly">Display controls are read-only until the OS display backend is connected.</p>
+    <div id="os-display-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-sound-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-sound-title">Sound</h1>
+    <p class="subtitle" data-i18n="os-sound-subtitle">Output, input and volume</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-sound-status">Sound status</h2></div>
+    <p class="os-hint" data-i18n="os-sound-readonly">Audio device control is unavailable without the OS audio backend.</p>
+    <div id="os-sound-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-keyboard-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-keyboard-title">Keyboard & Region</h1>
+    <p class="subtitle" data-i18n="os-keyboard-subtitle">Input language, layout and regional formats</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-keyboard-status">Input & region status</h2></div>
+    <p class="os-hint" data-i18n="os-keyboard-readonly">Keyboard layout and region settings are read-only here until the OS input backend is available.</p>
+    <div id="os-keyboard-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-storage-reset-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-storage-reset-title">Storage & Reset</h1>
+    <p class="subtitle" data-i18n="os-storage-reset-subtitle">Disk usage, cleanup and device reset options</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-storage-reset-status">Storage status</h2></div>
+    <p class="os-hint" data-i18n="os-storage-reset-readonly">Reset actions are disabled because the OS management backend is not connected. No destructive action is performed from this page.</p>
+    <div id="os-storage-reset-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-users-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-users-title">Users</h1>
+    <p class="subtitle" data-i18n="os-users-subtitle">Local device accounts and access</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-users-status">Local users</h2></div>
+    <p class="os-hint" data-i18n="os-users-readonly">Local user management requires the OS accounts backend. Account data is not modified from this page.</p>
+    <div id="os-users-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-diagnostics-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-diagnostics-title">Diagnostics</h1>
+    <p class="subtitle" data-i18n="os-diagnostics-subtitle">Health checks, logs and support information</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-diagnostics-status">Diagnostics status</h2></div>
+    <p class="os-hint" data-i18n="os-diagnostics-readonly">Diagnostic collection is read-only and depends on the OS diagnostics backend.</p>
+    <div id="os-diagnostics-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
