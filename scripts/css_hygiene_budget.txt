@@ -253,7 +253,6 @@ raw-hex:botui/ui/suite/tasks/tasks-floating-progress-progress.css 13
 raw-hex:botui/ui/suite/tasks/tasks-floating-progress.css 33
 raw-hex:botui/ui/suite/tasks/tasks-layout-pill.css 17
 raw-hex:botui/ui/suite/tasks/tasks-layout.css 19
-raw-hex:botui/ui/suite/tasks/tasks-log-detail-rich.css 27
 raw-hex:botui/ui/suite/tasks/tasks-log-detail.css 24
 raw-hex:botui/ui/suite/tasks/tasks-scoped-cards.css 51
 raw-hex:botui/ui/suite/tasks/tasks-scoped-detail-detail.css 20
@@ -265,7 +264,6 @@ raw-hex:botui/ui/suite/tasks/tasks-scoped-floating-progress-progress.css 10
 raw-hex:botui/ui/suite/tasks/tasks-scoped-floating-progress.css 30
 raw-hex:botui/ui/suite/tasks/tasks-scoped-layout-pill.css 17
 raw-hex:botui/ui/suite/tasks/tasks-scoped-layout.css 19
-raw-hex:botui/ui/suite/tasks/tasks-scoped-log-detail-terminal.css 27
 raw-hex:botui/ui/suite/tasks/tasks-scoped-log-detail.css 21
 raw-hex:botui/ui/suite/tasks/tasks-scoped-terminal-modals-terminal.css 21
 raw-hex:botui/ui/suite/tasks/tasks-scoped-terminal-modals.css 18
