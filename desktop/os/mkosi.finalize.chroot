@@ -33,6 +33,19 @@ systemctl enable systemd-resolved.service
 systemctl enable systemd-timesyncd.service
 systemctl enable nftables.service
 
+# 14. Firmware, power/thermal and memory-pressure survival (#2464, offline
+#     image/config slice). fwupd exposes device firmware updates (UI wiring in
+#     Settings deferred), power-profiles-daemon/thermald manage laptop power and
+#     thermals, systemd-zram-generator + /etc/systemd/zram-generator.conf provide
+#     compressed swap, and systemd-oomd uses drop-ins/config in mkosi.extra to
+#     prefer killing recoverable workloads before the shell/compositor. Intel/AMD
+#     microcode packages are installed so the initramfs can load CPU updates
+#     early; loaded-revision reporting in diagnostics is a follow-up (#2468).
+systemctl enable fwupd-refresh.timer || true
+systemctl enable power-profiles-daemon.service || true
+systemctl enable thermald.service || true
+systemctl enable systemd-oomd.service || true
+
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 

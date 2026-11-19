@@ -229,6 +229,8 @@ laptop user expects. Each block names the issue it answers.
 | Firewall | `nftables` default-deny inbound, loaded at boot; loopback-only stack; LAN exposure is opt-in through `GB_ALLOW_LAN=1` plus the `gb_lan_allowed` set — there is no UI switch yet (#2477) |
 | Sound | PipeWire + WirePlumber + `pipewire-alsa` + ALSA UCM + GStreamer plugins; `/dev/snd` allowed in the unit (#2455) |
 | Graphics/compositing (#2481, offline slice) | Mesa userspace (`libgl1-mesa-dri`, EGL/GBM), VA-API/VDPAU/Vulkan stacks (`mesa-va-drivers`, `mesa-vdpau-drivers`, `mesa-vulkan-drivers`, `intel-media-va-driver`, `i965-va-driver`, `gstreamer1.0-vaapi`, `vainfo`/`vdpauinfo`) and common Intel/AMD firmware blobs so WebKitGTK/media can use hardware acceleration on supported laptops; `llvmpipe` remains the documented QEMU/software fallback. Runtime/hardware verification (vainfo profiles, CPU threshold, compositing path, battery comparison, diagnostics strings) is CI/hardware-gated follow-up. |
+| Firmware/power/memory (#2464, offline slice) | `fwupd` (device firmware), `power-profiles-daemon` and `thermald` (profiles/thermal), `intel-microcode`/`amd64-microcode` (early CPU updates via initramfs when supported), `systemd-zram-generator` with `/etc/systemd/zram-generator.conf` (RAM-sized compressed swap) and `systemd-oomd` with slice/service drop-ins that prefer reclaiming workloads before the kiosk shell/compositor. Settings/Firmware UI, tray power-profile selector, diagnostics telemetry, microcode/firmware status UI, and 4 GB soak/runtime verification are CI/hardware-gated follow-ups. |
+| Data at rest / recovery (#2470, honest state) | **Not implemented in this image recipe:** no LUKS mapping, no TPM-sealed disk key, no `systemd-cryptenroll` provisioning flow, and no scheduled snapshot/backup or "Export my data"/"Reset this PC" implementation. Previous false claims were removed from `mkosi.conf.d/20-secure-boot.conf`; implementation and verification remain follow-up work. |
 | Time/locale | `systemd-timesyncd`, `tzdata`, `locales`, `console-setup`, `keyboard-configuration`; `/etc/locale.gen`, `/etc/default/keyboard`, `/etc/timezone` written at build time (#2458) |
 | Removable media | `udisks2` + `gvfs` + `exfatprogs`/`ntfs-3g`/`dosfstools` (#2460) |
 | Session | `dbus-user-session`; `/usr/local/bin/gb-session` waits for the user manager's bus before exec'ing cage; user services (PipeWire, portals, gvfs) enabled via `default.target.wants` (#2449) |
@@ -237,10 +239,17 @@ laptop user expects. Each block names the issue it answers.
 
 ## Next hardening steps (mkosi supports all of them)
 
-1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates
-   via systemd-sysupdate once the image ships as a real kernel).
-2. Drop in the vendored installers (`installers/` in the tarball directory)
-   for an offline-first appliance that needs no internet on first boot.
+1. Signed boot chain (Secure Boot UKI/bootloader) — tracked by #2478. When
+   implemented and verified, at-rest encryption with documented unlock/recovery
+   (LUKS/TPM) — tracked by #2470. **Not implemented in this image recipe yet**
+   (no signed UKI, no LUKS mapping, no TPM-sealed root/data flow).
+2. A/B or slot-based OS updates with rollback — tracked by #2443.
+3. Drop in the vendored installers (`installers/` in the tarball directory)
+   for an offline-first appliance that needs no internet on first boot —
+   tracked by #2441.
+
+The "newest release carrying the tarball" resolution is gone: CI now requires
+a pinned tag plus the checksums of that same pin (see the build steps above).
 
 The "newest release carrying the tarball" resolution is gone: CI now requires
 a pinned tag plus the checksums of that same pin (see step 1 above).
