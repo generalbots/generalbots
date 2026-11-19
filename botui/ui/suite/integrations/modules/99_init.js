@@ -17,6 +17,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("integrations");
             if (typeof namespace.installProviderSourceEvents === "function") {
                 namespace.installProviderSourceEvents(root);
             }
+            if (typeof namespace.installConnectedControls === "function") {
+                namespace.installConnectedControls(root);
+            }
             namespace.initializeRoot(root);
         });
     }
@@ -27,6 +30,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("integrations");
     }
     if (typeof namespace.installAutomations === "function") {
         namespace.installAutomations();
+    }
+    if (typeof namespace.installAutomationSchema === "function") {
+        namespace.installAutomationSchema();
     }
     initializeAll(document);
 

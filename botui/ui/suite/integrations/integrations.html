@@ -97,6 +97,25 @@
                     <button class="integrations-button integrations-button-subtle" type="button"
                         data-action="refresh-connected" data-i18n="integrations-refresh-connected">Refresh connected</button>
                 </div>
+                <div class="integrations-toolbar integrations-connected-toolbar">
+                    <label class="integrations-search">
+                        <span class="integrations-control-label" data-i18n="integrations-connected-search">Search connected services</span>
+                        <span class="integrations-search-control">
+                            <span class="integrations-search-mark" aria-hidden="true"></span>
+                            <input type="search" data-connected-search autocomplete="off"
+                                data-i18n-placeholder="integrations-connected-search"
+                                data-i18n-aria-label="integrations-connected-search">
+                        </span>
+                    </label>
+                    <label class="integrations-sort-control">
+                        <span class="integrations-control-label" data-i18n="integrations-connected-sort">Sort connected services</span>
+                        <select data-connected-sort>
+                            <option value="status" data-i18n="label-status">Status</option>
+                            <option value="name" data-i18n="label-name">Name</option>
+                            <option value="tested" data-i18n="integrations-last-tested">Last tested</option>
+                        </select>
+                    </label>
+                </div>
                 <p class="integrations-result-status" data-connected-status role="status" aria-live="polite" data-i18n="integrations-loading-connected-services">
                     Loading connected services
                 </p>
@@ -126,6 +145,7 @@
                                 <option value="@weekly" data-i18n="integrations-weekly">Weekly</option>
                             </select></label>
                     </div>
+                    <div class="integrations-automation-schema" data-automation-schema></div>
                     <label class="integrations-run-field"><span data-i18n="integrations-parameters-json">Parameters (JSON object)</span>
                         <textarea name="params" rows="4" placeholder='{ "limit": 10 }'></textarea></label>
                     <p class="integrations-inline-error" data-automation-error hidden role="alert"></p>
@@ -149,6 +169,7 @@
                         data-action="refresh-sources" data-i18n="integrations-refresh-sources">Refresh sources</button>
                 </div>
                 <div class="integrations-sources-toolbar" data-source-filters role="group" aria-label="Data source categories"></div>
+                <p class="integrations-source-trust" data-source-trust role="status" aria-live="polite"></p>
                 <p class="integrations-result-status" data-sources-status role="status" aria-live="polite" data-i18n="integrations-loading-data-sources">Loading data sources</p>
                 <div data-sources-view aria-busy="true"></div>
             </section>
@@ -194,6 +215,7 @@
 <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="app-service-unavailable">Service unavailable</span></div>
 <script src="/suite/integrations/modules/02_source_kind.js"></script>
 <script src="/suite/integrations/modules/01_state.js?v=2"></script>
+<script src="/suite/integrations/modules/01b_clipboard.js"></script>
 <script src="/suite/integrations/modules/02_render.js?v=3"></script>
 <script src="/suite/integrations/modules/02a_render_test_cell.js?v=1"></script>
 <script src="/suite/integrations/modules/03_details_fields.js?v=2"></script>
@@ -207,5 +229,10 @@
 <script src="/suite/integrations/modules/07_sources.js"></script>
 <script src="/suite/integrations/modules/08_provider_source_data.js"></script>
 <script src="/suite/integrations/modules/08_provider_source_view.js"></script>
+<script src="/suite/integrations/modules/09_diagnostics.js"></script>
+<script src="/suite/integrations/modules/09_automation_schema.js"></script>
+<script src="/suite/integrations/modules/09_lifecycle.js"></script>
+<script src="/suite/integrations/modules/09_connected_controls.js"></script>
+<script src="/suite/integrations/modules/09_sources_trust.js"></script>
 <script src="/suite/integrations/modules/99_init.js"></script>
 <script src="/suite/integrations/tour.js?v=1"></script>

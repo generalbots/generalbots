@@ -103,11 +103,19 @@
         if (!url) return announce(root, "Connection test needs a workspace context");
         if (button) { button.disabled = true; button.textContent = t("integrations-testing", "Testing…"); button.setAttribute("aria-busy", "true"); }
         var state = namespace.getState(root);
+        var clock = window.performance && typeof window.performance.now === "function" ? window.performance : Date;
+        var startedAt = clock.now();
         try {
             var outcome = await namespace.fetchJson(url, { method: "POST", body: {} });
             var status = namespace.text(outcome.outcome || outcome.status, "unknown");
             var detail = namespace.text(outcome.detail || outcome.outcome_detail || outcome.message, "");
             var testedAt = new Date().toISOString();
+            var latencyMs = Math.max(0, Math.round(clock.now() - startedAt));
+            if (typeof namespace.saveTestDiagnostic === "function") {
+                namespace.saveTestDiagnostic(connectionId, {
+                    outcome: status, detail: detail, testedAt: testedAt, latencyMs: latencyMs
+                });
+            }
             namespace.testDetails[connectionId] = { outcome: status, detail: detail, testedAt: testedAt };
             if (state && Array.isArray(state.connectors)) {
                 state.connectors = state.connectors.map(function (row) {
@@ -115,7 +123,8 @@
                     return Object.assign({}, row, {
                         last_test_status: status,
                         last_tested_at: testedAt,
-                        last_test_detail: detail
+                        last_test_detail: detail,
+                        latency_ms: latencyMs
                     });
                 });
                 state.connectedStatus = "ready";
@@ -127,8 +136,26 @@
             if (button && button.isConnected) { button.textContent = t("integrations-retest", "Retest"); }
         } catch (error) {
             var errDetail = namespace.text(error && (error.detail || error.outcome_detail), "");
-            if (errDetail) {
-                namespace.testDetails[connectionId] = { outcome: "failed", detail: errDetail, testedAt: new Date().toISOString() };
+            var failureDetail = errDetail || testFailureMessage(error);
+            var failureAt = new Date().toISOString();
+            var failureLatency = Math.max(0, Math.round(clock.now() - startedAt));
+            if (typeof namespace.saveTestDiagnostic === "function") {
+                namespace.saveTestDiagnostic(connectionId, {
+                    outcome: "failed", detail: failureDetail, testedAt: failureAt, latencyMs: failureLatency
+                });
+            }
+            namespace.testDetails[connectionId] = { outcome: "failed", detail: failureDetail, testedAt: failureAt };
+            if (state && Array.isArray(state.connectors)) {
+                state.connectors = state.connectors.map(function (row) {
+                    if (row.id !== connectionId) return row;
+                    return Object.assign({}, row, {
+                        last_test_status: "failed",
+                        last_tested_at: failureAt,
+                        last_test_detail: failureDetail,
+                        latency_ms: failureLatency
+                    });
+                });
+                namespace.renderConnected(root);
             }
             announce(root, testFailureMessage(error));
         } finally {
@@ -144,6 +171,12 @@
             return;
         }
         var message = t("integrations-revoke-confirm", "Revoke this connection? Its stored credentials will be deleted.");
+        if (typeof namespace.revokeImpactText === "function") {
+            var impact = namespace.revokeImpactText(root, connectionId);
+            if (impact) {
+                message += " " + impact;
+            }
+        }
         var title = t("integrations-revoke-title", "Revoke connection");
         var confirmed = await new Promise(function (resolve) {
             if (window.GBModal && typeof window.GBModal.confirm === "function") {

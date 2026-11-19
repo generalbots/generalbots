@@ -32,6 +32,10 @@
         if (detail) {
             lines.push('<span class="integrations-cell-subtext">' + namespace.escapeHtml(detail) + '</span>');
         }
+        if (row.latency_ms !== undefined && row.latency_ms !== null) {
+            lines.push('<span class="integrations-cell-subtext">' +
+                namespace.escapeHtml(t("integrations-diagnostics-latency", "Latency: { $ms } ms", { ms: row.latency_ms })) + '</span>');
+        }
         var expState = expiryState(row.expires_at);
         if (expState === "soon" || expState === "expired") {
             var expLabel = expState === "expired"
@@ -51,9 +55,13 @@
         var rotateButton = typeof namespace.openRotateConnection === "function"
             ? '<button class="integrations-button integrations-button-subtle integrations-test-action" type="button" data-action="rotate-connection" data-connection-id="' + id + '" data-provider-slug="' + slug + '">' + namespace.escapeHtml(rotateLabel) + '</button>'
             : '<button class="integrations-button integrations-button-subtle integrations-test-action" type="button" disabled title="' + namespace.escapeHtml(t("integrations-rotate-unavailable", "Credential rotation is unavailable in this build.")) + '">' + namespace.escapeHtml(rotateLabel) + '</button>';
+        var copyLabel = t("integrations-copy-diagnostics", "Copy diagnostics");
+        var copyDiagnostics = tested && typeof namespace.copyButton === "function" && typeof namespace.diagnosticsText === "function"
+            ? namespace.copyButton(namespace.diagnosticsText(row), copyLabel)
+            : '';
         var actions = '<span class="integrations-test-actions">' +
             '<button class="integrations-button integrations-button-subtle integrations-test-action" type="button" data-action="test-connection" data-connection-id="' + id + '" data-provider-slug="' + slug + '">' + namespace.escapeHtml(retestLabel) + '</button>' +
-            rotateButton + '</span>';
+            rotateButton + copyDiagnostics + '</span>';
 
         return '<div class="integrations-test-result">' +
             '<div class="integrations-test-status" role="status" aria-live="polite">' + status + lines.join("") + '</div>' +

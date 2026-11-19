@@ -114,6 +114,9 @@
             ' data-mcp-name="' + namespace.escapeHtml(server.name) + '"' +
             ' data-mcp-enabled="' + (server.enabled ? "true" : "false") + '">' +
             (server.enabled ? "Disable" : "Enable") + '</button>';
+        var remove = '<button class="integrations-button integrations-button-subtle" type="button" data-action="mcp-remove"' +
+            ' data-mcp-name="' + namespace.escapeHtml(server.name) + '">' +
+            (typeof window.gbT === "function" ? window.gbT("action-remove", "Remove") : "Remove") + '</button>';
         var resources = (server.ui_resources || []).map(function (resource, index) {
             var permissions = resource.permissions.length
                 ? '<span class="integrations-faint-text">permissions: ' + namespace.escapeHtml(resource.permissions.join(", ")) + '</span>'
@@ -152,7 +155,7 @@
             '<footer class="integrations-source-card-footer">' +
             '<span class="integrations-faint-text">' + server.tools_count + ' tool' + (server.tools_count === 1 ? "" : "s") +
             (server.ui_resources.length ? " · " + server.ui_resources.length + " UI" : "") + '</span>' +
-            '<span class="integrations-row-actions">' + toggle + '</span>' +
+            '<span class="integrations-row-actions">' + toggle + remove + '</span>' +
             '</footer>' +
             '</article>';
     }
@@ -304,11 +307,17 @@
                 state.sourcesHtml = html;
             }
             state.sourcesStatus = "ready";
+            if (typeof namespace.markSourceSync === "function") {
+                namespace.markSourceSync(root, definition.id, "");
+            }
             namespace.renderSources(root);
             namespace.announce(root, definition.label + " loaded");
         } catch (error) {
             if (requestId === state.sourcesRequest) {
                 state.sourcesStatus = "error";
+                if (typeof namespace.markSourceSync === "function") {
+                    namespace.markSourceSync(root, definition.id, error && error.message ? error.message : "");
+                }
                 namespace.renderSources(root);
                 namespace.announce(root, definition.label + " could not be loaded");
             }
