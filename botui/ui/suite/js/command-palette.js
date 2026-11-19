@@ -233,19 +233,22 @@
         return;
       }
       var params = {};
-      var proceed = true;
-      placeholders.forEach(function (key) {
+      // #2297 — one themed input per placeholder, asked in sequence; the
+      // chain stops if the user cancels any of them.
+      (function askNext(index) {
+        if (index >= placeholders.length) { window.openDeepLink(r.appId, params); return; }
+        var key = placeholders[index];
         var promptText = tr("palette-value-prompt", "{name}: {summary} — value for {key}:", {
           name: r.command.name || "",
           summary: r.summary || "",
           key: key,
         });
-        var value = prompt(promptText);
-        if (value === null) { proceed = false; }
-        else if (value.trim() !== "") { params[key] = value.trim(); }
-      });
-      if (!proceed) return;
-      window.openDeepLink(r.appId, params);
+        GBModal.prompt(promptText, function (value) {
+          if (value === null) return;
+          if (value.trim() !== "") { params[key] = value.trim(); }
+          askNext(index + 1);
+        });
+      })(0);
       return;
     }
     if (r.command && (r.command.method || r.command.derived)) {

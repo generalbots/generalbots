@@ -115,3 +115,4 @@ auth-password-updated = Sua senha foi atualizada. Agora você pode entrar com su
 auth-invalid-token = Link Inválido ou Expirado
 auth-invalid-token-desc = Este link de redefinição de senha é inválido ou expirou. Por favor, solicite um novo.
 auth-request-new-link = Solicitar Novo Link
+auth-logout-confirm = Sair desta sessão?

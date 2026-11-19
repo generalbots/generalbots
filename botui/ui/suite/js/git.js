@@ -86,12 +86,14 @@ const botCoderGit = {
         }
     },
 
-    newBranch: async function() {
-        const name = prompt(gbt("git-new-branch-prompt", "New branch name:"));
-        if (name) {
+    newBranch: function() {
+        // #2297 — themed modal input instead of the blocking native prompt.
+        var self = this;
+        GBModal.prompt(gbt("git-new-branch-prompt", "New branch name:"), async function (name) {
+            if (!name) return;
             await fetch(`/api/git/branch/${name}`, { method: 'POST' });
-            this.refreshBranches();
-        }
+            self.refreshBranches();
+        });
     },
 
     switchBranch: async function() {

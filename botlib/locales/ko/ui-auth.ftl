@@ -115,3 +115,4 @@ auth-invalid-token = 유효하지 않거나 만료된 링크
 auth-invalid-token-desc = 이 비밀번호 재설정 링크는 유효하지 않거나 만료되었습니다. 새로운 것을 요청하세요.
 auth-request-new-link = 새 링크 요청
 auth-session-expired = Your session has expired. Please log in again.
+auth-logout-confirm = 이 세션에서 로그아웃할까요?

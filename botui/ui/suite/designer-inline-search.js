@@ -68,7 +68,12 @@
             var bucket = state.driveSource ? state.driveSource.bucket : null;
 
             if (!bucket) {
-                bucket = prompt('Enter bot bucket name (e.g., mybot.gbai):');
+                // #2297 — themed modal input; the native prompt blocks the shell.
+                bucket = await new Promise(function (resolve) {
+                    GBModal.prompt('Enter bot bucket name (e.g., mybot.gbai):', function (value) {
+                        resolve(value || null);
+                    });
+                });
                 if (!bucket) return;
             }
             if (!path) path = 'dialog.bas';
@@ -144,8 +149,9 @@
             }
         }
 
-        async function restoreVersion(versionId) {
-            if (!confirm('Restore this version? Current unsaved changes will be lost.')) return;
+        function restoreVersion(versionId) {
+            // #2297 — themed confirm; the restore itself runs in the callback.
+            GBModal.confirm('Restore this version? Current unsaved changes will be lost.', async function () {
             var filename = document.getElementById('current-filename').value;
             var path = state.driveSource ? state.driveSource.path : filename;
             var bucket = state.driveSource ? state.driveSource.bucket : 'default';
@@ -172,6 +178,7 @@
             } catch (e) {
                 GBModal.alert('Error restoring version: ' + e.message);
             }
+            });
         }
 
         // Bootstrap — this is the last `designer-inline` part, so every function

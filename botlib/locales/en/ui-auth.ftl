@@ -115,3 +115,4 @@ auth-password-updated = Your password has been updated. You can now sign in with
 auth-invalid-token = Invalid or Expired Link
 auth-invalid-token-desc = This password reset link is invalid or has expired. Please request a new one.
 auth-request-new-link = Request New Link
+auth-logout-confirm = Sign out of this session?

@@ -115,3 +115,4 @@ auth-invalid-token = 链接无效或过期
 auth-invalid-token-desc = 此密码重置链接无效或已过期。请索取一份新的。
 auth-request-new-link = 请求新链接
 auth-session-expired = Your session has expired. Please log in again.
+auth-logout-confirm = 要退出此会话吗?

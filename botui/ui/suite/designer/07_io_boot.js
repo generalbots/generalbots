@@ -92,9 +92,16 @@ function exportToBas() {
 
 // New Design
 function newDesign() {
+    // #2297 — themed confirm; the clearing itself lives in clearDesign so the
+    // callback can run it after the user answers.
     if (state.nodes.size > 0) {
-        if (!confirm('Clear current design? Unsaved changes will be lost.')) return;
+        GBModal.confirm('Clear current design? Unsaved changes will be lost.', clearDesign);
+        return;
     }
+    clearDesign();
+}
+
+function clearDesign() {
     const canvasInner = document.getElementById('canvas-inner');
     if (canvasInner) canvasInner.innerHTML = '';
     state.nodes.clear();

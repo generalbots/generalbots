@@ -95,9 +95,11 @@ window.CampStudio.media = {
   },
 
   regenerate(url) {
-    var prompt = prompt("New prompt for this image (regenerate)?", "");
-    if (!prompt) return;
-    var channel = this.currentChannel();
+    // #2297 — themed modal input; the variable no longer shadows the global.
+    var self = this;
+    GBModal.prompt("New prompt for this image (regenerate)?", "", function (instruction) {
+    if (!instruction) return;
+    var channel = self.currentChannel();
     var status = document.getElementById("studio-img-status");
     var dialog = document.getElementById("studio-img-dialog");
     if (status) status.style.display = "block";
@@ -120,6 +122,7 @@ window.CampStudio.media = {
     }).catch(function (err) {
       console.error("Regenerate error:", err);
       if (status) { status.style.display = "block"; status.textContent = "Error: " + err.message; }
+    });
     });
   },
 

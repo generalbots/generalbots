@@ -52,7 +52,14 @@
   }
 
   function clearAllUserData() {
-    if (!confirm("This will permanently delete ALL your local data including chat history, memory, settings, and cached files. This cannot be undone. Continue?")) return;
+    // #2297 — themed confirm; clearUserDataNow does the deletion.
+    GBModal.confirm(
+      "This will permanently delete ALL your local data including chat history, memory, settings, and cached files. This cannot be undone. Continue?",
+      clearUserDataNow
+    );
+  }
+
+  function clearUserDataNow() {
     var keys = [];
     for (var i = 0; i < localStorage.length; i++) {
       var key = localStorage.key(i);

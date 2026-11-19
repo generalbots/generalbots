@@ -94,7 +94,7 @@
       btn.addEventListener("mouseleave", function () { btn.style.background = "#1e293b"; });
       btn.addEventListener("click", function (e) {
         e.preventDefault();
-        if (confirm("Sair da sessão?")) logout();
+        GBModal.confirm(window.gbT ? window.gbT("auth-logout-confirm", "Sign out of this session?") : "Sign out of this session?", function () { logout(); });
       });
     } else {
       btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Entrar';

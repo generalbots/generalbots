@@ -115,3 +115,4 @@ auth-invalid-token = Lien invalide ou expiré
 auth-invalid-token-desc = Ce lien de réinitialisation de mot de passe n'est pas valide ou a expiré. Veuillez en demander un nouveau.
 auth-request-new-link = Demander un nouveau lien
 auth-session-expired = Your session has expired. Please log in again.
+auth-logout-confirm = Se déconnecter de cette session ?

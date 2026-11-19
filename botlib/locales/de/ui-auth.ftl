@@ -115,3 +115,4 @@ auth-invalid-token = Ungültiger oder abgelaufener Link
 auth-invalid-token-desc = Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen. Bitte fordern Sie ein neues an.
 auth-request-new-link = Fordern Sie einen neuen Link an
 auth-session-expired = Your session has expired. Please log in again.
+auth-logout-confirm = Von dieser Sitzung abmelden?

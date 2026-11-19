@@ -198,7 +198,13 @@
           el("td", null, [
             el("button", {
               class: "plan-row-del",
-              onclick: function (ev) { ev.stopPropagation(); if (confirm(window.gbT ? window.gbT("plan-confirm-delete-task", "Delete task?") : "Delete task?")) Store.removeTask(t.id); }
+              onclick: function (ev) {
+                ev.stopPropagation();
+                // #2297 — themed confirm instead of the blocking native dialog.
+                GBModal.confirm(window.gbT ? window.gbT("plan-confirm-delete-task", "Delete task?") : "Delete task?", function () {
+                  Store.removeTask(t.id);
+                });
+              }
             }, "×")
           ])
         ]);

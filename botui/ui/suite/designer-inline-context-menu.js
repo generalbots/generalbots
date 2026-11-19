@@ -290,9 +290,15 @@
 
         // New Design
         function newDesign() {
+            // #2297 — themed confirm; clearDesign holds the clearing itself.
             if (state.nodes.size > 0) {
-                if (!confirm('Clear current design? Unsaved changes will be lost.')) return;
+                GBModal.confirm('Clear current design? Unsaved changes will be lost.', clearDesign);
+                return;
             }
+            clearDesign();
+        }
+
+        function clearDesign() {
             document.getElementById('canvas-inner').innerHTML = '';
             state.nodes.clear();
             state.connections = [];

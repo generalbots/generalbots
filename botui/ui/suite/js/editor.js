@@ -114,13 +114,19 @@ const botCoderEditor = {
 
     closeTab: function(filePath, e) {
         if (e) e.stopPropagation();
-        
+
+        // #2297 — themed confirm; finishCloseTab does the actual closing.
         if (this.models[filePath] && this.models[filePath].dirty) {
-            if (!confirm(`Save changes to ${filePath} before closing?`)) {
-                return;
-            }
+            const self = this;
+            GBModal.confirm(`Save changes to ${filePath} before closing?`, function () {
+                self.finishCloseTab(filePath);
+            });
+            return;
         }
-        
+        this.finishCloseTab(filePath);
+    },
+
+    finishCloseTab: function(filePath) {
         if (this.models[filePath]) {
             this.models[filePath].model.dispose();
             delete this.models[filePath];
@@ -218,12 +224,26 @@ const botCoderEditor = {
             return;
         }
 
-        const projectName = prompt('Enter project name for deployment:', this.currentFile.split('/').pop() || 'my-app');
-        if (!projectName) return;
+        // #2297 — two fields asked in the themed modal, one after the other.
+        const self = this;
+        GBModal.prompt(
+            'Enter project name for deployment:',
+            this.currentFile.split('/').pop() || 'my-app',
+            function (projectName) {
+                if (!projectName) return;
+                GBModal.prompt(
+                    'Project type (bot / app-htmx / app-react / app-vue / site):',
+                    'app-htmx',
+                    function (projectType) {
+                        if (!projectType) return;
+                        self.finishPublish(projectName, projectType);
+                    }
+                );
+            }
+        );
+    },
 
-        const projectType = prompt('Project type (bot / app-htmx / app-react / app-vue / site):', 'app-htmx');
-        if (!projectType) return;
-
+    finishPublish: async function(projectName, projectType) {
         document.getElementById('botcoderFileStatus').textContent = 'Publishing...';
 
         try {

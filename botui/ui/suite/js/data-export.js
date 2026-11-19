@@ -190,11 +190,11 @@
       return;
     }
     var when = clean.exported_at || T("dataexport-unknown-date", "unknown date");
-    if (!confirm(T("dataexport-restore-confirm",
+    // #2297 — themed confirm; restoreNow does the write.
+    GBModal.confirm(T("dataexport-restore-confirm",
       "This will restore " + keys.length + " setting(s) from the backup of " + when +
       ". Credentials and session tokens are never imported. Continue?",
-      { count: keys.length, date: when }))) return;
-
+      { count: keys.length, date: when }), function () {
     var count = 0;
     keys.forEach(function (key) {
       try {
@@ -214,6 +214,7 @@
       showNotification(message + " " + T("dataexport-reloading", "Reloading..."), "success");
     }
     setTimeout(function () { window.location.reload(); }, 2000);
+    });
   }
 
   function showExportDialog() {
