@@ -48,9 +48,9 @@ from product_matrix import (
 # Core apps (about/settings) are implicit and must not appear in apps=.
 EXPECTED_ALWAYS = {
     "chat", "drive", "browser", "clock-widget", "jukebox", "player",
-    "calculator", "notes", "photos", "timer", "weather", "integrations",
+    "calculator", "notes", "notepad", "photos", "timer", "weather", "integrations",
     "docs", "sheet", "slides", "paper", "crm", "billing",
-    "products", "tasks", "calendar", "mail",
+    "products", "tasks", "calendar", "mail", "preview",
 }
 
 

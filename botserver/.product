@@ -28,7 +28,7 @@ apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,notepad,pho
 # `hidden_apps` wins over both lists.
 # The Vibe sub-surfaces (db/graph/metrics/members/deploy/metering) are NOT
 # listed here: they are toolwindow views inside the single Vibe app (#1429).
-preview_apps=analytics,attendant,automations,banking,canvas,compliance,concierge,designer,fraud,goals,handoff,hr,kyc,learn,meet,memory,minutes,monitoring,o365,people,plan,plugins,pos,project,recycle,retail,social,store,tax,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal,biometry,snapshot
+preview_apps=analytics,attendant,automations,banking,campaigns,canvas,compliance,concierge,designer,fraud,goals,handoff,hr,kyc,learn,lists,meet,memory,minutes,monitoring,o365,people,plan,plugins,pos,project,recycle,retail,social,store,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
 
 # Hidden applications: compiled and routed, but never advertised and refused
 # by the suite shell. #1626 keeps Research out of the default product; the
