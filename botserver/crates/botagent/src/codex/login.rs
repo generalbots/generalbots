@@ -154,4 +154,3 @@ fn internal(msg: String) -> (StatusCode, String) {
 fn b64(value: &str) -> String {
     base64::engine::general_purpose::STANDARD.encode(value.as_bytes())
 }
-EOF

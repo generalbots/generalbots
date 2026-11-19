@@ -23,7 +23,7 @@ pub struct CodexStatus {
 /// or "Visit https://..." during `codex login --device-auth`.
 pub fn extract_device_url(log: &str) -> Option<String> {
     // Codex device auth prints a URL containing "device" or "auth.openai.com"
-    let re = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    let re = Regex::new(r#"https://[^\s\x1b\x07<>'\"`]+"#).ok()?;
     for cap in re.captures_iter(log) {
         let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
         if url.contains("auth.openai.com") || url.contains("device") || url.contains("oauth") {
@@ -33,7 +33,7 @@ pub fn extract_device_url(log: &str) -> Option<String> {
         }
     }
     // Fallback: first https URL that looks like an auth URL
-    let re2 = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    let re2 = Regex::new(r#"https://[^\s\x1b\x07<>'\"`]+"#).ok()?;
     for cap in re2.captures_iter(log) {
         let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
         if url.contains("openai") || url.contains("auth") {
@@ -135,4 +135,3 @@ pub async fn status(
         message: message.to_string(),
     })
 }
-EOF

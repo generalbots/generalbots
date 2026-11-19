@@ -103,4 +103,3 @@ elif sent:
 else:
     set_status("waiting")
 "#;
-EOF

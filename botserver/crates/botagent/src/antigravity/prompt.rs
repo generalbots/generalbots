@@ -64,4 +64,3 @@ pub async fn run_prompt(
         Ok(output)
     }
 }
-EOF
