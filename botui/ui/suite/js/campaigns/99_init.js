@@ -30,10 +30,10 @@ function initCampStudio() {
         1,
         null
       ).then(function () {
-        alert("Instagram campaign scheduled (AI content pipeline).");
+        GBModal.alert("Instagram campaign scheduled (AI content pipeline).");
         window.CampStudio.monitor.load();
       }).catch(function (err) {
-        alert("Instagram campaign failed: " + err.message);
+        GBModal.alert("Instagram campaign failed: " + err.message);
       });
     });
   }

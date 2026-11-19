@@ -325,7 +325,7 @@ function openSheetComments() {
     var ctx = _sheetCtx();
     var id = getLiveSheetId(ctx);
     if (!id || id === 'current') {
-        alert('Save the spreadsheet first, then open comments.');
+        GBModal.alert('Save the spreadsheet first, then open comments.');
         return;
     }
     window.GBCollabComments.open({

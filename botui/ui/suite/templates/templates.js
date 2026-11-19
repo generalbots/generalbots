@@ -210,7 +210,7 @@ function importTemplates() {
                     });
                 }
                 loadTemplates();
-            } catch (err) { alert('Invalid JSON file'); }
+            } catch (err) { GBModal.alert('Invalid JSON file'); }
         };
         reader.readAsText(file);
     };

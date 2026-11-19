@@ -60,7 +60,7 @@
         async function deployFlow() {
             var filename = document.getElementById('current-filename').value;
             if (!filename && !state.driveSource) {
-                alert('Save the flow first before deploying.');
+                GBModal.alert('Save the flow first before deploying.');
                 return;
             }
             var basCode = generateBasCode();
@@ -80,13 +80,13 @@
                     body: JSON.stringify({ bucket: bucket, path: path, content: basCode })
                 });
                 if (resp.ok) {
-                    alert('Flow deployed to ' + bucket + '/' + path + ' successfully!');
+                    GBModal.alert('Flow deployed to ' + bucket + '/' + path + ' successfully!');
                 } else {
                     var err = await resp.json();
-                    alert('Deploy failed: ' + (err.error || 'Unknown error'));
+                    GBModal.alert('Deploy failed: ' + (err.error || 'Unknown error'));
                 }
             } catch (e) {
-                alert('Deploy failed: ' + e.message);
+                GBModal.alert('Deploy failed: ' + e.message);
             }
         }
 
@@ -170,7 +170,7 @@
                     }
                 }
             } catch (e) {
-                alert('Error restoring version: ' + e.message);
+                GBModal.alert('Error restoring version: ' + e.message);
             }
         }
 

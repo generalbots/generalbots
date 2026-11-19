@@ -234,7 +234,7 @@
                     }
                 } catch (err) {
                     console.error('Failed to load .bas file:', err);
-                    alert(`Failed to load file: ${err.message}`);
+                    GBModal.alert(`Failed to load file: ${err.message}`);
                 }
             }
         }

@@ -222,7 +222,7 @@
         const authType = document.getElementById('conn-auth-type').value;
 
         if (!host) {
-            alert('Host is required');
+            GBModal.alert('Host is required');
             return;
         }
 

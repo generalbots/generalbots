@@ -116,7 +116,7 @@ function acceptSpellcheckCorrection(idx) {
   if (!c || c.accepted) return;
   var ok = replaceFirstOccurrence(c.from, c.to);
   if (!ok) {
-    alert(window.gbT ? window.gbT("docs-spellcheck-not-found", "Text not found in document.") : "Text not found in document.");
+    GBModal.alert(window.gbT ? window.gbT("docs-spellcheck-not-found", "Text not found in document.") : "Text not found in document.");
     return;
   }
   c.accepted = true;

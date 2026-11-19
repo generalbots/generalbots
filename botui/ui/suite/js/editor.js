@@ -86,7 +86,7 @@ const botCoderEditor = {
 
         } catch (err) {
             console.error('Error opening file:', err);
-            alert('Failed to open file: ' + err.message);
+            GBModal.alert('Failed to open file: ' + err.message);
         }
     },
 
@@ -210,11 +210,11 @@ const botCoderEditor = {
      *
      * Prompts the user for a project name and type, then sends a POST
      * request to /api/deployment/deploy. Replaces the previous mock
-     * alert() implementation.
+     * GBModal.alert() implementation.
      */
     publishFile: async function() {
         if (!this.currentFile) {
-            alert('No file open to publish.');
+            GBModal.alert('No file open to publish.');
             return;
         }
 
@@ -245,15 +245,15 @@ const botCoderEditor = {
 
             if (result.success || result.status) {
                 document.getElementById('botcoderFileStatus').textContent = 'Published!';
-                alert('Project published successfully!\nURL: ' + (result.url || 'pending') + '\nRepo: ' + (result.repository || 'N/A'));
+                GBModal.alert('Project published successfully!\nURL: ' + (result.url || 'pending') + '\nRepo: ' + (result.repository || 'N/A'));
             } else {
                 document.getElementById('botcoderFileStatus').textContent = 'Publish failed';
-                alert('Publish failed: ' + (result.error || 'Unknown error'));
+                GBModal.alert('Publish failed: ' + (result.error || 'Unknown error'));
             }
         } catch (err) {
             console.error('Publish error:', err);
             document.getElementById('botcoderFileStatus').textContent = 'Error publishing';
-            alert('Failed to publish: ' + err.message);
+            GBModal.alert('Failed to publish: ' + err.message);
         }
 
         setTimeout(() => {

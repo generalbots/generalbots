@@ -53,10 +53,10 @@ window.vibeMcp = window.vibeMcp || {
             if (response.ok) {
                 this.refreshServers();
             } else {
-                alert('Failed to toggle server');
+                GBModal.alert('Failed to toggle server');
             }
         } catch (e) {
-            alert('Error toggling server');
+            GBModal.alert('Error toggling server');
         }
     },
 

@@ -62,7 +62,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ assignee: assignee })
         }).then(function(r) {
-            if (!r.ok) alert("Could not assign ticket. Use an existing user email.");
+            if (!r.ok) GBModal.alert("Could not assign ticket. Use an existing user email.");
             htmx.ajax("GET", "/api/ui/tickets/" + ticketId, "#ticket-detail");
         });
     };

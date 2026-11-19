@@ -48,10 +48,10 @@ async function saveToDrive() {
       }
     } else {
       const err = await response.json();
-      alert(`Save failed: ${err.error || 'Unknown error'}`);
+      GBModal.alert(`Save failed: ${err.error || 'Unknown error'}`);
     }
   } catch (e) {
-    alert(`Save failed: ${e.message}`);
+    GBModal.alert(`Save failed: ${e.message}`);
   }
 }
 
@@ -267,7 +267,7 @@ async function loadFromUrlParams() {
       }
     } catch (err) {
       console.error('Failed to load .bas file:', err);
-      alert(`Failed to load file: ${err.message}`);
+      GBModal.alert(`Failed to load file: ${err.message}`);
     }
   }
 }

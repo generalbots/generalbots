@@ -25,7 +25,7 @@ window.CampStudio.ai = {
     var goal = document.getElementById("studio-ai-goal").value.trim();
     var audience = document.getElementById("studio-ai-audience").value.trim();
     if (!goal || !audience) {
-      alert("Describe your goal and audience first.");
+      GBModal.alert("Describe your goal and audience first.");
       return;
     }
     var tone = document.getElementById("studio-ai-tone").value;
@@ -69,7 +69,7 @@ window.CampStudio.ai = {
       }
       if (status) status.style.display = "none";
       this.closeDialog();
-      alert("AI draft ready — check subject and body, then save.");
+      GBModal.alert("AI draft ready — check subject and body, then save.");
     } catch (err) {
       console.error("AI generate error:", err);
       if (status) { status.textContent = "Error: " + err.message; }

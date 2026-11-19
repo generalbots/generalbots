@@ -143,10 +143,10 @@
                     }
                 } else {
                     const err = await response.json();
-                    alert(`Save failed: ${err.error || 'Unknown error'}`);
+                    GBModal.alert(`Save failed: ${err.error || 'Unknown error'}`);
                 }
             } catch (e) {
-                alert(`Save failed: ${e.message}`);
+                GBModal.alert(`Save failed: ${e.message}`);
             }
         }
 

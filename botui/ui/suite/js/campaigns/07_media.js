@@ -43,7 +43,7 @@ window.CampStudio.media = {
   async generate() {
     var prompt = document.getElementById("studio-img-prompt").value.trim();
     if (!prompt) {
-      alert("Describe the image first.");
+      GBModal.alert("Describe the image first.");
       return;
     }
     var status = document.getElementById("studio-img-status");
@@ -81,7 +81,7 @@ window.CampStudio.media = {
       dialog.style.display = "none";
       document.getElementById("studio-img-prompt").value = "";
       if (status) status.style.display = "none";
-      alert("Image generated — it is applied to the " + channel + " preview automatically.");
+      GBModal.alert("Image generated — it is applied to the " + channel + " preview automatically.");
     } catch (err) {
       console.error("Image generate error:", err);
       if (status) { status.style.display = "block"; status.textContent = "Error: " + err.message; }

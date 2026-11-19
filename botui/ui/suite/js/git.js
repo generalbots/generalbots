@@ -128,7 +128,7 @@ const botCoderGit = {
         const msg = msgInput ? msgInput.value.trim() : '';
 
         if (!msg) {
-            alert(gbt("git-commit-message-required", "Please enter a commit message"));
+            GBModal.alert(gbt("git-commit-message-required", "Please enter a commit message"));
             return;
         }
 
@@ -151,10 +151,10 @@ const botCoderGit = {
             
             if (msgInput) msgInput.value = '';
             this.refreshStatus();
-            alert(gbt("git-committed", "Committed and pushed successfully"));
+            GBModal.alert(gbt("git-committed", "Committed and pushed successfully"));
             
         } catch (e) {
-            alert(gbt("git-failed", "Git operation failed"));
+            GBModal.alert(gbt("git-failed", "Git operation failed"));
         }
     }
 };

@@ -69,12 +69,12 @@ Object.assign(app, {
 
     async transfer(id) {
         const agentSelect = document.getElementById('agent-' + id);
-        if (!agentSelect || !agentSelect.value) { alert('Select an agent first'); return; }
+        if (!agentSelect || !agentSelect.value) { GBModal.alert('Select an agent first'); return; }
         try {
             await this.api('/api/handoff/transfer/' + id, { method: 'POST', body: JSON.stringify({ agent_id: agentSelect.value }) });
             this.loadQueue();
         } catch (e) {
-            alert('Transfer failed: ' + e.message);
+            GBModal.alert('Transfer failed: ' + e.message);
         }
     },
 
@@ -91,11 +91,11 @@ Object.assign(app, {
 
     confirmTransfer() {
         const id = this._currentTransferId;
-        if (!id) { alert('No conversation selected'); return; }
+        if (!id) { GBModal.alert('No conversation selected'); return; }
         const sel = document.getElementById('transferAgentSelect');
         const reason = document.getElementById('transferReasonSelect');
         const note = document.getElementById('transferNote');
-        if (!sel || !sel.value) { alert('Select a target agent'); return; }
+        if (!sel || !sel.value) { GBModal.alert('Select a target agent'); return; }
         this.api('/api/handoff/transfer/' + id, {
             method: 'POST',
             body: JSON.stringify({
@@ -106,7 +106,7 @@ Object.assign(app, {
         }).then(() => {
             this.closeTransferModal();
             this.loadQueue();
-        }).catch(e => alert('Transfer failed: ' + e.message));
+        }).catch(e => GBModal.alert('Transfer failed: ' + e.message));
     },
 
     closeTransferModal() {
@@ -124,7 +124,7 @@ Object.assign(app, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, skills })
-        }).then(() => { this.loadAgents(); }).catch(e => alert('Invite failed: ' + e.message));
+        }).then(() => { this.loadAgents(); }).catch(e => GBModal.alert('Invite failed: ' + e.message));
     },
 
     exportAgents() {

@@ -29,7 +29,7 @@ async function initBrowser() {
                 ${gbt("browser-session-active", "Browser session " + currentSessionId.substring(0,8) + " active.", { id: currentSessionId.substring(0,8) })}
             </div>`;
     } catch(e) {
-        alert(gbt("browser-init-failed", "Failed to initialize browser"));
+        GBModal.alert(gbt("browser-init-failed", "Failed to initialize browser"));
     }
 }
 
@@ -50,7 +50,7 @@ async function executeAction(actionType, payload) {
 
 async function toggleRecording() {
     if (!currentSessionId) {
-        alert(gbt("browser-init-first", "Please initialize browser first"));
+        GBModal.alert(gbt("browser-init-first", "Please initialize browser first"));
         return;
     }
 
@@ -117,7 +117,7 @@ async function captureScreenshot() {
 
 async function exportTest() {
     if (!currentSessionId) {
-        alert(gbt("browser-no-session", "No active session"));
+        GBModal.alert(gbt("browser-no-session", "No active session"));
         return;
     }
     try {
@@ -131,7 +131,7 @@ async function exportTest() {
         a.download = `test-${Date.now()}.spec.js`;
         a.click();
     } catch(e) {
-        alert(gbt("browser-export-failed", "Export failed"));
+        GBModal.alert(gbt("browser-export-failed", "Export failed"));
     }
 }
 

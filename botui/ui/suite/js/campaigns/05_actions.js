@@ -93,7 +93,7 @@ window.CampStudio.actions = {
       this.hideModal();
       window.CampStudio.monitor.load();
     } catch (err) {
-      alert("Failed to save campaign: " + err.message);
+      GBModal.alert("Failed to save campaign: " + err.message);
     }
   },
 
@@ -101,10 +101,10 @@ window.CampStudio.actions = {
     if (!confirm("Run this campaign now?")) return;
     try {
       await window.CampStudio.api.update(decodeURIComponent(id), { status: "running" });
-      alert("Campaign is now running!");
+      GBModal.alert("Campaign is now running!");
       window.CampStudio.monitor.load();
     } catch (err) {
-      alert("Failed to run campaign: " + err.message);
+      GBModal.alert("Failed to run campaign: " + err.message);
     }
   },
 
@@ -150,12 +150,12 @@ window.CampStudio.actions = {
   async doPublish() {
     var st = window.CampStudio.state;
     var listId = document.getElementById("studio-publish-list").value;
-    if (!listId) { alert("Pick a recipient list."); return; }
+    if (!listId) { GBModal.alert("Pick a recipient list."); return; }
     var channels = [];
     document.querySelectorAll('[data-publish-channel]:checked').forEach(function (x) {
       channels.push(x.dataset.publishChannel);
     });
-    if (channels.length === 0) { alert("Pick at least one channel."); return; }
+    if (channels.length === 0) { GBModal.alert("Pick at least one channel."); return; }
 
     var status = document.getElementById("studio-publish-status");
     if (status) { status.style.display = "block"; status.textContent = "Publishing…"; }
@@ -169,7 +169,7 @@ window.CampStudio.actions = {
       if (!resp.ok) throw new Error(data.error || ("Publish failed: " + resp.status));
       if (status) status.style.display = "none";
       this.closePublish();
-      alert("Published: " + data.sent + " sent, " + data.failed + " failed across " + channels.join(", ") + ".");
+      GBModal.alert("Published: " + data.sent + " sent, " + data.failed + " failed across " + channels.join(", ") + ".");
       window.CampStudio.monitor.load();
     } catch (err) {
       console.error("Publish error:", err);
@@ -183,7 +183,7 @@ window.CampStudio.actions = {
       await window.CampStudio.api.remove(decodeURIComponent(id));
       window.CampStudio.monitor.load();
     } catch (err) {
-      alert("Failed to delete campaign: " + err.message);
+      GBModal.alert("Failed to delete campaign: " + err.message);
     }
   },
 };
