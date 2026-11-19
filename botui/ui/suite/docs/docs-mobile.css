@@ -1,0 +1,118 @@
+/* #2515 — Docs phone layout. Desktop rules are never modified: every rule
+   here is scoped to a narrow viewport (or a coarse pointer) so 1440x900 stays
+   byte-for-byte identical. Loaded after the injected editor styles. */
+
+.gb-mobile-sidebar-toggle { display: none; }
+
+@media (max-width: 760px) {
+    #docs-app {
+        box-sizing: border-box;
+        /* visualViewport publishes the keyboard height; reserving it keeps the
+           toolbar and the caret above the keyboard on iOS. */
+        padding-bottom: var(--gb-vv-bottom, 0px);
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    .docs-main { position: relative; min-width: 0; }
+
+    .docs-sidebar {
+        position: absolute !important;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: min(86vw, 320px) !important;
+        max-width: 86vw !important;
+        z-index: var(--z-fixed);
+        transform: translateX(-102%);
+        transition: transform 0.2s ease;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+    .docs-main.sidebar-open .docs-sidebar { transform: translateX(0); }
+
+    .docs-backdrop {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-sticky);
+        background: rgba(2, 6, 23, 0.6);
+    }
+    .docs-main.sidebar-open .docs-backdrop { display: block; }
+
+    .gb-mobile-sidebar-toggle { display: inline-flex; }
+    .gb-mobile-sidebar-close { width: 44px; height: 44px; flex: 0 0 44px; }
+
+    /* One horizontally scrollable row per toolbar band; no hover-only menus
+       and nothing removed from the reachable command set. */
+    .docs-toolbar-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        min-height: 48px;
+        padding: 4px 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .docs-toolbar-row::-webkit-scrollbar { display: none; }
+    .docs-toolbar .btn-icon,
+    .docs-toolbar .gb-cp-trigger { min-width: 44px; min-height: 44px; height: 44px; }
+    .docs-toolbar .toolbar-left,
+    .docs-toolbar .toolbar-center,
+    .docs-toolbar .toolbar-right { flex: 0 0 auto; }
+    .docs-title-input {
+        font-size: var(--text-md) !important;
+        min-height: 44px;
+        min-width: 150px;
+        max-width: 55vw;
+    }
+    .toolbar-overflow-btn { min-width: 44px; min-height: 44px; }
+    .toolbar-overflow-menu .tb-overflow-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+    }
+
+    .sidebar-tab, .sidebar-panel-btn { min-height: 44px; padding: 10px 12px; }
+
+    /* The injected A4 page is 816px wide with 96px gutters — it overflowed a
+       390px phone and created page-level horizontal scroll. Keep the page
+       metaphor but fit the viewport and leave room for touch selection. */
+    article.docs-doc-view {
+        -webkit-user-select: text;
+        user-select: text;
+        -webkit-touch-callout: default;
+        touch-action: pan-y;
+        width: 100% !important;
+        max-width: 100%;
+        min-height: calc(100vh - 120px);
+        margin: 8px auto !important;
+        padding: 20px 16px calc(24px + var(--gb-vv-bottom, 0px)) !important;
+        font-size: var(--text-md);
+        box-sizing: border-box;
+    }
+    article.docs-doc-view h1 { font-size: var(--text-xl); }
+    article.docs-doc-view h2 { font-size: var(--text-lg); }
+    article.docs-doc-view h3 { font-size: var(--text-md); }
+    article.docs-doc-view pre { max-width: 100%; }
+    .docs-content { min-width: 0; overflow-x: hidden; }
+
+    /* Give the native caret and the selection handles room when the keyboard
+       is up — the last line must not sit under the suggestion strip. */
+    .gb-keyboard-open article.docs-doc-view {
+        padding-bottom: calc(var(--gb-vv-bottom, 0px) + 56px) !important;
+    }
+
+    .docs-status-bar { flex-wrap: wrap; gap: 4px; }
+}
+
+/* #2515 — guard contract: any file introducing a transition must also honour
+   reduced-motion locally (check_reduced_motion.py is per-file). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

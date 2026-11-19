@@ -1,9 +1,15 @@
 <link rel="stylesheet" href="/suite/css/suite.css" />
+<link rel="stylesheet" href="/suite/docs/docs-mobile.css" />
 
 <div class="gb-app docs-app" id="docs-app" data-touch-target="self" data-gb-app="docs" hx-ext="json-enc">
     <div class="docs-toolbar" role="toolbar" aria-label="Document toolbar">
         <div class="docs-toolbar-row docs-toolbar-row-main">
             <div class="toolbar-left">
+                <button type="button" class="btn-icon gb-mobile-sidebar-toggle" id="docsSidebarToggle"
+                        aria-label="Toggle sidebar" data-i18n-aria-label="paper-toggle-sidebar"
+                        aria-controls="docs-sidebar" aria-expanded="false">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
                 <input type="text" class="docs-title-input" id="docTitle" value="Untitled Document" spellcheck="true" aria-label="Document title" />
             </div>
             <div class="toolbar-center">
@@ -230,8 +236,13 @@
     </div>
 
     <div class="docs-main">
+        <div class="docs-backdrop" id="docsSidebarBackdrop" aria-hidden="true"></div>
         <aside class="docs-sidebar" id="docs-sidebar" style="width:240px;background:#0f172a;border-right:1px solid #334155;display:flex;flex-direction:column;">
             <div class="sidebar-tabs" style="display:flex;border-bottom:1px solid #334155;">
+                <button type="button" class="btn-icon gb-mobile-sidebar-toggle gb-mobile-sidebar-close" id="docsSidebarClose"
+                        aria-label="Close sidebar" data-i18n-aria-label="action-close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
                 <button class="sidebar-tab active" data-sidebar-tab="files" data-i18n="docs-files" style="flex:1;padding:8px;background:#1e293b;color:#f8fafc;border:none;cursor:pointer;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Files</button>
                 <button class="sidebar-tab" data-sidebar-tab="panels" data-i18n="docs-panels" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> Panels</button>
             </div>
@@ -382,6 +393,7 @@
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
+<script src="/suite/docs/modules/19_mobile.js"></script>
 
 
 <link rel="stylesheet" href="/suite/docs/docs-present.css">

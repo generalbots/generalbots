@@ -14,7 +14,7 @@
   border: 1px solid var(--gb-border, #ccd3dc);
   border-radius: 10px;
   box-shadow: 0 18px 60px rgba(10, 20, 35, 0.28);
-  z-index: 9750;
+  z-index: var(--z-top);
 }
 .ss-fn-dialog:focus { outline: none; }
 .ss-fn-header {
@@ -68,7 +68,7 @@
 .ss-fn-item[aria-selected="true"] { background: var(--gb-accent-soft, #e8efff); font-weight: 600; }
 .ss-fn-detail { min-width: 0; }
 .ss-fn-fn-title { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-family: monospace; }
-.ss-fn-badge { border-radius: 999px; padding: 2px 8px; font-size: 0.68rem; font-family: sans-serif; font-weight: 600; }
+.ss-fn-badge { border-radius: 999px; padding: 2px 8px; font-size: var(--text-2xs); font-family: sans-serif; font-weight: 600; }
 .ss-fn-badge-native { background: #e5f5e9; color: #175c2b; }
 .ss-fn-badge-local { background: #fff1d6; color: #7a4b00; }
 .ss-fn-signature { font-family: monospace; font-size: 0.85rem; }

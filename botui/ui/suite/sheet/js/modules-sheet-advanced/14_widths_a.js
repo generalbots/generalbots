@@ -4,9 +4,23 @@
 (function () {
   const DEFAULT_COL = 96;
   const DEFAULT_ROW = 24;
+  const TOUCH_ROW = 44; // #2515 — >=44px hit target for tap-to-edit cells
+  // Browsers cap an element's CSS height near 2^25 px. 1,048,576 rows x 44px
+  // would exceed that and silently break scrolling, so the touch canvas is
+  // capped to a still-enormous 545k rows. Desktop keeps the full range.
+  const MAX_TOUCH_CANVAS = 24000000;
   const HEADER_W = 48;
   const COL_WIDTH = 96;
-  const ROW_HEIGHT = 24;
+
+  // Evaluated once at load so every geometry helper shares one row size and
+  // an orientation change cannot desync cells from the bodyInner height.
+  const TOUCH_MODE = (function () {
+    try {
+      return !!(window.matchMedia && (window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(max-width: 760px)").matches));
+    } catch (e) { return false; }
+  })();
+  function defaultRow() { return TOUCH_MODE ? TOUCH_ROW : DEFAULT_ROW; }
 
   // The workbook stores geometry in its native units — OOXML column widths are
   // character counts and row heights are points — while the grid lays out in
@@ -56,6 +70,11 @@
 
   function apply() {
     const sheet = window.__LOADED_SHEET;
+    const g = grid();
+    if (g && TOUCH_MODE) {
+      const maxRows = Math.floor(MAX_TOUCH_CANVAS / defaultRow());
+      if (g.totalRows > maxRows) g.totalRows = maxRows;
+    }
     colWidths = {};
     rowHeights = {};
     if (sheet && sheet.worksheets && sheet.worksheets[wsIndex()]) {
@@ -82,7 +101,22 @@
   }
 
   function rowHeight(idx) {
-    return rowHeights && rowHeights[idx] ? rowHeights[idx] : DEFAULT_ROW;
+    return rowHeights && rowHeights[idx] ? rowHeights[idx] : defaultRow();
+  }
+
+  // Total canvas height in O(override count) — a 1M-row loop on every render
+  // was unnecessary and desynced the grid when the touch base row changed.
+  function totalBodyHeight(g) {
+    const n = g ? g.totalRows : 1000;
+    const base = defaultRow();
+    let h = n * base;
+    if (rowHeights) {
+      for (const k in rowHeights) {
+        const idx = parseInt(k, 10);
+        if (!isNaN(idx) && idx < n) h += rowHeights[idx] - base;
+      }
+    }
+    return h;
   }
 
   // Cumulative vertical offset of the TOP of row `idx` (sum of all row
@@ -175,7 +209,7 @@
         hd.dataset.col = c;
         hd.textContent = g.colName ? g.colName(c) : String.fromCharCode(65 + c);
         hd.style.cssText =
-          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-muted, #94a3b8);text-align:center;line-height:24px;font-size:11px;" +
+          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-muted, #94a3b8);text-align:center;line-height:" + defaultRow() + "px;font-size:var(--text-xs);" +
           "border-right:1px solid var(--sheet-border, #334155);flex-shrink:0;box-sizing:border-box;";
         h.appendChild(hd);
       }
@@ -206,7 +240,7 @@
         node.style.fontStyle = "";
         node.style.textDecoration = "";
         node.style.fontFamily = "";
-        node.style.fontSize = "12px";
+        node.style.fontSize = TOUCH_MODE ? "var(--text-sm)" : "12px";
         node.style.color = "var(--sheet-fg, #f8fafc)";
         node.style.backgroundColor = "var(--sheet-bg, #0f172a)";
         if (g.applyCellStyle) g.applyCellStyle(node, cellData);
@@ -224,11 +258,7 @@
 
     if (g.bodyInner) {
       g.bodyInner.style.width = totalColWidth() + "px";
-      if (rowHeights && Object.keys(rowHeights).length) {
-        let totalH = 0;
-        for (let i = 0; i < g.totalRows; i++) totalH += rowHeight(i);
-        g.bodyInner.style.height = totalH + "px";
-      }
+      g.bodyInner.style.height = totalBodyHeight(g) + "px";
     }
   }
 

@@ -58,11 +58,15 @@ SlideCanvas.bindElement = function (el) {
     self.selectElement(el);
     var rect = el.getBoundingClientRect();
     var cRect = self.canvas.getBoundingClientRect();
+    // #2515 — the fitted phone canvas is zoomed; client rects are in screen
+    // pixels while `style.left/top` are canvas pixels. Divide once here so a
+    // one-finger drag keeps the element under the finger at any zoom.
+    var z = self.scale || 1;
     var start = {
       x: e.clientX,
       y: e.clientY,
-      left: rect.left - cRect.left,
-      top: rect.top - cRect.top
+      left: (rect.left - cRect.left) / z,
+      top: (rect.top - cRect.top) / z
     };
     var onMove = function (ev) {
       var dx = (ev.clientX - start.x) / self.scale;
