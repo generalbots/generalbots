@@ -90,18 +90,18 @@ body[data-app="docs"] #main-content {
     justify-content: center;
     background: var(--primary-light, rgba(59, 130, 246, 0.15));
     border-radius: 10px;
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 
 .ai-panel-title h3 {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     margin: 0;
     color: var(--text, #ffffff);
 }
 
 .ai-panel-title .ai-status {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b6b);
     margin: 2px 0 0 0;
 }
@@ -116,7 +116,7 @@ body[data-app="docs"] #main-content {
     border: none;
     border-radius: 6px;
     color: var(--text-secondary, #6b6b6b);
-    font-size: 16px;
+    font-size: var(--text-md);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -157,7 +157,7 @@ body[data-app="docs"] #main-content {
     max-width: 90%;
     padding: 12px 14px;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }
 
@@ -179,7 +179,7 @@ body[data-app="docs"] #main-content {
     background: var(--primary, #3b82f6);
     color: #ffffff;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
@@ -239,7 +239,7 @@ body[data-app="docs"] #main-content {
 
 .ai-quick-actions .quick-actions-label {
     display: block;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #6b6b6b);
     text-transform: uppercase;
@@ -260,7 +260,7 @@ body[data-app="docs"] #main-content {
     border-radius: 6px;
     color: var(--text-secondary, #a1a1a1);
     font-family: inherit;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -292,7 +292,7 @@ body[data-app="docs"] #main-content {
     border-radius: 10px;
     color: var(--text, #ffffff);
     font-family: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
     transition: all 0.2s ease;
 }
 
@@ -315,7 +315,7 @@ body[data-app="docs"] #main-content {
     border: none;
     border-radius: 10px;
     color: #ffffff;
-    font-size: 16px;
+    font-size: var(--text-md);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -341,7 +341,7 @@ body[data-app="docs"] #main-content {
     border: none;
     border-radius: 50%;
     color: #ffffff;
-    font-size: 24px;
+    font-size: var(--text-2xl);
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: var(--z-sticky);
@@ -405,7 +405,7 @@ body.ai-panel-collapsed .ai-panel-fab {
         bottom: 16px;
         width: 48px;
         height: 48px;
-        font-size: 20px;
+        font-size: var(--text-xl);
     }
 }
 @media (prefers-reduced-motion: reduce) {

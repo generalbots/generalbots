@@ -19,18 +19,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
 }
 
 .section-icon {
-    font-size: 20px;
+    font-size: var(--text-xl);
 }
 
 .courses-count {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-secondary);
 }
 
@@ -90,7 +90,7 @@
 }
 
 .course-thumbnail .placeholder-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
     opacity: 0.5;
 }
 
@@ -101,7 +101,7 @@
     padding: 4px 10px;
     background: #dc2626;
     color: white;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     border-radius: 4px;
 }
@@ -113,7 +113,7 @@
     padding: 4px 10px;
     background: rgba(0, 0, 0, 0.6);
     color: white;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     border-radius: 4px;
 }
@@ -123,7 +123,7 @@
 }
 
 .course-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
     margin: 0 0 8px 0;
     color: var(--text-primary);
@@ -144,7 +144,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
@@ -167,7 +167,7 @@
 }
 
 .progress-text {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     margin-top: 4px;
     display: block;
@@ -207,7 +207,7 @@
 }
 
 .course-list-thumbnail .placeholder-icon {
-    font-size: 24px;
+    font-size: var(--text-2xl);
     opacity: 0.5;
 }
 
@@ -217,7 +217,7 @@
 }
 
 .course-list-info h4 {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     margin: 0 0 4px 0;
     color: var(--text-primary);
@@ -273,7 +273,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .mandatory-info {
@@ -281,7 +281,7 @@
 }
 
 .mandatory-info h4 {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     margin: 0 0 4px 0;
     color: var(--text-primary);
@@ -291,7 +291,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .mandatory-due.overdue {
@@ -333,12 +333,12 @@
 }
 
 .certificate-card-header .cert-icon {
-    font-size: 32px;
+    font-size: var(--text-3xl);
 }
 
 .certificate-card-header h4 {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
@@ -351,13 +351,13 @@
 }
 
 .certificate-card-body .cert-score {
-    font-size: 24px;
+    font-size: var(--text-2xl);
     font-weight: 700;
     color: var(--primary-color);
 }
 
 .certificate-card-body .cert-date {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
@@ -417,7 +417,7 @@
 }
 
 .modal-header h3 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);

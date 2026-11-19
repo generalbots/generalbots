@@ -12,7 +12,7 @@
 }
 
 .invoice-form-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
@@ -41,7 +41,7 @@
 }
 
 .form-section-title {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text, #f8fafc);
     margin-bottom: 12px;
@@ -61,7 +61,7 @@
 }
 
 .form-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     color: var(--text-secondary, #888);
 }
@@ -74,7 +74,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 6px;
     color: var(--text, #f8fafc);
-    font-size: 14px;
+    font-size: var(--text-sm);
     transition: border-color 0.15s ease;
 }
 
@@ -101,7 +101,7 @@
     padding: 8px 12px;
     background: var(--surface, rgba(255, 255, 255, 0.02));
     border-radius: 6px 6px 0 0;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888);
     text-transform: uppercase;
@@ -127,7 +127,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 4px;
     color: var(--text, #f8fafc);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .line-item input:focus {
@@ -169,7 +169,7 @@
     border: 1px dashed var(--border, #2a2a2a);
     border-radius: 6px;
     color: var(--text-secondary, #888);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -193,7 +193,7 @@
 .invoice-total-row {
     display: flex;
     gap: 24px;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .invoice-total-row .label {
@@ -212,7 +212,7 @@
     margin-top: 8px;
     padding-top: 12px;
     border-top: 1px solid var(--border, #2a2a2a);
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 700;
 }
 
@@ -233,7 +233,7 @@
 .form-btn {
     padding: 10px 20px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;

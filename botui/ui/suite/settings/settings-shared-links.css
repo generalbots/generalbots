@@ -8,7 +8,7 @@
     border-radius: 8px;
     background: rgba(245, 158, 11, 0.1);
     color: var(--text, #e5e7eb);
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.55;
 }
 
@@ -44,14 +44,14 @@
 
 .shared-tier-title h2 {
     margin: 0 0 4px;
-    font-size: 17px;
+    font-size: var(--text-lg);
     color: var(--text, #e5e7eb);
 }
 
 .shared-tier-title p {
     margin: 0;
     color: var(--text-secondary, #9ca3af);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .shared-tier-index {
@@ -65,7 +65,7 @@
     background: var(--surface-2, #2a2a2a);
     border: 1px solid var(--border, #334155);
     color: var(--text-secondary, #9ca3af);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 700;
 }
 
@@ -77,7 +77,7 @@
     padding: 4px 10px;
     border-radius: 999px;
     border: 1px solid var(--border, #334155);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 0.02em;
     white-space: nowrap;
@@ -124,13 +124,13 @@
 .shared-url-label {
     flex: 0 0 110px;
     color: var(--text-secondary, #9ca3af);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .shared-url-row code,
 .shared-config code {
     font-family: "Fira Code", monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text, #e5e7eb);
     overflow-wrap: anywhere;
 }
@@ -147,7 +147,7 @@
 .shared-tier-detail {
     margin: 12px 0 0;
     color: var(--text-secondary, #9ca3af);
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }
 
@@ -159,7 +159,7 @@
 
 .shared-config h3 {
     margin: 0 0 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text, #e5e7eb);
 }
@@ -168,7 +168,7 @@
 .shared-steps {
     margin: 0 0 10px;
     color: var(--text-secondary, #9ca3af);
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.6;
 }
 
@@ -191,7 +191,7 @@
 
 .shared-hint {
     margin-top: 10px;
-    font-size: 12px !important;
+    font-size: var(--text-2xs) !important;
 }
 
 .shared-links-footer {
@@ -203,7 +203,7 @@
 
 .shared-links-checked {
     color: var(--text-secondary, #9ca3af);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 @media (max-width: 640px) {

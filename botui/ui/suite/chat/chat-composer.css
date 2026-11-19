@@ -44,7 +44,7 @@
     background: var(--surface-2, var(--surface, #fff));
     border: 1px solid var(--border, var(--border-color, #d0d0d0));
     color: var(--text, #333);
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     line-height: 1;
     cursor: pointer;
@@ -116,7 +116,7 @@ textarea#messageInput {
     border-radius: 0;
     background: transparent;
     color: var(--text, #222);
-    font-size: 15px;
+    font-size: var(--text-md);
     line-height: 1.45;
     resize: none;
 }
@@ -161,7 +161,7 @@ textarea#messageInput {
     border-radius: 999px;
     background: transparent;
     color: var(--text-secondary, #888);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 
@@ -250,7 +250,7 @@ textarea#messageInput {
     border: 1px solid var(--border, var(--border-color, #d0d0d0));
     background: transparent;
     color: var(--text-secondary, #888);
-    font-size: 11.5px;
+    font-size: var(--text-2xs);
 }
 
 #fileChip {
@@ -260,7 +260,7 @@ textarea#messageInput {
     border-radius: 999px;
     background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
     color: var(--text, #444);
-    font-size: 11.5px;
+    font-size: var(--text-2xs);
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -327,7 +327,7 @@ textarea#messageInput {
 
     #messageInput,
     textarea#messageInput {
-        font-size: 16px; /* keeps iOS from zooming on focus */
+        font-size: var(--text-md); /* keeps iOS from zooming on focus */
     }
 }
 
@@ -396,7 +396,7 @@ textarea#messageInput {
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   line-height: 16px;
   background: var(--accent, #3b82f6);
@@ -421,7 +421,7 @@ textarea#messageInput {
   z-index: 60;
 }
 .chat-controls-title {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   margin-bottom: 10px;
@@ -433,7 +433,7 @@ textarea#messageInput {
   column-gap: 10px;
   row-gap: 2px;
   align-items: start;
-  font-size: 13px;
+  font-size: var(--text-xs);
   margin: 8px 0;
   padding: 6px 8px;
   border-radius: 10px;
@@ -451,7 +451,7 @@ textarea#messageInput {
 .chat-controls-row > small {
   grid-column: 2;
   color: var(--text-secondary, #888);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   line-height: 1.3;
 }
 .chat-controls-col {
@@ -469,7 +469,7 @@ textarea#messageInput {
   border: 1px solid var(--border, #333);
   background: var(--bg, #111);
   color: inherit;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

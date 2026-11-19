@@ -24,7 +24,7 @@
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
   padding: 6px 10px;
   border-radius: 6px;
@@ -45,7 +45,7 @@
   color: var(--text-secondary);
   padding: 6px 12px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -62,7 +62,7 @@
   padding: 6px 14px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -93,14 +93,14 @@
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .plan-kanban-col-title { display: flex; align-items: center; gap: 8px; }
 .plan-kanban-col-dot { width: 8px; height: 8px; border-radius: 50%; }
 .plan-kanban-col-count {
   background: var(--border-color);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -113,7 +113,7 @@
   color: var(--text-secondary);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   transition: all 0.15s;
 }
 .plan-kanban-add:hover { background: var(--border-color); color: var(--text-primary); }
@@ -131,10 +131,10 @@
 .plan-card:active { cursor: grabbing; }
 .plan-card-priority-bar { width: 3px; flex-shrink: 0; }
 .plan-card-body { flex: 1; padding: 8px 10px; min-width: 0; }
-.plan-card-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; word-break: break-word; }
-.plan-card-comment-btn { background: transparent; border: none; cursor: pointer; font-size: 12px; padding: 0 4px; opacity: 0.5; float: right; }
+.plan-card-title { font-size: var(--text-xs); font-weight: 500; margin-bottom: 6px; word-break: break-word; }
+.plan-card-comment-btn { background: transparent; border: none; cursor: pointer; font-size: var(--text-2xs); padding: 0 4px; opacity: 0.5; float: right; }
 .plan-card-comment-btn:hover { opacity: 1; }
-.plan-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); }
+.plan-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--text-2xs); color: var(--text-secondary); }
 .plan-card-avatar {
   display: inline-flex;
   align-items: center;
@@ -143,7 +143,7 @@
   border-radius: 50%;
   background: var(--accent);
   color: #000000;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 .plan-card-date { color: var(--text-secondary); }
@@ -151,14 +151,14 @@
 .plan-tag {
   background: var(--border-color);
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   padding: 2px 6px;
   border-radius: 3px;
 }
 .plan-card-progress { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .plan-card-progress-bar { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
 .plan-card-progress-fill { height: 100%; background: var(--success); transition: width 0.3s; }
-.plan-card-progress-text { font-size: 10px; color: var(--text-secondary); min-width: 28px; text-align: right; }
+.plan-card-progress-text { font-size: var(--text-2xs); color: var(--text-secondary); min-width: 28px; text-align: right; }
 
 /* Gantt view */
 .plan-gantt-scroll { height: 100%; overflow: auto; padding: 16px; }
@@ -175,13 +175,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary);
 }
 .plan-gantt-day.weekend { background: var(--bg-primary); }
 .plan-gantt-day.today { background: var(--accent); color: #000000; font-weight: 600; }
 .plan-gantt-day-num { font-weight: 600; }
-.plan-gantt-day-name { font-size: 9px; }
+.plan-gantt-day-name { font-size: var(--text-2xs); }
 .plan-gantt-today-line { position: absolute; width: 2px; background: var(--danger); z-index: 3; pointer-events: none; }
 .plan-gantt-row { display: flex; border-bottom: 1px solid var(--bg-secondary); position: relative; }
 .plan-gantt-label {
@@ -189,10 +189,10 @@
   background: var(--bg-primary); border-right: 1px solid var(--border-color);
   padding: 4px 8px;
   display: flex; flex-direction: column; justify-content: center;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 .plan-gantt-label-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plan-gantt-label-meta { font-size: 10px; color: var(--text-secondary); display: flex; gap: 8px; }
+.plan-gantt-label-meta { font-size: var(--text-2xs); color: var(--text-secondary); display: flex; gap: 8px; }
 .plan-gantt-bar {
   position: absolute;
   height: 22px;
@@ -205,28 +205,28 @@
 }
 .plan-gantt-bar:hover { transform: translateY(-1px); box-shadow: var(--shadow); z-index: 6; }
 .plan-gantt-bar-progress { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,255,255,0.25); pointer-events: none; }
-.plan-gantt-bar-title { position: relative; padding: 0 8px; font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plan-gantt-bar-title { position: relative; padding: 0 8px; font-size: var(--text-2xs); font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* List view */
 .plan-list-table {
   width: 100%;
   border-collapse: collapse;
   background: var(--bg-secondary);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .plan-list-table th, .plan-list-table td {
   padding: 10px 14px;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
 }
-.plan-list-table th { background: var(--bg-primary); color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+.plan-list-table th { background: var(--bg-primary); color: var(--text-secondary); font-weight: 600; font-size: var(--text-2xs); text-transform: uppercase; }
 .plan-list-table tr { cursor: pointer; }
 .plan-list-table tr:hover { background: var(--border-color); }
 .plan-status-pill, .plan-prio-pill {
   display: inline-block;
   padding: 2px 10px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   color: #ffffff;
 }
@@ -236,13 +236,13 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 18px;
+  font-size: var(--text-lg);
   cursor: pointer;
   padding: 0 6px;
 }
 .plan-row-del:hover { color: var(--danger); }
 
-.plan-empty { text-align: center; color: var(--text-secondary); padding: 60px; font-size: 14px; }
+.plan-empty { text-align: center; color: var(--text-secondary); padding: 60px; font-size: var(--text-sm); }
 
 /* Modal editor */
 .plan-modal-backdrop {
@@ -270,24 +270,24 @@
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
 }
-.plan-modal-header h3 { margin: 0; font-size: 15px; }
+.plan-modal-header h3 { margin: 0; font-size: var(--text-md); }
 .plan-modal-close {
   background: transparent; border: none; color: var(--text-secondary);
-  font-size: 22px; cursor: pointer;
+  font-size: var(--text-2xl); cursor: pointer;
 }
 .plan-modal-body {
   padding: 16px 20px;
   display: flex; flex-direction: column; gap: 10px;
   overflow-y: auto;
 }
-.plan-modal-body label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.plan-modal-body label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-2xs); color: var(--text-secondary); font-weight: 500; }
 .plan-modal-body input, .plan-modal-body select {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 8px 10px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 .plan-modal-body input:focus, .plan-modal-body select:focus { outline: none; border-color: var(--accent); }
 .plan-modal-footer {

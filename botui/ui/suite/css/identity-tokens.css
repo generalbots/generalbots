@@ -45,17 +45,21 @@
   --id-font-heading: 'Fira Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --id-font-logo: 'Fira Sans', system-ui, sans-serif;
 
-  /* == Type scale (fixed) ============================================== */
-  --id-text-xs: 10px;
-  --id-text-sm: 12px;
-  --id-text-base: 14px;
-  --id-text-md: 15px;
-  --id-text-lg: 16px;
-  --id-text-xl: 17px;
-  --id-text-2xl: 20px;
-  --id-text-3xl: 24px;
-  --id-text-4xl: 32px;
-  --id-text-5xl: 36px;
+  /* == Type scale =====================================================
+   * rem-based, aligned with the suite scale in css/base/01_root.css
+   * (#2322): identity sizes must follow browser/OS text scaling. The
+   * smallest step is the 0.75rem (12px) readability floor — the runtime
+   * text-size manager (identity/textsize.js) may still scale it up. */
+  --id-text-xs: 0.75rem;
+  --id-text-sm: 0.75rem;
+  --id-text-base: 0.875rem;
+  --id-text-md: 0.9375rem;
+  --id-text-lg: 1rem;
+  --id-text-xl: 1.0625rem;
+  --id-text-2xl: 1.25rem;
+  --id-text-3xl: 1.5rem;
+  --id-text-4xl: 2rem;
+  --id-text-5xl: 2.25rem;
 
   /* == Radii ===========================================================
    * Follow the theme's own --radius (0.5rem light, 0.75rem default, sharper

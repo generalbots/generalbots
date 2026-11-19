@@ -20,7 +20,7 @@
 .gb-suggestion-remove {
     display: inline-flex; align-items: center; justify-content: center;
     width: 16px; height: 16px; margin-left: 4px; margin-right: -4px;
-    border-radius: 50%; font-size: 14px; line-height: 1;
+    border-radius: 50%; font-size: var(--text-sm); line-height: 1;
     color: var(--id-gray-400); cursor: pointer;
     transition: background var(--id-dur-fast) var(--id-ease), color var(--id-dur-fast) var(--id-ease);
 }

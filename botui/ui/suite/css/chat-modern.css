@@ -77,7 +77,7 @@
 #chat-app .message-content {
     padding: 13px 17px;
     border-radius: 18px;
-    font-size: 14.5px;
+    font-size: var(--text-md);
     line-height: 1.58;
     letter-spacing: 0.003em;
 }
@@ -112,7 +112,7 @@
     position: absolute;
     top: -15px;
     left: 4px;
-    font-size: 10.5px;
+    font-size: var(--text-2xs);
     line-height: 1;
     color: #a1a1aa;
     opacity: 0;
@@ -218,12 +218,12 @@
 #chat-app .bot-message pre {
     border-radius: 10px;
     padding: 12px 14px;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     background: #f4f4f5;
     color: #27272a;
 }
 
-#chat-app .bot-message code { font-size: 12.5px; }
+#chat-app .bot-message code { font-size: var(--text-2xs); }
 
 /* #1693 — a bare <svg> answer (no fence, so no live preview) must fit the
    bubble instead of forcing a 512px drawing. Markdown wraps it in a <p>.
@@ -249,7 +249,7 @@
 #chat-app .thinking-section summary {
     color: var(--gb-muted);
     font-weight: 500;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 7px 11px;
 }
 

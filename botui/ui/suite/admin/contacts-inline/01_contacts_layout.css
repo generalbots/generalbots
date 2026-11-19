@@ -318,7 +318,7 @@
         }
 
         .contact-tag {
-            font-size: 0.7rem;
+            font-size: var(--text-2xs);
             padding: 2px 8px;
             border-radius: 10px;
             background: var(--bg-tertiary);

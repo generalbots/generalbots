@@ -15,7 +15,7 @@
     color: var(--integrations-muted);
     border-radius: 999px;
     padding: 7px 16px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
     transition: background .15s ease, color .15s ease, border-color .15s ease;
@@ -57,7 +57,7 @@
 
 .integrations-app .integrations-source-card-header h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 700;
     color: var(--integrations-text);
 }
@@ -70,14 +70,14 @@
     height: 36px;
     border-radius: var(--integrations-radius-sm);
     background: var(--integrations-soft);
-    font-size: 16px;
+    font-size: var(--text-md);
     flex: none;
 }
 
 .integrations-app .integrations-source-description {
     margin: 0;
     color: var(--integrations-muted);
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }
 
@@ -113,13 +113,13 @@
     text-align: left;
     padding: 8px 10px;
     border-bottom: 1px solid var(--integrations-border-soft);
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--integrations-muted);
 }
 
 .integrations-app .integrations-sources-fragment th {
     color: var(--integrations-faint);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -137,7 +137,7 @@
 
 /* #1675 — declared MCP UI resources and sandboxed preview. */
 .integrations-app .integrations-ui-resources { margin-top: 8px; }
-.integrations-app .integrations-ui-resources h4 { margin: 0 0 4px; font-size: 13px; }
+.integrations-app .integrations-ui-resources h4 { margin: 0 0 4px; font-size: var(--text-xs); }
 .integrations-app .integrations-ui-resources ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .integrations-app .integrations-ui-resource {
     display: flex;

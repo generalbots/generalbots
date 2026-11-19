@@ -132,7 +132,7 @@
 }
 .gb-drv-col-btn:hover { color: var(--id-ink); }
 .gb-drv-col-active { color: var(--id-accent-text); }
-.gb-drv-sort-arrow { font-size: 10px; }
+.gb-drv-sort-arrow { font-size: var(--text-2xs); }
 
 /* == File list ======================================================= */
 .gb-drv-list {

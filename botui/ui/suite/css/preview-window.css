@@ -14,7 +14,7 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--shell-border, rgba(0, 0, 0, 0.1));
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .gb-preview-name {
@@ -86,7 +86,7 @@
     width: 100%;
     box-sizing: border-box;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
@@ -94,7 +94,7 @@
 
 .gb-preview-table {
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     margin: 14px;
     background: #fff;
 }
@@ -112,7 +112,7 @@
     margin: auto;
     padding: 24px;
     color: var(--text-secondary, #777);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .gb-preview-filecard {
@@ -128,7 +128,7 @@
 }
 
 .gb-preview-fileicon {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #2e7d32;
@@ -151,6 +151,6 @@
 
 .gb-preview-filesize {
     margin-top: 2px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: #777;
 }

@@ -54,7 +54,7 @@
   position: absolute;
   right: -2px;
   bottom: -2px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   line-height: 1;
   color: #fff;
   background: var(--primary, #84d669);
@@ -69,7 +69,7 @@
 
 .gb-dicon-label {
   max-width: 100%;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   line-height: 1.25;
   text-align: center;
   color: var(--text, #eee);

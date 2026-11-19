@@ -1,10 +1,10 @@
 
 .projector-error-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
 }
 
 .projector-error-message {
-    font-size: 14px;
+    font-size: var(--text-sm);
     text-align: center;
 }
 
@@ -22,7 +22,7 @@
     }
 
     .projector-title {
-        font-size: 14px;
+        font-size: var(--text-sm);
         max-width: 200px;
     }
 
@@ -35,7 +35,7 @@
     }
 
     .time-display {
-        font-size: 11px;
+        font-size: var(--text-2xs);
     }
 
     .volume-slider {
@@ -54,7 +54,7 @@
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
     max-width: none;
     color: var(--text-secondary, #9aa0aa);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 /* #1797 — animated activity icon + elapsed seconds. */
@@ -129,7 +129,7 @@
     padding: 8px 16px;
     background: var(--warning, #f59e0b);
     color: #000;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -217,7 +217,7 @@
     padding: 4px 12px;
     background: var(--accent, #2563eb);
     color: white;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     border-radius: 12px;
     cursor: pointer;
@@ -394,7 +394,7 @@
     border: 1px solid rgba(132, 214, 105, 0.5);
     background: rgba(132, 214, 105, 0.12);
     color: var(--text, inherit);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
@@ -405,7 +405,7 @@
 }
 .app-deeplink-btn::before {
     content: "⧉";
-    font-size: 11px;
+    font-size: var(--text-2xs);
     opacity: 0.8;
 }
 
@@ -426,7 +426,7 @@
     padding: 6px 10px;
     background: rgba(128,128,128,.12);
     border-bottom: 1px solid rgba(128,128,128,.2);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--muted, #9ca3af);
     font-family: inherit;
 }
@@ -438,7 +438,7 @@
     color: inherit;
     border-radius: 6px;
     padding: 2px 8px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 .gb-code-copy:hover { background: rgba(128,128,128,.2); }
@@ -484,7 +484,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--text-secondary, #94a3b8);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 
@@ -509,7 +509,7 @@
 .gb-code-toggle {
     margin-left: auto;
     padding: 2px 8px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-family: inherit;
     color: var(--text-secondary, #9aa0aa);
     background: transparent;
@@ -528,7 +528,7 @@
     padding: 10px 12px;
     overflow-x: auto;
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     line-height: 1.55;
     white-space: pre;
     color: var(--text, #e5e7eb);
@@ -545,13 +545,13 @@
 .gb-sel { color: #ffa657; }
 .gb-prop { color: #79c0ff; }
 
-.gb-diff-stats { padding: 6px 12px; font-size: 11.5px; font-family: monospace; background: rgba(128,128,128,.08); border-bottom: 1px solid rgba(128,128,128,.18); }
+.gb-diff-stats { padding: 6px 12px; font-size: var(--text-2xs); font-family: monospace; background: rgba(128,128,128,.08); border-bottom: 1px solid rgba(128,128,128,.18); }
 .gb-diff-add-count { color: #3fb950; font-weight: 700; }
 .gb-diff-del-count { color: #f85149; font-weight: 700; }
 .gb-diff-line {
     padding: 0 12px;
     font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     line-height: 1.55;
     white-space: pre;
     overflow-x: hidden;
@@ -589,7 +589,7 @@
   color: var(--text-secondary, #cbd5e1);
   border-radius: 6px;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   line-height: 1.2;
   cursor: pointer;
 }
@@ -617,7 +617,7 @@
   border-radius: 8px;
   background: var(--surface-1, rgba(255,255,255,0.03));
   color: var(--text-secondary, #cbd5e1);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   line-height: 1.3;
 }
 .gb-chat-es-item { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
@@ -631,7 +631,7 @@
 .gb-chat-es-conn[data-state="offline"] .gb-chat-es-dot { background: #ef4444; }
 .gb-chat-es-copy {
   appearance: none; border: 1px solid transparent; background: transparent; color: inherit;
-  cursor: pointer; padding: 0 4px; border-radius: 4px; font-size: 12px; line-height: 1;
+  cursor: pointer; padding: 0 4px; border-radius: 4px; font-size: var(--text-2xs); line-height: 1;
 }
 .gb-chat-es-copy:hover, .gb-chat-es-copy:focus-visible { border-color: var(--border, rgba(255,255,255,0.2)); color: var(--text, #e5e7eb); outline: none; }
 .gb-chat-es-copy:disabled { opacity: 0.4; cursor: default; }

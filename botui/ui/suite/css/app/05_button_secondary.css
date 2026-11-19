@@ -32,7 +32,7 @@
 
     .theme-dropdown {
         padding: 8px 12px;
-        font-size: 13px;
+        font-size: var(--text-xs);
     }
 
     .apps-dropdown {
@@ -58,7 +58,7 @@
     .user-avatar {
         width: 36px;
         height: 36px;
-        font-size: 14px;
+        font-size: var(--text-sm);
     }
 
     .logo-icon {
@@ -88,7 +88,7 @@
     padding: 0 5px;
     background: var(--error, #ef4444);
     color: white;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     border-radius: 9px;
     display: flex;
@@ -125,13 +125,13 @@
 }
 
 .notifications-panel-title {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text, #fff);
 }
 
 .notifications-clear-btn {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     background: none;
     border: none;
@@ -162,13 +162,13 @@
 }
 
 .notifications-empty span {
-    font-size: 32px;
+    font-size: var(--text-3xl);
     margin-bottom: 12px;
     opacity: 0.5;
 }
 
 .notifications-empty p {
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin: 0;
 }
 
@@ -196,7 +196,7 @@
 }
 
 .notification-icon {
-    font-size: 20px;
+    font-size: var(--text-xl);
     flex-shrink: 0;
     width: 24px;
     text-align: center;
@@ -208,14 +208,14 @@
 }
 
 .notification-title {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text, #fff);
     margin-bottom: 2px;
 }
 
 .notification-message {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     margin-bottom: 4px;
     overflow: hidden;
@@ -224,7 +224,7 @@
 }
 
 .notification-time {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
 }
 
@@ -234,7 +234,7 @@
     border: none;
     padding: 6px 12px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
@@ -249,7 +249,7 @@
     background: transparent;
     border: none;
     color: var(--text-muted, #666);
-    font-size: 16px;
+    font-size: var(--text-md);
     cursor: pointer;
     padding: 0;
     width: 20px;
@@ -294,7 +294,7 @@
 }
 
 .notification-item-icon {
-    font-size: 20px;
+    font-size: var(--text-xl);
     flex-shrink: 0;
     width: 28px;
     text-align: center;
@@ -306,14 +306,14 @@
 }
 
 .notification-item-title {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text, #fff);
     margin-bottom: 2px;
 }
 
 .notification-item-message {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     white-space: nowrap;
     overflow: hidden;
@@ -321,13 +321,13 @@
 }
 
 .notification-item-time {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-tertiary, #666);
     margin-top: 4px;
 }
 
 .notification-item-action {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--primary, #c5f82a);
     text-decoration: none;
     padding: 4px 8px;
@@ -341,7 +341,7 @@
 }
 
 .notification-item-dismiss {
-    font-size: 16px;
+    font-size: var(--text-md);
     color: var(--text-tertiary, #666);
     background: none;
     border: none;

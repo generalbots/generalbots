@@ -13,7 +13,7 @@
   border: 1px solid transparent;
   color: inherit;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
   padding: 4px 8px;
   border-radius: 6px;
@@ -32,7 +32,7 @@
   width: 30px;
   height: 30px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: var(--text-lg);
   line-height: 1;
 }
 .gb-chat-conversation-menu {

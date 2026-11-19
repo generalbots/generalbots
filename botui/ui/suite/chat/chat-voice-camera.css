@@ -59,7 +59,7 @@
     align-items: center;
     justify-content: space-between;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
     padding: 2px 4px 12px;
 }
 
@@ -71,7 +71,7 @@
     background: transparent;
     color: var(--gb-muted, #71717a);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .gb-camera-close:hover {
@@ -90,7 +90,7 @@
 
 .gb-camera-status {
     padding: 10px 4px 0;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.4;
     color: var(--gb-muted, #71717a);
     text-align: center;
@@ -111,7 +111,7 @@
     border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
     background: transparent;
     color: var(--text, #111);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
 }
@@ -175,11 +175,11 @@
     background: rgba(255, 255, 255, 0.10);
     color: #f4f4f5;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .gb-voice-mode-eyebrow {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: rgba(244, 244, 245, 0.62);
@@ -227,7 +227,7 @@
 .gb-voice-mode-transcript {
     max-width: 620px;
     min-height: 44px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
     color: rgba(244, 244, 245, 0.72);
     display: -webkit-box;
@@ -243,7 +243,7 @@
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(255, 255, 255, 0.10);
     color: #f4f4f5;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
 }

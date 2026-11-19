@@ -13,7 +13,7 @@
     align-items: center;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -50,7 +50,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 4px;
     color: var(--text-secondary, #888);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -126,7 +126,7 @@
 }
 
 .crm-form-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
@@ -156,7 +156,7 @@
 
 .crm-form-label {
     display: block;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     color: var(--text-secondary, #888);
     margin-bottom: 6px;
@@ -171,7 +171,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 6px;
     color: var(--text, #f8fafc);
-    font-size: 14px;
+    font-size: var(--text-sm);
     transition: border-color 0.15s ease;
 }
 
@@ -205,7 +205,7 @@
 .crm-form-btn {
     padding: 10px 20px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -298,7 +298,7 @@
 
 .detail-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text, #f8fafc);
 }
@@ -307,7 +307,7 @@
     background: none;
     border: none;
     color: var(--text-secondary, #94a3b8);
-    font-size: 24px;
+    font-size: var(--text-2xl);
     cursor: pointer;
     padding: 0;
     line-height: 1;
@@ -330,14 +330,14 @@
 }
 
 .detail-field label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #94a3b8);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .detail-field span {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #f8fafc);
 }
 
@@ -384,7 +384,7 @@
 }
 
 .campaign-card-title {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--text, #f8fafc);
     margin: 0;
@@ -394,7 +394,7 @@
     display: inline-flex;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -415,7 +415,7 @@
     padding: 3px 8px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
 }
 
@@ -434,13 +434,13 @@
 }
 
 .campaign-metric-value {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--accent, #d4f505);
 }
 
 .campaign-metric-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
     text-transform: uppercase;
     margin-top: 2px;
@@ -452,7 +452,7 @@
 /* #2313 — the lost-reason dialog is one field, so it explains why it is asked. */
 .crm-form-hint {
     margin: 0 0 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     opacity: 0.75;
 }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}

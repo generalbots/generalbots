@@ -18,14 +18,14 @@
     }
 
     .report-card-header h4 {
-        font-size: 14px;
+        font-size: var(--text-sm);
         font-weight: 600;
         color: var(--text, #fff);
         margin: 0;
     }
 
     .report-badge {
-        font-size: 10px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         text-transform: uppercase;
         padding: 4px 8px;
@@ -59,7 +59,7 @@
     .stage-label,
     .stage-value {
         color: #fff;
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
     }
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

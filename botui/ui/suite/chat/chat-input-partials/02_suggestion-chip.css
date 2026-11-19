@@ -9,7 +9,7 @@
   border: 1px solid var(--border, var(--border-color, #d0d0d0));
   border-radius: 16px;
   color: #333;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -92,7 +92,7 @@ form.input-container {
     background: none;
     border: none;
     color: var(--text, #e5e5e5);
-    font-size: 14px;
+    font-size: var(--text-sm);
     outline: none;
     padding: 4px 0;
 }
@@ -116,7 +116,7 @@ form.input-container {
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 /* #1593 — web-search switch. Two visible states, a label that never depends
@@ -131,7 +131,7 @@ form.input-container {
     border: 1px solid var(--border, #d0d0d0);
     background: transparent;
     color: var(--accent, #2563eb);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -268,7 +268,7 @@ textarea#messageInput {
     border-radius: 999px;
     background: var(--surface, #fff);
     color: var(--text, #222);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
 }

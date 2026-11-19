@@ -70,7 +70,7 @@
 .gb-side-pin-plus {
   border: 1px dashed var(--shell-border, rgba(255, 255, 255, 0.22));
   color: var(--primary, var(--accent, #84d669));
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -117,7 +117,7 @@
 }
 
 .gb-side-ws-name {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text, #ddd);
   white-space: nowrap;
@@ -128,7 +128,7 @@
 }
 
 .gb-side-ws-desc {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #777);
   white-space: nowrap;
   overflow: hidden;
@@ -139,7 +139,7 @@
 .gb-side-ws-add {
   border-style: dashed;
   color: var(--text-secondary, #888);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   justify-content: center;
 }
 
@@ -168,7 +168,7 @@
   border: none;
   outline: none;
   color: var(--text, #eee);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-family: inherit;
 }
 
@@ -204,11 +204,11 @@
   justify-content: center;
   flex-shrink: 0;
   color: var(--primary, var(--accent, #84d669));
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
 
 .gb-file-name {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text, #ccc);
   white-space: nowrap;
   overflow: hidden;
@@ -231,7 +231,7 @@
   border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
   background: transparent;
   color: var(--text-secondary, #bbb);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-family: inherit;
   cursor: pointer;
   transition: all 130ms;

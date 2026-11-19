@@ -338,7 +338,7 @@
     border: 1px solid var(--border);
     border-radius: 20px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -372,7 +372,7 @@
     padding: 0 7px;
     background: var(--surface-hover);
     border-radius: 11px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     color: var(--text-secondary);
 }

@@ -86,7 +86,7 @@
     border: 1px solid var(--border-light, #475569);
     background: var(--primary-light, rgba(59, 130, 246, 0.1));
     color: var(--text-secondary, #94a3b8);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 0.04em;
 }
@@ -94,7 +94,7 @@
 .gb-preview-size {
     flex: none;
     color: var(--text-tertiary, #64748b);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .gb-preview-actions {
@@ -110,7 +110,7 @@
     border-radius: 6px;
     background: var(--surface-hover, #334155);
     color: var(--text, #f8fafc);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
 }
 
@@ -133,7 +133,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--text-secondary, #94a3b8);
-    font-size: 22px;
+    font-size: var(--text-2xl);
     line-height: 1;
     cursor: pointer;
 }
@@ -159,7 +159,7 @@
     gap: 10px;
     flex-wrap: wrap;
     color: var(--text-secondary, #94a3b8);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .gb-preview-notice-text {
@@ -183,14 +183,14 @@
     border-spacing: 0;
     width: max-content;
     min-width: 100%;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .gb-preview-caption {
     caption-side: top;
     padding: 8px 12px;
     color: var(--text-tertiary, #64748b);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     text-align: left;
 }
 
@@ -257,7 +257,7 @@
     border-radius: 8px;
     background: var(--bg, #0f172a);
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     line-height: 1.55;
 }
 
@@ -294,7 +294,7 @@
     background: var(--bg, #0f172a);
     color: var(--text, #f8fafc);
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -383,7 +383,7 @@
 .gb-preview-error-detail {
     margin: 0;
     color: var(--text-secondary, #94a3b8);
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.5;
 }
 
@@ -393,7 +393,7 @@
     align-items: center;
     gap: 10px;
     color: var(--text-secondary, #94a3b8);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .gb-preview-spinner {

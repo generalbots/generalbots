@@ -170,7 +170,7 @@
     background: rgba(0, 0, 0, 0.15);
     border-radius: 8px;
     overflow-x: auto;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.6;
     border: 1px solid rgba(0, 0, 0, 0.1);
 }

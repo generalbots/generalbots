@@ -3,7 +3,7 @@
     padding: 2px 8px;
     background: var(--surface-active, #252525);
     color: var(--text-secondary, #888);
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     border-radius: 4px;
 }
 
@@ -432,14 +432,14 @@
 }
 
 .section-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #ffffff);
     flex: 1;
 }
 
 .section-step-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 12px;
     background: var(--primary, #c5f82a);
     color: var(--bg, #0a0a0a);

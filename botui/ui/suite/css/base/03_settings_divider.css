@@ -15,7 +15,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 8px;
     color: var(--text, #ffffff);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: inherit;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -114,7 +114,7 @@
     bottom: 2px;
     left: 0;
     right: 0;
-    font-size: 0.5rem;
+    font-size: var(--text-2xs);
     text-align: center;
     color: inherit;
     white-space: nowrap;

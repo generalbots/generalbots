@@ -7,7 +7,7 @@
 }
 
 .task-detail-section h3 {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--text-secondary, #888);
     margin: 0 0 12px 0;
@@ -16,7 +16,7 @@
 }
 
 .task-detail-section .intent-text {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #fff);
     line-height: 1.6;
     margin: 0;
@@ -28,7 +28,7 @@
 }
 
 .task-detail-section .error-text {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--error, var(--error, #ef4444));
     line-height: 1.5;
     margin: 0;
@@ -45,7 +45,7 @@
     border-radius: 6px;
     color: var(--text-secondary, #a1a1a1);
     font-family: inherit;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -115,7 +115,7 @@
     border: 1px solid var(--border, #2a2a2a);
     border-radius: 6px;
     color: var(--text-secondary, #a1a1a1);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -127,7 +127,7 @@
 
 .detail-title {
     flex: 1;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text, #fff);
     margin: 0;
@@ -142,7 +142,7 @@
 .status-badge {
     padding: 6px 12px;
     border-radius: 20px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -168,7 +168,7 @@
     border: none;
     border-radius: 6px;
     color: var(--bg, #000);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -204,7 +204,7 @@
 }
 
 .decision-icon {
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .decision-info {
@@ -212,7 +212,7 @@
 }
 
 .decision-title {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--warning, var(--warning, #f59e0b));
     margin: 0 0 4px 0;
@@ -221,13 +221,13 @@
 }
 
 .decision-description {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #fff);
     margin: 0;
 }
 
 .decision-context {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #a1a1a1);
     line-height: 1.6;
     margin-bottom: 16px;
@@ -252,7 +252,7 @@
     border-radius: 6px;
     color: var(--bg, #000);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -270,7 +270,7 @@
     border-radius: 6px;
     color: var(--text, #fff);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -287,7 +287,7 @@
     border-radius: 6px;
     color: var(--danger, #ef4444);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -318,7 +318,7 @@
 }
 
 .section-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #6b6b6b);
     text-transform: uppercase;
@@ -333,7 +333,7 @@
     background: transparent;
     border: none;
     color: var(--text-secondary, #6b6b6b);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     transition: transform 0.2s ease;
 }
@@ -354,12 +354,12 @@
 }
 
 .status-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #fff);
 }
 
 .status-time {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b6b);
 }
 
@@ -368,7 +368,7 @@
     align-items: center;
     gap: 12px;
     padding: 10px 16px 10px 32px;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .substep-dot {
@@ -393,7 +393,7 @@
 
 .substep-time,
 .substep-note {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b6b);
 }
 
@@ -426,13 +426,13 @@
 
 .log-name {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #fff);
 }
 
 .log-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b6b);
     cursor: pointer;
 }
@@ -445,7 +445,7 @@
     padding: 4px 8px;
     background: var(--primary-light, rgba(197, 248, 42, 0.15));
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--primary, #c5f82a);
 }

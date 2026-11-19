@@ -19,7 +19,7 @@
 }
 .mem-title-group { display: flex; align-items: baseline; gap: .6rem; }
 .mem-title { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; }
-.mem-subtitle { font-size: .74rem; color: var(--muted); }
+.mem-subtitle { font-size: var(--text-2xs); color: var(--muted); }
 .mem-header-actions { display: flex; gap: .5rem; }
 
 .mem-btn {
@@ -38,7 +38,7 @@
 .mem-btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
 .mem-btn.primary:hover { filter: brightness(1.12); }
 .mem-btn.ghost { background: transparent; }
-.mem-btn.small { font-size: .7rem; padding: .28rem .55rem; }
+.mem-btn.small { font-size: var(--text-2xs); padding: .28rem .55rem; }
 .mem-btn.danger { color: var(--err, #f87171); border-color: var(--err, #f87171); background: transparent; }
 .mem-btn[disabled] { opacity: .5; cursor: not-allowed; }
 .hidden { display: none !important; }
@@ -46,7 +46,7 @@
 
 .mem-privacy-banner {
   flex-shrink: 0;
-  font-size: .72rem;
+  font-size: var(--text-2xs);
   line-height: 1.45;
   color: var(--muted);
   background: var(--accent-dim);
@@ -81,7 +81,7 @@
 .mem-chip-row { display: flex; gap: .4rem; flex-wrap: wrap; }
 .mem-chip {
   font-family: inherit;
-  font-size: .72rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   padding: .3rem .7rem;
   border-radius: 999px;
@@ -119,7 +119,7 @@
 }
 .mem-card-top { display: flex; align-items: center; gap: .45rem; }
 .mem-kind-badge {
-  font-size: .62rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .05em;
@@ -160,7 +160,7 @@
   outline: none;
 }
 .mem-edit-area:focus { border-color: var(--accent2, #777); }
-.mem-meta { display: flex; align-items: center; gap: .5rem; font-size: .66rem; color: var(--muted); }
+.mem-meta { display: flex; align-items: center; gap: .5rem; font-size: var(--text-2xs); color: var(--muted); }
 .mem-conf-bar {
   flex: 1;
   height: 3px;
@@ -199,7 +199,7 @@
 .mem-field { margin: 0 0 .8rem; min-width: 0; }
 .mem-field label {
   display: block;
-  font-size: .7rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--muted);
   margin-bottom: .3rem;

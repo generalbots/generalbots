@@ -42,7 +42,7 @@
 /* Item name */
 [data-theme="sentient"] .tree-item-name {
     flex: 1;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -59,7 +59,7 @@
 
 /* Item duration */
 [data-theme="sentient"] .tree-item-duration {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     margin-left: auto;
     margin-right: 8px;
@@ -68,7 +68,7 @@
 
 /* Item checkmark */
 [data-theme="sentient"] .tree-item-check {
-    font-size: 14px;
+    font-size: var(--text-sm);
     width: 20px;
     text-align: center;
     flex-shrink: 0;
@@ -117,7 +117,7 @@
 }
 
 [data-theme="sentient"] .tree-progress-percent {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--accent);
     min-width: 36px;

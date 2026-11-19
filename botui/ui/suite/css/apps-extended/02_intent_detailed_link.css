@@ -5,7 +5,7 @@
     padding: 10px;
     margin-top: 12px;
     color: var(--text-secondary, #888888);
-    font-size: 13px;
+    font-size: var(--text-xs);
     text-decoration: underline;
     cursor: pointer;
 }
@@ -34,7 +34,7 @@
 }
 
 .detail-panel-header h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text, #ffffff);
     margin: 0;
@@ -93,7 +93,7 @@
     background: rgba(245, 158, 11, 0.15);
     color: var(--warning, #f59e0b);
     border-radius: 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .detail-progress-text {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--accent, #d4f505);
 }
@@ -175,7 +175,7 @@
 }
 
 .decision-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     color: var(--accent, #d4f505);
     text-transform: uppercase;
@@ -183,7 +183,7 @@
 }
 
 .decision-title {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     color: var(--text, #ffffff);
     margin-bottom: 16px;
@@ -204,7 +204,7 @@
 .decision-btn {
     padding: 12px 20px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -239,14 +239,14 @@
 }
 
 .decision-context-label {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888888);
     margin-bottom: 8px;
 }
 
 .decision-context-text {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-secondary, #888888);
     line-height: 1.6;
 }
@@ -261,7 +261,7 @@
 }
 
 .status-section-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888888);
     text-transform: uppercase;
@@ -296,12 +296,12 @@
 
 .status-item-text {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #ffffff);
 }
 
 .status-item-meta {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-tertiary, #666666);
 }
 
@@ -315,7 +315,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #888888);
 }
 
@@ -339,7 +339,7 @@
 }
 
 .progress-log-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888888);
     text-transform: uppercase;
@@ -347,7 +347,7 @@
 }
 
 .progress-log-toggle {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #888888);
     background: none;
     border: none;

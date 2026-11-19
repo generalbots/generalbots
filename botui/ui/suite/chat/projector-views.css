@@ -66,12 +66,12 @@
     }
 
     .projector-icon {
-        font-size: 20px;
+        font-size: var(--text-xl);
     }
 
     .projector-title {
         color: var(--text, #fff);
-        font-size: 16px;
+        font-size: var(--text-md);
         font-weight: 500;
         max-width: 400px;
         overflow: hidden;
@@ -88,7 +88,7 @@
         background: transparent;
         border: none;
         color: var(--text-muted, #aaa);
-        font-size: 18px;
+        font-size: var(--text-lg);
         padding: 8px;
         cursor: pointer;
         border-radius: 6px;
@@ -193,7 +193,7 @@
     .projector-code pre {
         margin: 0;
         font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-        font-size: 14px;
+        font-size: var(--text-sm);
         line-height: 1.5;
         color: var(--text, #d4d4d4);
     }
@@ -309,7 +309,7 @@
         padding: 8px 12px;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 16px;
+        font-size: var(--text-md);
         transition: all 0.2s ease;
     }
 
@@ -322,7 +322,7 @@
     }
 
     .play-btn {
-        font-size: 20px;
+        font-size: var(--text-xl);
         padding: 8px 16px;
     }
 
@@ -365,7 +365,7 @@
 
     .time-display {
         color: var(--text-muted, #888);
-        font-size: 12px;
+        font-size: var(--text-2xs);
         min-width: 100px;
         text-align: right;
     }
@@ -407,7 +407,7 @@
     .code-info,
     .zoom-level {
         color: var(--text-muted, #888);
-        font-size: 14px;
+        font-size: var(--text-sm);
     }
 
     .slide-nav input {
@@ -430,11 +430,11 @@
     }
 
     .projector-error-icon {
-        font-size: 48px;
+        font-size: var(--text-5xl);
     }
 
     .projector-error-message {
-        font-size: 16px;
+        font-size: var(--text-md);
         color: var(--text-muted, #888);
     }
 

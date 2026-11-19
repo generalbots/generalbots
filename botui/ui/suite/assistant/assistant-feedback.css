@@ -24,7 +24,7 @@
 }
 .gb-feedback-input:focus { outline: none; border-color: var(--id-accent); }
 .gb-feedback-send {
-    font-size: var(--id-text-xs, 11px); padding: 4px 8px;
+    font-size: var(--id-text-xs, 0.75rem); padding: 4px 8px;
     background: var(--id-accent); color: white; border: none;
     border-radius: var(--id-radius-sm); cursor: pointer;
     font-family: var(--id-font-sans);

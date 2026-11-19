@@ -259,7 +259,7 @@
     border-radius: 9999px;
     background: rgba(239, 68, 68, 0.18);
     color: #f87171;
-    font-size: 0.72rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 
@@ -362,7 +362,7 @@
 }
 
 .recording-item-meta {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #94a3b8);
 }
 

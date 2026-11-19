@@ -144,7 +144,7 @@
 
     .panel-card-label {
         font-family: "Fira Code", monospace;
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
         color: var(--text);
         margin-top: auto;
@@ -180,7 +180,7 @@
 
     .toolbar-time {
         font-family: "Fira Code", monospace;
-        font-size: 14px;
+        font-size: var(--text-sm);
         color: var(--text);
         text-align: right;
         line-height: 1.4;

@@ -301,7 +301,7 @@
     align-items: center;
     gap: 6px;
     padding: 7px 10px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text);
     border-radius: 6px;
     cursor: pointer;
@@ -321,7 +321,7 @@
 #accounts-list .account-item .badge {
     flex: none;
     padding: 1px 6px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -347,7 +347,7 @@
 
 .account-form .oauth-hint {
     margin: 0 0 8px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #94a3b8);
 }
 

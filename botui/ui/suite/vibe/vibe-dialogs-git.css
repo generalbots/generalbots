@@ -33,7 +33,7 @@
 
 .vibe-git-toolbar .vibe-btn {
     padding: 4px 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-git-spacer {
@@ -41,7 +41,7 @@
 }
 
 #vibeGitCount {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 2px 8px;
     border-radius: 10px;
     white-space: nowrap;
@@ -73,7 +73,7 @@
     flex-wrap: wrap;
     gap: 2px;
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     border-bottom: 1px solid var(--border, #333);
     background: var(--surface, #14142a);
     min-height: 18px;
@@ -116,7 +116,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     border-bottom: 1px solid rgba(128, 128, 128, 0.08);
 }
@@ -131,7 +131,7 @@
 
 .vibe-git-icon {
     flex: 0 0 auto;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-git-name {
@@ -146,7 +146,7 @@
     flex: 0 0 auto;
     min-width: 18px;
     text-align: center;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     padding: 1px 5px;
     border-radius: 4px;
@@ -168,7 +168,7 @@
 .vibe-diff pre {
     margin: 0;
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
     font-family: var(--mono, "SFMono-Regular", Consolas, monospace);
     white-space: pre;
@@ -202,7 +202,7 @@
 .vibe-git-commit-panel .vibe-textarea {
     min-height: 56px;
     resize: vertical;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-git-btnrow {
@@ -212,12 +212,12 @@
 
 .vibe-git-btnrow .vibe-btn {
     flex: 1;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-git-stageall {
     align-self: flex-start;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     padding: 2px 8px;
 }
 
@@ -239,7 +239,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-git-check {

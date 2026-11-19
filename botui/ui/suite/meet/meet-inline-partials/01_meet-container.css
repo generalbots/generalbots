@@ -220,7 +220,7 @@
         color: white;
         padding: 0.125rem 0.375rem;
         border-radius: 9999px;
-        font-size: 0.625rem;
+        font-size: var(--text-2xs);
         font-weight: 600;
     }
 

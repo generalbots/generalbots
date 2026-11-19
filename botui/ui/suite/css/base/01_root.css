@@ -426,3 +426,51 @@
     --z-top: 4000;
 }
 
+/* ============================================ */
+/* TYPE SCALE (#2322)                           */
+/* Canonical text sizes for suite surfaces.     */
+/* Use tokens instead of literal px sizes:      */
+/* every step is rem-based, so browser zoom and */
+/* OS/browser text scaling (125%, 150%) move    */
+/* the whole scale proportionally.              */
+/*                                              */
+/*   --text-2xs  12px  floor — smallest legal   */
+/*   --text-xs   13px  badges, table headers    */
+/*   --text-sm   14px  body / default UI text   */
+/*   --text-md   16px  emphasised body          */
+/*   --text-lg   18px  section titles           */
+/*   --text-xl   20px  panel titles             */
+/*   --text-2xl  24px  page titles              */
+/*   --text-3xl  32px  hero numbers             */
+/*   --text-4xl  40px  display                  */
+/*   --text-5xl  48px  display (empty states)   */
+/*   --text-6xl  72px  display (clocks, temps)  */
+/*                                              */
+/* scripts/check_type_scale.py rejects raw px   */
+/* sizes and anything under the --text-2xs      */
+/* floor.                                       */
+/* ============================================ */
+:root {
+    --text-2xs: 0.75rem;    /* 12px */
+    --text-xs: 0.8125rem;   /* 13px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-md: 1rem;        /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.25rem;     /* 20px */
+    --text-2xl: 1.5rem;     /* 24px */
+    --text-3xl: 2rem;       /* 32px */
+    --text-4xl: 2.5rem;     /* 40px */
+    --text-5xl: 3rem;       /* 48px */
+    --text-6xl: 4.5rem;     /* 72px */
+}
+
+/* Compact density is an explicit opt-in, never the default (#2322).
+   A dense surface (data grid, chip row, timeline) sets
+   data-density="compact" on its own root — only then do the two
+   smallest steps drop one notch, and only for that subtree. Normal
+   density never renders UI text below --text-2xs (12px). */
+[data-density="compact"] {
+    --text-2xs: 0.6875rem;  /* 11px — opt-in only */
+    --text-xs: 0.75rem;     /* 12px */
+}
+

@@ -13,7 +13,7 @@
                 border: 3px solid rgba(132, 214, 105, 0.25);
                 border-top-color: var(--primary, #84d669);
             }
-            .gb-boot-text { font-size: 13px; letter-spacing: 0.08em; opacity: 0.75; }
+            .gb-boot-text { font-size: var(--text-xs); letter-spacing: 0.08em; opacity: 0.75; }
         
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

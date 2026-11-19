@@ -24,7 +24,7 @@
     background: var(--bg);
     color: var(--text);
     cursor: pointer;
-    font-size: 20px;
+    font-size: var(--text-xl);
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -69,7 +69,7 @@
 
 /* Ribbon run status (stays in the Vibe main window) */
 .vibe-ribbon-status {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.5px;
     color: var(--text-muted);
@@ -220,7 +220,7 @@
 
 .vibe-exec-label {
     font-family: "Fira Code", monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 1.5px;
     color: var(--accent, #84d669);

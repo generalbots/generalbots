@@ -9,7 +9,7 @@
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;

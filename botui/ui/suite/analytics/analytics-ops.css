@@ -158,7 +158,7 @@
 }
 
 .ops-stat-label {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -184,7 +184,7 @@
 }
 
 .ops-table th {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-secondary);
@@ -193,7 +193,7 @@
 .ops-objective-kind,
 .ops-observed {
     display: block;
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 
@@ -228,7 +228,7 @@
 .ops-status {
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
 }
 
 .ops-status.ops-ok {
@@ -275,7 +275,7 @@
 
 .ops-axis {
     fill: var(--text-secondary);
-    font-size: 9px;
+    font-size: var(--text-2xs);
 }
 
 .ops-bar {
@@ -291,7 +291,7 @@
 
 .ops-deploy-label {
     fill: #8b5cf6;
-    font-size: 9px;
+    font-size: var(--text-2xs);
 }
 
 .ops-deploy-list {

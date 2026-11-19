@@ -1,6 +1,6 @@
 [data-theme="sentient"] .progress-log-time {
     color: var(--text-tertiary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     flex-shrink: 0;
 }
 
@@ -45,7 +45,7 @@
 
 [data-theme="sentient"] .apps-dropdown-title {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -172,7 +172,7 @@
     background: var(--surface-hover);
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 12px 16px;
@@ -301,13 +301,13 @@
 
 [data-theme="sentient"] .stat-value {
     color: var(--text);
-    font-size: 28px;
+    font-size: var(--text-2xl);
     font-weight: 700;
 }
 
 [data-theme="sentient"] .stat-label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     margin-top: 4px;
 }
 
@@ -325,7 +325,7 @@
     border-radius: 20px;
     color: var(--accent);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* ============================================ */
@@ -347,7 +347,7 @@
 }
 
 [data-theme="sentient"] .detail-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text);
 }
@@ -362,7 +362,7 @@
 
 [data-theme="sentient"] .detail-section-title {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;

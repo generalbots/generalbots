@@ -30,7 +30,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     border-right: 1px solid #334155;
     color: #94a3b8;
@@ -54,7 +54,7 @@
 }
 
 .term-tab-close {
-    font-size: 14px;
+    font-size: var(--text-sm);
     opacity: 0.5;
     cursor: pointer;
     line-height: 1;
@@ -68,7 +68,7 @@
     background: none;
     border: none;
     color: #94a3b8;
-    font-size: 16px;
+    font-size: var(--text-md);
     cursor: pointer;
     padding: 4px 10px;
     border-radius: 4px;
@@ -94,7 +94,7 @@
 
 .term-vm-label {
     color: #94a3b8;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 
@@ -103,7 +103,7 @@
     color: #e2e8f0;
     border: 1px solid #334155;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 6px;
     max-width: 220px;
     font-family: inherit;
@@ -118,7 +118,7 @@
     background: none;
     border: 1px solid #334155;
     color: #94a3b8;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 10px;
     border-radius: 4px;
     cursor: pointer;
@@ -158,7 +158,7 @@
     padding: 3px 12px;
     background: #1e293b;
     border-top: 1px solid #334155;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: #64748b;
     flex-shrink: 0;
 }

@@ -68,7 +68,7 @@
 .gb-widget-title {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -91,7 +91,7 @@
   border: none;
   border-radius: 6px;
   color: var(--text-secondary, #999);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   cursor: pointer;
   transition: background 120ms, color 120ms;
 }
@@ -126,7 +126,7 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 2px 6px;
@@ -138,7 +138,7 @@
 
 .gb-widget-error {
   padding: 14px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #999);
   text-align: center;
 }

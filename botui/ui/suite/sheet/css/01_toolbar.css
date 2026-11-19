@@ -159,7 +159,7 @@
 .sheet-name-input {
     border: 1px solid transparent;
     background: transparent;
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     color: var(--sentient-text-primary, #212121);
     padding: 6px 10px;
@@ -217,7 +217,7 @@
 .btn-icon em,
 .btn-icon u,
 .btn-icon s {
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1;
 }
 
@@ -230,7 +230,7 @@
     color: white;
     border: none;
     border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -250,7 +250,7 @@
     color: var(--sentient-text-primary, #212121);
     border: 1px solid var(--sentient-border, #e0e0e0);
     border-radius: var(--sentient-radius-sm, 4px);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -270,7 +270,7 @@
     border-radius: var(--sentient-radius-sm, 4px);
     background: var(--sentient-bg-primary, #ffffff);
     color: var(--sentient-text-primary, #212121);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: border-color 0.15s ease;
 }

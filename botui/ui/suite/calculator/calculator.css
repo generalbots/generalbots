@@ -43,7 +43,7 @@
   border: none;
   background: transparent;
   color: var(--text-secondary, #999);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-family: inherit;
   padding: 6px 12px;
   border-radius: 8px;
@@ -66,7 +66,7 @@
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
   background: transparent;
   color: var(--text-secondary, #999);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-family: inherit;
   padding: 4px 8px;
   border-radius: 6px;
@@ -99,7 +99,7 @@
   background: transparent;
   color: var(--text, #eee);
   font-family: inherit;
-  font-size: 24px;
+  font-size: var(--text-2xl);
   text-align: right;
   caret-color: var(--primary, #84d669);
 }
@@ -107,7 +107,7 @@
 .gb-calc-preview {
   min-height: 18px;
   margin-top: 2px;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--text-secondary, #9aa);
 }
 
@@ -136,7 +136,7 @@
   color: var(--text, #ddd);
   border-radius: 8px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--text-md);
   cursor: pointer;
   transition: background 120ms, transform 60ms;
 }
@@ -150,7 +150,7 @@
 }
 
 .gb-calc-key.op { color: var(--primary, #84d669); }
-.gb-calc-key.fn { font-size: 13px; }
+.gb-calc-key.fn { font-size: var(--text-xs); }
 .gb-calc-key.warn:hover { background: rgba(239, 68, 68, 0.16); color: #f87171; }
 
 .gb-calc-key.equals {
@@ -187,7 +187,7 @@
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
   color: var(--text, #eee);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--text-md);
   outline: none;
 }
 
@@ -223,7 +223,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-secondary, #999);
 }
@@ -253,7 +253,7 @@
 
 .gb-calc-history-item .h-expr {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #999);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -262,14 +262,14 @@
 
 .gb-calc-history-item .h-result {
   display: block;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--text, #eee);
 }
 
 .gb-calc-history-empty {
   padding: 18px 12px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #777);
   text-align: center;
 }

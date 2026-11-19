@@ -31,7 +31,7 @@
 
     .modal-header h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: var(--text-lg);
     }
 
     .modal-body {
@@ -64,11 +64,11 @@
     }
 
     .export-icon {
-        font-size: 28px;
+        font-size: var(--text-2xl);
     }
 
     .export-label {
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
     }
 

@@ -46,12 +46,12 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
 .editor-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 
 .editor-filename {
@@ -60,7 +60,7 @@
 
 .editor-status {
     color: var(--warning, #f59e0b);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     margin-left: 8px;
 }
 
@@ -85,7 +85,7 @@
     background: var(--bg, #0a0a0f);
     color: var(--text, #ffffff);
     font-family: "JetBrains Mono", "Fira Code", "Monaco", "Consolas", monospace;
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1.6;
     resize: none;
     outline: none;
@@ -104,7 +104,7 @@
     border-top: 1px solid var(--border, #2a2a3a);
     background: var(--bg-secondary, #0d0d12);
     border-radius: 0 0 12px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #6b6b80);
 }
 

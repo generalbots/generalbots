@@ -64,7 +64,7 @@
         border: none;
         border-radius: 12px;
         color: white;
-        font-size: 0.625rem;
+        font-size: var(--text-2xs);
         cursor: pointer;
         transition: all 0.2s;
         min-width: 64px;

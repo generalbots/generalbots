@@ -231,7 +231,7 @@ body[data-wallpaper="coral"] .workspace-v15 {
 .wallpaper-name {
   display: block;
   padding: 8px 6px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text, #e5e7eb);
 }
 

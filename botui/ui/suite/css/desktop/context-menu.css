@@ -30,7 +30,7 @@
   padding: 9px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-xs);
   color: var(--text, #e5e7eb);
   transition: background 0.15s;
   user-select: none;

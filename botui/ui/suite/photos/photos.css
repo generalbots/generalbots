@@ -13,17 +13,17 @@
     padding: 12px 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
-.gb-photos .photos-toolbar h2 { margin: 0; font-size: 16px; }
+.gb-photos .photos-toolbar h2 { margin: 0; font-size: var(--text-md); }
 .gb-photos .photos-refresh {
     background: transparent;
     border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     color: var(--text, #1f2430);
 }
-.gb-photos .photos-count { font-size: 12px; color: #6b7280; }
+.gb-photos .photos-count { font-size: var(--text-2xs); color: #6b7280; }
 .gb-photos .photos-grid {
     flex: 1;
     display: grid;
@@ -79,7 +79,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: var(--text-md);
     cursor: pointer;
 }
 

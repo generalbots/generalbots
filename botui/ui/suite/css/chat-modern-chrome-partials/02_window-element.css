@@ -38,7 +38,7 @@
 }
 
 #chat-app .gb-inline-artifact-title {
-    font-size: 12.5px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--gb-text, #18181b);
     white-space: nowrap;
@@ -54,7 +54,7 @@
     border-radius: 7px;
     background: transparent;
     color: var(--gb-muted, #71717a);
-    font-size: 11.5px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     cursor: pointer;
 }
@@ -111,7 +111,7 @@
 #chat-app .gb-console > summary.gb-console-head::after {
     content: "Show log";
     margin-left: auto;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     letter-spacing: 0.02em;
     text-transform: none;
@@ -175,7 +175,7 @@
 }
 .gb-live-artifact-title {
     flex: 1;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: #52525b;
 }
@@ -190,7 +190,7 @@
 /* #2005 — the SVG surface grows in place; it is not an iframe, so it needs its
    own box. Shapes animate in as the model emits them. */
 .gb-live-artifact-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: #71717a;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -253,14 +253,14 @@
 }
 .gb-drive-picker-title {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: #18181b;
 }
 .gb-drive-picker-close {
     border: 0;
     background: transparent;
-    font-size: 20px;
+    font-size: var(--text-xl);
     line-height: 1;
     color: #71717a;
     cursor: pointer;
@@ -272,7 +272,7 @@
     flex-wrap: wrap;
     gap: 2px;
     padding: 8px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #52525b;
     border-bottom: 1px solid rgba(24, 24, 27, 0.05);
 }
@@ -289,7 +289,7 @@
 .gb-drive-picker-sep { color: #a1a1aa; }
 .gb-drive-picker-status {
     padding: 10px 14px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #71717a;
 }
 .gb-drive-picker-list {
@@ -314,22 +314,22 @@
     cursor: pointer;
 }
 .gb-drive-picker-row:hover { background: #f4f4f5; }
-.gb-drive-picker-icon { flex: none; font-size: 15px; }
+.gb-drive-picker-icon { flex: none; font-size: var(--text-md); }
 .gb-drive-picker-name {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
-.gb-drive-picker-meta { flex: none; font-size: 11px; color: #a1a1aa; }
+.gb-drive-picker-meta { flex: none; font-size: var(--text-2xs); color: #a1a1aa; }
 .gb-drive-picker-attach {
     flex: none;
     padding: 2px 9px;
     border-radius: 999px;
     background: #eef2ff;
     color: #4f46e5;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 

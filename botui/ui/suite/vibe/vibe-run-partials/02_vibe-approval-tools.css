@@ -1,6 +1,6 @@
 
 .vibe-approval-tools {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text);
     max-height: 80px;
     overflow-y: auto;
@@ -17,7 +17,7 @@
     padding: 6px 0;
     border-radius: 6px;
     border: none;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     cursor: pointer;
 }
@@ -40,7 +40,7 @@
 
 .vibe-rd-section h4 {
     margin: 0 0 6px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 800;
     letter-spacing: 0.5px;
     color: var(--text-muted);
@@ -48,7 +48,7 @@
 }
 
 .vibe-src-item {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
     padding: 2px 0;
     display: flex;
@@ -62,7 +62,7 @@
     gap: 6px;
     padding: 5px 0;
     border-bottom: 1px solid var(--border);
-    font-size: 10px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-session-item .meta,
@@ -77,7 +77,7 @@
 .vibe-session-item button,
 .vibe-run-item button,
 .vibe-team-new button {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 5px;
@@ -101,7 +101,7 @@
     border-radius: 6px;
     background: var(--bg);
     color: var(--text);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     box-sizing: border-box;
     font-family: inherit;
 }
@@ -123,7 +123,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
 }
 
@@ -135,7 +135,7 @@
 }
 
 .vibe-member-chip {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     padding: 2px 7px;
     border-radius: 10px;
     border: 1px solid var(--border);
@@ -171,7 +171,7 @@
     padding: 6px 8px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     background: var(--bg);
 }
@@ -186,7 +186,7 @@
 .vibe-todo-item.done { color: #3d7a24; }
 
 .vibe-rd-empty {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     padding: 4px 0;
 }
@@ -196,7 +196,7 @@
     max-height: 180px;
     overflow-y: auto;
     font-family: var(--mono, ui-monospace, monospace);
-    font-size: 10px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--border, #222);

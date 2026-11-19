@@ -309,7 +309,7 @@ body.no-animations .spinner {
 }
 
 .app-icon {
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 
 .app-icon svg {
@@ -318,7 +318,7 @@ body.no-animations .spinner {
 }
 
 .app-item span {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     white-space: nowrap;
 }
@@ -388,7 +388,7 @@ body.no-animations .spinner {
 }
 
 .settings-section-title {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;

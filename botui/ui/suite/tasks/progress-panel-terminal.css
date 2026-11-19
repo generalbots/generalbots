@@ -22,7 +22,7 @@
 }
 
 .terminal-label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.2px;
     color: var(--text-muted, #666);
@@ -33,7 +33,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #666);
 }
 
@@ -50,7 +50,7 @@
 .terminal-content {
     padding: 16px 20px;
     font-family: "JetBrains Mono", "Fira Code", "Monaco", monospace;
-    font-size: 13px;
+    font-size: var(--text-xs);
     line-height: 1.6;
     flex: 1;
     min-height: 0;

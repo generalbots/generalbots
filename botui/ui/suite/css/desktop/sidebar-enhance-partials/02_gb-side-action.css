@@ -13,7 +13,7 @@
 .gb-user-meta {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #777);
   white-space: nowrap;
   overflow: hidden;
@@ -38,7 +38,7 @@
   padding: 1px 8px;
   background: rgba(34, 197, 94, 0.18);
   color: #4ade80;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   box-shadow: none;
 }
@@ -65,7 +65,7 @@
 }
 
 .gb-side-apps-title {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
 }
 
 .gb-side-apps-count {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--text-tertiary, #667);
   background: var(--surface-hover, rgba(255, 255, 255, 0.07));
   border-radius: 999px;
@@ -144,7 +144,7 @@
 }
 
 .gb-side-preview-label {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -168,7 +168,7 @@
   box-sizing: border-box;
   margin-bottom: 6px;
   padding: 5px 8px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   border-radius: 6px;
   border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
   background: var(--surface-hover, rgba(255, 255, 255, 0.05));
@@ -212,7 +212,7 @@
 
 .gb-side-app-label {
   max-width: 100%;
-  font-size: 9px;
+  font-size: var(--text-2xs);
   line-height: 1.15;
   text-align: center;
   color: var(--text-secondary, #aaa);
@@ -242,7 +242,7 @@
   border-radius: 50%;
   background: var(--surface-hover, rgba(0, 0, 0, 0.55));
   color: var(--text-secondary, #ccc);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   line-height: 12px;
   cursor: pointer;
   opacity: 0;
@@ -262,7 +262,7 @@
 .gb-side-apps-empty {
   grid-column: 1 / -1;
   padding: 6px 4px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   line-height: 1.35;
   color: var(--text-tertiary, #889);
 }
@@ -284,7 +284,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--text-secondary, #b8b8c0);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-align: left;
   cursor: pointer;
 }
@@ -324,7 +324,7 @@
 
 .gb-side-manage-title {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -337,7 +337,7 @@
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary, #999);
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1;
   cursor: pointer;
 }
@@ -354,7 +354,7 @@
   border-radius: 5px;
   background: transparent;
   color: var(--text-secondary, #b8b8c0);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 
@@ -373,7 +373,7 @@
   align-items: center;
   gap: 6px;
   padding: 3px 2px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text, #ddd);
   cursor: pointer;
 }
@@ -400,7 +400,7 @@
 .gb-side-manage-summary,
 .gb-side-manage-empty {
   margin-top: 4px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--text-tertiary, #889);
 }
 

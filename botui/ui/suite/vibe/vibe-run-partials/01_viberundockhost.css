@@ -28,7 +28,7 @@
     overflow: hidden;
     color: var(--text);
     z-index: 90;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     pointer-events: auto;
 }
 
@@ -49,7 +49,7 @@
 
 .vibe-rd-handle h3 {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 800;
     letter-spacing: 0.5px;
     flex: 1;
@@ -74,7 +74,7 @@
 }
 
 .vibe-rd-action-row label {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     white-space: nowrap;
 }
@@ -102,12 +102,12 @@
 
 .vibe-rc-runid {
     font-family: "Fira Code", monospace;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 
 .vibe-chip {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.4px;
     padding: 2px 8px;
@@ -125,7 +125,7 @@
 .vibe-chip.phase-chip { background: rgba(74, 108, 247, 0.15); color: #4a6cf7; }
 
 .vibe-rc-intent {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text);
     word-wrap: break-word;
@@ -136,7 +136,7 @@
 .vibe-rc-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 
@@ -177,7 +177,7 @@
 .vibe-budget-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
 }
 
@@ -191,7 +191,7 @@
 }
 
 .vibe-stage-chip {
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 12px;
@@ -219,7 +219,7 @@
 
 .vibe-approval-card h4 {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 800;
     color: #92400e;
 }

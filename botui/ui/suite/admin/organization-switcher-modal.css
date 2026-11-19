@@ -34,7 +34,7 @@
 
         .modal-header h2 {
             margin: 0;
-            font-size: 20px;
+            font-size: var(--text-xl);
             font-weight: 600;
             color: var(--text-primary, #cdd6f4);
         }
@@ -51,7 +51,7 @@
             border: none;
             border-radius: 6px;
             color: var(--text-secondary, #a6adc8);
-            font-size: 24px;
+            font-size: var(--text-2xl);
             cursor: pointer;
             transition: background 0.15s ease;
         }
@@ -67,7 +67,7 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-size: 13px;
+            font-size: var(--text-xs);
             font-weight: 500;
             color: var(--text-primary, #cdd6f4);
         }

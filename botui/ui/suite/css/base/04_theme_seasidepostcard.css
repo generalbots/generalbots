@@ -95,7 +95,7 @@
 }
 
 .settings-panel-title {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary, #888888);
     text-transform: uppercase;
@@ -112,7 +112,7 @@
     border-top: 1px solid var(--border, #2a2a2a);
     color: var(--text-primary, #ffffff);
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     border-radius: 8px;
     transition: background 0.2s ease;
@@ -170,7 +170,7 @@
 }
 
 .settings-shortcut-desc {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     color: var(--text-secondary);
 }
 

@@ -19,7 +19,7 @@
     border-bottom: 2px solid transparent;
     background: transparent;
     color: hsl(var(--muted-foreground));
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -97,7 +97,7 @@
 }
 
 .alert-message {
-    font-size: 14px;
+    font-size: var(--text-sm);
     opacity: 0.9;
 }
 
@@ -185,20 +185,20 @@
 }
 
 .empty-state-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
     margin-bottom: 16px;
     opacity: 0.5;
 }
 
 .empty-state-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin-bottom: 8px;
     color: hsl(var(--foreground));
 }
 
 .empty-state-message {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: hsl(var(--muted-foreground));
     max-width: 300px;
     margin-bottom: 20px;
@@ -237,7 +237,7 @@
 }
 
 .divider-text span {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: hsl(var(--muted-foreground));
     text-transform: uppercase;
     letter-spacing: 0.5px;

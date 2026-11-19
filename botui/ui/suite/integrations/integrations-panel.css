@@ -7,13 +7,13 @@
 }
 
 .integrations-app .integrations-section-heading h2 {
-    font-size: 24px;
+    font-size: var(--text-2xl);
 }
 
 .integrations-app .integrations-section-heading p:not(.integrations-eyebrow) {
     margin: 6px 0 0;
     color: var(--integrations-muted);
-    font-size: 13px;
+    font-size: var(--text-xs);
 }
 
 .integrations-app .integrations-connected {
@@ -39,7 +39,7 @@
     border-bottom: 1px solid var(--integrations-border);
     color: var(--integrations-faint);
     background: var(--integrations-soft);
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 750;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -49,7 +49,7 @@
     padding: 15px 16px;
     border-bottom: 1px solid var(--integrations-border-soft);
     color: var(--integrations-muted);
-    font-size: 12px;
+    font-size: var(--text-2xs);
     vertical-align: middle;
 }
 
@@ -60,7 +60,7 @@
 .integrations-app .integrations-connected-name {
     display: block;
     color: var(--integrations-text);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 680;
 }
 
@@ -68,7 +68,7 @@
     display: block;
     margin-top: 2px;
     color: var(--integrations-faint);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-health-badge {
@@ -79,7 +79,7 @@
     border-radius: 999px;
     color: var(--integrations-muted);
     background: var(--integrations-soft);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 650;
 }
 
@@ -98,7 +98,7 @@
 .integrations-app .integrations-readonly-note {
     margin: 14px 2px 0;
     color: var(--integrations-faint);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-detail-layer {
@@ -146,7 +146,7 @@
 
 .integrations-app .integrations-detail-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: var(--text-xl);
     letter-spacing: -.02em;
 }
 
@@ -173,19 +173,19 @@
 .integrations-app .integrations-detail-summary .integrations-provider-mark {
     width: 54px;
     height: 54px;
-    font-size: 15px;
+    font-size: var(--text-md);
 }
 
 .integrations-app .integrations-detail-summary h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: var(--text-2xl);
     letter-spacing: -.02em;
 }
 
 .integrations-app .integrations-detail-summary p {
     margin: 4px 0 0;
     color: var(--integrations-muted);
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-detail-meta {
@@ -205,7 +205,7 @@
 
 .integrations-app .integrations-detail-meta dt {
     color: var(--integrations-faint);
-    font-size: 9px;
+    font-size: var(--text-2xs);
     font-weight: 750;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -214,7 +214,7 @@
 .integrations-app .integrations-detail-meta dd {
     margin: 4px 0 0;
     overflow: hidden;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -233,14 +233,14 @@
 .integrations-app .integrations-inline-warning strong {
     display: block;
     margin-bottom: 3px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-adapter-state p,
 .integrations-app .integrations-inline-warning p {
     margin: 0;
     color: var(--integrations-muted);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .integrations-app .integrations-inline-warning {

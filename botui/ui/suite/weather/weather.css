@@ -15,7 +15,7 @@
     border: none;
     border-radius: 10px;
     padding: 10px 14px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     outline: none;
 }
 .gb-weather .weather-search button {
@@ -24,16 +24,16 @@
     color: #fff;
     border-radius: 10px;
     padding: 0 18px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
 }
 .gb-weather .weather-current { text-align: center; padding: 16px 0; }
-.gb-weather .weather-temp { font-size: 64px; font-weight: 200; }
-.gb-weather .weather-desc { font-size: 15px; text-transform: capitalize; }
-.gb-weather .weather-city { font-size: 13px; opacity: 0.85; }
-.gb-weather .weather-meta { font-size: 12px; opacity: 0.85; margin-top: 6px; display: flex; gap: 12px; justify-content: center; }
-.gb-weather .weather-empty { color: rgba(255, 255, 255, 0.85); font-size: 13px; padding: 20px 0; }
+.gb-weather .weather-temp { font-size: var(--text-6xl); font-weight: 200; }
+.gb-weather .weather-desc { font-size: var(--text-md); text-transform: capitalize; }
+.gb-weather .weather-city { font-size: var(--text-xs); opacity: 0.85; }
+.gb-weather .weather-meta { font-size: var(--text-2xs); opacity: 0.85; margin-top: 6px; display: flex; gap: 12px; justify-content: center; }
+.gb-weather .weather-empty { color: rgba(255, 255, 255, 0.85); font-size: var(--text-xs); padding: 20px 0; }
 
 /* #1438 — old-school cellphone week forecast: one compact row per day. */
 .gb-weather .weather-week {
@@ -48,7 +48,7 @@
     align-items: center;
     gap: 4px;
     padding: 7px 12px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 .gb-weather .weather-week-row:last-child { border-bottom: none; }
@@ -56,17 +56,17 @@
     text-transform: capitalize;
     font-weight: 600;
 }
-.gb-weather .weather-week-row .ww-icon { text-align: center; font-size: 15px; }
+.gb-weather .weather-week-row .ww-icon { text-align: center; font-size: var(--text-md); }
 .gb-weather .weather-week-row .ww-min { text-align: right; opacity: 0.75; }
 .gb-weather .weather-week-row .ww-max {
     text-align: right;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 /* #2316 — cached data must look cached: an age line and a retry control. */
 .gb-weather .weather-stale {
     margin-top: 10px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: rgba(255, 255, 255, 0.75);
     display: flex;
     align-items: center;
@@ -75,7 +75,7 @@
 }
 .gb-weather .weather-retry {
     font: inherit;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 2px 10px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 4px;

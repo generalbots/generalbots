@@ -104,7 +104,7 @@
 .vibe-view-heading h2 {
     margin: 5px 0 0;
     color: #0f172a;
-    font-size: 22px;
+    font-size: var(--text-2xl);
 }
 
 .vibe-sheet-kicker {
@@ -131,12 +131,12 @@
     gap: 20px;
     padding-bottom: 30px;
     color: #64748b;
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .vibe-a4-meta b { display: block; margin-top: 3px; color: #0f172a; }
-.vibe-a4-sheet h3 { margin-top: 34px; font-size: 16px; }
-.vibe-a4-sheet p { color: #475569; font-size: 12px; line-height: 1.7; }
+.vibe-a4-sheet h3 { margin-top: 34px; font-size: var(--text-md); }
+.vibe-a4-sheet p { color: #475569; font-size: var(--text-2xs); line-height: 1.7; }
 
 .vibe-architecture-grid {
     display: grid;
@@ -154,9 +154,9 @@
     border-left: 3px solid #60a5fa;
 }
 
-.vibe-architecture-grid b { font-size: 12px; }
-.vibe-architecture-grid span { color: #64748b; font-size: 11px; }
-.vibe-a4-sheet footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 80px; padding-top: 14px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 10px; }
+.vibe-architecture-grid b { font-size: var(--text-2xs); }
+.vibe-architecture-grid span { color: #64748b; font-size: var(--text-2xs); }
+.vibe-a4-sheet footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 80px; padding-top: 14px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: var(--text-2xs); }
 
 .vibe-runtime-diagram { width: 100%; min-width: 760px; margin-top: 28px; background: #fff; border: 1px solid #cbd5e1; }
 .vibe-diagram-title { font: 700 13px system-ui, sans-serif; fill: #0f172a; }
@@ -165,8 +165,8 @@
 
 .vibe-metric-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 24px 0; }
 .vibe-metric-cards > div { display: flex; flex-direction: column; gap: 5px; padding: 15px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; }
-.vibe-metric-cards b { color: #2563eb; font-size: 24px; }
-.vibe-metric-cards span, .vibe-view-footnote { color: #64748b; font-size: 11px; }
+.vibe-metric-cards b { color: #2563eb; font-size: var(--text-2xl); }
+.vibe-metric-cards span, .vibe-view-footnote { color: #64748b; font-size: var(--text-2xs); }
 .vibe-metric-chart { width: 100%; background: #fff; border: 1px solid #cbd5e1; }
 .vibe-chart-axis { fill: none; stroke: #94a3b8; stroke-width: 1; }
 .vibe-chart-line { fill: none; stroke: #2563eb; stroke-width: 4; }
@@ -175,8 +175,8 @@
 
 .vibe-file-list { display: grid; gap: 8px; margin-top: 24px; }
 .vibe-file-list > div { display: flex; align-items: center; gap: 12px; padding: 14px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; }
-.vibe-file-list b { min-width: 180px; font-size: 12px; }
-.vibe-file-list > div > span:last-child { color: #64748b; font-size: 11px; }
+.vibe-file-list b { min-width: 180px; font-size: var(--text-2xs); }
+.vibe-file-list > div > span:last-child { color: #64748b; font-size: var(--text-2xs); }
 .vibe-file-icon { color: #2563eb; }
 
 .vibe-generated-layer {

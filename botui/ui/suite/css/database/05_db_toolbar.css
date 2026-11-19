@@ -27,7 +27,7 @@
 
 .db-table-name {
   color: var(--text, #f1f1f4);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -37,7 +37,7 @@
 
 .db-row-count {
   color: var(--text-secondary, #8b8b96);
-  font-size: 12px;
+  font-size: var(--text-2xs);
   white-space: nowrap;
 }
 
@@ -65,7 +65,7 @@
   background: var(--surface, #1e1e26);
   color: var(--text-secondary, #c3c3cc);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
@@ -108,7 +108,7 @@
   background: var(--surface, #1e1e26);
   color: var(--text-secondary, #c3c3cc);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
 }
 
 /* Narrow windows: the action row becomes a scrollable strip under the name so

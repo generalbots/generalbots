@@ -245,7 +245,7 @@
 .check-badge {
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
@@ -412,7 +412,7 @@
 .dependency-badge {
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
 }
 

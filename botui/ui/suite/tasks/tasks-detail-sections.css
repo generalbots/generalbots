@@ -70,7 +70,7 @@
 }
 
 .task-url-bar .url-icon {
-    font-size: 14px;
+    font-size: var(--text-sm);
     opacity: 0.6;
 }
 
@@ -90,7 +90,7 @@
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.2s;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .task-url-bar .btn-copy-url:hover {
@@ -358,7 +358,7 @@
 
 .log-group-name {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text, #fff);
     flex: 1;
 }

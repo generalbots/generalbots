@@ -42,13 +42,13 @@
 }
 
 .vdi-title {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0;
 }
 
 .vdi-subtitle {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--vdi-text-muted);
 }
 
@@ -59,7 +59,7 @@
 }
 
 .vdi-session-badge {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     padding: 4px 10px;
     background: var(--vdi-bg);
     border-radius: 12px;
@@ -106,13 +106,13 @@
 }
 
 .vdi-connections-header h2 {
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 500;
     margin: 0;
 }
 
 .badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 2px 8px;
     border-radius: 10px;
     background: var(--vdi-bg);
@@ -147,12 +147,12 @@
 }
 
 .connection-card-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
 }
 
 .connection-card-protocol {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     padding: 2px 6px;
     border-radius: 4px;
     background: var(--vdi-primary);
@@ -161,7 +161,7 @@
 }
 
 .connection-card-host {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--vdi-text-muted);
     font-family: monospace;
     margin-bottom: 12px;
@@ -174,7 +174,7 @@
 }
 
 .connection-card-date {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--vdi-text-muted);
 }
 
@@ -191,7 +191,7 @@
 }
 
 .empty-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
     margin-bottom: 12px;
 }
 
@@ -225,7 +225,7 @@
 }
 
 .status-badge {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     padding: 3px 10px;
     border-radius: 10px;
     font-weight: 500;
@@ -247,7 +247,7 @@
 }
 
 .connection-info {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--vdi-text-muted);
 }
 
@@ -325,14 +325,14 @@
 
 .modal-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .btn-close {
     background: none;
     border: none;
     color: var(--vdi-text-muted);
-    font-size: 20px;
+    font-size: var(--text-xl);
     cursor: pointer;
     padding: 0 4px;
 }
@@ -351,7 +351,7 @@
 
 .form-group label {
     display: block;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     margin-bottom: 6px;
     color: var(--vdi-text-muted);
@@ -381,7 +381,7 @@
 .toast {
     padding: 10px 16px;
     border-radius: var(--vdi-radius);
-    font-size: 13px;
+    font-size: var(--text-xs);
     animation: slideIn 0.3s ease;
     max-width: 360px;
 }

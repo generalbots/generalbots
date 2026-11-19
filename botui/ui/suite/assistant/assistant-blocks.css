@@ -47,15 +47,15 @@
 .gb-block--running .gb-block-icon-wrap { background: var(--id-accent-soft); color: var(--id-accent-text); }
 .gb-block--failed .gb-block-icon-wrap { background: var(--id-danger-soft); color: var(--id-danger); }
 .gb-block--needs-you .gb-block-icon-wrap { background: var(--id-warn-soft); color: var(--id-warn-text); }
-.gb-block-title { font-weight: 600; font-size: 13px; color: var(--id-ink); white-space: nowrap; }
+.gb-block-title { font-weight: 600; font-size: var(--text-xs); color: var(--id-ink); white-space: nowrap; }
 .gb-block-summary {
-    flex: 1; font-size: 12px; color: var(--id-muted);
+    flex: 1; font-size: var(--text-2xs); color: var(--id-muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* == Status chip == */
 .gb-block-chip {
-    font-size: 10px; padding: 1px 8px; border-radius: 999px;
+    font-size: var(--text-2xs); padding: 1px 8px; border-radius: 999px;
     white-space: nowrap; font-weight: 500;
     border: 1px solid var(--id-line); background: var(--id-fill); color: var(--id-muted);
 }
@@ -98,7 +98,7 @@
 /* == Nested rows == */
 .gb-block-row {
     display: flex; align-items: baseline; gap: 8px;
-    padding: 3px 0; font-size: 12px; color: var(--id-text);
+    padding: 3px 0; font-size: var(--text-2xs); color: var(--id-text);
 }
 .gb-block-row-label { color: var(--id-muted); min-width: 60px; flex-shrink: 0; }
 .gb-block-row-value { flex: 1; overflow: hidden; text-overflow: ellipsis; }
@@ -107,19 +107,19 @@
 /* File list inside a block */
 .gb-block-file {
     display: flex; align-items: center; gap: 6px;
-    padding: 4px 0; font-size: 12px;
+    padding: 4px 0; font-size: var(--text-2xs);
 }
 .gb-block-file-icon { flex-shrink: 0; color: var(--id-muted); }
 .gb-block-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gb-block-file-meta { font-size: 11px; color: var(--id-gray-400); white-space: nowrap; }
+.gb-block-file-meta { font-size: var(--text-2xs); color: var(--id-gray-400); white-space: nowrap; }
 .gb-block-file + .gb-block-file { border-top: 1px solid var(--id-line-soft); }
 
 /* Source/excerpt in KB search */
 .gb-block-source { padding: 4px 0; }
-.gb-block-source-title { font-size: 12px; font-weight: 500; color: var(--id-ink); }
-.gb-block-source-loc { font-size: 11px; color: var(--id-gray-400); }
+.gb-block-source-title { font-size: var(--text-2xs); font-weight: 500; color: var(--id-ink); }
+.gb-block-source-loc { font-size: var(--text-2xs); color: var(--id-gray-400); }
 .gb-block-source-excerpt {
-    font-size: 11px; color: var(--id-text); margin-top: 2px;
+    font-size: var(--text-2xs); color: var(--id-text); margin-top: 2px;
     white-space: pre-wrap; max-height: 60px; overflow: hidden;
 }
 .gb-block-source.open .gb-block-source-excerpt { max-height: none; }
@@ -157,7 +157,7 @@
 }
 .gb-msg-toolbar-btn:hover { background: var(--id-fill); }
 .gb-msg-toolbar-btn[title]::after {
-    content: attr(title); font-size: 10px; position: absolute;
+    content: attr(title); font-size: var(--text-2xs); position: absolute;
     top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px;
     padding: 2px 6px; background: var(--id-ink); color: var(--id-surface-solid);
     border-radius: 4px; white-space: nowrap; pointer-events: none;
@@ -170,14 +170,14 @@
     display: flex; align-items: center; gap: 8px;
     padding: 6px 10px; background: var(--id-surface-solid);
     border: 1px solid var(--id-line); border-radius: 10px;
-    font-size: 12px; position: relative;
+    font-size: var(--text-2xs); position: relative;
 }
 .gb-attach-icon { flex-shrink: 0; color: var(--id-muted); }
 .gb-attach-name {
     flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-weight: 500; color: var(--id-ink);
 }
-.gb-attach-size { font-size: 11px; color: var(--id-gray-400); white-space: nowrap; }
+.gb-attach-size { font-size: var(--text-2xs); color: var(--id-gray-400); white-space: nowrap; }
 .gb-attach-remove {
     display: inline-flex; align-items: center; justify-content: center;
     width: 20px; height: 20px; border: none; border-radius: 50%;
@@ -256,7 +256,7 @@
 .gb-attach-panel-pdf { width: 100%; height: 100%; border: none; border-radius: 4px; }
 .gb-attach-panel-code {
     font-family: 'Consolas','Monaco','Courier New',monospace;
-    font-size: 12px; line-height: 1.6;
+    font-size: var(--text-2xs); line-height: 1.6;
 }
 .gb-attach-code-line { display: flex; gap: 12px; }
 .gb-attach-line-num {
@@ -265,7 +265,7 @@
 }
 .gb-attach-line-text { flex: 1; white-space: pre-wrap; word-break: break-all; }
 .gb-attach-panel-table {
-    width: 100%; border-collapse: collapse; font-size: 12px;
+    width: 100%; border-collapse: collapse; font-size: var(--text-2xs);
 }
 .gb-attach-panel-table th, .gb-attach-panel-table td {
     padding: 4px 8px; border: 1px solid var(--id-line); text-align: left;

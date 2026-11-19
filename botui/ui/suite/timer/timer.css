@@ -16,13 +16,13 @@
     border: 1px solid rgba(0, 0, 0, 0.18);
     border-radius: 999px;
     padding: 7px 16px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     cursor: pointer;
     color: var(--text, #1f2430);
 }
 .gb-timer .timer-mode.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .gb-timer .timer-display {
-    font-size: 72px;
+    font-size: var(--text-6xl);
     font-weight: 200;
     font-variant-numeric: tabular-nums;
     letter-spacing: 2px;
@@ -33,13 +33,13 @@
     border: none;
     border-radius: 10px;
     padding: 10px 26px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
 }
 .gb-timer .timer-start { background: var(--primary); color: #fff; }
 .gb-timer .timer-start.running { background: var(--error); }
 .gb-timer .timer-reset { background: var(--surface-hover, rgba(0,0,0,0.08)); color: var(--text, #1f2430); }
-.gb-timer .timer-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
-.gb-timer .timer-sessions { font-size: 12px; color: var(--text-tertiary); }
+.gb-timer .timer-label { font-size: var(--text-xs); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+.gb-timer .timer-sessions { font-size: var(--text-2xs); color: var(--text-tertiary); }
 

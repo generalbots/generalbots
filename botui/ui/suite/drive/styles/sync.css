@@ -4,7 +4,7 @@
   margin-left: 8px;
   padding: 3px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text, #e8e8e8);
   background: rgb(255 255 255 / 0.08);
@@ -48,11 +48,11 @@
   padding: 14px 16px;
   border-bottom: 1px solid rgb(255 255 255 / 0.08);
 }
-.drive-sync-dialog > header h2 { margin: 0; font-size: 15px; }
+.drive-sync-dialog > header h2 { margin: 0; font-size: var(--text-md); }
 .drive-sync-state {
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   background: rgb(255 255 255 / 0.08);
 }
 .drive-sync-x {
@@ -60,12 +60,12 @@
   background: none;
   border: 0;
   color: inherit;
-  font-size: 20px;
+  font-size: var(--text-xl);
   cursor: pointer;
 }
 .drive-sync-body { padding: 14px 16px 18px; overflow-y: auto; }
-.drive-sync-hint { margin: 0 0 12px; font-size: 12px; opacity: 0.75; }
-.drive-sync-empty { font-size: 13px; opacity: 0.7; }
+.drive-sync-hint { margin: 0 0 12px; font-size: var(--text-2xs); opacity: 0.75; }
+.drive-sync-empty { font-size: var(--text-xs); opacity: 0.7; }
 
 .drive-sync-job {
   border: 1px solid rgb(255 255 255 / 0.1);
@@ -74,9 +74,9 @@
   margin-bottom: 10px;
 }
 .drive-sync-job-head { display: flex; align-items: center; gap: 8px; }
-.drive-sync-schedule { margin-left: auto; font-size: 11px; opacity: 0.7; }
+.drive-sync-schedule { margin-left: auto; font-size: var(--text-2xs); opacity: 0.7; }
 .drive-sync-badge {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 6px;
@@ -87,9 +87,9 @@
 .drive-sync-badge.is-conflict { background: rgb(255 200 97 / 0.18); color: #ffc861; }
 .drive-sync-badge.is-ok { background: rgb(132 214 105 / 0.18); color: #84d669; }
 .drive-sync-badge.is-syncing { background: rgb(108 196 255 / 0.18); color: #6cc4ff; }
-.drive-sync-paths { font-size: 12px; margin: 6px 0 4px; word-break: break-all; }
-.drive-sync-meta { font-size: 11px; opacity: 0.7; }
-.drive-sync-error { margin-top: 6px; font-size: 12px; color: #ff8e8e; }
+.drive-sync-paths { font-size: var(--text-2xs); margin: 6px 0 4px; word-break: break-all; }
+.drive-sync-meta { font-size: var(--text-2xs); opacity: 0.7; }
+.drive-sync-error { margin-top: 6px; font-size: var(--text-2xs); color: #ff8e8e; }
 .drive-sync-job-actions { display: flex; gap: 8px; margin-top: 8px; }
 .drive-sync-job-actions button,
 .drive-sync-primary,
@@ -99,7 +99,7 @@
   border: 1px solid rgb(255 255 255 / 0.16);
   background: rgb(255 255 255 / 0.06);
   color: inherit;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 .drive-sync-primary { background: #2f6fed; border-color: #2f6fed; }
@@ -108,14 +108,14 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   padding: 4px 0;
 }
 .drive-sync-conflict span { flex: 1; word-break: break-all; }
 
 .drive-sync-form { border-top: 1px solid rgb(255 255 255 / 0.08); padding-top: 12px; }
 .drive-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.drive-sync-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.drive-sync-grid label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-2xs); }
 .drive-sync-grid input,
 .drive-sync-grid select {
   padding: 7px 9px;
@@ -123,10 +123,10 @@
   border: 1px solid rgb(255 255 255 / 0.16);
   background: rgb(255 255 255 / 0.04);
   color: inherit;
-  font-size: 12px;
+  font-size: var(--text-2xs);
 }
 .drive-sync-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-.drive-sync-err { font-size: 12px; color: #ff8e8e; }
+.drive-sync-err { font-size: var(--text-2xs); color: #ff8e8e; }
 @media (max-width: 640px) {
   .drive-sync-grid { grid-template-columns: 1fr; }
 }

@@ -47,7 +47,7 @@
         align-items: flex-start;
         justify-content: flex-end;
         padding-right: 8px;
-        font-size: 11px;
+        font-size: var(--text-2xs);
         color: var(--muted-foreground);
     }
 
@@ -92,7 +92,7 @@
     .month-weekdays span {
         padding: 12px;
         text-align: center;
-        font-size: 12px;
+        font-size: var(--text-2xs);
         font-weight: 600;
         color: var(--muted-foreground);
         text-transform: uppercase;
@@ -136,7 +136,7 @@
         justify-content: center;
         width: 28px;
         height: 28px;
-        font-size: 13px;
+        font-size: var(--text-xs);
         font-weight: 500;
         border-radius: 50%;
     }
@@ -156,7 +156,7 @@
     .month-event {
         padding: 2px 6px;
         border-radius: 3px;
-        font-size: 11px;
+        font-size: var(--text-2xs);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -185,7 +185,7 @@
     }
 
     .more-events {
-        font-size: 11px;
+        font-size: var(--text-2xs);
         color: var(--muted-foreground);
         padding: 2px 6px;
         cursor: pointer;
@@ -202,7 +202,7 @@
         right: 2px;
         padding: 4px 6px;
         border-radius: 4px;
-        font-size: 11px;
+        font-size: var(--text-2xs);
         overflow: hidden;
         cursor: pointer;
         z-index: 5;
@@ -237,7 +237,7 @@
     }
 
     .event-time {
-        font-size: 10px;
+        font-size: var(--text-2xs);
         opacity: 0.9;
     }
 
@@ -303,7 +303,7 @@
 
     .modal-header h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: var(--text-lg);
     }
 
     .modal-body {
@@ -325,7 +325,7 @@
     }
 
     .form-group label {
-        font-size: 12px;
+        font-size: var(--text-2xs);
         font-weight: 500;
         color: var(--muted-foreground);
     }
@@ -337,7 +337,7 @@
     }
 
     .input-title {
-        font-size: 20px;
+        font-size: var(--text-xl);
         font-weight: 600;
         border: none;
         background: transparent;
@@ -359,7 +359,7 @@
         border-radius: 6px;
         background: var(--background);
         color: var(--foreground);
-        font-size: 14px;
+        font-size: var(--text-sm);
     }
 
     .event-form textarea {
@@ -393,7 +393,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 14px;
+        font-size: var(--text-sm);
         cursor: pointer;
     }
 

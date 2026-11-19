@@ -9,7 +9,7 @@
 
 .autotask-items-title {
   margin: 0 0 6px 0;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: #94a3b8;
@@ -24,7 +24,7 @@
 }
 
 .autotask-items-empty {
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #64748b;
   padding: 6px 2px;
 }
@@ -40,7 +40,7 @@
 
 .autotask-item-status {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 2px 7px;
@@ -55,7 +55,7 @@
 
 .autotask-item-title {
   flex: 1 1 auto;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: #e2e8f0;
   white-space: nowrap;
   overflow: hidden;
@@ -64,7 +64,7 @@
 
 .autotask-item-date {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: #64748b;
 }
 
@@ -73,7 +73,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-xs);
   padding: 2px 6px;
   border-radius: 6px;
 }

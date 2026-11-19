@@ -30,7 +30,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 16px;
+    font-size: var(--text-md);
     font-weight: 600;
     margin: 0;
 }
@@ -80,7 +80,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
@@ -96,7 +96,7 @@
     color: var(--paper-text);
     border: 1px solid var(--paper-border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -140,13 +140,13 @@
 }
 
 .modal-processing h3 {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     margin: 0 0 8px 0;
 }
 
 .modal-processing p {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--paper-text-light);
     margin: 0;
 }
@@ -167,13 +167,13 @@
 }
 
 .summary-item .count {
-    font-size: 24px;
+    font-size: var(--text-2xl);
     font-weight: 700;
     color: var(--paper-primary);
 }
 
 .summary-item .label {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--paper-text-light);
     text-transform: uppercase;
 }
@@ -206,7 +206,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .result-item.task .result-item-icon { background: rgba(99, 102, 241, 0.1); }
@@ -224,7 +224,7 @@
 }
 
 .result-item-meta {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--paper-text-light);
 }
 
@@ -252,7 +252,7 @@
 }
 
 .setting-group label {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--paper-text);
 }
 
@@ -260,7 +260,7 @@
     padding: 8px 12px;
     border: 1px solid var(--paper-border);
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     background: var(--paper-surface);
 }
 

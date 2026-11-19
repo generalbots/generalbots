@@ -47,7 +47,7 @@
 }
 
 .tree-level-1 .tree-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #ccc);
 }
 
@@ -96,7 +96,7 @@
 
 .tree-item-name {
     flex: 1;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #888);
     white-space: nowrap;
     overflow: hidden;
@@ -104,7 +104,7 @@
 }
 
 .tree-item-duration {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #555);
     margin-left: auto;
     margin-right: 8px;
@@ -112,7 +112,7 @@
 }
 
 .tree-item-check {
-    font-size: 14px;
+    font-size: var(--text-sm);
     width: 20px;
     text-align: center;
     flex-shrink: 0;
@@ -193,7 +193,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     letter-spacing: 1.5px;
     color: var(--text-tertiary, #666);
@@ -217,7 +217,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #555);
 }
 
@@ -235,7 +235,7 @@
     padding: 8px 16px;
     background: var(--bg, #0a0a0a);
     font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
     color: var(--text-secondary, #888);
     overflow-y: auto;
@@ -271,7 +271,7 @@
         -apple-system,
         sans-serif
     );
-    font-size: 14px;
+    font-size: var(--text-sm);
     line-height: 1.6;
     color: var(--text-secondary, #ccc);
 }
@@ -285,13 +285,13 @@
 }
 
 .taskmd-terminal-output .markdown-content h1 {
-    font-size: 18px;
+    font-size: var(--text-lg);
 }
 .taskmd-terminal-output .markdown-content h2 {
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 .taskmd-terminal-output .markdown-content h3 {
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 .taskmd-terminal-output .markdown-content p {
@@ -316,7 +316,7 @@
     margin: 12px 0;
     overflow-x: auto;
     font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     line-height: 1.5;
 }
 
@@ -325,7 +325,7 @@
     padding: 2px 6px;
     border-radius: 4px;
     font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--accent, #c5f82a);
 }
 
@@ -397,7 +397,7 @@
     font-weight: 600;
     margin-top: 12px;
     margin-bottom: 4px;
-    font-size: 14px;
+    font-size: var(--text-sm);
 }
 
 /* Code block styling */
@@ -407,7 +407,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     margin: 8px 0;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #aaa);
     overflow-x: auto;
     white-space: pre-wrap;
@@ -436,14 +436,14 @@
     background: var(--surface-active, #1a1a1a);
     padding: 2px 6px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--accent, #c5f82a);
 }
 
 /* Timestamp styling */
 .taskmd-terminal-output .terminal-timestamp {
     color: var(--text-tertiary, #444);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     margin-right: 8px;
 }
 

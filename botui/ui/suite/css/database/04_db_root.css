@@ -51,7 +51,7 @@
 
 .db-startup-title {
   margin: 0 0 8px;
-  font-size: 22px;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--text, #f1f5f9);
   letter-spacing: -0.01em;
@@ -59,7 +59,7 @@
 
 .db-startup-sub {
   margin: 0 0 22px;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   line-height: 1.55;
   color: var(--text-secondary, #8b98b5);
 }
@@ -92,14 +92,14 @@
 }
 
 .db-stat-value {
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--primary, #3b82f6);
   font-variant-numeric: tabular-nums;
 }
 
 .db-stat-label {
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -150,7 +150,7 @@
 .db-startup-table-card .db-table-icon {
   width: 34px;
   height: 34px;
-  font-size: 15px;
+  font-size: var(--text-md);
 }
 
 .db-startup-table-info {
@@ -160,7 +160,7 @@
 .db-startup-table-name {
   display: block;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
   color: var(--text, #f1f5f9);
   white-space: nowrap;
   overflow: hidden;
@@ -169,7 +169,7 @@
 
 .db-startup-table-meta {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--text-muted, #5b6780);
   margin-top: 2px;
   white-space: nowrap;
@@ -180,14 +180,14 @@
 /* ─── No-rows state inside grid ───────────────────────────────────────────── */
 .db-add-first-title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--text, #f1f5f9);
 }
 
 .db-add-first-sub {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #8b98b5);
 }
 

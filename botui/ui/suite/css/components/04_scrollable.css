@@ -228,7 +228,7 @@
     background: var(--primary, #c5f82a);
     color: var(--bg, #0a0a0a);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -248,7 +248,7 @@
    =========================================== */
 
 .badge-status {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     padding: 6px 12px;
     border-radius: 6px;
@@ -318,7 +318,7 @@
 
 .tree-name {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text, #fff);
 }
@@ -350,12 +350,12 @@
 
 .tree-item-name {
     flex: 1;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary, #888);
 }
 
 .tree-item-check {
-    font-size: 14px;
+    font-size: var(--text-sm);
     width: 20px;
     text-align: center;
 }

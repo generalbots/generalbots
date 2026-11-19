@@ -22,7 +22,7 @@
    ============================================ */
 
 .vibe-ribbon-status {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
     padding: 0 12px;
     white-space: nowrap;
@@ -92,7 +92,7 @@
 
 .as-section-header h3 {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     color: var(--text-muted, #888);
     text-transform: uppercase;
@@ -106,7 +106,7 @@
     background: transparent;
     color: var(--text-muted, #888);
     cursor: pointer;
-    font-size: 10px;
+    font-size: var(--text-2xs);
     padding: 0;
     display: flex;
     align-items: center;
@@ -153,7 +153,7 @@
     border-radius: 8px;
     background: transparent;
     font-family: 'Fira Code', monospace;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     color: var(--text-muted, #888);
     cursor: pointer;
@@ -196,7 +196,7 @@
     background: var(--surface-hover, #eee);
     border-radius: 4px;
     padding: 2px 5px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1;
     cursor: pointer;
     color: var(--text-muted, #888);
@@ -222,7 +222,7 @@
     border-radius: 6px;
     background: transparent;
     font-family: 'Fira Code', monospace;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     color: var(--text, #3b3b3b);
     cursor: pointer;
@@ -235,7 +235,7 @@
 }
 
 .as-workspace-arrow {
-    font-size: 8px;
+    font-size: var(--text-2xs);
     color: var(--text-muted, #888);
     width: 8px;
     transition: transform 0.15s;

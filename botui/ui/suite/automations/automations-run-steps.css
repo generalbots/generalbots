@@ -2,7 +2,7 @@
 .auto-run-actions { display: flex; gap: .4rem; align-items: center; }
 .auto-link-btn {
   font-family: inherit;
-  font-size: .68rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   background: none;
   border: none;
@@ -20,7 +20,7 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  font-size: .72rem;
+  font-size: var(--text-2xs);
   padding: .28rem .4rem;
   border-radius: 6px;
   background: var(--bg2);
@@ -33,7 +33,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: .55rem;
+  font-size: var(--text-2xs);
   line-height: 1;
 }
 .auto-step.done .auto-step-mark {
@@ -54,7 +54,7 @@
 }
 .auto-step.failed .auto-step-mark::after { content: "!"; font-weight: 900; }
 .auto-step-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.auto-step-tokens { font-size: .62rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.auto-step-tokens { font-size: var(--text-2xs); color: var(--muted); font-variant-numeric: tabular-nums; }
 @keyframes auto-spin { to { transform: rotate(360deg); } }
 
 .auto-empty {
@@ -94,7 +94,7 @@
 .auto-field label,
 .auto-field legend {
   display: block;
-  font-size: .7rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--muted);
   margin-bottom: .3rem;
@@ -125,7 +125,7 @@
 .auto-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
 .auto-cron-preview {
   margin: .35rem 0 0;
-  font-size: .7rem;
+  font-size: var(--text-2xs);
   color: var(--accent2, #777);
   min-height: 1em;
 }
@@ -141,7 +141,7 @@
 }
 .auto-chip-toggle span {
   display: inline-block;
-  font-size: .74rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   padding: .34rem .8rem;
   border-radius: 999px;

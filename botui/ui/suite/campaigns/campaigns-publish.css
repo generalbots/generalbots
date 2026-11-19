@@ -6,7 +6,7 @@
 }
 .studio-ai-status {
     color: #8b5cf6;
-    font-size: 13px;
+    font-size: var(--text-xs);
     margin-bottom: 12px;
 }
 
@@ -27,7 +27,7 @@
     margin-bottom: 16px;
 }
 .studio-media-empty {
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: var(--text-secondary, #888);
 }
 .studio-media-item {
@@ -61,7 +61,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     color: var(--text, #e2e8f0);
 }

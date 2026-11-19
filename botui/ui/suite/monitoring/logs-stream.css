@@ -202,7 +202,7 @@
 }
 
 .log-level {
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     padding: 0.125rem 0.375rem;
     border-radius: 3px;
@@ -362,7 +362,7 @@
 }
 
 .detail-label {
-    font-size: 0.6875rem;
+    font-size: var(--text-2xs);
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
