@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/suite/sheet/css/09_sheet_audit.css" />
 <link rel="stylesheet" href="/suite/sheet/css/10_charting.css" />
 <link rel="stylesheet" href="/suite/sheet/css/11_structured.css" />
+<link rel="stylesheet" href="/suite/sheet/css/12_controls.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 <link rel="stylesheet" href="/suite/sheet/css/99_theme.css" />
 
@@ -92,6 +93,9 @@
                     </button>
                     <button class="btn-icon" id="sheetAuditBtn" type="button" title="Open formula auditing" aria-label="Open formula auditing" data-i18n-title="sheet-audit-open" data-i18n-aria-label="sheet-audit-open">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="3" x2="12" y2="8"></line><line x1="12" y1="16" x2="12" y2="21"></line><line x1="3" y1="12" x2="8" y2="12"></line><line x1="16" y1="12" x2="21" y2="12"></line></svg>
+                    </button>
+                    <button class="btn-icon" id="sheetEnterpriseControlsBtn" type="button" onclick="if(window.SheetEnterpriseControls)window.SheetEnterpriseControls.toggle(this)" title="Enterprise controls" aria-label="Enterprise controls" data-i18n-title="sheet-ctrl-open" data-i18n-aria-label="sheet-ctrl-open">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"></path><path d="M9 12l2 2 4-4"></path></svg>
                     </button>
                 </div>
                 <span class="toolbar-divider"></span>
@@ -291,4 +295,13 @@
 <script src="/suite/sheet/js/modules-sheet-advanced/41_structured_goalseek.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/42_structured_scenarios.js"></script>
 <script src="/suite/sheet/js/modules-sheet-advanced/43_structured_boot.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/44_controls_core.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/45_controls_protection.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/46_controls_inputs.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/47_controls_acl.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/48_controls_classification.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/49_controls_links.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/50_controls_audit.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/51_controls_snapshot.js"></script>
+<script src="/suite/sheet/js/modules-sheet-advanced/52_controls_boot.js"></script>
 
