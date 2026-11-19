@@ -323,6 +323,7 @@ pub async fn build(
             let manager = botcoresecrets::SecretsManager::get()
                 .map_err(|error| format!("Secrets are unavailable: {error}"))?;
             let path = chatgpt_vault_path(user_id);
+            let secret = manager
                 .get_secret(&path)
                 .await
                 .map_err(|error| format!("Could not read the ChatGPT plan token: {error}"))?;
