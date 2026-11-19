@@ -135,6 +135,143 @@
     try { return new Intl.NumberFormat(loc, o).format(n); } catch (e) { return String(n); }
   }
 
+  // ---------------------------------------------------------------------
+  // #2297 — in-page dialogs. Native alert()/confirm()/prompt() block the whole
+  // tab, ignore the app's theme and language, and are indistinguishable from a
+  // hostile popup. One overlay replaces all three. `alert` stays
+  // fire-and-forget; `confirm`/`prompt` return Promises, so callers await them.
+  // ---------------------------------------------------------------------
+  var DIALOG_CSS_ID = "gb-dialog-css";
+  var DIALOG_ID = "gb-dialog";
+
+  function dialogFallback(key, text) {
+    return typeof window.gbT === "function" ? window.gbT(key, text) : text;
+  }
+
+  function ensureDialogCss() {
+    if (document.getElementById(DIALOG_CSS_ID)) return;
+    var style = document.createElement("style");
+    style.id = DIALOG_CSS_ID;
+    style.textContent = [
+      "#" + DIALOG_ID + "{position:fixed;inset:0;z-index:100000;display:flex;",
+      "align-items:center;justify-content:center;background:rgba(0,0,0,.45)}",
+      "#" + DIALOG_ID + " .gb-dialog-box{background:var(--card,#fff);",
+      "color:var(--text,#111);border:1px solid var(--border,#d5d9e0);",
+      "border-radius:12px;max-width:min(420px,92vw);width:100%;padding:1.25rem;",
+      "box-shadow:0 18px 48px rgba(0,0,0,.28)}",
+      "#" + DIALOG_ID + " h2{margin:0 0 .6rem;font-size:1rem;font-weight:700}",
+      "#" + DIALOG_ID + " p{margin:0 0 1rem;font-size:.9rem;line-height:1.45;",
+      "white-space:pre-wrap;word-break:break-word}",
+      "#" + DIALOG_ID + " input{width:100%;box-sizing:border-box;padding:.55rem .7rem;",
+      "border:1px solid var(--border,#d5d9e0);border-radius:8px;margin-bottom:1rem;font:inherit}",
+      "#" + DIALOG_ID + " .gb-dialog-actions{display:flex;gap:.5rem;justify-content:flex-end}",
+      "#" + DIALOG_ID + " button{font:inherit;padding:.5rem 1rem;border-radius:8px;cursor:pointer;",
+      "border:1px solid var(--border,#d5d9e0);background:transparent;color:inherit}",
+      "#" + DIALOG_ID + " button.primary{background:var(--accent,#3b7ddd);border-color:transparent;color:#fff}"
+    ].join("");
+    document.head.appendChild(style);
+  }
+
+  function openDialog(opts) {
+    return new Promise(function (resolve) {
+      ensureDialogCss();
+      var previous = document.getElementById(DIALOG_ID);
+      if (previous) previous.remove();
+      var overlay = document.createElement("div");
+      overlay.id = DIALOG_ID;
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+
+      var box = document.createElement("div");
+      box.className = "gb-dialog-box";
+      var heading = document.createElement("h2");
+      heading.textContent = opts.title;
+      var text = document.createElement("p");
+      text.textContent = opts.message;
+      box.appendChild(heading);
+      box.appendChild(text);
+
+      var field = null;
+      if (opts.kind === "prompt") {
+        field = document.createElement("input");
+        field.type = "text";
+        field.value = opts.defaultValue || "";
+        field.setAttribute("aria-label", opts.title);
+        box.appendChild(field);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "gb-dialog-actions";
+      var cancel = null;
+      if (opts.kind !== "alert") {
+        cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = dialogFallback("modal-cancel", "Cancel");
+        actions.appendChild(cancel);
+      }
+      var ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = "primary";
+      ok.textContent = dialogFallback("modal-ok", "OK");
+      actions.appendChild(ok);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+
+      function finish(value) {
+        document.removeEventListener("keydown", onKey, true);
+        overlay.remove();
+        resolve(value);
+      }
+      function onKey(event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          finish(opts.kind === "alert" ? true : null);
+        } else if (event.key === "Enter" && (opts.kind !== "prompt" || event.target === field)) {
+          event.preventDefault();
+          accept();
+        }
+      }
+      function accept() {
+        if (opts.kind === "prompt") finish(field ? field.value : "");
+        else finish(true);
+      }
+      ok.addEventListener("click", accept);
+      if (cancel) cancel.addEventListener("click", function () { finish(null); });
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay && opts.kind !== "alert") finish(null);
+      });
+      document.addEventListener("keydown", onKey, true);
+
+      document.body.appendChild(overlay);
+      if (field) { field.focus(); field.select(); } else { ok.focus(); }
+    });
+  }
+
+  function gbAlert(message, title) {
+    return openDialog({
+      kind: "alert",
+      title: title || dialogFallback("modal-alert-title", "Notice"),
+      message: String(message == null ? "" : message)
+    });
+  }
+
+  function gbConfirm(message, title) {
+    return openDialog({
+      kind: "confirm",
+      title: title || dialogFallback("modal-confirm-title", "Confirm"),
+      message: String(message == null ? "" : message)
+    }).then(function (value) { return value === true; });
+  }
+
+  function gbPrompt(message, defaultValue, title) {
+    return openDialog({
+      kind: "prompt",
+      title: title || dialogFallback("modal-input-title", "Input"),
+      message: String(message == null ? "" : message),
+      defaultValue: defaultValue == null ? "" : String(defaultValue)
+    });
+  }
+
   var html = { escape: escapeHtml };
   var auth = { token: token, headers: headers };
 
@@ -144,6 +281,10 @@
   window.gbFormatTime = window.gbFormatTime || gbFormatTime;
   window.gbFormatDateTime = window.gbFormatDateTime || gbFormatDateTime;
   window.gbFormatNumber = window.gbFormatNumber || gbFormatNumber;
+  // #2297 — shared in-page dialogs for every cloud page.
+  window.gbAlert = window.gbAlert || gbAlert;
+  window.gbConfirm = window.gbConfirm || gbConfirm;
+  window.gbPrompt = window.gbPrompt || gbPrompt;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);
   // Legacy global used by few remaining call sites; a page-local declaration

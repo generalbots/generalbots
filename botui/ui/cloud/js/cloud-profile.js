@@ -32,10 +32,10 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ name, email, company }),
     });
-    if (!res.ok) { const err = await res.json(); alert(err.detail || 'Save failed'); return; }
-    alert(gbT('cloud-profile-saved', 'Profile saved!'));
+    if (!res.ok) { const err = await res.json(); await gbAlert(err.detail || 'Save failed'); return; }
+    await gbAlert(gbT('cloud-profile-saved', 'Profile saved!'));
   } catch (err) {
-    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
+    await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 });
 

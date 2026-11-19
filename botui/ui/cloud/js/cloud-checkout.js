@@ -126,7 +126,7 @@ async function doCheckout(e) {
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.detail || gbT('cloud-checkout-failed', 'Checkout failed'));
+      await gbAlert(err.detail || gbT('cloud-checkout-failed', 'Checkout failed'));
       btn.textContent = gbT('cloud-checkout-proceed', 'Proceed to Payment →');
       btn.disabled = false;
       return;
@@ -136,12 +136,12 @@ async function doCheckout(e) {
     if (data.checkout_url) {
       window.location.href = data.checkout_url;
     } else {
-      alert(gbT('cloud-checkout-unexpected', 'Unexpected response'));
+      await gbAlert(gbT('cloud-checkout-unexpected', 'Unexpected response'));
       btn.textContent = gbT('cloud-checkout-proceed', 'Proceed to Payment →');
       btn.disabled = false;
     }
   } catch (err) {
-    alert(gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message);
+    await gbAlert(gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message);
     btn.textContent = gbT('cloud-checkout-proceed', 'Proceed to Payment →');
     btn.disabled = false;
   }

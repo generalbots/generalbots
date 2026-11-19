@@ -280,11 +280,11 @@ async function createOrgFromDashboard(e) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ name, plan, period, storage_gb: storage, ai_addons: [] }),
     });
-    if (!res.ok) { const err = await res.json(); alert(err.detail || gbT('cloud-error-failed', 'Failed')); return; }
+    if (!res.ok) { const err = await res.json(); await gbAlert(err.detail || gbT('cloud-error-failed', 'Failed')); return; }
     const data = await res.json();
     if (data.checkout_url) window.location.href = data.checkout_url;
     else { hideNewOrgModal(); await loadDashboardOrgs(token); }
-  } catch (err) { alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
+  } catch (err) { await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
 }
 
 async function openBilling(orgId) {
@@ -293,10 +293,10 @@ async function openBilling(orgId) {
     const res = await fetch(`${API_BASE}/organizations/${orgId}/billing`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert(gbT('cloud-error-billing-portal', 'Failed to open billing portal')); return; }
+    if (!res.ok) { await gbAlert(gbT('cloud-error-billing-portal', 'Failed to open billing portal')); return; }
     const data = await res.json();
     if (data.url) window.open(data.url, '_blank');
-  } catch (err) { alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
+  } catch (err) { await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
 }
 
 function showNewOrgModal() { const m = document.getElementById('new-org-modal'); if (m) m.style.display = 'flex'; }

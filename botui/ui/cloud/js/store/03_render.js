@@ -162,7 +162,7 @@ function hideModal() {
 let domainTimer;
 function domainSearchDebounce() { clearTimeout(domainTimer); domainTimer = setTimeout(searchDomain, 600); }
 
-async function searchDomain() {
+function searchDomain() {
   const q = document.getElementById('domain-input')?.value?.trim();
   if (!q) return;
   const res = document.getElementById('domain-result');
@@ -177,17 +177,12 @@ async function searchDomain() {
       </div>
       <button class="btn btn-secondary btn-sm" onclick="openSalesContact(gbT('cloud-store-domain-sales-subject', 'Domain registration request'), '${esc(domain)}')">${gbT('cloud-store-contact-sales', 'Contact sales')}</button>
     </div>`;
-  try {
-    const r = await fetch(`/api/store/domain/check?name=${encodeURIComponent(domain)}`, { credentials: 'include' });
-    if (r.ok) {
-      const data = await r.json().catch(() => null);
-      if (data && data.status === 'unsupported') {
-        return;
-      }
-    }
-  } catch (_e) {
-    // Keep honest unsupported state when backend check is unavailable.
-  }
+  // #2539 — there is no automated availability service behind this page: the
+  // old request went to `/api/store/domain/check`, which no route serves (the
+  // API lives under `/api/cloud/…`), so it only produced a 404 in the console.
+  // The panel above already tells the truth (contact sales) and opens the
+  // request form with the domain pre-filled, which is the only path that can
+  // actually register it.
 }
 
 function openSalesContact(subject, detail) {

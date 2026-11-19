@@ -44,11 +44,11 @@ async function openBillingPortal() {
     const res = await fetch(`${API_BASE}/billing-portal`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert(gbT('cloud-cards-portal-failed', 'Failed to open billing portal')); return; }
+    if (!res.ok) { await gbAlert(gbT('cloud-cards-portal-failed', 'Failed to open billing portal')); return; }
     const data = await res.json();
     if (data.url) window.open(data.url, '_blank');
   } catch (err) {
-    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
+    await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

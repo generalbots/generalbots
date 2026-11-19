@@ -94,11 +94,11 @@ async function confirmPurchase() {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ item_id: selectedItem.id, org_id: orgId }),
     });
-    if (!res.ok) { const err = await res.json(); alert(err.detail || 'Purchase failed'); return; }
-    alert(gbT('cloud-store-purchase-initiated', 'Purchase initiated! Check My Services for status.'));
+    if (!res.ok) { const err = await res.json(); await gbAlert(err.detail || 'Purchase failed'); return; }
+    await gbAlert(gbT('cloud-store-purchase-initiated', 'Purchase initiated! Check My Services for status.'));
     hideModal();
   } catch (err) {
-    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
+    await gbAlert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 
