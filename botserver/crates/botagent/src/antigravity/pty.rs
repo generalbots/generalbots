@@ -1,10 +1,12 @@
+//! PTY bridge script that drives `agy` (Antigravity CLI) inside the VM.
+
 pub(super) const PTY_SCRIPT: &str = r#"import os, pty, select, time
 HOME = os.environ.get("GB_ANTIGRAVITY_HOME", "/home/antigravity")
 TMP = os.environ.get("GB_ANTIGRAVITY_TMP", "/tmp")
 LOG = TMP + "/gb-antigravity-login.log"
 STATUS = TMP + "/gb-antigravity-login.status"
 CODE = TMP + "/gb-antigravity-code"
-CRED = HOME + "/.antigravity/credentials.json"
+CRED = HOME + "/.gemini/antigravity-cli/settings.json"
 
 def set_status(value):
     try:
@@ -28,7 +30,9 @@ for path in (LOG, CODE):
 set_status("starting")
 pid, fd = pty.fork()
 if pid == 0:
-    for cmd in [["antigravity", "login"], ["antigravity", "auth", "login"]]:
+    # Antigravity CLI: in SSH/remote mode, auto-detects and prints URL + code.
+    # The CLI reads from stdin for the authorization code.
+    for cmd in [["agy"], ["antigravity"]]:
         try:
             os.execvp(cmd[0], cmd)
         except FileNotFoundError:
@@ -58,7 +62,7 @@ while time.time() < deadline:
         log.write(data)
         log.flush()
         text = data.decode("utf-8", "replace")
-        if "Invalid" in text or "error" in text.lower() or "failed" in text.lower():
+        if "Invalid" in text or "error" in text.lower() or "failed" in text.lower() or "expired" in text.lower():
             sent = False
             set_status("waiting")
             try:
@@ -80,10 +84,18 @@ while time.time() < deadline:
                 os.unlink(CODE)
             except OSError:
                 pass
+    # Check for credential file (settings.json with auth info)
     if os.path.exists(CRED):
-        set_status("linked")
-        time.sleep(2)
-        break
+        try:
+            import json
+            with open(CRED, "r") as handle:
+                data = json.load(handle)
+            if data.get("auth") or data.get("credentials") or data.get("token"):
+                set_status("linked")
+                time.sleep(2)
+                break
+        except Exception:
+            pass
 if os.path.exists(CRED):
     set_status("linked")
 elif sent:
@@ -91,3 +103,4 @@ elif sent:
 else:
     set_status("waiting")
 "#;
+EOF

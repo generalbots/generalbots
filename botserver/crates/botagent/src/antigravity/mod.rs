@@ -15,7 +15,7 @@ use base64::Engine;
 pub use login::{logout, start_login, submit_code};
 pub use paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, CREDENTIALS_PATH};
 pub use prompt::run_prompt;
-pub use status::{extract_oauth_url, status, AntigravityStatus};
+pub use status::{extract_auth_code, extract_auth_url, status, AntigravityStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");

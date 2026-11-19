@@ -35,7 +35,7 @@ pub(crate) async fn resolve_bot_llm_provider(
     // any HTTP provider is built. `choose_for_request` refuses to fall back
     // when the requested provider is a subscription and no account is linked.
     #[cfg(not(feature = "agent-vm"))]
-    if matches!(llm_provider.trim(), "claude-code" | "chatgpt-plan") {
+    if matches!(llm_provider.trim(), "claude-code" | "chatgpt-plan" | "codex-cli" | "antigravity") {
         botlog::safe_info!(
             "BOT {bot_uuid} user {user_id} session {session_id}: provider [{llm_provider}] needs the agent workspace, which this build does not include"
         );
@@ -56,9 +56,11 @@ pub(crate) async fn resolve_bot_llm_provider(
         let Some(resolved) = resolved else {
             return Ok(None);
         };
-        // #2239 — Claude Code runs inside the user's agent VM; refuse to wake
-        // or provision it when Agent/VM is disabled for this conversation.
-        if resolved.provider == crate::core::ai_accounts::CLAUDE_CODE
+        // #2239 — subscription providers run inside the user's agent VM; refuse
+        // to wake or provision them when Agent/VM is disabled for this conversation.
+        if (resolved.provider == crate::core::ai_accounts::CLAUDE_CODE
+            || resolved.provider == crate::core::ai_accounts::CODEX_CLI
+            || resolved.provider == crate::core::ai_accounts::ANTIGRAVITY)
             && !super::super::agent_turn::is_enabled(session_id)
         {
             return Err(super::super::agent_turn::DISABLED_MESSAGE.to_string());

@@ -296,6 +296,10 @@ pub async fn use_for_vibe(
             "Connect your {} account in Settings \u{2192} AI accounts first.",
             if row.provider_slug == crate::llm_providers::CLAUDE_CODE_SLUG {
                 "Claude Code"
+            } else if row.provider_slug == crate::llm_providers::CODEX_CLI_SLUG {
+                "Codex"
+            } else if row.provider_slug == crate::llm_providers::ANTIGRAVITY_SLUG {
+                "Antigravity"
             } else {
                 "ChatGPT plan"
             }

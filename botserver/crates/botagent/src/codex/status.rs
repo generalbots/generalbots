@@ -1,6 +1,7 @@
-//! Login status reporting and OAuth URL extraction for Codex.
+//! Login status reporting and device-code extraction for Codex.
 
 use axum::http::StatusCode;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::vm;
@@ -13,33 +14,51 @@ pub struct CodexStatus {
     /// unlinked | waiting | verifying | linked | error | starting
     pub state: String,
     pub url: Option<String>,
+    pub device_code: Option<String>,
     pub message: String,
 }
 
-pub fn extract_oauth_url(log: &str) -> Option<String> {
-    // Look for any https URL (common OAuth/login URLs)
-    let marker = "https://";
-    let start = log.find(marker)?;
-    let rest = &log[start..];
-    let end = rest
-        .char_indices()
-        .find(|(_, c)| {
-            matches!(
-                *c,
-                '\u{1b}' | '\u{7}' | '\0' | '\n' | '\r' | ' ' | '\t' | '"' | '\'' | '<' | '>'
-            )
-        })
-        .map(|(i, _)| i)
-        .unwrap_or(rest.len());
-    let url = rest[..end].trim();
-    if url.len() > marker.len() && (url.contains("auth") || url.contains("login") || url.contains("oauth") || url.contains("codex") || url.contains("openai")) {
-        Some(url.to_string())
-    } else if url.len() > marker.len() {
-        // fallback: return first https url
-        Some(url.to_string())
-    } else {
-        None
+/// Extracts the device authorization URL from the Codex CLI transcript.
+/// Codex prints: "Open https://auth.openai.com/... to authenticate"
+/// or "Visit https://..." during `codex login --device-auth`.
+pub fn extract_device_url(log: &str) -> Option<String> {
+    // Codex device auth prints a URL containing "device" or "auth.openai.com"
+    let re = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    for cap in re.captures_iter(log) {
+        let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
+        if url.contains("auth.openai.com") || url.contains("device") || url.contains("oauth") {
+            if url.len() > 20 {
+                return Some(url.to_string());
+            }
+        }
     }
+    // Fallback: first https URL that looks like an auth URL
+    let re2 = Regex::new(r"https://[^\s\x1b\x07<>'\"`]+").ok()?;
+    for cap in re2.captures_iter(log) {
+        let url = cap.get(0)?.as_str().trim_end_matches(['.', ',', ';', ':']);
+        if url.contains("openai") || url.contains("auth") {
+            if url.len() > 20 {
+                return Some(url.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Extracts the one-time device code from the Codex CLI transcript.
+/// Codex prints: "Enter code: XXXX-XXXX" or "Code: XXXX-XXXX"
+pub fn extract_device_code(log: &str) -> Option<String> {
+    // Pattern: "code: XXXX-XXXX" or "enter code XXXX-XXXX" or "XXXX-XXXX"
+    let re = Regex::new(r"(?i)(?:code|enter)[:\s]+([A-Z0-9]{4,8}-[A-Z0-9]{4,8})").ok()?;
+    if let Some(cap) = re.captures(log) {
+        return Some(cap.get(1)?.as_str().to_string());
+    }
+    // Fallback: look for XXXX-XXXX pattern anywhere
+    let re2 = Regex::new(r"\b([A-Z0-9]{4,8}-[A-Z0-9]{4,8})\b").ok()?;
+    if let Some(cap) = re2.captures(log) {
+        return Some(cap.get(1)?.as_str().to_string());
+    }
+    None
 }
 
 pub(super) async fn run_script(
@@ -68,6 +87,7 @@ pub(super) async fn read_status_file(state: &AgentService, vm_name: &str) -> Str
     }
 }
 
+/// Reads the CLI transcript and credential marker without changing anything.
 pub async fn status(
     state: &AgentService,
     vm_name: &str,
@@ -88,7 +108,8 @@ pub async fn status(
         .next()
         .map(|line| line.trim() == "LINKED")
         .unwrap_or(false);
-    let url = extract_oauth_url(&stdout);
+    let url = extract_device_url(&stdout);
+    let code = extract_device_code(&stdout);
     let phase = read_status_file(state, vm_name).await;
     let state_name = if linked {
         "linked".to_string()
@@ -101,7 +122,7 @@ pub async fn status(
     };
     let message = match state_name.as_str() {
         "linked" => "Codex is connected inside your workspace.",
-        "waiting" => "Open the Codex sign-in page and paste the code back here.",
+        "waiting" => "Open the URL and enter the code in your browser to connect Codex.",
         "verifying" => "Codex is verifying the authorization code…",
         "starting" => "Starting the Codex sign-in helper…",
         "error" => "Codex rejected the code. Start the sign-in again.",
@@ -110,6 +131,8 @@ pub async fn status(
     Ok(CodexStatus {
         state: state_name,
         url,
+        device_code: code,
         message: message.to_string(),
     })
 }
+EOF

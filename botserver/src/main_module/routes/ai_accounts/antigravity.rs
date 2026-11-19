@@ -35,6 +35,7 @@ pub(super) async fn connect_antigravity(
         "state": status.state,
         "status": map_claude_state(&status.state),
         "url": status.url,
+        "auth_code": status.auth_code,
         "message": status.message,
         "vm_name": row.vm_name,
     })))
@@ -69,6 +70,8 @@ pub async fn antigravity_code(
         "provider": ai_accounts::ANTIGRAVITY,
         "state": status.state,
         "status": map_claude_state(&status.state),
+        "url": status.url,
+        "auth_code": status.auth_code,
         "message": status.message,
     })))
 }

@@ -15,7 +15,7 @@ use base64::Engine;
 pub use login::{logout, start_login, submit_code};
 pub use paths::{CODEX_HOME, CODEX_USER, CREDENTIALS_PATH};
 pub use prompt::run_prompt;
-pub use status::{extract_oauth_url, status, CodexStatus};
+pub use status::{extract_device_code, extract_device_url, status, CodexStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");

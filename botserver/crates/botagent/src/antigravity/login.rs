@@ -1,3 +1,5 @@
+//! Antigravity CLI login: install, start the PTY, submit code, logout.
+
 use axum::http::StatusCode;
 
 use crate::AgentService;
@@ -9,25 +11,31 @@ use super::pty::PTY_SCRIPT;
 use super::status::{run_script, status, AntigravityStatus};
 
 async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    let probe = "command -v antigravity >/dev/null 2>&1 && id -u antigravity >/dev/null 2>&1 && echo READY || echo MISSING";
+    let probe = "command -v agy >/dev/null 2>&1 && id -u antigravity >/dev/null 2>&1 && echo READY || echo MISSING";
     let (_, stdout, _) = run_script(state, vm_name, probe).await?;
     if stdout.trim() == "READY" {
         return Ok(());
     }
     let install = format!(
         "id -u {user} >/dev/null 2>&1 || useradd -m -s /bin/bash {user}; \
-         mkdir -p {home}/.antigravity; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.antigravity; \
-         echo 'Antigravity CLI install not configured yet' >&2; exit 3",
+         mkdir -p {home}/.gemini/antigravity-cli; chown -R {user}:{user} {home}; chmod 700 {home} {home}/.gemini; \
+         command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm); \
+         command -v agy >/dev/null 2>&1 || timeout 420 npm install -g @google/antigravity-cli >/tmp/antigravity-install.log 2>&1; \
+         command -v agy >/dev/null 2>&1 && echo INSTALLED || {{ tail -20 /tmp/antigravity-install.log 2>/dev/null; exit 3; }}",
         user = ANTIGRAVITY_USER,
         home = ANTIGRAVITY_HOME
     );
     let (ok, stdout, stderr) = run_script(state, vm_name, &install).await?;
-    if ok && stdout.contains("READY") {
+    if ok && stdout.contains("INSTALLED") {
         return Ok(());
     }
     Err(internal(format!(
-        "could not prepare Antigravity CLI in the workspace: {}",
-        if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+        "could not install the Antigravity CLI in the workspace: {}",
+        if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        }
     )))
 }
 
@@ -55,7 +63,11 @@ pub async fn start_login(
     if !ok {
         return Err(internal(format!(
             "could not start the Antigravity login helper: {}",
-            if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+            if stderr.trim().is_empty() {
+                stdout.trim()
+            } else {
+                stderr.trim()
+            }
         )));
     }
     for _ in 0..30 {
@@ -75,7 +87,10 @@ pub async fn submit_code(
 ) -> Result<AntigravityStatus, (StatusCode, String)> {
     let clean = code.trim();
     if clean.is_empty() || clean.len() > 4096 {
-        return Err((StatusCode::BAD_REQUEST, "Invalid authorization code".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Invalid authorization code".to_string(),
+        ));
     }
     let script = format!(
         "printf '%s' '{payload}' | base64 -d > {path}; \
@@ -86,7 +101,10 @@ pub async fn submit_code(
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not deliver the Antigravity code: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not deliver the Antigravity code: {}",
+            stderr.trim()
+        )));
     }
     for _ in 0..40 {
         let snapshot = status(state, vm_name).await?;
@@ -100,7 +118,7 @@ pub async fn submit_code(
 
 pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
     let script = format!(
-        "su {user} -s /bin/sh -c 'rm -rf {home}/.antigravity' 2>/dev/null || true; \
+        "su {user} -s /bin/sh -c 'rm -rf {home}/.gemini/antigravity-cli' 2>/dev/null || true; \
          rm -f {log} {status} {code}",
         user = ANTIGRAVITY_USER,
         home = ANTIGRAVITY_HOME,
@@ -110,7 +128,23 @@ pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not clear Antigravity credentials: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not clear Antigravity credentials: {}",
+            stderr.trim()
+        )));
     }
     Ok(())
 }
+
+fn internal(msg: String) -> (StatusCode, String) {
+    tracing::error!("{msg}");
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Antigravity account operation failed".to_string(),
+    )
+}
+
+fn b64(value: &str) -> String {
+    base64::engine::general_purpose::STANDARD.encode(value.as_bytes())
+}
+EOF
