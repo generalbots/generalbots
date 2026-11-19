@@ -302,7 +302,7 @@ SlidesInsertHub.renderPreview = function (item) {
 
 SlidesInsertHub.fieldPreview = function (item) {
   if (item.field === "slide-number") return String(SlidesInsertPlace.slide() + 1);
-  if (item.field === "date") return new Date().toLocaleDateString();
+  if (item.field === "date") return typeof window.gbFormatDate === "function" ? window.gbFormatDate(new Date()) : "";
   return siT(item.valueKey, item.fallback);
 };
 

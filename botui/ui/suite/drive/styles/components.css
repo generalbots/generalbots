@@ -377,7 +377,7 @@
 
 .division-item {
     padding: 6px 28px !important;
-    font-size: var(--text-xs) !important;
+    font-size: var(--text-xs); !important;
 }
 
 .division-item.active {

@@ -82,7 +82,7 @@
 
 .ss-charting-dialog {
     position: fixed;
-    z-index: 4100;
+    z-index: var(--z-modal);
     inset: 8% auto auto 50%;
     transform: translateX(-50%);
     width: min(860px, 94vw);
@@ -115,7 +115,7 @@
 .ss-charting-header h2 {
     flex: 1;
     margin: 0;
-    font-size: 15px;
+    font-size: var(--text-md)
 }
 
 .ss-charting-body {
@@ -155,7 +155,7 @@
 
 .ss-charting-field {
     display: block;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--sheet-muted, #94a3b8);
 }
 
@@ -188,7 +188,7 @@
 .ss-charting-analysis {
     border: 1px solid var(--sheet-border, #334155);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs)
 }
 
 .ss-charting-analysis legend {
@@ -212,13 +212,13 @@
 .ss-charting-preview-caption {
     display: block;
     margin-bottom: 4px;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--sheet-muted, #94a3b8);
 }
 
 .ss-charting-status {
     flex: 1;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     color: var(--sheet-muted, #94a3b8);
 }
 

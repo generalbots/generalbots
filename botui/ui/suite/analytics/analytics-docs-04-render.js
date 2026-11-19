@@ -97,13 +97,9 @@
         }
         var age = Date.now() - generatedAt;
         var stale = age > ns.FRESHNESS_MAX_MS || age < -60000;
-        var locale = window.i18n && typeof window.i18n.getCurrentLocale === "function"
-            ? window.i18n.getCurrentLocale()
-            : "en";
-        var time = new Date(generatedAt).toLocaleTimeString(locale, {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+        var time = window.i18n && typeof window.i18n.formatDate === "function"
+            ? window.i18n.formatDate(generatedAt, { hour: "2-digit", minute: "2-digit" })
+            : (typeof window.gbFormatTime === "function" ? window.gbFormatTime(generatedAt) : "");
         element.classList.toggle("docs-stale", stale);
         element.textContent = stale
             ? ns.tr("analytics-docs-freshness-stale", "Data may be stale (as of { $time })", { time: time })

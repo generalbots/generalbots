@@ -35,7 +35,7 @@
 }
 
 .docs-field label {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-secondary);
@@ -148,7 +148,7 @@
 }
 
 .docs-table th {
-    font-size: 0.7rem;
+    font-size: var(--text-2xs);
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--text-secondary);
@@ -195,5 +195,11 @@
     .docs-actions {
         margin-left: 0;
         width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .docs-loading {
+        animation: none !important;
     }
 }

@@ -1,6 +1,6 @@
 /* Docs language tools UI (#2484). */
 
-.docs-lang-dialog { font-size: 13px; }
+.docs-lang-dialog { font-size: var(--text-xs) }
 .docs-lang-head h3 { color: #f8fafc; }
 
 .docs-lang-tabs {
@@ -17,7 +17,7 @@
   border: 1px solid #334155;
   border-radius: 4px;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 
@@ -39,9 +39,9 @@
 .docs-lang-panel { display: flex; flex-direction: column; gap: 10px; }
 .docs-lang-panel[hidden] { display: none; }
 
-.docs-lang-hint { margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.5; }
+.docs-lang-hint { margin: 0; color: #94a3b8; font-size: var(--text-2xs); line-height: 1.5; }
 .docs-lang-section { display: flex; flex-direction: column; gap: 8px; }
-.docs-lang-section h4 { margin: 0; font-size: 12px; color: #cbd5e1; }
+.docs-lang-section h4 { margin: 0; font-size: var(--text-2xs); color: #cbd5e1; }
 
 .docs-lang-btn {
   background: #334155;
@@ -49,7 +49,7 @@
   border: 1px solid #475569;
   border-radius: 4px;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   cursor: pointer;
 }
 
@@ -67,11 +67,11 @@
   border: 1px solid #475569;
   border-radius: 4px;
   padding: 5px 8px;
-  font-size: 12px;
+  font-size: var(--text-2xs)
 }
 
 .docs-lang-checks { display: flex; flex-wrap: wrap; gap: 10px; }
-.docs-lang-check { display: inline-flex; align-items: center; gap: 6px; color: #cbd5e1; font-size: 12px; }
+.docs-lang-check { display: inline-flex; align-items: center; gap: 6px; color: #cbd5e1; font-size: var(--text-2xs) }
 
 .docs-lang-list { display: flex; flex-direction: column; gap: 6px; }
 
@@ -88,7 +88,7 @@
 
 .docs-lang-issue-main { flex: 1; min-width: 180px; color: #e2e8f0; }
 .docs-lang-issue-main code { color: #fca5a5; }
-.docs-lang-issue-meta { color: #94a3b8; font-size: 11px; }
+.docs-lang-issue-meta { color: #94a3b8; font-size: var(--text-2xs) }
 .docs-lang-issue-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .docs-lang-guidance { color: #fbbf24; }
 
@@ -103,7 +103,7 @@
   border: 1px solid #334155;
   border-radius: 12px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: var(--text-2xs)
 }
 
 .docs-lang-chip button { background: none; border: none; color: #f87171; cursor: pointer; }
@@ -111,4 +111,4 @@
 .docs-lang-gloss-row code { color: #a5b4fc; }
 .docs-lang-gloss-row button { margin-left: auto; }
 
-.docs-lang-status { min-height: 16px; color: #94a3b8; font-size: 11px; }
+.docs-lang-status { min-height: 16px; color: #94a3b8; font-size: var(--text-2xs) }

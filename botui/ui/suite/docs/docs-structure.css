@@ -30,7 +30,7 @@ article.docs-doc-view .gb-field-label {
 article.docs-doc-view .gb-caption {
     margin: 0.6em 0;
     padding: 2px 0;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: #334155;
     text-align: left;
 }
@@ -56,13 +56,13 @@ article.docs-doc-view .gb-structure-list-title {
 
 article.docs-doc-view .gb-structure-list-entry {
     margin: 2px 0;
-    font-size: 14px;
+    font-size: var(--text-sm)
 }
 
 .gb-ds-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 100002;
+    z-index: var(--z-modal-backdrop);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -86,14 +86,14 @@ article.docs-doc-view .gb-structure-list-entry {
 
 .gb-ds-title {
     margin: 0 0 6px;
-    font-size: 17px;
+    font-size: var(--text-lg)
 }
 
 .gb-ds-note {
     margin: 0 0 12px;
     padding: 8px 10px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--text-2xs);
     color: #fbbf24;
     background: rgba(251, 191, 36, 0.1);
 }
@@ -113,7 +113,7 @@ article.docs-doc-view .gb-structure-list-entry {
 
 .gb-ds-section h4 {
     margin: 0 0 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: #93c5fd;
 }
 
@@ -125,7 +125,7 @@ article.docs-doc-view .gb-structure-list-entry {
     margin-bottom: 6px;
     padding-bottom: 6px;
     border-bottom: 1px solid #1e293b;
-    font-size: 12px;
+    font-size: var(--text-2xs)
 }
 
 .gb-ds-field {
@@ -133,7 +133,7 @@ article.docs-doc-view .gb-structure-list-entry {
     align-items: center;
     gap: 6px;
     color: #cbd5e1;
-    font-size: 12px;
+    font-size: var(--text-2xs)
 }
 
 .gb-ds-field input[type="text"],
@@ -143,7 +143,7 @@ article.docs-doc-view .gb-structure-list-entry {
     border-radius: 4px;
     color: #f8fafc;
     background: #1e293b;
-    font-size: 12px;
+    font-size: var(--text-2xs)
 }
 
 .gb-ds-field input[type="checkbox"] {
@@ -157,7 +157,7 @@ article.docs-doc-view .gb-structure-list-entry {
     color: #e2e8f0;
     background: #334155;
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--text-2xs)
 }
 
 .gb-ds-btn:hover {
@@ -178,7 +178,7 @@ article.docs-doc-view .gb-structure-list-entry {
     min-height: 18px;
     margin-top: 10px;
     color: #6ee7b7;
-    font-size: 12px;
+    font-size: var(--text-2xs)
 }
 
 .gb-ds-footer {

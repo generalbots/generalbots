@@ -138,7 +138,7 @@
         watch: window.SheetAuditUI.getWatch(),
       });
       status(ctx, t("sheet-audit-watch-updated", "Watch list refreshed at {time}.",
-        { time: new Date().toLocaleTimeString() }));
+        { time: typeof window.gbFormatTime === "function" ? window.gbFormatTime(new Date()) : "" }));
     }));
 
     var list = node("div", "sheet-audit-watch-list");

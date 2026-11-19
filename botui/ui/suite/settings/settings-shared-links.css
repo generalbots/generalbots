@@ -191,7 +191,7 @@
 
 .shared-hint {
     margin-top: 10px;
-    font-size: var(--text-2xs) !important;
+    font-size: var(--text-2xs); !important;
 }
 
 .shared-links-footer {

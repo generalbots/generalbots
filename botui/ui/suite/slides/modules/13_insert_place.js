@@ -84,7 +84,7 @@ SlidesInsertPlace.typeOf = function (item) {
 SlidesInsertPlace.fieldValue = function (item) {
   switch (item.field) {
     case "slide-number": return String(this.slide() + 1);
-    case "date": return new Date().toLocaleDateString();
+    case "date": return typeof window.gbFormatDate === "function" ? window.gbFormatDate(new Date()) : "";
     default: return siT(item.valueKey, item.fallback);
   }
 };

@@ -45,7 +45,7 @@
   background: var(--surface, #1e293b);
   color: var(--text, #f8fafc);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 

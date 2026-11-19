@@ -213,7 +213,7 @@
     var okLabel = NS.escapeHtml(tr("docs-dialog-ok", "OK"));
     var cancelLabel = NS.escapeHtml(tr("docs-dialog-cancel", "Cancel"));
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:10000;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
       '<div class="gb-qp-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-ask-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;">',
       '<h3 id="gb-ask-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(message) + "</h3>",
       isPrompt

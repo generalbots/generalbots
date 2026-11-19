@@ -117,7 +117,7 @@
     if (!host) return;
     var restore = document.activeElement;
     host.innerHTML = [
-      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',
+      '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-modal-backdrop);">',
       '<div class="gb-bm-dialog" role="dialog" aria-modal="true" aria-labelledby="gb-bm-title" style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:360px;max-width:90vw;padding:20px;color:#f8fafc;">',
       '<h3 id="gb-bm-title" style="margin:0 0 12px;font-size:16px;">' + NS.escapeHtml(tr("docs-bm-add", "Add bookmark")) + "</h3>",
       '<label style="font-size:13px;display:block;">' + NS.escapeHtml(tr("docs-bm-name", "Bookmark name")) +

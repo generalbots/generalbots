@@ -14,7 +14,7 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--text-secondary, #cbd5e1);
   background: var(--surface-raised-1, #293548);
@@ -75,14 +75,14 @@
   outline-offset: 2px;
 }
 
-.sl-diag-node-text { font-size: 13px; line-height: 1.25; word-break: break-word; }
-.sl-diag-node-title { font-size: 11px; color: var(--text-secondary, #cbd5e1); }
+.sl-diag-node-text { font-size: var(--text-xs); line-height: 1.25; word-break: break-word; }
+.sl-diag-node-title { font-size: var(--text-2xs); color: var(--text-secondary, #cbd5e1); }
 .sl-diag-icon { flex: none; }
 
 .sl-diag-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9000;
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,20 +109,20 @@
   border-bottom: 1px solid var(--border, #475569);
 }
 
-.sl-diag-dialog-title { flex: 1; margin: 0; font-size: 17px; }
+.sl-diag-dialog-title { flex: 1; margin: 0; font-size: var(--text-lg) }
 
 .sl-diag-close {
   border: 0;
   background: transparent;
   color: var(--text, #f8fafc);
-  font-size: 20px;
+  font-size: var(--text-xl);
   cursor: pointer;
 }
 
 .sl-diag-status {
   min-height: 20px;
   padding: 6px 16px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text-secondary, #cbd5e1);
   border-bottom: 1px solid var(--border, #475569);
 }
@@ -143,7 +143,7 @@
   border-radius: 8px;
 }
 
-.sl-diag-legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
+.sl-diag-legend { padding: 0 6px; font-size: var(--text-xs); font-weight: 600; }
 
 .sl-diag-preset,
 .sl-diag-node-controls button,
@@ -151,7 +151,7 @@
 .sl-diag-btn-org {
   margin: 3px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text, #f8fafc);
   background: var(--surface-raised-1, #293548);
   border: 1px solid var(--border, #475569);
@@ -166,14 +166,14 @@
 
 .sl-diag-hint,
 .sl-diag-empty,
-.sl-diag-icon-empty { font-size: 12px; color: var(--text-secondary, #cbd5e1); }
+.sl-diag-icon-empty { font-size: var(--text-2xs); color: var(--text-secondary, #cbd5e1); }
 
 .sl-diag-node-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .sl-diag-node-item.is-selected { border-color: var(--primary, var(--accent, #3b82f6)); }
 
 .sl-diag-node-editor { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .sl-diag-field { display: flex; align-items: center; gap: 8px; }
-.sl-diag-field-label { font-size: 12px; color: var(--text-secondary, #cbd5e1); }
+.sl-diag-field-label { font-size: var(--text-2xs); color: var(--text-secondary, #cbd5e1); }
 
 .sl-diag-field-input,
 .sl-diag-field-level,
@@ -182,7 +182,7 @@
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: var(--text-2xs);
   color: var(--text, #f8fafc);
   background: var(--surface-raised-1, #293548);
   border: 1px solid var(--border, #475569);
