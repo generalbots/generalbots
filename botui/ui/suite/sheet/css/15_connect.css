@@ -14,7 +14,7 @@
   border: 1px solid var(--gb-border, #ccd3dc);
   border-radius: 10px;
   box-shadow: 0 18px 60px rgba(10, 20, 35, 0.28);
-  z-index: 9700;
+  z-index: var(--z-modal);
 }
 .ss-connect-dialog:focus { outline: none; }
 .ss-connect-header {
@@ -186,7 +186,7 @@
 .ss-connect-connector-info { display: flex; flex-direction: column; flex: 1; }
 .ss-connect-connector-sub { font-size: 0.78rem; color: var(--gb-muted, #5b6572); }
 .ss-connect-badge {
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   border-radius: 3px;
   padding: 2px 5px;
