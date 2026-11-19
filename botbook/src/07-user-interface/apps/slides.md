@@ -24,6 +24,9 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Notes | Speaker notes per slide |
 | Duplicate / Delete | Buttons on each thumbnail in the slide rail |
 | Reorder slides | Toolbar sorter: drag or use ↑/↓, then Save writes the deck order |
+| Insert hub | Searchable insert dialog with live preview and Drive media, opened from the Insert button |
+| Animation timeline | Per-slide effect list with entrance, emphasis and exit effects, motion paths, paragraph builds, start triggers and a build scrubber. Reduced motion — from the OS setting or the deck flag — shows final states immediately, and a failed effect never blocks advancing |
+| Transitions gallery | Duration, direction, easing and advance settings, with apply-to-all and per-slide overrides. Authored animation data is kept locally; no server persistence endpoint exists yet |
 
 ### Presenting
 

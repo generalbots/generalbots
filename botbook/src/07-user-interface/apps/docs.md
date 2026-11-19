@@ -15,7 +15,10 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Capability | Notes |
 |---|---|
 | Formatting | Rich text with headings, quotes, lists, inline code and links |
-| Find & Replace | Search within the document |
+| Find & Replace | Search within the document, with regular-expression, formatting and scope options; replace-all is one undoable action |
+| Navigation pane | Heading tree with bookmarks and drag-to-reorder, opened from the Navigation pane control |
+| Quick parts and autotext | Reusable content blocks with variables and `/shortcut` expansion |
+| Language tools | Local-first spelling, style and readability review. Suggestions are accepted individually and reversed with one undo; no document text is sent to a server and AI assistance is off by default |
 | Undo / Redo | Standard history |
 | **Track Changes** | Record edits as suggestions rather than applying them silently |
 | **Compare Documents** | Diff two documents against each other |
