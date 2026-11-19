@@ -1,0 +1,244 @@
+/* Sheets data connectivity and refresh (#2492) - local-only dialog styling. */
+
+.ss-connect-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(1020px, 94vw);
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--gb-surface, #fff);
+  color: var(--gb-text, #1c2430);
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 10px;
+  box-shadow: 0 18px 60px rgba(10, 20, 35, 0.28);
+  z-index: 9700;
+}
+.ss-connect-dialog:focus { outline: none; }
+.ss-connect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px 6px;
+}
+.ss-connect-header h2 { font-size: 1.1rem; margin: 0; }
+.ss-connect-close {
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 1.5rem; line-height: 1; padding: 2px 8px;
+}
+.ss-connect-local-note,
+.ss-connect-note {
+  margin: 4px 18px 8px;
+  font-size: 0.82rem;
+  color: var(--gb-muted, #5b6572);
+}
+.ss-connect-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--gb-border, #ccd3dc);
+}
+.ss-connect-tab {
+  border: 0; border-bottom: 2px solid transparent; background: transparent;
+  padding: 8px 12px; cursor: pointer; color: inherit; font-size: 0.9rem;
+}
+.ss-connect-tab[aria-selected="true"] {
+  border-bottom-color: var(--gb-accent, #2563eb);
+  font-weight: 600;
+}
+.ss-connect-status {
+  margin: 8px 18px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: var(--gb-muted-bg, #f1f4f8);
+  font-size: 0.85rem;
+}
+.ss-connect-status-error {
+  background: #fdecec;
+  color: #8a1c1c;
+}
+.ss-connect-body {
+  padding: 4px 18px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+.ss-connect-section {
+  margin: 16px 0 8px;
+  font-size: 0.95rem;
+  border-left: 3px solid var(--gb-accent, #2563eb);
+  padding-left: 8px;
+}
+.ss-connect-type-row,
+.ss-connect-actions,
+.ss-connect-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+}
+.ss-connect-btn,
+.ss-connect-type-btn {
+  border: 1px solid var(--gb-border, #ccd3dc);
+  background: var(--gb-button-bg, #f8fafc);
+  color: inherit;
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.ss-connect-type-btn.is-active {
+  border-color: var(--gb-accent, #2563eb);
+  background: var(--gb-accent-soft, #e8efff);
+}
+.ss-connect-btn:hover,
+.ss-connect-type-btn:hover { border-color: var(--gb-accent, #2563eb); }
+.ss-connect-icon-btn {
+  border: 0; background: transparent; cursor: pointer;
+  padding: 2px 6px; font-size: 0.95rem; color: inherit;
+}
+.ss-connect-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 12px;
+  align-items: end;
+}
+.ss-connect-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ss-connect-field-label,
+.ss-connect-param-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.ss-connect-input {
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 4px;
+  padding: 5px 7px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--gb-input-bg, #fff);
+  color: inherit;
+  min-width: 0;
+}
+.ss-connect-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.ss-connect-table-wrap {
+  overflow: auto;
+  max-height: 320px;
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 5px;
+  margin: 8px 0;
+}
+.ss-connect-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.82rem;
+}
+.ss-connect-table th,
+.ss-connect-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--gb-border, #e1e6ed);
+  text-align: left;
+  white-space: nowrap;
+}
+.ss-connect-table th { background: var(--gb-muted-bg, #f1f4f8); position: sticky; top: 0; }
+.ss-connect-table td[role="button"] { cursor: pointer; }
+.ss-connect-table td[role="button"]:focus { outline: 2px solid var(--gb-accent, #2563eb); }
+.ss-connect-definition {
+  background: var(--gb-code-bg, #0f1724);
+  color: #d8e2f0;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 0.75rem;
+  overflow: auto;
+  max-height: 220px;
+}
+.ss-connect-host-list,
+.ss-connect-connector-list,
+.ss-connect-step-list,
+.ss-connect-param-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+.ss-connect-host-row,
+.ss-connect-connector-row,
+.ss-connect-step-head,
+.ss-connect-snapshot-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ss-connect-host-name { font-family: monospace; font-size: 0.85rem; }
+.ss-connect-connector-info { display: flex; flex-direction: column; flex: 1; }
+.ss-connect-connector-sub { font-size: 0.78rem; color: var(--gb-muted, #5b6572); }
+.ss-connect-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 2px 5px;
+  background: var(--gb-accent-soft, #e8efff);
+}
+.ss-connect-stale { background: #fff0c2; color: #6b4b00; font-weight: 700; }
+.ss-connect-step {
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 6px;
+  padding: 8px;
+}
+.ss-connect-step.is-disabled { opacity: 0.6; }
+.ss-connect-step-index {
+  border-radius: 50%;
+  background: var(--gb-muted-bg, #f1f4f8);
+  padding: 2px 7px;
+  font-size: 0.78rem;
+}
+.ss-connect-step-config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+.ss-connect-param {
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 6px;
+  padding: 8px;
+}
+.ss-connect-param-prompt { margin: 3px 0 6px; font-size: 0.8rem; color: var(--gb-muted, #5b6572); }
+.ss-connect-param-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.ss-connect-kv { display: flex; gap: 8px; font-size: 0.85rem; margin: 4px 0; }
+.ss-connect-kv-label { font-weight: 600; min-width: 110px; }
+.ss-connect-kv-value { word-break: break-word; }
+.ss-connect-refresh-status,
+.ss-connect-lineage-panel {
+  border: 1px solid var(--gb-border, #ccd3dc);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 10px 0;
+}
+.ss-connect-failure {
+  border-left: 4px solid #b42318;
+  background: #fef3f2;
+  padding: 8px 12px;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+@media (max-width: 720px) {
+  .ss-connect-dialog { width: 98vw; max-height: 94vh; }
+  .ss-connect-form, .ss-connect-step-config { grid-template-columns: 1fr; }
+}

@@ -46,6 +46,12 @@
                     <button class="btn-icon" id="pageBreakBtn" title="Insert Page Break (Ctrl+Enter)" aria-label="Insert Page Break" onclick="window.DocsEditor && window.DocsEditor.insertPageBreak()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="12" x2="21" y2="12" stroke-dasharray="4 2"></line></svg>
                     </button>
+                    <button class="btn-icon" id="docsLayoutPagesBtn" type="button" data-gb-layout-open="pages" data-i18n-title="docs-layout-open" data-i18n-aria-label="docs-layout-open">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="11" rx="1"></rect><rect x="13" y="10" width="8" height="11" rx="1"></rect></svg>
+                    </button>
+                    <button class="btn-icon" id="docsLayoutInspectBtn" type="button" data-gb-layout-open="inspector" data-i18n-title="docs-layout-inspect" data-i18n-aria-label="docs-layout-inspect">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zM4 12h7v8H4zM13 12h7v8h-7z"></path></svg>
+                    </button>
                     <button class="btn-icon" id="findReplaceBtn" title="Find and replace" aria-label="Find and replace" data-i18n-title="docs-find-title" data-i18n-aria-label="docs-find-title">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
@@ -353,6 +359,15 @@
 <script src="/suite/docs/modules/72_model_dialog.js"></script>
 <script src="/suite/docs/modules/73_model_inspector.js"></script>
 <script src="/suite/docs/modules/74_model_init.js"></script>
+<script src="/suite/docs/modules/75_layout_state.js"></script>
+<script src="/suite/docs/modules/76_layout_geometry.js"></script>
+<script src="/suite/docs/modules/77_layout_rules.js"></script>
+<script src="/suite/docs/modules/78_layout_paginate.js"></script>
+<script src="/suite/docs/modules/79_layout_headers.js"></script>
+<script src="/suite/docs/modules/80_layout_dialog.js"></script>
+<script src="/suite/docs/modules/81_layout_nav_ui.js"></script>
+<script src="/suite/docs/modules/82_layout_inspector.js"></script>
+<script src="/suite/docs/modules/83_layout_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -367,3 +382,4 @@
 <link rel="stylesheet" href="/suite/docs/docs-review.css">
 <link rel="stylesheet" href="/suite/docs/docs-forms.css">
 <link rel="stylesheet" href="/suite/docs/docs-model.css">
+<link rel="stylesheet" href="/suite/docs/docs-layout.css">
