@@ -235,7 +235,7 @@ jobs:
               rm -f /out/generalbots-os
               # Prove this really is the OS, not the GRUB payload carrier:
               # /etc/os-release identity, payload entry point and shell unit
-              # are read from inside the image's root filesystem.
+              # are read from inside the root filesystem of the image.
               /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
             '
 
