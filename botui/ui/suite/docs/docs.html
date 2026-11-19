@@ -111,8 +111,14 @@
                     <button class="btn-icon" id="insertLinkBtn" title="Insert Link" aria-label="Insert link" data-i18n-title="paper-insert-link" data-i18n-aria-label="paper-insert-link" onclick="window.DocsAuthoring && window.DocsAuthoring.insertLink()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     </button>
-                    <button class="btn-icon" id="equationBtn" title="Insert Equation" aria-label="Insert equation" onclick="window.DocsAuthoring && window.DocsAuthoring.openEquationModal()">
+                    <button class="btn-icon" id="equationBtn" title="Insert Equation" aria-label="Insert equation" data-i18n-title="docs-eq-editor-title" data-i18n-aria-label="docs-eq-editor-title" onclick="window.DocsEquations && window.DocsEquations.openEditor()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="7" y1="9" x2="7" y2="15"></line><line x1="11" y1="6" x2="11" y2="18"></line><line x1="15" y1="9" x2="15" y2="15"></line><line x1="19" y1="6" x2="19" y2="18"></line></svg>
+                    </button>
+                    <button class="btn-icon" id="insertEqRefBtn" title="Insert equation reference" aria-label="Insert equation reference" data-i18n-title="docs-eq-ref-picker" data-i18n-aria-label="docs-eq-ref-picker">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    </button>
+                    <button class="btn-icon" id="equationListBtn" title="Equations in this document" aria-label="Equations in this document" data-i18n-title="docs-eq-list-title" data-i18n-aria-label="docs-eq-list-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </button>
                     <button class="btn-icon" id="bookmarkBtn" title="Add bookmark" aria-label="Add bookmark" data-i18n-title="docs-bm-add" data-i18n-aria-label="docs-bm-add">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
@@ -271,6 +277,10 @@
 <script src="/suite/docs/modules/35b_tables_dialogs.js"></script>
 <script src="/suite/docs/modules/36_tables_a11y.js"></script>
 <script src="/suite/docs/modules/37_tables_nav.js"></script>
+<script src="/suite/docs/modules/38_equations_latex.js"></script>
+<script src="/suite/docs/modules/39_equations_model.js"></script>
+<script src="/suite/docs/modules/40_equations_dialogs.js"></script>
+<script src="/suite/docs/modules/41_equations_init.js"></script>
 <script src="/suite/docs/modules/99_init.js"></script>
 <script src="/suite/docs/modules/00_boot.js"></script>
 <script src="/suite/docs/docs-export-helpers.js"></script>
@@ -280,3 +290,4 @@
 <link rel="stylesheet" href="/suite/docs/docs-nav.css">
 <link rel="stylesheet" href="/suite/docs/docs-language.css">
 <link rel="stylesheet" href="/suite/docs/docs-tables.css">
+<link rel="stylesheet" href="/suite/docs/docs-equations.css">
