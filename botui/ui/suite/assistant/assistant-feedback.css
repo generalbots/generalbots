@@ -94,3 +94,13 @@
     }
     a { color: black !important; text-decoration: underline; }
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  .gb-feedback-btn,
+  .gb-export-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}

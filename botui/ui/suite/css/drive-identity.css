@@ -387,3 +387,16 @@
 :root[data-theme="default"] #drive-app ::-webkit-scrollbar-track {
     background: transparent;
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="default"] .btn-primary-full, :root[data-theme="default"] .btn-secondary-full,
+  :root[data-theme="default"] .drive-nav-item,
+  :root[data-theme="default"] .search-box, :root[data-theme="default"] .drive-search,
+  :root[data-theme="default"] .file-list-item, :root[data-theme="default"] .drive-file-item,
+  :root[data-theme="default"] .file-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

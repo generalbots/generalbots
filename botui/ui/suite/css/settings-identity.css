@@ -333,3 +333,12 @@
 :root[data-theme="default"] .settings-main::-webkit-scrollbar-track {
     background: transparent;
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="default"] .nav-item {
+    animation: none !important;
+    transition: none !important;
+  }
+}

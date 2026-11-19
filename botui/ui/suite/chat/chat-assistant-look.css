@@ -408,3 +408,12 @@ html[data-gb-chat-pattern="mosaic"] #chat-app {
     font-size: var(--id-text-md);
     color: var(--id-muted);
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  #chat-app .message {
+    animation: none !important;
+    transition: none !important;
+  }
+}

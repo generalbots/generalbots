@@ -113,3 +113,15 @@
 .hljs-tag { color: var(--id-hl-tag); }
 .hljs-tag .hljs-name { color: var(--id-hl-function); }
 .hljs-tag .hljs-attr { color: var(--id-hl-attr); }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  .gb-msg-toolbar,
+  .gb-msg-toolbar-btn,
+  .gb-msg-actions,
+  .gb-msg-action {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -182,3 +182,15 @@ body.window-maximized .window-element.window-maximized-target {
     padding: 12px;
   }
 }
+
+/* #2326 — honour the OS reduced-motion setting: the transitions in
+   this file carry no information, so they simply stop. */
+@media (prefers-reduced-motion: reduce) {
+  .window-dot::after,
+  .gb-window-loading,
+  .gb-window-loading-spinner,
+  .gb-window-content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
