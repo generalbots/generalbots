@@ -120,7 +120,7 @@ return;
 }
 
 grid.innerHTML = filtered.map(p => `
-<div class="research-card" onclick="window.location='/suite/research/${p.id}'">
+<div class="research-card" onclick="window.location='/suite/research/project/${p.id}'">
 <span class="research-status status-${p.status || 'draft'}">${(p.status || 'draft').charAt(0).toUpperCase() + (p.status || 'draft').slice(1)}</span>
 <div class="research-title">${p.title || p.name}</div>
 <div class="research-description">${p.description || 'No description'}</div>
@@ -364,7 +364,7 @@ body: JSON.stringify(data)
 
 if (response.ok) {
 const project = await response.json();
-window.location = `/suite/research/${project.id}`;
+window.location = `/suite/research/project/${project.id}`;
 } else {
 alert('Failed to create project');
 }
@@ -383,7 +383,7 @@ pub fn configure_research_ui_routes<S: ResearchState>() -> Router<Arc<S>> {
         .route("/suite/research", get(handle_research_list_page::<S>))
         .route("/suite/research/new", get(handle_research_new_page::<S>))
         .route(
-            "/suite/research/:id",
+            "/suite/research/project/:id",
             get(handle_research_detail_page::<S>),
         )
 }
