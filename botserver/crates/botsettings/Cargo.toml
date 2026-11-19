@@ -39,6 +39,7 @@ hmac = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json", "stream"] }
 zip = { workspace = true }
 sysinfo = { workspace = true }
+chrono-tz = { workspace = true }
 
 [lints]
 workspace = true

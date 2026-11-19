@@ -305,6 +305,7 @@ toml = "0.8"
 
 # ─── DATE / TIME ───
 chrono = { version = "0.4", default-features = false }
+chrono-tz = { version = "0.10", default-features = false, features = ["std"] }
 time = { version = "0.3", default-features = false }
 cron = "0.15.0"
 
