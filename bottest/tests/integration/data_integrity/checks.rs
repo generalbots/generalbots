@@ -50,7 +50,7 @@ fn migrations_apply_from_scratch() {
     let missing: Vec<&String> = on_disk_canonical
         .iter()
         .filter(|(canonical, _)| !applied_set.contains(canonical.as_str()))
-        .map(|(_, directory)| directory)
+        .map(|pair| pair.1)
         .collect();
     assert!(
         missing.is_empty(),
