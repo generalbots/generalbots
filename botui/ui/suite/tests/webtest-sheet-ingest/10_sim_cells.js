@@ -137,18 +137,19 @@ test("cellAt and isLow classify confidence against the shipped threshold", funct
   equal(C.cellAt(null, 0, 0), null);
 });
 
-test("[KNOWN BUG] isUnreadable conflates intentional blanks with OCR failures", function () {
+test("isUnreadable respects the explicit flag, not intentional blanks (regression #2494)", function () {
   g.reset();
   g.seed();
   var parse = C.state().parses.stmt;
-  // 59b:35-37 — any empty string is 'unreadable', even at confidence 0.96.
+  // Only an explicit provenance flag marks an OCR failure; a high-confidence
+  // blank (e.g. the debit cell of a credit-only row) is intentional.
   equal(C.isUnreadable(C.cellAt(parse, 4, 2)), true);
   equal(C.cellAt(parse, 4, 2).unreadable, true);
   equal(C.cellAt(parse, 1, 2).unreadable, false);
-  equal(C.isUnreadable(C.cellAt(parse, 1, 2)), true);
+  equal(C.isUnreadable(C.cellAt(parse, 1, 2)), false);
   equal(C.cellAt(parse, 1, 2).confidence, 0.96);
-  // The reviewable picker therefore lists high-confidence intentional blanks too.
-  assert(g.review.reviewableCells(parse, "stmt").some(function (item) {
+  // High-confidence intentional blanks are no longer listed for review.
+  assert(!g.review.reviewableCells(parse, "stmt").some(function (item) {
     return item.row === 1 && item.col === 2;
   }));
 });

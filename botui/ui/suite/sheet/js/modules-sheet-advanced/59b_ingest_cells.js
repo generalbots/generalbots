@@ -33,7 +33,7 @@
   }
 
   function isUnreadable(cellValue) {
-    return Boolean(cellValue) && (cellValue.unreadable || !String(cellValue.value || ""));
+    return Boolean(cellValue) && Boolean(cellValue.unreadable);
   }
 
   function cellKey(fileId, row, col) {

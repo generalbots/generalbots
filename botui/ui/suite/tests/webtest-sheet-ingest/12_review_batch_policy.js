@@ -18,7 +18,7 @@ test("reviewableCells lists low-confidence and unreadable cells only", function 
   g.reset();
   g.seed();
   var cells = g.review.reviewableCells(C.state().parses.stmt, "stmt");
-  equal(cells.length, 18);
+  equal(cells.length, 3);
   assert(cells.some(function (item) { return item.row === 2 && item.col === 2; }));
   assert(cells.some(function (item) { return item.row === 4 && item.col === 2; }));
   assert(!cells.some(function (item) { return item.row === 0 && item.col === 0; }));
@@ -34,7 +34,7 @@ test("a correction records original, correction, author and fixed timestamp", fu
   var picker = form.children.filter(function (node) { return node.className === "ss-ingest-select"; })[0];
   var input = form.children.filter(function (node) { return node.className === "ss-ingest-input"; })[0];
   var save = form.children.filter(function (node) { return node.className === "ss-ingest-btn"; })[0];
-  equal(picker.children.length, 18);
+  equal(picker.children.length, 3);
   picker.value = "4:2";
   input.value = "  77.70  ";
   save.dispatch("click");
