@@ -48,7 +48,7 @@
         } else if (action === "retry-catalog") {
             namespace.loadCatalog(root);
         } else if (action === "show-all-providers") {
-            showAllProviders(root);
+            namespace.showAllProviders(root);
         } else if (action === "clear-filters") {
             clearFilters(root);
         } else if (action === "show-explore") {

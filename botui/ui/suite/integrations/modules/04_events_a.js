@@ -270,5 +270,8 @@
     // Without exporting it, clicking any tab throws "setTab is not defined"
     // and the view never switches. Mirrors the syncStatusButtons export above.
     namespace.setTab = setTab;
+    // #2339 — same split-file class as setTab: 04_events_b.js calls this
+    // recovery action ("show all providers") as a bare global.
+    namespace.showAllProviders = showAllProviders;
 
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});
