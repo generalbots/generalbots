@@ -26,7 +26,7 @@ function phone(opts) {
 
 function click(node, fx) { node.dispatchEvent(fx.event({ type: "click" })); }
 function down(fx, id, x, y, type) {
-  fx.refs.slides.scroll.dispatchEvent(fx.event({
+  fx.refs.slides.main.dispatchEvent(fx.event({
     type: "pointerdown", pointerType: type || "touch", pointerId: id,
     clientX: x, clientY: y, target: fx.refs.slides.canvas,
   }));
@@ -34,11 +34,11 @@ function down(fx, id, x, y, type) {
 function move(fx, id, x, y) {
   var event = fx.event({ type: "pointermove", pointerType: "touch", pointerId: id,
     clientX: x, clientY: y, target: fx.refs.slides.canvas });
-  fx.refs.slides.scroll.dispatchEvent(event);
+  fx.refs.slides.main.dispatchEvent(event);
   return event;
 }
 function end(fx, type, id) {
-  fx.refs.slides.scroll.dispatchEvent(fx.event({
+  fx.refs.slides.main.dispatchEvent(fx.event({
     type: type, pointerType: "touch", pointerId: id, target: fx.refs.slides.canvas,
   }));
 }
@@ -153,7 +153,7 @@ test("RUNTIME #2515 slides: second finger ends object drag via a bubbling window
   down(fx, 1, 100, 100);
   var second = fx.event({ type: "pointerdown", pointerType: "touch", pointerId: 2,
     clientX: 200, clientY: 100, target: fx.refs.slides.canvas });
-  fx.refs.slides.scroll.dispatchEvent(second);
+  fx.refs.slides.main.dispatchEvent(second);
   equal(fx.windowDispatched.length, 1, "one synthetic pointerup dispatched");
   equal(fx.windowDispatched[0].type, "pointerup", "synthetic event type");
   equal(fx.windowDispatched[0].bubbles, true, "synthetic event bubbles to window drag handlers");
@@ -201,7 +201,7 @@ test("RUNTIME #2515 slides: a third finger is guarded, not a new drag", function
   var before = fx.windowDispatched.length;
   var third = fx.event({ type: "pointerdown", pointerType: "touch", pointerId: 3,
     clientX: 300, clientY: 100, target: fx.refs.slides.canvas });
-  fx.refs.slides.scroll.dispatchEvent(third);
+  fx.refs.slides.main.dispatchEvent(third);
   equal(fx.windowDispatched.length, before, "no extra synthetic pointerup for the third finger");
   equal(third.stopPropagationCalls, 1, "third pointer was swallowed while panning");
 });

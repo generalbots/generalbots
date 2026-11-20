@@ -34,7 +34,7 @@ test("RUNTIME #2515 desktop: slides installs no fit or gesture listeners on a fi
   var fx = desktop(["slides"]);
   var r = fx.refs.slides;
   ["pointerdown", "pointermove", "pointerup", "pointercancel"].forEach(function (type) {
-    assert(!has(r.scroll.listeners, type), "no " + type + " gesture listener");
+    assert(!has(r.main.listeners, type), "no " + type + " gesture listener");
   });
   assert(!fx.hasWindowListener("resize"), "no resize fit");
   assert(!fx.hasWindowListener("orientationchange"), "no orientation fit");
@@ -50,20 +50,20 @@ test("RUNTIME #2515 desktop: slides installs no fit or gesture listeners on a fi
 test("RUNTIME #2515 coarse pointer at desktop width still installs the touch model", function () {
   var fx = create({ apps: ["docs", "slides"], pointer: "coarse", width: 1440 });
   assert(has(fx.refs.docs.app.listeners, "pointerup"), "docs tap-to-caret installed");
-  assert(has(fx.refs.slides.scroll.listeners, "pointerdown"), "slides gestures installed");
+  assert(has(fx.refs.slides.main.listeners, "pointerdown"), "slides gestures installed");
 });
 
 test("RUNTIME #2515 narrow viewport with a fine pointer still installs the touch model", function () {
   var fx = create({ apps: ["docs", "slides"], pointer: "fine", width: 390 });
   assert(has(fx.refs.docs.app.listeners, "pointerup"), "docs width fallback");
-  assert(has(fx.refs.slides.scroll.listeners, "pointerdown"), "slides width fallback");
+  assert(has(fx.refs.slides.main.listeners, "pointerdown"), "slides width fallback");
 });
 
 test("RUNTIME #2515 matchMedia failure degrades to no touch model without throwing", function () {
   var fx = create({ apps: ["docs", "slides"], throwMatchMedia: true });
   assert(has(fx.doc._listeners, "keydown"), "drawer wiring still installed");
   assert(!has(fx.refs.docs.app.listeners, "pointerup"), "no touch caret listener");
-  assert(!has(fx.refs.slides.scroll.listeners, "pointerdown"), "no gesture listener");
+  assert(!has(fx.refs.slides.main.listeners, "pointerdown"), "no gesture listener");
   fx.refs.docs.toggle.dispatchEvent(fx.event({ type: "click" }));
   assert(fx.refs.docs.main.classList.contains("sidebar-open"), "drawer usable after matchMedia error");
 });

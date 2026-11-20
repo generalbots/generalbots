@@ -1,6 +1,6 @@
 "use strict";
-/* #2515 — Slides touch model. Desktop is untouched: the drawer, fit-to-width
-   canvas and gesture guards are installed only on a coarse pointer / phone. */
+/* #2515 — Slides touch model. Desktop untouched: drawer, fit-to-width canvas
+   and gestures install on coarse pointers after the htmx canvas-host swap. */
 
 (function () {
   var app = document.getElementById("slides-app");
@@ -64,15 +64,14 @@
   })();
   if (!isTouch) return;
 
-  var scroll = main.querySelector(".sl-canvas-scroll");
+  var scroll = null;
   var userZoom = 1;
 
   // Fit the fixed 960x540 slide to the phone by setting `zoom` on the canvas.
-  // Unlike a transform, zoom participates in hit-testing; together with the
-  // scale-aware drag fix in modules/03_canvas.js a finger keeps hold of the
-  // object it grabbed.
+  // Zoom keeps hit-testing aligned with the scale-aware drag fix in 03_canvas.js.
   function fit() {
-    if (!scroll) return;
+    scroll = main.querySelector(".sl-canvas-scroll") || main.querySelector(".sl-canvas-container");
+    if (!scroll) { setTimeout(fit, 200); return; }
     var canvas = scroll.querySelector(".sl-canvas");
     if (!canvas) { setTimeout(fit, 200); return; }
     var available = Math.max(240, scroll.clientWidth - 24);
@@ -109,9 +108,9 @@
     return Math.sqrt(Math.pow(pts[0].x - pts[1].x, 2) + Math.pow(pts[0].y - pts[1].y, 2));
   }
 
-  if (scroll) {
-    scroll.addEventListener("pointerdown", function (e) {
-      if (e.pointerType !== "touch") return;
+  if (main) {
+    main.addEventListener("pointerdown", function (e) {
+      if (e.pointerType !== "touch" || !e.target.closest || !e.target.closest(".sl-canvas")) return;
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       if (Object.keys(pointers).length === 2) {
         multi = true;
@@ -125,11 +124,12 @@
       }
     }, true);
 
-    scroll.addEventListener("pointermove", function (e) {
+    main.addEventListener("pointermove", function (e) {
       if (e.pointerType !== "touch" || !pointers[e.pointerId]) return;
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       var pts = points();
-      if (!multi || pts.length < 2) return;
+      scroll = main.querySelector(".sl-canvas-scroll") || main.querySelector(".sl-canvas-container");
+      if (!multi || pts.length < 2 || !scroll) return;
       e.preventDefault();
       var mid = midpoint(pts);
       var dist = distance(pts);
@@ -151,7 +151,7 @@
         lastDist = 0;
       }
     }
-    scroll.addEventListener("pointerup", endPointer, true);
-    scroll.addEventListener("pointercancel", endPointer, true);
+    main.addEventListener("pointerup", endPointer, true);
+    main.addEventListener("pointercancel", endPointer, true);
   }
 })();

@@ -1,11 +1,11 @@
 /**
- * #2515 labelled [STATIC] source assertions and one KNOWN BUG characterisation.
+ * #2515 labelled [STATIC] source assertions and a late-swap REGRESSION.
  *
  * STATIC checks read shipped source only: CSS media queries, touch targets and
  * deliberately absent features cannot be executed in a Node vm, so they never
- * produce a runtime PASS. The KNOWN BUG test executes the shipped Slides IIFE
- * under the real fragment load order and asserts the observed defect; the fix
- * belongs to production, not to this harness.
+ * produce a runtime PASS. The REGRESSION executes the shipped Slides IIFE with
+ * no canvas host at load time, renders the real fragment shape afterwards and
+ * asserts fit-to-width and two-finger pan install against the late host.
  */
 "use strict";
 
@@ -13,7 +13,6 @@ var h = require("./00_harness");
 var f = require("./02_fixture");
 var test = h.test;
 var staticTest = h.staticTest;
-var knownBug = h.knownBug;
 var assert = h.assert;
 var equal = h.assertEqual;
 var read = h.readFile;
@@ -137,26 +136,28 @@ staticTest("#2515: mobile control keys exist in all eight locale catalogs", func
   assert(src.indexOf("auto-") < 0, "no machine-generated keys");
 });
 
-knownBug("#2515 KNOWN BUG: Slides mobile fit and gestures target a host no shipped fragment renders", function () {
-  /* Source facts: 99_mobile.js captures `.sl-canvas-scroll` once, fit() returns
-     early when that capture is null and the gesture listeners live inside
-     `if (scroll)`. slides.html ships an empty #slides-content, and the server
-     presentation-view renders `.sl-canvas-container > .sl-canvas` — the queried
-     class exists only in CSS and in the two querying modules. */
-  has(SLIDES_MOBILE, "var scroll = main\\.querySelector\\(\"\\.sl-canvas-scroll\"\\);", "host captured once");
-  has(SLIDES_MOBILE, "if \\(!scroll\\) return;", "fit returns early without the host");
-  has(SLIDES_MOBILE, "if \\(scroll\\) \\{", "gesture listeners are host-gated");
+test("#2515 REGRESSION: Slides fit and gestures install after the late canvas-host swap", function () {
+  /* Root cause: 99_mobile.js used to capture `.sl-canvas-scroll` once at load
+     time. slides.html ships an empty #slides-content and the server swaps in
+     `.sl-canvas-container > .sl-canvas`, so the capture stayed null, fit()
+     returned at its first guard and the gesture block never installed. */
+  has(SLIDES_MOBILE, "scroll = main\\.querySelector\\(\"\\.sl-canvas-scroll\"\\) \\|\\| main\\.querySelector\\(\"\\.sl-canvas-container\"\\)",
+    "the host is re-queried for both shipped shapes");
+  has(SLIDES_MOBILE, "if \\(!scroll\\) \\{ setTimeout\\(fit, 200\\); return; \\}",
+    "fit retries until the htmx swap supplies a host");
+  has(SLIDES_MOBILE, "main\\.addEventListener\\(\"pointerdown\"",
+    "gestures bind to the stable .slides-main host");
   assert(read("slides/slides.html").indexOf("sl-canvas-scroll") < 0,
-    "the fragment does not contain the host at script time");
+    "the fragment still has no host at script time");
   has("slides/modules/99_init.js", "presentation-view", "a later htmx swap populates #slides-content");
   var fragment = h.readRepo("botserver/crates/botslides/src/ui_fragments/sidebars.rs");
   assert(fragment.indexOf("sl-canvas-container") >= 0,
     "the server fragment uses sl-canvas-container");
   assert(fragment.indexOf("sl-canvas-scroll") < 0,
-    "no shipped server fragment ever renders the queried host");
+    "no shipped server fragment ever renders the old queried host");
 
   /* Execute the real IIFE at the real moment (no host), then render the real
-     server fragment shape and fire every wake-up the module offers. */
+     server fragment shape and prove fit + pan work against the late host. */
   var fx = f.create({ apps: ["slides"], scroll: false, readyState: "complete" });
   var r = fx.refs.slides;
   var container = fx.doc.createElement("div");
@@ -168,25 +169,21 @@ knownBug("#2515 KNOWN BUG: Slides mobile fit and gestures target a host no shipp
   container.appendChild(canvas);
 
   fx.flushTimers();
-  fx.win.dispatchEvent(fx.event({ type: "resize" }));
-  fx.win.dispatchEvent(fx.event({ type: "orientationchange" }));
-  fx.flushTimers();
-  down(container, fx, 1, 100, 100);
-  down(container, fx, 2, 200, 100);
+  equal(canvas.style.zoom, "0.5", "late-rendered canvas fitted to width");
+  equal(fx.win.SlideCanvas.scale, 0.5, "hit-testing scale updated after the swap");
+
+  down(r.main, fx, 1, 100, 100, canvas);
+  down(r.main, fx, 2, 200, 100, canvas);
+  equal(fx.windowDispatched.filter(function (event) { return event.type === "pointerup"; }).length,
+    1, "second finger ended any object drag");
   var moved = fx.event({ type: "pointermove", pointerType: "touch", pointerId: 2,
     clientX: 260, clientY: 100, target: canvas });
-  container.dispatchEvent(moved);
-
-  equal(canvas.style.zoom, undefined, "OBSERVED: no fit after the fragment rendered");
-  equal(fx.win.SlideCanvas.scale, 1, "OBSERVED: scale sink never updated");
-  equal(container.scrollLeft, 0, "OBSERVED: two-finger pan never scrolled");
-  equal(moved.preventDefaultCalls, 0, "OBSERVED: no gesture handler ran");
-  equal(fx.windowDispatched.filter(function (event) { return event.type === "pointerup"; }).length,
-    0, "OBSERVED: no synthetic pointerup ended any drag");
-  h.note("KNOWN BUG (reported, not patched): slides/modules/99_mobile.js:67 queries `.sl-canvas-scroll`, but no shipped fragment renders that class — slides.html has an empty #slides-content and botslides render_presentation_view emits `.sl-canvas-container > .sl-canvas`. `scroll` stays null, fit() returns at its first guard and the `if (scroll)` gesture block never installs, so fit-to-width and two-finger pan/pinch are permanently inert on a phone. The 200ms retry only covers a missing .sl-canvas inside an already-captured host. Re-query or defer installation until the slide host is populated in production.");
+  r.main.dispatchEvent(moved);
+  equal(moved.preventDefaultCalls, 1, "two-finger pan handler installed after the swap");
+  equal(container.scrollLeft, -30, "late host scrolled by the midpoint delta");
 });
 
-function down(scroll, fx, id, x, y) {
-  scroll.dispatchEvent(fx.event({ type: "pointerdown", pointerType: "touch", pointerId: id,
-    clientX: x, clientY: y, target: scroll.children[0] }));
+function down(host, fx, id, x, y, target) {
+  host.dispatchEvent(fx.event({ type: "pointerdown", pointerType: "touch", pointerId: id,
+    clientX: x, clientY: y, target: target }));
 }

@@ -15,12 +15,12 @@
  *   10_docs_runtime.js     drawer, caret visibility, tap-to-place-caret
  *   11_slides_runtime.js   drawer, fit-to-width, pinch/pan gesture guards
  *   12_desktop_gating.js   coarse/width gating, graceful degradation
- *   20_static_gaps.js      [STATIC] source assertions + KNOWN BUG (reported only)
+ *   20_static_gaps.js      [STATIC] source assertions + late-swap REGRESSION
  *
  * [STATIC] tests read shipped source only: they document CSS/media-query and
- * touch-target facts, never a fabricated runtime PASS. The KNOWN BUG test
- * executes shipped code and asserts the observed defect; production is
- * reported here, never patched by this harness.
+ * touch-target facts, never a fabricated runtime PASS. The REGRESSION executes
+ * shipped code with no canvas host at load time and proves the fixed module
+ * fits and pans after the real server fragment shape is swapped in.
  */
 "use strict";
 
