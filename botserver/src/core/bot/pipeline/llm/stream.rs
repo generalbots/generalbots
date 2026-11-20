@@ -182,15 +182,25 @@ async fn stream_llm_response_inner(
                 }
 
                 if has_api_call {
-                    // #2583 — a block was detected but handle_api_call could not
-                    // execute it (unparseable payload / rejected name). The raw
-                    // envelope used to be streamed to the user as chat text.
-                    content_buffer = crate::core::bot::pipeline::api_call::strip_api_call_block(
-                        &content_buffer,
-                    );
+                    // #2583 — the block was detected but no command ran. The
+                    // model's surrounding note is a promise, not a result: it
+                    // must never be shown as one. End the turn with an explicit
+                    // failure frame so the streaming bubble (which can contain
+                    // JSON fragments emitted before the trigger was complete)
+                    // is finalized and replaced by an honest answer.
                     log::warn!(
-                        "api-call block detected but not executed; envelope stripped from the reply"
+                        "api-call block detected but not executed; refusing to render the reply"
                     );
+                    let locale =
+                        botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+                    let err_msg = super::llm_empty_message(&locale);
+                    {
+                        let mut sm = state.session_manager.lock().await;
+                        let _ = sm.save_message(session_id, user_id, 2, &err_msg, 2);
+                        let _ = sm.record_message_model(session_id, llm_model);
+                    }
+                    super::stream_errors::send_empty_response_error(sink, identity).await;
+                    return Ok(());
                 }
 
                 if has_ui_plan {

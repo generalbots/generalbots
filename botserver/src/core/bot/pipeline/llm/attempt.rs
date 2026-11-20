@@ -80,6 +80,12 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
     let mut full_response = String::new();
     let mut content_buffer = String::new();
     let mut attempt_reasoning = String::new();
+    // #2583 — streaming providers split `{"__api_call__":` across chunks. Hold
+    // back a suspected envelope prefix until we know whether the turn really
+    // is a command call; once the trigger is complete, no further chunk may
+    // be shown as chat text (the rest is machine payload).
+    let mut api_call_detected = false;
+    let mut held_chunks = String::new();
 
     let (retry_tx, mut retry_rx) = tokio::sync::mpsc::channel::<String>(100);
 
@@ -214,6 +220,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                             continue;
                         }
                         if crate::core::bot::api_catalog::is_api_call_trigger(&chunk) {
+                            api_call_detected = true;
                             full_response.push_str(&chunk);
                             continue;
                         }
@@ -222,7 +229,24 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                             continue;
                         }
                         full_response.push_str(&chunk);
-                        content_buffer.push_str(&chunk);
+                        if crate::core::bot::api_catalog::is_api_call_trigger(&full_response) {
+                            api_call_detected = true;
+                        }
+                        if api_call_detected {
+                            continue;
+                        }
+                        if crate::core::bot::api_catalog::is_api_call_trigger_start(&full_response)
+                        {
+                            held_chunks.push_str(&chunk);
+                            continue;
+                        }
+                        let streamed = if held_chunks.is_empty() {
+                            chunk.clone()
+                        } else {
+                            let pending = std::mem::take(&mut held_chunks);
+                            format!("{pending}{chunk}")
+                        };
+                        content_buffer.push_str(&streamed);
                         // #2227 — stream partial content to the client so drawings
                         // (and text) render incrementally in the live preview
                         // instead of appearing only at completion.
@@ -232,7 +256,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                 user_id: user_id.to_string(),
                                 session_id: session_id_s.to_string(),
                                 channel: "web".to_string(),
-                                content: chunk.clone(),
+                                content: streamed,
                                 message_type: botlib::message_types::MessageType::BOT_RESPONSE,
                                 stream_token: None,
                                 is_complete: false,
@@ -296,7 +320,14 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                             );
                         }
                     }
-                    None => break,
+                    None => {
+                        // A held prefix that never became an envelope was
+                        // ordinary prose: include it in the final answer.
+                        if !api_call_detected {
+                            content_buffer.push_str(&held_chunks);
+                        }
+                        break;
+                    }
                 }
             }
             _ = keepalive.tick() => {

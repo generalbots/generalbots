@@ -3,7 +3,7 @@
 
 use super::super::types::{LlmTarget, SessionIdentity};
 use super::args::{extract_deep_links, inject_tax_value_from_user, merge_missing_params};
-use super::humanize::humanize_result;
+use super::humanize::{grounded_numbers, humanize_result};
 use super::parse::{extract_api_call_payload, strip_api_call_block};
 
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
@@ -106,26 +106,10 @@ pub(crate) async fn handle_api_call(
         return true;
     }
 
-    // The LLM may have spoken a short "working on it..." line before the
-    // __api_call__ block. Surface it to the user so the tool call feels
-    // natural, then run the command. The JSON block itself is always
-    // stripped out of the leading text (never shown to the user).
-    let stripped = strip_api_call_block(full_response);
-    let leading = stripped.trim();
-    if !leading.is_empty() {
-        let progress = botlib::models::BotResponse::new(
-            bot_uuid.to_string(),
-            session_id.to_string(),
-            user_id.to_string(),
-            leading,
-            &channel,
-        );
-        let _ = sink.send_bot_response(&progress).await;
-        // Persist the leading line so history replay shows it instead of the
-        // raw __api_call__ envelope (#consent text-instead-of-buttons).
-        let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 2, leading, 2);
-    }
+    // #2583 — the model's note around the envelope is a *plan*, not a result:
+    // it is written before the command runs (and before consent is granted),
+    // so it can claim a write that never happened. Never show it. Only the
+    // result returned by `execute_command` may become a user-facing answer.
 
     // Tax commands: models frequently omit the `value` param even when the
     // user stated an amount. Recover it from the user's message (issue #722).
@@ -320,7 +304,9 @@ pub(crate) async fn handle_api_call(
                      You ran the command '{name}' and received this data:\n{json}\n\n\
                      {grounding}\
                      Write a concise, friendly answer for the user in the language of the user's message, \
-                     using the data. Never mention JSON, commands or internal details.\n\
+                     using ONLY values present in the data. Never guess, change or repeat back a \
+                     number, price, date or status that is not in the data. Never mention JSON, \
+                     commands or internal details.\n\
                      {deep_link_instruction}",
                     json = serde_json::to_string_pretty(&result).unwrap_or_default(),
                     grounding = grounding,
@@ -358,6 +344,23 @@ pub(crate) async fn handle_api_call(
                         .ok(),
                     None => None,
                 };
+                // #2583 — a composed answer is only allowed to quote figures
+                // the command actually returned (or the user supplied). A price
+                // that differs from the DB is a hard fail: use the result's own
+                // values instead of the model's guess.
+                let composed = match composed {
+                    Some(text) if grounded_numbers(&text, &result, user_text) => {
+                        Some(strip_api_call_block(&text))
+                    }
+                    Some(_) => {
+                        log::warn!(
+                            "api_call '{name}' composed answer contained ungrounded figures; \
+                             using the command result instead"
+                        );
+                        None
+                    }
+                    None => None,
+                };
                 match composed {
                     Some(text) => {
                         let resp = botlib::models::BotResponse::new(
@@ -373,23 +376,17 @@ pub(crate) async fn handle_api_call(
                     }
                     None => {
                         // Never lose the result to a composition failure: the
-                        // command's own message is the most useful thing we
-                        // have, and a bare apology told the user nothing.
+                        // command's own message (or a compact, deterministic
+                        // rendering of its data) told the user nothing false.
                         let command_message = result
                             .get("message")
                             .and_then(|m| m.as_str())
                             .map(str::trim)
                             .filter(|m| !m.is_empty())
                             .map(str::to_string);
-                        let fallback = match (command_message, deep_links.first()) {
-                            (Some(message), _) => message,
-                            (None, Some(link)) => {
-                                format!("Here is the record you asked about: {link}")
-                            }
-                            (None, None) => format!(
-                                "I ran `{name}` but could not write the answer from its result. \
-                                 Ask me again and I will retry."
-                            ),
+                        let fallback = match command_message {
+                            Some(message) => message,
+                            None => humanize_result(&name, &result),
                         };
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(),
