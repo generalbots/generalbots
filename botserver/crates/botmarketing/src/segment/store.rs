@@ -1,9 +1,10 @@
 //! Database-backed candidate loading, preview and idempotent materialization.
 
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::{Connection, PgConnection};
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -175,7 +176,7 @@ fn load_candidates(
                 email,
                 status,
                 company,
-                tags: tags.into_iter().flatten().collect(),
+                tags: tags.into_iter().flatten().flatten().collect(),
                 owner_id,
                 last_activity,
                 deal_value,
