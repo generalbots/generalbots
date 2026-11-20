@@ -1,0 +1,10 @@
+{
+  "counts": {
+    "bp_space": 0,
+    "hover_only": 29,
+    "sub44": 667,
+    "vh100": 122
+  },
+  "issue": 2421,
+  "note": "Shrink-only baseline. Lower counts are always accepted; raising one fails --check."
+}

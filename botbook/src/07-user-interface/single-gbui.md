@@ -6,7 +6,7 @@ The `single.gbui` template provides a streamlined, single-page chat interface fo
 
 Location: `botui/ui/suite/single.gbui`
 
-This minimalist chat interface delivers a clean, focused chat experience with WebSocket real-time messaging, dark mode support, mobile-responsive design, and fast loading under 50KB.
+This minimalist chat interface delivers a clean, focused chat experience with WebSocket real-time messaging and dark mode support. Mobile behaviour is not claimed here: every form-factor claim must be backed by the browser matrix in [Mobile and Compact Form Factors](./mobile.md).
 
 ## Features
 
@@ -26,7 +26,7 @@ On desktop displays, the interface uses a centered container with 800px maximum 
 
 ### Mobile
 
-On mobile devices, the layout expands to full width with larger touch targets meeting the 44px minimum requirement. The input remains bottom-aligned and adjusts appropriately when the virtual keyboard appears.
+No verified mobile behaviour is documented for this template. The template directory `botui/ui/suite/single.gbui` is not present in the tree, so there is no UI surface to measure against. Form-factor claims for the shipped suite are recorded in [Mobile and Compact Form Factors](./mobile.md), backed by the five-viewport browser matrix.
 
 ## Styling
 
