@@ -6,4 +6,6 @@
 #
 # <route> # reason
 
-/api/sales/email/webhook # authenticated: /api/sales/** is admin-scoped in rbac routes_admin.rs (no anonymous delivery)
+# #2540: /api/sales/email/webhook used to be listed here; the route is now a
+# gone_handler! returning 410 Gone (fails closed, no delivery accepted), so it
+# needs no exemption. Intentionally empty — keep it that way.
