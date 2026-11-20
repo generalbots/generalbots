@@ -2,6 +2,7 @@ pub mod models;
 pub mod instagram;
 pub mod scheduler;
 pub mod analytics;
+pub mod send;
 pub mod worker;
 pub mod control;
 

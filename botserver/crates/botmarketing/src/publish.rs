@@ -16,6 +16,7 @@ use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::compliance::{evaluate_send_gate, MarketingChannel};
 use crate::email::EmailCampaignPayload;
 use crate::schema::{marketing_campaigns, marketing_contacts, marketing_recipients};
 use crate::state::AppState;
@@ -94,17 +95,18 @@ pub async fn publish_campaign(
 
     let suppressed = crate::segment::suppressed_crm_emails(&mut conn, campaign.branch_id)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Suppression query: {e}")))?;
-    let contacts: Vec<(Uuid, String, Option<String>, Option<String>)> = contact_rows
+    // #2536 — keep the consent columns on the contact tuple: the per-channel
+    // gate runs again immediately before each send, not just at list refresh.
+    let contacts: Vec<(
+        Uuid,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<bool>,
+        Option<Value>,
+    )> = contact_rows
         .into_iter()
-        .filter_map(|(id, email, name, phone, subscribed, metadata)| {
-            if crate::segment::suppressed_marketing_contact(subscribed, metadata.as_ref()) {
-                return None;
-            }
-            if suppressed.contains(&email.trim().to_lowercase()) {
-                return None;
-            }
-            Some((id, email, name, phone))
-        })
+        .filter(|(_, email, _, _, _, _)| !suppressed.contains(&email.trim().to_lowercase()))
         .collect();
 
     if contacts.is_empty() {
@@ -129,7 +131,7 @@ pub async fn publish_campaign(
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Reset recipients: {e}")))?;
 
     let now = chrono::Utc::now();
-    for (cid, email, name, _phone) in &contacts {
+    for (cid, email, name, _phone, _, _) in &contacts {
         diesel::insert_into(marketing_recipients::table)
             .values((
                 marketing_recipients::id.eq(Uuid::new_v4()),
@@ -154,9 +156,23 @@ pub async fn publish_campaign(
         let mut skipped = 0i64;
         match channel.as_str() {
             "email" => {
-                for (cid, email, name, _phone) in &contacts {
+                for (cid, email, name, _phone, subscribed, metadata) in &contacts {
                     if email.trim().is_empty() {
                         skipped += 1;
+                        continue;
+                    }
+                    let decision = evaluate_send_gate(
+                        campaign.branch_id,
+                        MarketingChannel::Email,
+                        email,
+                        None,
+                        *subscribed,
+                        metadata.as_ref(),
+                    );
+                    if !decision.is_allowed() {
+                        skipped += 1;
+                        log::info!("email publish skipped for {email}: {}", decision.status());
+                        set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None).ok();
                         continue;
                     }
                     let personalized = body_html
@@ -193,10 +209,24 @@ pub async fn publish_campaign(
                 }
             }
             "whatsapp" => {
-                for (cid, _email, name, phone) in &contacts {
+                for (cid, _email, name, phone, subscribed, metadata) in &contacts {
                     let number = phone.as_deref().unwrap_or("").trim();
                     if number.is_empty() {
                         skipped += 1;
+                        continue;
+                    }
+                    let decision = evaluate_send_gate(
+                        campaign.branch_id,
+                        MarketingChannel::Whatsapp,
+                        number,
+                        None,
+                        *subscribed,
+                        metadata.as_ref(),
+                    );
+                    if !decision.is_allowed() {
+                        skipped += 1;
+                        log::info!("whatsapp publish skipped for {number}: {}", decision.status());
+                        set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None).ok();
                         continue;
                     }
                     let message = plain_text(&body_html);
@@ -311,11 +341,19 @@ fn set_recipient_state(
                 marketing_recipients::error_message.eq(error_message.map(String::from)),
             ))
             .execute(conn)
-    } else {
+    } else if status == "sent" {
         diesel::update(target)
             .set((
                 marketing_recipients::status.eq(status),
                 marketing_recipients::sent_at.eq(Some(chrono::Utc::now())),
+                marketing_recipients::error_message.eq(error_message.map(String::from)),
+            ))
+            .execute(conn)
+    } else {
+        // Compliance skip: record the status only, never a send timestamp.
+        diesel::update(target)
+            .set((
+                marketing_recipients::status.eq(status),
                 marketing_recipients::error_message.eq(error_message.map(String::from)),
             ))
             .execute(conn)

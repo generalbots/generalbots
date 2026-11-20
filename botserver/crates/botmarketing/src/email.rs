@@ -11,6 +11,8 @@ use uuid::Uuid;
 
 use crate::campaigns::CrmCampaign;
 use crate::click_sign::{self, TrackingRecord};
+use crate::compliance::unsubscribe::UnsubscribeClaims;
+use crate::compliance::{build_unsubscribe_url, unsubscribe_headers, MarketingChannel};
 use crate::schema::{email_tracking, marketing_campaigns, marketing_recipients};
 use crate::state::AppState;
 
@@ -139,6 +141,10 @@ pub async fn send_campaign_email(
 
     let base_url = (state.get_config)(&bot_id, "server-url", Some(""))
         .unwrap_or_else(|_| "".to_string());
+    // Resolve the default-bot scope before checking out a pooled connection:
+    // `get_scope` needs a connection of its own and the pool must never be
+    // held across that nested acquisition.
+    let scope_branch_id = state.get_scope().1;
 
     // #2139 — links carry a signed destination instead of a caller-supplied
     // path, so the anonymous click endpoint can never redirect anywhere this
@@ -178,7 +184,39 @@ pub async fn send_campaign_email(
 
     let body = body_html.unwrap_or_else(|| payload.body_text.unwrap_or_default());
 
-    match (state.send_email)(&payload.to, &payload.subject, &body, bot_id, None) {
+    // #2536 — every marketing email carries a signed one-click unsubscribe
+    // header. The 5th `SendEmailFn` argument is the raw header block; when a
+    // signing key or base URL is unavailable we omit the header rather than
+    // emit a link that cannot be honoured.
+    let headers = if base_url.is_empty() || payload.to.trim().is_empty() {
+        None
+    } else {
+        // The token must carry the campaign's branch so the suppression key
+        // matches the gate used by the worker/publish send paths. Campaign-less
+        // API sends fall back to the default bot scope.
+        let branch_id = match payload.campaign_id {
+            Some(campaign_id) => marketing_campaigns::table
+                .filter(marketing_campaigns::id.eq(campaign_id))
+                .select(marketing_campaigns::branch_id)
+                .first::<Uuid>(&mut conn)
+                .unwrap_or(scope_branch_id),
+            None => scope_branch_id,
+        };
+        let claims = UnsubscribeClaims {
+            branch_id,
+            channel: MarketingChannel::Email,
+            address: payload.to.clone(),
+        };
+        build_unsubscribe_url(&base_url, &claims).map(|url| unsubscribe_headers(&url))
+    };
+
+    match (state.send_email)(
+        &payload.to,
+        &payload.subject,
+        &body,
+        bot_id,
+        headers.as_deref(),
+    ) {
         Ok(msg_id) => {
             diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
                 .set(email_tracking::message_id.eq(Some(msg_id.clone())))

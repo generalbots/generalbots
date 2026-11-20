@@ -7,11 +7,17 @@
 //! `marketing_campaign_events` for the realtime monitor. Global pause/stop
 //! is kept in memory only (it never needs to survive a restart).
 
-use crate::email::{send_campaign_email, EmailCampaignPayload};
-use crate::schema::{marketing_campaign_events, marketing_campaigns, marketing_recipients};
+use crate::campaign::send::{send_one, SendContext};
+use crate::compliance::MarketingChannel;
+use crate::schema::{
+    crm_contacts, marketing_campaign_events, marketing_campaigns, marketing_contacts,
+    marketing_recipients,
+};
+use crate::segment::SUPPRESSED_STATUSES;
 use crate::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -162,15 +168,73 @@ impl CampaignWorker {
                 .optional()
                 .map_err(|e| format!("Query error: {e}"))?;
 
-        let recipients: Vec<(Uuid, Option<String>, Option<String>)> = marketing_recipients::table
+        // #2536 — load the persisted status, attempt counter and the consent
+        // record behind `contact_id` so every send can be gated without a
+        // separate query per recipient.
+        type RecipientRow = (
+            Uuid,
+            Option<String>,
+            Option<String>,
+            Option<Uuid>,
+            Option<String>,
+            Option<serde_json::Value>,
+        );
+        let recipients: Vec<RecipientRow> = marketing_recipients::table
             .filter(marketing_recipients::campaign_id.eq(campaign_id))
             .select((
                 marketing_recipients::id,
                 marketing_recipients::email,
                 marketing_recipients::name,
+                marketing_recipients::contact_id,
+                marketing_recipients::status,
+                marketing_recipients::response,
             ))
-            .load::<(Uuid, Option<String>, Option<String>)>(&mut conn)
+            .load::<RecipientRow>(&mut conn)
             .map_err(|e| format!("Query error: {e}"))?;
+
+        let contact_ids: Vec<Uuid> = recipients.iter().filter_map(|row| row.3).collect();
+        let consent_rows: Vec<(Uuid, Option<bool>, Option<serde_json::Value>)> =
+            marketing_contacts::table
+                .filter(marketing_contacts::id.eq_any(&contact_ids))
+                .select((
+                    marketing_contacts::id,
+                    marketing_contacts::subscribed,
+                    marketing_contacts::metadata,
+                ))
+                .load(&mut conn)
+                .map_err(|e| format!("Consent query error: {e}"))?;
+        // `marketing_recipients.contact_id` may point at either a
+        // `marketing_contacts` row (new publish flow) or a legacy
+        // `crm_contacts` row, so both consent sources are merged.
+        let crm_rows: Vec<(Uuid, String, Option<serde_json::Value>)> = crm_contacts::table
+            .filter(crm_contacts::id.eq_any(&contact_ids))
+            .select((
+                crm_contacts::id,
+                crm_contacts::status,
+                crm_contacts::custom_fields,
+            ))
+            .load(&mut conn)
+            .map_err(|e| format!("CRM consent query error: {e}"))?;
+        let mut consent_by_contact: HashMap<Uuid, (Option<bool>, Option<serde_json::Value>)> =
+            crm_rows
+                .into_iter()
+                .map(|(id, status, custom_fields)| {
+                    let opted_out = SUPPRESSED_STATUSES.contains(&status.as_str());
+                    (
+                        id,
+                        (if opted_out { Some(false) } else { None }, custom_fields),
+                    )
+                })
+                .collect();
+        for (id, (subscribed, metadata)) in consent_rows {
+            let entry = consent_by_contact.entry(id).or_insert((None, None));
+            if subscribed.is_some() {
+                entry.0 = subscribed;
+            }
+            if metadata.is_some() || entry.1.is_none() {
+                entry.1 = metadata;
+            }
+        }
 
         drop(conn);
 
@@ -192,71 +256,86 @@ impl CampaignWorker {
         let total = recipients.len() as i32;
         let mut sent = 0;
         let mut failed = 0;
+        let mut skipped = 0;
 
-        let (_, _, bot_id) = self.state.get_scope();
+        let (_, branch_id, bot_id) = self.state.get_scope();
+        let channel = MarketingChannel::parse(campaign_type).unwrap_or(MarketingChannel::Email);
 
-        for (idx, (recipient_id, email, name)) in recipients.iter().enumerate() {
+        for (
+            idx,
+            (
+                recipient_id,
+                recipient_email,
+                recipient_name,
+                contact_id,
+                recipient_status,
+                response,
+            ),
+        ) in recipients.iter().enumerate()
+        {
             if idx < start_offset as usize {
                 continue;
             }
-            if self.is_global_stopped() {
-                break;
-            }
-            if self.is_global_paused() {
+            if self.is_global_stopped() || self.is_global_paused() {
                 break;
             }
 
-            let name = name.as_deref().unwrap_or("");
-            let email = email.as_deref().unwrap_or("");
-            let personalized = raw_body
-                .replace("{{name}}", name)
-                .replace("{{email}}", email);
-            let result = if campaign_type == "whatsapp" {
-                match (self.state.send_whatsapp)(bot_id, email, &personalized, Some(name), None) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
-                }
-            } else {
-                let payload = EmailCampaignPayload {
-                    to: email.to_string(),
-                    subject: subject.clone(),
-                    body_html: Some(personalized),
-                    body_text: None,
-                    campaign_id: Some(campaign_id),
-                    recipient_id: Some(*recipient_id),
-                };
-                match send_campaign_email(&self.state, bot_id, payload).await {
-                    Ok(res) if res.success => Ok(()),
-                    Ok(res) => Err(res.error.unwrap_or_else(|| "unknown error".to_string())),
-                    Err(e) => Err(e),
-                }
+            let (subscribed, metadata) = contact_id
+                .as_ref()
+                .and_then(|id| consent_by_contact.get(id))
+                .map(|(subscribed, metadata)| (*subscribed, metadata.as_ref()))
+                .unwrap_or((None, None));
+            let email = recipient_email.as_deref().unwrap_or("");
+            let context = SendContext {
+                branch_id,
+                bot_id,
+                campaign_id,
+                channel,
+                subject: &subject,
+                body: raw_body,
+                recipient_id: *recipient_id,
+                address: email,
+                name: recipient_name.as_deref().unwrap_or(""),
+                recipient_status: recipient_status.as_deref(),
+                subscribed,
+                metadata,
+                response: response.as_ref(),
             };
+            let outcome = send_one(&self.state, &context).await?;
 
-            match result {
-                Ok(()) => {
-                    sent += 1;
-                    self.log_event(
-                        campaign_id,
-                        campaign_type,
-                        "send",
-                        Some(email),
-                        Some("sent"),
-                        None,
-                    )
-                    .await?;
-                }
-                Err(e) => {
-                    failed += 1;
-                    self.log_event(
-                        campaign_id,
-                        campaign_type,
-                        "fail",
-                        Some(email),
-                        Some("failed"),
-                        Some(e),
-                    )
-                    .await?;
-                }
+            if let Some(decision) = outcome.skipped {
+                skipped += 1;
+                self.log_event(
+                    campaign_id,
+                    campaign_type,
+                    "skip",
+                    Some(email),
+                    Some(decision.status()),
+                    None,
+                )
+                .await?;
+            } else if outcome.delivered {
+                sent += 1;
+                self.log_event(
+                    campaign_id,
+                    campaign_type,
+                    "send",
+                    Some(email),
+                    Some("sent"),
+                    None,
+                )
+                .await?;
+            } else {
+                failed += 1;
+                self.log_event(
+                    campaign_id,
+                    campaign_type,
+                    "fail",
+                    Some(email),
+                    Some(outcome.status),
+                    outcome.error,
+                )
+                .await?;
             }
 
             let new_offset = start_offset + idx as i32 + 1;
@@ -267,7 +346,7 @@ impl CampaignWorker {
         }
 
         log::info!(
-            "Campaign {campaign_id} worker sent {sent} ok, {failed} failed, {total} total"
+            "Campaign {campaign_id} worker sent {sent} ok, {failed} failed, {skipped} skipped, {total} total"
         );
         Ok(())
     }

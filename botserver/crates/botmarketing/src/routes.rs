@@ -269,6 +269,14 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
 
         .route("/api/crm/email/track/open", post(crate::triggers::track_email_open))
         .route("/api/marketing/track/open/:token", get(track_email_open_pixel))
+        // #2536 — anonymous but HMAC-signed; GET supports mail clients that
+        // render the header as a link, POST is the RFC 8058 one-click shape.
+        .route(
+            "/api/marketing/unsubscribe/:token",
+            get(crate::compliance::unsubscribe::unsubscribe)
+                .post(crate::compliance::unsubscribe::unsubscribe),
+        )
+        .route("/api/marketing/bounce", post(crate::compliance::bounce::record_bounce))
         // #2139 — the destination is a signed query parameter, never a path
         // segment: an anonymous route must not redirect to caller input.
         .route("/api/marketing/track/click/:id", get(track_email_click))
