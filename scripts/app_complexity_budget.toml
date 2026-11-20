@@ -72,11 +72,9 @@ loc = 3377
 # +1 module / +368: #gbgov UX port — model tags, provider groups, lazy KaTeX.
 # +1 module / +460: #2516 mobile media intake sheet + viewport/keyboard bridge
 # (four 52px rows, voice consent, deferred optional modules) — browser-UATed.
-# +16: stop JSON.parse() spam on plain-text replies — parseThemeEventContent()
-# ignores non-JSON/non-theme payloads (4/4 webtest-chat-ws-theme, #2547 UAT).
 routes = 30
 js_modules = 92
-loc = 28272
+loc = 28256
 
 [apps."clock"]
 routes = 0
