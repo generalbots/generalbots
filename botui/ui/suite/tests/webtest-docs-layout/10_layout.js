@@ -143,15 +143,17 @@ test("RUNTIME #2424: orientation, columns, gutter and mirrored margins resolve",
   assert(gutter.marginLeft === 116 && gutter.marginRight === 96 && gutter.gutter === 20,
     "gutter widens the left margin and is preserved in the resolved geometry");
 
-  /* With asymmetric margins the mirror swap is observable between odd/even
-   * pages. We assert the invariant (edges flip), not the exact gutter side:
-   * this preview always adds the gutter to the left edge, a fidelity concern
-   * reported separately rather than locked into this characterisation test. */
   var mirrorOpts = { marginLeft: 72, marginRight: 120, mirrorMargins: true, gutter: 20 };
   var mOdd = NS.resolveGeometry(NS.defaultSetup(), mirrorOpts, 1);
   var mEven = NS.resolveGeometry(NS.defaultSetup(), mirrorOpts, 2);
   assert(mOdd.marginLeft !== mEven.marginLeft && mOdd.marginRight !== mEven.marginRight,
     "mirrored margins produce different inner/outer edges on odd and even pages");
+  /* Regression (#2424): the gutter must sit on the inner edge. Odd page inner
+   * is left (72+20=92); even page inner is right after the swap (72+20=92). */
+  assert(mOdd.marginLeft === 92 && mOdd.marginRight === 120,
+    "odd page gutter on inner left edge");
+  assert(mEven.marginLeft === 120 && mEven.marginRight === 92,
+    "even page gutter on inner right edge");
   var clamped = NS.resolveGeometry(NS.defaultSetup(), { columns: 9, columnGap: -5 }, 1);
   assert(clamped.cols.length === 3 && clamped.columnGap === 0, "columns clamp to 1..3 and gap to >= 0");
 });

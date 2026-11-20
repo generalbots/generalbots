@@ -61,7 +61,7 @@
     var right = Math.max(0, num(g.marginRight, 96));
     if (g.mirrorMargins && (num(pageNumber, 1) % 2 === 0)) {
       var swap = left; left = right; right = swap;
-      left += gutter;
+      right += gutter;
     } else {
       left += gutter;
     }
