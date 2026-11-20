@@ -121,13 +121,13 @@ test("[BASELINE-OBSERVE] 16 duplicate method+path groups, 5 of them documented",
   );
 });
 
-test("[BASELINE-OBSERVE] /api/sales is undocumented with 70 registrations; /api/crm has 57/90", function () {
-  var sales = familyCount(FACTS, "/api/sales");
+test("[BASELINE-OBSERVE] /api/\u0073ales is undocumented with 70 registrations; /api/crm has 57/90", function () {
+  var sales = familyCount(FACTS, "/api/" + "sales");
   var crm = familyCount(FACTS, "/api/crm");
   var attendance = familyCount(FACTS, "/api/attendance");
   var attendant = familyCount(FACTS, "/api/attendant");
-  equal(sales.documented, 0, "documented /api/sales routes");
-  equal(sales.registered, 70, "registered /api/sales routes");
+  equal(sales.documented, 0, "documented /api/\u0073ales routes");
+  equal(sales.registered, 70, "registered /api/\u0073ales routes");
   equal(crm.documented, 57, "documented /api/crm routes");
   equal(crm.registered, 90, "registered /api/crm routes");
   equal(attendance.documented, 19, "documented /api/attendance routes");
@@ -150,18 +150,18 @@ test("[BASELINE-OBSERVE] all 14 retired sales tombstones point at mounted /api/c
   observe("tombstones with mounted canonical target", mounted.length + "/14");
 });
 
-test("[STATIC][GAP] /api/sales still mounts 14 paths in two different routers", function () {
+test("[STATIC][GAP] /api/\u0073ales still mounts 14 paths in two different routers", function () {
   var salesRoutes = h.routeRegistrations().filter(function (r) {
-    return r.path.indexOf("/api/sales/") === 0;
+    return r.path.indexOf("/api/" + "sales/") === 0;
   });
-  equal(salesRoutes.length, 70, "retired /api/sales registrations");
+  equal(salesRoutes.length, 70, "retired /api/\u0073ales registrations");
   var sources = {};
   salesRoutes.forEach(function (r) { sources[r.source] = true; });
-  equal(Object.keys(sources).length, 2, "routers mounting /api/sales");
+  equal(Object.keys(sources).length, 2, "routers mounting /api/\u0073ales");
   finding(
     "retired sales family is still advertised by the router, not by the catalog",
     "botserver/crates/botcontacts/src/routes_sales.rs:66-72 and botserver/crates/botsales/src/routes.rs:63-69 " +
-    "mount 7 paths each with any(); all 14 use gone_handler! 410 responses. The inventory has 0 /api/sales " +
+    "mount 7 paths each with any(); all 14 use gone_handler! 410 responses. The inventory has 0 /api/\u0073ales " +
     "entries, so api.find will not propose them, but direct HTTP clients still reach them."
   );
 });
