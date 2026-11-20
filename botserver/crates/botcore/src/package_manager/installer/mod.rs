@@ -12,7 +12,6 @@ pub(crate) use crate::package_manager::os::detect_os;
 pub(crate) use crate::package_manager::{InstallMode, OsType};
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use log::{info, trace, warn};
-pub(crate) use std::io::Write;
 
 #[derive(Debug)]
 pub struct PackageManager {

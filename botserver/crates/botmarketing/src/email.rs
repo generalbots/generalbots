@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::campaigns::CrmCampaign;
 use crate::click_sign::{self, TrackingRecord};
 use crate::compliance::unsubscribe::UnsubscribeClaims;
 use crate::compliance::{build_unsubscribe_url, unsubscribe_headers, MarketingChannel};
