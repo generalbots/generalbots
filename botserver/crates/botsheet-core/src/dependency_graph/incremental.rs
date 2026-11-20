@@ -291,4 +291,67 @@ mod tests {
         assert_eq!(w.data.get("0,1").and_then(|c| c.value.as_deref()), Some("101"));
         assert_eq!(w.data.get("0,2").and_then(|c| c.value.as_deref()), Some("102"));
     }
+
+    #[test]
+    fn edit_adds_then_removes_cycle_edges_incrementally() {
+        let mut w = ws(&[("0,0", "=5"), ("0,1", "=A1+1")]);
+        let mut g = DepGraph::build(&w);
+        assert!(g.cycles().is_empty());
+        assert!(g.dependents[&(0, 0)].contains(&(0, 1)));
+
+        // Add the back-edge B1 -> A1: the two-cell cycle appears on this edit.
+        if let Some(c) = w.data.get_mut("0,0") {
+            c.formula = Some("=B1+1".to_string());
+        }
+        g.on_edit(&w, &[(0, 0)]);
+        assert_eq!(g.cycles().to_vec(), vec![(0, 0), (0, 1)]);
+        assert!(g.dependents[&(0, 1)].contains(&(0, 0)));
+
+        // Rewrite B1 as a literal: the cycle clears, the B1 -> A1 edge remains.
+        if let Some(c) = w.data.get_mut("0,1") {
+            c.formula = Some("=5".to_string());
+        }
+        g.on_edit(&w, &[(0, 1)]);
+        assert!(g.cycles().is_empty());
+        // B1 no longer reads A1, so A1's dependent B1 is removed; A1 still
+        // reads B1, so the surviving edge makes A1 a dependent of B1.
+        assert!(!g.dependents.contains_key(&(0, 0)));
+        assert!(g.dependents[&(0, 1)].contains(&(0, 0)));
+        assert_eq!(collect_dependents(&[(0, 0)], &g.dependents), vec![(0, 0)]);
+        assert_eq!(
+            collect_dependents(&[(0, 1)], &g.dependents),
+            vec![(0, 1), (0, 0)]
+        );
+    }
+
+    #[test]
+    fn self_cycle_added_and_cleared_by_incremental_edit() {
+        let mut w = ws(&[("0,0", "=5")]);
+        let mut g = DepGraph::build(&w);
+        assert!(g.cycles().is_empty());
+        if let Some(c) = w.data.get_mut("0,0") {
+            c.formula = Some("=A1+1".to_string());
+        }
+        g.on_edit(&w, &[(0, 0)]);
+        assert_eq!(g.cycles().to_vec(), vec![(0, 0)]);
+        if let Some(c) = w.data.get_mut("0,0") {
+            c.formula = Some("=5".to_string());
+        }
+        g.on_edit(&w, &[(0, 0)]);
+        assert!(g.cycles().is_empty());
+    }
+
+    #[test]
+    fn cached_graph_queries_do_not_mutate_worksheet_or_graph() {
+        let w: Worksheet = ws(&[("0,0", "=5"), ("0,1", "=A1+1"), ("0,2", "=B1+1")]);
+        let before = serde_json::to_string(&w).unwrap_or_default();
+        let built = DepGraph::build(&w);
+        let g: &DepGraph = &built;
+        let order = collect_dependents(&[(0, 0)], &g.dependents);
+        let cycles = find_cycles_in(&g.dependents);
+        assert_eq!(order, vec![(0, 0), (0, 1), (0, 2)]);
+        assert!(cycles.is_empty());
+        assert!(g.cycles().is_empty());
+        assert_eq!(serde_json::to_string(&w).unwrap_or_default(), before);
+    }
 }

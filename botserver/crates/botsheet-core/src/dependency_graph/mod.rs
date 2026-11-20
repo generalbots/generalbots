@@ -286,4 +286,146 @@ mod tests {
         assert!(cycles.contains(&(1, 0)));
         assert!(cycles.contains(&(1, 1)));
     }
+
+    /// Reverse walk over `referenced -> dependents`: every cell read by
+    /// `cell`, directly or through any number of intermediate formulas.
+    fn precedents_of(
+        graph: &HashMap<CellKey, HashSet<CellKey>>,
+        cell: CellKey,
+    ) -> HashSet<CellKey> {
+        let mut found = HashSet::new();
+        let mut queue = vec![cell];
+        while let Some(node) = queue.pop() {
+            for (&referenced, dependents) in graph {
+                if dependents.contains(&node) && found.insert(referenced) {
+                    queue.push(referenced);
+                }
+            }
+        }
+        found
+    }
+
+    #[test]
+    fn traces_five_level_precedent_chain_in_both_directions() {
+        let w = ws(&[
+            ("0,0", "=5"),
+            ("0,1", "=A1+1"),
+            ("0,2", "=B1+1"),
+            ("0,3", "=C1+1"),
+            ("0,4", "=D1+1"),
+        ]);
+        let graph = build_dependency_graph(&w);
+        let dependents = collect_dependents(&[(0, 0)], &graph);
+        assert_eq!(
+            dependents,
+            vec![(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
+        );
+        let precedents = precedents_of(&graph, (0, 4));
+        assert_eq!(
+            precedents,
+            HashSet::from([(0, 0), (0, 1), (0, 2), (0, 3)])
+        );
+        assert!(graph[&(0, 0)].contains(&(0, 1)));
+        assert!(graph[&(0, 3)].contains(&(0, 4)));
+        assert!(find_cycles(&w).is_empty());
+    }
+
+    #[test]
+    fn diamond_graph_reaches_dependent_through_both_paths_in_order() {
+        let w = ws(&[
+            ("0,0", "=5"),
+            ("0,1", "=A1+1"),
+            ("0,2", "=A1+2"),
+            ("0,3", "=B1+C1"),
+        ]);
+        let graph = build_dependency_graph(&w);
+        assert!(graph[&(0, 0)].contains(&(0, 1)));
+        assert!(graph[&(0, 0)].contains(&(0, 2)));
+        assert!(graph[&(0, 1)].contains(&(0, 3)));
+        assert!(graph[&(0, 2)].contains(&(0, 3)));
+        let order = collect_dependents(&[(0, 0)], &graph);
+        assert_eq!(order.len(), 4);
+        assert_eq!(order[0], (0, 0));
+        assert_eq!(order[3], (0, 3));
+        let position = |cell: CellKey| order.iter().position(|&k| k == cell).unwrap_or(usize::MAX);
+        assert!(position((0, 1)) < position((0, 3)));
+        assert!(position((0, 2)) < position((0, 3)));
+        assert_eq!(
+            precedents_of(&graph, (0, 3)),
+            HashSet::from([(0, 0), (0, 1), (0, 2)])
+        );
+    }
+
+    #[test]
+    fn finds_exact_members_of_three_cell_cycle() {
+        let w = ws(&[("0,0", "=B1+1"), ("0,1", "=C1+1"), ("0,2", "=A1+1")]);
+        assert_eq!(find_cycles(&w), vec![(0, 0), (0, 1), (0, 2)]);
+    }
+
+    #[test]
+    fn finds_self_reference_cycle() {
+        let w = ws(&[("0,0", "=A1+1")]);
+        assert_eq!(find_cycles(&w), vec![(0, 0)]);
+    }
+
+    #[test]
+    fn long_chain_terminates_without_cycle_false_positive() {
+        const DEPTH: u32 = 200;
+        let mut data = HashMap::new();
+        for row in 0..DEPTH {
+            let formula = if row == 0 {
+                "=1".to_string()
+            } else {
+                format!("=A{row}+1")
+            };
+            data.insert(format!("{row},0"), cell(Some(formula.as_str())));
+        }
+        let w = Worksheet {
+            data,
+            ..Worksheet::default()
+        };
+        let graph = build_dependency_graph(&w);
+        assert!(find_cycles(&w).is_empty());
+        let order = collect_dependents(&[(0, 0)], &graph);
+        assert_eq!(order.len(), DEPTH as usize);
+        assert_eq!(order.first().copied(), Some((0, 0)));
+        assert_eq!(order.last().copied(), Some((DEPTH - 1, 0)));
+    }
+
+    #[test]
+    fn typed_recalc_skips_reachable_cycle_members() {
+        let mut data = HashMap::new();
+        data.insert("0,0".to_string(), cell(Some("=10")));
+        data.insert("0,1".to_string(), cell(Some("=A1+C1")));
+        data.insert("0,2".to_string(), cell(Some("=B1+1")));
+        data.insert("0,3".to_string(), cell(Some("=A1+2")));
+        let mut w = Worksheet {
+            data,
+            ..Worksheet::default()
+        };
+        recalc_cascade_typed(&mut w, (0, 0), 1000);
+        assert_eq!(w.data.get("0,3").and_then(|c| c.value.as_deref()), Some("12"));
+        assert_eq!(w.data.get("0,1").and_then(|c| c.value.as_deref()), None);
+        assert_eq!(w.data.get("0,2").and_then(|c| c.value.as_deref()), None);
+        assert_eq!(find_cycles(&w), vec![(0, 1), (0, 2)]);
+    }
+
+    #[test]
+    fn audit_queries_are_read_only_on_shared_worksheet() {
+        let w = ws(&[("0,0", "=5"), ("0,1", "=A1+1"), ("0,2", "=B1+1")]);
+        let before = serde_json::to_string(&w).unwrap_or_default();
+        let sheet: &Worksheet = &w;
+        let graph = build_dependency_graph(sheet);
+        let cycles = find_cycles(sheet);
+        let order = collect_dependents(&[(0, 0)], &graph);
+        let refs = extract_referenced_cells("=A1+B1");
+        assert_eq!(order.len(), 3);
+        assert!(cycles.is_empty());
+        assert_eq!(refs.len(), 2);
+        assert_eq!(serde_json::to_string(&w).unwrap_or_default(), before);
+        assert_eq!(
+            w.data.get("0,1").and_then(|c| c.formula.as_deref()),
+            Some("=A1+1")
+        );
+    }
 }
