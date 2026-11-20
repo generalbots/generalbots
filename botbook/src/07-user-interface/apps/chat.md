@@ -449,6 +449,23 @@ ws://your-server:9000/ws
 
 ---
 
+## On a phone
+
+At widths up to 768 px the composer keeps a single **+** button. Tapping it
+opens a bottom sheet with four 52 px rows — **Camera**, **Photos**, **File** and
+**Voice**. Camera uses the device camera (`capture="environment"`), Photos
+opens an image-only picker, File attaches one or more documents, and Voice asks
+for microphone permission once through a consent card before recording. The
+legacy separate tool toggles stay visible on desktop.
+
+The composer follows the on-screen keyboard: its height is capped at
+`min(180px, 30% of the visible viewport)`, so it shrinks as the keyboard rises
+while the send button and the newest message remain in view. Tables and long
+code blocks in replies scroll inside their own bubble; they never create a
+page-level horizontal scrollbar. Optional modules (voice, camera, citations,
+sandbox, run timeline and similar) load with `defer`, so the transcript and
+composer are interactive before those modules finish.
+
 ## See Also
 
 - [HTMX Architecture](../htmx-architecture.md) — How Chat uses HTMX

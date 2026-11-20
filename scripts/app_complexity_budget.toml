@@ -70,9 +70,11 @@ loc = 3377
 
 [apps."chat"]
 # +1 module / +368: #gbgov UX port — model tags, provider groups, lazy KaTeX.
+# +1 module / +460: #2516 mobile media intake sheet + viewport/keyboard bridge
+# (four 52px rows, voice consent, deferred optional modules) — browser-UATed.
 routes = 30
-js_modules = 91
-loc = 27796
+js_modules = 92
+loc = 28256
 
 [apps."clock"]
 routes = 0
@@ -122,9 +124,10 @@ js_modules = 105
 loc = 19043
 
 [apps."drive"]
+# +12: #2510 localized the share-intake page (data-i18n + gbT catalogs).
 routes = 26
 js_modules = 34
-loc = 10755
+loc = 10767
 
 [apps."editor"]
 routes = 1
