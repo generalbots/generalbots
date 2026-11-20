@@ -1,4 +1,4 @@
-//! Grants the local app access to the microphone and camera on WebKitGTK.
+//! Routes WebKitGTK user-media permission requests on the desktop shell (#2504).
 //!
 //! wry keeps WebKitGTK's MediaStream/WebRTC settings disabled by default, and
 //! WebKitGTK never shows a browser-style permission prompt. Without both the
@@ -8,17 +8,22 @@
 //! which the chat camera reports as a black preview (#2106), so every decision
 //! is logged: the desktop log then says whether the WebView even asked.
 //!
-//! #2504 — WebKitGTK 2.0 does not expose the requesting security origin on a
-//! `UserMediaPermissionRequest`. In `webkit2gtk` 2.0.2 the request only
-//! implements `PermissionRequest` (`allow`/`deny`) plus the
-//! `is-for-audio-device` / `is-for-video-device` properties; the
-//! `permission-request` signal carries just the WebView and the request. There
-//! is no `security_origin()`, `uri()` or parent-frame getter on it. The
-//! strictest available check is therefore the WebView's top-level URI
-//! (`WebViewExt::uri()`). A foreign origin embedded in an iframe of an owned
-//! page cannot be distinguished with this API: `Permissions-Policy` on the
-//! served pages is the complementary defence.
+//! #2504 hardening: a request is granted only when the WebView's top-level URI
+//! resolves to a first-party origin — the shell's bundled origins, localhost
+//! (debug plain HTTP, release HTTPS), the product domains documented in
+//! AGENTS.md over HTTPS, or an exact origin explicitly named in
+//! `GB_MEDIA_ORIGINS`. Every other origin is denied and logged. WebKitGTK 2.0
+//! does not expose the requesting frame's security origin on a
+//! `UserMediaPermissionRequest`, so a foreign iframe inside an owned page
+//! cannot be distinguished with this API; `Permissions-Policy` on the served
+//! pages is the complementary defence. There is no WebKitGTK prompt or
+//! capture-indicator API either: each grant is published as a structured Tauri
+//! event for the shell UI to render, in addition to the audit log. The tray
+//! LED convention, Settings → Privacy revocation and the UI listener are
+//! separate surfaces and are not implemented by this handler.
 
+use serde_json::json;
+use tauri::{Emitter, Manager};
 use webkit2gtk::glib::prelude::Cast;
 use webkit2gtk::{
     PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt,
@@ -28,16 +33,52 @@ use webkit2gtk::{
 /// Name of the plugin, also the prefix of its log lines.
 const PLUGIN_NAME: &str = "generalbots-webkit-permissions";
 
-/// The only origins the shell owns in a release build (#2504).
-///
-/// Tauri serves the bundled UI from `tauri://localhost` on Linux/Windows and
-/// `https://tauri.localhost` on macOS. Everything else — mail bodies,
-/// marketplace apps, LLM-rendered HTML, arbitrary links — is denied.
-const OWNED_ORIGINS: &[&str] = &["tauri://localhost", "https://tauri.localhost"];
+/// Origins of the bundled UI: Tauri's custom scheme on Linux/Windows and its
+/// HTTPS alias on macOS. Exact matches only; no subdomains or ports.
+const BUNDLED_ORIGINS: &[&str] = &["tauri://localhost", "https://tauri.localhost"];
 
-/// Tauri's dev server (`devUrl` in `tauri.conf.json`), trusted only in debug
-/// builds; a release binary must never grant media to a plain-HTTP origin.
+/// First-party product hosts from AGENTS.md. Remote content (mail bodies,
+/// marketplace apps, LLM-generated HTML) lives on other hosts and is denied.
+const PRODUCT_HOSTS: &[&str] = &[
+    "pragmatismo.com.br",
+    "cloud.pragmatismo.com.br",
+    "chat.pragmatismo.com.br",
+    "login.pragmatismo.com.br",
+    "generalbots.org",
+];
+
+/// Bot workspaces are hosted as `https://{bot}.generalbots.org/…`. Only one
+/// DNS label is accepted below the suffix, so `a.b.generalbots.org` and
+/// `generalbots.org.evil.example` never match.
+const BOT_SUBDOMAIN_SUFFIX: &str = ".generalbots.org";
+
+/// Local suite/cloud/login/API ports documented in AGENTS.md. Plain HTTP is
+/// trusted only in debug builds; a release binary never grants media to it.
+const LOCAL_PORTS: &[u16] = &[3000, 4000, 5000, 8080];
+
+/// Tauri's dev server (`devUrl` in `tauri.conf.json`).
 const DEV_ORIGIN: &str = "http://localhost:3000";
+
+/// Optional, operator-controlled extension of the allowlist: a comma-separated
+/// list of exact `scheme://authority` origins. Never a wildcard or an IP.
+const MEDIA_ORIGINS_ENV: &str = "GB_MEDIA_ORIGINS";
+
+/// Structured, local-only event carrying each media grant to the shell UI.
+/// It contains no UI text: rendering and localisation belong to the consumer.
+const MEDIA_GRANT_EVENT: &str = "gb-media-grant";
+
+/// The outcome of a user-media request, computed without touching WebKit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MediaDecision {
+    /// Neither audio nor video was requested: not a media permission at all.
+    DenyNoDevice,
+    /// The top-level page URI is missing or not an absolute hierarchical URI.
+    DenyUnparseable,
+    /// The page origin is not a first-party origin.
+    DenyForeign,
+    /// The page origin is first-party and audio/video was requested.
+    Grant,
+}
 
 /// Returns the `scheme://authority` prefix of a page URI, or `None` when the
 /// string is not an absolute hierarchical URI. Path, query and fragment are
@@ -60,20 +101,117 @@ fn origin_of(uri: &str) -> Option<&str> {
     uri.get(..end)
 }
 
-/// Whether an origin (as returned by [`origin_of`]) belongs to the shell.
-///
-/// A helper over a plain string keeps the decision unit-testable without a
-/// live WebView. It takes an already-normalized origin, not a full page URI.
-fn origin_allowed(origin: &str) -> bool {
-    let owned = OWNED_ORIGINS
-        .iter()
-        .any(|allowed| origin.eq_ignore_ascii_case(allowed));
-    owned || (cfg!(debug_assertions) && origin.eq_ignore_ascii_case(DEV_ORIGIN))
+/// Splits an authority into host and explicit port. An unparsable port makes
+/// the whole authority the host, so the string cannot match an allowlist entry.
+fn split_authority(authority: &str) -> (&str, Option<u16>) {
+    if let Some(rest) = authority.strip_prefix('[') {
+        if let Some((host, tail)) = rest.split_once(']') {
+            let port = tail.strip_prefix(':').and_then(|value| value.parse().ok());
+            return (host, port);
+        }
+        return (rest, None);
+    }
+    if let Some((host, port)) = authority.rsplit_once(':') {
+        if let Ok(port) = port.parse::<u16>() {
+            return (host, Some(port));
+        }
+    }
+    (authority, None)
 }
 
-/// Replaces an IP-literal host with `<ip>` before it is written to the log
-/// (AGENTS.md: no internal IPs in logs). Named hosts, including `localhost`,
-/// are kept because they are the useful part of the audit trail.
+/// Whether a host is a documented product host or a single-label bot workspace
+/// under `generalbots.org`. Matching is case-insensitive and exact: a suffix
+/// attack like `evil.pragmatismo.com.br` never grants media.
+fn product_host_allowed(host: &str) -> bool {
+    let lower = host.to_ascii_lowercase();
+    if PRODUCT_HOSTS.iter().any(|allowed| lower.as_str() == *allowed) {
+        return true;
+    }
+    match lower.strip_suffix(BOT_SUBDOMAIN_SUFFIX) {
+        Some(label) => {
+            !label.is_empty()
+                && !label.contains('.')
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+        }
+        None => false,
+    }
+}
+
+/// Pure allowlist decision over a normalised origin. `extra` is the parsed
+/// `GB_MEDIA_ORIGINS` list; `debug` makes the plain-HTTP dev origin explicit so
+/// the policy is testable in either build profile.
+fn origin_allowed(origin: &str, extra: &[String], debug: bool) -> bool {
+    if extra
+        .iter()
+        .any(|allowed| allowed.eq_ignore_ascii_case(origin))
+        || BUNDLED_ORIGINS
+            .iter()
+            .any(|allowed| origin.eq_ignore_ascii_case(allowed))
+    {
+        return true;
+    }
+    let Some((scheme, authority)) = origin.split_once("://") else {
+        return false;
+    };
+    let (host, port) = split_authority(authority);
+    let local = host.eq_ignore_ascii_case("localhost");
+    match (scheme, local) {
+        ("https", true) => port.is_none() || port.is_some_and(|value| LOCAL_PORTS.contains(&value)),
+        ("http", true) => debug && port.is_some_and(|value| LOCAL_PORTS.contains(&value)),
+        ("https", false) => product_host_allowed(host) && (port.is_none() || port == Some(443)),
+        _ => false,
+    }
+}
+
+/// The whole permission decision, independent of WebKit so it can be tested
+/// offline. Device type is checked first: a harmless permission never grants.
+fn decide(
+    page_uri: Option<&str>,
+    audio: bool,
+    video: bool,
+    extra: &[String],
+    debug: bool,
+) -> MediaDecision {
+    if !audio && !video {
+        return MediaDecision::DenyNoDevice;
+    }
+    let Some(page_uri) = page_uri else {
+        return MediaDecision::DenyUnparseable;
+    };
+    let Some(origin) = origin_of(page_uri) else {
+        return MediaDecision::DenyUnparseable;
+    };
+    if origin_allowed(origin, extra, debug) {
+        MediaDecision::Grant
+    } else {
+        MediaDecision::DenyForeign
+    }
+}
+
+/// Parses the optional operator override into exact normalised origins. An
+/// empty, malformed or IP-literal entry is simply ignored (fail-closed).
+fn configured_extra_origins() -> Vec<String> {
+    let Ok(raw) = std::env::var(MEDIA_ORIGINS_ENV) else {
+        return Vec::new();
+    };
+    raw.split(',')
+        .filter_map(|entry| {
+            let origin = origin_of(entry.trim())?;
+            let (_, authority) = origin.split_once("://")?;
+            let (host, _) = split_authority(authority);
+            if host.parse::<std::net::IpAddr>().is_ok() {
+                return None;
+            }
+            Some(origin.to_string())
+        })
+        .collect()
+}
+
+/// Replaces an IP-literal host with `<ip>` before it is written to the log or
+/// the indicator event (AGENTS.md: no internal IPs in logs). Named hosts,
+/// including `localhost`, are kept because they are the useful audit trail.
 fn redacted(origin: &str) -> String {
     let Some((scheme, authority)) = origin.split_once("://") else {
         return "<unknown>".to_string();
@@ -90,6 +228,20 @@ fn redacted(origin: &str) -> String {
     }
 }
 
+/// Publishes a grant to the shell UI without adding any localised text to the
+/// WebKit handler. The consumer owns the visible badge and its translations.
+fn publish_grant<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    origin: &str,
+    audio: bool,
+    video: bool,
+) {
+    let payload = json!({ "origin": origin, "audio": audio, "video": video });
+    if let Err(e) = app.emit(MEDIA_GRANT_EVENT, payload) {
+        log::warn!("{PLUGIN_NAME}: could not publish the media grant indicator: {e}");
+    }
+}
+
 /// Builds the plugin that enables MediaStream/WebRTC and answers the
 /// user-media permission requests raised by the desktop WebView.
 pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -100,6 +252,7 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .on_webview_ready(|webview| {
+            let app = webview.app_handle().clone();
             let result = webview.with_webview(|platform| {
                 let wk = platform.inner();
 
@@ -117,7 +270,7 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
                     ),
                 }
 
-                wk.connect_permission_request(|wv, request| {
+                wk.connect_permission_request(move |wv, request| {
                     let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() else {
                         // Leave geolocation, notifications and other requests
                         // to their own handlers.
@@ -126,37 +279,43 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 
                     let audio = media.is_for_audio_device();
                     let video = media.is_for_video_device();
-                    if !audio && !video {
-                        media.deny();
-                        log::warn!(
-                            "{PLUGIN_NAME}: AUDIT media-deny origin=<unknown> reason=no-device audio={audio} video={video}"
-                        );
-                        return true;
-                    }
+                    let extra = configured_extra_origins();
+                    let page_uri = wv.uri();
+                    let decision = decide(page_uri.as_deref(), audio, video, &extra, cfg!(debug_assertions));
+                    let origin = page_uri
+                        .as_deref()
+                        .and_then(origin_of)
+                        .unwrap_or("<unknown>");
 
-                    // #2504 — WebKit cannot tell us the request's own origin,
-                    // so use the top-level page URI and never log the full URI
-                    // (its query string may carry a token).
-                    let page_uri = wv.uri().map(|value| value.to_string()).unwrap_or_default();
-                    let Some(origin) = origin_of(&page_uri) else {
-                        media.deny();
-                        log::warn!(
-                            "{PLUGIN_NAME}: AUDIT media-deny origin=<unknown> reason=unparseable audio={audio} video={video}"
-                        );
-                        return true;
-                    };
-                    if !origin_allowed(origin) {
-                        media.deny();
-                        log::warn!(
-                            "{PLUGIN_NAME}: AUDIT media-deny origin={} reason=foreign audio={audio} video={video}",
-                            redacted(origin)
-                        );
-                        return true;
+                    match decision {
+                        MediaDecision::DenyNoDevice => {
+                            media.deny();
+                            log::warn!(
+                                "{PLUGIN_NAME}: AUDIT media-deny origin={origin} reason=no-device audio={audio} video={video}"
+                            );
+                        }
+                        MediaDecision::DenyUnparseable => {
+                            media.deny();
+                            log::warn!(
+                                "{PLUGIN_NAME}: AUDIT media-deny origin=<unknown> reason=unparseable audio={audio} video={video}"
+                            );
+                        }
+                        MediaDecision::DenyForeign => {
+                            media.deny();
+                            log::warn!(
+                                "{PLUGIN_NAME}: AUDIT media-deny origin={} reason=foreign audio={audio} video={video}",
+                                redacted(origin)
+                            );
+                        }
+                        MediaDecision::Grant => {
+                            media.allow();
+                            let safe_origin = redacted(origin);
+                            log::info!(
+                                "{PLUGIN_NAME}: AUDIT media-grant origin={safe_origin} audio={audio} video={video}"
+                            );
+                            publish_grant(&app, &safe_origin, audio, video);
+                        }
                     }
-                    media.allow();
-                    log::info!(
-                        "{PLUGIN_NAME}: AUDIT media-grant origin={origin} audio={audio} video={video}"
-                    );
                     true
                 });
             });
@@ -169,70 +328,4 @@ pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{origin_allowed, origin_of, redacted, DEV_ORIGIN, OWNED_ORIGINS};
-
-    #[test]
-    fn owned_origins_are_allowed() {
-        for origin in OWNED_ORIGINS {
-            assert!(
-                origin_allowed(origin),
-                "owned origin {origin} must be allowed"
-            );
-            assert!(
-                origin_allowed(&origin.to_ascii_uppercase()),
-                "origin comparison must be case-insensitive"
-            );
-        }
-    }
-
-    #[test]
-    fn dev_origin_is_trusted_only_in_debug_builds() {
-        assert_eq!(origin_allowed(DEV_ORIGIN), cfg!(debug_assertions));
-    }
-
-    #[test]
-    fn foreign_origins_are_denied() {
-        let foreign = [
-            "https://mail.example.com",
-            "https://evil.example",
-            "https://tauri.localhost.evil.example",
-            "tauri://evil.example",
-            "http://localhost",
-            "http://localhost:3001",
-            "http://127.0.0.1:8080",
-            "file://",
-            "",
-        ];
-        for origin in foreign {
-            assert!(
-                !origin_allowed(origin),
-                "foreign origin {origin} must be denied"
-            );
-        }
-    }
-
-    #[test]
-    fn origin_of_normalizes_page_uris() {
-        assert_eq!(
-            origin_of("tauri://localhost/suite/desktop.html"),
-            Some("tauri://localhost")
-        );
-        assert_eq!(
-            origin_of("https://tauri.localhost/suite/desktop.html?q=x#frag"),
-            Some("https://tauri.localhost")
-        );
-        assert_eq!(origin_of("http://user:secret@localhost:3000/"), None);
-        assert_eq!(origin_of("not a uri"), None);
-    }
-
-    #[test]
-    fn ip_literals_are_masked_in_logs() {
-        assert_eq!(redacted("http://10.0.0.1:8080"), "http://<ip>");
-        assert_eq!(redacted("https://[::1]:3000"), "https://<ip>");
-        assert_eq!(
-            redacted("https://mail.example.com"),
-            "https://mail.example.com"
-        );
-    }
-}
+mod tests;
