@@ -17,6 +17,12 @@ use crate::segment::{
 };
 use crate::state::AppState;
 
+/// Sanitised HTTP error body for this module's handlers. Every internal failure
+/// reaches this tuple through `internal_error`, which calls
+/// `log_and_sanitize_str` first; validation failures carry typed `SegmentError`
+/// JSON. Named once so the #2414 migration to a typed envelope stays local.
+type ApiError = (StatusCode, String);
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
 #[diesel(table_name = marketing_lists)]
 pub struct MarketingList {
@@ -60,20 +66,20 @@ pub struct PreviewListRequest {
     pub segment: Option<Segment>,
 }
 
-fn internal_error(error: &dyn std::fmt::Display, context: &str) -> (StatusCode, String) {
+fn internal_error(error: &dyn std::fmt::Display, context: &str) -> ApiError {
     let sanitized =
         botsecurity_core::error_sanitizer::log_and_sanitize_str(&error.to_string(), context, None);
     (StatusCode::INTERNAL_SERVER_ERROR, sanitized.error)
 }
 
-fn validation_error(error: &SegmentError) -> (StatusCode, String) {
+fn validation_error(error: &SegmentError) -> ApiError {
     (
         StatusCode::BAD_REQUEST,
         serde_json::to_string(error).unwrap_or_else(|_| error.to_string()),
     )
 }
 
-fn segment_error(error: &SegmentStoreError) -> (StatusCode, String) {
+fn segment_error(error: &SegmentStoreError) -> ApiError {
     match error {
         SegmentStoreError::Validation(validation) => validation_error(validation),
         SegmentStoreError::Database(database) => internal_error(database, "segment_database"),
@@ -97,7 +103,7 @@ fn catch_all_segment() -> Segment {
 
 pub async fn list_lists(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<MarketingList>>, (StatusCode, String)> {
+) -> Result<Json<Vec<MarketingList>>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "list_lists_pool"))?;
     let (_, branch_id, _) = state.get_scope();
 
@@ -113,7 +119,7 @@ pub async fn list_lists(
 pub async fn get_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<MarketingList>, (StatusCode, String)> {
+) -> Result<Json<MarketingList>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "get_list_pool"))?;
 
     let list: MarketingList = marketing_lists::table
@@ -127,7 +133,7 @@ pub async fn get_list(
 pub async fn create_list(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateListRequest>,
-) -> Result<Json<MarketingList>, (StatusCode, String)> {
+) -> Result<Json<MarketingList>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "create_list_pool"))?;
     let (_, branch_id, _) = state.get_scope();
 
@@ -175,7 +181,7 @@ pub async fn update_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateListRequest>,
-) -> Result<Json<MarketingList>, (StatusCode, String)> {
+) -> Result<Json<MarketingList>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "update_list_pool"))?;
     let now = Utc::now();
 
@@ -232,7 +238,7 @@ pub async fn update_list(
 pub async fn delete_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "delete_list_pool"))?;
 
     diesel::delete(marketing_lists::table.filter(marketing_lists::id.eq(id)))
@@ -247,7 +253,7 @@ pub async fn delete_list(
 pub async fn refresh_marketing_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "refresh_pool"))?;
     let (_, branch_id, _) = state.get_scope();
 
@@ -284,7 +290,7 @@ pub async fn preview_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     body: Option<Json<PreviewListRequest>>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "preview_pool"))?;
     let (_, branch_id, _) = state.get_scope();
 
@@ -323,7 +329,7 @@ pub async fn segment_fields() -> Json<Value> {
 pub async fn segment_preview(
     State(state): State<Arc<AppState>>,
     Json(request): Json<WirePreviewRequest>,
-) -> Result<Json<Value>, (StatusCode, String)> {
+) -> Result<Json<Value>, ApiError> {
     let mut conn = state.conn.get().map_err(|e| internal_error(&e, "segment_preview_pool"))?;
     let (_, branch_id, _) = state.get_scope();
     let preview = segment::preview_wire_segment(&mut conn, branch_id, &request.segment)
