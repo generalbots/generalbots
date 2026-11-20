@@ -1,0 +1,63 @@
+{
+  "issue": 2495,
+  "note": "Shrink-only ceilings for the six debt metrics. Lower is always accepted; raising one fails the guard. defer_async is informational adoption, not gated.",
+  "stated_budget": {
+    "compressed_js_kb": 350,
+    "compressed_css_kb": 120,
+    "viewport_px": 390
+  },
+  "stated_budget_note": "Target from issue #2495 (Lighthouse, compressed, 390px). This guard counts uncompressed local bytes only and does not enforce the compressed figures.",
+  "metric_notes": {
+    "script_src": "parser-blocking <script src> tags",
+    "stylesheet": "render-blocking <link rel=stylesheet> tags",
+    "inline_script": "<script> blocks with no src",
+    "js_bytes": "uncompressed on-disk bytes of local script srcs",
+    "css_bytes": "uncompressed on-disk bytes of local stylesheet hrefs",
+    "blocking_script_src": "script_src tags with no defer/async (gated budget)",
+    "defer_async": "script tags with defer/async (adoption; higher is better)"
+  },
+  "surfaces": {
+    "desktop": {
+      "files": [
+        "botui/ui/suite/desktop.html"
+      ],
+      "counts": {
+        "script_src": 96,
+        "stylesheet": 37,
+        "inline_script": 1,
+        "js_bytes": 877037,
+        "css_bytes": 163284,
+        "blocking_script_src": 96
+      }
+    },
+    "chat": {
+      "files": [
+        "botui/ui/suite/partials/chat.html"
+      ],
+      "counts": {
+        "script_src": 54,
+        "stylesheet": 22,
+        "inline_script": 1,
+        "js_bytes": 751526,
+        "css_bytes": 126247,
+        "blocking_script_src": 54
+      }
+    },
+    "all_pages": {
+      "files": [
+        "botui/ui/suite/designer.html",
+        "botui/ui/suite/desktop.html",
+        "botui/ui/suite/editor.html",
+        "botui/ui/suite/login.html"
+      ],
+      "counts": {
+        "script_src": 110,
+        "stylesheet": 42,
+        "inline_script": 2,
+        "js_bytes": 1024613,
+        "css_bytes": 176982,
+        "blocking_script_src": 110
+      }
+    }
+  }
+}
