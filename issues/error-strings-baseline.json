@@ -1,0 +1,9 @@
+{
+  "issue": 2414,
+  "pattern": "(StatusCode, String)",
+  "scope": [
+    "botserver/src",
+    "botserver/crates"
+  ],
+  "total": 716
+}

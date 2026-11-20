@@ -14,10 +14,11 @@ use crate::policy::{PolicyConfig, TASK_KIND_CHECKOUT, TASK_KIND_DEFAULT};
 use crate::tasks::{self, StepResult, TaskError};
 use axum::{
     extract::{Path, Query, State},
-    http::{HeaderMap, StatusCode},
+    http::HeaderMap,
     response::sse::{Event, KeepAlive, Sse},
     Json,
 };
+use botsecurity_core::error_sanitizer::{log_and_sanitize_str, SafeErrorResponse};
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -33,21 +34,24 @@ const GLOBAL_SCOPE_USER: Uuid = Uuid::nil();
 
 pub type SharedService = Arc<crate::BrowserPolicyService>;
 
-fn api_error(context: &str, e: &TaskError) -> (StatusCode, String) {
-    tracing::error!("browser policy {context}: {e}");
+/// Maps a task error to the shared sanitised envelope. Storage/driver detail
+/// goes through `log_and_sanitize_str` so it is logged in full but never
+/// returned; the other arms carry only deliberate, client-facing text.
+fn api_error(context: &str, e: &TaskError) -> SafeErrorResponse {
     match e {
-        TaskError::NotFound => (StatusCode::NOT_FOUND, "Browser task not found".to_string()),
+        TaskError::NotFound => SafeErrorResponse::not_found("Browser task"),
         TaskError::InvalidState(_) | TaskError::Policy(_) | TaskError::Budget(_) => {
-            (StatusCode::CONFLICT, "Task state rejected".to_string())
+            tracing::error!("browser policy {context}: {e}");
+            SafeErrorResponse::conflict("Task state rejected")
         }
         TaskError::Db(_) | TaskError::Memory(_) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
+            log_and_sanitize_str(&e.to_string(), context, None)
         }
     }
 }
 
-fn unauthorized() -> (StatusCode, String) {
-    (StatusCode::UNAUTHORIZED, "Authentication required".to_string())
+fn unauthorized() -> SafeErrorResponse {
+    SafeErrorResponse::unauthorized()
 }
 
 /// Identity of a **verified** Bearer token.
@@ -55,13 +59,13 @@ fn unauthorized() -> (StatusCode, String) {
 /// #2112 — there is no fallback path: a token that cannot be verified
 /// (malformed, `alg:none`, tampered, foreign key, expired, no subject) yields
 /// no claims, so the request is refused before any policy decision is taken.
-fn verified_user_id(token: &str) -> Result<Uuid, (StatusCode, String)> {
+fn verified_user_id(token: &str) -> Result<Uuid, SafeErrorResponse> {
     let claims = verified_claims(token).ok_or_else(unauthorized)?;
     Uuid::parse_str(&claims.sub)
-        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token subject".to_string()))
+        .map_err(|_| SafeErrorResponse::new("unauthorized", "Invalid token subject"))
 }
 
-fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
+fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, SafeErrorResponse> {
     let token = bearer_token(headers).ok_or_else(unauthorized)?;
     verified_user_id(token)
 }
@@ -72,7 +76,7 @@ fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
 fn resolve_user_id_sse(
     headers: &HeaderMap,
     token_param: &str,
-) -> Result<Uuid, (StatusCode, String)> {
+) -> Result<Uuid, SafeErrorResponse> {
     let header_token = bearer_token(headers).unwrap_or_default();
     let token = if header_token.is_empty() {
         token_param.trim()
@@ -86,13 +90,13 @@ fn resolve_user_id_sse(
 ///
 /// `Ok(None)` = verified token without an `email` claim (never an admin);
 /// `Err(401)` = the token cannot be verified, so the gate fails closed.
-fn verified_email(headers: &HeaderMap) -> Result<Option<String>, (StatusCode, String)> {
+fn verified_email(headers: &HeaderMap) -> Result<Option<String>, SafeErrorResponse> {
     let token = bearer_token(headers).ok_or_else(unauthorized)?;
     let claims = verified_claims(token).ok_or_else(unauthorized)?;
     Ok(claims.email)
 }
 
-fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, (StatusCode, String)> {
+fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, SafeErrorResponse> {
     // #2112 — the admin decision is made on a **signature-verified** email
     // claim. The previous path read `email` straight out of the decoded
     // payload, so a forged `alg:none` token could name `admin@localhost` and
@@ -103,12 +107,10 @@ fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, (Sta
     // Canonical platform-admin check (#1387) — same root-org membership
     // model as drive tenant isolation and botcloud admin gates.
     let mut conn = svc.pool().get().map_err(|e| {
-        tracing::error!("browser policy admin check: pool unavailable: {e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
+        log_and_sanitize_str(&e.to_string(), "browser policy admin check: pool unavailable", None)
     })?;
     botsecurity_auth::platform_admin::is_platform_admin_for_email(&mut conn, &email).map_err(|e| {
-        tracing::error!("browser policy admin check query failed: {e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
+        log_and_sanitize_str(&e.to_string(), "browser policy admin check query failed", None)
     })
 }
 
@@ -128,16 +130,16 @@ pub async fn create_task_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
     Json(body): Json<CreateTaskBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     let user_id = resolve_user_id(&headers)?;
     if body.goal.trim().is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Goal must not be empty".to_string()));
+        return Err(SafeErrorResponse::bad_request("Goal must not be empty"));
     }
     let task_kind = match body.task_kind.as_deref() {
         None | Some(TASK_KIND_DEFAULT) => TASK_KIND_DEFAULT,
         Some(TASK_KIND_CHECKOUT) => TASK_KIND_CHECKOUT,
         Some(other) => {
-            return Err((StatusCode::BAD_REQUEST, format!("Unknown task kind '{other}'")))
+            return Err(SafeErrorResponse::bad_request(format!("Unknown task kind '{other}'")))
         }
     };
     let t = tasks::create_task(
@@ -166,7 +168,7 @@ pub async fn list_tasks_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
     Query(q): Query<ListQuery>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     let user_id = resolve_user_id(&headers)?;
     let items = tasks::list_user_tasks(svc.pool(), user_id, q.limit.unwrap_or(50))
         .map_err(|e| api_error("list tasks", &e))?;
@@ -178,21 +180,21 @@ async fn control(
     headers: HeaderMap,
     task_id: Uuid,
     f: fn(&tasks::DbPool, Uuid) -> Result<crate::models::BrowserTask, TaskError>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     resolve_user_id(&headers)?;
     let t = f(svc.pool(), task_id).map_err(|e| api_error("task control", &e))?;
     Ok(Json(serde_json::json!({ "status": t.status })))
 }
 
-pub async fn pause_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn pause_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     control(svc, headers, id, tasks::pause_task).await
 }
 
-pub async fn resume_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn resume_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     control(svc, headers, id, tasks::resume_task).await
 }
 
-pub async fn cancel_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+pub async fn cancel_handler(State(svc): State<SharedService>, headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     control(svc, headers, id, tasks::cancel_task).await
 }
 
@@ -220,7 +222,7 @@ pub async fn advance_handler(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(body): Json<AdvanceBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     resolve_user_id(&headers)?;
     let (_, recorded) = tasks::advance_task(
         svc.pool(),
@@ -251,7 +253,7 @@ pub async fn finish_handler(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(body): Json<FinishBody>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     resolve_user_id(&headers)?;
     let t = tasks::finish_task(svc.pool(), id, body.result, body.citations)
         .map_err(|e| api_error("finish", &e))?;
@@ -285,7 +287,7 @@ pub async fn task_events(
     headers: HeaderMap,
     Path(task_id): Path<Uuid>,
     Query(query): Query<std::collections::HashMap<String, String>>,
-) -> Result<Sse<impl futures::Stream<Item = Result<Event, std::convert::Infallible>>>, (StatusCode, String)>
+) -> Result<Sse<impl futures::Stream<Item = Result<Event, std::convert::Infallible>>>, SafeErrorResponse>
 {
     resolve_user_id_sse(
         &headers,
@@ -321,7 +323,7 @@ pub async fn memory_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
     Query(q): Query<MemoryQuery>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     let user_id = resolve_user_id(&headers)?;
     let items = crate::memory::top_facts(svc.pool(), user_id, q.limit.unwrap_or(50))
         .map_err(|e| api_error("memory", &TaskError::Memory(e)))?;
@@ -331,7 +333,7 @@ pub async fn memory_handler(
 pub async fn delete_memory_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     let user_id = resolve_user_id(&headers)?;
     let removed = crate::memory::purge_user(svc.pool(), user_id)
         .map_err(|e| api_error("purge memory", &TaskError::Memory(e)))?;
@@ -359,9 +361,12 @@ fn read_global_policy(svc: &SharedService) -> PolicyConfig {
 pub async fn get_policy_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     if !is_super_admin(&svc, &headers)? {
-        return Err((StatusCode::FORBIDDEN, "Administrator access required".to_string()));
+        return Err(SafeErrorResponse::new(
+            "forbidden",
+            "Administrator access required",
+        ));
     }
     let cfg = read_global_policy(&svc);
     Ok(Json(serde_json::to_value(&cfg).unwrap_or_else(|_| serde_json::json!({}))))
@@ -371,18 +376,20 @@ pub async fn put_policy_handler(
     State(svc): State<SharedService>,
     headers: HeaderMap,
     Json(cfg): Json<PolicyConfig>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, SafeErrorResponse> {
     if !is_super_admin(&svc, &headers)? {
-        return Err((StatusCode::FORBIDDEN, "Administrator access required".to_string()));
+        return Err(SafeErrorResponse::new(
+            "forbidden",
+            "Administrator access required",
+        ));
     }
     use crate::schema::user_preferences::dsl as up;
 
     let value = serde_json::to_value(&cfg)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid policy document".to_string()))?;
-    let mut conn = svc
-        .pool()
-        .get()
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string()))?;
+        .map_err(|_| SafeErrorResponse::bad_request("Invalid policy document"))?;
+    let mut conn = svc.pool().get().map_err(|e| {
+        log_and_sanitize_str(&e.to_string(), "browser policy persist: pool unavailable", None)
+    })?;
     diesel::insert_into(up::user_preferences)
         .values((
             up::id.eq(Uuid::new_v4()),
@@ -394,10 +401,7 @@ pub async fn put_policy_handler(
         .do_update()
         .set((up::preference_value.eq(value.clone()), up::updated_at.eq(diesel::dsl::now)))
         .execute(&mut conn)
-        .map_err(|e| {
-            tracing::error!("browser policy persist failed: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
-        })?;
+        .map_err(|e| log_and_sanitize_str(&e.to_string(), "browser policy persist failed", None))?;
     Ok(Json(value))
 }
 
