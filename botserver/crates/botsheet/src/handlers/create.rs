@@ -106,7 +106,7 @@ fn cell_text(value: &Value) -> String {
 }
 
 /// Builds the stored cell for one text value, evaluating `=FORMULA` in place.
-fn cell_from_text(text: &str, worksheets: &[Worksheet], index: usize) -> CellData {
+pub(crate) fn cell_from_text(text: &str, worksheets: &[Worksheet], index: usize) -> CellData {
     if text.starts_with('=') {
         let result = botsheet_core::engine::evaluate_typed_in(text, worksheets, index);
         return CellData {

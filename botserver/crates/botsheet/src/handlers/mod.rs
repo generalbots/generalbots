@@ -1,6 +1,7 @@
 pub mod advanced;
 pub mod advanced_ranges;
 pub mod ai;
+pub mod cash_flow;
 pub mod cell_ops;
 pub mod cell_structure;
 pub mod comments;

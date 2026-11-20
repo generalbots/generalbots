@@ -13,6 +13,7 @@ use crate::handlers::advanced_ranges::{
     handle_delete_named_range, handle_list_named_ranges, handle_update_named_range,
 };
 use crate::handlers::ai::{handle_batch_evaluate_ai, handle_evaluate_ai_prompt, handle_sheet_ai};
+use crate::handlers::cash_flow::handle_create_cash_flow;
 use crate::handlers::cell_ops::{
     handle_evaluate_formula, handle_format_cells, handle_update_cell,
 };
@@ -79,6 +80,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/export", post(handle_export_sheet))
         .route("/api/sheet/share", post(handle_share_sheet))
         .route("/api/sheet/new", get(handle_new_sheet).post(handle_create_sheet))
+        .route("/api/sheet/cash-flow", post(handle_create_cash_flow))
         .route("/api/sheet/cells", post(handle_set_cells))
         .route("/api/sheet/merge", post(handle_merge_cells))
         .route("/api/sheet/unmerge", post(handle_unmerge_cells))
