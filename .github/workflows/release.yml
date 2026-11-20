@@ -474,6 +474,15 @@ jobs:
           PKG="generalbots-${VERSION}-linux-x86_64"
           REPO_ROOT="$PWD"
 
+          cleanup_provision() {
+            cd "$REPO_ROOT" || true
+            # Stop stack services a previous attempt may have left running/bound to ports.
+            pkill -f 'botserver|llama-server|llama\.cpp|vault server|postgres|pg_ctl|postmaster|valkey-server|redis-server|minio server|minio|qdrant|zitadel' 2>/dev/null || true
+            sleep 3
+            pkill -9 -f 'botserver|llama-server|llama\.cpp|vault server|postgres|pg_ctl|postmaster|valkey-server|redis-server|minio server|minio|qdrant|zitadel' 2>/dev/null || true
+            sleep 2
+          }
+
           provision_once() {
             local attempt="$1"
             local work="$RUNNER_TEMP/first-run-attempt-${attempt}"
@@ -516,9 +525,7 @@ jobs:
           for attempt in 1 2 3; do
             # Best-effort cleanup of services a previous attempt may have started.
             if [ "$attempt" -gt 1 ]; then
-              cd "$REPO_ROOT" || true
-              pkill -f 'llama-server|llama\.cpp|botserver' 2>/dev/null || true
-              sleep 2
+              cleanup_provision
             fi
             echo "::group::Provision attempt ${attempt}"
             if provision_once "$attempt"; then
@@ -531,7 +538,7 @@ jobs:
           done
           # Final cleanup in case all attempts failed after starting services.
           if [ "$ok" -ne 1 ]; then
-            pkill -f 'llama-server|llama\.cpp|botserver' 2>/dev/null || true
+            cleanup_provision
           fi
           if [ "$ok" -ne 1 ]; then
             echo "provisioning did not become ready after retries"
