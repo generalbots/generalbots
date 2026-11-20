@@ -97,8 +97,15 @@ jobs:
         # #2480 — the image must carry its own license record: the MIT text for
         # General Bots, the component table and the NOTICE. Without this the ISO
         # would distribute AGPL components with no notice at all.
+        # The checker, LICENSES-desktop.md and NOTICE were all added together
+        # in #2480. A pinned tag older than that has none of them, so there is
+        # no record in that tree to stage — skip instead of failing the build.
         run: |
           set -euo pipefail
+          if [ ! -f scripts/check_third_party_licenses.py ]; then
+            echo "::warning::pinned tag predates the license record (#2480); skipping license staging"
+            exit 0
+          fi
           python3 scripts/check_third_party_licenses.py
           dest=desktop/os/mkosi.extra/usr/share/doc/general-bots/licenses
           install -d "$dest"
