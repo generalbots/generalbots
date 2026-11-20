@@ -16,6 +16,8 @@ pub fn shell_mode() -> bool {
 pub mod activity;
 pub mod download;
 pub mod drive;
+#[cfg(target_os = "linux")]
+pub mod dbus_isolation;
 pub mod fs_scope;
 pub mod i18n;
 pub mod payload;

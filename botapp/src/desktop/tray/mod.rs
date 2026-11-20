@@ -290,10 +290,16 @@ impl TrayManager {
 
             #[cfg(target_os = "linux")]
             {
-                if let Ok(cmd) = SafeCommand::new("notify-send")
+                // #2502 — the webview tree runs on an isolated session bus.
+                // Notifications are shell-owned, so they opt back into the
+                // original bus explicitly instead of inheriting it.
+                let mut command = SafeCommand::new("notify-send")
                     .and_then(|c| c.arg(title))
-                    .and_then(|c| c.arg(body))
-                {
+                    .and_then(|c| c.arg(body));
+                if let Some(bus) = crate::desktop::dbus_isolation::shell_bus_address() {
+                    command = command.and_then(|c| c.env("DBUS_SESSION_BUS_ADDRESS", bus));
+                }
+                if let Ok(cmd) = command {
                     let _ = cmd.execute();
                 }
             }

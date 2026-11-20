@@ -93,6 +93,11 @@ fn redacted(origin: &str) -> String {
 /// Builds the plugin that enables MediaStream/WebRTC and answers the
 /// user-media permission requests raised by the desktop WebView.
 pub fn plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    // #2502 — this hook is registered before Tauri creates the first WebView,
+    // so scrubbing here means WebKit and all of its child processes inherit an
+    // isolated session bus instead of the appliance's full user bus.
+    super::dbus_isolation::isolate_webview_session_bus();
+
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .on_webview_ready(|webview| {
             let result = webview.with_webview(|platform| {
