@@ -280,7 +280,7 @@ jobs:
               [ "$BYTES" -gt 1048576 ] \
                 || { echo "::error::appliance image is suspiciously small ($BYTES bytes)" >&2; exit 1; }
               ROOT_DEV=$(guestfish --ro -a "$IMAGE" -- run : findfs-label root-x86-64 2>&1) || {
-                echo "::error::guestfish cannot find root-x86-64 in $IMAGE: $(tr '\n' ' ' <<<"$ROOT_DEV" | cut -c1-300)" >&2
+                echo "::error::guestfish cannot find root-x86-64 in $IMAGE: $(tr -s "[:space:]" " " <<<"$ROOT_DEV" | cut -c1-300)" >&2
                 exit 1
               }
               case "$ROOT_DEV" in
@@ -290,10 +290,10 @@ jobs:
               gf() {
                 local output
                 output=$(guestfish --ro -a "$IMAGE" -m "$ROOT_DEV:/" -- "$@" 2>&1) || {
-                  echo "::error::guestfish $* failed: $(tr '\n' ' ' <<<"$output" | cut -c1-300)" >&2
+                  echo "::error::guestfish $* failed: $(tr -s "[:space:]" " " <<<"$output" | cut -c1-300)" >&2
                   return 1
                 }
-                printf '%s' "$output"
+                printf "%s" "$output"
               }
               for path in /etc/os-release /opt/general-bots/start.sh \
                           /usr/lib/systemd/system/generalbots-shell.service; do
