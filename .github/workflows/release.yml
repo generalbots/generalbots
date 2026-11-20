@@ -472,34 +472,71 @@ jobs:
           TAG="${{ needs.release.outputs.version }}"
           VERSION="${TAG#v}"
           PKG="generalbots-${VERSION}-linux-x86_64"
-          WORK="$RUNNER_TEMP/first-run"
-          rm -rf "$WORK"
-          mkdir -p "$WORK/home"
-          tar -xzf "dist/${PKG}.tar.gz" -C "$WORK"
 
-          export HOME="$WORK/home"
+          provision_once() {
+            local attempt="$1"
+            local work="$RUNNER_TEMP/first-run-attempt-${attempt}"
+            rm -rf "$work"
+            mkdir -p "$work/home"
+            tar -xzf "dist/${PKG}.tar.gz" -C "$work"
+            export HOME="$work/home"
+            cd "$work/$PKG"
+            # Same entry point a user runs, but without a display.
+            ./start.sh --provision | tee "$work/provision.log"
+            grep -q '"id":"components".*"state":"ready"' "$work/provision.log" \
+              || { echo "provisioning did not reach the ready state"; return 1; }
+            if grep -q '"state":"failed"' "$work/provision.log"; then
+              echo "a component failed"; return 1
+            fi
+            # The default wizard choice is the local model; it must be running,
+            # not silently skipped. External model/runtime downloads can be
+            # flaky in CI, so the caller may retry provisioning from scratch.
+            grep -q '"id":"llm".*"state":"ready"' "$work/provision.log" \
+              || { echo "the local model runtime did not become ready"; return 1; }
+            if grep -q '"id":"llm".*Skipped' "$work/provision.log"; then
+              echo "the local model runtime was skipped"; return 1
+            fi
+            curl -fsS -o /dev/null http://127.0.0.1:8081/health \
+              || { echo "llama.cpp is not answering on 8081"; return 1; }
+            curl -fsS -o /dev/null http://127.0.0.1:8082/health \
+              || { echo "the embedding server is not answering on 8082"; return 1; }
+            # Expose the successful attempt for subsequent steps.
+            WORK="$work"
+            STACK="$HOME/.local/share/generalbots/stack"
+            export WORK STACK
+            printf 'WORK=%s\nSTACK=%s\n' "$WORK" "$STACK" >> "$GITHUB_ENV"
+            return 0
+          }
+
           # No model override: "local" is the wizard default, so the smoke must
           # exercise exactly that path (1 GB model + llama.cpp startup).
-
-          cd "$WORK/$PKG"
-          # Same entry point a user runs, but without a display.
-          ./start.sh --provision | tee "$WORK/provision.log"
-          grep -q '"id":"components".*"state":"ready"' "$WORK/provision.log" \
-            || { echo "provisioning did not reach the ready state"; exit 1; }
-          if grep -q '"state":"failed"' "$WORK/provision.log"; then
-            echo "a component failed"; exit 1
+          ok=0
+          for attempt in 1 2 3; do
+            # Best-effort cleanup of services a previous attempt may have started.
+            if [ "$attempt" -gt 1 ]; then
+              pkill -f 'llama-server|llama\.cpp|botserver' 2>/dev/null || true
+              sleep 2
+            fi
+            echo "::group::Provision attempt ${attempt}"
+            if provision_once "$attempt"; then
+              ok=1
+              echo "::endgroup::"
+              break
+            fi
+            echo "::endgroup::"
+            echo "::warning::Provision attempt ${attempt} failed; retrying from a clean workspace"
+          done
+          # Final cleanup in case all attempts failed after starting services.
+          if [ "$ok" -ne 1 ]; then
+            pkill -f 'llama-server|llama\.cpp|botserver' 2>/dev/null || true
           fi
-          # The default wizard choice is the local model; it must be running,
-          # not silently skipped.
-          grep -q '"id":"llm".*"state":"ready"' "$WORK/provision.log" \
-            || { echo "the local model runtime did not become ready"; exit 1; }
-          if grep -q '"id":"llm".*Skipped' "$WORK/provision.log"; then
-            echo "the local model runtime was skipped"; exit 1
+          if [ "$ok" -ne 1 ]; then
+            echo "provisioning did not become ready after retries"
+            exit 1
           fi
-          curl -fsS -o /dev/null http://127.0.0.1:8081/health \
-            || { echo "llama.cpp is not answering on 8081"; exit 1; }
-          curl -fsS -o /dev/null http://127.0.0.1:8082/health \
-            || { echo "the embedding server is not answering on 8082"; exit 1; }
+          # Keep a stable log path for artifact upload and later steps.
+          cp "$WORK/provision.log" "$RUNNER_TEMP/first-run-provision.log"
+          ln -sfn "$WORK" "$RUNNER_TEMP/first-run"
 
           # What the wizard's finish step writes once the user is done.
           STACK="$HOME/.local/share/generalbots/stack"
