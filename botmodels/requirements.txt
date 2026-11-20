@@ -11,7 +11,7 @@ psutil>=6.0.0
 
 # Logging
 structlog==25.5.0
-python-json-logger==2.0.7
+python-json-logger==4.2.0
 
 # Generation Libraries
 diffusers>=0.38.0
