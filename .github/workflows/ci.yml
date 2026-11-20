@@ -1135,6 +1135,9 @@ jobs:
         with:
           cache-scope: unit-tests
 
+      - name: Run botserver route contract tests (#2546)
+        run: cargo test -p botserver --bin botserver route_contract
+
       - name: Run botserver unit tests
         run: cargo test -p botserver --bin botserver
 
