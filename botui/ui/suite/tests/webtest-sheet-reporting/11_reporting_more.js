@@ -13,9 +13,9 @@ var equal = h.equal;
 var deep = h.deep;
 var source = h.readFile;
 
-/* [KNOWN BUG] characterization: these two tests assert the behaviour the
- * shipped code actually has, not the intended behaviour. Flip them when the
- * production bugs described in the final agent report are fixed. */
+/* [KNOWN BUG] characterization: this test asserts the behaviour the shipped
+ * code still has, not the intended behaviour. Flip it when the remaining
+ * production bug described in the final agent report is fixed. */
 
 // ── preview variants ─────────────────────────────────────────────────────
 test("variantFor implements all/odd/even/first page visibility", function () {

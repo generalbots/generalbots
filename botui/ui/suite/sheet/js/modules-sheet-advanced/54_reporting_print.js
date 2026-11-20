@@ -123,9 +123,9 @@
     cols = Math.max(2, cols - Math.ceil((s.margins.left + s.margins.right) * 2));
     rows = Math.max(5, rows - Math.ceil((s.margins.top + s.margins.bottom) * 2));
     var factor = s.scaleMode === "percent" ? s.percent / 100 : 1;
-    if (s.scaleMode === "fit" && s.fitToWidth > 0) cols = Math.max(cols, parsed.cols);
+    if (s.scaleMode === "fit" && s.fitToWidth > 0) cols = Math.max(cols, Math.ceil(parsed.cols / s.fitToWidth));
     else cols = Math.max(2, Math.round(cols * factor));
-    if (s.scaleMode === "fit" && s.fitToHeight > 0) rows = Math.max(rows, parsed.rows);
+    if (s.scaleMode === "fit" && s.fitToHeight > 0) rows = Math.max(rows, Math.ceil(parsed.rows / s.fitToHeight));
     else rows = Math.max(5, Math.round(rows * factor));
     var colBreaks = autoBreaks(parsed.startCol, parsed.endCol, cols, s.manualBreaks, "col");
     var rowBreaks = autoBreaks(parsed.startRow, parsed.endRow, rows, s.manualBreaks, "row");
