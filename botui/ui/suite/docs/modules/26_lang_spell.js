@@ -10,7 +10,7 @@
 
   function wordTokens(text) {
     var source = String(text == null ? "" : text);
-    var pattern = /[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*/g;
+    var pattern = /[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’-]*/g;
     var result = [];
     var match;
     while ((match = pattern.exec(source)) !== null) {

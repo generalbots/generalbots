@@ -91,7 +91,7 @@
     { group: "passive", pattern: /\b(?:am|is|are|was|were|be|been|being)\s+(?:\w+ed|known|written|done|made|taken|given|seen|held|found|paid|sent|built|used|called|named|listed|reported|issued|approved|published|provided|required|performed|conducted)\b/gi, replacement: null },
     { group: "punctuation", pattern: / {2,}/g, replacement: " " },
     { group: "punctuation", pattern: /\s+([,.;:!?])/g, replacement: "$1" },
-    { group: "punctuation", pattern: /,(\S)/g, replacement: ", $1" },
+    { group: "punctuation", pattern: /,([^\d\s])/g, replacement: ", $1" },
     { group: "punctuation", pattern: /!{2,}/g, replacement: "!" },
     { group: "punctuation", pattern: /\?{2,}/g, replacement: "?" }
   ];

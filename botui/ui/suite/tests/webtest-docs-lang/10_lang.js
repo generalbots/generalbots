@@ -343,3 +343,37 @@ test("STATIC #2484: the four target modules are IIFEs bound to window.DocsLang",
     assert(/var NS = window\.DocsLang/.test(src), relPath + " must bind to window.DocsLang");
   });
 });
+
+// ── regressions for the two provable segmentation/punctuation bugs ───
+
+test("RUNTIME #2484: wordTokens excludes multiplication and division symbols", function () {
+  var ns = fixture().NS;
+  assert(ns.wordTokens("a×b÷c").map(function (token) { return token.word; }).join("|") === "a|b|c",
+    "× and ÷ are symbols, not letters, and must split words");
+  assert(ns.wordTokens("Café São").map(function (token) { return token.word; }).join("|") === "Café|São",
+    "accented Latin letters must still stay inside a word");
+});
+
+test("RUNTIME #2484: comma spacing rule never rewrites a thousands separator", function () {
+  var windowStub = {
+    gbT: function (key, fallback) { return fallback; },
+    localStorage: memoryStorage(),
+  };
+  var documentStub = {
+    getElementById: function () { return null; },
+    querySelector: function () { return null; },
+    createRange: function () { return {}; },
+    createTextNode: function (value) { return { nodeValue: String(value) }; },
+  };
+  var ns = loadScripts(SOURCES.concat(["docs/modules/27_lang_style.js"]), {
+    console: console,
+    window: windowStub,
+    document: documentStub,
+    NodeFilter: { SHOW_TEXT: 4 },
+  }).window.DocsLang;
+  assert(ns.checkStyle("Cost is 1,000 dollars.").length === 0,
+    "a digit-to-digit comma must stay untouched");
+  var prose = ns.checkStyle("hello,world");
+  assert(prose.length === 1 && prose[0].replacement === ", w",
+    "a missing prose comma space must still be suggested");
+});
