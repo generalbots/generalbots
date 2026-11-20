@@ -8,8 +8,8 @@
  * rule model, negative-red/positive-green colour rules, add/edit/remove of
  * rules, range application and deterministic render output — are proved by
  * EXECUTING shipped code. Orchestration/backend-deferred aspects are covered
- * by clearly-labelled [STATIC] source assertions; observed bugs are captured
- * as [KNOWN BUG] characterization tests and reported, never patched here.
+ * by clearly-labelled [STATIC] source assertions; unfixed bugs stay as
+ * [KNOWN BUG] characterizations, fixed ones become [REGRESSION] cases.
  *
  * Browser/CDP verification of the rendered grid and real backend persistence
  * remain separate gates.

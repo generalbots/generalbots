@@ -273,7 +273,7 @@ test("validateEdit enforces all validation types and uses the localized fallback
   equal(defaulted.message, env.i18nCalls[env.i18nCalls.length - 1].fallback);
 });
 
-test("[KNOWN BUG] validation/comment markers only render when a conditional rule exists", function () {
+test("[REGRESSION] validation/comment markers render with no conditional rules (#2260)", function () {
   var g = env.makeGrid(1, 3, 1);
   g.set(0, 0, "1");
   g.set(0, 1, "2", { has_comment: true, note: "<note>" });
@@ -281,10 +281,9 @@ test("[KNOWN BUG] validation/comment markers only render when a conditional rule
   env.setGrid(g);
   env.setSheet(sheetWith([], { "0,0": { validation_type: "number" } }));
   R.apply();
-  // applyRules() returns early on an empty rule list, before
-  // applyValidationMarkers() runs, so neither marker is painted.
-  equal(g.node(0, 0).querySelector(".ss-validation-dot"), null);
-  equal(g.node(0, 1).querySelector(".ss-comment-marker"), null);
+  // The marker pass runs even when no conditional rules are defined.
+  assert(g.node(0, 0).querySelector(".ss-validation-dot"), "validation dot missing");
+  assert(g.node(0, 1).querySelector(".ss-comment-marker"), "comment marker missing");
 });
 
 test("validation and comment markers are added once and carry cell metadata", function () {

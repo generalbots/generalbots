@@ -146,7 +146,7 @@
   function applyRules() {
     const g = grid();
     const rules = rulesFor();
-    if (!g || !rules.length) return;
+    if (!g) return;
     const visible = g.visibleRowRange();
     for (let i = 0; i < rules.length; i++) {
       const rule = rules[i];
