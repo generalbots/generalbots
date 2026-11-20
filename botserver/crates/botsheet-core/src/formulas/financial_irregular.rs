@@ -3,7 +3,7 @@
 //! Irregular cash flows, depreciation and rate conversions share the same
 //! error taxonomy and seed-based root finder as the core financial family.
 
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 
 use crate::engine::{date_to_serial, format_number};
 use crate::types::{DateSystem, Worksheet};
@@ -170,7 +170,7 @@ pub fn evaluate_ddb(expr: &str, worksheet: &Worksheet) -> Option<String> {
         if life <= 0.0 || period < 1.0 || period > life || factor <= 0.0 {
             return Err("#NUM!".to_string());
         }
-        let last = i32::try_from(period.floor()).unwrap_or(i32::MAX);
+        let last = period.floor().min(i32::MAX as f64) as i32;
         let mut total = 0.0;
         let mut depreciation = 0.0;
         for step in 1..=last {
