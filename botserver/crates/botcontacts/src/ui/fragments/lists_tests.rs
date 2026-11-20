@@ -116,7 +116,8 @@ fn ordering_puts_missing_values_last_in_ascending_order() {
     assert_eq!(order_by(Some(&"b"), Some(&"a"), asc), Ordering::Greater);
     assert_eq!(order_by(Some(&"a"), None, asc), Ordering::Greater);
     assert_eq!(order_by(None, Some(&"a"), asc), Ordering::Less);
-    assert_eq!(order_by(None, None, asc), Ordering::Equal);
+    let no_left: Option<&str> = None;
+    assert_eq!(order_by(no_left, None, asc), Ordering::Equal);
 }
 
 #[test]
