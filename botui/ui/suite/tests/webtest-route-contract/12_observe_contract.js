@@ -121,7 +121,8 @@ test("[BASELINE-OBSERVE] 16 duplicate method+path groups, 5 of them documented",
   );
 });
 
-test("[BASELINE-OBSERVE] /api/\u0073ales is undocumented with 70 registrations; /api/crm has 57/90", function () {
+// Re-locked for the reviewed #2537 segment-preview change: one new /api/crm route.
+test("[BASELINE-OBSERVE] /api/\u0073ales is undocumented with 70 registrations; /api/crm has 57/91", function () {
   var sales = familyCount(FACTS, "/api/" + "sales");
   var crm = familyCount(FACTS, "/api/crm");
   var attendance = familyCount(FACTS, "/api/attendance");
@@ -129,7 +130,7 @@ test("[BASELINE-OBSERVE] /api/\u0073ales is undocumented with 70 registrations; 
   equal(sales.documented, 0, "documented /api/\u0073ales routes");
   equal(sales.registered, 70, "registered /api/\u0073ales routes");
   equal(crm.documented, 57, "documented /api/crm routes");
-  equal(crm.registered, 90, "registered /api/crm routes");
+  equal(crm.registered, 91, "registered /api/crm routes");
   equal(attendance.documented, 19, "documented /api/attendance routes");
   equal(attendant.documented, 17, "documented /api/attendant routes");
   observe("sales documented/registered", sales.documented + "/" + sales.registered);
