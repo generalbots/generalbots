@@ -29,6 +29,7 @@ var harness = require("./webtest-ui-mobile-office/00_harness");
 require("./webtest-ui-mobile-office/10_docs_runtime");
 require("./webtest-ui-mobile-office/11_slides_runtime");
 require("./webtest-ui-mobile-office/12_desktop_gating");
+require("./webtest-ui-mobile-office/13_sheet_overflow");
 require("./webtest-ui-mobile-office/20_static_gaps");
 
 harness.finish();

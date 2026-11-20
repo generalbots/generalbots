@@ -61,6 +61,28 @@ staticTest("#2515: the old 240px column and hidden formatting toolbar are gone i
   has("sheet/css/02_grid.css", "font-size: var\\(--text-md\\) !important", "iOS zoom is defeated at 16px");
 });
 
+staticTest("#2515 REGRESSION: phone grid is hit-testable — toolbar is one row, format row is in the overflow", function () {
+  var menus = read("sheet/css/04_context_menus.css");
+  var phone = menus.slice(menus.indexOf("@media (max-width: 760px)"),
+    menus.indexOf("@media (max-width: 480px)"));
+  /* Root cause of the CDP FAIL: a 305px main row + 56px format row left
+     .sheet-content 0px tall, so the first cell's centre was covered by the
+     toolbar and pointerdown landed on the Bold button. */
+  has("sheet/css/08_a11y.css", "\\.sheet-app \\.sheet-toolbar-row \\{\\s*flex-wrap: wrap",
+    "the late a11y rule that wrapped both rows still exists");
+  assert(/#sheet-app \.sheet-toolbar-row-main \{ flex-wrap: nowrap; \}/.test(phone),
+    "phone main row defeats the late wrap rule");
+  assert(/#sheet-app \.sheet-toolbar-row-format \{ display: none !important; \}/.test(phone),
+    "format row leaves the phone layout so it cannot intercept a cell tap");
+  assert(/#sheet-app \.sheet-main,\s*#sheet-app \.sheet-content \{ min-height: 0; \}/.test(phone),
+    "grid host keeps a measurable height inside the flex column");
+  var overflow = read("sheet/sheet-inline/04_toolbar_overflow.js");
+  assert(overflow.indexOf("sheet-toolbar-row-format") >= 0,
+    "overflow script pulls the hidden format commands into its menu");
+  assert(overflow.indexOf('menuSources(container).length > 1') >= 0,
+    "overflow affordance stays visible when only the format row is hidden");
+});
+
 staticTest("#2515: Docs and Slides use drawers and keyboard-aware layout, not 34% strips", function () {
   var docs = read("docs/docs-mobile.css");
   var slides = read("slides/slides.css");

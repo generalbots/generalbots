@@ -40,6 +40,16 @@ function matchesSimple(node, selector) {
   return false;
 }
 
+/** querySelectorAll with comma-separated selector lists (CSS standard). */
+function queryAll(root, selector) {
+  return String(selector || "").split(",").reduce(function (out, part) {
+    find(root, part, true).forEach(function (node) {
+      if (out.indexOf(node) < 0) out.push(node);
+    });
+    return out;
+  }, []);
+}
+
 function find(root, selector, all) {
   var parts = String(selector || "").trim().split(/\s+/).filter(Boolean);
   var out = [];
@@ -186,7 +196,7 @@ FakeNode.prototype.contains = function (node) {
   return found;
 };
 FakeNode.prototype.querySelector = function (selector) { return find(this, selector, false); };
-FakeNode.prototype.querySelectorAll = function (selector) { return find(this, selector, true); };
+FakeNode.prototype.querySelectorAll = function (selector) { return queryAll(this, selector); };
 FakeNode.prototype.closest = function (selector) {
   var node = this;
   while (node) {
@@ -224,7 +234,7 @@ function makeDocument() {
       return found;
     },
     querySelector: function (selector) { return find(doc.body, selector, false); },
-    querySelectorAll: function (selector) { return find(doc.body, selector, true); },
+    querySelectorAll: function (selector) { return queryAll(doc.body, selector); },
     addEventListener: function (type, fn) {
       (doc._listeners[type] || (doc._listeners[type] = [])).push(fn);
     },
