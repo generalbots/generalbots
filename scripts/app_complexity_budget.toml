@@ -114,9 +114,11 @@ js_modules = 62
 loc = 28052
 
 [apps."docs"]
+# +89: #2484 local-first language tools — privacy gate, per-doc dictionary,
+# localized panels (10 keys x 8 locales), 21/21 harness assertions.
 routes = 0
 js_modules = 105
-loc = 18954
+loc = 19043
 
 [apps."drive"]
 routes = 26
@@ -284,14 +286,17 @@ js_modules = 30
 loc = 12312
 
 [apps."sheet"]
+# +29: #2493 a11y correctness — active-cell ARIA, Ctrl+End data extent,
+# Shift+Home/End/Page range extension (8/8 harness assertions).
 routes = 0
 js_modules = 115
-loc = 27647
+loc = 27676
 
 [apps."slides"]
+# +34: #2433 inline alt-text fields per a11y row + focus CSS (localized).
 routes = 0
 js_modules = 93
-loc = 21098
+loc = 21132
 
 [apps."social"]
 routes = 6
