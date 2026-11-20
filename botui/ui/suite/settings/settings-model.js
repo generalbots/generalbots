@@ -184,6 +184,25 @@
   }
 
   function renderOwnKey(detail) {
+    if (window.GBSettingsProviders && typeof window.GBSettingsProviders.render === "function") {
+      window.GBSettingsProviders.render(detail, state, {
+        t: t,
+        esc: esc,
+        json: json,
+        saveConfig: function (body, button) {
+          var host = body.endpoint;
+          try { host = new URL(host).hostname; } catch (e) { host = body.endpoint; }
+          var message = t("mdl-confirm-external", "What you write and attach will be sent to %h, outside this computer. Continue?").replace("%h", host);
+          function confirmed() { putConfig(body, button); }
+          if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            window.GBModal.confirm(message, confirmed);
+          } else {
+            confirmed();
+          }
+        }
+      });
+      return;
+    }
     var cfg = state.cfg || {};
     var endpoint = cfg.mode === "own_key" && cfg.endpoint_host ? cfg.endpoint_host : "";
     var model = cfg.mode === "own_key" ? cfg.model || "" : "";

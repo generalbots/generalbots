@@ -1,0 +1,350 @@
+//! Provider accounts: one API key per provider, the models it offers, and the
+//! ones the person switched on for the chat's model menu.
+//!
+//! Stored in Vault at `gbo/llm-accounts` (one JSON list under `accounts`);
+//! keys never leave the server. A chat turn whose model preference is
+//! `acct:<provider>/<model>` is answered by that account (see
+//! [`resolve_choice`]); every other preference keeps the bot's own model.
+
+use axum::{extract::{Extension, Path}, http::StatusCode, response::Json, routing, Router};
+use botcore::shared::state::AppState;
+use botcoresecrets::SecretsManager;
+use botsecurity::auth::AuthenticatedUser;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use super::{api_error, require_admin, ApiResult};
+
+const PATH: &str = "gbo/llm-accounts";
+const PREFIX: &str = "acct:";
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Account {
+    /// Provider id from the interface (`anthropic`, `openai`, `org`, ...).
+    pub id: String,
+    pub name: String,
+    /// Chat address, as the provider list fills it in.
+    pub url: String,
+    #[serde(default)]
+    pub key: String,
+    /// Models switched on for the chat's model menu.
+    #[serde(default)]
+    pub enabled: Vec<String>,
+}
+
+/// What a chat turn uses when the person picked an account's model.
+#[derive(Debug, Clone)]
+pub struct Choice {
+    pub url: String,
+    pub key: String,
+    pub model: String,
+}
+
+async fn load() -> Vec<Account> {
+    let Ok(secrets) = SecretsManager::get_clone() else {
+        return Vec::new();
+    };
+    let map: HashMap<String, String> = secrets.get_secret(PATH).await.unwrap_or_default();
+    map.get("accounts")
+        .and_then(|raw| serde_json::from_str(raw).ok())
+        .unwrap_or_default()
+}
+
+async fn save(accounts: &[Account]) -> Result<(), (StatusCode, Json<Value>)> {
+    let secrets = SecretsManager::get_clone()
+        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_unavailable"))?;
+    let mut map = HashMap::new();
+    map.insert(
+        "accounts".to_string(),
+        serde_json::to_string(accounts).unwrap_or_else(|_| "[]".into()),
+    );
+    secrets.put_secret(PATH, map).await.map_err(|e| {
+        log::error!("[llm_accounts] vault write failed: {e}");
+        api_error(StatusCode::INTERNAL_SERVER_ERROR, "vault_write_failed")
+    })
+}
+
+/// `acct:<provider>/<model>` → provider id and model (the model may itself
+/// contain `/` and `:`).
+pub fn parse_preference(pref: &str) -> Option<(&str, &str)> {
+    let rest = pref.trim().strip_prefix(PREFIX)?;
+    let (id, model) = rest.split_once('/')?;
+    (!id.is_empty() && !model.is_empty()).then_some((id, model))
+}
+
+/// The account and model a chat turn asked for, when it is one of the
+/// switched-on models of a stored account.
+pub async fn resolve_choice(pref: &str) -> Option<Choice> {
+    let (id, model) = parse_preference(pref)?;
+    let account = load().await.into_iter().find(|a| a.id == id)?;
+    if !account.enabled.iter().any(|m| m == model) {
+        log::warn!("[llm_accounts] model {model} is not switched on for {id}");
+        return None;
+    }
+    Some(Choice {
+        url: account.url,
+        key: account.key,
+        model: model.to_string(),
+    })
+}
+
+/// Accounts and their switched-on models, for the chat's model menu.
+pub async fn chat_groups() -> Vec<Value> {
+    load()
+        .await
+        .into_iter()
+        .filter(|a| !a.enabled.is_empty())
+        .map(|a| {
+            json!({
+                "id": a.id,
+                "name": a.name,
+                "models": a.enabled.iter().map(|m| json!({
+                    "model": m,
+                    "value": format!("{PREFIX}{}/{m}", a.id),
+                })).collect::<Vec<_>>(),
+            })
+        })
+        .collect()
+}
+
+fn host(url: &str) -> String {
+    reqwest::Url::parse(url)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+        .unwrap_or_default()
+}
+
+fn is_host(h: &str, domain: &str) -> bool {
+    h == domain || h.ends_with(&format!(".{domain}"))
+}
+
+/// Where a provider lists its models, derived from its chat address.
+pub fn models_url(chat_url: &str) -> Option<String> {
+    let url = reqwest::Url::parse(chat_url).ok()?;
+    let h = host(chat_url);
+    if is_host(&h, "anthropic.com") {
+        return Some(format!("{}://{h}/v1/models?limit=1000", url.scheme()));
+    }
+    if is_host(&h, "googleapis.com") {
+        return Some(format!("{}://{h}/v1beta/openai/models", url.scheme()));
+    }
+    let full = chat_url.trim_end_matches('/');
+    let base = full.strip_suffix("/chat/completions").unwrap_or(full);
+    Some(format!("{base}/models"))
+}
+
+// ── HTTP ─────────────────────────────────────────────────────────────────
+
+/// Routes owned by this module; merged by `model_config::configure_routes`
+/// so the parent file stays under the 450-line limit.
+pub fn configure_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/llm/accounts", routing::get(handle_list).put(handle_save))
+        .route("/api/llm/accounts/models", routing::post(handle_models))
+        .route("/api/llm/accounts/:id", routing::delete(handle_delete))
+}
+
+async fn handle_list(Extension(user): Extension<AuthenticatedUser>) -> ApiResult {
+    require_admin(&user)?;
+    let accounts: Vec<Value> = load()
+        .await
+        .into_iter()
+        .map(|a| {
+            json!({
+                "id": a.id, "name": a.name, "host": host(&a.url),
+                "has_key": !a.key.trim().is_empty(), "enabled": a.enabled,
+            })
+        })
+        .collect();
+    Ok(Json(json!({ "accounts": accounts })))
+}
+
+#[derive(Deserialize)]
+struct ModelsRequest {
+    id: String,
+    url: String,
+    api_key: Option<String>,
+}
+
+/// Logs the provider's own message through the shared sanitizer and returns a
+/// fixed code for the HTTP response (raw upstream text is never returned).
+fn safe_detail(body: &str) -> Option<String> {
+    let raw = super::test_endpoint::provider_message(body)?;
+    botsecurity::error_sanitizer::log_and_sanitize_str(&raw, "model_config::accounts::provider_detail", None);
+    Some("provider_error_logged".to_string())
+}
+
+/// Asks the provider which models this key can use.
+async fn handle_models(
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<ModelsRequest>,
+) -> ApiResult {
+    require_admin(&user)?;
+    // Only public HTTP(S) hosts may be contacted from an admin-supplied URL.
+    botsecurity::validation::validate_url_ssrf_strict(req.url.trim())
+        .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"))?;
+    let mut key = req.api_key.unwrap_or_default().trim().to_string();
+    if key.is_empty() {
+        key = load()
+            .await
+            .into_iter()
+            .find(|a| a.id == req.id && a.url == req.url)
+            .map(|a| a.key)
+            .unwrap_or_default();
+    }
+    let Some(list_url) = models_url(&req.url) else {
+        return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
+    };
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "http_client_failed"))?;
+    let mut request = client.get(&list_url);
+    if is_host(&host(&req.url), "anthropic.com") {
+        request = request.header("x-api-key", &key).header("anthropic-version", "2023-06-01");
+    } else if !key.is_empty() {
+        request = request.bearer_auth(&key);
+    }
+    let response = match request.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            let code = if e.is_timeout() { "timeout" } else { "connection_refused" };
+            return Ok(Json(json!({ "models": [], "error": code })));
+        }
+    };
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Ok(Json(json!({
+            "models": [],
+            "error": format!("http_status_{}", status.as_u16()),
+            "detail": safe_detail(&body),
+        })));
+    }
+    Ok(Json(json!({ "models": model_ids(&body) })))
+}
+
+/// Model ids from an OpenAI-shaped (`data[].id`) or Anthropic list.
+pub fn model_ids(body: &str) -> Vec<String> {
+    let v: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+    let list = v.get("data").or_else(|| v.get("models")).and_then(Value::as_array);
+    let mut ids: Vec<String> = list
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m.get("id").or_else(|| m.get("name")).and_then(Value::as_str))
+                .map(|id| id.trim_start_matches("models/").to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    ids.sort();
+    ids.dedup();
+    ids
+}
+
+#[derive(Deserialize)]
+struct SaveRequest {
+    id: String,
+    name: String,
+    url: String,
+    api_key: Option<String>,
+    enabled: Vec<String>,
+}
+
+/// Stores the account and its switched-on models. A key left empty keeps
+/// the one already stored for this provider.
+async fn handle_save(
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<SaveRequest>,
+) -> ApiResult {
+    require_admin(&user)?;
+    if req.id.trim().is_empty() || req.id.contains('/') {
+        return Err(api_error(StatusCode::BAD_REQUEST, "invalid_provider"));
+    }
+    if reqwest::Url::parse(req.url.trim()).is_err() {
+        return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
+    }
+    let mut accounts = load().await;
+    let old_key = accounts
+        .iter()
+        .find(|a| a.id == req.id)
+        .map(|a| a.key.clone())
+        .unwrap_or_default();
+    let key = req
+        .api_key
+        .map(|k| k.trim().to_string())
+        .filter(|k| !k.is_empty())
+        .unwrap_or(old_key);
+    accounts.retain(|a| a.id != req.id);
+    accounts.push(Account {
+        id: req.id.trim().to_string(),
+        name: req.name.trim().to_string(),
+        url: req.url.trim().to_string(),
+        key,
+        enabled: req.enabled,
+    });
+    save(&accounts).await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+async fn handle_delete(
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> ApiResult {
+    require_admin(&user)?;
+    let mut accounts = load().await;
+    accounts.retain(|a| a.id != id);
+    save(&accounts).await?;
+    Ok(Json(json!({ "ok": true })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preferences_name_an_account_and_a_model() {
+        assert_eq!(
+            parse_preference("acct:anthropic/claude-opus-5-5"),
+            Some(("anthropic", "claude-opus-5-5"))
+        );
+        assert_eq!(
+            parse_preference("acct:openrouter/meta-llama/llama-4:free"),
+            Some(("openrouter", "meta-llama/llama-4:free"))
+        );
+        assert_eq!(parse_preference("auto"), None);
+        assert_eq!(parse_preference("acct:anthropic/"), None);
+    }
+
+    #[test]
+    fn model_lists_live_next_to_the_chat_address() {
+        assert_eq!(
+            models_url("https://api.openai.com/v1/chat/completions").unwrap(),
+            "https://api.openai.com/v1/models"
+        );
+        assert_eq!(
+            models_url("https://api.deepseek.com/chat/completions").unwrap(),
+            "https://api.deepseek.com/models"
+        );
+        assert_eq!(
+            models_url("https://api.anthropic.com").unwrap(),
+            "https://api.anthropic.com/v1/models?limit=1000"
+        );
+        assert_eq!(
+            models_url("https://generativelanguage.googleapis.com").unwrap(),
+            "https://generativelanguage.googleapis.com/v1beta/openai/models"
+        );
+    }
+
+    #[test]
+    fn model_ids_are_read_from_both_shapes() {
+        let openai = r#"{"object":"list","data":[{"id":"gpt-b"},{"id":"gpt-a"}]}"#;
+        assert_eq!(model_ids(openai), ["gpt-a", "gpt-b"]);
+        let anthropic = r#"{"data":[{"type":"model","id":"claude-opus-5-5"}],"has_more":false}"#;
+        assert_eq!(model_ids(anthropic), ["claude-opus-5-5"]);
+        let gemini = r#"{"data":[{"id":"models/gemini-3.5-flash"}]}"#;
+        assert_eq!(model_ids(gemini), ["gemini-3.5-flash"]);
+    }
+}

@@ -215,10 +215,14 @@ pub async fn websocket_handler(
         session_id,
         user_id
     );
-    ws.on_upgrade(move |socket| {
-        super::session::handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)
-    })
-    .into_response()
+    // A 50 MB attachment arrives as about 67 MB of base64 in one message; the
+    // default limits (16 MiB per frame) dropped anything above about 11 MB.
+    ws.max_message_size(96 * 1024 * 1024)
+        .max_frame_size(96 * 1024 * 1024)
+        .on_upgrade(move |socket| {
+            super::session::handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)
+        })
+        .into_response()
 }
 
 pub async fn websocket_handler_with_bot(

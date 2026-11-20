@@ -172,6 +172,40 @@ mod tests {
         assert_eq!(messages[0].role, "user");
         assert_eq!(messages[0].content, "Hello");
     }
+
+    #[test]
+    fn attached_media_goes_to_the_user_turn_as_blocks() {
+        let client = ClaudeClient::new("https://api.anthropic.com".to_string(), None);
+        let messages = serde_json::json!([
+            {"role": "system", "content": "note", "media": [{"type": "image", "media_type": "image/png", "data": "AAA"}]},
+            {"role": "user", "content": "o que é isto?"}
+        ]);
+        let (system, msgs) = client.build_messages_from_value("", &messages);
+        let request = ClaudeRequest {
+            model: "m".into(),
+            max_tokens: 10,
+            messages: msgs,
+            system,
+            stream: None,
+            thinking: None,
+        };
+        let body: Value =
+            serde_json::from_str(&ClaudeClient::body_with_media(&request, &messages).unwrap()).unwrap();
+        let blocks = body["messages"][0]["content"].as_array().unwrap();
+        assert_eq!(blocks[0]["type"], "image");
+        assert_eq!(blocks[0]["source"]["data"], "AAA");
+        assert_eq!(blocks[1]["text"], "o que é isto?");
+        assert!(!body.to_string().contains("\"media\""));
+    }
+
+    #[test]
+    fn stream_deltas_keep_their_spaces() {
+        let client = ClaudeClient::new("https://api.anthropic.com".to_string(), None);
+        let native = r#"{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" mundo "}}"#;
+        assert_eq!(client.process_sse_data(native).0.as_deref(), Some(" mundo "));
+        let compat = r#"{"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":" olá"}}]}"#;
+        assert_eq!(client.process_sse_data(compat).0.as_deref(), Some(" olá"));
+    }
 }
 
 mod azure;

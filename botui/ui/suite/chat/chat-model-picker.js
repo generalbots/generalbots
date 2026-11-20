@@ -1,8 +1,9 @@
-/* Model tier picker: persistence, labels and honest disabled state (#1549/#1637). */
+/* Model tier picker: persistence, labels, account groups and honest disabled state (#1549/#1637). */
 "use strict";
 
 (function () {
   var MODEL_KEY = "gb-model-preference";
+  var ACCOUNT_VALUE_PREFIX = "acct:";
 
   function picker() {
     return document.getElementById("modelPicker");
@@ -61,6 +62,22 @@
     });
   }
 
+  function findOption(select, value) {
+    for (var i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === value) return select.options[i];
+    }
+    return null;
+  }
+
+  function restoreSaved(select) {
+    try {
+      var saved = localStorage.getItem(MODEL_KEY);
+      if (saved && findOption(select, saved)) select.value = saved;
+    } catch (e) {
+      /* storage may be disabled */
+    }
+  }
+
   function hydrate() {
     var select = picker();
     if (!select) return;
@@ -79,15 +96,130 @@
       });
   }
 
+  function shortName(model) {
+    return String(model || "").replace(/\.gguf$/i, "");
+  }
+
+  function enabledModels(account) {
+    var raw = account.enabled || account.models || account.model_ids || [];
+    if (!Array.isArray(raw)) return [];
+    return raw.map(function (item) {
+      if (typeof item === "string") return item;
+      if (!item || item.enabled !== true) return "";
+      return item.model || item.id || item.name || "";
+    }).filter(Boolean);
+  }
+
+  function selectAccount(select, value) {
+    var option = findOption(select, value);
+    if (!option) return;
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function clearAccounts(select) {
+    select.querySelectorAll("optgroup.gb-model-account-group").forEach(function (group) {
+      group.remove();
+    });
+    var parent = select.parentNode;
+    if (!parent) return;
+    parent.querySelectorAll(".gb-model-account-groups, .gb-model-accounts-toggle").forEach(function (node) {
+      node.remove();
+    });
+  }
+
+  function renderAccounts(select, accounts) {
+    clearAccounts(select);
+    if (!Array.isArray(accounts) || !accounts.length) {
+      console.debug("[chat-model-picker] no provider accounts configured");
+      return;
+    }
+    var panel = document.createElement("div");
+    panel.className = "gb-model-account-groups";
+    var toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "gb-model-accounts-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", tr("tour-chat-model-title", "Choose model"));
+    toggle.title = tr("tour-chat-model-title", "Choose model");
+    toggle.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+    toggle.addEventListener("click", function () {
+      var open = panel.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+    function choose(value) {
+      selectAccount(select, value);
+      panel.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+    var values = {};
+    accounts.forEach(function (account) {
+      var models = enabledModels(account);
+      if (!models.length) return;
+      var provider = account.provider || account.id || account.name || "";
+      var label = account.name || account.provider || account.id || provider;
+      if (!provider) return;
+      var group = document.createElement("optgroup");
+      group.className = "gb-model-account-group";
+      group.label = label;
+      var details = document.createElement("details");
+      details.className = "gb-model-account-group";
+      var summary = document.createElement("summary");
+      summary.textContent = label;
+      details.appendChild(summary);
+      models.forEach(function (model) {
+        var value = ACCOUNT_VALUE_PREFIX + provider + "/" + model;
+        if (values[value]) return;
+        values[value] = true;
+        var option = document.createElement("option");
+        option.value = value;
+        option.textContent = shortName(model);
+        group.appendChild(option);
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = shortName(model);
+        button.addEventListener("click", function () { choose(value); });
+        details.appendChild(button);
+      });
+      if (group.options.length) {
+        select.appendChild(group);
+        panel.appendChild(details);
+      }
+    });
+    if (!panel.childNodes.length) {
+      console.debug("[chat-model-picker] no enabled provider models");
+      return;
+    }
+    if (select.parentNode) {
+      select.parentNode.insertBefore(toggle, select.nextSibling);
+      select.parentNode.insertBefore(panel, toggle.nextSibling);
+    }
+    restoreSaved(select);
+  }
+
+  function hydrateAccounts() {
+    var select = picker();
+    if (!select) return;
+    fetch("/api/llm/accounts", { cache: "no-store", headers: authHeaders() })
+      .then(function (response) {
+        if (response.status === 404) {
+          console.debug("[chat-model-picker] provider accounts endpoint unavailable");
+          return null;
+        }
+        return response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (data && Array.isArray(data.accounts)) renderAccounts(select, data.accounts);
+      })
+      .catch(function (error) {
+        console.debug("[chat-model-picker] provider accounts unavailable", error && error.message);
+      });
+  }
+
   function restorePreference() {
     var select = picker();
     if (!select) return;
-    try {
-      var saved = localStorage.getItem(MODEL_KEY);
-      if (saved) select.value = saved;
-    } catch (e) {
-      /* storage may be disabled */
-    }
+    restoreSaved(select);
     select.addEventListener("change", function () {
       try {
         localStorage.setItem(MODEL_KEY, select.value);
@@ -100,12 +232,17 @@
   function boot() {
     restorePreference();
     hydrate();
+    hydrateAccounts();
     setTimeout(hydrate, 800);
     setTimeout(hydrate, 2500);
   }
 
   window.hydrateModelTiers = hydrate;
-  window.addEventListener("gb:auth:login", hydrate);
+  window.hydrateModelAccounts = hydrateAccounts;
+  window.addEventListener("gb:auth:login", function () {
+    hydrate();
+    hydrateAccounts();
+  });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);
   } else {

@@ -222,3 +222,6 @@ chat-inspect-no-id = nenhum
 chat-inspect-length = Caracteres
 chat-copy-markdown = Copiar como Markdown
 chat-copied-markdown = Copiado como Markdown
+
+# Model attribution on each bot answer
+chat-model-written-by = Resposta escrita por

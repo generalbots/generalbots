@@ -343,6 +343,7 @@ async fn handle_put_config(
 }
 
 mod test_endpoint;
+pub mod accounts;
 mod engine_update;
 mod local_runtime;
 pub(crate) mod write_sets;
@@ -417,6 +418,7 @@ pub fn configure_routes() -> Router<Arc<AppState>> {
         .route("/api/llm/runtime/status", get(local_runtime::handle_status))
         .route("/api/llm/runtime/install", post(local_runtime::handle_install))
         .route("/api/llm/runtime/jobs/:id", get(local_runtime::handle_job_status))
+        .merge(accounts::configure_routes())
 }
 
 pub(crate) mod destination;

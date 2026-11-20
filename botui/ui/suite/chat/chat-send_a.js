@@ -101,12 +101,12 @@ function sendMessage(messageContent, extra) {
   // #1947 — attachments travel inline over the WebSocket as base64, so an
   // oversized file fails the frame instead of the request and the chat simply
   // stays silent. Refuse it up front with an actionable message.
-  var MAX_ATTACH_BYTES = 8 * 1024 * 1024;
+  var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
   var tooBig = files.filter(function (file) { return file.size > MAX_ATTACH_BYTES; });
   if (tooBig.length) {
     var names = tooBig.map(function (file) { return file.name; }).join(", ");
     if (typeof notify === "function") {
-      notify("Attachment too large (8 MB per file limit): " + names, "error");
+      notify("Attachment too large (50 MB per file limit): " + names, "error");
     }
     if (fileInput) fileInput.value = "";
     return;

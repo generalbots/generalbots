@@ -122,6 +122,28 @@ impl ClaudeClient {
         (system_prompt, claude_messages)
     }
 
+    /// The request as JSON, with the images and PDFs attached to this turn
+    /// (`media` on any message) put on the last user message as Anthropic
+    /// content blocks. Without media it is the plain request.
+    pub(super) fn body_with_media(
+        request: &ClaudeRequest,
+        messages: &Value,
+    ) -> Result<String, serde_json::Error> {
+        let media = crate::media_parts::collect(messages);
+        if media.is_empty() {
+            return serde_json::to_string(request);
+        }
+        let mut body = serde_json::to_value(request)?;
+        if let Some(last_user) = body["messages"]
+            .as_array_mut()
+            .and_then(|arr| arr.iter_mut().rev().find(|m| m["role"] == "user"))
+        {
+            let text = last_user["content"].as_str().unwrap_or("").to_string();
+            last_user["content"] = crate::media_parts::anthropic_blocks(&media, &text);
+        }
+        serde_json::to_string(&body)
+    }
+
     /// Sanitizes a string by removing invalid UTF-8 surrogate characters
     pub(super) fn sanitize_utf8(input: &str) -> String {
         input.chars()
@@ -205,13 +227,14 @@ impl ClaudeClient {
             .join("")
     }
 
-    /// Process SSE data and extract content/reasoning
-    pub(super) fn process_sse_data(&self, data: &str, model_name: &str) -> (Option<String>, Option<String>) {
+    /// Process SSE data and extract content/reasoning.
+    /// Claude sends text in small deltas such as " the": each delta is passed
+    /// on exactly as received. Trimming it (the generic model handler does)
+    /// glued the words of every answer together.
+    pub(super) fn process_sse_data(&self, data: &str) -> (Option<String>, Option<String>) {
         if data == "[DONE]" {
             return (None, None);
         }
-
-        let handler = get_handler(model_name);
 
         // Try Azure/OpenAI format first (chat.completion.chunk)
         if let Ok(chunk) = serde_json::from_str::<AzureStreamChunk>(data) {
@@ -228,10 +251,7 @@ impl ClaudeClient {
                         // Get content
                         if let Some(text) = &delta.content {
                             if !text.is_empty() {
-                                let processed = handler.process_content(text);
-                                if !processed.is_empty() {
-                                    return (Some(processed), None);
-                                }
+                                return (Some(text.clone()), None);
                             }
                         }
                     }
@@ -245,10 +265,7 @@ impl ClaudeClient {
             if event.event_type.as_str() == "content_block_delta" {
                 if let Some(delta) = event.delta {
                     if delta.delta_type == "text_delta" && !delta.text.is_empty() {
-                        let processed = handler.process_content(&delta.text);
-                        if !processed.is_empty() {
-                            return (Some(processed), None);
-                        }
+                        return (Some(delta.text.clone()), None);
                     } else if delta.delta_type == "thinking_delta" && !delta.thinking.is_empty() {
                         return (None, Some(delta.thinking.clone()));
                     }

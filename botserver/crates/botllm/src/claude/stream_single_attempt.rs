@@ -6,7 +6,6 @@ impl ClaudeClient {
         request_body: String,
         api_key: &str,
         tx: mpsc::Sender<String>,
-        model_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let url = if self.base_url.contains("/v1/messages") || self.base_url.contains("/messages") {
             self.base_url.clone()
@@ -177,7 +176,7 @@ impl ClaudeClient {
                     }
 
                     // Process SSE data and send text chunks
-                    let (content, reasoning) = self.process_sse_data(data, model_name);
+                    let (content, reasoning) = self.process_sse_data(data);
                     
                     if let Some(text) = content {
                         if tx.send(text).await.is_err() {
@@ -207,7 +206,7 @@ impl ClaudeClient {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("data: ") {
                     if data != "[DONE]" {
-                        let (content, reasoning) = self.process_sse_data(data, model_name);
+                        let (content, reasoning) = self.process_sse_data(data);
                         if let Some(text) = content {
                             let _ = tx.send(text).await;
                             text_chunks_sent += 1;
@@ -275,7 +274,7 @@ impl ClaudeClient {
             thinking,
         };
 
-        let request_body = serde_json::to_string(&request)?;
+        let request_body = Self::body_with_media(&request, messages)?;
         trace!(
             "CLAUDE Streaming request: model={}, messages={}, body_len={}",
             model_name,
@@ -283,7 +282,7 @@ impl ClaudeClient {
             request_body.len()
         );
 
-        self.stream_with_reqwest(request_body, key, tx, model_name)
+        self.stream_with_reqwest(request_body, key, tx)
             .await
     }
 }

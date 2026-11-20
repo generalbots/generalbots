@@ -15,7 +15,10 @@ var L = {"pt-BR":{
   title:"Oficina do assistente", lead:"Ajuste onde e como o seu assistente pensa.",
   dash:"Painel", engine:"Motor em uso", privacy:"Privacidade", features:"Recursos ligados",
   fDocs:"Documentos", fOcr:"Texto em imagens", fWeb:"Pesquisa na web", fWebOff:"Pesquisa na web (desligada)", fPhotos:"Fotos e gráficos",
-  where:"Escolha o motor", whereSub:"Compare as três formas de usar o assistente. Clique no cartão de uma delas para ver os detalhes e ativar.",
+  where:"Escolha o motor", whereSub:"Compare as quatro formas de usar o assistente. Clique no cartão de uma delas para ver os detalhes e ativar.",
+  acp:"Agente (ACP)", subAcp:"Sua assinatura de agente", soon:"Em breve",
+  goAgent:"Vão ao provedor do agente", costSub:"Sua assinatura (Claude, ChatGPT, Gemini…)", agentDoes:"O agente faz", dependsAgent:"Depende do agente",
+  needAcp:"Instalar o agente e entrar na sua conta",
   local:"Neste computador", own:"Servidor ou chave própria", free:"Modelo gratuito",
   subLocal:"Privado e sem internet", subOwn:"O da sua organização", subFree:"Pronto para usar",
   inUse:"Em uso", suggested:"Sugerido", ctaOpen:"Ver e ativar", ctaAdjust:"Ver ajustes",
@@ -39,7 +42,10 @@ en:{
   title:"Assistant workshop", lead:"Tune where and how your assistant thinks.",
   dash:"Dashboard", engine:"Engine in use", privacy:"Privacy", features:"Features on",
   fDocs:"Documents", fOcr:"Text in images", fWeb:"Web search", fWebOff:"Web search (off)", fPhotos:"Photos and charts",
-  where:"Choose the engine", whereSub:"Compare the three ways to use the assistant. Click one to see the details and turn it on.",
+  where:"Choose the engine", whereSub:"Compare the four ways to use the assistant. Click one to see the details and turn it on.",
+  acp:"Agent (ACP)", subAcp:"Your agent subscription", soon:"Coming soon",
+  goAgent:"Goes to the agent’s provider", costSub:"Your subscription (Claude, ChatGPT, Gemini…)", agentDoes:"The agent does it", dependsAgent:"Depends on the agent",
+  needAcp:"Install the agent and sign in to your account",
   local:"On this computer", own:"Own server or key", free:"Free model",
   subLocal:"Private and offline", subOwn:"Your organization’s", subFree:"Ready to use",
   inUse:"In use", suggested:"Suggested", ctaOpen:"See and turn on", ctaAdjust:"See settings",
@@ -64,10 +70,11 @@ function g(k) { var lang = A.locale && A.locale.startsWith("pt") ? "pt-BR" : "en
 var ICONS = {
   local: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
   own_key: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  acp: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01"/></svg>',
   free: '<svg class="gb-set-mode-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   wrench: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
 };
-var MODES = ["local", "own_key", "free"];
+var MODES = ["local", "own_key", "free", "acp"];
 
 function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
 function webAvailable() { return typeof A.webSearchAvailable === "function" && A.webSearchAvailable(); }
@@ -253,6 +260,11 @@ function facts(mode, cfg, hw) {
       offline: cell("part", g("onlyNet")), cost: cell("part", g("costContract")),
       docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")), needs: cell("part", g("needOwn")) };
   }
+  if (mode === "acp") {
+    return { privacy: cell("part", g("goAgent")), offline: cell("no", g("noWork")), cost: cell("part", g("costSub")),
+      docs: cell("yes", g("agentDoes")), ocr: cell("part", g("dependsAgent")), web: cell("yes", g("agentDoes")),
+      photos: cell("part", g("dependsAgent")), needs: cell("part", g("needAcp")) };
+  }
   return { privacy: cell("no", g("goExt")), offline: cell("no", g("noWork")), cost: cell("yes", g("costFreeLimit")),
     docs: cell("yes", g("reads")), ocr: ocr, web: web, photos: cell("no", g("notYet")), needs: cell("yes", g("needFree")) };
 }
@@ -271,8 +283,9 @@ function compare(currentMode, modes, cfg) {
     var active = currentMode === m;
     html += '<button class="gb-set-mode-card gb-gar-head' + (active ? " gb-set-mode-active" : "") + '" data-mode="' + m + '" data-col="' + m + '"' + (avail ? "" : " disabled") + ' role="columnheader">' +
       ICONS[m] + '<span class="gb-set-mode-label">' + esc(g(m === "own_key" ? "own" : m)) + '</span>' +
-      '<span class="gb-set-mode-sub">' + esc(g(m === "own_key" ? "subOwn" : (m === "local" ? "subLocal" : "subFree"))) + '</span>' +
+      '<span class="gb-set-mode-sub">' + esc(g({ own_key: "subOwn", local: "subLocal", free: "subFree", acp: "subAcp" }[m])) + '</span>' +
       '<span class="gb-gar-head-badges">' + (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
+      (m === "acp" ? '<span class="gb-badge gb-gar-soon">' + esc(g("soon")) + '</span>' : '') +
       '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
       '<span class="gb-gar-head-cta">' + esc(active ? g("ctaAdjust") : g("ctaOpen")) +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></button>';

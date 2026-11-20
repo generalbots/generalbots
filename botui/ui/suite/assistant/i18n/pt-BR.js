@@ -67,7 +67,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.consent-denied":   "Negado",
     "assistant.consent-failed":   "Não foi possível registrar a decisão",
     "assistant.consent-expired":  "Este pedido expirou",
-    "attach.too-big": "Arquivo grande demais (limite de 8 MB por arquivo): ",
+    "attach.too-big": "Arquivo grande demais (limite de 50 MB por arquivo): ",
     "attach.empty-file": "Arquivo vazio: ",
     "attach.pasted-text": "texto-colado",
     "attach.duplicate": "Arquivo já anexado: ",

@@ -56,6 +56,10 @@ pub(crate) async fn generate(
             trace!(" Messages: {} messages", msg_array.len());
         }
 
+        let messages = crate::media_parts::openai_messages(
+            &messages,
+            crate::media_parts::sees_images(&client.base_url),
+        );
         let body = serde_json::json!({
             "model": model,
             "messages": messages,
