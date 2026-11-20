@@ -14,7 +14,7 @@ pub fn sees_images(url: &str) -> bool {
     let host = url::Url::parse(url)
         .ok()
         .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let on = |d: &str| host == d || host.ends_with(&format!(".{d}"));
     on("anthropic.com") || on("openai.com") || on("x.ai") || on("googleapis.com")
 }
@@ -30,7 +30,7 @@ pub fn collect(messages: &Value) -> Vec<Value> {
                 .cloned()
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 fn strip(messages: &Value) -> Value {

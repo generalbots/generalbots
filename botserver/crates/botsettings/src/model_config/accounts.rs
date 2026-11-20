@@ -46,10 +46,13 @@ async fn load() -> Vec<Account> {
     let Ok(secrets) = SecretsManager::get_clone() else {
         return Vec::new();
     };
-    let map: HashMap<String, String> = secrets.get_secret(PATH).await.unwrap_or_default();
+    let map: HashMap<String, String> = secrets.get_secret(PATH).await.unwrap_or_else(|e| {
+        log::warn!("[llm_accounts] cannot read {PATH} from secrets: {e}");
+        HashMap::new()
+    });
     map.get("accounts")
         .and_then(|raw| serde_json::from_str(raw).ok())
-        .unwrap_or_default()
+        .unwrap_or_else(Vec::new)
 }
 
 async fn save(accounts: &[Account]) -> Result<(), (StatusCode, Json<Value>)> {
@@ -113,7 +116,7 @@ fn host(url: &str) -> String {
     reqwest::Url::parse(url)
         .ok()
         .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
-        .unwrap_or_default()
+        .unwrap_or_else(String::new)
 }
 
 fn is_host(h: &str, domain: &str) -> bool {
@@ -185,14 +188,14 @@ async fn handle_models(
     // Only public HTTP(S) hosts may be contacted from an admin-supplied URL.
     botsecurity::validation::validate_url_ssrf_strict(req.url.trim())
         .map_err(|_| api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"))?;
-    let mut key = req.api_key.unwrap_or_default().trim().to_string();
+    let mut key = req.api_key.unwrap_or_else(String::new).trim().to_string();
     if key.is_empty() {
         key = load()
             .await
             .into_iter()
             .find(|a| a.id == req.id && a.url == req.url)
             .map(|a| a.key)
-            .unwrap_or_default();
+            .unwrap_or_else(String::new);
     }
     let Some(list_url) = models_url(&req.url) else {
         return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
@@ -216,7 +219,10 @@ async fn handle_models(
         }
     };
     let status = response.status();
-    let body = response.text().await.unwrap_or_default();
+    let body = response.text().await.unwrap_or_else(|e| {
+        log::warn!("[llm_accounts] cannot read models response body: {e}");
+        String::new()
+    });
     if !status.is_success() {
         return Ok(Json(json!({
             "models": [],
@@ -238,7 +244,7 @@ pub fn model_ids(body: &str) -> Vec<String> {
                 .map(|id| id.trim_start_matches("models/").to_string())
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_else(Vec::new);
     ids.sort();
     ids.dedup();
     ids
@@ -271,7 +277,7 @@ async fn handle_save(
         .iter()
         .find(|a| a.id == req.id)
         .map(|a| a.key.clone())
-        .unwrap_or_default();
+        .unwrap_or_else(String::new);
     let key = req
         .api_key
         .map(|k| k.trim().to_string())

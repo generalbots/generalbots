@@ -116,7 +116,10 @@ pub(super) async fn handle_test(
         Ok(resp) => {
             let status = resp.status();
             if status.is_success() {
-                let body_text = resp.text().await.unwrap_or_default();
+                let body_text = resp.text().await.unwrap_or_else(|e| {
+                    log::warn!("[test_endpoint] cannot read response body: {e}");
+                    String::new()
+                });
                 let parsed: Result<Value, _> = serde_json::from_str(&body_text);
                 let answer_field = if anthropic.is_some() { "content" } else { "choices" };
                 let model_responded = parsed
@@ -137,7 +140,10 @@ pub(super) async fn handle_test(
                     detail: None,
                 })))
             } else {
-                let body_text = resp.text().await.unwrap_or_default();
+                let body_text = resp.text().await.unwrap_or_else(|e| {
+                    log::warn!("[test_endpoint] cannot read response body: {e}");
+                    String::new()
+                });
                 Ok(Json(json!(TestResult {
                     reachable: true,
                     latency_ms,

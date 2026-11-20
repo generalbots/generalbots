@@ -16,11 +16,17 @@ pub(crate) async fn turn_llm_url(
     }
     let from_vault = botcore::config::ConfigManager::new(state.conn.clone())
         .get_config(&bot_uuid, "llm-url", Some(""))
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            log::warn!("BOT {bot_uuid} llm-url config unavailable; using env override: {e}");
+            String::new()
+        });
     if !from_vault.trim().is_empty() {
         return from_vault;
     }
-    std::env::var("LLM_URL").unwrap_or_default()
+    std::env::var("LLM_URL").unwrap_or_else(|_| {
+        log::debug!("LLM_URL is not set; no global model override");
+        String::new()
+    })
 }
 
 /// Resolves the per-bot LLM provider (Vault config → env override), logging
@@ -57,7 +63,7 @@ pub(crate) async fn resolve_bot_llm_provider(
         let host = url::Url::parse(&choice.url)
             .ok()
             .and_then(|u| u.host_str().map(str::to_string))
-            .unwrap_or_default();
+            .unwrap_or_else(|| "<unparseable>".to_string());
         botlog::safe_info!("BOT {bot_uuid} account model: host=[{host}] model=[{}]", choice.model);
         let provider = crate::llm::provider_factory::create_llm_provider_from_url(
             &choice.url,
