@@ -13,6 +13,29 @@
   var SLOT_PREFIX = "GBMATHSLOT";
   var SLOT_SUFFIX = "END";
 
+  // KaTeX is ~300 KB of CSS+JS. Inject it from JS rather than as a static tag
+  // in chat.html so it stays out of the parser-blocking boot graph (#2495).
+  // Both tags are added once; extract()/restore() degrade to plain text until
+  // the library is ready, so a slow load never drops a message.
+  (function loadKatex() {
+    if (!document || typeof document.createElement !== "function") return;
+    if (typeof window.katex !== "undefined") return;
+    if (!document.querySelector("link[data-gb-katex]")) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "/suite/js/vendor/katex/katex.min.css";
+      link.setAttribute("data-gb-katex", "1");
+      (document.head || document.documentElement).appendChild(link);
+    }
+    if (!document.querySelector("script[data-gb-katex]")) {
+      var script = document.createElement("script");
+      script.src = "/suite/js/vendor/katex/katex.min.js";
+      script.async = false;
+      script.setAttribute("data-gb-katex", "1");
+      (document.head || document.documentElement).appendChild(script);
+    }
+  })();
+
   function katexAvailable() {
     return typeof window.katex !== "undefined" &&
       typeof window.katex.renderToString === "function";

@@ -2,11 +2,7 @@
 /* #2176 — generic record-shaped delta handler for Tier-3 apps.
    Supports upsert_record, patch_field, delete_record, reorder, link. */
 (function(){
-  // The visible label is derived from the stored fields. patch_field updates
-  // dataset.fields but must also recompute this label, otherwise a patched
-  // non-title field (price, qty, status) stays stale on screen while the model
-  // already holds the new value. Keep the exact upsert expression so existing
-  // rows render byte-identically.
+  // Shared label for upsert and patch so edits refresh stale text.
   function label(fields){
     return fields ? (fields.title || fields.name || fields.summary || JSON.stringify(fields)) : "";
   }
@@ -32,8 +28,7 @@
   function registerSimple(appId, selector){
     if(!window.GBDocDelta) return;
     window.GBDocDelta.register(appId, function(payload){
-      // Records must land inside the app window that is already open; the
-      // old body fallback wrote them off-screen behind the desktop (#2176).
+      // Land records in the open app window (#2176).
       var c=document.querySelector(selector);
       if(!c){ c=document.querySelector("#"+appId+"-list, ."+appId+"-list, [data-app='"+appId+"']"); }
       if(!c){
