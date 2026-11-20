@@ -351,6 +351,33 @@ test("refreshOnOpen() refreshes only opted-in charts", function () {
   assert(js(C.link.refreshOnOpen(C.state)) === js(["c1"]), "wrong charts refreshed on open");
 });
 
+// ── Regression guards for locally reproducible crashes ────────────────
+test("palette() terminates when the default master theme has no accents", function () {
+  var win = h.sandbox.window;
+  var prior = win.GBSlidesMasters;
+  var cleared = { id: "theme_default", flat: { "color.accent1": "" } };
+  win.GBSlidesMasters = { state: {
+    themes: { theme_default: cleared }, master: { defaultThemeId: "theme_default" },
+  } };
+  try {
+    var palette = C.style.palette(cleared);
+    assert(js(palette) === js(C.style.palette({})), "self-referential theme did not fall back");
+    assert(palette.length === 6 && palette[0] === "#3b82f6", "fallback palette wrong: " + js(palette));
+  } finally {
+    if (prior === undefined) delete win.GBSlidesMasters; else win.GBSlidesMasters = prior;
+  }
+});
+
+test("applyMatrix() ignores a malformed stored range (no null dereference)", function () {
+  reset();
+  C.create({ id: "badlink", categories: ["A"], series: [{ id: "s1", values: [1] }],
+    link: { range: "not-a-range" } });
+  var before = js(C.get("badlink"));
+  var result = C.link.applyMatrix("badlink", [["Cat", "Val"], ["Q1", 5]], true, undefined, 77);
+  assert(result === null, "malformed range must not be applied");
+  assert(js(C.get("badlink")) === before, "chart mutated by invalid applyMatrix");
+});
+
 // ── STATIC source assertions (labelled; not runtime results) ──────────
 // These two helpers are private (no C.strArray / S.patternMark export), so the
 // runtime checks above exercise them through their exported consumers. The

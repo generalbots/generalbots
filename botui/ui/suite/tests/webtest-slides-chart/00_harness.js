@@ -105,6 +105,7 @@ module.exports = {
   assert: assert,
   readFile: readFile,
   C: C,
+  sandbox: loaded.sandbox,
   reset: reset,
   finish: finish,
   SUITE_DIR: SUITE_DIR,

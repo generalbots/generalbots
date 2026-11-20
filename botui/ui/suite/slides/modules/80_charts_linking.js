@@ -110,7 +110,7 @@
 
   L.applyMatrix = function (id, matrix, hasHeader, explicit, timestamp) {
     var existing = C.get(id);
-    if (!existing || !existing.link.range) return null;
+    if (!existing || !L.validRange(existing.link.range)) return null;
     var parsed = L.parseRange(existing.link.range);
     var width = parsed.endCol - parsed.startCol + 1;
     var bounded = (matrix || []).map(function (row) {

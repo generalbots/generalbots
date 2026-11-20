@@ -15,7 +15,7 @@
   }
   S.tokens = tokens;
 
-  S.palette = function (theme) {
+  S.palette = function (theme, seen) {
     var flat = tokens(theme);
     var colors = [1, 2, 3, 4, 5, 6].map(function (n) {
       return flat["color.accent" + n];
@@ -23,7 +23,7 @@
     if (!flat["color.accent1"] && typeof window.GBSlidesMasters !== "undefined" &&
       window.GBSlidesMasters.state && window.GBSlidesMasters.state.themes) {
       var master = window.GBSlidesMasters.state.themes[window.GBSlidesMasters.state.master.defaultThemeId];
-      if (master) colors = S.palette(master);
+      if (master && (seen || []).indexOf(master) < 0) colors = S.palette(master, (seen || []).concat([theme, master]));
     }
     return colors.length ? colors : FALLBACK.slice();
   };
