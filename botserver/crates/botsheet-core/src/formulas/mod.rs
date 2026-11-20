@@ -4,7 +4,7 @@ pub mod criteria;
 pub mod date;
 pub mod dynamic;
 pub mod financial;
-pub mod financial_x;
+pub mod financial_irregular;
 pub mod helpers;
 pub mod logic;
 pub mod numeric_args;
@@ -245,14 +245,14 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
                 "NPV" => financial::evaluate_npv(&expr, worksheet),
                 "IRR" => financial::evaluate_irr(&expr, worksheet),
                 "MIRR" => financial::evaluate_mirr(&expr, worksheet),
-                "XIRR" => financial_x::evaluate_xirr(&expr, worksheet),
-                "XNPV" => financial_x::evaluate_xnpv(&expr, worksheet),
-                "SLN" => financial_x::evaluate_sln(&expr, worksheet),
-                "SYD" => financial_x::evaluate_syd(&expr, worksheet),
-                "DB" => financial_x::evaluate_db(&expr, worksheet),
-                "DDB" => financial_x::evaluate_ddb(&expr, worksheet),
-                "EFFECT" => financial_x::evaluate_effect(&expr, worksheet),
-                "NOMINAL" => financial_x::evaluate_nominal(&expr, worksheet),
+                "XIRR" => financial_irregular::evaluate_xirr(&expr, worksheet),
+                "XNPV" => financial_irregular::evaluate_xnpv(&expr, worksheet),
+                "SLN" => financial_irregular::evaluate_sln(&expr, worksheet),
+                "SYD" => financial_irregular::evaluate_syd(&expr, worksheet),
+                "DB" => financial_irregular::evaluate_db(&expr, worksheet),
+                "DDB" => financial_irregular::evaluate_ddb(&expr, worksheet),
+                "EFFECT" => financial_irregular::evaluate_effect(&expr, worksheet),
+                "NOMINAL" => financial_irregular::evaluate_nominal(&expr, worksheet),
                 "CORREL" => statistical::evaluate_correl(&expr, worksheet),
                 "SLOPE" => statistical::evaluate_slope(&expr, worksheet),
                 "INTERCEPT" => statistical::evaluate_intercept(&expr, worksheet),
