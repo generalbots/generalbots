@@ -46,6 +46,7 @@ drive-link-unresolved = リンクされたパスを解決できませんでし�
 sheet-save-nothing-open = 何も開かれておらず、保存もできません。Drive ファイルは変更されていません。
 paper-url-scheme-invalid = http(s)、data:image、またはサイト相対 URL のみ使用できます。
 concierge-open = 開く
+concierge-open-apps = プランが提案した { $count } 個のアプリを開きますか？
 concierge-planning-failed = 計画に失敗しました:
 chat-retry-connection = 接続を再試行
 chat-open-default-bot = 既定のボットを開く

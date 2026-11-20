@@ -188,6 +188,11 @@ goals-dashboard = ダッシュボード
 goals-objectives = 目的
 goals-alignment = 位置合わせ
 goals-ai-suggestions = AIによる提案
+goals-enter-objective-title = 目標のタイトルを入力してください:
+goals-edit-objective-title = 目標のタイトルを編集:
+goals-delete-objective-confirm = この目標を削除しますか？この操作は取り消せません。
+goals-enter-key-result-title = 主要成果のタイトルを入力してください:
+goals-enter-target-value = 目標値を入力してください:
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = 運用ダッシュボード

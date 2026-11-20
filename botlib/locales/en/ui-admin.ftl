@@ -188,6 +188,11 @@ goals-dashboard = Dashboard
 goals-objectives = Objectives
 goals-alignment = Alignment
 goals-ai-suggestions = AI Suggestions
+goals-enter-objective-title = Enter objective title:
+goals-edit-objective-title = Edit objective title:
+goals-delete-objective-confirm = Delete this objective? This cannot be undone.
+goals-enter-key-result-title = Enter key result title:
+goals-enter-target-value = Enter target value:
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = Operations Dashboard

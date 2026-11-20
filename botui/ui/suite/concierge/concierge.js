@@ -64,22 +64,26 @@
         }
         renderHistory();
         if (window.AgentExecutor && steps.length) {
-          var proceed = true;
-          if (window.GBModal && window.GBModal.confirm) {
-            proceed = window.confirm((typeof window.gbT === "function" ? window.gbT("concierge-open", "Open") : "Open") + ' ' + steps.length + ' app(s) suggested by the plan?');
+          // #2297 — the shell's themed confirm is the only allowed dialog; it
+          // answers through a callback, so the apps open inside onYes.
+          var message = typeof window.gbT === "function"
+            ? window.gbT("concierge-open-apps", "Open { $count } app(s) suggested by the plan?", { count: steps.length })
+            : "Open { $count } app(s) suggested by the plan?";
+          message = message.replace("{ $count }", String(steps.length));
+          function openSteps() {
+            steps.forEach(function (s, i) {
+              setTimeout(function () {
+                if (!s || !s.app) return;
+                window.AgentExecutor.openApp(s.app, s.title || s.action || s.app, s.params || "");
+              }, i * 700);
+            });
+          }
+          if (window.GBModal && typeof window.GBModal.confirm === "function") {
+            window.GBModal.confirm(message, function () { openSteps(); });
           } else {
-            proceed = window.confirm((typeof window.gbT === "function" ? window.gbT("concierge-open", "Open") : "Open") + ' ' + steps.length + ' app(s) suggested by the plan?');
+            // No native dialogs: honour the explicit Run click directly.
+            openSteps();
           }
-          if (!proceed) {
-            if (stepsBox && stepsBox.querySelector('.concierge-empty')) {} 
-            return;
-          }
-          steps.forEach(function (s, i) {
-            setTimeout(function () {
-              if (!s || !s.app) return;
-              window.AgentExecutor.openApp(s.app, s.title || s.action || s.app, s.params || "");
-            }, i * 700);
-          });
         }
       })
       .catch(function (err) {

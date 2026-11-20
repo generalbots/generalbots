@@ -188,6 +188,11 @@ goals-dashboard = Armaturenbrett
 goals-objectives = Ziele
 goals-alignment = Ausrichtung
 goals-ai-suggestions = KI-Vorschläge
+goals-enter-objective-title = Titel des Ziels eingeben:
+goals-edit-objective-title = Titel des Ziels bearbeiten:
+goals-delete-objective-confirm = Dieses Ziel löschen? Dies kann nicht rückgängig gemacht werden.
+goals-enter-key-result-title = Titel des Key Results eingeben:
+goals-enter-target-value = Zielwert eingeben:
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = Betriebs-Dashboard

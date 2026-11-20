@@ -217,8 +217,12 @@
     var save = document.getElementById("mdl-free-save");
     if (save) {
       save.addEventListener("click", function () {
-        if (!window.confirm(t("mdl-confirm-external", "This sends your conversations to an external host. Continue?"))) return;
-        putConfig({ mode: "free" }, save);
+        // #2297 — themed, blocking confirm; without the shell modal nothing is
+        // sent, so cancel can never lose a configuration by accident.
+        var message = t("mdl-confirm-external", "What you write and attach will be sent to %h, outside this computer. Continue?").replace("%h", host);
+        if (window.GBModal && typeof window.GBModal.confirm === "function") {
+          window.GBModal.confirm(message, function () { putConfig({ mode: "free" }, save); });
+        }
       });
     }
   }
@@ -259,14 +263,19 @@
     } catch (e) {
       host = endpoint;
     }
-    if (!window.confirm(t("mdl-confirm-external", "What you write and attach will be sent to %h, outside this computer. Continue?").replace("%h", host))) {
-      return;
-    }
+    var message = t("mdl-confirm-external", "What you write and attach will be sent to %h, outside this computer. Continue?").replace("%h", host);
     var body = { mode: "own_key", endpoint: endpoint, model: model };
     if (key) body.api_key = key;
-    putConfig(body, button);
-    var keyEl = document.getElementById("mdl-key");
-    if (keyEl) keyEl.value = "";
+    function saveOwnKeyConfirmed() {
+      putConfig(body, button);
+      var keyEl = document.getElementById("mdl-key");
+      if (keyEl) keyEl.value = "";
+    }
+    if (window.GBModal && typeof window.GBModal.confirm === "function") {
+      window.GBModal.confirm(message, saveOwnKeyConfirmed);
+    }
+    // No native dialog (#2297): without the themed modal, keep the key in the
+    // field and send nothing so a missing shell cannot silently leak data.
   }
 
   function putConfig(body, button) {

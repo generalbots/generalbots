@@ -188,6 +188,11 @@ goals-dashboard = 仪表板
 goals-objectives = 目标
 goals-alignment = 对准
 goals-ai-suggestions = 人工智能建议
+goals-enter-objective-title = 输入目标标题：
+goals-edit-objective-title = 编辑目标标题：
+goals-delete-objective-confirm = 删除此目标？此操作无法撤销。
+goals-enter-key-result-title = 输入关键结果标题：
+goals-enter-target-value = 输入目标值：
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = 运维仪表板

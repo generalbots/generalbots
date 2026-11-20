@@ -188,6 +188,11 @@ goals-dashboard = Panel
 goals-objectives = Objetivos
 goals-alignment = Alineación
 goals-ai-suggestions = Sugerencias de IA
+goals-enter-objective-title = Introduce el título del objetivo:
+goals-edit-objective-title = Editar el título del objetivo:
+goals-delete-objective-confirm = ¿Eliminar este objetivo? Esta acción no se puede deshacer.
+goals-enter-key-result-title = Introduce el título del resultado clave:
+goals-enter-target-value = Introduce el valor objetivo:
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = Panel de operaciones

@@ -188,6 +188,11 @@ goals-dashboard = 대시보드
 goals-objectives = 목표
 goals-alignment = 정렬
 goals-ai-suggestions = AI 제안
+goals-enter-objective-title = 목표 제목을 입력하세요:
+goals-edit-objective-title = 목표 제목 편집:
+goals-delete-objective-confirm = 이 목표를 삭제할까요? 이 작업은 취소할 수 없습니다.
+goals-enter-key-result-title = 핵심 결과 제목을 입력하세요:
+goals-enter-target-value = 목표 값을 입력하세요:
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = 운영 대시보드

@@ -9,24 +9,28 @@
   // CRUD OPERATIONS
   // =============================================================================
 
-  // #2032 — dialogs go through the suite modal when it is present; the native
-  // prompt/confirm looked broken inside the shell and cannot be themed.
-  // GBModal.* answers through callbacks in the shell and returns the value in
-  // the native fallback, so both shapes are bridged into one promise.
+  // #2032/#2297 — dialogs go through the suite modal. GBModal answers through
+  // callbacks in the shell and returns the value in its own isolated fallback,
+  // so both shapes are bridged into one promise. Native dialogs are forbidden;
+  // without a themed modal the safe answer is "cancel" (never lose data).
+  function t(key, fallback) {
+    return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+  }
+
   function gbConfirm(message) {
     return new Promise(function (resolve) {
       if (window.GBModal && typeof window.GBModal.confirm === "function") {
         var settled = false;
         var result = window.GBModal.confirm(
           message,
-          "Confirm",
+          t("modal-confirm-title", "Confirm Action"),
           function () { settled = true; resolve(true); },
           function () { settled = true; resolve(false); },
         );
         if (!settled && typeof result === "boolean") { resolve(result); }
         return;
       }
-      resolve(window.confirm(message));
+      resolve(false);
     });
   }
 
@@ -37,7 +41,7 @@
         var result = window.GBModal.prompt(
           message,
           fallback,
-          "Input",
+          t("modal-input-title", "Input"),
           function (value) { settled = true; resolve(value == null ? null : String(value)); },
         );
         if (!settled && result !== undefined) {
@@ -45,7 +49,7 @@
         }
         return;
       }
-      resolve(window.prompt(message, fallback));
+      resolve(null);
     });
   }
 
@@ -69,7 +73,7 @@
       });
       return;
     }
-    gbAsk("Enter objective title:").then(function (title) {
+    gbAsk(t("goals-enter-objective-title", "Enter objective title:")).then(function (title) {
       if (title) { createObjective({ title, period: currentPeriodValue() }); }
     });
   }
@@ -120,7 +124,7 @@
     const objective = state.objectives.find((o) => o.id === objectiveId);
     if (!objective) return;
 
-    const newTitle = await gbAsk("Edit objective title:", objective.title);
+    const newTitle = await gbAsk(t("goals-edit-objective-title", "Edit objective title:"), objective.title);
     if (newTitle && newTitle !== objective.title) {
       updateObjective(objectiveId, { title: newTitle });
     }
@@ -146,7 +150,7 @@
   }
 
   async function deleteObjective(objectiveId) {
-    if (!(await gbConfirm("Delete this objective? This cannot be undone."))) return;
+    if (!(await gbConfirm(t("goals-delete-objective-confirm", "Delete this objective? This cannot be undone.")))) return;
 
     try {
       const response = await fetch(`/api/goals/objectives/${objectiveId}`, {
@@ -167,10 +171,10 @@
   }
 
   async function addKeyResult(objectiveId) {
-    const title = await gbAsk("Enter key result title:");
+    const title = await gbAsk(t("goals-enter-key-result-title", "Enter key result title:"));
     if (!title) return;
 
-    const targetValue = await gbAsk("Enter target value:", "100");
+    const targetValue = await gbAsk(t("goals-enter-target-value", "Enter target value:"), "100");
     if (!targetValue) return;
 
     createKeyResult(objectiveId, {

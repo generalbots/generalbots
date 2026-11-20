@@ -188,6 +188,11 @@ goals-dashboard = Tableau de bord
 goals-objectives = Objectifs
 goals-alignment = Alignement
 goals-ai-suggestions = Suggestions d'IA
+goals-enter-objective-title = Saisissez le titre de l'objectif :
+goals-edit-objective-title = Modifier le titre de l'objectif :
+goals-delete-objective-confirm = Supprimer cet objectif ? Cette action est irréversible.
+goals-enter-key-result-title = Saisissez le titre du résultat clé :
+goals-enter-target-value = Saisissez la valeur cible :
 
 # semantic i18n key (#2542)
 admin-ops-dashboard-title = Tableau de bord des opérations

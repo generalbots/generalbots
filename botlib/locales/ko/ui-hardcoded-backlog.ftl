@@ -46,6 +46,7 @@ drive-link-unresolved = 연결된 경로를 확인할 수 없습니다.
 sheet-save-nothing-open = 아무것도 열리지 않았고 저장할 수도 없습니다. Drive 파일은 변경되지 않았습니다.
 paper-url-scheme-invalid = http(s), data:image 또는 사이트 상대 URL만 허용됩니다.
 concierge-open = 열기
+concierge-open-apps = 계획이 제안한 앱 { $count }개를 열까요?
 concierge-planning-failed = 계획 실패:
 chat-retry-connection = 연결 다시 시도
 chat-open-default-bot = 기본 봇 열기

@@ -46,6 +46,7 @@ drive-link-unresolved = 无法解析链接的路径。
 sheet-save-nothing-open = 未打开任何内容，也无法保存。Drive 文件未更改。
 paper-url-scheme-invalid = 仅允许 http(s)、data:image 或站点相对 URL。
 concierge-open = 打开
+concierge-open-apps = 打开计划建议的 { $count } 个应用？
 concierge-planning-failed = 规划失败：
 chat-retry-connection = 重试连接
 chat-open-default-bot = 打开默认机器人

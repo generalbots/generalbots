@@ -168,7 +168,9 @@ const PowerMenu = (() => {
         window.GBModal.confirm(message, function () { resolve(true); }, function () { resolve(false); });
       });
     }
-    return Promise.resolve(window.confirm(message));
+    // #2297 — no native dialogs. An irreversible power action must never run
+    // without an explicit themed confirmation, so refuse when none exists.
+    return Promise.resolve(false);
   }
 
   function notify(message) {
@@ -179,7 +181,13 @@ const PowerMenu = (() => {
       window.GBToasts.show(t("power-menu-title", "Power"), message, "info");
       return Promise.resolve();
     }
-    return Promise.resolve(window.alert(message));
+    if (window.GBAlerts && typeof window.GBAlerts.warning === "function") {
+      window.GBAlerts.warning(t("power-menu-title", "Power"), message);
+      return Promise.resolve();
+    }
+    // #2297 — no native alert(); both in-app surfaces are absent, so there is
+    // nothing to render the message in.
+    return Promise.resolve();
   }
 
   /** Listens for the kiosk close request (#2450) once per page. */

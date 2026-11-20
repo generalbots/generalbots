@@ -66,7 +66,9 @@
                     function () { resolve(true); }, function () { resolve(false); });
                 return;
             }
-            resolve(window.confirm(message));
+            // #2297 — native dialogs are forbidden. Without the themed modal
+            // there is no safe confirmation, so keep the server unchanged.
+            resolve(false);
         });
         if (!confirmed) {
             return;

@@ -46,6 +46,7 @@ drive-link-unresolved = O caminho vinculado não pôde ser resolvido.
 sheet-save-nothing-open = Nada foi aberto e nada pode ser salvo. O arquivo do Drive não foi alterado.
 paper-url-scheme-invalid = Somente URLs http(s), data:image ou relativas ao site são permitidas.
 concierge-open = Abrir
+concierge-open-apps = Abrir { $count } app(s) sugerido(s) pelo plano?
 concierge-planning-failed = Falha no planejamento:
 chat-retry-connection = Tentar conexão novamente
 chat-open-default-bot = Abrir o bot padrão
