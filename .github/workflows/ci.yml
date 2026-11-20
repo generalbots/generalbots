@@ -619,6 +619,11 @@ jobs:
       - name: Coverage ratchet self-test (#2119)
         run: python3 scripts/check_coverage.py --self-test
 
+      # #2421 — the viewport matrix is a browser gate, but its argument parsing
+      # and compact JSON shape must stay checkable offline. No CDP, no browser.
+      - name: Viewport checker self-test (#2421)
+        run: python3 scripts/check_viewports.py --self-test
+
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
       # is a documented manual/nightly run:

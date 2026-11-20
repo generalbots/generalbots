@@ -756,6 +756,40 @@ Same as SHEET-01 in English; **OK** the column headers are English and the chart
 
 ---
 
+## Mobile verification matrix (#2421)
+
+A mobile claim is PASS only with browser evidence from all five viewports below.
+`scripts/check_viewports.py` opens one new tab per row against a running Chrome
+CDP endpoint and prints one compact JSON line per viewport (`inner_width`,
+`inner_height`, `scroll_width`, `horizontal_overflow`, `screenshot`). It never
+navigates or closes another tab; the five screenshot files stay under
+`/tmp/opencode/` as evidence.
+
+| Name | Viewport | Pointer | Emulation | Must prove | Evidence |
+|---|---|---|---|---|---|
+| `phone` | 390×844 | coarse | mobile, scale 3 | one pane, drawer, back button, keyboard, safe areas | `/tmp/opencode/viewport_phone_390x844.png` |
+| `phone-small` | 320×568 | coarse | mobile, scale 3 | no clipping, no horizontal scroll | `/tmp/opencode/viewport_phone-small_320x568.png` |
+| `tablet-p` | 768×1024 | coarse | mobile, scale 3 | two panes, no drag needed | `/tmp/opencode/viewport_tablet-p_768x1024.png` |
+| `tablet-l` | 1024×768 | coarse | mobile, scale 3 | two panes + window chrome still usable | `/tmp/opencode/viewport_tablet-l_1024x768.png` |
+| `desktop` | 1440×900 | fine | desktop, scale 1 | unchanged from `main` (screenshot diff) | `/tmp/opencode/viewport_desktop_1440x900.png` |
+
+Manual gate (needs an already-running browser; no local model calls):
+
+```bash
+python3 scripts/check_viewports.py --self-test
+python3 scripts/check_viewports.py --cdp http://127.0.0.1:9223 \
+  --url http://localhost:3000/default --out-dir /tmp/opencode
+```
+
+Every row needs `horizontal_overflow: false` (`scroll_width <= inner_width`),
+a readable screenshot and no console error. The six flows in #2421 (login/chat,
+Drive back-scroll, app switch, rotate/resize, keyboard, deep link) still follow
+the one-short-script-per-action CDP rule in AGENTS.md; this helper only gates the
+viewport shape. Record the result as a `criterion | observed | PASS/FAIL` table
+on the child issue and cite the matrix row.
+
+---
+
 ## Recording a run
 
 Copy this block per scenario into the issue or a spreadsheet:
