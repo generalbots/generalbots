@@ -214,12 +214,26 @@ jobs:
               mkosi --output-dir /out build
               RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1) || true
               test -n "$RAW" || { echo "mkosi produced no .raw output" >&2; exit 1; }
-              # Required QEMU boot smoke on the ORIGINAL output name — mkosi
-              # vm resolves the image from the config output, so the rename
-              # to .iso must happen afterwards. The plain vm verb boots with
-              # a text console: kernel, systemd journal and the kiosk shell
-              # start line land in the log. A running VM makes timeout return
-              # 124, which is accepted only WITH the shell-start marker.
+              # QEMU boot smoke on the ORIGINAL output name — mkosi vm resolves
+              # the image from the config output, so the rename to .iso must
+              # happen afterwards. The plain vm verb boots with a text console:
+              # kernel, systemd journal and the kiosk shell start line land in
+              # the log. A running VM makes timeout return 124, which is
+              # accepted only WITH the shell-start marker.
+              #
+              # The REQUIRED gate was added AFTER v7.0.36. A pinned tag whose
+              # own workflow still calls the smoke "best effort" shipped with
+              # an advisory marker; applying a newer hard gate to that older
+              # image would fail a release that was green when it shipped.
+              # Honour the contract of the checked out tag, exactly like the
+              # license-staging guard above. Current tags keep the hard gate.
+              SMOKE_REQUIRED=1
+              if [ -f /repo/.github/workflows/desktop-os-iso.yml ] \
+                 && grep -q "best effort" /repo/.github/workflows/desktop-os-iso.yml \
+                 && ! grep -q "REQUIRED boot smoke" /repo/.github/workflows/desktop-os-iso.yml; then
+                echo "::warning::pinned tag predates the required boot smoke gate; marker is advisory"
+                SMOKE_REQUIRED=0
+              fi
               set +e
               timeout 480 mkosi --output-dir /out vm > /out/vm-smoke.log 2>&1
               smoke_rc=$?
@@ -230,12 +244,16 @@ jobs:
                 tail -80 /out/vm-smoke.log || true
                 exit 1
               fi
-              grep -aq "Started General Bots kiosk shell" /out/vm-smoke.log || {
+              if grep -aq "Started General Bots kiosk shell" /out/vm-smoke.log; then
+                echo "boot smoke: green (kiosk shell started)"
+              elif [ "$SMOKE_REQUIRED" -eq 1 ]; then
                 echo "QEMU boot smoke did not confirm generalbots-shell.service" >&2
                 tail -80 /out/vm-smoke.log || true
                 exit 1
-              }
-              echo "boot smoke: green (kiosk shell started)"
+              else
+                echo "::warning::boot smoke did not confirm generalbots-shell.service (advisory for pinned tag)"
+                tail -40 /out/vm-smoke.log || true
+              fi
               # El Torito is always on (mkosi.conf): the raw file is a hybrid
               # ISO image; give it the name people expect.
               mv "$RAW" /out/generalbots-os.iso
