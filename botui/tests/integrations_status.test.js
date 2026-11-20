@@ -60,7 +60,10 @@ function loadModules() {
     Intl: Intl,
     setTimeout: function () {},
   };
-  for (const file of ["01_state.js", "02_render.js"]) {
+  // Mirror the production load order in integrations.html: 02_render.js calls
+  // namespace.buildTestCell() (render test-cell), which 02a defines. Loading
+  // only the first two modules left that helper undefined.
+  for (const file of ["01_state.js", "02_render.js", "02a_render_test_cell.js"]) {
     vm.runInNewContext(fs.readFileSync(path.join(MODULES, file), "utf8"), sandbox, {
       filename: path.join(MODULES, file),
     });
