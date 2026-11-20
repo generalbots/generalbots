@@ -316,9 +316,13 @@ pub async fn handle_chat_models(
         })
     };
 
+    // Models switched on in Settings > Modelo, grouped by provider account.
+    let accounts = botsettings::model_config::accounts::chat_groups().await;
+
     Json(serde_json::json!({
         "default_model": default_model,
         "destination": destination,
+        "accounts": accounts,
         "tiers": [
             {
                 "id": "auto",

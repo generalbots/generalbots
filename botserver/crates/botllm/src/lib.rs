@@ -5,6 +5,7 @@ pub mod hallucination_detector;
 pub mod kimi;
 pub mod kiro;
 pub mod llm_models;
+pub mod media_parts;
 pub mod rate_limiter;
 pub mod retry;
 pub mod vertex;

@@ -14,6 +14,8 @@ pub(super) struct TurnPromptInputs<'a> {
     pub(super) media_type: &'a str,
     pub(super) model_preference: &'a str,
     pub(super) project_context: Option<&'a serde_json::Value>,
+    /// Images/PDFs for a vision-capable model, attached to the system block.
+    pub(super) attachment_media: &'a [serde_json::Value],
 }
 
 pub(super) async fn prepare_messages_and_maybe_finish(
@@ -32,6 +34,7 @@ pub(super) async fn prepare_messages_and_maybe_finish(
         media_type,
         model_preference,
         project_context,
+        attachment_media,
     } = *inputs;
     let SessionIdentity {
         sink,
@@ -198,7 +201,13 @@ pub(super) async fn prepare_messages_and_maybe_finish(
     // #1641 — attachment content is a separate system block so it never gets
     // persisted as if the user had typed the whole file.
     if let Some(note) = attachment_note.take() {
-        messages.push(serde_json::json!({"role": "system", "content": note}));
+        let mut block = serde_json::json!({"role": "system", "content": note});
+        // The files themselves, for a model that can see them; each client
+        // turns them into its provider's content parts (botllm::media_parts).
+        if !attachment_media.is_empty() {
+            block["media"] = serde_json::Value::Array(attachment_media.to_vec());
+        }
+        messages.push(block);
     }
 
     // #1644 — results of approved browser/terminal actions are fed back into

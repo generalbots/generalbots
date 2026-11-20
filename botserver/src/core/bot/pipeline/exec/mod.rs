@@ -227,10 +227,16 @@ pub async fn process_message_internal(
         None
     };
 
+    let vision = has_file && {
+        let url = super::enriched_llm::turn_llm_url(state, bot_uuid, &model_preference).await;
+        botllm::media_parts::sees_images(&url)
+    };
     let attachment =
-        super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
+        super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text, vision)
+            .await;
     let user_text = attachment.user_text;
     let mut attachment_note = attachment.note;
+    let attachment_media = attachment.media;
     let media_fail_reason = attachment.media_fail_reason;
 
     // Emit the completed/failed attachment activity.
@@ -277,8 +283,8 @@ pub async fn process_message_internal(
             let done = act.completed(summary);
             super::activity::emit_activity(sink, &early_run, &done).await;
         } else {
-            let reason = if file_size > 12 * 1024 * 1024 {
-                "File exceeds the 8 MB limit"
+            let reason = if file_size > 50 * 1024 * 1024 {
+                "File exceeds the 50 MB limit"
             } else {
                 "Could not store or read the file"
             };
@@ -395,6 +401,7 @@ pub async fn process_message_internal(
         media_type: &media_type,
         model_preference: &model_preference,
         project_context: project_context.as_ref(),
+        attachment_media: &attachment_media,
     };
     if context::prepare_messages_and_maybe_finish(
         identity,
