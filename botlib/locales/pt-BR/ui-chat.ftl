@@ -210,6 +210,7 @@ chat-cmd-help = Mostrar atalhos de teclado
 chat-cmd-new = Iniciar uma nova conversa
 chat-cmd-clear = Limpar esta conversa
 chat-cmd-stop = Parar geração
+chat-stop = Parar
 chat-cmd-failed = Falha no comando
 chat-help = Atalhos de teclado
 chat-inspect = Inspecionar

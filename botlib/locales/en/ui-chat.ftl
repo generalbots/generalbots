@@ -210,6 +210,7 @@ chat-cmd-help = Show keyboard shortcuts
 chat-cmd-new = Start a new conversation
 chat-cmd-clear = Clear this conversation
 chat-cmd-stop = Stop generating
+chat-stop = Stop
 chat-cmd-failed = Command failed
 chat-help = Keyboard shortcuts
 chat-inspect = Inspect
