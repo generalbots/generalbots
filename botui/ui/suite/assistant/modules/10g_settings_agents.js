@@ -53,8 +53,11 @@ function api(path, body) {
     });
 }
 
-var poll = null;
-function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
+/* One status poll per agent whose sign-in is in progress. */
+var polls = {};
+function stopPoll(id) { if (polls[id]) { clearInterval(polls[id]); delete polls[id]; } }
+function stopAll() { Object.keys(polls).forEach(stopPoll); }
+var PENDING = ["connecting", "waiting", "verifying", "starting"];
 /* Sign-ins this page started. A sign-in left half-done earlier (status
  * "connecting": the CLI is starting, waiting or verifying) is offered again. */
 var started = {};
@@ -119,18 +122,68 @@ function showFlow(el, a, d) {
 }
 
 function watch(el, a) {
-  stopPoll();
-  poll = setInterval(function () {
-    if (!document.body.contains(el)) { stopPoll(); return; }
+  stopPoll(a.id);
+  polls[a.id] = setInterval(function () {
+    if (!document.body.contains(el)) { stopAll(); return; }
     api("/api/ai-accounts/" + a.id + "/status", {}).then(function (d) {
-      if (d.status === "linked" || d.status === "error") { delete started[a.id]; stopPoll(); renderAgents(el); return; }
-      showFlow(el, a, d);
+      if (!polls[a.id]) { return; }
+      if (PENDING.indexOf(d.status) >= 0) { showFlow(el, a, d); return; }
+      stopPoll(a.id);
+      delete started[a.id];
+      redrawRow(el, a, d);
     }).catch(function () { /* keep trying while the page is open */ });
   }, 3000);
 }
 
+/** The sign-in ended (linked, error or back to unlinked): this row only is drawn again. */
+function redrawRow(el, a, d) {
+  var row = el.querySelector('[data-agent="' + a.id + '"]');
+  if (!row) { return; }
+  row.outerHTML = rowHtml(a, d);
+  bindRow(el, a);
+  var box = el.querySelector('[data-flow="' + a.id + '"]');
+  if (d.status === "error" && box) {
+    box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + (d.message ? " " + d.message : "")) + '</p>';
+  }
+  if (d.status === "linked" && !el.querySelector("[data-agent-use]")) {
+    var list = el.querySelector(".gb-prov-list");
+    if (list) { list.insertAdjacentHTML("afterend", '<p class="gb-set-hint" data-agent-use>' + esc(g("use")) + '</p>'); }
+  }
+}
+
+function bindRow(el, a) {
+  var on = el.querySelector('[data-agent-on="' + a.id + '"]');
+  if (on && A.productConfig && A.productConfig.agent_backend_unavailable) { on.disabled = true; }
+  if (on) {
+    on.addEventListener("click", function () {
+      on.disabled = true;
+      started[a.id] = true;
+      markRow(el, a, true);
+      showFlow(el, a, {});
+      api("/api/ai-accounts/" + a.id + "/connect", {})
+        .then(function (d) { showFlow(el, a, d); watch(el, a); })
+        .catch(function (e) {
+          delete started[a.id];
+          markRow(el, a, false);
+          on.disabled = false;
+          var box = el.querySelector('[data-flow="' + a.id + '"]');
+          if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; }
+        });
+    });
+  }
+  var off = el.querySelector('[data-agent-off="' + a.id + '"]');
+  if (off) {
+    off.addEventListener("click", function () {
+      off.disabled = true;
+      delete started[a.id];
+      api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); });
+    });
+  }
+}
+
 function renderAgents(el) {
   var reason = A.productConfig && A.productConfig.agent_backend_unavailable;
+  stopAll();
   api("/api/ai-accounts").catch(function () { return { accounts: [] }; }).then(function (data) {
     var byId = {};
     (data.accounts || []).forEach(function (x) { byId[x.provider] = x; });
@@ -139,36 +192,10 @@ function renderAgents(el) {
       (reason ? '<p class="gb-set-warn">' + esc(g("unavailable")) + ' ' + esc(reason) + '</p>' : '') +
       '<div class="gb-prov-list" role="list">' + AGENTS.map(function (a) { return rowHtml(a, byId[a.id]); }).join("") + '</div>' +
       (AGENTS.some(function (a) { return a.id && byId[a.id] && byId[a.id].status === "linked"; })
-        ? '<p class="gb-set-hint">' + esc(g("use")) + '</p>' : '') + '</div>';
-    if (reason) { el.querySelectorAll("[data-agent-on]").forEach(function (b) { b.disabled = true; }); }
+        ? '<p class="gb-set-hint" data-agent-use>' + esc(g("use")) + '</p>' : '') + '</div>';
     AGENTS.forEach(function (a) {
       if (!a.id) { return; }
-      var on = el.querySelector('[data-agent-on="' + a.id + '"]');
-      if (on) {
-        on.addEventListener("click", function () {
-          on.disabled = true;
-          started[a.id] = true;
-          markRow(el, a, true);
-          showFlow(el, a, {});
-          api("/api/ai-accounts/" + a.id + "/connect", {})
-            .then(function (d) { showFlow(el, a, d); watch(el, a); })
-            .catch(function (e) {
-              delete started[a.id];
-              markRow(el, a, false);
-              on.disabled = false;
-              var box = el.querySelector('[data-flow="' + a.id + '"]');
-              if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; }
-            });
-        });
-      }
-      var off = el.querySelector('[data-agent-off="' + a.id + '"]');
-      if (off) {
-        off.addEventListener("click", function () {
-          off.disabled = true;
-          delete started[a.id];
-          api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); });
-        });
-      }
+      bindRow(el, a);
       if (statusOf(a, byId[a.id]) === "connecting") { watch(el, a); }
     });
   });

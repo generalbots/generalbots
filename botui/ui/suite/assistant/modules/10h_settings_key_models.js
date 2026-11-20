@@ -63,6 +63,13 @@ function mount(box, ctx) {
     return M().failMsg(g(key), d && d.error) +
       (d && d.detail ? " " + g("said") + " “" + d.detail + "”" : "");
   }
+  /* The key is stored for this account, or it is the main own-key setup's key for the same host. */
+  function keyStored() {
+    if (account && account.has_key) { return true; }
+    var c = A._modelShared && A._modelShared.cfg;
+    if (!c || c.mode !== "own_key" || !c.has_key || !c.endpoint_host) { return false; }
+    try { return new URL(ctx.url()).hostname.toLowerCase() === String(c.endpoint_host).toLowerCase(); } catch (e) { return false; }
+  }
   function countOn() { return all.filter(function (m) { return on[m]; }).length; }
   function rows() {
     var q = filter.trim().toLowerCase();
@@ -106,7 +113,7 @@ function mount(box, ctx) {
   function fetchModels() {
     var url = ctx.url(), key = ctx.key();
     if (!url) { say("gb-set-warn", g("urlNeeded")); return; }
-    if (!key && !ctx.keyOptional && !(account && account.has_key)) { say("gb-set-warn", g("keyNeeded")); return; }
+    if (!key && !ctx.keyOptional && !keyStored()) { say("gb-set-warn", g("keyNeeded")); return; }
     var req = { id: ctx.id, url: url }; if (key) { req.api_key = key; }
     fetchBtn.disabled = true;
     say("gb-set-hint", g("fetching"));
@@ -127,7 +134,7 @@ function mount(box, ctx) {
   function save() {
     var url = ctx.url(), key = ctx.key();
     if (!url) { say("gb-set-warn", g("urlNeeded")); return; }
-    if (!key && !ctx.keyOptional && !(account && account.has_key)) { say("gb-set-warn", g("keyNeeded")); return; }
+    if (!key && !ctx.keyOptional && !keyStored()) { say("gb-set-warn", g("keyNeeded")); return; }
     var btn = box.querySelector("#gbKmSave");
     var req = { id: ctx.id, name: ctx.name, url: url, enabled: all.filter(function (m) { return on[m]; }) };
     if (key) { req.api_key = key; }
@@ -156,8 +163,8 @@ function mount(box, ctx) {
     .then(function (r) { return r.ok ? r.json() : {}; })
     .then(function (d) {
       account = ((d && d.accounts) || []).filter(function (a) { return a.id === ctx.id; })[0] || null;
+      if (keyStored()) { box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored"); }
       if (!account) { return; }
-      if (account.has_key) { box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored"); }
       all = (account.enabled || []).slice();
       all.forEach(function (m) { on[m] = true; });
       render();
