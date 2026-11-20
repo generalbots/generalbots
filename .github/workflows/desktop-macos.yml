@@ -309,14 +309,16 @@ jobs:
           # Never rewrite the release notes: `gh release upload` attaches files
           # only. Releases with immutability enabled reject the upload, which is
           # tolerated by the job-level continue-on-error.
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
+          # This job only downloads artifacts, so there is no git checkout to
+          # infer the repository from. Always pass it explicitly.
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* -R "$GITHUB_REPOSITORY" --clobber
           else
             # The Linux release job may create the same release concurrently.
             # Fall back to an upload when create loses that race.
-            gh release create "$TAG" dist/* \
+            gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" \
               --title "${BASE_TAG} (macOS)" \
               --notes "macOS desktop bundle (unsigned; signing/notarization is future work), pre-release for ${BASE_TAG}: it never takes latest." \
               --prerelease --latest=false ||
-              gh release upload "$TAG" dist/* --clobber
+              gh release upload "$TAG" dist/* -R "$GITHUB_REPOSITORY" --clobber
           fi
