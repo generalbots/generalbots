@@ -20,6 +20,7 @@ pub const SUPPRESSED_STATUSES: [&str; 5] = [
 pub struct ConsentFlags {
     pub email: Option<bool>,
     pub sms: Option<bool>,
+    pub push: Option<bool>,
     pub whatsapp: Option<bool>,
 }
 
@@ -58,6 +59,7 @@ pub fn consent_flags(custom_fields: Option<&Value>) -> ConsentFlags {
     ConsentFlags {
         email: read("email"),
         sms: read("sms"),
+        push: read("push"),
         whatsapp: read("whatsapp"),
     }
 }
@@ -72,6 +74,8 @@ pub struct SegmentCandidate {
     pub email: Option<String>,
     pub status: String,
     pub company: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
     pub tags: Vec<String>,
     pub owner_id: Option<Uuid>,
     pub last_activity: DateTime<Utc>,
@@ -307,7 +311,12 @@ pub fn is_suppressed(candidate: &SegmentCandidate) -> bool {
     if candidate.marketing_subscribed == Some(false) {
         return true;
     }
-    [candidate.consent.email, candidate.consent.sms, candidate.consent.whatsapp]
-        .iter()
-        .any(|flag| *flag == Some(false))
+    [
+        candidate.consent.email,
+        candidate.consent.sms,
+        candidate.consent.push,
+        candidate.consent.whatsapp,
+    ]
+    .iter()
+    .any(|flag| *flag == Some(false))
 }

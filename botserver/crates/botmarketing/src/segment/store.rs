@@ -68,6 +68,8 @@ type CrmRow = (
     Option<String>,
     String,
     Option<String>,
+    Option<String>,
+    Option<String>,
     Option<Vec<Option<String>>>,
     Option<Uuid>,
     DateTime<Utc>,
@@ -78,7 +80,7 @@ type DealRow = (Option<Uuid>, Option<BigDecimal>, String);
 
 /// Loads every CRM contact in scope with the denormalized values the segment
 /// catalog needs. Pure read — no membership rows are written here.
-fn load_candidates(
+pub(crate) fn load_candidates(
     conn: &mut PgConnection,
     branch_id: Uuid,
 ) -> Result<Vec<SegmentCandidate>, SegmentStoreError> {
@@ -91,6 +93,8 @@ fn load_candidates(
             crm_contacts::email,
             crm_contacts::status,
             crm_contacts::company,
+            crm_contacts::city,
+            crm_contacts::country,
             crm_contacts::tags,
             crm_contacts::owner_id,
             crm_contacts::updated_at,
@@ -162,6 +166,8 @@ fn load_candidates(
                 email,
                 status,
                 company,
+                city,
+                country,
                 tags,
                 owner_id,
                 last_activity,
@@ -176,6 +182,8 @@ fn load_candidates(
                 email,
                 status,
                 company,
+                city,
+                country,
                 tags: tags.into_iter().flatten().flatten().collect(),
                 owner_id,
                 last_activity,

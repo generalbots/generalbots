@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 use crate::schema::marketing_lists;
 use crate::segment::{
-    self, Segment, SegmentCondition, SegmentError, SegmentMatch, SegmentStoreError, FIELD_CATALOG,
+    self, Segment, SegmentCondition, SegmentError, SegmentMatch, SegmentStoreError, WirePreviewRequest,
+    FIELD_CATALOG,
 };
 use crate::state::AppState;
 
@@ -314,4 +315,22 @@ pub async fn preview_list(
 /// build valid conditions (kept in sync with the evaluator by construction).
 pub async fn segment_fields() -> Json<Value> {
     Json(json!({ "fields": FIELD_CATALOG }))
+}
+
+/// `POST /api/crm/segments/preview` — validates a recursive UI segment and
+/// returns `{ matched, suppressed, matches }` (first ten) without writing any
+/// membership row. Falls back to no data when the database pool is exhausted.
+pub async fn segment_preview(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<WirePreviewRequest>,
+) -> Result<Json<Value>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "segment_preview_pool"))?;
+    let (_, branch_id, _) = state.get_scope();
+    let preview = segment::preview_wire_segment(&mut conn, branch_id, &request.segment)
+        .map_err(|e| segment_error(&e))?;
+    Ok(Json(json!({
+        "matched": preview.matched,
+        "suppressed": preview.suppressed,
+        "matches": preview.matches,
+    })))
 }

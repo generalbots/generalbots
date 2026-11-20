@@ -36,6 +36,8 @@ fn candidate(status: &str, company: Option<&str>, tags: &[&str]) -> SegmentCandi
         email: Some("ada@example.com".to_string()),
         status: status.to_string(),
         company: company.map(String::from),
+        city: None,
+        country: None,
         tags: tags.iter().map(|tag| tag.to_string()).collect(),
         owner_id: None,
         last_activity: Utc

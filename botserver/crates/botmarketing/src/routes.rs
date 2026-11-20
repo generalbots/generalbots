@@ -260,6 +260,9 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
         // #2537 — static field catalog and preview are registered before the
         // generic `:id` route so a literal path segment is never parsed as a UUID.
         .route("/api/crm/lists/segment/fields", get(crate::lists::segment_fields))
+        // #2537 — recursive preview used by the shipped segment editor. Static
+        // path, registered before the generic `:id` routes above/below.
+        .route("/api/crm/segments/preview", post(crate::lists::segment_preview))
         .route("/api/crm/lists/:id", get(crate::lists::get_list).put(crate::lists::update_list).delete(crate::lists::delete_list))
         .route("/api/crm/lists/:id/preview", post(crate::lists::preview_list))
         .route("/api/crm/lists/:id/refresh", post(crate::lists::refresh_marketing_list))

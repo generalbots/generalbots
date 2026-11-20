@@ -7,6 +7,8 @@
 mod evaluate;
 mod model;
 mod store;
+mod ui_preview;
+mod ui_wire;
 mod validate;
 
 pub use evaluate::{
@@ -22,6 +24,8 @@ pub use store::{
     resolve_send_contacts, segment_from_list, suppressed_crm_emails, suppressed_marketing_contact,
     MaterializeResult, SegmentPreview, SegmentPreviewMatch, SegmentStoreError,
 };
+pub use ui_preview::{preview_wire_segment, WirePreview, WirePreviewMatch};
+pub use ui_wire::{WirePreviewRequest, WireSegment};
 pub use validate::{
     compile_legacy_query, detect_drift, parse_segment, segment_fingerprint, SegmentField, SegmentOp,
     ValidCondition, ValidSegment,
