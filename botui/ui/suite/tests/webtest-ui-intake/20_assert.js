@@ -149,17 +149,18 @@ h.staticTest("intake strings are catalog keys, not hardcoded literals", function
   h.equal(m.i18n.byKey["drive-folder-unsupported"].length, 8, "folder note key in all catalogs");
 });
 
-/* ------------------------------------------------- KNOWN BUGs (report only) */
-h.knownBug("SW activation discards pending shared files on every version bump", function () {
+/* ----------------------- regression lock (fixed bug) + KNOWN BUGs (report only) */
+h.test("SW activation preserves pending shared files across version bumps (regression #2510)", function () {
   var source = h.uiFile(h.SERVICE_WORKER);
-  var deleteLine = h.lineOf(source, source.indexOf("k !== CACHE"));
+  var filterLine = h.lineOf(source, source.indexOf("k !== CACHE"));
   var cacheLine = h.lineOf(source, source.indexOf("var SHARE_CACHE"));
-  h.equal(m.serviceWorker.shellCache, "gb-desktop-shell-v46", "retained cache constant");
-  h.equal(m.serviceWorker.deletesOtherCaches, true, "all other caches deleted");
+  h.assert(m.serviceWorker.preservesShareCache,
+    "sw.js:" + filterLine + " must exclude SHARE_CACHE from activation pruning");
+  h.equal(m.serviceWorker.shareCache, "gb-share-inbox-v1", "share inbox name retained");
   h.assert(m.serviceWorker.shareCache !== m.serviceWorker.shellCache,
-    "share inbox is not the retained cache");
-  h.note("sw.js:" + deleteLine + " deletes every cache except CACHE; sw.js:" + cacheLine +
-    " creates gb-share-inbox-v1, so a bump to sw.js:9 drops files before Save to Drive.");
+    "share inbox is not the shell cache");
+  h.note("sw.js:" + filterLine + " keeps gb-share-inbox-v1 (declared sw.js:" + cacheLine +
+    ") when CACHE is bumped, so staged shares survive until Save to Drive.");
 });
 h.knownBug("share POST has no server-side fallback when the worker is not controlling", function () {
   var manifestSource = h.uiFile(h.MANIFEST);

@@ -159,6 +159,7 @@ var metrics = {
     shellCache: quoted(sw, "CACHE"),
     shareCache: quoted(sw, "SHARE_CACHE"),
     deletesOtherCaches: /k !== CACHE/.test(sw),
+    preservesShareCache: /k !== CACHE\s*&&\s*k !== SHARE_CACHE/.test(sw),
     sharedRedirect: /share-intake\.html\?shared=1/.test(sw),
     storesFilesInCache: /cache\.put\(new Request\(key\)/.test(sw),
   },
