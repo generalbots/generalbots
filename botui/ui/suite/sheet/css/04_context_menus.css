@@ -171,8 +171,13 @@
 @media (max-width: 760px) {
     .sheet-main { position: relative; }
 
-    .sheet-sidebar {
+    /* #2515: 08_a11y.css loads later and forces display:none (<=820px) plus
+       width:180px (<=1100px). Id-qualified selectors win both declarations so
+       the drawer really opens; visibility keeps the closed drawer untabbable. */
+    #sheet-app .sheet-sidebar {
         position: absolute !important;
+        display: flex !important;
+        visibility: hidden;
         top: 0;
         bottom: 0;
         left: 0;
@@ -183,7 +188,10 @@
         transition: transform 0.2s ease;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     }
-    .sheet-main.sidebar-open .sheet-sidebar { transform: translateX(0); }
+    #sheet-app .sheet-main.sidebar-open .sheet-sidebar {
+        transform: translateX(0);
+        visibility: visible;
+    }
 
     .sheet-backdrop {
         display: none;

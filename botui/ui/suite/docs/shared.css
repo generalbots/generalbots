@@ -1,6 +1,5 @@
 /* #2253 — standalone read-only viewer for a Docs share link.
  * No toolbar, no editor: the only control on the page is the browser's own. */
-
 html, body { height: 100%; }
 
 .docs-shared-body {
@@ -12,7 +11,6 @@ html, body { height: 100%; }
     flex-direction: column;
     min-height: 100%;
 }
-
 .docs-shared-bar {
     display: flex;
     align-items: center;
@@ -35,7 +33,6 @@ html, body { height: 100%; }
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 .docs-shared-badge {
     padding: 2px 9px;
     border-radius: 999px;
@@ -54,7 +51,6 @@ html, body { height: 100%; }
     justify-content: center;
     padding: 28px 16px 40px;
 }
-
 .docs-shared-state {
     align-self: center;
     margin: 0;
@@ -64,7 +60,6 @@ html, body { height: 100%; }
 }
 
 .docs-shared-state-error { color: #f87171; }
-
 .docs-shared-pages {
     width: 100%;
     display: flex;
@@ -84,7 +79,6 @@ html, body { height: 100%; }
     cursor: default;
     overflow-wrap: break-word;
 }
-
 .docs-shared-doc img { max-width: 100%; height: auto; }
 .docs-shared-doc table { border-collapse: collapse; max-width: 100%; }
 .docs-shared-doc td,
@@ -98,7 +92,6 @@ html, body { height: 100%; }
     font-size: var(--text-xs);
 }
 .docs-shared-doc a { color: #1d4ed8; }
-
 .docs-shared-footer {
     padding: 10px 20px;
     border-top: 1px solid #334155;
@@ -108,7 +101,14 @@ html, body { height: 100%; }
     font-size: var(--text-2xs);
     text-align: center;
 }
-
 @media (max-width: 860px) {
     .docs-shared-doc { padding: 32px 22px; min-height: 60vh; }
+}
+/* #2515 — compact phone guard for the standalone share reader (no editor
+   chrome here). 16px body text stops iOS zoom-on-tap and roomier table cells
+   keep read-only content usable at 390px; desktop reader styles are untouched. */
+@media (max-width: 720px) {
+    .docs-shared-bar { min-height: 48px; }
+    .docs-shared-doc { font-size: 16px; }
+    .docs-shared-doc td, .docs-shared-doc th { padding: 10px 12px; }
 }
