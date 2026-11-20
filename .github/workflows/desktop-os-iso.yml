@@ -258,10 +258,33 @@ jobs:
               # ISO image; give it the name people expect.
               mv "$RAW" /out/generalbots-os.iso
               rm -f /out/generalbots-os
-              # Prove this really is the OS, not the GRUB payload carrier:
-              # /etc/os-release identity, payload entry point and shell unit
-              # are read from inside the root filesystem of the image.
-              /repo/scripts/build_iso.sh --verify-appliance /out/generalbots-os.iso
+              # Prove this really is the OS, not the GRUB payload carrier.
+              # The pinned tag build_iso.sh predates --verify-appliance, so
+              # run the equivalent guestfish assertions here instead.
+              echo "builder path is not the pinned tag; verifying the image inline"
+              IMAGE=/out/generalbots-os.iso
+              test -f "$IMAGE" || { echo "::error::appliance image not found: $IMAGE" >&2; exit 1; }
+              ! head -c 32768 "$IMAGE" | grep -aq "Linux archive" \
+                || { echo "::error::$IMAGE is not an ISO image" >&2; exit 1; }
+              BYTES=$(stat -c %s "$IMAGE")
+              [ "$BYTES" -gt 1048576 ] \
+                || { echo "::error::appliance image is suspiciously small ($BYTES bytes)" >&2; exit 1; }
+              for path in /etc/os-release /opt/general-bots/start.sh \
+                          /usr/lib/systemd/system/generalbots-shell.service; do
+                answer=$(guestfish --ro -a "$IMAGE" -i -- exists "$path" 2>/dev/null) \
+                  || { echo "::error::guestfish cannot inspect $IMAGE" >&2; exit 1; }
+                [ "$answer" = "true" ] \
+                  || { echo "::error::$IMAGE is NOT the General Bots OS appliance: missing $path" >&2; exit 1; }
+              done
+              os_release=$(guestfish --ro -a "$IMAGE" -i -- cat /etc/os-release 2>/dev/null) \
+                || { echo "::error::cannot read /etc/os-release from $IMAGE" >&2; exit 1; }
+              grep -qx "ID=general-bots-os" <<<"$os_release" \
+                || { echo "::error::$IMAGE has no ID=general-bots-os in /etc/os-release" >&2; exit 1; }
+              unit=$(guestfish --ro -a "$IMAGE" -i -- cat /usr/lib/systemd/system/generalbots-shell.service 2>/dev/null) \
+                || { echo "::error::cannot read the kiosk shell unit from $IMAGE" >&2; exit 1; }
+              grep -q "^ExecStart=.*start.sh" <<<"$unit" \
+                || { echo "::error::kiosk shell unit has no start.sh ExecStart" >&2; exit 1; }
+              echo "inline appliance verification: green"
             '
 
       - name: Checksums
