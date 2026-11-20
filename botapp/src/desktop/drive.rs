@@ -8,12 +8,33 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 use super::fs_scope;
 
+// Declared here (with an explicit path) so the shared pure helper lives at
+// desktop/path_scope.rs without changing the unowned desktop/mod.rs. If the
+// module is later promoted to a top-level declaration, drop the `#[path]`.
+#[path = "path_scope.rs"]
+pub mod path_scope;
+
+/// Resolve a webview path against the configured scopes, failing closed.
+///
+/// The helper logs the detailed reason and returns one fixed wire string, so
+/// an injected script cannot map the host filesystem through error messages.
+fn scoped(raw: &str) -> Result<PathBuf, String> {
+    path_scope::resolve_in_scopes(raw, &fs_scope::scopes())
+}
+
+/// Log the detail locally and return a generic IPC error.
+fn wire_error(context: &str, detail: impl std::fmt::Display) -> String {
+    log::warn!("drive IPC: {context}: {detail}");
+    "The requested file operation could not be completed".to_string()
+}
+
 /// One-shot, human-approved grants for destructive Drive commands (#2497).
 ///
 /// Contract — the UI obtains a grant through `request_destructive_confirmation`:
 /// 1. The page calls that command with the target path and operation. The shell
-///    resolves the path with [`fs_scope::resolve`] and shows a native Yes/No
-///    dialog naming the exact target, so no script can approve its own request.
+///    resolves the path through [`path_scope::resolve_in_scopes`] and shows a
+///    native Yes/No dialog naming the exact target, so no script can approve
+///    its own request.
 /// 2. Only after the user clicks Yes does the shell mint an opaque token and
 ///    store it as a single-use grant for that canonical target and operation.
 /// 3. `delete_path` / `create_folder` consume a matching grant before touching
@@ -199,11 +220,11 @@ pub fn request_destructive_confirmation(
     operation: &str,
 ) -> Result<String, String> {
     let operation = confirmation::Operation::parse(operation)?;
-    let scoped = fs_scope::resolve(path)?;
-    if operation == confirmation::Operation::Delete && is_scope_root(&scoped) {
+    let resolved = scoped(path)?;
+    if operation == confirmation::Operation::Delete && is_scope_root(&resolved) {
         return Err("Refusing to confirm deletion of a root folder".to_string());
     }
-    let target = scoped.to_string_lossy().to_string();
+    let target = resolved.to_string_lossy().to_string();
     // Native strings live outside the webview catalogue; move this prompt into
     // botapp/i18n/*.json when those catalogues are next edited (#2497 follow-up).
     let approved = app
@@ -263,16 +284,16 @@ pub fn upload_percent(done: u64, total: u64) -> u64 {
 pub fn list_files(path: &str) -> Result<Vec<FileItem>, String> {
     // #2497 — the webview may only enumerate inside a configured scope, and
     // never the secret store.
-    let scoped = fs_scope::resolve(path)?;
-    let base_path = scoped.as_path();
+    let target = scoped(path)?;
+    let base_path = target.as_path();
     let mut files = Vec::new();
 
     if !base_path.exists() {
         return Err("Path does not exist".into());
     }
 
-    for entry in fs::read_dir(base_path).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
+    for entry in fs::read_dir(base_path).map_err(|e| wire_error("read directory", e))? {
+        let entry = entry.map_err(|e| wire_error("read directory entry", e))?;
         let path = entry.path();
         let metadata = entry.metadata().ok();
 
@@ -306,29 +327,34 @@ pub fn list_files(path: &str) -> Result<Vec<FileItem>, String> {
 pub fn upload_file(window: Window, src_path: &str, dest_path: &str) -> Result<(), String> {
     // #2497 — both ends are scoped: a script cannot copy a secret out of the
     // stack, nor write into a system directory.
-    let src = fs_scope::resolve(src_path)?;
-    let dest_dir = fs_scope::resolve(dest_path)?;
+    let src = scoped(src_path)?;
+    let dest_dir = scoped(dest_path)?;
     let dest = upload_destination(&src, &dest_dir)?;
 
     if !dest_dir.exists() {
-        fs::create_dir_all(&dest_dir).map_err(|e| e.to_string())?;
+        fs::create_dir_all(&dest_dir).map_err(|e| wire_error("create upload directory", e))?;
     }
 
-    let mut source_file = File::open(&src).map_err(|e| e.to_string())?;
-    let mut dest_file = File::create(&dest).map_err(|e| e.to_string())?;
-    let file_size = source_file.metadata().map_err(|e| e.to_string())?.len();
+    let mut source_file = File::open(&src).map_err(|e| wire_error("open upload source", e))?;
+    let mut dest_file = File::create(&dest).map_err(|e| wire_error("create upload destination", e))?;
+    let file_size = source_file
+        .metadata()
+        .map_err(|e| wire_error("read upload metadata", e))?
+        .len();
 
     let mut buffer = [0; 8192];
     let mut total_read: u64 = 0;
 
     loop {
-        let bytes_read = source_file.read(&mut buffer).map_err(|e| e.to_string())?;
+        let bytes_read = source_file
+            .read(&mut buffer)
+            .map_err(|e| wire_error("read upload source", e))?;
         if bytes_read == 0 {
             break;
         }
         dest_file
             .write_all(&buffer[..bytes_read])
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| wire_error("write upload destination", e))?;
 
         total_read += bytes_read as u64;
 
@@ -336,7 +362,7 @@ pub fn upload_file(window: Window, src_path: &str, dest_path: &str) -> Result<()
 
         window
             .emit("upload_progress", progress)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| wire_error("emit upload progress", e))?;
     }
 
     Ok(())
@@ -350,7 +376,7 @@ pub fn upload_file(window: Window, src_path: &str, dest_path: &str) -> Result<()
 pub fn create_folder(path: &str, name: &str) -> Result<(), String> {
     // #2497 — `name` is a single segment, never `../` and never a reserved
     // secret file name; the parent must be inside a scope.
-    let parent = fs_scope::resolve(path)?;
+    let parent = scoped(path)?;
     let safe_name = fs_scope::validate_name(name)?;
     let full_path = parent.join(safe_name);
     // #2497 — creating a folder is a mutation: require the native, single-use
@@ -362,7 +388,7 @@ pub fn create_folder(path: &str, name: &str) -> Result<(), String> {
         return Err("Folder already exists".into());
     }
 
-    fs::create_dir(&full_path).map_err(|e| e.to_string())?;
+    fs::create_dir(&full_path).map_err(|e| wire_error("create folder", e))?;
     log::info!("drive IPC: created folder {}", full_path.display());
     Ok(())
 }
@@ -376,11 +402,11 @@ pub fn delete_path(path: &str) -> Result<(), String> {
     // #2497 — deleting is the dangerous half: only a scoped path, never a
     // secret file, and never a scope root itself (that would wipe the stack
     // in one call).
-    let scoped = fs_scope::resolve(path)?;
-    if is_scope_root(&scoped) {
+    let resolved = scoped(path)?;
+    if is_scope_root(&resolved) {
         return Err("Refusing to delete a root folder".to_string());
     }
-    let target = scoped.as_path();
+    let target = resolved.as_path();
     // #2497 — the proof-of-concept `invoke('delete_path', {path})` now stops
     // here unless the user approved this exact target in a native dialog.
     let canonical = target.to_string_lossy().to_string();
@@ -391,9 +417,9 @@ pub fn delete_path(path: &str) -> Result<(), String> {
     }
 
     if target.is_dir() {
-        fs::remove_dir_all(target).map_err(|e| e.to_string())?;
+        fs::remove_dir_all(target).map_err(|e| wire_error("delete directory", e))?;
     } else {
-        fs::remove_file(target).map_err(|e| e.to_string())?;
+        fs::remove_file(target).map_err(|e| wire_error("delete file", e))?;
     }
     log::info!("drive IPC: deleted {}", target.display());
 

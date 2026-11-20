@@ -8,6 +8,7 @@
 
 use std::path::PathBuf;
 
+use super::drive::path_scope;
 use super::{fs_scope, i18n};
 use tauri_plugin_dialog::DialogExt;
 
@@ -91,11 +92,12 @@ pub async fn save_download(
         _ => return Err(i18n::t("download-provide-source")),
     };
 
+    let name = safe_file_name(&file_name);
     let Some(target) = app
         .dialog()
         .file()
         .set_title(i18n::t("dialog-save-file"))
-        .set_file_name(safe_file_name(&file_name))
+        .set_file_name(name.clone())
         .blocking_save_file()
     else {
         return Ok(None);
@@ -107,14 +109,14 @@ pub async fn save_download(
     // still caller-adjacent data: canonicalise and scope-check before writing
     // so a symlink or a forged dialog result cannot drop bytes outside the
     // folders the shell owns.
-    let scoped = fs_scope::resolve(&path.to_string_lossy())?;
+    let scoped = path_scope::resolve_in_scopes(&path.to_string_lossy(), &fs_scope::scopes())?;
     tokio::fs::write(&scoped, payload)
         .await
         .map_err(|e| {
-            i18n::t_args(
-                "download-write-failed",
-                &[("path", &scoped.display().to_string()), ("error", &e.to_string())],
-            )
+            log::warn!("download IPC: write failed for {}: {e}", scoped.display());
+            // Only the sanitised base name crosses the IPC boundary; the full
+            // target stays in the local log above.
+            i18n::t_args("download-write-failed", &[("path", &name), ("error", &e.to_string())])
         })?;
     log::info!("download IPC: saved {}", scoped.display());
     Ok(Some(scoped.to_string_lossy().to_string()))
