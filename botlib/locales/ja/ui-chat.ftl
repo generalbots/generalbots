@@ -136,6 +136,7 @@ chat-status-stopped = 停止
 
 chat-response-ready = 応答の準備ができました
 chat-response-started = アシスタントが応答しています
+chat-tool-result-ready = ツールの結果を利用できます
 
 # semantic i18n key (#2542)
 chat-no-suggestions-available = 利用可能な提案はありません

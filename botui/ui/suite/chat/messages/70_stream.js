@@ -10,37 +10,66 @@ function gbChatStatus(payload) {
     }
   } catch (e) { /* status bar unavailable */ }
 }
-
 function gbChatStatusText(key, fallback) {
   return window.gbT ? window.gbT(key, fallback) : fallback;
+}
+
+/* #2331 — polite channel for discrete chat status sentences; the streaming
+ * bubble stays aria-hidden so no token-by-token text reaches assistive tech. */
+function gbChatAnnounce(key, fallback) {
+  try {
+    var el = document.getElementById("gb-toast-live-polite");
+    if (!el) return;
+    var text = gbChatStatusText(key, fallback);
+    el.textContent = "";
+    setTimeout(function () {
+      el.textContent = text;
+      setTimeout(function () {
+        if (el.textContent === text) el.textContent = "";
+      }, 1500);
+    }, 40);
+  } catch (e) { /* announcement best-effort */ }
+}
+/* #2331 — both the streaming preview and the completed-message path insert
+ * tool cards through appendCard; announce each new tool once per turn. */
+function gbWatchToolCards() {
+  if (window.__gbToolCardAnnouncer || !window.ChatCodeUX ||
+      typeof ChatCodeUX.appendCard !== "function") return;
+  window.__gbToolCardAnnouncer = true;
+  var append = ChatCodeUX.appendCard;
+  ChatCodeUX.appendCard = function (tool) {
+    var card = append.apply(this, arguments);
+    if (!card) return card;
+    var seen = ChatState._gbAnnouncedTools ||
+      (ChatState._gbAnnouncedTools = Object.create(null));
+    var id = String((tool && tool.id) || (tool && (tool.tool_name || tool.name)) || "tool");
+    if (!seen[id]) {
+      seen[id] = true;
+      gbChatAnnounce("chat-tool-result-ready", "Tool result available");
+    }
+    return card;
+  };
 }
 // #2357 — one render per ChatState.renderInterval at most. The timer is the
 // trailing half of the throttle: a burst that stops mid-interval still paints
 // its last chunk instead of waiting for the next frame (which may never come).
 var streamRenderTimer = null;
-
 function flushStreamingRender() {
   ChatState.lastRenderTime = Date.now();
   updateStreaming(ChatState.currentStreamingContent);
 }
-
 function clearStreamRenderTimer() {
   if (streamRenderTimer) {
     clearTimeout(streamRenderTimer);
     streamRenderTimer = null;
   }
 }
-
 function updateStreaming(content) {
   var el = document.getElementById(ChatState.streamingMessageId);
   if (!el && window.GBChatVirtual && typeof window.GBChatVirtual.ensureById === "function") {
     el = window.GBChatVirtual.ensureById(ChatState.streamingMessageId);
   }
   if (!el) return;
-  var streamBox = document.getElementById("messages");
-  var wasNearBottom = streamBox &&
-    (streamBox.scrollHeight - streamBox.scrollTop - streamBox.clientHeight) < 240;
-
   var msgContent = el.querySelector(".message-content");
   // #1693 — the open fence belongs to the live preview; keep its raw source
   // out of the bubble while it streams.
@@ -111,7 +140,6 @@ function updateStreaming(content) {
   }
   if (ChatState.isUserAtBottom) scrollToBottom(false);
 }
-
 function finalizeStreaming() {
   var sid = ChatState.streamingMessageId;
   var el = sid ? document.getElementById(sid) : null;
@@ -142,7 +170,6 @@ function finalizeStreaming() {
   ChatState.currentReasoning = "";
   ChatState.streamingBuffer = "";
 }
-
 /* #2098 — one place ends a turn: the indicator is removed only after the
  * final bubble is in the transcript, and the pending watchdog is cleared with
  * it. `completed` carries the answer actually rendered (the frame can be an
@@ -158,7 +185,6 @@ function gbFinishTurn(data, completed) {
   }
   if (typeof window.clearChatPending === "function") window.clearChatPending();
 }
-
 function processMessage(data) {
   if (data.thinking) {
     // A thinking/keepalive frame keeps the progress element alive; it never
@@ -168,7 +194,6 @@ function processMessage(data) {
     gbChatStatus({ state: "running", text: gbChatStatusText("status-thinking", "Thinking…") });
     return;
   }
-
   if (data.is_complete) {
     // A late completion from the previous turn (or from another conversation)
     // must not end the live one.
@@ -254,26 +279,12 @@ function processMessage(data) {
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
     ChatState._gbStreamStartAnnounced = false;
+    ChatState._gbAnnouncedTools = null;
     gbChatStatus({ state: "ready" });
     gbFinishTurn(data, completed);
-    // #2331 — announce completion once (not per token). The streaming bubble is
-    // aria-hidden during generation; this polite status tells assistive tech a
-    // response is ready without re-reading the full message.
-    try {
-      var announce = (window.gbT ? window.gbT("chat-response-ready", "Response ready") : "Response ready");
-      var polite = document.getElementById("gb-toast-live-polite");
-      if (polite) {
-        polite.textContent = "";
-        setTimeout(function () {
-          try {
-            polite.textContent = announce;
-            setTimeout(function () {
-              try { if (polite.textContent === announce) polite.textContent = ""; } catch (e2) { window.gbLogError ? gbLogError(e2, "setTimeout") : console.error("setTimeout", e2); }
-            }, 1500);
-          } catch (e1) { window.gbLogError ? gbLogError(e1, "setTimeout") : console.error("setTimeout", e1); }
-        }, 50);
-      }
-    } catch (eAnn) { /* announcement best-effort */ }
+    // #2331 — announce completion once (not per token). The streaming bubble
+    // is aria-hidden during generation, so this is the sole readiness cue.
+    gbChatAnnounce("chat-response-ready", "Response ready");
     // Consumers that react to a finished turn (voice/full-duplex, proactivity)
     // must fire once, on completion — not on the first streaming chunk.
     try {
@@ -304,25 +315,13 @@ function processMessage(data) {
         ChatState.pendingToolExec = null;
       }
       addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning, null, streamMeta);
-      // #2331 — announce stream start once (not per token).
-      try {
-        if (!ChatState._gbStreamStartAnnounced) {
-          ChatState._gbStreamStartAnnounced = true;
-          var startAnnounce = (window.gbT ? window.gbT("chat-response-started", "Assistant is responding") : "Assistant is responding");
-          var politeStart = document.getElementById("gb-toast-live-polite");
-          if (politeStart) {
-            politeStart.textContent = "";
-            setTimeout(function () {
-              try {
-                politeStart.textContent = startAnnounce;
-                setTimeout(function () {
-                  try { if (politeStart.textContent === startAnnounce) politeStart.textContent = ""; } catch (e2) { window.gbLogError ? gbLogError(e2, "setTimeout") : console.error("setTimeout", e2); }
-                }, 1200);
-              } catch (e1) { window.gbLogError ? gbLogError(e1, "setTimeout") : console.error("setTimeout", e1); }
-            }, 40);
-          }
-        }
-      } catch (eStartAnn) { /* announcement best-effort */ }
+      // #2331 — announce stream start once (not per token); a new turn also
+      // resets the per-turn set of tools already announced.
+      ChatState._gbAnnouncedTools = null;
+      if (!ChatState._gbStreamStartAnnounced) {
+        ChatState._gbStreamStartAnnounced = true;
+        gbChatAnnounce("chat-response-started", "Assistant is responding");
+      }
       ChatState.lastRenderTime = Date.now();
       gbChatStatus({ state: "running", text: gbChatStatusText("status-generating", "Generating…") });
     } else {
@@ -346,3 +345,4 @@ function processMessage(data) {
     }
   }
 }
+gbWatchToolCards();
