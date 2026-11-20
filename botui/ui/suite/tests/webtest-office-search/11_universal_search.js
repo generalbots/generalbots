@@ -119,21 +119,18 @@ test("#2505: the empty-result panel escapes the typed query", function () {
   assert(html.indexOf(marker) < 0, "raw markup must not reach the panel");
 });
 
-knownBug("#2505 KNOWN BUG: clearing a query below the minimum resurrects a stale search", function () {
-  /* Source facts in shipped gb-search.js: onInput() only calls clearTimeout(timer)
-     in the q.length >= MIN_QUERY_LEN branch (line ~192). The short-query branch
-     (line ~189) closes the panel but leaves the pending debounce alive. doSearch()
-     then reopens the panel with the OLD query while the input shows the new one. */
+test("#2505 regression: clearing a query below the minimum cancels the stale search", function () {
+  // onInput() clears the pending debounce before the length guard, so a short
+  // query can no longer resurrect results from a previous longer query.
   var f = fx.create();
   f.mountSearch();
   f.searchQuery("termination");
   equal(f.timers.length, 1, "first query schedules a debounce");
   f.searchQuery("t");
-  equal(f.timers.length, 1, "OBSERVED: short query did NOT clear the pending timer");
+  equal(f.timers.length, 0, "short query cleared the pending timer");
   f.flushTimers();
-  equal(f.fetchCalls.length, 1, "OBSERVED: stale query still reached the API");
-  equal(f.fetchCalls[0].url, "/api/ui/search?q=termination", "OBSERVED: old query fetched");
+  equal(f.fetchCalls.length, 0, "stale query no longer reached the API");
   equal(f.searchInput.value, "t", "input shows the shortened query");
-  equal(f.searchPanel().style.display, "block", "OBSERVED: stale results reopened the panel");
-  h.note("KNOWN BUG (reported, not patched): botui/ui/suite/js/gb-search.js:187-195 — onInput() closes the panel when the query has fewer than 2 characters but never clearTimeout(timer). A pending debounce from a longer query still fires doSearch(oldQuery), which repaints the panel while the input shows the shortened text. Move clearTimeout(timer) above the length guard in production.");
+  var panel = f.searchPanel();
+  assert(!panel || panel.style.display !== "block", "panel stays closed");
 });

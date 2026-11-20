@@ -186,11 +186,11 @@
 
   function onInput() {
     var q = (input.value || "").trim();
+    clearTimeout(timer);
     if (q.length < MIN_QUERY_LEN) {
       closePanel();
       return;
     }
-    clearTimeout(timer);
     timer = setTimeout(function () { doSearch(q); }, SEARCH_DEBOUNCE_MS);
   }
 
