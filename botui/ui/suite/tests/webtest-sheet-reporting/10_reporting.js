@@ -380,6 +380,19 @@ test("addBreak rejects malformed column letters and row numbers", function () {
   g.resetState();
 });
 
+test("[KNOWN BUG] fitToWidth/fitToHeight counts above 1 are ignored", function () {
+  var one = g.core.defaultSetup();
+  one.fitToWidth = 1;
+  var two = g.core.defaultSetup();
+  two.fitToWidth = 2;
+  // 54_reporting_print.js:126-129 treats any positive value as "fit on".
+  equal(g.print.paginate("A1:Z200", two).colPages,
+    g.print.paginate("A1:Z200", one).colPages);
+  var tall = g.core.defaultSetup();
+  tall.fitToHeight = 2;
+  equal(g.print.paginate("A1:Z200", tall).rowPages, 1);
+});
+
 test("updateSetup persists normalised page setup patches", function () {
   g.resetState();
   var setup = g.print.updateSetup({ orientation: "landscape", paper: "A3", percent: 900 });

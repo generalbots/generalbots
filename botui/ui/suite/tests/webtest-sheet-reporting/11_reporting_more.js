@@ -13,6 +13,10 @@ var equal = h.equal;
 var deep = h.deep;
 var source = h.readFile;
 
+/* [KNOWN BUG] characterization: these two tests assert the behaviour the
+ * shipped code actually has, not the intended behaviour. Flip them when the
+ * production bugs described in the final agent report are fixed. */
+
 // ── preview variants ─────────────────────────────────────────────────────
 test("variantFor implements all/odd/even/first page visibility", function () {
   equal(g.preview.variantFor(0, "all"), true);
@@ -160,6 +164,20 @@ test("addWidget auto-lays out widgets on a 12-column grid", function () {
   var widgets = g.core.state().dashboards[0].widgets;
   deep(widgets.map(function (w) { return { col: w.col, row: w.row }; }), expected);
   assert(widgets.every(function (w) { return w.w === 12 && w.h === 6; }));
+  g.resetState();
+});
+
+test("[KNOWN BUG] addWidget reports success at MAX_ITEMS without adding", function () {
+  g.resetState();
+  var id = g.dashboard.createDashboard("<d>").dashboard.id;
+  for (var i = 0; i < g.core.MAX_ITEMS; i++) {
+    g.dashboard.addWidget(id, { title: "<w>", source: "<s>", type: "chart" });
+  }
+  var before = g.core.state().dashboards[0].widgets.length;
+  // 56_reporting_dashboard.js:57,74 skips the push but still returns ok.
+  var result = g.dashboard.addWidget(id, { title: "<over>", source: "<s>", type: "chart" });
+  assert(result.ok === true);
+  equal(g.core.state().dashboards[0].widgets.length, before);
   g.resetState();
 });
 
