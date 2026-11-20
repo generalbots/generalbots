@@ -296,9 +296,11 @@ loc = 13071
 # +29: #2515 phone grid hit-test — collapse the wrapped 2-row toolbar to one
 # scrollable row, move the format row into the #2290 overflow sheet, and add a
 # 55/55 mobile-office harness (BEFORE cell hit=BODY/grid 0px → AFTER vg-cell/209px).
+# +4: #2491 updateWatch() now calls UI.refreshGraph() before rendering, so a
+# live grid edit is reflected without a manual refresh (78/78 harness).
 routes = 0
 js_modules = 115
-loc = 27705
+loc = 27709
 
 [apps."slides"]
 # +34: #2433 inline alt-text fields per a11y row + focus CSS (localized).
