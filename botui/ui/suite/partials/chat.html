@@ -5,18 +5,20 @@
 <link rel="stylesheet" href="/suite/chat/chat-message-states.css?v=2" />
 <link rel="stylesheet" href="/suite/chat/chat-turn-indicator.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat-tool-cards.css?v=1" />
-<link rel="stylesheet" href="/suite/css/save-menu.css?v=1" />
-<link rel="stylesheet" href="/suite/chat/chat-workspace-tabs.css?v=5" />
+<!-- save-menu.css is loaded once by desktop.html (shell), not duplicated here. -->
+<link rel="stylesheet" href="/suite/chat/chat-workspace-tabs.css?v=5" media="(min-width: 768px)" />
 <link rel="stylesheet" href="/suite/chat/chat-window.css?v=3" />
 <link rel="stylesheet" href="/suite/chat/chat-composer.css?v=7" />
 <link rel="stylesheet" href="/suite/chat/chat-voice-camera.css?v=3" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css?v=1" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
-<link rel="stylesheet" href="/suite/css/run-timeline.css?v=2" />
-<link rel="stylesheet" href="/suite/css/surface.css?v=1" />
-<link rel="stylesheet" href="/suite/css/viz.css?v=1" />
-<link rel="stylesheet" href="/suite/css/app-frame.css?v=2" />
-<link rel="stylesheet" href="/suite/chat/chat-artifact-overlay.css?v=1" />
+<!-- Optional surfaces: their JS is deferred (desktop) or skipped (compact) by
+     GBBootBudget, so the CSS must not block first paint on a phone. -->
+<link rel="stylesheet" href="/suite/css/run-timeline.css?v=2" media="(min-width: 768px)" />
+<link rel="stylesheet" href="/suite/css/surface.css?v=1" media="(min-width: 768px)" />
+<link rel="stylesheet" href="/suite/css/viz.css?v=1" media="(min-width: 768px)" />
+<link rel="stylesheet" href="/suite/css/app-frame.css?v=2" media="(min-width: 768px)" />
+<link rel="stylesheet" href="/suite/chat/chat-artifact-overlay.css?v=1" media="(min-width: 768px)" />
 <link rel="stylesheet" href="/suite/js/vendor/katex/katex.min.css" />
 <link rel="stylesheet" href="/suite/chat/chat-assistant-look.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat-assistant-controls.css?v=1" />
@@ -139,13 +141,14 @@
     </div>
 </div>
 
-<script src="/suite/js/vendor/marked.min.js"></script>
+<!-- marked.min.js is loaded once by desktop.html before chat is swapped in. -->
 <script src="/suite/js/vendor/katex/katex.min.js"></script>
 <script src="/suite/chat/chat-math.js?v=1"></script>
 <script src="/suite/chat/chat-state.js?v=4"></script>
 <script src="/suite/chat/chat-switchers.js?v=4"></script>
 <script src="/suite/chat/chat-mentions.js?v=4"></script>
-<script src="/suite/js/external-save.js?v=1"></script>
+<!-- external-save.js is loaded once by desktop.html; its only chat consumers
+     (chat-artifacts.js, vm_attachments/05a) are deferred with GBBootBudget. -->
 <script src="/suite/js/artifact-download.js?v=1"></script>
 <script src="/suite/chat/chat-sanitize.js?v=1"></script>
 <script src="/suite/chat/chat-drive-picker.js?v=2"></script>
@@ -193,7 +196,8 @@
 <script src="/suite/chat/chat-engineer-status.js?v=1"></script>
 <script src="/suite/js/chat-engineer-ux.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
-<script src="/suite/js/gb-search.js"></script>
+<!-- gb-search.js belongs to the shell taskbar (desktop.html); chat never
+     calls GBUniversalSearch. -->
 <script src="/suite/chat/tour.js?v=1"></script>
 <!-- Optional surfaces are registered in boot-budget.js and injected after first
      paint on desktop only; compact mode skips them and gates their buttons. -->
