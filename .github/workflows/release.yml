@@ -1789,11 +1789,15 @@ jobs:
             exit 1
           fi
           chmod +x scripts/build_iso.sh
+          # The pinned tag can predate the raised --max-mb default in main, so
+          # pass GitHub's 2 GiB cap (minus headroom) explicitly: the offline
+          # installer tarball makes this carrier ~2022 MiB.
           scripts/build_iso.sh \
             --payload "$PAYLOAD" \
             --out dist/generalbots-payload.iso \
             --version "$VERSION" \
-            --label "GENERALBOTS_PAYLOAD_${VERSION}"
+            --label "GENERALBOTS_PAYLOAD_${VERSION}" \
+            --max-mb 2040
 
       - name: Smoke-test the carrier (payload + El Torito)
         # Lists the image through xorriso: the payload must be there, the
