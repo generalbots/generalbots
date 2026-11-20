@@ -6,10 +6,14 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::schema::marketing_lists;
+use crate::segment::{
+    self, Segment, SegmentCondition, SegmentError, SegmentMatch, SegmentStoreError, FIELD_CATALOG,
+};
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
@@ -28,7 +32,7 @@ pub struct MarketingList {
     pub description: Option<String>,
     pub member_count: Option<i32>,
     pub is_dynamic: Option<bool>,
-    pub criteria: Option<serde_json::Value>,
+    pub criteria: Option<Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,6 +40,9 @@ pub struct CreateListRequest {
     pub name: String,
     pub list_type: String,
     pub query_text: Option<String>,
+    /// Structured segment (#2537). When absent, `query_text` is compiled into
+    /// the same model so legacy lists keep working.
+    pub segment: Option<Segment>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,22 +50,61 @@ pub struct UpdateListRequest {
     pub name: Option<String>,
     pub list_type: Option<String>,
     pub query_text: Option<String>,
+    pub segment: Option<Segment>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PreviewListRequest {
+    /// Optional unsaved segment to preview before storing it.
+    pub segment: Option<Segment>,
+}
+
+fn internal_error(error: &dyn std::fmt::Display, context: &str) -> (StatusCode, String) {
+    let sanitized =
+        botsecurity_core::error_sanitizer::log_and_sanitize_str(&error.to_string(), context, None);
+    (StatusCode::INTERNAL_SERVER_ERROR, sanitized.error)
+}
+
+fn validation_error(error: &SegmentError) -> (StatusCode, String) {
+    (
+        StatusCode::BAD_REQUEST,
+        serde_json::to_string(error).unwrap_or_else(|_| error.to_string()),
+    )
+}
+
+fn segment_error(error: &SegmentStoreError) -> (StatusCode, String) {
+    match error {
+        SegmentStoreError::Validation(validation) => validation_error(validation),
+        SegmentStoreError::Database(database) => internal_error(database, "segment_database"),
+        SegmentStoreError::Serialization(serialization) => {
+            internal_error(serialization, "segment_serialization")
+        }
+    }
+}
+
+fn catch_all_segment() -> Segment {
+    Segment {
+        match_mode: SegmentMatch::All,
+        groups: vec![SegmentCondition {
+            field: "status".to_string(),
+            op: "is_not_empty".to_string(),
+            value: Value::Null,
+        }],
+        meta: None,
+    }
 }
 
 pub async fn list_lists(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<MarketingList>>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "list_lists_pool"))?;
     let (_, branch_id, _) = state.get_scope();
 
     let lists: Vec<MarketingList> = marketing_lists::table
         .filter(marketing_lists::branch_id.eq(branch_id))
         .order(marketing_lists::created_at.desc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| internal_error(&e, "list_lists_query"))?;
 
     Ok(Json(lists))
 }
@@ -67,9 +113,7 @@ pub async fn get_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MarketingList>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "get_list_pool"))?;
 
     let list: MarketingList = marketing_lists::table
         .filter(marketing_lists::id.eq(id))
@@ -83,23 +127,33 @@ pub async fn create_list(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateListRequest>,
 ) -> Result<Json<MarketingList>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "create_list_pool"))?;
     let (_, branch_id, _) = state.get_scope();
+
+    let has_segment = req.segment.is_some();
+    let is_dynamic = has_segment || req.list_type == "dynamic";
+    let segment = match req.segment {
+        Some(segment) => segment,
+        None => match req.query_text.as_deref() {
+            Some(text) if !text.trim().is_empty() => segment::compile_legacy_query(text),
+            _ => catch_all_segment(),
+        },
+    };
+    segment::parse_segment(&segment).map_err(|e| validation_error(&e))?;
+    let criteria = serde_json::to_value(&segment)
+        .map_err(|e| internal_error(&e, "create_list_segment"))?;
+
     let id = Uuid::new_v4();
     let now = Utc::now();
-
     let list = MarketingList {
         id,
         branch_id,
         name: req.name,
         list_type: req.list_type,
         query_text: req.query_text,
+        criteria: Some(criteria),
+        is_dynamic: Some(is_dynamic),
         member_count: None,
-        is_dynamic: None,
-        criteria: None,
         description: None,
         contact_count: Some(0),
         created_at: Some(now),
@@ -111,7 +165,7 @@ pub async fn create_list(
     diesel::insert_into(marketing_lists::table)
         .values(&list)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| internal_error(&e, "create_list_insert"))?;
 
     Ok(Json(list))
 }
@@ -121,35 +175,55 @@ pub async fn update_list(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateListRequest>,
 ) -> Result<Json<MarketingList>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "update_list_pool"))?;
     let now = Utc::now();
 
     if let Some(name) = req.name {
         diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
             .set(marketing_lists::name.eq(name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(&e, "update_list_name"))?;
     }
     if let Some(list_type) = req.list_type {
         diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-            .set(marketing_lists::name.eq(list_type))
+            .set(marketing_lists::list_type.eq(list_type))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(&e, "update_list_type"))?;
+    }
+
+    let segment = match req.segment {
+        Some(segment) => Some(segment),
+        None => req.query_text.as_deref().map(|text| {
+            if text.trim().is_empty() {
+                catch_all_segment()
+            } else {
+                segment::compile_legacy_query(text)
+            }
+        }),
+    };
+    if let Some(segment) = segment {
+        segment::parse_segment(&segment).map_err(|e| validation_error(&e))?;
+        let criteria = serde_json::to_value(&segment)
+            .map_err(|e| internal_error(&e, "update_list_segment"))?;
+        diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
+            .set((
+                marketing_lists::criteria.eq(Some(criteria)),
+                marketing_lists::is_dynamic.eq(Some(true)),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| internal_error(&e, "update_list_criteria"))?;
     }
     if let Some(query_text) = req.query_text {
         diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
             .set(marketing_lists::query_text.eq(Some(query_text)))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| internal_error(&e, "update_list_query_text"))?;
     }
 
     diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
         .set(marketing_lists::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| internal_error(&e, "update_list_timestamp"))?;
 
     get_list(State(state), Path(id)).await
 }
@@ -157,104 +231,87 @@ pub async fn update_list(
 pub async fn delete_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Value>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "delete_list_pool"))?;
 
     diesel::delete(marketing_lists::table.filter(marketing_lists::id.eq(id)))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .map_err(|e| internal_error(&e, "delete_list_delete"))?;
 
-    Ok(Json(serde_json::json!({ "status": "deleted" })))
+    Ok(Json(json!({ "status": "deleted" })))
 }
 
+/// `POST /api/crm/lists/:id/refresh` — replaces membership with the current
+/// eligible set and records the refresh snapshot in `criteria.meta`.
 pub async fn refresh_marketing_list(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = state.conn.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    use crate::schema::crm_contacts;
+) -> Result<Json<Value>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "refresh_pool"))?;
+    let (_, branch_id, _) = state.get_scope();
 
     let list: MarketingList = marketing_lists::table
         .filter(marketing_lists::id.eq(id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
 
-    let (_, branch_id, _) = state.get_scope();
+    let resolved = segment::segment_from_list(&list).map_err(|e| segment_error(&e))?;
+    // Drift is measured against the snapshot stored at the last refresh,
+    // before this run replaces it. Otherwise it would always read as clean.
+    let current_members = segment::current_member_count(&mut conn, id)
+        .map_err(|e| internal_error(&e, "refresh_member_count"))?;
+    let drift = segment::detect_drift(&resolved, resolved.meta.as_ref(), current_members);
+    let result = segment::materialize_segment(&mut conn, branch_id, &list, &resolved)
+        .map_err(|e| segment_error(&e))?;
 
-    let query_text = list.query_text.as_deref().unwrap_or("");
-    let list_type = list.list_type.as_str();
-
-    let contact_count: i64 = if list_type == "dynamic" && !query_text.is_empty() {
-        let query_lower = query_text.to_lowercase();
-
-        if query_lower.contains("status=") {
-            let status = query_lower
-                .split("status=")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-                .unwrap_or("active");
-
-            crm_contacts::table
-                .filter(crm_contacts::branch_id.eq(branch_id))
-                .filter(crm_contacts::status.eq(status))
-                .count()
-                .get_result(&mut conn)
-                .unwrap_or(0)
-        } else if query_lower.contains("company=") {
-            let company = query_lower
-                .split("company=")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-                .unwrap_or("");
-
-            if !company.is_empty() {
-                crm_contacts::table
-                    .filter(crm_contacts::branch_id.eq(branch_id))
-                    .filter(crm_contacts::company.ilike(format!("%{company}%")))
-                    .count()
-                    .get_result(&mut conn)
-                    .unwrap_or(0)
-            } else {
-                0
-            }
-        } else {
-            let pattern = format!("%{query_text}%");
-            crm_contacts::table
-                .filter(crm_contacts::branch_id.eq(branch_id))
-                .filter(
-                    crm_contacts::first_name.ilike(pattern.clone())
-                        .or(crm_contacts::last_name.ilike(pattern.clone()))
-                        .or(crm_contacts::email.ilike(pattern.clone()))
-                        .or(crm_contacts::company.ilike(pattern)),
-                )
-                .count()
-                .get_result(&mut conn)
-                .unwrap_or(0)
-        }
-    } else {
-        crm_contacts::table
-            .filter(crm_contacts::branch_id.eq(branch_id))
-            .count()
-            .get_result(&mut conn)
-            .unwrap_or(0)
-    };
-
-    diesel::update(marketing_lists::table.filter(marketing_lists::id.eq(id)))
-        .set((
-            marketing_lists::contact_count.eq(Some(contact_count as i32)),
-            marketing_lists::updated_at.eq(Utc::now()),
-        ))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-
-    Ok(Json(serde_json::json!({
+    Ok(Json(json!({
         "status": "refreshed",
         "list_id": id,
-        "contact_count": contact_count
+        "matched_count": result.matched_count,
+        "suppressed_count": result.suppressed_count,
+        "member_count": result.member_count,
+        "query_hash": result.query_hash,
+        "last_refreshed_at": result.last_refreshed_at,
+        "drift": drift,
     })))
+}
+
+/// `POST /api/crm/lists/:id/preview` — counts matches and suppressed matches
+/// and returns at most ten samples without writing any membership row. An
+/// optional body can preview an unsaved segment from the editor.
+pub async fn preview_list(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    body: Option<Json<PreviewListRequest>>,
+) -> Result<Json<Value>, (StatusCode, String)> {
+    let mut conn = state.conn.get().map_err(|e| internal_error(&e, "preview_pool"))?;
+    let (_, branch_id, _) = state.get_scope();
+
+    let list: MarketingList = marketing_lists::table
+        .filter(marketing_lists::id.eq(id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "List not found".to_string()))?;
+
+    let resolved = match body.and_then(|Json(request)| request.segment) {
+        Some(segment) => segment,
+        None => segment::segment_from_list(&list).map_err(|e| segment_error(&e))?,
+    };
+    let preview = segment::preview_segment(&mut conn, branch_id, &resolved)
+        .map_err(|e| segment_error(&e))?;
+    let stored_members = segment::current_member_count(&mut conn, id)
+        .map_err(|e| internal_error(&e, "preview_member_count"))?;
+    let drift = segment::detect_drift(&resolved, resolved.meta.as_ref(), stored_members);
+
+    Ok(Json(json!({
+        "list_id": id,
+        "segment": resolved,
+        "preview": preview,
+        "drift": drift,
+    })))
+}
+
+/// `GET /api/crm/lists/segment/fields` — the field catalog the editor uses to
+/// build valid conditions (kept in sync with the evaluator by construction).
+pub async fn segment_fields() -> Json<Value> {
+    Json(json!({ "fields": FIELD_CATALOG }))
 }

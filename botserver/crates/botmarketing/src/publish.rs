@@ -12,6 +12,7 @@ use axum::{
 };
 use diesel::prelude::*;
 use serde::Deserialize;
+use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -68,17 +69,43 @@ pub async fn publish_campaign(
         (StatusCode::BAD_REQUEST, "list_id is required — choose a marketing list".to_string())
     })?;
 
-    // Resolve recipients from the list's marketing_contacts rows.
-    let contacts: Vec<(Uuid, String, Option<String>, Option<String>)> = marketing_contacts::table
+    // Resolve recipients from the list's marketing_contacts rows. #2537:
+    // consent and CRM suppression are applied here, at send time, so stale
+    // membership rows can never resurrect an opted-out recipient.
+    let contact_rows: Vec<(
+        Uuid,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<bool>,
+        Option<Value>,
+    )> = marketing_contacts::table
         .filter(marketing_contacts::list_id.eq(list_id))
         .select((
             marketing_contacts::id,
             marketing_contacts::email,
             marketing_contacts::name,
             marketing_contacts::phone,
+            marketing_contacts::subscribed,
+            marketing_contacts::metadata,
         ))
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Recipients query: {e}")))?;
+
+    let suppressed = crate::segment::suppressed_crm_emails(&mut conn, campaign.branch_id)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Suppression query: {e}")))?;
+    let contacts: Vec<(Uuid, String, Option<String>, Option<String>)> = contact_rows
+        .into_iter()
+        .filter_map(|(id, email, name, phone, subscribed, metadata)| {
+            if crate::segment::suppressed_marketing_contact(subscribed, metadata.as_ref()) {
+                return None;
+            }
+            if suppressed.contains(&email.trim().to_lowercase()) {
+                return None;
+            }
+            Some((id, email, name, phone))
+        })
+        .collect();
 
     if contacts.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "No recipients resolved for this list".to_string()));

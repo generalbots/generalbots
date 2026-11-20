@@ -257,7 +257,11 @@ pub fn configure_marketing_routes() -> Router<Arc<AppState>> {
         .route("/api/crm/campaigns/:id/events", get(crate::campaign::control::campaign_events))
 
         .route("/api/crm/lists", get(crate::lists::list_lists).post(crate::lists::create_list))
+        // #2537 — static field catalog and preview are registered before the
+        // generic `:id` route so a literal path segment is never parsed as a UUID.
+        .route("/api/crm/lists/segment/fields", get(crate::lists::segment_fields))
         .route("/api/crm/lists/:id", get(crate::lists::get_list).put(crate::lists::update_list).delete(crate::lists::delete_list))
+        .route("/api/crm/lists/:id/preview", post(crate::lists::preview_list))
         .route("/api/crm/lists/:id/refresh", post(crate::lists::refresh_marketing_list))
 
         .route("/api/crm/templates", get(crate::templates::list_templates).post(crate::templates::create_template))

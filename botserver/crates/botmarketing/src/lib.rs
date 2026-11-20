@@ -12,6 +12,7 @@ pub mod metrics_api;
 pub mod publish;
 pub mod routes;
 pub mod schema;
+pub mod segment;
 pub mod state;
 pub mod templates;
 pub mod triggers;

@@ -266,7 +266,6 @@ pub struct CampaignSendResult {
     pub pending: i32,
 }
 
-
 pub async fn send_campaign(
     State(state): State<Arc<AppState>>,
     Path(campaign_id): Path<Uuid>,
@@ -290,28 +289,24 @@ pub async fn send_campaign(
     let (_, _, bot_id) = state.get_scope();
 
     // Resolve recipients: explicit contact ids, then an explicit list id,
-    // then whatever is already linked to this campaign. A misconfigured send
-    // is a 400 error, never a 501.
+    // then whatever is already linked to this campaign. #2537: consent and
+    // CRM suppression are applied even if list membership is stale.
+    let suppressed = crate::segment::suppressed_crm_emails(&mut conn, campaign.branch_id)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Suppression query: {e}")))?;
     let contacts: Vec<(Uuid, String, String)> = if let Some(ids) = &req.contact_ids {
         let query = marketing_contacts::table
             .filter(marketing_contacts::id.eq_any(ids))
-            .select((marketing_contacts::id, marketing_contacts::email, marketing_contacts::name))
-            .load::<(Uuid, String, Option<String>)>(&mut conn)
+            .select((marketing_contacts::id, marketing_contacts::email, marketing_contacts::name, marketing_contacts::subscribed, marketing_contacts::metadata))
+            .load::<(Uuid, String, Option<String>, Option<bool>, Option<serde_json::Value>)>(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-        query
-            .into_iter()
-            .map(|(cid, email, name)| (cid, email, name.unwrap_or_default()))
-            .collect()
+        crate::segment::resolve_send_contacts(query, &suppressed)
     } else if let Some(list_id) = req.list_id {
         let query = marketing_contacts::table
             .filter(marketing_contacts::list_id.eq(list_id))
-            .select((marketing_contacts::id, marketing_contacts::email, marketing_contacts::name))
-            .load::<(Uuid, String, Option<String>)>(&mut conn)
+            .select((marketing_contacts::id, marketing_contacts::email, marketing_contacts::name, marketing_contacts::subscribed, marketing_contacts::metadata))
+            .load::<(Uuid, String, Option<String>, Option<bool>, Option<serde_json::Value>)>(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-        query
-            .into_iter()
-            .map(|(cid, email, name)| (cid, email, name.unwrap_or_default()))
-            .collect()
+        crate::segment::resolve_send_contacts(query, &suppressed)
     } else {
         let query = marketing_recipients::table
             .filter(marketing_recipients::campaign_id.eq(campaign_id))
@@ -322,10 +317,11 @@ pub async fn send_campaign(
             ))
             .load::<(Option<Uuid>, Option<String>, Option<String>)>(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-        query
+        let linked: Vec<(Uuid, String, String)> = query
             .into_iter()
             .map(|(rcid, email, name)| (rcid.unwrap_or_else(Uuid::new_v4), email.unwrap_or_default(), name.unwrap_or_default()))
-            .collect()
+            .collect();
+        crate::segment::drop_suppressed(linked, &suppressed)
     };
 
     if contacts.is_empty() {
