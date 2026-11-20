@@ -81,6 +81,8 @@ paths = [
   # pattern has a positive; `patterns_tests.rs` is the test half of the pair
   # already allowlisted above.
   '''^botserver/crates/botcompliance/src/code_scanner/patterns_tests\.rs$''',
+  # Large-document save harness: deterministic test fixture values; never credentials.
+  '''^botui/ui/suite/tests/webtest-docs-large/''',
 ]
 
 # ---------------------------------------------------------------------------
