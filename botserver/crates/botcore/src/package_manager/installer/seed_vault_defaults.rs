@@ -259,11 +259,21 @@ impl PackageManager {
         // Unseal if we have keys.
         if !unseal_keys.is_empty() {
             info!("Unsealing Vault with keys from the private credential store...");
+            // `safe_sh_command` runs through SafeCommand, which clears the
+            // environment — the CLI never sees VAULT_CACERT/VAULT_SKIP_VERIFY.
+            // Without an explicit TLS flag every unseal died on `x509`, the
+            // stack stayed sealed and Drive came up disabled on every boot.
+            let tls_flag = if ca_cert.exists() {
+                format!("-ca-cert={}", ca_cert.display())
+            } else {
+                "-tls-skip-verify".to_string()
+            };
             for key in unseal_keys.iter().take(3) {
                 let unseal_cmd = format!(
-                    "{} operator unseal -address={} {}",
+                    "{} operator unseal -address={} {} {}",
                     vault_bin.display(),
                     vault_addr,
+                    tls_flag,
                     key
                 );
                 let unseal_output = safe_sh_command(&unseal_cmd);
