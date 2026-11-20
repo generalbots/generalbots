@@ -33,7 +33,7 @@ function captionNode(doc, kind, id, title) {
   node.setAttribute("data-gb-caption-title", title);
   var prefix = doc.createElement("span");
   prefix.className = "gb-caption-prefix";
-  prefix.textContent = "STALE:";
+  prefix.textContent = "<stale>";
   node.appendChild(prefix);
   return node;
 }
