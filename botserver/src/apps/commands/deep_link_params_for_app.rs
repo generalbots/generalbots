@@ -62,6 +62,11 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("billing", "billing.invoice.list", "List invoices", "List invoices, quotes and payment status.", &[], Some("app://billing?invoice_id={invoice_id?}"), false),
     cmd("billing", "billing.subscription.status", "Subscription status", "Report the current plan and subscription status.", &[], None, false),
     cmd("products", "products.items.list", "List products", "List product catalog items and services.", &[("category", "optional category")], Some("app://products?product_id={product_id?}"), false),
+    // #2204 — create/update were implemented and dispatched but absent from the
+    // catalog, so the model could never discover them and "add a product" fell
+    // back to opening an empty grid.
+    cmd("products", "products.items.create", "Add product", "Add a product to the catalog; name and price are required.", &[("name", "product name"), ("price", "unit price"), ("sku", "optional SKU"), ("category", "optional category"), ("description", "optional description"), ("currency", "currency code, default USD")], Some("app://products?product_id={product_id?}"), false),
+    cmd("products", "products.items.update", "Update product", "Update a catalog product by id (or name): price, description, active flag and rename.", &[("product_id", "product uuid"), ("name", "product name to look up, or the new name together with product_id"), ("price", "new price"), ("description", "new description"), ("is_active", "true/false")], Some("app://products?product_id={product_id?}"), false),
     cmd("tickets", "tickets.list", "List tickets", "List support tickets and their status.", &[], Some("app://tickets?ticket_id={ticket_id?}"), false),
     cmd("tickets", "tickets.create", "Create ticket", "Create a support ticket.", &[("subject", "subject"), ("priority", "priority")], None, true),
     cmd("banking", "banking.transactions.list", "List transactions", "List bank transactions for a period.", &[("period", "optional YYYY-MM")], Some("app://banking?transaction_id={transaction_id?}"), false),
