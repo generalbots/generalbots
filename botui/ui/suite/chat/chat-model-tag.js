@@ -15,8 +15,8 @@
     return (h >>> 0).toString(36) + ":" + s.length;
   }
   function load() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
-    catch (e) { return {}; }
+    var map = typeof gbStoreGet === "function" ? gbStoreGet(KEY, {}) : {};
+    return map && typeof map === "object" && !Array.isArray(map) ? map : {};
   }
   function save(map) {
     var keys = Object.keys(map);
