@@ -391,7 +391,8 @@ pub async fn handle_import_sheet(
     Ok(Json(sheet))
 }
 
-#[cfg(all(test, feature = "xlsx"))]
+#[cfg(test)]
+#[cfg(feature = "xlsx")]
 mod hostile_import_tests {
     use super::*;
     use std::io::{Cursor, Write};
