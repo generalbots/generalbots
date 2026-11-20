@@ -11,13 +11,18 @@ name: Release
 #   windows     generalbots.exe, MSI, NSIS setup, raw exes (including botui)
 #   macos       .dmg + .app.zip (reusable desktop-macos.yml, no `-macos`
 #               pre-release)
-#   iso         generalbots-os.iso + SHA256SUMS-os, bootable from the Linux
-#               tarball of the same run (scripts/build_iso.sh)
+#   os-appliance  generalbots-os.iso + SHA256SUMS-os — the ONLY bootable OS
+#               image (Debian 13 mkosi kiosk appliance). Built by the reusable
+#               desktop-os-iso.yml from the pinned tag being released, with a
+#               REQUIRED QEMU boot smoke and in-image shell assertions.
+#   iso         generalbots-payload.iso + SHA256SUMS-payload — a GRUB data
+#               medium carrying the Linux tarball (NOT an OS, build_iso.sh).
 #   pythonbox   BotModels Linux/Windows self-contained bundles (internal)
 #
 # #2110 — every platform is part of the contract: the `publish` job lists any
 # failed platform job and exits 1 before uploading anything, and a missing
-# asset (Linux format, Windows installer, macOS dmg, ISO) fails the release.
+# asset (Linux format, Windows installer, macOS dmg, OS image, carrier) fails
+# the release.
 # Nothing is downloaded with continue-on-error.
 #
 # Everything lands on one release with one `MANIFEST.json` and one combined
@@ -198,8 +203,8 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          if ! python3 scripts/whats_new.py --file whatsnew.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"; then
-            echo "::warning::whatsnew.md has no section for ${VERSION}; continuing without release notes"
+          if ! python3 scripts/whats_new.py --file NEWS.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"; then
+            echo "::warning::NEWS.md has no section for ${VERSION}; continuing without release notes"
           fi
           {
             echo "### Product release ${VERSION}"
@@ -280,6 +285,46 @@ jobs:
           done
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
+
+      - name: Bundle llama.cpp and local models for offline installer
+        run: |
+          set -euo pipefail
+          # Desktop-local first-run smoke/provision expects the local model path
+          # to work offline. Bundle the pinned Linux x86_64 CPU engine and the
+          # default GGUF models into the installer cache so provision does not
+          # depend on GitHub/HuggingFace downloads at runtime.
+          mkdir -p dist/installers
+          fetch_checked() {
+            local url="$1" out="$2" sha="$3"
+            for attempt in 1 2 3 4 5; do
+              if curl -fL --retry 5 --retry-delay 10 --retry-all-errors -o "$out" "$url"; then
+                if [ -n "$sha" ]; then
+                  echo "${sha}  ${out}" | sha256sum -c -
+                else
+                  test -s "$out"
+                fi
+                return 0
+              fi
+              echo "fetch $(basename "$out") attempt $attempt failed; sleeping $((attempt*10))s"
+              rm -f "$out"
+              sleep $((attempt*10))
+            done
+            echo "failed to fetch $url" >&2
+            return 1
+          }
+          fetch_checked \
+            "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip" \
+            "dist/installers/llama-b7345-bin-ubuntu-x64.zip" \
+            "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+          fetch_checked \
+            "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf" \
+            "dist/installers/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf" \
+            ""
+          fetch_checked \
+            "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf" \
+            "dist/installers/bge-small-en-v1.5-f32.gguf" \
+            ""
+          ls -lh dist/installers/llama-b7345-bin-ubuntu-x64.zip dist/installers/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf dist/installers/bge-small-en-v1.5-f32.gguf
 
       # The pythonbox is an INTERNAL component: never a published asset. The
       # `bundle` job built it in this run, so the installer carries the
@@ -467,34 +512,81 @@ jobs:
           TAG="${{ needs.release.outputs.version }}"
           VERSION="${TAG#v}"
           PKG="generalbots-${VERSION}-linux-x86_64"
-          WORK="$RUNNER_TEMP/first-run"
-          rm -rf "$WORK"
-          mkdir -p "$WORK/home"
-          tar -xzf "dist/${PKG}.tar.gz" -C "$WORK"
+          REPO_ROOT="$PWD"
 
-          export HOME="$WORK/home"
+          cleanup_provision() {
+            cd "$REPO_ROOT" || true
+            # Stop stack services a previous attempt may have left running/bound to ports.
+            pkill -f 'botserver|llama-server|llama\.cpp|vault server|postgres|pg_ctl|postmaster|valkey-server|redis-server|minio server|minio|qdrant|zitadel' 2>/dev/null || true
+            sleep 3
+            pkill -9 -f 'botserver|llama-server|llama\.cpp|vault server|postgres|pg_ctl|postmaster|valkey-server|redis-server|minio server|minio|qdrant|zitadel' 2>/dev/null || true
+            sleep 2
+          }
+
+          provision_once() {
+            local attempt="$1"
+            local work="$RUNNER_TEMP/first-run-attempt-${attempt}"
+            rm -rf "$work"
+            mkdir -p "$work/home"
+            cd "$REPO_ROOT" || return 1
+            tar -xzf "$REPO_ROOT/dist/${PKG}.tar.gz" -C "$work" || return 1
+            export HOME="$work/home"
+            cd "$work/$PKG" || return 1
+            # Same entry point a user runs, but without a display.
+            ./start.sh --provision | tee "$work/provision.log"
+            grep -q '"id":"components".*"state":"ready"' "$work/provision.log" \
+              || { echo "provisioning did not reach the ready state"; return 1; }
+            if grep -q '"state":"failed"' "$work/provision.log"; then
+              echo "a component failed"; return 1
+            fi
+            # The default wizard choice is the local model; it must be running,
+            # not silently skipped. External model/runtime downloads can be
+            # flaky in CI, so the caller may retry provisioning from scratch.
+            grep -q '"id":"llm".*"state":"ready"' "$work/provision.log" \
+              || { echo "the local model runtime did not become ready"; return 1; }
+            if grep -q '"id":"llm".*Skipped' "$work/provision.log"; then
+              echo "the local model runtime was skipped"; return 1
+            fi
+            curl -fsS -o /dev/null http://127.0.0.1:8081/health \
+              || { echo "llama.cpp is not answering on 8081"; return 1; }
+            curl -fsS -o /dev/null http://127.0.0.1:8082/health \
+              || { echo "the embedding server is not answering on 8082"; return 1; }
+            # Expose the successful attempt for subsequent steps.
+            WORK="$work"
+            STACK="$HOME/.local/share/generalbots/stack"
+            export WORK STACK
+            printf 'WORK=%s\nSTACK=%s\n' "$WORK" "$STACK" >> "$GITHUB_ENV"
+            return 0
+          }
+
           # No model override: "local" is the wizard default, so the smoke must
           # exercise exactly that path (1 GB model + llama.cpp startup).
-
-          cd "$WORK/$PKG"
-          # Same entry point a user runs, but without a display.
-          ./start.sh --provision | tee "$WORK/provision.log"
-          grep -q '"id":"components".*"state":"ready"' "$WORK/provision.log" \
-            || { echo "provisioning did not reach the ready state"; exit 1; }
-          if grep -q '"state":"failed"' "$WORK/provision.log"; then
-            echo "a component failed"; exit 1
+          ok=0
+          for attempt in 1 2 3; do
+            # Best-effort cleanup of services a previous attempt may have started.
+            if [ "$attempt" -gt 1 ]; then
+              cleanup_provision
+            fi
+            echo "::group::Provision attempt ${attempt}"
+            if provision_once "$attempt"; then
+              ok=1
+              echo "::endgroup::"
+              break
+            fi
+            echo "::endgroup::"
+            echo "::warning::Provision attempt ${attempt} failed; retrying from a clean workspace"
+          done
+          # Final cleanup in case all attempts failed after starting services.
+          if [ "$ok" -ne 1 ]; then
+            cleanup_provision
           fi
-          # The default wizard choice is the local model; it must be running,
-          # not silently skipped.
-          grep -q '"id":"llm".*"state":"ready"' "$WORK/provision.log" \
-            || { echo "the local model runtime did not become ready"; exit 1; }
-          if grep -q '"id":"llm".*Skipped' "$WORK/provision.log"; then
-            echo "the local model runtime was skipped"; exit 1
+          if [ "$ok" -ne 1 ]; then
+            echo "provisioning did not become ready after retries"
+            exit 1
           fi
-          curl -fsS -o /dev/null http://127.0.0.1:8081/health \
-            || { echo "llama.cpp is not answering on 8081"; exit 1; }
-          curl -fsS -o /dev/null http://127.0.0.1:8082/health \
-            || { echo "the embedding server is not answering on 8082"; exit 1; }
+          # Keep a stable log path for artifact upload and later steps.
+          cp "$WORK/provision.log" "$RUNNER_TEMP/first-run-provision.log"
+          ln -sfn "$WORK" "$RUNNER_TEMP/first-run"
 
           # What the wizard's finish step writes once the user is done.
           STACK="$HOME/.local/share/generalbots/stack"
@@ -502,6 +594,7 @@ jobs:
 
           # The suite window cannot be driven headless, so start the sidecar it
           # would start and assert the API and the page it serves.
+          cd "$WORK/$PKG" || exit 1
           BOTSERVER_STACK_PATH="$STACK" \
           BOTSERVER_INSTALLERS_PATH="$HOME/.local/share/generalbots/installers" \
           BOTUI_PATH="$PWD/ui/suite" \
@@ -553,7 +646,13 @@ jobs:
 
   windows:
     name: Windows binaries
-    needs: [release, linux, bundle-windows]
+    # Windows consumes only `botmodels-pythonbox-windows` (from
+    # `bundle-windows`); `linux-installer` is read by `iso` and `publish`, not
+    # here. The `linux` edge was therefore pure serialization: nothing was
+    # shared, yet Windows could not start until the 61-minute Linux job
+    # finished. Run 42631974498 shows the cost — Windows began at minute 61.5
+    # and the run took 147 minutes to produce 82 minutes of Windows work.
+    needs: [release, bundle-windows]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     timeout-minutes: 150
@@ -579,16 +678,14 @@ jobs:
           $stage = 'dist\installers'
           $resources = 'botserver\botserver-installers'
           New-Item -ItemType Directory -Force $stage, $resources | Out-Null
-          $runtimeDlls = @(
-            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
-            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
-            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
-          )
-          foreach ($name in $runtimeDlls) {
-            $dll = Join-Path "$($pg.FullName)\bin" $name
-            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
-            Copy-Item $dll $stage -Force
-            Copy-Item $dll $resources -Force
+          # Stage every DLL the installer ships: the transitive set changes
+          # between PostgreSQL releases (16.16 dropped libwinpthread-1.dll),
+          # so a hardcoded list breaks the build on every minor bump.
+          $libpq = Join-Path "$($pg.FullName)\bin" 'libpq.dll'
+          if (-not (Test-Path $libpq)) { throw "libpq.dll is missing from the PostgreSQL install" }
+          Get-ChildItem "$($pg.FullName)\bin" -Filter '*.dll' | ForEach-Object {
+            Copy-Item $_.FullName $stage -Force
+            Copy-Item $_.FullName $resources -Force
           }
 
       - uses: ./.github/actions/rust-setup
@@ -1630,14 +1727,29 @@ jobs:
       tag: ${{ needs.release.outputs.version }}
       publish: false
 
-  iso:
-    name: Bootable ISO image
+  os-appliance:
+    name: General Bots OS appliance (mkosi, pinned tag)
+    # #2440 — this is the ONE image published as `generalbots-os.iso`. The
+    # reusable workflow builds it from the tag THIS release cuts (never
+    # "the newest release that has a tarball"), requires the QEMU boot smoke,
+    # and asserts the OS identity, payload and shell unit inside the image.
     needs: [release, linux]
-    # #2110 — one release, one ISO. Built by `scripts/build_iso.sh` from the
-    # tarball THIS run produced (the `linux-installer` artifact), so the image
-    # never waits for a published release and can never fall back to an older
-    # payload. The kiosk appliance (`desktop-os-iso.yml`, mkosi) is a separate
-    # track: it needs a Debian rootfs toolchain and is not part of the release.
+    if: ${{ github.server_url == 'https://github.com' }}
+    uses: ./.github/workflows/desktop-os-iso.yml
+    with:
+      release: ${{ needs.release.outputs.version }}
+      # publish creates the release only at the end, so the pinned tarball
+      # comes from this run's linux job; the workflow still requires and
+      # validates the tag and the tarball checksum.
+      artifact: linux-installer
+
+  iso:
+    name: Payload carrier ISO (not an OS)
+    needs: [release, linux]
+    # `scripts/build_iso.sh` carries the tarball THIS run produced (the
+    # `linux-installer` artifact) on a GRUB data medium. It is NOT the OS and
+    # is published only as `generalbots-payload.iso`; the bootable appliance
+    # comes from `os-appliance` above.
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -1646,7 +1758,7 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.sha }}
 
-      - name: Install the ISO toolchain
+      - name: Install the carrier toolchain
         run: |
           set -euo pipefail
           # El Torito (BIOS + UEFI) needs both GRUB platforms, xorriso and
@@ -1665,7 +1777,7 @@ jobs:
           path: ${{ runner.temp }}/linux-installer
           merge-multiple: true
 
-      - name: Build the bootable ISO from the Linux payload
+      - name: Build the payload carrier from the Linux tarball
         env:
           RELEASE_TAG: ${{ needs.release.outputs.version }}
         run: |
@@ -1673,49 +1785,53 @@ jobs:
           VERSION="${RELEASE_TAG#v}"
           PAYLOAD="$RUNNER_TEMP/linux-installer/generalbots-${VERSION}-linux-x86_64.tar.gz"
           if [ ! -s "$PAYLOAD" ]; then
-            echo "::error::linux-installer carries no $(basename "$PAYLOAD"); cannot build the ISO"
+            echo "::error::linux-installer carries no $(basename "$PAYLOAD"); cannot build the payload carrier"
             exit 1
           fi
           chmod +x scripts/build_iso.sh
+          # The pinned tag can predate the raised --max-mb default in main, so
+          # pass GitHub's 2 GiB cap (minus headroom) explicitly: the offline
+          # installer tarball makes this carrier ~2022 MiB.
           scripts/build_iso.sh \
             --payload "$PAYLOAD" \
-            --out dist/generalbots-os.iso \
+            --out dist/generalbots-payload.iso \
             --version "$VERSION" \
-            --label "GENERALBOTS_${VERSION}"
+            --label "GENERALBOTS_PAYLOAD_${VERSION}" \
+            --max-mb 2040
 
-      - name: Smoke-test the ISO (payload + El Torito)
-        # Lists the image through xorriso: the payload must be there and the
-        # hybrid El Torito record must expose both BIOS and UEFI entries. No
-        # continue-on-error: an unbootable ISO must fail the release.
+      - name: Smoke-test the carrier (payload + El Torito)
+        # Lists the image through xorriso: the payload must be there, the
+        # embedded README must say it is not an OS, and the hybrid El Torito
+        # record must expose both BIOS and UEFI entries. No continue-on-error.
         run: |
           set -euo pipefail
-          scripts/build_iso.sh --verify dist/generalbots-os.iso \
+          scripts/build_iso.sh --verify dist/generalbots-payload.iso \
             --expect SHA256SUMS-linux \
             --expect README.txt
 
-      - name: Record ISO checksums
+      - name: Record carrier checksums
         run: |
           set -euo pipefail
-          test -s dist/generalbots-os.iso
-          (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os && cat SHA256SUMS-os)
+          test -s dist/generalbots-payload.iso
+          (cd dist && sha256sum generalbots-payload.iso > SHA256SUMS-payload && cat SHA256SUMS-payload)
 
-      - name: Upload the ISO
+      - name: Upload the payload carrier
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: generalbots-os-image
+          name: generalbots-payload-image
           path: |
-            dist/generalbots-os.iso
-            dist/SHA256SUMS-os
+            dist/generalbots-payload.iso
+            dist/SHA256SUMS-payload
           if-no-files-found: error
           retention-days: 7
 
   publish:
     name: Publish the all-inclusive release
-    needs: [release, linux, windows, bundle, bundle-windows, macos, iso]
+    needs: [release, linux, windows, bundle, bundle-windows, macos, os-appliance, iso]
     # #2110 — `always()` keeps this job visible when a platform fails, but it
     # now refuses to publish: the first step lists the failed platforms and
-    # exits 1. A tag either carries Linux + Windows + macOS + ISO, or it
-    # carries no release at all.
+    # exits 1. A tag either carries Linux + Windows + macOS + the OS image +
+    # its payload carrier, or it carries no release at all.
     if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -1728,6 +1844,7 @@ jobs:
           BUNDLE_RESULT: ${{ needs.bundle.result }}
           BUNDLE_WINDOWS_RESULT: ${{ needs.bundle-windows.result }}
           MACOS_RESULT: ${{ needs.macos.result }}
+          OS_APPLIANCE_RESULT: ${{ needs.os-appliance.result }}
           ISO_RESULT: ${{ needs.iso.result }}
         run: |
           set -euo pipefail
@@ -1739,6 +1856,7 @@ jobs:
             "bundle:${BUNDLE_RESULT:-}" \
             "bundle-windows:${BUNDLE_WINDOWS_RESULT:-}" \
             "macos:${MACOS_RESULT:-}" \
+            "os-appliance:${OS_APPLIANCE_RESULT:-}" \
             "iso:${ISO_RESULT:-}"; do
             name="${pair%%:*}"
             result="${pair#*:}"
@@ -1779,12 +1897,27 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Download the bootable ISO
+      - name: Download the bootable OS appliance
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: generalbots-os-image
+          name: generalbots-os-appliance
           path: dist
           merge-multiple: true
+
+      - name: Download the payload carrier
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: generalbots-payload-image
+          path: dist
+          merge-multiple: true
+
+      - name: Keep the boot-smoke log out of release assets
+        # The QEMU log stays as a workflow artifact (evidence, not an asset).
+        run: |
+          set -euo pipefail
+          if [ -f dist/vm-smoke.log ]; then
+            mv dist/vm-smoke.log "$RUNNER_TEMP/generalbots-os-vm-smoke.log"
+          fi
 
       - name: Create the stable download aliases
         # The Linux job now ships only versioned package names so the CI
@@ -1908,9 +2041,16 @@ jobs:
           if ! compgen -G "dist/generalbots-*-macos-*.app.zip" >/dev/null; then
             missing+=("generalbots-*-macos-*.app.zip")
           fi
-          # ISO
+          # Bootable OS image (the mkosi appliance, not the GRUB carrier)
           require generalbots-os.iso
           require SHA256SUMS-os
+          (cd dist && sha256sum -c SHA256SUMS-os)
+          grep -q '  generalbots-os\.iso$' dist/SHA256SUMS-os
+          # Payload data medium — explicitly NOT an operating system
+          require generalbots-payload.iso
+          require SHA256SUMS-payload
+          (cd dist && sha256sum -c SHA256SUMS-payload)
+          grep -q '  generalbots-payload\.iso$' dist/SHA256SUMS-payload
           # Metadata
           require MANIFEST.json
           require SHA256SUMS
@@ -1926,7 +2066,14 @@ jobs:
 
           with open("dist/MANIFEST.json", encoding="utf-8") as handle:
               assets = json.load(handle)["assets"]
-          required = ["generalbots-os.iso", "generalbots-x64.msi", "generalbots-x64-setup.exe"]
+          required = [
+              "generalbots-os.iso",
+              "SHA256SUMS-os",
+              "generalbots-payload.iso",
+              "SHA256SUMS-payload",
+              "generalbots-x64.msi",
+              "generalbots-x64-setup.exe",
+          ]
           absent = [name for name in required if name not in assets]
           if absent:
               sys.exit(f"MANIFEST.json does not cover {absent}")
@@ -1978,13 +2125,17 @@ jobs:
             - macOS: `generalbots-<version>-macos-<arch>.dmg` and
               `.app.zip` (unsigned; arm64 or x86_64 depending on the runner
               GitHub assigns, the name says which).
-            - Bootable ISO: `generalbots-os.iso` + `SHA256SUMS-os` — a hybrid
-              El Torito image (BIOS + UEFI) built from the same Linux tarball,
-              carrying the whole installer payload under `/general-bots/` for
-              machines without network access. It boots GRUB and the payload,
-              it is not the Debian kiosk appliance: that image
-              (`desktop/os/`, mkosi, `desktop-os-iso.yml`) remains a separate
-              track, so the kiosk session is not part of this ISO.
+            - General Bots OS: `generalbots-os.iso` + `SHA256SUMS-os` — the
+              Debian 13 mkosi kiosk appliance from `desktop/os/`, built from
+              the pinned tag `${{ needs.release.outputs.version }}`. It boots
+              straight into `generalbots-shell.service` (cage, no display
+              manager, no login shell); the QEMU boot smoke and the in-image
+              shell assertions are required before it is published. This is
+              the only bootable OS image in the release.
+            - Payload carrier: `generalbots-payload.iso` +
+              `SHA256SUMS-payload` — a GRUB data medium carrying the Linux
+              tarball under `/general-bots/` for machines without network
+              access. It is NOT a bootable operating system.
 
             `MANIFEST.json` lists every asset with its SHA-256 and size;
             `SHA256SUMS` verifies the whole release in one command. The
