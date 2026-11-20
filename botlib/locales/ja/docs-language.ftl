@@ -81,3 +81,15 @@ docs-lang-lang-de = ドイツ語
 docs-lang-lang-ja = 日本語
 docs-lang-lang-ko = 韓国語
 docs-lang-lang-zh = 中国語
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = スペルチェック
+docs-lang-privacy-mode = プライバシーモード（オフラインのみ）
+docs-lang-privacy-mode-hint = オンにすると、チェックはこのブラウザ内で実行され、文書のテキストは送信されません。
+docs-lang-privacy-on = プライバシーモードはオンです。ローカルチェックのみ実行されます。
+docs-lang-privacy-off = プライバシーモードはオフです。AIアシスタントが有効です。
+docs-lang-privacy-blocked = ローカルの言語ツールが利用できないため、何も送信されませんでした。
+docs-lang-doc-dict-title = 文書辞書
+docs-lang-doc-word-placeholder = 新しい文書用語
+docs-lang-add-doc-word = 文書用語を追加
+docs-lang-doc-dict-empty = 文書用語はまだありません

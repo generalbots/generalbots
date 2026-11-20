@@ -76,6 +76,7 @@
   NS.renderSpelling = function () {
     var entries = indexed(function (item) { return item.kind === "spelling"; });
     var words = NS.customWords();
+    var docWords = NS.documentWords();
     return [
       '<p class="docs-lang-hint">' + esc(tr("docs-lang-spelling-hint", "Review suggestions below. Nothing changes until you accept.")) + "</p>",
       '<div class="docs-lang-section"><button type="button" class="docs-lang-btn" data-action="refresh">' + esc(tr("docs-lang-refresh", "Refresh")) + "</button></div>",
@@ -87,6 +88,13 @@
         return '<span class="docs-lang-chip">' + esc(word) +
           ' <button type="button" data-action="remove-word" data-word="' + esc(word) + '" aria-label="' + esc(tr("docs-lang-remove", "Remove")) + '">&times;</button></span>';
       }).join("") : esc(tr("docs-lang-custom-empty", "No custom words yet"))) + "</div></div>",
+      '<div class="docs-lang-section"><h4>' + esc(tr("docs-lang-doc-dict-title", "Document dictionary")) + "</h4>",
+      '<div class="docs-lang-inline"><input id="docs-lang-new-doc-word" type="text" placeholder="' + esc(tr("docs-lang-doc-word-placeholder", "New document term")) + '" aria-label="' + esc(tr("docs-lang-doc-word-placeholder", "New document term")) + '">' +
+      '<button type="button" class="docs-lang-btn" data-action="add-doc-word">' + esc(tr("docs-lang-add-doc-word", "Add document term")) + "</button></div>",
+      '<div class="docs-lang-chips">' + (docWords.length ? docWords.map(function (word) {
+        return '<span class="docs-lang-chip">' + esc(word) +
+          ' <button type="button" data-action="remove-doc-word" data-word="' + esc(word) + '" aria-label="' + esc(tr("docs-lang-remove", "Remove")) + '">&times;</button></span>';
+      }).join("") : esc(tr("docs-lang-doc-dict-empty", "No document terms yet"))) + "</div></div>",
       '<div class="docs-lang-section"><h4>' + esc(tr("docs-lang-domain-title", "Example domain dictionaries")) + "</h4>",
       '<div class="docs-lang-checks">' + domainChecks() + "</div></div>"
     ].join("");

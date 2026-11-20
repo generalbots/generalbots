@@ -78,8 +78,11 @@
       esc(tr("docs-lang-autoformat", "Format smart quotes, dashes and lists as you type")) + "</label>",
       '<button type="button" class="docs-lang-btn" data-action="apply-autoformat">' + esc(tr("docs-lang-apply-autoformat", "Apply autoformat to document")) + "</button></div>",
       '<div class="docs-lang-section"><h4>' + esc(tr("docs-lang-privacy-title", "Privacy")) + "</h4>",
-      '<p class="docs-lang-hint">' + esc(tr("docs-lang-privacy-local", "Local/offline mode - all checks run in this browser. Document text is never sent anywhere.")) + "</p>",
-      '<h4>' + esc(tr("docs-lang-ai-title", "AI assistance")) + "</h4>",
+      '<label class="docs-lang-check"><input type="checkbox" id="docs-lang-privacy-mode"' + (NS.isPrivacyMode() ? " checked" : "") + "> " +
+      esc(tr("docs-lang-privacy-mode", "Privacy mode (offline only)")) + "</label>",
+      '<p class="docs-lang-hint">' + esc(tr("docs-lang-privacy-mode-hint", "When on, checks run in this browser and document text is never sent.")) + "</p>",
+      '<p class="docs-lang-hint">' + esc(tr("docs-lang-privacy-local", "Local/offline mode - all checks run in this browser. Document text is never sent anywhere.")) + "</p></div>",
+      '<div class="docs-lang-section"><h4>' + esc(tr("docs-lang-ai-title", "AI assistance")) + "</h4>",
       '<label class="docs-lang-check"><input type="checkbox" id="docs-lang-ai-optin"' + (NS.state.aiOptIn ? " checked" : "") + "> " +
       esc(tr("docs-lang-ai-optin", "Enable AI assistance (needs an admin-configured endpoint)")) + "</label>",
       '<p class="docs-lang-hint">' + esc(tr("docs-lang-ai-disabled", "Disabled - no endpoint is configured. Document text is never sent.")) + "</p></div>"
@@ -109,6 +112,11 @@
     NS.rerender();
   }
 
+  function focusControl(id) {
+    var node = document.getElementById(id);
+    if (node && typeof node.focus === "function") node.focus();
+  }
+
   NS.handlePanelClick = function (event) {
     var target = event.target;
     var actionEl = target && target.closest ? target.closest("[data-action]") : null;
@@ -134,6 +142,20 @@
       return;
     }
     if (action === "remove-word") { NS.removeCustomWord(actionEl.getAttribute("data-word")); rerender(); return; }
+    if (action === "add-doc-word") {
+      var docInput = document.getElementById("docs-lang-new-doc-word");
+      var docValue = docInput ? String(docInput.value || "").trim() : "";
+      if (!docValue) {
+        NS.status(tr("docs-lang-enter-value", "Enter a value."));
+        return;
+      }
+      var docAdded = NS.addDocumentWord(docValue);
+      NS.status(tr(docAdded ? "docs-lang-saved-locally" : "docs-lang-duplicate",
+        docAdded ? "Saved in this browser." : "Already in the list."));
+      rerender();
+      return;
+    }
+    if (action === "remove-doc-word") { NS.removeDocumentWord(actionEl.getAttribute("data-word")); rerender(); return; }
     if (action === "thes-lookup") {
       var wordEl = document.getElementById("docs-lang-thes-word");
       NS.state.thesaurusWord = wordEl ? wordEl.value || "" : "";
@@ -192,6 +214,17 @@
       NS.writeGlobal("ai-opt-in", NS.state.aiOptIn);
       NS.status(tr(NS.state.aiOptIn ? "docs-lang-ai-on" : "docs-lang-ai-off",
         NS.state.aiOptIn ? "AI assistance is enabled for this browser." : "AI assistance is off."));
+      NS.rerender();
+      focusControl("docs-lang-ai-optin");
+      return;
+    }
+    if (target.id === "docs-lang-privacy-mode") {
+      NS.state.aiOptIn = target.checked !== true;
+      NS.writeGlobal("ai-opt-in", NS.state.aiOptIn);
+      NS.status(tr(NS.isPrivacyMode() ? "docs-lang-privacy-on" : "docs-lang-privacy-off",
+        NS.isPrivacyMode() ? "Privacy mode is on. Only local checks run." : "Privacy mode is off. AI assistance is enabled."));
+      NS.rerender();
+      focusControl("docs-lang-privacy-mode");
     }
   };
 })();

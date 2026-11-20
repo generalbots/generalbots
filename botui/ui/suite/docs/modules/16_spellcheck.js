@@ -18,6 +18,21 @@ function openSpellcheck() {
   var host = document.getElementById("docs-modal-container");
   if (!host) return;
   var st = window.gbT || function (_, fb) { return fb; };
+
+  // Privacy first (#2484): the local checker is the default. The document text
+  // below is only sent to the LLM endpoint when privacy mode was explicitly
+  // disabled. Fail closed when the local namespace is missing.
+  var lang = window.DocsLang;
+  if (!lang || typeof lang.isPrivacyMode !== "function" || typeof lang.open !== "function") {
+    GBModal.alert(st("docs-lang-privacy-blocked", "Local language tools are unavailable, so nothing was sent."));
+    return;
+  }
+  if (lang.isPrivacyMode()) {
+    if (lang.state) lang.state.activeTab = "spelling";
+    lang.open();
+    return;
+  }
+
   host.innerHTML = [
     '<div class="docs-modal" id="spellcheck-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:var(--z-system);">',
     '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:480px;max-width:92vw;padding:20px;color:#f8fafc;display:flex;flex-direction:column;gap:12px;max-height:80vh;">',

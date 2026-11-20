@@ -31,6 +31,7 @@
     var known = Object.create(null);
     addWords(known, NS.BASE_WORDS);
     addWords(known, NS.customWords());
+    addWords(known, NS.documentWords());
     Object.keys(NS.state.domains || {}).forEach(function (domain) {
       if (NS.state.domains[domain]) addWords(known, NS.DOMAIN_TERMS[domain]);
     });

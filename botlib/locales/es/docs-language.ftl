@@ -81,3 +81,15 @@ docs-lang-lang-de = Alemán
 docs-lang-lang-ja = Japonés
 docs-lang-lang-ko = Coreano
 docs-lang-lang-zh = Chino
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = Corrector ortográfico
+docs-lang-privacy-mode = Modo privacidad (solo sin conexión)
+docs-lang-privacy-mode-hint = Cuando está activado, las comprobaciones se realizan en este navegador y el texto del documento nunca se envía.
+docs-lang-privacy-on = El modo privacidad está activado. Solo se ejecutan comprobaciones locales.
+docs-lang-privacy-off = El modo privacidad está desactivado. La asistencia de IA está activada.
+docs-lang-privacy-blocked = Las herramientas locales de idioma no están disponibles, por lo que no se envió nada.
+docs-lang-doc-dict-title = Diccionario del documento
+docs-lang-doc-word-placeholder = Nuevo término del documento
+docs-lang-add-doc-word = Añadir término del documento
+docs-lang-doc-dict-empty = Aún no hay términos en el documento

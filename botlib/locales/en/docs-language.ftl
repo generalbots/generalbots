@@ -81,3 +81,15 @@ docs-lang-lang-de = German
 docs-lang-lang-ja = Japanese
 docs-lang-lang-ko = Korean
 docs-lang-lang-zh = Chinese
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = Spellcheck
+docs-lang-privacy-mode = Privacy mode (offline only)
+docs-lang-privacy-mode-hint = When on, checks run in this browser and document text is never sent.
+docs-lang-privacy-on = Privacy mode is on. Only local checks run.
+docs-lang-privacy-off = Privacy mode is off. AI assistance is enabled.
+docs-lang-privacy-blocked = Local language tools are unavailable, so nothing was sent.
+docs-lang-doc-dict-title = Document dictionary
+docs-lang-doc-word-placeholder = New document term
+docs-lang-add-doc-word = Add document term
+docs-lang-doc-dict-empty = No document terms yet

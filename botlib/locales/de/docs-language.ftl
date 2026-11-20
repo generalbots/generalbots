@@ -81,3 +81,15 @@ docs-lang-lang-de = Deutsch
 docs-lang-lang-ja = Japanisch
 docs-lang-lang-ko = Koreanisch
 docs-lang-lang-zh = Chinesisch
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = Rechtschreibprüfung
+docs-lang-privacy-mode = Datenschutzmodus (nur offline)
+docs-lang-privacy-mode-hint = Wenn aktiviert, erfolgen die Prüfungen in diesem Browser und der Dokumenttext wird nie gesendet.
+docs-lang-privacy-on = Datenschutzmodus ist aktiviert. Es werden nur lokale Prüfungen durchgeführt.
+docs-lang-privacy-off = Datenschutzmodus ist deaktiviert. Die KI-Unterstützung ist aktiviert.
+docs-lang-privacy-blocked = Die lokalen Sprachwerkzeuge sind nicht verfügbar, daher wurde nichts gesendet.
+docs-lang-doc-dict-title = Dokumentwörterbuch
+docs-lang-doc-word-placeholder = Neuer Dokumentbegriff
+docs-lang-add-doc-word = Dokumentbegriff hinzufügen
+docs-lang-doc-dict-empty = Noch keine Dokumentbegriffe

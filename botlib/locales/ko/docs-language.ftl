@@ -81,3 +81,15 @@ docs-lang-lang-de = 독일어
 docs-lang-lang-ja = 일본어
 docs-lang-lang-ko = 한국어
 docs-lang-lang-zh = 중국어
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = 맞춤법 검사
+docs-lang-privacy-mode = 개인 정보 모드(오프라인 전용)
+docs-lang-privacy-mode-hint = 켜면 이 브라우저에서만 검사가 수행되며 문서 텍스트는 전송되지 않습니다.
+docs-lang-privacy-on = 개인 정보 모드가 켜졌습니다. 로컬 검사만 실행됩니다.
+docs-lang-privacy-off = 개인 정보 모드가 꺼졌습니다. AI 도움이 활성화되었습니다.
+docs-lang-privacy-blocked = 로컬 언어 도구를 사용할 수 없으므로 아무것도 전송되지 않았습니다.
+docs-lang-doc-dict-title = 문서 사전
+docs-lang-doc-word-placeholder = 새 문서 용어
+docs-lang-add-doc-word = 문서 용어 추가
+docs-lang-doc-dict-empty = 아직 문서 용어가 없습니다

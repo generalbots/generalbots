@@ -121,6 +121,38 @@
   }
   NS.setLanguage = setLanguage;
 
+  // Privacy mode is ON unless AI assistance was explicitly enabled. The
+  // legacy network spellcheck reads this before it sends any document text.
+  function isPrivacyMode() {
+    return state.aiOptIn !== true;
+  }
+  NS.isPrivacyMode = isPrivacyMode;
+
+  function documentWords() {
+    var words = readDoc("custom-words-doc", []);
+    return Array.isArray(words) ? words.filter(function (w) { return typeof w === "string" && w; }) : [];
+  }
+  NS.documentWords = documentWords;
+
+  function addDocumentWord(word) {
+    var clean = String(word || "").trim().toLowerCase();
+    if (!clean) return false;
+    var words = documentWords();
+    if (words.indexOf(clean) >= 0) return false;
+    words.push(clean);
+    writeDoc("custom-words-doc", words);
+    return true;
+  }
+  NS.addDocumentWord = addDocumentWord;
+
+  function removeDocumentWord(word) {
+    var clean = String(word || "").trim().toLowerCase();
+    var words = documentWords().filter(function (w) { return w !== clean; });
+    writeDoc("custom-words-doc", words);
+    return true;
+  }
+  NS.removeDocumentWord = removeDocumentWord;
+
   function customWords() {
     var words = readGlobal("custom-words", []);
     return Array.isArray(words) ? words.filter(function (w) { return typeof w === "string" && w; }) : [];

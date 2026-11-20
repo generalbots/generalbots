@@ -81,3 +81,15 @@ docs-lang-lang-de = 德语
 docs-lang-lang-ja = 日语
 docs-lang-lang-ko = 韩语
 docs-lang-lang-zh = 中文
+
+# Privacy mode and per-document dictionary (#2484).
+docs-lang-spellcheck = 拼写检查
+docs-lang-privacy-mode = 隐私模式（仅离线）
+docs-lang-privacy-mode-hint = 开启后，检查仅在此浏览器中进行，文档文本绝不会发送。
+docs-lang-privacy-on = 隐私模式已开启，仅运行本地检查。
+docs-lang-privacy-off = 隐私模式已关闭，AI 辅助已启用。
+docs-lang-privacy-blocked = 本地语言工具不可用，因此未发送任何内容。
+docs-lang-doc-dict-title = 文档词典
+docs-lang-doc-word-placeholder = 新文档术语
+docs-lang-add-doc-word = 添加文档术语
+docs-lang-doc-dict-empty = 暂无文档术语
