@@ -181,6 +181,18 @@ async fn stream_llm_response_inner(
                     break;
                 }
 
+                if has_api_call {
+                    // #2583 — a block was detected but handle_api_call could not
+                    // execute it (unparseable payload / rejected name). The raw
+                    // envelope used to be streamed to the user as chat text.
+                    content_buffer = crate::core::bot::pipeline::api_call::strip_api_call_block(
+                        &content_buffer,
+                    );
+                    log::warn!(
+                        "api-call block detected but not executed; envelope stripped from the reply"
+                    );
+                }
+
                 if has_ui_plan {
                     content_buffer = crate::main_module::ui_plan::scrub_plan_fragments(
                         &crate::main_module::ui_plan::strip_plan_json(&content_buffer),

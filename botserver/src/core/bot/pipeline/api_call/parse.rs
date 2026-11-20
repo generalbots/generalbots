@@ -42,7 +42,7 @@ pub(super) fn extract_api_call_payload(full_response: &str) -> Option<serde_json
 /// preamble) from a response, leaving just the user-facing prose before and
 /// after it. The block is matched with brace balancing so it is stripped in
 /// full no matter which key variant the model emitted.
-pub(super) fn strip_api_call_block(text: &str) -> String {
+pub(crate) fn strip_api_call_block(text: &str) -> String {
     use crate::core::bot::api_catalog::find_api_call;
     let Some(pos) = find_api_call(text) else {
         return text.to_string();
