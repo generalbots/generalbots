@@ -164,7 +164,7 @@ pub async fn sync_crm(slug: &str, submission: &FormSubmission) -> Result<(), Str
         currency: None,
         lost_reason: None,
     };
-    match botcontacts::handlers::create_lead_form(
+    match botcontacts::handlers::deals::create_lead_form(
         State(std::sync::Arc::new(state)),
         axum::http::HeaderMap::new(),
         Json(lead),
