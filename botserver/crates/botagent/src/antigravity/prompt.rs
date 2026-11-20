@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, run_turn, TURN_TIMEOUT_SECS};
+use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn, TURN_TIMEOUT_SECS};
 use crate::AgentService;
 
 use super::paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, PROMPT_TXT};
@@ -45,6 +45,9 @@ pub async fn run_prompt(
     )
     .await?;
     if !ok {
+        if let Some(limit) = plan_limit(&stdout, &stderr) {
+            return Err(limit);
+        }
         return Err(internal(format!(
             "antigravity print failed: {}",
             failure_reason(&stdout, &stderr)

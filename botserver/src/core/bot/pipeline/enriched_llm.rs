@@ -404,7 +404,10 @@ pub(crate) async fn resolve_bot_llm_provider(
     }
     #[cfg(feature = "agent-vm")]
     if crate::core::ai_accounts::is_subscription_provider(&llm_provider) {
-        let linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
+        let mut linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
+        if linked.is_none() && relink_from_vm(state, user_id, &llm_provider).await {
+            linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
+        }
         let resolved = crate::core::ai_accounts::choose_for_request(
             Some(&llm_provider),
             linked.as_ref(),
@@ -605,4 +608,31 @@ fn extract_kb_sources_from_messages(
         }
     }
     sources
+}
+
+/// The stored account row can lag behind the VM (a sign-in finished while no
+/// settings page was polling, or a second "Conectar" reset the row). Before a
+/// turn refuses with "connect your account", ask the VM whether the CLI holds
+/// its sign-in, and record it as linked when it does.
+#[cfg(feature = "agent-vm")]
+async fn relink_from_vm(state: &Arc<AppState>, user_id: Uuid, provider: &str) -> bool {
+    use crate::core::ai_accounts as acc;
+    let Some(service) = crate::core::bot::agent_vm_hook::service() else {
+        return false;
+    };
+    let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user_id) else {
+        return false;
+    };
+    let linked = match provider {
+        acc::CODEX_CLI => botagent::codex::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+        acc::CLAUDE_CODE => botagent::claude::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+        acc::ANTIGRAVITY => botagent::antigravity::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+        _ => Ok(false),
+    }
+    .unwrap_or(false);
+    if linked {
+        botlog::safe_info!("subscription account {provider} found signed in inside the VM; marked linked");
+        let _ = acc::mark_linked(&state.conn, user_id, provider, None, None, Some(&row.vm_name), None);
+    }
+    linked
 }

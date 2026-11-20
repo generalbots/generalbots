@@ -106,6 +106,22 @@ pub async fn run_turn(
     vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await
 }
 
+/// The provider's own "usage limit" line when the subscription's allowance
+/// is spent, so the turn reports a rate limit instead of a generic failure
+/// and is not retried.
+pub fn plan_limit(stdout: &str, stderr: &str) -> Option<(StatusCode, String)> {
+    let line = stderr
+        .lines()
+        .chain(stdout.lines())
+        .map(|l| l.trim().trim_start_matches("ERROR:").trim())
+        .find(|l| {
+            let lower = l.to_ascii_lowercase();
+            lower.contains("usage limit") || lower.contains("quota exceeded") || lower.contains("rate limit")
+        })?;
+    tracing::warn!("subscription plan limit: {line}");
+    Some((StatusCode::TOO_MANY_REQUESTS, format!("429 rate limit: {line}")))
+}
+
 /// The reason to log when a turn fails: stderr when there is any, else stdout.
 pub fn failure_reason<'a>(stdout: &'a str, stderr: &'a str) -> &'a str {
     if stderr.trim().is_empty() {
@@ -118,6 +134,7 @@ pub fn failure_reason<'a>(stdout: &'a str, stderr: &'a str) -> &'a str {
 #[cfg(test)]
 mod tests {
     use super::{cli_model, turn_script};
+    use axum::http::StatusCode;
 
     #[test]
     fn placeholder_models_fall_back_to_the_cli_default() {
@@ -148,5 +165,15 @@ mod tests {
         let piece = "A".repeat(super::CHUNK);
         let cmd = format!("umask 077; printf '%s' '{piece}' >> /tmp/gb-codex-prompt.txt.b64");
         assert!(cmd.len() < 8192);
+    }
+
+    #[test]
+    fn a_spent_plan_is_reported_as_a_rate_limit() {
+        let out = "OpenAI Codex v0.170.0
+ERROR: You've hit your usage limit. Try again at Nov 22nd.";
+        let (code, msg) = super::plan_limit(out, "").unwrap_or((StatusCode::OK, String::new()));
+        assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
+        assert!(msg.contains("rate limit") && msg.contains("Try again at Nov 22nd"));
+        assert!(super::plan_limit("all fine", "").is_none());
     }
 }

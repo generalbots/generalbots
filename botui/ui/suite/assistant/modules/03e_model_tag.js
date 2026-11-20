@@ -78,7 +78,10 @@ A.attachModelTag = function (el, model) {
 
 /** A live answer just finished: record and show the model it came from. */
 A.tagAnswer = function (el, content, model) {
-    var used = model || A.turnModelNow();
+    /* The server reports the bot's configured model; an agent or a key's
+       model picked in the menu is what really answered this turn. */
+    var now = A.turnModelNow();
+    var used = /^(sub|acct):/.test(now) ? now : (model || now);
     A.rememberAnswerModel(content, used);
     A.attachModelTag(el, used);
 };

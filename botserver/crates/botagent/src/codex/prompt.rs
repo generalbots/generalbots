@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, run_turn};
+use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn};
 use crate::AgentService;
 
 use super::paths::{CODEX_HOME, CODEX_USER, LAST_MESSAGE, PROMPT_TXT};
@@ -37,6 +37,9 @@ pub async fn run_prompt(
     let (ok, stdout, stderr) =
         run_turn(state, vm_name, CODEX_USER, CODEX_HOME, PROMPT_TXT, prompt, &invocation(model)).await?;
     if !ok {
+        if let Some(limit) = plan_limit(&stdout, &stderr) {
+            return Err(limit);
+        }
         return Err(internal(format!(
             "codex exec failed: {}",
             failure_reason(&stdout, &stderr)
