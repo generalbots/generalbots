@@ -65,7 +65,7 @@
 .gb-model-tag svg { flex-shrink: 0; }
 .gb-model-line { margin: 6px 0 2px; }
 
-/* Agents through ACP: listed, not installable yet */
+/* Subscription agents: rows without hover lift; the ones not offered yet stay disabled */
 .gb-prov-row.is-soon { cursor: default; box-shadow: none; }
 .gb-prov-row.is-soon:hover { border-color: var(--id-line); box-shadow: none; transform: none; }
 .gb-prov-row.is-soon .gb-prov-btn:disabled { opacity: .5; cursor: not-allowed; }

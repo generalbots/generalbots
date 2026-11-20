@@ -16,7 +16,7 @@ var L = {"pt-BR":{
   dash:"Painel", engine:"Motor em uso", privacy:"Privacidade", features:"Recursos ligados",
   fDocs:"Documentos", fOcr:"Texto em imagens", fWeb:"Pesquisa na web", fWebOff:"Pesquisa na web (desligada)", fPhotos:"Fotos e gráficos",
   where:"Escolha o motor", whereSub:"Compare as quatro formas de usar o assistente. Clique no cartão de uma delas para ver os detalhes e ativar.",
-  acp:"Agente (ACP)", subAcp:"Sua assinatura de agente", soon:"Em breve",
+  acp:"Agente por assinatura", subAcp:"Sua assinatura, num espaço isolado neste computador",
   goAgent:"Vão ao provedor do agente", costSub:"Sua assinatura (Claude, ChatGPT, Gemini…)", agentDoes:"O agente faz", dependsAgent:"Depende do agente",
   needAcp:"Instalar o agente e entrar na sua conta",
   local:"Neste computador", own:"Servidor ou chave própria", free:"Modelo gratuito",
@@ -43,7 +43,7 @@ en:{
   dash:"Dashboard", engine:"Engine in use", privacy:"Privacy", features:"Features on",
   fDocs:"Documents", fOcr:"Text in images", fWeb:"Web search", fWebOff:"Web search (off)", fPhotos:"Photos and charts",
   where:"Choose the engine", whereSub:"Compare the four ways to use the assistant. Click one to see the details and turn it on.",
-  acp:"Agent (ACP)", subAcp:"Your agent subscription", soon:"Coming soon",
+  acp:"Subscription agent", subAcp:"Your subscription, in an isolated space on this computer",
   goAgent:"Goes to the agent’s provider", costSub:"Your subscription (Claude, ChatGPT, Gemini…)", agentDoes:"The agent does it", dependsAgent:"Depends on the agent",
   needAcp:"Install the agent and sign in to your account",
   local:"On this computer", own:"Own server or key", free:"Free model",
@@ -285,7 +285,6 @@ function compare(currentMode, modes, cfg) {
       ICONS[m] + '<span class="gb-set-mode-label">' + esc(g(m === "own_key" ? "own" : m)) + '</span>' +
       '<span class="gb-set-mode-sub">' + esc(g({ own_key: "subOwn", local: "subLocal", free: "subFree", acp: "subAcp" }[m])) + '</span>' +
       '<span class="gb-gar-head-badges">' + (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
-      (m === "acp" ? '<span class="gb-badge gb-gar-soon">' + esc(g("soon")) + '</span>' : '') +
       '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
       '<span class="gb-gar-head-cta">' + esc(active ? g("ctaAdjust") : g("ctaOpen")) +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></button>';

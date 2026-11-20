@@ -76,6 +76,12 @@ var L = { "pt-BR": {
   ok:"Funcionou: o modelo respondeu em %ms ms.", fail:"Não funcionou (%e).",
   e401:"a chave foi recusada", e400:"o provedor recusou o pedido: confira a chave e o modelo",e404:"modelo ou endereço não encontrado", e429:"limite de uso atingido",
   eConn:"o servidor não respondeu", eTimeout:"o servidor demorou demais",
+  e5xx:"o provedor está com problema agora; tente mais tarde", eUrl:"o endereço do servidor não é válido",
+  eNoUrl:"falta o endereço do servidor", eClient:"o aplicativo não conseguiu abrir a conexão; reinicie o aplicativo",
+  eProvider:"o provedor escolhido não é válido", eAdmin:"só um administrador pode mudar isso",
+  eNoText:"o servidor respondeu, mas sem texto do modelo", eOther:"ocorreu um erro inesperado",
+  eVaultWrite:"Não foi possível guardar a chave no cofre do computador. Tente novamente; se continuar, reinicie o aplicativo.",
+  eVaultDown:"O cofre do computador não está disponível agora. Reinicie o aplicativo e tente novamente.",
   sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:" },
 en: {
   intro:"Pick the provider. The address fills itself in; you only choose the model and paste the key.",
@@ -91,18 +97,29 @@ en: {
   ok:"It worked: the model answered in %ms ms.", fail:"It did not work (%e).",
   e401:"the key was refused", e400:"the provider refused the request: check the key and the model",e404:"model or address not found", e429:"usage limit reached",
   eConn:"the server did not answer", eTimeout:"the server took too long",
+  e5xx:"the provider is having trouble; try again later", eUrl:"the server address is not valid",
+  eNoUrl:"the server address is missing", eClient:"the app could not open the connection; restart the app",
+  eProvider:"the chosen provider is not valid", eAdmin:"only an administrator can change this",
+  eNoText:"the server answered, but with no text from the model", eOther:"an unexpected error occurred",
+  eVaultWrite:"Could not store the key in the computer’s vault. Try again; if it keeps failing, restart the app.",
+  eVaultDown:"The computer’s vault is not available right now. Restart the app and try again.",
   sent:"What you write and attach goes to %h, outside this computer.", said:"The provider said:" } };
 function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 function g(k) { var l = pt() ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
-/** An error code from the server in the person's words. */
+/** An error code from the server in the person's words; never the raw code. */
+var CODES = { connection_refused:"eConn", request_failed:"eConn", timeout:"eTimeout", invalid_endpoint_url:"eUrl",
+  endpoint_required:"eNoUrl", http_client_failed:"eClient", invalid_provider:"eProvider", admin_required:"eAdmin",
+  endpoint_responded_but_no_choices:"eNoText" };
 function reason(code) {
   var e = String(code || "");
   if (/40[13]$/.test(e)) { return g("e401"); } if (/400$/.test(e)) { return g("e400"); } if (/404$/.test(e)) { return g("e404"); }
-  if (/429$/.test(e)) { return g("e429"); } if (e === "connection_refused" || e === "request_failed") { return g("eConn"); }
-  if (e === "timeout") { return g("eTimeout"); }
-  return e;
+  if (/429$/.test(e)) { return g("e429"); } if (/_5\d\d$/.test(e)) { return g("e5xx"); }
+  return g(CODES[e] || "eOther");
 }
+/** `tpl` with the reason in place of %e; a vault failure is a whole sentence of its own. */
+var WHOLE = { vault_write_failed:"eVaultWrite", vault_unavailable:"eVaultDown" };
+function failMsg(tpl, code) { return WHOLE[code] ? g(WHOLE[code]) : tpl.replace("%e", reason(code)); }
 function host(u) { try { return new URL(u).hostname; } catch (e) { return ""; } }
 function logo(id) {
   var svg = (A._providerLogos || {})[id];
@@ -218,7 +235,7 @@ function renderSetup(el, id) {
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d.reachable && d.model_responded) { say("gb-set-hint gb-set-ok", g("ok").replace("%ms", String(d.latency_ms || "?"))); return; }
-        say("gb-set-warn", g("fail").replace("%e", reason(d.error)) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
+        say("gb-set-warn", failMsg(g("fail"), d.error) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
       })
       .catch(function (e) { say("gb-set-warn", g("fail").replace("%e", String(e && e.message || e))); });
   });
@@ -239,5 +256,5 @@ function renderSetup(el, id) {
   }
 }
 
-A._modelProviders = { render: renderOwnKey, list: P, t: g, reason: reason, esc: esc };
+A._modelProviders = { render: renderOwnKey, list: P, t: g, reason: reason, failMsg: failMsg, esc: esc };
 })();

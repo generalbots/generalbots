@@ -60,7 +60,7 @@ function mount(box, ctx) {
     box.querySelector("#gbKmMsg").innerHTML = text ? '<p class="' + cls + '">' + esc(text) + '</p>' : "";
   }
   function failText(key, d) {
-    return g(key).replace("%e", M().reason(d && d.error)) +
+    return M().failMsg(g(key), d && d.error) +
       (d && d.detail ? " " + g("said") + " “" + d.detail + "”" : "");
   }
   function countOn() { return all.filter(function (m) { return on[m]; }).length; }

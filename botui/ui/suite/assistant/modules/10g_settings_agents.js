@@ -1,6 +1,6 @@
 "use strict";
 /**
- * 10g_settings_agents.js - Settings > Modelo > "Agente": subscription agents.
+ * 10g_settings_agents.js - Settings > Modelo > "Agente por assinatura".
  *
  * Claude Code, Codex and Antigravity connect through the agent workspace: an
  * isolated VM where the agent's own program runs and the person signs in
@@ -22,16 +22,16 @@ var AGENTS = [
 ];
 
 var L = { "pt-BR": {
-  intro:"Use um agente que você já assina. Ele roda dentro de uma máquina virtual isolada, criada para ele neste computador: sua conta e o que ele executa ficam lá dentro, não no seu Windows.",
-  connect:"Conectar", disconnect:"Desconectar", soon:"Em breve", linked:"Conectado", connecting:"Conectando…",
+  intro:"Use a sua própria assinatura do Claude, ChatGPT ou Google. O agente roda dentro de uma máquina virtual isolada, criada para ele neste computador: sua conta e o que ele executa ficam lá dentro, não no seu Windows.",
+  connect:"Conectar", disconnect:"Desconectar", soon:"Em breve", linked:"Conectado", connecting:"Conectando…", off:"Não conectado",
   preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
   open:"Abrir a página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
   paste:"Cole aqui o código que a página mostrar", send:"Enviar código",
   use:"Para usar: no chat, escolha o agente no menu de modelos. O botão Agente da conversa fica ligado.",
   unavailable:"A máquina virtual de agentes não está disponível neste computador:", failed:"Não foi possível conectar:" },
 en: {
-  intro:"Use an agent you already subscribe to. It runs inside an isolated virtual machine created for it on this computer: your account and what it runs stay there, not on your Windows.",
-  connect:"Connect", disconnect:"Disconnect", soon:"Coming soon", linked:"Connected", connecting:"Connecting…",
+  intro:"Use your own Claude, ChatGPT or Google subscription. The agent runs inside an isolated virtual machine created for it on this computer: your account and what it runs stay there, not on your Windows.",
+  connect:"Connect", disconnect:"Disconnect", soon:"Coming soon", linked:"Connected", connecting:"Connecting…", off:"Not connected",
   preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
   open:"Open the sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
   paste:"Paste the code the page shows", send:"Send code",
@@ -55,6 +55,17 @@ function api(path, body) {
 
 var poll = null;
 function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
+/* Sign-ins this page started. A sign-in left half-done earlier (status
+ * "connecting": the CLI is starting, waiting or verifying) is offered again. */
+var started = {};
+function markRow(el, a, connecting) {
+  var b = el.querySelector('[data-agent="' + a.id + '"] .gb-prov-name .gb-badge');
+  if (b) { b.className = connecting ? "gb-badge gb-gar-soon" : "gb-badge"; b.textContent = g(connecting ? "connecting" : "off"); }
+}
+function statusOf(a, st) {
+  var s = (st && st.status) || "unlinked";
+  return s === "connecting" && !started[a.id] ? "unlinked" : s;
+}
 
 function rowHtml(a, st) {
   if (!a.id) {
@@ -62,9 +73,10 @@ function rowHtml(a, st) {
       '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(a.name) + ' <span class="gb-prov-co">' + esc(a.co) + '</span></div></div>' +
       '<span class="gb-badge gb-gar-soon">' + esc(g("soon")) + '</span></div>';
   }
-  var status = (st && st.status) || "unlinked";
+  var status = statusOf(a, st);
   var badge = status === "linked" ? '<span class="gb-prov-badge">' + esc(g("linked")) + '</span>'
-    : status === "connecting" ? '<span class="gb-badge gb-gar-soon">' + esc(g("connecting")) + '</span>' : '';
+    : status === "connecting" ? '<span class="gb-badge gb-gar-soon">' + esc(g("connecting")) + '</span>'
+    : '<span class="gb-badge">' + esc(g("off")) + '</span>';
   var btn = status === "linked"
     ? '<button type="button" class="gb-prov-btn" data-agent-off="' + a.id + '">' + esc(g("disconnect")) + '</button>'
     : '<button type="button" class="gb-prov-btn" data-agent-on="' + a.id + '">' + esc(g("connect")) + '</button>';
@@ -111,7 +123,7 @@ function watch(el, a) {
   poll = setInterval(function () {
     if (!document.body.contains(el)) { stopPoll(); return; }
     api("/api/ai-accounts/" + a.id + "/status", {}).then(function (d) {
-      if (d.status === "linked" || d.status === "error") { stopPoll(); renderAgents(el); return; }
+      if (d.status === "linked" || d.status === "error") { delete started[a.id]; stopPoll(); renderAgents(el); return; }
       showFlow(el, a, d);
     }).catch(function () { /* keep trying while the page is open */ });
   }, 3000);
@@ -135,10 +147,14 @@ function renderAgents(el) {
       if (on) {
         on.addEventListener("click", function () {
           on.disabled = true;
+          started[a.id] = true;
+          markRow(el, a, true);
           showFlow(el, a, {});
           api("/api/ai-accounts/" + a.id + "/connect", {})
             .then(function (d) { showFlow(el, a, d); watch(el, a); })
             .catch(function (e) {
+              delete started[a.id];
+              markRow(el, a, false);
               on.disabled = false;
               var box = el.querySelector('[data-flow="' + a.id + '"]');
               if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; }
@@ -149,10 +165,11 @@ function renderAgents(el) {
       if (off) {
         off.addEventListener("click", function () {
           off.disabled = true;
+          delete started[a.id];
           api("/api/ai-accounts/" + a.id + "/disconnect", {}).catch(function () {}).then(function () { renderAgents(el); });
         });
       }
-      if (byId[a.id] && byId[a.id].status === "connecting") { watch(el, a); }
+      if (statusOf(a, byId[a.id]) === "connecting") { watch(el, a); }
     });
   });
 }
