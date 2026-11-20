@@ -290,9 +290,12 @@ loc = 13071
 [apps."sheet"]
 # +29: #2493 a11y correctness — active-cell ARIA, Ctrl+End data extent,
 # Shift+Home/End/Page range extension (8/8 harness assertions).
+# +29: #2515 phone grid hit-test — collapse the wrapped 2-row toolbar to one
+# scrollable row, move the format row into the #2290 overflow sheet, and add a
+# 55/55 mobile-office harness (BEFORE cell hit=BODY/grid 0px → AFTER vg-cell/209px).
 routes = 0
 js_modules = 115
-loc = 27676
+loc = 27705
 
 [apps."slides"]
 # +34: #2433 inline alt-text fields per a11y row + focus CSS (localized).

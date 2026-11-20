@@ -30,9 +30,25 @@
       });
   }
 
+  /* #2515 — on a phone the format row is out of the layout so the grid gets
+     the vertical space it needs; its commands stay reachable through THIS
+     overflow menu. The hidden row's controls have a zero rect, so the
+     isFullyVisible filter below already includes them. */
+  function menuSources(container) {
+    var sources = [container];
+    if (container.classList.contains("sheet-toolbar-row-main") &&
+        window.matchMedia && window.matchMedia("(max-width: 760px)").matches) {
+      var formatRow = document.querySelector("#sheet-app .sheet-toolbar-row-format");
+      if (formatRow) sources.push(formatRow);
+    }
+    return sources;
+  }
+
   function buildMenu(container, menu) {
     menu.innerHTML = "";
-    var items = actionableElements(container).filter(function (el) {
+    var items = menuSources(container).reduce(function (all, source) {
+      return all.concat(actionableElements(source));
+    }, []).filter(function (el) {
       return !isFullyVisible(container, el);
     });
     if (!items.length) {
@@ -109,7 +125,8 @@
     container.appendChild(btn);
 
     function update() {
-      var overflow = container.scrollWidth > container.clientWidth + 1;
+      var overflow = container.scrollWidth > container.clientWidth + 1 ||
+        menuSources(container).length > 1;
       btn.classList.toggle("visible", overflow);
       if (!overflow) {
         menu.hidden = true;

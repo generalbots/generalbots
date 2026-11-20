@@ -214,6 +214,18 @@
         padding: 10px 14px;
     }
 
+    /* #2515 — the two wrapped rows demanded ~374px in a phone-sized desktop
+       window, leaving .sheet-content 0px tall; cells were painted under the
+       toolbar and taps landed on the Bold button. Keep ONE horizontally
+       scrollable row in the flex flow and expose the format row through the
+       existing #2290 overflow sheet (wired in 04_toolbar_overflow.js). */
+    #sheet-app .sheet-toolbar { flex: 0 0 auto; }
+    #sheet-app .sheet-toolbar-row-main { flex-wrap: nowrap; }
+    #sheet-app .sheet-toolbar-row-main .toolbar-center { flex-wrap: nowrap; }
+    #sheet-app .sheet-toolbar-row-format { display: none !important; }
+    #sheet-app .sheet-main,
+    #sheet-app .sheet-content { min-height: 0; }
+
     /* Touch hit targets: controls and the tab strip move from 24–26px to the
        44px class without changing desktop density. */
     .sheet-toolbar .btn-icon,
