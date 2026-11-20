@@ -1,10 +1,9 @@
 /**
- * #2533 STATIC source assertions + one KNOWN BUG characterisation.
+ * #2533 STATIC source assertions + queue-depth label regression test.
  *
  * STATIC checks read shipped source only: they document what is local-only or
  * explicitly deferred to a compiler/backend. They never fabricate a runtime
- * PASS. The KNOWN BUG test executes shipped code and asserts the OBSERVED
- * behaviour; production is reported, not patched.
+ * PASS. The regression test executes shipped code and asserts fixed behaviour.
  */
 "use strict";
 
@@ -90,7 +89,7 @@ test("STATIC #2533: every literal docs-large key used by shipped modules exists 
   equal(LOCALES.length, 8, "eight locale catalogs checked");
 });
 
-test("KNOWN BUG #2533: queue-depth label renders an unsubstituted placeholder", function () {
+test("RUNTIME #2533: queue-depth label has no raw placeholder (regression)", function () {
   var fx = fixture();
   f.article(fx, "doc-A");
   var shell = fx.NS.dialog.shell();
@@ -98,10 +97,10 @@ test("KNOWN BUG #2533: queue-depth label renders an unsubstituted placeholder", 
   fx.NS.dialog.refresh();
   var label = findByI18nKey(shell.body, "docs-large-queue-depth");
   assert(label, "queue-depth label found by walking data-i18n attributes");
-  assert(label.textContent.indexOf("{ $n }") >= 0,
-    "OBSERVED: label shows the raw placeholder, not a substituted count");
+  assert(label.textContent.indexOf("{ $n }") < 0,
+    "label must not show a raw placeholder");
+  equal(label.textContent, "Queue depth", "label is the plain localized string");
   var value = label.parentNode.querySelectorAll(".gb-large-value")[0];
   assert(value && value.textContent === "0",
-    "OBSERVED: the numeric count exists only in a sibling value node");
-  note("KNOWN BUG (reported, not patched): docs/modules/90_large_inspector.js renderInspector() calls row() without params, so the docs-large-queue-depth label renders '{ $n }' next to the count. A runtime fix belongs to production, not this offline harness.");
+    "the numeric count lives in the sibling value node");
 });

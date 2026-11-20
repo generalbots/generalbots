@@ -33,7 +33,7 @@ docs-large-scroll-label = Bildlaufposition
 docs-large-window = Mounted-Bereich: { $s }–{ $e } von { $t }
 docs-large-scope = contenteditable begrenzt: nur sichtbares Fenster
 docs-large-inspector = Inspektor
-docs-large-queue-depth = Warteschlangentiefe: { $n }
+docs-large-queue-depth = Warteschlangentiefe
 
 docs-large-baseline-title = Referenzwerte (lokale Schätzung)
 docs-large-baseline-local = LOKALE SCHÄTZUNG — keine gemessenen Browser-/Serverwerte

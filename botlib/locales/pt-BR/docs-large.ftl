@@ -33,7 +33,7 @@ docs-large-scroll-label = Posição de rolagem
 docs-large-window = Intervalo montado: { $s }–{ $e } de { $t }
 docs-large-scope = contenteditable restrito: apenas a janela visível
 docs-large-inspector = Inspetor
-docs-large-queue-depth = Profundidade da fila: { $n }
+docs-large-queue-depth = Profundidade da fila
 
 docs-large-baseline-title = Linha de base (estimativa local)
 docs-large-baseline-local = ESTIMATIVA LOCAL — não são números medidos de navegador/servidor

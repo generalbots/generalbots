@@ -33,7 +33,7 @@ docs-large-scroll-label = Scroll position
 docs-large-window = Mounted range: { $s }–{ $e } of { $t }
 docs-large-scope = Scoped contenteditable: visible window only
 docs-large-inspector = Inspector
-docs-large-queue-depth = Queue depth: { $n }
+docs-large-queue-depth = Queue depth
 
 docs-large-baseline-title = Baseline (local estimate)
 docs-large-baseline-local = LOCAL ESTIMATE — not measured browser/server numbers

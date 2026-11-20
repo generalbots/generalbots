@@ -33,7 +33,7 @@ docs-large-scroll-label = Posición de desplazamiento
 docs-large-window = Rango montado: { $s }–{ $e } de { $t }
 docs-large-scope = contenteditable restringido: solo la ventana visible
 docs-large-inspector = Inspector
-docs-large-queue-depth = Profundidad de cola: { $n }
+docs-large-queue-depth = Profundidad de cola
 
 docs-large-baseline-title = Línea de base (estimación local)
 docs-large-baseline-local = ESTIMACIÓN LOCAL — no son cifras medidas de navegador/servidor

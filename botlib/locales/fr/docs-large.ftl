@@ -33,7 +33,7 @@ docs-large-scroll-label = Position de défilement
 docs-large-window = Plage montée : { $s }–{ $e } sur { $t }
 docs-large-scope = contenteditable limité : fenêtre visible uniquement
 docs-large-inspector = Inspecteur
-docs-large-queue-depth = Profondeur de file : { $n }
+docs-large-queue-depth = Profondeur de file
 
 docs-large-baseline-title = Référence (estimation locale)
 docs-large-baseline-local = ESTIMATION LOCALE — chiffres non mesurés sur le navigateur/serveur

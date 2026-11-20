@@ -169,7 +169,7 @@
     var rangeNode = value("");
     var depth = value("");
     wrap.appendChild(row("docs-large-range-label", "Mounted range", rangeNode));
-    wrap.appendChild(row("docs-large-queue-depth", "Queue depth: { $n }", depth));
+    wrap.appendChild(row("docs-large-queue-depth", "Queue depth", depth));
     shell.body.appendChild(wrap);
     return { range: rangeNode, depth: depth };
   }

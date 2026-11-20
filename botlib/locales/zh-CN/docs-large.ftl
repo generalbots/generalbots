@@ -33,7 +33,7 @@ docs-large-scroll-label = 滚动位置
 docs-large-window = 已挂载范围: { $s }–{ $e } / { $t }
 docs-large-scope = contenteditable 仅限于可见窗口
 docs-large-inspector = 检查器
-docs-large-queue-depth = 队列深度: { $n }
+docs-large-queue-depth = 队列深度
 
 docs-large-baseline-title = 基线 (本地估算)
 docs-large-baseline-local = 本地估算 — 不是浏览器/服务器的实测数值

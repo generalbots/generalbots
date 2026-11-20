@@ -33,7 +33,7 @@ docs-large-scroll-label = 스크롤 위치
 docs-large-window = 마운트 범위: { $s }–{ $e } / { $t }
 docs-large-scope = contenteditable 은 표시 창으로 제한
 docs-large-inspector = 인스펙터
-docs-large-queue-depth = 큐 깊이: { $n }
+docs-large-queue-depth = 큐 깊이
 
 docs-large-baseline-title = 기준값 (로컬 추정)
 docs-large-baseline-local = 로컬 추정 — 브라우저/서버 실측값이 아닙니다

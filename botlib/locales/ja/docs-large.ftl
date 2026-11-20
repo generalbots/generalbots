@@ -33,7 +33,7 @@ docs-large-scroll-label = スクロール位置
 docs-large-window = マウント範囲: { $s }–{ $e } / { $t }
 docs-large-scope = contenteditable は表示ウィンドウのみに限定
 docs-large-inspector = インスペクター
-docs-large-queue-depth = キューの深さ: { $n }
+docs-large-queue-depth = キューの深さ
 
 docs-large-baseline-title = ベースライン (ローカル推定)
 docs-large-baseline-local = ローカル推定 — ブラウザー/サーバーの実測値ではありません
