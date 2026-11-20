@@ -179,7 +179,23 @@ h.knownBug("chat boot is eager and parser-blocking with no form-factor split", f
   h.equal(deferred, 0, "no deferred or async script tags");
   h.equal(formFactor, 0, "no form-factor branch in the loader");
   h.assert(scripts > 0 && deferred === 0, "every chat script remains parser-blocking");
-  h.note("criterion 5 of #2516 remains open: progressive/deferred module split for first send");
+  h.note("criterion 4 of #2516 remains open: progressive/deferred module split for first send"
+    + " (criterion 5, scroll-up during a stream, is RUNTIME-proven in 20_scroll.js)");
+});
+
+/* Regression for the evidence mapping itself: the boot-split KNOWN BUG must be
+ * attributed to criterion 4 (3G first token), not criterion 5 (#2014 scroll
+ * intent). A wrong mapping makes the per-criterion closure table misleading. */
+h.staticTest("[REGRESSION] #2516 boot gap maps to criterion 4; criterion 5 stays runtime-proven", function () {
+  var src = h.readFile("tests/webtest-ui-chat-mobile/30_invariants.js");
+  h.assert(src.indexOf("criterion 4 of #2516 remains open: progressive/deferred module split") >= 0,
+    "boot-split KNOWN BUG must point at criterion 4");
+  var stale = "criterion 5" + " of #2516 remains open";
+  h.assert(src.indexOf(stale) < 0,
+    "criterion 5 must not be reported open — it is RUNTIME-proven");
+  var scroll = h.readFile("tests/webtest-ui-chat-mobile/20_scroll.js");
+  h.assert(scroll.indexOf("windowing does not yank a reader scrolling up mid-answer") >= 0,
+    "criterion 5 runtime proof is missing from 20_scroll.js");
 });
 
 h.note("Browser/device-only criteria not claimed here: 390x844 keyboard screenshots, native camera/mic, 3G timeline, streaming scroll UAT.");
