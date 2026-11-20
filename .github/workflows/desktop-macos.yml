@@ -82,7 +82,14 @@ jobs:
     name: macOS app and dmg
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: macos-15
-    timeout-minutes: 120
+    # Fat LTO (workspace profile.release) makes the final botserver link take
+    # well over two hours on the macOS runner. Keep opt-level = "z" but turn
+    # LTO off here so the desktop installer builds within a sane window; the
+    # timeout is a safety net, not the primary fix.
+    timeout-minutes: 300
+    env:
+      CARGO_PROFILE_RELEASE_LTO: "false"
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
     # #2110 — macOS is part of the release contract. This job used to carry
     # continue-on-error, so a broken macOS build silently produced a Linux-only
     # release. A red build now fails `release.yml` before anything is published.
