@@ -43,6 +43,20 @@ pub(super) fn extract_api_call_payload(full_response: &str) -> Option<serde_json
 /// after it. The block is matched with brace balancing so it is stripped in
 /// full no matter which key variant the model emitted.
 pub(crate) fn strip_api_call_block(text: &str) -> String {
+    // A turn can carry more than one envelope (the model re-emits after a
+    // consent round-trip); strip every one of them, keeping surrounding prose.
+    let mut current = text.to_string();
+    for _ in 0..8 {
+        let next = strip_first_api_call_block(&current);
+        if next == current {
+            break;
+        }
+        current = next;
+    }
+    current
+}
+
+fn strip_first_api_call_block(text: &str) -> String {
     use crate::core::bot::api_catalog::find_api_call;
     let Some(pos) = find_api_call(text) else {
         return text.to_string();
@@ -75,6 +89,9 @@ pub(crate) fn strip_api_call_block(text: &str) -> String {
             out.push_str(&text[e..]);
             out
         }
-        None => text.to_string(),
+        // #2583 — the block was cut off mid-object (the model hit the token
+        // cap inside a large payload), so it never closes. Everything from the
+        // opening brace is machine payload: drop it instead of showing JSON.
+        None => text[..obj_start].trim_end().to_string(),
     }
 }
