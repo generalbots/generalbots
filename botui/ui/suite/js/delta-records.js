@@ -2,14 +2,6 @@
 /* #2176 — generic record-shaped delta handler for Tier-3 apps.
    Supports upsert_record, patch_field, delete_record, reorder, link. */
 (function(){
-  // The visible label is derived from the stored fields. patch_field updates
-  // dataset.fields but must also recompute this label, otherwise a patched
-  // non-title field (price, qty, status) stays stale on screen while the model
-  // already holds the new value. Keep the exact upsert expression so existing
-  // rows render byte-identically.
-  function label(fields){
-    return fields ? (fields.title || fields.name || fields.summary || JSON.stringify(fields)) : "";
-  }
   function applyToContainer(container, payload){
     if(!container) return;
     (payload.ops||[]).forEach(function(op){
@@ -19,11 +11,11 @@
         var el=container.querySelector('[data-record-id="'+id+'"]');
         if(!el){ el=document.createElement("div"); el.className="delta-record"; el.setAttribute("data-record-id",id); container.appendChild(el); }
         if(op.fields) el.dataset.fields = JSON.stringify(op.fields);
-        el.textContent = op.fields ? label(op.fields) : (op.title||op.text||id);
+        el.textContent = op.fields ? (op.fields.title || op.fields.name || op.fields.summary || JSON.stringify(op.fields)) : (op.title||op.text||id);
       }
       if(op.op==="patch_field" && op.id){
         var el2=container.querySelector('[data-record-id="'+op.id+'"]');
-        if(el2){ var f={}; try{f=JSON.parse(el2.dataset.fields||"{}");}catch (e) { window.gbLogError ? gbLogError(e, "applyToContainer") : console.error("applyToContainer", e); } f[op.field]=op.value; el2.dataset.fields=JSON.stringify(f); el2.textContent=label(f); }
+        if(el2){ var f={}; try{f=JSON.parse(el2.dataset.fields||"{}");}catch (e) { window.gbLogError ? gbLogError(e, "applyToContainer") : console.error("applyToContainer", e); } f[op.field]=op.value; el2.dataset.fields=JSON.stringify(f); el2.textContent = f.title || f.name || f.summary || JSON.stringify(f); }
       }
       if(op.op==="delete_record" && op.id){ var d=container.querySelector('[data-record-id="'+op.id+'"]'); if(d) d.remove(); }
       if(op.op==="reorder" && op.id && container){ var el3=container.querySelector('[data-record-id="'+op.id+'"]'); if(el3 && typeof op.index==="number"){ var ref=container.children[op.index]; if(ref) container.insertBefore(el3, ref); else container.appendChild(el3); } }
