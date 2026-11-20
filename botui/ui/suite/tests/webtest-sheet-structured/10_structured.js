@@ -79,10 +79,11 @@ test("parseRef rejects malformed references without throwing", function () {
   });
 });
 
-test("FINDING (not an invariant): parseRef accepts out-of-range A1 coordinates", function () {
-  var zero = S.parseRef("A0");
-  assert(zero !== null && zero.row === -1, "row-zero validation gap no longer reproduces");
-  assert(S.parseRef("XFE1") !== null, "three-letter column cap gap no longer reproduces");
+test("RUNTIME #2436: parseRef rejects out-of-range A1 coordinates (regression)", function () {
+  assert(S.parseRef("A0") === null, "row zero must be rejected");
+  assert(S.parseRef("XFE1") === null, "column beyond XFD must be rejected");
+  assert(S.parseRef("XFD1") !== null, "last valid column XFD must be accepted");
+  assert(S.parseRef("A1") !== null, "first valid cell must be accepted");
 });
 
 test("parseRange normalises reversed endpoints and sheet prefixes", function () {

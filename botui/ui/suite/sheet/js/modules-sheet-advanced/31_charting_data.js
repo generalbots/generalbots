@@ -37,7 +37,7 @@
     let col = 0;
     const letters = match[1].toUpperCase();
     for (let i = 0; i < letters.length; i++) col = col * 26 + (letters.charCodeAt(i) - 64);
-    return { col: col - 1, row: parseInt(match[2], 10) - 1 };
+    return (parseInt(match[2], 10) < 1 || col > 16384) ? null : { col: col - 1, row: parseInt(match[2], 10) - 1 };
   }
 
   function parseRange(text) {
