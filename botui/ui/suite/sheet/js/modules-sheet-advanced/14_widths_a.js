@@ -253,6 +253,10 @@
           node.style.outline = "none";
           node.style.zIndex = "1";
         }
+        // #2493 — this per-window renderRow wrapper shadows the canonical one
+        // in 03_grid_render.js, so without this call no rendered cell gets its
+        // ARIA grid coordinates (the a11y module attaches updateCellA11y later).
+        if (g.updateCellA11y) g.updateCellA11y(node, row, c, cellData);
       }
     };
 
