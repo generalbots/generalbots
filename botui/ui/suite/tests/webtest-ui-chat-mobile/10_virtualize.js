@@ -78,27 +78,36 @@ h.test("pinned and streaming nodes stay live even outside the window", function 
 });
 
 h.test("anchor compensation restores reading position after a layout shift", function () {
-  /* 20px messages are inflated to the 24px placeholder floor: the 100 items
-   * above the anchor grow by 4px each. findRange assumed 36px each, so the
-   * anchor moves 400px; the shipped compensation must add that delta back. */
+  /* Exact-height placeholders do not drift on their own; the layout shift is a
+   * detached node that grew while offscreen (e.g. lazy media). Rematerializing
+   * it moves every node below it, and the shipped anchor compensation must add
+   * that delta back so the reader stays visually put. */
   var t = transcript(200, 20);
   nearBottom(t);
-  var before = t.c.scrollTop;
+  run(t);
+  h.equal(t.c.querySelectorAll(".gb-vplaceholder")[0].style.height, "20px",
+    "placeholder preserves the measured 20px height exactly");
+  t.els[50]._h = 60; // detached node grows; its tracked h and placeholder stay 20
+  t.c.scrollTop = 2400; // bring both the grown node and the anchor into the window
   var anchor = null;
   var containerTop = t.c.getBoundingClientRect().top;
-  for (var i = 0; i < t.els.length; i++) {
-    var rect = t.els[i].getBoundingClientRect();
-    if (rect.bottom > containerTop + 1) { anchor = t.els[i]; break; }
+  for (var a = 0; a < t.V._items().length; a++) {
+    var it = t.V._items()[a];
+    if (it.live && it.el.isConnected) {
+      var rect = it.el.getBoundingClientRect();
+      if (rect.bottom > containerTop + 1) { anchor = it.el; break; }
+    }
   }
   h.assert(anchor !== null, "an anchor exists in the live set");
   var anchorTopBefore = anchor.getBoundingClientRect().top;
-  run(t);
-  h.equal(t.c.scrollTop, before + 400, "compensation applied the 400px delta once");
+  var before = t.c.scrollTop;
+  t.V.forceUpdate();
+  t.E.flushRaf();
+  h.equal(t.els[50].isConnected, true, "grown node rematerialized in the live window");
+  h.equal(t.c.scrollTop, before + 40, "compensation applied the 40px growth delta once");
   var anchorTopAfter = anchor.getBoundingClientRect().top;
   h.assert(Math.abs(anchorTopAfter - anchorTopBefore) <= 1,
     "anchor top restored: " + anchorTopBefore + " -> " + anchorTopAfter);
-  h.equal(t.c.querySelectorAll(".gb-vplaceholder")[0].style.height, "24px",
-    "placeholder floor is observable (see KNOWN BUG)");
 });
 
 h.test("ensureVisible / ensureById rematerialize a detached message", function () {

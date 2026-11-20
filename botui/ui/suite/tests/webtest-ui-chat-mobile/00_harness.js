@@ -321,7 +321,7 @@ function finish() {
   gbLog.debug("MODE: one vm sandbox per scenario; four real shipped modules; " +
     "stubbed window/document/gbT/localStorage/fixed clock/uid");
   gbLog.debug("      [STATIC] = source assertions only, no runtime claim");
-  gbLog.debug("      KNOWN BUG = observed behaviour, reported only, never patched here");
+  gbLog.debug("      KNOWN BUG = open observed behaviour; fixed defects are RUNTIME regressions");
   gbLog.debug(rule);
   process.exitCode = FAIL > 0 ? 1 : 0;
 }

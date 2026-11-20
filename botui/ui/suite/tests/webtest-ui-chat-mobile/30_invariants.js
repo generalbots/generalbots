@@ -145,10 +145,10 @@ h.staticTest("[GAP] no single mobile media intake sheet is shipped", function ()
 });
 
 /* --------------------------------------------------------------- KNOWN BUGs */
-h.knownBug("placeholder 24px floor breaks height preservation for short turns", function () {
-  /* Observed, not patched: a <24px message becomes a taller placeholder; when
-   * the cumulative drift reaches a viewport the shipped anchor compensation is
-   * skipped and the reader position jumps. */
+h.test("short turns keep exact placeholder height and do not jump the reader", function () {
+  /* Regression for the former 24px placeholder floor: a <24px message was
+   * inflated to 24px; the accumulated drift skipped anchor compensation when it
+   * passed a viewport and the reader jumped. Placeholders now keep exact h. */
   var E = D.fresh();
   var c = E.dom.messages;
   var V = E.window.GBChatVirtual;
@@ -163,11 +163,11 @@ h.knownBug("placeholder 24px floor breaks height preservation for short turns", 
   E.flushRaf();
   var ph = c.querySelectorAll(".gb-vplaceholder")[0];
   h.equal(V._items()[0].h, 10, "original measured height is 10px");
-  h.equal(ph.style.height, "24px", "placeholder inflates a 10px message to 24px");
-  h.equal(c.scrollTop, before, "compensation is skipped because drift >= clientHeight");
+  h.equal(ph.style.height, "10px", "placeholder preserves the exact 10px height");
+  h.equal(c.scrollTop, before, "no drift means no scrollTop correction is needed");
   var moved = anchor.getBoundingClientRect().top - anchorBefore;
-  h.assert(moved > c.clientHeight, "anchor jumped by " + moved + "px (> clientHeight " + c.clientHeight + ")");
-  h.note("fix belongs in production 15_virtualize.js: preserve exact h or compensate unbounded drift");
+  h.assert(Math.abs(moved) <= 1, "reader position preserved: moved " + moved + "px");
+  h.note("regression: former floor inflated short turns and jumped the reader");
 });
 
 h.knownBug("chat boot is eager and parser-blocking with no form-factor split", function () {

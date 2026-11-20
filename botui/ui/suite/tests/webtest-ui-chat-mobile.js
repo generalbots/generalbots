@@ -12,8 +12,8 @@
  * code; nothing about virtualization is reimplemented here.
  *
  * Criteria that are CSS/HTML/device-bound are labelled [STATIC] source
- * assertions — never a fabricated runtime PASS. Observed defects are labelled
- * KNOWN BUG and reported only; no production file is patched.
+ * assertions — never a fabricated runtime PASS. Open defects are labelled
+ * KNOWN BUG; a defect fixed in production becomes a RUNTIME regression.
  *
  * Ordered modules under ./webtest-ui-chat-mobile/:
  *   00_harness.js     sandbox, stubs, counters, report

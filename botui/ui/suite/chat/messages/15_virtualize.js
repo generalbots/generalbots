@@ -241,7 +241,7 @@
             ph.className = "gb-vplaceholder";
             ph.setAttribute("data-gb-vi", String(i));
             ph.setAttribute("aria-hidden", "true");
-            ph.style.cssText = "height:" + Math.max(24, (it.h || 48)) + "px;flex:0 0 auto;pointer-events:none;contain:layout paint size;";
+            ph.style.cssText = "height:" + (it.h || 48) + "px;flex:0 0 auto;pointer-events:none;contain:layout paint size;";
             it.placeholder = ph;
             try { c.replaceChild(ph, it.el); } catch (e4) { it.placeholder = null; continue; }
             it.live = false;
@@ -252,7 +252,7 @@
           }
         } else if (it.placeholder && it.placeholder.parentNode === c) {
           // Keep placeholder height in sync with best-known height.
-          var hh = Math.max(24, (it.h || 48));
+          var hh = (it.h || 48);
           if (parseInt(it.placeholder.style.height, 10) !== hh) it.placeholder.style.height = hh + "px";
         }
       }
