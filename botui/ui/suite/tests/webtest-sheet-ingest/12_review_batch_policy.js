@@ -105,17 +105,17 @@ test("creating a preview persists formatted local rows with balance formulas", f
   assert(preview.rows.every(function (row) { return row.cells.length === 5; }));
 });
 
-test("[KNOWN BUG] blocked low-confidence cells still carry a balance formula", function () {
+test("blocked cells carry no derived formula (regression #2494)", function () {
   g.reset();
   g.seed();
-  // 62:151-157 builds the formula before checking `blocked`; the UI renders it
-  // even though status is 'blocked' and the value is blank.
+  // A blocked cell has a blank value because its source is unconfirmed; a
+  // formula computed from that unconfirmed data must not be emitted either.
   var preview = g.review.buildPreview(C.state(), "stmt");
   var blockedBalance = preview.rows[5].cells[4];
   equal(blockedBalance.label, "E9");
   equal(blockedBalance.status, "blocked");
   equal(blockedBalance.value, "");
-  equal(blockedBalance.formula, "=E8+D9-C9");
+  equal(blockedBalance.formula, "");
 });
 
 test("batch start isolates the corrupt file and advances every other file", function () {

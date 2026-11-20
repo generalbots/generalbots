@@ -26,14 +26,14 @@ h.bug("effectiveValue throws for a missing cell (59b_ingest_cells.js:63)", funct
   h.assert(/value/.test(outcome.message));
 });
 
-h.bug("a blocked balance cell still carries a formula (62_ingest_review.js:151-157)", function () {
+h.runtime("a blocked balance cell carries no derived formula (regression #2494)", function () {
   g.reset();
   g.seed();
   var blocked = g.review.buildPreview(C.state(), "stmt").rows[5].cells[4];
   h.equal(blocked.label, "E9");
   h.equal(blocked.status, "blocked");
   h.equal(blocked.value, "");
-  h.equal(blocked.formula, "=E8+D9-C9");
+  h.equal(blocked.formula, "");
 });
 
 h.bug("a correction for an unreadable cell is blanked in preview (62_ingest_review.js:161)", function () {

@@ -148,7 +148,7 @@
         var blocked = unconfirmed || (inputs.indexOf(col) >= 0 && C.formulaBlocked(current, fileId, row, col));
         var flag = mismatchRows[row];
         var isBalance = profile.kind === "bank" && col === profile.columns.balance;
-        var formula = isBalance
+        var formula = !blocked && isBalance
           ? (row === 1
             ? "=" + C.colName(col) + (row + 1)
             : "=" + C.colName(col) + row + "+" +
