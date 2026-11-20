@@ -323,6 +323,8 @@ async function doActivate(id) {
 }
 
 async function doDelete(id) {
+  // Best-effort: a failed DELETE is reflected by the refreshed list below,
+  // which re-reads authoritative server state; no toast needed here.
   try { await A.apiFetch("/api/llm/local/models/" + encodeURIComponent(id), { method: "DELETE" }); } catch (e) {}
   loadLocalModels();
 }
@@ -343,6 +345,8 @@ async function doDownload(id, btn) {
 }
 
 async function doCancelJob(jobId) {
+  // Best-effort: the poller and list refresh below converge on server state,
+  // so a failed cancel request surfaces as the job still appearing in the list.
   try { await A.apiFetch("/api/llm/local/jobs/" + encodeURIComponent(jobId) + "/cancel", { method: "POST" }); } catch (e) {}
   stopJobPoller(jobId);
   loadLocalModels();

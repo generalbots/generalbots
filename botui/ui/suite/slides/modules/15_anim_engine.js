@@ -187,6 +187,8 @@
   }
   function stop() {
     playing = false;
+    // Best-effort: cancelling a stale animation frame is a no-op if the frame
+    // already fired; the local handle is cleared regardless of the outcome.
     if (raf !== null && window.cancelAnimationFrame) { try { window.cancelAnimationFrame(raf); } catch (e) {} raf = null; }
   }
   function seek(time, list) {

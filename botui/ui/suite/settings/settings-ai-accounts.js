@@ -153,6 +153,8 @@
     // Open URL if provided
     if (data && data.url) {
       var w = window.open(data.url, "_blank", "noopener,noreferrer");
+      // Best-effort: clearing opener on a cross-origin popup may throw; the
+      // window is already opened with noopener, so there is nothing to recover.
       if (w) { try { w.opener = null; } catch (e) {} }
     }
   }
