@@ -38,8 +38,8 @@
 
   NS.quickParts = all;
 
-  function mintId() {
-    return "qp-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  function valuesFor(node) {
+    try { return JSON.parse(node.getAttribute("data-gb-qp-values") || "{}") || {}; } catch (error) { return {}; }
   }
 
   function variablesOf(content) {
@@ -102,6 +102,7 @@
     if (asLink) {
       node.setAttribute("data-gb-quickpart", part.id);
       node.setAttribute("data-gb-version", String(part.version || 1));
+      node.setAttribute("data-gb-qp-values", JSON.stringify(values || {}));
     }
     node.innerHTML = html;
     if (!insertNode(node)) return false;
@@ -123,9 +124,8 @@
     var article = NS.getArticle();
     var linked = article ? article.querySelectorAll('[data-gb-quickpart="' + id + '"]') : [];
     if (propagate && linked.length) {
-      var html = reconcile(fillVariables(part.content, {}));
       Array.prototype.forEach.call(linked, function (node) {
-        node.innerHTML = html;
+        node.innerHTML = reconcile(fillVariables(part.content, valuesFor(node)));
         node.setAttribute("data-gb-version", String(part.version));
       });
       NS.save();
@@ -145,7 +145,7 @@
       if (!part) return;
       var current = parseInt(node.getAttribute("data-gb-version"), 10) || 0;
       if (current >= (parseInt(part.version, 10) || 1)) return;
-      node.innerHTML = reconcile(fillVariables(part.content, {}));
+      node.innerHTML = reconcile(fillVariables(part.content, valuesFor(node)));
       node.setAttribute("data-gb-version", String(part.version));
       count++;
     });

@@ -251,7 +251,7 @@ test("[STATIC] #2485: shipped loader order matches the shared-sandbox order", fu
     "harness loads the same core module first");
 });
 
-// ── FIXED REGRESSIONS plus the remaining KNOWN BUG (reported only) ───────
+// ── FIXED REGRESSIONS ───────────────────────────────────────────────────
 
 test("REGRESSION #2485: reconcile strips every event attribute from a live attribute map", function () {
   var NS = fixture().NS;
@@ -263,7 +263,7 @@ test("REGRESSION #2485: reconcile strips every event attribute from a live attri
     "second adjacent event attribute removed from the live NamedNodeMap snapshot");
 });
 
-test("KNOWN BUG #2485: propagation replaces filled variables with raw placeholders", function () {
+test("REGRESSION #2485: propagation preserves per-insert variable values", function () {
   var fx = fixture();
   var NS = fx.NS;
   var art = article(fx, "<vars>");
@@ -271,9 +271,11 @@ test("KNOWN BUG #2485: propagation replaces filled variables with raw placeholde
   var linked = art.querySelector('[data-gb-quickpart="qp-liability"]');
   assert(linked.innerHTML.indexOf("5000") >= 0, "linked insert starts with the filled value");
   NS.updateQuickPart("qp-liability", "<p>Cap is {{amount}}.</p>", true);
-  assert(linked.innerHTML.indexOf("{{amount}}") >= 0,
-    "observed: propagation re-renders with empty values, exposing the raw placeholder");
-  assert(linked.innerHTML.indexOf("5000") < 0, "observed: the per-insert value is lost");
+  assert(linked.innerHTML.indexOf("Cap is 5000.") >= 0, "propagation reuses the per-insert value");
+  assert(linked.innerHTML.indexOf("{{amount}}") < 0, "no raw placeholder is reintroduced");
+  NS.updateQuickPart("qp-liability", "<p>Limit is {{amount}}.</p>", false);
+  assertEqual(NS.propagateLinked(), 1, "explicit propagation finds the stale instance");
+  assert(linked.innerHTML.indexOf("Limit is 5000.") >= 0, "propagateLinked keeps the value too");
 });
 
 test("REGRESSION #2485: drag-down keeps the target section intact", function () {
