@@ -35,6 +35,9 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
     let mut scored_dc: Vec<(i32, &crate::core::bot::commands_derived::DerivedCommand)> = derived
         .iter()
         .filter(|c| {
+            if endpoint_status(c.method, &c.path) == EndpointStatus::NotImplemented {
+                return false;
+            }
             if role != crate::security::user_role::ROLE_ADMIN
                 && crate::security::user_role::is_admin_only_endpoint(
                     &state.conn,
@@ -64,9 +67,14 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
             "admin_only": crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, c.method, &c.path),
         }));
     }
-    let mut scored_ep: Vec<(i32, &ApiEndpoint)> = all_endpoints()
+    let catalog: Vec<CatalogEndpoint> = all_endpoints()
         .iter()
         .chain(crate::core::bot::endpoint_inventory::all_routes())
+        .map(CatalogEndpoint::from_endpoint)
+        .filter(|ep| ep.is_available())
+        .collect();
+    let mut scored_ep: Vec<(i32, &CatalogEndpoint)> = catalog
+        .iter()
         .filter_map(|ep| {
             if crate::security::user_role::is_admin_only_endpoint(
                 &state.conn,
@@ -98,6 +106,7 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
             "method": ep.method,
             "path": ep.path,
             "summary": ep.summary,
+            "status": ep.status,
         }));
     }
     if out.is_empty() {

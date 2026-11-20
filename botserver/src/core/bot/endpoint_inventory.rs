@@ -203,7 +203,6 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/canvas/{canvas_id}/comments", summary: "registered in crates/botcanvas/src/lib.rs" },
     ApiEndpoint { method: "PUT", path: "/api/canvas/{canvas_id}/comments/{comment_id}/resolve", summary: "registered in crates/botcanvas/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/canvas/{canvas_id}/elements", summary: "registered in crates/botcanvas/src/lib.rs" },
-    ApiEndpoint { method: "PUT", path: "/api/canvas/{canvas_id}/elements/{element_id}", summary: "registered in crates/botcanvas/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/canvas/{canvas_id}/versions", summary: "registered in crates/botcanvas/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/catalog/plans", summary: "registered in src/main_module/routes/catalog.rs" },
     ApiEndpoint { method: "GET", path: "/api/catalog/prices.json", summary: "registered in src/main_module/routes/catalog.rs" },
