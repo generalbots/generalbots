@@ -11,6 +11,15 @@ fn cell(sheet: &Spreadsheet, row: u32, col: u32) -> &CellData {
         .expect("cash-flow cell exists")
 }
 
+/// A forecast only writes its requested month columns; cells beyond the last
+/// month are deliberately absent, so absence must be asserted without the
+/// panicking `cell()` helper.
+fn has_cell(sheet: &Spreadsheet, row: u32, col: u32) -> bool {
+    sheet.worksheets[0]
+        .data
+        .contains_key(&format!("{row},{col}"))
+}
+
 fn default_request() -> CashFlowRequest {
     CashFlowRequest {
         title: None,
@@ -34,7 +43,7 @@ fn default_forecast_has_twelve_month_columns_and_a_balance_row() {
             Some(*month)
         );
     }
-    assert_eq!(cell(&sheet, 1, 13).value.as_deref(), None);
+    assert!(!has_cell(&sheet, 1, 13), "no column after the twelfth month");
     assert_eq!(
         cell(&sheet, CLOSING_ROW, 0).value.as_deref(),
         Some("Closing Balance")
@@ -130,7 +139,7 @@ fn custom_months_colors_and_flows_are_honored() {
 
     assert_eq!(sheet.name, "My forecast");
     assert_eq!(cell(&sheet, 1, 2).value.as_deref(), Some("Q2"));
-    assert_eq!(cell(&sheet, 1, 3).value.as_deref(), None);
+    assert!(!has_cell(&sheet, 1, 3), "only two month columns requested");
     let rules = sheet.worksheets[0]
         .conditional_formats
         .as_ref()
