@@ -22,9 +22,10 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from webhook_auth_selftest import self_test as _self_test
 
 ROOT = Path(__file__).resolve().parent.parent
 SCAN_DIRS = ("botserver/crates", "botserver/src")
@@ -97,7 +98,8 @@ INVENTORY: tuple[Webhook, ...] = (
     Webhook("msteams", "botmsteams", ("/api/msteams/messages",)),
     Webhook("instagram", "botinstagram", ("/api/instagram/webhook",)),
     Webhook("stripe-billing", "botcloud", ("/api/billing/webhook",)),
-    Webhook("email-tracking", "botcontacts", ("/api/sales/email/webhook",)),
+    # #2546 — /api/sales/email/webhook is a gone_handler! 410 tombstone: it
+    # fails closed and needs neither a verifier nor a channel entry.
 )
 
 # Channels that expose no inbound HTTP handler today. Listed so the enumeration
@@ -287,21 +289,26 @@ def scan(
     discovered = {route.path for route in routes}
 
     for route in routes:
-        if route.path not in known_routes:
+        crate_dir = root / _crate_dir(route.file)
+        cache_key = crate_dir.as_posix()
+        bodies = body_cache.setdefault(cache_key, {})
+        retired = retired_cache.setdefault(cache_key, set())
+        if not bodies and not retired:
+            for source in sorted(crate_dir.rglob("*.rs")):
+                bodies.update(_function_bodies(source))
+                retired.update(_retired_handlers(source))
+        names = [handler.split("::")[-1] for handler in route.handlers]
+        all_retired = bool(names) and all(
+            name in retired and name not in bodies for name in names
+        )
+        # #2546 — a gone_handler! 410 tombstone fails closed, so it needs
+        # neither a verifier nor a channel entry in INVENTORY.
+        if route.path not in known_routes and not all_retired:
             violations.append(Violation(
                 "unclassified", route.file, route.line,
                 f"inbound route {route.path} is not in INVENTORY — add it with its verifier",
             ))
-
-        crate_dir = root / _crate_dir(route.file)
-        for handler in route.handlers:
-            bodies = body_cache.setdefault(crate_dir.as_posix(), {})
-            retired = retired_cache.setdefault(crate_dir.as_posix(), set())
-            if not bodies and not retired:
-                for source in sorted(crate_dir.rglob("*.rs")):
-                    bodies.update(_function_bodies(source))
-                    retired.update(_retired_handlers(source))
-            handler_name = handler.split("::")[-1]
+        for handler, handler_name in zip(route.handlers, names):
             body = bodies.get(handler_name)
             if body is None and handler_name in retired:
                 # #2540 — a retired 410 Gone handler fails closed: it never
@@ -369,101 +376,8 @@ def render_matrix() -> str:
 
 
 def self_test() -> int:
-    """Prove the four rules fire, and that the allowlist is shrink-only."""
-    failures: list[str] = []
-
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        crate = root / "botserver/crates/botdemo/src"
-        crate.mkdir(parents=True)
-
-        (crate / "webhook.rs").write_text(
-            'pub fn configure() {\n'
-            '    Router::new()\n'
-            '        .route("/webhook/demo", post(handle_demo))\n'
-            '        .route("/webhook/open", post(handle_open))\n'
-            '        .route("/webhook/new", post(handle_new))\n'
-            '}\n'
-            'async fn handle_demo() { authorize_delivery("s", None); }\n'
-            'async fn handle_open() { /* no gate */ }\n'
-            'async fn handle_new() { authorize_delivery("s", None); }\n',
-            encoding="utf-8",
-        )
-        (crate / "bad.rs").write_text(
-            'pub fn authorize_delivery(secret: &str) -> bool {\n'
-            '    if secret.is_empty() {\n'
-            '        return true;\n'
-            '    }\n'
-            '    false\n'
-            '}\n',
-            encoding="utf-8",
-        )
-
-        allowlist = root / "allowlist.txt"
-        allowlist.write_text("/webhook/open # demo: authenticated elsewhere\n", encoding="utf-8")
-
-        # The demo crate has no INVENTORY entry, so every route is unclassified
-        # too; the assertions below only look at the rule under test.
-        inventory = (
-            Webhook("demo", "botdemo", ("/webhook/demo", "/webhook/open", "/webhook/new")),
-        )
-        violations, _ = scan(root, Path("allowlist.txt"), inventory)
-
-        rules = {violation.rule for violation in violations}
-        if "empty-accept" not in rules:
-            failures.append("an empty-secret accept branch was not detected")
-        if "unverified" in rules:
-            failures.append("the allowlisted handler was reported")
-        if "unclassified" in rules:
-            failures.append("an inventory route was reported as unclassified")
-
-        allowlist.unlink()
-        violations, _ = scan(root, Path("allowlist.txt"), inventory)
-        if "unverified" not in {violation.rule for violation in violations}:
-            failures.append("an unverified handler was not detected")
-
-        allowlist.write_text("/webhook/gone # stale\n", encoding="utf-8")
-        violations, _ = scan(root, Path("allowlist.txt"), inventory)
-        if "stale-allowlist" not in {violation.rule for violation in violations}:
-            failures.append("a stale allowlist entry was not detected")
-
-        # #2540 — a `gone_handler!`-generated route fails closed with 410 and
-        # must be recognised rather than flagged as an unreadable handler.
-        (crate / "gone.rs").write_text(
-            'macro_rules! gone_handler { ($name:ident, $to:literal) => {\n'
-            '    async fn $name() {}\n'
-            '} }\n'
-            'gone_handler!(old_delivery, "/api/new");\n'
-            'pub fn configure() { Router::new()\n'
-            '    .route("/webhook/gone", post(old_delivery))\n'
-            '}\n',
-            encoding="utf-8",
-        )
-        gone_inventory = (
-            Webhook("demo", "botdemo", ("/webhook/demo", "/webhook/open", "/webhook/new",
-                                        "/webhook/gone")),
-        )
-        allowlist.write_text("/webhook/open # demo: authenticated elsewhere\n", encoding="utf-8")
-        gone_rules = {v.rule for v in scan(root, Path("allowlist.txt"), gone_inventory)[0]}
-        if "unknown-handler" in gone_rules:
-            failures.append("a gone_handler! route was reported as an unknown handler")
-        if "unverified" in gone_rules:
-            failures.append("a gone_handler! route was reported as unverified")
-
-        partial = (Webhook("demo", "botdemo", ("/webhook/demo", "/webhook/open")),)
-        violations, _ = scan(root, Path("allowlist.txt"), partial)
-        if "unclassified" not in {violation.rule for violation in violations}:
-            failures.append("a route missing from INVENTORY was not detected")
-        if "stale-inventory" in {violation.rule for violation in violations}:
-            failures.append("a registered route was reported as stale inventory")
-
-    if failures:
-        for failure in failures:
-            print(f"self-test FAILED: {failure}", file=sys.stderr)
-        return 1
-
-    print("self-test: ok")
-    return 0
+    """Delegate to the extracted self-test helper."""
+    return _self_test(Webhook, scan)
 
 
 def main() -> int:

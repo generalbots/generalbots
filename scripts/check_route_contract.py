@@ -8,6 +8,10 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from route_contract_status import (
+    check_status_contract, parse_not_implemented_handlers, parse_retired_handlers,
+    self_test as status_self_test,
+)
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BOTSERVER = REPO_ROOT / "botserver"
 CATALOG_MOD = BOTSERVER / "src/core/bot/api_catalog/mod.rs"
@@ -411,6 +415,7 @@ def _self_test() -> int:
         for p in check(good, ni=[("GET", "/api/ok", "")])
     ), "missing not-implemented owner not detected"
     assert check(good, ni=[("GET", "/api/ok", "crate.rs:1")]) == [], "owned gap must pass"
+    assert status_self_test() == 0, "status guard self-test failed"
     print("self-test: all 7 checks passed")
     return 0
 def main() -> int:
@@ -422,6 +427,11 @@ def main() -> int:
     problems = check_contract(
         endpoints, registrations, not_implemented, KNOWN_MISSING, KNOWN_STYLE, KNOWN_DUPLICATES
     )
+    files = list(_iter_rs_files())
+    problems.extend(check_status_contract(
+        endpoints, registrations, not_implemented,
+        parse_retired_handlers(files), parse_not_implemented_handlers(files), canonical,
+    ))
     print(
         f"route contract: {len(endpoints)} catalog entries, "
         f"{len(registrations)} router registrations, "

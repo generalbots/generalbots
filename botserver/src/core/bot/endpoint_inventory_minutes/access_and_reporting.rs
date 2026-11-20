@@ -247,61 +247,8 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
         path: "/api/crm/quotes",
         summary: "registered in crates/botsales/src/routes.rs",
     },
-    // #2540 — /api/sales/* are 410 tombstones. Kept in the inventory so the
-    // model can resolve an old path to its canonical /api/crm/* replacement.
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/activities",
-        summary: "410 Gone — use /api/crm/activities",
-    },
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/contacts",
-        summary: "410 Gone — use /api/crm/contacts",
-    },
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/deals",
-        summary: "410 Gone — use /api/crm/deals",
-    },
-    ApiEndpoint {
-        method: "PUT",
-        path: "/api/sales/deals/:id",
-        summary: "410 Gone — use /api/crm/deals/:id",
-    },
-    ApiEndpoint {
-        method: "POST",
-        path: "/api/sales/email/send",
-        summary: "410 Gone — use /api/crm/email/send",
-    },
-    ApiEndpoint {
-        method: "POST",
-        path: "/api/sales/email/webhook",
-        summary: "410 Gone — use /api/crm/email/track/open",
-    },
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/forecast",
-        summary: "410 Gone — use /api/crm/stats",
-    },
-    ApiEndpoint {
-        method: "POST",
-        path: "/api/sales/forecast/ai-predict",
-        summary: "410 Gone — use /api/crm/ai/generate",
-    },
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/funnel",
-        summary: "410 Gone — use /api/crm/pipeline",
-    },
-    ApiEndpoint {
-        method: "GET",
-        path: "/api/sales/funnel/conversion-rates",
-        summary: "410 Gone — use /api/crm/stats/conversion-rate",
-    },
-    ApiEndpoint {
-        method: "POST",
-        path: "/api/sales/funnel/move",
-        summary: "410 Gone — use /api/crm/deals/:id",
-    },
+    // #2540/#2546 — the retired /api/sales/* 410 tombstones stay mounted for
+    // migration hints but are deliberately not catalogued: every one of them
+    // fails closed, so advertising them made the LLM plan calls that always
+    // fail. The canonical /api/crm/* routes above are the advertised surface.
 ];
