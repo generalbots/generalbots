@@ -16,29 +16,29 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 var EXPECTED = {
-  filesScanned: 1516,
+  filesScanned: 1526,
   htmlFiles: 212,
-  jsFiles: 1304,
+  jsFiles: 1314,
   vendorFiles: 290,
   topSegments: 92,
-  ariaLiveMentions: 670,
-  ariaLiveFiles: 232,
-  ariaLiveDeclarations: 625,
-  livePolite: 555,
+  ariaLiveMentions: 673,
+  ariaLiveFiles: 234,
+  ariaLiveDeclarations: 628,
+  livePolite: 558,
   liveAssertive: 69,
   liveOff: 1,
-  roleStatus: 491,
+  roleStatus: 496,
   roleAlert: 107,
   roleLog: 12,
-  roleStatusAlertFiles: 231,
-  dataI18nAttrs: 5622,
+  roleStatusAlertFiles: 235,
+  dataI18nAttrs: 5634,
   htmlWithI18n: 201,
   gbTCalls: 256, // +10: #2511 localized the translate modal's 10 raw labels via gbT
   jsWithGbt: 94,
-  dynamicWrites: 4100,
-  writesInRegionFiles: 1159,
-  writesOutsideRegionFiles: 2941,
-  filesWithWritesNoRegion: 580,
+  dynamicWrites: 4142,
+  writesInRegionFiles: 1185,
+  writesOutsideRegionFiles: 2957,
+  filesWithWritesNoRegion: 584,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {

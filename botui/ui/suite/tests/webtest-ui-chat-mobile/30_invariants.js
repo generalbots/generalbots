@@ -138,10 +138,12 @@ h.staticTest("virtualizer source never touches creation, streaming or persistenc
   h.sourceHas("chat/messages/15_virtualize.js", "gb-vplaceholder", "placeholder marker class present");
 });
 
-h.staticTest("[GAP] no single mobile media intake sheet is shipped", function () {
-  h.sourceLacks("partials/chat.html", "intake-sheet|gb-intake|gbCameraSheet", "no bottom-sheet markup exists");
-  h.sourceHas("partials/chat.html", "id=\\\"cameraFileInput\\\"", "camera primitive exists separately");
-  h.note("criterion 3 of #2516 remains open: one 44px Camera/Photos/File/Voice sheet");
+h.staticTest("[STATIC] single mobile media intake sheet is shipped", function () {
+  h.sourceHas("partials/chat.html", "gb-intake-sheet|gb-intake-row", "bottom-sheet markup exists");
+  h.sourceHas("partials/chat.html", "id=\\\"gbIntakeBtn\\\"", "one '+' intake button exists");
+  h.sourceHas("partials/chat.html", "id=\\\"cameraFileInput\\\"", "camera primitive is wired to the sheet");
+  h.sourceHas("chat/modules/79_intake_sheet.js", "GBIntakeSheet", "intake module is shipped and bound");
+  h.note("criterion 3 of #2516: one 44px Camera/Photos/File/Voice sheet");
 });
 
 /* --------------------------------------------------------------- KNOWN BUGs */
@@ -170,16 +172,16 @@ h.test("short turns keep exact placeholder height and do not jump the reader", f
   h.note("regression: former floor inflated short turns and jumped the reader");
 });
 
-h.knownBug("chat boot is eager and parser-blocking with no form-factor split", function () {
+h.test("chat boot defers optional modules instead of blocking on all of them", function () {
   var html = h.readFile("partials/chat.html");
   var scripts = (html.match(/<script\s+src=/g) || []).length;
   var deferred = (html.match(/<script[^>]*\b(?:defer|async)\b/g) || []).length;
   var formFactor = (html.match(/matchMedia|formFactor|isMobile/g) || []).length;
-  h.equal(scripts, 54, "observed chat script tag count");
-  h.equal(deferred, 0, "no deferred or async script tags");
-  h.equal(formFactor, 0, "no form-factor branch in the loader");
-  h.assert(scripts > 0 && deferred === 0, "every chat script remains parser-blocking");
-  h.note("criterion 4 of #2516 remains open: progressive/deferred module split for first send"
+  h.equal(scripts, 42, "observed chat blocking script tag count");
+  h.equal(deferred, 13, "deferred/async script tags");
+  h.assert(formFactor >= 1, "form-factor branch documented in the chat fragment");
+  h.assert(deferred > 0, "optional modules no longer all parser-blocking");
+  h.note("criterion 4 of #2516: progressive/deferred module split for first send"
     + " (criterion 5, scroll-up during a stream, is RUNTIME-proven in 20_scroll.js)");
 });
 

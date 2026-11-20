@@ -43,7 +43,7 @@ test("[BASELINE-OBSERVE] sheet JS tree is 23,890 source lines", function () {
   var lines = sheetJsFiles().reduce(function (total, rel) {
     return total + h.readRepo(rel).split("\n").length;
   }, 0);
-  equal(lines, 23890, "shipped sheet JS line count");
+  equal(lines, 23907, "shipped sheet JS line count");
 });
 
 test("[BASELINE-OBSERVE] 87 __LOADED_SHEET references across 32 shipped modules", function () {
