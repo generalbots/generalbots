@@ -105,46 +105,57 @@ pub(super) static CRM_SALES_AND_COMPLIANCE: &[ApiEndpoint] = &[
             path: "/api/learn/leaderboard",
             summary: "Leaderboard of learners by XP",
         },
-        // Sales / CRM pipeline
+        // Sales / CRM pipeline — #2540: one canonical prefix. The old
+        // /api/sales/* aliases are 410 tombstones and are not advertised.
         ApiEndpoint {
             method: "GET",
-            path: "/api/sales/deals",
-            summary: "List sales deals with stage, value, probability and owner",
+            path: "/api/crm/deals",
+            summary: "List CRM deals with stage, value, probability and owner",
         },
         ApiEndpoint {
             method: "POST",
-            path: "/api/sales/deals",
-            summary: "Create a sales deal (title, value, stage, expected close date)",
+            path: "/api/crm/deals",
+            summary: "Create a CRM deal (title, value, stage, expected close date)",
         },
         ApiEndpoint {
-            method: "PATCH",
-            path: "/api/sales/deals/:id",
-            summary: "Update a deal (stage moves, value, probability, notes)",
+            method: "PUT",
+            path: "/api/crm/deals/:id",
+            summary: "Update a CRM deal (stage moves, value, probability, notes)",
         },
         ApiEndpoint {
             method: "DELETE",
-            path: "/api/sales/deals/:id",
-            summary: "Delete a deal",
+            path: "/api/crm/deals/:id",
+            summary: "Delete a CRM deal",
         },
         ApiEndpoint {
             method: "GET",
-            path: "/api/sales/contacts",
+            path: "/api/crm/contacts",
             summary: "List CRM contacts available for deals",
         },
         ApiEndpoint {
             method: "GET",
-            path: "/api/sales/activities",
-            summary: "List recent sales activities (calls, emails, meetings)",
+            path: "/api/crm/activities",
+            summary: "List recent CRM activities (calls, emails, meetings)",
         },
         ApiEndpoint {
             method: "GET",
-            path: "/api/sales/funnel",
+            path: "/api/crm/pipeline",
             summary: "Pipeline funnel summary grouped by stage with weighted value",
         },
         ApiEndpoint {
             method: "GET",
-            path: "/api/sales/forecast",
-            summary: "Weighted sales forecast from stage probabilities",
+            path: "/api/crm/stats",
+            summary: "Weighted sales forecast and funnel stats from CRM deals",
+        },
+        ApiEndpoint {
+            method: "GET",
+            path: "/api/crm/quotes",
+            summary: "List CRM quotes (former /api/sales/quotes)",
+        },
+        ApiEndpoint {
+            method: "GET",
+            path: "/api/crm/orders",
+            summary: "List CRM orders (former /api/sales/orders)",
         },
         // Marketing campaigns, lists and templates
         ApiEndpoint {

@@ -109,6 +109,7 @@ pub mod routes;
 pub mod sales_funnel;
 pub mod forecast;
 pub mod email_integration;
+/// #2540 — retired `/api/sales/*` surface: route tombstones returning 410.
 pub mod routes_sales;
 
 #[cfg(feature = "calendar")]

@@ -2,8 +2,9 @@
  *
  * These two read-only lists were the only capability of the standalone "Sales"
  * app, which duplicated the CRM surface (same tabs, same title "Sales CRM").
- * The app is gone; its data lives here, behind the same `/api/sales/*`
- * endpoints and with the same column mapping the Sales page used. */
+ * The app is gone; its data lives here behind the canonical `/api/crm/*`
+ * endpoints (the legacy `/api/sales/*` family is retired, #2540) and with the
+ * same column mapping the Sales page used. */
 "use strict";
 (function () {
     var loaded = false;
@@ -83,7 +84,7 @@
     function load() {
         if (loaded) return;
         loaded = true;
-        loadOne('/api/sales/quotes', 'crm-quotes-body', t('crm-quotes-empty', 'No quotes yet'), t('crm-quotes-error', 'Could not load quotes.'), 6, function (q) {
+        loadOne('/api/crm/quotes', 'crm-quotes-body', t('crm-quotes-empty', 'No quotes yet'), t('crm-quotes-error', 'Could not load quotes.'), 6, function (q) {
             return '<tr>' +
                 '<td>' + esc(q.quote_number || q.id) + '</td>' +
                 '<td>' + esc(q.title || '-') + '</td>' +
@@ -93,7 +94,7 @@
                 '<td>' + esc(q.status || 'draft') + '</td>' +
                 '</tr>';
         });
-        loadOne('/api/sales/orders', 'crm-orders-body', t('crm-orders-empty', 'No orders yet'), t('crm-orders-error', 'Could not load orders.'), 6, function (o) {
+        loadOne('/api/crm/orders', 'crm-orders-body', t('crm-orders-empty', 'No orders yet'), t('crm-orders-error', 'Could not load orders.'), 6, function (o) {
             return '<tr>' +
                 '<td>' + esc(o.order_number || o.id) + '</td>' +
                 '<td>' + esc(o.customer || '-') + '</td>' +

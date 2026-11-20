@@ -81,6 +81,7 @@ pub fn configure_all_routes() -> Router<Arc<CrateState>> {
     let router = Router::new()
         .merge(configure_crm_api_routes())
         .merge(configure_crm_ui_routes())
+        // #2540 — tombstoned /api/sales/* routes; only 410 + migration hint.
         .merge(configure_sales_routes());
 
     #[cfg(feature = "calendar")]

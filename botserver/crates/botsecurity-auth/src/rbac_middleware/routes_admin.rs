@@ -121,7 +121,9 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/attendance/**", "GET", ""),
         RoutePermission::new("/api/attendance/**", "POST", ""),
 
-        // Sales / CRM deals
+        // Sales / CRM deals. #2540: /api/sales/* are now 410 tombstones, but
+        // the permissions must stay — default_deny would turn the migration
+        // hint into a 403 before the tombstone handler could run.
         RoutePermission::new("/api/sales/**", "GET", ""),
         RoutePermission::new("/api/sales/**", "POST", ""),
         RoutePermission::new("/api/sales/**", "PUT", ""),

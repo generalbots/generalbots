@@ -78,6 +78,8 @@ pub(crate) static ENDPOINT_PREFIX_APPS: &[(&str, &str)] = &[
     ("/api/reports", "analytics"),
     ("/api/retail", "retail"),
     ("/api/runs", "vibe"),
+    // #2540 — /api/sales/* are 410 tombstones but still mounted; the mapping
+    // stays so the prefix guard keeps the hint-bearing routes in the surface.
     ("/api/sales", "crm"),
     ("/api/search", "research"),
     ("/api/security", "settings"),

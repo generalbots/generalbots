@@ -224,59 +224,84 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
         path: "/api/retail/top-products",
         summary: "registered in src/retail/mod.rs",
     },
+    // #2540 — canonical successors of the retired /api/sales/quotes and
+    // /api/sales/orders. Quotes and orders had no CRM equivalent before the
+    // consolidation and keep their existing botsales handlers.
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/crm/orders",
+        summary: "registered in crates/botsales/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
+        path: "/api/crm/orders",
+        summary: "registered in crates/botsales/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/crm/quotes",
+        summary: "registered in crates/botsales/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
+        path: "/api/crm/quotes",
+        summary: "registered in crates/botsales/src/routes.rs",
+    },
+    // #2540 — /api/sales/* are 410 tombstones. Kept in the inventory so the
+    // model can resolve an old path to its canonical /api/crm/* replacement.
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/activities",
-        summary: "registered in crates/botsales/src/routes.rs",
+        summary: "410 Gone — use /api/crm/activities",
     },
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/contacts",
-        summary: "registered in crates/botsales/src/routes.rs",
+        summary: "410 Gone — use /api/crm/contacts",
     },
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/deals",
-        summary: "registered in crates/botsales/src/routes.rs",
+        summary: "410 Gone — use /api/crm/deals",
     },
     ApiEndpoint {
         method: "PUT",
         path: "/api/sales/deals/:id",
-        summary: "registered in crates/botsales/src/routes.rs",
+        summary: "410 Gone — use /api/crm/deals/:id",
     },
     ApiEndpoint {
         method: "POST",
         path: "/api/sales/email/send",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/email/send",
     },
     ApiEndpoint {
         method: "POST",
         path: "/api/sales/email/webhook",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/email/track/open",
     },
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/forecast",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/stats",
     },
     ApiEndpoint {
         method: "POST",
         path: "/api/sales/forecast/ai-predict",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/ai/generate",
     },
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/funnel",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/pipeline",
     },
     ApiEndpoint {
         method: "GET",
         path: "/api/sales/funnel/conversion-rates",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/stats/conversion-rate",
     },
     ApiEndpoint {
         method: "POST",
         path: "/api/sales/funnel/move",
-        summary: "registered in crates/botcontacts/src/routes_sales.rs",
+        summary: "410 Gone — use /api/crm/deals/:id",
     },
 ];
