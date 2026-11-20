@@ -69,7 +69,7 @@
   }
 
   function toNumber(value) {
-    var cleaned = String(value == null ? "" : value).replace(/[^0-9.,-]/g, "").replace(/,/g, "");
+    var cleaned = String(value == null ? "" : value).replace(/[^0-9.,-]/g, "").replace(/[.,](?=\d{3}(?:[.,]|$))/g, "").replace(/,(?=\d{1,2}$)/g, ".").replace(/,/g, "");
     if (!cleaned || cleaned === "-") return null;
     var parsed = Number(cleaned);
     return Number.isFinite(parsed) ? parsed : null;

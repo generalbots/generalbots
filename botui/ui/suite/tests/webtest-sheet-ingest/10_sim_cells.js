@@ -189,10 +189,10 @@ test("toNumber normalizes separators and rejects non-numeric input", function ()
   });
 });
 
-test("[KNOWN BUG] toNumber inflates decimal-comma amounts by 100x", function () {
-  // 59b:71-76 strips every comma instead of treating it as a decimal mark.
-  equal(C.toNumber("45,00"), 4500);
-  equal(C.toNumber("R$ 45,00"), 4500);
+test("toNumber treats a trailing decimal comma as the decimal mark (regression #2494)", function () {
+  equal(C.toNumber("45,00"), 45);
+  equal(C.toNumber("R$ 45,00"), 45);
+  equal(C.toNumber("1.234,50"), 1234.5);
 });
 
 test("columnTypes reads the saved mapping and falls back per column", function () {
