@@ -211,7 +211,10 @@ pub fn get_range_values(range: &str, worksheet: &Worksheet) -> Vec<f64> {
     let range = range.trim();
     // #2067 — aggregates accept literal/number arguments as well as ranges:
     // `SUM(1,2,3)` and `SUM(A1:A3,10)` must not silently sum zero values.
-    if range.contains(',') {
+    // #2572 — pt-BR uses `;` as the argument separator, so `SOMA(1;2)` reached
+    // this branch as `1;2` and summed an empty list to `-0`. `split_args`
+    // handles both marks and keeps nested calls/arrays/strings intact.
+    if range.contains(',') || range.contains(';') {
         let mut values = Vec::new();
         for part in super::split_args(range) {
             values.extend(get_range_values(part, worksheet));

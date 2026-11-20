@@ -55,6 +55,15 @@ fn aggregates_over_literals() {
 }
 
 #[test]
+fn pt_br_semicolon_argument_separator_matches_comma() {
+    // #2572: a pt-BR locale sheet reported `=SOMA(1;2)` as `-0`. The typed
+    // parser rejects `;`, so the legacy dispatcher must split on it too.
+    assert_eq!(value("=SOMA(1;2)"), "3");
+    assert_eq!(value("=SUM(1;2;3)"), "6");
+    assert_eq!(value("=SOMA(1;2)"), value("=SUM(1,2)"));
+}
+
+#[test]
 fn aggregates_over_a_cell_range() {
     let worksheet = with_cells(&[("0,0", "1"), ("1,0", "2"), ("2,0", "3")]);
     let sum = evaluate_formula("=SUM(A1:A3)", &worksheet);

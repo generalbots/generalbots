@@ -31,24 +31,68 @@ pub fn resolve_cell_value(value: &str, worksheet: &Worksheet) -> String {
 }
 
 pub fn split_args(s: &str) -> Vec<&str> {
+    // #2572 — `;` is the argument separator in pt-BR (where `,` is the decimal
+    // mark). Accept both at top level so `SOMA(1;2)` and `SUM(1,2)` agree.
+    // Brackets and quoted strings are data, never separators: `SOMA("a;b",1)`
+    // and `SOMA([1;2],1)` must not be split inside their literal.
     let mut parts = Vec::new();
-    let mut depth = 0;
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut in_string = false;
     let mut start = 0;
-    for (i, ch) in s.char_indices() {
+    let chars: Vec<(usize, char)> = s.char_indices().collect();
+    let mut index = 0;
+    while index < chars.len() {
+        let (byte, ch) = chars[index];
+        if in_string {
+            if ch == '"' {
+                if chars.get(index + 1).is_some_and(|(_, next)| *next == '"') {
+                    index += 2;
+                    continue;
+                }
+                in_string = false;
+            }
+            index += 1;
+            continue;
+        }
         match ch {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            ',' if depth == 0 => {
-                parts.push(&s[start..i]);
-                start = i + 1;
+            '"' => in_string = true,
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            ',' | ';' if paren_depth == 0 && bracket_depth == 0 => {
+                parts.push(&s[start..byte]);
+                start = byte + 1;
             }
             _ => {}
         }
+        index += 1;
     }
     if start < s.len() {
         parts.push(&s[start..]);
     }
     parts
+}
+
+#[cfg(test)]
+mod split_args_tests {
+    use super::split_args;
+
+    #[test]
+    fn comma_and_semicolon_are_both_separators() {
+        assert_eq!(split_args("1,2"), vec!["1", "2"]);
+        assert_eq!(split_args("1;2"), vec!["1", "2"]);
+        assert_eq!(split_args("1; 2,3"), vec!["1", " 2", "3"]);
+    }
+
+    #[test]
+    fn separators_inside_nested_calls_arrays_and_strings_are_data() {
+        assert_eq!(split_args("SOMA(1;2);3"), vec!["SOMA(1;2)", "3"]);
+        assert_eq!(split_args("[1;2];3"), vec!["[1;2]", "3"]);
+        assert_eq!(split_args("\"a;b\";3"), vec!["\"a;b\"", "3"]);
+        assert_eq!(split_args("\"a\"\"b;c\";3"), vec!["\"a\"\"b;c\"", "3"]);
+    }
 }
 
 pub fn evaluate_condition(condition: &str, worksheet: &Worksheet) -> bool {

@@ -170,13 +170,14 @@ pub fn evaluate_ddb(expr: &str, worksheet: &Worksheet) -> Option<String> {
         if life <= 0.0 || period < 1.0 || period > life || factor <= 0.0 {
             return Err("#NUM!".to_string());
         }
-        let last = period.floor().min(i32::MAX as f64) as i32;
+        let mut remaining = period.floor().min(i32::MAX as f64) as i32;
         let mut total = 0.0;
         let mut depreciation = 0.0;
-        for step in 1..=last {
+        while remaining > 0 {
             let allowance = ((cost - total) * factor / life).min(cost - salvage - total);
             depreciation = allowance.max(0.0);
             total += depreciation;
+            remaining -= 1;
         }
         finite(depreciation)
     })

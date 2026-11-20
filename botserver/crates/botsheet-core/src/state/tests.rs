@@ -2,10 +2,6 @@ use super::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use super::*;
-use std::collections::HashMap;
-use std::sync::Mutex;
-
 #[derive(Default)]
 struct MemDrive(Mutex<HashMap<String, Vec<u8>>>);
 
