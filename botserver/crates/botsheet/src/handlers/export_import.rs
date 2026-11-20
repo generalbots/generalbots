@@ -31,6 +31,53 @@ fn content_headers(content_type: &'static str) -> axum::http::HeaderMap {
     headers
 }
 
+/// #2522 — run the hostile-file gate explicitly at this import boundary and
+/// audit its report before `import_spreadsheet_bytes` parses the payload.
+///
+/// `upload_policy::validate_upload` already applies the gate centrally to zip
+/// containers; this second inspection is defence in depth and yields the
+/// report so every accepted import records its entry count, compression ratio
+/// and malware decision. Rejections use the shared localized, sanitized
+/// response; archive internals stay server-side.
+fn audit_hostile_upload(
+    bytes: &[u8],
+    filename: &str,
+    headers: &axum::http::HeaderMap,
+    context: &str,
+    policy: &upload_policy::HostileFilePolicy,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    // Mirror `validate_upload`: only zip packages have OOXML/ODF parts. CSV,
+    // TSV and legacy XLS must not be parsed as a zip and refused.
+    let is_package = filename
+        .rsplit('.')
+        .next()
+        .and_then(upload_policy::mime_for_extension)
+        .is_some_and(upload_policy::is_zip_container);
+    if !is_package {
+        return Ok(());
+    }
+
+    let report = upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(
+        |error| {
+            log::warn!("{context}: hostile-file gate refused upload: {}", error.log_detail());
+            upload_policy::rejection_json(&error, headers)
+        },
+    )?;
+
+    if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
+        log::warn!("{context}: no malware scanner configured — scan result is NotConfigured, not clean");
+    }
+    log::info!(
+        "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
+        report.entry_count,
+        report.compressed_bytes,
+        report.uncompressed_bytes,
+        report.compression_ratio,
+        report.malware_scan,
+    );
+    Ok(())
+}
+
 pub async fn handle_export_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
@@ -306,8 +353,24 @@ pub async fn handle_import_sheet(
         &bytes,
     ) {
         Ok(upload) => upload,
-        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+        Err(error) => {
+            log::warn!(
+                "botsheet::import: upload policy refused: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
     };
+
+    // #2522 — inspect and audit before the parser runs. The helper skips
+    // CSV/TSV and legacy XLS, which are not packages.
+    audit_hostile_upload(
+        &bytes,
+        &upload.filename,
+        &headers,
+        "botsheet::import",
+        &upload_policy::HostileFilePolicy::default(),
+    )?;
 
     let mut sheet = import_spreadsheet_bytes(&bytes, &upload.filename, &user_id).map_err(|e| {
         (
@@ -326,4 +389,58 @@ pub async fn handle_import_sheet(
     }
 
     Ok(Json(sheet))
+}
+
+#[cfg(all(test, feature = "xlsx"))]
+mod hostile_import_tests {
+    use super::*;
+    use std::io::{Cursor, Write};
+
+    fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
+        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, body) in entries {
+            let options =
+                zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
+            writer.start_file(*name, options).expect("test entry");
+            writer.write_all(body).expect("test body");
+        }
+        writer.finish().expect("test zip").into_inner()
+    }
+
+    fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) -> bool {
+        let result = audit_hostile_upload(bytes, name, &axum::http::HeaderMap::new(), "test", policy);
+        match result {
+            Err((status, Json(body))) => {
+                status == StatusCode::BAD_REQUEST
+                    && body["code"] == "error-file-archive-unsafe"
+                    && body.get("sheet1.xml").is_none()
+            }
+            Ok(()) => false,
+        }
+    }
+
+    #[test]
+    fn a_compression_ratio_bomb_is_refused_before_conversion() {
+        let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b' '; 512 * 1024])]);
+        assert!(rejects(&bytes, "bomb.xlsx", &upload_policy::HostileFilePolicy::default()));
+    }
+
+    #[test]
+    fn an_oversized_uncompressed_entry_is_refused_before_conversion() {
+        let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b'x'; 8192])]);
+        let policy = upload_policy::HostileFilePolicy {
+            max_uncompressed_bytes: 1024,
+            ..upload_policy::HostileFilePolicy::default()
+        };
+        assert!(rejects(&bytes, "bomb.xlsx", &policy));
+    }
+
+    #[test]
+    fn a_macro_part_is_refused_before_conversion() {
+        let bytes = zip_with(&[
+            ("xl/workbook.xml", b"<workbook/>".to_vec()),
+            ("xl/vbaProject.bin", vec![0x01, 0x02, 0x03]),
+        ]);
+        assert!(rejects(&bytes, "macro.xlsx", &upload_policy::HostileFilePolicy::default()));
+    }
 }

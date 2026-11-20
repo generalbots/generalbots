@@ -16,6 +16,53 @@ use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// #2522 — run the hostile-file gate explicitly at this import boundary and
+/// audit its report before any parser (PPTX/JSON/markdown) touches the payload.
+///
+/// `upload_policy::validate_upload` already applies the gate centrally to zip
+/// containers; this second inspection is defence in depth and, more
+/// importantly, yields the report so every accepted import records its entry
+/// count, compression ratio and malware decision. Rejections use the shared
+/// localized, sanitized response; archive internals stay server-side.
+fn audit_hostile_upload(
+    bytes: &[u8],
+    filename: &str,
+    headers: &axum::http::HeaderMap,
+    context: &str,
+    policy: &upload_policy::HostileFilePolicy,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    // Mirror `validate_upload`: only a zip package has OOXML parts. Markdown
+    // and JSON decks are plain text and must not be parsed as a zip.
+    let is_package = filename
+        .rsplit('.')
+        .next()
+        .and_then(upload_policy::mime_for_extension)
+        .is_some_and(upload_policy::is_zip_container);
+    if !is_package {
+        return Ok(());
+    }
+
+    let report = upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(
+        |error| {
+            log::warn!("{context}: hostile-file gate refused upload: {}", error.log_detail());
+            upload_policy::rejection_json(&error, headers)
+        },
+    )?;
+
+    if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
+        log::warn!("{context}: no malware scanner configured — scan result is NotConfigured, not clean");
+    }
+    log::info!(
+        "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
+        report.entry_count,
+        report.compressed_bytes,
+        report.uncompressed_bytes,
+        report.compression_ratio,
+        report.malware_scan,
+    );
+    Ok(())
+}
+
 /// Deterministic deck id for a Drive source object (FNV-1a 64-bit). A
 /// cryptographic hash buys nothing here: the id only needs to be stable and
 /// collision-resistant enough for one user's presentations.
@@ -83,9 +130,25 @@ pub async fn handle_import_presentation<D: DriveOps>(
         &bytes,
     ) {
         Ok(upload) => upload,
-        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+        Err(error) => {
+            log::warn!(
+                "botslides::import: upload policy refused: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
     };
     let filename = upload.filename;
+
+    // #2522 — inspect and audit before any parser runs. The helper skips
+    // Markdown/JSON decks, which are plain text.
+    audit_hostile_upload(
+        &bytes,
+        &filename,
+        &headers,
+        "botslides::import",
+        &upload_policy::HostileFilePolicy::default(),
+    )?;
 
     let ext = filename
         .rsplit('.')
@@ -209,4 +272,93 @@ pub async fn handle_import_presentation<D: DriveOps>(
     }
 
     Ok(Json(presentation))
+}
+
+#[cfg(test)]
+mod hostile_import_tests {
+    use super::*;
+    use std::io::{Cursor, Write};
+
+    fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
+        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, body) in entries {
+            let options =
+                zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
+            writer.start_file(*name, options).expect("test entry");
+            writer.write_all(body).expect("test body");
+        }
+        writer.finish().expect("test zip").into_inner()
+    }
+
+    fn is_sanitized_rejection(
+        result: Result<(), (StatusCode, Json<serde_json::Value>)>,
+        code: &str,
+    ) -> bool {
+        match result {
+            Err((status, Json(body))) => {
+                status == StatusCode::BAD_REQUEST
+                    && body["code"] == code
+                    && body.get("presentation.xml").is_none()
+            }
+            Ok(()) => false,
+        }
+    }
+
+    #[test]
+    fn a_compression_ratio_bomb_is_refused_before_conversion() {
+        let bytes = zip_with(&[("ppt/slides/slide1.xml", vec![b' '; 512 * 1024])]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "bomb.pptx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn an_oversized_uncompressed_entry_is_refused_before_conversion() {
+        let bytes = zip_with(&[("ppt/slides/slide1.xml", vec![b'x'; 8192])]);
+        let policy = upload_policy::HostileFilePolicy {
+            max_uncompressed_bytes: 1024,
+            ..upload_policy::HostileFilePolicy::default()
+        };
+        let result = audit_hostile_upload(
+            &bytes,
+            "bomb.pptx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &policy,
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn a_macro_part_is_refused_before_conversion() {
+        let bytes = zip_with(&[
+            ("ppt/presentation.xml", b"<p:presentation/>".to_vec()),
+            ("ppt/vbaProject.bin", vec![0x01, 0x02, 0x03]),
+        ]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "macro.pptx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn a_plain_format_is_not_mistaken_for_a_zip_package() {
+        let result = audit_hostile_upload(
+            b"# Slide\nplain markdown",
+            "deck.md",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(result.is_ok());
+    }
 }

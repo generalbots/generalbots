@@ -13,6 +13,54 @@ use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 
+/// #2522 — run the hostile-file gate explicitly at this import boundary and
+/// audit its report before any converter touches the payload.
+///
+/// `upload_policy::validate_upload` already applies the same gate centrally to
+/// every zip container, so this is defence in depth. Its real value is the
+/// report: entry count, compression ratio and the malware decision are logged
+/// for every accepted import, so "scanned clean" is never inferred merely
+/// from "the parse succeeded". Rejections reuse the shared localized,
+/// sanitized response; archive internals stay server-side.
+fn audit_hostile_upload(
+    bytes: &[u8],
+    filename: &str,
+    headers: &axum::http::HeaderMap,
+    context: &str,
+    policy: &upload_policy::HostileFilePolicy,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    // Mirror `validate_upload`: only zip packages have OOXML/ODF parts. A
+    // PDF/RTF/MD/HTML/TXT upload must not be parsed as a zip and refused.
+    let is_package = filename
+        .rsplit('.')
+        .next()
+        .and_then(upload_policy::mime_for_extension)
+        .is_some_and(upload_policy::is_zip_container);
+    if !is_package {
+        return Ok(());
+    }
+
+    let report = upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(
+        |error| {
+            log::warn!("{context}: hostile-file gate refused upload: {}", error.log_detail());
+            upload_policy::rejection_json(&error, headers)
+        },
+    )?;
+
+    if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
+        log::warn!("{context}: no malware scanner configured — scan result is NotConfigured, not clean");
+    }
+    log::info!(
+        "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
+        report.entry_count,
+        report.compressed_bytes,
+        report.uncompressed_bytes,
+        report.compression_ratio,
+        report.malware_scan,
+    );
+    Ok(())
+}
+
 pub async fn handle_import_document(
     State(state): State<Arc<DocState>>,
     user: DocUser,
@@ -54,9 +102,25 @@ pub async fn handle_import_document(
         &bytes,
     ) {
         Ok(upload) => upload,
-        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+        Err(error) => {
+            log::warn!(
+                "botdocs::import: upload policy refused: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
     };
     let filename = upload.filename;
+
+    // #2522 — inspect and audit before any format-specific parser runs. The
+    // helper skips plain formats (PDF/RTF/MD/HTML/TXT) on its own.
+    audit_hostile_upload(
+        &bytes,
+        &filename,
+        &headers,
+        "botdocs::import",
+        &upload_policy::HostileFilePolicy::default(),
+    )?;
 
     let format = detect_import_format(&filename, &bytes);
     let content = match format.as_str() {
@@ -262,4 +326,95 @@ pub async fn handle_compare_documents(
     };
 
     Ok(Json(CompareDocumentsResponse { comparison }))
+}
+
+#[cfg(test)]
+mod hostile_import_tests {
+    use super::*;
+    use std::io::{Cursor, Write};
+
+    fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
+        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, body) in entries {
+            let options =
+                zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
+            writer.start_file(*name, options).expect("test entry");
+            writer.write_all(body).expect("test body");
+        }
+        writer.finish().expect("test zip").into_inner()
+    }
+
+    fn is_sanitized_rejection(
+        result: Result<(), (StatusCode, Json<serde_json::Value>)>,
+        code: &str,
+    ) -> bool {
+        match result {
+            Err((status, Json(body))) => {
+                status == StatusCode::BAD_REQUEST
+                    && body["code"] == code
+                    && body.get("document.xml").is_none()
+            }
+            Ok(()) => false,
+        }
+    }
+
+    #[test]
+    fn a_compression_ratio_bomb_is_refused_before_conversion() {
+        // ~512 KiB of spaces deflates to a few hundred bytes: under every byte
+        // cap but far above the compression-ratio limit.
+        let bytes = zip_with(&[("word/document.xml", vec![b' '; 512 * 1024])]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "bomb.docx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn an_oversized_uncompressed_entry_is_refused_before_conversion() {
+        let bytes = zip_with(&[("word/document.xml", vec![b'x'; 8192])]);
+        let policy = upload_policy::HostileFilePolicy {
+            max_uncompressed_bytes: 1024,
+            ..upload_policy::HostileFilePolicy::default()
+        };
+        let result = audit_hostile_upload(
+            &bytes,
+            "bomb.docx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &policy,
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn a_macro_part_is_refused_before_conversion() {
+        let bytes = zip_with(&[
+            ("word/document.xml", b"<w:document/>".to_vec()),
+            ("word/vbaProject.bin", vec![0x01, 0x02, 0x03]),
+        ]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "macro.docx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(is_sanitized_rejection(result, "error-file-archive-unsafe"));
+    }
+
+    #[test]
+    fn a_plain_format_is_not_mistaken_for_a_zip_package() {
+        let result = audit_hostile_upload(
+            b"%PDF-1.7 not a zip",
+            "report.pdf",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &upload_policy::HostileFilePolicy::default(),
+        );
+        assert!(result.is_ok());
+    }
 }
