@@ -158,7 +158,7 @@
         var status = blocked ? "blocked" : (isBalance && flag && !flag.blocked ? "mismatch" : "ok");
         return {
           label: C.cellLabel(parse, row, col),
-          value: blocked || C.isUnreadable(raw) ? "" : C.effectiveValue(current, fileId, row, col),
+          value: blocked ? "" : C.effectiveValue(current, fileId, row, col),
           format: types[col],
           formula: formula,
           status: status,

@@ -29,7 +29,7 @@
   }
 
   function isLow(cellValue) {
-    return Boolean(cellValue) && Number(cellValue.confidence) < C.THRESHOLD;
+    return Boolean(cellValue) && (!Number.isFinite(Number(cellValue.confidence)) || Number(cellValue.confidence) < C.THRESHOLD);
   }
 
   function isUnreadable(cellValue) {
@@ -60,7 +60,7 @@
     var corrected = overrideFor(current, fileId, row, col);
     if (corrected) return String(corrected.corrected);
     var cellValue = cellAt(current.parses[fileId], row, col);
-    return isUnreadable(cellValue) ? "" : String(cellValue.value);
+    return !cellValue || isUnreadable(cellValue) ? "" : String(cellValue.value);
   }
 
   function formulaBlocked(current, fileId, row, col) {

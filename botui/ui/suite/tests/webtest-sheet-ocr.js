@@ -7,10 +7,11 @@
  * Real gate/treatment behaviour is PROVED BY EXECUTION. OCR engine, scanning,
  * image cleanup, language detection and table extraction are NOT shipped here:
  * those criteria are locked as labelled [BASELINE-OBSERVE]/[STATIC] current
- * state, never as runtime PASS. Defects are proved as [BUG] and reported only.
+ * state, never as runtime PASS. The three defects found in #2509 are fixed and
+ * kept as [RUNTIME] regressions; any new defect is still labelled [BUG].
  *
- * The sibling webtest-sheet-ingest harness is deliberately untouched, as are
- * production JS, locales, guards, baselines and CI.
+ * The sibling webtest-sheet-ingest harness, locales, guards, baselines and CI
+ * are untouched by this fix.
  */
 "use strict";
 
