@@ -100,11 +100,7 @@ function announceChatStatus(message) {
     el = document.createElement("div");
     el.id = "gb-sr-live";
     el.className = "gb-sr-status";
-    // #2331 — a status live region needs the explicit role as well as
-    // aria-live so assistive tech exposes it as a status, not a bare text node.
     el.setAttribute("role", "status");
-    el.setAttribute("aria-live", "polite");
-    el.setAttribute("aria-atomic", "true");
     document.body.appendChild(el);
   }
   el.textContent = "";
