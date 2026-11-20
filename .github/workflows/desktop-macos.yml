@@ -182,6 +182,13 @@ jobs:
           chmod +x desktop/macos/stage-sidecar.sh
           desktop/macos/stage-sidecar.sh ${{ steps.rust.outputs.target }}
           ls -lh "botapp/binaries/botserver-${{ steps.rust.outputs.target }}"
+          # stage-sidecar.sh deliberately leaves this directory empty (no Linux
+          # stack archives in a .dmg), but Tauri aborts the whole bundle when a
+          # configured resource glob matches no files. Keep the glob satisfied
+          # with a marker; first-run provisioning ignores unknown filenames.
+          printf '%s\n' \
+            'macOS bundles ship no Linux stack installers; provisioning downloads them.' \
+            > botserver/botserver-installers/README-macos.txt
 
       - name: Install Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
