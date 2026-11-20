@@ -235,7 +235,12 @@
    keyboard and the user types blind. */
 @media (max-width: 768px) {
   #chat-app {
-    height: var(--gb-vv-height, 100dvh) !important;
+    /* Fit the window container (which already excludes the shell chrome).
+       Cap by the visible viewport so the keyboard-aware bridge still shrinks
+       the sheet when the on-screen keyboard opens. Using vv-height for the
+       height itself overflowed the 742px window by the 43px header when the
+       keyboard was closed, burying the composer under the fixed taskbar. */
+    height: 100% !important;
     max-height: var(--gb-vv-height, 100dvh) !important;
     overflow: hidden;
   }
