@@ -283,7 +283,7 @@ fn is_container_part(name: &str) -> bool {
     .any(|extension| name.ends_with(extension))
 }
 
-fn starts_with_zip_magic(entry: &mut zip::read::ZipFile<'_>) -> bool {
+fn starts_with_zip_magic(entry: &mut zip::read::ZipFile<'_, impl std::io::Read>) -> bool {
     let mut head = Vec::new();
     match entry.take(4).read_to_end(&mut head) {
         Ok(4) => head == [0x50, 0x4b, 0x03, 0x04],
