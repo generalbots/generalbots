@@ -181,6 +181,29 @@ test("#2515 REGRESSION: Slides fit and gestures install after the late canvas-ho
   r.main.dispatchEvent(moved);
   equal(moved.preventDefaultCalls, 1, "two-finger pan handler installed after the swap");
   equal(container.scrollLeft, -30, "late host scrolled by the midpoint delta");
+  var userZoomApplied = canvas.style.zoom;
+
+  /* A slide change swaps #slides-content innerHTML again; pan must follow the
+     current host, not the container captured on the first render. */
+  [1, 2].forEach(function (id) {
+    r.main.dispatchEvent(fx.event({ type: "pointerup", pointerType: "touch", pointerId: id, target: canvas }));
+  });
+  r.main.removeChild(container);
+  var next = fx.doc.createElement("div");
+  next.className = "sl-canvas-container";
+  next.clientWidth = 504;
+  r.main.appendChild(next);
+  var nextCanvas = fx.doc.createElement("div");
+  nextCanvas.className = "sl-canvas";
+  next.appendChild(nextCanvas);
+  fx.win.dispatchEvent(fx.event({ type: "resize" }));
+  equal(nextCanvas.style.zoom, userZoomApplied, "a later slide swap is refitted at the user zoom");
+  down(r.main, fx, 3, 100, 100, nextCanvas);
+  down(r.main, fx, 4, 200, 100, nextCanvas);
+  var moved2 = fx.event({ type: "pointermove", pointerType: "touch", pointerId: 4,
+    clientX: 220, clientY: 100, target: nextCanvas });
+  r.main.dispatchEvent(moved2);
+  equal(next.scrollLeft, -10, "pan follows the current host after a slide swap");
 });
 
 function down(host, fx, id, x, y, target) {
