@@ -251,16 +251,20 @@ test("RUNTIME: zOrder front/back gives contiguous z without gaps", function () {
   assert(OM.topLevel(0).every(function (node, index) { return node.z === index + 1; }), "z values not normalised");
 });
 
-test("KNOWN-BUG (runtime): zOrder forward/backward are no-ops in shipped code", function () {
-  h.reset();
-  seed([shape("a", 0, 0, 10, 10, { z: 1 }), shape("b", 0, 0, 10, 10, { z: 2 }),
-    shape("c", 0, 0, 10, 10, { z: 3 })]);
+test("RUNTIME: zOrder forward/backward move a single step (regression #2430)", function () {
+  function three() {
+    h.reset();
+    seed([shape("a", 0, 0, 10, 10, { z: 1 }), shape("b", 0, 0, 10, 10, { z: 2 }),
+      shape("c", 0, 0, 10, 10, { z: 3 })]);
+  }
+  three();
   Ops.zOrder("forward", ["b"]);
-  equal(idsOf(OM.topLevel(0)), "a,b,c", "shipped forward unexpectedly reorders (revisit bug)");
+  equal(idsOf(OM.topLevel(0)), "a,c,b", "forward must swap b toward the front");
+  three();
   Ops.zOrder("backward", ["b"]);
-  equal(idsOf(OM.topLevel(0)), "a,b,c", "shipped backward unexpectedly reorders (revisit bug)");
-  /* Expected behaviour would be a,c,b then c,a,b; both loops compare against
-   * stale original z values, so neither single step ever changes the order. */
+  equal(idsOf(OM.topLevel(0)), "b,a,c", "backward must swap b toward the back");
+  assert(OM.topLevel(0).every(function (node, index) { return node.z === index + 1; }),
+    "z values stay contiguous after a single step");
 });
 
 test("RUNTIME: align left/centre/right/top/centre/bottom uses selection bounds", function () {

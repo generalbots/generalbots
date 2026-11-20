@@ -152,18 +152,18 @@
         else if (mode === "back") ordered = picked.concat(rest);
         else if (mode === "forward") {
           ordered = rest.slice();
-          picked.forEach(function (n) {
-            var last = -1;
-            for (var i = 0; i < ordered.length; i++) {
-              if (ordered[i].z <= n.z) last = i;
-            }
-            ordered.splice(last + 1, 0, n);
+          picked.sort(function (a, b) { return a.z - b.z; }).forEach(function (n) {
+            var at = ordered.findIndex(function (o) { return o.z > n.z; });
+            ordered.splice(at < 0 ? ordered.length : at + 1, 0, n);
           });
         } else {
           ordered = rest.slice();
-          picked.slice().reverse().forEach(function (n) {
-            var at = ordered.findIndex(function (o) { return o.z > n.z; });
-            ordered.splice(at < 0 ? 0 : at, 0, n);
+          picked.sort(function (a, b) { return a.z - b.z; }).forEach(function (n) {
+            var last = -1;
+            for (var i = 0; i < ordered.length; i++) {
+              if (ordered[i].z < n.z) last = i;
+            }
+            ordered.splice(last < 0 ? 0 : last, 0, n);
           });
         }
         ordered.forEach(function (n, index) { n.z = index + 1; });
