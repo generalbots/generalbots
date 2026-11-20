@@ -208,13 +208,13 @@ h.staticTest("DEFERRED GAP: botsheet-core unit tests are absent from the CI matr
   h.note("cargo test -p botsheet-core remains a CI-only acceptance criterion");
 });
 
-h.knownBug("semicolon argument separator is not tokenized", function () {
+h.test("semicolon argument separator tokenizes for locale aliases", function () {
   var ast = P.parse("=SOMA(1;2)");
   var value = E.evaluate("=SOMA(1;2)", { locale: "pt-BR" });
-  assert(ast === null, "separator was unexpectedly accepted; defect may be fixed");
-  assertError(value, "#VALUE!", "separator defect changed its observable error");
-  h.note("observe: pt-BR alias SOMA resolves, but ';' yields #VALUE! " +
-    "(78a_functions_parser.js:60 token set; cf. FormulaLocale::argument_separator)");
+  assert(ast && ast.t === "call" && ast.args.length === 2,
+    "semicolon argument separator was not parsed");
+  assert(value === 3, "pt-BR SOMA with semicolon separator returned " + String(value));
+  h.note("regression: ';' is accepted wherever ',' separates call/array arguments");
 });
 
 h.knownBug("decimal-comma literal is silently split into extra arguments", function () {
@@ -246,13 +246,13 @@ h.knownBug("iterative zero seed aborts reciprocal recurrences", function () {
     "(78_functions_evaluator.js:235); Babylonian sqrt never converges");
 });
 
-h.knownBug("absolute references with $ are not tokenized", function () {
+h.test("absolute references with $ resolve to the underlying cell", function () {
   ["=$A$1+1", "=$A1+1", "=A$1+1"].forEach(function (formula) {
-    assert(P.parse(formula) === null, "absolute reference was unexpectedly parsed");
-    assertError(E.evaluate(formula, { cells: { A1: 2 } }), "#VALUE!",
-      "absolute reference defect changed its observable error");
+    assert(P.parse(formula) !== null, "absolute reference was rejected: " + formula);
+    assert(E.evaluate(formula, { cells: { A1: 2 } }) === 3,
+      "absolute reference did not resolve: " + formula);
   });
   assert(E.evaluate("=A1+1", { cells: { A1: 2 } }) === 3, "relative reference regressed");
-  h.note("observe: CELL_RE and columnOf/rowOf strip '$', but tokenize() rejects '$' " +
-    "(78a_functions_parser.js:60) — every $-qualified ref becomes #VALUE!");
+  h.note("regression: tokenize() accepts '$' in identifiers; " +
+    "CELL_RE and columnOf/rowOf strip it");
 });

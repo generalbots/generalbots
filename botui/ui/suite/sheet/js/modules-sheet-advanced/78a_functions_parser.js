@@ -5,7 +5,7 @@
 (function () {
   var ERROR_RE = /^#(DIV\/0!|VALUE!|REF!|NAME\?|N\/A|NUM!|NULL!)/;
   var CELL_RE = /^\$?[A-Za-z]{1,3}\$?[1-9][0-9]*$/;
-  var IDENT_RE = /^[A-Za-zÀ-ÿ\u4e00-\u9fff가-힣_][A-Za-zÀ-ÿ0-9\u4e00-\u9fff가-힣_.]*/;
+  var IDENT_RE = /^[A-Za-zÀ-ÿ\u4e00-\u9fff가-힣_$][A-Za-zÀ-ÿ0-9\u4e00-\u9fff가-힣_.$]*/;
 
   function tokenize(text) {
     var source = String(text || "").trim();
@@ -57,8 +57,8 @@
         i += 2;
         continue;
       }
-      if ("+-*/^&=%:,()[]<>".indexOf(ch) >= 0) {
-        tokens.push({ type: ch === "(" || ch === ")" || ch === "," || ch === "[" || ch === "]" ? ch : "op", value: ch });
+      if ("+-*/^&=%:,;()[]<>".indexOf(ch) >= 0) {
+        tokens.push({ type: ch === "(" || ch === ")" || ch === "," || ch === ";" || ch === "[" || ch === "]" ? ch : "op", value: ch });
         i += 1;
         continue;
       }
@@ -190,7 +190,7 @@
     if (token.value === "[") {
       var items = [];
       if (!this.peek("]")) {
-        do { items.push(this.comparison()); } while (this.expect(","));
+        do { items.push(this.comparison()); } while (this.expect(",") || this.expect(";"));
       }
       return this.expect("]") ? node("array", null, { items: items }) : null;
     }
@@ -199,7 +199,7 @@
       this.take();
       var args = [];
       if (!this.peek(")")) {
-        do { args.push(this.comparison()); } while (this.expect(","));
+        do { args.push(this.comparison()); } while (this.expect(",") || this.expect(";"));
       }
       return this.expect(")") ? node("call", token.value.toUpperCase(), { args: args }) : null;
     }
