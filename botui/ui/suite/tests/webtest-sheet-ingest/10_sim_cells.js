@@ -232,24 +232,25 @@ test("runningBalance seeds from opening balance and flags unconfirmed rows", fun
   var result = C.runningBalance(C.state(), "stmt");
   equal(result.kind, "bank");
   equal(result.available, 6);
-  equal(result.blocked, 2);
+  equal(result.blocked, 3);
   equal(result.mismatch, 0);
-  deep(result.rows.map(function (item) { return item.row; }), [2, 8]);
-  equal(result.rows[1].stated, 1300);
+  deep(result.rows.map(function (item) { return item.row; }), [2, 4, 8]);
+  equal(result.rows[2].stated, 1300);
 });
 
-test("[KNOWN BUG] runningBalance skips a blocked row whose amount cells are blank", function () {
+test("runningBalance flags a blocked row even when all its amounts are blank (regression #2494)", function () {
   g.reset();
   g.seed();
   var state = C.state();
   var parse = state.parses.stmt;
   equal(C.isDataRow(parse, 4), true);
   equal(C.formulaBlocked(state, "stmt", 4, 2), true);
-  // 59b:147 — `continue` fires before blocked is counted when all three
-  // numeric values are blank, so the unreadable charge disappears from the check.
+  // The unreadable charge has no numeric cells, but it must still surface as
+  // blocked rather than vanish from the running-balance check.
   var result = C.runningBalance(state, "stmt");
-  assert(!result.rows.some(function (item) { return item.row === 4; }));
-  equal(result.blocked, 2);
+  assert(result.rows.some(function (item) { return item.row === 4 && item.blocked === true; }));
+  equal(result.blocked, 3);
+  equal(result.available, 6);
   equal(g.review.reviewableCells(parse, "stmt").some(function (item) { return item.row === 4 && item.col === 2; }), true);
 });
 
@@ -258,9 +259,9 @@ test("confirming the low-confidence debit removes its formula block", function (
   g.seed();
   C.mutate(function (target) { target.confirmations["stmt:2:2"] = true; });
   var result = C.runningBalance(C.state(), "stmt");
-  equal(result.blocked, 1);
+  equal(result.blocked, 2);
   equal(result.mismatch, 0);
-  equal(result.rows[0].row, 8);
+  deep(result.rows.map(function (item) { return item.row; }), [4, 8]);
 });
 
 test("escapeHtml and setStatus keep error feedback safe and accessible", function () {

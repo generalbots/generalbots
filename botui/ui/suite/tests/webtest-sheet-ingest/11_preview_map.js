@@ -170,8 +170,9 @@ test("profile and balance sections report detection and blocked rows", function 
   equal(sections.length, 3);
   assert(sections[1].children[1]._text.indexOf("Bank statement detected") === 0);
   equal(sections[1].children[2]._text, "Date A, description B, debit C, credit D, balance E");
-  assert(sections[2].children[1]._text.indexOf("2 row(s) blocked") === 0);
+  assert(sections[2].children[1]._text.indexOf("3 row(s) blocked") === 0);
   equal(sections[2].children[2]._text.indexOf("Row 3: blocked") === 0, true);
+  equal(sections[2].children[3]._text.indexOf("Row 5: blocked") === 0, true);
   assert(sections[2].children.some(function (node) { return node.className === "ss-ingest-mismatch"; }) === false);
 });
 

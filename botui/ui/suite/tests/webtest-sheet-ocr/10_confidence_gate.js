@@ -124,10 +124,10 @@ h.runtime("the running-balance gate blocks exactly the unconfirmed low rows", fu
   g.seed();
   var result = C.runningBalance(C.state(), "stmt");
   h.equal(result.kind, "bank");
-  h.equal(result.blocked, 2);
+  h.equal(result.blocked, 3);
   h.equal(result.mismatch, 0);
   h.equal(result.available, 6);
-  h.deep(result.rows.map(function (item) { return item.row; }), [2, 8]);
+  h.deep(result.rows.map(function (item) { return item.row; }), [2, 4, 8]);
 });
 
 h.runtime("resolving flagged cells unblocks rows and surfaces arithmetic mismatch", function () {

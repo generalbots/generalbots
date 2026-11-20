@@ -144,8 +144,8 @@
       } else if (seeded) {
         running += (credit || 0) - (debit || 0);
       }
-      if (!seeded || (!statedPresent && debit === null && credit === null)) continue;
-      out.available += 1;
+      if (!seeded) continue;
+      if (statedPresent || debit !== null || credit !== null) out.available += 1;
       if (blocked) {
         out.blocked += 1;
         out.rows.push({ row: row, blocked: true, expected: null, stated: stated });
