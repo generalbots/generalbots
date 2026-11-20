@@ -178,12 +178,12 @@
 
         var saveBtn = document.createElement("button");
         saveBtn.className = "gb-edit-save";
-        saveBtn.textContent = t("Salvar e enviar", "Save & send");
+        saveBtn.textContent = A.t("assistant.save-send", "Save & send");
         bar.appendChild(saveBtn);
 
         var cancelBtn = document.createElement("button");
         cancelBtn.className = "gb-edit-cancel";
-        cancelBtn.textContent = t("Cancelar", "Cancel");
+        cancelBtn.textContent = A.t("assistant.cancel", "Cancel");
         bar.appendChild(cancelBtn);
 
         bubble.appendChild(bar);

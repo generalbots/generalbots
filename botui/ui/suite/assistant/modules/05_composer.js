@@ -146,13 +146,13 @@
                 return f.name + " (" + fmtMB(f.size) + ")";
             }).join(", ");
             A.renderError(A.t("attach.too-big",
-                "Arquivo grande demais (limite de 8 MB por arquivo): ") + names);
+                "File too large (8 MB per file limit): ") + names);
             return;
         }
         var empty = files.filter(function (f) { return f.size === 0; });
         if (empty.length) {
             A.renderError(A.t("attach.empty-file",
-                "Arquivo vazio: ") + empty.map(function (f) { return f.name; }).join(", "));
+                "Empty file: ") + empty.map(function (f) { return f.name; }).join(", "));
             return;
         }
         A.renderUserMessage(text, files);

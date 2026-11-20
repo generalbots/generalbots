@@ -24,7 +24,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCAN_ROOT = Path("botui/ui/suite")
 SUFFIXES = (".js",)
-SKIP_SEGMENTS = ("vendor", "node_modules")
+# `tests/` holds Node/vm test harnesses (e.g. webtest-apps/00_harness.js) whose
+# only way to report results is console.log/process.stdout — they are not
+# shipped as production suite JS. Matches the i18n guard's EXCLUDED_PARTS.
+SKIP_SEGMENTS = ("vendor", "node_modules", "tests")
 SKIP_SUFFIXES = (".orig",)
 ALLOWED_FILES = {
     Path("botui/ui/suite/js/gb-shared.js"),  # defines gbLog.debug wrapper

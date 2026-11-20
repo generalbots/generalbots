@@ -128,7 +128,7 @@
             })
         }).then(function () { D.refreshFiles(); })
           .catch(function (e) {
-              D.showToast(A.t("drive.rename-error", "Erro ao renomear") + ": " + (e.message || e), "error");
+              D.showToast(A.t("drive.rename-error", "Rename failed") + ": " + (e.message || e), "error");
               D.refreshFiles();
           });
     }
@@ -157,7 +157,7 @@
                 URL.revokeObjectURL(url);
             }
         }).catch(function (e) {
-            D.showToast(A.t("drive.download-error", "Erro ao baixar") + ": " + (e.message || e), "error");
+            D.showToast(A.t("drive.download-error", "Download failed") + ": " + (e.message || e), "error");
         });
     }
 
@@ -253,14 +253,14 @@
             ghost.click();
             ghost.remove();
         }).catch(function (e) {
-            D.showToast(A.t("drive.preview-error", "Erro ao visualizar") + ": " + (e.message || e), "error");
+            D.showToast(A.t("drive.preview-error", "Preview failed") + ": " + (e.message || e), "error");
         });
     };
 
     /* ---- Use file in conversation (item 4) ---- */
     function useFileInChat(path, name) {
         var MAX_ATTACH = 8 * 1024 * 1024;
-        D.showToast(A.t("drive.fetching", "Carregando arquivo..."));
+        D.showToast(A.t("drive.fetching", "Loading file..."));
         /* Inbox files live in the bot's Drive layout (resolved by the server
            via bot_drive_location). The generic /api/files/download-binary with
            scope "bot" does NOT resolve that layout, so inbox downloads must
@@ -325,12 +325,12 @@
                     }
                 }
             }
-            D.showToast(A.t("drive.attached", "Arquivo anexado à conversa"));
+            D.showToast(A.t("drive.attached", "File attached to conversation"));
             /* Focus the input */
             var inp = document.getElementById("gbInputDock") || document.getElementById("gbInputEmpty");
             if (inp) inp.focus();
         }).catch(function (e) {
-            D.showToast(A.t("drive.download-error", "Erro ao baixar") + ": " + (e.message || e), "error");
+            D.showToast(A.t("drive.download-error", "Download failed") + ": " + (e.message || e), "error");
         });
     }
     useFileInChat._renderChips = function () {

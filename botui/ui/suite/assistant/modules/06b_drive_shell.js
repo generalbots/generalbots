@@ -303,7 +303,7 @@
             cleanup();
             D.req("/createFolder", { method: "POST", body: JSON.stringify({ bucket: D.bucket || undefined, path: D.path || "", name: val, scope: D.scope }) })
                 .then(function () { D.refreshFiles(); })
-                .catch(function (e) { D.showToast(A.t("drive.folder-error", "Erro ao criar pasta") + ": " + (e.message || e), "error"); });
+                .catch(function (e) { D.showToast(A.t("drive.folder-error", "Failed to create folder") + ": " + (e.message || e), "error"); });
         }
         ok.addEventListener("click", commit);
         cancel.addEventListener("click", cleanup);
