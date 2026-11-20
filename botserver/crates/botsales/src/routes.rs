@@ -12,7 +12,7 @@
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{any, get, post},
+    routing::{any, get},
     Json, Router,
 };
 use serde_json::{json, Value};

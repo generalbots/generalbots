@@ -21,7 +21,7 @@ fn lead_score(explicit: Option<i32>) -> i32 {
 }
 
 /// Empty status values fall back to the lifecycle's entry state.
-fn status_or_default(explicit: &str, default: &str) -> &str {
+fn status_or_default<'a>(explicit: &'a str, default: &'a str) -> &'a str {
     if explicit.is_empty() {
         default
     } else {
