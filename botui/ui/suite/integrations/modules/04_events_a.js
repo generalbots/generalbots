@@ -14,9 +14,11 @@
             button.setAttribute("aria-pressed", String(button.dataset.status === state.statusFilter));
         });
     }
-    // #2345 — shared with 04_events_b.js (both are split from 04_events.js);
-    // without exporting it, the app throws on boot ("syncStatusButtons is not defined").
+    // #2345/#2339 — shared with 04_events_b.js (both split from 04_events.js);
+    // without exporting, the app throws on boot ("... is not defined").
     namespace.syncStatusButtons = syncStatusButtons;
+    namespace.setTab = setTab;
+    namespace.showAllProviders = showAllProviders;
 
     /* #2100 — a filter that hides every provider must be one click away from
        showing everything again. */
@@ -195,8 +197,6 @@
         namespace.loadConnected(root);
     };
 
-
-
     namespace.loadCatalog = async function (root) {
         var state = namespace.getState(root);
         state.catalogRequest += 1;
@@ -265,13 +265,5 @@
             namespace.loadProviderDefinitions(root);
         }
     }
-
-    // #2339 — shared with 04_events_b.js (both are split from 04_events.js).
-    // Without exporting it, clicking any tab throws "setTab is not defined"
-    // and the view never switches. Mirrors the syncStatusButtons export above.
-    namespace.setTab = setTab;
-    // #2339 — same split-file class as setTab: 04_events_b.js calls this
-    // recovery action ("show all providers") as a bare global.
-    namespace.showAllProviders = showAllProviders;
 
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});
