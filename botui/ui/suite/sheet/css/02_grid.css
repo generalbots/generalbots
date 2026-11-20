@@ -69,7 +69,7 @@
    path; the formula input carries an inline font size, so an id-qualified
    !important rule is the only way to keep iOS from zooming on focus. */
 @media (max-width: 720px) {
-    #sheet-app .formula-bar .formula-input { font-size: 16px !important; }
+    #sheet-app .formula-bar .formula-input { font-size: var(--text-md) !important; }
 }
 
 .column-header.selected {

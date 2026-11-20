@@ -109,6 +109,6 @@ html, body { height: 100%; }
    keep read-only content usable at 390px; desktop reader styles are untouched. */
 @media (max-width: 720px) {
     .docs-shared-bar { min-height: 48px; }
-    .docs-shared-doc { font-size: 16px; }
+    .docs-shared-doc { font-size: var(--text-md); }
     .docs-shared-doc td, .docs-shared-doc th { padding: 10px 12px; }
 }
