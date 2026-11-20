@@ -166,8 +166,8 @@
       return { xml: "<mover>" + base.xml + "<mo>" + esc(accent) + "</mo></mover>", next: base.next };
     }
     if (name === "left" || name === "right") {
-      var fence = tex[after] || "";
-      return { xml: fence ? '<mo stretchy="true">' + esc(fence) + "</mo>" : "", next: Math.min(tex.length, after + 1) };
+      var bare = tex[after], escaped = bare === "\\" && tex[after + 1] && !/[a-zA-Z]/.test(tex[after + 1]) ? tex[after + 1] : bare, invisible = bare === ".";
+      return { xml: invisible || !escaped ? "" : '<mo stretchy="true">' + esc(escaped) + "</mo>", next: Math.min(tex.length, after + (escaped !== bare ? 2 : 1)) };
     }
     if (name === "begin") {
       var envMatch = /^\{([a-z]*)\}/.exec(tex.slice(after));
@@ -249,16 +249,16 @@
   NS.latexToMathml = latexToMathml;
 
   function isBalanced(latex) {
-    var src = String(latex == null ? "" : latex);
-    var depth = 0;
+    var src = String(latex == null ? "" : latex).replace(/\\[^a-zA-Z]/g, ""), stack = [];
     for (var i = 0; i < src.length; i += 1) {
-      if (src[i] === "{") depth += 1;
-      if (src[i] === "}") { depth -= 1; if (depth < 0) return false; }
+      if (src[i] === "{") stack.push("{"); if (src[i] === "}") { if (stack.pop() !== "{") return false; }
+      var m = /^\\(begin|end)\{([a-z]*)\}/.exec(src.slice(i));
+      if (m) {
+        i += m[0].length - 1;
+        if (m[1] === "begin") stack.push(m[2]); else if (stack.pop() !== m[2]) return false;
+      }
     }
-    if (depth !== 0) return false;
-    var begins = (src.match(/\\begin\{/g) || []).length;
-    var ends = (src.match(/\\end\{/g) || []).length;
-    return begins === ends;
+    return stack.length === 0;
   }
   NS.isBalanced = isBalanced;
 

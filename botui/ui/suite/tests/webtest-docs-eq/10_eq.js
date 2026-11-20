@@ -121,6 +121,19 @@ test("RUNTIME #2483: palette symbols and greek letters map to MathML tokens", fu
   assert(out.indexOf("<mi>α</mi>") >= 0, "\\alpha must be an mi glyph");
 });
 
+test("RUNTIME #2483: \\left/\\right handle literal and invisible delimiters", function () {
+  var NS = fixture().NS;
+  var braces = NS.latexToMathml("\\left\\{x\\right\\}");
+  assert(count(braces, '<mo stretchy="true">{</mo>') === 1 && count(braces, '<mo stretchy="true">}</mo>') === 1,
+    "escaped braces must render as the fence glyphs exactly once");
+  assert(braces.indexOf("\\") < 0, "no literal backslash may leak into the output");
+  var dots = NS.latexToMathml("\\left.x\\right.");
+  assert(dots.indexOf('<mo stretchy="true">.</mo>') < 0, "invisible delimiters must not render a dot");
+  var parens = NS.latexToMathml("\\left(x\\right)");
+  assert(parens.indexOf('<mo stretchy="true">(</mo>') >= 0 && parens.indexOf('<mo stretchy="true">)</mo>') >= 0,
+    "ordinary delimiters must be preserved");
+});
+
 test("RUNTIME #2483: \\text{...} strips inner tags and keeps escaped text", function () {
   var out = fixture().NS.latexToMathml("\\text{a<b}");
   assert(out.indexOf("<mtext>a&lt;b</mtext>") >= 0, "text content must be escaped, with no nested markup");
@@ -145,6 +158,16 @@ test("RUNTIME #2483: isBalanced rejects unmatched braces and env mismatch", func
   assert(NS.isBalanced("{a") === false, "unclosed brace must be unbalanced");
   assert(NS.isBalanced("a}") === false, "extra closing brace must be unbalanced");
   assert(NS.isBalanced("\\begin{matrix}x") === false, "missing end env must be unbalanced");
+});
+
+test("RUNTIME #2483: isBalanced ignores escaped literal braces and matches environment names", function () {
+  var NS = fixture().NS;
+  assert(NS.isBalanced("\\{") === true, "escaped literal brace must not open a group");
+  assert(NS.isBalanced("{x\\}") === false, "escaped close brace must not close a group");
+  assert(NS.isBalanced("\\left\\{x\\right\\}") === true, "escaped fences must balance");
+  assert(NS.isBalanced("\\begin{matrix}x\\end{cases}") === false, "environment names must match");
+  assert(NS.isBalanced("\\begin{matrix}\\begin{cases}x\\end{cases}\\end{matrix}") === true,
+    "properly nested environments must stay balanced");
 });
 
 // ── describe ──────────────────────────────────────────────────────────
