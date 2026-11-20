@@ -166,9 +166,14 @@ jobs:
             $roleSql = 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''gb'') THEN CREATE ROLE gb LOGIN PASSWORD ''gb''; ELSE ALTER ROLE gb WITH LOGIN PASSWORD ''gb''; END IF; END $$;'
             & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c $roleSql
             if ($LASTEXITCODE -ne 0) { throw "could not create/repair the gb role (psql exit $LASTEXITCODE)" }
-            $dbSql = "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec"
-            & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c $dbSql
-            if ($LASTEXITCODE -ne 0) { throw "could not create the botserver database (psql exit $LASTEXITCODE)" }
+            # `\gexec` is not processed inside a psql `-c` argument ("syntax
+            # error at or near \"\\\""), so probe and create in two statements.
+            $existing = & "$pgBin\psql.exe" -tAc "SELECT 1 FROM pg_database WHERE datname='botserver'"
+            if ($LASTEXITCODE -ne 0) { throw "could not query the botserver database (psql exit $LASTEXITCODE)" }
+            if ($existing -notcontains '1') {
+              & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABASE botserver OWNER gb'
+              if ($LASTEXITCODE -ne 0) { throw "could not create the botserver database (psql exit $LASTEXITCODE)" }
+            }
           } finally {
             Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
           }
