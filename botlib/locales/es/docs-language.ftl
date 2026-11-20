@@ -81,6 +81,7 @@ docs-lang-lang-de = Alemán
 docs-lang-lang-ja = Japonés
 docs-lang-lang-ko = Coreano
 docs-lang-lang-zh = Chino
+docs-lang-lang-it = Italiano
 
 # Privacy mode and per-document dictionary (#2484).
 docs-lang-spellcheck = Corrector ortográfico

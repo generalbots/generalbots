@@ -81,6 +81,7 @@ docs-lang-lang-de = 德语
 docs-lang-lang-ja = 日语
 docs-lang-lang-ko = 韩语
 docs-lang-lang-zh = 中文
+docs-lang-lang-it = 意大利语
 
 # Privacy mode and per-document dictionary (#2484).
 docs-lang-spellcheck = 拼写检查

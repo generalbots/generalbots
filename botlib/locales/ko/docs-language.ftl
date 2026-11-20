@@ -81,6 +81,7 @@ docs-lang-lang-de = 독일어
 docs-lang-lang-ja = 일본어
 docs-lang-lang-ko = 한국어
 docs-lang-lang-zh = 중국어
+docs-lang-lang-it = 이탈리아어
 
 # Privacy mode and per-document dictionary (#2484).
 docs-lang-spellcheck = 맞춤법 검사

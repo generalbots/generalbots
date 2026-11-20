@@ -3,8 +3,9 @@
  *
  * These tests read shipped source only. They document exactly which required
  * translation features are NOT shipped, so no runtime PASS is fabricated for
- * missing behaviour. Real defects found while writing them are additionally
- * marked KNOWN BUG and are reported to the issue, never patched here.
+ * missing behaviour. Real defects found while writing them are marked KNOWN
+ * BUG; the one defect actually fixed (the untranslated modal) is guarded by a
+ * REGRESSION test below instead.
  */
 "use strict";
 
@@ -121,14 +122,47 @@ test("[STATIC] #2511: per-language export/search indexing is NOT shipped in tran
     "the shipped export module has no language-variant parameter");
 });
 
-test("[STATIC] #2511 KNOWN BUG: translate modal hardcodes user-facing strings (reported, not patched)", function () {
+test("REGRESSION #2511: translate modal resolves every user-facing string via gbT catalog keys", function () {
   var src = readFile(DOC_TRANSLATE);
-  ["Translate document", "Target language", "Cancel", "Translate",
-    '<option value="English">', '<option value="Italian">'].forEach(function (literal) {
-    assert(src.indexOf(literal) >= 0, "observed hardcoded literal in shipped modal: " + literal);
+  var pairs = [
+    ["docs-translate-title", "Translate document"],
+    ["docs-translate-target-language", "Target language"],
+    ["docs-translate-action", "Translate"],
+    ["action-cancel", "Cancel"],
+    ["docs-lang-lang-en", "English"],
+    ["docs-lang-lang-pt", "Portuguese"],
+    ["docs-lang-lang-es", "Spanish"],
+    ["docs-lang-lang-fr", "French"],
+    ["docs-lang-lang-de", "German"],
+    ["docs-lang-lang-it", "Italian"]
+  ];
+  pairs.forEach(function (pair) {
+    assert(src.indexOf('gbT("' + pair[0] + '", "' + pair[1] + '")') >= 0,
+      "modal must resolve " + pair[1] + " via gbT key " + pair[0]);
   });
-  assertEqual((src.match(/gbT\(/g) || []).length, 1,
-    "observed: only the busy label uses gbT; the rest of the modal is untranslated");
   assert(src.indexOf('gbT("docs-translating", "Translating...")') >= 0,
-    "observed: the single translated key is docs-translating");
+    "busy label must keep its existing catalogue key");
+  assert(src.indexOf(">Translate document<") < 0 &&
+    src.indexOf(">Target language") < 0 &&
+    src.indexOf(">Cancel</button>") < 0 &&
+    src.indexOf(">Translate</button>") < 0 &&
+    src.indexOf(">English</option>") < 0,
+    "modal HTML must not emit raw user-facing literals");
+  // The values sent to the server stay full names; only display text is keyed.
+  assert(src.indexOf('<option value="Portuguese">') >= 0,
+    "option values must remain the server-facing language names (variant link still deferred)");
+  var locales = ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+  var newKeys = ["docs-translate-title", "docs-translate-target-language", "docs-translate-action"];
+  locales.forEach(function (loc) {
+    var backlog = readFile("../../../botlib/locales/" + loc + "/ui-hardcoded-backlog.ftl");
+    newKeys.forEach(function (key) {
+      assert(new RegExp("^" + key + " = .+$", "m").test(backlog),
+        loc + " catalogue must define " + key);
+    });
+    var lang = readFile("../../../botlib/locales/" + loc + "/docs-language.ftl");
+    assert(/^docs-lang-lang-it = .+$/m.test(lang), loc + " catalogue must define docs-lang-lang-it");
+  });
+  assertEqual(/^docs-translate-title = Translate document$/m.test(
+    readFile("../../../botlib/locales/en/ui-hardcoded-backlog.ftl")), true,
+    "en fallback must match the shipped English literal");
 });
