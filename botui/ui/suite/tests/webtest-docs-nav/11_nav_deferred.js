@@ -251,16 +251,16 @@ test("[STATIC] #2485: shipped loader order matches the shared-sandbox order", fu
     "harness loads the same core module first");
 });
 
-// ── KNOWN BUGS: assert observed shipped behaviour, report only ───────────
+// ── FIXED REGRESSIONS plus the remaining KNOWN BUG (reported only) ───────
 
-test("KNOWN BUG #2485: reconcile skips the second adjacent event attribute", function () {
+test("REGRESSION #2485: reconcile strips every event attribute from a live attribute map", function () {
   var NS = fixture().NS;
   var markup = '<p style="color:red" onclick="a()" onmouseover="b()"><span style="x">t</span></p>';
   var result = NS.reconcileQuickPartStyles(markup);
   assert(result.indexOf("style=") < 0, "style attributes removed from descendants");
   assert(result.indexOf('onclick="a()"') < 0, "first event attribute removed");
-  assert(result.indexOf('onmouseover="b()"') >= 0,
-    "observed: adjacent second event attribute survives the live NamedNodeMap iteration");
+  assert(result.indexOf('onmouseover="b()"') < 0,
+    "second adjacent event attribute removed from the live NamedNodeMap snapshot");
 });
 
 test("KNOWN BUG #2485: propagation replaces filled variables with raw placeholders", function () {
@@ -276,7 +276,7 @@ test("KNOWN BUG #2485: propagation replaces filled variables with raw placeholde
   assert(linked.innerHTML.indexOf("5000") < 0, "observed: the per-insert value is lost");
 });
 
-test("KNOWN BUG #2485: drag-down inserts the moved section inside the target section", function () {
+test("REGRESSION #2485: drag-down keeps the target section intact", function () {
   var fx = fixture();
   var NS = fx.NS;
   var art = article(fx, "<split>");
@@ -298,6 +298,6 @@ test("KNOWN BUG #2485: drag-down inserts the moved section inside the target sec
   rows[0].dispatch("dragstart", event());
   rows[1].dispatch("drop", event());
   deepEqual(art.children.map(function (node) { return node.textContent; }),
-    ["<beta>", "<alpha>", "<alpha> body", "<beta> body"],
-    "observed: target heading and its body are separated by the moved section");
+    ["<beta>", "<beta> body", "<alpha>", "<alpha> body"],
+    "target heading stays with its body; the moved section follows it");
 });

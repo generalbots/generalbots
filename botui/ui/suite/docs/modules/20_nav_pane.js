@@ -142,7 +142,7 @@
         var target = list[to];
         if (!article || !source || !target || source === target) return;
         var block = NS.collectSection(source);
-        var before = from < to ? target.nextElementSibling : target;
+        var before = from < to ? NS.collectSection(target).slice(-1)[0].nextElementSibling : target;
         block.forEach(function (node) {
           article.insertBefore(node, before);
         });

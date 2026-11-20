@@ -214,9 +214,9 @@ test("RUNTIME #2485: drag-to-reorder moves a heading with its section and saves 
   assertEqual(rows[1].classList.contains("gb-nav-drop"), true, "dragover marks the drop target");
   rows[1].dispatch("drop", dragEvent());
   NS.save = originalSave;
-  assertEqual(art.children[0].textContent, "Two", "dragged section moves after the target heading");
-  assertEqual(art.children[1].textContent, "One", "dragged heading relocated");
-  assertEqual(art.children[2].textContent, "One body", "dragged body travels with its heading");
+  deepEqual(art.children.map(function (node) { return node.textContent; }),
+    ["Two", "Two body", "One", "One body"],
+    "target section stays intact ahead of the moved section; nodes never duplicated");
   assertEqual(art.children.length, 4, "reorder moves nodes, never duplicates them");
   assertEqual(saves, 1, "exactly one save per reorder");
   assert(fx.trCalls.some(function (call) { return call.key === "docs-nav-reordered"; }),

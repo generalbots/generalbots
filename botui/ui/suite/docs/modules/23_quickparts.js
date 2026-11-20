@@ -67,7 +67,7 @@
     holder.innerHTML = String(html || "");
     Array.prototype.forEach.call(holder.querySelectorAll("*"), function (node) {
       if (node.hasAttribute("style")) node.removeAttribute("style");
-      Array.prototype.forEach.call(node.attributes, function (attr) {
+      Array.prototype.forEach.call(Array.prototype.slice.call(node.attributes), function (attr) {
         if (attr.name.indexOf("on") === 0) node.removeAttribute(attr.name);
       });
     });
