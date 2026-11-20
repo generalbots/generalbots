@@ -310,8 +310,8 @@
       (s.objects || []).forEach(function (o) {
         o.x = num(o.x, 0) * sx; o.y = num(o.y, 0) * sy;
         o.w = num(o.w, 0) * sx; o.h = num(o.h, 0) * sy;
-        if (o.crop) {
-          o.crop.x *= sx; o.crop.y *= sy; o.crop.w *= sx; o.crop.h *= sy;
+        if (o.crop && o.crop.original) {
+          var oc = o.crop.original; oc.x *= sx; oc.y *= sy; oc.w *= sx; oc.h *= sy;
         }
         if (Array.isArray(o.points)) {
           o.points.forEach(function (p) { p.x *= sx; p.y *= sy; });

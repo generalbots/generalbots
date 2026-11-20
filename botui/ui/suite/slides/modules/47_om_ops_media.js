@@ -118,7 +118,7 @@
           original: { x: node.x, y: node.y, w: node.w, h: node.h, src: node.src }
         };
       }
-      Object.keys(patch || {}).forEach(function (k) { node.crop[k] = patch[k]; });
+      Object.keys(patch || {}).forEach(function (k) { node.crop[k] = ["x", "y", "w", "h"].indexOf(k) >= 0 ? Math.max(0, Math.min(1, OM.num(patch[k], 0))) : patch[k]; });
     });
     return true;
   };

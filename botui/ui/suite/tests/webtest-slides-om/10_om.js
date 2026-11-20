@@ -189,13 +189,15 @@ test("RUNTIME: anchorPoint honours left/right/top/bottom and centre defaults", f
 
 test("RUNTIME: rescale scales objects, crop, freeform points and guides", function () {
   h.reset();
-  var s = seed([shape("a", 100, 50, 200, 100, { crop: { x: 1, y: 2, w: 3, h: 4 },
+  var s = seed([shape("a", 100, 50, 200, 100, { crop: { x: 1, y: 2, w: 3, h: 4,
+    original: { x: 100, y: 50, w: 200, h: 100, src: "<s>" } },
     points: [{ x: 100, y: 50 }, { x: 300, y: 150 }] })], [], [{ axis: "x", at: 480 }, { axis: "y", at: 270 }]);
   var result = OM.rescale(s, { w: 960, h: 540 }, { id: "4:3", w: 720, h: 540 });
   equal(result.sx, 0.75, "horizontal scale wrong");
   equal(result.sy, 1, "vertical scale wrong");
   assert(JSON.stringify(s.objects[0]).indexOf('"x":75') >= 0, "object x not scaled");
-  equal(s.objects[0].crop.w, 2.25, "crop rectangle not scaled");
+  equal(s.objects[0].crop.w, 3, "normalized crop rectangle must not be scaled");
+  equal(s.objects[0].crop.original.w, 150, "crop original geometry must be scaled");
   equal(s.objects[0].points[1].x, 225, "freeform point not scaled");
   equal(s.guides[0].at, 360, "x guide not scaled");
   equal(s.guides[1].at, 270, "y guide should not change");
@@ -317,16 +319,15 @@ test("RUNTIME: equalSize scales width/height/both and freeform points", function
   assert(OM.slide(0).objects[0].h === 80 && OM.slide(0).objects[1].h === 80, "equal height wrong");
 });
 
-test("KNOWN-BUG (runtime): equalSize scales freeform points around the origin", function () {
+test("RUNTIME: equalSize scales freeform points around the shape origin (regression #2430)", function () {
   h.reset();
   seed([shape("a", 0, 0, 100, 60), shape("p", 400, 0, 50, 60,
     { type: "freeform", points: [{ x: 400, y: 0 }, { x: 450, y: 60 }] })]);
   Ops.equalSize("w", ["a", "p"]);
-  equal(OM.slide(0).objects[1].points[0].x, 800, "shipped freeform scaling changed (revisit bug)");
-  assert(OM.slide(0).objects[1].points[0].x !== OM.slide(0).objects[1].x,
-    "shipped freeform points unexpectedly stayed anchored (revisit bug)");
-  /* Expected: points stay relative to the shape's own x/y (400 here), but
-   * scaleNode multiplies absolute point coordinates by the width ratio. */
+  var p = OM.slide(0).objects[1];
+  equal(p.points[0].x, 400, "first point stays anchored at the shape x");
+  equal(p.points[1].x, 500, "second point scales relative to the shape x");
+  equal(p.points[0].y, 0, "first point y unchanged when only width is equalized");
 });
 
 test("RUNTIME: lockHide cascades to group descendants", function () {

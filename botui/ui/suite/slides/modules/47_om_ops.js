@@ -316,7 +316,7 @@
     node.w = Math.max(1, OM.num(node.w, 0) * sx);
     node.h = Math.max(1, OM.num(node.h, 0) * sy);
     if (Array.isArray(node.points)) {
-      node.points.forEach(function (p) { p.x *= sx; p.y *= sy; });
+      node.points.forEach(function (p) { p.x = node.x + (p.x - node.x) * sx; p.y = node.y + (p.y - node.y) * sy; });
     }
   }
 

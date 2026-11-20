@@ -93,15 +93,15 @@ test("RUNTIME: crop creates normalized crop state, mask/replace/reset round-trip
   assert(!Ops.crop("missing", { w: 1 }) && !Ops.resetCrop(id), "invalid crop targets should be refused");
 });
 
-test("KNOWN-BUG (runtime): image crop patch is not clamped to 0..1", function () {
+test("RUNTIME: image crop patch is clamped to 0..1 (regression #2430)", function () {
   h.reset();
   seed([shape("img", 0, 0, 100, 80, { type: "image" })]);
-  Ops.crop("img", { x: -2, w: 5 });
+  Ops.crop("img", { x: -2, w: 5, y: 0.25, h: 0.5 });
   var crop = OM.slide(0).objects[0].crop;
-  equal(crop.x, -2, "shipped crop clamped x (revisit bug)");
-  equal(crop.w, 5, "shipped crop clamped w (revisit bug)");
-  /* The dialog clamps width/height to <=1 but never x/y or the lower bound;
-   * Ops.crop itself accepts any patch value. */
+  equal(crop.x, 0, "crop x clamped to lower bound");
+  equal(crop.w, 1, "crop w clamped to upper bound");
+  equal(crop.y, 0.25, "in-range crop y preserved");
+  equal(crop.h, 0.5, "in-range crop h preserved");
 });
 
 test("RUNTIME: hyperlink, alt text and line style are single mutations", function () {
@@ -128,14 +128,15 @@ test("RUNTIME: setSlideSize rescales geometry and rejects invalid sizes", functi
   assert(Ops.setSlideSize({ id: "custom", w: 800, h: 600 }, 0).to.w === 800, "custom size refused");
 });
 
-test("KNOWN-BUG (runtime): setSlideSize rescales normalized crop rectangles", function () {
+test("RUNTIME: setSlideSize keeps normalized crop rectangles intact (regression #2430)", function () {
   h.reset();
   seed([shape("img", 0, 0, 100, 80, { type: "image", src: "<src>" })]);
   Ops.crop("img", { w: 1, h: 1 });
   Ops.setSlideSize("4:3", 0);
-  equal(OM.slide(0).objects[0].crop.w, 0.75, "shipped crop stayed normalized (revisit bug)");
-  /* Crop w/h are fractions of the source image; multiplying them by the
-   * slide-size ratio changes the crop instead of keeping it at 100%. */
+  var crop = OM.slide(0).objects[0].crop;
+  equal(crop.w, 1, "normalized crop must stay at 100%");
+  equal(crop.h, 1, "normalized crop height must stay at 100%");
+  equal(crop.original.w, 75, "crop original geometry must rescale with the slide");
 });
 
 // ── Canvas render + boot wiring ──────────────────────────────────────
