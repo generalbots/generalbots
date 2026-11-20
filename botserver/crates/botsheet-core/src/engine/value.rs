@@ -99,23 +99,39 @@ fn parse_bool(s: &str) -> Result<bool, ()> {
     }
 }
 
-/// Recognises the canonical spreadsheet error codes (ECMA-376 `ST_CellType`
-/// error literals plus the internal `#ERROR!` catch-all).
+/// Canonical ECMA-376 error literals plus the engine's internal catch-all.
+/// One list serves parsing, display and formula normalization so an error code
+/// cannot drift between the JSON store and an exported workbook (#2572).
+pub const CANONICAL_ERROR_CODES: &[&str] = &[
+    "#DIV/0!",
+    "#N/A",
+    "#NAME?",
+    "#NULL!",
+    "#NUM!",
+    "#REF!",
+    "#VALUE!",
+    "#SPILL!",
+    "#CALC!",
+    "#FIELD!",
+    "#BLOCK!",
+    "#CONNECT!",
+    "#UNKNOWN!",
+    "#BUSY!",
+    "#GETTING_DATA",
+    "#ERROR!",
+];
+
+/// Returns the canonical spelling of a recognized error literal, regardless
+/// of case. XLSX writes the canonical uppercase form.
+pub fn canonical_error_literal(s: &str) -> Option<&'static str> {
+    CANONICAL_ERROR_CODES
+        .iter()
+        .copied()
+        .find(|code| code.eq_ignore_ascii_case(s))
+}
+
 fn is_error_code(s: &str) -> bool {
-    matches!(
-        s,
-        "#DIV/0!"
-            | "#N/A"
-            | "#NAME?"
-            | "#NULL!"
-            | "#NUM!"
-            | "#REF!"
-            | "#VALUE!"
-            | "#SPILL!"
-            | "#CALC!"
-            | "#GETTING_DATA"
-            | "#ERROR!"
-    )
+    canonical_error_literal(s).is_some()
 }
 
 /// Formats a number the way a spreadsheet displays it: integers without a
@@ -177,6 +193,16 @@ mod tests {
         assert_eq!(CellValue::parse("12.5"), CellValue::Number(12.5));
         assert_eq!(CellValue::parse("TRUE"), CellValue::Bool(true));
         assert_eq!(CellValue::parse("hello"), CellValue::Text("hello".into()));
+    }
+
+    #[test]
+    fn every_canonical_error_literal_round_trips() {
+        for code in CANONICAL_ERROR_CODES {
+            assert_eq!(CellValue::parse(code), CellValue::Error((*code).to_string()));
+            assert_eq!(CellValue::parse(code).display(), *code);
+        }
+        assert_eq!(canonical_error_literal("#div/0!"), Some("#DIV/0!"));
+        assert_eq!(canonical_error_literal("#not-an-error"), None);
     }
 
     #[test]

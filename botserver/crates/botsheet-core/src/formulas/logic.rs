@@ -45,6 +45,34 @@ pub fn evaluate_iferror(expr: &str, worksheet: &Worksheet) -> Option<String> {
     }
 }
 
+pub fn evaluate_ifna(expr: &str, worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("IFNA(") || !expr.ends_with(')') {
+        return None;
+    }
+    let inner = &expr[5..expr.len() - 1];
+    let parts = super::numeric_args::split_call_args(inner);
+    if parts.len() != 2 {
+        return None;
+    }
+    let value_expr = parts[0].trim();
+    let fallback = parts[1].trim().trim_matches('"');
+    let result = super::evaluate_formula(&format!("={value_expr}"), worksheet);
+    if result.value == "#N/A" {
+        Some(fallback.to_string())
+    } else {
+        Some(result.value)
+    }
+}
+
+pub fn evaluate_isna(expr: &str, _worksheet: &Worksheet) -> Option<String> {
+    if !expr.starts_with("ISNA(") || !expr.ends_with(')') {
+        return None;
+    }
+    let inner = &expr[5..expr.len() - 1];
+    let is_na = inner.trim() == "#N/A";
+    Some(if is_na { "TRUE" } else { "FALSE" }.to_string())
+}
+
 pub fn evaluate_and(expr: &str, worksheet: &Worksheet) -> Option<String> {
     if !expr.starts_with("AND(") || !expr.ends_with(')') {
         return None;

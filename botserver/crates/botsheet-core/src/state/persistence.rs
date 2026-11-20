@@ -1,4 +1,8 @@
 use super::*;
+use crate::types::{
+    embed_settings_in_workbook_json, settings_from_workbook_bytes, set_workbook_settings,
+    workbook_settings,
+};
 
 pub async fn save_sheet_to_drive(
     state: &SheetState,
@@ -32,6 +36,7 @@ pub async fn persist_sheet_to_drive(
     let path = format!("{}/{}.json", get_user_sheets_path(user_id), sheet.id);
     let content =
         serde_json::to_string_pretty(sheet).map_err(|e| format!("Serialization error: {e}"))?;
+    let content = embed_settings_in_workbook_json(&content, &workbook_settings(&sheet.id))?;
 
     drive
         .put_object("gbo", &path, content.into_bytes(), "application/json")
@@ -83,6 +88,7 @@ pub async fn load_sheet_from_drive(
 
     let sheet: crate::types::Spreadsheet =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse sheet: {e}"))?;
+    set_workbook_settings(&sheet.id, settings_from_workbook_bytes(&bytes));
 
     Ok(sheet)
 }
@@ -115,6 +121,7 @@ pub async fn load_sheet_by_id(
 
     let mut sheet: crate::types::Spreadsheet =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse sheet: {e}"))?;
+    set_workbook_settings(&sheet.id, settings_from_workbook_bytes(&bytes));
 
     // Workbooks saved before import-time recalculation (and packages generated
     // with formulas but no cached results) still hold empty formula cells.

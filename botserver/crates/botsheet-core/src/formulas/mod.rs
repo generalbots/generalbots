@@ -3,16 +3,23 @@ pub mod arrays;
 pub mod criteria;
 pub mod date;
 pub mod dynamic;
+pub mod financial;
+pub mod financial_x;
 pub mod helpers;
 pub mod logic;
+pub mod numeric_args;
 pub mod lookup;
 pub mod math;
 pub mod pivot;
 pub mod refs;
+pub mod statistical;
 pub mod text;
 pub mod text365;
+pub mod text_join;
 pub mod trig;
 
+#[cfg(test)]
+mod differential_tests;
 #[cfg(test)]
 mod tests_core;
 
@@ -64,37 +71,6 @@ pub fn evaluate_formula_in(
     }
 }
 
-/// pt-BR aliases for the functions the dispatcher understands.
-///
-/// Translating only the dispatcher's match arms was not enough: every
-/// evaluator validates its own `NAME(` prefix (`evaluate_sum` requires
-/// `SUM(`), so `=SOMA(A1:A3)` still came back as `#ERROR!` (UAT #2258).
-/// Rewrite the call name to the canonical English one before dispatch.
-fn canonical_function_names(expr: String) -> String {
-    let Some((name, rest)) = expr.split_once('(') else {
-        return expr;
-    };
-    let canonical = match name.trim() {
-        "SOMA" => Some("SUM"),
-        "MÉDIA" | "MEDIA" => Some("AVERAGE"),
-        "SOMASE" => Some("SUMIF"),
-        "MÉDIASE" | "MEDIASE" => Some("AVERAGEIF"),
-        "SOMASES" => Some("SUMIFS"),
-        "MÉDIASES" | "MEDIASES" => Some("AVERAGEIFS"),
-        "CONT.SE" => Some("COUNTIF"),
-        "CONT.NÚM" => Some("COUNT"),
-        "CONT.VALORES" => Some("COUNTA"),
-        "MÁXIMO" => Some("MAX"),
-        "MÍNIMO" => Some("MIN"),
-        "MULT" => Some("PRODUCT"),
-        _ => None,
-    };
-    match canonical {
-        Some(canonical) => format!("{canonical}({rest}"),
-        None => expr,
-    }
-}
-
 /// Legacy string-dispatcher evaluation, used for function calls parsed by the
 /// new engine and as a fallback when the typed parser rejects a formula.
 pub fn evaluate_function_call(formula: &str, worksheet: &Worksheet) -> FormulaResult {
@@ -105,8 +81,9 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
     // Drop the leading '=' without assuming it is there (an empty formula used
     // to panic with "byte index 1 is out of bounds") and without cutting into a
     // multi-byte first character.
-    let expr =
-        canonical_function_names(formula.strip_prefix('=').unwrap_or(formula).to_uppercase());
+    let expr = crate::engine::canonicalize_dispatch_formula(
+        formula.strip_prefix('=').unwrap_or(formula),
+    );
 
     // Otimização de busca direta O(1) com base no prefixo do nome da função.
     // Evita iterar linearmente sobre mais de 170 ponteiros de função de fórmula em casos de fallback.
@@ -129,6 +106,8 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
                 "MIN" => math::evaluate_min(&expr, worksheet),
                 "IF" => logic::evaluate_if(&expr, worksheet),
                 "IFERROR" => logic::evaluate_iferror(&expr, worksheet),
+                "IFNA" => logic::evaluate_ifna(&expr, worksheet),
+                "ISNA" => logic::evaluate_isna(&expr, worksheet),
                 "VLOOKUP" => lookup::evaluate_vlookup(&expr, worksheet),
                 "HLOOKUP" => lookup::evaluate_hlookup(&expr, worksheet),
                 "INDEX" => lookup::evaluate_index_match(&expr, worksheet),
@@ -256,6 +235,42 @@ fn evaluate_legacy(formula: &str, worksheet: &Worksheet) -> FormulaResult {
                 "BASE64ENCODE" => text365::evaluate_base64encode(&expr, worksheet),
                 "BASE64DECODE" => text365::evaluate_base64decode(&expr, worksheet),
                 "URLENCODE" => text365::evaluate_urlencode(&expr, worksheet),
+                "PMT" => financial::evaluate_pmt(&expr, worksheet),
+                "IPMT" => financial::evaluate_ipmt(&expr, worksheet),
+                "PPMT" => financial::evaluate_ppmt(&expr, worksheet),
+                "FV" => financial::evaluate_fv(&expr, worksheet),
+                "PV" => financial::evaluate_pv(&expr, worksheet),
+                "RATE" => financial::evaluate_rate(&expr, worksheet),
+                "NPER" => financial::evaluate_nper(&expr, worksheet),
+                "NPV" => financial::evaluate_npv(&expr, worksheet),
+                "IRR" => financial::evaluate_irr(&expr, worksheet),
+                "MIRR" => financial::evaluate_mirr(&expr, worksheet),
+                "XIRR" => financial_x::evaluate_xirr(&expr, worksheet),
+                "XNPV" => financial_x::evaluate_xnpv(&expr, worksheet),
+                "SLN" => financial_x::evaluate_sln(&expr, worksheet),
+                "SYD" => financial_x::evaluate_syd(&expr, worksheet),
+                "DB" => financial_x::evaluate_db(&expr, worksheet),
+                "DDB" => financial_x::evaluate_ddb(&expr, worksheet),
+                "EFFECT" => financial_x::evaluate_effect(&expr, worksheet),
+                "NOMINAL" => financial_x::evaluate_nominal(&expr, worksheet),
+                "CORREL" => statistical::evaluate_correl(&expr, worksheet),
+                "SLOPE" => statistical::evaluate_slope(&expr, worksheet),
+                "INTERCEPT" => statistical::evaluate_intercept(&expr, worksheet),
+                "FORECAST.LINEAR" => statistical::evaluate_forecast_linear(&expr, worksheet),
+                "STDEV.S" => statistical::evaluate_stdev_s(&expr, worksheet),
+                "STDEV.P" => statistical::evaluate_stdev_p(&expr, worksheet),
+                "VAR.S" => statistical::evaluate_var_s(&expr, worksheet),
+                "VAR.P" => statistical::evaluate_var_p(&expr, worksheet),
+                "MODE.SNGL" => statistical::evaluate_mode_sngl(&expr, worksheet),
+                "TEXTJOIN" => text_join::evaluate_textjoin(&expr, worksheet),
+                "CONCAT" => text_join::evaluate_concat(&expr, worksheet),
+                "NETWORKDAYS" => date::evaluate_networkdays(&expr, worksheet),
+                "NETWORKDAYS.INTL" => date::evaluate_networkdays_intl(&expr, worksheet),
+                "EDATE" => date::evaluate_edate(&expr, worksheet),
+                "EOMONTH" => date::evaluate_eomonth(&expr, worksheet),
+                "YEARFRAC" => date::evaluate_yearfrac(&expr, worksheet),
+                "WEEKNUM" => date::evaluate_weeknum(&expr, worksheet),
+                "ISOWEEKNUM" => date::evaluate_isoweeknum(&expr, worksheet),
                 _ => None,
             };
         }
