@@ -11,7 +11,8 @@ pub use types::{CatalogResponse, LlmAction, LlmProviderSummary, ProviderItem};
 use axum::Router;
 
 use types::{
-    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed, Status,
+    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed,
+    ProviderSource, Status,
 };
 
 pub fn register<S: Clone + Send + Sync + 'static>(router: Router<S>) -> Router<S> {
@@ -121,6 +122,7 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
         strategy: seed.strategy,
         status: derived_status(seed, implemented, adapter_present),
         priority: seed.priority,
+        source: ProviderSource::SeededHardcoded,
         module: seed.module,
         official_docs: seed.official_docs,
         credentials_url: credentials::credential_page(seed.id),
@@ -222,6 +224,16 @@ pub fn search(
         action_count,
         providers,
     }
+}
+
+/// Canonical, stable provider-id vocabulary used by the `provider_not_found`
+/// diagnostic (#2346). Sorted and de-duplicated so a 404 body is reproducible
+/// and a client can branch on the exact same list the catalog serves.
+pub fn provider_ids() -> Vec<&'static str> {
+    let mut ids: Vec<&'static str> = providers::all().into_iter().map(|seed| seed.id).collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids
 }
 
 pub fn provider_by_id(id: &str) -> Option<ProviderItem> {

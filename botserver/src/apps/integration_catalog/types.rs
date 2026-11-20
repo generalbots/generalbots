@@ -213,6 +213,33 @@ pub(crate) struct ProviderSeed {
     pub llm_available: bool,
 }
 
+/// Provenance of a provider definition returned by the catalog (#2346).
+///
+/// Every provider shipped by this build is Rust seed data in
+/// `integration_catalog/providers/*.rs`, expanded once at boot. The only
+/// honest value the server can emit today is therefore `seeded:hardcoded`.
+///
+/// `operator` and `community` are reserved wire tokens for the DB-backed
+/// provider editor described in #2346. That migration (an
+/// `integration_providers` table, idempotent seed script and admin CRUD) is
+/// deliberately NOT part of this slice: until it exists the server must not
+/// claim a definition came from either of them. The frontend normalizes all
+/// three tokens so it can render them unchanged when the editor lands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderSource {
+    #[serde(rename = "seeded:hardcoded")]
+    SeededHardcoded,
+}
+
+impl ProviderSource {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SeededHardcoded => "seeded:hardcoded",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ProviderItem {
     pub id: &'static str,
@@ -221,6 +248,10 @@ pub struct ProviderItem {
     pub strategy: Strategy,
     pub status: Status,
     pub priority: Priority,
+    /// Where this definition came from (#2346). Serialized as a stable token
+    /// so the detail panel can explain provenance instead of assuming every
+    /// entry is first-party.
+    pub source: ProviderSource,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]

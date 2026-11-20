@@ -178,6 +178,7 @@ integrations-source-provider-list-title = Provider definitions
 integrations-source-edit-provider = Edit
 integrations-source-delete-provider = Delete
 integrations-source-detail-title = Source and provenance
+integrations-source-detail-source = Source
 
 integrations-automation-param-invalid = Check the value for { $field } ({ $type }).
 integrations-automation-param-required = { $field } is required.

@@ -4,7 +4,7 @@ use serde_json::Value;
 
 #[cfg(feature = "integrations")]
 use super::types::Status;
-use super::types::{AuthMethod, InputType, Risk};
+use super::types::{AuthMethod, InputType, ProviderSource, Risk};
 use super::{llm_actions, provider_by_id, search};
 
 #[test]
@@ -335,6 +335,55 @@ fn llm_action_manifest_omits_secret_auth_metadata() {
         };
         assert!(fields.keys().all(|key| allowed.contains(key.as_str())));
     }
+}
+
+#[test]
+fn every_catalog_provider_declares_the_compiled_seed_source() {
+    // #2346 — provenance must be on the wire, not inferred by the UI from a
+    // build-time assumption. Every provider in this build is a Rust seed, so
+    // the only honest token is `seeded:hardcoded`.
+    let catalog = search(None, None, None);
+    assert!(!catalog.providers.is_empty(), "catalog must expose providers");
+    for provider in &catalog.providers {
+        assert_eq!(provider.source, ProviderSource::SeededHardcoded);
+        assert_eq!(provider.source.as_str(), "seeded:hardcoded");
+    }
+}
+
+#[test]
+fn catalog_payload_serializes_source_as_a_stable_token() {
+    let Some(provider) = provider_by_id("aws") else {
+        panic!("AWS provider is missing");
+    };
+    let value = match serde_json::to_value(&provider) {
+        Ok(value) => value,
+        Err(error) => panic!("provider payload serialization failed: {error}"),
+    };
+    assert_eq!(value["source"], "seeded:hardcoded");
+}
+
+#[test]
+fn provider_not_found_uses_a_diagnostic_envelope() {
+    // #2346 — a bare "not found" string gave the UI nothing to explain a bad
+    // deep link. The 404 now carries the same envelope as the other catalog
+    // routes plus the canonical id vocabulary.
+    let body = super::routes::not_found_diagnostic();
+    assert_eq!(body["error"], "provider_not_found");
+    assert_eq!(body["code"], "provider_not_found");
+    assert_eq!(body["message"], "Integration provider not found.");
+    assert!(body["hint"]
+        .as_str()
+        .is_some_and(|hint| hint.contains("/catalog")));
+    let Some(ids) = body["valid_provider_ids"].as_array() else {
+        panic!("404 diagnostic must carry the canonical provider id list");
+    };
+    assert!(!ids.is_empty(), "the diagnostic id list must not be empty");
+    assert!(ids.iter().any(|id| id.as_str() == Some("aws")));
+    let listed: Vec<&str> = ids.iter().filter_map(|id| id.as_str()).collect();
+    let mut canonical = listed.clone();
+    canonical.sort_unstable();
+    canonical.dedup();
+    assert_eq!(listed, canonical, "diagnostic ids must be sorted and unique");
 }
 
 #[tokio::test]

@@ -178,6 +178,7 @@ integrations-source-provider-list-title = 공급자 정의
 integrations-source-edit-provider = 편집
 integrations-source-delete-provider = 삭제
 integrations-source-detail-title = 출처 및 출처 정보
+integrations-source-detail-source = 출처
 
 integrations-automation-param-invalid = { $field } ({ $type }) 값을 확인하세요.
 integrations-automation-param-required = { $field }은(는) 필수입니다.

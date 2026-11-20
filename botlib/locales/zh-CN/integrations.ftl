@@ -178,6 +178,7 @@ integrations-source-provider-list-title = 提供商定义
 integrations-source-edit-provider = 编辑
 integrations-source-delete-provider = 删除
 integrations-source-detail-title = 来源与出处
+integrations-source-detail-source = 来源
 
 integrations-automation-param-invalid = 请检查 { $field } ({ $type }) 的值。
 integrations-automation-param-required = { $field } 为必填项。

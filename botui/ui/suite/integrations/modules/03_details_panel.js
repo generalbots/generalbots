@@ -1,5 +1,4 @@
 "use strict";
-
 (function (namespace) {
     var helpers = namespace.detailsHelpers || {};
     var isAwsProvider = helpers.isAwsProvider;
@@ -18,7 +17,6 @@
     var clearFieldErrors = helpers.clearFieldErrors;
     var clearFormInputs = helpers.clearFormInputs;
     var connectErrorMessage = helpers.connectErrorMessage;
-
     namespace.submitConnectForm = async function (root, form) {
         var state = namespace.getState(root);
         var provider = state.providerMap.get(state.selectedProviderId);
@@ -241,9 +239,11 @@
         var warning = state.detailStatus === "error" ? '<div class="integrations-inline-warning"><strong>Latest detail could not be loaded</strong>' +
             '<p>Showing the provider information already available from the catalog.</p><button class="integrations-button" type="button" data-action="retry-detail">Try detail again</button></div>' :
             (state.detailStatus === "loading" ? '<p class="integrations-readonly-note" role="status" aria-live="polite">Refreshing provider detail...</p>' : '');
+        var sourceLabel = typeof window.gbT === "function" ? window.gbT("integrations-source-detail-source", "Source") : "Source";
         body.innerHTML = '<div class="integrations-detail-summary">' + providerMark(provider) + '<div><h3>' + namespace.escapeHtml(provider.name) + '</h3>' +
             '<p>' + namespace.escapeHtml(provider.strategy) + '</p></div></div>' +
-            '<dl class="integrations-detail-meta"><div><dt>Category</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.category)) + '</dd></div>' +
+            '<dl class="integrations-detail-meta"><div><dt data-i18n="integrations-source-detail-source">' + namespace.escapeHtml(sourceLabel) + '</dt><dd>' + namespace.escapeHtml(namespace.providerSourceLabel(provider.source)) + '</dd></div>' +
+            '<div><dt>Category</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.category)) + '</dd></div>' +
             '<div><dt>Priority</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.priority)) + '</dd></div>' +
             '<div><dt>Module</dt><dd>' + namespace.escapeHtml(provider.module) + '</dd></div></dl>' + warning + expiryBanner(root, provider) +
             (typeof renderProviderSourceSection === "function" ? renderProviderSourceSection(provider) : "") +

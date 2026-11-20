@@ -178,6 +178,7 @@ integrations-source-provider-list-title = プロバイダー定義
 integrations-source-edit-provider = 編集
 integrations-source-delete-provider = 削除
 integrations-source-detail-title = 出典と由来
+integrations-source-detail-source = ソース
 
 integrations-automation-param-invalid = { $field } ({ $type }) の値を確認してください。
 integrations-automation-param-required = { $field } は必須です。

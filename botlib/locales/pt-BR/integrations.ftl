@@ -178,6 +178,7 @@ integrations-source-provider-list-title = Definições de provedores
 integrations-source-edit-provider = Editar
 integrations-source-delete-provider = Excluir
 integrations-source-detail-title = Fonte e proveniência
+integrations-source-detail-source = Fonte
 
 integrations-automation-param-invalid = Verifique o valor de { $field } ({ $type }).
 integrations-automation-param-required = { $field } é obrigatório.

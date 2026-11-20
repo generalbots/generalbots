@@ -30,13 +30,25 @@ async fn catalog(Query(filters): Query<CatalogQuery>) -> Json<super::CatalogResp
     ))
 }
 
+/// #2346 — the 404 body uses the same sanitized envelope as the other catalog
+/// routes (`error`/`code` machine token, `message` human copy). The requested
+/// id is deliberately not echoed back: path input does not belong in an error
+/// body. A hint plus the canonical id list makes a stale deep link fixable
+/// without guessing and without a code change.
+pub(super) fn not_found_diagnostic() -> Value {
+    json!({
+        "error": "provider_not_found",
+        "code": "provider_not_found",
+        "message": "Integration provider not found.",
+        "hint": "List valid provider ids with GET /api/apps/integrations/catalog.",
+        "valid_provider_ids": super::provider_ids(),
+    })
+}
+
 async fn provider(
     Path(provider_id): Path<String>,
 ) -> Result<Json<ProviderItem>, (StatusCode, Json<Value>)> {
-    provider_by_id(&provider_id).map(Json).ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "integration provider not found" })),
-        )
-    })
+    provider_by_id(&provider_id)
+        .map(Json)
+        .ok_or_else(|| (StatusCode::NOT_FOUND, Json(not_found_diagnostic())))
 }
