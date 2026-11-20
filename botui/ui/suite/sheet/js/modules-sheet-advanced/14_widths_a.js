@@ -10,7 +10,6 @@
   // capped to a still-enormous 545k rows. Desktop keeps the full range.
   const MAX_TOUCH_CANVAS = 24000000;
   const HEADER_W = 48;
-  const COL_WIDTH = 96;
 
   // Evaluated once at load so every geometry helper shares one row size and
   // an orientation change cannot desync cells from the bodyInner height.
@@ -216,7 +215,6 @@
       g.headerColPool = [];
     };
 
-    const origIR = g.renderRow.bind(g);
     g.renderRow = function (row) {
       const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
       for (let c = cols.start; c < cols.end; c++) {
@@ -253,9 +251,7 @@
           node.style.outline = "none";
           node.style.zIndex = "1";
         }
-        // #2493 — this per-window renderRow wrapper shadows the canonical one
-        // in 03_grid_render.js, so without this call no rendered cell gets its
-        // ARIA grid coordinates (the a11y module attaches updateCellA11y later).
+        // #2493 — this wrapper shadows 03_grid_render.js, so set ARIA coords here.
         if (g.updateCellA11y) g.updateCellA11y(node, row, c, cellData);
       }
     };
