@@ -21,6 +21,7 @@ pub mod sql_guard;
 pub mod tenant;
 pub mod upload_archive;
 pub mod upload_error;
+pub mod upload_hostile;
 pub mod upload_policy;
 pub mod upload_tables;
 pub mod upload_transport;

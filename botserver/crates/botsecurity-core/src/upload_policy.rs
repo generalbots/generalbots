@@ -19,7 +19,11 @@
 //! 5. the declared `Content-Type` must agree with the extension;
 //! 6. the magic bytes must agree with the extension;
 //! 7. zip containers are opened and refused when they look like a bomb
-//!    (entry count, decompressed size, unsafe entry names).
+//!    (entry count, decompressed size, unsafe entry names);
+//! 8. #2522 — zip containers additionally go through the hostile-file gate
+//!    ([`crate::upload_hostile`]): compressed/uncompressed/ratio caps,
+//!    encrypted, nested and macro-bearing parts, SSRF-checked relationship
+//!    targets and an honest malware-scan decision.
 //!
 //! Handlers answer with [`rejection_json`] / [`rejection_message`], which
 //! translate a stable catalogue code for the request locale and never echo
@@ -27,6 +31,13 @@
 
 use crate::file_validation::{blocked_extensions, detect_mime_type};
 pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
+pub use crate::upload_hostile::{
+    inspect_hostile_upload, inspect_hostile_upload_named, inspect_hostile_upload_with,
+    malware_decision, scan_for_malware, set_malware_scanner, validate_relationship_target,
+    HostileFilePolicy, HostileFileReport, MalwareScanDecision, MalwareScanner,
+    DEFAULT_MAX_COMPRESSED_BYTES,
+    DEFAULT_MAX_COMPRESSION_RATIO, DEFAULT_MAX_ENTRIES, DEFAULT_MAX_UNCOMPRESSED_BYTES,
+};
 pub use crate::upload_transport::{body_limit, check_declared_length};
 
 pub use crate::upload_error::{
@@ -311,7 +322,11 @@ pub fn validate_upload(
     }
 
     if is_zip_container(expected) {
-        inspect_archive(data)?;
+        // #2522 — the full hostile-file gate runs centrally for every zip
+        // container, so an import handler cannot forget to call it. Handlers
+        // that need the report (scanner decision, observed ratios) can call
+        // `inspect_hostile_upload_named` themselves with the same defaults.
+        crate::upload_hostile::inspect_hostile_upload_named(data, &filename)?;
     }
 
     Ok(ValidatedUpload {

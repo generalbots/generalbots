@@ -22,6 +22,24 @@ pub enum UploadError {
     UnknownExtension { extension: String },
     TypeMismatch { expected: String, detected: String },
     ArchiveUnsafe { reason: &'static str },
+    /// A zip entry is encrypted, so its content cannot be inspected (#2522).
+    ArchiveEncrypted,
+    /// A second zip/Office container is embedded in the upload (#2522).
+    ArchiveNested { part: String },
+    /// A VBA/OLE macro part is present. We refuse the whole file rather than
+    /// strip it: rewriting a signed OOXML package invalidates its signature.
+    ArchiveMacro { part: String },
+    /// The declared uncompressed-to-compressed ratio exceeds the cap (#2522).
+    ArchiveCompressionRatio { ratio: u64, max: u64 },
+    /// An OOXML/ODF relationship target failed the SSRF policy (#2522).
+    RelationshipTargetUnsafe { kind: &'static str },
+    /// A malware scan was mandatory but no scanner hook is installed (#2522).
+    MalwareScannerMissing,
+    /// The configured scanner could not complete, so the file is refused
+    /// rather than treated as clean (#2522).
+    MalwareScanFailed,
+    /// The configured scanner reported a signature (#2522).
+    MalwareDetected { signature: String },
 }
 
 impl UploadError {
@@ -43,7 +61,15 @@ impl UploadError {
             Self::ExtensionNotAllowed { .. } => "error-file-type-not-allowed",
             Self::UnknownExtension { .. } => "error-file-extension-unknown",
             Self::TypeMismatch { .. } => "error-file-content-mismatch",
-            Self::ArchiveUnsafe { .. } => "error-file-archive-unsafe",
+            Self::ArchiveUnsafe { .. }
+            | Self::ArchiveEncrypted
+            | Self::ArchiveNested { .. }
+            | Self::ArchiveMacro { .. }
+            | Self::ArchiveCompressionRatio { .. }
+            | Self::RelationshipTargetUnsafe { .. } => "error-file-archive-unsafe",
+            Self::MalwareScannerMissing
+            | Self::MalwareScanFailed
+            | Self::MalwareDetected { .. } => "error-file-upload-failed",
         }
     }
 
@@ -80,6 +106,35 @@ impl UploadError {
             ),
             Self::ArchiveUnsafe { reason } => {
                 i18n::translate(locale, code, &[("reason", reason)])
+            }
+            Self::ArchiveEncrypted => {
+                i18n::translate(locale, code, &[("reason", "encrypted entry")])
+            }
+            Self::ArchiveNested { .. } => {
+                i18n::translate(locale, code, &[("reason", "nested archive")])
+            }
+            Self::ArchiveMacro { .. } => {
+                i18n::translate(locale, code, &[("reason", "macro-bearing part")])
+            }
+            Self::ArchiveCompressionRatio { .. } => {
+                i18n::translate(locale, code, &[("reason", "compression ratio too high")])
+            }
+            Self::RelationshipTargetUnsafe { kind } => {
+                let reason = format!("unsafe external reference ({kind})");
+                i18n::translate(locale, code, &[("reason", &reason)])
+            }
+            Self::MalwareScannerMissing => i18n::translate(
+                locale,
+                code,
+                &[("message", "no malware scanner is configured")],
+            ),
+            Self::MalwareScanFailed => i18n::translate(
+                locale,
+                code,
+                &[("message", "the malware scan could not be completed")],
+            ),
+            Self::MalwareDetected { .. } => {
+                i18n::translate(locale, code, &[("message", "malware detected")])
             }
             Self::Empty | Self::FilenameInvalid => i18n::get(locale, code),
         }
