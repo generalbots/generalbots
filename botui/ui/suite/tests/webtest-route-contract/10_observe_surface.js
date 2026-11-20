@@ -26,7 +26,7 @@ function count(text, regex) {
   return matches ? matches.length : 0;
 }
 
-test("[BASELINE-OBSERVE] 4,420 router Rust files, 2,375 .route( and 9 .nest( calls", function () {
+test("[BASELINE-OBSERVE] 4,422 router Rust files, 2,378 .route( and 9 .nest( calls", function () {
   var files = rustFiles();
   var routeCalls = 0;
   var nestCalls = 0;
@@ -37,23 +37,23 @@ test("[BASELINE-OBSERVE] 4,420 router Rust files, 2,375 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4420, "shipped router .rs file count");
-  equal(routeCalls, 2375, "raw .route( call count");
+  equal(files.length, 4422, "shipped router .rs file count");
+  equal(routeCalls, 2378, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
-  equal(routeFiles, 215, "files containing .route(");
+  equal(routeFiles, 216, "files containing .route(");
   observe("Rust files / .route( calls / .nest( calls / router files",
     files.length + " / " + routeCalls + " / " + nestCalls + " / " + routeFiles);
 });
 
-test("[BASELINE-OBSERVE] 2,719 parsed registrations (2,688 unique method+path)", function () {
+test("[BASELINE-OBSERVE] 2,723 parsed registrations (2,692 unique method+path)", function () {
   var registrations = routeRegistrations();
   var keys = registrations.map(function (r) {
     return r.method + " " + h.canonical(r.path);
   });
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
-  equal(registrations.length, 2719, "parsed registration count");
-  equal(Object.keys(unique).length, 2688, "unique method+path count");
+  equal(registrations.length, 2723, "parsed registration count");
+  equal(Object.keys(unique).length, 2692, "unique method+path count");
   var sources = {};
   registrations.forEach(function (r) { sources[r.source] = true; });
   observe("parsed registrations / unique method+path / owning files",
