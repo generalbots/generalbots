@@ -3,6 +3,7 @@
 
 drive-new-bot = New Bot
 drive-upload-folder = Upload folder
+drive-folder-unsupported = Folder upload isn't supported in this browser — use Upload to select files.
 drive-take-photo = Take photo
 drive-camera-permission-title = Use camera
 drive-camera-permission-explainer = General Bots will ask for camera access so you can take a photo and upload it to this folder. Your browser controls the permission.

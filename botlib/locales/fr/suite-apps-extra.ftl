@@ -3,6 +3,7 @@
 
 drive-new-bot = Nouveau bot
 drive-upload-folder = Importer un dossier
+drive-folder-unsupported = L'envoi de dossiers n'est pas pris en charge par ce navigateur — utilisez Importer pour sélectionner des fichiers.
 drive-take-photo = Prendre une photo
 drive-camera-permission-title = Utiliser l'appareil photo
 drive-camera-permission-explainer = General Bots demandera l'accès à l'appareil photo pour que vous puissiez prendre une photo et la téléverser dans ce dossier. Votre navigateur contrôle l'autorisation.

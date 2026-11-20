@@ -225,6 +225,10 @@ Drive
 </button>
 </div>
 </div>
+<!-- #2510 — visible fallback for browsers without webkitdirectory (notably iOS
+     Safari). The folder input and buttons are hidden by 07_events.js when the
+     capability probe fails; this localized note replaces the dead control. -->
+<div id="folder-unsupported-note" data-i18n="drive-folder-unsupported" role="status" aria-live="polite" aria-atomic="true" hidden style="margin:8px 12px;padding:8px 12px;border-radius:8px;background:var(--muted,rgba(0,0,0,.05));color:var(--muted-foreground,#64748b);font-size:12px;"></div>
 <!-- File Content Area - Populated by JavaScript -->
 <div class="drive-content" id="drive-content">
 <div class="loading-state">

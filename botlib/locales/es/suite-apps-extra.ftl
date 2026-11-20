@@ -3,6 +3,7 @@
 
 drive-new-bot = Nuevo bot
 drive-upload-folder = Subir carpeta
+drive-folder-unsupported = La subida de carpetas no es compatible con este navegador — usa Subir para seleccionar archivos.
 drive-take-photo = Tomar foto
 drive-camera-permission-title = Usar cámara
 drive-camera-permission-explainer = General Bots solicitará acceso a la cámara para que puedas tomar una foto y subirla a esta carpeta. Tu navegador controla el permiso.

@@ -133,15 +133,28 @@ function bindUploadButton() {
 
     // #1751 — folder picker is a separate input (never webkitdirectory on
     // #file-input) so flat file selection still uploads as before.
-    // #2510 — hide folder upload on platforms without webkitdirectory support.
+    // #2510 — graceful iOS fallback: iOS Safari has no webkitdirectory, so the
+    // folder picker can never be satisfied there. Keep the input in the DOM,
+    // hide the folder buttons and show a localized note pointing users at the
+    // ordinary file picker instead of leaving a dead control on screen.
     var folderBtn = document.getElementById("upload-folder-btn");
     var toolbarFolderBtn = document.getElementById("toolbar-folder-btn");
     var folderInput = document.getElementById("folder-input");
+    var folderNote = document.getElementById("folder-unsupported-note");
     var supportsFolder = typeof document !== "undefined" && "webkitdirectory" in document.createElement("input");
     if (!supportsFolder) {
         if (folderBtn) folderBtn.style.display = "none";
         if (toolbarFolderBtn) toolbarFolderBtn.style.display = "none";
         if (folderInput) folderInput.style.display = "none";
+        if (folderNote) {
+            if (window.gbT) {
+                folderNote.textContent = window.gbT(
+                    "drive-folder-unsupported",
+                    "Folder upload isn't supported in this browser — use Upload to select files."
+                );
+            }
+            folderNote.hidden = false;
+        }
     } else {
         if (folderBtn) folderBtn.addEventListener("click", triggerFolderUpload);
         if (toolbarFolderBtn) toolbarFolderBtn.addEventListener("click", triggerFolderUpload);

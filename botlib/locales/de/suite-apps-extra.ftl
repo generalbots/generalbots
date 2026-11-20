@@ -3,6 +3,7 @@
 
 drive-new-bot = Neuer Bot
 drive-upload-folder = Ordner hochladen
+drive-folder-unsupported = Das Hochladen von Ordnern wird von diesem Browser nicht unterstützt – verwenden Sie Hochladen, um Dateien auszuwählen.
 drive-take-photo = Foto aufnehmen
 drive-camera-permission-title = Kamera verwenden
 drive-camera-permission-explainer = General Bots bittet um Kamerazugriff, damit Sie ein Foto aufnehmen und in diesen Ordner hochladen können. Die Berechtigung wird von Ihrem Browser gesteuert.
