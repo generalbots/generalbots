@@ -111,6 +111,7 @@
         item0.className = "gb-model-menu-item" + (isSelected ? " active" : "");
         item0.innerHTML = '<span class="gb-model-menu-name">' + esc(currentShort) + '</span>' +
             (scopeLabel ? '<span class="gb-model-menu-meta">' + esc(scopeLabel) + '</span>' : '');
+        item0.className += " gb-model-menu-current";
         item0.addEventListener("click", function () { selectModel(A.defaultModel); });
         menu.appendChild(item0);
 
@@ -133,6 +134,12 @@
 
         addAgentGroup(menu);
         addAccountGroups(menu);
+        /* Agents linked since the page opened appear without a reload. */
+        if (A.loadLinkedAgents) {
+            A.loadLinkedAgents().then(function () {
+                if (activeModelMenu === menu && !menu.querySelector('[data-group="agents"]')) { addAgentGroup(menu); }
+            });
+        }
         addSwitchEntries(menu, dest);
 
         var div = document.createElement("div");
@@ -180,15 +187,34 @@
         }
         A.apiFetch("/api/llm/local/models").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
             if (!data || activeModelMenu !== menu) { return; }
-            var current = A.fullModelName(A.defaultModel || "");
-            (data.tiers || []).forEach(function (tier) {
-                (tier.models || []).forEach(function (m) {
-                    if (!m.downloaded || m.file === current) { return; }
-                    menuEntry(menu, m.name, tr("neste computador", "on this computer"),
-                        function () { switchTo({ local: m.id }); });
-                });
-            });
+            addLocalGroup(menu, data);
         }).catch(function () { /* the menu keeps what it has */ });
+    }
+
+    /* ---- The models installed on this computer, in one group. The one in
+       use moves from the top of the menu into the group; picking another
+       does the real local switch. ---- */
+    var CHIP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+        '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>';
+    function addLocalGroup(menu, data) {
+        var current = A.fullModelName(A.defaultModel || "");
+        var inUse = !A.selectedModel || A.selectedModel === A.defaultModel;
+        var items = [];
+        (data.tiers || []).forEach(function (tier) {
+            (tier.models || []).forEach(function (m) {
+                if (!m.downloaded) { return; }
+                var isCurrent = m.file === current;
+                items.push({ model: m.name, value: isCurrent ? "" : m.id, active: isCurrent && inUse, current: isCurrent });
+            });
+        });
+        if (!items.length) { return; }
+        if (items.some(function (x) { return x.current; })) {
+            var top = menu.querySelector(".gb-model-menu-current");
+            if (top) { top.remove(); }
+        }
+        addGroup(menu, { id: "local", name: tr("Modelos locais", "Local models"), icon: CHIP }, items, function (id) {
+            if (id) { switchTo({ local: id }); } else { selectModel(A.defaultModel); }
+        });
     }
 
     /* ---- Connected subscription agents (Settings > Modelo > Agente). They
@@ -214,14 +240,16 @@
     }
 
     function addGroup(menu, acc, models, onPick) {
-        var open = models.some(function (m) { return m.value === A.selectedModel; });
+        function isActive(m) { return m.active !== undefined ? m.active : A.selectedModel === m.value; }
+        var open = models.some(isActive);
         var group = document.createElement("div");
         group.className = "gb-model-group" + (open ? " open" : "");
+        group.setAttribute("data-group", acc.id);
         var head = document.createElement("button");
         head.type = "button";
         head.className = "gb-model-group-head";
         head.setAttribute("aria-expanded", String(open));
-        var svg = (A._providerLogos || {})[acc.logo || acc.id] || "";
+        var svg = acc.icon || (A._providerLogos || {})[acc.logo || acc.id] || "";
         head.innerHTML = (svg ? '<span class="gb-model-group-logo">' + svg + '</span>' : '') +
             '<span class="gb-model-group-name">' + esc(acc.name || acc.id) + '</span>' +
             '<span class="gb-model-group-count">' + models.length + '</span>' +
@@ -235,7 +263,7 @@
         list.className = "gb-model-group-list";
         models.forEach(function (m) {
             var item = document.createElement("button");
-            item.className = "gb-model-menu-item" + (A.selectedModel === m.value ? " active" : "");
+            item.className = "gb-model-menu-item" + (isActive(m) ? " active" : "");
             item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
             item.addEventListener("click", function () { onPick(m.value); });
             list.appendChild(item);

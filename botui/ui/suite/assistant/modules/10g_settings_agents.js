@@ -88,48 +88,66 @@ function rowHtml(a, st) {
     btn + '</div><div class="gb-prov-flow" data-flow="' + a.id + '"></div></div>';
 }
 
-/** The sign-in step: link, code to type there, or a box for the code it returns. */
-function showFlow(el, a, d) {
+/* What the sign-in has shown so far, per agent: a status poll that comes
+ * back without the link or the code never takes them off the screen. */
+var flows = {};
+function show(node, on) { if (node) { node.style.display = on ? "" : "none"; } }
+function setText(node, text) { if (node && node.textContent !== text) { node.textContent = text; } }
+
+/** The box is built once per sign-in; later polls only change what differs. */
+function flowParts(el, a) {
   var box = el.querySelector('[data-flow="' + a.id + '"]');
-  if (!box) { return; }
-  var code = d.device_code || d.auth_code || "";
-  var html = '<p class="gb-set-hint">' + esc(d.message || g("preparing")) + '</p>';
-  if (d.url) {
-    html += '<a class="gb-set-btn-sm gb-set-btn-accent gb-prov-open" href="' + esc(d.url) + '" target="_blank" rel="noopener noreferrer">' + esc(g("open")) + ' ↗</a>';
-  }
-  if (code && !a.paste) {
-    html += '<p class="gb-set-hint">' + esc(g("codeHelp")) + '</p><div class="gb-prov-url gb-prov-code">' + esc(code) + '</div>';
-  }
-  if (d.url && a.paste) {
-    html += '<div class="gb-set-form-actions"><input class="gb-set-input" data-paste="' + a.id + '" placeholder="' + esc(g("paste")) + '" autocomplete="off"/>' +
-      '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" data-send="' + a.id + '">' + esc(g("send")) + '</button></div>';
-  }
-  var focused = document.activeElement && document.activeElement.getAttribute("data-paste") === a.id;
-  if (!focused) { box.innerHTML = html; }
-  var send = box.querySelector('[data-send="' + a.id + '"]');
-  if (send) {
+  if (!box) { return null; }
+  if (!box.querySelector('[data-role="msg"]')) {
+    box.innerHTML = '<p class="gb-set-hint" data-role="msg"></p>' +
+      '<a class="gb-set-btn-sm gb-set-btn-accent gb-prov-open" data-role="open" target="_blank" rel="noopener noreferrer" style="display:none">' + esc(g("open")) + ' ↗</a>' +
+      '<div data-role="codewrap" style="display:none"><p class="gb-set-hint">' + esc(g("codeHelp")) + '</p><div class="gb-prov-url gb-prov-code" data-role="code"></div></div>' +
+      '<div class="gb-set-form-actions" data-role="pastewrap" style="display:none"><input class="gb-set-input" data-paste="' + a.id + '" placeholder="' + esc(g("paste")) + '" autocomplete="off"/>' +
+        '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" data-send="' + a.id + '">' + esc(g("send")) + '</button></div>' +
+      '<div data-role="err"></div>';
+    var send = box.querySelector('[data-send="' + a.id + '"]');
     send.addEventListener("click", function () {
       var input = box.querySelector('[data-paste="' + a.id + '"]');
       var value = input ? input.value.trim() : "";
       if (!value) { return; }
       send.disabled = true;
       api("/api/ai-accounts/" + a.id + "/code", { code: value })
-        .then(function () { if (input) { input.value = ""; } })
-        .catch(function (e) { box.insertAdjacentHTML("beforeend", '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'); })
+        .then(function () { if (input) { input.value = ""; } box.querySelector('[data-role="err"]').innerHTML = ""; })
+        .catch(function (e) { box.querySelector('[data-role="err"]').innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; })
         .then(function () { send.disabled = false; });
     });
   }
+  return box;
+}
+
+/** The sign-in step: link, code to type there, or a box for the code it returns. */
+function showFlow(el, a, d) {
+  var f = flows[a.id] || (flows[a.id] = { url: "", code: "", msg: "" });
+  if (d.url) { f.url = d.url; }
+  if (d.device_code || d.auth_code) { f.code = d.device_code || d.auth_code; }
+  if (d.message) { f.msg = d.message; }
+  var box = flowParts(el, a);
+  if (!box) { return; }
+  setText(box.querySelector('[data-role="msg"]'), f.msg || g("preparing"));
+  var open = box.querySelector('[data-role="open"]');
+  if (f.url && open.getAttribute("href") !== f.url) { open.setAttribute("href", f.url); }
+  show(open, !!f.url);
+  setText(box.querySelector('[data-role="code"]'), f.code);
+  show(box.querySelector('[data-role="codewrap"]'), !!f.code && !a.paste);
+  show(box.querySelector('[data-role="pastewrap"]'), !!f.url && !!a.paste);
 }
 
 function watch(el, a) {
   stopPoll(a.id);
   polls[a.id] = setInterval(function () {
     if (!document.body.contains(el)) { stopAll(); return; }
-    api("/api/ai-accounts/" + a.id + "/status", {}).then(function (d) {
+    api("/api/ai-accounts/" + a.id + "/status", {}).then(function (r) {
+      var d = (r && r.account) || r || {};
       if (!polls[a.id]) { return; }
       if (PENDING.indexOf(d.status) >= 0) { showFlow(el, a, d); return; }
       stopPoll(a.id);
       delete started[a.id];
+      delete flows[a.id];
       redrawRow(el, a, d);
     }).catch(function () { /* keep trying while the page is open */ });
   }, 3000);
@@ -145,6 +163,7 @@ function redrawRow(el, a, d) {
   if (d.status === "error" && box) {
     box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + (d.message ? " " + d.message : "")) + '</p>';
   }
+  if (d.status === "linked") { refreshPickers(); }
   if (d.status === "linked" && !el.querySelector("[data-agent-use]")) {
     var list = el.querySelector(".gb-prov-list");
     if (list) { list.insertAdjacentHTML("afterend", '<p class="gb-set-hint" data-agent-use>' + esc(g("use")) + '</p>'); }
@@ -158,7 +177,10 @@ function bindRow(el, a) {
     on.addEventListener("click", function () {
       on.disabled = true;
       started[a.id] = true;
+      delete flows[a.id];
       markRow(el, a, true);
+      var fresh = el.querySelector('[data-flow="' + a.id + '"]');
+      if (fresh) { fresh.innerHTML = ""; }
       showFlow(el, a, {});
       api("/api/ai-accounts/" + a.id + "/connect", {})
         .then(function (d) { showFlow(el, a, d); watch(el, a); })
@@ -196,9 +218,25 @@ function renderAgents(el) {
     AGENTS.forEach(function (a) {
       if (!a.id) { return; }
       bindRow(el, a);
-      if (statusOf(a, byId[a.id]) === "connecting") { watch(el, a); }
+      var row = byId[a.id];
+      if (statusOf(a, row) === "connecting") { watch(el, a); }
+      else if (row && row.vm_name && row.status !== "linked") { checkOnce(el, a); }
     });
   });
+}
+
+/* A sign-in finished elsewhere: one status call lets the server see the
+ * credentials in the workspace and mark the account linked. */
+function checkOnce(el, a) {
+  api("/api/ai-accounts/" + a.id + "/status", {}).then(function (r) {
+    var d = (r && r.account) || r || {};
+    if (d.status === "linked" && !started[a.id]) { redrawRow(el, a, d); }
+  }).catch(function () { /* the row keeps what the list said */ });
+}
+/* The chat's model menu lists linked agents: read them again after a change. */
+function refreshPickers() {
+  if (!A.loadLinkedAgents) { return; }
+  A.loadLinkedAgents().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } });
 }
 
 if (A._modelProviders) { A._modelProviders.renderAcp = renderAgents; }
