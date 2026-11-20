@@ -286,6 +286,46 @@ jobs:
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
 
+      - name: Bundle llama.cpp and local models for offline installer
+        run: |
+          set -euo pipefail
+          # Desktop-local first-run smoke/provision expects the local model path
+          # to work offline. Bundle the pinned Linux x86_64 CPU engine and the
+          # default GGUF models into the installer cache so provision does not
+          # depend on GitHub/HuggingFace downloads at runtime.
+          mkdir -p dist/installers
+          fetch_checked() {
+            local url="$1" out="$2" sha="$3"
+            for attempt in 1 2 3 4 5; do
+              if curl -fL --retry 5 --retry-delay 10 --retry-all-errors -o "$out" "$url"; then
+                if [ -n "$sha" ]; then
+                  echo "${sha}  ${out}" | sha256sum -c -
+                else
+                  test -s "$out"
+                fi
+                return 0
+              fi
+              echo "fetch $(basename "$out") attempt $attempt failed; sleeping $((attempt*10))s"
+              rm -f "$out"
+              sleep $((attempt*10))
+            done
+            echo "failed to fetch $url" >&2
+            return 1
+          }
+          fetch_checked \
+            "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip" \
+            "dist/installers/llama-b7345-bin-ubuntu-x64.zip" \
+            "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+          fetch_checked \
+            "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf" \
+            "dist/installers/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf" \
+            ""
+          fetch_checked \
+            "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf" \
+            "dist/installers/bge-small-en-v1.5-f32.gguf" \
+            ""
+          ls -lh dist/installers/llama-b7345-bin-ubuntu-x64.zip dist/installers/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf dist/installers/bge-small-en-v1.5-f32.gguf
+
       # The pythonbox is an INTERNAL component: never a published asset. The
       # `bundle` job built it in this run, so the installer carries the
       # artifact instead of a downloaded release file.
