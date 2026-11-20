@@ -1,6 +1,12 @@
 //! `POST /api/llm/config/test` — one-shot connectivity check (#2561).
 
-use axum::{extract::Extension, http::StatusCode, response::Json};
+use axum::{
+    extract::{Extension, State},
+    http::StatusCode,
+    response::Json,
+};
+use botcore::shared::state::AppState;
+use std::sync::Arc;
 use botsecurity::auth::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -50,6 +56,7 @@ pub(super) fn provider_message(body: &str) -> Option<String> {
 }
 
 pub(super) async fn handle_test(
+    State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<TestRequest>,
 ) -> ApiResult {
@@ -69,7 +76,13 @@ pub(super) async fn handle_test(
         .build()
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "http_client_failed"))?;
 
-    let key = req.api_key.as_deref().map(str::trim).unwrap_or("");
+    // No key typed: test with the key already stored for this provider.
+    let stored = if req.api_key.as_deref().map(str::trim).unwrap_or("").is_empty() {
+        super::accounts::configured_key(&state, endpoint)
+    } else {
+        String::new()
+    };
+    let key = req.api_key.as_deref().map(str::trim).filter(|k| !k.is_empty()).unwrap_or(stored.as_str());
     let anthropic = anthropic_messages_url(endpoint);
     let request = if let Some(url) = &anthropic {
         let body = json!({

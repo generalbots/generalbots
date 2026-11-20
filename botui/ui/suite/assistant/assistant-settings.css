@@ -283,9 +283,11 @@
 .gb-set-model-row-busy:last-child { border-bottom: 1px solid var(--id-accent); }
 .gb-dl-text { font-size: var(--id-text-xs); color: var(--id-muted); }
 .gb-set-form { display: flex; flex-direction: column; gap: var(--id-space-2); }
+/* Fields sit a shade off the card: darker in light theme, lighter in dark. */
+:root { --gb-field: color-mix(in srgb, var(--id-surface-solid) 97%, var(--id-ink)); }
 .gb-set-input {
     padding: var(--id-space-2) var(--id-space-3); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-sm); background: var(--id-surface-solid);
+    border-radius: var(--id-radius-sm); background: var(--gb-field);
     font-size: var(--id-text-sm); font-family: var(--id-font-sans);
     color: var(--id-ink); outline: none; }
 .gb-set-input:focus { border-color: var(--id-accent); }

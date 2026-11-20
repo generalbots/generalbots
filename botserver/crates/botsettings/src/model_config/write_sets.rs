@@ -38,6 +38,27 @@ impl Target {
     }
 }
 
+/// The last four characters of a stored key, for a masked field; nothing
+/// for short keys, so the hint never gives most of a key away.
+pub fn key_hint(key: &str) -> String {
+    let k = key.trim();
+    let n = k.chars().count();
+    if n < 16 {
+        return String::new();
+    }
+    k.chars().skip(n - 4).collect()
+}
+
+/// True when both addresses name the same, non-empty host.
+pub fn same_host(a: &str, b: &str) -> bool {
+    let host = |u: &str| {
+        reqwest::Url::parse(u.trim())
+            .ok()
+            .and_then(|x| x.host_str().map(str::to_ascii_lowercase))
+    };
+    matches!((host(a), host(b)), (Some(x), Some(y)) if x == y)
+}
+
 /// Returned pair: `(central_map, per_bot_map)`.
 ///
 /// Both maps preserve every key that this module does not manage (e.g.
@@ -71,12 +92,16 @@ pub fn compute(
             key,
             provider,
         } => {
+            // No key typed: the stored one stays when it belongs to the same
+            // provider host; a key never follows the person to another host.
+            let old_url = central.get("url").cloned().unwrap_or_default();
             central.insert("url".into(), endpoint.clone());
             central.insert("model".into(), model.clone());
             match key {
                 Some(k) if !k.trim().is_empty() => {
                     central.insert("openai_key".into(), k.trim().into());
                 }
+                _ if same_host(&old_url, endpoint) => {}
                 _ => {
                     central.remove("openai_key");
                 }

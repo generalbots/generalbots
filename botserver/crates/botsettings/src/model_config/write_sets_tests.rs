@@ -2,7 +2,7 @@
 //! broken starting state from the defect report.
 
 use std::collections::HashMap;
-use super::{compute, is_inconsistent, Target, LOCAL_ENGINE_URL};
+use super::{compute, is_inconsistent, key_hint, Target, LOCAL_ENGINE_URL};
 use crate::model_config::{FREE_ENDPOINT, FREE_MODEL, FREE_PROVIDER};
 
 // ── helpers ─────────────────────────────────────────────────────────────
@@ -209,4 +209,36 @@ fn detects_inconsistent_state() {
     assert!(!is_inconsistent(LOCAL_ENGINE_URL, "model.gguf"));
     assert!(!is_inconsistent("https://api.openai.com/v1", "gpt-4o"));
     assert!(!is_inconsistent("", ""));
+}
+
+#[test]
+fn own_key_without_a_typed_key_keeps_the_stored_one_for_the_same_host() {
+    let mut central = HashMap::new();
+    central.insert("url".to_string(), "https://api.anthropic.com/v1".to_string());
+    central.insert("openai_key".to_string(), "sk-ant-stored".to_string());
+    let same = Target::OwnKey {
+        endpoint: "https://api.anthropic.com/v1".into(),
+        model: "claude-opus-5-5".into(),
+        key: None,
+        provider: None,
+    };
+    let (c, b) = compute(&central, &HashMap::new(), &same);
+    assert_eq!(c.get("openai_key").map(String::as_str), Some("sk-ant-stored"));
+    assert_eq!(b.get("llm-key").map(String::as_str), Some("sk-ant-stored"));
+    let other = Target::OwnKey {
+        endpoint: "https://api.openai.com/v1".into(),
+        model: "gpt-5".into(),
+        key: None,
+        provider: None,
+    };
+    let (c, b) = compute(&central, &HashMap::new(), &other);
+    assert!(c.get("openai_key").is_none());
+    assert!(b.get("llm-key").is_none());
+}
+
+#[test]
+fn key_hint_shows_only_the_last_four_of_a_long_key() {
+    assert_eq!(key_hint("sk-ant-api03-abcdefghWXYZ"), "WXYZ");
+    assert_eq!(key_hint("short-key"), "");
+    assert_eq!(key_hint(""), "");
 }

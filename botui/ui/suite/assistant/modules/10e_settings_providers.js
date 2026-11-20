@@ -64,12 +64,12 @@ var P = [
 
 var L = { "pt-BR": {
   intro:"Escolha o provedor. O endereço é preenchido sozinho; você só escolhe o modelo e cola a chave.",
-  search:"Buscar provedor", connect:"Conectar", inUse:"Em uso", none:"Nenhum provedor com esse nome.",
+  search:"Buscar provedor", connect:"Conectar", linked:"Conectado", inUse:"Em uso", none:"Nenhum provedor com esse nome.",
   orgT:"Servidor da sua organização", orgD:"Qualquer servidor compatível com a API da OpenAI (vLLM, Ollama, LM Studio, Azure…)",
   add:"Adicionar", back:"Todos os provedores", address:"Endereço", auto:"automático",
   model:"Modelo", other:"Outro modelo…", otherPh:"Nome exato do modelo", models:"Ver modelos",
   key:"Chave de API", getKey:"Onde conseguir a chave", keyPh:"Cole a chave aqui",
-  keyAgain:"Há uma chave guardada. Cole a chave de novo para salvar.", keyNeeded:"Cole a chave de API.",
+  keyAgain:"Chave guardada no cofre deste computador. Deixe como está para manter, ou cole outra para trocar.", keyStoredPh:"•••••••••••• %k (guardada)", keyNeeded:"Cole a chave de API.",
   keyOpt:"Deixe em branco se o servidor não pede chave.", urlPh:"https://servidor.exemplo/v1/chat/completions",
   urlNeeded:"Informe o endereço do servidor.", modelNeeded:"Escolha o modelo.",
   test:"Testar conexão", use:"Usar este provedor", testing:"Testando…",
@@ -85,12 +85,12 @@ var L = { "pt-BR": {
   sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:" },
 en: {
   intro:"Pick the provider. The address fills itself in; you only choose the model and paste the key.",
-  search:"Search providers", connect:"Connect", inUse:"In use", none:"No provider by that name.",
+  search:"Search providers", connect:"Connect", linked:"Connected", inUse:"In use", none:"No provider by that name.",
   orgT:"Your organization’s server", orgD:"Any server compatible with the OpenAI API (vLLM, Ollama, LM Studio, Azure…)",
   add:"Add", back:"All providers", address:"Address", auto:"automatic",
   model:"Model", other:"Other model…", otherPh:"Exact model name", models:"See models",
   key:"API key", getKey:"Where to get the key", keyPh:"Paste the key here",
-  keyAgain:"A key is stored. Paste the key again to save.", keyNeeded:"Paste the API key.",
+  keyAgain:"Key stored in this computer's vault. Leave it to keep it, or paste another to replace it.", keyStoredPh:"•••••••••••• %k (stored)", keyNeeded:"Paste the API key.",
   keyOpt:"Leave empty if the server needs no key.", urlPh:"https://server.example/v1/chat/completions",
   urlNeeded:"Enter the server address.", modelNeeded:"Choose the model.",
   test:"Test connection", use:"Use this provider", testing:"Testing…",
@@ -148,7 +148,8 @@ function renderList(el, filter) {
         (p.co !== p.name ? ' <span class="gb-prov-co">' + esc(p.co) + '</span>' : '') +
         (on ? ' <span class="gb-prov-badge">' + esc(g("inUse")) + '</span>' : '') + '</div>' +
       '<div class="gb-prov-desc">' + esc(pt() ? p.pt : p.en) + ' · ' + esc(host(p.url)) + '</div></div>' +
-      '<button type="button" class="gb-prov-btn" data-prov="' + p.id + '">' + esc(g("connect")) + '</button></div>';
+      (on ? '<span class="gb-prov-state">' + esc(g("linked")) + '</span>'
+        : '<button type="button" class="gb-prov-btn" data-prov="' + p.id + '">' + esc(g("connect")) + '</button>') + '</div>';
   }).join("");
   var list = el.querySelector(".gb-prov-list");
   list.innerHTML = rows || '<p class="gb-set-hint gb-prov-none">' + esc(g("none")) + '</p>';
@@ -169,7 +170,8 @@ function renderOwnKey(el) {
       '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(g("orgT")) +
         (cur && cur.id === "org" ? ' <span class="gb-prov-badge">' + esc(g("inUse")) + '</span>' : '') + '</div>' +
       '<div class="gb-prov-desc">' + esc(g("orgD")) + '</div></div>' +
-      '<button type="button" class="gb-prov-btn">' + esc(g("add")) + '</button></div></div>';
+      (cur && cur.id === "org" ? '<span class="gb-prov-state">' + esc(g("linked")) + '</span>'
+        : '<button type="button" class="gb-prov-btn">' + esc(g("add")) + '</button>') + '</div></div>';
   renderList(el, "");
   var s = el.querySelector("#gbProvSearch");
   s.addEventListener("input", function () { renderList(el, s.value); });
@@ -182,6 +184,9 @@ function renderSetup(el, id) {
   var cur = current();
   var same = cur && cur.id === id;
   var savedModel = same && c.model ? c.model : "";
+  /* A key for this provider is already in the vault: show it masked, and let
+   * Test and Save use it without typing it again. */
+  var stored = !!(same && c.has_key);
   var models = p ? p.models.slice() : [];
   if (savedModel && models.indexOf(savedModel) < 0) { models.unshift(savedModel); }
   var opts = models.map(function (m) {
@@ -203,8 +208,8 @@ function renderSetup(el, id) {
       '<input class="gb-set-input" id="gbProvModelOther" placeholder="' + esc(g("otherPh")) + '"' +
         (p ? ' hidden' : ' value="' + esc(savedModel) + '"') + '/>' +
       '<label class="gb-set-label" for="gbProvKey">' + esc(g("key")) + (p ? ' ' + link(p.keys, g("getKey")) : '') + '</label>' +
-      '<input class="gb-set-input" id="gbProvKey" type="password" autocomplete="off" placeholder="' + esc(g("keyPh")) + '"/>' +
-      '<p class="gb-set-hint">' + esc(!p ? g("keyOpt") : (same && c.has_key ? g("keyAgain") : g("sent").replace("%h", host(p.url)))) + '</p>' +
+      '<input class="gb-set-input" id="gbProvKey" type="password" autocomplete="off" placeholder="' + esc(stored ? g("keyStoredPh").replace("%k", c.key_hint || "") : g("keyPh")) + '"/>' +
+      '<p class="gb-set-hint">' + esc(!p ? g("keyOpt") : (stored ? g("keyAgain") : g("sent").replace("%h", host(p.url)))) + '</p>' +
       '<div class="gb-set-form-actions">' +
         '<button type="button" class="gb-set-btn-sm" id="gbProvTest">' + esc(g("test")) + '</button>' +
         '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" id="gbProvSave">' + esc(g("use")) + '</button>' +
@@ -224,7 +229,7 @@ function renderSetup(el, id) {
   function check(v) {
     if (!v.url) { say("gb-set-warn", g("urlNeeded")); return false; }
     if (!v.model) { say("gb-set-warn", g("modelNeeded")); return false; }
-    if (p && !v.key) { say("gb-set-warn", g("keyNeeded")); return false; }
+    if (p && !v.key && !stored) { say("gb-set-warn", g("keyNeeded")); return false; }
     return true;
   }
   el.querySelector("#gbProvTest").addEventListener("click", function () {
@@ -234,7 +239,11 @@ function renderSetup(el, id) {
     A.apiFetch("/api/llm/config/test", { method: "POST", body: JSON.stringify(body) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.reachable && d.model_responded) { say("gb-set-hint gb-set-ok", g("ok").replace("%ms", String(d.latency_ms || "?"))); return; }
+        if (d.reachable && d.model_responded) {
+          say("gb-set-hint gb-set-ok", g("ok").replace("%ms", String(d.latency_ms || "?")));
+          if (km) { km.refresh(); }
+          return;
+        }
         say("gb-set-warn", failMsg(g("fail"), d.error) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
       })
       .catch(function (e) { say("gb-set-warn", g("fail").replace("%e", String(e && e.message || e))); });
@@ -248,12 +257,10 @@ function renderSetup(el, id) {
       el.querySelector("#gbProvKey").value = "";
     });
   });
-  if (A._keyModels) {
-    A._keyModels.mount(el.querySelector("#gbProvKeyModels"), {
-      id: p ? p.id : "org", name: p ? p.name : g("orgT"), keyOptional: !p,
-      url: function () { return read().url; }, key: function () { return read().key; }
-    });
-  }
+  var km = A._keyModels ? A._keyModels.mount(el.querySelector("#gbProvKeyModels"), {
+    id: p ? p.id : "org", name: p ? p.name : g("orgT"), keyOptional: !p,
+    url: function () { return read().url; }, key: function () { return read().key; }
+  }) : null;
 }
 
 A._modelProviders = { render: renderOwnKey, list: P, t: g, reason: reason, failMsg: failMsg, esc: esc };

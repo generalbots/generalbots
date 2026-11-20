@@ -213,36 +213,48 @@ pub(super) async fn handle_models(
 
 /// The key of the main "own key" model when it points at the same provider
 /// host, so a key typed once in Modelo also lists that provider's models.
-fn configured_key(state: &Arc<AppState>, url: &str) -> String {
+pub(super) fn configured_key(state: &Arc<AppState>, url: &str) -> String {
     let cfg = ConfigManager::new(state.conn.clone());
     let nil = uuid::Uuid::nil();
     let main_url = cfg.get_config(&nil, "llm-url", Some("")).unwrap_or_default();
-    if main_url.is_empty() || !same_host(&main_url, url) {
+    if main_url.is_empty() || !super::write_sets::same_host(&main_url, url) {
         return String::new();
     }
     cfg.get_config(&nil, "llm-key", Some("")).unwrap_or_default().trim().to_string()
 }
 
-fn same_host(a: &str, b: &str) -> bool {
-    let (ha, hb) = (host(a), host(b));
-    !ha.is_empty() && ha.eq_ignore_ascii_case(&hb)
-}
 
-/// Model ids from an OpenAI-shaped (`data[].id`) or Anthropic list.
+/// Model ids from an OpenAI-shaped (`data[].id`) or Anthropic/Gemini list,
+/// newest first when the provider dates them (`created` / `created_at`),
+/// otherwise in the provider's own order.
 pub fn model_ids(body: &str) -> Vec<String> {
     let v: Value = serde_json::from_str(body).unwrap_or(Value::Null);
     let list = v.get("data").or_else(|| v.get("models")).and_then(Value::as_array);
-    let mut ids: Vec<String> = list
+    let mut rows: Vec<(String, String)> = list
         .map(|arr| {
             arr.iter()
-                .filter_map(|m| m.get("id").or_else(|| m.get("name")).and_then(Value::as_str))
-                .map(|id| id.trim_start_matches("models/").to_string())
+                .filter_map(|m| {
+                    let id = m.get("id").or_else(|| m.get("name")).and_then(Value::as_str)?;
+                    Some((id.trim_start_matches("models/").to_string(), release_key(m)))
+                })
                 .collect()
         })
         .unwrap_or_default();
-    ids.sort();
-    ids.dedup();
-    ids
+    // Stable sort: undated models keep the provider's order after dated ones.
+    rows.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut seen = std::collections::HashSet::new();
+    rows.into_iter().map(|(id, _)| id).filter(|id| seen.insert(id.clone())).collect()
+}
+
+/// A sortable release stamp: unix seconds (OpenAI-style `created`) or an
+/// RFC 3339 date (Anthropic `created_at`), both as a zero-padded string.
+fn release_key(m: &Value) -> String {
+    if let Some(n) = m.get("created").and_then(Value::as_i64) {
+        return chrono::DateTime::from_timestamp(n, 0)
+            .map(|d| d.to_rfc3339())
+            .unwrap_or_default();
+    }
+    m.get("created_at").and_then(Value::as_str).unwrap_or("").to_string()
 }
 
 #[derive(Deserialize)]
@@ -330,10 +342,18 @@ mod tests {
     #[test]
     fn model_ids_are_read_from_both_shapes() {
         let openai = r#"{"object":"list","data":[{"id":"gpt-b"},{"id":"gpt-a"}]}"#;
-        assert_eq!(model_ids(openai), ["gpt-a", "gpt-b"]);
+        assert_eq!(model_ids(openai), ["gpt-b", "gpt-a"], "undated: provider order");
         let anthropic = r#"{"data":[{"type":"model","id":"claude-opus-5-5"}],"has_more":false}"#;
         assert_eq!(model_ids(anthropic), ["claude-opus-5-5"]);
         let gemini = r#"{"data":[{"id":"models/gemini-3.5-flash"}]}"#;
         assert_eq!(model_ids(gemini), ["gemini-3.5-flash"]);
+    }
+
+    #[test]
+    fn dated_models_come_newest_first() {
+        let openai = r#"{"data":[{"id":"old","created":1600000000},{"id":"new","created":1760000000},{"id":"mid","created":1700000000}]}"#;
+        assert_eq!(model_ids(openai), ["new", "mid", "old"]);
+        let anthropic = r#"{"data":[{"id":"claude-3","created_at":"2024-03-04T00:00:00Z"},{"id":"claude-5","created_at":"2026-05-01T00:00:00Z"}]}"#;
+        assert_eq!(model_ids(anthropic), ["claude-5", "claude-3"]);
     }
 }

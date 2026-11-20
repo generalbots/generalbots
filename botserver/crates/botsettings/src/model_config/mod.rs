@@ -150,6 +150,7 @@ async fn handle_get_config(
         "endpoint_scope": scope.as_str(),
         "model": model,
         "has_key": !key.trim().is_empty(),
+        "key_hint": write_sets::key_hint(&key),
         "local_runtime": {
             "installed": runtime.installed,
             "runtime_reachable": runtime_probe.reachable,

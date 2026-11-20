@@ -1,32 +1,35 @@
 "use strict";
 /**
- * 10h_settings_key_models.js - "Modelos desta chave" on the provider setup
+ * 10h_settings_key_models.js - "Modelos disponíveis" on the provider setup
  * screen (Settings > Modelo > "Servidor ou chave própria" > a provider).
  *
- * One key, many models: "Buscar modelos" asks the server for the list the key
- * unlocks, the person switches models on and off, and "Salvar modelos" stores
- * the account. The switched-on models appear in the chat model menu, grouped
- * by provider. Opening the screen only reads the stored account; the provider
- * is contacted only when the person clicks "Buscar modelos".
+ * One key, many models: the server lists the models the key unlocks (in its
+ * own order), the person switches them on and off, and "Salvar modelos"
+ * stores the account. The switched-on models appear in the chat model menu.
+ * The section folds; while open, a stored key loads the list by itself and
+ * "Atualizar modelos" asks again.
  */
 (function () {
 var A = window.GBAssistant;
 var FILTER_FROM = 12;
+var OPEN_KEY = "gb.keyModels.open";
+function readOpen() { try { return localStorage.getItem(OPEN_KEY) !== "0"; } catch (e) { return true; } }
+function writeOpen(v) { try { localStorage.setItem(OPEN_KEY, v ? "1" : "0"); } catch (e) { /* the default (open) is used */ } }
 
 var L = { "pt-BR": {
-  title:"Modelos desta chave",
-  hint:"Busque os modelos que esta chave libera e ligue os que devem aparecer no menu do chat.",
-  stored:"Com o campo da chave vazio, a busca usa a chave guardada.",
-  fetch:"Buscar modelos", fetching:"Buscando modelos…", filter:"Filtrar modelos",
+  title:"Modelos disponíveis",
+  hint:"Ligue os modelos desta chave que devem aparecer no menu do chat.",
+  stored:"Com o campo da chave vazio, a lista usa a chave guardada.",
+  fetch:"Atualizar modelos", fetching:"Buscando modelos…", filter:"Filtrar modelos",
   count:"%n de %t ligados", save:"Salvar modelos", saving:"Salvando…",
   saved:"Modelos salvos. Os ligados aparecem no menu do chat.",
   fetchFail:"Não foi possível buscar os modelos (%e).", saveFail:"Não foi possível salvar (%e).",
   empty:"O provedor não devolveu nenhum modelo.", noMatch:"Nenhum modelo com esse nome." },
 en: {
-  title:"Models for this key",
-  hint:"Fetch the models this key unlocks and switch on the ones that should appear in the chat menu.",
-  stored:"With the key field empty, the search uses the stored key.",
-  fetch:"Fetch models", fetching:"Fetching models…", filter:"Filter models",
+  title:"Available models",
+  hint:"Switch on the models of this key that should appear in the chat menu.",
+  stored:"With the key field empty, the list uses the stored key.",
+  fetch:"Refresh models", fetching:"Fetching models…", filter:"Filter models",
   count:"%n of %t on", save:"Save models", saving:"Saving…",
   saved:"Models saved. The ones switched on appear in the chat menu.",
   fetchFail:"Could not fetch the models (%e).", saveFail:"Could not save (%e).",
@@ -47,14 +50,21 @@ function mount(box, ctx) {
   var all = [];
   var on = {};
   var filter = "";
+  var open = readOpen();
+  var loaded = false;
+  var pending = false;
 
   box.innerHTML = '<section class="gb-km">' +
-    '<div class="gb-km-head"><div class="gb-prov-title gb-km-title">' + esc(g("title")) + '</div>' +
-      '<button type="button" class="gb-set-btn-sm" id="gbKmFetch">' + esc(g("fetch")) + '</button></div>' +
+    '<div class="gb-km-head"><button type="button" class="gb-km-toggle" id="gbKmToggle" aria-controls="gbKmPanel" aria-expanded="' + open + '">' +
+      '<svg class="gb-km-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' +
+      '<span class="gb-prov-title gb-km-title">' + esc(g("title")) + '</span></button>' +
+      '<button type="button" class="gb-set-btn-sm" id="gbKmFetch"' + (open ? '' : ' hidden') + '>' + esc(g("fetch")) + '</button></div>' +
+    '<div class="gb-km-panel" id="gbKmPanel"' + (open ? '' : ' hidden') + '>' +
     '<p class="gb-set-hint" id="gbKmHint">' + esc(g("hint")) + '</p>' +
-    '<div id="gbKmBody"></div><div id="gbKmMsg" role="status"></div></section>';
+    '<div id="gbKmBody"></div><div id="gbKmMsg" role="status"></div></div></section>';
   var body = box.querySelector("#gbKmBody");
   var fetchBtn = box.querySelector("#gbKmFetch");
+  var toggle = box.querySelector("#gbKmToggle");
 
   function say(cls, text) {
     box.querySelector("#gbKmMsg").innerHTML = text ? '<p class="' + cls + '">' + esc(text) + '</p>' : "";
@@ -110,7 +120,14 @@ function mount(box, ctx) {
     box.querySelector("#gbKmSave").addEventListener("click", save);
   }
 
+  /* Loads the list by itself when a key is there to use and the section is open. */
+  function autoLoad() {
+    if (!open) { pending = true; return; }
+    pending = false;
+    if (ctx.url() && (keyStored() || ctx.key() || ctx.keyOptional)) { fetchModels(); }
+  }
   function fetchModels() {
+    loaded = true;
     var url = ctx.url(), key = ctx.key();
     if (!url) { say("gb-set-warn", g("urlNeeded")); return; }
     if (!key && !ctx.keyOptional && !keyStored()) { say("gb-set-warn", g("keyNeeded")); return; }
@@ -148,6 +165,7 @@ function mount(box, ctx) {
       })
       .then(function () {
         account = { id: ctx.id, has_key: true, enabled: req.enabled };
+        box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored");
         say("gb-set-hint gb-set-ok", g("saved"));
         if (A.loadModels) { return A.loadModels().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } }); }
       })
@@ -158,18 +176,32 @@ function mount(box, ctx) {
   }
 
   fetchBtn.addEventListener("click", fetchModels);
+  toggle.addEventListener("click", function () {
+    open = !open;
+    writeOpen(open);
+    toggle.setAttribute("aria-expanded", String(open));
+    box.querySelector("#gbKmPanel").hidden = !open;
+    fetchBtn.hidden = !open;
+    if (open && (pending || !loaded) && keyStored()) { autoLoad(); }
+  });
 
   A.apiFetch("/api/llm/accounts")
     .then(function (r) { return r.ok ? r.json() : {}; })
     .then(function (d) {
       account = ((d && d.accounts) || []).filter(function (a) { return a.id === ctx.id; })[0] || null;
-      if (keyStored()) { box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored"); }
-      if (!account) { return; }
-      all = (account.enabled || []).slice();
-      all.forEach(function (m) { on[m] = true; });
-      render();
+      if (account) {
+        all = (account.enabled || []).slice();
+        all.forEach(function (m) { on[m] = true; });
+        render();
+      }
+      if (keyStored()) {
+        box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored");
+        autoLoad();
+      }
     })
     .catch(function () { account = null; });
+  /* The setup form calls this after a successful connection test. */
+  return { refresh: autoLoad };
 }
 
 A._keyModels = { mount: mount };

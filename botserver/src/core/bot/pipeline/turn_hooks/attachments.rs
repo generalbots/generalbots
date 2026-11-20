@@ -23,6 +23,9 @@ pub(crate) struct AttachmentResult {
 
 /// Largest image a vision model receives (Anthropic's limit per image).
 const MAX_VISION_IMAGE: usize = 5 * 1024 * 1024;
+/// Largest picture accepted for a vision model before shrinking; the shrunk
+/// copy must still fit [`MAX_VISION_IMAGE`] (the providers' per-image cap).
+const MAX_VISION_SOURCE: usize = 25 * 1024 * 1024;
 /// Largest PDF Claude receives as a document.
 const MAX_VISION_PDF: usize = 32 * 1024 * 1024;
 
@@ -172,8 +175,22 @@ async fn ingest_single_attachment(
     // signatures, layout and pictures are lost in plain text.
     let mut vision_media: Vec<Value> = Vec::new();
     if vision {
-        if let Some(mt) = image_media_type(&fname).filter(|_| data.len() <= MAX_VISION_IMAGE) {
-            vision_media.push(serde_json::json!({ "type": "image", "media_type": mt, "data": b64 }));
+        if let Some(mt) = image_media_type(&fname).filter(|_| data.len() <= MAX_VISION_SOURCE) {
+            // Shrunk like the providers' own chat apps do, so any size works.
+            let raw = data.clone();
+            let prepared = tokio::task::spawn_blocking(move || super::vision_image::prepare(&raw, mt))
+                .await
+                .ok()
+                .flatten()
+                .filter(|(bytes, _)| bytes.len() <= MAX_VISION_IMAGE);
+            match prepared {
+                Some((bytes, out_type)) => {
+                    log::info!("vision image: {fname}: {} -> {} bytes", data.len(), bytes.len());
+                    let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    vision_media.push(serde_json::json!({ "type": "image", "media_type": out_type, "data": encoded }));
+                }
+                None => log::warn!("vision image: {fname} could not be prepared; text recognition only"),
+            }
         } else if pdf && data.len() <= MAX_VISION_PDF {
             vision_media.push(serde_json::json!({ "type": "pdf", "media_type": "application/pdf", "data": b64 }));
         }
