@@ -290,6 +290,24 @@ jobs:
           python3 scripts/check_route_contract.py --self-test
           python3 scripts/check_route_contract.py
 
+      # #2540 — /api/sales/* is tombstoned in favour of /api/crm/*. The guard
+      # proves no first-party UI calls the retired prefix, every retired path
+      # maps to a mounted CRM successor, and the tombstone surface only shrinks.
+      - name: Sales route contract guard (#2540)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_sales_route_contract.py --self-test
+          python3 scripts/check_sales_route_contract.py --check
+
+      # #2543 — error-handling ratchet: unwrap/expect/panic and swallowed
+      # Results only move down. The self-test proves a raised count fails;
+      # the check enforces the committed baseline over production Rust.
+      - name: Rust error-handling ratchet (#2543)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_rust_error_ratchet.py --self-test
+          python3 scripts/check_rust_error_ratchet.py
+
       # #2333 — empty promise `.catch(...) {}` handlers discard rejections
       # with no log, UI feedback or recovery (the promise-shaped half of the
       # silent-failure epidemic). Best-effort suppressions must carry a comment
@@ -650,6 +668,14 @@ jobs:
         run: |
           python3 scripts/check_mobile_budget.py --self-test
           python3 scripts/check_mobile_budget.py --check
+
+      # #2495 — the boot graph has no stated, enforced budget. This count-only
+      # ratchet measures blocking scripts/stylesheets/bytes per suite surface
+      # and only lets the ceilings fall; Lighthouse timing stays a browser gate.
+      - name: Boot budget ratchet (#2495)
+        run: |
+          python3 scripts/check_boot_budget.py --self-test
+          python3 scripts/check_boot_budget.py
 
       # #2119 — flake policy. The committed registry must be complete and
       # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
