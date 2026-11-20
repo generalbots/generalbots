@@ -138,3 +138,53 @@ impl From<botlib::models::UserSession> for UserSession {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn session_with_data(data: Option<serde_json::Value>) -> UserSession {
+        let now = Utc::now();
+        UserSession {
+            id: Uuid::new_v4(),
+            user_id: "user".to_string(),
+            bot_id: Uuid::new_v4(),
+            title: String::new(),
+            answer_mode: 0,
+            context_data: serde_json::json!({}),
+            current_tool: None,
+            message_count: 0,
+            total_tokens: 0,
+            created_at: now,
+            updated_at: now,
+            last_activity: now,
+            tenant_id: None,
+            active_email_account_id: None,
+            branch_id: Uuid::nil(),
+            session_id: None,
+            data,
+            expires_at: None,
+            locked: false,
+            lock_pin_hash: None,
+        }
+    }
+
+    /// #2547 — rows created before the org field existed have no `org_id` in
+    /// `data`. They must degrade to `None` (legacy cache key), never panic.
+    #[test]
+    fn org_id_is_none_for_pre_field_sessions() {
+        assert_eq!(session_with_data(None).org_id(), None);
+        assert_eq!(session_with_data(Some(serde_json::json!({}))).org_id(), None);
+        assert_eq!(
+            session_with_data(Some(serde_json::json!({ "org_id": "not-a-uuid" }))).org_id(),
+            None
+        );
+    }
+
+    #[test]
+    fn org_id_is_read_from_data_when_present() {
+        let org = Uuid::new_v4();
+        let session = session_with_data(Some(serde_json::json!({ "org_id": org.to_string() })));
+        assert_eq!(session.org_id(), Some(org));
+    }
+}
