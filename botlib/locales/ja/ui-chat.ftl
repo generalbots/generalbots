@@ -200,3 +200,6 @@ chat-inspect-no-id = none
 chat-inspect-length = Characters
 chat-copy-markdown = Copy as Markdown
 chat-copied-markdown = Copied as Markdown
+
+# Model attribution on each bot answer
+chat-model-written-by = 回答を作成したモデル:

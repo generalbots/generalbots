@@ -65,7 +65,7 @@
   "HARDCODED|Asks unavailable.|botui/ui/suite/vibe/graph/01_graph_state.js",
   "HARDCODED|Attach from Drive|botui/ui/suite/chat/chat-drive-picker.js",
   "HARDCODED|Attached from Drive:|botui/ui/suite/chat/chat-drive-picker.js",
-  "HARDCODED|Attachment too large (8 MB per file limit):|botui/ui/suite/chat/chat-send_a.js",
+  "HARDCODED|Attachment too large (50 MB per file limit):|botui/ui/suite/chat/chat-send_a.js",
   "HARDCODED|Attach|botui/ui/suite/chat/chat-drive-picker.js",
   "HARDCODED|Audit Prep|botui/ui/suite/admin/compliance-dashboard.html",
   "HARDCODED|Audit unavailable:|botui/ui/suite/chat/modules/61_terminal_use.js",
