@@ -52,7 +52,7 @@
         } else if (action === "clear-filters") {
             clearFilters(root);
         } else if (action === "show-explore") {
-            setTab(root, "explore", true);
+            namespace.setTab(root, "explore", true);
         } else if (action === "close-details") {
             namespace.closeDetails(root);
         } else if (action === "retry-detail" && state.selectedProviderId) {
@@ -73,7 +73,7 @@
     function handleClick(root, event) {
         var tab = event.target.closest("[data-tab]");
         if (tab && root.contains(tab)) {
-            setTab(root, tab.dataset.tab, false);
+            namespace.setTab(root, tab.dataset.tab, false);
             return;
         }
         var chip = event.target.closest("[data-source]");
@@ -149,7 +149,7 @@
             return;
         }
         event.preventDefault();
-        setTab(root, tabs[next].dataset.tab, true);
+        namespace.setTab(root, tabs[next].dataset.tab, true);
     }
 
     function handleCategoryTabKeys(root, event) {

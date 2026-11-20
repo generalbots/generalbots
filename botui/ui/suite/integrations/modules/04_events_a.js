@@ -266,4 +266,9 @@
         }
     }
 
+    // #2339 — shared with 04_events_b.js (both are split from 04_events.js).
+    // Without exporting it, clicking any tab throws "setTab is not defined"
+    // and the view never switches. Mirrors the syncStatusButtons export above.
+    namespace.setTab = setTab;
+
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});
