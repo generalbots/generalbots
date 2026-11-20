@@ -53,7 +53,10 @@ fn default_forecast_has_twelve_month_columns_and_a_balance_row() {
         cell(&sheet, CLOSING_ROW, 1).formula.as_deref(),
         Some("=B3+B6")
     );
-    assert_eq!(cell(&sheet, 2, 1).formula.as_deref(), Some("=B7"));
+    // First month opens with a literal balance; later months chain the prior
+    // month's closing balance (=B7 on the second month, =L7 on the twelfth).
+    assert_eq!(cell(&sheet, 2, 1).value.as_deref(), Some("5000"));
+    assert_eq!(cell(&sheet, 2, 2).formula.as_deref(), Some("=B7"));
     assert_eq!(cell(&sheet, 2, 12).formula.as_deref(), Some("=L7"));
 }
 
