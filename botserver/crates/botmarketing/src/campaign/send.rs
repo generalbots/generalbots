@@ -8,7 +8,9 @@ use crate::compliance::bounce::{
     MAX_SEND_ATTEMPTS,
 };
 use crate::compliance::suppression::{SuppressionKey, SuppressionStore};
-use crate::compliance::{evaluate_send_gate, MarketingChannel, SendGateDecision};
+use crate::compliance::{
+    evaluate_send_gate, supports_recipient_send, MarketingChannel, SendGateDecision,
+};
 use crate::email::{send_campaign_email, EmailCampaignPayload};
 use crate::schema::marketing_recipients;
 use crate::state::AppState;
@@ -55,6 +57,20 @@ impl SendOutcome {
     }
 }
 
+/// Honest result for a channel the per-recipient worker cannot send on. No
+/// provider call is made and the recipient is never marked as delivered.
+fn unsupported_outcome(channel: MarketingChannel) -> SendOutcome {
+    SendOutcome {
+        delivered: false,
+        skipped: None,
+        status: "unsupported_channel",
+        error: Some(format!(
+            "no per-recipient provider for channel {}",
+            channel.as_str()
+        )),
+    }
+}
+
 fn persist_terminal_status(state: &Arc<AppState>, recipient_id: Uuid, status: &str) {
     let Ok(mut conn) = state.conn.get() else {
         log::error!("recipient {recipient_id} terminal status unavailable: DB pool error");
@@ -95,6 +111,18 @@ pub async fn send_one(
             decision.status()
         );
         return Ok(SendOutcome::skipped(decision));
+    }
+
+    // #2536 — SMS and Instagram have no per-recipient sender. Falling through
+    // to the email provider used to address a phone number and report success.
+    if !supports_recipient_send(ctx.channel) {
+        log::warn!(
+            "campaign {} recipient {} channel {} has no per-recipient provider",
+            ctx.campaign_id,
+            ctx.recipient_id,
+            ctx.channel.as_str()
+        );
+        return Ok(unsupported_outcome(ctx.channel));
     }
 
     let personalized = ctx
@@ -211,5 +239,30 @@ async fn attempt_send(
         Ok(result) if result.success => Ok(()),
         Ok(result) => Err(result.error.unwrap_or_else(|| "unknown error".to_string())),
         Err(error) => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unsupported_channels_never_report_delivery() {
+        for channel in [MarketingChannel::Sms, MarketingChannel::Instagram] {
+            let outcome = unsupported_outcome(channel);
+            assert!(!outcome.delivered);
+            assert!(outcome.skipped.is_none());
+            assert_eq!(outcome.status, "unsupported_channel");
+            let error = outcome.error.unwrap_or_default();
+            assert!(error.contains(channel.as_str()));
+        }
+    }
+
+    #[test]
+    fn provider_matrix_covers_only_sendable_channels() {
+        assert!(supports_recipient_send(MarketingChannel::Email));
+        assert!(supports_recipient_send(MarketingChannel::Whatsapp));
+        assert!(!supports_recipient_send(MarketingChannel::Sms));
+        assert!(!supports_recipient_send(MarketingChannel::Instagram));
     }
 }

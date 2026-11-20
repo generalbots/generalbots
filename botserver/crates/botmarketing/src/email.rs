@@ -189,6 +189,9 @@ pub async fn send_campaign_email(
     // signing key or base URL is unavailable we omit the header rather than
     // emit a link that cannot be honoured.
     let headers = if base_url.is_empty() || payload.to.trim().is_empty() {
+        log::warn!(
+            "marketing email sent without List-Unsubscribe headers: server-url or recipient missing"
+        );
         None
     } else {
         // The token must carry the campaign's branch so the suppression key
@@ -218,19 +221,27 @@ pub async fn send_campaign_email(
         headers.as_deref(),
     ) {
         Ok(msg_id) => {
-            diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
-                .set(email_tracking::message_id.eq(Some(msg_id.clone())))
-                .execute(&mut conn)
-                .ok();
+            if let Err(error) =
+                diesel::update(email_tracking::table.filter(email_tracking::id.eq(tracking_id)))
+                    .set(email_tracking::message_id.eq(Some(msg_id.clone())))
+                    .execute(&mut conn)
+            {
+                log::error!("tracking message id not persisted for {tracking_id}: {error}");
+            }
 
             if let Some(recipient_id) = payload.recipient_id {
-                diesel::update(marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)))
-                    .set((
-                        marketing_recipients::status.eq("sent"),
-                        marketing_recipients::sent_at.eq(Some(Utc::now())),
-                    ))
-                    .execute(&mut conn)
-                    .ok();
+                if let Err(error) = diesel::update(
+                    marketing_recipients::table
+                        .filter(marketing_recipients::id.eq(recipient_id)),
+                )
+                .set((
+                    marketing_recipients::status.eq("sent"),
+                    marketing_recipients::sent_at.eq(Some(Utc::now())),
+                ))
+                .execute(&mut conn)
+                {
+                    log::error!("recipient {recipient_id} sent status not persisted: {error}");
+                }
             }
 
             Ok(EmailSendResult {
@@ -242,14 +253,19 @@ pub async fn send_campaign_email(
         }
         Err(e) => {
             if let Some(recipient_id) = payload.recipient_id {
-                diesel::update(marketing_recipients::table.filter(marketing_recipients::id.eq(recipient_id)))
-                    .set((
-                        marketing_recipients::status.eq("failed"),
-                        marketing_recipients::failed_at.eq(Some(Utc::now())),
-                        marketing_recipients::error_message.eq(Some(e.clone())),
-                    ))
-                    .execute(&mut conn)
-                    .ok();
+                if let Err(error) = diesel::update(
+                    marketing_recipients::table
+                        .filter(marketing_recipients::id.eq(recipient_id)),
+                )
+                .set((
+                    marketing_recipients::status.eq("failed"),
+                    marketing_recipients::failed_at.eq(Some(Utc::now())),
+                    marketing_recipients::error_message.eq(Some(e.clone())),
+                ))
+                .execute(&mut conn)
+                {
+                    log::error!("recipient {recipient_id} failed status not persisted: {error}");
+                }
             }
 
             Ok(EmailSendResult {
@@ -301,69 +317,9 @@ pub async fn get_campaign_email_metrics(
     })
 }
 
-pub async fn send_bulk_campaign_emails(
-    state: &Arc<AppState>,
-    campaign_id: Uuid,
-    contacts: Vec<(Uuid, String, String)>,
-) -> Result<(i32, i32), String> {
-    let mut sent = 0;
-    let mut failed = 0;
-
-    let (_, _, bot_id) = state.get_scope();
-
-    let campaign: CrmCampaign = marketing_campaigns::table
-        .filter(marketing_campaigns::id.eq(campaign_id))
-        .first(&mut *state.conn.get().map_err(|e| format!("DB error: {}", e))?)
-        .map_err(|_| "Campaign not found")?;
-
-    let default_metrics = serde_json::json!({});
-    let template_data = campaign.metrics.as_ref().unwrap_or(&default_metrics);
-    let subject = template_data
-        .get("subject")
-        .and_then(|s| s.as_str())
-        .unwrap_or("Newsletter")
-        .to_string();
-
-    let body_html = template_data
-        .get("body")
-        .and_then(|b| b.as_str())
-        .map(String::from);
-
-    for (contact_id, email, name) in contacts {
-        let personalized_body = body_html.as_ref().map(|html| {
-            html.replace("{{name}}", &name)
-                .replace("{{email}}", &email)
-        });
-
-        let payload = EmailCampaignPayload {
-            to: email,
-            subject: subject.clone(),
-            body_html: personalized_body,
-            body_text: None,
-            campaign_id: Some(campaign_id),
-            recipient_id: Some(contact_id),
-        };
-
-        match send_campaign_email(state, bot_id, payload).await {
-            Ok(result) => {
-                if result.success {
-                    sent += 1;
-                } else {
-                    failed += 1;
-                    log::error!("Email send failed: {:?}", result.error);
-                }
-            }
-            Err(e) => {
-                failed += 1;
-                log::error!("Email error: {}", e);
-            }
-        }
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-    }
-
-    Ok((sent, failed))
-}
+// #2536 — bulk campaign sends live in their own module and apply the same
+// per-recipient compliance gate as the worker and publish paths.
+pub use crate::email_bulk::send_bulk_campaign_emails;
 
 #[derive(Debug, Deserialize)]
 pub struct SendEmailRequest {

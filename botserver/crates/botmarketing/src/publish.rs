@@ -16,8 +16,15 @@ use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::compliance::{evaluate_send_gate, MarketingChannel};
+use crate::compliance::{
+    all_channels_failed_body, audience_has_consent, evaluate_send_gate, ChannelError,
+    MarketingChannel,
+};
 use crate::email::EmailCampaignPayload;
+use crate::publish_support::{
+    log_state_result, merge_metrics, plain_text, publish_instagram, record_skip_event,
+    set_recipient_state,
+};
 use crate::schema::{marketing_campaigns, marketing_contacts, marketing_recipients};
 use crate::state::AppState;
 
@@ -25,23 +32,6 @@ use crate::state::AppState;
 pub struct PublishRequest {
     pub list_id: Option<Uuid>,
     pub channels: Option<Vec<String>>,
-}
-
-/// Minimal HTML tag stripper for WhatsApp/Instagram plain-text payloads.
-fn plain_text(html: &str) -> String {
-    let mut out = String::new();
-    let mut in_tag = false;
-    for c in html.chars() {
-        if c == '<' {
-            in_tag = true;
-        } else if c == '>' {
-            in_tag = false;
-            out.push(' ');
-        } else if !in_tag {
-            out.push(c);
-        }
-    }
-    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 pub async fn publish_campaign(
@@ -149,6 +139,9 @@ pub async fn publish_campaign(
     }
 
     let mut totals = serde_json::Map::new();
+    // #2536 — typed per-channel failures. A channel with no provider must
+    // never be reported as a successful send.
+    let mut channel_errors = serde_json::Map::new();
 
     for channel in &channels {
         let mut sent = 0i64;
@@ -172,7 +165,19 @@ pub async fn publish_campaign(
                     if !decision.is_allowed() {
                         skipped += 1;
                         log::info!("email publish skipped for {email}: {}", decision.status());
-                        set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None).ok();
+                        record_skip_event(
+                            &mut conn,
+                            campaign.branch_id,
+                            campaign_id,
+                            "email",
+                            Some(email.as_str()),
+                            decision.status(),
+                        );
+                        if let Err(error) =
+                            set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None)
+                        {
+                            log::error!("email skip state not persisted: {error}");
+                        }
                         continue;
                     }
                     let personalized = body_html
@@ -194,16 +199,31 @@ pub async fn publish_campaign(
                     match result {
                         Ok(r) if r.success => {
                             sent += 1;
-                            set_recipient_state(&mut conn, campaign_id, *cid, "sent", None).ok();
+                            log_state_result(
+                                set_recipient_state(&mut conn, campaign_id, *cid, "sent", None),
+                                "email sent",
+                            );
                         }
                         Ok(_) => {
                             failed += 1;
-                            set_recipient_state(&mut conn, campaign_id, *cid, "failed", None).ok();
+                            log_state_result(
+                                set_recipient_state(&mut conn, campaign_id, *cid, "failed", None),
+                                "email failed",
+                            );
                         }
                         Err(e) => {
                             failed += 1;
                             log::warn!("email send failed for {email}: {e}");
-                            set_recipient_state(&mut conn, campaign_id, *cid, "failed", Some(&e)).ok();
+                            log_state_result(
+                                set_recipient_state(
+                                    &mut conn,
+                                    campaign_id,
+                                    *cid,
+                                    "failed",
+                                    Some(&e),
+                                ),
+                                "email failed",
+                            );
                         }
                     }
                 }
@@ -226,37 +246,94 @@ pub async fn publish_campaign(
                     if !decision.is_allowed() {
                         skipped += 1;
                         log::info!("whatsapp publish skipped for {number}: {}", decision.status());
-                        set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None).ok();
+                        record_skip_event(
+                            &mut conn,
+                            campaign.branch_id,
+                            campaign_id,
+                            "whatsapp",
+                            Some(number),
+                            decision.status(),
+                        );
+                        if let Err(error) =
+                            set_recipient_state(&mut conn, campaign_id, *cid, decision.status(), None)
+                        {
+                            log::error!("whatsapp skip state not persisted: {error}");
+                        }
                         continue;
                     }
                     let message = plain_text(&body_html);
                     match (state.send_whatsapp)(bot_id, number, &message, name.as_deref(), None) {
                         Ok(_) => {
                             sent += 1;
-                            set_recipient_state(&mut conn, campaign_id, *cid, "sent", None).ok();
+                            log_state_result(
+                                set_recipient_state(&mut conn, campaign_id, *cid, "sent", None),
+                                "whatsapp sent",
+                            );
                         }
                         Err(e) => {
                             failed += 1;
                             log::warn!("whatsapp send failed for {number}: {e}");
-                            set_recipient_state(&mut conn, campaign_id, *cid, "failed", Some(&e)).ok();
+                            log_state_result(
+                                set_recipient_state(
+                                    &mut conn,
+                                    campaign_id,
+                                    *cid,
+                                    "failed",
+                                    Some(&e),
+                                ),
+                                "whatsapp failed",
+                            );
                         }
                     }
                 }
             }
             "instagram" => {
-                let image_url = images
-                    .get("instagram")
-                    .and_then(|v| v.as_array())
-                    .and_then(|a| a.first())
-                    .and_then(|v| v.as_str())
-                    .or_else(|| {
-                        images
-                            .get("email")
-                            .and_then(|v| v.as_array())
-                            .and_then(|a| a.first())
-                            .and_then(|v| v.as_str())
-                    })
-                    .map(String::from);
+                // #2536 — Instagram publishes to the brand account, not to
+                // individual recipients. Gate the broadcast on its audience:
+                // no consented contact on this branch/channel means no post.
+                let eligible = audience_has_consent(
+                    campaign.branch_id,
+                    MarketingChannel::Instagram,
+                    contacts.iter().map(|(_, email, _, phone, subscribed, metadata)| {
+                        (
+                            email.as_str(),
+                            phone.as_deref(),
+                            *subscribed,
+                            metadata.as_ref(),
+                        )
+                    }),
+                );
+                if !eligible {
+                    let error = ChannelError::NoConsentedRecipients {
+                        channel: "instagram".to_string(),
+                    };
+                    channel_errors.insert("instagram".to_string(), error.to_value());
+                    record_skip_event(
+                        &mut conn,
+                        campaign.branch_id,
+                        campaign_id,
+                        "instagram",
+                        None,
+                        error.code(),
+                    );
+                }
+                let image_url = if eligible {
+                    images
+                        .get("instagram")
+                        .and_then(|v| v.as_array())
+                        .and_then(|a| a.first())
+                        .and_then(|v| v.as_str())
+                        .or_else(|| {
+                            images
+                                .get("email")
+                                .and_then(|v| v.as_array())
+                                .and_then(|a| a.first())
+                                .and_then(|v| v.as_str())
+                        })
+                        .map(String::from)
+                } else {
+                    None
+                };
                 let caption = plain_text(&body_html);
                 match image_url {
                     Some(url) => {
@@ -264,20 +341,62 @@ pub async fn publish_campaign(
                         match result {
                             Ok(_) => {
                                 sent += 1;
-                                let _ = set_recipient_state(&mut conn, campaign_id, Uuid::nil(), "sent", None);
+                                if let Err(error) = set_recipient_state(
+                                    &mut conn,
+                                    campaign_id,
+                                    Uuid::nil(),
+                                    "sent",
+                                    None,
+                                ) {
+                                    log::error!("instagram recipient state not persisted: {error}");
+                                }
                             }
                             Err(e) => {
                                 failed += 1;
                                 log::warn!("instagram publish failed: {e}");
-                                let _ = set_recipient_state(&mut conn, campaign_id, Uuid::nil(), "failed", Some(&e));
+                                if let Err(error) = set_recipient_state(
+                                    &mut conn,
+                                    campaign_id,
+                                    Uuid::nil(),
+                                    "failed",
+                                    Some(&e),
+                                ) {
+                                    log::error!("instagram recipient state not persisted: {error}");
+                                }
                             }
                         }
                     }
                     None => {
                         skipped += 1;
-                        log::warn!("instagram publish skipped: no generated image in metrics.images");
+                        if eligible {
+                            log::warn!(
+                                "instagram publish skipped: no generated image in metrics.images"
+                            );
+                        } else {
+                            log::info!(
+                                "instagram publish skipped: no consented recipients on list {list_id}"
+                            );
+                        }
                     }
                 }
+            }
+            "sms" => {
+                // #2536 — no SMS provider is wired. Return a typed error rather
+                // than counting this as a successful delivery.
+                let error = ChannelError::UnsupportedChannel {
+                    channel: "sms".to_string(),
+                };
+                channel_errors.insert("sms".to_string(), error.to_value());
+                record_skip_event(
+                    &mut conn,
+                    campaign.branch_id,
+                    campaign_id,
+                    "sms",
+                    None,
+                    error.code(),
+                );
+                skipped += 1;
+                log::warn!("sms publish rejected: no provider configured");
             }
             _ => {
                 skipped += 1;
@@ -298,98 +417,21 @@ pub async fn publish_campaign(
     let total_sent: i64 = totals.values().map(|v| v["sent"].as_i64().unwrap_or(0)).sum();
     let total_failed: i64 = totals.values().map(|v| v["failed"].as_i64().unwrap_or(0)).sum();
 
+    // A request whose channels all failed the compliance gate or have no
+    // provider is an error, never a successful publish. Mixed requests keep
+    // their per-channel typed errors in the success payload below.
+    if total_sent == 0 && !channel_errors.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            all_channels_failed_body(&channel_errors),
+        ));
+    }
+
     Ok(Json(serde_json::json!({
-        "success": true,
+        "success": channel_errors.is_empty(),
         "sent": total_sent,
         "failed": total_failed,
         "channels": totals,
+        "channel_errors": channel_errors,
     })))
-}
-
-async fn publish_instagram(
-    state: &Arc<AppState>,
-    bot_id: &Uuid,
-    image_url: &str,
-    caption: &str,
-) -> Result<String, String> {
-    let inner = state.get_config.clone();
-    let get_config: botinstagram::state::GetConfigFn = std::sync::Arc::new(move |bot_id_str, key, default| {
-        inner(&Uuid::parse_str(bot_id_str).unwrap_or_else(|_| Uuid::nil()), key, default)
-    });
-    let adapter = botinstagram::adapter::InstagramAdapter::with_config(&get_config, &bot_id.to_string());
-    adapter
-        .post_to_instagram(image_url, caption)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-fn set_recipient_state(
-    conn: &mut diesel::PgConnection,
-    campaign_id: Uuid,
-    contact_id: Uuid,
-    status: &str,
-    error_message: Option<&str>,
-) -> diesel::QueryResult<usize> {
-    let target = marketing_recipients::table
-        .filter(marketing_recipients::campaign_id.eq(campaign_id))
-        .filter(marketing_recipients::contact_id.eq(contact_id));
-    if status == "failed" {
-        diesel::update(target)
-            .set((
-                marketing_recipients::status.eq(status),
-                marketing_recipients::failed_at.eq(Some(chrono::Utc::now())),
-                marketing_recipients::error_message.eq(error_message.map(String::from)),
-            ))
-            .execute(conn)
-    } else if status == "sent" {
-        diesel::update(target)
-            .set((
-                marketing_recipients::status.eq(status),
-                marketing_recipients::sent_at.eq(Some(chrono::Utc::now())),
-                marketing_recipients::error_message.eq(error_message.map(String::from)),
-            ))
-            .execute(conn)
-    } else {
-        // Compliance skip: record the status only, never a send timestamp.
-        diesel::update(target)
-            .set((
-                marketing_recipients::status.eq(status),
-                marketing_recipients::error_message.eq(error_message.map(String::from)),
-            ))
-            .execute(conn)
-    }
-}
-
-fn merge_metrics(
-    conn: &mut diesel::PgConnection,
-    campaign_id: Uuid,
-    totals: &serde_json::Map<String, serde_json::Value>,
-) -> diesel::QueryResult<()> {
-    let mut stored: serde_json::Value = marketing_campaigns::table
-        .filter(marketing_campaigns::id.eq(campaign_id))
-        .select(marketing_campaigns::metrics)
-        .first::<Option<serde_json::Value>>(conn)
-        .optional()?
-        .flatten()
-        .unwrap_or_else(|| serde_json::json!({}));
-
-    let total_sent: i64 = totals.values().map(|v| v["sent"].as_i64().unwrap_or(0)).sum();
-    let total_failed: i64 = totals.values().map(|v| v["failed"].as_i64().unwrap_or(0)).sum();
-
-    if let Some(obj) = stored.as_object_mut() {
-        let sent = obj.get("sent").and_then(|v| v.as_i64()).unwrap_or(0) + total_sent;
-        let failed = obj.get("failed").and_then(|v| v.as_i64()).unwrap_or(0) + total_failed;
-        obj.insert("sent".into(), serde_json::json!(sent));
-        obj.insert("failed".into(), serde_json::json!(failed));
-        obj.insert("channels".into(), serde_json::json!(totals));
-    }
-
-    diesel::update(marketing_campaigns::table.filter(marketing_campaigns::id.eq(campaign_id)))
-        .set((
-            marketing_campaigns::metrics.eq(Some(stored)),
-            marketing_campaigns::status.eq(Some(if total_failed > 0 && total_sent == 0 { "failed" } else { "completed" })),
-        ))
-        .execute(conn)?;
-
-    Ok(())
 }

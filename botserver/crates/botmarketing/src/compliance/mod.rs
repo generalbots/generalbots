@@ -7,6 +7,7 @@
 //! provider; a skip is always recorded as an event row, never silent.
 
 pub mod bounce;
+pub mod channel_matrix;
 pub mod consent;
 pub mod suppression;
 pub mod unsubscribe;
@@ -18,6 +19,10 @@ mod tests;
 pub use bounce::{
     classify_bounce, retry_delay_millis, AttemptState, BounceClass, BounceWebhookPayload,
     MAX_SEND_ATTEMPTS,
+};
+pub use channel_matrix::{
+    all_channels_failed_body, audience_has_consent, contact_gate_address,
+    supports_recipient_send, ChannelError,
 };
 pub use consent::{channel_consent, ConsentState};
 pub use suppression::{
