@@ -30,7 +30,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 
 ### Mandatory Browser Testing
 - 🚨 **ALL bot tests MUST be done via browser (Chrome CDP port 9222).** ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) — only the browser reflects the real state of chat, suggestions, buttons, network errors.
-- 🚨 EVERY web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. **One tab per use case, NEVER close the browser** - recycle tabs.
+- 🚨 EVERY web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. **One tab per active parallel issue — keep open only as many tabs as the current batch needs (typically 3–4); recycle tabs from finished issues; NEVER close the browser itself.**
 - Tool trouble? Go to the official website for proper install/instructions.
 
 ### Secrets & IPs
@@ -78,7 +78,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | **UAT agents** | Browser-only: run the dialog, screenshot, comment PASS/FAIL; no code changes |
 | **Compilation** | ❌ NEVER run `cargo` while another build is running — check `ps aux \| grep -E "[c]argo\|[r]ustc"` first; otherwise validate with `rustfmt --emit stdout <file> >/dev/null` and `node --check` |
 | **Server** | ❌ Agents never restart, rebuild or kill `botserver` — only the driver does, after a build completes |
-| **Browser** | One tab per use case, per agent: open a **new** tab, never navigate or close tabs another agent owns; close the browser only on explicit request |
+| **Browser** | One tab per active issue, per agent — keep open only as many tabs as the current batch needs (typically **3–4**, one per parallel issue). A finished issue's tabs may be closed/recycled; never navigate or close a tab another **active** agent owns; close the browser only on explicit request |
 | **Screenshots** | `/tmp/opencode/uat<issue>_<case>.png` — never in the repo |
 | **Closure** | Only the driver closes an issue, and only when the comment body shows per-criterion evidence (screenshot paths, command output, file:line) |
 
@@ -364,11 +364,11 @@ google-chrome --no-sandbox --disable-gpu --remote-debugging-port=9222 \
 Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 
 ### Workflow
-1. **Each use case = a separate tab** (max 10). NEVER reuse tabs. Open via CDP:
+1. **One tab per active parallel issue** — keep open only as many tabs as the current batch needs (typically 3–4, one per issue being worked together). Reuse/recycle a finished issue's tab rather than stacking new ones. Open via CDP:
    `python3 -c "import requests; requests.put('http://127.0.0.1:9222/json/new?URL')"` or manually in Chrome.
 2. Navigate: `http://localhost:3000/{bot}` (bot chat) or `http://localhost:4000/cloud` (SaaS cloud).
 3. Interact: type messages, click suggestion buttons, execute tools.
-4. 🚨 **NEVER close the browser** — tabs are trace evidence. Close only when explicitly requested.
+4. 🚨 **NEVER close the browser itself** — it must stay running for the session. Individual tabs belonging to finished issues may be closed/recycled; keep the active batch's tabs as trace evidence until their issue is closed.
 5. Screenshots at `/tmp/{bot}_case{N}_{desc}.png`.
 
 ### Fragmented CDP Control (MANDATORY)
@@ -417,7 +417,7 @@ Conventions:
 ### Three Pillars of Bot Testing
 - **Drive (mc)** — all bot files come from MinIO, manipulated via `mc` with Vault credentials
 - **Vault (.env)** — credentials ALWAYS from Vault; only `VAULT_*` variables may be in `.env`
-- **Chrome CDP (9222)** — visual debugging ALWAYS via remote Chrome, separate tab per use case. ❌ NEVER via direct WebSocket
+- **Chrome CDP (9222)** — visual debugging ALWAYS via remote Chrome, one tab per active parallel issue (typically 3–4); recycle finished issues' tabs. ❌ NEVER via direct WebSocket
 
 ---
 
@@ -729,7 +729,7 @@ do not make the full graph fit, so do not burn time retrying it.
 6. **If bot not in drive, ask user** — do NOT copy from work dir. Ask: "Where can I get a copy of the .gbai to work on?"
 7. **Verify bot loaded** — check botserver logs for `[drive_monitor]` confirming bot sync
 8. **Start Chrome CDP** if not running (see [Chrome CDP Testing](#-chrome-cdp-testing-9222))
-9. **🚨 NEVER CLOSE THE BROWSER** — each open tab is a use case for user inspection
+9. **🚨 NEVER CLOSE THE BROWSER ITSELF** — keep only as many tabs as the current parallel batch needs (typically 3–4, one per active issue); recycle a finished issue's tabs, keep active tabs for user inspection
 10. **Open tabs via Playwright CDP** (connects to already-open Chrome on 9222; tabs persist after script):
     ```python
     from playwright.async_api import async_playwright
