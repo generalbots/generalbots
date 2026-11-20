@@ -408,3 +408,17 @@ test("STATIC SCOPE-GAP: layout previews are CSS miniatures, not rendered thumbna
   assert(source.indexOf("<iframe") === -1 && source.indexOf("<canvas") === -1,
     "no rendered-slide preview engine is shipped");
 });
+
+test("STATIC SCOPE-GAP: default image fit is contain, not cropped-to-fill", function () {
+  var source = h.readSuite("slides/modules/13_insert_place.js");
+  assert(source.indexOf('payload.fit = options.fit || "contain"') >= 0,
+    "default fit changed; re-check the cropped-to-fill acceptance item");
+});
+
+test("STATIC SCOPE-GAP: reuse recents are remembered but cannot re-resolve", function () {
+  var catalog = h.readSuite("slides/modules/10_insert_catalog.js");
+  var actions = h.readSuite("slides/modules/12_insert_actions.js");
+  assert(actions.indexOf("siRemember(item.id)") >= 0, "insert no longer records recents");
+  assert(catalog.indexOf("siRecentIds().map(siFind)") >= 0,
+    "recent resolution changed; re-check reuse-id handling");
+});
