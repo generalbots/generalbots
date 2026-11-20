@@ -220,11 +220,8 @@
   window.initToolbar = initToolbar;
 
   window.addEventListener("resize", function () {
-    if (VirtualGrid.root) {
-      VirtualGrid.updateViewport();
-      VirtualGrid.lastRenderedRange = null;
-      VirtualGrid.requestRange();
-    }
+    var g = activeGrid();
+    if (g && g.root) { g.updateViewport(); g.lastRenderedRange = null; g.requestRange(); }
   });
 
   function initCollab(scopeBody) {
