@@ -179,6 +179,11 @@ verify_iso() {
 # Torito boot catalog: listing its ISO layer only shows boot files, so the
 # kiosk identity must be checked INSIDE the root filesystem. guestfish does
 # that read-only without mounting or root on the host.
+#
+# Never use `guestfish -i` on this image. libguestfs inspection runs sgdisk,
+# which rejects the El Torito hybrid GPT with "Invalid partition data" and
+# exits before mounting anything (seen in release run 44785170848). Resolve
+# the root partition by its mkosi filesystem label and mount it explicitly.
 # ---------------------------------------------------------------------------
 verify_appliance() {
   local image="$1"
@@ -189,25 +194,41 @@ verify_appliance() {
   [ "$bytes" -gt 1048576 ] \
     || die "appliance image is suspiciously small (${bytes} bytes): $image"
 
+  local root_label="${GB_OS_ROOT_LABEL:-root-x86-64}"
+  local root_dev inspect_output
+  inspect_output=$(guestfish --ro -a "$image" -- run : findfs-label "$root_label" 2>&1) || {
+    die "guestfish cannot find ${root_label} in ${image}: $(tr '\n' ' ' <<<"$inspect_output" | cut -c1-200)"
+  }
+  root_dev="$inspect_output"
+  case "$root_dev" in
+    /dev/sd*|/dev/vd*) : ;;
+    *) die "unexpected root device for ${image}: ${root_dev}" ;;
+  esac
+
+  gf() {
+    local output
+    output=$(guestfish --ro -a "$image" -m "$root_dev:/" -- "$@" 2>&1) || {
+      die "guestfish $* failed: $(tr '\n' ' ' <<<"$output" | cut -c1-200)"
+    }
+    printf '%s' "$output"
+  }
+
   local path answer
   for path in \
     /etc/os-release \
     /opt/general-bots/start.sh \
     /usr/lib/systemd/system/generalbots-shell.service; do
-    answer=$(guestfish --ro -a "$image" -i -- exists "$path" 2>/dev/null) \
-      || die "guestfish cannot inspect ${image}; expected the mkosi image from desktop/os/mkosi.conf"
+    answer=$(gf exists "$path")
     [ "$answer" = "true" ] \
       || die "${image} is NOT the General Bots OS appliance: missing ${path} (carrier images have no root filesystem)"
   done
 
   local os_release unit
-  os_release=$(guestfish --ro -a "$image" -i -- cat /etc/os-release 2>/dev/null) \
-    || die "guestfish cannot read /etc/os-release from $image"
+  os_release=$(gf cat /etc/os-release)
   grep -qx 'ID=general-bots-os' <<<"$os_release" \
     || die "${image} has no 'ID=general-bots-os' in /etc/os-release: $(tr '\n' ' ' <<<"$os_release" | cut -c1-120)"
 
-  unit=$(guestfish --ro -a "$image" -i -- cat /usr/lib/systemd/system/generalbots-shell.service 2>/dev/null) \
-    || die "guestfish cannot read the kiosk shell unit from $image"
+  unit=$(gf cat /usr/lib/systemd/system/generalbots-shell.service)
   grep -qF '/opt/general-bots/start.sh' <<<"$unit" \
     || die "${image} has a generalbots-shell.service that does not reference /opt/general-bots/start.sh"
 
