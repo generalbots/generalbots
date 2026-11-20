@@ -4,8 +4,165 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::{Emitter, Window};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 use super::fs_scope;
+
+/// One-shot, human-approved grants for destructive Drive commands (#2497).
+///
+/// Contract — the UI obtains a grant through `request_destructive_confirmation`:
+/// 1. The page calls that command with the target path and operation. The shell
+///    resolves the path with [`fs_scope::resolve`] and shows a native Yes/No
+///    dialog naming the exact target, so no script can approve its own request.
+/// 2. Only after the user clicks Yes does the shell mint an opaque token and
+///    store it as a single-use grant for that canonical target and operation.
+/// 3. `delete_path` / `create_folder` consume a matching grant before touching
+///    the filesystem; a plain `invoke('delete_path', ...)` is refused.
+///
+/// The token is a receipt: the destructive commands' signatures are fixed by
+/// existing callers, so the server-side grant — not a token argument — is the
+/// capability. A follow-up should pass the token (bound to the window label)
+/// back to those commands to close the cross-page replay window: another page
+/// on the same origin could otherwise use an unexpired grant first.
+pub mod confirmation {
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+    /// A confirmation is only good for the action the user just approved.
+    pub const TTL: Duration = Duration::from_secs(60);
+    const MAX_GRANTS: usize = 32;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum Operation {
+        Delete,
+        CreateFolder,
+    }
+
+    impl Operation {
+        /// Parses the operation name accepted from the webview.
+        pub fn parse(raw: &str) -> Result<Self, String> {
+            match raw.trim() {
+                "delete" => Ok(Self::Delete),
+                "create_folder" => Ok(Self::CreateFolder),
+                _ => Err("Unknown destructive operation".to_string()),
+            }
+        }
+
+        /// Stable name used in the native dialog and the audit log.
+        pub fn as_str(self) -> &'static str {
+            match self {
+                Self::Delete => "delete",
+                Self::CreateFolder => "create_folder",
+            }
+        }
+    }
+
+    /// Pure description of a minted approval; testable without a native dialog.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Grant {
+        pub token: String,
+        pub operation: Operation,
+        pub target: String,
+        pub label: String,
+        expires: Instant,
+    }
+
+    impl Grant {
+        pub fn new(
+            token: String,
+            operation: Operation,
+            target: &str,
+            label: &str,
+            now: Instant,
+        ) -> Self {
+            let expires = match now.checked_add(TTL) {
+                Some(value) => value,
+                None => now,
+            };
+            Self {
+                token,
+                operation,
+                target: target.to_string(),
+                label: label.to_string(),
+                expires,
+            }
+        }
+
+        /// Whether this approval has timed out.
+        pub fn is_expired(&self, now: Instant) -> bool {
+            now >= self.expires
+        }
+
+        /// Whether this approval authorises exactly one operation on one target.
+        pub fn matches(&self, operation: Operation, target: &str) -> bool {
+            self.operation == operation && self.target == target
+        }
+    }
+
+    fn grants() -> &'static Mutex<HashMap<String, Grant>> {
+        static GRANTS: OnceLock<Mutex<HashMap<String, Grant>>> = OnceLock::new();
+        GRANTS.get_or_init(|| Mutex::new(HashMap::new()))
+    }
+
+    /// Unique receipt; not a secret, but never repeated for two confirmations.
+    fn next_token() -> String {
+        static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+        let nanos = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_nanos() as u64,
+            Err(_) => 0,
+        };
+        let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        format!("{nanos:016x}{sequence:08x}")
+    }
+
+    /// Mints a single-use approval after the native dialog was accepted.
+    pub fn mint(operation: Operation, target: &str, label: &str) -> Result<String, String> {
+        let mut store = grants()
+            .lock()
+            .map_err(|e| format!("Confirmation store unavailable: {e}"))?;
+        let now = Instant::now();
+        store.retain(|_, grant| !grant.is_expired(now));
+        // Re-asking for the same action returns the existing receipt instead of
+        // stacking grants that could be replayed later.
+        if let Some(existing) = store
+            .iter()
+            .find(|(_, grant)| grant.matches(operation, target))
+        {
+            return Ok(String::clone(existing.0));
+        }
+        if store.len() >= MAX_GRANTS {
+            return Err("Too many pending confirmations".to_string());
+        }
+        let token = next_token();
+        store.insert(
+            token.clone(),
+            Grant::new(token.clone(), operation, target, label, now),
+        );
+        Ok(token)
+    }
+
+    /// Consumes the matching approval; a missing, stale or mismatched one fails.
+    pub fn consume(operation: Operation, target: &str) -> Result<(), String> {
+        let mut store = grants()
+            .lock()
+            .map_err(|e| format!("Confirmation store unavailable: {e}"))?;
+        let now = Instant::now();
+        store.retain(|_, grant| !grant.is_expired(now));
+        let key = store
+            .iter()
+            .find(|(_, grant)| grant.matches(operation, target))
+            .map(|(key, _)| (*key).clone());
+        match key {
+            Some(key) => {
+                store.remove(&key);
+                Ok(())
+            }
+            None => Err("This action requires an in-app confirmation".to_string()),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileItem {
@@ -17,7 +174,7 @@ pub struct FileItem {
 
 /// Orders directory entries the way the Drive app lists them: folders first,
 /// then case-insensitive by name.
-fn sort_files(files: &mut [FileItem]) {
+pub fn sort_files(files: &mut [FileItem]) {
     files.sort_by(|a, b| match (a.is_dir, b.is_dir) {
         (true, false) => std::cmp::Ordering::Less,
         (false, true) => std::cmp::Ordering::Greater,
@@ -25,12 +182,56 @@ fn sort_files(files: &mut [FileItem]) {
     });
 }
 
+/// Whether a canonical path is one of the scope roots themselves.
+fn is_scope_root(path: &Path) -> bool {
+    fs_scope::scopes().iter().any(|root| root == path)
+}
+
+/// Mints a single-use confirmation after a native, user-visible approval.
+///
+/// The UI calls this command first, then calls `delete_path` / `create_folder`.
+/// Register it in both `generate_handler!` lists in `botapp/src/main.rs`.
+#[tauri::command]
+pub fn request_destructive_confirmation(
+    app: tauri::AppHandle,
+    window: Window,
+    path: &str,
+    operation: &str,
+) -> Result<String, String> {
+    let operation = confirmation::Operation::parse(operation)?;
+    let scoped = fs_scope::resolve(path)?;
+    if operation == confirmation::Operation::Delete && is_scope_root(&scoped) {
+        return Err("Refusing to confirm deletion of a root folder".to_string());
+    }
+    let target = scoped.to_string_lossy().to_string();
+    // Native strings live outside the webview catalogue; move this prompt into
+    // botapp/i18n/*.json when those catalogues are next edited (#2497 follow-up).
+    let approved = app
+        .dialog()
+        .message(format!("Allow {} on {}?", operation.as_str(), target))
+        .title("Confirm file change")
+        .buttons(MessageDialogButtons::YesNo)
+        .blocking_show();
+    if !approved {
+        return Err("Confirmation was cancelled".to_string());
+    }
+    let label = window.label().to_string();
+    let token = confirmation::mint(operation, &target, &label)?;
+    log::info!(
+        "drive IPC: confirmation granted operation={} target={} window={} token={token}",
+        operation.as_str(),
+        target,
+        label
+    );
+    Ok(token)
+}
+
 /// The destination of an upload: the source file name inside the destination
 /// directory.
 ///
 /// Refuses to continue when both resolve to the same file: creating the
 /// destination would truncate the source before a single byte is copied.
-fn upload_destination(src: &Path, dest_dir: &Path) -> Result<PathBuf, String> {
+pub fn upload_destination(src: &Path, dest_dir: &Path) -> Result<PathBuf, String> {
     let name = src
         .file_name()
         .ok_or_else(|| "Invalid source file".to_string())?;
@@ -44,7 +245,7 @@ fn upload_destination(src: &Path, dest_dir: &Path) -> Result<PathBuf, String> {
 /// Upload progress as a percentage. An empty file (or an unknown size) reports
 /// 100 so the UI never shows a stuck progress bar, and the result is clamped so
 /// a file that grew mid-copy cannot report 120%.
-fn upload_percent(done: u64, total: u64) -> u64 {
+pub fn upload_percent(done: u64, total: u64) -> u64 {
     if total == 0 {
         return 100;
     }
@@ -152,6 +353,10 @@ pub fn create_folder(path: &str, name: &str) -> Result<(), String> {
     let parent = fs_scope::resolve(path)?;
     let safe_name = fs_scope::validate_name(name)?;
     let full_path = parent.join(safe_name);
+    // #2497 — creating a folder is a mutation: require the native, single-use
+    // confirmation minted for exactly this target.
+    let target = full_path.to_string_lossy().to_string();
+    confirmation::consume(confirmation::Operation::CreateFolder, &target)?;
 
     if full_path.exists() {
         return Err("Folder already exists".into());
@@ -172,10 +377,14 @@ pub fn delete_path(path: &str) -> Result<(), String> {
     // secret file, and never a scope root itself (that would wipe the stack
     // in one call).
     let scoped = fs_scope::resolve(path)?;
-    if fs_scope::scopes().iter().any(|root| root == &scoped) {
+    if is_scope_root(&scoped) {
         return Err("Refusing to delete a root folder".to_string());
     }
     let target = scoped.as_path();
+    // #2497 — the proof-of-concept `invoke('delete_path', {path})` now stops
+    // here unless the user approved this exact target in a native dialog.
+    let canonical = target.to_string_lossy().to_string();
+    confirmation::consume(confirmation::Operation::Delete, &canonical)?;
 
     if !target.exists() {
         return Err("Path does not exist".into());
@@ -200,64 +409,4 @@ pub fn get_home_dir() -> Result<String, String> {
     dirs::home_dir()
         .and_then(|p| p.to_str().map(String::from))
         .ok_or_else(|| "Could not determine home directory".into())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{sort_files, upload_destination, upload_percent, FileItem};
-    use std::path::{Path, PathBuf};
-
-    fn item(name: &str, is_dir: bool) -> FileItem {
-        FileItem {
-            name: name.to_string(),
-            path: format!("/drive/{name}"),
-            is_dir,
-            size: None,
-        }
-    }
-
-    #[test]
-    fn folders_come_first_then_names_ignore_case() {
-        let mut files = vec![
-            item("zeta.txt", false),
-            item("Beta.txt", false),
-            item("alpha", true),
-            item("Gamma.txt", false),
-            item("delta", true),
-        ];
-        sort_files(&mut files);
-        let names: Vec<&str> = files.iter().map(|file| file.name.as_str()).collect();
-        assert_eq!(names, vec!["alpha", "delta", "Beta.txt", "Gamma.txt", "zeta.txt"]);
-    }
-
-    #[test]
-    fn the_upload_keeps_the_source_name_inside_the_target_folder() {
-        let dest = upload_destination(
-            Path::new("/home/u/report.pdf"),
-            Path::new("/drive/inbox"),
-        )
-        .expect("a valid destination");
-        assert_eq!(dest, PathBuf::from("/drive/inbox/report.pdf"));
-    }
-
-    #[test]
-    fn an_upload_onto_itself_is_refused() {
-        // Creating this destination would truncate the source before copying.
-        let refused = upload_destination(Path::new("/drive/a.txt"), Path::new("/drive"));
-        assert!(refused.is_err());
-        // A source with no file name cannot be placed anywhere.
-        assert!(upload_destination(Path::new("/"), Path::new("/drive")).is_err());
-    }
-
-    #[test]
-    fn progress_is_a_percentage_and_never_overflows() {
-        assert_eq!(upload_percent(0, 0), 100);
-        assert_eq!(upload_percent(0, 10), 0);
-        assert_eq!(upload_percent(5, 10), 50);
-        assert_eq!(upload_percent(10, 10), 100);
-        // A file that grew mid-copy is clamped instead of reporting 120%.
-        assert_eq!(upload_percent(2_000, 1_000), 100);
-        // Saturating multiplication: a huge byte count cannot panic in debug.
-        assert!(upload_percent(u64::MAX, u64::MAX) <= 100);
-    }
 }

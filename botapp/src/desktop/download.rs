@@ -8,7 +8,7 @@
 
 use std::path::PathBuf;
 
-use super::i18n;
+use super::{fs_scope, i18n};
 use tauri_plugin_dialog::DialogExt;
 
 /// Upper bound for one download. Office documents and conversation archives
@@ -103,13 +103,19 @@ pub async fn save_download(
     let path: PathBuf = target
         .into_path()
         .map_err(|e| i18n::t_args("download-invalid-destination", &[("error", &e.to_string())]))?;
-    tokio::fs::write(&path, payload)
+    // #2497 — the native picker is the human confirmation, but its result is
+    // still caller-adjacent data: canonicalise and scope-check before writing
+    // so a symlink or a forged dialog result cannot drop bytes outside the
+    // folders the shell owns.
+    let scoped = fs_scope::resolve(&path.to_string_lossy())?;
+    tokio::fs::write(&scoped, payload)
         .await
         .map_err(|e| {
             i18n::t_args(
                 "download-write-failed",
-                &[("path", &path.display().to_string()), ("error", &e.to_string())],
+                &[("path", &scoped.display().to_string()), ("error", &e.to_string())],
             )
         })?;
-    Ok(Some(path.to_string_lossy().to_string()))
+    log::info!("download IPC: saved {}", scoped.display());
+    Ok(Some(scoped.to_string_lossy().to_string()))
 }

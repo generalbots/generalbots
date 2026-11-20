@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for the desktop app and setup wizard",
+  "description": "Default capabilities for the desktop app and setup wizard. local=true covers tauri://localhost / https://tauri.localhost (and http://localhost:3000 in debug); remote.urls lists only the exact sidecar origins the appliance navigates to — no wildcard localhost ports (#2497).",
   "local": true,
   "windows": ["main", "wizard", "splash"],
   "remote": {

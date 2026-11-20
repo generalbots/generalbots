@@ -6,6 +6,7 @@ permissions = [
     "allow-upload-file",
     "allow-create-folder",
     "allow-delete-path",
+    "allow-request-destructive-confirmation",
     "allow-get-home-dir",
     "allow-get-sync-status",
     "allow-start-sync",
@@ -82,6 +83,11 @@ commands.allow = ["create_folder"]
 identifier = "allow-delete-path"
 description = "Allow the delete_path command"
 commands.allow = ["delete_path"]
+
+[[permission]]
+identifier = "allow-request-destructive-confirmation"
+description = "Allow the native confirmation used before delete_path / create_folder (#2497)"
+commands.allow = ["request_destructive_confirmation"]
 
 [[permission]]
 identifier = "allow-get-home-dir"
