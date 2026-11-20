@@ -170,6 +170,35 @@
     row.appendChild(title);
     row.appendChild(O.el("span", "slides-a11y-slide",
       O.t("slides-outline-untitled", "Slide {n}", { n: item.slideIndex + 1 }), "slides-outline-untitled"));
+    /* Inline alt-text field: type a description and press Enter or Save. Kept
+     * alongside the richer Describe dialog so reviewers can choose either path. */
+    var inline = document.createElement("input");
+    inline.type = "text";
+    inline.className = "slides-a11y-inline";
+    inline.value = altStore()[key] || "";
+    inline.placeholder = O.t("slides-outline-a11y-describe", "Description");
+    inline.setAttribute("data-i18n-placeholder", "slides-outline-a11y-describe");
+    inline.setAttribute("aria-label", O.t("slides-outline-a11y-describe", "Description"));
+    var inlineSave = O.el("button", "slides-tools-btn", O.t("slides-outline-save", "Save"), "slides-outline-save");
+    inlineSave.type = "button";
+    function commitInline() {
+      var before = altStore()[key] || "";
+      var value = (inline.value || "").trim();
+      if (!value || value === before) return;
+      setAlt(item, value); render();
+      O.pushUndo({
+        label: O.t("slides-outline-action-a11y-alt", "set description"),
+        undo: function () { setAlt(item, before); render(); },
+        redo: function () { setAlt(item, value); render(); }
+      });
+      O.status(O.t("slides-outline-a11y-saved", "Description saved locally"));
+    }
+    inlineSave.addEventListener("click", commitInline);
+    inline.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); commitInline(); }
+    });
+    row.appendChild(inline);
+    row.appendChild(inlineSave);
     var jump = O.el("button", "slides-tools-btn", O.t("slides-outline-jump", "Go to slide"), "slides-outline-jump");
     jump.type = "button"; jump.addEventListener("click", function () { O.jump(item.slideIndex); });
     var describe = O.el("button", "slides-tools-btn", O.t("slides-outline-a11y-describe-btn", "Describe"), "slides-outline-a11y-describe-btn");

@@ -156,6 +156,11 @@
 .slides-a11y-panel h3 { font-size: var(--text-2xs); color: #94a3b8; margin: 12px 0 4px; }
 .slides-a11y-row { display: flex; align-items: center; gap: 6px; padding: 4px; background: #1e293b; border-radius: 4px; font-size: var(--text-2xs) }
 .slides-a11y-title { color: #f8fafc; flex: 1; }
+.slides-a11y-inline {
+  flex: 2; min-width: 90px; padding: 3px 6px; font-size: var(--text-2xs);
+  color: #f8fafc; background: #0f172a; border: 1px solid #475569; border-radius: 3px;
+}
+.slides-a11y-inline:focus { outline: 2px solid #60a5fa; outline-offset: 1px; }
 .slides-a11y-slide { color: #93c5fd; }
 .slides-a11y-contrast-ratio { color: #fca5a5; font-weight: 600; }
 .slides-a11y-sample { color: #94a3b8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
