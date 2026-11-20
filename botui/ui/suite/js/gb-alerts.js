@@ -42,6 +42,16 @@
   function renderList() {
     var list = listEl();
     if (!list) return;
+    // #2331 — the notification list is a dynamic status surface: the items are
+    // injected with innerHTML below. Keep the container a persistent polite
+    // live region so additions (and dismissal/clear outcomes) reach assistive
+    // tech. aria-relevant="additions" + aria-atomic="false" avoid re-reading
+    // every unchanged row on each render. True errors are announced assertively
+    // by the GBToasts bridge in add() (alert role, assertive politeness).
+    list.setAttribute("role", "status");
+    list.setAttribute("aria-live", "polite");
+    list.setAttribute("aria-relevant", "additions");
+    list.setAttribute("aria-atomic", "false");
     if (notifications.length === 0) {
       list.innerHTML = '<div class="notifications-empty"><span>🔔</span><p>' + (typeof window.gbT === "function" ? window.gbT("notification-empty", "No notifications") : "No notifications") + '</p></div>';
       return;

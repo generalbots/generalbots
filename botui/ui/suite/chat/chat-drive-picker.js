@@ -56,6 +56,10 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
     if (overlay) return;
     overlay = document.createElement("div");
     overlay.className = "gb-drive-picker-overlay";
+    // #2331 — status text (loading, empty, attach outcome, errors) is injected
+    // into .gb-drive-picker-status below; keep it a polite live region so it is
+    // announced once visible. Failures here are also surfaced through notify()
+    // and toasts, which use the assertive region, so this stays polite.
     overlay.innerHTML =
       '<div class="gb-drive-picker" role="dialog" aria-modal="true" aria-label="Attach from Drive">' +
       '<div class="gb-drive-picker-head">' +
@@ -63,7 +67,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
       '<button type="button" class="gb-drive-picker-close" aria-label="Close" data-i18n-aria-label="action-close">×</button>' +
       "</div>" +
       '<div class="gb-drive-picker-crumb"></div>' +
-      '<div class="gb-drive-picker-status" hidden></div>' +
+      '<div class="gb-drive-picker-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>' +
       '<div class="gb-drive-picker-list" role="list"></div>' +
       "</div>";
     overlay.addEventListener("click", function (event) {
