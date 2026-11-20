@@ -6,7 +6,18 @@ impl DriveConfig {
     /// Se o Vault não estiver acessível ou o token for inválido, retorna `Err`.
     pub fn from_vault() -> Result<Self, String> {
         let vault_addr = std::env::var("VAULT_ADDR").map_err(|_| "VAULT_ADDR not set".to_string())?;
-        let vault_token = std::env::var("VAULT_TOKEN").map_err(|_| "VAULT_TOKEN not set".to_string())?;
+        let vault_token = std::env::var("VAULT_TOKEN")
+            .ok()
+            .filter(|v| !v.is_empty())
+            .or_else(|| {
+                std::env::var("VAULT_TOKEN_FILE")
+                    .ok()
+                    .filter(|p| !p.is_empty())
+                    .and_then(|p| std::fs::read_to_string(p).ok())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+            })
+            .ok_or_else(|| "VAULT_TOKEN not set".to_string())?;
         let ca_cert = std::env::var("VAULT_CACERT").unwrap_or_default();
         let url = format!("{}/v1/secret/data/gbo/drive", vault_addr);
 

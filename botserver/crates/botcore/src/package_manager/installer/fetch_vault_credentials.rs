@@ -23,7 +23,18 @@ impl PackageManager {
         // from the store instead of reading a token value out of `.env`.
         let _ = botcorepkg::installer_vault::secret_store::load_token_into_env();
         let vault_addr = std::env::var("VAULT_ADDR").unwrap_or_default();
-        let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
+        let vault_token = std::env::var("VAULT_TOKEN")
+            .ok()
+            .filter(|v| !v.is_empty())
+            .or_else(|| {
+                std::env::var("VAULT_TOKEN_FILE")
+                    .ok()
+                    .filter(|p| !p.is_empty())
+                    .and_then(|p| std::fs::read_to_string(p).ok())
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+            })
+            .unwrap_or_default();
 
         if vault_token.is_empty() || vault_addr.is_empty() {
             info!("VAULT_ADDR or VAULT_TOKEN not set yet, using bootstrap defaults");
