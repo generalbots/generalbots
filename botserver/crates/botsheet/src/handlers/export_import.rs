@@ -401,10 +401,12 @@ mod hostile_import_tests {
         for (name, body) in entries {
             let options =
                 zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
-            writer.start_file(*name, options).expect("test entry");
-            writer.write_all(body).expect("test body");
+            assert!(writer.start_file(*name, options).is_ok(), "test entry");
+            assert!(writer.write_all(body).is_ok(), "test body");
         }
-        writer.finish().expect("test zip").into_inner()
+        let finished = writer.finish();
+        assert!(finished.is_ok(), "test zip");
+        finished.map(|writer| writer.into_inner()).unwrap_or_default()
     }
 
     fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) -> bool {
