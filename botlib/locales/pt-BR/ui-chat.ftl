@@ -201,3 +201,22 @@ chat-conversation-untitled = Conversa sem título
 chat-empty-title = Comece a conversa
 chat-empty-desc = Digite uma mensagem abaixo ou escolha uma sugestão quando o bot oferecer.
 chat-empty-action = Escrever a primeira mensagem
+
+# -----------------------------------------------------------------------------
+# #2342 — chat engineer UX: slash commands, help, inspect/copy-markdown
+# -----------------------------------------------------------------------------
+chat-cmd-menu-title = Comandos
+chat-cmd-help = Mostrar atalhos de teclado
+chat-cmd-new = Iniciar uma nova conversa
+chat-cmd-clear = Limpar esta conversa
+chat-cmd-stop = Parar geração
+chat-cmd-failed = Falha no comando
+chat-help = Atalhos de teclado
+chat-inspect = Inspecionar
+chat-inspect-title = Detalhes da mensagem
+chat-inspect-sender = Remetente
+chat-inspect-id = ID da mensagem
+chat-inspect-no-id = nenhum
+chat-inspect-length = Caracteres
+chat-copy-markdown = Copiar como Markdown
+chat-copied-markdown = Copiado como Markdown

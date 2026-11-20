@@ -179,3 +179,22 @@ chat-projector-rotate = 회전
 chat-empty-title = 대화를 시작하세요
 chat-empty-desc = 아래에 메시지를 입력하거나 봇이 제안하는 항목을 선택하세요.
 chat-empty-action = 첫 메시지 작성
+
+# -----------------------------------------------------------------------------
+# #2342 — chat engineer UX: slash commands, help, inspect/copy-markdown
+# -----------------------------------------------------------------------------
+chat-cmd-menu-title = Commands
+chat-cmd-help = Show keyboard shortcuts
+chat-cmd-new = Start a new conversation
+chat-cmd-clear = Clear this conversation
+chat-cmd-stop = Stop generating
+chat-cmd-failed = Command failed
+chat-help = Keyboard shortcuts
+chat-inspect = Inspect
+chat-inspect-title = Message details
+chat-inspect-sender = Sender
+chat-inspect-id = Message id
+chat-inspect-no-id = none
+chat-inspect-length = Characters
+chat-copy-markdown = Copy as Markdown
+chat-copied-markdown = Copied as Markdown
