@@ -3466,6 +3466,7 @@ dependencies = [
  "diesel",
  "hex",
  "hmac 0.12.1",
+ "iana-time-zone",
  "lettre",
  "log",
  "rand 0.9.4",
