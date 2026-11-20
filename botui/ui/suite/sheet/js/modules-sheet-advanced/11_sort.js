@@ -196,7 +196,7 @@
       // column is wide enough to carry the icon without covering its label.
       if (!tableCols.has(c)) continue;
       const baseX = window.SheetCore && window.SheetCore.colX ? window.SheetCore.colX(c) : 0;
-      const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : COL_WIDTH;
+      const w = window.SheetCore && window.SheetCore.colWidth ? window.SheetCore.colWidth(c) : 96;
       if (w < 56) continue;
       const head = document.createElement("div");
       head.className = "ss-sort-head";

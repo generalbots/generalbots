@@ -73,11 +73,11 @@
       clearSelection();
     },
     getRanges: function () {
-      return multiRanges.slice();
+      return _I.multiRanges();
     },
     addRange: function (r1, c1, r2, c2) {
       addMultiRange(r1, c1, r2, c2);
-      document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice(), bubbles: true }));
+      document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: _I.multiRanges(), bubbles: true }));
     },
   };
 })();

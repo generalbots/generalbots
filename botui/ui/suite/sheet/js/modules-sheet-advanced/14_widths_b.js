@@ -5,7 +5,6 @@
   function grid(){return _I.grid?_I.grid():null;}
   var wsIndex=_I.wsIndex, apply=_I.apply, patchRender=_I.patchRender, colWidth=_I.colWidth, rowHeight=_I.rowHeight;
   var colX=_I.colX, rowTop=_I.rowTop, rowAt=_I.rowAt, computeVisibleColRange=_I.computeVisibleColRange;
-  var wireDragResize=_I.wireDragResize;
   var totalColWidth=_I.totalColWidth, charsToPx=_I.charsToPx, pointsToPx=_I.pointsToPx, colPxToChars=_I.colPxToChars, rowPxToPoints=_I.rowPxToPoints;
 
   function wire() {
@@ -39,8 +38,8 @@
   }
 
   function setColWidth(idx, w) {
-    if (!colWidths) colWidths = {};
-    colWidths[idx] = Math.max(24, Math.round(w));
+    if (!_I.getColWidths()) _I.apply();
+    _I.getColWidths()[idx] = Math.max(24, Math.round(w));
     if (window.SheetWidths && window.SheetWidths.onResize) window.SheetWidths.onResize(idx, null);
     const g = grid();
     if (!g) return;
@@ -51,8 +50,8 @@
   }
 
   function setRowHeight(idx, h) {
-    if (!rowHeights) rowHeights = {};
-    rowHeights[idx] = Math.max(12, Math.round(h));
+    if (!_I.getRowHeights()) _I.apply();
+    _I.getRowHeights()[idx] = Math.max(12, Math.round(h));
     if (window.SheetWidths && window.SheetWidths.onResize) window.SheetWidths.onResize(null, idx);
     const g = grid();
     if (!g) return;
@@ -81,7 +80,7 @@
     const headRect = g.headerRow.getBoundingClientRect();
     const headLeft = headRect.left;
     // Only meaningful when hovering the column-header strip.
-    if (x < headLeft + HEADER_W) return -1;
+    if (x < headLeft + colX(0)) return -1;
     const xLocal = x - headLeft;
     // Column boundaries sit at colX(c)+colWidth(c) in the header strip's
     // local coordinates (colX already includes HEADER_W).

@@ -205,7 +205,7 @@
   function spanWidth(g, first, last) {
     let width = 0;
     for (let c = first; c <= last; c++) {
-      width += g.colWidthOf ? g.colWidthOf(c) : COL_WIDTH;
+      width += g.colWidthOf ? g.colWidthOf(c) : 96;
     }
     return width;
   }
@@ -218,7 +218,7 @@
       } else if (window.SheetCore && window.SheetCore.rowHeight) {
         height += window.SheetCore.rowHeight(r);
       } else {
-        height += ROW_HEIGHT;
+        height += 24;
       }
     }
     return height;
@@ -229,8 +229,6 @@
     const merges = mergedRanges();
     if (!g || !merges.length) return;
     const visible = g.visibleRowRange();
-    const COL_WIDTH = 96;
-    const ROW_HEIGHT = 24;
     for (let i = 0; i < merges.length; i++) {
       const m = merges[i];
       if (m.end_row < visible.start || m.start_row >= visible.end) continue;
