@@ -472,15 +472,17 @@ jobs:
           TAG="${{ needs.release.outputs.version }}"
           VERSION="${TAG#v}"
           PKG="generalbots-${VERSION}-linux-x86_64"
+          REPO_ROOT="$PWD"
 
           provision_once() {
             local attempt="$1"
             local work="$RUNNER_TEMP/first-run-attempt-${attempt}"
             rm -rf "$work"
             mkdir -p "$work/home"
-            tar -xzf "dist/${PKG}.tar.gz" -C "$work"
+            cd "$REPO_ROOT" || return 1
+            tar -xzf "$REPO_ROOT/dist/${PKG}.tar.gz" -C "$work" || return 1
             export HOME="$work/home"
-            cd "$work/$PKG"
+            cd "$work/$PKG" || return 1
             # Same entry point a user runs, but without a display.
             ./start.sh --provision | tee "$work/provision.log"
             grep -q '"id":"components".*"state":"ready"' "$work/provision.log" \
@@ -514,6 +516,7 @@ jobs:
           for attempt in 1 2 3; do
             # Best-effort cleanup of services a previous attempt may have started.
             if [ "$attempt" -gt 1 ]; then
+              cd "$REPO_ROOT" || true
               pkill -f 'llama-server|llama\.cpp|botserver' 2>/dev/null || true
               sleep 2
             fi
@@ -544,6 +547,7 @@ jobs:
 
           # The suite window cannot be driven headless, so start the sidecar it
           # would start and assert the API and the page it serves.
+          cd "$WORK/$PKG" || exit 1
           BOTSERVER_STACK_PATH="$STACK" \
           BOTSERVER_INSTALLERS_PATH="$HOME/.local/share/generalbots/installers" \
           BOTUI_PATH="$PWD/ui/suite" \
