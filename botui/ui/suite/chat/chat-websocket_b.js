@@ -1,22 +1,8 @@
-/* Split from chat-websocket.js for #2305 (450-line limit). */
-
-/**
- * Only a JSON object payload can carry an embedded `change_theme` event.
- * Normal bot replies put plain answer text in `data.content`; calling
- * JSON.parse on those throws a SyntaxError on every reply, which the
- * onmessage handler then reports as a CLIENT error. Return null for any
- * non-object string so plain text never reaches JSON.parse (#2547 UAT).
- */
-function parseThemeEventContent(content) {
-  if (typeof content !== "string" || content.trim().charAt(0) !== "{") return null;
-  try {
-    var obj = JSON.parse(content);
-    return obj && obj.event === "change_theme" ? obj : null;
-  } catch (e) {
-    return null;
-  }
+/* Split from chat-websocket.js for #2305 (450-line limit). #2547: plain replies are not JSON. */
+function parseThemeEventContent(c) {
+  if (typeof c !== "string" || c.trim().charAt(0) !== "{") return null;
+  try { var o = JSON.parse(c); return o && o.event === "change_theme" ? o : null; } catch (e) { return null; }
 }
-
 function connectWebSocket() {
   // A bot that does not exist never gains a socket: redialling only replaced
   // the explicit error with an endless "Connecting…" (#2153). Block only the
@@ -100,10 +86,8 @@ function dialChatSocket(seq) {
 
       if (data.event) { if (data.event === "change_theme") applyThemeData(data.data || {}); return; }
 
-      if (data.content && typeof data.content === "string") {
-        var contentObj = parseThemeEventContent(data.content);
-        if (contentObj) { applyThemeData(contentObj.data || {}); return; }
-      }
+      var contentObj = parseThemeEventContent(data.content);
+      if (contentObj) { applyThemeData(contentObj.data || {}); return; }
 
       if (data.type === "chat_status") { if (typeof setChatStatus === "function") setChatStatus(data.text || ""); return; }
       // #2098 — the server accepted our cancel; the turn is over.
