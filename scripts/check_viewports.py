@@ -191,13 +191,22 @@ def cdp_http(cdp: str, path: str, method: str = "GET") -> dict[str, Any]:
     return decoded if isinstance(decoded, dict) else {}
 
 
-def open_tab(cdp: str, target_url: str) -> str:
+def open_tab(cdp: str, target_url: str) -> tuple[str, str]:
     path = "/json/new?" + urllib.parse.quote(target_url, safe=":/?=&%")
     info = cdp_http(cdp, path, method="PUT")
     ws_url = info.get("webSocketDebuggerUrl")
-    if not isinstance(ws_url, str) or not ws_url:
-        raise RuntimeError("CDP did not return webSocketDebuggerUrl for the new tab")
-    return ws_url
+    target_id = info.get("id")
+    if not isinstance(ws_url, str) or not ws_url or not isinstance(target_id, str):
+        raise RuntimeError("CDP did not return webSocketDebuggerUrl/id for the new tab")
+    return ws_url, target_id
+
+
+def close_tab(cdp: str, target_id: str) -> None:
+    """Close only the tab this helper created; never another agent's tab."""
+    try:
+        cdp_http(cdp, "/json/close/" + urllib.parse.quote(target_id, safe=""))
+    except RuntimeError:
+        pass
 
 
 class TabSession:
@@ -270,12 +279,41 @@ def capture_screenshot(session: TabSession, out_dir: Path, viewport: dict[str, A
     return str(path)
 
 
+def wait_for_page(session: TabSession) -> None:
+    """Wait until the tab has left about:blank and finished its first layout.
+
+    `PUT /json/new?URL` does not reliably navigate, and reading window.innerWidth
+    before a real page commits returns Chrome's 980px fallback (#2421). This is a
+    bounded series of one-shot reads, never a long sleeping loop. The destination
+    may be an auth redirect, so any non-blank committed URL is accepted.
+    """
+    import time
+
+    for _ in range(20):
+        try:
+            state = session.call("Runtime.evaluate", {
+                "expression": "document.readyState + '|' + location.href",
+                "returnByValue": True,
+            })
+            value = state.get("result", {}).get("value", "")
+            if isinstance(value, str) and value.startswith("complete|") and "about:blank" not in value:
+                return
+        except RuntimeError:
+            pass
+        time.sleep(0.25)
+    raise RuntimeError("page did not commit a URL and reach readyState=complete")
+
+
 def check_viewport(args: argparse.Namespace, viewport: dict[str, Any], out_dir: Path) -> bool:
     session: TabSession | None = None
+    target_id: str | None = None
     try:
-        ws_url = open_tab(args.cdp, args.url)
+        ws_url, target_id = open_tab(args.cdp, "about:blank")
         session = TabSession(ws_url)
         apply_viewport(session, viewport)
+        session.call("Page.enable")
+        session.call("Page.navigate", {"url": args.url})
+        wait_for_page(session)
         metrics = read_metrics(session)
         screenshot = capture_screenshot(session, out_dir, viewport)
         record = make_record(viewport, args.url, metrics, screenshot)
@@ -287,6 +325,8 @@ def check_viewport(args: argparse.Namespace, viewport: dict[str, Any], out_dir: 
     finally:
         if session is not None:
             session.close()
+        if target_id is not None:
+            close_tab(args.cdp, target_id)
 
 
 def main(argv: list[str] | None = None) -> int:
