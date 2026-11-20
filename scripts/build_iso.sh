@@ -33,7 +33,8 @@
 #   --initrd FILE    initramfs copied to /boot/initrd.img (requires --kernel)
 #   --work DIR       scratch directory (default: a fresh mktemp -d)
 #   --keep           keep the scratch directory
-#   --max-mb N       refuse an ISO larger than N MiB (default: 1900)
+#   --max-mb N       refuse an ISO larger than N MiB (default: 2040, GitHub's
+#                    2 GiB release-asset cap minus headroom)
 #   --verify ISO     verify a payload carrier (El Torito + /general-bots)
 #   --verify-appliance ISO  assert the mkosi appliance identity, payload and shell
 #   --expect PATH    extra path that must exist inside the carrier (repeatable)
@@ -57,7 +58,7 @@ KERNEL=
 INITRD=
 WORK=
 KEEP=0
-MAX_MB=1900
+MAX_MB=2040
 VERIFY_ISO=
 VERIFY_APPLIANCE=
 EXPECT=()
@@ -346,7 +347,7 @@ grub-mkrescue -o "$OUT" "$STAGING" -- -volid "$LABEL" -joliet on -rockridge on
 bytes=$(iso_size "$OUT")
 max_bytes=$(( MAX_MB * 1048576 ))
 [ "$bytes" -le "$max_bytes" ] \
-  || die "ISO is $(( bytes / 1048576 )) MiB, above the ${MAX_MB} MiB limit (GitHub caps release assets at 2 GB); trim the payload or raise --max-mb"
+  || die "ISO is $(( bytes / 1048576 )) MiB, above the ${MAX_MB} MiB limit (GitHub caps release assets at 2 GiB); trim the payload or raise --max-mb"
 log "built ${OUT} ($(( bytes / 1048576 )) MiB, sha256 $(sha256sum "$OUT" | cut -d' ' -f1))"
 
 # Never hand back an image the release cannot publish: verify what was built.
