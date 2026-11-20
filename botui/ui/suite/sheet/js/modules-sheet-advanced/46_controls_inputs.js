@@ -49,7 +49,7 @@
 
   function remove(ref) {
     C.mutate(function (state) {
-      state.inputs = state.inputs.filter(function (entry) { return entry.ref !== ref; });
+      state.inputs = state.inputs.filter(function (entry) { return entry.ref !== String(ref || "").trim().toUpperCase(); });
     });
     highlight();
     return true;

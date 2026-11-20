@@ -34,7 +34,7 @@
 
   function remove(range) {
     C.mutate(function (state) {
-      state.acl = state.acl.filter(function (rule) { return rule.range !== range; });
+      state.acl = state.acl.filter(function (rule) { return rule.range !== String(range || "").trim().toUpperCase(); });
     });
     return true;
   }

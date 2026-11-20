@@ -229,18 +229,16 @@ test("hidden role wins when listed in both ACL columns", function () {
   reset();
   c.acl.add("payroll", "finance,intern", "intern");
   assert(c.acl.preview("payroll", "intern") === ACL_INVISIBLE, "deny did not take precedence");
-  // add()/preview() normalize ranges to uppercase; remove() compares its raw
-  // argument, so callers must pass the stored (uppercase) range form.
   c.acl.remove("PAYROLL");
   assert(c.acl.preview("payroll", "finance") === ACL_NOMATCH, "remove did not drop the rule");
 });
 
-test("ACL remove normalization asymmetry is observable (shipped behaviour)", function () {
+test("ACL remove normalizes ranges like add/preview (#2437 regression)", function () {
   reset();
   c.acl.add("payroll", "finance", "");
-  c.acl.remove("payroll");
-  assert(c.acl.preview("payroll", "finance") === ACL_VISIBLE,
-    "observed: lowercase remove leaves the uppercase rule in place (#2437 bug)");
+  c.acl.remove("  payroll  ");
+  assert(c.acl.preview("payroll", "finance") === ACL_NOMATCH,
+    "trimmed/lowercase remove must drop the uppercase rule");
 });
 
 // ── Classification / export policy ────────────────────────────────────
