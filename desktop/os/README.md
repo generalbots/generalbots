@@ -58,6 +58,7 @@ time-boxed remote-support controls.
 | `mkosi.extra/etc/sysusers.d/generalbots-kiosk.conf` | creates `gbdesk` (nologin, video/render groups) |
 | `mkosi.extra/usr/lib/systemd/system/generalbots-shell.service` | the OS "shell": dbus run-session → cage → `/opt/general-bots/start.sh` |
 | `mkosi.finalize.chroot` | validates the payload, masks `getty@tty1` + rescue/emergency, enables the units, creates the kiosk state dir |
+| `check-webkit-sandbox.sh` | static check of the bwrap/WebKit sandbox configuration (#2500); optional extracted-image-tree argument; does not prove runtime sandboxing |
 
 Why the **tarball** and not the `.deb`: the distro package step in
 `desktop-binaries.yml` is `continue-on-error` and has never produced a
@@ -107,6 +108,17 @@ To assert the identity of a built appliance locally (needs `guestfish` from
 ```bash
 scripts/build_iso.sh --verify-appliance dist/generalbots-os.iso
 ```
+
+The sandbox configuration can be checked without booting the image:
+
+```bash
+desktop/os/check-webkit-sandbox.sh [extracted-image-root]
+```
+
+It asserts the pinned `bubblewrap`/`libseccomp2` packages, the forced-sandbox
+environment in both the shell unit and `environment.d`, and the namespace/syscall
+allow-list bwrap needs. It is a **static** check: a booted image is still required
+to observe a bwrap namespace on a live `WebKitWebProcess`.
 
 The carrier has its own checker (`scripts/build_iso.sh --verify
 dist/generalbots-payload.iso`); it cannot pass the appliance assertions
@@ -172,11 +184,11 @@ reference and the place to re-check regressions.
 | `ProtectControlGroups=` | `yes` | cgroup tree read-only. |
 | `ProtectClock=` | `yes` | Clock changes blocked. |
 | `ProtectHostname=` | `yes` | Hostname changes blocked. |
-| `RestrictNamespaces=` | `yes` | Namespace creation restricted. |
+| `RestrictNamespaces=` | `user ipc pid net mnt uts` | Allow-list of the namespaces WebKitGTK's bwrap sandbox creates (#2500). `yes` would block `clone()/unshare()` and, with `WEBKIT_FORCE_SANDBOX=1`, prevent the web process from starting. `NoNewPrivileges=yes` + empty `CapabilityBoundingSet=` keep this non-escalating. |
 | `LockPersonality=` | `yes` | No personality changes. |
 | `RestrictRealtime=` | `yes` | No realtime scheduling abuse. |
 | `RestrictAddressFamilies=` | `AF_UNIX AF_INET AF_INET6 AF_NETLINK` | **Session/network exceptions:** Unix sockets (dbus, Wayland), TCP/UDP (provisioning/app traffic), netlink (routing/udev/logind-adjacent). Tighten only with measured failures and document why. |
-| `SystemCallFilter=` | `@system-service` | Baseline allowlist for typical system services (cage, dbus-run-session, GTK/WebKit). May need explicit additions if tracing shows denials; record changes in git history and this table. |
+| `SystemCallFilter=` | `@system-service @mount` | Baseline allowlist plus `@mount` (#2500): `mount`/`pivot_root`/`umount2` are not in `@system-service` but bwrap needs them inside its private mount namespace. Still requires `CAP_SYS_ADMIN` in the new user namespace, never in the host namespace. |
 | `SystemCallErrorNumber=` | `EPERM` | Denied syscalls return `EPERM` (clearer than default in practice). |
 | `UMask=` | `0077` | Restrictive file creation mask. |
 

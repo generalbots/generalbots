@@ -112,7 +112,13 @@ ProtectClock=yes
 ProtectHostname=yes
 
 # --- Namespaces, personality, realtime ---
-RestrictNamespaces=yes
+# #2500 — WebKitGTK's bwrap sandbox must create user + mount namespaces (and
+# ipc/pid/net/uts) before it drops privileges. RestrictNamespaces=yes blocks
+# those clone()/unshare() calls; combined with WEBKIT_FORCE_SANDBOX=1 that
+# would stop the web process from starting at all. Allow-list only what bwrap
+# needs; NoNewPrivileges=yes + empty CapabilityBoundingSet keep this from
+# becoming a host privilege escalation.
+RestrictNamespaces=user ipc pid net mnt uts
 LockPersonality=yes
 RestrictRealtime=yes
 # Limit address families. Typical needs: AF_UNIX (dbus, Wayland sockets),
@@ -125,7 +131,12 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 # Broad but safer baseline for common desktop/session services. May require
 # narrowing exceptions only if profiling shows issues; document any additions.
 # NOTE: this is a pragmatic starting point for cage/dbus-run-session/GTK stack.
-SystemCallFilter=@system-service
+# #2500 — @mount is NOT part of @system-service (verified with
+# `systemd-analyze syscall-filter @system-service`); bwrap needs
+# mount()/pivot_root()/umount2() inside its own mount namespace. Those calls
+# still require CAP_SYS_ADMIN in the new user namespace — the shell has no
+# capabilities in the host namespace (empty CapabilityBoundingSet).
+SystemCallFilter=@system-service @mount
 SystemCallErrorNumber=EPERM
 
 # --- Misc hardening ---
