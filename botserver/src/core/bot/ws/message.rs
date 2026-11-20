@@ -124,6 +124,7 @@ pub async fn run_start_bas_on_connect(
         user_id,
         branch_id: Uuid::nil(),
         bot_id: bot_id_for_bas,
+        org_id: botcoresession::org_id_for_bot(&state_for_bas.conn, bot_id_for_bas),
         title: String::new(),
         context_data: serde_json::json!({"channel": "web", "locale": locale_for_bas.to_string()}),
         current_tool: None,

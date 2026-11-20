@@ -65,6 +65,7 @@ pub(super) async fn run_script_tool(
         user_id,
         branch_id: uuid::Uuid::nil(),
         bot_id: bot_uuid,
+        org_id: botcoresession::org_id_for_bot(&state_for_tool.conn, bot_uuid),
         title: String::new(),
         context_data,
         current_tool: None,

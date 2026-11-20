@@ -21,8 +21,11 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                     context_value
                 );
 
-                // TODO(#477): Pass org when available (UserSession does not carry org yet)
-                let redis_key = botlib::key_utils::build_key("", &["context", &user.user_id.to_string(), &user.id.to_string(), &context_name]);
+                // #2547 — org-scoped key plus dual-written legacy key (for
+                // pre-field sessions and readers without an org).
+                let parts = ["context", &user.user_id.to_string(), &user.id.to_string(), &context_name];
+                let redis_key = botlib::key_utils::scoped_key(user.org_id(), &parts);
+                let legacy_key = botlib::key_utils::legacy_key(&parts);
 
                 trace!(
                     "Constructed Redis key: {} for user {}, session {}, context {}",
@@ -35,6 +38,7 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                 if let Some(cache_client) = &cache {
                     let cache_client_arc: Arc<redis::Client> = cache_client.clone();
                     let redis_key_clone = redis_key.clone();
+                    let legacy_key_clone = legacy_key.clone();
                     let context_value_clone = context_value.clone();
 
                     trace!(
@@ -61,20 +65,17 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                             context_value_clone.len()
                         );
 
-                        let result: Result<(), redis::RedisError> = redis::cmd("SET")
-                            .arg(&redis_key_clone)
-                            .arg(&context_value_clone)
-                            .query_async(&mut conn)
-                            .await;
-
-                        match result {
-                            Ok(_) => {
-                                trace!("Context value successfully stored in cache");
-                            }
-                            Err(e) => {
+                        for key in [&redis_key_clone, &legacy_key_clone] {
+                            let result: Result<(), redis::RedisError> = redis::cmd("SET")
+                                .arg(key)
+                                .arg(&context_value_clone)
+                                .query_async(&mut conn)
+                                .await;
+                            if let Err(e) = result {
                                 log::error!("Failed to set cache value: {}", e);
                             }
                         }
+                        trace!("Context value successfully stored in cache");
                     });
                 } else {
                     trace!("No cache configured, context not persisted");

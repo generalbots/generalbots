@@ -17,3 +17,4 @@ pub use schema::{bot_configuration, bots, message_history, user_sessions, users}
 pub use session_data::UserSession;
 pub use session_endpoints::SessionState;
 pub use session_manager::SessionManager;
+pub use session_manager::org_id_for_bot;

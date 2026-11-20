@@ -36,6 +36,21 @@ pub fn build_key(org: &str, parts: &[&str]) -> String {
     }
 }
 
+/// #2547 — build a cache key that carries the owning organisation when it is
+/// known. `None` yields the historical, unprefixed key so pre-existing
+/// sessions (created before `UserSession.org_id`) keep working. Callers must
+/// dual-write the legacy key when `org` is `Some` until every read path can
+/// supply the org; see `tenant_isolation` in `bottest`.
+pub fn scoped_key(org: Option<uuid::Uuid>, parts: &[&str]) -> String {
+    build_key(&org.map_or_else(String::new, |id| id.to_string()), parts)
+}
+
+/// The historical key, always safe to write: session ids are UUID v4 and
+/// therefore globally unique, so two orgs can never collide on them.
+pub fn legacy_key(parts: &[&str]) -> String {
+    build_key("", parts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,5 +71,16 @@ mod tests {
     fn test_build_key_single_part() {
         let key = build_key("org_acme", &["start_bas_executed"]);
         assert_eq!(key, "org_acme:start_bas_executed");
+    }
+
+    #[test]
+    fn test_scoped_key_is_org_unique_and_legacy_key_is_stable() {
+        let bot = uuid::Uuid::from_u128(7);
+        let session = uuid::Uuid::from_u128(8);
+        let parts = ["suggestions", &bot.to_string(), &session.to_string()];
+        let org_a = uuid::Uuid::from_u128(1);
+        let org_b = uuid::Uuid::from_u128(2);
+        assert_ne!(scoped_key(Some(org_a), &parts), scoped_key(Some(org_b), &parts));
+        assert_eq!(scoped_key(None, &parts), legacy_key(&parts));
     }
 }

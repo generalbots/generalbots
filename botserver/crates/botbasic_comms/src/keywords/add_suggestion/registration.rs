@@ -12,15 +12,7 @@ pub fn clear_suggestions_keyword(
     if let Err(e) =
         engine.register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
-                // TODO(#477): Pass org when available (UserSession does not carry org yet)
-                let redis_key = botlib::key_utils::build_key(
-                    "",
-                    &[
-                        "suggestions",
-                        &user_session.bot_id.to_string(),
-                        &user_session.id.to_string(),
-                    ],
-                );
+                let (redis_key, legacy_key) = session_keys(&user_session, "suggestions");
                 let mut conn = match get_redis_connection(cache_client) {
                     Some(conn) => conn,
                     None => {
@@ -31,6 +23,10 @@ pub fn clear_suggestions_keyword(
 
                 let result: Result<i64, redis::RedisError> =
                     redis::cmd("DEL").arg(&redis_key).query(&mut conn);
+                if let Some(legacy) = legacy_key.as_ref().filter(|key| *key != &redis_key) {
+                    let _: Result<i64, redis::RedisError> =
+                        redis::cmd("DEL").arg(legacy).query(&mut conn);
+                }
 
                 match result {
                     Ok(deleted) => {
@@ -54,17 +50,14 @@ pub fn clear_suggestions_keyword(
 
     engine.register_fn("CLEAR_SUGGESTIONS", move || {
         if let Some(cache_client) = &cache2 {
-            let redis_key = botlib::key_utils::build_key(
-                "",
-                &[
-                    "suggestions",
-                    &user_session2.bot_id.to_string(),
-                    &user_session2.id.to_string(),
-                ],
-            );
+            let (redis_key, legacy_key) = session_keys(&user_session2, "suggestions");
             if let Some(mut conn) = get_redis_connection(cache_client) {
                 let _: Result<i64, redis::RedisError> =
                     redis::cmd("DEL").arg(&redis_key).query(&mut conn);
+                if let Some(legacy) = legacy_key.as_ref().filter(|key| *key != &redis_key) {
+                    let _: Result<i64, redis::RedisError> =
+                        redis::cmd("DEL").arg(legacy).query(&mut conn);
+                }
             }
         }
     });

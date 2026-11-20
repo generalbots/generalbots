@@ -17,6 +17,12 @@ fn to_lib_session(s: botcoresession::UserSession) -> botlib::models::UserSession
         user_id: uuid::Uuid::parse_str(&s.user_id).unwrap_or(uuid::Uuid::nil()),
         branch_id: s.branch_id,
         bot_id: s.bot_id,
+        // #2547 — org is persisted in the session's `data` JSON at creation.
+        // Pre-field rows have no key here and degrade to `None` (legacy keys).
+        org_id: s.data.as_ref()
+            .and_then(|data| data.get("org_id"))
+            .and_then(serde_json::Value::as_str)
+            .and_then(|value| uuid::Uuid::parse_str(value).ok()),
         // The stored title must survive the bridge: dropping it made every
         // rename invisible (the listing fell back to the first user message).
         title: s.title.clone(),

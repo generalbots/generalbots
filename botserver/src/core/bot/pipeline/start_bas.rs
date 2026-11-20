@@ -111,6 +111,7 @@ pub async fn run_start_bas(
         user_id,
         branch_id: Uuid::nil(),
         bot_id: bot_id_for_bas,
+        org_id: botcoresession::org_id_for_bot(&state_for_bas.conn, bot_id_for_bas),
         title: String::new(),
         context_data: serde_json::json!({"channel": channel_name, "locale": locale_for_bas.to_string()}),
         current_tool: None,
@@ -163,6 +164,7 @@ async fn send_start_suggestions(
         {
             crate::basic::keywords::add_suggestion::get_suggestions(
                 state.cache.as_ref(),
+                botcoresession::org_id_for_bot(&state.conn, bot_uuid),
                 &bot_uuid.to_string(),
                 &session_id.to_string(),
             )

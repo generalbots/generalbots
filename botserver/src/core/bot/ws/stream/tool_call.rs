@@ -104,6 +104,7 @@ pub(super) async fn maybe_execute(
             user_id,
             branch_id: Uuid::nil(),
             bot_id: bot_uuid,
+            org_id: botcoresession::org_id_for_bot(&state_for_tool.conn, bot_uuid),
             title: String::new(),
             context_data,
             current_tool: None,

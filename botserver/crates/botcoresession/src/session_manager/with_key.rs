@@ -1,6 +1,31 @@
 use super::*;
 
+/// #2547 — resolve the owning org from the bot when a chat session is created.
+/// There is deliberately no global/default-bot fallback: an unknown bot simply
+/// leaves the session unscoped, which degrades to the legacy cache key.
+pub fn org_id_for_bot(pool: &botlib::db_pool::DbPool, bot_id: Uuid) -> Option<Uuid> {
+    let mut conn = pool.get().ok()?;
+    crate::schema::bots::table
+        .filter(crate::schema::bots::id.eq(bot_id))
+        .select(crate::schema::bots::org_id)
+        .first::<Uuid>(&mut conn)
+        .ok()
+}
+
 impl SessionManager {
+    /// #2547 — read the org persisted at session creation. `None` for rows
+    /// created before the field existed; callers fall back to legacy keys.
+    #[cfg(feature = "cache")]
+    fn session_org_id(&self, session_id: &Uuid) -> Option<Uuid> {
+        let mut conn = self.pool.get().ok()?;
+        let data: Option<serde_json::Value> = user_sessions::table
+            .filter(user_sessions::id.eq(*session_id))
+            .select(user_sessions::data)
+            .first(&mut conn)
+            .ok()?;
+        data?.get("org_id")?.as_str().and_then(|value| Uuid::parse_str(value).ok())
+    }
+
     pub fn new(
         pool: Pool<ConnectionManager<PgConnection>>,
         #[cfg(feature = "cache")]
@@ -150,6 +175,11 @@ impl SessionManager {
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
         let mut conn = self.pool.get()?;
         let now = Utc::now();
+        // #2547 — persist the org with the session. `data` is the existing
+        // nullable JSON column; a bot with no org leaves it NULL, which older
+        // sessions also have, so both degrade to `None` on read.
+        let session_data = org_id_for_bot(&self.pool, bid)
+            .map(|org| serde_json::json!({ "org_id": org.to_string() }));
         let inserted: UserSession = diesel::insert_into(user_sessions::table)
             .values((
                 user_sessions::id.eq(session_id),
@@ -157,6 +187,7 @@ impl SessionManager {
                 user_sessions::bot_id.eq(bid),
                 user_sessions::session_id.eq(session_id.to_string()),
                 user_sessions::user_id.eq(verified_uid.to_string()),
+                user_sessions::data.eq(session_data),
                 user_sessions::created_at.eq(now),
                 user_sessions::updated_at.eq(now),
             ))
@@ -309,11 +340,17 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
-            // TODO(#477): Pass org when available
-            let redis_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string()]);
+            // #2547 — org-scoped key plus the legacy key (dual-write) so reads
+            // that cannot yet resolve the org still find the value.
+            let parts = ["context", &user_id.to_string(), &session_id.to_string()];
+            let scoped = botlib::key_utils::scoped_key(self.session_org_id(session_id), &parts);
+            let legacy = botlib::key_utils::legacy_key(&parts);
             if let Some(redis_client) = &self.redis {
                 let mut conn = redis_client.get_connection()?;
-                conn.set::<_, _, ()>(&redis_key, &context_data)?;
+                conn.set::<_, _, ()>(&scoped, &context_data)?;
+                if scoped != legacy {
+                    conn.set::<_, _, ()>(&legacy, &context_data)?;
+                }
             } else {
                 warn!("No Redis client configured, context not persisted");
             }
@@ -329,8 +366,12 @@ impl SessionManager {
         #[cfg(feature = "cache")]
         {
             use redis::Commands;
-            // TODO(#477): Pass org when available
-            let base_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string()]);
+            // #2547 — prefer the org-scoped key, then the legacy key written by
+            // sessions created before the org field existed.
+            let org = self.session_org_id(session_id);
+            let parts = ["context", &user_id.to_string(), &session_id.to_string()];
+            let scoped = botlib::key_utils::scoped_key(org, &parts);
+            let legacy = botlib::key_utils::legacy_key(&parts);
             if let Some(redis_client) = &self.redis {
                 let conn_option = redis_client
                     .get_connection()
@@ -341,28 +382,29 @@ impl SessionManager {
                     .ok();
 
                 if let Some(mut connection) = conn_option {
-                    match connection.get::<_, Option<String>>(&base_key) {
-                        Ok(Some(context_name)) => {
-                            // TODO(#477): Pass org when available
-                            let full_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string(), &context_name]);
-                            match connection.get::<_, Option<String>>(&full_key) {
-                                Ok(Some(context_value)) => {
-                                    trace!("Retrieved context value from Cache: {} chars", context_value.len());
-                                    return Ok(context_value);
-                                }
-                                Ok(None) => {
-                                    trace!("No context value found in Cache");
-                                }
-                                Err(e) => {
-                                    warn!("Failed to retrieve context value from Cache: {}", e);
-                                }
+                    for base_key in [&scoped, &legacy] {
+                        let Ok(Some(context_name)) = connection.get::<_, Option<String>>(base_key)
+                        else {
+                            continue;
+                        };
+                        let full_parts = [
+                            "context",
+                            &user_id.to_string(),
+                            &session_id.to_string(),
+                            &context_name,
+                        ];
+                        let full_scoped = botlib::key_utils::scoped_key(org, &full_parts);
+                        let full_legacy = botlib::key_utils::legacy_key(&full_parts);
+                        for full_key in [&full_scoped, &full_legacy] {
+                            if let Ok(Some(context_value)) =
+                                connection.get::<_, Option<String>>(full_key)
+                            {
+                                trace!(
+                                    "Retrieved context value from Cache: {} chars",
+                                    context_value.len()
+                                );
+                                return Ok(context_value);
                             }
-                        }
-                        Ok(None) => {
-                            trace!("No context name found in Cache");
-                        }
-                        Err(e) => {
-                            warn!("Failed to retrieve context name from Cache: {}", e);
                         }
                     }
                 }

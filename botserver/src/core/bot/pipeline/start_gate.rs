@@ -63,6 +63,7 @@ pub(super) async fn gate_turn(
         {
             crate::basic::keywords::add_suggestion::get_suggestions(
                 state.cache.as_ref(),
+                botcoresession::org_id_for_bot(&state.conn, bot_uuid),
                 &bot_uuid.to_string(),
                 &session_id.to_string(),
             )

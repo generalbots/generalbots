@@ -21,6 +21,7 @@ fn botlib_session() -> botlib::models::UserSession {
         user_id: Uuid::from_u128(2),
         branch_id: Uuid::from_u128(3),
         bot_id: Uuid::from_u128(4),
+        org_id: Some(Uuid::from_u128(9)),
         title: "invoice review".to_string(),
         context_data: serde_json::json!({"step": 2}),
         current_tool: Some("classify_media".to_string()),
@@ -46,6 +47,8 @@ fn conversion_from_botlib_session_keeps_identity_and_branch() {
     assert_eq!(converted.user_id, source.user_id.to_string());
     assert_eq!(converted.bot_id, source.bot_id);
     assert_eq!(converted.branch_id, source.branch_id);
+    // #2547 — org survives the hand-off so keyword cache keys can be scoped.
+    assert_eq!(converted.org_id(), source.org_id);
     assert_eq!(converted.title, "invoice review");
     assert_eq!(converted.context_data, serde_json::json!({"step": 2}));
     assert_eq!(converted.current_tool.as_deref(), Some("classify_media"));
@@ -66,7 +69,8 @@ fn conversion_resets_the_fields_the_database_owns() {
     assert_eq!(converted.tenant_id, None);
     assert_eq!(converted.active_email_account_id, None);
     assert_eq!(converted.session_id, None);
-    assert_eq!(converted.data, None);
+    // #2547 — `data` is the transport for the org; it is not a DB-owned field.
+    assert_eq!(converted.data, Some(serde_json::json!({"org_id": Uuid::from_u128(9).to_string()})));
     assert_eq!(converted.expires_at, None);
     // #1682 — the lock is per channel session, never inherited.
     assert!(!converted.locked);

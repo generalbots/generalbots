@@ -11,7 +11,7 @@ pub fn hear_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
     register_hear_as_menu(state, user, engine);
 }
 
-fn hear_block(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid, variable_name: &str, wait_data: serde_json::Value) -> Result<Dynamic, Box<EvalAltResult>> {
+fn hear_block(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid, org_id: Option<uuid::Uuid>, variable_name: &str, wait_data: serde_json::Value) -> Result<Dynamic, Box<EvalAltResult>> {
     let (tx, rx) = std::sync::mpsc::sync_channel::<String>(0);
 
     if let Ok(mut map) = state.hear_channels().lock() {
@@ -32,15 +32,19 @@ fn hear_block(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid, variable_na
                 drop(sm_lock);
                 if let Some(redis) = state_clone.cache_client().as_ref() {
                     if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-                        // TODO(#477): Pass org when available (UserSession does not carry org yet)
-                        let key = botlib::key_utils::build_key("", &["hear", &session_id.to_string(), &var]);
-                        let _: Result<(), _> = redis::cmd("SET")
-                            .arg(&key)
-                            .arg(wait_data.to_string())
-                            .arg("EX")
-                            .arg(3600)
-                            .query_async(&mut conn)
-                            .await;
+                        // #2547 — org-scoped key plus dual-written legacy key.
+                        let parts = ["hear", &session_id.to_string(), &var];
+                        let scoped = botlib::key_utils::scoped_key(org_id, &parts);
+                        let legacy = botlib::key_utils::legacy_key(&parts);
+                        for key in [&scoped, &legacy] {
+                            let _: Result<(), _> = redis::cmd("SET")
+                                .arg(key)
+                                .arg(wait_data.to_string())
+                                .arg("EX")
+                                .arg(3600)
+                                .query_async(&mut conn)
+                                .await;
+                        }
                     }
                 }
             });
@@ -86,6 +90,7 @@ pub fn deliver_hear_input(state: &Arc<dyn BasicRuntime>, session_id: uuid::Uuid,
 
 fn register_hear_basic(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
+    let org_id = user.org_id();
     let state_clone = Arc::clone(state);
 
     if let Err(e) = engine
@@ -98,7 +103,7 @@ fn register_hear_basic(state: &Arc<dyn BasicRuntime>, user: UserSession, engine:
                 )))?
                 .to_lowercase();
 
-            let value = hear_block(&state_clone, session_id, &variable_name, json!({
+            let value = hear_block(&state_clone, session_id, org_id, &variable_name, json!({
                 "variable": variable_name,
                 "type": "any",
                 "waiting": true
@@ -114,6 +119,7 @@ fn register_hear_basic(state: &Arc<dyn BasicRuntime>, user: UserSession, engine:
 
 fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
+    let org_id = user.org_id();
     let state_clone = Arc::clone(state);
 
     if let Err(e) = engine
@@ -136,7 +142,7 @@ fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                     )))?
                     .to_string();
 
-                let value = hear_block(&state_clone, session_id, &variable_name, json!({
+                let value = hear_block(&state_clone, session_id, org_id, &variable_name, json!({
                     "variable": variable_name,
                     "type": type_name.to_lowercase(),
                     "waiting": true,
@@ -154,6 +160,7 @@ fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
 
 fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
+    let org_id = user.org_id();
     let state_clone = Arc::clone(state);
 
     if let Err(e) = engine
@@ -169,7 +176,7 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                     )))?
                     .to_lowercase();
 
-                let value = hear_block(&state_clone, session_id, &variable_name, json!({
+                let value = hear_block(&state_clone, session_id, org_id, &variable_name, json!({
                     "variable": variable_name,
                     "type": "any",
                     "waiting": true

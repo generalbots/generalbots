@@ -1,15 +1,9 @@
 //! Tenant isolation regression tests (#1389) — guards the fixes for the
 //! cross-tenant drive leak (#1401) and the tenant-scoped RBAC model (#1387).
 //!
-//! Contract under test:
-//! 1. A signed-in user may only address drive buckets belonging to its own
-//!    tenant (personal `user-` bucket, instance default, own `{slug}.gborg`
-//!    and own org's `{bot}.gbai`).
-//! 2. Cross-tenant bucket access is denied with 403, even for org-level
-//!    admins (the global `admin` group also models org admins).
-//! 3. Only PLATFORM admins (explicit superadmin role or members of the
-//!    reserved root org, slug `default`) bypass the tenant check.
-//! 4. The bucket discovery endpoint never lists other tenants' workspaces.
+//! Contract: own tenant buckets only; cross-tenant access denied even for org
+//! admins; only platform admins bypass; discovery never lists foreign tenants.
+//! #2547 also pins suggestion/context cache-key scoping below.
 //!
 //! Runs against either `BOTSERVER_URL` or a harness-started botserver, in
 //! the same style as `cloud_tenant.rs`. Seeding failures skip the test
@@ -440,4 +434,16 @@ async fn test_forged_token_cannot_read_a_tenant_branch() {
         "a forged JWT must not read a tenant branch (got {}) — #2112 regression",
         resp.status()
     );
+}
+
+/// #2547 — two orgs running a bot with the SAME name must never share a
+/// suggestion/context key; pre-field sessions keep the stable legacy key.
+#[test]
+fn test_cache_keys_do_not_leak_between_orgs_with_same_bot_name() {
+    let bot = Uuid::from_u128(7);
+    let session = Uuid::from_u128(8);
+    let key = |org: Uuid, kind: &str| botlib::key_utils::scoped_key(Some(org), &[kind, &bot.to_string(), &session.to_string()]);
+    assert_ne!(key(Uuid::from_u128(1), "suggestions"), key(Uuid::from_u128(2), "suggestions"));
+    assert_ne!(key(Uuid::from_u128(1), "context"), key(Uuid::from_u128(2), "context"));
+    assert_eq!(botlib::key_utils::scoped_key(None, &["suggestions"]), botlib::key_utils::legacy_key(&["suggestions"]));
 }

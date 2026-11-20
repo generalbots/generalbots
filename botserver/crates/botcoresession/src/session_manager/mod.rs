@@ -26,3 +26,5 @@ pub struct SessionManager {
 mod session_manager;
 mod with_key;
 mod get_conversation_history;
+
+pub use with_key::org_id_for_bot;

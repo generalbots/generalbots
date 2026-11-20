@@ -29,6 +29,22 @@ pub struct UserSession {
     pub lock_pin_hash: Option<String>,
 }
 
+impl UserSession {
+    /// #2547 — tenant scope for suggestion/context cache keys.
+    ///
+    /// This Diesel projection has no dedicated `org_id` column; the canonical
+    /// `botlib::models::UserSession` owns the typed field and the `From` impl
+    /// below carries it in the existing nullable `data` JSON column. Old rows
+    /// have no `org_id` there and correctly degrade to `None` (legacy keys).
+    pub fn org_id(&self) -> Option<Uuid> {
+        self.data
+            .as_ref()?
+            .get("org_id")?
+            .as_str()
+            .and_then(|value| Uuid::parse_str(value).ok())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = crate::schema::bot_memories)]
 pub struct BotMemory {
@@ -115,7 +131,7 @@ impl From<botlib::models::UserSession> for UserSession {
             active_email_account_id: None,
             branch_id: u.branch_id,
             session_id: None,
-            data: None,
+            data: u.org_id.map(|org| serde_json::json!({ "org_id": org.to_string() })),
             expires_at: None,
             locked: false,
             lock_pin_hash: None,

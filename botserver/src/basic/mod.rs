@@ -351,6 +351,7 @@ impl BasicRuntime for AppStateBasicRuntime {
             user_id: Uuid::parse_str(&user.user_id).unwrap_or(Uuid::nil()),
             branch_id: user.branch_id,
             bot_id: user.bot_id,
+            org_id: user.org_id(),
             title: user.title.clone(),
             context_data: user.context_data.clone(),
             current_tool: user.current_tool.clone(),

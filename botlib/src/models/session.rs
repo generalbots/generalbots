@@ -62,6 +62,12 @@ pub struct UserSession {
     pub user_id: Uuid,
     pub branch_id: Uuid,
     pub bot_id: Uuid,
+    /// #2547 — owning organisation, resolved when the chat session is created
+    /// (from `bots.org_id`) and never guessed per keyword. `None` identifies a
+    /// pre-field session; writers fall back to the legacy cache key in that
+    /// case instead of failing.
+    #[serde(default)]
+    pub org_id: Option<Uuid>,
     pub title: String,
     pub context_data: serde_json::Value,
     pub current_tool: Option<String>,
@@ -81,6 +87,7 @@ impl UserSession {
             user_id,
             branch_id: Uuid::nil(),
             bot_id,
+            org_id: None,
             title: title.into(),
             context_data: serde_json::json!({}),
             current_tool: None,

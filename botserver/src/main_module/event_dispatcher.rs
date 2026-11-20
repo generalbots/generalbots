@@ -163,6 +163,7 @@ async fn run_tool(state: &Arc<AppState>, pool: &DbPool, event: &PendingEvent, to
         user_id: Uuid::nil(),
         branch_id: Uuid::nil(),
         bot_id: event.bot_id,
+        org_id: botcoresession::org_id_for_bot(&state_for_tool.conn, bot_id),
         title: String::new(),
         context_data: serde_json::Value::Object(
             variables
