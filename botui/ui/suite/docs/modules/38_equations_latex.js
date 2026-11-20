@@ -90,7 +90,7 @@
   function parseMatrix(tex, start, env, depth, state) {
     var body = "";
     var j = start;
-    while (j < tex.length && tex.slice(j, j + 6) !== "\\end{") {
+    while (j < tex.length && tex.slice(j, j + 5) !== "\\end{") {
       body += tex[j];
       j += 1;
       if (body.length > LIMITS.input) break;
