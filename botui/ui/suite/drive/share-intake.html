@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="drive-share-intake-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shared to Drive — General Bots</title>
   <link rel="stylesheet" href="/suite/identity/fonts.css">
   <link rel="stylesheet" href="/suite/identity/tokens.css">
+  <!-- #2510: this share target is a standalone top-level page, not injected
+       into desktop.html, so it must load the i18n runtime itself. gbLog comes
+       from gb-shared_b.js; i18n.js defines window.gbT/i18n and i18n-elements
+       applies the data-i18n* attributes below. -->
+  <script src="/suite/js/gb-shared_b.js"></script>
+  <script src="/suite/js/i18n.js"></script>
+  <script src="/suite/js/i18n-elements.js"></script>
   <style>
     :root { color-scheme: light dark; }
     body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); background: var(--bg, #0b1220); color: var(--text, #e5e7eb); }
@@ -58,8 +65,13 @@
     var fileBlobs = [];
     function gbT(key, fallback) {
       try {
-        if (window.gbI18n && typeof window.gbI18n.t === "function") return window.gbI18n.t(key);
-        if (typeof window.t === "function") return window.t(key);
+        // Canonical runtime names: window.gbT is tOr(key, fallback) and
+        // window.i18n.t returns the key when the catalogue has no entry.
+        if (typeof window.gbT === "function") return window.gbT(key, fallback);
+        if (window.i18n && typeof window.i18n.t === "function") {
+          var value = window.i18n.t(key);
+          return value === key ? fallback : value;
+        }
       } catch (_) {}
       return fallback;
     }
