@@ -62,11 +62,11 @@
       if (target < 0 || target >= siblings.length) return;
       rail.insertBefore(thumb, direction > 0 ? siblings[target].nextSibling : siblings[target]);
     });
-    restoreOrder(snapshot());
+    var after = snapshot(); restoreOrder(after);
     O.pushUndo({
       label: O.t("slides-outline-action-bulk-move", "move slides"),
       undo: function () { restoreOrder(before); },
-      redo: function () { restoreOrder(snapshot()); }
+      redo: function () { restoreOrder(after); }
     });
     O.status(O.t("slides-outline-bulk-moved", "Slides moved locally"));
   }

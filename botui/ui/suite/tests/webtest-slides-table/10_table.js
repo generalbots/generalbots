@@ -363,13 +363,11 @@ test("move shifts a selected index and clamps at the edges", function () {
   assert(indicesOfRail(edge) === "0,1,2", "last slide moved past the bottom edge");
 });
 
-/* KNOWN DEFECT (reported, not patched — production is out of scope):
- * 24_bulk_ops.js:69 defines move()'s redo as restoreOrder(snapshot()), which
- * re-reads the *current* DOM. After undo restores the pre-move order,
- * snapshot() returns that order, so redo is a no-op. The fix is to capture
- * `after = snapshot()` once after the move and pass it to restoreOrder here.
- * This test pins the defect so a future fix must update this expectation. */
-test("KNOWN DEFECT: bulk move redo is a no-op after undo", function () {
+/* Regression: bulk move redo re-applies the post-move order after undo.
+ * 24_bulk_ops.js used to define redo as restoreOrder(snapshot()), which
+ * re-read the already-restored DOM and made redo a no-op. The fix captures
+ * `after = snapshot()` once after the move and reuses it here. */
+test("bulk move redo re-applies the post-move order after undo", function () {
   var fixture = h.makeOutlineHost([0, 1, 2]);
   var bulk = h.loadBulkOps(fixture.O);
   fixture.host.check([1]);
@@ -378,8 +376,8 @@ test("KNOWN DEFECT: bulk move redo is a no-op after undo", function () {
   fixture.undos[0].undo();
   assert(indicesOfRail(fixture) === "0,1,2", "precondition: undo must restore");
   fixture.undos[0].redo();
-  assert(indicesOfRail(fixture) === "0,1,2",
-    "expected the current defect: redo recomputes snapshot() from the restored DOM");
+  assert(indicesOfRail(fixture) === "0,2,1",
+    "redo must restore the captured post-move order, not re-snapshot the restored DOM");
 });
 
 test("duplicate inserts the clone immediately after the selection", function () {
