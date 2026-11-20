@@ -225,12 +225,12 @@ jobs:
               # own workflow still calls the smoke "best effort" shipped with
               # an advisory marker; applying a newer hard gate to that older
               # image would fail a release that was green when it shipped.
-              # Honour the checked-out tag's contract, exactly like the
+              # Honour the contract of the checked out tag, exactly like the
               # license-staging guard above. Current tags keep the hard gate.
               SMOKE_REQUIRED=1
               if [ -f /repo/.github/workflows/desktop-os-iso.yml ] \
-                 && grep -q 'best effort' /repo/.github/workflows/desktop-os-iso.yml \
-                 && ! grep -q 'REQUIRED boot smoke' /repo/.github/workflows/desktop-os-iso.yml; then
+                 && grep -q "best effort" /repo/.github/workflows/desktop-os-iso.yml \
+                 && ! grep -q "REQUIRED boot smoke" /repo/.github/workflows/desktop-os-iso.yml; then
                 echo "::warning::pinned tag predates the required boot smoke gate; marker is advisory"
                 SMOKE_REQUIRED=0
               fi
