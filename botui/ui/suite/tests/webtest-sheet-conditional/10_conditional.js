@@ -139,15 +139,15 @@ test("colorScale builds a gradient rule with documented default colours", functi
   equal(custom.style.gradient_max, "<max>");
 });
 
-test("[KNOWN BUG] highlightBetween emits a bare 'a:b' condition the renderer cannot parse", function () {
+test("highlightBetween emits a 'between:a:b' condition the renderer parses (regression #2260)", function () {
   env.reset();
   env.setSelection(SEL);
   C.highlightBetween(1, 5);
   var p = lastPayload();
-  equal(p.condition, "1:5");
-  assert(p.condition.indexOf("between:") !== 0,
-    "highlightBetween should (but does not) prefix its condition with 'between:'");
-  // Renderer-side consequence is characterised in 11_conditional_render.js.
+  equal(p.condition, "between:1:5");
+  assert(p.condition.indexOf("between:") === 0,
+    "highlightBetween must prefix its condition with 'between:'");
+  // Renderer recognises this form; see the between-rule test in 11_conditional_render.js.
 });
 
 test("identical inputs produce byte-identical fetch payloads under fixed host globals", function () {

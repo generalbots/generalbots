@@ -55,7 +55,7 @@
 
   function highlightBetween(v1, v2) {
     return applyRule({
-      condition: v1 + ":" + v2,
+      condition: "between:" + v1 + ":" + v2,
       style: { background: "#2196f3", color: "#ffffff" },
     });
   }
