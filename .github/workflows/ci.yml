@@ -270,6 +270,16 @@ jobs:
           python3 scripts/check_target_blank.py --self-test
           python3 scripts/check_target_blank.py --check
 
+      # #2295 — native alert()/confirm()/prompt() are blocked in the desktop
+      # webview and bypass the themed, accessible GBModal contract. The guard
+      # keeps first-party UI on GBModal; the GB dialog systems themselves are
+      # exempt. Self-test proves a synthetic native call is caught.
+      - name: Native dialog guard (#2295)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_native_dialogs.py --self-test
+          python3 scripts/check_native_dialogs.py --check
+
       # #2333 — empty promise `.catch(...) {}` handlers discard rejections
       # with no log, UI feedback or recovery (the promise-shaped half of the
       # silent-failure epidemic). Best-effort suppressions must carry a comment
@@ -1109,6 +1119,10 @@ jobs:
           - botlog
           - botbasic_types
           - botproducts
+          # #2540 — the retired /api/sales shims live in botcontacts/botsales;
+          # their unit tests must run in CI, not just compile.
+          - botcontacts
+          - botsales
           - botsecurity-auth
           - botdocs
           - botslides
@@ -1140,6 +1154,23 @@ jobs:
           cache-scope: workspace-tests
       - name: Unit tests (${{ matrix.crate }})
         run: cargo test -p ${{ matrix.crate }} --lib
+
+  # #2497 — the desktop shell's file commands and IPC origin ACL are a security
+  # boundary. The integration tests need Tauri's Linux system libraries, which
+  # the plain workspace-tests runner does not install; run them in a dedicated
+  # job so a regression in canonicalisation/CSP/remote origins fails the build.
+  botapp-security:
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: botapp-security
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: Desktop shell security regression tests (#2497)
+        run: cargo test -p botapp --test security_2497
 
   bottest-unit:
     if: ${{ github.server_url == 'https://github.com' }}
