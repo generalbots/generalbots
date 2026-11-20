@@ -224,8 +224,10 @@ def _print_table(criteria: list[Criterion]) -> None:
 def self_test() -> int:
     """Prove each criterion fires and the clean case passes, using synthetic strings."""
     failures: list[str] = []
+    checks: list[str] = []
 
     def verify(condition: bool, label: str) -> None:
+        checks.append(label)
         if not condition:
             failures.append(label)
 
@@ -271,7 +273,7 @@ def self_test() -> int:
             print(f"FAIL: {failure}", file=sys.stderr)
         print(f"self-test FAILED ({len(failures)} checks)", file=sys.stderr)
         return 1
-    print("self-test: 9 checks passed")
+    print(f"self-test: {len(checks)} checks passed")
     return 0
 
 
