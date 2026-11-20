@@ -309,6 +309,7 @@ pub async fn execute_command(
             crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, obj).await
         }
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
+        "billing.invoice.create" => create_invoice(state, &bot_uuid, obj).await,
         "billing.payment.list" | "billing.payments.list" => list_payments(state, &bot_uuid).await,
         "billing.quote.list" | "billing.quotes.list" => list_quotes(state, &bot_uuid).await,
         "products.items.list" | "store.catalog.list" => {

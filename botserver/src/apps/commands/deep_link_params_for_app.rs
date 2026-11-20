@@ -60,6 +60,8 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("people", "people.list", "List people", "List contacts and leads.", &[], Some("app://people?person_id={person_id?}"), false),
     cmd("people", "people.search", "Search people", "Search contacts/leads by name, with deep link to the record.", &[("query", "name or email")], Some("app://people?person_id={person_id?}"), false),
     cmd("billing", "billing.invoice.list", "List invoices", "List invoices, quotes and payment status.", &[], Some("app://billing?invoice_id={invoice_id?}"), false),
+    // #2203 — a money write must be executable, not merely a form to fill in.
+    cmd("billing", "billing.invoice.create", "Create invoice", "Create a draft invoice for a customer; customer and amount are required.", &[("customer", "customer name"), ("amount", "invoice total"), ("currency", "currency code, default USD"), ("due_date", "YYYY-MM-DD, default issue date + 7 days"), ("customer_email", "optional customer e-mail"), ("notes", "optional notes")], Some("app://billing?invoice_id={invoice_id?}"), false),
     cmd("billing", "billing.subscription.status", "Subscription status", "Report the current plan and subscription status.", &[], None, false),
     cmd("products", "products.items.list", "List products", "List product catalog items and services.", &[("category", "optional category")], Some("app://products?product_id={product_id?}"), false),
     // #2204 — create/update were implemented and dispatched but absent from the
@@ -196,8 +198,10 @@ pub fn command_by_name(name: &str) -> Option<&'static AppCommand> {
 pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("crm", "open → click the relevant tab (Contacts/Deals/Pipeline) → use search or select a row → click Edit/New"),
     ("people", "open → contacts list auto-loads → select a person → panel shows the record"),
-    ("billing", "open → invoices list auto-loads → use the filter/search → click an invoice to view details"),
-    ("products", "open → items grid auto-loads → filter by category/status → click a row to edit"),
+    // #2203/#2204 — a money/catalog write must use the command, not hand-filled
+    // form clicks: the planner used to open the form and narrate success.
+    ("billing", "open → invoices list auto-loads → use the filter/search → click an invoice to view details; to CREATE an invoice call billing.invoice.create (customer, amount, currency, due_date) — never fill the New Invoice form by hand"),
+    ("products", "open → items grid auto-loads → filter by category/status → click a row to edit; to ADD a product call products.items.create (name, price) and to change one call products.items.update (product_id|name, price)"),
     ("tickets", "open → ticket list auto-loads → select a ticket → use status/assign actions"),
     ("banking", "open → transactions auto-load → use search → click a transaction to view details"),
     ("tasks", "open → task list auto-loads → use filter chips (all/active/completed) → click to edit"),
