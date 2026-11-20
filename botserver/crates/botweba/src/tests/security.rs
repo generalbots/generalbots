@@ -133,9 +133,11 @@ pub(super) fn test_render_route_response_carries_csp_header() {
         .expect("test runtime");
 
     let response = runtime.block_on(async {
-        let state = Arc::new(WebaState::new());
+        let state = Arc::new(WebaState::with_memory(Uuid::nil()));
         let app = published_app("Served", WebAppConfig::default());
-        state.apps.write().await.insert(app.id, app);
+        let app_id = app.id;
+        state.apps.write().await.insert(app_id, app);
+        state.publish(app_id).await.expect("publish must freeze the site");
 
         render_app(State(state), Path("served".to_string()))
             .await
@@ -150,6 +152,76 @@ pub(super) fn test_render_route_response_carries_csp_header() {
 
     assert!(csp.contains("sandbox allow-scripts allow-forms"));
     assert!(csp.contains("default-src 'none'"));
+}
+
+#[test]
+pub(super) fn test_rendered_document_has_no_inline_event_handlers() {
+    let app = published_app("Clean", WebAppConfig::default());
+    let html = render_html(&app, "<div onclick=\"x()\">safe text</div>");
+    let shell = &html[..html.find("<div").unwrap_or(html.len())];
+
+    // The shell adds no inline handlers; user markup is neutralised by the
+    // sandbox CSP (`script-src` has no 'unsafe-inline'), not by rewriting it.
+    for attribute in ["onclick", "onload", "onerror", "onmouseover"] {
+        assert!(!shell.contains(attribute));
+    }
+    let script_directive = WEBA_CSP
+        .split(';')
+        .find(|part| part.trim_start().starts_with("script-src"))
+        .unwrap_or_default();
+    assert!(!script_directive.contains("unsafe-inline"));
+}
+
+#[test]
+pub(super) fn test_rendering_uses_the_published_snapshot() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .expect("test runtime");
+    let (initial, after_draft_edit) = runtime.block_on(async {
+        let state = Arc::new(WebaState::with_memory(Uuid::nil()));
+        let app = published_app("Frozen", WebAppConfig::default());
+        let app_id = app.id;
+        state.apps.write().await.insert(app_id, app);
+        let page = WebAppPage {
+            id: Uuid::new_v4(),
+            app_id,
+            path: "/".to_string(),
+            title: "Home".to_string(),
+            content: "original".to_string(),
+            layout: None,
+            is_index: true,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let page_id = page.id;
+        state.pages.write().await.insert(page_id, page);
+        state.publish(app_id).await.expect("publish");
+
+        let first = render_app(State(state.clone()), Path("frozen".to_string()))
+            .await
+            .expect("render")
+            .into_body();
+        let first_bytes = axum::body::to_bytes(first, 1024 * 64).await.expect("body");
+        let initial = String::from_utf8_lossy(&first_bytes).to_string();
+
+        state
+            .pages
+            .write()
+            .await
+            .get_mut(&page_id)
+            .expect("page")
+            .content = "edited draft".to_string();
+        let second = render_app(State(state), Path("frozen".to_string()))
+            .await
+            .expect("render")
+            .into_body();
+        let second_bytes = axum::body::to_bytes(second, 1024 * 64).await.expect("body");
+        (initial, String::from_utf8_lossy(&second_bytes).to_string())
+    });
+
+    assert!(initial.contains("original"));
+    assert!(after_draft_edit.contains("original"));
+    assert!(!after_draft_edit.contains("edited draft"));
 }
 
 #[test]

@@ -83,6 +83,7 @@ fn always_compiled_tables() -> Vec<(&'static str, String)> {
         email_flags::table,
         email_nudges::table,
         run_events::table,
+        weba_snapshots::table,
     ]);
     tables
 }

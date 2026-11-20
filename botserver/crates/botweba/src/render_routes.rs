@@ -70,30 +70,31 @@ pub(super) async fn embed_page(
         &app.name,
     )))
 }
-/// Resolves a published app (and the requested page content) or `404`.
+/// Resolves a published app from its immutable snapshot or `404`.
+///
+/// Draft page edits never affect this path: the `WebAppPage` values come from
+/// the snapshot frozen at publish time, not from the live draft map (#2538).
 async fn published_page(
     state: &Arc<WebaState>,
     slug: &str,
     path: Option<&str>,
 ) -> Result<(WebApp, String), StatusCode> {
+    let site = state.live_site(slug).await.ok_or(StatusCode::NOT_FOUND)?;
     let apps = state.apps.read().await;
-    let app = apps
-        .values()
-        .find(|a| a.slug == slug && matches!(a.status, WebAppStatus::Published))
-        .ok_or(StatusCode::NOT_FOUND)?
-        .clone();
+    let mut app = apps.get(&site.app_id).cloned().ok_or(StatusCode::NOT_FOUND)?;
     drop(apps);
 
-    let pages = state.pages.read().await;
-    let page = match path {
-        Some(path) => pages
-            .values()
-            .find(|p| p.app_id == app.id && p.path == path),
-        None => pages.values().find(|p| p.app_id == app.id && p.is_index),
-    };
+    // The snapshot owns the public identity too, so renaming a draft cannot
+    // change the live page title or its slug.
+    app.name.clone_from(&site.name);
+    app.slug.clone_from(&site.slug);
 
+    let page = match path {
+        Some(path) => site.pages.iter().find(|page| page.path == path),
+        None => site.pages.iter().find(|page| page.is_index),
+    };
     let content = page
-        .map(|p| p.content.clone())
+        .map(|page| page.content.clone())
         .unwrap_or_else(|| "<p>Page not found</p>".to_string());
 
     Ok((app, content))

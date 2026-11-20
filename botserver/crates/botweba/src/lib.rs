@@ -88,12 +88,6 @@ pub enum ComponentType {
     Custom(String),
 }
 
-pub struct WebaState {
-    apps: RwLock<HashMap<Uuid, WebApp>>,
-    pages: RwLock<HashMap<Uuid, WebAppPage>>,
-    _components: RwLock<HashMap<Uuid, WebAppComponent>>,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct CreateAppRequest {
     pub name: String,
@@ -131,6 +125,8 @@ mod tests;
 mod configure_routes;
 mod csp;
 mod escape;
+mod forms;
+mod persistence;
 mod render_html;
 mod render_routes;
 mod weba_state;
@@ -138,4 +134,7 @@ mod weba_state;
 pub use configure_routes::*;
 pub use csp::*;
 pub use escape::*;
+pub use forms::*;
+pub use persistence::*;
 pub use render_html::*;
+pub use weba_state::*;

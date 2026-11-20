@@ -1,7 +1,10 @@
 use super::*;
+use crate::forms::{self, FormSubmitRequest};
+use crate::persistence::FormSubmission;
 use crate::render_routes::{embed_app, embed_page, preview_app, render_app, render_page};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
+use botsecurity_core::error_sanitizer::log_and_sanitize_json;
 
 pub fn configure_routes(state: Arc<WebaState>) -> Router {
     Router::new()
@@ -13,6 +16,7 @@ pub fn configure_routes(state: Arc<WebaState>) -> Router {
             get(get_page).put(update_page).delete(delete_page),
         )
         .route("/apps/:id/publish", post(publish_app))
+        .route("/apps/:id/unpublish", post(unpublish_app))
         .route("/apps/:id/preview", get(preview_app))
         .route("/render/:slug", get(render_app))
         .route("/render/:slug/*path", get(render_page))
@@ -20,8 +24,11 @@ pub fn configure_routes(state: Arc<WebaState>) -> Router {
         // rendered document, so the app always runs in a sandboxed iframe.
         .route("/embed/:slug", get(embed_app))
         .route("/embed/:slug/*path", get(embed_page))
+        // Public form capture for a published site.
+        .route("/forms/:slug/submit", post(submit_form))
         .with_state(state)
 }
+
 /// A published document is handed to every visitor, so publishing is an
 /// administrative act. A single-user desktop install has no directory account:
 /// the local OS user owns the instance and keeps the ability to publish.
@@ -37,6 +44,7 @@ pub(crate) fn authorize_publisher(user: &AuthenticatedUser) -> Result<(), Status
         Err(StatusCode::FORBIDDEN)
     }
 }
+
 pub(super) async fn list_apps(
     State(state): State<Arc<WebaState>>,
     Query(query): Query<ListQuery>,
@@ -63,6 +71,7 @@ pub(super) async fn list_apps(
 
     Json(result)
 }
+
 pub(super) async fn create_app(
     State(state): State<Arc<WebaState>>,
     Json(req): Json<CreateAppRequest>,
@@ -83,27 +92,32 @@ pub(super) async fn create_app(
         updated_at: now,
     };
 
-    let mut apps = state.apps.write().await;
-    apps.insert(id, app.clone());
+    state.apps.write().await.insert(id, app.clone());
+    state.persist().await;
 
     Json(app)
 }
+
 pub(super) async fn get_app(
     State(state): State<Arc<WebaState>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<WebApp>, axum::http::StatusCode> {
-    let apps = state.apps.read().await;
-    apps.get(&id)
+) -> Result<Json<WebApp>, StatusCode> {
+    state
+        .apps
+        .read()
+        .await
+        .get(&id)
         .cloned()
         .map(Json)
-        .ok_or(axum::http::StatusCode::NOT_FOUND)
+        .ok_or(StatusCode::NOT_FOUND)
 }
+
 pub(super) async fn update_app(
     State(state): State<Arc<WebaState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateAppRequest>,
-) -> Result<Json<WebApp>, axum::http::StatusCode> {
+) -> Result<Json<WebApp>, StatusCode> {
     // Flipping an app to `published` through the update endpoint must not be a
     // way around the publish gate (#2124).
     if req
@@ -115,8 +129,7 @@ pub(super) async fn update_app(
     }
 
     let mut apps = state.apps.write().await;
-
-    let app = apps.get_mut(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
+    let app = apps.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
 
     if let Some(name) = req.name {
         app.name.clone_from(&name);
@@ -132,24 +145,32 @@ pub(super) async fn update_app(
         app.config = config;
     }
     app.updated_at = chrono::Utc::now();
+    let result = app.clone();
+    drop(apps);
+    state.persist().await;
 
-    Ok(Json(app.clone()))
+    Ok(Json(result))
 }
+
 pub(super) async fn delete_app(
     State(state): State<Arc<WebaState>>,
     Path(id): Path<Uuid>,
-) -> axum::http::StatusCode {
+) -> StatusCode {
     let mut apps = state.apps.write().await;
     let mut pages = state.pages.write().await;
-
     pages.retain(|_, page| page.app_id != id);
-
-    if apps.remove(&id).is_some() {
-        axum::http::StatusCode::NO_CONTENT
+    let removed = apps.remove(&id).is_some();
+    drop(pages);
+    drop(apps);
+    state.published.write().await.remove(&id);
+    if removed {
+        state.persist().await;
+        StatusCode::NO_CONTENT
     } else {
-        axum::http::StatusCode::NOT_FOUND
+        StatusCode::NOT_FOUND
     }
 }
+
 pub(super) async fn list_pages(
     State(state): State<Arc<WebaState>>,
     Path(app_id): Path<Uuid>,
@@ -162,14 +183,15 @@ pub(super) async fn list_pages(
         .collect();
     Json(result)
 }
+
 pub(super) async fn create_page(
     State(state): State<Arc<WebaState>>,
     Path(app_id): Path<Uuid>,
     Json(req): Json<CreatePageRequest>,
-) -> Result<Json<WebAppPage>, axum::http::StatusCode> {
+) -> Result<Json<WebAppPage>, StatusCode> {
     let apps = state.apps.read().await;
     if !apps.contains_key(&app_id) {
-        return Err(axum::http::StatusCode::NOT_FOUND);
+        return Err(StatusCode::NOT_FOUND);
     }
     drop(apps);
 
@@ -188,34 +210,37 @@ pub(super) async fn create_page(
         updated_at: now,
     };
 
-    let mut pages = state.pages.write().await;
-    pages.insert(id, page.clone());
+    state.pages.write().await.insert(id, page.clone());
+    state.persist().await;
 
     Ok(Json(page))
 }
+
 pub(super) async fn get_page(
     State(state): State<Arc<WebaState>>,
     Path((app_id, page_id)): Path<(Uuid, Uuid)>,
-) -> Result<Json<WebAppPage>, axum::http::StatusCode> {
-    let pages = state.pages.read().await;
-    pages
+) -> Result<Json<WebAppPage>, StatusCode> {
+    state
+        .pages
+        .read()
+        .await
         .get(&page_id)
         .filter(|p| p.app_id == app_id)
         .cloned()
         .map(Json)
-        .ok_or(axum::http::StatusCode::NOT_FOUND)
+        .ok_or(StatusCode::NOT_FOUND)
 }
+
 pub(super) async fn update_page(
     State(state): State<Arc<WebaState>>,
     Path((app_id, page_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<CreatePageRequest>,
-) -> Result<Json<WebAppPage>, axum::http::StatusCode> {
+) -> Result<Json<WebAppPage>, StatusCode> {
     let mut pages = state.pages.write().await;
-
     let page = pages
         .get_mut(&page_id)
         .filter(|p| p.app_id == app_id)
-        .ok_or(axum::http::StatusCode::NOT_FOUND)?;
+        .ok_or(StatusCode::NOT_FOUND)?;
 
     page.path = req.path;
     page.title = req.title;
@@ -223,39 +248,131 @@ pub(super) async fn update_page(
     page.layout = req.layout;
     page.is_index = req.is_index;
     page.updated_at = chrono::Utc::now();
+    let result = page.clone();
+    drop(pages);
+    state.persist().await;
 
-    Ok(Json(page.clone()))
+    Ok(Json(result))
 }
+
 pub(super) async fn delete_page(
     State(state): State<Arc<WebaState>>,
     Path((app_id, page_id)): Path<(Uuid, Uuid)>,
-) -> axum::http::StatusCode {
+) -> StatusCode {
     let mut pages = state.pages.write().await;
-
     let exists = pages
         .get(&page_id)
-        .map(|p| p.app_id == app_id)
-        .unwrap_or(false);
-
+        .is_some_and(|page| page.app_id == app_id);
     if exists {
         pages.remove(&page_id);
-        axum::http::StatusCode::NO_CONTENT
+    }
+    drop(pages);
+    if exists {
+        state.persist().await;
+        StatusCode::NO_CONTENT
     } else {
-        axum::http::StatusCode::NOT_FOUND
+        StatusCode::NOT_FOUND
     }
 }
+
 pub(super) async fn publish_app(
     State(state): State<Arc<WebaState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
-) -> Result<Json<WebApp>, axum::http::StatusCode> {
+) -> Result<Json<WebApp>, StatusCode> {
     authorize_publisher(&user)?;
+    state.publish(id).await.ok_or(StatusCode::NOT_FOUND)?;
+    let app = state
+        .apps
+        .read()
+        .await
+        .get(&id)
+        .cloned()
+        .ok_or(StatusCode::NOT_FOUND)?;
+    Ok(Json(app))
+}
 
-    let mut apps = state.apps.write().await;
-    let app = apps.get_mut(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
+pub(super) async fn unpublish_app(
+    State(state): State<Arc<WebaState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode, StatusCode> {
+    authorize_publisher(&user)?;
+    if state.unpublish(id).await {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(StatusCode::NOT_FOUND)
+    }
+}
 
-    app.status = WebAppStatus::Published;
-    app.updated_at = chrono::Utc::now();
+pub(super) async fn submit_form(
+    State(state): State<Arc<WebaState>>,
+    Path(slug): Path<String>,
+    headers: HeaderMap,
+    Json(request): Json<FormSubmitRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(reason) = forms::validate(&request) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": reason })),
+        ));
+    }
+    // Honeypot: silently accept so a bot learns nothing.
+    if request.website.as_ref().is_some_and(|value| !value.trim().is_empty()) {
+        return Ok(Json(serde_json::json!({ "status": "accepted" })));
+    }
 
-    Ok(Json(app.clone()))
+    let caller = headers
+        .get("x-forwarded-for")
+        .and_then(|value| value.to_str().ok())
+        .or_else(|| headers.get("x-real-ip").and_then(|value| value.to_str().ok()))
+        .unwrap_or("local");
+    if !state.rate_limiter.allow(&format!("{slug}:{caller}")) {
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(serde_json::json!({ "error": "rate_limited" })),
+        ));
+    }
+
+    let site_id = state
+        .live_site(&slug)
+        .await
+        .map(|site| site.app_id)
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "site_not_found" })),
+        ))?;
+    let email = forms::normalize_email(&request.email);
+    let existing = state
+        .submissions
+        .read()
+        .await
+        .iter()
+        .find(|item| item.slug == slug && item.email == email)
+        .cloned();
+    let submission = FormSubmission {
+        id: existing.as_ref().map_or_else(Uuid::new_v4, |item| item.id),
+        site_id,
+        slug: slug.clone(),
+        email,
+        name: request.name.clone(),
+        message: request.message.clone(),
+        fields: request.fields.clone(),
+        source: format!("site:{slug}"),
+        created_at: existing.as_ref().map_or_else(chrono::Utc::now, |item| item.created_at),
+        updated_at: chrono::Utc::now(),
+    };
+    let crm_submission = submission.clone();
+    state.record_submission(submission).await;
+
+    if let Err(error) = forms::sync_crm(&slug, &crm_submission).await {
+        let sanitized = log_and_sanitize_json(&error, "weba::configure_routes::submit_form", None);
+        log::error!("WEBA CRM sync: {sanitized}");
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({ "error": "crm_sync_failed" })),
+        ));
+    }
+
+    Ok(Json(serde_json::json!({ "status": "accepted" })))
 }
