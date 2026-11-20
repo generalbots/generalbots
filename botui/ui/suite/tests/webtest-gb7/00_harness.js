@@ -59,7 +59,6 @@ var featureFiles = [
   "chat/chat-sanitize.js",
   "chat/chat-artifacts.js",
   "chat/chat-render.js",
-  "chat/chat-messages.js",
   "chat/chat-send.js",
   "chat/chat-session.js",
   "chat/modules/30_citations.js",

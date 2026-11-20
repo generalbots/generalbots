@@ -4,7 +4,6 @@
  */
 (function () {
     "use strict";
-
     var LANGUAGE_TOKENIZERS = {
         js: [{ named: "kw", re: /\b(?:const|let|var|function|return|if|else|for|while|async|await|class|new|import|from|export|try|catch|throw|switch|case|break|continue|null|undefined|true|false|typeof|instanceof|of|in|this|yield|static|extends|super)\b/g },
              { named: "str", re: /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g },
@@ -43,7 +42,6 @@
     LANGUAGE_TOKENIZERS.text = [];
     LANGUAGE_TOKENIZERS.plain = [];
     LANGUAGE_TOKENIZERS.plaintext = [];
-
     function escapeHtml(value) {
       if (window.GBShared && window.GBShared.html) return window.GBShared.html.escape(value);
       return String(value == null ? "" : value)
@@ -53,7 +51,6 @@
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
     }
-
     function highlight(text, lang) {
         var rules = LANGUAGE_TOKENIZERS[lang || ""] || LANGUAGE_TOKENIZERS.js;
         if (!rules.length) return escapeHtml(text);
@@ -85,7 +82,6 @@
         }
         return out;
     }
-
     function renderDiff(text) {
         var lines = text.split("\n");
         var out = [];
@@ -105,7 +101,6 @@
             '<span class="gb-diff-del-count">-' + dels + "</span></div>" +
             '<div class="gb-diff-body">' + out.join("") + "</div>";
     }
-
     function isDiff(text) {
         if (!text) return false;
         var lines = text.split("\n");
@@ -114,9 +109,7 @@
         if (lines.length > 1 && /^--- (?:a\/)?/.test(first) && /^\+\+\+/.test(lines[1])) return true;
         return false;
     }
-
     var COLLAPSE_AFTER_LINES = 14;
-
     function enhance(container) {
         if (!container) return;
         var pres = container.querySelectorAll("pre");
@@ -184,7 +177,6 @@
             });
         }
     }
-
     // A single bot turn can still flood the window when its content is plain
     // text (not fenced code) — e.g. a tool that dumps a long listing. Collapse
     // such turns behind a "Show all" toggle so the answer stays readable.
@@ -194,9 +186,10 @@
         if (!content) return;
         if (content.classList.contains("gb-long-handled")) return;
         // #2516 — the collapse threshold is a viewport, not a desktop
-        // constant: 480px already fills a phone screen, and half a screen is
-        // the point where an answer stops being scannable.
-        var collapseAt = Math.max(240, Math.round((window.innerHeight || 800) * 0.5));
+        // constant: 480px already fills a phone screen. Use the visible
+        // viewport (keyboard excluded) when the bridge is available.
+        var vh = window.GBChatVisibleHeight ? window.GBChatVisibleHeight() : window.innerHeight;
+        var collapseAt = Math.max(240, Math.round((vh || 800) * 0.5));
         if (content.scrollHeight <= collapseAt) return;
         content.classList.add("gb-long-handled", "gb-long-collapsed");
         var showAllLabel = (typeof gbT === "function") ? gbT("chat-code-show-all", "Show all") : "Show all";
@@ -211,9 +204,7 @@
         });
         container.appendChild(toggle);
     }
-
     /* Tool progress cards */
-
     function toolStatusIcon(status) {
         switch (status) {
             case "done": return "\u2713";
@@ -222,7 +213,6 @@
             default: return "";
         }
     }
-
     function toolCardHtml(tool) {
         var status = tool.status || "running";
         var icon = toolStatusIcon(status);
@@ -241,7 +231,6 @@
             '<div class="gb-tool-name">' + escapeHtml(tool.tool_name || tool.name || "tool") + "</div>" +
             detail + summary + "</div></div>";
     }
-
     function extractToolCards(text) {
         var cards = [];
         if (!text) return cards;
@@ -271,7 +260,6 @@
         }
         return cards;
     }
-
     function appendCard(tool) {
         var messages = document.getElementById("messages");
         if (!messages) return;
@@ -290,7 +278,6 @@
         messages.appendChild(wrapper);
         return wrapper.querySelector(".gb-tool-card");
     }
-
     window.ChatCodeUX = {
         enhance: enhance,
         collapseLong: collapseLong,

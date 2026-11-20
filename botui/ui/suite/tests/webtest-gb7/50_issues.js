@@ -169,7 +169,6 @@ test("SIZE: touched chat and pipeline files stay under the 450-line limit", func
     "chat/chat-init.js",
     "chat/chat-send.js",
     "chat/chat-session.js",
-    "chat/chat-messages.js",
     "chat/chat-render.js",
     "chat/chat-artifacts.js",
     "../../../botserver/src/core/bot/pipeline/exec.rs",

@@ -16,25 +16,20 @@ function installComposerFocusAfterLayoutChange() {
     refocusComposerAfterLayoutChange();
   });
 }
-
 function setupEventHandlers() {
 var form = document.getElementById("chatForm");
 var input = document.getElementById("messageInput");
 var sendBtn = document.getElementById("sendBtn");
-
 if (form) {
 form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; };
 }
-
 if (input) {
 // BBSIA: grow the composer with its content, never past 180px (#2516).
-// On a phone the 180px cap is taller than the space left once the keyboard
-// is open, so the ceiling is the smaller of 180px and a third of the visible
-// viewport (published as --gb-vv-height by mobile-viewport.js).
+// On a phone the cap is min(180, visibleHeight * 0.3): visualViewport height
+// comes from modules/mobile_viewport.js (falling back to innerHeight).
 var composerMax = function () {
   var fixed = 180;
-  var vv = window.visualViewport;
-  var visible = vv && vv.height ? vv.height : window.innerHeight;
+  var visible = window.GBChatVisibleHeight ? window.GBChatVisibleHeight() : window.innerHeight;
   if (visible && visible < 900) {
     fixed = Math.min(fixed, Math.round(visible * 0.3));
   }
@@ -46,11 +41,10 @@ var autoGrow = function () {
   input.style.height = Math.min(input.scrollHeight, composerMax()) + "px";
 };
 input.addEventListener("input", autoGrow);
-
+input.addEventListener("gb-chat-viewport", autoGrow);
 // Only attach mention handlers if they exist
 var mentionInputHandler = window.handleMentionInput;
 var mentionKeydownHandler = window.handleMentionKeydown;
-
 if (mentionInputHandler) {
 input.addEventListener("input", mentionInputHandler);
 }
@@ -81,16 +75,13 @@ messages.scrollBy({ top: dir * messages.clientHeight, behavior: "instant" });
 };
 }
 }
-
 if (sendBtn) {
 sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
 }
-
 var scrollBtn = document.getElementById("scrollToBottom");
 if (scrollBtn) {
 scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatState.isUserScrolling = false; ChatState.isUserAtBottom = true; });
 }
-
 var messagesEl = document.getElementById("messages");
 if (messagesEl) {
 // Async layout (iframe artifacts, suggestions, footer resize) changes the
@@ -142,7 +133,6 @@ messagesEl.addEventListener("scroll", function () {
   updateScrollButton();
 });
 }
-
 document.addEventListener("click", function (e) {
 if (!e.target.closest("#mentionDropdown") && !e.target.closest("#messageInput")) {
 var hideMention = window.hideMentionDropdown;
@@ -152,7 +142,6 @@ hideMention();
 }
 });
 }
-
 function initChat() {
   // #1753 — deleting the open conversation reinitializes through here.
   // Duplicate delete events (or a re-injected module binding again) must not
@@ -223,7 +212,6 @@ function initChat() {
     schedule();
   })();
 }
-
 function showChatApp() {
   var chatApp = document.getElementById("chat-app");
   if (chatApp) {
@@ -231,9 +219,7 @@ function showChatApp() {
     chatApp.style.visibility = "visible";
   }
 }
-
 window.showChatApp = showChatApp;
-
 // Wait for DOM to be ready before initializing
 if (typeof document !== 'undefined') {
 if (document.readyState === 'loading') {

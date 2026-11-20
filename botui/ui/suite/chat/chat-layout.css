@@ -1,6 +1,4 @@
 @import url("/suite/chat/chat-layout-toast.css");
-
-
 /* #1797 — relative timestamp, revealed only while the bubble is hovered. */
 .gb-message-time {
     position: absolute;
@@ -14,40 +12,33 @@
     pointer-events: none;
     transition: opacity 0.15s ease;
 }
-
 .message.user .gb-message-time {
     right: 4px;
 }
-
 .message.bot .gb-message-time {
     left: 4px;
 }
-
 .message:hover .gb-message-time,
 .message:focus-within .gb-message-time {
     opacity: 0.85;
 }
-
 .message-content {
     padding: 12px 16px;
     border-radius: 16px;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
-
 .user-message {
     background: var(--accent, #2563eb);
     color: white;
     border-bottom-right-radius: 4px;
 }
-
 /* #1797 — long user turns collapse to a readable excerpt after Enter. */
 .gb-message-text.gb-message-collapsed {
     position: relative;
     max-height: 9.5em;
     overflow: hidden;
 }
-
 .gb-message-text.gb-message-collapsed::after {
     content: "";
     position: absolute;
@@ -58,7 +49,6 @@
     background: linear-gradient(transparent, var(--accent, #2563eb));
     pointer-events: none;
 }
-
 .gb-message-toggle {
     align-self: flex-start;
     margin-top: 6px;
@@ -72,11 +62,9 @@
     text-decoration: underline;
     cursor: pointer;
 }
-
 .gb-message-toggle:hover {
     color: #fff;
 }
-
 .bot-message {
     background: var(--surface, var(--card, #1a1a24));
     color: var(--text, #e5e5e5);
@@ -84,7 +72,6 @@
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
     white-space: pre-wrap;
 }
-
 .bot-message,
 .bot-message p,
 .bot-message span,
@@ -98,15 +85,12 @@
 .bot-message h4 {
     color: var(--text, #e5e5e5) !important;
 }
-
 .bot-message p {
     margin: 0;
 }
-
 .bot-message p:last-child {
     margin-bottom: 0;
 }
-
 .bot-message code {
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 6px;
@@ -114,7 +98,6 @@
     font-family: "Fira Code", monospace;
     font-size: 0.9em;
 }
-
 .bot-message pre {
     background: rgba(0, 0, 0, 0.3);
     padding: 12px;
@@ -122,12 +105,10 @@
     overflow-x: auto;
     margin: 0.5em 0;
 }
-
 .bot-message pre code {
     background: none;
     padding: 0;
 }
-
 /* #2147 — a newspaper front-page capture is the answer: show it at the bubble
    width instead of letting a 1280px screenshot overflow the conversation. */
 .bot-message img {
@@ -138,14 +119,12 @@
     border-radius: 8px;
     border: 1px solid var(--border, var(--border-color, #2a2a2a));
 }
-
 /* A capture that could not be loaded degrades to text + link (45_bot_images.js). */
 .gb-image-fallback {
     display: inline-block;
     color: var(--text-secondary, #888);
     font-size: var(--text-2xs);
 }
-
 /* Thinking Section - collapsible reasoning block */
 .thinking-section {
     background: var(--surface2, #1e1e2e);
@@ -155,7 +134,6 @@
     padding: 0;
     font-size: 0.85em;
 }
-
 .thinking-section summary {
     cursor: pointer;
     padding: 8px 12px;
@@ -169,30 +147,25 @@
     align-items: center;
     gap: 8px;
 }
-
 .thinking-summary-icon {
     font-size: 1em;
     line-height: 1;
 }
-
 .thinking-section summary::-webkit-details-marker {
     display: none;
 }
-
 .thinking-section[open] summary::after {
     content: '▲';
     font-size: var(--text-2xs);
     margin-left: auto;
     opacity: 0.5;
 }
-
 .thinking-section:not([open]) summary::after {
     content: '▼';
     font-size: var(--text-2xs);
     margin-left: auto;
     opacity: 0.5;
 }
-
 .thinking-section .thinking-content {
     padding: 0 12px 8px;
     color: var(--text-secondary, #777);
@@ -205,7 +178,6 @@
     max-height: 300px;
     overflow-y: auto;
 }
-
 /* Footer with solid background. Scoped to the chat app: a bare `footer`
    selector also styled the desktop taskbar (which is a <footer> element),
    painting a full-width white strip over the dock. */
@@ -215,7 +187,6 @@
     background: var(--surface, #f5f5f5);
     position: relative;
 }
-
 /* Chat footer content layout - suggestions left, switchers right */
 .chat-footer-content {
     display: flex;
@@ -224,7 +195,6 @@
     gap: 16px;
     margin-bottom: 8px;
 }
-
 /* Mention Dropdown */
 .mention-dropdown {
     position: absolute;
@@ -242,11 +212,9 @@
     overflow: hidden;
     z-index: var(--z-sticky);
 }
-
 .mention-dropdown.visible {
     display: flex;
 }
-
 .mention-header {
     padding: 10px 14px;
     border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
@@ -256,14 +224,12 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .mention-results {
     overflow-y: auto;
     max-height: 250px;
     scrollbar-width: thin;
     scrollbar-color: var(--accent, #2563eb) transparent;
 }
-
 .mention-results::-webkit-scrollbar {
     width: 6px;
 }
@@ -273,5 +239,20 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+/* #2516 — pasted tables scroll in-bubble; no page-level horizontal scroll. */
+.bot-message .message-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* #2516 — cap the transcript to the visible height published by
+   modules/mobile_viewport.js; flex reserves room for the composer. */
+@media (max-width: 768px) {
+  #chat-app #messages {
+    max-height: var(--gb-chat-visible-height, 100dvh);
   }
 }

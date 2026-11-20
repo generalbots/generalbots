@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/suite/chat/chat-layout.css?v=3" />
+<link rel="stylesheet" href="/suite/chat/chat-layout.css?v=4" />
 <link rel="stylesheet" href="/suite/chat/chat-input.css?v=3" />
 <link rel="stylesheet" href="/suite/chat/chat-projector.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat-empty-state.css?v=1" />
@@ -31,12 +31,10 @@
             <span class="connection-status-dot"></span>
             <span class="connection-text" data-i18n="chat-connecting">Connecting...</span>
         </div>
-
         <main id="messages" role="log" aria-live="polite" aria-relevant="additions" data-tour="chat.messages">
             <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="chat-connecting">Connecting…</span></div>
             <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="chat-connection-failed">Connection failed</span></div>
         </main>
-
         <footer>
             <div class="chat-footer-content">
                 <div class="suggestions-container" id="suggestions"></div>
@@ -128,7 +126,6 @@
         </button>
     </div>
 </div>
-
 <div class="entity-card-tooltip" id="entityCardTooltip">
     <div class="entity-card-header">
         <span class="entity-card-type"></span>
@@ -140,7 +137,6 @@
         <button class="entity-card-btn" data-action="view" data-i18n="action-view">View</button>
     </div>
 </div>
-
 <!-- marked.min.js is loaded once by desktop.html before chat is swapped in. -->
 <script src="/suite/js/vendor/katex/katex.min.js"></script>
 <script src="/suite/chat/chat-math.js?v=1"></script>
@@ -152,7 +148,7 @@
 <script src="/suite/js/artifact-download.js?v=1"></script>
 <script src="/suite/chat/chat-sanitize.js?v=1"></script>
 <script src="/suite/chat/chat-drive-picker.js?v=2"></script>
-<script src="/suite/chat/chat-code-ux.js?v=2"></script>
+<script src="/suite/chat/chat-code-ux.js?v=3"></script>
 <script src="/suite/chat/chat-render.js?v=7"></script>
 <script src="/suite/chat/chat-turn-indicator.js?v=1"></script>
 <script src="/suite/chat/chat-turn-state.js?v=1"></script>
@@ -180,7 +176,9 @@
 <script src="/suite/chat/chat-send_a.js?v=9"></script>
 <script src="/suite/chat/chat-send_b.js?v=9"></script>
 <script src="/suite/chat/chat-init_a.js?v=27"></script>
-<script src="/suite/chat/chat-init_b.js?v=27"></script>
+<script src="/suite/chat/chat-init_b.js?v=28"></script>
+<!-- #2516 — first ordered module: viewport bridge must precede the others. -->
+<script src="/suite/chat/modules/mobile_viewport.js?v=1"></script>
 <script src="/suite/chat/chat-model-picker.js?v=5"></script>
 <script src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
 <script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
