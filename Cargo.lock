@@ -3892,8 +3892,12 @@ name = "botweba"
 version = "7.0.37"
 dependencies = [
  "axum 0.7.9",
+ "botcontacts",
+ "botcore",
  "botsecurity-auth",
+ "botsecurity-core",
  "chrono",
+ "diesel",
  "log",
  "serde",
  "serde_json",
