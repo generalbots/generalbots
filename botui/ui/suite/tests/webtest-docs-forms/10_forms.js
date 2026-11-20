@@ -301,3 +301,15 @@ test("RUNTIME #2427: updateInDom patches attributes through the shipped render p
   assert(f.NS.state.controls[0].options.join("|") === "A|B", "options re-synced after patch");
   assert(C.updateInDom("missing", { label: "<y>" }, host) === false, "unknown id returns false");
 });
+
+test("RUNTIME #2427: updateInDom normalizes a string options patch (regression)", function () {
+  var f = loadForms();
+  var C = f.NS.controls;
+  var host = f.doc.createElement("div");
+  var node = controlElement(f, C.create("dropdown", { id: "u2", label: "pick", options: ["A"] }));
+  host.appendChild(node);
+  /* The control inspector passes options as the raw textarea string; without
+   * list() normalization attrs() calls descriptor.options.join() on a string. */
+  assert(C.updateInDom("u2", { options: "B,C" }, host) === true, "string options patch applied");
+  assert(f.NS.state.controls[0].options.join("|") === "B|C", "string options normalized to an array");
+});

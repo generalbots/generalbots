@@ -135,7 +135,7 @@
     for (var i = 0; i < nodes.length; i += 1) {
       if (nodes[i].getAttribute("data-form-id") !== id) continue;
       var merged = C.parseFromElement(nodes[i]);
-      Object.keys(patch || {}).forEach(function (name) { merged[name] = patch[name]; });
+      Object.keys(patch || {}).forEach(function (name) { merged[name] = name === "options" ? list(patch[name]) : patch[name]; });
       if (nodes[i].outerHTML != null) nodes[i].outerHTML = C.render(merged);
       C.syncFromDom(target);
       NS.persist();
