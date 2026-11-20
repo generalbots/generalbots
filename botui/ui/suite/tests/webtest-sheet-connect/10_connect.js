@@ -387,6 +387,27 @@ test("steps group aggregates sums and counts with parallel lineage", function ()
   deep(count.rows, [["north", 2], ["south", 2], ["east", 2]]);
 });
 
+test("steps group keeps keys that collide with Object.prototype names", function () {
+  var rows = [
+    ["north", 10], ["constructor", 5], ["__proto__", 3], ["toString", 7], ["north", 20],
+  ];
+  var manual = {
+    columns: ["grp", "amount"],
+    rows: rows,
+    lineage: rows.map(function () {
+      return [
+        { stepId: "source", stepType: "source", sourceField: "grp" },
+        { stepId: "source", stepType: "source", sourceField: "amount" },
+      ];
+    }),
+  };
+  var out = S.applyStep(manual, {
+    id: "gr", type: "group", config: { by: "grp", aggField: "amount", agg: "sum" },
+  });
+  deep(out.rows, [["north", 30], ["constructor", 5], ["__proto__", 3], ["toString", 7]]);
+  equal(out.lineage.length, 4);
+});
+
 test("steps skip disabled and unknown steps without transforming", function () {
   var table = F.simulatedFeed(null);
   equal(S.applyStep(table, { id: "x", type: "filter", enabled: false, config: {} }), table);

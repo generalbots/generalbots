@@ -144,7 +144,7 @@
     if (byIndex < 0 || fieldIndex < 0) return table;
     var agg = C ? C.oneOf(step.config.agg, ["sum", "count"], "sum") : "sum";
     var groups = [];
-    var lookup = {};
+    var lookup = Object.create(null);
     table.rows.forEach(function (row, rowIndex) {
       var key = String(row[byIndex]);
       var bucket = lookup[key];
