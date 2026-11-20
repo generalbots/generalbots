@@ -25,8 +25,8 @@ pub use suppression::{
 };
 pub use unsubscribe::{
     build_unsubscribe_url, issue_unsubscribe_token, record_unsubscribe,
-    sign_claims_with_key, unsubscribe, verify_unsubscribe_token, UnsubscribeClaims,
-    UnsubscribeError, UnsubscribeResult,
+    sign_claims_with_key, unsubscribe, unsubscribe_headers, verify_unsubscribe_token,
+    UnsubscribeClaims, UnsubscribeError, UnsubscribeResult,
 };
 
 use serde_json::Value;

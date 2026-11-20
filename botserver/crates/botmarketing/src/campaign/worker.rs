@@ -226,7 +226,7 @@ impl CampaignWorker {
                     )
                 })
                 .collect();
-        for (id, (subscribed, metadata)) in consent_rows {
+        for (id, subscribed, metadata) in consent_rows {
             let entry = consent_by_contact.entry(id).or_insert((None, None));
             if subscribed.is_some() {
                 entry.0 = subscribed;
