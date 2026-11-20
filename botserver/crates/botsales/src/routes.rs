@@ -74,16 +74,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn retired_endpoint_answers_410_with_a_canonical_hint() {
+    fn test_retired_endpoint_answers_410_with_a_canonical_hint() {
         let response = gone_response("/api/crm/quotes");
         assert_eq!(response.status(), StatusCode::GONE);
         let body = gone_body("/api/crm/quotes");
+        assert_eq!(body["error"], "gone");
         assert_eq!(body["status"], 410);
         assert_eq!(body["canonical"], "/api/crm/quotes");
     }
 
     #[test]
-    fn quotes_and_orders_survive_under_the_crm_prefix() {
+    fn test_gone_message_always_points_at_the_canonical_path() {
+        for canonical in ["/api/crm/deals", "/api/crm/contacts", "/api/crm/orders"] {
+            let body = gone_body(canonical);
+            let message = body["message"].as_str();
+            assert!(message.is_some(), "gone body must carry a message");
+            if let Some(message) = message {
+                assert!(message.contains(canonical), "message must name {canonical}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_route_table_builds_offline() {
         let _router = configure::<()>();
     }
 }

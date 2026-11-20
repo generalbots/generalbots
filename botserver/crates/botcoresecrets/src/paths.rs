@@ -48,3 +48,41 @@ impl SecretPaths {
         format!("gbo/orgs/{}/config", org_id)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_global_paths_are_stable() {
+        assert_eq!(SecretPaths::DIRECTORY, "gbo/directory");
+        assert_eq!(SecretPaths::TABLES, "gbo/tables");
+        assert_eq!(SecretPaths::DRIVE, "gbo/drive");
+        assert_eq!(SecretPaths::CACHE, "gbo/cache");
+        assert_eq!(SecretPaths::LLM, "gbo/llm");
+        assert_eq!(SecretPaths::JWT, "gbo/jwt");
+        assert_eq!(SecretPaths::OAUTH_STATE, "gbo/oauth-state");
+        assert_eq!(SecretPaths::SECURITY, "gbo/system/security");
+        assert_eq!(SecretPaths::PEER, "gbo/peer");
+    }
+
+    #[test]
+    fn test_tenant_paths_are_scoped_and_distinct() {
+        let infrastructure = SecretPaths::tenant_infrastructure("acme");
+        assert_eq!(infrastructure, "gbo/tenants/acme/infrastructure");
+        assert_ne!(infrastructure, SecretPaths::tenant_infrastructure("other"));
+        let config = SecretPaths::tenant_config("acme");
+        assert_eq!(config, "gbo/tenants/acme/config");
+        assert_ne!(config, infrastructure);
+    }
+
+    #[test]
+    fn test_org_paths_separate_bots_users_and_config() {
+        let bot = SecretPaths::org_bot("org-1", "same-id");
+        let user = SecretPaths::org_user("org-1", "same-id");
+        assert_eq!(bot, "gbo/orgs/org-1/bots/same-id");
+        assert_eq!(user, "gbo/orgs/org-1/users/same-id");
+        assert_ne!(bot, user);
+        assert_eq!(SecretPaths::org_config("org-1"), "gbo/orgs/org-1/config");
+    }
+}

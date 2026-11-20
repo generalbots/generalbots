@@ -43,7 +43,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn local_addr_matches_platform_tls_setting() {
+    fn test_local_addr_matches_platform_tls_setting() {
         let addr = local_vault_addr();
         if cfg!(target_os = "windows") {
             assert_eq!(addr, "http://127.0.0.1:8200");
@@ -53,16 +53,25 @@ mod tests {
     }
 
     #[test]
-    fn explicit_address_wins() {
+    fn test_explicit_address_wins() {
         assert_eq!(
-            pick_vault_addr(Some("http://10.0.0.5:8200")),
-            "http://10.0.0.5:8200"
+            pick_vault_addr(Some("http://vault.example:8200")),
+            "http://vault.example:8200"
         );
     }
 
     #[test]
-    fn missing_or_blank_address_falls_back() {
+    fn test_missing_or_blank_address_falls_back() {
         assert_eq!(pick_vault_addr(None), local_vault_addr());
         assert_eq!(pick_vault_addr(Some("   ")), local_vault_addr());
+        assert_eq!(pick_vault_addr(Some("\t\n")), local_vault_addr());
+    }
+
+    #[test]
+    fn test_explicit_address_is_trimmed_without_changing_the_scheme() {
+        assert_eq!(
+            pick_vault_addr(Some("  https://vault.example:8200  ")),
+            "https://vault.example:8200"
+        );
     }
 }

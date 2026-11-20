@@ -15,6 +15,35 @@ fn resolve_branch(headers: &HeaderMap) -> Uuid {
     botcore::shared::tenant::branch_from_claims(headers).unwrap_or_else(Uuid::nil)
 }
 
+/// Missing scores are treated as "neutral" instead of being rejected.
+fn lead_score(explicit: Option<i32>) -> i32 {
+    explicit.unwrap_or(50)
+}
+
+/// Empty status values fall back to the lifecycle's entry state.
+fn status_or_default(explicit: &str, default: &str) -> &str {
+    if explicit.is_empty() {
+        default
+    } else {
+        explicit
+    }
+}
+
+/// Generated document numbers are stable, prefixed and always six digits;
+/// an operator-supplied number is kept verbatim.
+fn document_number(prefix: &str, explicit: &str, timestamp: i64) -> String {
+    if explicit.trim().is_empty() {
+        format!("{prefix}-{:06}", (timestamp % 1_000_000).abs())
+    } else {
+        explicit.to_string()
+    }
+}
+
+/// Malformed money input becomes zero instead of aborting the request.
+fn amount_or_zero(raw: &str) -> Decimal {
+    raw.parse::<Decimal>().unwrap_or_default()
+}
+
 // ---------------------------------------------------------------------------
 // Leads
 // ---------------------------------------------------------------------------
@@ -98,8 +127,8 @@ pub async fn create_lead(
     .bind::<diesel::sql_types::Text, _>(&req.name)
     .bind::<diesel::sql_types::Text, _>(&req.company)
     .bind::<diesel::sql_types::Text, _>(&req.source)
-    .bind::<diesel::sql_types::Integer, _>(req.score.unwrap_or(50))
-    .bind::<diesel::sql_types::Text, _>(if req.status.is_empty() { "new" } else { &req.status })
+    .bind::<diesel::sql_types::Integer, _>(lead_score(req.score))
+    .bind::<diesel::sql_types::Text, _>(status_or_default(&req.status, "new"))
     .bind::<diesel::sql_types::Text, _>(&req.owner)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Uuid, _>(branch)
@@ -173,16 +202,12 @@ pub async fn create_quote(
     Json(req): Json<NewQuote>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let amount = req.amount.parse::<Decimal>().unwrap_or_default();
+    let amount = amount_or_zero(&req.amount);
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
-    let qnum = if req.quote_number.trim().is_empty() {
-        format!("Q-{:06}", (Utc::now().timestamp() % 1_000_000).abs())
-    } else {
-        req.quote_number.clone()
-    };
+    let qnum = document_number("Q", &req.quote_number, Utc::now().timestamp());
     diesel::sql_query(
         "INSERT INTO sales_quotes (id, quote_number, title, customer, amount, valid_until, status, created_at, branch_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)",
@@ -193,7 +218,7 @@ pub async fn create_quote(
     .bind::<diesel::sql_types::Text, _>(&req.customer)
     .bind::<diesel::sql_types::Numeric, _>(amount)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Date>, _>(req.valid_until)
-    .bind::<diesel::sql_types::Text, _>(if req.status.is_empty() { "draft" } else { &req.status })
+    .bind::<diesel::sql_types::Text, _>(status_or_default(&req.status, "draft"))
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
@@ -265,16 +290,12 @@ pub async fn create_order(
     Json(req): Json<NewOrder>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let total = req.total.parse::<Decimal>().unwrap_or_default();
+    let total = amount_or_zero(&req.total);
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let id = Uuid::new_v4();
-    let onum = if req.order_number.trim().is_empty() {
-        format!("O-{:06}", (Utc::now().timestamp() % 1_000_000).abs())
-    } else {
-        req.order_number.clone()
-    };
+    let onum = document_number("O", &req.order_number, Utc::now().timestamp());
     diesel::sql_query(
         "INSERT INTO sales_orders (id, order_number, customer, items, total, status, delivery, created_at, branch_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)",
@@ -284,10 +305,69 @@ pub async fn create_order(
     .bind::<diesel::sql_types::Text, _>(&req.customer)
     .bind::<diesel::sql_types::Integer, _>(req.items.unwrap_or(0))
     .bind::<diesel::sql_types::Numeric, _>(total)
-    .bind::<diesel::sql_types::Text, _>(if req.status.is_empty() { "pending" } else { &req.status })
+    .bind::<diesel::sql_types::Text, _>(status_or_default(&req.status, "pending"))
     .bind::<diesel::sql_types::Text, _>(&req.delivery)
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(serde_json::json!({ "item": { "id": id, "order_number": onum } })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lead_defaults_keep_the_documented_score_and_status() {
+        assert_eq!(lead_score(None), 50);
+        assert_eq!(lead_score(Some(0)), 0);
+        assert_eq!(lead_score(Some(95)), 95);
+        assert_eq!(status_or_default("", "new"), "new");
+        assert_eq!(status_or_default("qualified", "new"), "qualified");
+    }
+
+    #[test]
+    fn test_generated_document_numbers_are_prefixed_and_six_digits() {
+        assert_eq!(document_number("Q", "", 1_234_567), "Q-234567");
+        assert_eq!(document_number("O", "   ", -1), "O-000001");
+        assert_eq!(document_number("Q", "Q-CUSTOM", 42), "Q-CUSTOM");
+        assert_eq!(document_number("O", "", 0), "O-000000");
+    }
+
+    #[test]
+    fn test_invalid_amounts_fall_back_to_zero() {
+        assert_eq!(amount_or_zero("12.50"), Decimal::new(1250, 2));
+        assert_eq!(amount_or_zero("not-a-number"), Decimal::ZERO);
+        assert_eq!(amount_or_zero(""), Decimal::ZERO);
+    }
+
+    #[test]
+    fn test_new_lead_payload_tolerates_missing_optional_fields() {
+        let parsed: Result<NewLead, _> = serde_json::from_str(r#"{"name":"Ada"}"#);
+        assert!(parsed.is_ok(), "a lead with only a name must deserialize");
+        if let Ok(lead) = parsed {
+            assert_eq!(lead.name, "Ada");
+            assert_eq!(lead.score, None);
+            assert!(lead.company.is_empty());
+            assert!(lead.status.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_new_quote_and_order_payloads_tolerate_missing_optional_fields() {
+        let quote: Result<NewQuote, _> = serde_json::from_str(r#"{"title":"Proposal"}"#);
+        assert!(quote.is_ok(), "a quote with only a title must deserialize");
+        if let Ok(quote) = quote {
+            assert_eq!(quote.title, "Proposal");
+            assert!(quote.valid_until.is_none());
+            assert!(quote.amount.is_empty());
+        }
+        let order: Result<NewOrder, _> = serde_json::from_str(r#"{"customer":"Ada"}"#);
+        assert!(order.is_ok(), "an order with only a customer must deserialize");
+        if let Ok(order) = order {
+            assert_eq!(order.customer, "Ada");
+            assert!(order.items.is_none());
+            assert!(order.total.is_empty());
+        }
+    }
 }

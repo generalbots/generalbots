@@ -63,10 +63,16 @@ const CSRF_SECRET_KEYS: [&str; 3] = ["csrf_secret", "csrf-secret", "CSRF_SECRET"
 /// refusing to start. This function never invents a secret.
 pub fn csrf_secret_sync() -> Option<String> {
     let secrets = secret_sync(SecretPaths::SECURITY)?;
+    select_csrf_secret(&secrets)
+}
+
+/// Pick the first non-blank documented key from a Vault secret map.
+fn select_csrf_secret(secrets: &BTreeMap<String, String>) -> Option<String> {
     CSRF_SECRET_KEYS.iter().find_map(|key| {
         secrets
             .get(*key)
-            .map(|value| value.trim())
+            .map(String::as_str)
+            .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
     })
@@ -77,31 +83,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_missing_key_is_not_a_secret() {
+    fn test_missing_or_blank_key_is_not_a_secret() {
         let mut secrets = BTreeMap::new();
         secrets.insert("csrf_secret".to_string(), "   ".to_string());
-        let found = CSRF_SECRET_KEYS.iter().find_map(|key| {
-            secrets
-                .get(*key)
-                .map(|value| value.trim())
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-        });
-        assert!(found.is_none());
+        assert!(select_csrf_secret(&secrets).is_none());
+        secrets.insert("csrf_secret".to_string(), "  value  ".to_string());
+        assert_eq!(select_csrf_secret(&secrets).as_deref(), Some("value"));
     }
 
     #[test]
-    fn the_first_documented_key_wins() {
+    fn test_first_documented_key_wins() {
         let mut secrets = BTreeMap::new();
         secrets.insert("csrf-secret".to_string(), "from-hyphen".to_string());
         secrets.insert("csrf_secret".to_string(), "from-underscore".to_string());
-        let found = CSRF_SECRET_KEYS.iter().find_map(|key| {
-            secrets
-                .get(*key)
-                .map(|value| value.trim())
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-        });
-        assert_eq!(found.as_deref(), Some("from-underscore"));
+        assert_eq!(select_csrf_secret(&secrets).as_deref(), Some("from-underscore"));
+    }
+
+    #[test]
+    fn test_uppercase_alias_is_accepted_when_primary_is_blank() {
+        let mut secrets = BTreeMap::new();
+        secrets.insert("csrf_secret".to_string(), String::new());
+        secrets.insert("CSRF_SECRET".to_string(), "from-env-alias".to_string());
+        assert_eq!(select_csrf_secret(&secrets).as_deref(), Some("from-env-alias"));
     }
 }

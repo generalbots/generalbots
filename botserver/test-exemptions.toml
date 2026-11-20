@@ -1,0 +1,15 @@
+# Test-floor exemptions for #2544.
+#
+# A crate belongs here only when no pure, offline unit test is feasible today:
+# every entry must carry a one-line justification and an accountable owner.
+# Adding a testable seam (e.g. an injected adapter) removes the exemption.
+
+[[exemption]]
+crate = "botpublic"
+owner = "@rodrigorodriguez"
+justification = "Placeholder crate: lib.rs contains only comments and no functions or state to exercise."
+
+[[exemption]]
+crate = "botnvidia"
+owner = "@rodrigorodriguez"
+justification = "All logic shells out to nvidia-smi or reads live host CPU metrics via sysinfo; no pure seam exists yet."
