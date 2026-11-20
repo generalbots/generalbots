@@ -107,7 +107,7 @@ var SDPresets = {
       node.y = Math.round(cy + ry * Math.sin(angle) - node.h / 2);
       node.level = 0;
     });
-    return this.chain(nodes, "e", "w");
+    return this.chain(nodes, "", "");
   },
 
   layoutTree: function (nodes) {
