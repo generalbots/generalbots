@@ -164,6 +164,7 @@ A._modelShared = {
   errText: errText,
   setBusy: setBusy,
   inlineConfirm: inlineConfirm,
+  doSwitchMode: function (body, msgEl, btn) { return doSwitchMode(body, msgEl, btn); },
   refreshAfterChange: function () { return refreshAfterChange(); },
   /* Lists changed (download, removal, engine install) but the model in use did not. */
   refreshKeepingView: function () {
@@ -353,6 +354,7 @@ function renderModeDetail(panel, mode) {
   if (mode === "local") renderLocalDetail(detail);
   else if (mode === "own_key") renderOwnKeyDetail(detail);
   else if (mode === "free") renderFreeDetail(detail);
+  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(detail);
 }
 
 function renderLocalDetail(el) {
@@ -361,8 +363,10 @@ function renderLocalDetail(el) {
   }
 }
 
-/* ---- Own Key detail ---- */
+/* ---- Own Key detail: the provider catalog lives in 10e_settings_providers.js ---- */
 function renderOwnKeyDetail(el) {
+  if (A._modelProviders && A._modelProviders.render) { A._modelProviders.render(el); return; }
+  /* Fallback for a build that does not ship the provider module. */
   var ep = (cfg && cfg.mode === "own_key" && cfg.endpoint_host) ? cfg.endpoint_host : "";
   var md = (cfg && cfg.mode === "own_key") ? cfg.model : "";
   var hasKey = cfg && cfg.has_key;

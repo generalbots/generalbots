@@ -13,7 +13,8 @@
     /* ---- Model name helpers ---- */
     A.shortModelName = function (model) {
         if (!model) { return ""; }
-        var s = model;
+        /* An account model is "acct:<provider>/<model>": show just the model. */
+        var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
         var bslash = s.lastIndexOf("\\");
@@ -27,7 +28,7 @@
 
     A.fullModelName = function (model) {
         if (!model) { return ""; }
-        var s = model;
+        var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
         var bslash = s.lastIndexOf("\\");
@@ -121,6 +122,7 @@
             menu.appendChild(item);
         }
 
+        addAccountGroups(menu);
         addSwitchEntries(menu, dest);
 
         var div = document.createElement("div");
@@ -177,6 +179,48 @@
                 });
             });
         }).catch(function () { /* the menu keeps what it has */ });
+    }
+
+    /* ---- Provider accounts: one collapsible group per key, listing the
+       models switched on in Settings > Modelo. The group holding the chosen
+       model starts open. Accounts are loaded by 10i_accounts.js. ---- */
+    function addAccountGroups(menu) {
+        (A.accounts || []).forEach(function (acc) {
+            if ((acc.models || []).length) { addGroup(menu, acc, acc.models, selectModel); }
+        });
+    }
+
+    function addGroup(menu, acc, models, onPick) {
+        var open = models.some(function (m) { return m.value === A.selectedModel; });
+        var group = document.createElement("div");
+        group.className = "gb-model-group" + (open ? " open" : "");
+        var head = document.createElement("button");
+        head.type = "button";
+        head.className = "gb-model-group-head";
+        head.setAttribute("aria-expanded", String(open));
+        var svg = (A._providerLogos || {})[acc.logo || acc.id] || "";
+        head.innerHTML = (svg ? '<span class="gb-model-group-logo">' + svg + '</span>' : '') +
+            '<span class="gb-model-group-name">' + esc(acc.name || acc.id) + '</span>' +
+            '<span class="gb-model-group-count">' + models.length + '</span>' +
+            '<svg class="gb-model-group-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+        head.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var isOpen = group.classList.toggle("open");
+            head.setAttribute("aria-expanded", String(isOpen));
+        });
+        var list = document.createElement("div");
+        list.className = "gb-model-group-list";
+        models.forEach(function (m) {
+            var item = document.createElement("button");
+            item.className = "gb-model-menu-item" + (A.selectedModel === m.value ? " active" : "");
+            item.innerHTML = '<span class="gb-model-menu-name">' + esc(m.model) + '</span>';
+            item.addEventListener("click", function () { onPick(m.value); });
+            list.appendChild(item);
+        });
+        group.appendChild(head);
+        group.appendChild(list);
+        var divider = menu.querySelector(".gb-model-menu-divider");
+        if (divider) { menu.insertBefore(group, divider); } else { menu.appendChild(group); }
     }
 
     function setPickersBusy(on) {

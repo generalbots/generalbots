@@ -126,7 +126,7 @@
     /* Attachments travel inside the socket frame as base64; a larger file
        fails the frame and the chat would stay silent. Same limit as the server
        expects from the existing client. */
-    var MAX_ATTACH_BYTES = 8 * 1024 * 1024;
+    var MAX_ATTACH_BYTES = 50 * 1024 * 1024;
 
     function doSend(text, messageType) {
         text = (text || "").trim();
@@ -146,7 +146,7 @@
                 return f.name + " (" + fmtMB(f.size) + ")";
             }).join(", ");
             A.renderError(A.t("attach.too-big",
-                "File too large (8 MB per file limit): ") + names);
+                "File too large (50 MB per file limit): ") + names);
             return;
         }
         var empty = files.filter(function (f) { return f.size === 0; });

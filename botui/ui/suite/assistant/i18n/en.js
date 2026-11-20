@@ -67,7 +67,7 @@ window.GBAssistantLocales["en"] = {
     "assistant.consent-denied":   "Denied",
     "assistant.consent-failed":   "Could not record decision",
     "assistant.consent-expired":  "This request has expired",
-    "attach.too-big": "File too large (8 MB per file limit): ",
+    "attach.too-big": "File too large (50 MB per file limit): ",
     "attach.empty-file": "Empty file: ",
     "attach.pasted-text": "pasted-text",
     "attach.duplicate": "File already attached: ",
