@@ -279,6 +279,12 @@ pub async fn process_message_internal(
                 truncated,
                 &drive_path,
             );
+            // The model received the file itself (image/PDF to a vision
+            // model): the card must not call it unreadable.
+            let mut summary = summary;
+            if !attachment_media.is_empty() {
+                summary["seen_by_model"] = serde_json::Value::Bool(true);
+            }
             let done = act.completed(summary);
             super::activity::emit_activity(sink, &early_run, &done).await;
         } else {

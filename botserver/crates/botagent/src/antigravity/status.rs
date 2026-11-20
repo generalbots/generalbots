@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::vm;
 use crate::AgentService;
 
-use super::paths::{CREDENTIALS_PATH, LOGIN_LOG, LOGIN_STATUS};
+use super::paths::{credentials_test, LOGIN_LOG, LOGIN_STATUS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AntigravityStatus {
@@ -97,10 +97,10 @@ pub async fn status(
     vm_name: &str,
 ) -> Result<AntigravityStatus, (StatusCode, String)> {
     let script = format!(
-        "test -s {credentials} && echo LINKED || echo UNLINKED; \
+        "{credentials} && echo LINKED || echo UNLINKED; \
          echo ---; command -v agy >/dev/null 2>&1 && agy --version 2>/dev/null || true; \
          echo ---; cat {log} 2>/dev/null | tail -c 12000 || true",
-        credentials = CREDENTIALS_PATH,
+        credentials = credentials_test(),
         log = LOGIN_LOG
     );
     let (_, stdout, stderr) = run_script(state, vm_name, &script).await?;

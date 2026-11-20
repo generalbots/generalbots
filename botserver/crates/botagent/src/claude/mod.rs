@@ -1,10 +1,10 @@
 //! Claude Code subscription provider (#1652).
 //!
 //! The CLI and its credentials live inside the user's agent VM:
-//! `claude setup-token` runs under the `claude` Unix user, prints an OAuth
+//! `claude auth login --claudeai` runs under the `claude` Unix user, prints an OAuth
 //! URL, and accepts the authorization code through a small PTY bridge. The
-//! botserver never sees the token itself — it only reads the status of
-//! `/home/claude/.claude/.credentials.json`.
+//! botserver never sees the token itself — it only checks
+//! `/home/claude/.claude/.credentials.json` or `claude auth status`.
 //!
 //! Every VM command goes through `vm::exec_in_vm`, which uses `SafeCommand`.
 //! User-supplied text (the authorization code and the prompt) is base64

@@ -118,7 +118,7 @@ pub async fn submit_code(
 
 pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
     let script = format!(
-        "su {user} -s /bin/sh -c 'rm -rf {home}/.gemini/antigravity-cli' 2>/dev/null || true; \
+        "su {user} -s /bin/sh -c 'rm -rf {home}/.gemini {home}/.config/antigravity' 2>/dev/null || true; \
          rm -f {log} {status} {code}",
         user = ANTIGRAVITY_USER,
         home = ANTIGRAVITY_HOME,

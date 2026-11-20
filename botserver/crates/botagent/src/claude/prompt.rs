@@ -2,11 +2,12 @@
 
 use axum::http::StatusCode;
 
+use crate::cli_turn::{cli_model, failure_reason, turn_script};
 use crate::AgentService;
 
 use super::b64;
 use super::internal;
-use super::paths::{CLAUDE_HOME, CLAUDE_USER, PROMPT_B64, PROMPT_TXT};
+use super::paths::{CLAUDE_HOME, CLAUDE_USER, PROMPT_TXT};
 use super::status::run_script;
 
 /// #1939 — delivery policy for VM agent turns.
@@ -16,8 +17,10 @@ search the web first when unsure which one is current. Install what the task nee
 the sandbox limits. Never substitute another format silently: if the exact format cannot be produced \
 reliably, say so and offer the closest alternative you can verify.";
 
-/// Runs one non-interactive turn with the subscription. The prompt is base64
-/// encoded on the host, so quotes, newlines and shell metacharacters are data.
+/// Runs one non-interactive turn (`claude -p`) as the `claude` user. The
+/// prompt is base64 encoded on the host and read from stdin, so quotes,
+/// newlines and shell metacharacters are data and its length is not bound
+/// by the argument limit.
 pub async fn run_prompt(
     state: &AgentService,
     vm_name: &str,
@@ -30,53 +33,24 @@ pub async fn run_prompt(
     // #1939 — the subscription agent gets the same “ask, done” policy as the
     // chat prompt: exact requested format, open-source tooling first.
     let prompt = format!("{DELIVERY_DIRECTIVE}\n\n{prompt}");
-    let model = sanitize_model(model);
+    let model = cli_model(model);
     let model_arg = if model.is_empty() {
         String::new()
     } else {
         format!(" --model {model}")
     };
-    let script = format!(
-        "printf '%s' '{payload}' | base64 -d > {b64_path}; \
-         chown {user}:{user} {b64_path}; chmod 600 {b64_path}; \
-         base64 -d {b64_path} > {txt_path}; chown {user}:{user} {txt_path}; chmod 600 {txt_path}; \
-         timeout 300 su {user} -s /bin/sh -c 'cd {home} && claude -p \"$(cat {txt_path})\" --output-format text{model_arg}'",
-        payload = b64(prompt.as_str()),
-        b64_path = PROMPT_B64,
-        txt_path = PROMPT_TXT,
-        user = CLAUDE_USER,
-        home = CLAUDE_HOME,
-        model_arg = model_arg
-    );
+    let invocation = format!("claude -p --output-format text{model_arg} < \"$GB_PROMPT\"");
+    let script = turn_script(CLAUDE_USER, CLAUDE_HOME, PROMPT_TXT, &b64(prompt.as_str()), &invocation);
     let (ok, stdout, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        let reason = if stderr.trim().is_empty() {
-            stdout.trim()
-        } else {
-            stderr.trim()
-        };
-        return Err(internal(format!("Claude Code failed: {reason}")));
+        return Err(internal(format!(
+            "Claude Code failed: {}",
+            failure_reason(&stdout, &stderr)
+        )));
     }
-    Ok(stdout.trim().to_string())
-}
-
-fn sanitize_model(model: &str) -> String {
-    model
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '.' | '_'))
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::sanitize_model;
-
-    #[test]
-    fn model_is_restricted_to_a_safe_alphabet() {
-        assert_eq!(
-            sanitize_model("claude-sonnet-4.5; rm -rf /"),
-            "claude-sonnet-4.5rm-rf"
-        );
-        assert_eq!(sanitize_model(""), "");
+    let answer = stdout.trim().to_string();
+    if answer.is_empty() {
+        return Err(internal("Claude Code returned an empty response".to_string()));
     }
+    Ok(answer)
 }

@@ -13,7 +13,7 @@ use axum::http::StatusCode;
 use base64::Engine;
 
 pub use login::{logout, start_login, submit_code};
-pub use paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, CREDENTIALS_PATH};
+pub use paths::{credentials_test, ANTIGRAVITY_HOME, ANTIGRAVITY_USER, CREDENTIALS_DIRS};
 pub use prompt::run_prompt;
 pub use status::{extract_auth_code, extract_auth_url, status, AntigravityStatus};
 

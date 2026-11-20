@@ -43,7 +43,7 @@ async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     )))
 }
 
-/// Starts `claude setup-token` under a PTY inside the VM. Idempotent: a second
+/// Starts `claude auth login` under a PTY inside the VM. Idempotent: a second
 /// call while a process is already waiting returns the existing URL.
 pub async fn start_login(
     state: &AgentService,

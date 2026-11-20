@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::vm;
 use crate::AgentService;
 
-use super::paths::{CREDENTIALS_PATH, LOGIN_LOG, LOGIN_STATUS};
+use super::paths::{CODEX_HOME, CODEX_USER, CREDENTIALS_PATH, LOGIN_LOG, LOGIN_STATUS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CodexStatus {
@@ -102,10 +102,12 @@ pub async fn status(
     vm_name: &str,
 ) -> Result<CodexStatus, (StatusCode, String)> {
     let script = format!(
-        "test -s {credentials} && echo LINKED || echo UNLINKED; \
+        "{{ test -s {credentials} || su {user} -s /bin/sh -c 'cd {home} && HOME={home} timeout 20 codex login status' >/dev/null 2>&1; }} && echo LINKED || echo UNLINKED; \
          echo ---; command -v codex >/dev/null 2>&1 && codex --version 2>/dev/null || true; \
          echo ---; cat {log} 2>/dev/null | tail -c 12000 || true",
         credentials = CREDENTIALS_PATH,
+        user = CODEX_USER,
+        home = CODEX_HOME,
         log = LOGIN_LOG
     );
     let (_, stdout, stderr) = run_script(state, vm_name, &script).await?;

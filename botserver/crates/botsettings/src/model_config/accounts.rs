@@ -7,7 +7,7 @@
 //! [`resolve_choice`]); every other preference keeps the bot's own model.
 
 use axum::{
-    extract::{Extension, Path},
+    extract::{Extension, Path, State},
     http::StatusCode,
     response::Json,
 };
@@ -16,6 +16,10 @@ use botsecurity::auth::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::sync::Arc;
+
+use botcore::config::ConfigManager;
+use botcore::shared::state::AppState;
 
 use super::{api_error, require_admin, ApiResult};
 
@@ -157,6 +161,7 @@ pub(super) struct ModelsRequest {
 
 /// Asks the provider which models this key can use.
 pub(super) async fn handle_models(
+    State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<ModelsRequest>,
 ) -> ApiResult {
@@ -169,6 +174,9 @@ pub(super) async fn handle_models(
             .find(|a| a.id == req.id && a.url == req.url)
             .map(|a| a.key)
             .unwrap_or_default();
+    }
+    if key.is_empty() {
+        key = configured_key(&state, &req.url);
     }
     let Some(list_url) = models_url(&req.url) else {
         return Err(api_error(StatusCode::BAD_REQUEST, "invalid_endpoint_url"));
@@ -203,6 +211,23 @@ pub(super) async fn handle_models(
     Ok(Json(json!({ "models": model_ids(&body) })))
 }
 
+/// The key of the main "own key" model when it points at the same provider
+/// host, so a key typed once in Modelo also lists that provider's models.
+fn configured_key(state: &Arc<AppState>, url: &str) -> String {
+    let cfg = ConfigManager::new(state.conn.clone());
+    let nil = uuid::Uuid::nil();
+    let main_url = cfg.get_config(&nil, "llm-url", Some("")).unwrap_or_default();
+    if main_url.is_empty() || !same_host(&main_url, url) {
+        return String::new();
+    }
+    cfg.get_config(&nil, "llm-key", Some("")).unwrap_or_default().trim().to_string()
+}
+
+fn same_host(a: &str, b: &str) -> bool {
+    let (ha, hb) = (host(a), host(b));
+    !ha.is_empty() && ha.eq_ignore_ascii_case(&hb)
+}
+
 /// Model ids from an OpenAI-shaped (`data[].id`) or Anthropic list.
 pub fn model_ids(body: &str) -> Vec<String> {
     let v: Value = serde_json::from_str(body).unwrap_or(Value::Null);
@@ -232,6 +257,7 @@ pub(super) struct SaveRequest {
 /// Stores the account and its switched-on models. A key left empty keeps
 /// the one already stored for this provider.
 pub(super) async fn handle_save(
+    State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<SaveRequest>,
 ) -> ApiResult {
@@ -248,7 +274,10 @@ pub(super) async fn handle_save(
         .find(|a| a.id == req.id)
         .map(|a| a.key.clone())
         .unwrap_or_default();
-    let key = req.api_key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty()).unwrap_or(old_key);
+    let mut key = req.api_key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty()).unwrap_or(old_key);
+    if key.is_empty() {
+        key = configured_key(&state, &req.url);
+    }
     accounts.retain(|a| a.id != req.id);
     accounts.push(Account {
         id: req.id.trim().to_string(),

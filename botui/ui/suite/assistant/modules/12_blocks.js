@@ -127,7 +127,7 @@ A.blockAttachmentRead = function (ev) {
     }
     /* Completed but no text extracted — file format not readable */
     var isCompleted = ev.status === "completed";
-    var noTextExtracted = isCompleted && !s.chars_read;
+    var noTextExtracted = isCompleted && !s.chars_read && !s.seen_by_model;
     var noTextLabel = noTextExtracted
         ? t("Formato não legível: o texto não pôde ser extraído",
             "Format not readable: text could not be extracted")
@@ -144,6 +144,7 @@ A.blockAttachmentRead = function (ev) {
             (s.type||s.content_type ? row(t("Tipo","Type"), s.type||s.content_type) : "") +
             (s.size||s.size_bytes ? row(t("Tamanho","Size"), fmtBytes(s.size||s.size_bytes)) : "") +
             (s.chars_read ? row(t("Lido","Read"), s.chars_read + " " + t("caracteres","chars")) : "") +
+            (s.seen_by_model ? row(t("Enviado ao modelo","Sent to the model"), t("o próprio arquivo, para ele ver","the file itself, for it to see")) : "") +
             (s.truncated ? '<div class="gb-block-row"><span class="gb-block-row-value" style="color:#a16207">' + t("Truncado","Truncated") + '</span></div>' : "") });
     /* Make the block clickable to open the file preview */
     if (typeof A.makeAttachClickable === "function" && (s.name || s.file)) {

@@ -1,6 +1,10 @@
-//! PTY bridge script that drives `claude setup-token` inside the VM.
+//! PTY bridge script that drives `claude auth login` inside the VM.
+//!
+//! `claude setup-token` only prints a token for an environment variable and
+//! stores nothing, so the CLI stayed signed out; `auth login` stores the
+//! subscription credentials in `~/.claude/.credentials.json`.
 
-/// The PTY bridge: runs `claude setup-token` as the `claude` user, mirrors its
+/// The PTY bridge: runs `claude auth login --claudeai` as the `claude` user, mirrors its
 /// output to a log, and forwards an authorization code dropped in
 /// `/tmp/gb-claude-code`. Credentials stay in `/home/claude/.claude`.
 pub(super) const PTY_SCRIPT: &str = r#"import os, pty, select, time
@@ -37,7 +41,7 @@ if pid == 0:
     # starts; retry the transient "Text file busy" instead of losing the login.
     for attempt in range(30):
         try:
-            os.execvp("claude", ["claude", "setup-token"])
+            os.execvp("claude", ["claude", "auth", "login", "--claudeai"])
         except OSError as error:
             if getattr(error, "errno", None) == 26 and attempt < 29:
                 time.sleep(0.5)

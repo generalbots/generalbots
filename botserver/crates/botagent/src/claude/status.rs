@@ -7,7 +7,7 @@ use crate::vm;
 use crate::AgentService;
 
 use super::internal;
-use super::paths::{CREDENTIALS_PATH, LOGIN_LOG, LOGIN_STATUS};
+use super::paths::{CLAUDE_HOME, CLAUDE_USER, CREDENTIALS_PATH, LOGIN_LOG, LOGIN_STATUS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ClaudeStatus {
@@ -74,10 +74,12 @@ pub async fn status(
     vm_name: &str,
 ) -> Result<ClaudeStatus, (StatusCode, String)> {
     let script = format!(
-        "test -s {credentials} && echo LINKED || echo UNLINKED; \
+        "{{ test -s {credentials} || su {user} -s /bin/sh -c 'cd {home} && HOME={home} timeout 20 claude auth status --json' 2>/dev/null | grep -q '\"loggedIn\": *true'; }} && echo LINKED || echo UNLINKED; \
          echo ---; command -v claude >/dev/null 2>&1 && claude --version 2>/dev/null || true; \
          echo ---; cat {log} 2>/dev/null | tail -c 12000 || true",
         credentials = CREDENTIALS_PATH,
+        user = CLAUDE_USER,
+        home = CLAUDE_HOME,
         log = LOGIN_LOG
     );
     let (_, stdout, stderr) = run_script(state, vm_name, &script).await?;

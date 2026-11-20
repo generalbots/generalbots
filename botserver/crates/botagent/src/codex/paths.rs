@@ -2,7 +2,10 @@
 
 pub const CODEX_USER: &str = "codex";
 pub const CODEX_HOME: &str = "/home/codex";
-pub const CREDENTIALS_PATH: &str = "/home/codex/.codex/credentials.json"; // adjust if Codex stores elsewhere
+/// Where `codex login` stores the ChatGPT sign-in (file credential store).
+pub const CREDENTIALS_PATH: &str = "/home/codex/.codex/auth.json";
+pub(super) const PROMPT_TXT: &str = "/tmp/gb-codex-prompt.txt";
+pub(super) const LAST_MESSAGE: &str = "/home/codex/.gb-codex-last-message.txt";
 pub const LOGIN_SCRIPT: &str = "/tmp/gb-codex-login.py";
 pub const LOGIN_LOG: &str = "/tmp/gb-codex-login.log";
 pub const LOGIN_STATUS: &str = "/tmp/gb-codex-login.status";
