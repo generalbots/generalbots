@@ -102,9 +102,21 @@ h.gap("PER-APP-OUTCOMES",
   "save/upload/send success and failure announced in every active .product app",
   "needs browser UAT per active app; async outcomes are runtime events");
 
-h.gap("CHAT-LOG-REGION",
-  "chat #messages role=log with aria-live=polite declared in shipped sources",
-  "no static declaration found in the scanned tree; issue comments cite CDP AX-tree evidence only, so re-verify in the browser");
+var chatLogDeclared = h.readTree().some(function (file) {
+  var t = file.text;
+  return t.indexOf('id="messages"') !== -1 &&
+    /\brole\s*=\s*(["'])log\1/.test(t) &&
+    /\baria-live\s*=\s*(["'])polite\1/.test(t);
+});
+if (!chatLogDeclared) {
+  h.gap("CHAT-LOG-REGION",
+    "chat #messages role=log with aria-live=polite declared in shipped sources",
+    "no static declaration found in the scanned tree; issue comments cite CDP AX-tree evidence only, so re-verify in the browser");
+} else {
+  h.test("[STATIC] chat #messages declares role=log with aria-live=polite", function () {
+    h.assert(chatLogDeclared, "chat messages region missing role=log/aria-live=polite declaration");
+  });
+}
 
 h.gap("PRESENCE-RUNTIME",
   "collab join/leave/edit announcements observed on a live session",
