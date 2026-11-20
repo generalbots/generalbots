@@ -167,6 +167,21 @@ test("RUNTIME #2482: activeTable resolves the innermost table from an element an
     "inner ownCells must contain only its own cell");
 });
 
+test("RUNTIME #2482: activeTable/cellFromSelection resolve a TEXT-node anchor (real browser selections)", function () {
+  var env = h.tableEnvironment();
+  var t = grid(2, 2);
+  env.attach(t);
+  var cell = env.NS.ownCells(t)[0];
+  var span = h.element("span");
+  cell.appendChild(span);
+  var textNode = { nodeType: 3, data: "x", parentNode: span };
+  span.childNodes.push(textNode);
+  env.selection.anchorNode = textNode;
+  assert(env.NS.activeTable() === t, "text-node anchor must resolve to its owning table");
+  var found = env.NS.cellFromSelection();
+  assert(found && found.cell === cell, "text-node anchor must map to its owning cell");
+});
+
 test("RUNTIME #2482: activeTable returns null for an anchor outside the article", function () {
   var env = h.tableEnvironment();
   var t = grid(1, 1);

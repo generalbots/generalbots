@@ -79,14 +79,14 @@
     return children(el).filter(function (c) { return tags.indexOf(String(c.tagName || "").toLowerCase()) >= 0; });
   }
   function closestEl(node, tag) {
-    while (node && node.nodeType === 1) {
+    while (node && (node.nodeType === 3 ? (node = node.parentNode) : node.nodeType === 1)) {
       if (isTag(node, tag)) return node;
       node = node.parentNode;
     }
     return null;
   }
   function ownCell(node) {
-    while (node && node.nodeType === 1) {
+    while (node && (node.nodeType === 3 ? (node = node.parentNode) : node.nodeType === 1)) {
       if (isTag(node, "td") || isTag(node, "th")) return node;
       node = node.parentNode;
     }
