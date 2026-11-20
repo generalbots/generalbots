@@ -45,7 +45,12 @@ jobs:
       - name: Install PostgreSQL client libraries (libpq)
         shell: pwsh
         run: |
-          choco install postgresql16 --no-progress -y
+          # The smoke step needs superuser access to create the `gb` role. If
+          # choco generates the postgres password itself it is unrecoverable,
+          # so generate one here and stage it outside the repo for that step.
+          $pgAdminPass = [guid]::NewGuid().ToString('N')
+          Set-Content -Path "$env:RUNNER_TEMP\gb-pgadmin.pass" -Value $pgAdminPass -NoNewline
+          choco install postgresql16 --no-progress -y --params "/Password:$pgAdminPass"
           $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
             Sort-Object Name | Select-Object -Last 1
           if (-not $pg) { throw "PostgreSQL install directory not found" }
@@ -139,22 +144,34 @@ jobs:
           "@ | Set-Content "$stack\conf\system\directory_config.json"
           Write-Host "VAULT_ADDR=$env:VAULT_ADDR"
 
-          # postgres on 5432 (choco) — create gb user/db (best-effort; missing DB/migrations
-          # are reported as blockers if they prevent readiness).
+          # postgres on 5432 (choco) — create/repair the gb role and database.
+          # These are hard requirements: a silent auth failure here used to turn
+          # into a 30-minute smoke timeout with only "password authentication
+          # failed for user gb" deep in the botserver log.
+          $pgAdminPassFile = "$env:RUNNER_TEMP\gb-pgadmin.pass"
+          if (-not (Test-Path $pgAdminPassFile)) { throw "postgres admin password was not staged by the install step" }
+          $env:PGPASSWORD = (Get-Content $pgAdminPassFile -Raw).Trim()
           try {
             $pgRoot = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory -ErrorAction SilentlyContinue |
               Sort-Object Name | Select-Object -Last 1
-            if ($pgRoot) {
-              $pgBin = Join-Path $pgRoot.FullName 'bin'
-              $env:PATH = "$pgBin;$env:PATH"
-              $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc.Name -ErrorAction SilentlyContinue; Start-Sleep -Seconds 5 }
-              & "$pgBin\psql.exe" -U postgres -c 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''gb'') THEN CREATE ROLE gb LOGIN PASSWORD ''gb''; END IF; END $$;' 2>&1 | Out-Null
-              & "$pgBin\psql.exe" -U postgres -c "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec" 2>&1 | Out-Null
-            } else {
-              Write-Host "::warning::PostgreSQL install directory not found; continuing without DB bootstrap"
+            if (-not $pgRoot) { throw "PostgreSQL install directory not found" }
+            $pgBin = Join-Path $pgRoot.FullName 'bin'
+            $env:PATH = "$pgBin;$env:PATH"
+            $svc = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $svc) { throw "PostgreSQL service not found" }
+            if ($svc.Status -ne 'Running') {
+              Start-Service $svc.Name
+              Start-Sleep -Seconds 5
             }
-          } catch { Write-Host "::warning::PostgreSQL setup failed, continuing: $($_.Exception.Message)" }
+            $roleSql = 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''gb'') THEN CREATE ROLE gb LOGIN PASSWORD ''gb''; ELSE ALTER ROLE gb WITH LOGIN PASSWORD ''gb''; END IF; END $$;'
+            & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c $roleSql
+            if ($LASTEXITCODE -ne 0) { throw "could not create/repair the gb role (psql exit $LASTEXITCODE)" }
+            $dbSql = "SELECT 'CREATE DATABASE botserver OWNER gb' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='botserver')\gexec"
+            & "$pgBin\psql.exe" -v ON_ERROR_STOP=1 -U postgres -c $dbSql
+            if ($LASTEXITCODE -ne 0) { throw "could not create the botserver database (psql exit $LASTEXITCODE)" }
+          } finally {
+            Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+          }
 
           # Best-effort Redis for CACHE_URL. Missing cache must not be a hard blocker
           # for the desktop-local HTTP smoke, but we try to provide it when available.
