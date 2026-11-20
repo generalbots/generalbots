@@ -23,7 +23,7 @@ var AGENTS = [
 
 var L = { "pt-BR": {
   intro:"Use a sua própria assinatura do Claude, ChatGPT ou Google. O agente roda dentro de uma máquina virtual isolada, criada para ele neste computador: sua conta e o que ele executa ficam lá dentro, não no seu Windows.",
-  connect:"Conectar", disconnect:"Desconectar", soon:"Em breve", linked:"Conectado", connecting:"Conectando…", off:"Não conectado",
+  connect:"Conectar", disconnect:"Desconectar", useNow:"Usar no chat", soon:"Em breve", linked:"Conectado", connecting:"Conectando…", off:"Não conectado",
   preparing:"Preparando a máquina virtual e instalando o agente. Na primeira vez pode levar alguns minutos.",
   open:"Abrir a página de login", code:"Código", codeHelp:"Na página de login, entre com este código.",
   paste:"Cole aqui o código que a página mostrar", send:"Enviar código",
@@ -31,7 +31,7 @@ var L = { "pt-BR": {
   unavailable:"A máquina virtual de agentes não está disponível neste computador:", failed:"Não foi possível conectar:" },
 en: {
   intro:"Use your own Claude, ChatGPT or Google subscription. The agent runs inside an isolated virtual machine created for it on this computer: your account and what it runs stay there, not on your Windows.",
-  connect:"Connect", disconnect:"Disconnect", soon:"Coming soon", linked:"Connected", connecting:"Connecting…", off:"Not connected",
+  connect:"Connect", disconnect:"Disconnect", useNow:"Use in chat", soon:"Coming soon", linked:"Connected", connecting:"Connecting…", off:"Not connected",
   preparing:"Preparing the virtual machine and installing the agent. The first time can take a few minutes.",
   open:"Open the sign-in page", code:"Code", codeHelp:"On the sign-in page, enter this code.",
   paste:"Paste the code the page shows", send:"Send code",
@@ -81,7 +81,8 @@ function rowHtml(a, st) {
     : status === "connecting" ? '<span class="gb-badge gb-gar-soon">' + esc(g("connecting")) + '</span>'
     : '<span class="gb-badge">' + esc(g("off")) + '</span>';
   var btn = status === "linked"
-    ? '<button type="button" class="gb-prov-btn" data-agent-off="' + a.id + '">' + esc(g("disconnect")) + '</button>'
+    ? '<button type="button" class="gb-prov-btn gb-set-btn-accent" data-agent-use="' + a.id + '">' + esc(g("useNow")) + '</button>' +
+      '<button type="button" class="gb-prov-btn" data-agent-off="' + a.id + '">' + esc(g("disconnect")) + '</button>'
     : '<button type="button" class="gb-prov-btn" data-agent-on="' + a.id + '">' + esc(g("connect")) + '</button>';
   return '<div class="gb-prov-agent" data-agent="' + a.id + '"><div class="gb-prov-row is-soon" role="listitem">' + logo(a.logo) +
     '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(a.name) + ' <span class="gb-prov-co">' + esc(a.co) + '</span> ' + badge + '</div></div>' +
@@ -191,6 +192,19 @@ function bindRow(el, a) {
           var box = el.querySelector('[data-flow="' + a.id + '"]');
           if (box) { box.innerHTML = '<p class="gb-set-warn">' + esc(g("failed") + " " + e.message) + '</p>'; }
         });
+    });
+  }
+  /* Same as picking the agent in the chat's model menu: the conversation's
+   * Agent switch turns on and the next message goes to this agent. */
+  var use = el.querySelector('[data-agent-use="' + a.id + '"]');
+  if (use) {
+    use.addEventListener("click", function () {
+      A.selectedModel = "sub:" + a.id;
+      try { localStorage.setItem("gb-model-preference", A.selectedModel); } catch (e) { /* private window */ }
+      if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
+      if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
+      if (typeof A.renderStatus === "function") { A.renderStatus(); }
+      if (typeof A.switchView === "function") { A.switchView("chat"); }
     });
   }
   var off = el.querySelector('[data-agent-off="' + a.id + '"]');

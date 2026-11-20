@@ -2,12 +2,11 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, turn_script, TURN_TIMEOUT_SECS};
-use crate::vm;
+use crate::cli_turn::{cli_model, failure_reason, run_turn, TURN_TIMEOUT_SECS};
 use crate::AgentService;
 
 use super::paths::{ANTIGRAVITY_HOME, ANTIGRAVITY_USER, PROMPT_TXT};
-use super::{b64, internal};
+use super::internal;
 
 /// The `agy` print-mode invocation run as the `antigravity` user. Plain text
 /// output is the answer; the CLI's own time limit ends the turn a little
@@ -21,7 +20,7 @@ fn invocation(model: &str) -> String {
         format!(" --model {model}")
     };
     format!(
-        "agy --output-format text --print-timeout {limit}s{model_arg} --print \"$(cat \"$GB_PROMPT\")\"",
+        "xargs -0 -a \"$GB_PROMPT\" agy --output-format text --print-timeout {limit}s{model_arg} --print",
         limit = TURN_TIMEOUT_SECS.saturating_sub(20),
     )
 }
@@ -35,15 +34,16 @@ pub async fn run_prompt(
     if prompt.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
     }
-    let script = turn_script(
+    let (ok, stdout, stderr) = run_turn(
+        state,
+        vm_name,
         ANTIGRAVITY_USER,
         ANTIGRAVITY_HOME,
         PROMPT_TXT,
-        &b64(prompt),
+        prompt,
         &invocation(model),
-    );
-    let (ok, stdout, stderr) =
-        vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await?;
+    )
+    .await?;
     if !ok {
         return Err(internal(format!(
             "antigravity print failed: {}",
@@ -64,7 +64,9 @@ mod tests {
     #[test]
     fn agy_runs_in_print_mode_with_a_time_limit() {
         let cmd = invocation("antigravity-default");
-        assert!(cmd.starts_with("agy --output-format text --print-timeout 280s --print "));
+        assert!(cmd.starts_with("xargs -0 -a \"$GB_PROMPT\" agy --output-format text --print-timeout 280s"));
+        assert!(cmd.ends_with(" --print"), "xargs appends the prompt as the value");
+        assert!(!cmd.contains("$("), "the command guard refuses $(");
         assert!(!cmd.contains("--model"));
         assert!(!cmd.contains('\''));
     }

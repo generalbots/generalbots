@@ -2,12 +2,11 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, turn_script};
-use crate::vm;
+use crate::cli_turn::{cli_model, failure_reason, run_turn};
 use crate::AgentService;
 
 use super::paths::{CODEX_HOME, CODEX_USER, LAST_MESSAGE, PROMPT_TXT};
-use super::{b64, internal};
+use super::internal;
 
 /// The `codex exec` invocation run as the `codex` user. The prompt comes from
 /// stdin (`-`), the workspace is not a git checkout, and only the final agent
@@ -35,9 +34,8 @@ pub async fn run_prompt(
     if prompt.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
     }
-    let script = turn_script(CODEX_USER, CODEX_HOME, PROMPT_TXT, &b64(prompt), &invocation(model));
     let (ok, stdout, stderr) =
-        vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await?;
+        run_turn(state, vm_name, CODEX_USER, CODEX_HOME, PROMPT_TXT, prompt, &invocation(model)).await?;
     if !ok {
         return Err(internal(format!(
             "codex exec failed: {}",

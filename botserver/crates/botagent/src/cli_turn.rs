@@ -8,6 +8,12 @@
 /// Upper bound for one turn inside the VM, in seconds.
 pub const TURN_TIMEOUT_SECS: u64 = 300;
 
+use axum::http::StatusCode;
+use base64::Engine;
+
+use crate::vm;
+use crate::AgentService;
+
 /// The model argument a CLI accepts: an empty string means "the CLI's own
 /// default". The placeholder names the account layer uses for "no specific
 /// model" (`codex-default`, `antigravity-default`, `auto`) are not real
@@ -26,17 +32,78 @@ pub fn cli_model(model: &str) -> String {
     }
 }
 
-/// Builds the root shell script that writes the prompt to `prompt_path`
-/// (owned by `user`, mode 0600) and runs `invocation` as `user` from `home`
-/// with `HOME` set, under a hard timeout. `invocation` may read the prompt
-/// file through `$GB_PROMPT`; it must not contain single quotes.
-pub fn turn_script(user: &str, home: &str, prompt_path: &str, prompt_b64: &str, invocation: &str) -> String {
+/// Base64 characters per write: the command guard refuses a `sh -c` script
+/// over 8 KB, and a whole conversation easily passes that.
+const CHUNK: usize = 6_000;
+
+/// Writes the prompt to `prompt_path` inside the VM in base64 pieces small
+/// enough for the command guard, then decodes it into a 0600 file owned by
+/// `user`.
+async fn stage_prompt(
+    state: &AgentService,
+    vm_name: &str,
+    user: &str,
+    prompt_path: &str,
+    prompt: &str,
+) -> Result<(), (StatusCode, String)> {
+    let encoded = base64::engine::general_purpose::STANDARD.encode(prompt.as_bytes());
+    let tmp = format!("{prompt_path}.b64");
+    let mut first = true;
+    for piece in encoded.as_bytes().chunks(CHUNK) {
+        let piece = std::str::from_utf8(piece).unwrap_or_default();
+        let redirect = if first { ">" } else { ">>" };
+        first = false;
+        run(state, vm_name, format!("umask 077; printf '%s' '{piece}' {redirect} {tmp}")).await?;
+    }
+    if first {
+        run(state, vm_name, format!("umask 077; : > {tmp}")).await?;
+    }
+    run(
+        state,
+        vm_name,
+        format!("umask 077; base64 -d {tmp} > {prompt_path} && rm -f {tmp} && chown {user}:{user} {prompt_path}"),
+    )
+    .await
+}
+
+async fn run(state: &AgentService, vm_name: &str, script: String) -> Result<(), (StatusCode, String)> {
+    let (ok, stdout, stderr) = vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await?;
+    if ok {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("could not hand the prompt to the agent: {}", failure_reason(&stdout, &stderr)),
+        ))
+    }
+}
+
+/// The shell script that runs `invocation` as `user` from `home` with `HOME`
+/// set, under a hard timeout, then removes the prompt file. `invocation` may
+/// read the prompt through `$GB_PROMPT`; it must not contain single quotes,
+/// `$(`, backticks or `..` (the command guard refuses them).
+pub fn turn_script(user: &str, home: &str, prompt_path: &str, invocation: &str) -> String {
     format!(
-        "umask 077; printf '%s' '{prompt_b64}' | base64 -d > {prompt_path} && chown {user}:{user} {prompt_path} || exit 4; \
-         timeout {timeout} su {user} -s /bin/sh -c 'cd {home} && export HOME={home} GB_PROMPT={prompt_path} && {invocation}' </dev/null; \
+        "timeout {timeout} su {user} -s /bin/sh -c 'cd {home} && export HOME={home} GB_PROMPT={prompt_path} && {invocation}' </dev/null; \
          rc=$?; rm -f {prompt_path}; exit $rc",
         timeout = TURN_TIMEOUT_SECS,
     )
+}
+
+/// One CLI turn: stage the prompt, then run the CLI as its own user.
+/// Returns `(ok, stdout, stderr)` of the CLI run.
+pub async fn run_turn(
+    state: &AgentService,
+    vm_name: &str,
+    user: &str,
+    home: &str,
+    prompt_path: &str,
+    prompt: &str,
+    invocation: &str,
+) -> Result<(bool, String, String), (StatusCode, String)> {
+    stage_prompt(state, vm_name, user, prompt_path, prompt).await?;
+    let script = turn_script(user, home, prompt_path, invocation);
+    vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await
 }
 
 /// The reason to log when a turn fails: stderr when there is any, else stdout.
@@ -69,10 +136,17 @@ mod tests {
 
     #[test]
     fn the_turn_runs_as_the_cli_user_with_its_home() {
-        let script = turn_script("codex", "/home/codex", "/tmp/p.txt", "aGk=", "codex exec - < \"$GB_PROMPT\"");
+        let script = turn_script("codex", "/home/codex", "/tmp/p.txt", "codex exec - < \"$GB_PROMPT\"");
         assert!(script.contains("su codex -s /bin/sh -c 'cd /home/codex && export HOME=/home/codex GB_PROMPT=/tmp/p.txt && codex exec - < \"$GB_PROMPT\"'"));
-        assert!(script.contains("chown codex:codex /tmp/p.txt"));
         assert!(script.contains("timeout 300 su codex"));
         assert!(script.ends_with("rm -f /tmp/p.txt; exit $rc"));
+        assert!(!script.contains("$("), "the command guard refuses $(");
+    }
+
+    #[test]
+    fn a_staging_piece_fits_the_command_guard() {
+        let piece = "A".repeat(super::CHUNK);
+        let cmd = format!("umask 077; printf '%s' '{piece}' >> /tmp/gb-codex-prompt.txt.b64");
+        assert!(cmd.len() < 8192);
     }
 }

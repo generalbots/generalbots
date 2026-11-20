@@ -2,13 +2,11 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, turn_script};
+use crate::cli_turn::{cli_model, failure_reason, run_turn};
 use crate::AgentService;
 
-use super::b64;
 use super::internal;
 use super::paths::{CLAUDE_HOME, CLAUDE_USER, PROMPT_TXT};
-use super::status::run_script;
 
 /// #1939 — delivery policy for VM agent turns.
 const DELIVERY_DIRECTIVE: &str = "Deliver the exact artifact the user asked for, in the requested \
@@ -40,8 +38,8 @@ pub async fn run_prompt(
         format!(" --model {model}")
     };
     let invocation = format!("claude -p --output-format text{model_arg} < \"$GB_PROMPT\"");
-    let script = turn_script(CLAUDE_USER, CLAUDE_HOME, PROMPT_TXT, &b64(prompt.as_str()), &invocation);
-    let (ok, stdout, stderr) = run_script(state, vm_name, &script).await?;
+    let (ok, stdout, stderr) =
+        run_turn(state, vm_name, CLAUDE_USER, CLAUDE_HOME, PROMPT_TXT, &prompt, &invocation).await?;
     if !ok {
         return Err(internal(format!(
             "Claude Code failed: {}",
