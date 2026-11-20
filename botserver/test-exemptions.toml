@@ -13,3 +13,43 @@ justification = "Placeholder crate: lib.rs contains only comments and no functio
 crate = "botnvidia"
 owner = "@rodrigorodriguez"
 justification = "All logic shells out to nvidia-smi or reads live host CPU metrics via sysinfo; no pure seam exists yet."
+
+[[exemption]]
+crate = "botchannelbindings"
+owner = "@rodrigorodriguez"
+justification = "Channel-binding CRUD and routes require a live DbPool and Diesel queries; no offline-pure core invariant is isolated yet."
+
+[[exemption]]
+crate = "botchannels-core"
+owner = "@rodrigorodriguez"
+justification = "Media upload and OAuth flows depend on external platform APIs and credential state; no offline-pure core invariant is isolated."
+
+[[exemption]]
+crate = "botcoresession"
+owner = "@rodrigorodriguez"
+justification = "Session, migration and history logic is coupled to DB/cache/connection state; no offline-pure core invariant is isolated yet."
+
+[[exemption]]
+crate = "bothandoff"
+owner = "@rodrigorodriguez"
+justification = "Handoff handlers and storage are DB/IO-bound; no isolated pure logic is exposed for unit tests yet."
+
+[[exemption]]
+crate = "bothr"
+owner = "@rodrigorodriguez"
+justification = "HR handlers and storage are DB/IO-bound; no isolated pure logic is exposed for unit tests yet."
+
+[[exemption]]
+crate = "botitsm"
+owner = "@rodrigorodriguez"
+justification = "ITSM handlers and storage are DB/IO-bound; no isolated pure logic is exposed for unit tests yet."
+
+[[exemption]]
+crate = "botmultimodal"
+owner = "@rodrigorodriguez"
+justification = "Multimodal providers call external model and media services; no offline-pure core invariant is isolated."
+
+[[exemption]]
+crate = "bottasks"
+owner = "@rodrigorodriguez"
+justification = "Scheduler, task engine and handlers are coupled to DB/state/timers; no isolated pure core invariant is covered yet."

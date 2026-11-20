@@ -18,10 +18,7 @@ var ZERO = [
   "botchannelbindings", "botchannels-core", "botcoresession", "bothandoff",
   "bothr", "botitsm", "botmultimodal", "botnvidia", "botpublic", "bottasks",
 ];
-var UNEXEMPTED = [
-  "botchannelbindings", "botchannels-core", "botcoresession", "bothandoff",
-  "bothr", "botitsm", "botmultimodal", "bottasks",
-];
+var UNEXEMPTED = [];
 
 test("[BASELINE-OBSERVE] 119 crates scanned across botserver/crates/*, botserver and bottest", function () {
   var m = all();
@@ -49,14 +46,14 @@ test("[BASELINE-OBSERVE] botserver is binary-only: no [lib], no src/lib.rs, src/
   equal(m.serverMainFile, true, "botserver src/main.rs");
 });
 
-test("[BASELINE-OBSERVE] test-exemptions.toml lists exactly botnvidia and botpublic", function () {
-  equal(all().exemptions.join(","), "botnvidia,botpublic", "exemption list");
+test("[BASELINE-OBSERVE] test-exemptions.toml covers every zero-test crate", function () {
+  equal(all().exemptions.join(","), ZERO.join(","), "exemption list");
   all().exemptions.forEach(function (name) {
     assert(all().zero.indexOf(name) >= 0, "exemption names a crate that is not zero-test: " + name);
   });
 });
 
-test("[BASELINE-OBSERVE] 8 zero-test crates have no exemption entry", function () {
+test("[BASELINE-OBSERVE] 0 zero-test crates have no exemption entry", function () {
   equal(all().unexempted.join(","), UNEXEMPTED.join(","), "unexempted zero-test list");
 });
 

@@ -81,14 +81,13 @@ test("[STATIC][GAP] botserver has no lib target, so `cargo test -p botserver` ru
   ]);
 });
 
-test("[STATIC][GAP] 8 zero-test crates have no test-exemption entry", function () {
+test("[STATIC] every zero-test crate has a test-exemption entry", function () {
   var m = all();
-  equal(m.unexempted.length, 8, "unexempted zero-test crate count");
-  var ev = m.unexempted.map(function (name) {
-    return "botserver/crates/" + name + "/Cargo.toml:1 zero #[test]/#[tokio::test], no exemption";
+  equal(m.unexempted.length, 0, "unexempted zero-test crate count");
+  assert(m.exemptions.length === m.zero.length, "exemption count does not cover zero-test crates");
+  m.exemptions.forEach(function (name) {
+    assert(m.zero.indexOf(name) >= 0, "exemption names a non-zero-test crate: " + name);
   });
-  bug("B2", "8 crates still ship zero unit tests and are not covered by " +
-      "botserver/test-exemptions.toml (only botnvidia and botpublic are exempt).", ev);
 });
 
 test("[STATIC][GAP] CRM and Campaign flow tests can silently skip their steps", function () {
@@ -115,9 +114,10 @@ test("[STATIC][GAP] test-floor acceptance criteria overstate the shipped floor",
   assert(m.integration.crmNamed.length > 0 && m.integration.campaignNamed.length > 0,
     "CRM/Campaign integration files unexpectedly absent");
   bug("B4", "Issue #2544's 2025 snapshot is stale: the current tree has 119 crates, " +
-      "10 zero-test (down from 38), CRM/Campaign integration files, --bin CI and coverage jobs. " +
+      "10 zero-test (down from 38, all now exempted in botserver/test-exemptions.toml), " +
+      "CRM/Campaign integration files, --bin CI and coverage jobs. " +
       "Only the residual gaps above remain.", [
-    "10 zero-test crates observed; 8 unexempted",
+    "10 zero-test crates observed; 0 unexempted",
     "bottest/tests/integration/crm_flow.rs and campaign_flow.rs present",
   ]);
 });
