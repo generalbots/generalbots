@@ -286,7 +286,7 @@ h.test("advanced facade delegates open, toggle, refresh and formula view", funct
   equal(panel.style.display, "none", "facade toggle closes");
 });
 
-h.knownBug("live grid edits are not reflected in the watch list until an explicit refresh", function () {
+h.test("live grid edits reach the watch list within one animation frame", function () {
   var book = h.makeBook();
   book.worksheets[0].data["0,0"] = { value: 1, formula: "" };
   e.setBook(book);
@@ -298,11 +298,8 @@ h.knownBug("live grid edits are not reflected in the watch list until an explici
   e.grid.cells.set("0,0", { value: 99, formula: "", comment: "" });
   e.grid.onCellValueChanged();
   e.flushRaf();
-  equal(root.querySelector(".sheet-audit-watch-value").textContent, "1",
-    "characterize the defect: scheduleWatch reuses the stale cached graph/snapshot");
-  U.refreshGraph();
-  S.updateWatch();
-  equal(root.querySelector(".sheet-audit-watch-value").textContent, "99", "explicit refresh shows the new value");
+  equal(root.querySelector(".sheet-audit-watch-value").textContent, "99",
+    "scheduleWatch rebuilds the snapshot so the new grid value appears without an explicit refresh");
   U.setWatch([]);
   e.grid.cells.clear();
 });

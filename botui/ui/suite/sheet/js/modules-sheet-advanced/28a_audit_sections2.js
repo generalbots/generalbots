@@ -94,6 +94,10 @@
   S.updateWatch = function () {
     var UI = window.SheetAuditUI;
     if (!UI || !UI.getWatch().length) return;
+    // Rebuild from the persisted snapshot plus the freshest grid cells before
+    // rendering. getGraph()/getSnapshot() only rebuild when the cache is null,
+    // so without this the watch shows values from the last explicit refresh.
+    UI.refreshGraph();
     renderWatchList({
       graph: UI.getGraph(),
       snapshot: UI.getSnapshot(),
