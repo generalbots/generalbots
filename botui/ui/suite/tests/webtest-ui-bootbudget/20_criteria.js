@@ -35,14 +35,15 @@ var CHAT_DEFERRED = [
   "76_voice", "77_camera", "78_voice_mode",
 ];
 
-test("[STATIC][GAP] no defer/async attribute on either entry page's script tags", function () {
+test("[STATIC] chat defers optional modules while desktop keeps its boot graph", function () {
   equal(measure(DESKTOP).deferAsync, 0, "desktop deferAsync");
-  equal(measure(CHAT).deferAsync, 0, "chat deferAsync");
+  equal(measure(CHAT).deferAsync, 13, "chat deferAsync");
 });
 
-test("[STATIC][GAP] zero defer/async adoption across all shipped suite HTML", function () {
-  equal(all().total.deferAsync, 0, "suite-wide deferAsync");
-  equal(all().total.blockingScriptSrc, all().total.scriptSrc, "all src scripts block");
+test("[STATIC] progressive defer adoption is present across shipped suite HTML", function () {
+  equal(all().total.deferAsync, 13, "suite-wide deferAsync");
+  assert(all().total.blockingScriptSrc < all().total.scriptSrc,
+    "deferred scripts must not be counted as blocking");
 });
 
 test("[STATIC] partial form-factor split ships as CSS media queries only", function () {
@@ -55,13 +56,15 @@ test("[STATIC] partial form-factor split ships as CSS media queries only", funct
   });
 });
 
-test("[STATIC][GAP] no script-level form-factor gating in shipped HTML", function () {
+test("[STATIC] no script-level form-factor gating in shipped HTML markup", function () {
   equal(measure(DESKTOP).mediaScript, 0, "desktop media-gated scripts");
   equal(measure(CHAT).mediaScript, 0, "chat media-gated scripts");
+  // Strip HTML comments first: documentation mentioning matchMedia is not gating.
   var hits = all().files.filter(function (rel) {
-    return readFile("suite/" + rel).indexOf("matchMedia") >= 0;
+    var markup = readFile("suite/" + rel).replace(/<!--[\s\S]*?-->/g, "");
+    return markup.indexOf("matchMedia") >= 0;
   });
-  equal(hits.length, 0, "HTML files carrying matchMedia");
+  equal(hits.length, 0, "HTML files carrying live matchMedia");
 });
 
 test("[STATIC] runtime defer loader ships with matchMedia gating for both scopes", function () {

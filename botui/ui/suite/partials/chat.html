@@ -115,6 +115,16 @@
                     </svg>
                     <span class="chat-controls-badge" aria-hidden="true">3</span>
                 </button>
+                <!-- #2516 — one phone intake button replaces the four separate
+                     toolbar toggles (camera/file/voice/duplex) on a handset. -->
+                <button type="button" id="gbIntakeBtn" class="gb-intake-btn"
+                    aria-label="Add attachment" data-i18n-aria-label="gb-intake-add"
+                    title="Add attachment" data-i18n-title="gb-intake-add">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
                 <button type="submit" id="sendBtn" title="Send" data-i18n-title="chat-send">&#8593;</button>
             </form>
         </footer>
@@ -124,6 +134,59 @@
                 <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
         </button>
+    </div>
+</div>
+<!-- #2516 — unified phone media intake sheet. Hidden by CSS on desktop; the
+     click handler is bound by the statically loaded 79_intake_sheet.js module.
+     All copy is catalog-driven; the status region announces attachments and
+     permission outcomes to assistive technology. -->
+<div class="gb-intake-sheet" id="gbIntakeSheet" hidden role="dialog" aria-modal="true"
+     aria-label="Add to conversation" data-i18n-aria-label="gb-intake-title">
+    <div class="gb-intake-backdrop" data-gb-intake-close></div>
+    <div class="gb-intake-panel">
+        <div class="gb-intake-grab" aria-hidden="true"></div>
+        <div class="gb-intake-title" data-i18n="gb-intake-title">Add to conversation</div>
+        <div class="gb-intake-consent" id="gbIntakeConsent" hidden>
+            <input type="hidden" id="gbIntakeConsentKind" value="" />
+            <div class="gb-intake-consent-title" id="gbIntakeConsentTitle">Allow camera access?</div>
+            <div class="gb-intake-consent-detail" id="gbIntakeConsentDetail">Chat needs your camera to take a photo.</div>
+            <div class="gb-intake-consent-actions">
+                <button type="button" class="gb-intake-allow" data-gb-intake-allow data-i18n="gb-intake-allow">Allow</button>
+                <button type="button" data-gb-intake-deny data-i18n="gb-intake-deny">Deny</button>
+            </div>
+        </div>
+        <button type="button" class="gb-intake-row" data-gb-intake="camera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span class="gb-intake-label" data-i18n="gb-intake-camera">Camera</span>
+        </button>
+        <button type="button" class="gb-intake-row" data-gb-intake="photos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <path d="M21 15l-5-5L5 21"></path>
+            </svg>
+            <span class="gb-intake-label" data-i18n="gb-intake-photos">Photos</span>
+        </button>
+        <button type="button" class="gb-intake-row" data-gb-intake="file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <path d="M14 2v6h6"></path>
+            </svg>
+            <span class="gb-intake-label" data-i18n="gb-intake-file">File</span>
+        </button>
+        <button type="button" class="gb-intake-row" data-gb-intake="voice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                <path d="M5 10v1a7 7 0 0 0 14 0v-1"></path>
+                <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+            <span class="gb-intake-label" data-i18n="gb-intake-voice">Voice</span>
+        </button>
+        <div class="gb-intake-status" id="gbIntakeStatus" role="status" aria-live="polite"></div>
+        <button type="button" class="gb-intake-cancel" data-gb-intake-close data-i18n="gb-intake-cancel">Cancel</button>
     </div>
 </div>
 <div class="entity-card-tooltip" id="entityCardTooltip">
@@ -147,8 +210,10 @@
      (chat-artifacts.js, vm_attachments/05a) are deferred with GBBootBudget. -->
 <script src="/suite/js/artifact-download.js?v=1"></script>
 <script src="/suite/chat/chat-sanitize.js?v=1"></script>
-<script src="/suite/chat/chat-drive-picker.js?v=2"></script>
-<script src="/suite/chat/chat-code-ux.js?v=3"></script>
+<!-- #2516 — first-paint split: the composer + send path below is synchronous;
+     the two optional helpers here are deferred and keep their relative order. -->
+<script defer src="/suite/chat/chat-drive-picker.js?v=2"></script>
+<script defer src="/suite/chat/chat-code-ux.js?v=3"></script>
 <script src="/suite/chat/chat-render.js?v=7"></script>
 <script src="/suite/chat/chat-turn-indicator.js?v=1"></script>
 <script src="/suite/chat/chat-turn-state.js?v=1"></script>
@@ -178,22 +243,31 @@
 <script src="/suite/chat/chat-send_b.js?v=9"></script>
 <script src="/suite/chat/chat-init_a.js?v=27"></script>
 <script src="/suite/chat/chat-init_b.js?v=28"></script>
-<!-- #2516 — first ordered module: viewport bridge must precede the others. -->
+<!-- #2516 — first ordered module: viewport bridge must precede the others.
+     The viewport bridge and the composer payload defaults (web-search toggle,
+     chat controls, model picker, agent mode) stay synchronous; only the
+     self-binding feature modules below move to first-paint deferral. Deferred
+     scripts keep document order, so none loses an upstream dependency. -->
 <script src="/suite/chat/modules/mobile_viewport.js?v=1"></script>
 <script src="/suite/chat/chat-model-picker.js?v=5"></script>
-<script src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
-<script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
-<script src="/suite/chat/modules/50_memory.js?v=1"></script>
-<script src="/suite/chat/modules/40_consent_cards.js?v=12"></script>
+<script defer src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
+<script defer src="/suite/chat/modules/23_autotasks.js?v=1"></script>
+<script defer src="/suite/chat/modules/50_memory.js?v=1"></script>
+<script defer src="/suite/chat/modules/40_consent_cards.js?v=12"></script>
 <script src="/suite/chat/modules/45_web_search_toggle.js?v=5"></script>
 <script src="/suite/chat/modules/46_chat_controls.js?v=1"></script>
-<script src="/suite/chat/modules/30_citations.js?v=21"></script>
-<script src="/suite/chat/modules/60_computer_use.js?v=4"></script>
-<script src="/suite/chat/modules/61_terminal_use.js?v=4"></script>
-<script src="/suite/chat/modules/75_perf.js?v=2"></script>
-<script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
-<script src="/suite/chat/chat-engineer-status.js?v=1"></script>
-<script src="/suite/js/chat-engineer-ux.js?v=1"></script>
+<script defer src="/suite/chat/modules/30_citations.js?v=21"></script>
+<script defer src="/suite/chat/modules/60_computer_use.js?v=4"></script>
+<script defer src="/suite/chat/modules/61_terminal_use.js?v=4"></script>
+<script defer src="/suite/chat/modules/75_perf.js?v=2"></script>
+<script defer src="/suite/chat/modules/62_sandbox.js?v=1"></script>
+<!-- #2516 — static load: the phone intake sheet binds its delegated click
+     handler on this document. It must exist on a real chat page regardless of
+     when the viewport is emulated/resized (a load-time matchMedia gate missed
+     that case), so it is never injected lazily. -->
+<script src="/suite/chat/modules/79_intake_sheet.js?v=1"></script>
+<script defer src="/suite/chat/chat-engineer-status.js?v=1"></script>
+<script defer src="/suite/js/chat-engineer-ux.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <!-- gb-search.js belongs to the shell taskbar (desktop.html); chat never
      calls GBUniversalSearch. -->

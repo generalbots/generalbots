@@ -39,13 +39,13 @@ test("[BASELINE-OBSERVE] desktop.html: 37 stylesheet links", function () {
   equal(measure(DESKTOP).stylesheet, 37, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] partials/chat.html: 55 script tags, 54 src, 54 blocking, 1 inline, 0 defer/async", function () {
+test("[BASELINE-OBSERVE] partials/chat.html: 56 script tags, 55 src, 42 blocking, 1 inline, 13 defer/async", function () {
   var c = measure(CHAT);
-  equal(c.scripts, 55, "scripts");
-  equal(c.scriptSrc, 54, "scriptSrc");
-  equal(c.blockingScriptSrc, 54, "blockingScriptSrc");
+  equal(c.scripts, 56, "scripts");
+  equal(c.scriptSrc, 55, "scriptSrc");
+  equal(c.blockingScriptSrc, 42, "blockingScriptSrc");
   equal(c.inlineScript, 1, "inlineScript");
-  equal(c.deferAsync, 0, "deferAsync");
+  equal(c.deferAsync, 13, "deferAsync");
 });
 
 test("[BASELINE-OBSERVE] partials/chat.html: 22 stylesheet links", function () {
@@ -62,14 +62,14 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1121 scripts, 1065 src, 1065 blocking, 56 inline, 378 stylesheets, 0 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1125 scripts, 1069 src, 1056 blocking, 56 inline, 378 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1121, "scripts");
-  equal(t.scriptSrc, 1065, "scriptSrc");
-  equal(t.blockingScriptSrc, 1065, "blockingScriptSrc");
+  equal(t.scripts, 1125, "scripts");
+  equal(t.scriptSrc, 1069, "scriptSrc");
+  equal(t.blockingScriptSrc, 1056, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
   equal(t.stylesheet, 378, "stylesheet");
-  equal(t.deferAsync, 0, "deferAsync");
+  equal(t.deferAsync, 13, "deferAsync");
 });
 
 test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", function () {
@@ -85,7 +85,7 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 96/37 and 54/22", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 96/37 and 42/22", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
@@ -93,6 +93,6 @@ test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted f
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
   assert(d.blockingScriptSrc === 96 && d.stylesheet === 37 &&
-         c.blockingScriptSrc === 54 && c.stylesheet === 22,
+         c.blockingScriptSrc === 42 && c.stylesheet === 22,
     "current measured counts changed — update this observation deliberately");
 });

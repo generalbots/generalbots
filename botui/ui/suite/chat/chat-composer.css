@@ -265,3 +265,166 @@
   overflow-x: auto;
   border-collapse: collapse;
 }
+
+/* #2516 — unified phone intake sheet.
+   The "+" replaces the row of separate camera/file/voice toolbar buttons on a
+   handset. Desktop keeps every existing control unchanged. */
+.gb-intake-btn {
+  display: none;
+}
+
+.gb-intake-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-system, 1000) + 2);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.gb-intake-sheet[hidden] {
+  display: none;
+}
+
+.gb-intake-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 12, 20, 0.55);
+}
+
+.gb-intake-panel {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.gb-intake-grab {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 999px;
+  background: var(--gb-muted);
+}
+
+.gb-intake-title {
+  padding: 4px 8px 8px;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.gb-intake-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  margin: 2px 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--text-md, 1rem);
+  text-align: left;
+  cursor: pointer;
+}
+.gb-intake-row:hover,
+.gb-intake-row:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.gb-intake-row svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+
+.gb-intake-consent {
+  margin: 8px 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+}
+.gb-intake-consent[hidden] {
+  display: none;
+}
+.gb-intake-consent-title {
+  font-weight: 600;
+  font-size: var(--text-sm, 0.875rem);
+}
+.gb-intake-consent-detail {
+  margin: 6px 0 10px;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-secondary);
+}
+.gb-intake-consent-actions {
+  display: flex;
+  gap: 8px;
+}
+.gb-intake-consent-actions button,
+.gb-intake-cancel {
+  flex: 1 1 0;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--text-sm, 0.875rem);
+  cursor: pointer;
+}
+.gb-intake-consent-actions .gb-intake-allow {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+.gb-intake-cancel {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.gb-intake-status:empty {
+  display: none;
+}
+.gb-intake-status {
+  min-height: 20px;
+  padding: 6px 8px 0;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .gb-intake-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin-bottom: 2px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .gb-intake-btn:hover,
+  .gb-intake-btn:focus-visible {
+    color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* The sheet replaces the four separate toolbar toggles on a handset. */
+  .input-container .file-btn,
+  .input-container .camera-toggle,
+  .input-container .voice-toggle,
+  .input-container .voice-duplex-toggle {
+    display: none;
+  }
+}
