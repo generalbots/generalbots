@@ -1,4 +1,5 @@
 use botsheet_core::engine::value::CellValue;
+use botsheet_core::engine::from_xlsx_formula;
 use std::collections::HashMap;
 
 pub fn parse_xlsx_to_worksheets(
@@ -42,7 +43,7 @@ pub fn parse_xlsx_to_worksheets(
                     let formula = if cell.formula().is_empty() {
                         None
                     } else {
-                        Some(format!("={}", cell.formula()))
+                        Some(from_xlsx_formula(&format!("={}", cell.formula())))
                     };
 
                     if value.is_empty() && formula.is_none() {

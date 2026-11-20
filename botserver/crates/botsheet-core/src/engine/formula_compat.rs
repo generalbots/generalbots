@@ -330,9 +330,17 @@ mod tests {
 
     #[test]
     fn error_literals_and_arrays_are_canonical() {
+        // Bracket array literals are the engine's preview syntax. They stay
+        // bracketed so array-taking functions such as IRR still receive one
+        // argument; only their numeric literals are canonicalized to dot
+        // decimals, even under a comma-decimal locale (see differential_tests).
         assert_eq!(
             normalize_formula("=IFNA(#n/a;IRR([-1000,100,200]))", FormulaLocale::PtBr),
-            "=IFNA(#N/A,IRR(-1000,100,200))"
+            "=IFNA(#N/A,IRR([-1000,100,200]))"
+        );
+        assert_eq!(
+            normalize_formula("=IF(#div/0!;0;1)", FormulaLocale::PtBr),
+            "=IF(#DIV/0!,0,1)"
         );
     }
 

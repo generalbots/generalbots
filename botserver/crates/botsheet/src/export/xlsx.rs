@@ -1,11 +1,16 @@
 //! XLSX export (rust_xlsxwriter).
 
-use botsheet_core::types::{CellStyle, Spreadsheet};
+use botsheet_core::engine::to_xlsx_formula;
+use botsheet_core::types::{CellStyle, Spreadsheet, workbook_settings};
 
 use super::util::cell_number;
 
 pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
     let mut workbook = rust_xlsxwriter::Workbook::new();
+    // Canonicalize formulas to the XLSX spelling (English names, dot decimals,
+    // comma separators, uppercase error literals) using the workbook locale so
+    // an open/save cycle does not drift (#2572).
+    let settings = workbook_settings(&sheet.id);
 
     for ws in &sheet.worksheets {
         let worksheet = workbook.add_worksheet();
@@ -30,8 +35,9 @@ pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             }
 
             if let Some(ref formula) = cell.formula {
+                let canonical = to_xlsx_formula(formula, &settings);
                 worksheet
-                    .write_formula_with_format(row, col, formula.as_str(), &format)
+                    .write_formula_with_format(row, col, canonical.as_str(), &format)
                     .map_err(|e| e.to_string())?;
             } else if let Some(num) = cell_number(cell) {
                 worksheet

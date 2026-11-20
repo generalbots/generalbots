@@ -16,6 +16,7 @@ pub mod lexer;
 pub mod multi_criteria;
 pub mod references;
 pub mod value;
+pub mod xlsx_codec;
 
 pub use ast::{parse, Expr};
 pub use date_serial::{date_to_serial, serial_to_date_parts, EPOCH_DIFF_DAYS};
@@ -25,3 +26,7 @@ pub use formula_compat::{
 };
 pub use references::Reference;
 pub use value::{canonical_error_literal, format_number, CANONICAL_ERROR_CODES, CellValue};
+pub use xlsx_codec::{
+    date_to_workbook_serial, from_xlsx_formula, is_canonical_xlsx_formula, to_xlsx_formula,
+    workbook_serial_to_date,
+};
