@@ -109,11 +109,14 @@ impl From<UserSession> for botbasic_types::UserSession {
 
 impl From<botbasic_types::UserSession> for UserSession {
     fn from(s: botbasic_types::UserSession) -> Self {
+        // `org_id()` borrows `s`, so resolve it before the fields below move out
+        // of `s` (otherwise the borrow happens after a partial move — E0382).
+        let org_id = s.org_id();
         Self {
             id: s.id,
             user_id: s.user_id,
             bot_id: s.bot_id,
-            org_id: s.org_id(),
+            org_id,
             title: s.title,
             context_data: s.context_data,
             current_tool: s.current_tool,
