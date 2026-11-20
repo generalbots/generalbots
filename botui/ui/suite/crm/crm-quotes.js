@@ -2,9 +2,7 @@
  *
  * These two read-only lists were the only capability of the standalone "Sales"
  * app, which duplicated the CRM surface (same tabs, same title "Sales CRM").
- * The app is gone; its data lives here behind the canonical `/api/crm/*`
- * endpoints (the legacy `/api/sales/*` family is retired, #2540) and with the
- * same column mapping the Sales page used. */
+ * The app is gone; canonical `/api/crm/*` now serves this data (#2540). */
 "use strict";
 (function () {
     var loaded = false;

@@ -64,12 +64,8 @@
         }
         renderHistory();
         if (window.AgentExecutor && steps.length) {
-          // #2297 — the shell's themed confirm is the only allowed dialog; it
-          // answers through a callback, so the apps open inside onYes.
-          var message = typeof window.gbT === "function"
-            ? window.gbT("concierge-open-apps", "Open { $count } app(s) suggested by the plan?", { count: steps.length })
-            : "Open { $count } app(s) suggested by the plan?";
-          message = message.replace("{ $count }", String(steps.length));
+          // #2297 — themed confirm only; apps open in the callback.
+          var message = (typeof window.gbT === "function" ? window.gbT("concierge-open-apps", "Open { $count } app(s) suggested by the plan?", { count: steps.length }) : "Open { $count } app(s) suggested by the plan?").replace("{ $count }", String(steps.length));
           function openSteps() {
             steps.forEach(function (s, i) {
               setTimeout(function () {

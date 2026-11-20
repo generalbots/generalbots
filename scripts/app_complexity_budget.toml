@@ -136,7 +136,7 @@ loc = 962
 [apps."goals"]
 routes = 11
 js_modules = 7
-loc = 1974
+loc = 1975
 
 [apps."handoff"]
 routes = 5
@@ -151,7 +151,7 @@ loc = 1309
 [apps."integrations"]
 routes = 7
 js_modules = 23
-loc = 7033
+loc = 7034
 
 [apps."jukebox"]
 routes = 6
@@ -281,7 +281,7 @@ loc = 560
 [apps."settings"]
 routes = 52
 js_modules = 30
-loc = 12303
+loc = 12312
 
 [apps."sheet"]
 routes = 0
@@ -291,7 +291,7 @@ loc = 27647
 [apps."slides"]
 routes = 0
 js_modules = 93
-loc = 21097
+loc = 21098
 
 [apps."social"]
 routes = 6

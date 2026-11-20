@@ -1170,7 +1170,7 @@ jobs:
           cache-scope: botapp-security
           packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - name: Desktop shell security regression tests (#2497)
-        run: cargo test -p botapp --test security_2497
+        run: cargo test -p botapp --test desktop_ipc_security
 
   bottest-unit:
     if: ${{ github.server_url == 'https://github.com' }}

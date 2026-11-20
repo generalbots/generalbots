@@ -9,10 +9,7 @@
   // CRUD OPERATIONS
   // =============================================================================
 
-  // #2032/#2297 — dialogs go through the suite modal. GBModal answers through
-  // callbacks in the shell and returns the value in its own isolated fallback,
-  // so both shapes are bridged into one promise. Native dialogs are forbidden;
-  // without a themed modal the safe answer is "cancel" (never lose data).
+  // #2032/#2297 — modal answers via callback; without it, cancel (no data loss).
   function t(key, fallback) {
     return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
   }
