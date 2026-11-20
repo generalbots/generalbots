@@ -164,10 +164,10 @@ test("stats coerces numeric strings to numbers and counts them", function () {
   assert(out.count === 3 && out.mean === 4 && out.min === 2 && out.max === 6 &&
     Math.abs(out.sd - Math.sqrt(8 / 3)) < 1e-12, JSON.stringify(out));
 });
-test("[KNOWN QUIRK] stats coerces null to 0 via numbers() (Number(null) = 0)", function () {
+test("stats treats null as a gap, not zero (regression #2490)", function () {
   var out = g.data.stats([1, null, 3]);
-  assert(out.count === 3 && out.min === 0 && out.max === 3 &&
-    Math.abs(out.mean - 4 / 3) < 1e-12 && Math.abs(out.sd - Math.sqrt(14 / 9)) < 1e-12, JSON.stringify(out));
+  assert(out.count === 2 && out.min === 1 && out.max === 3 &&
+    Math.abs(out.mean - 2) < 1e-12 && Math.abs(out.sd - 1) < 1e-12, JSON.stringify(out));
 });
 test("[STATIC] isNumeric accepts numeric strings and rejects text/booleans", function () {
   var src = source(h.DATA_REL);

@@ -126,7 +126,7 @@
 
   function numbers(values) {
     return (values || []).map(function (value) {
-      const numeric = Number(value);
+      const numeric = value == null || value === "" ? NaN : Number(value);
       return Number.isFinite(numeric) ? numeric : null;
     });
   }

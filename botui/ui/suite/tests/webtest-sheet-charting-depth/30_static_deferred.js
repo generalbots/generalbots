@@ -85,20 +85,18 @@ staticTest("vector PDF, chosen-DPI PNG and print parity are deferred", function 
   });
 });
 
-// ── KNOWN BUG: report only, never patched ──────────────────────────────
-knownBug("null data points become zero bars and inflate error bars", function () {
+// ── regression: null data points are gaps, not fabricated zeros (#2490) ─
+test("null data points stay gaps and are excluded from stats/error bars", function () {
   var def = e.seriesDef([{ label: "s", data: [10, null, 30] }], ["a", "b", "c"]);
   def.analysis = { errorBars: true };
   var ctx = e.ctxFor(def);
-  deep(ctx.model.series[0].data, [10, 0, 30], "model silently coerced null to zero");
+  deep(ctx.model.series[0].data, [10, null, 30], "model must preserve null as a gap");
   var stats = e.data.stats([10, null, 30]);
-  equal(stats.count, 3);
-  assert(Math.abs(stats.sd - 12.47219128924647) < 1e-9, "unexpected null-inflated sd");
+  equal(stats.count, 2);
+  assert(Math.abs(stats.sd - 10) < 1e-9, "null must not inflate sd");
   var parts = e.overlays.apply(ctx, [], e.mapFor(ctx));
-  equal(parts.filter(function (p) { return p.indexOf("<line ") === 0; }).length, 9,
-    "expected three error-bar segments for all three points");
-  note("31_charting_data.js:58 numbers() coerces null via Number(null)=0; " +
-    "35_charting_overlays.js:51 null guard never sees a null after model() — report only");
+  equal(parts.filter(function (p) { return p.indexOf("<line ") === 0; }).length, 6,
+    "only the two real points get error bars");
 });
 knownBug("a zero variance target is rejected as falsy", function () {
   var def = e.seriesDef([{ label: "s", data: [-5, 5] }], ["a", "b"]);
