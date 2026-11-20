@@ -1123,6 +1123,9 @@ jobs:
           # their unit tests must run in CI, not just compile.
           - botcontacts
           - botsales
+          # #2389 — IANA/DST timezone helpers and their transition tests live
+          # in botsettings; the matrix must actually run them.
+          - botsettings
           - botsecurity-auth
           - botdocs
           - botslides

@@ -205,32 +205,39 @@ pub async fn index(
         "weather",
         "widgets",
     ];
-    let mut bot_name = suite_app
-        .filter(|s| !SUITE_APP_SEGMENTS.contains(s))
-        .map(|s| s.to_string())
-        .or_else(|| {
-            path_parts
-                .iter()
-                .rev()
-                .find(|part| {
-                    !part.is_empty()
-                        && **part != "chat"
-                        && **part != "app"
-                        && **part != "ws"
-                        && **part != "ui"
-                        && **part != "api"
-                        && **part != "auth"
-                        && **part != "suite"
-                        && **part != "cloud"
-                        && !SUITE_APP_SEGMENTS.contains(part)
-                        // A static asset is never a bot name. `.html` matters most:
-                        // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
-                        // which failed the suite-dir check and 303-redirected the whole
-                        // app to the login page (#2151).
-                        && !part.contains('.')
-                })
-                .map(|s| s.to_string())
-        });
+    // A `/suite/<app>/...` path is authoritative: when the segment is a known
+    // suite app the bot must be resolved from the domain, never from a deeper
+    // asset segment. The reverse-find fallback used to run even here, so
+    // `/suite/docs/modules/99_init.js` resolved bot=`modules` (not an app),
+    // failed the access check and 303-redirected the module to login — which
+    // aborted the app's JS. Restrict the fallback to non-`/suite/<app>/` paths.
+    let mut bot_name = if suite_app.is_some() {
+        suite_app
+            .filter(|s| !SUITE_APP_SEGMENTS.contains(s))
+            .map(|s| s.to_string())
+    } else {
+        path_parts
+            .iter()
+            .rev()
+            .find(|part| {
+                !part.is_empty()
+                    && **part != "chat"
+                    && **part != "app"
+                    && **part != "ws"
+                    && **part != "ui"
+                    && **part != "api"
+                    && **part != "auth"
+                    && **part != "suite"
+                    && **part != "cloud"
+                    && !SUITE_APP_SEGMENTS.contains(part)
+                    // A static asset is never a bot name. `.html` matters most:
+                    // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
+                    // which failed the suite-dir check and 303-redirected the whole
+                    // app to the login page (#2151).
+                    && !part.contains('.')
+            })
+            .map(|s| s.to_string())
+    };
 
     // If no bot in URL path and we have a domain, resolve it. Platform
     // subdomains ({bot}.{GB_PLATFORM_DOMAIN}) resolve locally with no API
