@@ -71,7 +71,9 @@
         el = document.createElement("div");
         el.id = "gb-sr-live";
         el.className = "gb-sr-status";
+        el.setAttribute("role", "status");
         el.setAttribute("aria-live", "polite");
+        el.setAttribute("aria-atomic", "true");
         document.body.appendChild(el);
       }
       // #2155 UI-REG-01c: clear before setting so polite live regions pick up
