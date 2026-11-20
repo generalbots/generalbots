@@ -45,6 +45,11 @@ SCAN_ROOT = Path("botui/ui/suite")
 SKIP_SEGMENTS = ("vendor", "node_modules")
 
 DECLARATION = re.compile(r"font-size\s*:\s*([^;{}]+)", re.IGNORECASE)
+# Inline `style="..."` attributes in suite HTML (issue #2322). Guarded for the
+# readability floor only — inline styles legitimately carry px values computed
+# from JS-measured dimensions, so the strict CSS "no raw px" rule does not
+# apply here; rendering text below 12px does.
+STYLE_ATTR = re.compile(r"""style\s*=\s*(["'])(.*?)\1""", re.IGNORECASE | re.DOTALL)
 COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 NUMBER_UNIT = re.compile(r"([0-9]*\.?[0-9]+)\s*(px|rem|em)\b", re.IGNORECASE)
 ALLOWED_KEYWORDS = {"inherit", "initial", "unset", "revert", "revert-layer"}
@@ -154,12 +159,56 @@ def scan_text(text: str) -> list[tuple[int, str, str]]:
     return found
 
 
+def scan_inline_html(text: str) -> list[tuple[int, str, str]]:
+    """Check inline `style=` font-size declarations for the readability floor.
+
+    Unlike stylesheet rules, inline px values are allowed (they are often
+    computed from JS-measured dimensions); only a value that resolves below
+    FLOOR_PX is a violation. `#2322` found a `.65rem` label that the CSS-only
+    guard could not see.
+    """
+    found = []
+    for attr in STYLE_ATTR.finditer(text):
+        value = attr.group(2)
+        for match in DECLARATION.finditer(value):
+            raw = match.group(1).strip()
+            problem = floor_problem(raw)
+            if problem:
+                snippet = " ".join(f"font-size: {raw}".split())
+                found.append((line_of(text, attr.start()), snippet[:160], problem))
+    return found
+
+
+def floor_problem(raw_value: str) -> str | None:
+    """Return a violation only when a value resolves below the floor.
+
+    `var(--text-*)` is trusted (the token itself is guarded in CSS); functional
+    values are checked by numeric literals, as in `classify`.
+    """
+    value = re.sub(r"!\s*important\s*$", "", raw_value.strip(), flags=re.IGNORECASE).strip()
+    lowered = value.lower()
+    if not value or lowered in ALLOWED_KEYWORDS or lowered.endswith("%"):
+        return None
+    if lowered.startswith("var("):
+        inner = value[value.find("(") + 1:value.rfind(")")]
+        if "," in inner:
+            return floor_problem(inner.split(",", 1)[1])
+        return None
+    for number, unit in NUMBER_UNIT.findall(value):
+        px = px_of(float(number), unit)
+        if px is not None and px < FLOOR_PX:
+            return f"{value} resolves below the {FLOOR_PX:g}px readability floor"
+    return None
+
+
 def scan_file(path: Path) -> list[tuple[int, str, str]]:
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
         print(f"warning: cannot read {path}: {exc}", file=sys.stderr)
         return []
+    if path.suffix == ".html":
+        return scan_inline_html(text)
     return scan_text(text)
 
 
@@ -168,12 +217,14 @@ def candidates(root: Path) -> list[Path]:
     if not base.is_dir():
         return []
     files = []
-    for path in base.rglob("*.css"):
+    for path in base.rglob("*"):
         if not path.is_file():
+            continue
+        if path.suffix not in (".css", ".html"):
             continue
         if any(part in SKIP_SEGMENTS for part in path.parts):
             continue
-        if path.name.endswith((".orig", ".min.css")):
+        if path.name.endswith((".orig", ".min.css", ".min.html")):
             continue
         files.append(path)
     return sorted(files)
@@ -189,7 +240,7 @@ def check(root: Path) -> int:
     if violations:
         print(f"\n{violations} font-size declaration(s) outside the type scale")
         return 1
-    print("no font-size declarations outside the type scale")
+    print("no font-size declarations outside the type scale (CSS + inline HTML)")
     return 0
 
 
@@ -231,6 +282,17 @@ def self_test() -> int:
         ".a { font-size: clamp(10px, 2vw, 1rem); }",
         ".dark .a { font-size: 13.5px; }",
     ]
+    inline_good = [
+        '<span style="font-size: var(--text-2xs)" data-i18n="x">(optional)</span>',
+        '<div style="width: 290px; font-size: 14px; color: red">ok</div>',
+        '<b style="font-size: 0.75rem">ok</b>',
+        '<i style="font-size: inherit">ok</i>',
+    ]
+    inline_bad = [
+        '<span style="font-size:.65rem" data-i18n="setup-optional">(optional)</span>',
+        '<div style="font-size: 11px">small</div>',
+        '<b style="font-size: 0.6875rem; color: red">small</b>',
+    ]
     failures = 0
     for sample in good:
         if scan_text(sample):
@@ -239,6 +301,14 @@ def self_test() -> int:
     for sample in bad:
         if not scan_text(sample):
             print(f"self-test: missed violation in {sample}")
+            failures += 1
+    for sample in inline_good:
+        if scan_inline_html(sample):
+            print(f"self-test: inline false positive on {sample}")
+            failures += 1
+    for sample in inline_bad:
+        if not scan_inline_html(sample):
+            print(f"self-test: inline missed violation in {sample}")
             failures += 1
     if failures:
         return 1
