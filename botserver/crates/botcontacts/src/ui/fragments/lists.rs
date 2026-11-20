@@ -118,7 +118,9 @@ pub fn filter_suffix(query: &GridQuery) -> String {
         parts.push(format!("&stage={}", urlencode(stage)));
     }
     if let Some(search) = query.search.as_deref().filter(|s| !s.trim().is_empty()) {
-        parts.push(format!("&search={}", urlencode(search)));
+        // The blank check trims, so the encoded value must be trimmed too or
+        // pager links carry leading/trailing `+` and never round-trip.
+        parts.push(format!("&search={}", urlencode(search.trim())));
     }
     if let Some(sort) = query.sort.as_deref().filter(|s| !s.is_empty()) {
         parts.push(format!("&sort={}", urlencode(sort)));
