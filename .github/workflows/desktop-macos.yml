@@ -293,16 +293,37 @@ jobs:
           # pre-release so it can never take /releases/latest (#1804).
           TAG="${BASE_TAG}-macos"
           # Never rewrite the release notes: `gh release upload` attaches files
-          # only. Releases with immutability enabled reject the upload, which is
-          # tolerated by the job-level continue-on-error.
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
+          # only. This job only downloads artifacts, so there is no git checkout
+          # to infer the repository from. Always pass it explicitly.
+          #
+          # A re-run of a release already has the macOS assets attached. Do not
+          # use --clobber: an immutable release rejects the delete with
+          # HTTP 422 "Cannot delete asset from an immutable release" (seen in
+          # run 44802614227). Upload only the assets that are missing.
+          upload_missing() {
+            local tag="$1" name file
+            local existing uploaded=()
+            existing=$(gh release view "$tag" -R "$GITHUB_REPOSITORY" \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+            for file in dist/*; do
+              name=$(basename "$file")
+              if grep -Fxq "$name" <<<"$existing"; then
+                echo "asset ${name} already published on ${tag}; skipping"
+              else
+                uploaded+=("$file")
+              fi
+            done
+            if [ "${#uploaded[@]}" -gt 0 ]; then
+              gh release upload "$tag" "${uploaded[@]}" -R "$GITHUB_REPOSITORY"
+            fi
+          }
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            upload_missing "$TAG"
           else
             # The Linux release job may create the same release concurrently.
             # Fall back to an upload when create loses that race.
-            gh release create "$TAG" dist/* \
+            gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" \
               --title "${BASE_TAG} (macOS)" \
               --notes "macOS desktop bundle (unsigned; signing/notarization is future work), pre-release for ${BASE_TAG}: it never takes latest." \
-              --prerelease --latest=false ||
-              gh release upload "$TAG" dist/* --clobber
+              --prerelease --latest=false || upload_missing "$TAG"
           fi
