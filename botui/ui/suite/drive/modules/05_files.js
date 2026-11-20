@@ -1,9 +1,6 @@
 /* Drive Module v2.0 — 05 Files: load, upload, recent, trash and search */
 "use strict";
 
-/* Drive Module v2.0 — 05 Files: load, upload, search */
-"use strict";
-
 async function loadFiles(path, bucket) {
     if (path !== undefined) currentPath = path;
     if (bucket !== undefined) currentBucket = bucket;
@@ -125,16 +122,17 @@ async function uploadFiles(files) {
         updateUploadProgress(progressEl, fi, total, (file && file.name) || originalFile.name);
         try {
             const content = await readFileAsBase64(file);
+            var bucket = getEffectiveBucket();
             var filePath = currentPath ? currentPath + "/" + file.name : file.name;
-            await apiRequest("/write", {
-                method: "POST",
-                body: JSON.stringify({
-                    bucket: getEffectiveBucket(),
-                    path: filePath,
-                    content: content,
-                    scope: currentScope,
-                }),
+            var queueId = bucket + ":" + filePath;
+            if (typeof gbcQueueRemember === "function") await gbcQueueRemember({
+                id: queueId, bucket: bucket, path: filePath, name: file.name,
+                size: file.size, content: content, scope: currentScope, at: Date.now(),
             });
+            await apiRequest("/write", { method: "POST", body: JSON.stringify({
+                bucket: bucket, path: filePath, content: content, scope: currentScope,
+            }) });
+            if (typeof gbcQueueForget === "function") await gbcQueueForget(queueId);
             uploaded++;
         } catch (err) {
             console.error("Upload error for " + (file && file.name ? file.name : originalFile.name) + ":", err);

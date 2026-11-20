@@ -267,9 +267,7 @@
   _I.grid = grid; _I.wsIndex = wsIndex; _I.apply = apply; _I.patchRender = patchRender;
   _I.colWidth = colWidth; _I.rowHeight = rowHeight; _I.colX = colX; _I.rowTop = rowTop; _I.rowAt = rowAt;
   _I.computeVisibleColRange = computeVisibleColRange;
-  // setColWidth/setRowHeight/persistResize are defined in 14_widths_b.js and
-  // exported there — assigning them here threw a ReferenceError in strict mode
-  // and aborted the rest of this module's exports.
+  // setColWidth/setRowHeight/persistResize are exported by 14_widths_b.js.
   _I.totalColWidth = totalColWidth; _I.charsToPx = charsToPx; _I.pointsToPx = pointsToPx;
   _I.colPxToChars = colPxToChars; _I.rowPxToPoints = rowPxToPoints;
   _I.getColWidths = function(){return colWidths;}; _I.getRowHeights = function(){return rowHeights;};
