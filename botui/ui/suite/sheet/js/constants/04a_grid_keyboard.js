@@ -54,6 +54,31 @@
     return { row: row, col: (g.totalCols || 1) - 1 };
   }
 
+  // Ctrl+End must land on the bottom-right of the USED range. The nominal
+  // last row of a virtual sheet is ~1M rows away, which is useless to a
+  // keyboard user and looked like a hang while the grid caught up (#2493).
+  function dataExtent(g) {
+    var maxRow = -1;
+    var maxCol = -1;
+    try {
+      g.cells.forEach(function (data, key) {
+        if (!hasContent(data)) return;
+        var parts = String(key).split(",");
+        var r = parseInt(parts[0], 10);
+        var c = parseInt(parts[1], 10);
+        if (isNaN(r) || isNaN(c)) return;
+        if (r > maxRow) maxRow = r;
+        if (c > maxCol) maxCol = c;
+      });
+    } catch (e) {
+      console.warn("[sheet-keyboard] used-range scan failed", e);
+    }
+    if (maxRow < 0 || maxCol < 0) {
+      return { row: (g.totalRows || 1) - 1, col: (g.totalCols || 1) - 1 };
+    }
+    return { row: maxRow, col: maxCol };
+  }
+
   function pageStep(g, row) {
     var h = (typeof g.rowHeightOf === "function") ? g.rowHeightOf(row) : ROW_HEIGHT;
     return Math.max(1, Math.floor((g.viewportHeight || ROW_HEIGHT * 20) / (h || ROW_HEIGHT)) - 1);
@@ -211,17 +236,19 @@
         break;
       case "Home":
         target = mod ? { row: 0, col: 0 } : { row: row, col: 0 };
+        extension = shift;
         break;
       case "End":
-        target = mod
-          ? dataEdge(g, (g.totalRows || 1) - 1, (g.totalCols || 1) - 1, "right")
-          : dataEdge(g, row, (g.totalCols || 1) - 1, "left");
+        target = mod ? dataExtent(g) : dataEdge(g, row, (g.totalCols || 1) - 1, "left");
+        extension = shift;
         break;
       case "PageUp":
         target = { row: row - pageStep(g, row), col: col };
+        extension = shift;
         break;
       case "PageDown":
         target = { row: row + pageStep(g, row), col: col };
+        extension = shift;
         break;
       case "Tab":
         if (mod) return;

@@ -161,12 +161,15 @@
     node.setAttribute("aria-colindex", String(col + 1));
     node.setAttribute("aria-readonly", this.isReadOnly() ? "true" : "false");
     node.setAttribute("aria-label", this.cellLabel(row, col, cellData));
+    // The active cell is always part of the selection, even when no explicit
+    // range has been set by the advanced selection module (#2493).
+    var isActive = row === this.selectedRow && col === this.selectedCol;
     var sel = window.SheetAdvanced && window.SheetAdvanced.getSelection
       ? window.SheetAdvanced.getSelection() : null;
-    var inside = sel && row >= sel.startRow && row <= sel.endRow &&
-      col >= sel.startCol && col <= sel.endCol;
+    var inside = isActive || !!(sel && row >= sel.startRow && row <= sel.endRow &&
+      col >= sel.startCol && col <= sel.endCol);
     node.setAttribute("aria-selected", inside ? "true" : "false");
-    node.tabIndex = (row === this.selectedRow && col === this.selectedCol) ? 0 : -1;
+    node.tabIndex = isActive ? 0 : -1;
   };
 
   VirtualGrid.selectionInfo = function () {
@@ -210,7 +213,9 @@
       }));
   };
 
-  VirtualGrid.updateSelectionA11y = function () {
+  // silent=true refreshes ARIA state on a plain cursor move without replacing
+  // the per-cell announcement made by onCellFocusA11y.
+  VirtualGrid.updateSelectionA11y = function (silent) {
     if (!this.bodyInner) return;
     var self = this;
     var sel = window.SheetAdvanced && window.SheetAdvanced.getSelection
@@ -219,13 +224,14 @@
       var r = parseInt(node.dataset.row, 10);
       var c = parseInt(node.dataset.col, 10);
       if (isNaN(r) || isNaN(c)) return;
-      var inside = sel && r >= sel.startRow && r <= sel.endRow &&
-        c >= sel.startCol && c <= sel.endCol;
+      var isActive = r === self.selectedRow && c === self.selectedCol;
+      var inside = isActive || !!(sel && r >= sel.startRow && r <= sel.endRow &&
+        c >= sel.startCol && c <= sel.endCol);
       node.setAttribute("aria-selected", inside ? "true" : "false");
-      node.tabIndex = (r === self.selectedRow && c === self.selectedCol) ? 0 : -1;
+      node.tabIndex = isActive ? 0 : -1;
     });
     this.updateActiveCellA11y();
-    this.announceSelection();
+    if (!silent) this.announceSelection();
   };
 
   VirtualGrid.updateActiveCellA11y = function () {
@@ -288,7 +294,9 @@
     var row = parseInt(cell.dataset.row, 10);
     var col = parseInt(cell.dataset.col, 10);
     if (isNaN(row) || isNaN(col) || this.editingCell === cell) return;
-    this.updateActiveCellA11y();
+    // Plain arrow moves never emit gb-sheet-selection, so a stale range would
+    // otherwise keep reporting aria-selected=true after the cursor moved.
+    this.updateSelectionA11y(true);
     var data = this.cells.get(row + "," + col);
     var message = this.cellLabel(row, col, data);
     this.announce(message);
