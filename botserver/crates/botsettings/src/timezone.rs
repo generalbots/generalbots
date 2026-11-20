@@ -13,6 +13,9 @@
 //!   callers that never had a zone name — they are fixed by definition;
 //! * anything else that cannot be resolved is an explicit UTC fallback with a
 //!   `warn!` naming the offending value, instead of a silent UTC.
+//!
+//! Host timezone detection uses `iana-time-zone`; it is only used by callers
+//! that have no stored preference, never as a substitute for an invalid one.
 
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
@@ -79,7 +82,29 @@ pub fn resolve_zone(timezone: &str) -> Zone {
     }
 }
 
+/// Host IANA zone name, for callers that have no stored timezone preference.
+///
+/// `iana-time-zone` reads the OS setting without shelling out. The result is
+/// cached so request paths do not repeat that lookup. An invalid or missing
+/// host setting is an explicit UTC fallback with a warning.
+pub fn host_timezone_name() -> &'static str {
+    static HOST_ZONE: OnceLock<String> = OnceLock::new();
+    HOST_ZONE
+        .get_or_init(|| match iana_time_zone::get_timezone() {
+            Ok(name) if !name.trim().is_empty() => name.trim().to_owned(),
+            Ok(_) => "UTC".to_owned(),
+            Err(error) => {
+                log::warn!("settings: cannot detect host timezone ({error}); using UTC");
+                "UTC".to_owned()
+            }
+        })
+        .as_str()
+}
+
 /// UTC offset (minutes) at `at`, honouring the zone's daylight-saving rules.
+///
+/// Diagnostic only: calendar dates must come from [`local_date`] or [`today_in`]
+/// (as the digest does), never from an offset applied to a UTC instant.
 pub fn timezone_offset_minutes(timezone: &str, at: DateTime<Utc>) -> i32 {
     match resolve_zone(timezone) {
         // Zone offsets are whole minutes, so the division is exact.
@@ -91,9 +116,21 @@ pub fn timezone_offset_minutes(timezone: &str, at: DateTime<Utc>) -> i32 {
 /// The calendar day in `zone` for `instant` — what "today" and "week ending"
 /// mean to the person reading the digest.
 ///
-/// Tenant-local by design: the `date_naive()` calls below are the intended
-/// conversion from an instant to a *local* day, which is exactly what the
-/// crate-wide UTC audit (#2389) flags every other site for.
+/// #2389 `date_naive()` classification (deliberately NOT a bulk rewrite):
+///
+/// * The two conversions below are tenant-local by construction: the instant
+///   is shifted into the resolved IANA zone (or the documented fixed offset)
+///   *before* `date_naive()` is called. They replace the old UTC-derived digest
+///   dates and are the canonical pattern for user-facing day buckets.
+/// * The `Utc::now().date_naive()` in the `today_in` test is a UTC reference
+///   value only; it never becomes a user-facing date.
+/// * The other sites flagged by #2389 (98 reported; 102 raw occurrences in
+///   `botserver/` outside this module) are intentionally left untouched here.
+///   They need per-caller triage: some already use `Local::now()`, some are
+///   deliberately UTC (server-side billing/log buckets with no tenant zone),
+///   and only the UTC-derived user-facing ones should move to `local_date`.
+///   Rewriting them mechanically would change unrelated billing and logging
+///   semantics and belongs to a separate change.
 pub fn local_date(instant: DateTime<Utc>, zone: &str) -> NaiveDate {
     match resolve_zone(zone) {
         Zone::Iana(tz) => instant.with_timezone(&tz).date_naive(),
@@ -297,5 +334,12 @@ mod tests {
         // Out-of-range offsets are unresolvable, not silently clamped.
         assert_eq!(timezone_offset_minutes("UTC+16:00", instant), 0);
         assert_eq!(timezone_offset_minutes("+05:99", instant), 0);
+    }
+
+    #[test]
+    fn host_timezone_name_is_a_resolvable_zone() {
+        let host = host_timezone_name();
+        assert!(!host.is_empty());
+        assert!(matches!(resolve_zone(host), Zone::Iana(_)));
     }
 }

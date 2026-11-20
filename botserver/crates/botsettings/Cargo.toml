@@ -40,6 +40,7 @@ reqwest = { workspace = true, features = ["rustls-tls", "json", "stream"] }
 zip = { workspace = true }
 sysinfo = { workspace = true }
 chrono-tz = { workspace = true }
+iana-time-zone = "0.1"
 
 [lints]
 workspace = true
