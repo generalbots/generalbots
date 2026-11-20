@@ -17,7 +17,7 @@
     if (!params || typeof params !== "object") return out;
     Object.keys(params).forEach(function (name) {
       var re = new RegExp("\\{\\s*\\$?" + name + "\\s*\\}", "g");
-      out = out.replace(re, String(params[name]));
+      out = out.replace(re, function () { return String(params[name]); });
     });
     return out;
   }

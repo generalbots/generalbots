@@ -65,7 +65,7 @@ test("RUNTIME #2427: substitute handles $name, bare name and whitespace forms", 
   assert(s("{ $label }:{name}", { label: "<L>", name: "<N>" }) === "<L>:<N>", "both placeholder forms");
   assert(s("{  $x  }", { x: "7" }) === "7", "inner whitespace must be tolerated");
   assert(s("{missing}", { other: "1" }) === "{missing}", "absent key is left untouched");
-  assert(s("{x}", null) === "{x}", "null params are a no-op");
+  assert(s("{x}", null) === "{x}" && s("{x}", { x: "$&" }) === "$&" && s("{x}", { x: "$$" }) === "$$" && s("{x}", { x: "$'" }) === "$'", "null params and replacement patterns in values stay literal");
 });
 
 test("RUNTIME #2427: tr prefers gbT and applies params to the fallback", function () {
