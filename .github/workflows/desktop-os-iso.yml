@@ -209,7 +209,11 @@ jobs:
               # 25.3 (no El Torito) and its dependency systemd-tpm is not
               # installable there; the image built below stays Debian 13.
               # libguestfs-tools provides guestfish for the in-image assertions.
-              apt-get install -y --no-install-recommends mkosi libguestfs-tools
+              # supermin needs a kernel+modules to build its appliance; a
+              # bare debian:sid container has none in /boot or /lib/modules,
+              # and guestfish fails with "supermin exited with error status 1"
+              # (run 44818168056). linux-image-amd64 supplies both.
+              apt-get install -y --no-install-recommends mkosi libguestfs-tools linux-image-amd64
               mkosi --version
               mkosi --output-dir /out build
               RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1) || true
