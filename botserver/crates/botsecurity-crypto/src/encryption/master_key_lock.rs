@@ -80,11 +80,21 @@ pub fn load_master_encryption_key() -> Vec<u8> {
         }
     }
 
-    // 5. Ephemeral fallback (dev default — no Vault/keys configured)
+    // 5. Ephemeral fallback (dev default — no Vault/keys configured).
+    // Take the write lock BEFORE minting a key and re-check the cache inside it:
+    // otherwise two concurrent callers each generate a different random key and
+    // overwrite one another, so a thread that encrypted with key A later reads
+    // key B from the cache and decrypts to an empty string. That race made
+    // botdrive's token round-trip unit test flaky under the parallel test runner.
+    let mut guard = match master_key_lock().write() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    if let Some(ref key) = *guard {
+        return key.clone();
+    }
     warn!("No master encryption key available (Vault, MESSAGE_ENCRYPTION_KEY or JWT_SECRET). Using an ephemeral key: stored messages will be unreadable after the next restart.");
     let key: Vec<u8> = rand::random::<[u8; 32]>().to_vec();
-    if let Ok(mut guard) = master_key_lock().write() {
-        *guard = Some(key.clone());
-    }
+    *guard = Some(key.clone());
     key
 }
