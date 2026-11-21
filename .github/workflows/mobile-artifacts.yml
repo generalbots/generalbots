@@ -177,7 +177,7 @@ jobs:
             -f mobile thin-client custom-protocol \
             -c tauri.mobile.conf.json -c "$RUNNER_TEMP/tauri.mobile.json"
       - name: Upload Android artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mobile-android-${{ inputs.tag }}
           path: |
@@ -260,7 +260,7 @@ jobs:
             -f mobile thin-client custom-protocol \
             -c tauri.mobile.conf.json -c "$RUNNER_TEMP/tauri.mobile.json"
       - name: Upload iOS artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mobile-ios-${{ inputs.tag }}
           path: botapp/gen/apple/build/arm64/*.ipa
