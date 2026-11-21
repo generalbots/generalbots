@@ -91,7 +91,7 @@
         renameBtn.className = "gb-conv-action-btn";
         renameBtn.setAttribute("aria-label", A.t("assistant.rename", "Rename"));
         renameBtn.title = A.t("assistant.rename", "Rename");
-        renameBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+        renameBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
         renameBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handleRename(session.id, textSpan);
@@ -102,29 +102,12 @@
         deleteBtn.className = "gb-conv-action-btn";
         deleteBtn.setAttribute("aria-label", A.t("assistant.delete", "Delete"));
         deleteBtn.title = A.t("assistant.delete", "Delete");
-        deleteBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+        deleteBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
         deleteBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handleDelete(session.id);
         });
         actions.appendChild(deleteBtn);
-
-        /* Export Markdown */
-        if (typeof A.exportConversation === "function") {
-            var exportBtn = document.createElement("button");
-            exportBtn.className = "gb-conv-action-btn";
-            exportBtn.setAttribute("aria-label", A.t("assistant.export", "Export"));
-            exportBtn.title = A.t("assistant.export", "Exportar");
-            exportBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-            exportBtn.addEventListener("click", function (e) {
-                e.stopPropagation();
-                /* Load this conversation and export it */
-                var sid = session.id;
-                A.currentSessionId = sid;
-                A.exportConversation();
-            });
-            actions.appendChild(exportBtn);
-        }
 
         btn.appendChild(actions);
 
@@ -317,7 +300,8 @@
             roleEl.textContent = !roles.length ? "" : admin ? (pt ? "Administrador" : "Administrator") : (pt ? "Usuário" : "User");
         }
         if (avatarEl) {
-            avatarEl.style.backgroundColor = /^#[0-9a-f]{6}$/i.test(A.avatarColor || "") ? A.avatarColor : "";
+            var own = /^#[0-9a-f]{6}$/i.test(A.avatarColor || "") && A.avatarColor.toLowerCase() !== "#171717";
+            avatarEl.style.backgroundColor = own ? A.avatarColor : "";
             avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
         }
     };

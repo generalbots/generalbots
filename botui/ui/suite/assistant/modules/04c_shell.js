@@ -93,6 +93,41 @@
         scheduleCpu(0);
     };
 
+    /* Status bar: server port, interface language, clock and date. */
+    function initStatusBar() {
+        var port = location.port;
+        try { port = new URL(A.origin || location.href, location.href).port || port; } catch (err) { port = location.port; }
+        id("gbStatusPort").textContent = "botserver" + (port ? " :" + port : "");
+        id("gbStatusLang").textContent = String(A.locale || document.documentElement.lang || "").toUpperCase();
+        var crumb = document.querySelector(".gb-breadcrumb");
+        if (crumb) {
+            new MutationObserver(function () {
+                var meta = crumb.querySelector('.gb-crumb-meta[data-for="drive"]');
+                id("gbStatusUsage").textContent = meta && !meta.hidden ? meta.textContent : "";
+            }).observe(crumb, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"]});
+        }
+        function pad(n) { return String(n).padStart(2, "0"); }
+        (function tick() {
+            var now = new Date();
+            id("gbStatusClock").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+            id("gbStatusDate").textContent = pad(now.getDate()) + "/" + pad(now.getMonth() + 1) + "/" + now.getFullYear();
+            setTimeout(tick, 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 50);
+        })();
+    }
+
+    function dockExportActions() {
+        var crumb = document.querySelector(".gb-breadcrumb");
+        var bar = id("gbTitlebarTitle");
+        if (!crumb || !bar) return;
+        var dock = new MutationObserver(function () {
+            var actions = id("gbExportActions");
+            if (!actions) return;
+            dock.disconnect();
+            crumb.appendChild(actions);
+        });
+        dock.observe(bar.parentNode, {childList: true});
+    }
+
     A.initMantisShell = function () {
         document.documentElement.lang = A.locale;
         document.querySelectorAll("[data-icon]").forEach(function (el) {
@@ -115,7 +150,9 @@
             if (id(name)) observer.observe(id(name), {subtree: true, childList: true,
                 attributes: true, attributeFilter: ["class", "aria-current"]});
         });
+        dockExportActions();
         A.updateBreadcrumb();
         A.startRailCpu();
+        initStatusBar();
     };
 })();
