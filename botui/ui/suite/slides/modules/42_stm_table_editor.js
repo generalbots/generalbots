@@ -402,7 +402,7 @@
 
   function bind() {
     document.addEventListener("click", onCellClick, true);
-    document.addEventListener("mousedown", onCellMouseDown, true);
+    document.addEventListener("pointerdown", onCellMouseDown, true);
     document.addEventListener("keydown", function (event) {
       var editingInput = event.target && event.target.closest &&
         event.target.closest("input,textarea,select,[contenteditable='true']");

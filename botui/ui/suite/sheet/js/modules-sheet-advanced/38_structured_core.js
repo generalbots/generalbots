@@ -278,7 +278,7 @@
       close: function () {
         if (!dialog.isConnected) return;
         document.removeEventListener("keydown", onKey, true);
-        document.removeEventListener("mousedown", onDown, true);
+        document.removeEventListener("pointerdown", onDown, true);
         dialog.remove();
         if (restore && restore.isConnected && typeof restore.focus === "function") restore.focus();
       },
@@ -286,7 +286,7 @@
     };
     close.addEventListener("click", api.close);
     document.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("pointerdown", onDown, true);
     const host = document.getElementById("sheet-modal-container") || document.body;
     host.appendChild(dialog);
     return api;

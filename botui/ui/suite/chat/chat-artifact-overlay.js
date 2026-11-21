@@ -90,7 +90,7 @@ window.GBArtifactOverlay = window.GBArtifactOverlay || (function () {
     frame.className = "gb-artifact-overlay-frame";
     frame.appendChild(box);
     overlay.appendChild(frame);
-    overlay.addEventListener("mousedown", function (event) {
+    overlay.addEventListener("pointerdown", function (event) {
       if (event.target === overlay) close();
     });
 

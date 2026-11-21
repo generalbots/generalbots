@@ -71,7 +71,7 @@
     this.scrollArea.addEventListener("scroll", this.onScroll.bind(this), { passive: true });
     // track active instance on interaction (#2270)
     var self = this;
-    this.root.addEventListener("mousedown", function () {
+    this.root.addEventListener("pointerdown", function () {
       if (window.SheetDefaults && self.instance) window.SheetDefaults.setActiveSheetInstance(self.instance);
     }, true);
     this.root.addEventListener("focusin", function () {
@@ -134,7 +134,7 @@
       node.contentEditable = "false";
       node.tabIndex = -1;
       node.style.cssText = "position:absolute;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
-      node.addEventListener("mousedown", this.onCellMouseDown.bind(this));
+      node.addEventListener("pointerdown", this.onCellMouseDown.bind(this));
       node.addEventListener("dblclick", this.onCellDblClick.bind(this));
       node.addEventListener("blur", this.onCellBlur.bind(this));
       node.addEventListener("keydown", this.onCellKeyDown.bind(this));

@@ -288,7 +288,7 @@
     wrapRender();
     if (g.headerRow && !g.headerRow.__filterBound) {
       g.headerRow.__filterBound = true;
-      g.headerRow.addEventListener("mousedown", function (e) {
+      g.headerRow.addEventListener("pointerdown", function (e) {
         const h = e.target.closest(".ss-filter-head");
         if (!h) return;
         e.preventDefault();
@@ -296,7 +296,7 @@
         showFilterMenu(parseInt(h.dataset.col, 10), h);
       }, true);
     }
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);
     renderFilterHeads();

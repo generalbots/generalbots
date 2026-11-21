@@ -111,8 +111,8 @@
     }
     if (g.bodyInner.__dvBound) return;
     g.bodyInner.__dvBound = true;
-    g.bodyInner.addEventListener("mousedown", onCellMDown, true);
-    document.addEventListener("mousedown", function (e) {
+    g.bodyInner.addEventListener("pointerdown", onCellMDown, true);
+    document.addEventListener("pointerdown", function (e) {
       if (current && !current.select.contains(e.target)) closeDropdown();
     }, true);
   }

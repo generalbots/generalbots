@@ -118,8 +118,8 @@
 
     function endDrag(e) {
       e.preventDefault();
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", endDrag);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", endDrag);
       // Persist in the workbook's native units, never in the px the grid uses:
       // storing pixels made every reload multiply the size (#2152).
       if (mode === "col" && index >= 0)
@@ -143,33 +143,33 @@
       }
     }
 
-    g.headerRow.addEventListener("mousedown", function (e) {
+    g.headerRow.addEventListener("pointerdown", function (e) {
       const col = headerColIndex(e.target, e.clientX);
       if (col < 0) return;
       e.preventDefault();
       e.stopPropagation();
       mode = "col"; index = col;
       startX = e.clientX; startW = colWidth(col);
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", endDrag);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", endDrag);
     });
 
-    g.bodyInner.addEventListener("mousedown", function (e) {
+    g.bodyInner.addEventListener("pointerdown", function (e) {
       const row = rowHeaderIndex(e.target, e.clientY);
       if (row < 0) return;
       e.preventDefault();
       e.stopPropagation();
       mode = "row"; index = row;
       startY = e.clientY; startH = rowHeight(row);
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", endDrag);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", endDrag);
     });
 
     // Affordance: show a resize cursor while hovering the boundary between
     // column headers (or the boundary below a row header), so the user can
     // discover that drag-resizing is available. Uses absolute geometry so the
     // cursor reacts even between two adjacent headers.
-    g.headerRow.addEventListener("mousemove", function (e) {
+    g.headerRow.addEventListener("pointermove", function (e) {
       if (mode) return;
       const col = headerColIndex(e.target, e.clientX);
       g.headerRow.style.cursor = col >= 0 ? "col-resize" : "default";
@@ -177,7 +177,7 @@
     g.headerRow.addEventListener("mouseleave", function () {
       g.headerRow.style.cursor = "default";
     });
-    g.bodyInner.addEventListener("mousemove", function (e) {
+    g.bodyInner.addEventListener("pointermove", function (e) {
       if (mode) return;
       // The row header is thin (48px) and has no gap between rows, so the
       // element under the pointer is whichever header contains the y — the

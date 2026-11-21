@@ -31,7 +31,7 @@ const Spotlight = (() => {
       </div>
     `;
     document.body.appendChild(overlay);
-    overlay.addEventListener("mousedown", (e) => {
+    overlay.addEventListener("pointerdown", (e) => {
       if (e.target === overlay) close();
     });
     const input = document.getElementById("gbSpotlightInput");

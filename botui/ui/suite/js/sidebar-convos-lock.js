@@ -97,7 +97,7 @@
       overlay.querySelector(".modal-close").addEventListener("click", function () { finish(null); });
       submit.addEventListener("click", accept);
       input.addEventListener("input", function () { error.style.display = "none"; });
-      overlay.addEventListener("mousedown", function (event) {
+      overlay.addEventListener("pointerdown", function (event) {
         if (event.target === overlay) finish(null);
       });
       document.addEventListener("keydown", onKey, true);

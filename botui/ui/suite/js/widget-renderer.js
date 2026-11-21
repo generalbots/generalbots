@@ -176,7 +176,7 @@
 
   function bindDrag(el, inst, api) {
     var head = el.querySelector(".gb-widget-header");
-    head.addEventListener("mousedown", function (e) {
+    head.addEventListener("pointerdown", function (e) {
       if (e.target.closest(".gb-widget-btn")) return;
       if (api.onFocus) api.onFocus(inst.id);
       var startX = e.clientX;
@@ -196,8 +196,8 @@
         el.style.top = Math.min(y, maxY) + "px";
       }
       function onUp() {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
         if (api.persistPos) {
           api.persistPos(
             inst.id,
@@ -206,14 +206,14 @@
           );
         }
       }
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
     });
   }
 
   function bindResize(el, inst, api) {
     var grip = el.querySelector(".gb-widget-grip");
-    grip.addEventListener("mousedown", function (e) {
+    grip.addEventListener("pointerdown", function (e) {
       e.preventDefault();
       e.stopPropagation();
       var startX = e.clientX;
@@ -226,14 +226,14 @@
         el.style.height = Math.max(MIN_H, startH + ev.clientY - startY) + "px";
       }
       function onUp() {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
         if (api.persistSize) {
           api.persistSize(inst.id, el.offsetWidth, el.offsetHeight);
         }
       }
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
     });
   }
 

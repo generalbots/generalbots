@@ -71,7 +71,7 @@
   }
 
   document.addEventListener("contextmenu", onContextMenu, true);
-  document.addEventListener("mousedown", function (e) {
+  document.addEventListener("pointerdown", function (e) {
     if (menu && !menu.contains(e.target)) closeMenu();
   }, true);
 })();

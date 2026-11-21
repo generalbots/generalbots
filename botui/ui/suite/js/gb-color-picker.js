@@ -83,7 +83,7 @@
     popover.setAttribute("role", "dialog");
     popover.setAttribute("aria-label", (typeof window.gbT === "function" ? window.gbT("color-picker-choose", "Choose colour") : "Choose colour"));
     document.body.appendChild(popover);
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (!active) return;
       if (popover.contains(e.target)) return;
       if (active.trigger && active.trigger.contains(e.target)) return;
@@ -131,7 +131,7 @@
       "</div>";
 
     p.querySelectorAll("[data-color]").forEach(function (btn) {
-      btn.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      btn.addEventListener("pointerdown", function (e) { e.preventDefault(); });
       btn.addEventListener("click", function () {
         commit(btn.getAttribute("data-color"));
       });
@@ -233,7 +233,7 @@
       valueEl.style.height = "0";
       valueEl.tabIndex = -1;
     }
-    trigger.addEventListener("mousedown", function (e) { e.preventDefault(); });
+    trigger.addEventListener("pointerdown", function (e) { e.preventDefault(); });
     trigger.addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();

@@ -139,7 +139,7 @@
     const right = host.querySelector(".toolbar-right");
     if (right) right.insertBefore(btn, right.querySelector(".toolbar-divider") ? right.querySelector(".toolbar-divider").nextSibling : right.firstChild);
 
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (menu && !menu.contains(e.target) && e.target.id !== "freezeBtn") closeMenu();
     }, true);
   }

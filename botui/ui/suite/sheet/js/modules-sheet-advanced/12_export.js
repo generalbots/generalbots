@@ -212,7 +212,7 @@
     const right = host.querySelector(".toolbar-right");
     if (right) right.insertBefore(btn, right.firstChild);
 
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (menu && !menu.contains(e.target) && e.target.closest("#exportSheetBtn")) return;
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);

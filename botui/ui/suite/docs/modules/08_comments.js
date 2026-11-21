@@ -44,7 +44,7 @@
       "padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);";
     chip.style.left = rect.left + "px";
     chip.style.top = Math.max(8, rect.bottom + 6) + "px";
-    chip.addEventListener("mousedown", function (e) { e.preventDefault(); });
+    chip.addEventListener("pointerdown", function (e) { e.preventDefault(); });
     chip.addEventListener("click", function () {
       var sel = pending || { start: 0, end: 0 };
       hideChip();

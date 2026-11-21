@@ -178,8 +178,8 @@ window.GBSnapAssist = window.GBSnapAssist || {};
       manager.restoreWindow(id);
     }
     dragState = { id: id, x: 0, y: 0 };
-    document.addEventListener("mousemove", onDragMove);
-    document.addEventListener("mouseup", onDragUp);
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragUp);
   }
 
   function onDragMove(e) {
@@ -222,8 +222,8 @@ window.GBSnapAssist = window.GBSnapAssist || {};
     }
     hideGhost();
     dragState = null;
-    document.removeEventListener("mousemove", onDragMove);
-    document.removeEventListener("mouseup", onDragUp);
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragUp);
   }
 
   // ── Keyboard snapping ────────────────────────────────────────
@@ -280,7 +280,7 @@ window.GBSnapAssist = window.GBSnapAssist || {};
     });
 
     // Hook titlebar drag to enable edge snapping.
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       var header = e.target.closest(".window-header-glass") || e.target.closest(".window-header");
       if (!header) return;
       if (e.target.closest(".window-dot") || e.target.closest("button")) return;

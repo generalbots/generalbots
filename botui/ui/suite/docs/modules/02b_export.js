@@ -82,7 +82,7 @@
     });
     var share = document.getElementById("shareBtn");
     right.insertBefore(button, share && share.parentNode === right ? share : null);
-    document.addEventListener("mousedown", function (event) {
+    document.addEventListener("pointerdown", function (event) {
       if (menu && !menu.contains(event.target) && event.target !== button) close();
     }, true);
   }

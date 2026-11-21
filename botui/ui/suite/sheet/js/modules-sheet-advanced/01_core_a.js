@@ -257,15 +257,10 @@
       fillHandle.className = "ss-fill-handle";
       fillHandle.style.cssText = "position:absolute;width:9px;height:9px;background:#3b82f6;border:1px solid #fff;cursor:crosshair;z-index:14;display:none;";
       grid.bodyInner.appendChild(fillHandle);
-      fillHandle.addEventListener("mousedown", onFillStart);
-      // #2419 — touch contacts fire pointerdown but not mousedown, so a
-      // touch-only user could never start a fill drag (mousedown was the
-      // only listener). Accept pointer events for non-mouse pointers; the
-      // mouse path stays on mousedown to avoid double-starting a drag.
-      fillHandle.addEventListener("pointerdown", function (e) {
-        if (e.pointerType === "mouse") return;
-        onFillStart(e);
-      });
+      // #2419 — pointer events cover mouse, touch and pen. One listener
+      // serves every input type; onFillStart de-duplicates synthesised
+      // touchstart/pointerdown pairs via the fillDragging guard.
+      fillHandle.addEventListener("pointerdown", onFillStart);
       fillHandle.addEventListener("touchstart", onFillStart);
     }
   }
@@ -297,6 +292,9 @@
     dragging = true;
     document.addEventListener("mousemove", onDrag, true);
     document.addEventListener("mouseup", onDragEnd, true);
+    // #2419 — touch drags emit pointermove/pointerup, not mousemove/mouseup.
+    document.addEventListener("pointermove", onDrag, true);
+    document.addEventListener("pointerup", onDragEnd, true);
   }
 
   function onDrag(e) {
@@ -313,9 +311,12 @@
   }
 
   function onDragEnd() {
+    if (!dragging) return;
     dragging = false;
     document.removeEventListener("mousemove", onDrag, true);
     document.removeEventListener("mouseup", onDragEnd, true);
+    document.removeEventListener("pointermove", onDrag, true);
+    document.removeEventListener("pointerup", onDragEnd, true);
     if (grid && sel) grid.selectCell(sel.endRow, sel.endCol);
   }
 
@@ -384,7 +385,7 @@
     if (!grid || !grid.bodyInner) return;
     if (grid.bodyInner.__saBound) return;
     grid.bodyInner.__saBound = true;
-    grid.bodyInner.addEventListener("mousedown", onCellMDown, true);
+    grid.bodyInner.addEventListener("pointerdown", onCellMDown, true);
   }
 
   function wire() {

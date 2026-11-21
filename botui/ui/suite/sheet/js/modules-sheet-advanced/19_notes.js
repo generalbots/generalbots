@@ -164,7 +164,7 @@
     g.bodyInner.__notesBound = true;
     g.bodyInner.addEventListener("contextmenu", onContextMenu, true);
     g.bodyInner.addEventListener("click", onClick, true);
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);
   }

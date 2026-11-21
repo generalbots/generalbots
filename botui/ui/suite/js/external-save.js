@@ -162,12 +162,12 @@ window.GBExternalSave = (function () {
       var dismiss = function (event) {
         if (!box.contains(event.target)) {
           closeMenu();
-          document.removeEventListener("mousedown", dismiss);
+          document.removeEventListener("pointerdown", dismiss);
           resolve(null);
         }
       };
       setTimeout(function () {
-        document.addEventListener("mousedown", dismiss);
+        document.addEventListener("pointerdown", dismiss);
       }, 0);
     });
   }

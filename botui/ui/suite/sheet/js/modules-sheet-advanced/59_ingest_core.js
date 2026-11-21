@@ -222,7 +222,7 @@
       close: function () {
         if (root.isConnected === false) return;
         document.removeEventListener("keydown", onKey, true);
-        document.removeEventListener("mousedown", onDown, true);
+        document.removeEventListener("pointerdown", onDown, true);
         if (root.remove) root.remove();
         if (restore && restore.isConnected !== false && typeof restore.focus === "function") restore.focus();
       },
@@ -230,7 +230,7 @@
     };
     close.addEventListener("click", api.close);
     document.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("pointerdown", onDown, true);
     var host = document.getElementById("sheet-modal-container") || document.body;
     if (host && host.appendChild) host.appendChild(root);
     return api;

@@ -284,7 +284,7 @@
     var overlay = document.createElement("div");
     overlay.id = "gb-palette";
     overlay.className = "gb-palette";
-    overlay.addEventListener("mousedown", function (e) { if (e.target === overlay) closePalette(); });
+    overlay.addEventListener("pointerdown", function (e) { if (e.target === overlay) closePalette(); });
     document.body.appendChild(overlay);
     window.GBCommandPalette.overlay = overlay;
     loadCatalog().then(function () { renderPalette(overlay); });

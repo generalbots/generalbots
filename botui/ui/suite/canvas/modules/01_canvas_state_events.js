@@ -39,9 +39,9 @@
         C.ctx = C.canvas.getContext("2d");
         C.resizeCanvas();
         window.addEventListener("resize", C.resizeCanvas);
-        C.canvas.addEventListener("mousedown", C.handleMouseDown);
-        C.canvas.addEventListener("mousemove", C.handleMouseMove);
-        C.canvas.addEventListener("mouseup", C.handleMouseUp);
+        C.canvas.addEventListener("pointerdown", C.handleMouseDown);
+        C.canvas.addEventListener("pointermove", C.handleMouseMove);
+        C.canvas.addEventListener("pointerup", C.handleMouseUp);
         C.canvas.addEventListener("wheel", C.handleWheel);
         C.canvas.addEventListener("contextmenu", function (e) {
             e.preventDefault();

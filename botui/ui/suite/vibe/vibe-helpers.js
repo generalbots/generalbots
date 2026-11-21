@@ -148,7 +148,7 @@ function vibeMakeWindowDraggable(el, handleSel) {
     if (!handle) handle = el;
     handle.style.cursor = "move";
     var startX = 0, startY = 0, origLeft = 0, origTop = 0, dragging = false, moved = false;
-    handle.addEventListener("mousedown", function (e) {
+    handle.addEventListener("pointerdown", function (e) {
         if (e.button !== 0) return;
         // Ignore drags that begin on buttons/inputs/links inside the header.
         if (e.target.closest("button,input,select,a,textarea")) return;
@@ -167,7 +167,7 @@ function vibeMakeWindowDraggable(el, handleSel) {
         el.style.bottom = "auto";
         e.preventDefault();
     });
-    document.addEventListener("mousemove", function (e) {
+    document.addEventListener("pointermove", function (e) {
         if (!dragging) return;
         var dx = e.clientX - startX;
         var dy = e.clientY - startY;
@@ -176,7 +176,7 @@ function vibeMakeWindowDraggable(el, handleSel) {
         el.style.left = Math.max(0, origLeft + dx) + "px";
         el.style.top = Math.max(0, origTop + dy) + "px";
     });
-    document.addEventListener("mouseup", function () {
+    document.addEventListener("pointerup", function () {
         dragging = false;
     });
     // Suppress the click (e.g. the run dock's collapse toggle) after an
@@ -203,7 +203,7 @@ function vibeMakeWindowResizable(el, minW, minH) {
     el.style.position = "absolute";
     el.appendChild(grip);
     var startX = 0, startY = 0, origW = 0, origH = 0, resizing = false;
-    grip.addEventListener("mousedown", function (e) {
+    grip.addEventListener("pointerdown", function (e) {
         if (e.button !== 0) return;
         resizing = true;
         startX = e.clientX;
@@ -213,12 +213,12 @@ function vibeMakeWindowResizable(el, minW, minH) {
         e.preventDefault();
         e.stopPropagation();
     });
-    document.addEventListener("mousemove", function (e) {
+    document.addEventListener("pointermove", function (e) {
         if (!resizing) return;
         el.style.width = Math.max(minW, origW + (e.clientX - startX)) + "px";
         el.style.height = Math.max(minH, origH + (e.clientY - startY)) + "px";
     });
-    document.addEventListener("mouseup", function () {
+    document.addEventListener("pointerup", function () {
         resizing = false;
     });
 }

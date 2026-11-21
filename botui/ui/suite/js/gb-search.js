@@ -50,7 +50,7 @@
       "border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:var(--z-top);" +
       "display:none;font-family:'Fira Code',monospace;font-size:13px;color:#e8e8e8;";
     document.body.appendChild(panel);
-    panel.addEventListener("mousedown", function (e) { e.stopPropagation(); });
+    panel.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
     return panel;
   }
 
@@ -205,7 +205,7 @@
     input.addEventListener("focus", function () {
       if ((input.value || "").trim().length >= MIN_QUERY_LEN) doSearch(input.value.trim());
     });
-    document.addEventListener("mousedown", function (e) {
+    document.addEventListener("pointerdown", function (e) {
       if (panel && panel.style.display === "block") {
         if (!panel.contains(e.target) && e.target !== input) closePanel();
       }

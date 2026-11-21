@@ -45,7 +45,7 @@
 
         input.addEventListener("input", render);
         input.addEventListener("keydown", onKey);
-        overlay.addEventListener("mousedown", function (event) {
+        overlay.addEventListener("pointerdown", function (event) {
             if (event.target === overlay) close();
         });
         list.addEventListener("click", function (event) {

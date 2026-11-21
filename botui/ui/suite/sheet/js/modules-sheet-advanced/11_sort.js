@@ -175,8 +175,8 @@
     }
     if (g.headerRow.__sortBound) return;
     g.headerRow.__sortBound = true;
-    g.headerRow.addEventListener("mousedown", onHeaderClick, true);
-    document.addEventListener("mousedown", function (e) {
+    g.headerRow.addEventListener("pointerdown", onHeaderClick, true);
+    document.addEventListener("pointerdown", function (e) {
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);
     setTimeout(addSortHandles, 200);

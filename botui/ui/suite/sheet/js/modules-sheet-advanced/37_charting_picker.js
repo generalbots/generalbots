@@ -56,7 +56,7 @@
   function closeDialog(dialog, restore, onKey, onDown) {
     if (!dialog.isConnected) return;
     document.removeEventListener("keydown", onKey, true);
-    document.removeEventListener("mousedown", onDown, true);
+    document.removeEventListener("pointerdown", onDown, true);
     dialog.remove();
     if (restore && restore.isConnected && typeof restore.focus === "function") restore.focus();
   }
@@ -326,7 +326,7 @@
     });
 
     document.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("pointerdown", onDown, true);
     window.SheetChartingPicker.dialog = dialog;
     refresh();
     titleInput.focus();

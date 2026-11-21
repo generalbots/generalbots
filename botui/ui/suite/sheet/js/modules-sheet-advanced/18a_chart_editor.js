@@ -91,7 +91,7 @@ window.SheetChartEditor = (function () {
 
     const close = function () {
       box.remove();
-      document.removeEventListener("mousedown", dismiss);
+      document.removeEventListener("pointerdown", dismiss);
       document.removeEventListener("keydown", onKey);
     };
     const dismiss = function (event) {
@@ -112,7 +112,7 @@ window.SheetChartEditor = (function () {
       }
     });
     setTimeout(function () {
-      document.addEventListener("mousedown", dismiss);
+      document.addEventListener("pointerdown", dismiss);
       document.addEventListener("keydown", onKey);
     }, 0);
     titleInput.focus();

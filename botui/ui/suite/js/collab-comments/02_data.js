@@ -262,7 +262,7 @@
         S.mentionIndex = S.mentionItems.indexOf(b);
         highlightMention(S.mentionIndex);
       });
-      b.addEventListener("mousedown", function (e) { e.preventDefault(); applyMention(token.at, c.name); });
+      b.addEventListener("pointerdown", function (e) { e.preventDefault(); applyMention(token.at, c.name); });
       S.mentionBox.appendChild(b);
       S.mentionItems.push(b);
     });
