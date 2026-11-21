@@ -167,6 +167,225 @@ jobs:
       - name: Check the Windows agent/VM adapters
         run: cargo check --lib -p botagent -p botvibe
 
+  # #2586 Phase A — make both mobile platforms visible on every pull request.
+  # The two compile jobs are non-blocking only while `mobile`/`thin-client` are
+  # empty stubs. `mobile-feature-guard` is the blocking reminder that flips them
+  # to real features (Phase B removes the continue-on-error lines).
+  mobile-feature-guard:
+    name: Mobile feature flags are implemented (#2586)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Feature-stub guard (#2586)
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib
+          import sys
+
+          try:
+              import tomllib
+          except ImportError:  # Python < 3.11 fallback for mirrored runners.
+              tomllib = None
+
+          NAMES = ("mobile", "thin-client")
+          MANIFEST = pathlib.Path("botapp/Cargo.toml")
+
+
+          def empty(values):
+              return sorted(name for name in NAMES if not values.get(name))
+
+
+          def parse_without_tomllib(raw):
+              """Read the [features] table, ignoring # comments (no cargo needed)."""
+              features, section, pending, buffer = {}, None, None, ""
+              for line in raw.splitlines():
+                  code = line.split("#", 1)[0].strip()
+                  if not code:
+                      continue
+                  if code.startswith("[") and code.endswith("]"):
+                      section = code[1:-1].strip()
+                      continue
+                  if section != "features":
+                      continue
+                  if pending:
+                      buffer += " " + code
+                      if buffer.count("[") <= buffer.count("]"):
+                          body = buffer[buffer.find("[") + 1:buffer.rfind("]")]
+                          features[pending] = body.replace(",", " ").split()
+                          pending = buffer = ""
+                      continue
+                  name, sep, value = code.partition("=")
+                  name = name.strip()
+                  if not sep or name not in NAMES:
+                      continue
+                  if "[" in value and "]" not in value:
+                      pending, buffer = name, value
+                  else:
+                      features[name] = value.strip().strip("[]").replace(",", " ").split()
+              return features
+
+
+          # Self-test: an empty stub pair must fail, an implemented pair must pass.
+          if empty({"mobile": [], "thin-client": []}) != list(NAMES):
+              print("::error::guard self-test did not detect empty stubs")
+              sys.exit(1)
+          if empty({"mobile": ["tauri"], "thin-client": ["mobile"]}):
+              print("::error::guard self-test rejected implemented features")
+              sys.exit(1)
+
+          raw = MANIFEST.read_text(encoding="utf-8")
+          if tomllib is not None:
+              parsed = tomllib.loads(raw).get("features", {})
+              values = {name: parsed.get(name) for name in NAMES}
+          else:
+              values = parse_without_tomllib(raw)
+
+          missing = empty(values)
+          if missing:
+              print(
+                  f"::error::{MANIFEST} still declares empty mobile feature stubs: "
+                  f"{', '.join(missing)} - implement them before Phase B"
+              )
+              sys.exit(1)
+          print(f"{MANIFEST}: mobile and thin-client are real features")
+          PY
+
+  mobile-android-check:
+    name: Android compile check (#2586, non-blocking Phase A)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    continue-on-error: true
+    env:
+      # Derived from setup-android's exported ANDROID_HOME, not a machine path.
+      NDK_VERSION: "26.3.11579264"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Install NDK and export SDK paths
+        run: |
+          set -euo pipefail
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          : "${JAVA_HOME:?setup-java did not export JAVA_HOME}"
+          : "${ANDROID_HOME:?setup-android did not export ANDROID_HOME}"
+          TOOLCHAIN="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "$TOOLCHAIN/aarch64-linux-android34-clang"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/aarch64-linux-android34-clang" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$TOOLCHAIN/x86_64-linux-android34-clang" >> "$GITHUB_ENV"
+          echo "CC_aarch64_linux_android=$TOOLCHAIN/aarch64-linux-android34-clang" >> "$GITHUB_ENV"
+          echo "CC_x86_64_linux_android=$TOOLCHAIN/x86_64-linux-android34-clang" >> "$GITHUB_ENV"
+          echo "AR_aarch64_linux_android=$TOOLCHAIN/llvm-ar" >> "$GITHUB_ENV"
+          echo "AR_x86_64_linux_android=$TOOLCHAIN/llvm-ar" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: mobile-android
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev
+      - name: Add Android Rust targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+      # AGENTS.md: background check, log under /tmp, wait, tail, fail on non-zero.
+      - name: cargo check (aarch64-linux-android)
+        run: |
+          set -uo pipefail
+          LOG=/tmp/botapp_android_aarch64-linux-android_check.log
+          CARGO_BUILD_JOBS=1 nohup cargo check -p botapp \
+            --no-default-features --features mobile,thin-client,custom-protocol \
+            --target aarch64-linux-android > "$LOG" 2>&1 &
+          PID=$!
+          set +e
+          wait "$PID"
+          STATUS=$?
+          set -e
+          tail -n 80 "$LOG"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::Android aarch64 check failed (exit $STATUS); Phase A is non-blocking"
+            exit "$STATUS"
+          fi
+      - name: cargo check (x86_64-linux-android)
+        run: |
+          set -uo pipefail
+          LOG=/tmp/botapp_android_x86_64-linux-android_check.log
+          CARGO_BUILD_JOBS=1 nohup cargo check -p botapp \
+            --no-default-features --features mobile,thin-client,custom-protocol \
+            --target x86_64-linux-android > "$LOG" 2>&1 &
+          PID=$!
+          set +e
+          wait "$PID"
+          STATUS=$?
+          set -e
+          tail -n 80 "$LOG"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::Android x86_64 check failed (exit $STATUS); Phase A is non-blocking"
+            exit "$STATUS"
+          fi
+
+  mobile-ios-check:
+    name: iOS/iPhone compile check (#2586, non-blocking Phase A)
+    runs-on: macos-15
+    timeout-minutes: 120
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Verify the runner's Xcode
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: mobile-ios
+      - name: Add iOS Rust targets
+        run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+      - name: Install CocoaPods
+        run: |
+          set -euo pipefail
+          sudo gem install cocoapods --no-document
+          pod --version
+      - name: cargo check (aarch64-apple-ios)
+        run: |
+          set -uo pipefail
+          LOG=/tmp/botapp_ios_aarch64-apple-ios_check.log
+          CARGO_BUILD_JOBS=1 nohup cargo check -p botapp \
+            --no-default-features --features mobile,thin-client,custom-protocol \
+            --target aarch64-apple-ios > "$LOG" 2>&1 &
+          PID=$!
+          set +e
+          wait "$PID"
+          STATUS=$?
+          set -e
+          tail -n 80 "$LOG"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::iOS device check failed (exit $STATUS); Phase A is non-blocking"
+            exit "$STATUS"
+          fi
+      - name: cargo check (aarch64-apple-ios-sim)
+        run: |
+          set -uo pipefail
+          LOG=/tmp/botapp_ios_aarch64-apple-ios-sim_check.log
+          CARGO_BUILD_JOBS=1 nohup cargo check -p botapp \
+            --no-default-features --features mobile,thin-client,custom-protocol \
+            --target aarch64-apple-ios-sim > "$LOG" 2>&1 &
+          PID=$!
+          set +e
+          wait "$PID"
+          STATUS=$?
+          set -e
+          tail -n 80 "$LOG"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::iOS simulator check failed (exit $STATUS); Phase A is non-blocking"
+            exit "$STATUS"
+          fi
 
   guard:
     name: Structural adequacy baseline

@@ -1,0 +1,266 @@
+name: Mobile artifacts (manual)
+
+# #2586 Phase A — on-demand mobile builds only. This workflow is never run by
+# push, tag or the release publish gate; a human dispatches it with an explicit
+# HTTPS botserver origin. No signing secret, keystore or certificate is stored
+# here: Android uses the Gradle debug keystore, iOS uses ad-hoc signing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which mobile platform to build"
+        required: true
+        type: choice
+        default: android
+        options:
+          - android
+          - ios
+          - both
+      botserver_url:
+        description: "Bare HTTPS origin of the botserver (no public default)"
+        required: true
+        type: string
+      tag:
+        description: "Artifact name suffix ([A-Za-z0-9][A-Za-z0-9._-]{0,63})"
+        required: true
+        type: string
+        default: manual
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-artifacts-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate manual inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate origin, tag and platform
+        env:
+          BOTSERVER_URL: ${{ inputs.botserver_url }}
+          ARTIFACT_TAG: ${{ inputs.tag }}
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ipaddress
+          import os
+          import re
+          import sys
+          from urllib.parse import urlparse
+
+          url = os.environ["BOTSERVER_URL"].strip()
+          parsed = urlparse(url)
+          if (
+              parsed.scheme != "https"
+              or not parsed.netloc
+              or parsed.username
+              or parsed.password
+              or parsed.path not in ("", "/")
+              or parsed.query
+              or parsed.fragment
+          ):
+              print("::error::botserver_url must be a bare HTTPS origin: https://<host>[:port]")
+              sys.exit(1)
+          host = parsed.hostname or ""
+          if not host or host == "localhost" or host.endswith(".local"):
+              print("::error::botserver_url must be a DNS host, not a loopback/local name")
+              sys.exit(1)
+          try:
+              ipaddress.ip_address(host)
+          except ValueError:
+              pass
+          else:
+              print("::error::botserver_url must be a DNS name, not an IP address")
+              sys.exit(1)
+          if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", os.environ["ARTIFACT_TAG"].strip()):
+              print("::error::tag must match [A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+              sys.exit(1)
+          if os.environ["PLATFORM"] not in {"android", "ios", "both"}:
+              print("::error::platform must be android, ios or both")
+              sys.exit(1)
+          print("inputs valid; botserver origin = https://<host> (hostname redacted)")
+          PY
+
+  android:
+    name: Android debug APK + AAB
+    needs: [validate]
+    if: ${{ inputs.platform == 'android' || inputs.platform == 'both' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      BOTSERVER_URL: ${{ inputs.botserver_url }}
+      ARTIFACT_TAG: ${{ inputs.tag }}
+      # Resolved from setup-android's exported ANDROID_HOME below.
+      NDK_VERSION: "26.3.11579264"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Print redacted botserver origin
+        env:
+          BOTSERVER_URL: ${{ inputs.botserver_url }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          origin = os.environ["BOTSERVER_URL"].strip()
+          host = urlparse(origin).hostname or ""
+          print(f"::add-mask::{host}")
+          print(f"::add-mask::{origin}")
+          print("Resolved botserver origin: https://<host> (hostname redacted in public logs)")
+          PY
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Install NDK and export SDK paths
+        run: |
+          set -euo pipefail
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          : "${JAVA_HOME:?setup-java did not export JAVA_HOME}"
+          : "${ANDROID_HOME:?setup-android did not export ANDROID_HOME}"
+          TOOLCHAIN="$ANDROID_HOME/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "$TOOLCHAIN/aarch64-linux-android34-clang"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/aarch64-linux-android34-clang" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$TOOLCHAIN/x86_64-linux-android34-clang" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: mobile-artifacts-android
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Generate mobile Tauri config override
+        env:
+          BOTSERVER_URL: ${{ inputs.botserver_url }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+
+          origin = os.environ["BOTSERVER_URL"].strip().rstrip("/")
+          with open("botapp/tauri.mobile.conf.json", encoding="utf-8") as handle:
+              conf = json.load(handle)
+          csp = conf["app"]["security"]["csp"]
+          marker = "connect-src "
+          if marker not in csp:
+              raise SystemExit("connect-src directive missing from tauri.conf.json CSP")
+          csp = csp.replace(marker, f"{marker}{origin} ", 1)
+          out = os.path.join(os.environ["RUNNER_TEMP"], "tauri.mobile.json")
+          with open(out, "w", encoding="utf-8") as handle:
+              json.dump({"app": {"security": {"csp": csp}}}, handle)
+          print(f"mobile Tauri config override written to {out}")
+          PY
+      - name: Build debug-signed APK and AAB
+        working-directory: botapp
+        env:
+          GB_MOBILE_SERVER_URL: ${{ inputs.botserver_url }}
+        run: |
+          set -euo pipefail
+          cargo tauri android init --ci -c tauri.mobile.conf.json
+          cargo tauri android build --ci --debug --apk --aab \
+            -f mobile thin-client custom-protocol \
+            -c tauri.mobile.conf.json -c "$RUNNER_TEMP/tauri.mobile.json"
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mobile-android-${{ inputs.tag }}
+          path: |
+            botapp/gen/android/app/build/outputs/apk/**/*.apk
+            botapp/gen/android/app/build/outputs/bundle/**/*.aab
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    name: iOS ad-hoc IPA
+    needs: [validate]
+    if: ${{ inputs.platform == 'ios' || inputs.platform == 'both' }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      BOTSERVER_URL: ${{ inputs.botserver_url }}
+      ARTIFACT_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Print redacted botserver origin
+        env:
+          BOTSERVER_URL: ${{ inputs.botserver_url }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          origin = os.environ["BOTSERVER_URL"].strip()
+          host = urlparse(origin).hostname or ""
+          print(f"::add-mask::{host}")
+          print(f"::add-mask::{origin}")
+          print("Resolved botserver origin: https://<host> (hostname redacted in public logs)")
+          PY
+      - name: Select Xcode and install CocoaPods
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          sudo gem install cocoapods --no-document
+          pod --version
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: mobile-artifacts-ios
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Generate mobile Tauri config override
+        env:
+          BOTSERVER_URL: ${{ inputs.botserver_url }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+
+          origin = os.environ["BOTSERVER_URL"].strip().rstrip("/")
+          with open("botapp/tauri.mobile.conf.json", encoding="utf-8") as handle:
+              conf = json.load(handle)
+          csp = conf["app"]["security"]["csp"]
+          marker = "connect-src "
+          if marker not in csp:
+              raise SystemExit("connect-src directive missing from tauri.conf.json CSP")
+          csp = csp.replace(marker, f"{marker}{origin} ", 1)
+          out = os.path.join(os.environ["RUNNER_TEMP"], "tauri.mobile.json")
+          with open(out, "w", encoding="utf-8") as handle:
+              json.dump({"app": {"security": {"csp": csp}}}, handle)
+          print(f"mobile Tauri config override written to {out}")
+          PY
+      - name: Build ad-hoc IPA
+        working-directory: botapp
+        env:
+          GB_MOBILE_SERVER_URL: ${{ inputs.botserver_url }}
+          # Ad-hoc signing: no paid team, no App Store Connect, no certificate.
+          CODE_SIGN_IDENTITY: "-"
+          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_DEVELOPMENT_TEAM }}
+        run: |
+          set -euo pipefail
+          cargo tauri ios init --ci -c tauri.mobile.conf.json
+          cargo tauri ios build --ci --debug --target aarch64 \
+            --export-method debugging \
+            -f mobile thin-client custom-protocol \
+            -c tauri.mobile.conf.json -c "$RUNNER_TEMP/tauri.mobile.json"
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mobile-ios-${{ inputs.tag }}
+          path: botapp/gen/apple/build/arm64/*.ipa
+          if-no-files-found: error
+          retention-days: 14
