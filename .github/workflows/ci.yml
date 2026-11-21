@@ -37,6 +37,13 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      force_nightly:
+        description: Run the schedule-only fuzz and flake-history jobs on demand
+        required: false
+        type: choice
+        options: ["false", "true"]
+        default: "false"
   schedule:
     # #2119 — the deep quality run: libfuzzer needs more than a 90 s PR budget,
     # and the flake scan needs accumulated CI history.
@@ -1615,7 +1622,7 @@ jobs:
   # how the regression runs on stable from then on.
   fuzz-nightly:
     name: Fuzz (${{ matrix.target }})
-    if: ${{ github.server_url == 'https://github.com' && github.event_name == 'schedule' }}
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'schedule' || github.event.inputs.force_nightly == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -1659,7 +1666,7 @@ jobs:
   # PR by the `check` job.
   flake-history:
     name: Flake history
-    if: ${{ github.server_url == 'https://github.com' && github.event_name == 'schedule' }}
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'schedule' || github.event.inputs.force_nightly == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

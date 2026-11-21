@@ -23,9 +23,11 @@ A test that needs that retry more than `max_flakes` times in `window` runs is
 quarantined with `#[ignore = "flaky: <issue>"]`, an owner and a date.
 
 Usage:
-    gh run list --workflow ci.yml --limit 20 --json databaseId \\
-        --jq '.[].databaseId' | while read id; do
-        gh run view "$id" --log > "/tmp/flakes/$id.log"; done
+    # Preferred for large workflows: `gh run view --log` downloads every job's
+    # log and GitHub rejects it once a run has dozens of jobs. Collect job/step
+    # conclusions from the Actions API (see the flake-history job in ci.yml).
+    python3 scripts/flake_report.py --runs /tmp/flakes_runs.json
+    # Small runs only: one `<run-id>.log` per run from `gh run view <id> --log`.
     python3 scripts/flake_report.py --logs /tmp/flakes
     python3 scripts/flake_report.py --quarantine
     python3 scripts/flake_report.py --self-test
