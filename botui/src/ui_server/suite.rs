@@ -540,6 +540,26 @@ pub async fn index(
 
             match req.send().await {
                 Ok(resp) => {
+                    // #2155 UI-REG-01 — a bogus/non-existent bot route must produce
+                    // an explicit bot-not-found state with a way back to /default,
+                    // not a redirect loop or spinner.
+                    if resp.status() == axum::http::StatusCode::NOT_FOUND {
+                        let safe_bot = bot
+                            .replace('&', "&amp;")
+                            .replace('<', "&lt;")
+                            .replace('>', "&gt;")
+                            .replace('"', "&quot;")
+                            .replace('\'', "&#39;");
+                        return (
+                            axum::http::StatusCode::NOT_FOUND,
+                            [("content-type", "text/html; charset=utf-8")],
+                            format!(
+                                "<!doctype html><html><head><meta charset=\"utf-8\"><title>Bot not found</title></head><body style=\"margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font:16px system-ui,sans-serif;background:#0b1220;color:#e5e7eb\"><main style=\"max-width:560px;padding:24px;text-align:center\"><h1 style=\"margin:0 0 12px;font-size:28px\">Bot not found</h1><p style=\"margin:0 0 20px;color:#94a3b8\">The bot \"{}\" does not exist or is unavailable.</p><a href=\"/default\" style=\"display:inline-block;padding:10px 16px;border-radius:8px;background:#2563eb;color:#fff;text-decoration:none\">Go to /default</a></main></body></html>",
+                                safe_bot
+                            ),
+                        )
+                            .into_response();
+                    }
                     // #1435 — a 401 with NO token means the bot is PRIVATE and
                     // the caller is anonymous: the desktop/chat shell must not
                     // be served at all (previously only token-holders were
