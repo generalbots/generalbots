@@ -282,6 +282,14 @@ window.ChatSwitchBot = function (botName) {
     }
     if (fragment && targetPane) {
       targetPane.appendChild(fragment);
+      // The fragment is detached while addMessage runs, so the per-message
+      // hydration there sees `isConnected === false`. Once the batch is in the
+      // DOM, convert the replayed `vmfile:` links into attachment cards (#2151).
+      setTimeout(function () {
+        if (typeof hydrateVmAttachments !== "function" || !targetPane.isConnected) return;
+        var bots = targetPane.querySelectorAll(".message.bot");
+        for (var i = 0; i < bots.length; i++) hydrateVmAttachments(bots[i]);
+      }, 300);
     }
   }
 

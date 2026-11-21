@@ -144,7 +144,11 @@ function mergeWorkspaceOutput(el) {
     summary.textContent = "workspace run · " + log.textContent.split("\n").length + " lines";
   }
   message.remove();
-  if (attachments.length && typeof hydrateVmAttachments === "function" && prev.isConnected) {
+  // The `[name](vmfile:...)` links live inside the tool log we just moved into
+  // `prev`, so hydration must run on the surviving bubble, not the detached
+  // one (#2151): the old call converted them after `message.remove()` and the
+  // cards were discarded with the removed node, leaving an empty run card.
+  if (typeof hydrateVmAttachments === "function" && prev.isConnected) {
     hydrateVmAttachments(prev);
   }
   return true;

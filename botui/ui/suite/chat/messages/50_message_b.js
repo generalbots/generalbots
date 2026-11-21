@@ -215,6 +215,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
   // BBSIA-CHAT-02 (#1582): VM-generated files become attachment cards.
   if (
     sender === "bot" &&
+    div.isConnected &&
     !(msgId && String(msgId).indexOf("streaming-") === 0) &&
     typeof hydrateVmAttachments === "function"
   ) {
@@ -231,6 +232,14 @@ function addMessage(sender, content, msgId, reasoning, timestamp, meta) {
     toolCards.forEach(function (tool) {
       if (tool.status) ChatCodeUX.appendCard(tool);
     });
+  }
+  // ChatCodeUX wraps numbers in code blocks after the hydration call above and
+  // splits `[file](vmfile:…)` across text nodes. Re-run hydration once the
+  // render stack settles so the run card gets its file cards (#2151).
+  if (sender === "bot") {
+    setTimeout(function () {
+      if (div.isConnected && typeof hydrateVmAttachments === "function") hydrateVmAttachments(div);
+    }, 500);
   }
   // #2360 — retry must come from an explicit failure signal, never from
   // matching model prose (fragile under i18n and false-positives on any answer

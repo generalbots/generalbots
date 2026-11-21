@@ -8,10 +8,62 @@
 // reach the DOM as plain text ("[a.pdf](vmfile:...)") with no anchor to click.
 // Scan the rendered text nodes and replace each reference with a real
 // attachment card (Preview / Download / Save).
+var vmReferencePattern = /\[([^\]\n]{1,200})\]\(vmfile:([^)\s]+)\)/g;
+
+function vmReferenceCardElement(label, target) {
+  var parts = vmSplitTarget(target);
+  if (!parts || !parts.path) return null;
+  var card = document.createElement("span");
+  card.className = "gb-attachment";
+  card.dataset.path = parts.path;
+  card.dataset.conversationId = parts.conversationId || "";
+  card.dataset.contentType = vmFileMimeType(parts.path);
+  card.dataset.order = "0";
+  card.innerHTML =
+    '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
+    '<span class="gb-attachment-order">0</span>' +
+    '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener noreferrer"></a>' +
+    '<span class="gb-content-type-badge gb-type-badge">' + vmEscapeHtml(vmContentTypeBadge(parts.path)) + "</span>" +
+    '<span class="gb-attachment-desc gb-attachment-minor">' + vmEscapeHtml(vmAttachmentDescription(parts.path)) + "</span>" +
+    '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +
+    vmAttachmentButtons(parts.path);
+  card.querySelector(".gb-attachment-name").textContent =
+    (label || "").trim() || parts.path.split("/").pop();
+  return card;
+}
+
+// ChatCodeUX wraps numbers inside a code block in <span class="gb-num">, so a
+// `[file](vmfile:…)` link can be split across text nodes and the text-node scan
+// below never matches it (#2151). Rebuild the block from its full text first.
+function vmRenderCodeReferences(root) {
+  if (!root || !root.querySelectorAll) return;
+  var blocks = root.querySelectorAll("pre code, code.gb-code-body");
+  for (var b = 0; b < blocks.length; b++) {
+    var block = blocks[b];
+    if (block.querySelector(".gb-attachment")) continue;
+    var text = block.textContent || "";
+    if (text.indexOf("vmfile:") === -1) continue;
+    var fragment = document.createDocumentFragment();
+    var last = 0;
+    var hit;
+    vmReferencePattern.lastIndex = 0;
+    while ((hit = vmReferencePattern.exec(text)) !== null) {
+      if (hit.index > last) fragment.appendChild(document.createTextNode(text.slice(last, hit.index)));
+      var card = vmReferenceCardElement(hit[1], hit[2]);
+      if (card) fragment.appendChild(card);
+      last = hit.index + hit[0].length;
+    }
+    if (last === 0) continue;
+    if (last < text.length) fragment.appendChild(document.createTextNode(text.slice(last)));
+    while (block.firstChild) block.removeChild(block.firstChild);
+    block.appendChild(fragment);
+  }
+}
+
 function vmRenderInlineReferences(root) {
   if (!root || !root.querySelectorAll) return;
   var nodes = root.querySelectorAll(".message-content, .bot-message, .message-text");
-  var pattern = /\[([^\]\n]{1,200})\]\(vmfile:([^)\s]+)\)/g;
+  var pattern = vmReferencePattern;
   for (var i = 0; i < nodes.length; i++) {
     var node = nodes[i];
     if (node.querySelector(".gb-attachment")) continue;
@@ -35,23 +87,8 @@ function vmRenderInlineReferences(root) {
         if (hit.index > last) {
           replaced.appendChild(document.createTextNode(value.slice(last, hit.index)));
         }
-        var parts = vmSplitTarget(hit[2]);
-        var card = document.createElement("span");
-        card.className = "gb-attachment";
-        card.dataset.path = parts.path;
-        card.dataset.conversationId = parts.conversationId || "";
-        card.dataset.contentType = vmFileMimeType(parts.path);
-        card.dataset.order = "0";
-        card.innerHTML =
-          '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
-          '<span class="gb-attachment-order">0</span>' +
-          '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener noreferrer"></a>' +
-          '<span class="gb-content-type-badge gb-type-badge">' + vmEscapeHtml(vmContentTypeBadge(parts.path)) + "</span>" +
-          '<span class="gb-attachment-desc gb-attachment-minor">' + vmEscapeHtml(vmAttachmentDescription(parts.path)) + "</span>" +
-          '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +
-          vmAttachmentButtons(parts.path);
-        card.querySelector(".gb-attachment-name").textContent =
-          (hit[1] || "").trim() || parts.path.split("/").pop();
+        var card = vmReferenceCardElement(hit[1], hit[2]);
+        if (!card) continue;
         replaced.appendChild(card);
         last = hit.index + hit[0].length;
       }
@@ -101,6 +138,7 @@ function hydrateVmAttachments(container) {
   var conversationPromise = ownerConversation
     ? Promise.resolve(ownerConversation)
     : vmCurrentConversationId();
+  vmRenderCodeReferences(container);
   vmRenderInlineReferences(container);
   vmDropEmptyListItems(container);
   var cards = container.querySelectorAll(".gb-attachment");
@@ -202,3 +240,38 @@ function hydrateVmAttachments(container) {
     })
     .catch(vmNotifyError);
 }
+
+// Any render path can insert the `vmfile:` text after hydration has already
+// run (history replay batches into a fragment; ChatCodeUX splits numbers into
+// spans). Watch the transcript and hydrate any bot message that still carries
+// an unrendered reference, debounced so a replay of N turns costs one pass.
+(function vmWatchRunAttachments() {
+  if (typeof MutationObserver !== "function") return;
+  var timer = null;
+  function sweep() {
+    var pane = document.getElementById("messages");
+    if (!pane) return;
+    var bots = pane.querySelectorAll(".message.bot");
+    for (var i = 0; i < bots.length; i++) {
+      var msg = bots[i];
+      if (msg.querySelector(".gb-attachment")) continue;
+      if ((msg.textContent || "").indexOf("vmfile:") === -1) continue;
+      hydrateVmAttachments(msg);
+    }
+  }
+  function watch() {
+    // `#messages` can be built after DOMContentLoaded (and replaced when a
+    // session switches), so observe the document and resolve the pane in the
+    // sweep instead of binding to a node that may not exist yet.
+    if (!document.body) return;
+    new MutationObserver(function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = null; sweep(); }, 150);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch, { once: true });
+  } else {
+    watch();
+  }
+})();

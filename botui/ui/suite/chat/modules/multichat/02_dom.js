@@ -123,6 +123,13 @@
           if (typeof vmBindAttachment === "function") vmBindAttachment(cards[ci]);
         }
       }
+      // History replay can run before the attachment modules load and before
+      // ChatCodeUX wraps numbers into spans, so the first pass sees no cards.
+      // Re-run after the current render stack settles (#2151).
+      setTimeout(function () {
+        if (!div.isConnected || typeof hydrateVmAttachments !== "function") return;
+        hydrateVmAttachments(div);
+      }, 500);
     }
     return div;
   }

@@ -123,6 +123,13 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                       packages) and write the captured image to output/. Prefer the browser app \
                       for interactive browsing; use the VM for batch capture. \
                      Save generated artifacts into output/ so the user can preview them. \
+                     Presentation design (PPTX): never ship python-pptx defaults. Use a \
+                     16:9 canvas (13.333 x 7.5 in), a modern typeface (Aptos Display for \
+                     headings, Aptos for body), and an explicit palette (deep slate \
+                     #0F172A background, warm sand #F5F1E8 text, teal #0D9488 accent). \
+                     Set font name, size, colour and shape fill explicitly on every text \
+                     box and shape instead of inheriting the Office theme; use full-bleed \
+                     images with a dark scrim and body text >= 18 pt. \
                      Every new or changed file left in output/ is published to the user's \
                      Drive automatically when the turn ends and its vmfile link is attached \
                      to the answer, so you do not need to call drive_save just to make an \

@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::header;
 use axum::response::{Html, IntoResponse, Response};
 use axum::Json;
@@ -23,6 +23,23 @@ use crate::types::Presentation;
 use crate::SlidesState;
 
 type Params = HashMap<String, String>;
+
+/// Resolves the suite UI root the same way the server does: `BOTUI_PATH`
+/// first, then the checkout-relative locations. The bridge used to read only
+/// `BOTUI_PATH`, so a dev server without that variable answered the app shell
+/// and every asset with "route not found" instead of the file (#2151).
+fn ui_root() -> Option<std::path::PathBuf> {
+    if let Ok(configured) = std::env::var("BOTUI_PATH") {
+        let path = std::path::PathBuf::from(configured);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    ["./botui/ui/suite", "../botui/ui/suite"]
+        .iter()
+        .map(std::path::PathBuf::from)
+        .find(|path| path.exists())
+}
 
 /// Serves the Slides shell and its assets when the `/suite/slides/*path`
 /// wildcard shadows the `/suite` static mount. Only files inside
@@ -61,8 +78,7 @@ async fn serve_ui_asset(path: &str) -> Option<Response> {
     {
         return None;
     }
-    let ui = std::env::var("BOTUI_PATH").ok()?;
-    let full = std::path::Path::new(&ui).join("slides").join(path);
+    let full = ui_root()?.join("slides").join(path);
     let bytes = tokio::fs::read(&full).await.ok()?;
     let mime = match ext.as_str() {
         "html" => "text/html; charset=utf-8",
@@ -199,16 +215,19 @@ fn thumbnails_html(pres: &Presentation) -> Html<String> {
 /// GET /suite/slides/*path — see module docs.
 pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<SlidesState<D>>>,
-    user: SlidesUser,
+    user: Option<Extension<SlidesUser>>,
     Path(path): Path<String>,
     Query(params): Query<Params>,
 ) -> Result<Response, SlidesUnauthorized> {
     // The wildcard route takes precedence over the /suite static mount, so the
-    // app shell and its assets would otherwise be answered with a fragment
-    // ("route not found") instead of the file (#1715).
+    // app shell and its assets must be answered with the file here (#1715).
+    // Assets are public exactly like every other /suite file, so this runs
+    // before the owner check: extracting SlidesUser first answered the shell,
+    // CSS and JS with 401 and the app never booted (#2151).
     if let Some(asset) = serve_ui_asset(&path).await {
         return Ok(asset);
     }
+    let user = user.map(|Extension(user)| user).ok_or(SlidesUnauthorized)?;
     let user_id = user.owner_id();
     let query = params.clone();
     let json = to_json(params);
