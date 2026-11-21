@@ -20,6 +20,7 @@ bytes = { workspace = true }
 governor = { workspace = true }
 hex = { workspace = true }
 jsonwebtoken = { workspace = true }
+llm-prices = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }

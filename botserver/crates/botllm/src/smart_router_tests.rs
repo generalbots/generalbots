@@ -163,3 +163,12 @@ fn balanced_goal_is_order_independent_for_ties() {
         "a tie must still resolve to one of the tied models: {forward:?}"
     );
 }
+
+#[test]
+fn cost_per_token_comes_from_list_prices() {
+    assert!((cost_per_1k_input_tokens("gpt-5.6-sol") - 0.004).abs() < 1e-12);
+    assert!((cost_per_1k_input_tokens("claude-sonnet-5-5") - 0.002).abs() < 1e-12);
+    assert!((cost_per_1k_input_tokens("gpt-4o-mini") - 0.00015).abs() < 1e-12);
+    assert!(cost_per_1k_input_tokens("gpt-4o-mini") < cost_per_1k_input_tokens("gpt-5.6-sol"));
+    assert!((cost_per_1k_input_tokens("not-a-model") - 0.01).abs() < 1e-12);
+}
