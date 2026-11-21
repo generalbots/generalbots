@@ -9,11 +9,15 @@
 //! by `exec.rs` stay on this module.
 
 mod attachments;
+mod canvas_flowchart;
 mod computer_action;
+mod doc_open;
 mod informational;
 mod media;
 mod text_recognition;
 
 pub(super) use attachments::ingest_attachment;
+pub(super) use canvas_flowchart::maybe_create_purchase_flowchart;
 pub(super) use computer_action::propose_computer_action;
+pub(super) use doc_open::maybe_open_document;
 pub use informational::is_informational_request;

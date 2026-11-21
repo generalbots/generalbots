@@ -86,6 +86,11 @@ pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
         "docs",
         &[
             DeepLinkParam {
+                key: "id",
+                description: "document id",
+                example: "d2cb809d-fc42-4d67-a63d-17c2d033fea9",
+            },
+            DeepLinkParam {
                 key: "file",
                 description: "drive file",
                 example: "proposta/contrato.docx",

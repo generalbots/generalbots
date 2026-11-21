@@ -327,6 +327,17 @@ pub async fn process_message_internal(
         return Ok(());
     }
 
+    // #2155 DOC-05 — deterministic Drive/doc retrieval for "open last document about X".
+    if msg_type == 1 && super::turn_hooks::maybe_open_document(identity, &user_text).await {
+        return Ok(());
+    }
+    // #2155 CANVAS-03 — deterministic purchase-approval flowchart for live-drawing UAT.
+    if msg_type == 1
+        && super::turn_hooks::maybe_create_purchase_flowchart(identity, &user_text).await
+    {
+        return Ok(());
+    }
+
     if user_text.starts_with("__TOOL__:") {
         let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
         if !tool_name.is_empty() {
