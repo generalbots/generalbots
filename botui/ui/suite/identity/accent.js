@@ -313,11 +313,14 @@
     var textSurface = dark ? "#111111" : paper;
     var lightness = color.L;
     var accentText = hex;
-    // Leave enough contrast for accent text on the lightly tinted controls too.
-    var textBackground = dark ? textSurface : "#F2F2F2";
-    while (contrastRatio(relLumHex(accentText), relLumHex(textBackground)) < 4.6) {
+    // Same rule as the Mantis prototype (gb-shell.js inkFor): step L by 0.01
+    // until 4.6:1 on the paper (#FAFAFA) or the dark surface, chroma capped
+    // at 0.2.
+    var textBackground = dark ? textSurface : paper;
+    var guard = 0;
+    while (contrastRatio(relLumHex(accentText), relLumHex(textBackground)) < 4.6 && guard++ < 90) {
       lightness += dark ? 0.01 : -0.01;
-      accentText = gamutHex(lightness, color.C, color.H);
+      accentText = gamutHex(lightness, Math.min(color.C, 0.2), color.H);
     }
     return {
       accent: hex,

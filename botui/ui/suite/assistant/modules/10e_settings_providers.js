@@ -67,8 +67,8 @@ var L = { "pt-BR": {
   search:"Buscar provedor", connect:"Conectar", linked:"Conectado", inUse:"Em uso", none:"Nenhum provedor com esse nome.",
   orgT:"Servidor da sua organização", orgD:"Qualquer servidor compatível com a API da OpenAI (vLLM, Ollama, LM Studio, Azure…)",
   add:"Adicionar", back:"Todos os provedores", address:"Endereço", auto:"automático",
-  model:"Modelo", other:"Outro modelo…", otherPh:"Nome exato do modelo", models:"Ver modelos",
-  key:"Chave de API", getKey:"Onde conseguir a chave", keyPh:"Cole a chave aqui",
+  model:"Modelo", other:"Outro modelo…", otherPh:"Nome exato do modelo",
+  key:"Chave de API", getKey:"Onde conseguir", keyPh:"Cole a chave aqui",
   keyAgain:"Chave guardada no cofre deste computador. Deixe como está para manter, ou cole outra para trocar.", keyStoredPh:"•••••••••••• %k (guardada)", keyNeeded:"Cole a chave de API.",
   keyOpt:"Deixe em branco se o servidor não pede chave.", urlPh:"https://servidor.exemplo/v1/chat/completions",
   urlNeeded:"Informe o endereço do servidor.", modelNeeded:"Escolha o modelo.",
@@ -82,14 +82,16 @@ var L = { "pt-BR": {
   eNoText:"o servidor respondeu, mas sem texto do modelo", eOther:"ocorreu um erro inesperado",
   eVaultWrite:"Não foi possível guardar a chave no cofre do computador. Tente novamente; se continuar, reinicie o aplicativo.",
   eVaultDown:"O cofre do computador não está disponível agora. Reinicie o aplicativo e tente novamente.",
-  sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:" },
+  sent:"O que você escrever e anexar vai para %h, fora deste computador.", said:"O provedor disse:",
+  providers:"Provedores", count:"%n DISPONÍVEIS", linkedUp:"LIGADO", setup:"Configurar", byIt:"informado pela TI", orgNet:"rede da organização",
+  orgDest:"o servidor da organização", keyOptShort:"se o servidor pedir", defModel:"MODELO PADRÃO", okShort:"✓ CONEXÃO OK · %ms MS" },
 en: {
   intro:"Pick the provider. The address fills itself in; you only choose the model and paste the key.",
   search:"Search providers", connect:"Connect", linked:"Connected", inUse:"In use", none:"No provider by that name.",
   orgT:"Your organization’s server", orgD:"Any server compatible with the OpenAI API (vLLM, Ollama, LM Studio, Azure…)",
   add:"Add", back:"All providers", address:"Address", auto:"automatic",
-  model:"Model", other:"Other model…", otherPh:"Exact model name", models:"See models",
-  key:"API key", getKey:"Where to get the key", keyPh:"Paste the key here",
+  model:"Model", other:"Other model…", otherPh:"Exact model name",
+  key:"API key", getKey:"Where to get it", keyPh:"Paste the key here",
   keyAgain:"Key stored in this computer's vault. Leave it to keep it, or paste another to replace it.", keyStoredPh:"•••••••••••• %k (stored)", keyNeeded:"Paste the API key.",
   keyOpt:"Leave empty if the server needs no key.", urlPh:"https://server.example/v1/chat/completions",
   urlNeeded:"Enter the server address.", modelNeeded:"Choose the model.",
@@ -103,7 +105,9 @@ en: {
   eNoText:"the server answered, but with no text from the model", eOther:"an unexpected error occurred",
   eVaultWrite:"Could not store the key in the computer’s vault. Try again; if it keeps failing, restart the app.",
   eVaultDown:"The computer’s vault is not available right now. Restart the app and try again.",
-  sent:"What you write and attach goes to %h, outside this computer.", said:"The provider said:" } };
+  sent:"What you write and attach goes to %h, outside this computer.", said:"The provider said:",
+  providers:"Providers", count:"%n AVAILABLE", linkedUp:"LINKED", setup:"Set up", byIt:"given by IT", orgNet:"organization network",
+  orgDest:"the organization’s server", keyOptShort:"if the server asks", defModel:"DEFAULT MODEL", okShort:"✓ CONNECTION OK · %ms MS" } };
 function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 function g(k) { var l = pt() ? L["pt-BR"] : L.en; return l[k] || L.en[k] || k; }
 
@@ -121,11 +125,10 @@ function reason(code) {
 var WHOLE = { vault_write_failed:"eVaultWrite", vault_unavailable:"eVaultDown" };
 function failMsg(tpl, code) { return WHOLE[code] ? g(WHOLE[code]) : tpl.replace("%e", reason(code)); }
 function host(u) { try { return new URL(u).hostname; } catch (e) { return ""; } }
-function logo(id) {
+function logo(id, big) {
   var svg = (A._providerLogos || {})[id];
-  if (svg) { return '<span class="gb-prov-logo">' + svg + '</span>'; }
-  return '<span class="gb-prov-logo gb-prov-logo--org"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">' +
-    '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>';
+  if (svg) { return '<span class="gb-of-logo' + (big ? ' lg' : '') + '" aria-hidden="true">' + svg + '</span>'; }
+  return '<span class="gb-of-logo dash' + (big ? ' lg' : '') + '" aria-hidden="true">//</span>';
 }
 /** The provider the saved configuration points at, if any. */
 function current() {
@@ -136,49 +139,47 @@ function current() {
   return { id:"org" };
 }
 
+var chosen = null;
 function renderList(el, filter) {
   var cur = current();
   var q = String(filter || "").trim().toLowerCase();
   var rows = P.filter(function (p) {
     return !q || (p.name + " " + p.co + " " + p.pt + " " + p.en).toLowerCase().indexOf(q) >= 0;
-  }).map(function (p) {
-    var on = cur && cur.id === p.id;
-    return '<div class="gb-prov-row' + (on ? ' is-on' : '') + '" data-prov="' + p.id + '">' + logo(p.id) +
-      '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(p.name) +
-        (p.co !== p.name ? ' <span class="gb-prov-co">' + esc(p.co) + '</span>' : '') +
-        (on ? ' <span class="gb-prov-badge">' + esc(g("inUse")) + '</span>' : '') + '</div>' +
-      '<div class="gb-prov-desc">' + esc(pt() ? p.pt : p.en) + ' · ' + esc(host(p.url)) + '</div></div>' +
-      (on ? '<span class="gb-prov-state">' + esc(g("linked")) + '</span>'
-        : '<button type="button" class="gb-prov-btn" data-prov="' + p.id + '">' + esc(g("connect")) + '</button>') + '</div>';
+  }).concat(!q || (g("orgT") + " " + g("orgD")).toLowerCase().indexOf(q) >= 0 ? [{ id: "org" }] : []).map(function (p) {
+    var org = p.id === "org";
+    return '<button type="button" class="gb-of-pv" data-prov="' + p.id + '" aria-pressed="' + (p.id === chosen) + '">' + logo(p.id) +
+      '<span class="gb-of-pv-t"><b>' + esc(org ? g("orgT") : p.name) + '</b><span>' + esc(org ? g("orgD") : (pt() ? p.pt : p.en)) + '</span></span>' +
+      (cur && cur.id === p.id ? '<span class="gb-of-linked"><span class="gb-of-sq"></span>' + esc(g("linkedUp")) + '</span>' : '') + '</button>';
   }).join("");
-  var list = el.querySelector(".gb-prov-list");
-  list.innerHTML = rows || '<p class="gb-set-hint gb-prov-none">' + esc(g("none")) + '</p>';
-  list.querySelectorAll(".gb-prov-row").forEach(function (r) {
-    r.addEventListener("click", function () { renderSetup(el, r.getAttribute("data-prov")); });
+  var list = el.querySelector(".gb-of-pvs");
+  list.innerHTML = rows || '<p class="gb-of-hint" style="padding:10px 16px;margin:0">' + esc(g("none")) + '</p>';
+  list.querySelectorAll(".gb-of-pv").forEach(function (r) {
+    r.addEventListener("click", function () {
+      chosen = r.getAttribute("data-prov");
+      list.querySelectorAll(".gb-of-pv").forEach(function (x) { x.setAttribute("aria-pressed", String(x === r)); });
+      renderSetup(el, chosen);
+    });
   });
 }
 
-/** Entry point: replaces the old endpoint/model/key form. */
+/** Entry point: the providers on the left, the setup of the chosen one on the right. */
 function renderOwnKey(el) {
   var cur = current();
-  el.innerHTML = '<div class="gb-prov">' +
-    '<p class="gb-set-desc">' + esc(g("intro")) + '</p>' +
-    '<label class="gb-prov-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
-      '<input type="search" id="gbProvSearch" placeholder="' + esc(g("search")) + '" aria-label="' + esc(g("search")) + '"/></label>' +
-    '<div class="gb-prov-list" role="list"></div>' +
-    '<div class="gb-prov-row gb-prov-org' + (cur && cur.id === "org" ? ' is-on' : '') + '" data-prov="org">' + logo("org") +
-      '<div class="gb-prov-text"><div class="gb-prov-name">' + esc(g("orgT")) +
-        (cur && cur.id === "org" ? ' <span class="gb-prov-badge">' + esc(g("inUse")) + '</span>' : '') + '</div>' +
-      '<div class="gb-prov-desc">' + esc(g("orgD")) + '</div></div>' +
-      (cur && cur.id === "org" ? '<span class="gb-prov-state">' + esc(g("linked")) + '</span>'
-        : '<button type="button" class="gb-prov-btn">' + esc(g("add")) + '</button>') + '</div></div>';
+  chosen = cur ? cur.id : (chosen || P[0].id);
+  var G = A._modelGarage;
+  el.innerHTML = '<div class="gb-of-srv"><div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' + esc(g("providers")) + '</span>' +
+    '<span class="gb-of-sp"></span><span class="gb-of-meta">' + esc(g("count").replace("%n", String(P.length + 1))) + '</span></div>' +
+    '<div class="gb-of-srch"><label>' + (G ? G.svg("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5", 14) : '') +
+      '<input type="search" id="gbProvSearch" placeholder="' + esc(g("search")) + '" aria-label="' + esc(g("search")) + '"/></label></div>' +
+    '<div class="gb-of-pvs" role="list"></div></div><div class="gb-of-sec nolink" id="gbProvSetup"></div></div>';
   renderList(el, "");
   var s = el.querySelector("#gbProvSearch");
   s.addEventListener("input", function () { renderList(el, s.value); });
-  el.querySelector(".gb-prov-org").addEventListener("click", function () { renderSetup(el, "org"); });
+  renderSetup(el, chosen);
 }
 
-function renderSetup(el, id) {
+function renderSetup(root, id) {
+  var el = root.querySelector("#gbProvSetup");
   var p = P.filter(function (x) { return x.id === id; })[0] || null;
   var c = S().cfg || {};
   var cur = current();
@@ -192,31 +193,27 @@ function renderSetup(el, id) {
   var opts = models.map(function (m) {
     return '<option value="' + esc(m) + '"' + (m === (savedModel || models[0]) ? ' selected' : '') + '>' + esc(m) + '</option>';
   }).join("") + '<option value="__other">' + esc(g("other")) + '</option>';
+  var G = A._modelGarage;
   var link = function (href, text) {
-    return '<a class="gb-prov-link" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(text) + ' ↗</a>';
+    return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(text) + (G ? G.svg("M7 17 17 7M8 7h9v9", 11, 3) : '') + '</a>';
   };
-  el.innerHTML = '<div class="gb-prov gb-prov-setup">' +
-    '<button type="button" class="gb-gar-back gb-prov-back">‹ ' + esc(g("back")) + '</button>' +
-    '<div class="gb-prov-head">' + logo(id) + '<div><div class="gb-prov-title">' + esc(p ? p.name : g("orgT")) + '</div>' +
-      '<div class="gb-prov-desc">' + esc(p ? (pt() ? p.pt : p.en) : g("orgD")) + '</div></div></div>' +
-    '<div class="gb-set-form">' +
-      '<label class="gb-set-label" for="gbProvUrl">' + esc(g("address")) + (p ? ' <small>(' + esc(g("auto")) + ')</small>' : '') + '</label>' +
-      (p ? '<div class="gb-prov-url" id="gbProvUrl">' + esc(p.url) + '</div>'
-         : '<input class="gb-set-input" id="gbProvUrl" placeholder="' + esc(g("urlPh")) + '"/>') +
-      '<label class="gb-set-label" for="gbProvModel">' + esc(g("model")) + (p ? ' ' + link(p.list, g("models")) : '') + '</label>' +
-      (p ? '<select class="gb-set-input" id="gbProvModel">' + opts + '</select>' : '') +
-      '<input class="gb-set-input" id="gbProvModelOther" placeholder="' + esc(g("otherPh")) + '"' +
-        (p ? ' hidden' : ' value="' + esc(savedModel) + '"') + '/>' +
-      '<label class="gb-set-label" for="gbProvKey">' + esc(g("key")) + (p ? ' ' + link(p.keys, g("getKey")) : '') + '</label>' +
-      '<input class="gb-set-input" id="gbProvKey" type="password" autocomplete="off" placeholder="' + esc(stored ? g("keyStoredPh").replace("%k", c.key_hint || "") : g("keyPh")) + '"/>' +
-      '<p class="gb-set-hint">' + esc(!p ? g("keyOpt") : (stored ? g("keyAgain") : g("sent").replace("%h", host(p.url)))) + '</p>' +
-      '<div class="gb-set-form-actions">' +
-        '<button type="button" class="gb-set-btn-sm" id="gbProvTest">' + esc(g("test")) + '</button>' +
-        '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" id="gbProvSave">' + esc(g("use")) + '</button>' +
-      '</div><div id="gbProvMsg" role="status"></div></div>' +
-    '<div id="gbProvKeyModels"></div></div>';
+  var dest = p ? host(p.url) : (savedModel && c.endpoint_host ? c.endpoint_host : g("orgDest"));
+  el.innerHTML = '<div class="gb-of-sec-h"><span class="gb-of-letter">B</span><span class="gb-of-sec-t">' + esc(g("setup")) + '</span><span class="gb-of-sp"></span>' +
+      '<span class="gb-of-meta">' + esc((p ? host(p.url) : g("orgNet")).toUpperCase()) + '</span></div>' +
+    '<div class="gb-of-ph">' + logo(id, true) + '<div><b>' + esc(p ? p.name : g("orgT")) + '</b><span>' + esc(p ? (pt() ? p.pt : p.en) : g("orgD")) + '</span></div></div>' +
+    '<div class="gb-of-form"><div><span class="gb-of-lab">' + esc(g("address").toUpperCase()) + '</span><small>' + esc(p ? g("auto") : g("byIt")) + '</small></div>' +
+      '<div>' + (p ? '<input class="gb-of-in mono" id="gbProvUrl" readonly value="' + esc(p.url) + '" aria-label="' + esc(g("address")) + '"/>'
+         : '<input class="gb-of-in mono" id="gbProvUrl" placeholder="' + esc(g("urlPh")) + '" aria-label="' + esc(g("address")) + '"' + (same && c.endpoint ? ' value="' + esc(c.endpoint) + '"' : '') + '/>') + '</div>' +
+      '<div><span class="gb-of-lab">' + esc(g("key").toUpperCase()) + '</span>' + (p ? link(p.keys, g("getKey")) : '<small>' + esc(g("keyOptShort")) + '</small>') + '</div>' +
+      '<div><input class="gb-of-in" id="gbProvKey" type="password" autocomplete="off" aria-label="' + esc(g("key")) + '" placeholder="' + esc(stored ? g("keyStoredPh").replace("%k", c.key_hint || "") : g("keyPh")) + '"/></div>' +
+      '<div><span class="gb-of-lab">' + esc(g("defModel")) + '</span></div>' +
+      '<div>' + (p ? '<select class="gb-of-in mono" id="gbProvModel" aria-label="' + esc(g("model")) + '">' + opts + '</select>' : '') +
+      '<input class="gb-of-in mono" id="gbProvModelOther" placeholder="' + esc(g("otherPh")) + '" aria-label="' + esc(g("model")) + '"' + (p ? ' hidden' : ' value="' + esc(savedModel) + '"') + '/></div></div>' +
+    '<div class="gb-of-consent">' + (G ? G.svg("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01", 14, 1.8) : '') + '<span>' + esc(g("sent").replace("%h", dest)) + '</span></div>' +
+    '<div class="gb-of-acts"><button type="button" class="gb-of-btn" id="gbProvTest">' + esc(g("test")) + '</button>' +
+      '<button type="button" class="gb-of-btn pri" id="gbProvSave">' + esc(g("use")) + '</button><span id="gbProvMsg" role="status"></span></div>' +
+    '<div id="gbProvKeyModels"></div>';
 
-  el.querySelector(".gb-prov-back").addEventListener("click", function () { renderOwnKey(el); });
   var sel = el.querySelector("#gbProvModel"), other = el.querySelector("#gbProvModelOther");
   if (sel) { sel.addEventListener("change", function () { other.hidden = sel.value !== "__other"; if (!other.hidden) { other.focus(); } }); }
 
@@ -225,28 +222,28 @@ function renderSetup(el, id) {
     var model = sel && sel.value !== "__other" ? sel.value : other.value.trim();
     return { url: url, test: p && p.test ? p.test : url, model: model, key: el.querySelector("#gbProvKey").value.trim() };
   }
-  function say(cls, text) { el.querySelector("#gbProvMsg").innerHTML = '<p class="' + cls + '">' + esc(text) + '</p>'; }
+  function say(cls, text) { el.querySelector("#gbProvMsg").innerHTML = '<span class="gb-of-res ' + cls + '">' + esc(text) + '</span>'; }
   function check(v) {
-    if (!v.url) { say("gb-set-warn", g("urlNeeded")); return false; }
-    if (!v.model) { say("gb-set-warn", g("modelNeeded")); return false; }
-    if (p && !v.key && !stored) { say("gb-set-warn", g("keyNeeded")); return false; }
+    if (!v.url) { say("bad", g("urlNeeded")); return false; }
+    if (!v.model) { say("bad", g("modelNeeded")); return false; }
+    if (p && !v.key && !stored) { say("bad", g("keyNeeded")); return false; }
     return true;
   }
   el.querySelector("#gbProvTest").addEventListener("click", function () {
     var v = read(); if (!check(v)) { return; }
-    say("gb-set-hint", g("testing"));
+    say("wait", g("testing").toUpperCase());
     var body = { endpoint: v.test, model: v.model }; if (v.key) { body.api_key = v.key; }
     A.apiFetch("/api/llm/config/test", { method: "POST", body: JSON.stringify(body) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (d.reachable && d.model_responded) {
-          say("gb-set-hint gb-set-ok", g("ok").replace("%ms", String(d.latency_ms || "?")));
+          say("ok", g("okShort").replace("%ms", String(d.latency_ms || "?")));
           if (km) { km.refresh(); }
           return;
         }
-        say("gb-set-warn", failMsg(g("fail"), d.error) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
+        say("bad", failMsg(g("fail"), d.error) + (d.detail ? " " + g("said") + " “" + d.detail + "”" : ""));
       })
-      .catch(function (e) { say("gb-set-warn", g("fail").replace("%e", String(e && e.message || e))); });
+      .catch(function (e) { say("bad", g("fail").replace("%e", String(e && e.message || e))); });
   });
   el.querySelector("#gbProvSave").addEventListener("click", function () {
     var v = read(); if (!check(v)) { return; }

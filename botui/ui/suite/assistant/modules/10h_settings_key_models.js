@@ -6,31 +6,27 @@
  * One key, many models: the server lists the models the key unlocks (in its
  * own order), the person switches them on and off, and "Salvar modelos"
  * stores the account. The switched-on models appear in the chat model menu.
- * The section folds; while open, a stored key loads the list by itself and
- * "Atualizar modelos" asks again.
+ * A stored key loads the list by itself; "Atualizar" asks again.
  */
 (function () {
 var A = window.GBAssistant;
 var FILTER_FROM = 12;
-var OPEN_KEY = "gb.keyModels.open";
-function readOpen() { try { return localStorage.getItem(OPEN_KEY) !== "0"; } catch (e) { return true; } }
-function writeOpen(v) { try { localStorage.setItem(OPEN_KEY, v ? "1" : "0"); } catch (e) { /* the default (open) is used */ } }
 
 var L = { "pt-BR": {
-  title:"Modelos disponíveis",
+  title:"MODELOS NO MENU DO CHAT", refresh:"Atualizar", first:"Cole a chave e teste a conexão para ver os modelos.",
   hint:"Ligue os modelos desta chave que devem aparecer no menu do chat.",
   stored:"Com o campo da chave vazio, a lista usa a chave guardada.",
   fetch:"Atualizar modelos", fetching:"Buscando modelos…", filter:"Filtrar modelos",
-  count:"%n de %t ligados", save:"Salvar modelos", saving:"Salvando…",
+  count:"%n DE %t LIGADOS", save:"Salvar modelos", saving:"Salvando…",
   saved:"Modelos salvos. Os ligados aparecem no menu do chat.",
   fetchFail:"Não foi possível buscar os modelos (%e).", saveFail:"Não foi possível salvar (%e).",
   empty:"O provedor não devolveu nenhum modelo.", noMatch:"Nenhum modelo com esse nome." },
 en: {
-  title:"Available models",
+  title:"MODELS IN THE CHAT MENU", refresh:"Refresh", first:"Paste the key and test the connection to see the models.",
   hint:"Switch on the models of this key that should appear in the chat menu.",
   stored:"With the key field empty, the list uses the stored key.",
   fetch:"Refresh models", fetching:"Fetching models…", filter:"Filter models",
-  count:"%n of %t on", save:"Save models", saving:"Saving…",
+  count:"%n OF %t ON", save:"Save models", saving:"Saving…",
   saved:"Models saved. The ones switched on appear in the chat menu.",
   fetchFail:"Could not fetch the models (%e).", saveFail:"Could not save (%e).",
   empty:"The provider returned no models.", noMatch:"No model by that name." } };
@@ -50,24 +46,17 @@ function mount(box, ctx) {
   var all = [];
   var on = {};
   var filter = "";
-  var open = readOpen();
-  var loaded = false;
-  var pending = false;
+  var G = A._modelGarage;
 
-  box.innerHTML = '<section class="gb-km">' +
-    '<div class="gb-km-head"><button type="button" class="gb-km-toggle" id="gbKmToggle" aria-controls="gbKmPanel" aria-expanded="' + open + '">' +
-      '<svg class="gb-km-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' +
-      '<span class="gb-prov-title gb-km-title">' + esc(g("title")) + '</span></button>' +
-      '<button type="button" class="gb-set-btn-sm" id="gbKmFetch"' + (open ? '' : ' hidden') + '>' + esc(g("fetch")) + '</button></div>' +
-    '<div class="gb-km-panel" id="gbKmPanel"' + (open ? '' : ' hidden') + '>' +
-    '<p class="gb-set-hint" id="gbKmHint">' + esc(g("hint")) + '</p>' +
-    '<div id="gbKmBody"></div><div id="gbKmMsg" role="status"></div></div></section>';
+  box.innerHTML = '<section class="gb-of-km"><div class="gb-of-km-h"><span class="gb-of-k">' + (G ? G.sl() : '') + esc(g("title")) + '</span>' +
+    (G ? G.help(g("hint") + " " + g("stored")) : '') + '<span class="gb-of-sp"></span><span class="gb-of-meta" id="gbKmCount"></span>' +
+    '<button type="button" class="gb-of-btn sm" id="gbKmFetch">' + (G ? G.svg("M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5", 12, 1.9) : '') + esc(g("refresh")) + '</button></div>' +
+    '<div id="gbKmBody"></div><div id="gbKmMsg" class="gb-of-say" role="status"></div></section>';
   var body = box.querySelector("#gbKmBody");
   var fetchBtn = box.querySelector("#gbKmFetch");
-  var toggle = box.querySelector("#gbKmToggle");
 
   function say(cls, text) {
-    box.querySelector("#gbKmMsg").innerHTML = text ? '<p class="' + cls + '">' + esc(text) + '</p>' : "";
+    box.querySelector("#gbKmMsg").innerHTML = text ? '<p class="' + cls + '" style="padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(text) + '</p>' : "";
   }
   function failText(key, d) {
     return M().failMsg(g(key), d && d.error) +
@@ -84,50 +73,45 @@ function mount(box, ctx) {
   function rows() {
     var q = filter.trim().toLowerCase();
     var shown = all.filter(function (m) { return !q || m.toLowerCase().indexOf(q) >= 0; });
-    if (!shown.length) { return '<p class="gb-set-hint gb-km-none">' + esc(g("noMatch")) + '</p>'; }
+    if (!shown.length) { return '<p class="gb-of-hint" style="margin:0;padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(g("noMatch")) + '</p>'; }
     return shown.map(function (m) {
-      return '<label class="gb-km-row"><span class="gb-km-id">' + esc(m) + '</span>' +
-        '<input type="checkbox" class="gb-set-toggle" data-model="' + esc(m) + '"' + (on[m] ? ' checked' : '') + '/></label>';
+      return '<label class="gb-of-km-r' + (on[m] ? ' on' : '') + '"><i></i><span><b>' + esc(m) + '</b>' +
+        '<input type="checkbox" class="gb-of-tg" data-model="' + esc(m) + '"' + (on[m] ? ' checked' : '') + '/></span></label>';
     }).join("");
   }
   function updateCount() {
     var c = box.querySelector("#gbKmCount");
-    if (c) { c.textContent = g("count").replace("%n", String(countOn())).replace("%t", String(all.length)); }
+    if (c) { c.textContent = all.length ? g("count").replace("%n", String(countOn())).replace("%t", String(all.length)) : ""; }
   }
   function wireRows() {
-    box.querySelectorAll(".gb-km-row input").forEach(function (cb) {
-      cb.addEventListener("change", function () { on[cb.getAttribute("data-model")] = cb.checked; updateCount(); });
+    box.querySelectorAll(".gb-of-km-r input").forEach(function (cb) {
+      cb.addEventListener("change", function () { on[cb.getAttribute("data-model")] = cb.checked; cb.closest(".gb-of-km-r").classList.toggle("on", cb.checked); updateCount(); });
     });
   }
   function render() {
-    if (!all.length) { body.innerHTML = ""; return; }
-    body.innerHTML =
-      (all.length > FILTER_FROM ? '<label class="gb-prov-search gb-km-filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
-        '<input type="search" id="gbKmFilter" placeholder="' + esc(g("filter")) + '" aria-label="' + esc(g("filter")) + '" value="' + esc(filter) + '"/></label>' : '') +
-      '<div class="gb-km-list" role="group" aria-label="' + esc(g("title")) + '">' + rows() + '</div>' +
-      '<div class="gb-km-foot"><span class="gb-set-hint" id="gbKmCount"></span>' +
-        '<button type="button" class="gb-set-btn-sm gb-set-btn-accent" id="gbKmSave">' + esc(g("save")) + '</button></div>';
+    if (!all.length) { body.innerHTML = '<p class="gb-of-hint" style="margin:0;padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(g("first")) + '</p>'; updateCount(); return; }
+    body.innerHTML = '<div class="gb-of-km-list" role="group" aria-label="' + esc(g("title")) + '">' + rows() + '</div>' +
+      '<div class="gb-of-km-f">' + (all.length > FILTER_FROM ? '<div class="gb-of-srch"><label>' + (G ? G.svg("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5", 14) : '') +
+        '<input type="search" id="gbKmFilter" placeholder="' + esc(g("filter")) + '" aria-label="' + esc(g("filter")) + '" value="' + esc(filter) + '"/></label></div>' : '<span class="gb-of-sp"></span>') +
+        '<button type="button" class="gb-of-btn pri sm" id="gbKmSave">' + esc(g("save")) + '</button></div>';
     updateCount();
     wireRows();
     var f = box.querySelector("#gbKmFilter");
     if (f) {
       f.addEventListener("input", function () {
         filter = f.value;
-        box.querySelector(".gb-km-list").innerHTML = rows();
+        box.querySelector(".gb-of-km-list").innerHTML = rows();
         wireRows();
       });
     }
     box.querySelector("#gbKmSave").addEventListener("click", save);
   }
 
-  /* Loads the list by itself when a key is there to use and the section is open. */
+  /* Loads the list by itself when a key is there to use. */
   function autoLoad() {
-    if (!open) { pending = true; return; }
-    pending = false;
     if (ctx.url() && (keyStored() || ctx.key() || ctx.keyOptional)) { fetchModels(); }
   }
   function fetchModels() {
-    loaded = true;
     var url = ctx.url(), key = ctx.key();
     if (!url) { say("gb-set-warn", g("urlNeeded")); return; }
     if (!key && !ctx.keyOptional && !keyStored()) { say("gb-set-warn", g("keyNeeded")); return; }
@@ -165,7 +149,6 @@ function mount(box, ctx) {
       })
       .then(function () {
         account = { id: ctx.id, has_key: true, enabled: req.enabled };
-        box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored");
         say("gb-set-hint gb-set-ok", g("saved"));
         if (A.loadModels) { return A.loadModels().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } }); }
       })
@@ -176,15 +159,6 @@ function mount(box, ctx) {
   }
 
   fetchBtn.addEventListener("click", fetchModels);
-  toggle.addEventListener("click", function () {
-    open = !open;
-    writeOpen(open);
-    toggle.setAttribute("aria-expanded", String(open));
-    box.querySelector("#gbKmPanel").hidden = !open;
-    fetchBtn.hidden = !open;
-    if (open && (pending || !loaded) && keyStored()) { autoLoad(); }
-  });
-
   A.apiFetch("/api/llm/accounts")
     .then(function (r) { return r.ok ? r.json() : {}; })
     .then(function (d) {
@@ -192,12 +166,9 @@ function mount(box, ctx) {
       if (account) {
         all = (account.enabled || []).slice();
         all.forEach(function (m) { on[m] = true; });
-        render();
       }
-      if (keyStored()) {
-        box.querySelector("#gbKmHint").textContent = g("hint") + " " + g("stored");
-        autoLoad();
-      }
+      render();
+      if (keyStored()) { autoLoad(); }
     })
     .catch(function () { account = null; });
   /* The setup form calls this after a successful connection test. */

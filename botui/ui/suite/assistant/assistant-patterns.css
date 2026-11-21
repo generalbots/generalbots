@@ -113,7 +113,7 @@
 }
 /* Mantis shares the selected repeat across the frame, conversation, and picker. */
 :root[data-identity="mantis"],
-[data-identity="mantis"] .gb-appearance-patterns button {
+[data-identity="mantis"] .gb-ap-tile {
     --id-pattern-ink: rgb(0 0 0 / calc(.11 * var(--gb-pat-strength, 1)));
     --id-pattern-line: rgb(0 0 0 / calc(.05 * var(--gb-pat-strength, 1)));
     --id-pattern-major: color-mix(in srgb, var(--id-accent) calc(18% * var(--gb-pat-strength, 1)), transparent);
@@ -125,7 +125,7 @@
                        linear-gradient(90deg, var(--id-pattern-line) 1px, transparent 1px);
 }
 [data-identity="mantis"][data-theme="dark"],
-[data-identity="mantis"][data-theme="dark"] .gb-appearance-patterns button {
+[data-identity="mantis"][data-theme="dark"] .gb-ap-tile {
     --id-pattern-ink: rgb(255 255 255 / calc(.11 * var(--gb-pat-strength, 1)));
     --id-pattern-line: rgb(255 255 255 / calc(.05 * var(--gb-pat-strength, 1)));
 }
@@ -170,7 +170,7 @@
 }
 [data-identity="mantis"] .gb-app,
 [data-identity="mantis"] .gb-main::before,
-[data-identity="mantis"] .gb-appearance-patterns button::before {
+[data-identity="mantis"] .gb-ap-tile::before {
     background-image: var(--id-pattern);
     background-position: var(--id-pattern-pos);
     background-size: var(--id-pattern-size);
@@ -185,12 +185,58 @@
     background: linear-gradient(90deg, transparent,
         color-mix(in srgb, var(--id-surface-solid) 90%, transparent) 17% 83%, transparent);
 }
-[data-identity="mantis"] .gb-appearance-patterns button::before {
+[data-identity="mantis"] .gb-ap-tile::before {
     content: "";
     position: absolute;
     inset: 0;
 }
-[data-identity="mantis"] .gb-appearance-patterns button {
-    --gb-pat-strength: 2;
-    --gb-pat-scale: .65;
+[data-identity="mantis"] .gb-ap-tile {
+    --gb-pat-strength: 1;
+    --gb-pat-scale: .75;
 }
+/* Appearance window: anchored above the account row, no backdrop. */
+#gbAppearanceDialog { position: fixed; inset: auto auto 84px 12px; margin: 0; width: 336px; max-width: calc(100vw - 72px); max-height: calc(100vh - 96px); overflow: hidden auto; padding: 0; border: 1px solid var(--id-line); border-radius: 6px; background: var(--id-surface-solid); color: var(--id-ink); box-shadow: 0 2px 2px rgba(0, 0, 0, .04), 0 8px 16px -4px rgba(0, 0, 0, .08); font: 400 13px var(--id-font); }
+#gbAppearanceDialog::backdrop { background: transparent; }
+html:has(.gb-sidebar.collapsed) #gbAppearanceDialog { inset: auto auto 40px 62px; max-height: calc(100vh - 52px); }
+#gbAppearanceDialog > header { position: sticky; top: 0; z-index: 2; height: 38px; min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 12px; background: var(--id-paper); border-bottom: 1px solid var(--id-line); }
+#gbAppearanceDialog > header h2 { margin: 0; font: 600 11px var(--id-font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--id-ink); }
+#gbAppearanceDialog > header h2::before { content: "//"; margin-right: 5px; font: 700 11px var(--id-font-mark); letter-spacing: -.05em; color: var(--id-muted); }
+#gbAppearanceDialog > header button { width: 26px; height: 26px; min-width: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0; background: none; color: var(--id-text); }
+#gbAppearanceDialog > header button:hover { background: var(--id-fill); }
+#gbAppearanceDialog > header button svg { width: 13px; height: 13px; }
+#gbAppearanceDialog #gbAppearanceContent { padding: 0; }
+.gb-ap-sec { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; border-bottom: 1px solid var(--id-line); }
+.gb-ap-sec:last-child { border-bottom: 0; }
+.gb-ap-label { font: 600 10.5px var(--id-font-mono); letter-spacing: .06em; color: var(--id-muted); text-transform: uppercase; }
+.gb-ap-pair { display: flex; justify-content: space-between; align-items: center; }
+.gb-ap-small { font-size: 10px; }
+.gb-ap-ink, .gb-ap-ink output { color: var(--id-ink); font: inherit; }
+.gb-ap-seg { display: grid; gap: 1px; background: var(--id-line); border: 1px solid var(--id-line); }
+.gb-ap-seg button { height: 30px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0; border: 0; border-radius: 0; background: var(--id-surface-solid); color: var(--id-text); font: 500 13px var(--id-font); cursor: pointer; }
+.gb-ap-seg button small { font: 600 10px var(--id-font-mono); opacity: .7; }
+.gb-ap-seg button[aria-pressed="true"] { background: var(--id-ink); color: var(--id-surface-solid); }
+.gb-ap-swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.gb-ap-swatches button { aspect-ratio: 1; padding: 2px; border: 1px solid transparent; border-radius: 0; background: none; cursor: pointer; }
+.gb-ap-swatches button i { display: block; width: 100%; height: 100%; }
+.gb-ap-swatches button[aria-pressed="true"] { border-color: var(--id-ink); }
+.gb-ap-hue { display: flex; flex-direction: column; gap: 6px; }
+.gb-ap-track { position: relative; height: 22px; }
+.gb-ap-rail { position: absolute; left: 0; right: 0; top: 7px; height: 8px; border-radius: 4px; background: var(--gb-hue-track); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+.gb-ap-thumb { position: absolute; top: 2px; left: calc(var(--gb-hue-pct) - 9px); width: 18px; height: 18px; border-radius: 50%; background: var(--id-accent); border: 2px solid var(--id-surface-solid); box-shadow: 0 0 0 1px var(--id-line), 0 1px 3px rgba(0, 0, 0, .2); pointer-events: none; }
+.gb-ap-track input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.gb-ap-track:focus-within .gb-ap-thumb { box-shadow: 0 0 0 2px var(--id-accent-text); }
+.gb-ap-hint { font-size: 11.5px; color: var(--id-muted); line-height: 1.4; }
+.gb-ap-pats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gb-ap-pats button { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; color: var(--id-muted); font: 400 10.5px var(--id-font); cursor: pointer; }
+.gb-ap-pats button[aria-pressed="true"] { color: var(--id-ink); }
+.gb-ap-tile { position: relative; display: block; width: 100%; aspect-ratio: 1; border: 1px solid var(--id-line); background-color: var(--id-paper); overflow: hidden; }
+[aria-pressed="true"] > .gb-ap-tile { border-color: var(--id-ink); }
+.gb-ap-sliders { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--id-line); }
+.gb-ap-slider { display: grid; grid-template-columns: 76px minmax(0, 1fr) 44px 22px; align-items: center; gap: 8px; }
+.gb-ap-slider .gb-ap-label { font-size: 10px; }
+.gb-ap-slider input { width: 100%; margin: 2px; accent-color: var(--id-accent); }
+.gb-ap-slider output { text-align: right; font: 600 11px var(--id-font-mono); color: var(--id-ink); }
+.gb-ap-slider button { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--id-muted); cursor: pointer; }
+.gb-ap-slider button:hover { color: var(--id-ink); background: var(--id-fill); }
+#gbAppearanceDialog :is(button, input):focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--id-accent-text); }
+:root[data-theme="dark"] #gbAppearanceDialog { box-shadow: 0 2px 2px rgba(0, 0, 0, .4), 0 12px 24px -6px rgba(0, 0, 0, .6); }

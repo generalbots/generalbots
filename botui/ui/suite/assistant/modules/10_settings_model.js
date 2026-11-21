@@ -109,13 +109,25 @@ function t(key) {
   return (T[lang] && T[lang][key]) || (T.en[key]) || key;
 }
 
-/* ---- In-page confirm (replaces window.confirm) ---- */
+/* ---- In-page confirm: a banner at the top of the detail tray, or a dialog ---- */
 function inlineConfirm(text, onYes) {
-  var overlay = document.createElement("div");
-  overlay.className = "gb-inline-dialog";
   var A2 = window.GBAssistant;
   var yesLabel = A2 && A2.t ? A2.t("assistant.confirm-continue", "Continue") : "OK";
   var noLabel = A2 && A2.t ? A2.t("assistant.cancel", "Cancel") : "Cancel";
+  var slot = document.getElementById("gbOfConfirm");
+  if (slot && slot.isConnected) {
+    slot.innerHTML = '<div class="gb-of-confirm" role="alertdialog" aria-label="' + esc(text) + '">' + (A._modelGarage ? A._modelGarage.svg("M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", 16, 1.8).replace('stroke="currentColor"', 'stroke="var(--id-warn)"') : '') +
+      '<span>' + esc(text) + '</span><div><button type="button" class="gb-of-btn" data-act="no">' + esc(noLabel) + '</button>' +
+      '<button type="button" class="gb-of-btn pri" data-act="yes">' + esc(yesLabel) + '</button></div></div>';
+    var no = slot.querySelector('[data-act="no"]');
+    no.focus({ preventScroll: true });
+    if (slot.scrollIntoView) { slot.scrollIntoView({ block: "nearest" }); }
+    no.addEventListener("click", function () { slot.innerHTML = ""; });
+    slot.querySelector('[data-act="yes"]').addEventListener("click", function () { slot.innerHTML = ""; onYes(); });
+    return;
+  }
+  var overlay = document.createElement("div");
+  overlay.className = "gb-inline-dialog";
   overlay.innerHTML =
     '<div class="gb-inline-dialog-backdrop"></div>' +
     '<div class="gb-inline-dialog-box">' +
@@ -125,8 +137,7 @@ function inlineConfirm(text, onYes) {
         '<button class="gb-set-btn-sm gb-set-btn-accent" data-act="yes">' + esc(yesLabel) + '</button>' +
       '</div></div>';
   document.body.appendChild(overlay);
-  var noBtn = overlay.querySelector('[data-act="no"]');
-  if (noBtn) noBtn.focus();
+  overlay.querySelector('[data-act="no"]').focus();
   function close() { overlay.remove(); document.removeEventListener("keydown", escH); }
   function escH(e) { if (e.key === "Escape") { e.preventDefault(); close(); } }
   document.addEventListener("keydown", escH);
@@ -219,7 +230,7 @@ function renderFull(panel) {
   var html;
   var editable = !readOnly && !cfgError;
   if (G) {
-    html = G.dashboard(cfg, privacyText(scope, host), editable) + '<div class="gb-gar-dash-warn">';
+    html = '<div class="gb-of">' + G.dashboard(cfg, privacyText(scope, host), editable) + '<div class="gb-gar-dash-warn">';
   } else {
     html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
       '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
@@ -260,6 +271,7 @@ function renderFull(panel) {
   if (!readOnly && G && !cfgError) {
     html += G.modeButtons(currentMode, modes, cfg) + G.dialogs(modes, cfg);
   }
+  if (G) { html += '</div>'; }
 
   if (pendingStatus) {
     html += '<div class="gb-set-card" id="gbModelStatus">' + pendingStatus.html + '</div>';
@@ -270,7 +282,7 @@ function renderFull(panel) {
   bindRestoreButton();
   var retry = document.getElementById("gbModelRetry");
   if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
-  if (!readOnly) { bindModeCards(panel); if (G) { G.bind(panel, modes); } }
+  if (!readOnly) { bindModeCards(panel); if (G) { G.bind(panel, modes, function () { return viewMode; }); } }
 }
 
 /* The dashboard's privacy line, already escaped. */
@@ -332,7 +344,7 @@ function doSwitchMode(body, msgEl, disableBtn) {
 }
 
 function bindModeCards(panel) {
-  panel.querySelectorAll(".gb-set-mode-card").forEach(function(btn) {
+  panel.querySelectorAll(".gb-of-mode").forEach(function(btn) {
     btn.addEventListener("click", function() {
       var mode = btn.getAttribute("data-mode");
       renderModeDetail(panel, mode);
@@ -342,30 +354,45 @@ function bindModeCards(panel) {
 }
 
 function renderModeDetail(panel, mode) {
-  panel.querySelectorAll("#gbModelModes .gb-set-mode-card").forEach(function(b) {
-    var selected = b.getAttribute("data-mode") === mode;
-    b.classList.toggle("gb-set-mode-selected", selected);
-    b.setAttribute("aria-pressed", selected);
+  panel.querySelectorAll("#gbOfModes .gb-of-mode").forEach(function(b) {
+    b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === mode));
   });
   viewMode = mode;
-  var existing = document.getElementById("gbModeDetail");
-  if (existing) existing.remove();
-  var detail = document.createElement("div");
-  detail.id = "gbModeDetail";
-  detail.className = "gb-set-slab gb-set-mode-detail";
-  var modesDiv = document.getElementById("gbModelModes");
-  if (modesDiv) modesDiv.after(detail);
-  else panel.appendChild(detail);
-  var heading = document.createElement("h2");
-  heading.className = "gb-set-kicker";
-  heading.textContent = A._modelGarage ? A._modelGarage.modeLabel(mode) : mode;
-  var content = document.createElement("div");
-  content.className = "gb-set-slab-body gb-gar-detail-body";
-  detail.append(heading, content);
+  var content = document.getElementById("gbModeDetail");
+  if (!content) { return; }
+  content.innerHTML = "";
+  if (A._modelGarage) { A._modelGarage.setDetail(panel, mode, cfg, activate); }
   if (mode === "local") renderLocalDetail(content);
   else if (mode === "own_key") renderOwnKeyDetail(content);
   else if (mode === "free") renderFreeDetail(content);
-  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(content);
+  else if (mode === "acp" && A._modelProviders && A._modelProviders.renderAcp) A._modelProviders.renderAcp(content);
+}
+
+/* The head button of the detail frame turns the viewed engine on with the
+   action its own panel offers: a local model, the provider form, the free
+   model or a connected agent. */
+function activate(mode, btn) {
+  var msg = document.getElementById("gbOfActMsg");
+  function say(text) { if (msg) { msg.innerHTML = '<p class="gb-set-warn">' + esc(text) + '</p>'; } }
+  if (mode === "free") { askFree(btn); return; }
+  if (mode === "local") {
+    var lm = localModels || {}, pick = null;
+    (lm.tiers || []).forEach(function (tier) { (tier.models || []).forEach(function (m) {
+      if (m.downloaded && (!pick || m.id === lm.recommended)) { pick = m; }
+    }); });
+    if (pick && A._modelLocal && A._modelLocal.activate) { A._modelLocal.activate(pick.id); return; }
+    say(A.settingsText("Instale um modelo da lista abaixo primeiro.", "Install a model from the list below first."));
+    return;
+  }
+  var target = document.querySelector(mode === "own_key" ? "#gbProvSave" : "[data-agent-use]");
+  if (target) { target.click(); return; }
+  say(A.settingsText("Conecte um agente abaixo primeiro.", "Connect an agent below first."));
+}
+function freeHost() { return cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost"); }
+function askFree(btn) {
+  inlineConfirm(t("confirmExt").replace("%h", freeHost()), function () {
+    doSwitchMode({ mode: "free" }, document.getElementById("gbOfActMsg"), btn);
+  });
 }
 
 function renderLocalDetail(el) {
@@ -381,21 +408,14 @@ function renderOwnKeyDetail(el) {
 
 /* ---- Free detail ---- */
 function renderFreeDetail(el) {
-  var note = t("freeLimits");
-  var host = cfg && cfg.endpoint_host && cfg.mode === "free" ? cfg.endpoint_host : t("freeHost");
-  el.innerHTML = '<p class="gb-set-desc">' + esc(t("freeNote").replace("%h", host)) + '</p>' +
-    (note ? '<p class="gb-set-hint">' + esc(note) + '</p>' : '') +
-    (cfg && cfg.mode !== "free" ? '<button class="gb-set-btn-sm gb-set-btn-accent" id="gbFreeSave">' + esc(t("useFree")) + '</button>'
-      : '<p class="gb-set-hint gb-set-ok">' + esc(t("inUse")) + '</p>') +
-    '<div id="gbFreeMsg"></div>';
-  var saveBtn = document.getElementById("gbFreeSave");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", function() {
-      inlineConfirm(t("confirmExt").replace("%h", host), function () {
-        doSwitchMode({ mode: "free" }, document.getElementById("gbFreeMsg"), saveBtn);
-      });
-    });
-  }
+  var G = A._modelGarage;
+  el.innerHTML = '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' +
+    esc(A.settingsText("Antes de usar", "Before you use it")) + '</span><span class="gb-of-sp"></span><span class="gb-of-meta">' +
+    esc(A.settingsText("SEM CHAVE · LIMITES MENORES", "NO KEY · LOWER LIMITS")) + '</span></div>' +
+    '<div class="gb-of-sec-b" style="max-width:720px"><div class="gb-of-alert">' + (G ? G.svg("M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01", 16, 1.8) : '') +
+    '<div><b>' + esc(t("freeNote").replace("%h", freeHost())) + '</b><span>' +
+    esc(A.settingsText("Use para textos públicos, rascunhos e pesquisas. Não precisa de chave; os limites de uso são menores.",
+      "Use it for public text, drafts and research. No key needed; usage limits are lower.")) + '</span></div></div></div></div>';
 }
 
 async function refreshAfterChange() {

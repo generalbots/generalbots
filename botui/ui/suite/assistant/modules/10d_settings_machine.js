@@ -68,21 +68,6 @@ function affinity(m, hw) {
       .replace("%n", gb(need)).replace("%h", gb(have)).replace("%f", gb(need - have)) };
 }
 
-/* The bar shown in a model row, like the compatibility bar of a model hub. */
-function affinityBar(m, hw) {
-  var a = affinity(m, hw);
-  if (a.tone === "none") {
-    return '<div class="gb-mac-fit"><span class="gb-mac-fit-label">' + esc(tr("Afinidade com este computador", "Fit with this computer")) +
-      '</span><span class="gb-mac-fit-word">' + esc(a.label) + '</span></div>';
-  }
-  return '<div class="gb-mac-fit gb-mac-' + a.tone + '">' +
-    '<div class="gb-mac-fit-top"><span class="gb-mac-fit-label">' + esc(tr("Afinidade com este computador", "Fit with this computer")) + '</span>' +
-    '<span class="gb-mac-fit-pct">' + a.pct + '%</span><span class="gb-mac-fit-word">' + esc(a.label) + '</span></div>' +
-    '<div class="gb-mac-bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + a.pct + '" aria-label="' +
-    esc(tr("Afinidade", "Fit")) + '"><i style="width:' + a.pct + '%"></i></div>' +
-    '<p class="gb-mac-fit-why">' + esc(a.why) + '</p></div>';
-}
-
 /* ---- The whole machine ---- */
 function verdict(hw, models) {
   hw = hw || {};
@@ -107,52 +92,48 @@ function verdict(hw, models) {
     return { tone: have >= 10 ? "good" : "mid", short: have >= 10 ? tr("Serve bem para modelos locais", "Good for local models") : tr("Serve, no limite", "Suitable, at the limit"),
       long: tr("Esta placa roda os modelos que pedem até %v de memória de vídeo.", "This card runs the models that need up to %v of video memory.").replace("%v", gb(have)) };
   }
+  var all = ((models && models.tiers) || []).reduce(function (n, t) { return n + (t.models || []).length; }, 0) || specs.length;
   var biggest = runs.reduce(function (b, m) { return !b || m.min_vram_gb > b.min_vram_gb ? m : b; }, null);
-  var total = specs.length;
+  var total = all;
   var text = tr("Roda %n de %t modelos locais%c. O maior que cabe: %b.", "Runs %n of %t local models%c. The largest that fits: %b.")
     .replace("%n", String(runs.length)).replace("%t", String(total))
     .replace("%c", comfy.length ? tr(" (%k com folga)", " (%k comfortably)").replace("%k", String(comfy.length)) : "")
     .replace("%b", biggest ? biggest.name : "—");
   var good = comfy.length && comfy.length === runs.length;
   return { tone: good ? "good" : "mid", short: good ? tr("Serve bem para modelos locais", "Good for local models")
-      : tr("Serve, no limite", "Suitable, at the limit"), long: text };
+      : tr("Serve, no limite", "Suitable, at the limit"), long: text,
+    count: tr("Roda %n de %t modelos", "Runs %n of %t models").replace("%n", String(runs.length)).replace("%t", String(total)) };
 }
 
-function vramBar(hw, engineRunning) {
-  var total = Number(hw.vram_gb) || 0, free = Math.min(total, Number(hw.vram_free_gb) || 0);
-  if (!total) return "";
-  var used = Math.round((total - free) / total * 100);
-  var note = engineRunning
-    ? tr("%f livres agora; o modelo em uso ocupa parte da placa.", "%f free now; the model in use takes part of the card.")
-    : (free < MIN_LOCAL ? tr("%f livres agora: outros programas estão usando a placa. Feche-os antes de usar um modelo local.",
-        "%f free now: other programs are using the card. Close them before using a local model.")
-      : tr("%f livres agora.", "%f free now."));
-  return '<div class="gb-mac-vram"><div class="gb-mac-bar gb-mac-bar-use" aria-hidden="true"><i style="width:' + used + '%"></i></div>' +
-    '<span class="gb-mac-sub">' + esc(note.replace("%f", gb(free))) + '</span></div>';
-}
+/* Short card name for the panel head: "NVIDIA GeForce RTX 4070 Laptop GPU" -> "RTX 4070". */
+function shortCard(d) { return String(d || "").replace(/^NVIDIA\s+(GeForce\s+)?/i, "").replace(/\s+(Laptop\s+)?GPU$/i, "").replace(/\s+Laptop$/i, ""); }
 
-function row(label, value, extra) {
-  return '<div class="gb-mac-row"><span class="gb-mac-key">' + esc(label) + '</span><div class="gb-mac-val">' + value + (extra || "") + '</div></div>';
-}
-
-function card(hw, models, engineRunning) {
+/* Section A of the local detail: the scan of this computer, with the verdict. */
+function card(hw, models) {
   hw = hw || {};
-  var v = verdict(hw, models);
-  var yes = '<span class="gb-gar-mark yes" aria-hidden="true"></span>', no = '<span class="gb-gar-mark no" aria-hidden="true"></span>';
-  var html = '<div class="gb-mac-card"><div class="gb-mac-head"><span class="gb-gar-kicker">' + esc(tr("Seu computador", "Your computer")) + '</span>' +
-    '<span class="gb-mac-scan">' + esc(tr("examinado agora", "checked just now")) + '</span></div>';
-  html += row(tr("Placa de vídeo", "Graphics card"), '<strong>' + esc(hw.device || tr("nenhuma encontrada", "none found")) + '</strong>');
-  html += row("CUDA", '<span class="gb-mac-inline">' + (hw.cuda_usable ? yes + esc(tr("disponível: o modelo usa a placa", "available: the model uses the card"))
-    : no + esc(tr("indisponível: o modelo usaria o processador", "unavailable: the model would use the processor"))) + '</span>');
-  if (hw.vram_gb) { html += row(tr("Memória de vídeo", "Video memory"), '<strong>' + esc(gb(hw.vram_gb)) + '</strong>', vramBar(hw, engineRunning)); }
-  html += row(tr("Memória RAM", "System memory"), esc(gb(hw.ram_gb)));
-  if (hw.driver) { html += row(tr("Driver", "Driver"), esc(hw.driver)); }
-  html += '<div class="gb-mac-verdict gb-mac-' + v.tone + '"><strong>' + esc(v.short) + '</strong>' + (v.long ? '<span>' + esc(v.long) + '</span>' : '') + '</div>';
-  html += '<p class="gb-mac-rule">' + esc(tr(
-    "Como medimos: cada modelo precisa de um mínimo de memória de vídeo (o arquivo do modelo mais o espaço da conversa), de 6 GB no menor a 32 GB no maior. Com 25% a mais que o mínimo, roda com folga.",
-    "How we measure: each model needs a minimum of video memory (the model file plus room for the conversation), from 6 GB for the smallest to 32 GB for the largest. With 25% more than the minimum it runs comfortably.")) + '</p></div>';
-  return html;
+  var v = verdict(hw, models), G = A._modelGarage;
+  var head = [shortCard(hw.device), hw.vram_gb ? gb(hw.vram_gb) : "", tr("EXAMINADO AGORA", "CHECKED JUST NOW")].filter(Boolean).join(" · ").toUpperCase();
+  var html = '<div class="gb-of-sec"><div class="gb-of-sec-h"><span class="gb-of-letter">A</span><span class="gb-of-sec-t">' + esc(tr("Seu computador", "Your computer")) + '</span>' +
+    (G ? G.help(tr("Cada modelo precisa de um mínimo de memória de vídeo (o arquivo do modelo mais o espaço da conversa), de 6 GB no menor a 32 GB no maior. Com 25% a mais que o mínimo, roda com folga.",
+      "Each model needs a minimum of video memory (the model file plus room for the conversation), from 6 GB for the smallest to 32 GB for the largest. With 25% more than the minimum it runs comfortably."),
+      tr("Como medimos", "How we measure")) : '') +
+    '<span class="gb-of-sp"></span><span class="gb-of-meta">' + esc(head) + '</span></div><div class="gb-of-hw">';
+  html += '<div class="wide"><span class="gb-of-lab">' + tr("PLACA DE VÍDEO", "GRAPHICS CARD") + '</span><span class="v">' + esc(hw.device || tr("nenhuma encontrada", "none found")) + '</span>' +
+    (hw.cuda_usable ? '<span class="s ok">✓ ' + esc(tr("CUDA disponível: o modelo usa a placa", "CUDA available: the model uses the card")) + '</span>'
+      : '<span class="s">– ' + esc(tr("CUDA indisponível: o modelo usaria o processador", "CUDA unavailable: the model would use the processor")) + '</span>') + '</div>';
+  if (hw.vram_gb) {
+    var total = Number(hw.vram_gb) || 0, free = Math.min(total, Number(hw.vram_free_gb) || 0);
+    html += '<div class="mem"><span class="gb-of-lab">' + tr("MEMÓRIA DE VÍDEO", "VIDEO MEMORY") + '</span><span class="v">' + esc(gb(total)) + '</span>' +
+      '<div class="gb-of-bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round((total - free) / total * 100) + '" aria-label="' + esc(tr("Memória de vídeo em uso", "Video memory in use")) + '">' +
+      '<i style="width:' + Math.round((total - free) / total * 100) + '%"></i></div><span class="s">' +
+      esc((free >= 2 ? tr("%f livres agora", "%f free now") : tr("%f livre agora", "%f free now")).replace("%f", gb(free))) + '</span></div>';
+  }
+  html += '<div><span class="gb-of-lab">' + (hw.driver ? tr("RAM · DRIVER", "RAM · DRIVER") : "RAM") + '</span><span class="v">' + esc(gb(hw.ram_gb)) + '</span>' +
+    (hw.driver ? '<span class="s mono">' + esc(hw.driver) + '</span>' : '') + '</div>';
+  html += '<div class="verdict" data-tone="' + v.tone + '"' + (v.long ? ' tabindex="0" data-tip="' + esc(v.long) + '"' : '') + '><span class="gb-of-lab">' + tr("VEREDITO", "VERDICT") +
+    '</span><span class="v">' + esc(v.short) + '</span>' + (v.count ? '<span class="s">' + esc(v.count) + '</span>' : '') + '</div>';
+  return html + '</div></div>';
 }
 
-A._modelMachine = { affinity: affinity, affinityBar: affinityBar, verdict: verdict, card: card };
+A._modelMachine = { affinity: affinity, verdict: verdict, card: card, gb: gb };
 })();

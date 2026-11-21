@@ -1,29 +1,40 @@
 "use strict";
 /**
- * 09_settings.js - Native Settings view for the assistant shell.
- * Sections: Conta, Aparencia, Idioma, Modelo, Sobre.
+ * 09_settings.js - Settings frame for the assistant shell: the numbered section
+ * list in the rail, the page heading and the section router. The pages live in
+ * 09c (Persona), 09d (Conta, Sobre), 09e (Idioma, Atalhos), 10* (Modelo) and
+ * 10i (Limites). Appearance is a window next to the gear (09b_patterns.js).
  */
 
 (function () {
     var A = window.GBAssistant;
     var currentSection = "model";
     var sections = [
-        ["account", "user", "settings.account", "Account", "Conta"],
-        ["instructions", "message", "", "Persona", "Persona"],
-        ["language", "globe", "settings.language", "Language", "Idioma"],
-        ["model", "cpu", "settings.model", "Model", "Modelo"],
-        ["limits", "gauge", "", "Limits", "Limites"],
-        ["shortcuts", "keyboard", "shortcut.title", "Keyboard shortcuts", "Atalhos de teclado"],
-        ["about", "info", "settings.about", "About", "Sobre"],
-        ["appearance", "palette", "settings.appearance", "Appearance", "Aparência"]
+        ["account", "Conta", "Account", "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
+        ["instructions", "Persona", "Persona", "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"],
+        ["language", "Idioma", "Language", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"],
+        ["model", "Modelo", "Model", "M4 4h16v16H4zM9 9h6v6H9zM15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"],
+        ["limits", "Limites", "Limits", "M12 14l4-4M3.34 19a10 10 0 1 1 17.32 0"],
+        ["shortcuts", "Atalhos de teclado", "Keyboard shortcuts", "M2 6h20v12H2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"],
+        ["about", "Sobre", "About", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 16v-4M12 8h.01"]
     ];
+    var signOutPath = "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9";
+
     function tr(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
     A.settingsText = tr;
 
-    function sectionLabel(section) {
-        var fallback = tr(section[4], section[3]);
-        return section[2] ? A.t(section[2], fallback) : fallback;
+    function esc(s) {
+        return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
+    A.settingsEsc = esc;
+
+    /* Stroke icon used by the settings pages: one path, Mantis line weight. */
+    A.settingsIcon = function (path, size, stroke) {
+        return '<svg aria-hidden="true" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +
+            (stroke || 1.7) + '" stroke-linecap="round" stroke-linejoin="round"><path d="' + path + '"/></svg>';
+    };
 
     A.settingsHeading = function (kicker, title, description) {
         return '<header class="gb-set-heading"><span class="gb-set-kicker">' +
@@ -31,32 +42,22 @@
             (description ? '<p>' + esc(description) + '</p>' : '') + '</header>';
     };
 
-    function esc(s) {
-        return String(s == null ? "" : s)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    /* ================================================================
-       Build the settings shell (nav + panel)
-       ================================================================ */
     A.renderSettings = function () {
         var container = document.getElementById("gbSettingsContainer");
         if (!container) { return; }
         var navHost = document.getElementById("gbSettingsNav");
         container.innerHTML = '<div class="gb-set-scroll" id="gbSettingsScroll"></div>';
         if (navHost) {
-            var nav = '<div class="gb-set-nav">';
-            nav += '<button type="button" class="gb-set-back" id="gbSetBack">' +
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>' +
-                esc(A.t("settings.back", "Back to conversation")) + '</button>';
-            sections.filter(function (section) { return section[0] !== "appearance"; })
-                .forEach(function (section) {
-                    nav += '<button type="button" class="gb-set-tab" data-section="' + section[0] + '">' +
-                        sectionIcon(section[1]) + '<span>' + esc(sectionLabel(section)) + '</span></button>';
-                });
-            nav += '<button type="button" class="gb-set-tab gb-set-nav-signout" id="gbSetNavSignOut">' +
-                sectionIcon("logout") + '<span>' + esc(A.t("assistant.sign-out", "Sign out")) + '</span></button></div>';
+            var nav = '<div class="gb-set-nav"><button type="button" class="gb-set-back" id="gbSetBack">' +
+                A.settingsIcon("m15 6-6 6 6 6", 14, 3) + '<span>' + esc(A.t("settings.back", "Back to conversation")) + '</span></button>';
+            sections.forEach(function (section, index) {
+                nav += '<button type="button" class="gb-set-tab" data-section="' + section[0] +
+                    '"><i class="gb-set-gutter" aria-hidden="true"></i><span class="gb-set-tab-in" data-num="0' + (index + 1) + '">' + A.settingsIcon(section[3], 15) +
+                    '<span class="gb-set-tab-label">' + esc(tr(section[1], section[2])) + '</span></span></button>';
+            });
+            nav += '<button type="button" class="gb-set-tab gb-set-nav-signout" id="gbSetNavSignOut"><i class="gb-set-gutter" aria-hidden="true"></i>' +
+                '<span class="gb-set-tab-in">' + A.settingsIcon(signOutPath, 15, 1.8) + '<span class="gb-set-tab-label">' +
+                esc(A.t("assistant.sign-out", "Sign out")) + '</span></span></button></div>';
             navHost.innerHTML = nav;
             navHost.querySelector("#gbSetBack").onclick = function () { A.switchView("chat"); };
             navHost.querySelector("#gbSetNavSignOut").onclick = function () { A.signOut(); };
@@ -67,24 +68,6 @@
         renderSection(currentSection);
     };
 
-    function sectionIcon(name) {
-        var icons = {
-            user: '<circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/>',
-            palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.17-4.36-9-10-9z"/>',
-            globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-            cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
-            info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
-            keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
-            message: '<path d="M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"/>',
-            gauge: '<path d="M3.3 19a10 10 0 1 1 17.4 0M12 14l4-4"/>',
-            logout: '<path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M9 12h12m-5-5 5 5-5 5"/>',
-        };
-        return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
-    }
-
-    /* ================================================================
-       Section renderers
-       ================================================================ */
     function renderSection(id) {
         var scroller = document.getElementById("gbSettingsScroll");
         if (!scroller) { return; }
@@ -104,301 +87,40 @@
         scroller.scrollTop = 0;
         var renderers = {
             account: A.renderAccount,
-            instructions: renderInstructions,
-            appearance: renderAppearance,
-            language: renderLanguage,
-            model: renderModel,
-            shortcuts: renderShortcuts,
+            instructions: A.renderInstructions,
+            language: A.renderLanguage,
+            model: A.renderModelFull,
+            shortcuts: A.renderShortcuts,
             about: A.renderAbout,
-            limits: A.renderLimits,
+            limits: A.renderLimits
         };
         var fn = renderers[id];
-        if (fn) {
-            /* Show a loading indicator; the renderer replaces it. */
-            panel.innerHTML = '<div class="gb-set-loading">' +
-                '<span class="gb-set-loading-dot"></span>' +
-                esc(A.t("assistant.connecting", "Loading...")) + '</div>';
-            try {
-                Promise.resolve(fn(panel)).catch(function (e) {
-                    if (panel.isConnected) { panel.innerHTML = sectionError(e); }
-                });
-            } catch (e) {
-                panel.innerHTML = sectionError(e);
-            }
-        } else {
-            panel.innerHTML = "";
+        if (typeof fn !== "function") { panel.innerHTML = ""; return; }
+        panel.innerHTML = '<div class="gb-set-loading"><span class="gb-set-loading-dot"></span>' +
+            esc(A.t("assistant.connecting", "Loading...")) + '</div>';
+        try {
+            Promise.resolve(fn(panel)).catch(function (e) {
+                if (panel.isConnected) { panel.innerHTML = sectionError(e); }
+            });
+        } catch (e) {
+            panel.innerHTML = sectionError(e);
         }
     }
 
     function sectionError(e) {
         var msg = e && e.message ? e.message : String(e);
-        return '<div class="gb-set-error">' +
-            '<p>' + esc(msg) + '</p>' +
-            '<button class="gb-set-btn-sm" onclick="' +
-            "var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();" +
-            '">' + esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
+        return '<div class="gb-set-error"><p>' + esc(msg) + '</p>' +
+            '<button class="gb-set-btn-sm" onclick="var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();">' +
+            esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
     }
 
-    /* -- Custom instructions (delegated to 09c_settings_instructions.js) -- */
-    function renderInstructions(panel) {
-        if (typeof A.renderInstructions === "function") {
-            A.renderInstructions(panel);
-        } else {
-            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
-        }
-    }
-
-    /* -- Appearance (pattern data in 09b_patterns.js) -- */
-    var PATTERNS = A._patterns || [];
-    var getCurrentPattern = A._getCurrentPattern || function () { return "image"; };
-    var setCurrentPattern = A._setCurrentPattern || function () {};
-    var applyPattern = A._applyPattern || function () {};
-
-    function renderAppearance(panel) {
-        var presets = (window.GBIdentity && window.GBIdentity.presets) || [];
-        var currentAccent = getComputedStyle(document.documentElement)
-            .getPropertyValue("--id-accent").trim().toUpperCase();
-
-        /* Theme selector */
-        var curTheme = window.GBTheme ? window.GBTheme.get() : "system";
-        var themeOpts = [
-            { id: "light", key: "settings.theme-light" },
-            { id: "dark", key: "settings.theme-dark" },
-            { id: "system", key: "settings.theme-system" },
-        ];
-        var html = '<div class="gb-set-card">' +
-            '<h2 class="gb-set-title">' + esc(A.t("settings.appearance", "Appearance")) + '</h2>' +
-            '<p class="gb-set-desc">' + esc(A.t("settings.theme-label", "Theme")) + '</p>' +
-            '<div class="gb-set-theme-row" id="gbThemeRow">';
-        for (var ti = 0; ti < themeOpts.length; ti++) {
-            var to = themeOpts[ti];
-            var tActive = to.id === curTheme ? " active" : "";
-            html += '<button class="gb-set-lang-btn gb-set-theme-btn' + tActive +
-                '" data-theme="' + to.id + '">' + esc(A.t(to.key, to.id)) + '</button>';
-        }
-        html += '</div>' + (A._sliderRow ? A._sliderRow("frost") : "") + '</div>';
-
-        /* Text size selector */
-        var curSize = window.GBTextSize ? window.GBTextSize.get() : "default";
-        var sizeOpts = [
-            { id: "small", key: "settings.text-small" },
-            { id: "default", key: "settings.text-default" },
-            { id: "large", key: "settings.text-large" },
-            { id: "xlarge", key: "settings.text-xlarge" },
-        ];
-        html += '<div class="gb-set-card">' +
-            '<p class="gb-set-desc">' + esc(A.t("settings.text-size-label", "Text size")) + '</p>' +
-            '<div class="gb-set-theme-row" id="gbSizeRow">';
-        for (var si = 0; si < sizeOpts.length; si++) {
-            var so = sizeOpts[si];
-            var sActive = so.id === curSize ? " active" : "";
-            html += '<button class="gb-set-lang-btn gb-set-size-btn' + sActive +
-                '" data-size="' + so.id + '">' + esc(A.t(so.key, so.id)) + '</button>';
-        }
-        html += '</div>' +
-            '<p class="gb-set-hint">' + esc(A.t("settings.text-size-hint", "Ctrl+= / Ctrl+- / Ctrl+0")) + '</p>' +
-            '</div>';
-
-        /* Accent colour */
-        html += '<div class="gb-set-card">' +
-            '<p class="gb-set-desc">' + esc(A.t("settings.accent-label", "Accent colour")) + '</p>' +
-            '<div class="gb-set-presets" id="gbAccentPresets">';
-        for (var i = 0; i < presets.length; i++) {
-            var p = presets[i];
-            var label = A.locale.startsWith("pt") ? p.pt : p.en;
-            var sel = p.hex.toUpperCase() === currentAccent ? " gb-set-swatch-active" : "";
-            html += '<button class="gb-set-swatch' + sel +
-                '" data-hex="' + esc(p.hex) + '" title="' + esc(label) +
-                '" style="background:' + esc(p.hex) + '"><span class="gb-sr-only">' +
-                esc(label) + '</span></button>';
-        }
-        html += '</div>' +
-            '<div class="gb-set-custom-row">' +
-                '<label class="gb-set-label" for="gbAccentCustom">' +
-                    esc(A.t("settings.custom-colour", "Custom")) + '</label>' +
-                '<input type="color" id="gbAccentCustom" class="gb-set-colour-input" value="' +
-                    esc(/^#[0-9A-F]{6}$/.test(currentAccent) ? currentAccent : (presets[0] && presets[0].hex) || "") + '" />' +
-            '</div>' +
-            '<div class="gb-set-preview" id="gbAccentPreview">' +
-                '<button class="gb-set-preview-btn">' + esc(A.t("settings.preview-button", "Button")) + '</button>' +
-                '<a class="gb-set-preview-link" href="#">' + esc(A.t("settings.preview-link", "Link text")) + '</a>' +
-                '<div class="gb-set-preview-row gb-set-preview-selected">' + esc(A.t("settings.preview-selected", "Selected row")) + '</div>' +
-            '</div>' +
-            '<p class="gb-set-hint" id="gbAccentHint"></p>' +
-        '</div>';
-
-        /* Background pattern chooser */
-        var curPat = getCurrentPattern();
-        html += '<div class="gb-set-card">' +
-            '<h2 class="gb-set-title">' + esc(A.t("settings.bg-label", "Chat background")) + '</h2>' +
-            '<div class="gb-set-bg-grid" id="gbBgGrid">';
-        for (var pi = 0; pi < PATTERNS.length; pi++) {
-            var pat = PATTERNS[pi];
-            var nameKey = "settings.bg-" + pat.id;
-            var name = A.t(nameKey, pat.id);
-            var selCls = pat.id === curPat ? " gb-set-bg-active" : "";
-            html += '<button class="gb-set-bg-tile' + selCls + '" data-pat="' + esc(pat.id) + '" title="' + esc(name) + '">' +
-                '<div class="gb-set-bg-preview" data-pat-id="' + esc(pat.id) + '"></div>' +
-                '<span class="gb-set-bg-name">' + esc(name) + '</span></button>';
-        }
-        html += '</div>' + (A._sliderRow ? A._sliderRow("strength") + A._sliderRow("scale") : "") + '</div>';
-
-        panel.innerHTML = html;
-
-        /* Bind theme selector */
-        panel.querySelectorAll(".gb-set-theme-btn").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var theme = btn.getAttribute("data-theme");
-                if (window.GBTheme) { window.GBTheme.set(theme); }
-                panel.querySelectorAll(".gb-set-theme-btn").forEach(function (b) {
-                    b.classList.toggle("active", b.getAttribute("data-theme") === theme);
-                });
-            });
-        });
-
-        /* Bind text size selector */
-        panel.querySelectorAll(".gb-set-size-btn").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var size = btn.getAttribute("data-size");
-                if (window.GBTextSize) { window.GBTextSize.set(size); }
-                panel.querySelectorAll(".gb-set-size-btn").forEach(function (b) {
-                    b.classList.toggle("active", b.getAttribute("data-size") === size);
-                });
-            });
-        });
-
-        /* Bind accent preset clicks */
-        panel.querySelectorAll(".gb-set-swatch").forEach(function (sw) {
-            sw.addEventListener("click", function () {
-                applyAccent(sw.getAttribute("data-hex"), panel);
-            });
-        });
-        var customInput = document.getElementById("gbAccentCustom");
-        if (customInput) {
-            customInput.addEventListener("input", function () {
-                applyAccent(customInput.value, panel);
-            });
-        }
-
-        /* Live pattern previews in the tiles; opacity, scale and frost sliders */
-        panel.querySelectorAll(".gb-set-bg-preview").forEach(function (div) { if (A._previewPattern) { A._previewPattern(div); } });
-        if (A._bindSliders) { A._bindSliders(panel); }
-
-        /* Bind pattern tile clicks */
-        panel.querySelectorAll(".gb-set-bg-tile").forEach(function (tile) {
-            tile.addEventListener("click", function () {
-                var id = tile.getAttribute("data-pat");
-                setCurrentPattern(id);
-                applyPattern(id);
-                panel.querySelectorAll(".gb-set-bg-tile").forEach(function (t) {
-                    t.classList.toggle("gb-set-bg-active", t.getAttribute("data-pat") === id);
-                });
-                if (A._syncSliders) { A._syncSliders(panel); }
-            });
-        });
-    }
-
-    A.renderAppearance = renderAppearance;
-
-    function applyAccent(hex, panel) {
-        if (!hex || !window.GBIdentity) { return; }
-        window.GBIdentity.apply(hex);
-        /* Persist locally */
-        try { localStorage.setItem("gb-accent", hex); } catch (e) { /* */ }
-        /* Try server */
-        var hint = document.getElementById("gbAccentHint");
-        A.apiFetch("/api/appearance", {
-            method: "PUT",
-            body: JSON.stringify({ accent: hex })
-        }).then(function (r) {
-            if (r.ok) {
-                if (hint) { hint.textContent = A.t("settings.saved-server", "Saved."); }
-            } else {
-                if (hint) { hint.textContent = A.t("settings.saved-local", "Saved on this device."); }
-            }
-        }).catch(function () {
-            if (hint) { hint.textContent = A.t("settings.saved-local", "Saved on this device."); }
-        });
-        /* Update swatch highlights */
-        if (panel) {
-            var upper = hex.toUpperCase();
-            panel.querySelectorAll(".gb-set-swatch").forEach(function (sw) {
-                sw.classList.toggle("gb-set-swatch-active",
-                    sw.getAttribute("data-hex").toUpperCase() === upper);
-            });
-        }
-    }
-
-    /* -- Language -- */
-    function renderLanguage(panel) {
-        var langs = [
-            { code: "pt-BR", label: "Português (Brasil)" },
-            { code: "en",    label: "English" },
-        ];
-        var html = A.settingsHeading(tr("Idioma", "Language"), tr("Em que idioma usar o assistente?", "Which language do you use?")) +
-            '<div class="gb-set-card">';
-        for (var i = 0; i < langs.length; i++) {
-            var l = langs[i];
-            var active = A.locale === l.code || (l.code === "pt-BR" && A.locale.startsWith("pt"));
-            html += '<button class="gb-set-lang-btn' + (active ? " active" : "") +
-                '" data-lang="' + l.code + '">' + esc(l.label) + '</button>';
-        }
-        html += '</div>';
-        panel.innerHTML = html;
-        panel.querySelectorAll(".gb-set-lang-btn").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var code = btn.getAttribute("data-lang");
-                A.locale = code;
-                try { localStorage.setItem("gb-locale", code); } catch (e) { /* */ }
-                /* Re-translate every data-i18n element in the shell, re-render
-                   dynamic components and settings so their labels update. */
-                if (typeof A.translatePage === "function") { A.translatePage(); }
-                if (typeof A.renderStatus === "function") { A.renderStatus(); }
-                if (typeof A.renderGreeting === "function") { A.renderGreeting(); }
-                A.renderSettings();
-            });
-        });
-    }
-
-    /* -- Model (delegated to 10_settings_model.js) -- */
-    function renderModel(panel) {
-        if (typeof A.renderModelFull === "function") {
-            /* renderModelFull is async; catch rejections so they show in-panel */
-            Promise.resolve(A.renderModelFull(panel)).catch(function (e) {
-                panel.innerHTML = sectionError(e);
-            });
-        } else {
-            panel.innerHTML = '<p class="gb-set-hint">Loading...</p>';
-        }
-    }
-
-    /* -- Keyboard shortcuts -- */
-    function renderShortcuts(panel) {
-        var isMac = /mac/i.test(navigator.platform || "");
-        var mod = isMac ? "⌘" : "Ctrl";
-        var shortcuts = [
-            [mod + "+N / " + mod + "+Shift+O", "shortcut.new-chat"],
-            [mod + "+K", "shortcut.search"],
-            [mod + "+B", "shortcut.sidebar"],
-            [mod + "+,", "shortcut.settings"],
-            ["Esc", "shortcut.stop"],
-            ["↑", "shortcut.edit-last"],
-        ];
-        var html = '<div class="gb-set-card"><h2 class="gb-set-title">' +
-            esc(A.t("shortcut.title", "Keyboard shortcuts")) + '</h2>' +
-            '<ul class="gb-shortcut-list">';
-        for (var i = 0; i < shortcuts.length; i++) {
-            html += '<li><span>' + esc(A.t(shortcuts[i][1], shortcuts[i][1])) +
-                '</span><kbd>' + esc(shortcuts[i][0]) + '</kbd></li>';
-        }
-        html += '</ul></div>';
-        panel.innerHTML = html;
-    }
-
-    /* ================================================================
-       Open settings to a specific section (e.g. from error card)
-       ================================================================ */
+    /* Open settings at a section. "appearance" opens the Appearance window. */
     A.openSettings = function (section) {
+        if (section === "appearance") {
+            var opener = document.getElementById("gbNavAppearance");
+            if (opener) { opener.click(); }
+            return;
+        }
         if (sections.some(function (entry) { return entry[0] === section; })) { currentSection = section; }
         if (A.currentView === "settings") { renderSection(currentSection); }
         else { A.switchView("settings"); }
@@ -408,8 +130,9 @@
     A.restoreAccent = function () {
         var serverAccent = A.productConfig && A.productConfig.accent;
         if (serverAccent && window.GBIdentity) { window.GBIdentity.apply(serverAccent); return; }
-        try { var stored = localStorage.getItem("gb-accent");
+        try {
+            var stored = localStorage.getItem("gb-accent");
             if (stored && window.GBIdentity) { window.GBIdentity.apply(stored); }
-        } catch (e) { /* */ }
+        } catch (e) { /* storage unavailable */ }
     };
 })();
