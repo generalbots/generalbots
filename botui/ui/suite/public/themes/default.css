@@ -230,9 +230,17 @@
  * comes back recoloured to this palette instead of falling back to the
  * reference orange and paper. Generated from the palette declared above;
  * regenerate when the palette changes.
+ *
+ * #2591 — this generated block was derived from the DARK palette but lived
+ * in an unqualified `:root`, so it overrode the light `--id-paper`/`--id-ink`
+ * declared above for every colour scheme. `#chat-app.chat-layout` then painted
+ * its header strip with the dark `--id-paper` even in the light theme (the
+ * "black lines" in chat). Scope the dark surface/ink tokens to the dark
+ * colour scheme; light keeps the warm paper values from above and from
+ * identity-tokens.css.
  */
 
-:root {
+:root[data-color-scheme="dark"] {
     /* Accent — the theme's primary, with the reference shades derived. */
     --id-accent: hsl(30 89% 55%);
     --id-accent-hover: color-mix(in srgb, hsl(30 89% 55%) 86%, #000);
