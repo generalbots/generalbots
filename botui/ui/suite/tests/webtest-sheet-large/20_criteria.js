@@ -106,10 +106,11 @@ test("[STATIC][GAP] R6/A4 side-panel refresh transfers a whole workbook twice", 
 });
 
 test("[STATIC][PARTIAL] R7/A5 explicit save limit ships; compressed transport does not", function () {
-  var saveLine = src(ROUTES).split("\n").filter(function (line) {
-    return line.indexOf('"/api/sheet/save"') >= 0;
-  })[0];
-  assert(saveLine && saveLine.indexOf("body_limit(") >= 0, "save route lost its explicit limit");
+  var routes = src(ROUTES);
+  var at = routes.indexOf('"/api/sheet/save"');
+  assert(at >= 0, "save route registration missing");
+  var saveBlock = routes.slice(at, at + 260);
+  assert(saveBlock.indexOf("body_limit(") >= 0, "save route lost its explicit limit");
   assert(src("botserver/Cargo.toml").indexOf("compression") < 0, "compression feature enabled");
   equal(filesMatching(rustFiles(), /CompressionLayer/).length, 0, "crates with a compression layer");
   finding(

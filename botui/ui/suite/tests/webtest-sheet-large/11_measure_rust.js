@@ -151,13 +151,15 @@ test("[BASELINE-OBSERVE] import cap is 25 MB for spreadsheet formats", function 
 });
 
 test("[BASELINE-OBSERVE] save route carries the same 25 MB limit as import", function () {
-  var routeLine = src(ROUTES).split("\n").filter(function (line) {
-    return line.indexOf('"/api/sheet/save"') >= 0;
-  });
-  equal(routeLine.length, 1, "save route registrations");
+  var routes = src(ROUTES);
+  var at = routes.indexOf('"/api/sheet/save"');
+  assert(at >= 0, "save route registration missing");
+  var block = routes.slice(at, at + 260);
+  equal(routes.split('\"/api/sheet/save\"').length - 1, 1, "save route registrations");
+  assert(block.indexOf("body_limit(") >= 0, "save route lost its explicit body limit");
   assert(
-    routeLine[0].indexOf("body_limit(botsecurity_core::upload_policy::UploadClass::SpreadsheetImport)") >= 0,
-    "save route lost its explicit body limit"
+    block.indexOf("UploadClass::SpreadsheetImport") >= 0,
+    "save route lost its SpreadsheetImport upload class"
   );
   finding(
     "issue claim now stale: save limit",
