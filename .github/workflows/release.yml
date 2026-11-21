@@ -11,7 +11,8 @@ name: Release
 #   windows     generalbots.exe, MSI, NSIS setup, raw exes (including botui)
 #   macos       .dmg + .app.zip (reusable desktop-macos.yml, no `-macos`
 #               pre-release)
-#   os-appliance  generalbots-os.iso + SHA256SUMS-os — the ONLY bootable OS
+#   os-appliance  generalbots-os.iso.zst.*.part + SHA256SUMS-os — the ONLY bootable OS
+#                 (zstd-compressed and split: GitHub caps assets at 2 GiB, #2455)
 #               image (Debian 13 mkosi kiosk appliance). Built by the reusable
 #               desktop-os-iso.yml from the pinned tag being released, with a
 #               REQUIRED QEMU boot smoke and in-image shell assertions.
@@ -1729,7 +1730,8 @@ jobs:
 
   os-appliance:
     name: General Bots OS appliance (mkosi, pinned tag)
-    # #2440 — this is the ONE image published as `generalbots-os.iso`. The
+    # #2440 — this is the ONE bootable OS image (published zstd-compressed and
+    # split as `generalbots-os.iso.zst.*.part`, #2455). The
     # reusable workflow builds it from the tag THIS release cuts (never
     # "the newest release that has a tarball"), requires the QEMU boot smoke,
     # and asserts the OS identity, payload and shell unit inside the image.
@@ -1919,6 +1921,44 @@ jobs:
             mv dist/vm-smoke.log "$RUNNER_TEMP/generalbots-os-vm-smoke.log"
           fi
 
+      - name: Shrink the bootable OS image below GitHub's 2 GiB asset cap
+        # GitHub rejects any single release asset >= 2 GiB. The mkosi ISO is
+        # 16 GiB (4.5 GiB real data), so uploading the raw image fails with
+        # "size must be less than 2147483648" (run 44831617319). zstd the
+        # already-verified image, then split it into <1 GiB parts so no single
+        # asset can breach the cap regardless of the compression ratio. The
+        # os-appliance job still builds and boot-verifies the raw ISO; this
+        # step only changes its published shape.
+        run: |
+          set -euo pipefail
+          command -v zstd >/dev/null 2>&1 \
+            || { sudo apt-get update -qq && sudo apt-get install -y -qq zstd; }
+          cd dist
+          test -s generalbots-os.iso
+          RAW_SHA=$(sha256sum generalbots-os.iso | cut -d' ' -f1)
+          RAW_BYTES=$(stat -c %s generalbots-os.iso)
+          # -T4 / --long=23 keeps peak RAM modest on a shared runner while
+          # still collapsing sparse regions and zero-filled free space.
+          zstd -q -T4 -12 --long=23 --no-check -o generalbots-os.iso.zst generalbots-os.iso
+          ZST_SHA=$(sha256sum generalbots-os.iso.zst | cut -d' ' -f1)
+          rm -f generalbots-os.iso
+          # 1000 MB parts (not MiB) keep every asset well under 2 GiB.
+          split -b 1000M -d --additional-suffix=.part generalbots-os.iso.zst generalbots-os.iso.zst.
+          rm -f generalbots-os.iso.zst
+          {
+            echo "# generalbots-os.iso — built and boot-verified by the os-appliance job"
+            echo "# raw bytes: ${RAW_BYTES}"
+            echo "SHA256 (raw ISO) ${RAW_SHA}"
+            echo "SHA256 (reassembled zstd stream) ${ZST_SHA}"
+            echo "# reassemble: cat generalbots-os.iso.zst.*.part > generalbots-os.iso.zst"
+            echo "# decompress: zstd -d generalbots-os.iso.zst -o generalbots-os.iso"
+          } > generalbots-os.iso.zst.sha256
+          # SHA256SUMS-os now verifies the published parts in place.
+          sha256sum generalbots-os.iso.zst.*.part > SHA256SUMS-os
+          sha256sum -c SHA256SUMS-os
+          echo "OS image: ${RAW_BYTES} raw bytes -> $(du -ch generalbots-os.iso.zst.*.part | tail -1 | cut -f1) across $(ls generalbots-os.iso.zst.*.part | wc -l) parts"
+          ls -lh generalbots-os.iso.zst.*.part SHA256SUMS-os generalbots-os.iso.zst.sha256
+
       - name: Create the stable download aliases
         # The Linux job now ships only versioned package names so the CI
         # artifact does not carry a duplicate ~800 MB copy of every format.
@@ -2041,11 +2081,14 @@ jobs:
           if ! compgen -G "dist/generalbots-*-macos-*.app.zip" >/dev/null; then
             missing+=("generalbots-*-macos-*.app.zip")
           fi
-          # Bootable OS image (the mkosi appliance, not the GRUB carrier)
-          require generalbots-os.iso
+          # Bootable OS image (zstd-compressed + split for the 2 GiB cap)
+          require generalbots-os.iso.zst.sha256
           require SHA256SUMS-os
+          if ! compgen -G "dist/generalbots-os.iso.zst.*.part" >/dev/null; then
+            missing+=("generalbots-os.iso.zst.*.part")
+          fi
           (cd dist && sha256sum -c SHA256SUMS-os)
-          grep -q '  generalbots-os\.iso$' dist/SHA256SUMS-os
+          grep -q '  generalbots-os\.iso\.zst\..*\.part$' dist/SHA256SUMS-os
           # Payload data medium — explicitly NOT an operating system
           require generalbots-payload.iso
           require SHA256SUMS-payload
@@ -2067,7 +2110,7 @@ jobs:
           with open("dist/MANIFEST.json", encoding="utf-8") as handle:
               assets = json.load(handle)["assets"]
           required = [
-              "generalbots-os.iso",
+              "generalbots-os.iso.zst.sha256",
               "SHA256SUMS-os",
               "generalbots-payload.iso",
               "SHA256SUMS-payload",
@@ -2125,13 +2168,18 @@ jobs:
             - macOS: `generalbots-<version>-macos-<arch>.dmg` and
               `.app.zip` (unsigned; arm64 or x86_64 depending on the runner
               GitHub assigns, the name says which).
-            - General Bots OS: `generalbots-os.iso` + `SHA256SUMS-os` — the
-              Debian 13 mkosi kiosk appliance from `desktop/os/`, built from
-              the pinned tag `${{ needs.release.outputs.version }}`. It boots
-              straight into `generalbots-shell.service` (cage, no display
-              manager, no login shell); the QEMU boot smoke and the in-image
-              shell assertions are required before it is published. This is
-              the only bootable OS image in the release.
+            - General Bots OS: `generalbots-os.iso.zst.NN.part` (reassemble
+              with `cat generalbots-os.iso.zst.*.part > generalbots-os.iso.zst`,
+              then `zstd -d generalbots-os.iso.zst -o generalbots-os.iso`),
+              plus `generalbots-os.iso.zst.sha256` and `SHA256SUMS-os`. The
+              image is zstd-compressed and split because GitHub caps a single
+              release asset at 2 GiB and the verified 16 GiB mkosi ISO exceeds
+              it. This is the Debian 13 kiosk appliance from `desktop/os/`,
+              built from the pinned tag `${{ needs.release.outputs.version }}`.
+              It boots straight into `generalbots-shell.service` (cage, no
+              display manager, no login shell); the QEMU boot smoke and the
+              in-image shell assertions are required before it is published.
+              This is the only bootable OS image in the release.
             - Payload carrier: `generalbots-payload.iso` +
               `SHA256SUMS-payload` — a GRUB data medium carrying the Linux
               tarball under `/general-bots/` for machines without network
