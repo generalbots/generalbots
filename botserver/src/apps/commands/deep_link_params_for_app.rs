@@ -214,7 +214,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
         "docs",
         "open → the editor shows a blank document, draw it in ONE step: {\"op\":\"fill\",\"field\":\"document body\",\"value\":\"<markdown>\"} — value is markdown-lite: '# ' / '## ' headings, '- ' bullets, '1. ' numbered items, blank line between paragraphs, **bold**; never emit one fill per line and never wrap the value in HTML tags",
     ),
-    ("sheet", "open → spreadsheet loads from drive params → write cells with sheet.cells.set; when the user asks for colours, number formats or conditional rules pass `styles` (A1 -> {background,color,font_weight}), `formats` (A1 -> number format code) and `conditional` ([{range,rule_type:cellIs,condition:lessThan|greaterThan|equal,value,bg_color}]) in the SAME call — writing values only leaves the sheet unstyled; for a legend add a plain row of coloured cells, one per category (#2260, #2263)"),
+    ("sheet", "open → spreadsheet loads from drive params → write cells with sheet.cells.set; when the user asks for colours, number formats, merge or conditional rules pass `merge` (A1 range, e.g. \"A1:E1\"), `styles` (A1 -> {background,color,font_weight,font_size}), `formats` (A1 -> number format code) and `conditional` ([{range,rule_type:cellIs,condition:lessThan|greaterThan|equal,value,bg_color}]) in the SAME call — writing values only leaves the sheet unstyled/unmerged; for a legend add a plain row of coloured cells, one per category (#2155, #2260, #2263)"),
     ("drive", "open → tab bar (Bots/My Files/Shared/Public/Root) → navigate folders → open/select files"),
     (
         "database",

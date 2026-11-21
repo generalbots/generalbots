@@ -4,18 +4,18 @@
 //! `sheet.cells.set` needs a block write. Both routes live here so the curated
 //! commands create a real artifact (with an id) instead of only opening the app.
 
-use crate::auth::{SheetError, SheetUser, resolve_user_id};
+use crate::auth::{resolve_user_id, SheetError, SheetUser};
 use crate::handlers::cell_ops::{MAX_COLS, MAX_RECALC_CELLS, MAX_ROWS};
 use crate::handlers::data_ops::apply_inline_conditional_rules;
-use crate::state::{SheetState, save_sheet_to_drive};
-use crate::types::{CellData, SaveResponse, Spreadsheet, Worksheet};
-use axum::Json;
+use crate::state::{save_sheet_to_drive, SheetState};
+use crate::types::{CellData, MergedCell, SaveResponse, Spreadsheet, Worksheet};
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
+use axum::Json;
 use botsheet_core::dependency_graph::DepGraph;
 use chrono::Utc;
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::sync::Arc;
 
 /// `POST /api/sheet/new` body: a title and rows as a JSON array of arrays.
@@ -29,6 +29,9 @@ pub struct CreateSheetRequest {
     pub styles: Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
     #[serde(default)]
     pub formats: Option<std::collections::HashMap<String, String>>,
+    /// Optional A1 range to merge in the same call (e.g. "A1:E1", #2155).
+    #[serde(default)]
+    pub merge: Option<String>,
     /// Conditional rules applied after creation so a cash-flow/timetable can be
     /// fully styled in one call (#2260/#2263).
     #[serde(default)]
@@ -37,9 +40,9 @@ pub struct CreateSheetRequest {
 
 /// `POST /api/sheet/cells` body: write `values` starting at the A1 `range`.
 ///
-/// `styles`, `formats` and `conditional` let one call produce a fully styled
-/// block (e.g. a 12-month cash-flow with negative red / positive green) without
-/// extra round trips (#2260, #2263).
+/// `styles`, `formats`, `merge` and `conditional` let one call produce a fully
+/// styled block (e.g. merge title + bold/16pt) without extra round trips
+/// (#2155 SHEET-09, #2260, #2263).
 #[derive(Debug, Clone, Deserialize)]
 pub struct SetCellsRequest {
     #[serde(alias = "id", alias = "file_id")]
@@ -47,11 +50,16 @@ pub struct SetCellsRequest {
     #[serde(default)]
     pub worksheet_index: usize,
     pub range: String,
-    pub values: Value,
+    /// Values to write starting at `range`. Omitted for formatting-only edits (#2155).
+    #[serde(default)]
+    pub values: Option<Value>,
     #[serde(default)]
     pub styles: Option<std::collections::HashMap<String, botsheet_core::types::CellStyle>>,
     #[serde(default)]
     pub formats: Option<std::collections::HashMap<String, String>>,
+    /// Optional A1 range to merge in the same call (e.g. "A1:E1").
+    #[serde(default)]
+    pub merge: Option<String>,
     #[serde(default)]
     pub conditional: Option<Vec<Value>>,
 }
@@ -237,6 +245,29 @@ pub async fn handle_create_sheet(
     if let Some(ws) = sheet.worksheets.get_mut(0) {
         apply_block_presentation(ws, &req.styles, &req.formats);
         apply_inline_conditional_rules(ws, &sheet_id, 0, &req.conditional);
+        if let Some(merge_ref) = req
+            .merge
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            if let Some(((sr, sc), (er, ec))) =
+                botsheet_core::formulas::refs::parse_range_or_single(merge_ref)
+            {
+                let merged = MergedCell {
+                    start_row: sr,
+                    start_col: sc,
+                    end_row: er,
+                    end_col: ec,
+                };
+                let list = ws.merged_cells.get_or_insert_with(Vec::new);
+                if !list.iter().any(|m| {
+                    m.start_row == sr && m.start_col == sc && m.end_row == er && m.end_col == ec
+                }) {
+                    list.push(merged);
+                }
+            }
+        }
     }
     sheet.updated_at = Utc::now();
     save_sheet_to_drive(&state, &user_id, &sheet)
@@ -255,7 +286,10 @@ pub async fn handle_set_cells(
     let ((start_row, start_col), _) =
         botsheet_core::formulas::refs::parse_range_or_single(&req.range)
             .ok_or_else(|| bad_request(format!("invalid A1 range '{}'", req.range)))?;
-    let grid = row_values(&req.values).map_err(bad_request)?;
+    let grid = match req.values.as_ref() {
+        Some(v) => row_values(v).map_err(bad_request)?,
+        None => Vec::new(),
+    };
 
     let session = state
         .sessions
@@ -308,6 +342,30 @@ pub async fn handle_set_cells(
             req.worksheet_index,
             &req.conditional,
         );
+
+        if let Some(merge_ref) = req
+            .merge
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            let ((sr, sc), (er, ec)) =
+                botsheet_core::formulas::refs::parse_range_or_single(merge_ref)
+                    .ok_or_else(|| bad_request(format!("invalid merge range '{merge_ref}'")))?;
+            let ws = &mut sheet.worksheets[req.worksheet_index];
+            let merged = MergedCell {
+                start_row: sr,
+                start_col: sc,
+                end_row: er,
+                end_col: ec,
+            };
+            let list = ws.merged_cells.get_or_insert_with(Vec::new);
+            if !list.iter().any(|m| {
+                m.start_row == sr && m.start_col == sc && m.end_row == er && m.end_col == ec
+            }) {
+                list.push(merged);
+            }
+        }
 
         {
             // A block write invalidates every formula that reads the block:
