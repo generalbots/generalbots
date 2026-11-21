@@ -1481,3 +1481,26 @@ validates them.
 curl -s http://localhost:8080/api/product | python -m json.tool
 # Expected: apps=[chat,drive], no_security=true, suite_default_app=chat
 ```
+
+### gbgov Edition (branch `gbgov`, Windows desktop)
+
+The government edition builds on desktop-local with the `gbgov` feature (botserver and botapp) and `.product.gbgov`. Its shell is `botui/ui/suite/assistant/assistant.html` (ordered `"use strict"` IIFE modules in `assistant/modules/NN_*.js` on the shared `A` namespace, `--id-*` tokens, pt-BR + en strings, 450 lines per file). Build, live-check and rig instructions for Windows are in `.claude/CLAUDE.md`.
+
+**Identity: one user, two paths.** HTTP requests resolve the signed-in owner through the auth middleware (`botsecurity-auth/src/auth_api/middleware.rs`). The chat WebSocket resolves its own identity in `botserver/src/core/bot/ws/handler.rs`:
+1. a token (cookie `gb-access-token`, then the query field `access_token`, also accepted as `token`) resolved by `anonymous_auth::resolve_token_user`;
+2. with no token that resolves, the `user_id` query value, which is the id `/api/auth` gave the page;
+3. with neither, a new guest (`guest_<id>@anonymous.local` in `users`).
+
+Each handshake logs which of the three it used (`WS handshake: identity=...`). The shell must open the socket only after `/api/auth` has answered (`A._authReady` in `assistant/modules/99_init.js` gates `A.connectWs`). A socket opened earlier carries empty ids. Before the fix, that plus a token sent under a field name the server did not read made every such start run as one fixed guest (`7a724f50-...`, the id derived from an empty string).
+
+When a turn runs as a guest, every per-user lookup does too: subscription accounts, enabled models and the agent workspace (a second `ag-u<guest>` container gets created). Symptom: "Connect your Claude Code / Codex account" while Settings shows the agent as connected. Check the handshake log line, then `user_sessions.user_id` and `message_history.user_id` against `user_llm_accounts.user_id`.
+
+**Subscription agents (`sub:<provider>[/<model>]`).**
+- Accounts live in `user_llm_accounts` (status `linked`, per-user `metadata.enabled_models`).
+- The CLI's real sign-in lives in the user's Incus container (`/home/claude/.claude/.credentials.json` for Claude Code; `/tmp/gb-<agent>-login.status` is cleared on container restart).
+- Disconnecting Claude Code deletes `/home/claude/.claude` entirely.
+- A turn re-checks the VM (`relink_from_vm`, 5 s budget) before it refuses.
+- Incus calls have deadlines (`botagent/src/vm/incus_run.rs`). A stuck call is killed with its process tree.
+- Other containers in the WSL distro belong to other people: never exec into them.
+
+**Database on the desktop.** PostgreSQL on 127.0.0.1:5432, user `gbuser`, trust auth, database `botserver`. Message text is encrypted (`content_encrypted`); use `role`, `llm_model` and `created_at` to reconstruct a turn. A refused turn (resolver error) leaves only the user row and no log line with the reason.
