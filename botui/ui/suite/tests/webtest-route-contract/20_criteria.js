@@ -61,19 +61,18 @@ test("[STATIC][PARTIAL] A3 declared gaps are filtered from api.find, but still m
   );
 });
 
-test("[STATIC][GAP] A4 CI runs the Python guards and all binary tests, not the filtered route_contract command", function () {
+test("[STATIC][OBSERVED] A4 CI runs the Python guards and the filtered route_contract command", function () {
   var ci = src(h.CI_WORKFLOW);
   assert(ci.indexOf("python3 scripts/check_route_contract.py") >= 0, "route contract guard absent from CI");
   assert(ci.indexOf("python3 scripts/check_sales_route_contract.py --check") >= 0, "sales guard absent from CI");
   assert(ci.indexOf("run: cargo test -p botserver --bin botserver") >= 0, "binary test job absent from CI");
-  assert(ci.indexOf("cargo test -p botserver --bin botserver route_contract") < 0,
-    "filtered route_contract command unexpectedly present");
-  observe("CI", "Python guards + full binary test job; no `route_contract` filtered invocation");
+  assert(ci.indexOf("cargo test -p botserver --bin botserver route_contract") >= 0,
+    "filtered route_contract command absent from CI");
+  observe("CI", "Python guards + the filtered `route_contract` invocation + the full binary test job");
   finding(
-    "A4 filtered CI command is absent",
-    ".github/workflows/ci.yml:290-300 runs the Python guards and line 1139 runs the whole binary test " +
-    "suite. The acceptance criterion names `cargo test -p botserver --bin botserver route_contract`; " +
-    "that exact filter is not present."
+    "A4 filtered CI command ships",
+    ".github/workflows/ci.yml runs both Python guards and `cargo test -p botserver --bin botserver " +
+    "route_contract` before the full binary suite, so the acceptance criterion is satisfied."
   );
 });
 

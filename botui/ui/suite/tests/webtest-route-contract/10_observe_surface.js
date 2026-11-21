@@ -40,22 +40,22 @@ test("[BASELINE-OBSERVE] 4,424 router Rust files, 2,379 .route( and 9 .nest( cal
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
   equal(files.length, 4424, "shipped router .rs file count");
-  equal(routeCalls, 2379, "raw .route( call count");
+  equal(routeCalls, 2380, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 216, "files containing .route(");
   observe("Rust files / .route( calls / .nest( calls / router files",
     files.length + " / " + routeCalls + " / " + nestCalls + " / " + routeFiles);
 });
 
-test("[BASELINE-OBSERVE] 2,724 parsed registrations (2,693 unique method+path)", function () {
+test("[BASELINE-OBSERVE] 2,725 parsed registrations (2,694 unique method+path)", function () {
   var registrations = routeRegistrations();
   var keys = registrations.map(function (r) {
     return r.method + " " + h.canonical(r.path);
   });
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
-  equal(registrations.length, 2724, "parsed registration count");
-  equal(Object.keys(unique).length, 2693, "unique method+path count");
+  equal(registrations.length, 2725, "parsed registration count");
+  equal(Object.keys(unique).length, 2694, "unique method+path count");
   var sources = {};
   registrations.forEach(function (r) { sources[r.source] = true; });
   observe("parsed registrations / unique method+path / owning files",
