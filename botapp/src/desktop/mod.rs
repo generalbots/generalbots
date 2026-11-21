@@ -14,6 +14,7 @@ pub fn shell_mode() -> bool {
 
 #[cfg(feature = "desktop-local")]
 pub mod activity;
+pub(crate) mod commands;
 pub mod download;
 pub mod drive;
 #[cfg(target_os = "linux")]

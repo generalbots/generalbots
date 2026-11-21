@@ -55,15 +55,21 @@ desktop-tray = []
 desktop-local = []
 # Government desktop edition: the desktop build with its own product file.
 gbgov = ["desktop-local"]
-# #1925: thin client (UI only, remote botserver) and mobile targets — stubs
-thin-client = []
-mobile = []
+# #1925: thin client (UI only, remote botserver) and mobile targets.
+#
+# Both select the dedicated `mobile` module in main.rs: the WebView renders the
+# suite from a validated remote origin and no desktop code (sidecar, wizard,
+# tray, sync/download/drive commands) is compiled. No new dependency is needed:
+# the module reuses `tauri`, `serde_json`, `opener` and `botlib` already present.
+# `mobile` also selects the bundled-asset protocol used by packaged builds.
+thin-client = ["mobile"]
+mobile = ["custom-protocol"]
 # Production-style asset embedding. `tauri build` enables it; a debug build
 # with it serves the bundled suite/wizard instead of the dev server.
 custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
-tauri-build = "2"
+tauri-build = { version = "2", features = [] }
 
 [lints]
 workspace = true

@@ -1,177 +1,40 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(feature = "mobile")]
+mod mobile;
+
+#[cfg(not(feature = "mobile"))]
 use log::{info, warn};
+#[cfg(not(feature = "mobile"))]
 use tauri::{Emitter, Manager};
 
+#[cfg(not(feature = "mobile"))]
 mod build_info;
+#[cfg(not(feature = "mobile"))]
 mod desktop;
 
-#[cfg(feature = "desktop-local")]
+#[cfg(all(feature = "desktop-local", not(feature = "mobile")))]
 use desktop::sidecar::Sidecar;
-use desktop::tray::{RunningMode, ServiceMonitor, TrayEvent, TrayManager};
-#[cfg(feature = "desktop-local")]
+#[cfg(not(feature = "mobile"))]
+use desktop::tray::{RunningMode, ServiceMonitor, TrayManager};
+#[cfg(all(feature = "desktop-local", not(feature = "mobile")))]
 use desktop::wizard::WizardState;
 
-#[tauri::command]
-async fn get_tray_status(tray: tauri::State<'_, TrayManager>) -> Result<bool, String> {
-    Ok(tray.is_active().await)
+#[cfg(feature = "mobile")]
+fn main() {
+    mobile::run();
 }
 
-#[tauri::command]
-async fn start_tray(
-    tray: tauri::State<'_, TrayManager>,
-    app: tauri::AppHandle,
-) -> Result<(), String> {
-    tray.start(&app).await.map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn stop_tray(tray: tauri::State<'_, TrayManager>) -> Result<(), String> {
-    tray.stop().await;
-    Ok(())
-}
-
-#[tauri::command]
-async fn show_notification(
-    tray: tauri::State<'_, TrayManager>,
-    title: String,
-    body: String,
-) -> Result<(), String> {
-    tray.show_notification(&title, &body)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn update_tray_status(
-    tray: tauri::State<'_, TrayManager>,
-    status: String,
-) -> Result<(), String> {
-    tray.update_status(&status).await.map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn set_tray_tooltip(
-    tray: tauri::State<'_, TrayManager>,
-    tooltip: String,
-) -> Result<(), String> {
-    tray.set_tooltip(&tooltip).await.map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn get_tray_hostname(tray: tauri::State<'_, TrayManager>) -> Result<Option<String>, String> {
-    Ok(tray.get_hostname().await)
-}
-
-#[tauri::command]
-async fn set_tray_hostname(
-    tray: tauri::State<'_, TrayManager>,
-    hostname: String,
-) -> Result<(), String> {
-    tray.set_hostname(hostname).await;
-    Ok(())
-}
-
-#[tauri::command]
-fn handle_tray_event(
-    app: tauri::AppHandle,
-    tray: tauri::State<'_, TrayManager>,
-    event: String,
-) -> Result<(), String> {
-    let tray_event = match event.as_str() {
-        "new_chat" | "new-chat" | "newchat" => TrayEvent::NewChat,
-        "files" => TrayEvent::Files,
-        "open" => TrayEvent::Open,
-        "settings" => TrayEvent::Settings,
-        "about" => TrayEvent::About,
-        "quit" => TrayEvent::Quit,
-        _ => return Err(format!("Unknown event: {event}")),
-    };
-    tray.handle_event(&app, tray_event);
-    Ok(())
-}
-
-#[tauri::command]
-async fn check_services(
-    monitor: tauri::State<'_, tokio::sync::Mutex<ServiceMonitor>>,
-) -> Result<Vec<desktop::tray::ServiceStatus>, String> {
-    let mut guard = monitor.lock().await;
-    let result = guard.check_services().await;
-    drop(guard);
-    Ok(result)
-}
-
-#[tauri::command]
-async fn add_service(
-    monitor: tauri::State<'_, tokio::sync::Mutex<ServiceMonitor>>,
-    name: String,
-    port: u16,
-) -> Result<(), String> {
-    let mut guard = monitor.lock().await;
-    guard.add_service(&name, port);
-    drop(guard);
-    Ok(())
-}
-
-#[tauri::command]
-async fn get_service(
-    monitor: tauri::State<'_, tokio::sync::Mutex<ServiceMonitor>>,
-    name: String,
-) -> Result<Option<desktop::tray::ServiceStatus>, String> {
-    let guard = monitor.lock().await;
-    let result = guard.get_service(&name).cloned();
-    drop(guard);
-    Ok(result)
-}
-
-#[tauri::command]
-async fn all_services_running(
-    monitor: tauri::State<'_, tokio::sync::Mutex<ServiceMonitor>>,
-) -> Result<bool, String> {
-    let guard = monitor.lock().await;
-    let result = guard.all_running();
-    drop(guard);
-    Ok(result)
-}
-
-#[tauri::command]
-async fn any_service_running(
-    monitor: tauri::State<'_, tokio::sync::Mutex<ServiceMonitor>>,
-) -> Result<bool, String> {
-    let guard = monitor.lock().await;
-    let result = guard.any_running();
-    drop(guard);
-    Ok(result)
-}
-
-#[tauri::command]
-fn get_tray_mode(tray: tauri::State<'_, TrayManager>) -> String {
-    tray.get_mode_string()
-}
-
-#[tauri::command]
-fn get_running_modes() -> Vec<&'static str> {
-    vec!["Server", "Desktop", "Client"]
-}
-
-#[tauri::command]
-fn create_tray_with_mode(mode: String) -> Result<String, String> {
-    let running_mode = match mode.to_lowercase().as_str() {
-        "server" => RunningMode::Server,
-        "desktop" => RunningMode::Desktop,
-        "client" => RunningMode::Client,
-        _ => {
-            return Err(format!(
-                "Invalid mode: {mode}. Use Server, Desktop, or Client"
-            ))
-        }
-    };
-    let manager = TrayManager::with_mode(running_mode);
-    Ok(manager.get_mode_string())
-}
+#[cfg(not(feature = "mobile"))]
+use crate::desktop::commands::{
+    add_service, all_services_running, any_service_running, check_services, create_tray_with_mode,
+    get_running_modes, get_service, get_tray_hostname, get_tray_mode, get_tray_status,
+    handle_tray_event, set_tray_hostname, set_tray_tooltip, show_notification, start_tray,
+    stop_tray, update_tray_status,
+};
 
 /// Starts the botserver sidecar and reveals the suite once the API answers.
-#[cfg(feature = "desktop-local")]
+#[cfg(all(feature = "desktop-local", not(feature = "mobile")))]
 fn start_sidecar_and_show(app: &tauri::App) {
     let resource_dir = app.path().resource_dir().ok();
 
@@ -207,6 +70,7 @@ fn start_sidecar_and_show(app: &tauri::App) {
     });
 }
 
+#[cfg(not(feature = "mobile"))]
 fn main() {
     if let Some(code) = desktop::payload::handle_cli() {
         std::process::exit(code);

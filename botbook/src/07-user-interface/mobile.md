@@ -50,3 +50,24 @@ breakpoint spellings — and fails when any of them rises above the checked-in
 baseline in `scripts/mobile_budget_baseline.json`. The baseline only ever goes
 down. `--self-test` demonstrates that a raised count exits non-zero without
 requiring a browser.
+
+## Native thin clients (in development, #2584)
+
+The `botapp` `mobile` / `thin-client` Cargo features build a WebView-only client:
+it renders the existing suite from a remote botserver and does not start the
+desktop sidecar, setup wizard, tray or host-filesystem commands. Both Android
+and iPhone builds are being added; compiled artifacts are not yet published in
+a release.
+
+The origin is the only server the client may contact. It is resolved from the
+`GB_MOBILE_SERVER_URL` build-time value first, then the same runtime environment
+variable. A missing or invalid value is a hard start error — there is no public
+default. The value must be an HTTPS origin with a non-empty host and no user
+information or fragment; the loopback `http://127.0.0.1:8080` is accepted only
+in debug builds. An optional runtime `GB_MOBILE_SESSION_TOKEN` is appended to
+the suite URL as `?token=`; no token is embedded in the binary.
+
+Artifacts are produced on demand by the manual `mobile-artifacts` workflow, not
+by the release publish gate. Android yields a `.apk` and a `.aab`; iOS yields an
+ad-hoc-signed `.ipa`. Binary-inspection and device/browser evidence for each
+platform are tracked in the child issues before the client is considered ready.
