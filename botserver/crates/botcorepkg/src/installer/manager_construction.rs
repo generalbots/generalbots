@@ -58,8 +58,7 @@ impl PackageManager {
         installer_regs::register_dns(&mut components);
         installer_regs::register_meeting(&mut components);
         installer_regs::register_table_editor(&mut components);
-        installer_regs::register_remote_terminal(&mut components);
-        installer_regs::register_devtools(&mut components);
+        installer_regs::register_remote_desktop(&mut components);
         installer_regs::register_vector_db(&mut components);
         installer_regs::register_timeseries_db(&mut components);
         installer_regs::register_vault(&mut components);

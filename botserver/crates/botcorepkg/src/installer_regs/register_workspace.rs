@@ -31,11 +31,11 @@ pub fn register_table_editor(components: &mut HashMap<String, ComponentConfig>) 
     );
 }
 
-pub fn register_remote_terminal(components: &mut HashMap<String, ComponentConfig>) {
+pub fn register_remote_desktop(components: &mut HashMap<String, ComponentConfig>) {
     components.insert(
-        "remote_terminal".to_string(),
+        "remote_desktop".to_string(),
         ComponentConfig {
-            name: "remote_terminal".to_string(),
+            name: "remote_desktop".to_string(),
             ports: vec![3389],
             dependencies: vec![],
             linux_packages: vec!["xvfb".to_string(), "xrdp".to_string(), "xfce4".to_string()],
@@ -55,35 +55,6 @@ pub fn register_remote_terminal(components: &mut HashMap<String, ComponentConfig
             check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
             exec_cmd_windows: None,
             check_cmd_windows: Some("netstat -ano | findstr :3389 >NUL 2>&1".to_string()),
-            container: None,
-        },
-    );
-}
-
-pub fn register_devtools(components: &mut HashMap<String, ComponentConfig>) {
-    components.insert(
-        "devtools".to_string(),
-        ComponentConfig {
-            name: "devtools".to_string(),
-            ports: vec![],
-            dependencies: vec![],
-            linux_packages: vec![],
-            macos_packages: vec![],
-            windows_packages: vec![],
-            download_url: None,
-            binary_name: None,
-            pre_install_cmds_linux: vec![],
-            post_install_cmds_linux: vec![],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
-            env_vars: HashMap::new(),
-            data_download_list: Vec::new(),
-            exec_cmd: "".to_string(),
-            check_cmd: "".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
             container: None,
         },
     );

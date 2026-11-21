@@ -52,30 +52,30 @@ pub fn register_timeseries_db(components: &mut HashMap<String, ComponentConfig>)
             download_url: get_component_url("timeseries_db"),
             binary_name: Some("influxd".to_string()),
             pre_install_cmds_linux: vec![
-                "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
-                "mkdir -p {{CONF_PATH}}/influxdb".to_string(),
+                "mkdir -p {{DATA_PATH}}/timeseries".to_string(),
+                "mkdir -p {{CONF_PATH}}/timeseries".to_string(),
             ],
             post_install_cmds_linux: vec![
                 "{{BIN_PATH}}/influx setup --org system --bucket metrics --username admin --password {{GENERATED_PASSWORD}} --force".to_string(),
             ],
             pre_install_cmds_macos: vec![
-                "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
+                "mkdir -p {{DATA_PATH}}/timeseries".to_string(),
             ],
             post_install_cmds_macos: vec![],
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: {
                 let mut env = HashMap::new();
-                env.insert("INFLUXD_ENGINE_PATH".to_string(), "{{DATA_PATH}}/influxdb/engine".to_string());
-                env.insert("INFLUXD_BOLT_PATH".to_string(), "{{DATA_PATH}}/influxdb/influxd.bolt".to_string());
+                env.insert("INFLUXD_ENGINE_PATH".to_string(), "{{DATA_PATH}}/timeseries/engine".to_string());
+                env.insert("INFLUXD_BOLT_PATH".to_string(), "{{DATA_PATH}}/timeseries/influxd.bolt".to_string());
                 env.insert("INFLUXD_HTTP_BIND_ADDRESS".to_string(), ":8086".to_string());
                 env.insert("INFLUXD_REPORTING_DISABLED".to_string(), "true".to_string());
                 env
             },
             data_download_list: Vec::new(),
-            exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
+            exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/timeseries/influxd.bolt --engine-path={{DATA_PATH}}/timeseries/engine --http-bind-address=:8086".to_string(),
             check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\influxd.exe --bolt-path={{DATA_PATH}}\\influxdb\\influxd.bolt --engine-path={{DATA_PATH}}\\influxdb\\engine --http-bind-address=:8086".to_string()),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\influxd.exe --bolt-path={{DATA_PATH}}\\timeseries\\influxd.bolt --engine-path={{DATA_PATH}}\\timeseries\\engine --http-bind-address=:8086".to_string()),
             check_cmd_windows: Some("curl -f --connect-timeout 2 -m 5 http://localhost:8086/health >NUL 2>&1".to_string()),
             container: None,
         },
