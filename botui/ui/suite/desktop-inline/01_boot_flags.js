@@ -1,10 +1,3 @@
-            // Mobile/thin-client WebViews run on a remote origin. Rust injects
-            // the validated value before this script; never hardcode a host.
-            var __gbMobileOrigin = window.__GB_MOBILE_SERVER_ORIGIN__;
-            if (typeof __gbMobileOrigin === "string" && __gbMobileOrigin.length > 0) {
-                window.__GB_SERVER_ORIGIN__ = __gbMobileOrigin;
-                window.GB_LOGIN_URL = __gbMobileOrigin + "/suite/login.html";
-            }
             // Desktop-local has no separate login host: the desktop shell
             // serves its own sign-in page next to this one. Botui-served
             // installs inject GB_LOGIN_URL before this script runs, so only

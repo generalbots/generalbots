@@ -108,12 +108,18 @@ pub fn suite_url(origin: &str, token: Option<&str>) -> Result<Url, ConfigError> 
 
 /// Script installed by Tauri before any page script runs. `serde_json` quotes
 /// and escapes the value, so no hostname is ever written into JavaScript.
+/// The suite boot-flags file is byte-identical to desktop: all three globals
+/// are installed here, where no boot-budget JS-byte ratchet applies.
 pub fn initialization_script(origin: &str) -> String {
     let serialized = match serde_json::to_string(origin) {
         Ok(value) => value,
         Err(_) => "\"\"".to_string(),
     };
-    format!("window.__GB_MOBILE_SERVER_ORIGIN__ = {serialized};")
+    format!(
+        "window.__GB_MOBILE_SERVER_ORIGIN__ = {serialized};\
+         window.__GB_SERVER_ORIGIN__ = {serialized};\
+         window.GB_LOGIN_URL = {serialized} + '/suite/login.html';"
+    )
 }
 
 #[cfg(test)]
@@ -189,10 +195,13 @@ mod tests {
     }
 
     #[test]
-    fn init_script_is_a_json_string_assignment() {
+    fn init_script_installs_all_three_globals() {
+        let script = initialization_script("https://botserver.example.com");
         assert_eq!(
-            initialization_script("https://botserver.example.com"),
-            "window.__GB_MOBILE_SERVER_ORIGIN__ = \"https://botserver.example.com\";"
+            script,
+            "window.__GB_MOBILE_SERVER_ORIGIN__ = \"https://botserver.example.com\";\
+             window.__GB_SERVER_ORIGIN__ = \"https://botserver.example.com\";\
+             window.GB_LOGIN_URL = \"https://botserver.example.com\" + '/suite/login.html';"
         );
     }
 }
