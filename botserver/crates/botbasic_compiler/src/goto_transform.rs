@@ -1,3 +1,4 @@
+use crate::find_ascii_ci;
 use log::{trace, warn};
 
 #[derive(Debug, Clone)]
@@ -183,10 +184,8 @@ fn split_into_blocks(lines: &[&str], labels: &HashSet<String>) -> Vec<LabeledBlo
 }
 
 fn extract_goto_target(line: &str) -> Option<String> {
-    let upper = line.to_uppercase();
-
-    if let Some(pos) = upper.find("GOTO ") {
-        let rest = &line[pos + 5..];
+    if let Some(pos) = find_ascii_ci(line, "GOTO ") {
+        let rest = line.get(pos + 5..)?;
         let target = rest.split_whitespace().next()?;
         return Some(target.trim_matches(|c| c == '"' || c == '\'').to_string());
     }
@@ -252,52 +251,64 @@ fn generate_state_machine(blocks: &[LabeledBlock]) -> String {
 
 fn transform_line(line: &str) -> String {
     let trimmed = line.trim();
-    let upper = trimmed.to_uppercase();
 
-    if upper.contains("ON ERROR GOTO") {
+    if find_ascii_ci(trimmed, "ON ERROR GOTO").is_some() {
         return trimmed.to_string();
     }
 
-    if upper.starts_with("GOTO ") {
-        let target = trimmed[5..].trim();
+    if find_ascii_ci(trimmed, "GOTO ").is_some_and(|pos| pos == 0) {
+        let target = trimmed.get(5..).unwrap_or("").trim();
         return format!("__goto_label = \"{}\"; continue;", target);
     }
 
-    if upper.starts_with("IF ") && upper.contains(" THEN GOTO ") {
-        if let Some(then_pos) = upper.find(" THEN GOTO ") {
-            let condition = &trimmed[3..then_pos].trim();
-            let target = trimmed[then_pos + 11..].trim();
+    if find_ascii_ci(trimmed, "IF ").is_some_and(|pos| pos == 0) {
+        if let Some(then_pos) = find_ascii_ci(trimmed, " THEN GOTO ") {
+            // "IF THEN GOTO" has no condition; the old 3..then_pos slice
+            // was inverted and panicked (ASCII-reachable fuzz crash).
+            let condition = if then_pos > 3 {
+                trimmed.get(3..then_pos).unwrap_or("")
+            } else {
+                ""
+            };
+            let target = trimmed.get(then_pos + 11..).unwrap_or("").trim();
             return format!(
                 "if {} {{ __goto_label = \"{}\"; continue; }}",
-                condition, target
+                condition.trim(),
+                target
             );
         }
-    }
 
-    if upper.starts_with("IF ") && upper.contains(" THEN ") {
-        if let Some(then_pos) = upper.find(" THEN ") {
-            let after_then = &trimmed[then_pos + 6..];
-            let after_then_upper = after_then.trim().to_uppercase();
-
-            if after_then_upper.starts_with("GOTO ") {
-                let condition = &trimmed[3..then_pos].trim();
-                let target = after_then.trim()[5..].trim();
+        if let Some(then_pos) = find_ascii_ci(trimmed, " THEN ") {
+            let after_then = trimmed.get(then_pos + 6..).unwrap_or("").trim();
+            if find_ascii_ci(after_then, "GOTO ").is_some_and(|pos| pos == 0) {
+                let condition = if then_pos > 3 {
+                    trimmed.get(3..then_pos).unwrap_or("")
+                } else {
+                    ""
+                };
+                let target = after_then.get(5..).unwrap_or("").trim();
                 return format!(
                     "if {} {{ __goto_label = \"{}\"; continue; }}",
-                    condition, target
+                    condition.trim(),
+                    target
                 );
             }
         }
-    }
 
-    if upper.starts_with("IF ") && upper.contains(" GOTO ") && !upper.contains(" THEN ") {
-        if let Some(goto_pos) = upper.find(" GOTO ") {
-            let condition = &trimmed[3..goto_pos].trim();
-            let target = trimmed[goto_pos + 6..].trim();
-            return format!(
-                "if {} {{ __goto_label = \"{}\"; continue; }}",
-                condition, target
-            );
+        if find_ascii_ci(trimmed, " THEN ").is_none() {
+            if let Some(goto_pos) = find_ascii_ci(trimmed, " GOTO ") {
+                let condition = if goto_pos > 3 {
+                    trimmed.get(3..goto_pos).unwrap_or("")
+                } else {
+                    ""
+                };
+                let target = trimmed.get(goto_pos + 6..).unwrap_or("").trim();
+                return format!(
+                    "if {} {{ __goto_label = \"{}\"; continue; }}",
+                    condition.trim(),
+                    target
+                );
+            }
         }
     }
 

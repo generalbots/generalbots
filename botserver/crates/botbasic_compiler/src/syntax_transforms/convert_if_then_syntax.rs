@@ -1,4 +1,5 @@
 use super::*;
+use crate::find_ascii_ci;
 
 pub fn convert_if_then_syntax(script: &str) -> String {
     let mut result = String::new();
@@ -30,11 +31,18 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if upper.starts_with("IF ") && upper.contains(" THEN") {
-            let then_pos = match upper.find(" THEN") {
+            let then_pos = match find_ascii_ci(trimmed, " THEN") {
                 Some(pos) => pos,
                 None => continue,
             };
-            let condition = &trimmed[3..then_pos].trim();
+            // `IF THEN ...` has no condition: " THEN" starts at byte 2, so the
+            // 3..then_pos range would be inverted and panic (found by fuzzing).
+            let condition = if then_pos > 3 {
+                trimmed.get(3..then_pos).unwrap_or("")
+            } else {
+                ""
+            };
+            let condition = condition.trim();
             // BASIC dialects test the last runtime error with a bare `ERROR`
             // condition (paired with ON ERROR RESUME NEXT). The engine exposes
             // it as the error_flag() function, not a variable, so rewrite it
@@ -63,20 +71,18 @@ pub fn convert_if_then_syntax(script: &str) -> String {
 
             // Handle inline IF/THEN with body on the same line
             // e.g., IF cond THEN stmt END IF  or  IF cond THEN stmt ELSE stmt2 END IF
-            let after_then = trimmed[then_pos + 5..].trim();
+            let after_then = trimmed.get(then_pos + 5..).unwrap_or("").trim();
             let has_inline_else = after_then.to_uppercase().contains(" ELSE ");
             let has_inline_end = after_then.to_uppercase().contains(" END IF");
 
             if has_inline_end || has_inline_else {
                 // Extract inline THEN body (everything before ELSE or END IF)
                 let inline_body = if has_inline_else {
-                    let else_upper = after_then.to_uppercase();
-                    let else_pos = match else_upper.find(" ELSE ") { Some(p) => p, None => continue };
-                    after_then[..else_pos].trim().to_string()
+                    let else_pos = match find_ascii_ci(after_then, " ELSE ") { Some(p) => p, None => continue };
+                    after_then.get(..else_pos).unwrap_or("").trim().to_string()
                 } else if has_inline_end {
-                    let end_upper = after_then.to_uppercase();
-                    let end_pos = match end_upper.find(" END IF") { Some(p) => p, None => continue };
-                    after_then[..end_pos].trim().to_string()
+                    let end_pos = match find_ascii_ci(after_then, " END IF") { Some(p) => p, None => continue };
+                    after_then.get(..end_pos).unwrap_or("").trim().to_string()
                 } else {
                     after_then.to_string()
                 };
@@ -88,9 +94,8 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 result.push_str(";\n");
 
                 if has_inline_else {
-                    let else_upper = after_then.to_uppercase();
-                    let else_pos = match else_upper.find(" ELSE ") { Some(p) => p, None => continue };
-                    let after_else = after_then[else_pos + 6..].trim();
+                    let else_pos = match find_ascii_ci(after_then, " ELSE ") { Some(p) => p, None => continue };
+                    let after_else = after_then.get(else_pos + 6..).unwrap_or("").trim();
                     let else_body = if after_else.to_uppercase().ends_with(" END IF") {
                         // `to_uppercase` can change a character's byte length, so the
                         // guard above says nothing about where `len() - 7` lands.
@@ -121,11 +126,16 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if upper.starts_with("ELSE IF ") && upper.contains(" THEN") {
-            let then_pos = match upper.find(" THEN") {
+            let then_pos = match find_ascii_ci(trimmed, " THEN") {
                 Some(pos) => pos,
                 None => continue,
             };
-            let condition = &trimmed[7..then_pos].trim();
+            let condition = if then_pos > 7 {
+                trimmed.get(7..then_pos).unwrap_or("")
+            } else {
+                ""
+            };
+            let condition = condition.trim();
             let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
             let condition = condition.replace(" AND ", " && ").replace(" and ", " && ")
                 .replace(" OR ", " || ").replace(" or ", " || ");
@@ -151,11 +161,16 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if upper.starts_with("ELSEIF ") && upper.contains(" THEN") {
-            let then_pos = match upper.find(" THEN") {
+            let then_pos = match find_ascii_ci(trimmed, " THEN") {
                 Some(pos) => pos,
                 None => continue,
             };
-            let condition = &trimmed[6..then_pos].trim();
+            let condition = if then_pos > 6 {
+                trimmed.get(6..then_pos).unwrap_or("")
+            } else {
+                ""
+            };
+            let condition = condition.trim();
             let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
             let condition = condition.replace(" AND ", " && ").replace(" and ", " && ")
                 .replace(" OR ", " || ").replace(" or ", " || ");
@@ -183,7 +198,7 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if upper.starts_with("WITH ") {
-            let object_name = &trimmed[5..].trim();
+            let object_name = trimmed.get(5..).unwrap_or("").trim();
             log::trace!("Converting WITH statement: object='{}'", object_name);
             result.push_str("let ");
             result.push_str(object_name);
@@ -215,7 +230,7 @@ pub fn convert_if_then_syntax(script: &str) -> String {
 
         if upper.starts_with("SAVE") && upper.contains(',') {
             log::trace!("Processing SAVE line: '{}'", trimmed);
-            let after_save = &trimmed[4..].trim();
+            let after_save = trimmed.get(4..).unwrap_or("").trim();
             let parts: Vec<&str> = after_save.split(',').collect();
             log::trace!("SAVE parts: {:?}", parts);
 
@@ -233,7 +248,9 @@ pub fn convert_if_then_syntax(script: &str) -> String {
 
         if upper.starts_with("SEND EMAIL") {
             log::trace!("Processing SEND EMAIL line: '{}'", trimmed);
-            let after_send = &trimmed[11..].trim();
+            // "SEND EMAIL" is 10 bytes; the old hard-coded 11 panicked on the
+            // bare keyword and could land mid-character after Unicode input.
+            let after_send = trimmed.get(10..).unwrap_or("").trim();
             let parts: Vec<&str> = after_send.split(',').collect();
             log::trace!("SEND EMAIL parts: {:?}", parts);
             if parts.len() == 3 {

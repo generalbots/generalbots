@@ -16,6 +16,24 @@ pub mod types;
 
 pub use types::*;
 
+/// Byte index of the first ASCII case-insensitive match of `needle` in `haystack`.
+///
+/// `to_uppercase().find(keyword)` is not safe in the syntax transforms: Unicode
+/// uppercase can change a character's byte length, so the returned offset may
+/// be out of range or in the middle of a character in the original string.
+/// Searching the original bytes directly always yields a valid char boundary
+/// (a matching ASCII needle cannot start on a UTF-8 continuation byte).
+pub(crate) fn find_ascii_ci(haystack: &str, needle: &str) -> Option<usize> {
+    let needle = needle.as_bytes();
+    if needle.is_empty() {
+        return Some(0);
+    }
+    haystack
+        .as_bytes()
+        .windows(needle.len())
+        .position(|window| window.eq_ignore_ascii_case(needle))
+}
+
 /// Design-time callback that executes a database statement: a schedule
 /// insertion, a webhook registration or an event subscription.
 pub type DbStatementCallback =

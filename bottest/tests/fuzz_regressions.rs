@@ -118,6 +118,15 @@ const BASIC_SEEDS: &[&[u8]] = &[
     b"SUB greet(name)\nTALK \"hi \" + name\nEND SUB\n",
     b"<LLM> summarize this </LLM>",
     b"' comment only\n",
+    // libFuzzer crash: "IF THEN ..." has no condition, and the old
+    // 3..then_pos slice was inverted (starts at 3 but ends at 2).
+    b"IF THEN TAs\"G",
+    b"IF THEN GOTO x\n",
+    b"SEND EMAIL",
+    "IF \u{131} THEN TALK 1\n".as_bytes(),
+    // Uppercase changes the byte length of U+0131, so offsets computed on
+    // to_uppercase() landed inside the original character.
+    "IF \u{131} THEN GOTO done\ndone:\n".as_bytes(),
 ];
 
 const OFFICE_SEEDS: &[&[u8]] = &[
