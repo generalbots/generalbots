@@ -39,7 +39,7 @@ test("[BASELINE-OBSERVE] 4,424 router Rust files, 2,379 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4424, "shipped router .rs file count");
+  equal(files.length, 4426, "shipped router .rs file count");
   equal(routeCalls, 2380, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 216, "files containing .route(");
