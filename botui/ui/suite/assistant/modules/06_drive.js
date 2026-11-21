@@ -45,8 +45,9 @@
         if (!b || b <= 0) return "";
         if (b < 1024) return b + " B";
         if (b < 1048576) return (b / 1024).toFixed(0) + " KB";
-        if (b < 1073741824) return (b / 1048576).toFixed(1) + " MB";
-        return (b / 1073741824).toFixed(1) + " GB";
+        var sep = (A.locale || document.documentElement.lang || "").toLowerCase().indexOf("pt") === 0 ? "," : ".";
+        if (b < 1073741824) return (b / 1048576).toFixed(1).replace(".", sep) + " MB";
+        return (b / 1073741824).toFixed(1).replace(".", sep) + " GB";
     };
 
     D.fmtDate = function (iso) {
@@ -66,13 +67,6 @@
     D.fileExt = function (name) {
         if (!name || name.indexOf(".") === -1) return "";
         return name.split(".").pop().toLowerCase();
-    };
-
-    D.fileIcon = function (name, isDir) {
-        if (isDir) return I("folder", 18);
-        var ext = D.fileExt(name);
-        if ("jpg jpeg png gif webp bmp svg ico avif".split(" ").indexOf(ext) >= 0) return I("image", 18);
-        return I("file", 18);
     };
 
     /* ---- JSON request via A.apiFetch ---- */
@@ -153,32 +147,6 @@
         if (!list) return;
         list.innerHTML = '<div class="gb-drv-state"><div class="gb-drv-spinner"></div><p>' +
             esc(A.t("drive.loading", "Carregando...")) + '</p></div>';
-    };
-
-    D.showEmpty = function () {
-        var list = document.getElementById("gbDrvList");
-        if (!list) return;
-        if (D.searching) {
-            list.innerHTML = '<div class="gb-drv-state">' +
-                I("magnifying-glass", 48) +
-                '<h3>' + esc(A.t("drive.search-empty", "Nenhum resultado encontrado")) + '</h3>' +
-                '</div>';
-            return;
-        }
-        var portuguese = document.documentElement.lang.toLowerCase().startsWith("pt");
-        if (D.inboxMode) {
-            list.innerHTML = '<div class="gb-drv-state">' + I("paperclip", 26) +
-                '<h3>' + (portuguese ? "Nenhum anexo ainda" : "No attachments yet") + '</h3></div>';
-            return;
-        }
-        list.innerHTML = '<button type="button" class="gb-drv-empty-upload">' +
-            '<span class="gb-drv-empty-icon">' + I("plus", 22) + '</span>' +
-            '<strong>' + esc(A.t("drive.empty-title", "No files yet")) + '</strong>' +
-            '<span>' + (portuguese ? "Clique para enviar ou arraste arquivos para cá." : "Click to upload or drag files here.") + '</span>' +
-            '<span class="gb-drv-empty-limit">' + (portuguese ? "Até 20 MB por arquivo" : "Up to 20 MB per file") + '</span></button>';
-        list.querySelector("button").onclick = function () {
-            document.getElementById("gbDrvFileInput").click();
-        };
     };
 
     D.showError = function (msg) {
@@ -332,8 +300,7 @@
                 var c = btns[j].getAttribute("data-col");
                 var act = c === D.sort.col;
                 btns[j].classList.toggle("gb-drv-col-active", act);
-                var arrow = btns[j].querySelector(".gb-drv-sort-arrow");
-                if (arrow) arrow.textContent = act ? (D.sort.asc ? "▲" : "▼") : "";
+                btns[j].classList.toggle("gb-drv-sort-desc", act && !D.sort.asc);
             }
         }
 
@@ -346,19 +313,17 @@
             var isDir = !!f.is_dir;
             var path = f.path || name;
             var selected = path === D.selected;
-            var ext = name.includes(".") ? name.split(".").pop().slice(0, 4).toUpperCase() : "";
             html += '<div class="gb-drv-row' + (selected ? " gb-drv-selected" : "") +
                 '" data-path="' + esc(path) + '" data-name="' + esc(name) +
                 '" data-is-dir="' + isDir + '" tabindex="0">' +
-                '<div class="gb-drv-name-cell"><span class="gb-drv-file-badge" aria-hidden="true">' +
-                (isDir || !ext ? D.fileIcon(name, isDir) : esc(ext)) + '</span>' +
+                '<div class="gb-drv-name-cell">' + D.fileBadge(name, isDir) +
                 '<span class="gb-drv-name-text">' + esc(name) + '</span></div>' +
-                '<div class="gb-drv-size-cell">' + (isDir ? "" : D.fmtBytes(f.size)) + '</div>' +
+                '<div class="gb-drv-size-cell">' + (isDir ? "—" : D.fmtBytes(f.size)) + '</div>' +
                 (hasAnyDate ? '<div class="gb-drv-date-cell">' + D.fmtDate(f.modified) + '</div>' : '') +
                 '<div class="gb-drv-action-cell">' +
                 '<button type="button" class="gb-drv-row-menu" aria-haspopup="true" aria-expanded="false" aria-label="' +
                 esc(A.t("drive.actions", "File actions")) + '">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>' +
                 '</button></div></div>';
         }
         list.innerHTML = html;
@@ -390,6 +355,8 @@
         if (menuBtn) {
             menuBtn.addEventListener("click", function (e) {
                 e.stopPropagation();
+                D.selected = row.getAttribute("data-path");
+                D.highlightRow(D.selected);
                 var ctxOpts = {};
                 if (D.inboxMode) {
                     ctxOpts.noDelete = true;

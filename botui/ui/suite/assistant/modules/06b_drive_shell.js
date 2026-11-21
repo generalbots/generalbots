@@ -6,7 +6,6 @@
  */
 (function () {
     var A = window.GBAssistant;
-    var I = window.GBIcon || function () { return ""; };
     var D = window.GBDrive;
     if (!D) { console.error("[drive] 06_drive.js not loaded"); return; }
     var esc = D.esc;
@@ -14,53 +13,71 @@
     /* ================================================================
        Shell: header, breadcrumb, toolbar, column headers, list area
        ================================================================ */
+    var P = D.PATHS = {
+        folder: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z",
+        clip: "M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48",
+        upload: "M12 15V3M7 8l5-5 5 5M5 21h14",
+        shield: "M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z",
+        sort: "m6 15 6-6 6 6"
+    };
+    /* Inline 24-unit stroke icon; `inner` is a path string or ready SVG markup. */
+    D.svg = function (inner, size, stroke, cap) {
+        var body = inner.charAt(0) === "<" ? inner : '<path d="' + inner + '"/>';
+        return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +
+            stroke + '" stroke-linecap="' + (cap || "round") + '" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+    };
+    D.railIcon = function (path) { return '<span class="gb-drv-rail-icon">' + D.svg(path, 13, 1.7) + '</span>'; };
+
     D.renderShell = function (container) {
         var t = A.t.bind(A);
         var portuguese = document.documentElement.lang.toLowerCase().startsWith("pt");
-        var tabs =
-            '<button type="button" class="gb-drv-tab active" data-tab="files" aria-pressed="true">' +
-                I("folder", 15) + '<span>' + esc(t("drive.my-files", "My files")) + '</span></button>' +
-            '<button type="button" class="gb-drv-tab" data-tab="inbox" aria-pressed="false">' +
-                I("paperclip", 15) + '<span>' + esc(t("drive.chat-attachments", "Conversation attachments")) + '</span></button>';
+        function tab(id, label, icon) {
+            return '<button type="button" class="gb-drv-tab' + (id === "files" ? " active" : "") + '" data-tab="' + id +
+                '" aria-pressed="' + (id === "files") + '">' + (icon ? D.railIcon(icon) : "") +
+                '<span class="gb-drv-tab-label">' + esc(label) + '</span>' + (icon ? "" : '<span class="gb-drv-count"></span>') + '</button>';
+        }
+        var myFiles = t("drive.my-files", "My files"), attachments = t("drive.chat-attachments", "Conversation attachments");
+        var colLabel = function (key, fallback) { return esc(t(key, fallback).toUpperCase()); };
+        var sortArrow = '<span class="gb-drv-sort-arrow">' + D.svg(P.sort, 10, 3, "square") + '</span>';
         container.innerHTML =
             '<div class="gb-drv-header">' +
-                '<div><span class="gb-label">Drive</span>' +
+                '<div class="gb-drv-heading"><span class="gb-drv-eyebrow"><span class="gb-drv-slash">//</span>DRIVE</span>' +
                 '<h1 class="gb-drv-title">' + (portuguese ? "Seus arquivos, neste computador." : "Your files, on this computer.") + '</h1></div>' +
-                '<div class="gb-drv-tabs gb-seg" id="gbDrvTabs">' + tabs + '</div>' +
+                '<div class="gb-drv-tabs" id="gbDrvTabs">' + tab("files", myFiles) + tab("inbox", attachments) + '</div>' +
             '</div>' +
             '<div class="gb-drv-panel">' +
             '<div class="gb-drv-toolbar" id="gbDrvToolbar">' +
-                '<div class="gb-drv-location">' + I("folder", 15) +
+                '<div class="gb-drv-location">' + D.svg(P.folder, 15, 1.7) +
                     '<div class="gb-drv-breadcrumb" id="gbDrvBreadcrumb"></div></div>' +
                 '<div class="gb-drv-search-wrap">' +
-                    '<span class="gb-drv-search-icon" aria-hidden="true">' + I("magnifying-glass", 14) + '</span>' +
+                    D.svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 14, 1.7) +
                     '<input type="search" class="gb-drv-search-input" id="gbDrvSearchInput" aria-label="' + esc(t("drive.search-placeholder", "Search")) +
-                    '" placeholder="' + esc(t("drive.search-placeholder", "Search...")) + '" />' +
+                    '" placeholder="' + (portuguese ? "Pesquisar…" : "Search…") + '" />' +
                 '</div>' +
-                '<button type="button" class="gb-btn" id="gbDrvNewFolder">' +
-                    I("folder", 14) + ' <span>' + esc(t("drive.new-folder", "New folder")) + '</span></button>' +
-                '<button type="button" class="gb-btn gb-btn-pri" id="gbDrvUploadBtn">' +
-                    I("plus", 14) + ' <span>' + esc(t("drive.upload", "Upload")) + '</span></button>' +
+                '<button type="button" class="gb-drv-tbtn" id="gbDrvNewFolder">' +
+                    D.svg(P.folder + "M12 10v6M9 13h6", 13, 2) + '<span>' + esc(t("drive.new-folder", "New folder")) + '</span></button>' +
+                '<button type="button" class="gb-drv-tbtn gb-drv-tbtn-pri" id="gbDrvUploadBtn">' +
+                    D.svg(P.upload, 13, 2.2) + '<span>' + esc(t("drive.upload", "Upload")) + '</span></button>' +
                 '<input type="file" id="gbDrvFileInput" hidden multiple />' +
             '</div>' +
             '<div class="gb-drv-col-header" id="gbDrvColHeader">' +
-                '<button class="gb-drv-col-btn gb-drv-col-active" data-col="name">' + esc(t("drive.name", "Nome")) + ' <span class="gb-drv-sort-arrow"></span></button>' +
-                '<button class="gb-drv-col-btn" data-col="size">' + esc(t("drive.size", "Tamanho")) + '</button>' +
-                '<button class="gb-drv-col-btn" data-col="modified">' + esc(t("drive.modified", "Modificado")) + '</button>' +
+                '<button type="button" class="gb-drv-col-btn gb-drv-col-active" data-col="name">' + colLabel("drive.name", "Name") + sortArrow + '</button>' +
+                '<button type="button" class="gb-drv-col-btn" data-col="size">' + colLabel("drive.size", "Size") + sortArrow + '</button>' +
+                '<button type="button" class="gb-drv-col-btn" data-col="modified">' + colLabel("drive.modified", "Modified") + sortArrow + '</button>' +
                 '<span></span>' +
             '</div>' +
             '<div class="gb-drv-list" id="gbDrvList"></div>' +
             '</div>' +
-            '<p class="gb-drv-privacy">' + I("shield-check", 15) +
+            '<p class="gb-drv-privacy">' + D.svg(P.shield, 14, 1.8) + '<span>' +
                 (portuguese ? "Os arquivos ficam neste computador. Eles só vão a um modelo quando você usa um deles numa conversa." :
-                    "Files stay on this computer. They go to a model only when you use them in a conversation.") + '</p>' +
+                    "Files stay on this computer. They go to a model only when you use them in a conversation.") + '</span></p>' +
             '<div class="gb-drv-drop-overlay" id="gbDrvDropOverlay">' +
-                '<span class="gb-drv-drop-text">' + esc(t("drive.drop-files", "Solte os arquivos aqui")) + '</span>' +
+                '<span class="gb-drv-drop-text">' + (portuguese ? "Solte para enviar ao Drive" : "Drop to upload to Drive") + '</span>' +
             '</div>';
 
         var rail = document.getElementById("gbDriveNav");
         if (rail) {
-            rail.innerHTML = '<span class="gb-strip">Drive</span>' + tabs +
+            rail.innerHTML = '<span class="gb-strip">DRIVE</span>' + tab("files", myFiles, P.folder) + tab("inbox", attachments, P.clip) +
                 '<div class="gb-drv-rail-folders" id="gbDrvRailFolders" hidden></div>';
             rail.onclick = switchTab;
         }
@@ -113,7 +130,7 @@
             searchInput.addEventListener("input", function () {
                 clearTimeout(debounce);
                 var q = searchInput.value.trim();
-                if (!q) { if (D.searching) { D.searching = false; D.refreshFiles(); } return; }
+                if (!q) { if (D.searching) { D.searching = false; D.reloadList(); } return; }
                 debounce = setTimeout(function () { D.searchFiles(q); }, 400);
             });
             searchInput.addEventListener("keydown", function (e) {
@@ -121,7 +138,7 @@
                     e.stopPropagation();
                     clearTimeout(debounce);
                     searchInput.value = "";
-                    if (D.searching) { D.searching = false; D.refreshFiles(); }
+                    if (D.searching) { D.searching = false; D.reloadList(); }
                 }
             });
         }
@@ -190,7 +207,12 @@
         });
     }
 
-    var MAX_DRIVE_UPLOAD = 20 * 1024 * 1024; /* 20 MB */
+    var MAX_DRIVE_UPLOAD = 25 * 1024 * 1024; /* 25 MB */
+
+    D.reloadList = function () {
+        if (D.inboxMode) D.loadInboxFiles();
+        else D.refreshFiles();
+    };
 
     D.uploadFiles = function (files) {
         if (!files || !files.length) return;
@@ -206,7 +228,8 @@
         }
         if (tooBig.length) {
             D.showToast(
-                A.t("drive.file-too-big", "Arquivo grande demais (limite de 20 MB): ") + tooBig.join(", "),
+                (document.documentElement.lang.toLowerCase().startsWith("pt") ? "Arquivo grande demais (limite de 25 MB): " :
+                    "File too large (25 MB limit): ") + tooBig.join(", "),
                 "error"
             );
         }
@@ -238,7 +261,10 @@
                         failed + " " + A.t("drive.upload-failed", "falha(s)") + ": " + label);
                     setTimeout(function () { removeToast(); }, 6000);
                 }
-                    if (!D.inboxMode) D.refreshFiles();
+                if (D.inboxMode) {
+                    var filesTab = document.querySelector('#gbDrvTabs [data-tab="files"]');
+                    if (filesTab) filesTab.click();
+                } else D.refreshFiles();
                 return;
             }
             updateUploadToast(toast, i, files.length, files[i].name);

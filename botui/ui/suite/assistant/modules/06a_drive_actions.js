@@ -8,7 +8,6 @@
  */
 (function () {
     var A = window.GBAssistant;
-    var I = window.GBIcon || function () { return ""; };
     var D = window.GBDrive;
     if (!D) { console.error("[drive] 06_drive.js not loaded"); return; }
     var esc = D.esc;
@@ -24,32 +23,34 @@
         D.ctxEl.className = "gb-drv-ctx";
         opts = opts || {};
 
+        var pt = document.documentElement.lang.toLowerCase().startsWith("pt");
         var items = [];
-        /* "Usar na conversa" action: attach this file to the chat composer */
+        /* "Usar numa conversa" action: attach this file to the chat composer */
         if (!isDir && !opts.noUseInChat) {
-            items.push({ label: A.t("drive.use-in-chat", "Usar na conversa"), icon: "paperclip", action: "use-in-chat" });
+            items.push({ label: pt ? "Usar numa conversa" : "Use in a conversation", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z", action: "use-in-chat" });
         }
+        items.push({ label: A.t("drive.download", "Download"), icon: "M12 3v12M7 10l5 5 5-5M5 21h14", action: "download" });
         if (!opts.noRename) {
-            items.push({ label: A.t("drive.rename", "Renomear"), icon: "file", action: "rename" });
+            items.push({ label: A.t("drive.rename", "Rename"), icon: "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z", action: "rename" });
         }
-        items.push({ label: A.t("drive.download", "Baixar"), icon: "download", action: "download" });
         if (!opts.noDelete) {
-            items.push({ label: A.t("drive.delete", "Excluir"), icon: "trash", action: "delete", danger: true });
+            items.push({ label: pt ? "Apagar" : "Delete", icon: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", action: "delete", danger: true });
         }
 
         var html = "";
         for (var i = 0; i < items.length; i++) {
-            html += '<button class="gb-drv-ctx-item' +
+            html += '<button type="button" class="gb-drv-ctx-item' +
                 (items[i].danger ? " gb-drv-ctx-danger" : "") +
                 '" data-action="' + items[i].action + '">' +
-                I(items[i].icon, 14) + '<span>' + esc(items[i].label) + '</span></button>';
+                D.svg(items[i].icon, 14, 1.8) + '<span>' + esc(items[i].label) + '</span></button>';
         }
         D.ctxEl.innerHTML = html;
         document.body.appendChild(D.ctxEl);
 
         var anchor = trigger.getBoundingClientRect();
-        var x = anchor.right;
-        var y = anchor.bottom + 4;
+        /* The menu hangs 2px past the trigger's right edge, 32px below its top. */
+        var x = anchor.right + 2;
+        var y = anchor.top + 32;
         var w = D.ctxEl.offsetWidth;
         var h = D.ctxEl.offsetHeight;
         x = Math.max(8, Math.min(window.innerWidth - w - 8, x - w));

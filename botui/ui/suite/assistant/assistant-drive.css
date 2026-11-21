@@ -98,10 +98,6 @@
 }
 .gb-drv-search-input:focus { border-color: var(--id-accent); }
 .gb-drv-search-input::placeholder { color: var(--id-gray-400); }
-.gb-drv-search-icon {
-    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-    color: var(--id-gray-400); pointer-events: none;
-}
 
 /* == Column headers ================================================== */
 .gb-drv-col-header {
