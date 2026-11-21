@@ -9,6 +9,13 @@ readme = "README.md"
 keywords = ["bot", "ai", "chatbot", "tauri", "desktop"]
 categories = ["gui", "network-programming"]
 
+# Tauri links the Rust side as a native library on mobile: Android needs a
+# cdylib (libbotapp.so), iOS a staticlib. Keep rlib so desktop integration
+# tests and the existing lib target consumers continue to work unchanged.
+[lib]
+name = "botapp"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [dependencies]
 # Core from botlib
 botlib = { workspace = true, features = ["http-client"] }
