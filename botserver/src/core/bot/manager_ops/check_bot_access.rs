@@ -69,7 +69,7 @@ pub async fn check_access_handler(
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     req: axum::extract::Request,
 ) -> impl axum::response::IntoResponse {
-    let is_public = {
+    let is_public_or_missing = {
         use botcore::shared::schema::bots::dsl as bots_dsl;
         if let Ok(mut conn) = state.conn.get() {
             // #1289 — accept slug as well as name (launcher/URL use slugs).
@@ -81,10 +81,15 @@ pub async fn check_access_handler(
                 )
                 .select(bots_dsl::is_public)
                 .first::<bool>(&mut *conn)
-                .unwrap_or(false)
+                .optional()
+                .unwrap_or(None)
         } else {
-            false
+            None
         }
+    };
+
+    let Some(is_public) = is_public_or_missing else {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
     };
 
     if is_public || bot_name == "default" {
@@ -99,8 +104,13 @@ pub async fn check_access_handler(
         _ => return axum::http::StatusCode::UNAUTHORIZED.into_response(),
     };
 
-    match check_bot_access(&state, &bot_name, user_id).await {
+    match check_bot_access_typed(&state, &bot_name, user_id).await {
         Ok(_) => axum::http::StatusCode::OK.into_response(),
-        Err(_) => axum::http::StatusCode::FORBIDDEN.into_response(),
+        Err(BotAccessDenial::NotFound) => axum::http::StatusCode::NOT_FOUND.into_response(),
+        Err(BotAccessDenial::AuthRequired) => axum::http::StatusCode::FORBIDDEN.into_response(),
+        Err(BotAccessDenial::Internal(e)) => {
+            log::error!("check_access_handler: {e}");
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
     }
 }
