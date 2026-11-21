@@ -235,3 +235,4 @@ body[data-screen="drive"] .gb-shell-status .gb-status-usage:not(:empty) { displa
 body[data-screen="drive"] .gb-shell-status .gb-status-line { display: none; }
 body[data-screen="drive"] .gb-main::before, body[data-screen="drive"] .gb-main::after { display: none; }
 body[data-screen="settings"] .gb-breadcrumb { border-radius: 0; }
+body:not([data-screen="chat"]) .gb-rail-middle { overflow-x: hidden; }

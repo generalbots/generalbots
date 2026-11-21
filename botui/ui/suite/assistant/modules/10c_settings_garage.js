@@ -120,6 +120,12 @@ function modeButtons(currentMode, modes) {
     '<div class="gb-of-card"><div class="gb-of-grid" id="gbGarModeGrid"' + (rec ? ' data-rec="' + rec + '"' : '') + '>' + MODES.map(function (mode, i) {
       var info = (modes || []).find(function (e) { return e.id === mode; });
       var off = !info || info.available === false;
+      // The server's mode list has no entry for subscription agents: they are
+      // available whenever the agent workspace is (product config says so).
+      if (mode === "acp" && !info) {
+        var pc = A.productConfig || {};
+        off = pc.agent_backend_unavailable !== null && pc.agent_backend_unavailable !== undefined;
+      }
       var f = INFO[mode];
       return '<button type="button" class="gb-of-mode" data-mode="' + mode + '" aria-controls="gbModeDetail" aria-pressed="false"' + (off ? " disabled" : "") + '>' +
         '<span class="gb-of-mode-top"><span class="gb-of-ico">' + svg(f[5], 15) + '</span><span class="gb-of-num">0' + (i + 1) + '</span><span class="gb-of-sp"></span>' +
