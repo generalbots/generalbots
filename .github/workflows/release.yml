@@ -1956,7 +1956,8 @@ jobs:
           # SHA256SUMS-os now verifies the published parts in place.
           sha256sum generalbots-os.iso.zst.*.part > SHA256SUMS-os
           sha256sum -c SHA256SUMS-os
-          echo "OS image: ${RAW_BYTES} raw bytes -> $(du -ch generalbots-os.iso.zst.*.part | tail -1 | cut -f1) across $(ls generalbots-os.iso.zst.*.part | wc -l) parts"
+          PART_COUNT=$(find . -maxdepth 1 -type f -name 'generalbots-os.iso.zst.*.part' | wc -l)
+          echo "OS image: ${RAW_BYTES} raw bytes -> $(du -ch generalbots-os.iso.zst.*.part | tail -1 | cut -f1) across ${PART_COUNT} parts"
           ls -lh generalbots-os.iso.zst.*.part SHA256SUMS-os generalbots-os.iso.zst.sha256
 
       - name: Create the stable download aliases
