@@ -26,7 +26,7 @@ var L = { "pt-BR": {
   paste:"Cole aqui o código que a página mostrar", send:"Enviar código",
   unavailable:"A máquina virtual de agentes não está disponível neste computador:", failed:"Não foi possível conectar:",
   models:"MODELOS NO MENU DO CHAT", modelsTip:"Ligue os modelos deste agente que devem aparecer no menu do chat.",
-  count:"%n DE %t LIGADOS", def:"PADRÃO", save:"Salvar modelos", saving:"Salvando…", saved:"Modelos salvos. Os ligados aparecem no menu do chat.",
+  count:"%n DE %t LIGADOS", def:"PADRÃO", saving:"Salvando…", saved:"Salvo.",
   loading:"Lendo os modelos do agente…", none:"O agente não informou modelos.", readFail:"Não foi possível ler os modelos do agente:", saveFail:"Não foi possível salvar:",
   vmStopped:"MÁQUINA DESLIGADA", vmStarting:"MÁQUINA INICIANDO", vmUnavailable:"MÁQUINA INDISPONÍVEL",
   vmStoppedMsg:"A máquina virtual está desligada. O login continua quando ela ligar.",
@@ -41,7 +41,7 @@ en: {
   paste:"Paste the code the page shows", send:"Send code",
   unavailable:"The agent virtual machine is not available on this computer:", failed:"Could not connect:",
   models:"MODELS IN THE CHAT MENU", modelsTip:"Switch on the models of this agent that should appear in the chat menu.",
-  count:"%n OF %t ON", def:"DEFAULT", save:"Save models", saving:"Saving…", saved:"Models saved. The ones switched on appear in the chat menu.",
+  count:"%n OF %t ON", def:"DEFAULT", saving:"Saving…", saved:"Saved.",
   loading:"Reading the agent's models…", none:"The agent reported no models.", readFail:"Could not read the agent's models:", saveFail:"Could not save:",
   vmStopped:"MACHINE OFF", vmStarting:"MACHINE STARTING", vmUnavailable:"MACHINE UNAVAILABLE",
   vmStoppedMsg:"The virtual machine is off. The sign-in continues when it starts.",
@@ -125,7 +125,8 @@ var HINT = 'class="gb-of-hint" style="margin:0;padding:10px 16px;border-top:1px 
 function mountModels(el, a) {
   var box = el.querySelector('[data-agm="' + a.id + '"]');
   if (!box) { return; }
-  var G = A._modelGarage, list = [], on = {};
+  var G = A._modelGarage, list = [], on = {}, savedOn = {};
+  var saveTimer = null, saving = false, pendingSave = false;
   box.innerHTML = '<section class="gb-of-km"><button type="button" class="gb-of-km-h" aria-expanded="false" style="width:100%;border:0;font:inherit;color:inherit;text-align:start;cursor:pointer">' +
     '<span class="gb-of-k">' + (G ? G.sl() : '') + esc(g("models")) + '</span>' + (G ? G.help(g("modelsTip")) : '') +
     '<span class="gb-of-sp"></span><span class="gb-of-meta" data-role="count"></span>' +
@@ -152,31 +153,53 @@ function mountModels(el, a) {
       return '<label class="gb-of-km-r' + (on[m.id] ? ' on' : '') + '"><i></i><span><b>' + esc(A.agentModelLabel(m)) + '</b>' +
         (m["default"] ? '<span class="gb-of-chip xs mute">' + esc(g("def")) + '</span>' : '') +
         '<input type="checkbox" class="gb-of-tg" data-model="' + esc(m.id) + '"' + (on[m.id] ? ' checked' : '') + '/></span></label>';
-    }).join("") + '</div><div class="gb-of-km-f"><span class="gb-of-sp"></span><button type="button" class="gb-of-btn pri sm" data-role="save">' + esc(g("save")) + '</button></div>';
+    }).join("") + '</div>';
     body.querySelectorAll(".gb-of-km-r input").forEach(function (cb) {
-      cb.addEventListener("change", function () { on[cb.getAttribute("data-model")] = cb.checked; cb.closest(".gb-of-km-r").classList.toggle("on", cb.checked); count(); });
+      cb.addEventListener("change", function () {
+        on[cb.getAttribute("data-model")] = cb.checked;
+        cb.closest(".gb-of-km-r").classList.toggle("on", cb.checked);
+        count();
+        scheduleSave();
+      });
     });
-    body.querySelector('[data-role="save"]').addEventListener("click", save);
   }
-  function save(ev) {
-    var btn = ev.currentTarget;
-    btn.disabled = true;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    if (saving) { pendingSave = true; return; }
+    saveTimer = setTimeout(doSave, 400);
+  }
+  function revertSwitches() {
+    list.forEach(function (m) { on[m.id] = !!savedOn[m.id]; });
+    draw(); fold();
+  }
+  function doSave() {
+    saving = true;
     say("gb-set-hint", g("saving"));
     var enabled = list.filter(function (m) { return on[m.id]; }).map(function (m) { return m.id; });
+    var snapshot = {};
+    list.forEach(function (m) { snapshot[m.id] = !!on[m.id]; });
     api("/api/ai-accounts/" + a.id + "/models", { enabled: enabled }, "PUT")
       .then(function () {
+        list.forEach(function (m) { savedOn[m.id] = !!snapshot[m.id]; });
         say("gb-set-hint gb-set-ok", g("saved"));
         if (A.loadModels) { return A.loadModels().then(function () { if (A.renderModelPickers) { A.renderModelPickers(); } }); }
       })
-      .catch(function (e) { say("gb-set-warn", g("saveFail") + " " + e.message); })
-      .then(function () { btn.disabled = false; });
+      .catch(function (e) {
+        say("gb-set-warn", g("saveFail") + " " + e.message);
+        pendingSave = false;
+        revertSwitches();
+      })
+      .then(function () {
+        saving = false;
+        if (pendingSave) { pendingSave = false; scheduleSave(); }
+      });
   }
   head.addEventListener("click", function () { openModels[a.id] = !openModels[a.id]; fold(); });
   fold();
   body.innerHTML = '<p ' + HINT + '>' + esc(g("loading")) + '</p>';
   api("/api/ai-accounts/" + a.id + "/models").then(function (d) {
     list = (d && d.models) || [];
-    list.forEach(function (m) { on[m.id] = !!m.enabled; });
+    list.forEach(function (m) { on[m.id] = !!m.enabled; savedOn[m.id] = !!m.enabled; });
     draw();
   }).catch(function (e) { body.innerHTML = '<p class="gb-set-warn" style="margin:0;padding:10px 16px;border-top:1px solid var(--id-line)">' + esc(g("readFail") + " " + e.message) + '</p>'; });
 }
