@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR" data-identity="mantis">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -18,7 +18,9 @@
 
 <!-- Assistant shell -->
 <link rel="stylesheet" href="/suite/assistant/assistant.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-main.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-chat.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-composer.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-actions.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-blocks.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-patterns.css" />
@@ -27,6 +29,14 @@
 <link rel="stylesheet" href="/suite/assistant/assistant-garage.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-providers.css" />
 <link rel="stylesheet" href="/suite/assistant/assistant-feedback.css" />
+
+<link rel="stylesheet" href="/suite/assistant/assistant-mantis-foundation.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-shell.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-drive-mantis.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-settings-mantis.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-chat-mantis.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-blocks-mantis.css" />
+<link rel="stylesheet" href="/suite/assistant/assistant-machine.css" />
 
 <!-- Security bootstrap: only the token module is needed; the fetch
      interceptor is omitted because it redirects on 401 from endpoints
@@ -83,7 +93,7 @@
 </script>
 </head>
 
-<body>
+<body data-screen="chat">
 <!-- Titlebar: built by titlebar.js at the top of body -->
 <script src="/suite/assistant/titlebar.js"></script>
 
@@ -92,73 +102,38 @@
 
 <!-- Sidebar -->
 <aside id="gb-sidebar" class="gb-sidebar" role="navigation" aria-label="Sidebar">
-    <div class="gb-sidebar-top">
-        <div class="gb-sidebar-brand">
-            <span class="gb-wordmark" id="gbWordmark"></span>
-            <button class="gb-btn-icon gb-sidebar-collapse-btn" id="gbSidebarToggle"
-                    aria-label="Toggle sidebar" title="Toggle sidebar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <line x1="9" y1="3" x2="9" y2="21"/>
-                </svg>
-            </button>
+    <div class="gb-rail-head">
+        <div class="gb-app-switch">
+            <button type="button" class="gb-nav-item active" id="gbNavChat" data-view="chat" aria-label="Chat"><i data-icon="chat-circle"></i><span>Chat</span></button>
+            <button type="button" class="gb-nav-item" id="gbNavDrive" data-view="drive" aria-label="Drive"><i data-icon="folder"></i><span>Drive</span></button>
         </div>
-
-        <button class="gb-new-chat-btn" id="gbNewChat">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span data-i18n="assistant.new-chat">New chat</span>
-        </button>
-
-        <div class="gb-sidebar-search" id="gbSearchWrap">
-            <svg class="gb-search-icon" width="14" height="14" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input type="text" id="gbSearchInput" class="gb-search-input"
-                   data-i18n-placeholder="assistant.search" placeholder="Search..." />
-        </div>
-
-        <button class="gb-nav-item" id="gbNavDrive" data-view="drive">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span data-i18n="assistant.drive">Drive</span>
-        </button>
+        <strong class="gb-settings-label" data-i18n="assistant.settings">Configurações</strong>
+        <button class="gb-btn-icon" type="button" id="gbSidebarToggle" data-i18n-aria="shell.sidebar" aria-controls="gb-sidebar" aria-expanded="true" aria-label="Barra lateral"><i data-icon="sidebar"></i></button>
     </div>
-
-    <div class="gb-sidebar-conversations" id="gbConversations">
-        <!-- Conversation list populated by 04_sidebar.js -->
-    </div>
-
-    <div class="gb-sidebar-bottom">
-        <div class="gb-sidebar-user" id="gbUserSection">
-            <div class="gb-user-avatar" id="gbUserAvatar"></div>
-            <span class="gb-user-name" id="gbUserName"></span>
+    <div class="gb-rail-middle">
+        <div class="gb-rail-chat">
+            <h2 class="gb-strip gb-strip-count"><span data-i18n="shell.conversations">Conversas</span><span class="gb-strip-num" id="gbConvCount"></span></h2>
+            <button class="gb-new-chat-btn" id="gbNewChat" aria-keyshortcuts="Control+N"><i data-icon="plus"></i><span data-i18n="assistant.new-chat">Nova conversa</span><kbd class="gb-kbd" aria-hidden="true">Ctrl N</kbd></button>
+            <div class="gb-sidebar-search" id="gbSearchWrap"><i class="gb-search-icon" data-icon="magnifying-glass"></i><input type="search" id="gbSearchInput" class="gb-search-input" data-i18n-placeholder="assistant.search" data-i18n-aria="assistant.search" aria-keyshortcuts="Control+K" /><kbd class="gb-kbd" aria-hidden="true">Ctrl K</kbd></div>
+            <div class="gb-sidebar-conversations" id="gbConversations"></div>
         </div>
-        <button class="gb-nav-item" id="gbNavSettings" data-view="settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <span data-i18n="assistant.settings">Settings</span>
-        </button>
-        <div class="gb-status-line" id="gbStatusLine">
-            <span class="gb-status-dot" id="gbStatusDot"></span>
-            <span class="gb-status-text" id="gbStatusText"></span>
+        <nav class="gb-rail-drive" id="gbDriveNav" aria-label="Drive"></nav>
+        <nav class="gb-rail-machine" id="gbMachineNav" data-i18n-aria="shell.machine"></nav>
+        <nav class="gb-rail-settings" id="gbSettingsNav" data-i18n-aria="assistant.settings"></nav>
+    </div>
+    <div class="gb-rail-foot">
+        <button type="button" class="gb-nav-item gb-machine-link" id="gbNavMachine" data-view="machine" data-i18n-aria="shell.machine"><i data-icon="terminal"></i><span><strong data-i18n="shell.machine">Máquina</strong><span class="gb-rail-meta"><span class="gb-cpu-spark" id="gbRailCpu" hidden></span><small id="gbRailMachineState"></small></span></span><i class="gb-health-mark" aria-hidden="true"></i></button>
+        <div class="gb-account-tools">
+            <button type="button" class="gb-sidebar-user" id="gbUserSection" aria-expanded="false"><b class="gb-user-avatar" id="gbUserAvatar"></b><span class="gb-user-text"><span class="gb-user-name" id="gbUserName"></span><small class="gb-user-role" id="gbUserRole"></small></span></button>
+            <button type="button" class="gb-btn-icon" id="gbNavAppearance" data-i18n-aria="settings.appearance" data-i18n-title="settings.appearance"><i data-icon="appearance"></i></button>
+            <button type="button" class="gb-nav-item gb-settings-link" id="gbNavSettings" data-view="settings" data-i18n-aria="assistant.settings" data-i18n-title="assistant.settings"><i data-icon="gear"></i></button>
         </div>
     </div>
 </aside>
 
 <!-- Main area -->
 <main id="gb-main" class="gb-main">
+    <header class="gb-breadcrumb" aria-label="Breadcrumb"><span id="gbCrumbSection">Chat</span><i data-icon="caret-right"></i><strong id="gbCrumbCurrent" aria-current="page" data-i18n="assistant.new-chat">Nova conversa</strong></header>
     <!-- Chat view (default) -->
     <div id="gbChatView" class="gb-chat-view gb-view-active">
         <!-- Empty state -->
@@ -206,6 +181,7 @@
             <div class="gb-suggestions gb-suggestions-dock" id="gbSuggestionsDock"></div>
         </div>
 
+        <div class="gb-perm-dock" id="gbPermissionDock" aria-live="polite" hidden></div>
         <!-- Docked composer -->
         <div id="gbComposerDock" class="gb-composer-dock" style="display:none;">
             <div class="gb-composer-inner">
@@ -251,6 +227,7 @@
         <div id="gbDriveContainer" class="gb-drive-container"></div>
     </div>
 
+    <div id="gbMachineView" class="gb-machine-view" hidden></div>
     <!-- Settings view -->
     <div id="gbSettingsView" class="gb-settings-view" style="display:none;">
         <div id="gbSettingsContainer" class="gb-settings-container"></div>
@@ -258,6 +235,8 @@
 </main>
 </div><!-- .gb-app -->
 
+<footer class="gb-shell-status"><div class="gb-status-line" id="gbStatusLine"><span class="gb-status-dot" id="gbStatusDot"></span><span class="gb-status-text" id="gbStatusText"></span></div><span id="gbShellEdition">General Bots Lite</span></footer>
+<dialog id="gbAppearanceDialog" class="gb-appearance-dialog" aria-labelledby="gbAppearanceTitle"><header><h2 id="gbAppearanceTitle" data-i18n="settings.appearance">Aparência</h2><button type="button" id="gbAppearanceClose" class="gb-btn-icon" data-i18n-aria="shell.close"><i data-icon="x"></i></button></header><div id="gbAppearanceContent"></div></dialog>
 <!-- Screen-reader announcements -->
 <div id="gbSrLive" class="gb-sr-only" aria-live="polite" role="status"></div>
 
@@ -271,18 +250,22 @@
 <script src="/suite/assistant/modules/03a_stream.js"></script>
 <script src="/suite/assistant/modules/03b_actions.js"></script>
 <script src="/suite/assistant/modules/03e_model_tag.js"></script>
+<script src="/suite/assistant/modules/03f_message_heading.js"></script>
 <script src="/suite/assistant/modules/07_protocol.js"></script>
 <script src="/suite/assistant/modules/08_consent.js"></script>
 <script src="/suite/assistant/modules/04_sidebar.js"></script>
 <script src="/suite/assistant/modules/04b_status.js"></script>
 <script src="/suite/assistant/modules/05b_model_picker.js"></script>
 <script src="/suite/assistant/modules/05c_agent_toggle.js"></script>
+<script src="/suite/assistant/modules/05d_engine_guard.js"></script>
 <script src="/suite/assistant/modules/05_composer.js"></script>
 <script src="/suite/assistant/modules/06_drive.js"></script>
 <script src="/suite/assistant/modules/06a_drive_actions.js"></script>
 <script src="/suite/assistant/modules/06b_drive_shell.js"></script>
+<script src="/suite/assistant/modules/06c_drive_meta.js"></script>
 <script src="/suite/assistant/modules/09b_patterns.js"></script>
 <script src="/suite/assistant/modules/09c_settings_instructions.js"></script>
+<script src="/suite/assistant/modules/09d_settings_profile.js"></script>
 <script src="/suite/assistant/modules/09_settings.js"></script>
 <script src="/suite/assistant/modules/10_settings_model.js"></script>
 <script src="/suite/assistant/modules/10b_settings_model_local.js"></script>
@@ -292,12 +275,20 @@
 <script src="/suite/assistant/modules/10h_settings_key_models.js"></script>
 <script src="/suite/assistant/modules/10f_provider_logos.js"></script>
 <script src="/suite/assistant/modules/10g_settings_agents.js"></script>
+<script src="/suite/assistant/modules/10i_settings_limits.js"></script>
 <script src="/suite/assistant/modules/12_blocks.js"></script>
+<script src="/suite/assistant/modules/12a_block_kinds.js"></script>
+<script src="/suite/assistant/modules/12b_block_live.js"></script>
+<script src="/suite/assistant/modules/12c_attach_card.js"></script>
 <script src="/suite/assistant/modules/13_attachpanel.js"></script>
 <script src="/suite/assistant/modules/14_keyboard.js"></script>
 <script src="/suite/assistant/modules/15_export.js"></script>
 <script src="/suite/assistant/modules/15b_feedback.js"></script>
 <script src="/suite/assistant/dev/fixtures.js"></script>
+<script src="/suite/assistant/modules/04c_shell.js"></script>
+<script src="/suite/assistant/modules/16_machine.js"></script>
+<script src="/suite/assistant/modules/16b_machine_view.js"></script>
+<script src="/suite/assistant/modules/17_usage.js"></script>
 <script src="/suite/assistant/modules/99_init.js"></script>
 </body>
 </html>

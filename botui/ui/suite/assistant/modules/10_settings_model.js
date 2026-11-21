@@ -145,7 +145,7 @@ function errText(code) {
 }
 /* One switch at a time: every mode and action button waits while it runs. */
 function setBusy(on, msgEl, text) {
-  var panel = document.getElementById("gbSetPanel");
+  var panel = document.querySelector('#gbSetPanel[data-section="model"]');
   if (panel) { if (on) panel.setAttribute("aria-busy", "true"); else panel.removeAttribute("aria-busy"); }
   if (on && msgEl) { msgEl.innerHTML = '<p class="gb-set-busy" role="status">' + esc(text || t("switching")) + '</p>'; }
 }
@@ -154,6 +154,7 @@ function setBusy(on, msgEl, text) {
 var cfg = null, modes = null, localModels = null, readOnly = false;
 var cfgError = null;
 var pendingStatus = null; /* {html, isOk} shown after the next re-render */
+var modelRender = 0;
 var viewMode = null;      /* the mode card being viewed; kept when a list refreshes */
 A._modelShared = {
   get cfg() { return cfg; },
@@ -168,7 +169,7 @@ A._modelShared = {
   refreshAfterChange: function () { return refreshAfterChange(); },
   /* Lists changed (download, removal, engine install) but the model in use did not. */
   refreshKeepingView: function () {
-    var panel = document.getElementById("gbSetPanel");
+    var panel = document.querySelector('#gbSetPanel[data-section="model"]');
     return panel ? A.renderModelFull(panel, true) : null;
   },
   /* A switch asked from the chat's model menu failed: Modelo opens with the reason. */
@@ -179,6 +180,7 @@ A._modelShared = {
 };
 
 A.renderModelFull = function (panel, keepView) {
+  var revision = ++modelRender;
   if (!keepView) { viewMode = null; }
   readOnly = false;
   cfgError = null;
@@ -195,6 +197,7 @@ A.renderModelFull = function (panel, keepView) {
   return Promise.all([
     getJson("/api/llm/config"), getJson("/api/llm/config/modes"), getJson("/api/llm/runtime/status")
   ]).then(function (res) {
+    if (!panel.isConnected || revision !== modelRender) { return; }
     var c = res[0], m = res[1], rt = res[2];
     if (c.status === 401 || c.status === 403) { readOnly = true; }
     else if (c.data) { cfg = c.data; }
@@ -214,8 +217,9 @@ function renderFull(panel) {
   var G = A._modelGarage;
 
   var html;
+  var editable = !readOnly && !cfgError;
   if (G) {
-    html = G.dashboard(cfg, privacyText(scope, host)) + '<div class="gb-gar-dash-warn">';
+    html = G.dashboard(cfg, privacyText(scope, host), editable) + '<div class="gb-gar-dash-warn">';
   } else {
     html = '<div class="gb-set-card"><h2 class="gb-set-title">' + esc(t("now")) + '</h2>' +
       '<div class="gb-set-field"><span class="gb-set-label">' + esc(A.t("settings.current-model","")) + '</span>' +
@@ -254,7 +258,7 @@ function renderFull(panel) {
 
   /* Guide and the three ways compared — always shown unless read-only (admin restriction) */
   if (!readOnly && G && !cfgError) {
-    html += G.guide() + G.compare(currentMode, modes, cfg);
+    html += G.modeButtons(currentMode, modes, cfg) + G.dialogs(modes, cfg);
   }
 
   if (pendingStatus) {
@@ -266,7 +270,7 @@ function renderFull(panel) {
   bindRestoreButton();
   var retry = document.getElementById("gbModelRetry");
   if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }
-  if (!readOnly) { bindModeCards(panel); if (G) { G.bindGuide(panel, modes); } }
+  if (!readOnly) { bindModeCards(panel); if (G) { G.bind(panel, modes); } }
 }
 
 /* The dashboard's privacy line, already escaped. */
@@ -338,23 +342,30 @@ function bindModeCards(panel) {
 }
 
 function renderModeDetail(panel, mode) {
-  panel.querySelectorAll(".gb-set-mode-card").forEach(function(b) {
-    b.classList.toggle("gb-set-mode-selected", b.getAttribute("data-mode") === mode);
+  panel.querySelectorAll("#gbModelModes .gb-set-mode-card").forEach(function(b) {
+    var selected = b.getAttribute("data-mode") === mode;
+    b.classList.toggle("gb-set-mode-selected", selected);
+    b.setAttribute("aria-pressed", selected);
   });
-  if (A._modelGarage) { A._modelGarage.markView(mode); }
   viewMode = mode;
   var existing = document.getElementById("gbModeDetail");
   if (existing) existing.remove();
   var detail = document.createElement("div");
   detail.id = "gbModeDetail";
-  detail.className = "gb-set-card gb-set-mode-detail";
+  detail.className = "gb-set-slab gb-set-mode-detail";
   var modesDiv = document.getElementById("gbModelModes");
   if (modesDiv) modesDiv.after(detail);
   else panel.appendChild(detail);
-  if (mode === "local") renderLocalDetail(detail);
-  else if (mode === "own_key") renderOwnKeyDetail(detail);
-  else if (mode === "free") renderFreeDetail(detail);
-  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(detail);
+  var heading = document.createElement("h2");
+  heading.className = "gb-set-kicker";
+  heading.textContent = A._modelGarage ? A._modelGarage.modeLabel(mode) : mode;
+  var content = document.createElement("div");
+  content.className = "gb-set-slab-body gb-gar-detail-body";
+  detail.append(heading, content);
+  if (mode === "local") renderLocalDetail(content);
+  else if (mode === "own_key") renderOwnKeyDetail(content);
+  else if (mode === "free") renderFreeDetail(content);
+  else if (mode === "acp" && A._modelProviders) A._modelProviders.renderAcp(content);
 }
 
 function renderLocalDetail(el) {
@@ -391,7 +402,7 @@ async function refreshAfterChange() {
   if (typeof A.loadModels === "function") { await A.loadModels(); }
   if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
   if (typeof A.renderStatus === "function") { A.renderStatus(); }
-  var panel = document.getElementById("gbSetPanel");
+  var panel = document.querySelector('#gbSetPanel[data-section="model"]');
   if (panel) { A.renderModelFull(panel); }
 }
 })();

@@ -200,5 +200,15 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.print":         "Imprimir / PDF",
     "feedback.good":           "Boa resposta",
     "feedback.bad":            "Resposta ruim",
-    "feedback.comment":        "O que poderia melhorar?"
+    "feedback.comment":        "O que poderia melhorar?",
+    "shell.sidebar": "Barra lateral",
+    "shell.conversations": "Conversas",
+    "shell.machine": "Máquina",
+    "shell.close": "Fechar",
+    "shell.workspace": "Sua máquina",
+    "shell.activity": "Atividade",
+    "assistant.you": "Você",
+    "drive.used": "usados",
+    "drive.folders": "Pastas",
+    "drive.usage-hint": "Espaço ocupado pelos seus arquivos no Drive"
 };

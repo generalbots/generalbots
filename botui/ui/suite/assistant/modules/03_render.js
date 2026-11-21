@@ -14,9 +14,6 @@
     /** At most one frame per empty-state cycle is treated as a greeting. */
     A.greetingReceived = false;
 
-    /* ================================================================
-       User message
-       ================================================================ */
     A.renderUserMessage = function (text, files) {
         A.hasUserSent = true;
         /* Reset dedup so an identical reply to a new question is not dropped. */
@@ -47,6 +44,7 @@
             }
             el.appendChild(cards);
         }
+        A.addMessageHeading(el, true, Date.now());
         addUserActions(el, text);
         /* #2562 — assign a sequential index for truncation. Count existing
            visible messages to get the next index. */
@@ -106,7 +104,7 @@
             el.insertAdjacentHTML("beforeend", A.reasoningHtml(reasoning, elapsed));
         }
         var card = typeof A.consentFromContent === "function" ? A.consentFromContent(raw) : null;
-        if (card) { el.appendChild(card); }
+        if (card) { A.queueConsentCard(card); }
         if (leaked && !card) {
             if (typeof A.blockNotice === "function") {
                 el.appendChild(A.blockNotice({ summary: { message: raw }, status: "completed" }));
@@ -127,7 +125,8 @@
         if (opts.citations && opts.citations.length) {
             el.insertAdjacentHTML("beforeend", A.citationsHtml(opts.citations));
         }
-        el.dataset.originalContent = raw;
+        A.addMessageHeading(el, false, Date.now());
+        el.dataset.originalContent = card ? A.consentStripMarker(raw) : raw;
         el.dataset.originalReasoning = reasoning || "";
         /* #2562 — index for truncation. */
         if (!el.dataset.messageIndex) {
@@ -136,20 +135,19 @@
                 if (allLive[mi] === el) { el.dataset.messageIndex = String(mi); break; }
             }
         }
-        addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
-        if (!opts.isError && raw && A.tagAnswer) { A.tagAnswer(el, raw, opts.model); }
+        if (!card) {
+            addAssistantActions(el, raw, !!(opts.retryable || opts.isError));
+            if (!opts.isError && raw && A.tagAnswer) { A.tagAnswer(el, raw, opts.model); }
+        }
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
         A.resetThinkingTimer();
     };
 
-    /* ================================================================
-       Error card
-       ================================================================ */
     A.renderError = function (text) {
         A.showConversation();
         A.hideThinking();
         var el = document.createElement("div");
-        el.className = "gb-msg-assistant";
+        el.className = "gb-msg-assistant gb-msg-error";
         if (typeof A.blockError === "function") {
             el.appendChild(A.blockError({ summary: { message: text || A.t("assistant.error-generic", "An error occurred.") }, status: "failed" }));
             document.getElementById("gbMessages").appendChild(el);
@@ -168,16 +166,14 @@
         if (!A.isUserScrolledUp()) { A.scrollToBottom(true); }
     };
 
-    /* ================================================================
-       Classified error card (#2562)
-       ================================================================ */
+    /* Classified server errors expose retry and model settings. */
     A.renderErrorCode = function (code, fallbackMsg) {
         A.showConversation();
         A.hideThinking();
         A._finalizeStreaming();
         var msgs = document.getElementById("gbMessages");
         var el = document.createElement("div");
-        el.className = "gb-msg-assistant";
+        el.className = "gb-msg-assistant gb-msg-error";
 
         var i18nMap = {
             model_unreachable: "assistant.error-model-unreachable",
@@ -333,11 +329,12 @@
                 addAssistantActions(el, m.content, false);
                 if (A.answerModel) { A.attachModelTag(el, m.model || A.answerModel(m.content)); }
             }
+            A.addMessageHeading(el, m.role === "user", m.created_at || m.timestamp);
             msgs.appendChild(el);
         }
         A.scrollToBottom(false);
         hideDockSuggestions();
-        if (typeof A.reviveConsentCards === "function") { A.reviveConsentCards(msgs); }
+        if (typeof A.reviveConsentCards === "function") { A.reviveConsentCards(); }
     };
 
     /* ================================================================

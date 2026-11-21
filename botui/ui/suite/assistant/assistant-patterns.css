@@ -111,3 +111,86 @@
 .gb-inline-dialog-actions {
     display: flex; gap: var(--id-space-2); justify-content: flex-end;
 }
+/* Mantis shares the selected repeat across the frame, conversation, and picker. */
+:root[data-identity="mantis"],
+[data-identity="mantis"] .gb-appearance-patterns button {
+    --id-pattern-ink: rgb(0 0 0 / calc(.11 * var(--gb-pat-strength, 1)));
+    --id-pattern-line: rgb(0 0 0 / calc(.05 * var(--gb-pat-strength, 1)));
+    --id-pattern-major: color-mix(in srgb, var(--id-accent) calc(18% * var(--gb-pat-strength, 1)), transparent);
+    --id-pattern-unit: calc(1px * var(--gb-pat-scale, 1));
+    --id-pattern-pos: 0 0;
+    --id-pattern: radial-gradient(var(--id-pattern-ink) 1px, transparent 1.3px);
+    --id-pattern-size: calc(16 * var(--id-pattern-unit)) calc(16 * var(--id-pattern-unit));
+    --id-pattern-grid: linear-gradient(var(--id-pattern-line) 1px, transparent 1px),
+                       linear-gradient(90deg, var(--id-pattern-line) 1px, transparent 1px);
+}
+[data-identity="mantis"][data-theme="dark"],
+[data-identity="mantis"][data-theme="dark"] .gb-appearance-patterns button {
+    --id-pattern-ink: rgb(255 255 255 / calc(.11 * var(--gb-pat-strength, 1)));
+    --id-pattern-line: rgb(255 255 255 / calc(.05 * var(--gb-pat-strength, 1)));
+}
+[data-identity="mantis"][data-gb-pattern="none"],
+[data-identity="mantis"] [data-gb-pattern="none"] {
+    --id-pattern: none;
+}
+[data-identity="mantis"][data-gb-pattern="microdots"],
+[data-identity="mantis"] [data-gb-pattern="microdots"] {
+    --id-pattern: radial-gradient(var(--id-pattern-ink) .7px, transparent 1px);
+    --id-pattern-size: calc(7 * var(--id-pattern-unit)) calc(7 * var(--id-pattern-unit));
+}
+[data-identity="mantis"][data-gb-pattern="grid"],
+[data-identity="mantis"] [data-gb-pattern="grid"] {
+    --id-pattern: var(--id-pattern-grid);
+    --id-pattern-size: calc(24 * var(--id-pattern-unit)) calc(24 * var(--id-pattern-unit));
+}
+[data-identity="mantis"][data-gb-pattern="blueprint"],
+[data-identity="mantis"] [data-gb-pattern="blueprint"] {
+    --id-pattern: linear-gradient(var(--id-pattern-major) 1px, transparent 1px),
+                  linear-gradient(90deg, var(--id-pattern-major) 1px, transparent 1px),
+                  var(--id-pattern-grid);
+    --gb-pat-major: calc(96 * var(--id-pattern-unit)) calc(96 * var(--id-pattern-unit));
+    --gb-pat-minor: calc(16 * var(--id-pattern-unit)) calc(16 * var(--id-pattern-unit));
+    --id-pattern-size: var(--gb-pat-major), var(--gb-pat-major), var(--gb-pat-minor), var(--gb-pat-minor);
+}
+[data-identity="mantis"][data-gb-pattern="weave"],
+[data-identity="mantis"] [data-gb-pattern="weave"] {
+    --gb-pat-weave: calc(9 * var(--id-pattern-unit));
+    --id-pattern: repeating-linear-gradient(45deg, var(--id-pattern-line) 0 1px, transparent 1px var(--gb-pat-weave)),
+                  repeating-linear-gradient(-45deg, var(--id-pattern-line) 0 1px, transparent 1px var(--gb-pat-weave));
+    --id-pattern-size: auto;
+}
+[data-identity="mantis"][data-gb-pattern="mosaic"],
+[data-identity="mantis"] [data-gb-pattern="mosaic"] {
+    --gb-pat-minor: calc(14 * var(--id-pattern-unit)) calc(14 * var(--id-pattern-unit));
+    --id-pattern: var(--id-pattern-grid), linear-gradient(45deg, var(--id-pattern-line) 25%, transparent 25% 75%, var(--id-pattern-line) 75%);
+    --id-pattern-size: var(--gb-pat-minor), var(--gb-pat-minor), calc(28 * var(--id-pattern-unit)) calc(28 * var(--id-pattern-unit));
+}
+[data-identity="mantis"] .gb-app {
+    background-color: var(--id-frame);
+}
+[data-identity="mantis"] .gb-app,
+[data-identity="mantis"] .gb-main::before,
+[data-identity="mantis"] .gb-appearance-patterns button::before {
+    background-image: var(--id-pattern);
+    background-position: var(--id-pattern-pos);
+    background-size: var(--id-pattern-size);
+}
+[data-identity="mantis"] .gb-main::before {
+    mask: none;
+    -webkit-mask: none;
+    opacity: 1;
+    animation: none;
+}
+[data-identity="mantis"] .gb-main::after {
+    background: linear-gradient(90deg, transparent,
+        color-mix(in srgb, var(--id-surface-solid) 90%, transparent) 17% 83%, transparent);
+}
+[data-identity="mantis"] .gb-appearance-patterns button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+[data-identity="mantis"] .gb-appearance-patterns button {
+    --gb-pat-strength: 2;
+    --gb-pat-scale: .65;
+}

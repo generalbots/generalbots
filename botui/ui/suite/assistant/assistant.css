@@ -7,7 +7,7 @@
 html, body {
     height: 100%;
     overflow: hidden;
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     font-size: var(--id-text-base);
     line-height: 1.5;
     color: var(--id-ink);
@@ -124,7 +124,7 @@ body {
 }
 
 .gb-wordmark {
-    font-family: var(--id-font-heading);
+    font-family: var(--id-font);
     font-weight: 600;
     font-size: var(--id-text-xl);
     color: var(--id-muted);
@@ -164,7 +164,7 @@ body {
     background: transparent;
     color: var(--id-text);
     font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     cursor: pointer;
     transition: background var(--id-dur-fast) var(--id-ease),
                 border-color var(--id-dur-fast) var(--id-ease);
@@ -193,7 +193,7 @@ body {
     border: 1px solid var(--id-line);
     border-radius: var(--id-radius-control);
     background: var(--id-surface-solid);
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     font-size: var(--id-text-sm);
     color: var(--id-ink);
     outline: none;
@@ -214,7 +214,7 @@ body {
     background: transparent;
     color: var(--id-text);
     font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     cursor: pointer;
     text-align: left;
     transition: background var(--id-dur-fast) var(--id-ease);
@@ -255,7 +255,7 @@ body {
     background: transparent;
     color: var(--id-text);
     font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans);
+    font-family: var(--id-font);
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -333,132 +333,4 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-/* Status line */
-.gb-status-line {
-    display: flex;
-    align-items: center;
-    gap: var(--id-space-1);
-    padding: var(--id-space-1) var(--id-space-1);
-    font-size: var(--id-text-xs);
-    color: var(--id-gray-400);
-    min-height: 20px;
-}
-.gb-status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--id-gray-300);
-    flex-shrink: 0;
-}
-.gb-status-dot.connected { background: var(--id-success); }
-.gb-status-dot.error { background: var(--id-danger-icon); }
-.gb-status-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.gb-status-external {
-    color: var(--id-accent-text);
-}
-.gb-status-external-icon {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    vertical-align: middle;
-    margin-right: 2px;
-}
-
-/* ================================================================
-   Main area
-   ================================================================ */
-.gb-main {
-    flex: 1;
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    height: 100%;
-    overflow: hidden;
-}
-
-/* Collapse toggle when sidebar is hidden */
-.gb-expand-sidebar {
-    position: fixed;
-    top: var(--id-space-3);
-    left: var(--id-space-3);
-    z-index: 20;
-    display: none;
-}
-.gb-sidebar.collapsed ~ .gb-main .gb-expand-sidebar {
-    display: flex;
-}
-/* The title bar already has the sidebar button: a second one under it showed
-   through the header when the sidebar was collapsed. */
-body:has(.gb-titlebar-toggle) .gb-expand-sidebar { display: none !important; }
-
-/* ================================================================
-   Responsive: sidebar overlay on narrow viewports (< 960px)
-   ================================================================ */
-@media (max-width: 960px) {
-    .gb-sidebar {
-        position: fixed;
-        z-index: 100;
-        height: calc(100vh - 36px);
-        top: 36px;
-    }
-    .gb-sidebar.collapsed {
-        width: 0;
-        min-width: 0;
-    }
-    /* Backdrop behind the slide-over sidebar */
-    .gb-sidebar-backdrop {
-        display: none; position: fixed; inset: 0; z-index: 99;
-        background: var(--id-overlay);
-    }
-    .gb-sidebar:not(.collapsed) ~ .gb-sidebar-backdrop {
-        display: block;
-    }
-    /* Start collapsed on narrow viewports */
-    .gb-sidebar.gb-sidebar-narrow-default {
-        width: 0; min-width: 0; border-right: none;
-    }
-}
-
-/* ================================================================
-   User menu (popup from user row)
-   ================================================================ */
-.gb-user-menu {
-    display: flex; flex-direction: column;
-    background: var(--id-surface-solid); border: 1px solid var(--id-line);
-    border-radius: var(--id-radius-sm); box-shadow: var(--id-shadow-float);
-    padding: var(--id-space-1); margin-top: var(--id-space-1);
-}
-.gb-user-menu-item {
-    display: flex;
-    align-items: center;
-    gap: var(--id-space-2);
-    width: 100%;
-    padding: var(--id-space-2) var(--id-space-3);
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--id-text);
-    font-size: var(--id-text-sm);
-    font-family: var(--id-font-sans);
-    cursor: pointer;
-    text-align: left;
-}
-.gb-user-menu-item:hover { background: var(--id-fill); }
-.gb-user-menu-danger { color: var(--id-danger); }
-.gb-user-menu-danger:hover { background: var(--id-danger-soft); }
-
-/* ================================================================
-   Utility: gutter on the sides
-   ================================================================ */
-.gb-main { padding: 0 var(--id-space-4); }
-@media (min-width: 960px) {
-    .gb-main { padding: 0; }
 }

@@ -135,6 +135,8 @@
         el.setAttribute("aria-busy", "true");
         document.getElementById("gbMessages").appendChild(el);
         A.streamingEl = el;
+        el.dataset.streamStarted = String(Date.now());
+        if (A.addMessageHeading) { A.addMessageHeading(el, false, Number(el.dataset.streamStarted)); }
         toggleStopBtn(true);
         if (!userScrolledUp) { A.scrollToBottom(false); }
     };
@@ -174,6 +176,7 @@
         }
         html += A.mdToHtml(cleaned);
         A.streamingEl.innerHTML = html;
+        if (A.addMessageHeading) { A.addMessageHeading(A.streamingEl, false, Number(A.streamingEl.dataset.streamStarted)); }
         A.enhanceCodeBlocks(A.streamingEl);
         if (!userScrolledUp) { A.scrollToBottom(false); }
     }
@@ -233,6 +236,7 @@
         if (conv) { conv.style.display = ""; }
         if (dock) { dock.style.display = ""; }
         if (above) { above.style.display = ""; }
+        if (A.syncPermissionDock) { A.syncPermissionDock(); }
     };
 
     A.showEmptyState = function () {
@@ -246,6 +250,7 @@
         if (dock) { dock.style.display = "none"; }
         if (above) { above.style.display = "none"; }
         if (msgs) { msgs.innerHTML = ""; }
+        if (A.syncPermissionDock) { A.syncPermissionDock(); }
         A.hideThinking();
         A.hasUserSent = false;
         A.greetingReceived = false;

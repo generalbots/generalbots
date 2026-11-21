@@ -8,9 +8,7 @@
     var BASE_DELAY = 1000;
     var MAX_DELAY = 15000;
 
-    /* ------------------------------------------------------------------ */
-    /*  REST helpers                                                       */
-    /* ------------------------------------------------------------------ */
+    /* ---- REST helpers ---- */
 
     function authHeaders() {
         var h = { "Content-Type": "application/json" };
@@ -28,9 +26,7 @@
         });
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Product config                                                     */
-    /* ------------------------------------------------------------------ */
+    /* ---- Product config ---- */
 
     A.loadProduct = async function () {
         try {
@@ -46,9 +42,7 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Auth + user profile                                                */
-    /* ------------------------------------------------------------------ */
+    /* ---- Auth + user profile ---- */
 
     /** Authenticate and get a NEW session (no session_id param). */
     A.authenticate = async function () {
@@ -69,7 +63,7 @@
         }
     };
 
-    /** Load user profile (display name, email). */
+    /** Load user profile (display name, email, roles). */
     A.loadUserProfile = async function () {
         try {
             var r = await A.apiFetch("/api/auth/me");
@@ -77,14 +71,13 @@
             var data = await r.json();
             A.userName = data.display_name || data.first_name || data.username || "";
             A.userEmail = data.email || "";
+            A.userRoles = Array.isArray(data.roles) ? data.roles : [];
         } catch (e) {
             console.warn("[assistant] user profile failed:", e);
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Models                                                             */
-    /* ------------------------------------------------------------------ */
+    /* ---- Models ---- */
 
     A.loadModels = async function () {
         try {
@@ -120,9 +113,7 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  Sessions                                                           */
-    /* ------------------------------------------------------------------ */
+    /* ---- Sessions ---- */
 
     A.loadSessions = async function () {
         try {
@@ -226,9 +217,7 @@
         }
     };
 
-    /* ------------------------------------------------------------------ */
-    /*  WebSocket                                                          */
-    /* ------------------------------------------------------------------ */
+    /* ---- WebSocket ---- */
 
     function wsUrl() {
         var loc = window.location;
@@ -423,6 +412,7 @@
                and disables agent mode gracefully when unavailable. */
             agent_enabled: A.agentEnabled || false,
             ui_automation: false,
+            fast: typeof A.fastOn === "function" && A.fastOn(),
             /* The person's switch in Settings > Modelo (05b), off until they
                turn it on. Always sent: the server never decides to search. */
             web_search: typeof A.webSearchOn === "function" && A.webSearchOn(),

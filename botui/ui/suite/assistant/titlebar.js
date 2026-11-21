@@ -55,12 +55,15 @@
             var sidebar = document.getElementById("gb-sidebar");
             if (sidebar) { sidebar.classList.toggle("collapsed"); }
         });
-        left.appendChild(toggle);
+        var lite = document.documentElement.dataset.identity === "mantis";
+        if (!lite) left.appendChild(toggle);
 
         var wm = document.createElement("span");
         wm.className = "gb-titlebar-wordmark";
         wm.setAttribute("data-tauri-drag-region", "");
-        wm.innerHTML = 'General Bots<span class="gb-titlebar-dot">.</span>';
+        if (lite) {
+            wm.innerHTML = '<img src="/suite/assistant/icons/gb-lite-logo.svg" alt="General Bots Lite" /><small id="gbBuildVersion"></small>';
+        } else wm.innerHTML = 'General Bots<span class="gb-titlebar-dot">.</span>';
         left.appendChild(wm);
 
         bar.appendChild(left);

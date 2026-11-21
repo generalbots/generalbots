@@ -65,13 +65,14 @@
         for (var p = 0; p < pickers.length; p++) { replaceWithButton(pickers[p]); }
         var btns = document.querySelectorAll(".gb-model-btn");
         for (var b = 0; b < btns.length; b++) { updateBtnLabel(btns[b]); }
+        if (A.syncEngineUsage) { A.syncEngineUsage(); }
     };
 
     function updateBtnLabel(btn) {
         var label = btn.querySelector(".gb-model-btn-label");
         if (label) {
             var raw = A.selectedModel || A.defaultModel || "";
-            label.textContent = shortModelName(raw);
+            label.textContent = shortModelName(raw) || tr("Selecionar motor", "Select an engine");
             btn.title = A.fullModelName(raw);
         }
     }
@@ -83,7 +84,8 @@
         btn.className = "gb-model-btn";
         btn.type = "button";
         var short = shortModelName(A.selectedModel || A.defaultModel || "");
-        btn.innerHTML = '<span class="gb-model-btn-label">' + (short || "Model") + '</span>' +
+        btn.setAttribute("aria-expanded", "false");
+        btn.innerHTML = '<span class="gb-model-btn-label">' + esc(short || A.t("settings.model", "Model")) + '</span>' +
             '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
         btn.addEventListener("click", function (e) { e.stopPropagation(); toggleModelMenu(btn); });
         select.style.display = "none";
@@ -94,10 +96,19 @@
     var activeModelMenu = null;
 
     function toggleModelMenu(anchor) {
-        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; return; }
+        if (activeModelMenu) {
+            var wasActive = activeModelMenu.previousElementSibling === anchor;
+            closeModelMenu();
+            if (wasActive) { return; }
+        }
         var menu = document.createElement("div");
         menu.className = "gb-model-menu";
+        anchor.setAttribute("aria-expanded", "true");
         activeModelMenu = menu;
+        var heading = document.createElement("div");
+        heading.className = "gb-engine-label gb-model-menu-title";
+        heading.textContent = tr("Motores", "Engines");
+        menu.appendChild(heading);
 
         var dest = A.destination || {};
         var scopeLabel = "";
@@ -113,7 +124,7 @@
             (scopeLabel ? '<span class="gb-model-menu-meta">' + esc(scopeLabel) + '</span>' : '');
         item0.className += " gb-model-menu-current";
         item0.addEventListener("click", function () { selectModel(A.defaultModel); });
-        menu.appendChild(item0);
+        if (currentShort) { menu.appendChild(item0); }
 
         var distinctModels = [];
         var seen = {};
@@ -159,9 +170,11 @@
         });
         menu.appendChild(action);
 
-        anchor.style.position = "relative";
-        anchor.appendChild(menu);
-        document.addEventListener("click", closeModelMenu, { once: true });
+        var wrap = anchor.parentElement;
+        wrap.classList.add("gb-model-anchor");
+        anchor.after(menu);
+        document.addEventListener("click", closeModelMenuOutside);
+        document.addEventListener("keydown", closeModelMenuOnEscape);
     }
 
     /* ---- Switch entries: the models installed on this computer and the
@@ -171,7 +184,7 @@
 
     function menuEntry(menu, name, meta, onPick) {
         var item = document.createElement("button");
-        item.className = "gb-model-menu-item";
+        item.className = "gb-model-menu-item gb-model-menu-free";
         item.innerHTML = '<span class="gb-model-menu-name">' + esc(name) + '</span>' +
             '<span class="gb-model-menu-meta">' + esc(meta) + '</span>';
         item.addEventListener("click", function (e) { e.stopPropagation(); onPick(); });
@@ -222,7 +235,7 @@
     function addAgentGroup(menu) {
         var agents = A.linkedAgents || [];
         if (!agents.length) { return; }
-        addGroup(menu, { id: "agents", name: tr("Agentes", "Agents"), logo: "" },
+        addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions"), logo: "" },
             agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }),
             function (value) {
                 if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
@@ -234,14 +247,17 @@
        models switched on in Settings > Modelo. The group holding the chosen
        model starts open. ---- */
     function addAccountGroups(menu) {
-        (A.accounts || []).forEach(function (acc) {
-            if ((acc.models || []).length) { addGroup(menu, acc, acc.models, selectModel); }
-        });
+        var accounts = (A.accounts || []).filter(function (acc) { return (acc.models || []).length; });
+        if (!accounts.length) { return; }
+        var group = addGroup(menu, { id: "accounts", name: tr("Chaves API", "API keys") }, [], selectModel,
+            accounts.some(function (acc) { return acc.models.some(function (m) { return m.value === A.selectedModel; }); }),
+            accounts.length);
+        accounts.forEach(function (acc) { addGroup(group, acc, acc.models, selectModel); });
     }
 
-    function addGroup(menu, acc, models, onPick) {
+    function addGroup(menu, acc, models, onPick, expanded, count) {
         function isActive(m) { return m.active !== undefined ? m.active : A.selectedModel === m.value; }
-        var open = models.some(isActive);
+        var open = expanded === undefined ? models.some(isActive) : expanded;
         var group = document.createElement("div");
         group.className = "gb-model-group" + (open ? " open" : "");
         group.setAttribute("data-group", acc.id);
@@ -252,7 +268,7 @@
         var svg = acc.icon || (A._providerLogos || {})[acc.logo || acc.id] || "";
         head.innerHTML = (svg ? '<span class="gb-model-group-logo">' + svg + '</span>' : '') +
             '<span class="gb-model-group-name">' + esc(acc.name || acc.id) + '</span>' +
-            '<span class="gb-model-group-count">' + models.length + '</span>' +
+            '<span class="gb-model-group-count">' + (count === undefined ? models.length : count) + '</span>' +
             '<svg class="gb-model-group-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
         head.addEventListener("click", function (e) {
             e.stopPropagation();
@@ -270,8 +286,12 @@
         });
         group.appendChild(head);
         group.appendChild(list);
-        var divider = menu.querySelector(".gb-model-menu-divider");
+        var before = acc.id === "agents"
+            ? (menu.querySelector('[data-group="accounts"]') || menu.querySelector(".gb-model-menu-free"))
+            : null;
+        var divider = before || menu.querySelector(".gb-model-menu-divider");
         if (divider) { menu.insertBefore(group, divider); } else { menu.appendChild(group); }
+        return list;
     }
 
     function setPickersBusy(on) {
@@ -279,7 +299,7 @@
         for (var i = 0; i < btns.length; i++) {
             btns[i].disabled = on;
             var label = btns[i].querySelector(".gb-model-btn-label");
-            if (label && on) { label.textContent = tr("Trocando o modelo...", "Switching the model..."); }
+            if (label && on) { label.textContent = tr("Trocando o modelo…", "Switching the model…"); }
         }
     }
 
@@ -303,18 +323,50 @@
                 });
             });
         }
-        if (target.mode === "free" && shared.inlineConfirm) {
-            shared.inlineConfirm(shared.t("confirmExt").replace("%h", shared.t("freeHost")), run);
+        if (target.mode === "free" && A.confirmExternal) {
+            A.confirmExternal({ name: tr("Modelo gratuito", "Free model"), host: shared.t ? shared.t("freeHost") : "" },
+                visible(".gb-motor"), run);
         } else {
             run();
         }
     }
 
+    /* The empty state and the conversation each have a composer; one shows. */
+    function visible(selector) {
+        return Array.from(document.querySelectorAll(selector)).filter(function (x) { return x.offsetParent; })[0] || null;
+    }
+
     function closeModelMenu() {
-        if (activeModelMenu) { activeModelMenu.remove(); activeModelMenu = null; }
+        if (!activeModelMenu) { return; }
+        activeModelMenu.previousElementSibling.setAttribute("aria-expanded", "false");
+        activeModelMenu.remove();
+        activeModelMenu = null;
+        document.removeEventListener("click", closeModelMenuOutside);
+        document.removeEventListener("keydown", closeModelMenuOnEscape);
+    }
+
+    function closeModelMenuOutside(event) {
+        if (activeModelMenu && !activeModelMenu.contains(event.target)) { closeModelMenu(); }
+    }
+
+    function closeModelMenuOnEscape(event) {
+        if (event.key !== "Escape" || !activeModelMenu) { return; }
+        var anchor = activeModelMenu.previousElementSibling;
+        event.stopPropagation();
+        closeModelMenu();
+        anchor.focus();
     }
 
     function selectModel(model) {
+        var anchor = activeModelMenu ? activeModelMenu.previousElementSibling : visible(".gb-model-btn");
+        closeModelMenu();
+        if (!A.externalTarget || !A.confirmExternal) { applyModel(model); return; }
+        A.externalTarget(model).then(function (target) {
+            A.confirmExternal(target, anchor, function () { applyModel(model); });
+        });
+    }
+
+    function applyModel(model) {
         A.selectedModel = model;
         try { localStorage.setItem("gb-model-preference", model); } catch (e) { /* */ }
         A.renderModelPickers();

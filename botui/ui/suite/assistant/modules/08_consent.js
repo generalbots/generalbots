@@ -29,7 +29,7 @@
         var idx = content.indexOf(MARKER);
         if (idx === -1) { return null; }
         try {
-            var b64 = content.slice(idx + MARKER.length).trim();
+            var b64 = (content.slice(idx + MARKER.length).match(/^[A-Za-z0-9+/=_-]+/) || [""])[0];
             var std = b64.replace(/-/g, "+").replace(/_/g, "/");
             while (std.length % 4 !== 0) { std += "="; }
             var bin = atob(std);
@@ -67,7 +67,8 @@
     function buildCard(req) {
         var card = document.createElement("div");
         card.className = "gb-consent-card";
-        card.setAttribute("data-request-id", String(req.request_id));
+        card.dataset.requestId = req.request_id;
+        card.dataset.threadId = req.thread_id || activeThread();
 
         var detail = req.detail && typeof req.detail === "object" ? req.detail : {};
         var appName = req.app_id || detail.app_id || "workspace";
@@ -89,8 +90,8 @@
             '</div>' +
             (detailText ? '<div class="gb-consent-detail">' + escHtml(detailText) + '</div>' : '') +
             '<div class="gb-consent-actions">' +
-                '<button type="button" class="gb-consent-btn gb-consent-allow" data-decision="allow_once">' + escHtml(allowLabel) + '</button>' +
                 '<button type="button" class="gb-consent-btn gb-consent-deny" data-decision="deny">' + escHtml(denyLabel) + '</button>' +
+                '<button type="button" class="gb-consent-btn gb-consent-allow" data-decision="allow_once">' + escHtml(allowLabel) + '</button>' +
             '</div>';
 
         card.addEventListener("click", function (e) {
@@ -111,18 +112,21 @@
             method: "POST",
             body: JSON.stringify({ request_id: requestId, decision: decision })
         }).then(function (r) {
-            return r.json().then(function (body) { return { status: r.status, body: body }; });
+            return r.json().then(function (body) { return { ok: r.ok, body: body }; });
         }).then(function (res) {
-            if (res.body && res.body.error) {
+            if (!res.ok || (res.body && res.body.error)) {
                 // #2561 — expired or unknown request: show a clear message
                 // and release the composer so the conversation is not stuck.
-                swapExpired(card, res.body.error);
+                swapExpired(card, res.body && res.body.error);
+                retireCard(card, "failed");
                 return;
             }
             swapOutcome(card, decision, true);
-            resumeAfterGrant(decision);
+            retireCard(card, "done");
+            resumeAfterGrant(decision, card.dataset.threadId);
         }).catch(function () {
-            swapExpired(card, "error");
+            card.querySelectorAll(".gb-consent-btn").forEach(function (button) { button.disabled = false; });
+            A.announce(A.t("assistant.consent-failed", "Could not record decision"));
         });
     }
 
@@ -159,9 +163,10 @@
             '</div>';
     }
 
-    function resumeAfterGrant(decision) {
+    function resumeAfterGrant(decision, thread) {
         if (decision === "deny") { return; }
         setTimeout(function () {
+            if (activeThread() !== thread) { return; }
             try {
                 A.sendMessage("Approved. Continue and run the previously requested command now with the same parameters.");
             } catch (e) { /* grant still applies */ }
@@ -196,23 +201,62 @@
         return buildCard(req);
     };
 
-    /* Revive pending requests on load */
-    A.reviveConsentCards = function (container) {
+    var cards = new Map();
+    var settled = new Set();
+
+    function activeThread() {
+        return String(A.currentSessionId || A.sessionId || "");
+    }
+
+    A.syncPermissionDock = function () {
+        var dock = document.getElementById("gbPermissionDock");
+        if (!dock) { return; }
+        var visible = Array.from(cards.values()).filter(function (card) {
+            return card.dataset.threadId === activeThread();
+        });
+        if (visible.length !== dock.children.length || visible.some(function (card, i) { return dock.children[i] !== card; })) {
+            dock.replaceChildren.apply(dock, visible);
+        }
+        dock.hidden = visible.length === 0;
+    };
+
+    A.queueConsentCard = function (card) {
+        var id = card.dataset.requestId;
+        if (cards.has(id) || settled.has(id)) { return; }
+        cards.set(id, card);
+        A.syncPermissionDock();
+    };
+
+    A.removeConsentCard = function (id) {
+        id = String(id);
+        settled.add(id);
+        cards.delete(id);
+        A.syncPermissionDock();
+    };
+
+    function retireCard(card, status) {
+        var id = card.dataset.requestId;
+        settled.add(id);
+        if (A.setPermissionActivityStatus) { A.setPermissionActivityStatus(id, status); }
+        setTimeout(function () { A.removeConsentCard(id); }, 2500);
+    }
+
+    /* Restored requests are matched to their recorded conversation. Older
+       unscoped requests are surfaced with their original request id. */
+    A.reviveConsentCards = function (requestId) {
         if (A.compiledFeatures.indexOf("consent") === -1) { return; }
+        var thread = activeThread();
         A.apiFetch("/api/consent/pending").then(function (r) {
-            if (r.status === 404) { return null; }
             return r.ok ? r.json() : null;
         }).then(function (d) {
-            if (!d) { return; }
+            if (!d || activeThread() !== thread) { return; }
             var items = Array.isArray(d) ? d : (d.items || d.requests || d.pending || []);
-            for (var i = 0; i < items.length; i++) {
-                if (!items[i] || !items[i].request_id) { continue; }
-                if (container.querySelector('[data-request-id="' + items[i].request_id + '"]')) { continue; }
-                var wrap = document.createElement("div");
-                wrap.className = "gb-msg-assistant";
-                wrap.appendChild(buildCard(items[i]));
-                container.appendChild(wrap);
-            }
+            items.forEach(function (request) {
+                if (request && request.request_id && (!requestId || request.request_id === requestId) &&
+                    (!request.thread_id || request.thread_id === thread)) {
+                    A.queueConsentCard(buildCard(request));
+                }
+            });
         }).catch(function () { /* best-effort */ });
     };
 })();

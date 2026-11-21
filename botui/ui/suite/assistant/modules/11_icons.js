@@ -16,6 +16,7 @@
     /* Each entry is the <path d="..."/> content for a 256x256 viewBox. */
     var P = {
         /* -- navigation & chrome -- */
+        "appearance": '<circle cx="128" cy="128" r="96" stroke="currentColor" stroke-width="16"/><path d="M128 32a96 96 0 0 1 0 192z" fill="currentColor"/>',
         "sidebar": '<rect x="32" y="40" width="192" height="176" rx="16" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><line x1="96" y1="40" x2="96" y2="216" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>',
         "plus": '<line x1="40" y1="128" x2="216" y2="128" stroke="currentColor" stroke-width="16" stroke-linecap="round"/><line x1="128" y1="40" x2="128" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>',
         "magnifying-glass": '<circle cx="112" cy="112" r="80" fill="none" stroke="currentColor" stroke-width="16"/><line x1="168.57" y1="168.57" x2="224" y2="224" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>',

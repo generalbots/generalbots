@@ -75,6 +75,13 @@ var ICONS = {
   wrench: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
 };
 var MODES = ["local", "own_key", "free", "acp"];
+var helpIcon = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>';
+var tableIcon = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16"/><path d="M3 10h18M9 4v16"/></svg>';
+function tr(pt, en) { return A.settingsText(pt, en); }
+function modeLabel(mode) { return g(mode === "own_key" ? "own" : mode); }
+function modeScope(mode, cfg) {
+  return cfg && cfg.mode === mode ? cfg.endpoint_scope : mode === "local" ? "machine" : "";
+}
 
 function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
 function webAvailable() { return typeof A.webSearchAvailable === "function" && A.webSearchAvailable(); }
@@ -101,27 +108,34 @@ function gauge(level, label) {
 function chip(on, text) {
   return '<span class="gb-gar-chip' + (on ? " on" : "") + '"><span class="gb-gar-mark ' + (on ? "yes" : "no") + '" aria-hidden="true"></span>' + esc(text) + '</span>';
 }
-function dashboard(cfg, shortName, privacyText) {
-  var mode = cfg ? cfg.mode : "";
-  var scope = cfg ? cfg.endpoint_scope : "";
+function dashboard(cfg, shortName, privacyText, showTools) {
+  var mode = cfg && cfg.mode;
   var name = shortName(cfg ? cfg.model : (A.defaultModel || A.selectedModel || "")).replace(/\.gguf$/i, "");
-  var where = mode ? g(mode === "own_key" ? "own" : mode) : "";
-  var html = '<div class="gb-gar-hero">' + ICONS.wrench +
-    '<div><h2 class="gb-gar-title">' + esc(g("title")) + '</h2><p class="gb-gar-lead">' + esc(g("lead")) + '</p></div></div>';
-  html += '<div class="gb-set-card gb-gar-dash">' +
-    '<div class="gb-gar-dash-main"><div><span class="gb-gar-kicker">' + esc(g("engine")) + '</span>' +
-    '<div class="gb-gar-engine gb-set-model-name">' + esc(name) + '</div></div>' +
-    (where ? '<span class="gb-gar-where">' + (ICONS[mode] || "") + esc(where) + '</span>' : '') + '</div>';
-  if (mode) {
-    var level = privacyLevel(mode, scope);
-    html += '<div class="gb-gar-dash-row"><span class="gb-gar-dash-label">' + esc(g("privacy")) + '</span>' +
-      gauge(level, g("privacy")) + '<span class="gb-gar-dash-text">' + privacyText + '</span></div>';
+  var html = A.settingsHeading(g("title"), tr("Onde o seu assistente pensa.", "Where your assistant thinks."));
+  if (showTools) {
+    html += '<div class="gb-gar-tools"><button type="button" class="gb-set-btn-sm" id="gbOpenGuide">' +
+      helpIcon + tr("Me ajude a escolher", "Help me choose") +
+      '</button><button type="button" class="gb-set-btn-sm" id="gbOpenCompare">' +
+      tableIcon + tr("Comparar os 4 motores", "Compare all 4 engines") + '</button></div>';
   }
-  html += '<div class="gb-gar-dash-row"><span class="gb-gar-dash-label">' + esc(g("features")) + '</span><span class="gb-gar-chips">' +
+  var runtime = cfg && cfg.local_runtime;
+  var running = mode === "local" && runtime && runtime.running;
+  html += '<section class="gb-set-slab gb-gar-dashboard"><h2><span class="gb-set-kicker">' + esc(g("engine")) + '</span>' +
+    (running ? '<span class="gb-set-meta gb-gar-running">' + tr("Em execução", "Running") + '</span>' : '') +
+    '</h2><div class="gb-set-slab-body"><div class="gb-gar-engine gb-set-model-name">' + esc(name) + '</div>' +
+    (mode ? '<span class="gb-gar-where">' + esc(modeLabel(mode)) + '</span>' : '') +
+    (mode === "local" && runtime && runtime.build ? '<span class="gb-set-meta"> ' +
+      tr("Motor", "Engine") + ' ' + esc(runtime.build) + '</span>' : '') + '</div>';
+  html += '<div class="gb-set-slab-body">';
+  if (mode && privacyText) {
+    html += '<div class="gb-gar-privacy-head"><span class="gb-set-meta">' + esc(g("privacy")) + '</span>' +
+      gauge(privacyLevel(mode, cfg.endpoint_scope), g("privacy")) + '</div><p>' + privacyText + '</p>';
+  }
+  return html + '<div class="gb-gar-caps"><span class="gb-set-meta">' + tr("Recursos", "Features") +
+    '</span><span class="gb-gar-chips">' +
     chip(true, g("fDocs")) + chip(isWindows(), g("fOcr")) +
     (webAvailable() ? chip(webOn(), webOn() ? g("fWeb") : g("fWebOff")) : '') +
-    chip(false, g("fPhotos")) + '</span></div></div>';
-  return html;
+    chip(false, g("fPhotos")) + '</span></div></div></section>';
 }
 
 /* ---- Guide: two questions as cards; the answer selects the option below ---- */
@@ -187,7 +201,7 @@ function bindGuide(panel, modes) {
     if (el && el.scrollIntoView) { el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" }); }
   }
   function result(mode, text) {
-    var grid = panel.querySelector("#gbGarGrid");
+    var grid = panel.querySelector("#gbGarModeGrid");
     if (grid) grid.setAttribute("data-rec", mode);
     /* The suggested option is selected in the table and its details open below. */
     var head = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
@@ -206,6 +220,9 @@ function bindGuide(panel, modes) {
     box.querySelector('[data-go="1"]').addEventListener("click", function () {
       var h = panel.querySelector('.gb-set-mode-card[data-mode="' + mode + '"]');
       if (h && !h.classList.contains("gb-set-mode-selected")) { h.click(); }
+      var dialog = box.closest("dialog");
+      if (dialog && dialog.open) { dialog.close(); }
+      if (h) { h.focus({ preventScroll: true }); }
       scrollTo(document.getElementById("gbModeDetail"));
     });
     box.querySelector('[data-again="1"]').addEventListener("click", start);
@@ -220,13 +237,17 @@ function bindGuide(panel, modes) {
     ], start);
   }
   function open() {
-    ask(2, g("q2"), gl("q2help"), [
-      { icon: GI.server, title: g("q2yes"), desc: gl("q2yesD"), go: function () { result("own_key", g("recOwn")); } },
-      { icon: GI.none, title: g("q2no"), desc: gl("q2noD"), go: function () { result("free", g("recFree")); } }
+    ask(2, tr("Você já tem uma assinatura ou chave de IA?", "Do you have an AI subscription or API key?"),
+      tr("Escolha como você quer usar o assistente.", "Choose how you want to use the assistant."), [
+      { icon: ICONS.acp, title: g("acp"), desc: g("subAcp"), go: function () {
+        result("acp", tr("Use a sua assinatura com um agente instalado.", "Use your subscription with an installed agent."));
+      } },
+      { icon: GI.server, title: g("own"), desc: gl("q2yesD"), go: function () { result("own_key", g("recOwn")); } },
+      { icon: GI.none, title: g("free"), desc: gl("q2noD"), go: function () { result("free", g("recFree")); } }
     ], start);
   }
   function start() {
-    var grid = panel.querySelector("#gbGarGrid");
+    var grid = panel.querySelector("#gbGarModeGrid");
     if (grid) grid.removeAttribute("data-rec");
     ask(1, g("q1"), gl("q1help"), [
       { icon: GI.lock, title: g("q1no"), desc: gl("q1noD"), go: secret },
@@ -271,47 +292,81 @@ function facts(mode, cfg, hw) {
 var ROWS = [["privacy", "rPrivacy"], ["offline", "rOffline"], ["cost", "rCost"], ["docs", "rDocs"],
   ["ocr", "rOcr"], ["web", "rWeb"], ["photos", "rPhotos"], ["needs", "rNeeds"]];
 
-function compare(currentMode, modes, cfg) {
+function modeButtons(currentMode, modes, cfg) {
   var hw = localHardware(modes);
-  var all = {}; MODES.forEach(function (m) { all[m] = facts(m, cfg, hw); });
-  var html = '<h3 class="gb-set-section-title">' + esc(g("where")) + '</h3><p class="gb-set-hint gb-gar-sub">' + esc(g("whereSub")) + '</p>' +
-    '<div class="gb-gar-compare" id="gbModelModes"><div class="gb-gar-grid" id="gbGarGrid" role="table">';
-  html += '<div class="gb-gar-corner" role="columnheader"></div>';
-  MODES.forEach(function (m) {
-    var md = (modes || []).find(function (x) { return x.id === m; });
-    var avail = !md || md.available !== false;
-    var active = currentMode === m;
-    html += '<button class="gb-set-mode-card gb-gar-head' + (active ? " gb-set-mode-active" : "") + '" data-mode="' + m + '" data-col="' + m + '"' + (avail ? "" : " disabled") + ' role="columnheader">' +
-      ICONS[m] + '<span class="gb-set-mode-label">' + esc(g(m === "own_key" ? "own" : m)) + '</span>' +
-      '<span class="gb-set-mode-sub">' + esc(g({ own_key: "subOwn", local: "subLocal", free: "subFree", acp: "subAcp" }[m])) + '</span>' +
-      '<span class="gb-gar-head-badges">' + (active ? '<span class="gb-badge gb-badge-active">' + esc(g("inUse")) + '</span>' : '') +
-      '<span class="gb-badge gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
-      '<span class="gb-gar-head-cta">' + esc(active ? g("ctaAdjust") : g("ctaOpen")) +
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+  return '<section class="gb-set-slab" id="gbModelModes"><h2><span class="gb-set-kicker">' + esc(g("where")) +
+    '</span></h2><div class="gb-gar-mode-grid" id="gbGarModeGrid">' + MODES.map(function (mode) {
+      var info = (modes || []).find(function (entry) { return entry.id === mode; });
+      var unavailable = !info || info.available === false;
+      var active = currentMode === mode;
+      var privacy = facts(mode, cfg, hw).privacy;
+      return '<button type="button" class="gb-set-mode-card" data-mode="' + mode +
+        '" aria-controls="gbModeDetail" aria-pressed="false"' + (unavailable ? " disabled" : "") + '>' +
+        '<span class="gb-gar-mode-top"><span class="gb-set-limit-icon">' + ICONS[mode] + '</span>' +
+        (active || unavailable ? '<span class="gb-set-meta">' + esc(g(active ? "inUse" : "unavailable")) + '</span>' : '') +
+        '<span class="gb-set-meta gb-gar-sugg">' + esc(g("suggested")) + '</span></span>' +
+        '<strong>' + esc(modeLabel(mode)) + '</strong><span>' +
+        esc(g({ own_key: "subOwn", local: "subLocal", free: "subFree", acp: "subAcp" }[mode])) + '</span>' +
+        '<span class="gb-gar-mode-privacy"><span>' + esc(privacy.t) + '</span>' +
+        gauge(privacyLevel(mode, modeScope(mode, cfg)), g("privacy")) + '</span></button>';
+    }).join("") + '</div></section>';
+}
+
+function compare(modes, cfg) {
+  var hw = localHardware(modes);
+  var all = {};
+  MODES.forEach(function (mode) { all[mode] = facts(mode, cfg, hw); });
+  return '<div class="gb-set-table-scroll"><table class="gb-set-usage-table gb-gar-table">' +
+    '<thead><tr><td></td>' + MODES.map(function (mode) {
+      return '<th scope="col">' + esc(modeLabel(mode)) + '</th>';
+    }).join("") + '</tr></thead><tbody>' + ROWS.map(function (row) {
+      return '<tr><th scope="row">' + esc(g(row[1])) + '</th>' + MODES.map(function (mode) {
+        var fact = all[mode][row[0]];
+        var note = row[0] === "needs" && all[mode].note
+          ? '<small class="gb-gar-note">' + esc(all[mode].note) + '</small>' : '';
+        return '<td><span class="gb-gar-mark ' + fact.k + '" aria-hidden="true"></span> ' + esc(fact.t) + note + '</td>';
+      }).join("") + '</tr>';
+    }).join("") + '</tbody></table></div>';
+}
+
+function dialogs(modes, cfg) {
+  return '<dialog id="gbGarageGuideDialog" class="gb-gar-dialog" aria-labelledby="gbGarageGuideTitle">' +
+    '<header><h2 id="gbGarageGuideTitle">' + esc(g("guide")) + '</h2>' + closeButton() + '</header>' +
+    guide() + '</dialog><dialog id="gbGarageCompareDialog" class="gb-gar-dialog gb-gar-dialog-side" aria-labelledby="gbGarageCompareTitle">' +
+    '<header><h2 id="gbGarageCompareTitle">' + tr("Comparar os 4 motores", "Compare all 4 engines") + '</h2>' +
+    closeButton() + '</header>' + compare(modes, cfg) + '</dialog>';
+}
+function closeButton() {
+  return '<button type="button" class="gb-set-btn-sm" data-close-dialog>' + tr("Fechar", "Close") + '</button>';
+}
+function bindDialog(panel, buttonId, dialogId) {
+  var button = panel.querySelector("#" + buttonId);
+  var dialog = panel.querySelector("#" + dialogId);
+  if (!button || !dialog) { return; }
+  button.onclick = function () { dialog.showModal(); };
+  dialog.querySelector("[data-close-dialog]").onclick = function () { dialog.close(); };
+  dialog.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") { event.stopPropagation(); }
   });
-  ROWS.forEach(function (row) {
-    html += '<div class="gb-gar-label" role="rowheader">' + esc(g(row[1])) + '</div>';
-    MODES.forEach(function (m) {
-      var c = all[m][row[0]];
-      var note = row[0] === "needs" && all[m].note ? '<small class="gb-gar-note">' + esc(all[m].note) + '</small>' : '';
-      html += '<div class="gb-gar-cell" data-col="' + m + '" role="cell"><span class="gb-gar-mark ' + c.k + '" aria-hidden="true"></span>' +
-        '<span>' + esc(c.t) + note + '</span></div>';
-    });
+  dialog.addEventListener("click", function (event) {
+    if (event.target !== dialog) { return; }
+    var rect = dialog.getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom) { dialog.close(); }
   });
-  return html + '</div></div>';
 }
 
 A._modelGarage = {
-  dashboard: function (cfg, privacyText) {
-    return dashboard(cfg, S().shortName || function (m) { return m || "—"; }, privacyText);
+  dashboard: function (cfg, privacyText, showTools) {
+    return dashboard(cfg, S().shortName || function (model) { return model || "—"; }, privacyText, showTools);
   },
-  guide: guide,
-  bindGuide: bindGuide,
-  compare: compare,
-  /* The column of the card being viewed is lit across the table. */
-  markView: function (mode) {
-    var grid = document.getElementById("gbGarGrid");
-    if (grid) { grid.setAttribute("data-view", mode); }
+  modeButtons: modeButtons,
+  dialogs: dialogs,
+  modeLabel: modeLabel,
+  bind: function (panel, modes) {
+    bindDialog(panel, "gbOpenGuide", "gbGarageGuideDialog");
+    bindDialog(panel, "gbOpenCompare", "gbGarageCompareDialog");
+    bindGuide(panel, modes);
   }
 };
 })();

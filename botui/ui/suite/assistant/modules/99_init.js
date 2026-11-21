@@ -25,6 +25,7 @@
 
         /* 2. Translate static data-i18n elements */
         translatePage();
+        A.initMantisShell();
 
         /* 3. Product config + accent + pattern */
         await A.loadProduct();
@@ -51,12 +52,14 @@
 
         /* 7. User profile */
         await A.loadUserProfile();
+        if (A.loadChatProfile) { await A.loadChatProfile(); }
 
         /* 8. Models */
         await A.loadModels();
 
         /* 9. Render static UI */
-        A.renderWordmark();
+        A.renderEdition();
+        A.refreshMachineStatus();
         A.renderUser();
         A.renderGreeting();
         A.renderModelPickers();

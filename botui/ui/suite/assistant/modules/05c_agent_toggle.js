@@ -52,13 +52,12 @@
         if (!container) { return null; }
         /* The toggle goes in the .gb-composer-row (or the footer row in the
            empty-state card), next to the model picker. */
-        var ref = container.querySelector(".gb-model-picker") ||
-                  container.querySelector(".gb-send-btn");
-        var row = ref ? ref.parentElement : container;
+        var row = container.querySelector(".gb-engine-toggles");
+        if (!row) { return null; }
 
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "gb-agent-toggle";
+        btn.className = "gb-agent-toggle gb-engine-toggle";
         btn.setAttribute("aria-pressed", "false");
         btn.title = A.t("assistant.agent-label", "Agente");
 
@@ -71,10 +70,9 @@
             '<line x1="12" y1="19" x2="20" y2="19"/>' +
             '</svg>' +
             '<span class="gb-agent-label">' +
-            A.t("assistant.agent-label", "Agente") + '</span>';
+            A.t("assistant.agent-label", "Agente") + '</span><span class="gb-toggle-track"></span>';
 
-        if (ref) { row.insertBefore(btn, ref); }
-        else { row.appendChild(btn); }
+        row.prepend(btn);
         return btn;
     }
 

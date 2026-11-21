@@ -1,123 +1,227 @@
 "use strict";
-/**
- * 09c_settings_instructions.js - Custom instructions section for settings.
- */
 
 (function () {
     var A = window.GBAssistant;
+    var endpoint = "/api/settings/custom-instructions";
+    var maxLength = 1500;
+    var icons = [
+        ["robot", "Robô", "Robot", "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"],
+        ["spark", "Brilho", "Spark", "M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"],
+        ["building", "Edifício", "Building", "M3 9l9-5 9 5M3 20h18M5 10h14M6 11v7M10 11v7M14 11v7M18 11v7"],
+        ["book", "Livro", "Book", "M12 7v13M12 7C9 5 6 5 3 6v13c3-1 6-1 9 1 3-2 6-2 9-1V6c-3-1-6-1-9 1z"],
+        ["shield", "Escudo", "Shield", "M12 3l8 3v6c0 4-3 7-8 9-5-2-8-5-8-9V6z"],
+        ["feather", "Pena", "Feather", "M5 19c-3-7 6-14 11-15 3 0 5 2 4 5-2 6-8 10-15 10zm-2 2L15 9"],
+        ["leaf", "Folha", "Leaf", "M5 18c1-6 5-9 12-10M20 4c3 11-3 17-10 16-4-1-6-4-4-8 2-3 8-2 14-8z"],
+        ["compass", "Bússola", "Compass", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4 6-2 6-6 2 2-6z"]
+    ];
+    var styles = [
+        ["Formal", "Formal", "Use linguagem formal e objetiva.", "Use formal, straightforward language."],
+        ["Direto", "Concise", "Seja breve e vá direto ao ponto.", "Be brief and get straight to the point."],
+        ["Didático", "Explanatory", "Explique passo a passo e inclua exemplos quando ajudarem.", "Explain step by step and include examples when helpful."],
+        ["Técnico", "Technical", "Use terminologia técnica precisa e cite fontes.", "Use precise technical terminology and cite sources."],
+        ["Amigável", "Friendly", "Responda com um tom acessível e amigável.", "Respond in an approachable, friendly tone."]
+    ];
 
-    function esc(s) {
-        return String(s == null ? "" : s)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    function tr(pt, en) { return A.settingsText(pt, en); }
+    function esc(value) {
+        return String(value == null ? "" : value).replace(/[&<>"]/g, function (c) {
+            return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c];
+        });
+    }
+    function iconMarkup(icon, size) {
+        return '<svg aria-hidden="true" width="' + size + '" height="' + size +
+            '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="' +
+            icon[3] + '"/></svg>';
+    }
+    function iconFor(id) {
+        return icons.find(function (icon) { return icon[0] === id; }) || icons[0];
     }
 
-    /** Render the custom instructions section in the settings panel. */
-    A.renderInstructions = function (panel) {
-        var data = { about: "", response: "", enabled: true };
-        panel.innerHTML = '<div class="gb-set-loading"><span class="gb-set-loading-dot"></span>' +
-            esc(A.t("assistant.connecting", "Loading...")) + '</div>';
-        A.apiFetch("/api/settings/custom-instructions").then(function (r) {
-            if (!r.ok) { throw new Error("HTTP " + r.status); }
-            return r.json();
-        }).then(function (json) {
-            data.about = (typeof json.about === "string") ? json.about : "";
-            data.response = (typeof json.response === "string") ? json.response : "";
-            data.enabled = json.enabled !== false;
-            drawInstructions(panel, data);
-        }).catch(function () {
-            drawInstructions(panel, data);
-        });
+    function safePhoto(photo) {
+        return typeof photo === "string" && photo.length <= 262144 &&
+            /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(photo) ? photo : "";
+    }
+
+    function apply(data) {
+        A.assistantProfile = {
+            name: typeof data.name === "string" ? data.name : "",
+            icon: iconFor(data.icon)[0],
+            photo: safePhoto(data.photo)
+        };
+        document.dispatchEvent(new Event("gb-assistant-profile"));
+        return data;
+    }
+    A.assistantProfileIcon = function (size) {
+        return iconMarkup(iconFor(A.assistantProfile && A.assistantProfile.icon), size);
     };
 
-    function drawInstructions(panel, data) {
-        var MAX = 1500;
-        var html =
-            '<div class="gb-set-card">' +
-            '<h2 class="gb-set-title">' + esc(A.t("settings.instructions", "Custom instructions")) + '</h2>' +
-            '<p class="gb-set-desc">' + esc(A.t("settings.instructions-desc",
-                "Tell the assistant about yourself and how you want it to respond.")) + '</p>' +
-            '<div class="gb-set-toggle-row">' +
-                '<label class="gb-set-label" for="gbInstrEnabled">' +
-                    esc(A.t("settings.instructions-enabled", "Enable custom instructions")) + '</label>' +
-                '<input type="checkbox" id="gbInstrEnabled" class="gb-set-toggle"' +
-                    (data.enabled ? ' checked' : '') + ' />' +
-            '</div>' +
-            '</div>' +
-            '<div class="gb-set-card" id="gbInstrFields"' + (data.enabled ? '' : ' style="opacity:0.5;pointer-events:none"') + '>' +
-                '<label class="gb-set-label" for="gbInstrAbout">' +
-                    esc(A.t("settings.instructions-about",
-                        "What should the assistant know about you?")) + '</label>' +
-                '<textarea id="gbInstrAbout" class="gb-set-textarea" maxlength="' + MAX + '" rows="4">' +
-                    esc(data.about) + '</textarea>' +
-                '<span class="gb-set-counter" id="gbInstrAboutCount">' +
-                    data.about.length + ' / ' + MAX + '</span>' +
-                '<label class="gb-set-label" for="gbInstrResponse" style="margin-top:12px">' +
-                    esc(A.t("settings.instructions-response",
-                        "How should the assistant respond?")) + '</label>' +
-                '<textarea id="gbInstrResponse" class="gb-set-textarea" maxlength="' + MAX + '" rows="4">' +
-                    esc(data.response) + '</textarea>' +
-                '<span class="gb-set-counter" id="gbInstrRespCount">' +
-                    data.response.length + ' / ' + MAX + '</span>' +
-                '<button class="gb-set-btn-sm" id="gbInstrSave" style="margin-top:8px">' +
-                    esc(A.t("settings.save", "Save")) + '</button>' +
-                '<span class="gb-set-hint" id="gbInstrHint"></span>' +
-            '</div>';
-        panel.innerHTML = html;
+    A.loadAssistantProfile = async function () {
+        var response = await A.apiFetch(endpoint);
+        if (!response.ok) { throw new Error("HTTP " + response.status); }
+        return apply(await response.json());
+    };
 
-        var toggle = document.getElementById("gbInstrEnabled");
-        var fields = document.getElementById("gbInstrFields");
-        if (toggle && fields) {
-            toggle.addEventListener("change", function () {
-                data.enabled = toggle.checked;
-                fields.style.opacity = data.enabled ? "" : "0.5";
-                fields.style.pointerEvents = data.enabled ? "" : "none";
-                saveInstructions(data);
-            });
+    A.renderInstructions = async function (panel) {
+        try {
+            var data = await A.loadAssistantProfile();
+            if (panel.isConnected) { draw(panel, data); }
+        } catch (error) {
+            if (!panel.isConnected) { return; }
+            panel.innerHTML = A.settingsHeading("Persona", tr("Quem é o seu assistente.", "Who your assistant is.")) +
+                '<p role="alert">' + tr("Não foi possível carregar a persona.", "Could not load your assistant profile.") +
+                '</p><button type="button" class="gb-set-btn-sm">' + tr("Tentar novamente", "Try again") + '</button>';
+            panel.querySelector("button").onclick = function () { A.openSettings("instructions"); };
         }
+    };
 
-        var aboutTA = document.getElementById("gbInstrAbout");
-        var respTA = document.getElementById("gbInstrResponse");
-        var aboutCount = document.getElementById("gbInstrAboutCount");
-        var respCount = document.getElementById("gbInstrRespCount");
-        if (aboutTA && aboutCount) {
-            aboutTA.addEventListener("input", function () {
-                aboutCount.textContent = aboutTA.value.length + " / " + MAX;
-            });
-        }
-        if (respTA && respCount) {
-            respTA.addEventListener("input", function () {
-                respCount.textContent = respTA.value.length + " / " + MAX;
-            });
-        }
-
-        var saveBtn = document.getElementById("gbInstrSave");
-        if (saveBtn) {
-            saveBtn.addEventListener("click", function () {
-                data.about = aboutTA ? aboutTA.value : "";
-                data.response = respTA ? respTA.value : "";
-                saveInstructions(data);
-            });
-        }
+    function field(id, label, value, placeholder) {
+        return '<label class="gb-set-instruction-label" for="' + id + '">' + esc(label) +
+            '</label><textarea class="gb-set-textarea" id="' + id + '" maxlength="' + maxLength +
+            '" rows="3" placeholder="' + esc(placeholder) + '">' + esc(value) +
+            '</textarea><output class="gb-set-counter" for="' + id + '"></output>';
     }
 
-    function saveInstructions(data) {
-        var hint = document.getElementById("gbInstrHint");
-        A.apiFetch("/api/settings/custom-instructions", {
-            method: "PUT",
-            body: JSON.stringify({
-                about: data.about,
-                response: data.response,
-                enabled: data.enabled
-            })
-        }).then(function (r) {
-            if (hint) {
-                hint.textContent = r.ok
-                    ? A.t("settings.saved-server", "Saved.")
-                    : A.t("settings.saved-local", "Saved on this device.");
-            }
-        }).catch(function () {
-            if (hint) { hint.textContent = A.t("settings.saved-local", "Saved on this device."); }
+    function draw(panel, data) {
+        var profile = Object.assign({}, A.assistantProfile);
+        var enabled = data.enabled !== false;
+        panel.innerHTML = A.settingsHeading("Persona", tr("Quem é o seu assistente.", "Who your assistant is."),
+            tr("Nome, rosto e jeito de responder. Vale em todas as conversas novas.",
+                "Name, appearance, and response style for new conversations.")) +
+            '<form id="gbPersonaForm"><section class="gb-set-slab">' +
+            '<div class="gb-set-slab-body gb-set-persona-identity"><div class="gb-set-persona-avatar" id="gbPersonaAvatar"></div>' +
+            '<div><label class="gb-set-meta" for="gbPersonaName">' + tr("Nome", "Name") +
+            '</label><input class="gb-set-profile-input" id="gbPersonaName" maxlength="80" value="' +
+            esc(profile.name) + '" placeholder="' + tr("Assistente", "Assistant") + '"></div></div>' +
+            '<div class="gb-set-slab-body"><div class="gb-set-meta" id="gbPersonaIconLabel">' +
+            tr("Ícone ou foto", "Icon or photo") + '</div><div class="gb-set-icon-row" role="group" aria-labelledby="gbPersonaIconLabel">' +
+            icons.map(function (icon) {
+                var label = esc(tr(icon[1], icon[2]));
+                return '<button type="button" class="gb-set-btn-sm" data-icon="' + icon[0] + '" aria-label="' +
+                    label + '" title="' + label + '">' + iconMarkup(icon, 18) + '</button>';
+            }).join("") + '<label class="gb-set-btn-sm gb-set-upload">' + tr("Enviar foto", "Upload photo") +
+            '<input id="gbPersonaPhoto" type="file" accept="image/png,image/jpeg,image/webp"></label></div></div></section>' +
+            '<section class="gb-set-slab"><label class="gb-set-slab-toggle" for="gbInstrEnabled">' +
+            '<span>' + tr("Usar estas instruções", "Use these instructions") + '</span>' +
+            '<span class="gb-set-meta" id="gbInstrState"></span>' +
+            '<input type="checkbox" role="switch" class="gb-set-toggle" id="gbInstrEnabled"' + (enabled ? " checked" : "") +
+            '></label><fieldset class="gb-set-slab-body gb-set-instructions">' +
+            field("gbInstrAbout", tr("O que o assistente deve saber sobre você?", "What should the assistant know about you?"),
+                data.about, tr("Ex.: Escrevo ofícios e relatórios.", "Example: I write letters and reports.")) +
+            '<div class="gb-set-meta">' + tr("Comece por um estilo", "Start with a style") + '</div>' +
+            '<div class="gb-set-icon-row">' + styles.map(function (style, index) {
+                return '<button type="button" class="gb-set-btn-sm" data-style="' + index + '">' + tr(style[0], style[1]) + '</button>';
+            }).join("") + '</div>' +
+            field("gbInstrResponse", tr("Como o assistente deve responder?", "How should the assistant respond?"),
+                data.response, tr("Ex.: Português formal, respostas curtas. Cite as fontes.", "Example: Use formal English, short answers, and cite sources.")) +
+            '</fieldset><div class="gb-set-slab-body gb-set-profile-actions">' +
+            '<span class="gb-set-hint" role="status"></span><button type="submit" class="gb-set-btn-sm gb-set-btn-accent">' +
+            esc(A.t("settings.save", "Save")) + '</button></div></section></form>';
+
+        var form = panel.querySelector("form");
+        var avatar = form.querySelector("#gbPersonaAvatar");
+        var picker = form.querySelector("#gbPersonaPhoto");
+        var status = form.querySelector("[role=status]");
+        var save = form.querySelector("[type=submit]");
+        var toggle = form.querySelector("#gbInstrEnabled");
+        var fields = form.querySelector("fieldset");
+        var about = form.querySelector("#gbInstrAbout");
+        var response = form.querySelector("#gbInstrResponse");
+        var iconButtons = form.querySelectorAll("[data-icon]");
+        var photoRevision = 0;
+
+        function renderAvatar() {
+            avatar.innerHTML = profile.photo
+                ? '<img alt="" src="' + esc(profile.photo) + '">'
+                : iconMarkup(iconFor(profile.icon), 28);
+            iconButtons.forEach(function (button) {
+                button.setAttribute("aria-pressed", !profile.photo && button.dataset.icon === profile.icon);
+            });
+        }
+        function renderToggle() {
+            fields.disabled = !toggle.checked;
+            form.querySelector("#gbInstrState").textContent = toggle.checked ? tr("Ligadas", "On") : tr("Desligadas", "Off");
+        }
+        function count(input) {
+            form.querySelector('output[for="' + input.id + '"]').textContent = input.value.length + " / " + maxLength;
+        }
+        renderAvatar();
+        renderToggle();
+        toggle.onchange = renderToggle;
+        [about, response].forEach(function (input) { count(input); input.oninput = function () { count(input); }; });
+        iconButtons.forEach(function (button) {
+            button.onclick = function () {
+                photoRevision++;
+                profile.icon = button.dataset.icon;
+                profile.photo = "";
+                save.disabled = false;
+                renderAvatar();
+            };
         });
+        form.querySelectorAll("[data-style]").forEach(function (button) {
+            button.onclick = function () {
+                var style = styles[Number(button.dataset.style)];
+                response.value = tr(style[2], style[3]);
+                count(response);
+            };
+        });
+        picker.onchange = async function () {
+            var file = picker.files[0];
+            if (!file) { return; }
+            var revision = ++photoRevision;
+            save.disabled = true;
+            try {
+                var photo = await readPhoto(file);
+                if (revision !== photoRevision) { return; }
+                profile.photo = photo;
+                status.textContent = "";
+                renderAvatar();
+            } catch (error) {
+                if (revision === photoRevision) {
+                    status.textContent = tr("Escolha uma imagem PNG, JPEG ou WebP de até 10 MB.", "Choose a PNG, JPEG or WebP image up to 10 MB.");
+                }
+            } finally {
+                if (revision === photoRevision) { save.disabled = false; }
+                picker.value = "";
+            }
+        };
+        form.onsubmit = async function (event) {
+            event.preventDefault();
+            if (save.disabled) { return; }
+            var next = Object.assign({}, profile, {
+                name: form.querySelector("#gbPersonaName").value.trim(),
+                about: about.value, response: response.value, enabled: toggle.checked
+            });
+            form.inert = true;
+            save.disabled = true;
+            status.textContent = "";
+            try {
+                var result = await A.apiFetch(endpoint, { method: "PUT", body: JSON.stringify(next) });
+                if (!result.ok) { throw new Error(); }
+                apply(next);
+                status.textContent = tr("Salvo.", "Saved.");
+            } catch (error) {
+                status.textContent = tr("Não foi possível salvar a persona.", "Could not save your assistant profile.");
+            } finally {
+                form.inert = false;
+                save.disabled = false;
+            }
+        };
+    }
+
+    async function readPhoto(file) {
+        if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024) { throw new Error(); }
+        var bitmap = await createImageBitmap(file);
+        try {
+            var edge = Math.min(bitmap.width, bitmap.height);
+            var canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 192;
+            canvas.getContext("2d").drawImage(bitmap, (bitmap.width - edge) / 2, (bitmap.height - edge) / 2,
+                edge, edge, 0, 0, canvas.width, canvas.height);
+            var photo = safePhoto(canvas.toDataURL("image/webp", 0.86));
+            if (!photo) { throw new Error(); }
+            return photo;
+        } finally {
+            bitmap.close();
+        }
     }
 })();

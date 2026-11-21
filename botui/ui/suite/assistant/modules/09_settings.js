@@ -6,7 +6,30 @@
 
 (function () {
     var A = window.GBAssistant;
-    var currentSection = "account";
+    var currentSection = "model";
+    var sections = [
+        ["account", "user", "settings.account", "Account", "Conta"],
+        ["instructions", "message", "", "Persona", "Persona"],
+        ["language", "globe", "settings.language", "Language", "Idioma"],
+        ["model", "cpu", "settings.model", "Model", "Modelo"],
+        ["limits", "gauge", "", "Limits", "Limites"],
+        ["shortcuts", "keyboard", "shortcut.title", "Keyboard shortcuts", "Atalhos de teclado"],
+        ["about", "info", "settings.about", "About", "Sobre"],
+        ["appearance", "palette", "settings.appearance", "Appearance", "Aparência"]
+    ];
+    function tr(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
+    A.settingsText = tr;
+
+    function sectionLabel(section) {
+        var fallback = tr(section[4], section[3]);
+        return section[2] ? A.t(section[2], fallback) : fallback;
+    }
+
+    A.settingsHeading = function (kicker, title, description) {
+        return '<header class="gb-set-heading"><span class="gb-set-kicker">' +
+            esc(kicker) + '</span><h1>' + esc(title) + '</h1>' +
+            (description ? '<p>' + esc(description) + '</p>' : '') + '</header>';
+    };
 
     function esc(s) {
         return String(s == null ? "" : s)
@@ -20,53 +43,27 @@
     A.renderSettings = function () {
         var container = document.getElementById("gbSettingsContainer");
         if (!container) { return; }
-        var sections = [
-            { id: "account",      icon: "user",     key: "settings.account" },
-            { id: "instructions", icon: "message",  key: "settings.instructions" },
-            { id: "appearance",   icon: "palette",  key: "settings.appearance" },
-            { id: "language",     icon: "globe",    key: "settings.language" },
-            { id: "model",        icon: "cpu",      key: "settings.model" },
-            { id: "shortcuts",    icon: "keyboard", key: "shortcut.title" },
-            { id: "about",        icon: "info",     key: "settings.about" },
-        ];
-        var nav = '<nav class="gb-set-nav" role="tablist">';
-        nav += '<button class="gb-set-back" id="gbSetBack" aria-label="' +
-            esc(A.t("settings.back", "Back to conversation")) + '">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>' +
-            '<span>' + esc(A.t("settings.back", "Back to conversation")) + '</span></button>';
-        for (var i = 0; i < sections.length; i++) {
-            var s = sections[i];
-            nav += '<button class="gb-set-tab' + (s.id === currentSection ? ' active' : '') +
-                '" data-section="' + s.id + '" role="tab" aria-selected="' +
-                (s.id === currentSection) + '">' +
-                sectionIcon(s.icon) +
-                '<span>' + esc(A.t(s.key, s.id)) + '</span></button>';
-        }
-        nav += '</nav>';
-        container.innerHTML = nav + '<div class="gb-set-panel" id="gbSetPanel"></div>';
-
-        /* Bind nav */
-        container.querySelectorAll(".gb-set-tab").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                currentSection = btn.getAttribute("data-section");
-                container.querySelectorAll(".gb-set-tab").forEach(function (b) {
-                    b.classList.toggle("active", b === btn);
-                    b.setAttribute("aria-selected", b === btn);
+        var navHost = document.getElementById("gbSettingsNav");
+        container.innerHTML = '<div class="gb-set-scroll" id="gbSettingsScroll"></div>';
+        if (navHost) {
+            var nav = '<div class="gb-set-nav">';
+            nav += '<button type="button" class="gb-set-back" id="gbSetBack">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>' +
+                esc(A.t("settings.back", "Back to conversation")) + '</button>';
+            sections.filter(function (section) { return section[0] !== "appearance"; })
+                .forEach(function (section) {
+                    nav += '<button type="button" class="gb-set-tab" data-section="' + section[0] + '">' +
+                        sectionIcon(section[1]) + '<span>' + esc(sectionLabel(section)) + '</span></button>';
                 });
-                renderSection(currentSection);
+            nav += '<button type="button" class="gb-set-tab gb-set-nav-signout" id="gbSetNavSignOut">' +
+                sectionIcon("logout") + '<span>' + esc(A.t("assistant.sign-out", "Sign out")) + '</span></button></div>';
+            navHost.innerHTML = nav;
+            navHost.querySelector("#gbSetBack").onclick = function () { A.switchView("chat"); };
+            navHost.querySelector("#gbSetNavSignOut").onclick = function () { A.signOut(); };
+            navHost.querySelectorAll("[data-section]").forEach(function (button) {
+                button.onclick = function () { renderSection(button.dataset.section); };
             });
-        });
-        var backBtn = document.getElementById("gbSetBack");
-        if (backBtn) {
-            backBtn.addEventListener("click", function () { A.switchView("chat"); });
         }
-        /* Esc key */
-        container._escHandler = function (e) {
-            if (e.key === "Escape" && A.currentView === "settings") {
-                A.switchView("chat");
-            }
-        };
-        document.addEventListener("keydown", container._escHandler);
         renderSection(currentSection);
     };
 
@@ -78,7 +75,9 @@
             cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
             info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
             keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10.01"/><line x1="10" y1="10" x2="10" y2="10.01"/><line x1="14" y1="10" x2="14" y2="10.01"/><line x1="18" y1="10" x2="18" y2="10.01"/><line x1="8" y1="14" x2="16" y2="14"/>',
-            message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+            message: '<path d="M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2"/>',
+            gauge: '<path d="M3.3 19a10 10 0 1 1 17.4 0M12 14l4-4"/>',
+            logout: '<path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M9 12h12m-5-5 5 5-5 5"/>',
         };
         return '<svg class="gb-set-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' + (icons[name] || '') + '</svg>';
     }
@@ -87,16 +86,31 @@
        Section renderers
        ================================================================ */
     function renderSection(id) {
-        var panel = document.getElementById("gbSetPanel");
-        if (!panel) { return; }
+        var scroller = document.getElementById("gbSettingsScroll");
+        if (!scroller) { return; }
+        currentSection = id;
+        document.querySelectorAll("#gbSettingsNav [data-section]").forEach(function (button) {
+            var active = button.dataset.section === id;
+            button.classList.toggle("active", active);
+            if (active) { button.setAttribute("aria-current", "page"); }
+            else { button.removeAttribute("aria-current"); }
+        });
+        if (A.updateBreadcrumb) { A.updateBreadcrumb(); }
+        var panel = document.createElement("div");
+        panel.id = "gbSetPanel";
+        panel.dataset.section = id;
+        panel.className = "gb-set-panel";
+        scroller.replaceChildren(panel);
+        scroller.scrollTop = 0;
         var renderers = {
-            account: renderAccount,
+            account: A.renderAccount,
             instructions: renderInstructions,
             appearance: renderAppearance,
             language: renderLanguage,
             model: renderModel,
             shortcuts: renderShortcuts,
-            about: renderAbout,
+            about: A.renderAbout,
+            limits: A.renderLimits,
         };
         var fn = renderers[id];
         if (fn) {
@@ -104,7 +118,11 @@
             panel.innerHTML = '<div class="gb-set-loading">' +
                 '<span class="gb-set-loading-dot"></span>' +
                 esc(A.t("assistant.connecting", "Loading...")) + '</div>';
-            try { fn(panel); } catch (e) {
+            try {
+                Promise.resolve(fn(panel)).catch(function (e) {
+                    if (panel.isConnected) { panel.innerHTML = sectionError(e); }
+                });
+            } catch (e) {
                 panel.innerHTML = sectionError(e);
             }
         } else {
@@ -119,26 +137,6 @@
             '<button class="gb-set-btn-sm" onclick="' +
             "var A=window.GBAssistant;if(A&&A.renderSettings)A.renderSettings();" +
             '">' + esc(A.t("settings.retry", "Tentar novamente")) + '</button></div>';
-    }
-
-    /* -- Account -- */
-    function renderAccount(panel) {
-        var name = A.userName || "";
-        var email = A.userEmail || "";
-        panel.innerHTML =
-            '<div class="gb-set-card">' +
-                '<h2 class="gb-set-title">' + esc(A.t("settings.account", "Account")) + '</h2>' +
-                '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.name", "Name")) + '</span>' +
-                    '<span class="gb-set-value">' + esc(name || "—") + '</span></div>' +
-                '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.email", "E-mail")) + '</span>' +
-                    '<span class="gb-set-value">' + esc(email || "—") + '</span></div>' +
-                '<button class="gb-set-signout" id="gbSetSignOut">' +
-                    esc(A.t("assistant.sign-out", "Sign out")) + '</button>' +
-            '</div>';
-        var btn = document.getElementById("gbSetSignOut");
-        if (btn) { btn.addEventListener("click", function () { A.signOut(); }); }
     }
 
     /* -- Custom instructions (delegated to 09c_settings_instructions.js) -- */
@@ -219,7 +217,7 @@
                 '<label class="gb-set-label" for="gbAccentCustom">' +
                     esc(A.t("settings.custom-colour", "Custom")) + '</label>' +
                 '<input type="color" id="gbAccentCustom" class="gb-set-colour-input" value="' +
-                    esc(currentAccent || "#F28C28") + '" />' +
+                    esc(/^#[0-9A-F]{6}$/.test(currentAccent) ? currentAccent : (presets[0] && presets[0].hex) || "") + '" />' +
             '</div>' +
             '<div class="gb-set-preview" id="gbAccentPreview">' +
                 '<button class="gb-set-preview-btn">' + esc(A.t("settings.preview-button", "Button")) + '</button>' +
@@ -300,6 +298,8 @@
         });
     }
 
+    A.renderAppearance = renderAppearance;
+
     function applyAccent(hex, panel) {
         if (!hex || !window.GBIdentity) { return; }
         window.GBIdentity.apply(hex);
@@ -335,8 +335,8 @@
             { code: "pt-BR", label: "Português (Brasil)" },
             { code: "en",    label: "English" },
         ];
-        var html = '<div class="gb-set-card">' +
-            '<h2 class="gb-set-title">' + esc(A.t("settings.language", "Language")) + '</h2>';
+        var html = A.settingsHeading(tr("Idioma", "Language"), tr("Em que idioma usar o assistente?", "Which language do you use?")) +
+            '<div class="gb-set-card">';
         for (var i = 0; i < langs.length; i++) {
             var l = langs[i];
             var active = A.locale === l.code || (l.code === "pt-BR" && A.locale.startsWith("pt"));
@@ -377,7 +377,7 @@
         var isMac = /mac/i.test(navigator.platform || "");
         var mod = isMac ? "⌘" : "Ctrl";
         var shortcuts = [
-            [mod + "+Shift+O", "shortcut.new-chat"],
+            [mod + "+N / " + mod + "+Shift+O", "shortcut.new-chat"],
             [mod + "+K", "shortcut.search"],
             [mod + "+B", "shortcut.sidebar"],
             [mod + "+,", "shortcut.settings"],
@@ -395,44 +395,13 @@
         panel.innerHTML = html;
     }
 
-    /* -- About -- */
-    function renderAbout(panel) {
-        var pc = A.productConfig || {};
-        var name = pc.name || "General Bots";
-        var version = pc.version || "";
-        var buildDate = pc.build_date || pc.built_at || "";
-        var commit = pc.commit || pc.git_commit || "";
-        if (commit && commit.length > 8) { commit = commit.substring(0, 8); }
-        panel.innerHTML =
-            '<div class="gb-set-card">' +
-                '<h2 class="gb-set-title">' + esc(A.t("settings.about", "About")) + '</h2>' +
-                '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.product", "Product")) + '</span>' +
-                    '<span class="gb-set-value">' + esc(name) + '</span></div>' +
-                (version ? '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.version", "Version")) + '</span>' +
-                    '<span class="gb-set-value">' + esc(version) + '</span></div>' : '') +
-                (buildDate ? '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.build-date", "Build date")) + '</span>' +
-                    '<span class="gb-set-value">' + esc(buildDate) + '</span></div>' : '') +
-                (commit ? '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.commit", "Commit")) + '</span>' +
-                    '<span class="gb-set-value" style="font-family:monospace">' + esc(commit) + '</span></div>' : '') +
-                '<div class="gb-set-field"><span class="gb-set-label">' +
-                    esc(A.t("settings.licence", "Licence")) + '</span>' +
-                    '<span class="gb-set-value">MIT</span></div>' +
-                '<p class="gb-set-hint">' +
-                    esc(A.t("settings.open-source", "Open source")) +
-                '</p>' +
-            '</div>';
-    }
-
     /* ================================================================
        Open settings to a specific section (e.g. from error card)
        ================================================================ */
     A.openSettings = function (section) {
-        if (section) { currentSection = section; }
-        A.switchView("settings");
+        if (sections.some(function (entry) { return entry[0] === section; })) { currentSection = section; }
+        if (A.currentView === "settings") { renderSection(currentSection); }
+        else { A.switchView("settings"); }
     };
 
     /* Accent boot: restore from server or localStorage */

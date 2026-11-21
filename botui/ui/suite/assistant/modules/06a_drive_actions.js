@@ -15,7 +15,11 @@
 
     /* ---- Context menu ---- */
     D.showCtxMenu = function (evt, path, name, isDir, opts) {
+        var trigger = evt.currentTarget;
+        if (D.ctxTrigger === trigger) { D.closeCtx(true); return; }
         D.closeCtx();
+        D.ctxTrigger = trigger;
+        trigger.setAttribute("aria-expanded", "true");
         D.ctxEl = document.createElement("div");
         D.ctxEl.className = "gb-drv-ctx";
         opts = opts || {};
@@ -43,12 +47,13 @@
         D.ctxEl.innerHTML = html;
         document.body.appendChild(D.ctxEl);
 
-        var x = evt.clientX;
-        var y = evt.clientY;
+        var anchor = trigger.getBoundingClientRect();
+        var x = anchor.right;
+        var y = anchor.bottom + 4;
         var w = D.ctxEl.offsetWidth;
         var h = D.ctxEl.offsetHeight;
-        if (x + w > window.innerWidth) x = window.innerWidth - w - 8;
-        if (y + h > window.innerHeight) y = window.innerHeight - h - 8;
+        x = Math.max(8, Math.min(window.innerWidth - w - 8, x - w));
+        if (y + h > window.innerHeight - 8) y = Math.max(8, anchor.top - h - 4);
         D.ctxEl.style.left = x + "px";
         D.ctxEl.style.top = y + "px";
 
@@ -56,12 +61,19 @@
             var btn = e.target.closest("[data-action]");
             if (!btn) return;
             var action = btn.getAttribute("data-action");
-            D.closeCtx();
+            D.closeCtx(true);
             if (action === "rename") startRename(path, name);
             else if (action === "download") downloadFile(path, name);
             else if (action === "delete") confirmDelete(path, name, isDir);
             else if (action === "use-in-chat") useFileInChat(path, name);
         });
+        D.ctxEl.addEventListener("keydown", function (e) {
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            e.stopPropagation();
+            D.closeCtx(true);
+        });
+        D.ctxEl.querySelector("button").focus();
     };
 
     /* ---- Inline rename ---- */
@@ -201,7 +213,7 @@
             }).then(function () { D.refreshFiles(); })
               .catch(function (e) {
                   bar.innerHTML =
-                      '<span class="gb-drv-confirm-text" style="color:#dc2626">' +
+                      '<span class="gb-drv-confirm-text gb-drv-confirm-error">' +
                       esc(e.message || "Error") + '</span>' +
                       '<button class="gb-drv-confirm-btn" data-act="no">OK</button>';
                   bar.querySelector('[data-act="no"]').addEventListener("click", function (ev) {
@@ -353,19 +365,15 @@
     D.useFileInChat = useFileInChat;
 
     /* ---- Inbox files (chat attachments from conversation history) ---- */
-    D.loadInboxFiles = function () {
-        D.inboxMode = true;
-        D.showLoading();
-        A.apiFetch("/api/chat/history/sessions?limit=50&bot_name=" +
+    D.collectInboxFiles = function () {
+        return A.apiFetch("/api/chat/history/sessions?limit=50&bot_name=" +
             encodeURIComponent(A.botName || "default"))
-        .then(function (r) { return r.ok ? r.json() : { sessions: [] }; })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
         .then(function (data) {
-            var sessions = (data.sessions || []).slice(0, 20);
-            if (!sessions.length) { D.files = []; D.renderFileList(); return; }
-            var seen = {}, allFiles = [], remaining = sessions.length;
-            sessions.forEach(function (s) {
+            var seen = {}, allFiles = [];
+            return Promise.all((data.sessions || []).slice(0, 20).map(function (s) {
                 var sid = s.session_id || s.id;
-                A.apiFetch("/api/chat/history/sessions/" + encodeURIComponent(sid) +
+                return A.apiFetch("/api/chat/history/sessions/" + encodeURIComponent(sid) +
                     "/messages?limit=100&offset=0")
                 .then(function (r) { return r.ok ? r.json() : { messages: [] }; })
                 .then(function (d) {
@@ -381,16 +389,21 @@
                                 is_dir: false, _inbox: true });
                         });
                     });
-                }).catch(function () { /* skip */ })
-                .finally(function () {
-                    remaining--;
-                    if (remaining <= 0) {
-                        D.files = D.sortFiles(allFiles);
-                        D.renderFileList();
-                    }
-                });
-            });
+                }).catch(function () { return null; });
+            })).then(function () { return allFiles; });
+        });
+    };
+
+    D.loadInboxFiles = function () {
+        D.inboxMode = true;
+        var request = D.listRequest = (D.listRequest || 0) + 1;
+        D.showLoading();
+        D.collectInboxFiles().then(function (files) {
+            if (request !== D.listRequest) return;
+            D.files = D.sortFiles(files);
+            D.renderFileList();
         }).catch(function (e) {
+            if (request !== D.listRequest) return;
             console.error("[drive] inbox list failed:", e);
             D.showError(e.message);
         });
@@ -399,6 +412,7 @@
     /* ---- Search ---- */
     D.searchFiles = function (query) {
         D.searching = true;
+        var request = D.listRequest = (D.listRequest || 0) + 1;
         D.showLoading();
         var params = new URLSearchParams();
         params.set("query", query);
@@ -408,10 +422,12 @@
 
         D.req("/search?" + params.toString())
             .then(function (files) {
+                if (request !== D.listRequest) return;
                 D.files = D.sortFiles(files || []);
                 D.renderFileList();
             })
             .catch(function (e) {
+                if (request !== D.listRequest) return;
                 console.error("[drive] search failed:", e);
                 D.showError(e.message);
             });

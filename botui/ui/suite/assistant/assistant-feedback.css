@@ -11,7 +11,7 @@
     transition: color var(--id-dur-fast) var(--id-ease),
                 background var(--id-dur-fast) var(--id-ease);
 }
-.gb-feedback-btn:hover { background: var(--id-surface-alt, #f1f5f9); color: var(--id-text); }
+.gb-feedback-btn:hover { background: var(--id-fill); color: var(--id-text); }
 .gb-feedback-btn.active { color: var(--id-accent); }
 .gb-feedback-comment {
     display: flex; gap: 4px; margin-top: 4px; padding: 4px 0;
@@ -43,7 +43,7 @@
     transition: color var(--id-dur-fast) var(--id-ease),
                 background var(--id-dur-fast) var(--id-ease);
 }
-.gb-export-btn:hover { background: var(--id-surface-alt, #f1f5f9); color: var(--id-text); }
+.gb-export-btn:hover { background: var(--id-fill); color: var(--id-text); }
 
 /* ---- Print stylesheet ---- */
 @media print {

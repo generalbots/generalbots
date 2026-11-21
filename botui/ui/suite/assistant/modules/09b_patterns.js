@@ -8,6 +8,8 @@
 
 (function () {
     var A = window.GBAssistant;
+    var root = document.documentElement;
+    var mantis = root.dataset.identity === "mantis";
 
     var PATTERNS = [
         { id: "none", css: "" },
@@ -21,14 +23,33 @@
     /* "image" = the shipped pattern.png (dot composition) */
     PATTERNS.splice(1, 0, { id: "image", css: "__IMAGE__" });
 
+    var MANTIS_PATTERNS = [
+        { id: "none", en: "None", pt: "Nenhum" },
+        { id: "dots", en: "Dots", pt: "Pontos" },
+        { id: "microdots", en: "Microdots", pt: "Micropontos" },
+        { id: "grid", en: "Grid", pt: "Grade" },
+        { id: "blueprint", en: "Blueprint", pt: "Planta" },
+        { id: "weave", en: "Weave", pt: "Tecido" },
+        { id: "mosaic", en: "Mosaic", pt: "Mosaico" }
+    ];
+
     function getCurrentPattern() {
-        try { return localStorage.getItem("gb-chat-pattern") || "image"; } catch (e) { return "image"; }
+        var stored;
+        try { stored = localStorage.getItem("gb-chat-pattern"); } catch (e) { /* storage unavailable */ }
+        if (mantis) {
+            return MANTIS_PATTERNS.some(function (pattern) { return pattern.id === stored; }) ? stored : "dots";
+        }
+        return stored || "image";
     }
     function setCurrentPattern(id) {
         try { localStorage.setItem("gb-chat-pattern", id); } catch (e) { /* */ }
     }
 
     function applyPattern(id) {
+        if (mantis) {
+            root.dataset.gbPattern = id === "image" ? "dots" : id;
+            return;
+        }
         var main = document.querySelector(".gb-main");
         if (!main) { return; }
         main.classList.remove("gb-pattern-none", "gb-pattern-css", "gb-pattern-image");
@@ -74,6 +95,11 @@
         return isNaN(v) ? cfg.def : Math.min(cfg.max, Math.max(cfg.min, v));
     }
     function applySliders() {
+        if (mantis) {
+            root.style.setProperty("--gb-pat-strength", String(getSlider("strength") / 100));
+            root.style.setProperty("--gb-pat-scale", String(getSlider("scale") / 100));
+            return;
+        }
         var main = document.querySelector(".gb-main");
         if (!main) { return; }
         var scale = getSlider("scale"), frost = getSlider("frost");
@@ -90,12 +116,13 @@
         }
         if (layer) { layer.hidden = frost <= 0; }
     }
-    A._sliderRow = function (name) {
+    A._sliderRow = function (name, prefix) {
         var cfg = SLIDERS[name], v = getSlider(name);
-        return '<div class="gb-set-range-row"><label class="gb-set-label" for="gbRange_' + name + '">' + A.t(cfg.key, cfg.en) + '</label>' +
-            '<input type="range" class="gb-set-range" id="gbRange_' + name + '" data-slider="' + name + '" min="' + cfg.min +
+        var id = (prefix || "gbRange_") + name;
+        return '<div class="gb-set-range-row"><label class="gb-set-label" for="' + id + '">' + A.t(cfg.key, cfg.en) + '</label>' +
+            '<input type="range" class="gb-set-range" id="' + id + '" data-slider="' + name + '" min="' + cfg.min +
             '" max="' + cfg.max + '" step="' + cfg.step + '" value="' + v + '" />' +
-            '<output class="gb-set-range-value" for="gbRange_' + name + '">' + v + '%</output>' +
+            '<output class="gb-set-range-value" for="' + id + '">' + v + '%</output>' +
             '<button type="button" class="gb-set-range-reset" data-reset="' + name + '" title="' + A.t("settings.slider-reset", "Default") + '">&#8634;</button></div>';
     };
     A._syncSliders = function (panel) {
@@ -114,7 +141,7 @@
             if (out) { out.textContent = value + "%"; }
             applySliders();
         }
-        panel.querySelectorAll(".gb-set-range").forEach(function (input) {
+        panel.querySelectorAll(".gb-set-range[data-slider]").forEach(function (input) {
             input.addEventListener("input", function () { set(input, parseInt(input.value, 10)); });
         });
         panel.querySelectorAll("[data-reset]").forEach(function (btn) {
@@ -155,4 +182,116 @@
     A._setCurrentPattern = setCurrentPattern;
     A._applyPattern = applyPattern;
     A._applyPatternCSS = applyPatternCSS;
+
+    function appearanceChoice(name, id, label, selected) {
+        return '<button type="button" data-' + name + '="' + id + '" aria-pressed="' +
+            (selected === id) + '">' + A.escapeHtml(label) + '</button>';
+    }
+
+    function segmented(name, choices, selected, label) {
+        var buttons = choices.map(function (id) {
+            return appearanceChoice(name, id, label(id), selected);
+        });
+        return '<div class="gb-seg">' + buttons.join("") + '</div>';
+    }
+
+    function appearanceSection(label, content) {
+        return '<fieldset><legend class="gb-label">' + A.escapeHtml(label) + '</legend>' + content + '</fieldset>';
+    }
+
+    function syncChoices(panel, type, selected) {
+        panel.querySelectorAll("[data-" + type + "]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.getAttribute("data-" + type) === selected));
+        });
+    }
+
+    function saveAccent(hex) {
+        try { localStorage.setItem("gb-accent", hex); } catch (e) { /* storage unavailable */ }
+        if (A.apiFetch) {
+            A.apiFetch("/api/appearance", {
+                method: "PUT",
+                body: JSON.stringify({ accent: hex })
+            }).catch(function () { /* The device preference is already saved. */ });
+        }
+    }
+
+    A.renderMantisAppearance = function (container) {
+        var theme = window.GBTheme;
+        var size = window.GBTextSize;
+        var identity = window.GBIdentity;
+        var activeAccent = root.style.getPropertyValue("--id-accent").trim().toUpperCase();
+        var portuguese = root.lang.toLowerCase().startsWith("pt");
+        var hueLabel = portuguese ? "Matiz" : "Hue";
+        var hue = Math.round(identity.hueOf(activeAccent)) % 360;
+        var pattern = getCurrentPattern();
+        var swatches = identity.presets.map(function (preset) {
+            var label = A.escapeHtml(portuguese ? preset.pt : preset.en);
+            return '<button type="button" style="--gb-swatch:' + preset.hex + '" data-acc="' + preset.hex +
+                '" title="' + label + '" aria-label="' + label + '" aria-pressed="' + (preset.hex === activeAccent) + '"></button>';
+        }).join("");
+        var patterns = MANTIS_PATTERNS.map(function (item) {
+            return '<button type="button" data-gb-pattern="' + item.id + '" aria-pressed="' + (pattern === item.id) +
+                '"><span>' + A.escapeHtml(portuguese ? item.pt : item.en) + '</span></button>';
+        }).join("");
+
+        container.innerHTML = '<div class="gb-appearance">' +
+            appearanceSection(A.t("settings.theme-label", "Theme"),
+                segmented("appearance-theme", ["light", "dark", "system"], theme.get(), function (id) {
+                    return A.t("settings.theme-" + id, id);
+                })) +
+            appearanceSection(A.t("settings.accent-label", "Accent colour"),
+                '<div class="gb-appearance-swatches">' + swatches + '</div>' +
+                '<div class="gb-appearance-hue"><label for="gbAppearanceHue">' + hueLabel + '</label>' +
+                '<input class="gb-set-range" id="gbAppearanceHue" type="range" min="0" max="359" value="' + hue +
+                '"><output for="gbAppearanceHue">' + hue + '°</output></div>') +
+            appearanceSection(portuguese ? "Padrão de fundo" : "Background pattern",
+                '<div class="gb-appearance-patterns">' + patterns + '</div>' +
+                A._sliderRow("strength", "gbAppearanceRange_") + A._sliderRow("scale", "gbAppearanceRange_")) +
+            appearanceSection(A.t("settings.text-size-label", "Text size"),
+                segmented("appearance-size", size.steps, size.get(), function (id) {
+                    return A.t("settings.text-" + id, id);
+                })) + '</div>';
+
+        var panel = container.querySelector(".gb-appearance");
+        var hueInput = panel.querySelector("#gbAppearanceHue");
+        var hueOutput = panel.querySelector('output[for="gbAppearanceHue"]');
+        panel.addEventListener("click", function (event) {
+            var button = event.target.closest("button");
+            if (!button) { return; }
+            var selectedTheme = button.dataset.appearanceTheme;
+            var selectedSize = button.dataset.appearanceSize;
+            var selectedAccent = button.dataset.acc;
+            var selectedPattern = button.dataset.gbPattern;
+            if (selectedTheme) {
+                theme.set(selectedTheme);
+                syncChoices(panel, "appearance-theme", selectedTheme);
+            } else if (selectedSize) {
+                size.set(selectedSize);
+                syncChoices(panel, "appearance-size", selectedSize);
+            } else if (selectedAccent) {
+                var accent = identity.apply(selectedAccent).accent;
+                hueInput.value = Math.round(identity.hueOf(accent)) % 360;
+                hueOutput.value = hueInput.value + "°";
+                syncChoices(panel, "acc", accent);
+                saveAccent(accent);
+            } else if (selectedPattern) {
+                setCurrentPattern(selectedPattern);
+                applyPattern(selectedPattern);
+                syncChoices(panel, "gb-pattern", selectedPattern);
+                A._syncSliders(panel);
+            }
+        });
+        hueInput.addEventListener("input", function () {
+            var accent = identity.apply(identity.fromHue(Number(hueInput.value))).accent;
+            hueOutput.value = hueInput.value + "°";
+            syncChoices(panel, "acc", accent);
+            try { localStorage.setItem("gb-accent", accent); } catch (e) { /* storage unavailable */ }
+        });
+        hueInput.addEventListener("change", function () {
+            saveAccent(root.style.getPropertyValue("--id-accent"));
+        });
+        A._bindSliders(panel);
+    };
+
+    if (mantis) { A.bootPattern(); }
 })();
