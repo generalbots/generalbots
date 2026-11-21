@@ -1,0 +1,15 @@
+{
+  "identifier": "mobile",
+  "description": "Thin-client capability set for Android and iOS. Local bundled UI only, remote botserver reached over HTTPS/WSS from the WebView. No filesystem provider, no dialog, notification or geolocation plugin, and no sidecar commands.",
+  "local": true,
+  "platforms": [
+    "android",
+    "ios"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

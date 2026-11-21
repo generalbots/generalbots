@@ -1,0 +1,14 @@
+target 'GeneralBots_iOS' do
+  platform :ios, '15.0'
+  # No third-party pods: the WebView and Tauri runtime are provided by the
+  # Rust static library linked by the Xcode project.
+end
+
+# Delete the deployment target for iOS, causing it to be inherited from the Podfile.
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
+    end
+  end
+end
