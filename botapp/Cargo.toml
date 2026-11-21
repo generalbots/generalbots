@@ -17,12 +17,11 @@ name = "botapp"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-# Core helpers from botlib. The `database` default feature pulls diesel +
-# pq-sys, which links the host libpq: that is an x86_64 ELF on the Android/iOS
-# cross-link and makes lld reject `--fix-cortex-a53-843419`. botapp is a UI
-# shell and never uses a DB pool, so keep the native database stack out.
-botlib = { workspace = true, default-features = false, features = ["http-client", "i18n"] }
-
+# Mobile logging is initialised directly with env_logger in `mobile/mod.rs`.
+# botlib (which pulls diesel + pq-sys and the host libpq) is deliberately NOT a
+# mobile dependency: an x86_64 libpq on the aarch64 Android cross-link makes lld
+# reject `--fix-cortex-a53-843419`. It is gated to non-mobile targets below.
+env_logger = { workspace = true }
 
 # ─── TAURI 2.12 (Desktop/Mobile) ───
 # #2009 — 2.12 + tauri-plugin-http 2.8 move tauri-utils to urlpattern 0.6,
@@ -55,6 +54,10 @@ hex = { workspace = true }
 # host libpq). The desktop module itself is gated off on `feature = "mobile"`.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 botvideo = { workspace = true }
+# Core helpers (SafeCommand, compact logger) are used only by the desktop
+# module, which is itself compiled only on non-mobile targets. Keeping botlib
+# here excludes diesel/pq-sys/libpq from the Android and iOS cross-links.
+botlib = { workspace = true, default-features = false, features = ["http-client", "i18n"] }
 
 # Unix process control
 [target.'cfg(unix)'.dependencies]

@@ -1185,6 +1185,7 @@ dependencies = [
  "botvideo",
  "chrono",
  "dirs 5.0.1",
+ "env_logger",
  "hex",
  "libc",
  "log",

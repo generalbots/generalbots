@@ -12,7 +12,13 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 /// Builds and runs the mobile WebView. A missing/invalid origin is a hard
 /// configuration error: the app never opens an unconfigured server.
 pub fn run() {
-    botlib::logging::init_compact_logger("info");
+    // botlib is excluded from mobile targets (it drags in diesel/pq-sys/libpq),
+    // so initialise the compact logger directly. `try_init` avoids a panic if a
+    // host has already installed a global logger.
+    let _ = env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("info"),
+    )
+    .try_init();
 
     let origin = match config::remote_origin() {
         Ok(origin) => origin,
