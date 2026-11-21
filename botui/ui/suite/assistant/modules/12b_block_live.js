@@ -22,10 +22,10 @@ var esc = B.esc, t = B.t;
    plain answer also sends. Labels: done (pt, en), then running (pt, en). */
 var VM_PHASES = { infra: 1, tool: 1 };
 var STEP_LABELS = {
-    queued: ["Entrou na fila da Máquina", "Queued on the Machine", "Na fila da Máquina", "Waiting for the Machine"],
-    image_pull: ["Baixou a imagem da Máquina", "Pulled the Machine image", "Baixando a imagem da Máquina", "Pulling the Machine image"],
-    container_start: ["Ligou a Máquina", "Started the Machine", "Ligando a Máquina", "Starting the Machine"],
-    bootstrap: ["Preparou a Máquina", "Prepared the Machine", "Preparando a Máquina", "Preparing the Machine"],
+    queued: ["Entrou na fila da Máquina Virtual", "Queued on the virtual machine", "Na fila da Máquina Virtual", "Waiting for the virtual machine"],
+    image_pull: ["Baixou a imagem da Máquina Virtual", "Pulled the virtual machine image", "Baixando a imagem da Máquina Virtual", "Pulling the virtual machine image"],
+    container_start: ["Ligou a Máquina Virtual", "Started the virtual machine", "Ligando a Máquina Virtual", "Starting the virtual machine"],
+    bootstrap: ["Preparou a Máquina Virtual", "Prepared the virtual machine", "Preparando a Máquina Virtual", "Preparing the virtual machine"],
     package_install: ["Instalou pacotes", "Installed packages", "Instalando pacotes", "Installing packages"],
     execute: ["Executou o programa", "Ran the program", "Executando o programa", "Running the program"],
     save: ["Guardou o resultado", "Saved the output", "Guardando o resultado", "Saving the output"],
@@ -102,7 +102,7 @@ function onActivity(payload) {
 
 /* ---- Workspace run ----
    Steps are tracked per run without drawing anything; the card appears only
-   once a step really runs in the Machine (infra/tool phase or vm_exec). */
+   once a step really runs in the virtual machine (infra/tool phase or vm_exec). */
 function stepLabel(step) {
     var l = STEP_LABELS[step.key];
     if (!l) { return step.name || step.key || t("Etapa", "Step"); }
@@ -118,7 +118,7 @@ function runFor(runId) {
 function showRun(run) {
     if (!run.vm) { return; }
     if (!run.el || !document.body.contains(run.el)) {
-        run.el = B.block({ kind: "machine", icon: "terminal", title: t("Executando na Máquina", "Running on the Machine"),
+        run.el = B.block({ kind: "machine", icon: "terminal", title: t("Executando na Máquina Virtual", "Running on the virtual machine"),
             summary: "", status: "running", open: true });
         run.el.dataset.runId = run.key;
         place(run.el);
@@ -133,8 +133,8 @@ function paintRun(run) {
     var status = failed ? "failed" : (!current && run.ok !== null ? "done" : "running");
     var el = run.el;
     el.querySelector(".gb-block-title").textContent = status === "running"
-        ? t("Executando na Máquina", "Running on the Machine")
-        : (failed ? t("Falhou na Máquina", "Failed on the Machine") : t("Executou na Máquina", "Ran on the Machine"));
+        ? t("Executando na Máquina Virtual", "Running on the virtual machine")
+        : (failed ? t("Falhou na Máquina Virtual", "Failed on the virtual machine") : t("Executou na Máquina Virtual", "Ran on the virtual machine"));
     el.querySelector(".gb-block-summary").textContent = current ? (current.detail || stepLabel(current)) : "";
     var count = el.querySelector(".gb-block-count");
     if (!count) {

@@ -22,6 +22,8 @@
         return title;
     }
 
+    function say(pt, en) { return A.locale && A.locale.startsWith("pt") ? pt : en; }
+
     /* ---- Conversation list ---- */
     A.refreshSidebar = function () {
         A.loadSessions().then(function () { renderConversationList(); });
@@ -30,10 +32,12 @@
     function renderConversationList() {
         var container = document.getElementById("gbConversations");
         if (!container) { return; }
+        var scroll = container.scrollTop;
         container.innerHTML = "";
         var count = document.getElementById("gbConvCount");
-        if (count) { count.textContent = String((A.sessions || []).length); }
-        if (!A.sessions || A.sessions.length === 0) { return; }
+        var loaded = (A.sessions || []).length;
+        if (count) { count.textContent = String(A.sessionsTotal != null ? A.sessionsTotal : loaded); }
+        if (!loaded) { return; }
 
         var groups = groupByDate(A.sessions);
         var order = ["today", "yesterday", "earlier"];
@@ -54,6 +58,37 @@
                 container.appendChild(createConvItem(items[i]));
             }
         }
+        if (A.sessionsMore) { container.appendChild(moreRow()); }
+        container.scrollTop = scroll;
+    }
+
+    /* The list arrives a page at a time: the last row loads the next page
+       when it scrolls into view, or when clicked. */
+    var moreSeen = null;
+    function moreRow() {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "gb-conv-item gb-conv-more";
+        var text = document.createElement("span");
+        text.className = "gb-conv-item-text";
+        text.textContent = say("Carregar mais", "Load more");
+        btn.appendChild(text);
+        function more() {
+            if (btn.disabled) { return; }
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+            text.textContent = say("Carregando…", "Loading…");
+            A.loadMoreSessions().then(function () { renderConversationList(); });
+        }
+        btn.addEventListener("click", more);
+        if (moreSeen) { moreSeen.disconnect(); }
+        if (window.IntersectionObserver) {
+            moreSeen = new IntersectionObserver(function (seen) {
+                if (seen.some(function (e) { return e.isIntersecting; })) { more(); }
+            });
+            moreSeen.observe(btn);
+        }
+        return btn;
     }
 
     function groupByDate(sessions) {
@@ -115,12 +150,17 @@
         return btn;
     }
 
+    /* Opening a conversation: only the last click counts. A slower answer
+       for an earlier click is dropped, so its messages never appear under
+       another conversation's title. */
+    var loadSeq = 0, pendingSeq = 0;
     function loadConversation(sessId) {
         /* Settings or Drive may be open: a conversation picked in the
            sidebar is shown, so the chat view comes back first. */
         if (A.currentView !== "chat" && typeof A.switchView === "function") { A.switchView("chat"); }
+        var seq = ++loadSeq;
         A.currentSessionId = sessId;
-        renderConversationList();
+        markActive(sessId);
         /* Sync the agent toggle for this conversation's stored state */
         if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
         /* Update titlebar with the conversation title */
@@ -128,15 +168,47 @@
         if (typeof window.gbSetTitlebarTitle === "function") {
             window.gbSetTitlebarTitle(sess ? formatTitle(sess.title) : "");
         }
+        showLoading(seq, sessId);
+        function current() {
+            if (seq !== loadSeq || sessId !== A.currentSessionId) { return false; }
+            pendingSeq = 0;
+            var msgs = document.getElementById("gbMessages");
+            if (msgs) { msgs.removeAttribute("aria-busy"); }
+            return true;
+        }
         A.loadSessionMessages(sessId).then(function (msgs) {
+            if (!current()) { return; }
             A.renderHistory(msgs);
             A.reconnectWs();
         }).catch(function (err) {
+            if (!current()) { return; }
             console.warn("[assistant] loadConversation failed:", err);
             showLoadError(sessId);
         });
         /* Narrow viewports: auto-close the slide-over sidebar */
         if (isNarrow() && !A.sidebarCollapsed) { collapseSidebar(); }
+    }
+
+    function markActive(sessId) {
+        document.querySelectorAll("#gbConversations .gb-conv-item[data-session-id]").forEach(function (row) {
+            row.classList.toggle("active", row.getAttribute("data-session-id") === sessId);
+        });
+    }
+
+    /* The previous conversation leaves at once; a short wait passes before
+       the loading line appears, so a quick answer does not flicker. */
+    function showLoading(seq, sessId) {
+        A.showConversation();
+        if (typeof A.hideThinking === "function") { A.hideThinking(); }
+        var msgs = document.getElementById("gbMessages"); if (!msgs) return;
+        msgs.innerHTML = "";
+        msgs.setAttribute("aria-busy", "true");
+        pendingSeq = seq;
+        setTimeout(function () {
+            if (pendingSeq !== seq || A.currentSessionId !== sessId) { return; }
+            msgs.innerHTML = '<div class="gb-load-error gb-load-wait" role="status">' +
+                '<span>' + escText(say("Abrindo conversa…", "Opening conversation…")) + '</span></div>';
+        }, 150);
     }
 
     function showLoadError(sessId) {

@@ -1,6 +1,6 @@
 .gb-machine-view { flex: 1; min-height: 0; overflow: auto; position: relative; z-index: 1; background: var(--id-surface-solid); }
 .gb-machine-view[hidden] { display: none; }
-.gb-machine-content { max-width: 1120px; margin-inline: auto; padding: clamp(16px,3vw,44px); color: var(--id-text); }
+.gb-machine-content { max-width: 1120px; margin-inline: auto; padding: clamp(16px,calc(3vw / var(--gb-zoom, 1)),44px); color: var(--id-text); }
 .gb-machine-kicker { font: 600 11px var(--id-font-mono); color: var(--id-muted); letter-spacing: .06em; }
 .gb-machine-content h1 { color: var(--id-ink); font: 600 28px/1.15 var(--id-font-sans); letter-spacing: -1.1px; margin-block: 10px; }
 .gb-machine-content p { font-size: var(--id-text-sm); margin-block: 8px; }

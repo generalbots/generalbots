@@ -28,12 +28,15 @@
 
     /* Machine row: mini processor chart. One sample every 10 s while the
        window is visible and the sidebar open; the per-poll share comes from
-       the cpu_ns delta. Hidden while the workspace is absent or unavailable. */
-    var CPU_EVERY = 10000, CPU_IDLE = 60000, CPU_BARS = 14;
-    var cpu = { hist: [], last: null, timer: 0, polled: 0, off: false };
+       the cpu_ns delta. The poll has a deadline and never overlaps itself
+       (02b_requests.js); after a failure it waits a minute. A stopped,
+       starting or unavailable workspace hides the chart and names the state
+       on the row. Off while the workspace is not part of this build. */
+    var CPU_EVERY = 10000, CPU_IDLE = 60000, CPU_WAIT = 30000, CPU_BARS = 14;
+    var cpu = { hist: [], last: null, poll: null };
     function cpuShown() {
         var bar = id("gb-sidebar");
-        return !document.hidden && !!bar && !bar.classList.contains("collapsed");
+        return !!bar && !bar.classList.contains("collapsed");
     }
     function cpuCores(limit) {
         var text = String(limit == null ? "" : limit).trim(), range = /^(\d+)-(\d+)$/.exec(text);
@@ -55,42 +58,35 @@
         box.title = cpu.hist.length ? (pt ? "Processador: " : "Processor: ") + now + "% · " +
             (pt ? "últimos " : "last ") + Math.round(cpu.hist.length * CPU_EVERY / 1000) + " s" : "";
     }
-    function scheduleCpu(delay) {
-        clearTimeout(cpu.timer);
-        cpu.timer = cpu.off || !cpuShown() ? 0 : setTimeout(sampleCpu, delay);
-    }
+    function clearCpu() { cpu.hist = []; cpu.last = null; drawCpu(); }
     async function sampleCpu() {
-        cpu.timer = 0;
         var cfg = A.productConfig;
-        if (!cfg) { scheduleCpu(3000); return; }
+        if (!cfg) return 3000;
         if (!(cfg.compiled_features || []).includes("agent-vm") || cfg.agent_backend_unavailable) {
-            cpu.off = true; cpu.hist = []; drawCpu(); return;
+            cpu.poll.stop(); clearCpu(); return;
         }
-        if (!cpuShown()) return;
-        var delay = CPU_EVERY;
-        cpu.polled = performance.now();
-        try {
-            var res = await A.apiFetch("/api/agent/vm/resources");
-            var data = res.ok ? await res.json() : null, at = performance.now();
-            if (data && typeof data.cpu_ns === "number") {
-                if (cpu.last && data.cpu_ns >= cpu.last.ns && at > cpu.last.at) {
-                    var share = (data.cpu_ns - cpu.last.ns) / ((at - cpu.last.at) * 1e6 * cpuCores(data.cpu_limit)) * 100;
-                    cpu.hist = cpu.hist.concat(Math.max(0, Math.min(100, Math.round(share)))).slice(-CPU_BARS);
-                }
-                cpu.last = { ns: data.cpu_ns, at: at };
-            } else { cpu.hist = []; cpu.last = null; delay = CPU_IDLE; }
-        } catch (err) { cpu.hist = []; cpu.last = null; delay = CPU_IDLE; }
+        var res = await A.pollJSON("/api/agent/vm/resources");
+        if (res.skipped) return CPU_EVERY;
+        var data = res.ok ? res.data : null, state = A.vmState(res), at = performance.now();
+        if (A.machine && A.machine.noteState) {
+            A.machine.noteState(state || (data && typeof data.cpu_ns === "number" ? data.status || "running" : null));
+        }
+        if (state || !data || typeof data.cpu_ns !== "number") {
+            clearCpu();
+            return state === "starting" ? CPU_WAIT : CPU_IDLE;
+        }
+        if (cpu.last && data.cpu_ns >= cpu.last.ns && at > cpu.last.at) {
+            var share = (data.cpu_ns - cpu.last.ns) / ((at - cpu.last.at) * 1e6 * cpuCores(data.cpu_limit)) * 100;
+            cpu.hist = cpu.hist.concat(Math.max(0, Math.min(100, Math.round(share)))).slice(-CPU_BARS);
+        }
+        cpu.last = { ns: data.cpu_ns, at: at };
         drawCpu();
-        scheduleCpu(delay);
-    }
-    function resumeCpu() {
-        if (!cpuShown()) { clearTimeout(cpu.timer); cpu.timer = 0; return; }
-        if (!cpu.timer && !cpu.off) scheduleCpu(Math.max(0, CPU_EVERY - (performance.now() - cpu.polled)));
+        return CPU_EVERY;
     }
     A.startRailCpu = function () {
-        document.addEventListener("visibilitychange", resumeCpu);
-        new MutationObserver(resumeCpu).observe(id("gb-sidebar"), { attributes: true, attributeFilter: ["class"] });
-        scheduleCpu(0);
+        cpu.poll = A.poller(sampleCpu, { every: CPU_EVERY, backoff: CPU_IDLE, when: cpuShown });
+        new MutationObserver(cpu.poll.wake).observe(id("gb-sidebar"), { attributes: true, attributeFilter: ["class"] });
+        cpu.poll.start();
     };
 
     /* Status bar: server port, interface language, clock and date. */

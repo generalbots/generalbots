@@ -278,7 +278,6 @@ function renderFull(panel) {
     pendingStatus = null;
   }
   panel.innerHTML = html;
-  if (!readOnly && A._modelLocal && A._modelLocal.renderWebCard) { A._modelLocal.renderWebCard(panel); }
   bindRestoreButton();
   var retry = document.getElementById("gbModelRetry");
   if (retry) { retry.addEventListener("click", function () { retry.disabled = true; A.renderModelFull(panel, true); }); }

@@ -6,6 +6,7 @@
  * Ctrl+K                   Focus search
  * Ctrl+B                   Toggle sidebar
  * Ctrl+,                   Open Settings
+ * Ctrl+= / Ctrl++ / Ctrl+- / Ctrl+0   App zoom in / out / reset
  * Esc                      Close topmost layer / stop generation
  * Up arrow (empty input)   Edit last message
  */
@@ -14,6 +15,14 @@
 
     function isMod(e) {
         return e.ctrlKey || e.metaKey;
+    }
+
+    /* 1 zooms in, -1 zooms out, 0 resets, null is not a zoom key. */
+    function zoomDirection(e) {
+        if (e.key === "=" || e.key === "+" || e.code === "NumpadAdd") return 1;
+        if (e.key === "-" || e.code === "NumpadSubtract") return -1;
+        if (e.key === "0" || e.code === "Numpad0") return 0;
+        return null;
     }
 
     /* Open layers, topmost last: windows, menus, panels and drawers. */
@@ -83,6 +92,14 @@
             e.preventDefault();
             var sideToggle = document.getElementById("gbSidebarToggle");
             if (sideToggle) { sideToggle.click(); }
+            return;
+        }
+
+        /* Ctrl+= / Ctrl++ / Ctrl+- / Ctrl+0 — app zoom (identity/zoom.js) */
+        var zoomKey = isMod(e) && !e.altKey && window.GBZoom ? zoomDirection(e) : null;
+        if (zoomKey !== null) {
+            e.preventDefault();
+            if (zoomKey === 0) { window.GBZoom.reset(); } else { window.GBZoom.step(zoomKey); }
             return;
         }
 

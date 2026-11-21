@@ -72,7 +72,7 @@ body:has(.gb-titlebar-toggle) .gb-expand-sidebar { display: none !important; }
     .gb-sidebar {
         position: fixed;
         z-index: 100;
-        height: calc(100vh - 36px);
+        height: calc(100vh / var(--gb-zoom, 1) - 36px);
         top: 36px;
     }
     .gb-sidebar.collapsed {

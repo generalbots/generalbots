@@ -316,7 +316,7 @@
     position: absolute; inset: 0; background: var(--id-overlay-heavy);
 }
 .gb-lightbox-img {
-    position: relative; z-index: 1; max-width: 90vw; max-height: 90vh;
+    position: relative; z-index: 1; max-width: calc(90vw / var(--gb-zoom, 1)); max-height: calc(90vh / var(--gb-zoom, 1));
     border-radius: var(--id-radius-panel); object-fit: contain;
 }
 .gb-lightbox-close {

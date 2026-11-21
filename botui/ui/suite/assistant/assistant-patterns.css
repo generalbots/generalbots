@@ -195,9 +195,9 @@
     --gb-pat-scale: .75;
 }
 /* Appearance window: anchored above the account row, no backdrop. */
-#gbAppearanceDialog { position: fixed; inset: auto auto 84px 12px; margin: 0; width: 336px; max-width: calc(100vw - 72px); max-height: calc(100vh - 96px); overflow: hidden auto; padding: 0; border: 1px solid var(--id-line); border-radius: 6px; background: var(--id-surface-solid); color: var(--id-ink); box-shadow: 0 2px 2px rgba(0, 0, 0, .04), 0 8px 16px -4px rgba(0, 0, 0, .08); font: 400 13px var(--id-font); }
+#gbAppearanceDialog { position: fixed; inset: auto auto 84px 12px; margin: 0; width: 336px; max-width: calc(100vw / var(--gb-zoom, 1) - 72px); max-height: calc(100vh / var(--gb-zoom, 1) - 96px); overflow: hidden auto; padding: 0; border: 1px solid var(--id-line); border-radius: 6px; background: var(--id-surface-solid); color: var(--id-ink); box-shadow: 0 2px 2px rgba(0, 0, 0, .04), 0 8px 16px -4px rgba(0, 0, 0, .08); font: 400 13px var(--id-font); }
 #gbAppearanceDialog::backdrop { background: transparent; }
-html:has(.gb-sidebar.collapsed) #gbAppearanceDialog { inset: auto auto 40px 62px; max-height: calc(100vh - 52px); }
+html:has(.gb-sidebar.collapsed) #gbAppearanceDialog { inset: auto auto 40px 62px; max-height: calc(100vh / var(--gb-zoom, 1) - 52px); }
 #gbAppearanceDialog > header { position: sticky; top: 0; z-index: 2; height: 38px; min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 12px; background: var(--id-paper); border-bottom: 1px solid var(--id-line); }
 #gbAppearanceDialog > header h2 { margin: 0; font: 600 11px var(--id-font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--id-ink); }
 #gbAppearanceDialog > header h2::before { content: "//"; margin-right: 5px; font: 700 11px var(--id-font-mark); letter-spacing: -.05em; color: var(--id-muted); }
@@ -238,5 +238,6 @@ html:has(.gb-sidebar.collapsed) #gbAppearanceDialog { inset: auto auto 40px 62px
 .gb-ap-slider output { text-align: right; font: 600 11px var(--id-font-mono); color: var(--id-ink); }
 .gb-ap-slider button { width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--id-muted); cursor: pointer; }
 .gb-ap-slider button:hover { color: var(--id-ink); background: var(--id-fill); }
+.gb-ap-zoom .gb-ap-slider { grid-template-columns: minmax(0, 1fr) 44px 22px; }
 #gbAppearanceDialog :is(button, input):focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--id-accent-text); }
 :root[data-theme="dark"] #gbAppearanceDialog { box-shadow: 0 2px 2px rgba(0, 0, 0, .4), 0 12px 24px -6px rgba(0, 0, 0, .6); }

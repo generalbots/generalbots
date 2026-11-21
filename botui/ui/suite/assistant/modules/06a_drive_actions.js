@@ -47,14 +47,16 @@
         D.ctxEl.innerHTML = html;
         document.body.appendChild(D.ctxEl);
 
+        /* Client coordinates are divided by the app zoom: left/top are CSS pixels. */
+        var zoom = window.GBZoom ? window.GBZoom.factor() : 1;
         var anchor = trigger.getBoundingClientRect();
         /* The menu hangs 2px past the trigger's right edge, 32px below its top. */
-        var x = anchor.right + 2;
-        var y = anchor.top + 32;
+        var x = anchor.right / zoom + 2;
+        var y = anchor.top / zoom + 32;
         var w = D.ctxEl.offsetWidth;
         var h = D.ctxEl.offsetHeight;
-        x = Math.max(8, Math.min(window.innerWidth - w - 8, x - w));
-        if (y + h > window.innerHeight - 8) y = Math.max(8, anchor.top - h - 4);
+        x = Math.max(8, Math.min(window.innerWidth / zoom - w - 8, x - w));
+        if (y + h > window.innerHeight / zoom - 8) y = Math.max(8, anchor.top / zoom - h - 4);
         D.ctxEl.style.left = x + "px";
         D.ctxEl.style.top = y + "px";
 

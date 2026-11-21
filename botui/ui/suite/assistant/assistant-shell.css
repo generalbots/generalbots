@@ -78,7 +78,6 @@ body:not([data-screen="chat"]) .gb-machine-chev, .gb-sidebar.collapsed .gb-machi
 }
 .gb-account-tools .gb-settings-link:hover, .gb-account-tools #gbNavAppearance:hover { background: var(--id-fill); color: var(--id-ink); }
 body[data-screen="settings"] .gb-account-tools .gb-settings-link { border-color: var(--id-accent); background: var(--id-accent-soft); color: var(--id-accent-text); }
-:is(body[data-screen="settings"], body[data-screen="drive"]) #gbNavAppearance { display: none; }
 .gb-account-tools .gb-icon { width: 14px; height: 14px; }
 .gb-account-tools .gb-user-menu { position: absolute; bottom: 100%; inset-inline: 6px; z-index: 50; }
 .gb-sidebar.collapsed .gb-rail-head, .gb-sidebar.collapsed .gb-app-switch { flex-direction: column; }
@@ -139,7 +138,7 @@ body:not([data-screen="chat"]) .gb-export-actions { display: none; }
     font: 600 10px/13px var(--id-font-mono); letter-spacing: .06em;
 }
 .gb-titlebar-wordmark small { order: 2; color: var(--id-muted); font: 600 10.5px/14px var(--id-font-mono); pointer-events: none; }
-.gb-appearance-dialog { margin: auto; padding: 0; width: min(460px, 94vw); max-height: 88vh; background: var(--id-surface-solid); color: var(--id-text); border: 1px solid var(--id-line); border-radius: var(--id-radius-panel); box-shadow: var(--id-shadow-float); }
+.gb-appearance-dialog { margin: auto; padding: 0; width: min(460px, calc(94vw / var(--gb-zoom, 1))); max-height: calc(88vh / var(--gb-zoom, 1)); background: var(--id-surface-solid); color: var(--id-text); border: 1px solid var(--id-line); border-radius: var(--id-radius-panel); box-shadow: var(--id-shadow-float); }
 .gb-appearance-dialog::backdrop { background: var(--id-overlay); }
 .gb-appearance-dialog header { justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid var(--id-line); background: var(--id-paper); }
 .gb-appearance-dialog h2 { font: 600 15px var(--id-font); }

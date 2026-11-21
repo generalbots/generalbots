@@ -122,7 +122,8 @@
         if (chat && below) {
             var area = below.getBoundingClientRect();
             if (area.right > drawer.getBoundingClientRect().left) {
-                gap = Math.max(0, Math.round(chat.getBoundingClientRect().bottom - area.top));
+                var zf = window.GBZoom && GBZoom.factor ? GBZoom.factor() : 1;
+                gap = Math.max(0, Math.round((chat.getBoundingClientRect().bottom - area.top) / zf));
             }
         }
         drawer.style.setProperty("--gb-drawer-bottom", gap + "px");
@@ -171,6 +172,47 @@
 
     function label(text) { return node("div", "gb-quota-label", text); }
 
+    function limitEngine(model) {
+        return A.currentLimitEngine && A.cachedLimits && A.cachedLimits() ? A.currentLimitEngine(model, isLocal()) : null;
+    }
+
+    /* The bars /api/llm/limits reports for the current engine; without
+       data the drawer says so and shows no number. */
+    function fillLimits(box, model) {
+        var engine = limitEngine(model);
+        var bars = engine ? A.limitBars(engine) : [];
+        var open = isLocal() || (engine && (engine.unlimited || engine.kind === "local"));
+        if (open && !bars.length) {
+            box.replaceChildren(node("p", "gb-quota-note", tr("Não há cota nem custo. O limite é a memória deste computador.", "No quota and no cost. The limit is this computer's memory.")));
+            return;
+        }
+        if (!bars.length) {
+            box.replaceChildren(node("p", "gb-quota-note", tr("Este motor não informa limites nem renovação. Confira com o provedor.", "This engine does not report limits or reset times. Check with the provider.")));
+            return;
+        }
+        var rows = bars.map(function (b) {
+            var row = node("div", "gb-quota-lim");
+            var main = node("div", "gb-quota-lim-in");
+            var top = node("div", "gb-quota-lim-top");
+            var pct = node("b", "", b.pct + "%");
+            pct.style.color = b.color;
+            top.append(node("span", "", b.label), pct);
+            var track = node("div", "gb-quota-track");
+            var fill = node("i");
+            fill.style.width = b.pct + "%";
+            fill.style.background = b.color;
+            track.appendChild(fill);
+            var foot = node("div", "gb-quota-lim-foot");
+            foot.append(node("span", "", b.value), node("span", "", b.reset));
+            main.append(top, track, foot);
+            row.append(node("span", "gb-quota-gutter"), main);
+            return row;
+        });
+        var seen = A.limitSeen(engine);
+        if (seen) { rows.push(node("p", "gb-quota-note gb-quota-seen", seen)); }
+        box.replaceChildren.apply(box, rows);
+    }
+
     function renderDrawer() {
         var body = drawer.querySelector(".gb-quota-body");
         var model = A.selectedModel || A.defaultModel || "";
@@ -179,9 +221,10 @@
         kindRow.append(node("span", "gb-quota-kind", engineInfo() || tr("Motor", "Engine")), node("span", "gb-quota-plan", destinationInfo()));
         head.append(kindRow, node("p", "gb-quota-model", A.shortModelName(model) || tr("Sem modelo ativo", "No active model")));
         var limits = node("div", "gb-quota-section");
-        limits.appendChild(node("p", "gb-quota-note", isLocal()
-            ? tr("Não há cota nem custo. O limite é a memória deste computador.", "No quota and no cost. The limit is this computer's memory.")
-            : tr("Este motor não informa limites nem renovação. Confira com o provedor.", "This engine does not report limits or reset times. Check with the provider.")));
+        fillLimits(limits, model);
+        if (A.llmLimits) {
+            A.llmLimits().then(function () { if (limits.isConnected) { fillLimits(limits, model); } paintUsageLine(); });
+        }
         var report = node("div", "gb-quota-report");
         report.appendChild(node("p", "gb-quota-note", tr("Carregando…", "Loading…")));
         body.replaceChildren(head, label(tr("Limites", "Limits")), limits, label(tr("Uso recente · 30 dias", "Recent usage · 30 days")), report);
@@ -238,16 +281,25 @@
         report.replaceChildren.apply(report, rows);
     }
 
+    /* The engine panel's line: the share of the current engine's tightest window. */
     function paintUsageLine() {
-        var local = isLocal();
+        var model = A.selectedModel || A.defaultModel || "";
+        var engine = limitEngine(model);
+        var top = engine && A.limitTightest ? A.limitTightest(engine) : null;
+        var local = !top && (isLocal() || Boolean(engine && (engine.unlimited || engine.kind === "local")));
         document.querySelectorAll(".gb-usage-trigger").forEach(function (button) {
             var kind = button.querySelector(".gb-usage-kind");
             if (!kind) { return; }
             kind.textContent = engineInfo() || tr("Uso", "Usage");
             button.classList.toggle("gb-usage--open-ended", local);
-            button.querySelector(".gb-usage-pct").textContent = local ? "∞" : "—";
+            var pct = button.querySelector(".gb-usage-pct"), fill = button.querySelector(".gb-usage-bar > span");
+            pct.textContent = local ? "∞" : top ? top.pct + "%" : "—";
+            pct.style.color = top ? A.limitBars(engine).filter(function (b) { return b.pct === top.pct; })[0].color : "";
+            fill.style.width = top ? top.pct + "%" : "";
+            fill.style.background = top ? pct.style.color : "";
             button.title = local ? tr("Sem cota: roda neste computador", "No quota: runs on this computer")
-                : tr("Este motor não informa limites", "This engine does not report limits");
+                : top ? A.limitWindowName(top.window.name) + ": " + top.pct + "%"
+                    : tr("Este motor não informa limites", "This engine does not report limits");
         });
     }
 
@@ -256,6 +308,7 @@
         document.querySelectorAll(".gb-model-picker").forEach(layoutComposer);
         document.querySelectorAll(".gb-engine-mode").forEach(function (item) { item.textContent = engineInfo(); });
         paintUsageLine();
+        if (A.llmLimits) { A.llmLimits().then(paintUsageLine); }
         syncFast();
         if (drawer && !drawer.hidden) { renderDrawer(); placeDrawer(); }
     };

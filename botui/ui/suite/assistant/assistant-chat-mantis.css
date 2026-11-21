@@ -108,7 +108,7 @@
 .gb-motor .gb-model-btn:hover, .gb-usage-trigger:hover { background: var(--id-fill); }
 .gb-motor .gb-model-menu {
     left: 0; right: 0; bottom: calc(100% + 33px); max-width: none; min-width: 0;
-    max-height: min(50vh, 400px); overflow: auto; padding: 0;
+    max-height: min(calc(50vh / var(--gb-zoom, 1)), 400px); overflow: auto; padding: 0;
 }
 .gb-motor .gb-model-menu-item, .gb-motor .gb-model-group-head, .gb-motor .gb-model-menu-action { border-radius: 0; }
 .gb-motor .gb-model-group { margin: 0; border-width: 0 0 1px; border-radius: 0; }
@@ -178,6 +178,17 @@
     padding: 6px 14px 6px 0; font: 600 12px/1.2 var(--id-font-mono, monospace); color: var(--id-ink);
 }
 .gb-quota-metrics small { font-size: 10px; color: var(--id-muted); }
+.gb-quota-lim { display: flex; align-items: stretch; border-bottom: 1px solid var(--id-line); }
+.gb-quota-lim-in { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; }
+.gb-quota-lim-top { display: flex; align-items: baseline; gap: 8px; }
+.gb-quota-lim-top span { flex: 1; min-width: 0; font-weight: 500; color: var(--id-ink); }
+.gb-quota-lim-top b { font: 600 12px var(--id-font-mono, monospace); }
+.gb-quota-track { height: 6px; background: var(--id-fill); }
+.gb-quota-track i { display: block; height: 100%; }
+.gb-quota-lim-foot { display: flex; justify-content: space-between; gap: 8px; font: 600 10.5px var(--id-font-mono, monospace); color: var(--id-muted); }
+.gb-quota-lim-foot span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-quota-lim-foot span:last-child { flex: none; white-space: nowrap; }
+.gb-quota-seen { font: 600 10.5px var(--id-font-mono, monospace); color: var(--id-muted); }
 .gb-quota-total { background: var(--id-paper); }
 .gb-quota-total .gb-quota-name { font-weight: 600; }
 .gb-quota-foot {

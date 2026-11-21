@@ -19,7 +19,7 @@ function t(key) { return S().t ? S().t(key) : key; }
 function tr(ptT, enT) { return A.locale && A.locale.startsWith("pt") ? ptT : enT; }
 function shortName(m) { return typeof A.shortModelName === "function" ? A.shortModelName(m) : m; }
 
-var jobPollers = {};
+var jobPollers = {}, jobBusy = {};
 var CAPS = {
   chat: ["conversa e redação", "chat and writing"],
   reasoning: ["raciocínio passo a passo", "step-by-step reasoning"],
@@ -146,15 +146,18 @@ function pollEngine(jobId) {
   jobPollers[key] = setInterval(async function () {
     var el = document.getElementById("gbEngineJob");
     if (!el) { stopJobPoller(key); return; }
+    if (jobBusy[key]) return;
+    jobBusy[key] = true;
     try {
-      var r = await A.apiFetch("/api/llm/runtime/jobs/" + encodeURIComponent(jobId));
-      var d = r.ok ? await r.json() : { state: "failed" };
+      var res = await A.fetchJSON("/api/llm/runtime/jobs/" + encodeURIComponent(jobId), null, 8000);
+      var d = res.ok && res.data ? res.data : { state: "failed" };
       var txt = el.querySelector(".gb-dl-text");
       if (txt && d.state === "running") {
         txt.textContent = engineStageText(d) + " " + fmtEta(Math.round((d.elapsed_ms || 0) / 1000));
       }
       if (d.state !== "running") { stopJobPoller(key); S().refreshAfterChange(); }
-    } catch (e) { stopJobPoller(key); }
+    } catch (e) { if (!e.timeout) stopJobPoller(key); }
+    jobBusy[key] = false;
   }, 2000);
 }
 
@@ -365,10 +368,12 @@ function startJobPoller(jobId) {
   jobPollers[jobId] = setInterval(async function() {
     var el = document.getElementById("gbJob_" + jobId);
     if (!el) { stopJobPoller(jobId); return; }
+    if (jobBusy[jobId]) return;
+    jobBusy[jobId] = true;
     try {
-      var r = await A.apiFetch("/api/llm/local/jobs/" + encodeURIComponent(jobId));
-      if (!r.ok) { stopJobPoller(jobId); return; }
-      var d = await r.json();
+      var res = await A.fetchJSON("/api/llm/local/jobs/" + encodeURIComponent(jobId), null, 8000);
+      if (!res.ok || !res.data) { stopJobPoller(jobId); return; }
+      var d = res.data;
       var txt = el.querySelector(".gb-dl-text");
       if (txt) { txt.textContent = progressText(d); }
       var bar = el.querySelector(".gb-dl-bar > i");
@@ -377,7 +382,8 @@ function startJobPoller(jobId) {
         stopJobPoller(jobId);
         loadLocalModels();
       }
-    } catch (e) { stopJobPoller(jobId); }
+    } catch (e) { if (!e.timeout) stopJobPoller(jobId); }
+    jobBusy[jobId] = false;
   }, 2000);
 }
 
@@ -385,29 +391,9 @@ function stopJobPoller(jobId) {
   if (jobPollers[jobId]) { clearInterval(jobPollers[jobId]); delete jobPollers[jobId]; }
 }
 
-/* ---- Web search (below the engines) ---- */
-function renderWebCard(panel) {
-  if (!A.webSearchAvailable || !A.webSearchAvailable()) return;
-  var on = A.webSearchOn();
-  var card = document.createElement("section");
-  card.className = "gb-of-sec gb-of-web";
-  card.innerHTML = '<div class="gb-of-sec-h"><span class="gb-of-k">' + (A._modelGarage ? A._modelGarage.sl() : "") + esc(tr("PESQUISA NA WEB", "WEB SEARCH")) + '</span>' +
-    '<span class="gb-of-sp"></span><span class="gb-of-meta" id="gbWebState">' + esc(on ? tr("LIGADA · DUCKDUCKGO", "ON · DUCKDUCKGO") : tr("DESLIGADA", "OFF")) + '</span>' +
-    '<input type="checkbox" id="gbWebSearch" class="gb-of-tg" aria-label="' + esc(tr("Pesquisar na web antes de responder", "Search the web before answering")) + '"' + (on ? ' checked' : '') + '></div>' +
-    '<div class="gb-of-sec-b"><span class="gb-of-hint">' + esc(tr(
-      "Desligada, nada é pesquisado. Ligada, o começo de cada pergunta (até 160 caracteres) é enviado ao DuckDuckGo (duckduckgo.com) para buscar páginas; os trechos encontrados vão para o modelo em uso e a resposta mostra as fontes.",
-      "Off, nothing is searched. On, the start of each question (up to 160 characters) is sent to DuckDuckGo (duckduckgo.com) to find pages; the excerpts found go to the model in use and the answer shows its sources.")) + '</span></div>';
-  (panel.querySelector(".gb-of") || panel).appendChild(card);
-  card.querySelector("#gbWebSearch").addEventListener("change", function (e) {
-    A.setWebSearch(e.target.checked);
-    card.querySelector("#gbWebState").textContent = e.target.checked ? tr("LIGADA · DUCKDUCKGO", "ON · DUCKDUCKGO") : tr("DESLIGADA", "OFF");
-  });
-}
-
 /* Expose to parent module */
 A._modelLocal = {
   renderLocalDetail: renderLocalDetail,
-  renderWebCard: renderWebCard,
   activate: function (id) { return doActivate(id); },
   startJobPoller: startJobPoller,
   stopJobPoller: stopJobPoller

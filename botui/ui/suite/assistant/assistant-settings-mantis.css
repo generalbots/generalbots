@@ -160,8 +160,8 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
 .gb-gar-mode-grid[data-rec="free"] [data-mode="free"] .gb-gar-sugg,
 .gb-gar-mode-grid[data-rec="acp"] [data-mode="acp"] .gb-gar-sugg { display: inline-block; color: var(--id-accent-text); }
 .gb-gar-dialog {
-    width: min(640px, 94vw);
-    max-height: min(80vh, 720px);
+    width: min(640px, calc(94vw / var(--gb-zoom, 1)));
+    max-height: min(calc(80vh / var(--gb-zoom, 1)), 720px);
     margin: auto;
     padding: 0;
     background: var(--id-surface-solid);
@@ -175,7 +175,7 @@ body[data-screen="settings"] .gb-breadcrumb > i, body[data-screen="settings"] .g
 .gb-gar-dialog h2 { font-size: 15px; font-weight: 600; margin: 0; }
 .gb-gar-dialog .gb-gar-guide { border: 0; margin: 0; padding: 16px; }
 .gb-gar-dialog .gb-gar-guide-head { display: none; }
-.gb-gar-dialog-side { margin-inline-end: 6px; width: min(740px, 94vw); }
+.gb-gar-dialog-side { margin-inline-end: 6px; width: min(740px, calc(94vw / var(--gb-zoom, 1))); }
 .gb-gar-table { min-width: 560px; }
 .gb-gar-table :is(th, td) { vertical-align: top; white-space: normal; }
 .gb-gar-table .gb-gar-mark { background: none; }

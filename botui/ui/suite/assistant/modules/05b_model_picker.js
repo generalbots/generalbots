@@ -7,6 +7,11 @@
 
 (function () {
     var A = window.GBAssistant;
+    /* The CLI's own default model reads "Padrão do agente"; other labels are model names. */
+    A.agentModelLabel = function (m) {
+        if (m && m.id === "default") { return (A.locale || "").startsWith("pt") ? "Padrão do agente" : "Agent default"; }
+        return m ? (m.label || m.id) : "";
+    };
 
     function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
@@ -14,11 +19,7 @@
     A.shortModelName = function (model) {
         if (!model) { return ""; }
         /* A connected agent: "sub:<provider>"; an account's model: "acct:<provider>/<model>" */
-        if (/^sub:/.test(model)) {
-            var id = model.slice(4);
-            var hit = (A.linkedAgents || []).filter(function (x) { return x.id === id; })[0];
-            return hit ? hit.name : id;
-        }
+        if (/^sub:/.test(model)) { return A.subscriptionLabel(model); }
         var s = String(model).replace(/^acct:[^/]+\//, "");
         var slash = s.lastIndexOf("/");
         if (slash >= 0) { s = s.substring(slash + 1); }
@@ -29,6 +30,20 @@
         var colon = s.indexOf(":");
         if (colon > 0) { s = s.substring(0, colon); }
         return s;
+    };
+
+    /* "sub:<provider>/<model>" names the agent's model; "sub:<provider>" its own default. */
+    A.subscriptionLabel = function (value) {
+        var rest = String(value).slice(4), cut = rest.indexOf("/");
+        var provider = cut >= 0 ? rest.slice(0, cut) : rest, modelId = cut >= 0 ? rest.slice(cut + 1) : "";
+        var sub = (A.subscriptions || []).filter(function (x) { return x.provider === provider; })[0];
+        if (modelId) {
+            var m = sub && (sub.models || []).filter(function (x) { return x.id === modelId; })[0];
+            return m ? (A.agentModelLabel(m)) : modelId;
+        }
+        if (sub) { return sub.label || provider; }
+        var hit = (A.linkedAgents || []).filter(function (x) { return x.id === provider; })[0];
+        return hit ? hit.name : provider;
     };
 
     A.fullModelName = function (model) {
@@ -232,15 +247,31 @@
 
     /* ---- Connected subscription agents (Settings > Modelo > Agente). They
        run in the agent workspace, so picking one turns the Agent switch on. ---- */
+    var AGENT_LOGO = { "claude-code": "anthropic", "codex-cli": "openai", "antigravity": "gemini" };
+    function pickAgent(value) {
+        if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
+        selectModel(value);
+    }
     function addAgentGroup(menu) {
-        var agents = A.linkedAgents || [];
-        if (!agents.length) { return; }
-        addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions"), logo: "" },
-            agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }),
-            function (value) {
-                if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
-                selectModel(value);
-            });
+        /* /api/chat/models lists each linked agent with its switched-on models;
+           an older server only says which agents are linked. */
+        if (!Array.isArray(A.subscriptions)) {
+            var agents = A.linkedAgents || [];
+            if (!agents.length) { return; }
+            addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions"), logo: "" },
+                agents.map(function (x) { return { model: x.name, value: "sub:" + x.id }; }), pickAgent);
+            return;
+        }
+        var subs = A.subscriptions.filter(function (x) { return x.linked !== false; });
+        if (!subs.length) { return; }
+        var chosen = /^sub:/.test(A.selectedModel || "");
+        var group = addGroup(menu, { id: "agents", name: tr("Assinaturas", "Subscriptions") }, [], pickAgent, chosen, subs.length);
+        subs.forEach(function (x) {
+            var acc = { id: x.provider, name: x.label || x.provider, logo: AGENT_LOGO[x.provider] || x.provider };
+            var models = (x.models || []).map(function (m) { return { model: A.agentModelLabel(m), value: "sub:" + x.provider + "/" + m.id }; });
+            if (!models.length) { models = [{ model: tr("Padrão do agente", "Agent default"), value: "sub:" + x.provider }]; }
+            addGroup(group, acc, models, pickAgent);
+        });
     }
 
     /* ---- Provider accounts: one collapsible group per key, listing the

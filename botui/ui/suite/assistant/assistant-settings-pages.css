@@ -150,7 +150,7 @@
 .gb-lim-bar-top b { font: 600 12px var(--id-font-mono); }
 .gb-lim-track { height: 6px; max-width: 520px; background: var(--id-fill); }
 .gb-lim-track i { display: block; height: 100%; }
-.gb-lim-bar-foot { display: flex; justify-content: space-between; gap: 12px; font: 600 10.5px var(--id-font-mono); color: var(--id-muted); }
+.gb-lim-bar-foot { display: flex; gap: 12px; font: 600 10.5px var(--id-font-mono); color: var(--id-muted); }
 .gb-lim-key { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--id-line); }
 .gb-lim-ini { width: 26px; height: 26px; flex: none; display: grid; place-items: center; padding-top: 1px; line-height: 1; border: 1px solid var(--id-line); border-radius: 4px; font: 600 9.5px var(--id-font-mono); }
 .gb-lim-key b { font-weight: 600; }
@@ -161,3 +161,10 @@
 .gb-sp-about-status[hidden] { display: none; }
 .gb-sp-info > .gb-sp-mono { font-size: 13px; }
 .gb-lim-key > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.gb-lim-bar-foot span:empty { display: none; }
+.gb-lim-eng { border-bottom: 1px solid var(--id-line); }
+.gb-lim-eng:last-child { border-bottom: 0; }
+.gb-lim-eng > :last-child { border-bottom: 0; }
+.gb-lim-key > .gb-lim-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.gb-lim-logo svg { width: 15px; height: 15px; }
+.gb-lim-inf { font: 600 14px var(--id-font-mono); color: var(--id-success-text); padding-right: 6px; }

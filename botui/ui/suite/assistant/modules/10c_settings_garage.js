@@ -36,8 +36,6 @@ function segs(n, tone, cls) {
 }
 function cap(kind, text) { return '<span class="gb-of-cap' + (kind === "yes" ? "" : kind === "part" ? " part" : " no") + '"><b>' + (kind === "yes" ? "✓" : kind === "part" ? "~" : "–") + '</b>' + esc(text) + '</span>'; }
 function isWindows() { return /Windows/i.test(navigator.userAgent || ""); }
-function webAvailable() { return typeof A.webSearchAvailable === "function" && A.webSearchAvailable(); }
-function webOn() { return typeof A.webSearchOn === "function" && A.webSearchOn(); }
 function localHardware(modes) { var m = (modes || []).find(function (x) { return x.id === "local"; }); return (m && m.hardware) || {}; }
 function machineFits(hw) { return !!(hw.cuda_usable && hw.vram_gb >= 6); }
 function privacyLevel(mode, scope) { return mode === "local" || scope === "machine" ? 5 : scope === "network" ? 4 : INFO[mode] ? INFO[mode][4] : 1; }
@@ -68,7 +66,7 @@ function dashboard(cfg, shortName, privacyText, showTools) {
     '<div><div class="gb-of-row sb"><span class="gb-of-lab">' + tr("PRIVACIDADE", "PRIVACY") + '</span>' + (mode ? segs(level, tone(level)) : '') + '</div>' +
     (privacyText ? '<p class="gb-of-priv">' + privacyText + '</p>' : '') +
     '<div class="gb-of-caps"><span class="gb-of-lab">' + tr("RECURSOS", "FEATURES") + '</span>' + cap("yes", tr("Documentos", "Documents")) +
-    cap(ocr ? "yes" : "no", tr("Texto em imagens", "Text in images")) + (webOn() ? cap("yes", tr("Pesquisa na web", "Web search")) : '') +
+    cap(ocr ? "yes" : "no", tr("Texto em imagens", "Text in images")) +
     cap("no", tr("Fotos e gráficos", "Photos and charts")) + '</div></div></div></section>';
   return html;
 }
@@ -78,7 +76,6 @@ function cell(kind, text, note) { return { k: kind, t: text, n: note || "" }; }
 function facts(mode, cfg, hw) {
   var scope = cfg && cfg.mode === "own_key" ? cfg.endpoint_scope : "";
   var ocr = isWindows() ? cell("yes", tr("Lê", "Reads")) : cell("no", tr("Não lê", "Does not read"));
-  var web = webAvailable() ? cell("part", tr("Opcional, você liga", "Optional, you turn it on")) : cell("no", tr("Indisponível", "Unavailable"));
   var reads = cell("yes", tr("Lê", "Reads")), notYet = cell("no", tr("Ainda não", "Not yet"));
   if (mode === "local") {
     var V = A._modelMachine ? A._modelMachine.verdict(hw, S().localModels) : null;
@@ -86,28 +83,27 @@ function facts(mode, cfg, hw) {
     if (V && V.tone !== "none") { note += (note ? " · " : "") + V.short.toLowerCase(); }
     var kind = !V ? (machineFits(hw) ? "yes" : "no") : V.tone === "good" ? "yes" : V.tone === "mid" ? "part" : "no";
     return { privacy: cell("yes", tr("Ficam neste computador", "Stay on this computer")), offline: cell("yes", tr("Funciona", "Works")), cost: cell("yes", tr("Grátis", "Free")),
-      docs: reads, ocr: ocr, web: web, photos: notYet, needs: cell(kind, tr("Placa de vídeo com 6 GB ou mais e um download de 4 a 6 GB", "A graphics card with 6 GB or more and a 4 to 6 GB download"), note) };
+      docs: reads, ocr: ocr, photos: notYet, needs: cell(kind, tr("Placa de vídeo com 6 GB ou mais e um download de 4 a 6 GB", "A graphics card with 6 GB or more and a 4 to 6 GB download"), note) };
   }
   if (mode === "own_key") {
     return { privacy: cell(scope === "network" ? "yes" : "part", scope === "network" ? tr("Ficam na rede da sua organização", "Stay in your organization’s network") : tr("Vão ao servidor que você indicar", "Go to the server you set")),
       offline: cell("part", tr("Só com servidor na sua rede", "Only with a server on your network")), cost: cell("part", tr("Conforme o contrato", "Per your contract")),
-      docs: reads, ocr: ocr, web: web, photos: notYet, needs: cell("part", tr("Endereço do servidor e uma chave", "The server address and a key")) };
+      docs: reads, ocr: ocr, photos: notYet, needs: cell("part", tr("Endereço do servidor e uma chave", "The server address and a key")) };
   }
   if (mode === "acp") {
     var does = cell("yes", tr("O agente faz", "The agent does it")), dep = cell("part", tr("Depende do agente", "Depends on the agent"));
     return { privacy: cell("part", tr("Vão ao provedor do agente", "Go to the agent’s provider")), offline: cell("no", tr("Não funciona", "Does not work")),
-      cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: dep, web: does, photos: dep,
+      cost: cell("part", tr("Sua assinatura (Claude, ChatGPT, Gemini…)", "Your subscription (Claude, ChatGPT, Gemini…)")), docs: does, ocr: dep, photos: dep,
       needs: cell("part", tr("Instalar o agente e entrar na sua conta", "Install the agent and sign in to your account")) };
   }
   return { privacy: cell("no", tr("Vão a um provedor externo", "Go to an external provider")), offline: cell("no", tr("Não funciona", "Does not work")),
-    cost: cell("yes", tr("Grátis, com limite de uso", "Free, with usage limits")), docs: reads, ocr: ocr, web: web, photos: notYet, needs: cell("yes", tr("Nada", "Nothing")) };
+    cost: cell("yes", tr("Grátis, com limite de uso", "Free, with usage limits")), docs: reads, ocr: ocr, photos: notYet, needs: cell("yes", tr("Nada", "Nothing")) };
 }
 var ROWS = [
   ["privacy", ["Seus textos", "Your text"], ["Para onde vai o que você escreve e anexa.", "Where what you write and attach goes."]],
   ["offline", ["Sem internet", "Without internet"], ["Se o assistente continua funcionando com a rede desligada.", "Whether the assistant keeps working with the network off."]],
   ["cost", ["Custo", "Cost"], null], ["docs", ["PDF, Word e texto", "PDF, Word and text"], null],
   ["ocr", ["Texto em imagens e digitalizações", "Text in images and scans"], ["O texto de fotos e documentos digitalizados é lido neste computador antes de ir ao modelo.", "The text of photos and scanned documents is read on this computer before it goes to the model."]],
-  ["web", ["Pesquisa na web", "Web search"], ["Desligada até você ligar. Quando ligada, o começo de cada pergunta vai ao buscador.", "Off until you turn it on. When on, the start of each question goes to the search engine."]],
   ["photos", ["Entender fotos e gráficos", "Understand photos and charts"], ["Interpretar o conteúdo de uma imagem, não só o texto escrito nela.", "Interpreting what an image shows, not only the text written in it."]],
   ["needs", ["Você precisa de", "You need"], null]];
 var MK = { yes: "✓", part: "~", no: "–" };
@@ -243,9 +239,10 @@ function tipShow(t) {
   if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "gb-of-tip"; tipEl.setAttribute("role", "tooltip"); }
   (t.closest("dialog[open]") || document.body).appendChild(tipEl);
   tipEl.textContent = t.getAttribute("data-tip");
-  var r = t.getBoundingClientRect(), below = r.top < 90;
-  tipEl.style.left = Math.max(160, Math.min(innerWidth - 160, r.left + r.width / 2)) + "px";
-  tipEl.style.top = (below ? r.bottom + 8 : r.top - 8) + "px";
+  var z = window.GBZoom ? window.GBZoom.factor() : 1;
+  var r = t.getBoundingClientRect(), below = r.top / z < 90;
+  tipEl.style.left = Math.max(160, Math.min(innerWidth / z - 160, (r.left + r.width / 2) / z)) + "px";
+  tipEl.style.top = (below ? r.bottom / z + 8 : r.top / z - 8) + "px";
   tipEl.style.transform = below ? "translateX(-50%)" : "translate(-50%,-100%)";
 }
 function tipHide() { if (tipEl && tipEl.parentNode) { tipEl.remove(); } }

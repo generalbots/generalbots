@@ -185,8 +185,33 @@
             '<input type="range" class="gb-set-range" id="' + id + '" data-slider="' + name + '" min="' + cfg.min + '" max="' + cfg.max +
             '" step="' + cfg.step + '" value="' + v + '"><output for="' + id + '">' + v + '%</output><button type="button" data-reset="' + name +
             '" title="' + A.t("settings.slider-reset", "Default") + '" aria-label="' + A.t("settings.slider-reset", "Default") + '">' +
-            '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button></div>';
+            RESET_ICON + '</button></div>';
     }
+    var RESET_ICON = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>';
+
+    /* App zoom (identity/zoom.js): the value follows the slider while it moves
+       and the page rescales when it is released, so the thumb stays under the pointer. */
+    function zoomRow(label) {
+        var z = window.GBZoom, reset = A.t("settings.slider-reset", "Default");
+        return '<div class="gb-ap-sec gb-ap-zoom"><label class="gb-ap-label" for="gbAppearanceZoom">' + label + '</label>' +
+            '<div class="gb-ap-slider"><input type="range" class="gb-set-range" id="gbAppearanceZoom" min="' + z.min + '" max="' + z.max +
+            '" step="' + z.increment + '" value="' + z.get() + '"><output for="gbAppearanceZoom">' + z.get() + '%</output>' +
+            '<button type="button" data-zoom-reset title="' + reset + '" aria-label="' + reset + '">' + RESET_ICON + '</button></div></div>';
+    }
+    function showZoom(value) {
+        var input = document.getElementById("gbAppearanceZoom");
+        if (!input) { return; }
+        input.value = value;
+        input.nextElementSibling.textContent = value + "%";
+    }
+    function bindZoom(panel) {
+        var input = panel.querySelector("#gbAppearanceZoom");
+        if (!input) { return; }
+        input.addEventListener("input", function () { input.nextElementSibling.textContent = input.value + "%"; });
+        input.addEventListener("change", function () { window.GBZoom.set(input.value); });
+        panel.querySelector("[data-zoom-reset]").addEventListener("click", function () { window.GBZoom.reset(); });
+    }
+    window.addEventListener("gb-zoom-change", function (event) { showZoom(event.detail.value); });
 
     A.renderMantisAppearance = function (container) {
         var theme = window.GBTheme;
@@ -209,6 +234,7 @@
         container.innerHTML = '<div class="gb-ap">' +
             '<div class="gb-ap-sec"><span class="gb-ap-label">' + tr("Tema", "Theme") + '</span>' +
             seg("appearance-theme", ["light", "dark", "system"].map(function (id) { return [id, A.escapeHtml(A.t("settings.theme-" + id, id))]; }), theme.get()) + '</div>' +
+            (window.GBZoom ? zoomRow(tr("Zoom do aplicativo", "App zoom")) : '') +
             '<div class="gb-ap-sec"><div class="gb-ap-label gb-ap-pair"><span>' + tr("Acento", "Accent") + '</span><span class="gb-ap-ink" id="gbAppearanceAccentName">' +
             A.escapeHtml(accentName(activeAccent)) + '</span></div><div class="gb-ap-swatches">' + identity.presets.map(function (preset) {
                 var label = A.escapeHtml(portuguese ? preset.pt : preset.en);
@@ -274,6 +300,7 @@
         });
         A._bindSliders(panel);
         A._syncSliders(panel);
+        bindZoom(panel);
     };
 
     if (mantis) { A.bootPattern(); }

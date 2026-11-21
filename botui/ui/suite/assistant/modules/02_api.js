@@ -87,7 +87,7 @@
             if (!r.ok) { return; }
             var data = await r.json();
             A.tiers = data.tiers || [];
-            A.defaultModel = data.default_model || ""; A.accounts = data.accounts || [];
+            A.defaultModel = data.default_model || ""; A.accounts = data.accounts || []; A.subscriptions = data.subscriptions || null;
             if (data.destination) { A.destination = data.destination; }
             try {
                 A.selectedModel = localStorage.getItem("gb-model-preference");
@@ -115,44 +115,7 @@
 
     /* ---- Sessions ---- */
 
-    A.loadSessions = async function () {
-        try {
-            var r = await A.apiFetch(
-                "/api/chat/history/sessions?limit=50&bot_name=" +
-                    encodeURIComponent(A.botName)
-            );
-            if (!r.ok) { return; }
-            var data = await r.json();
-            /* Server returns session_id, not id */
-            A.sessions = (data.sessions || []).map(function (s) {
-                return {
-                    id: s.session_id || s.id,
-                    title: s.title,
-                    updated_at: s.updated_at || s.created_at
-                };
-            });
-        } catch (e) {
-            console.warn("[assistant] sessions fetch failed:", e);
-        }
-    };
-
-    A.loadSessionMessages = async function (sessId) {
-        try {
-            var r = await A.apiFetch(
-                "/api/chat/history/sessions/" +
-                    encodeURIComponent(sessId) +
-                    "/messages?limit=500&offset=0&include_activities=1"
-            );
-            if (!r.ok) { return []; }
-            var data = await r.json();
-            /* #2562 — stash activities so renderHistory can show step cards. */
-            A._lastHistoryActivities = data.activities || [];
-            return data.messages || [];
-        } catch (e) {
-            console.warn("[assistant] messages fetch failed:", e);
-            return [];
-        }
-    };
+    /* The conversation list and messages: 02b_requests.js. */
 
     /** #2562 — Truncate history from a given message index (for regenerate/edit). */
     A.truncateHistory = async function (sessId, fromIndex) {
@@ -226,6 +189,7 @@
             ? A.origin.replace(/^https?:/, proto)
             : proto + "//" + loc.host;
         var token = A.getToken() || "";
+        A.wsSessionId = A.currentSessionId || A.sessionId || "";
         return (
             host + "/ws" +
             "?token=" + encodeURIComponent(token) +
@@ -337,6 +301,12 @@
 
     /* ---- WS dispatch ---- */
 
+    /* The server names the socket's conversation. A frame that arrives
+       after another conversation was picked must not take the choice back. */
+    function adoptSession(id) {
+        if (id && (!A.currentSessionId || A.currentSessionId === A.wsSessionId)) { A.currentSessionId = id; }
+    }
+
     function dispatch(data) {
         /* Suggestions (can arrive on any frame) */
         if (data.suggestions && data.suggestions.length) {
@@ -348,7 +318,7 @@
 
         if (data.type === "connected") {
             if (data.user_id) { A.userId = data.user_id; }
-            if (data.session_id) { A.currentSessionId = data.session_id; }
+            adoptSession(data.session_id);
             return;
         }
 
@@ -376,7 +346,7 @@
         }
 
         if (data.type === "message_received") {
-            if (data.session_id) { A.currentSessionId = data.session_id; }
+            adoptSession(data.session_id);
             return;
         }
 

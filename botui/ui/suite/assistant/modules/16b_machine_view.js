@@ -13,7 +13,8 @@
     var TITLES = ["secA", "secB", "secC", "secD", "secE", "secF", "secG"];
     var SUBTITLE = {
         running: "subRunning", stopped: "subStopped", provisioning: "subProvisioning", error: "subError",
-        full: "subFull", unavailable: "subUnavailable", loading: "subLoading", restoring: "subProvisioning"
+        full: "subFull", unavailable: "subUnavailable", loading: "subLoading", restoring: "subProvisioning",
+        starting: "subStarting"
     };
 
     function el(tag, cls, text) {
