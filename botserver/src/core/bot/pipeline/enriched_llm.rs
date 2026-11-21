@@ -398,8 +398,8 @@ pub(crate) async fn resolve_bot_llm_provider(
     // when the requested provider is a subscription and no account is linked.
     #[cfg(not(feature = "agent-vm"))]
     if matches!(llm_provider.trim(), "claude-code" | "chatgpt-plan" | "codex-cli" | "antigravity") {
-        botlog::safe_info!(
-            "BOT {bot_uuid} user {user_id} session {session_id}: provider [{llm_provider}] needs the agent workspace, which this build does not include"
+        botlog::safe_warn!(
+            "Subscription turn refused: provider=[{llm_provider}] reason=no agent-vm feature, user={user_id}, session={session_id}"
         );
         return Err(
             "Subscription accounts are not available in this edition. Choose another model in Settings."
@@ -412,12 +412,20 @@ pub(crate) async fn resolve_bot_llm_provider(
         if linked.is_none() && relink_from_vm(state, user_id, &llm_provider).await {
             linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
         }
-        let resolved = crate::core::ai_accounts::choose_for_request(
+        let resolved = match crate::core::ai_accounts::choose_for_request(
             Some(&llm_provider),
             linked.as_ref(),
             Some((llm_provider.as_str(), llm_model.as_str())),
             None,
-        )?;
+        ) {
+            Ok(r) => r,
+            Err(reason) => {
+                botlog::safe_warn!(
+                    "Subscription turn refused: provider=[{llm_provider}] reason={reason}, user={user_id}, session={session_id}"
+                );
+                return Err(reason);
+            }
+        };
         let Some(resolved) = resolved else {
             return Ok(None);
         };
@@ -428,6 +436,10 @@ pub(crate) async fn resolve_bot_llm_provider(
             || resolved.provider == crate::core::ai_accounts::ANTIGRAVITY)
             && !super::agent_turn::is_enabled(session_id)
         {
+            botlog::safe_warn!(
+                "Subscription turn refused: provider=[{}] reason=agent-vm disabled, user={user_id}, session={session_id}",
+                resolved.provider
+            );
             return Err(super::agent_turn::DISABLED_MESSAGE.to_string());
         }
         let provider =

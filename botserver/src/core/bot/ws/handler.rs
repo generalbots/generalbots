@@ -58,7 +58,14 @@ pub struct WsQuery {
     /// Suite/cloud token. When valid it determines the identity; the
     /// `user_id` query parameter alone is never trusted for an authenticated
     /// session (a stale client id used to scope Drive and files to a guest).
+    /// The desktop shell sends the token as `token=`; serde alias accepts both.
+    #[serde(alias = "token")]
     pub access_token: Option<String>,
+}
+
+/// Treats empty or whitespace-only strings as absent.
+fn non_blank(value: Option<String>) -> Option<String> {
+    value.filter(|s| !s.trim().is_empty())
 }
 
 pub fn validate_bot_name(input: &str) -> Result<String, String> {
@@ -129,14 +136,36 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
     result
 }
 
+/// The signed-in user behind the handshake. The cookie can hold a token from
+/// an earlier run that no longer resolves while the query carries the fresh
+/// one: each is tried in turn, so a stale cookie never turns the owner into
+/// a guest (whose chat then finds none of the owner's connected agents).
+///
+/// Accepts a resolver closure so unit tests can substitute a fake without
+/// touching the global session cache.
+fn handshake_user_with<F>(cookie: Option<&str>, query: Option<&str>, resolver: F) -> Option<String>
+where
+    F: Fn(&str) -> Option<(String, Vec<String>)>,
+{
+    [cookie, query]
+        .into_iter()
+        .flatten()
+        .filter(|t| !t.trim().is_empty())
+        .find_map(|t| resolver(t))
+        .map(|(id, _)| id)
+}
+
+fn handshake_user(cookie: Option<&str>, query: Option<&str>) -> Option<String> {
+    handshake_user_with(cookie, query, crate::main_module::routes::anonymous_auth::resolve_token_user)
+}
+
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
     Query(params): Query<WsQuery>,
     headers: axum::http::HeaderMap,
 ) -> axum::response::Response {
-    let session_id = params
-        .session_id
+    let session_id = non_blank(params.session_id)
         .and_then(|s| Uuid::parse_str(&s).ok())
         .unwrap_or_else(Uuid::new_v4);
     let cookie_token = headers
@@ -154,16 +183,28 @@ pub async fn websocket_handler(
                 }
             })
         });
-    let token_user = cookie_token
-        .as_deref()
-        .or(params.access_token.as_deref())
-        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
-        .map(|(id, _)| id);
-    let user_id = token_user
-        .as_deref()
-        .or(params.user_id.as_deref())
-        .map(crate::security::user_role::derive_stable_user_uuid)
-        .unwrap_or_else(Uuid::new_v4);
+    let query_token = non_blank(params.access_token);
+    let had_token = cookie_token.is_some() || query_token.is_some();
+    let token_user = handshake_user(cookie_token.as_deref(), query_token.as_deref());
+    let client_user_id = non_blank(params.user_id);
+
+    let (user_id, identity_source) = if let Some(ref uid) = token_user {
+        (crate::security::user_role::derive_stable_user_uuid(uid), "token")
+    } else if let Some(ref cid) = client_user_id {
+        (crate::security::user_role::derive_stable_user_uuid(cid), "client-supplied id")
+    } else {
+        (Uuid::new_v4(), "new guest")
+    };
+
+    if had_token && token_user.is_none() {
+        botlog::safe_warn!(
+            "WS handshake: token supplied but did not resolve (session {})",
+            session_id
+        );
+    }
+    botlog::safe_info!(
+        "WS handshake: identity={identity_source}, user={user_id}, session={session_id}"
+    );
     let raw_bot_name = params
         .bot_name
         .clone()
@@ -249,6 +290,12 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
+    // Normalise blank values before the access check; websocket_handler will
+    // redo identity resolution from the cleaned params (identity is resolved
+    // twice: once here for the access check, once inside websocket_handler).
+    params.user_id = non_blank(params.user_id.take());
+    params.access_token = non_blank(params.access_token.take());
+
     let cookie_token = headers
         .get(axum::http::header::COOKIE)
         .and_then(|value| value.to_str().ok())
@@ -264,11 +311,7 @@ pub async fn websocket_handler_with_bot(
                 }
             })
         });
-    let token_user = cookie_token
-        .as_deref()
-        .or(params.access_token.as_deref())
-        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
-        .map(|(id, _)| id);
+    let token_user = handshake_user(cookie_token.as_deref(), params.access_token.as_deref());
     let user_id = token_user
         .as_deref()
         .or(params.user_id.as_deref())
@@ -313,4 +356,88 @@ pub async fn websocket_handler_with_bot(
     }
 
     websocket_handler(ws, State(state), Query(params), headers).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_alias_deserialises() {
+        let json = r#"{"token":"gb_abc123","session_id":"","user_id":""}"#;
+        let parsed: WsQuery = serde_json::from_str(json).expect("deserialise WsQuery with token alias");
+        assert_eq!(parsed.access_token.as_deref(), Some("gb_abc123"));
+    }
+
+    #[test]
+    fn test_access_token_field_still_works() {
+        let json = r#"{"access_token":"gb_xyz"}"#;
+        let parsed: WsQuery = serde_json::from_str(json).expect("deserialise WsQuery");
+        assert_eq!(parsed.access_token.as_deref(), Some("gb_xyz"));
+    }
+
+    #[test]
+    fn test_non_blank_filters_empty() {
+        assert!(non_blank(Some(String::new())).is_none());
+        assert!(non_blank(Some("  ".to_string())).is_none());
+        assert!(non_blank(None).is_none());
+        assert_eq!(non_blank(Some("abc".to_string())).as_deref(), Some("abc"));
+    }
+
+    #[test]
+    fn test_handshake_user_precedence() {
+        // Stale cookie (returns None), valid query token -> query wins.
+        let result = handshake_user_with(
+            Some("stale_cookie"),
+            Some("valid_query"),
+            |token| {
+                if token == "valid_query" {
+                    Some(("user-123".to_string(), vec![]))
+                } else {
+                    None
+                }
+            },
+        );
+        assert_eq!(result.as_deref(), Some("user-123"));
+    }
+
+    #[test]
+    fn test_handshake_user_cookie_wins_when_valid() {
+        let result = handshake_user_with(
+            Some("good_cookie"),
+            Some("good_query"),
+            |token| {
+                if token == "good_cookie" {
+                    Some(("cookie-user".to_string(), vec![]))
+                } else if token == "good_query" {
+                    Some(("query-user".to_string(), vec![]))
+                } else {
+                    None
+                }
+            },
+        );
+        assert_eq!(result.as_deref(), Some("cookie-user"));
+    }
+
+    #[test]
+    fn test_handshake_user_empty_token_is_absent() {
+        let result = handshake_user_with(Some(""), Some("   "), |_| {
+            panic!("resolver should not be called for blank tokens");
+        });
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_handshake_user_none_tokens() {
+        let result = handshake_user_with(None, None, |_| panic!("should not be called"));
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_empty_user_id_does_not_derive_guest() {
+        let constant_guest = crate::security::user_role::derive_stable_user_uuid("");
+        assert!(non_blank(Some(String::new())).is_none());
+        let uid = crate::security::user_role::derive_stable_user_uuid("real-user");
+        assert_ne!(uid, constant_guest);
+    }
 }
