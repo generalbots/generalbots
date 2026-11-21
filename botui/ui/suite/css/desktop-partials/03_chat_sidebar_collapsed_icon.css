@@ -303,6 +303,8 @@
     line-height: 1;
     cursor: pointer;
     opacity: 0;
+    -webkit-appearance: none;
+    appearance: none;
     transition: opacity 0.15s, background 0.15s;
 }
 /* #1982 — themed icons: the lock affordances are SVG, so they inherit the
