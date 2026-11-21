@@ -100,16 +100,16 @@ function memoryStorage() {
 }
 
 function report() {
-gbLog.debug("\n" + "=".repeat(60));
-gbLog.debug("GB7 WEB AUTOMATION TEST RESULTS");
-gbLog.debug("=".repeat(60));
+console.log("\n" + "=".repeat(60));
+console.log("GB7 WEB AUTOMATION TEST RESULTS");
+console.log("=".repeat(60));
 RESULTS.forEach(function (r) {
   var icon = r.status === "PASS" ? "PASS" : "FAIL";
-  gbLog.debug("[" + icon + "] " + r.name + (r.error ? " — " + r.error : ""));
+  console.log("[" + icon + "] " + r.name + (r.error ? " — " + r.error : ""));
 });
-gbLog.debug("=".repeat(60));
-gbLog.debug("TOTAL: " + (PASS + FAIL) + " | PASS: " + PASS + " | FAIL: " + FAIL);
-gbLog.debug("=".repeat(60));
+console.log("=".repeat(60));
+console.log("TOTAL: " + (PASS + FAIL) + " | PASS: " + PASS + " | FAIL: " + FAIL);
+console.log("=".repeat(60));
 
 process.exit(FAIL > 0 ? 1 : 0);
 }
