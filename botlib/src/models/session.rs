@@ -51,7 +51,11 @@ impl Session {
     }
 }
 
-// Canonical definition lives in `botschema` (#1497).
+// Canonical definition lives in `botschema` (#1497). The table type is only
+// compiled with the `database` feature, which is the sole owner of the
+// `botschema` dependency. Mobile thin-client builds disable default features
+// so they never pull diesel/pq-sys into the cross-link.
+#[cfg(feature = "database")]
 pub use botschema::user_sessions;
 
 // Plain DTO: this type is never loaded through Diesel (the channel crates

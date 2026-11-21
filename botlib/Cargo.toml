@@ -12,7 +12,7 @@ categories = ["api-bindings", "web-programming"]
 [features]
 default = ["database", "i18n"]
 full = ["database", "http-client", "validation", "resilience", "i18n", "sqlite"]
-database = ["i18n", "dep:diesel"]
+database = ["i18n", "dep:diesel", "dep:botschema"]
 http-client = ["dep:reqwest"]
 validation = []
 resilience = []
@@ -35,7 +35,7 @@ toml = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }
 dirs = { workspace = true }
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "uuid", "serde_json"], optional = true }
-botschema = { workspace = true }
+botschema = { workspace = true, optional = true }
 regex = { workspace = true }
 
 # Optional: HTTP Client
