@@ -89,8 +89,16 @@ require_pattern "Windows MSI" '^generalbots-x64\.msi$'
 require_pattern "Windows NSIS setup" '^generalbots-x64-setup\.exe$'
 require_pattern "macOS dmg" '^generalbots-[0-9.]+-macos-(arm64|x86_64)\.dmg$'
 require_pattern "macOS app archive" '^generalbots-[0-9.]+-macos-(arm64|x86_64)\.app\.zip$'
-require_pattern "bootable ISO" '^generalbots-os\.iso$'
+# #2455 — GitHub rejects a single asset >= 2 GiB, so release.yml does not
+# publish the bootable ISO as one file. It ships a zstd-compressed, split
+# image plus the reassembly recipe and the checksums that verify the parts.
+# Requiring the old `generalbots-os.iso` shape would flag every current
+# release as incomplete (see the v7.0.36 "Release links" nightly failure).
+require_pattern "bootable ISO parts" '^generalbots-os\.iso\.zst\.[0-9]+\.part$'
+require_pattern "ISO reassembly recipe" '^generalbots-os\.iso\.zst\.sha256$'
 require_pattern "ISO checksums" '^SHA256SUMS-os$'
+require_pattern "payload ISO" '^generalbots-payload\.iso$'
+require_pattern "payload checksums" '^SHA256SUMS-payload$'
 require_pattern "release manifest" '^MANIFEST\.json$'
 require_pattern "combined checksums" '^SHA256SUMS$'
 
