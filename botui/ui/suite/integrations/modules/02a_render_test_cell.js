@@ -3,8 +3,11 @@
    02_render.js stays under the 450-line limit; the date/status formatters are
    injected because they are module-local to the render file. */
 (function (namespace) {
-    function t(key, fallback) {
-        return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+    function t(key, fallback, params) {
+        // #2339 — forward interpolation params (e.g. { $ms }) to gbT; the
+        // two-arg wrapper dropped them, leaving placeholders/values blank in
+        // last-test diagnostics and source labels.
+        return typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
     }
 
     namespace.buildTestCell = function (row, helpers) {

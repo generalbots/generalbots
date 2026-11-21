@@ -4,8 +4,11 @@
    copy so the connector list stays authoritative for diagnostics and lifecycle
    helpers. */
 (function (namespace) {
-    function t(key, fallback) {
-        return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+    function t(key, fallback, params) {
+        // #2339 — forward interpolation params (e.g. { $ms }) to gbT; the
+        // two-arg wrapper dropped them, leaving placeholders/values blank in
+        // last-test diagnostics and source labels.
+        return typeof window.gbT === "function" ? window.gbT(key, fallback, params) : fallback;
     }
 
     var originalCreateState = namespace.createState;
