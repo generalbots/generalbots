@@ -87,12 +87,10 @@ function followLiveEdge(maxMs) {
     messages.removeEventListener("wheel", cancel);
     messages.removeEventListener("touchstart", cancel);
     messages.removeEventListener("pointerdown", cancel);
-    messages.removeEventListener("pointerdown", cancel);
     messages.removeEventListener("keydown", cancel);
   }
   messages.addEventListener("wheel", cancel, { passive: true });
   messages.addEventListener("touchstart", cancel, { passive: true });
-  messages.addEventListener("pointerdown", cancel, { passive: true });
   messages.addEventListener("pointerdown", cancel, { passive: true });
   messages.addEventListener("keydown", cancel);
   function step() {
