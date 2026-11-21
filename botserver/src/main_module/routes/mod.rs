@@ -22,6 +22,8 @@ pub mod computer_use_routes;
 pub mod conversation_autotasks;
 pub mod desktop_status;
 pub mod drive_sync;
+#[cfg(feature = "llm")]
+pub mod llm_limits;
 pub mod feature_merge_office;
 pub mod feature_merge_platform;
 pub mod feature_routers;

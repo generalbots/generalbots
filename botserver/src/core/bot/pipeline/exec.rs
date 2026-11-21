@@ -238,6 +238,7 @@ pub async fn process_message_internal(
     let mut attachment_note = attachment.note;
     let attachment_media = attachment.media;
     let media_fail_reason = attachment.media_fail_reason;
+    let store_fail_reason = attachment.store_fail_reason;
 
     // Emit the completed/failed attachment activity.
     if let Some(act) = attach_activity {
@@ -264,7 +265,18 @@ pub async fn process_message_internal(
             .as_ref()
             .is_some_and(|n| n.contains("excerpt truncated"));
         let mime = super::activity::mime_from_name(&file_name);
-        if let Some(reason) = media_fail_reason {
+        if let Some(reason) = store_fail_reason {
+            // The file was not kept (a full disk answers HTTP 507): the card
+            // says so instead of reporting a stored attachment.
+            let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+            let key = if reason == "storage_full" {
+                "error-attachment-storage-full"
+            } else {
+                "error-attachment-not-stored"
+            };
+            let fail = act.failed(&botcore::i18n::t(&locale, key));
+            super::activity::emit_activity(sink, &early_run, &fail).await;
+        } else if let Some(reason) = media_fail_reason {
             // #2561 — the file was stored but its media content could not be
             // read (e.g. no image reader installed). Emit as failed with the
             // reason code so the interface can show it.

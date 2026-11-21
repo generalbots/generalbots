@@ -40,7 +40,9 @@ pub async fn user_vm_resources(
     let (_, user, _) = caller_uuid(&headers)?;
     let row = vm::get_user_vm(&state, &user)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "Workspace unavailable".into()))?;
-    Ok(Json(vm::resource_summary(&state, &row.vm_name).await?))
+    Ok(Json(
+        vm::resource_summary(&state, &user, &row.vm_name, &row.status).await?,
+    ))
 }
 
 /// `POST /api/agent/conversations/switch` — switch active conversation,

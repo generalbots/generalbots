@@ -11,8 +11,8 @@ use super::antigravity::connect_antigravity;
 use super::claude::connect_claude;
 use super::codex::connect_codex;
 use super::shared::{
-    agent_service, ensure_user, err, err_db, err_upstream, map_claude_state, provider_or_error,
-    ApiError,
+    agent_service, ensure_user, err, err_db, err_upstream, map_claude_state, probe_vm,
+    provider_or_error, stored_with_workspace, ApiError, VmProbe,
 };
 use crate::core::{ai_accounts, ai_accounts_chatgpt};
 use crate::security::auth_api::types::AuthenticatedUser;
@@ -94,9 +94,19 @@ pub async fn status(
             .map_err(|(code, message)| err_upstream(code, &message))?;
         match vm {
             Some(row) => {
-                let status = botagent::claude::status(agent_service(locale)?, &row.vm_name)
+                let service = agent_service(locale)?;
+                let status = match probe_vm(service, &row, botagent::claude::status(service, &row.vm_name))
                     .await
-                    .map_err(|(code, message)| err_upstream(code, &message))?;
+                    .map_err(|(code, message)| err_upstream(code, &message))?
+                {
+                    VmProbe::Ready(status) => status,
+                    VmProbe::Workspace(workspace) => {
+                        return Ok(Json(json!({
+                            "account": stored_with_workspace(&state, user.user_id, provider, workspace),
+                            "checked_at": chrono::Utc::now().to_rfc3339(),
+                        })));
+                    }
+                };
                 if status.state == "linked" {
                     let _ = ai_accounts::mark_linked(&state.conn, user.user_id, ai_accounts::CLAUDE_CODE, None, None, Some(&row.vm_name), None);
                 } else {
@@ -139,12 +149,30 @@ pub async fn status(
             .map_err(|(code, message)| err_upstream(code, &message))?;
         match vm {
             Some(row) => {
-                let (st, url, extra, msg) = if provider == ai_accounts::CODEX_CLI {
-                    let s = botagent::codex::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
-                    (s.state, s.url, json!({"device_code": s.device_code}), s.message)
+                let service = agent_service(locale)?;
+                let probed = if provider == ai_accounts::CODEX_CLI {
+                    probe_vm(service, &row, async {
+                        botagent::codex::status(service, &row.vm_name)
+                            .await
+                            .map(|s| (s.state, s.url, json!({"device_code": s.device_code}), s.message))
+                    })
+                    .await
                 } else {
-                    let s = botagent::antigravity::status(agent_service(locale)?, &row.vm_name).await.map_err(|(c,m)| err_upstream(c,&m))?;
-                    (s.state, s.url, json!({"auth_code": s.auth_code}), s.message)
+                    probe_vm(service, &row, async {
+                        botagent::antigravity::status(service, &row.vm_name)
+                            .await
+                            .map(|s| (s.state, s.url, json!({"auth_code": s.auth_code}), s.message))
+                    })
+                    .await
+                };
+                let (st, url, extra, msg) = match probed.map_err(|(c, m)| err_upstream(c, &m))? {
+                    VmProbe::Ready(read) => read,
+                    VmProbe::Workspace(workspace) => {
+                        return Ok(Json(json!({
+                            "account": stored_with_workspace(&state, user.user_id, provider, workspace),
+                            "checked_at": chrono::Utc::now().to_rfc3339(),
+                        })));
+                    }
                 };
                 let mapped = map_claude_state(&st);
                 if st == "linked" {

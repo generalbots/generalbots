@@ -330,3 +330,21 @@ error-service-price-required = Este serviço não tem preço; informe um valor.
 # Service-tax value validation (#2094)
 error-invalid-value = Não foi possível interpretar o valor informado.
 error-value-required = É necessário informar um valor para este serviço.
+
+# Erros do modelo de linguagem exibidos no chat
+error-model-unreachable = Não foi possível falar com o modelo de linguagem. Verifique a conexão e tente novamente.
+error-model-auth = O modelo de linguagem recusou as credenciais. Verifique a chave em Configurações.
+error-model-rate-limited = O modelo de linguagem está limitando as solicitações agora. Aguarde um pouco e tente novamente.
+error-model-error = O modelo de linguagem retornou um erro. Tente novamente.
+error-model-timeout = O modelo de linguagem demorou demais para responder. Tente novamente.
+error-model-context = A conversa é maior do que o modelo consegue ler de uma vez. Comece uma nova conversa ou encurte a mensagem.
+
+# Início da máquina virtual antes de um turno de assinatura
+workspace-step-starting-vm = Iniciando a máquina virtual
+workspace-step-starting-vm-detail = O primeiro início pode levar alguns minutos.
+error-workspace-start-timeout = A máquina virtual não iniciou a tempo. Ela continua iniciando em segundo plano; tente novamente em alguns minutos.
+error-workspace-start-failed = Não foi possível iniciar a máquina virtual. Tente novamente; se continuar falhando, verifique a máquina virtual em Configurações.
+
+# Anexos do chat que não puderam ser guardados no Drive
+error-attachment-storage-full = O disco deste computador está cheio: o arquivo não foi salvo. Libere espaço e anexe-o novamente.
+error-attachment-not-stored = Não foi possível salvar o arquivo no Drive.

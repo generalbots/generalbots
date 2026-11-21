@@ -32,6 +32,9 @@ pub fn cli_model(model: &str) -> String {
     }
 }
 
+/// One prompt-staging write; each is a short `printf` inside the VM.
+const STAGE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 /// Base64 characters per write: the command guard refuses a `sh -c` script
 /// over 8 KB, and a whole conversation easily passes that.
 const CHUNK: usize = 6_000;
@@ -67,7 +70,8 @@ async fn stage_prompt(
 }
 
 async fn run(state: &AgentService, vm_name: &str, script: String) -> Result<(), (StatusCode, String)> {
-    let (ok, stdout, stderr) = vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await?;
+    let (ok, stdout, stderr) =
+        vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), script], STAGE_TIMEOUT).await?;
     if ok {
         Ok(())
     } else {
@@ -103,7 +107,13 @@ pub async fn run_turn(
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     stage_prompt(state, vm_name, user, prompt_path, prompt).await?;
     let script = turn_script(user, home, prompt_path, invocation);
-    vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script]).await
+    vm::exec_in_vm_within(state, vm_name, &["sh".into(), "-c".into(), script], turn_host_timeout()).await
+}
+
+/// Host-side limit of one turn: the in-VM `timeout` plus a minute for the
+/// Incus/WSL round trip, so a wedged exec channel cannot hold the turn.
+fn turn_host_timeout() -> std::time::Duration {
+    std::time::Duration::from_secs(TURN_TIMEOUT_SECS + 60)
 }
 
 /// The provider's own "usage limit" line when the subscription's allowance

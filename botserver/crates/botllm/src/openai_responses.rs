@@ -111,6 +111,7 @@ pub async fn generate(
         .send()
         .await
         .map_err(|error| format!("ChatGPT plan request failed: {error}"))?;
+    crate::rate_limits::record(&url, response.headers());
     let status = response.status();
     let body: Value = response
         .json()

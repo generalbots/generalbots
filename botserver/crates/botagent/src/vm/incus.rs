@@ -14,6 +14,7 @@ use crate::AgentService;
 
 use super::internal;
 use super::incus_errors::{incus_setup_error, INCUS_MISSING_MESSAGE};
+use super::incus_run::{capped, deadline_for, output_within, timeout_error, RunFailure, EXEC_DEADLINE};
 use super::retry::{cold_start_timeout_message, retry_incus};
 
 const LAUNCH_WAIT_SECS: u64 = 60;
@@ -54,12 +55,20 @@ pub(super) async fn run_incus(
             .arg(arg)
             .map_err(|e| internal(format!("incus arg guard: {e}")))?;
     }
-    let output = tokio::task::spawn_blocking(move || cmd.execute())
+    let deadline = deadline_for(&args);
+    let output = tokio::task::spawn_blocking(move || output_within(&cmd, deadline))
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
-        .map_err(|e| match incus_setup_error(&e.to_string()) {
-            Some(err) => err,
-            None => internal(format!("incus execution: {e}")),
+        .map_err(|failure| match failure {
+            RunFailure::TimedOut { orphaned } => timeout_error(
+                args.first().map(String::as_str).unwrap_or("call"),
+                deadline,
+                orphaned,
+            ),
+            RunFailure::Spawn(e) => match incus_setup_error(&e) {
+                Some(err) => err,
+                None => internal(format!("incus execution: {e}")),
+            },
         })?;
     if !output.status.success() {
         // `incus` exits non-zero for a missing daemon and for the socket
@@ -220,7 +229,23 @@ pub async fn exec_in_vm(
     vm_name: &str,
     cmd_args: &[String],
 ) -> Result<(bool, String, String), (StatusCode, String)> {
-    let outcome = exec_in_vm_streaming(state, vm_name, cmd_args, None, None, None).await?;
+    exec_in_vm_within(state, vm_name, cmd_args, EXEC_DEADLINE).await
+}
+
+/// [`exec_in_vm`] with an explicit limit. A command still running at the
+/// limit is killed (with its whole process tree) and reported as
+/// `incus_timeout`, never as an ordinary failure.
+pub async fn exec_in_vm_within(
+    state: &AgentService,
+    vm_name: &str,
+    cmd_args: &[String],
+    limit: StdDuration,
+) -> Result<(bool, String, String), (StatusCode, String)> {
+    let limit = capped(limit);
+    let outcome = exec_in_vm_streaming(state, vm_name, cmd_args, Some(limit), None, None).await?;
+    if outcome.timed_out {
+        return Err(timeout_error("exec", limit, false));
+    }
     Ok((outcome.success, outcome.stdout, outcome.stderr))
 }
 
@@ -285,6 +310,7 @@ pub async fn exec_in_vm_streaming(
         let _ = sender.send(ExecEvent::Started { command: label });
     }
 
+    let timeout = Some(capped(timeout.unwrap_or(EXEC_DEADLINE)));
     let started = Instant::now();
     let mut child = cmd
         .spawn()
@@ -319,8 +345,12 @@ pub async fn exec_in_vm_streaming(
         .map_err(|error| internal(format!("incus wait join: {error}")))?;
     let (exit_code, cancelled, timed_out) = wait;
 
-    for reader in readers {
-        let _ = reader.join();
+    // After a kill the readers end on their own once the pipes close;
+    // joining them here could block the runtime if a pipe stayed open.
+    if !cancelled && !timed_out {
+        for reader in readers {
+            let _ = reader.join();
+        }
     }
 
     let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);

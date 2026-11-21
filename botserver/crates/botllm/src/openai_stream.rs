@@ -182,6 +182,7 @@ impl LLMProvider for OpenAIClient {
                 }
             };
 
+            crate::rate_limits::record(&full_url, response.headers());
             let status = response.status();
             info!("LLM HTTP response status: {} for model {} (attempt {})", status, model, attempt + 1);
             if !status.is_success() {

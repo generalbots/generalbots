@@ -17,6 +17,9 @@ pub(crate) struct AttachmentResult {
     /// When set, the attachment was stored but its media content could not be
     /// read; the value is a short reason code (e.g. `image_reader_unavailable`).
     pub media_fail_reason: Option<&'static str>,
+    /// When set, the file could not be kept in Drive: `storage_full` when the
+    /// disk is full (HTTP 507), `store_failed` for any other store error.
+    pub store_fail_reason: Option<&'static str>,
     /// Images and PDFs for a model that can see them (`botllm::media_parts`).
     pub media: Vec<Value>,
 }
@@ -68,11 +71,13 @@ pub(crate) async fn ingest_attachment(
     let mut text = user_text;
     let mut notes: Vec<String> = Vec::new();
     let mut media: Vec<Value> = Vec::new();
+    let mut store_fail_reason: Option<&'static str> = None;
     for file in files {
         let single = serde_json::json!({ "file": file });
         let result = ingest_single_attachment(state, bot_uuid, bot_name, &single, text, vision).await;
         text = result.user_text;
         media.extend(result.media);
+        store_fail_reason = store_fail_reason.or(result.store_fail_reason);
         if let Some(note) = result.note {
             notes.push(note);
         }
@@ -85,6 +90,7 @@ pub(crate) async fn ingest_attachment(
             Some(notes.join("\n\n"))
         },
         media_fail_reason: None,
+        store_fail_reason,
         media,
     }
 }
@@ -104,6 +110,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     };
@@ -121,6 +128,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     }
@@ -140,6 +148,7 @@ async fn ingest_single_attachment(
             user_text,
             note: attachment_note,
             media_fail_reason: None,
+            store_fail_reason: None,
             media: Vec::new(),
         };
     }
@@ -154,6 +163,7 @@ async fn ingest_single_attachment(
                 user_text,
                 note: attachment_note,
                 media_fail_reason: None,
+                store_fail_reason: None,
                 media: Vec::new(),
             };
         }
@@ -205,6 +215,7 @@ async fn ingest_single_attachment(
         excerpt = recognised;
     }
     let mut stored = false;
+    let mut store_fail_reason: Option<&'static str> = None;
     if let Some(drive) = state.drive.as_ref() {
         // Same resolution as the channel stagers: an org-hosted bot lives under
         // `{slug}.gborg`, so the bucket cannot be derived from the bot name.
@@ -228,7 +239,9 @@ async fn ingest_single_attachment(
             Err(error) => {
                 log::error!("chat attachment store failed: {error}");
                 let raw = error.to_string();
-                let reason = if raw.contains("StorageFull") {
+                let full = is_storage_full(&raw);
+                store_fail_reason = Some(if full { "storage_full" } else { "store_failed" });
+                let reason = if full {
                     "the disk of this computer is almost full".to_string()
                 } else {
                     raw.chars().take(200).collect()
@@ -335,6 +348,28 @@ async fn ingest_single_attachment(
         user_text,
         note: attachment_note,
         media_fail_reason,
+        store_fail_reason,
         media: vision_media,
+    }
+}
+
+/// MinIO answers a full disk with HTTP 507 and `XMinioStorageFull`; the
+/// store error carries the status and the body.
+fn is_storage_full(raw: &str) -> bool {
+    raw.contains("StorageFull") || raw.contains("HTTP 507") || raw.contains("Insufficient Storage")
+}
+
+#[cfg(test)]
+mod store_failure_tests {
+    use super::is_storage_full;
+
+    #[test]
+    fn a_full_disk_is_recognised_from_the_store_error() {
+        assert!(is_storage_full(
+            "Got HTTP 507 with content '<?xml version=\"1.0\"?><Error><Code>XMinioStorageFull</Code></Error>'"
+        ));
+        assert!(is_storage_full("HTTP 507 Insufficient Storage"));
+        assert!(!is_storage_full("Got HTTP 403 with content 'AccessDenied'"));
+        assert!(!is_storage_full("connection refused"));
     }
 }

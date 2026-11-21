@@ -355,12 +355,16 @@ pub(crate) async fn resolve_bot_llm_provider(
         .unwrap_or_default();
 
     // A connected subscription agent picked in the chat's menu
-    // (`sub:<provider>`) answers this turn; the bot's default stays as it is.
+    // (`sub:<provider>` or `sub:<provider>/<model>`) answers this turn; the
+    // bot's default stays as it is.
     #[cfg(feature = "agent-vm")]
-    if let Some(agent) = model_preference.trim().strip_prefix("sub:") {
+    if let Some((agent, model)) = crate::core::ai_accounts::models::parse_choice(model_preference) {
         if crate::core::ai_accounts::is_subscription_provider(agent) {
             llm_provider = agent.to_string();
-            llm_model = crate::core::ai_accounts::default_model(agent).to_string();
+            llm_model = match model {
+                Some(model) => crate::core::ai_accounts::models::choose_model(user_id, agent, model).await?,
+                None => crate::core::ai_accounts::default_model(agent).to_string(),
+            };
         }
     }
 
@@ -623,12 +627,18 @@ async fn relink_from_vm(state: &Arc<AppState>, user_id: Uuid, provider: &str) ->
     let Ok(Some(row)) = botagent::vm::get_user_vm(service, &user_id) else {
         return false;
     };
-    let linked = match provider {
-        acc::CODEX_CLI => botagent::codex::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
-        acc::CLAUDE_CODE => botagent::claude::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
-        acc::ANTIGRAVITY => botagent::antigravity::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
-        _ => Ok(false),
-    }
+    // A stopped or wedged workspace must not hold the turn: the check gets
+    // the probe budget and counts as "not linked" when it runs out.
+    let linked = botagent::vm::within_budget(botagent::vm::PROBE_DEADLINE, async {
+        match provider {
+            acc::CODEX_CLI => botagent::codex::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+            acc::CLAUDE_CODE => botagent::claude::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+            acc::ANTIGRAVITY => botagent::antigravity::status(service, &row.vm_name).await.map(|s| s.state == "linked"),
+            _ => Ok(false),
+        }
+    })
+    .await
+    .and_then(Result::ok)
     .unwrap_or(false);
     if linked {
         botlog::safe_info!("subscription account {provider} found signed in inside the VM; marked linked");

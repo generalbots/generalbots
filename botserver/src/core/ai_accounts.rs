@@ -16,6 +16,9 @@ pub const CODEX_CLI: &str = "codex-cli";
 pub const ANTIGRAVITY: &str = "antigravity";
 pub const PROVIDERS: [&str; 4] = [CLAUDE_CODE, CHATGPT_PLAN, CODEX_CLI, ANTIGRAVITY];
 
+#[cfg(feature = "agent-vm")]
+pub mod models;
+
 /// Where a resolved LLM configuration came from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedLlm {

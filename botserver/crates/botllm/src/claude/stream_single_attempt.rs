@@ -44,6 +44,7 @@ impl ClaudeClient {
             .body(request_body)
             .send()
             .await?;
+        crate::rate_limits::record(&url, response.headers());
 
         let status = response.status();
         trace!("CLAUDE Response status: {} in {:?}", status, start_time.elapsed());

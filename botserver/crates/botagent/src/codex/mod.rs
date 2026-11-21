@@ -3,6 +3,7 @@
 //! Mirrors the Claude flow: CLI/login helper runs inside the agent VM,
 //! auth URL is surfaced to the UI, user pastes code back, credentials stay in VM.
 
+mod limits;
 mod login;
 mod paths;
 mod prompt;
@@ -12,6 +13,7 @@ mod status;
 use axum::http::StatusCode;
 use base64::Engine;
 
+pub use limits::{limits, parse_rate_limits_line, CodexLimits, CodexWindow};
 pub use login::{logout, start_login, submit_code};
 pub use paths::{CODEX_HOME, CODEX_USER, CREDENTIALS_PATH};
 pub use prompt::run_prompt;

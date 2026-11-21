@@ -124,3 +124,59 @@ pub(super) fn map_claude_state(state: &str) -> &'static str {
         _ => "unlinked",
     }
 }
+
+/// A status read of a CLI account inside the workspace: the CLI's own
+/// answer, or the workspace state when it is not running or not answering.
+pub(super) enum VmProbe<T> {
+    Ready(T),
+    Workspace(botagent::vm::WorkspaceState),
+}
+
+/// Runs `read` only when the user's workspace is running, and gives the
+/// whole check the probe budget (about 5 s): a stopped, starting or wedged
+/// workspace answers with its state instead of holding the request. The
+/// workspace is never started from here.
+pub(super) async fn probe_vm<T, F>(
+    service: &botagent::AgentService,
+    row: &botagent::models::AgentSessionRow,
+    read: F,
+) -> Result<VmProbe<T>, (StatusCode, String)>
+where
+    F: std::future::Future<Output = Result<T, (StatusCode, String)>>,
+{
+    use botagent::vm::{WorkspaceState, INCUS_TIMEOUT_CODE};
+    let timed_out = VmProbe::Workspace(WorkspaceState::Unavailable(INCUS_TIMEOUT_CODE));
+    let checked = botagent::vm::within_budget(botagent::vm::PROBE_DEADLINE, async {
+        match botagent::vm::workspace_state(service, &row.user_id, &row.vm_name, &row.status).await {
+            WorkspaceState::Running => read.await.map(VmProbe::Ready),
+            other => Ok(VmProbe::Workspace(other)),
+        }
+    })
+    .await;
+    match checked {
+        None => Ok(timed_out),
+        Some(Err(error)) if botagent::vm::is_timeout(&error) => Ok(timed_out),
+        Some(result) => result,
+    }
+}
+
+/// The stored account row, marked with the workspace state that kept it
+/// from being checked live.
+pub(super) fn stored_with_workspace(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    provider: &str,
+    workspace: botagent::vm::WorkspaceState,
+) -> Value {
+    let mut account = ai_accounts::list_accounts(&state.conn, user_id)
+        .into_iter()
+        .find(|a| a.get("provider").and_then(Value::as_str) == Some(provider))
+        .unwrap_or_else(|| json!({ "provider": provider, "status": "unlinked" }));
+    if let Some(fields) = account.as_object_mut() {
+        fields.insert("workspace".into(), json!(workspace.as_str()));
+        if let Some(code) = workspace.code() {
+            fields.insert("workspace_code".into(), json!(code));
+        }
+    }
+    account
+}

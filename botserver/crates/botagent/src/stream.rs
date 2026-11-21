@@ -107,8 +107,7 @@ pub(crate) fn wait_for_child(
             Ok(Some(status)) => return (status.code(), cancelled, timed_out),
             Ok(None) => {}
             Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
+                crate::vm::kill_tree(&mut child);
                 return (None, cancelled, timed_out);
             }
         }
@@ -117,14 +116,12 @@ pub(crate) fn wait_for_child(
             .is_some_and(|flag| flag.load(Ordering::SeqCst))
         {
             cancelled = true;
-            let _ = child.kill();
-            let _ = child.wait();
+            crate::vm::kill_tree(&mut child);
             return (None, cancelled, timed_out);
         }
         if deadline.is_some_and(|value| Instant::now() >= value) {
             timed_out = true;
-            let _ = child.kill();
-            let _ = child.wait();
+            crate::vm::kill_tree(&mut child);
             return (None, cancelled, timed_out);
         }
         std::thread::sleep(Duration::from_millis(25));

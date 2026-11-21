@@ -36,10 +36,18 @@ async fn run_incus(
             .arg(arg)
             .map_err(|e| internal(format!("incus arg: {e}")))?;
     }
-    tokio::task::spawn_blocking(move || cmd.execute())
+    let deadline = crate::vm::incus_run::deadline_for(&args);
+    tokio::task::spawn_blocking(move || crate::vm::incus_run::output_within(&cmd, deadline))
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
-        .map_err(|e| internal(format!("incus execution: {e}")))
+        .map_err(|failure| match failure {
+            crate::vm::incus_run::RunFailure::TimedOut { orphaned } => crate::vm::incus_run::timeout_error(
+                args.first().map(String::as_str).unwrap_or("call"),
+                deadline,
+                orphaned,
+            ),
+            crate::vm::incus_run::RunFailure::Spawn(e) => internal(format!("incus execution: {e}")),
+        })
 }
 
 fn load_session_by_id(

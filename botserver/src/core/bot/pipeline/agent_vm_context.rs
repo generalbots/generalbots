@@ -23,12 +23,7 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
     }
     #[cfg(feature = "agent-vm")]
     {
-        let SessionIdentity {
-            session_id,
-            user_id,
-            bot_uuid,
-            ..
-        } = *identity;
+        let user_id = identity.user_id;
         let progress = WorkspaceProgress::new(identity);
         if let Some(progress) = progress.as_ref() {
             progress
@@ -50,9 +45,9 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                 .await;
         }
 
-        let vm =
-            crate::core::bot::agent_vm_hook::ensure_agent_vm_result(session_id, user_id, bot_uuid)
-                .await;
+        // Bounded: a workspace that does not start in time ends this wait
+        // with a message instead of holding the turn for many minutes.
+        let vm = super::workspace_start::ensure_within_budget(identity).await;
         if let Some(progress) = progress.as_ref() {
             match &vm {
                 Ok(_) => {

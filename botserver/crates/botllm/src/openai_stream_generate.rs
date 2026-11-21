@@ -85,6 +85,7 @@ pub(crate) async fn generate(
                     .send()
                     .await
                     .map_err(|e| format!("HTTP error: {}", e))?;
+                crate::rate_limits::record(&full_url, resp.headers());
                 let status = resp.status();
                 let retry_after = resp
                     .headers()

@@ -48,6 +48,8 @@ pub mod web_context;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_sources;
 pub mod workspace_progress;
+#[cfg(feature = "agent-vm")]
+mod workspace_start;
 
 pub use channel_entry::run_pipeline_for_channel;
 pub use exec::{process_message_internal, PipelineFn};

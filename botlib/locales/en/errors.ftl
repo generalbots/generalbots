@@ -328,3 +328,21 @@ error-service-price-required = This service has no price; provide a value.
 # Service-tax value validation (#2094)
 error-invalid-value = The supplied value could not be parsed.
 error-value-required = A value is required for this service.
+
+# Language model errors shown in the chat
+error-model-unreachable = Could not reach the language model. Check the connection and try again.
+error-model-auth = The language model rejected the credentials. Check the key in Settings.
+error-model-rate-limited = The language model is limiting requests right now. Wait a moment and try again.
+error-model-error = The language model returned an error. Try again.
+error-model-timeout = The language model took too long to answer. Try again.
+error-model-context = The conversation is longer than the model can read at once. Start a new conversation or shorten the message.
+
+# Agent workspace start before a subscription turn
+workspace-step-starting-vm = Starting the virtual machine
+workspace-step-starting-vm-detail = The first start can take a few minutes.
+error-workspace-start-timeout = The virtual machine did not start in time. It keeps starting in the background; try again in a few minutes.
+error-workspace-start-failed = The virtual machine could not be started. Try again; if it keeps failing, check the virtual machine in Settings.
+
+# Chat attachments that could not be kept in Drive
+error-attachment-storage-full = The disk of this computer is full: the file was not saved. Free some space and attach it again.
+error-attachment-not-stored = The file could not be saved in Drive.

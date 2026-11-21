@@ -313,6 +313,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     // Merged here (not in the feature-gated drive block) because the backing
     // tables are created at boot regardless of the `drive` feature.
     api_router = api_router.merge(botdrive::external::routes::configure());
+    #[cfg(feature = "llm")]
+    {
+        api_router = api_router.merge(super::llm_limits::router());
+    }
     // Subscription accounts run inside the agent workspace.
     #[cfg(feature = "agent-vm")]
     {

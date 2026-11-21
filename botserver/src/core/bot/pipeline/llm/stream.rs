@@ -42,6 +42,17 @@ async fn stream_llm_response_inner(
         bot_name,
         ..
     } = *identity;
+    // A subscription CLI answers from inside the workspace: start it here,
+    // visibly and within a bound, instead of silently inside the provider.
+    #[cfg(feature = "agent-vm")]
+    if tool_depth == 0 {
+        if let Err(message) =
+            super::super::workspace_start::before_subscription_turn(identity, model_preference).await
+        {
+            sink.send_error(&session_id.to_string(), &message).await?;
+            return Ok(());
+        }
+    }
     let bot_llm_provider = match super::super::enriched_llm::resolve_bot_llm_provider(
         state,
         bot_uuid,

@@ -11,6 +11,7 @@ mod antigravity;
 mod claude;
 mod codex;
 mod handlers;
+mod models;
 mod shared;
 mod use_for;
 
@@ -18,6 +19,7 @@ pub use antigravity::{antigravity_code, AntigravityCodeBody};
 pub use claude::{claude_code, ClaudeCodeBody};
 pub use codex::{codex_code, CodexCodeBody};
 pub use handlers::{connect, disconnect, list, reconnect, status};
+pub use models::{list_models, save_models, EnabledModelsBody};
 pub use use_for::{use_for_chat, use_for_vibe, UseForVibeBody};
 
 use std::sync::Arc;
@@ -33,6 +35,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/ai-accounts/:provider/reconnect", post(reconnect))
         .route("/api/ai-accounts/:provider/status", post(status))
         .route("/api/ai-accounts/:provider/disconnect", post(disconnect))
+        .route(
+            "/api/ai-accounts/:provider/models",
+            get(list_models).put(save_models),
+        )
         .route(
             "/api/ai-accounts/:provider/use-for-vibe",
             post(use_for_vibe),
