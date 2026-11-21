@@ -27,6 +27,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
                 .put(super::appearance::handle_put_appearance),
         )
         .route(
+            "/api/settings/chat-profile",
+            get(super::chat_profile::get).put(super::chat_profile::put),
+        )
+        .route(
             "/api/settings/custom-instructions",
             get(super::custom_instructions::handle_get)
                 .put(super::custom_instructions::handle_put),

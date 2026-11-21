@@ -169,6 +169,7 @@ pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
         .route("/api/agent/sessions/mode", post(api::set_agent_mode))
         .route("/api/agent/sessions/current", get(api::current_session))
         // Per-user VM (#1580).
+        .route("/api/agent/vm/resources", get(api::user_vm_resources))
         .route("/api/agent/vm/status", get(api::user_vm_status))
         .route("/api/agent/vm/exec", post(api::vm_exec))
         .route("/api/agent/vm/file", get(api::vm_file))

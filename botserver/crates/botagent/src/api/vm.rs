@@ -32,6 +32,17 @@ pub async fn user_vm_status(
     }
 }
 
+/// Live counters for the signed-in user's workspace.
+pub async fn user_vm_resources(
+    State(state): State<Arc<AgentService>>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (_, user, _) = caller_uuid(&headers)?;
+    let row = vm::get_user_vm(&state, &user)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "Workspace unavailable".into()))?;
+    Ok(Json(vm::resource_summary(&state, &row.vm_name).await?))
+}
+
 /// `POST /api/agent/conversations/switch` — switch active conversation,
 /// killing previous jobs and ensuring the new folder exists.
 pub async fn switch_conversation(

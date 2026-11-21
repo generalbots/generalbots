@@ -15,6 +15,8 @@ mod identity;
 mod incus;
 mod incus_errors;
 mod launch;
+mod metrics;
+pub(crate) use metrics::resource_summary;
 mod lifecycle;
 mod profile;
 mod retry;

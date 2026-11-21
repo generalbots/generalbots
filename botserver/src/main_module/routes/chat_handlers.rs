@@ -273,12 +273,15 @@ pub async fn handle_chat_models(
     };
 
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
-    let mut default_model = cfg
-        .get_config(&bot_uuid, "llm-model", Some(""))
-        .unwrap_or_default();
-    if default_model.is_empty() {
-        default_model = std::env::var("LLM_MODEL").unwrap_or_default();
-    }
+    // Same order as the turn (`enriched_llm.rs`): the environment wins over
+    // the bot's stored model, so the menu names the model that answers.
+    let default_model = std::env::var("LLM_MODEL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| {
+            cfg.get_config(&bot_uuid, "llm-model", Some(""))
+                .unwrap_or_default()
+        });
 
     // The endpoint the turn will use: the environment overrides the bot's
     // configuration, as it does when the provider is built.

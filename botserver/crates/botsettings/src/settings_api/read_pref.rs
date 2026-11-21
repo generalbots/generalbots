@@ -22,8 +22,17 @@ pub fn write_pref(
     key: &str,
     value: &serde_json::Value,
 ) {
+    let _ = try_write_pref(conn, user_id, key, value);
+}
+
+pub fn try_write_pref(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+    key: &str,
+    value: &serde_json::Value,
+) -> diesel::QueryResult<usize> {
     let json = value.to_string();
-    let _ = diesel::sql_query(
+    diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at)
          VALUES ($1, $2, $3, $4::jsonb, NOW(), NOW())
          ON CONFLICT (user_id, preference_key)
@@ -33,5 +42,5 @@ pub fn write_pref(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(key)
     .bind::<diesel::sql_types::Text, _>(&json)
-    .execute(conn);
+    .execute(conn)
 }

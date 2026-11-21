@@ -495,7 +495,12 @@ pub async fn process_message_internal(
     // #1549/#1637: the tier now selects a real model in
     // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
     // secondary shaping hint, not the routing mechanism.
-    super::turn_context::apply_model_preference(&mut messages, &model_preference);
+    let response_style = if parsed.get("fast").and_then(serde_json::Value::as_bool) == Some(true) {
+        "fast"
+    } else {
+        &model_preference
+    };
+    super::turn_context::apply_model_preference(&mut messages, response_style);
     super::turn_context::apply_session_context(&mut messages, &session_context);
 
     let routing = super::turn_context::TurnRouting {

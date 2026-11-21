@@ -5,6 +5,8 @@
 use axum::{extract::State, http::HeaderMap, http::StatusCode, Json};
 use botcore::shared::state::AppState;
 use std::sync::Arc;
+use diesel::Connection;
+use botsettings::settings_api::{read_pref, try_write_pref};
 
 /// Maximum length (in characters) for each instruction field.
 const MAX_FIELD_LEN: usize = 1500;
@@ -15,7 +17,7 @@ const KEY_RESPONSE: &str = "custom_instructions_response";
 const KEY_ENABLED: &str = "custom_instructions_enabled";
 
 /// Resolves the authenticated user UUID from the Authorization header.
-fn authed_user(headers: &HeaderMap) -> Option<uuid::Uuid> {
+pub(super) fn authed_user(headers: &HeaderMap) -> Option<uuid::Uuid> {
     if let Some(uid_str) = botcore::shared::tenant::user_id_from_claims(headers) {
         return Some(super::anonymous_auth::resolve_chat_user_uuid(&uid_str));
     }
@@ -69,6 +71,9 @@ pub async fn handle_get(
             "about": about,
             "response": response,
             "enabled": enabled,
+            "name": read_pref(&mut conn, user_id, "persona_name"),
+            "icon": read_pref(&mut conn, user_id, "persona_icon"),
+            "photo": read_pref(&mut conn, user_id, "persona_photo"),
         })),
     )
 }
@@ -78,6 +83,9 @@ pub struct InstructionsBody {
     about: Option<String>,
     response: Option<String>,
     enabled: Option<bool>,
+    name: Option<String>,
+    icon: Option<String>,
+    photo: Option<String>,
 }
 
 /// `PUT /api/settings/custom-instructions`
@@ -102,36 +110,46 @@ pub async fn handle_put(
             );
         }
     };
-    if let Some(raw) = &body.about {
-        let clean = sanitise(raw);
-        botsettings::settings_api::write_pref(
-            &mut conn,
-            user_id,
-            KEY_ABOUT,
-            &serde_json::json!(clean),
-        );
+    if body.name.as_ref().is_some_and(|s| s.chars().count() > 100)
+        || body.icon.as_deref().is_some_and(|s| !matches!(s, "" | "robot" | "spark" | "building" | "book" | "shield" | "feather" | "leaf" | "compass"))
+        || body.photo.as_deref().is_some_and(|s| !valid_photo(s))
+    {
+        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"invalid persona"})));
     }
-    if let Some(raw) = &body.response {
-        let clean = sanitise(raw);
-        botsettings::settings_api::write_pref(
-            &mut conn,
-            user_id,
-            KEY_RESPONSE,
-            &serde_json::json!(clean),
-        );
-    }
-    if let Some(flag) = body.enabled {
-        botsettings::settings_api::write_pref(
-            &mut conn,
-            user_id,
-            KEY_ENABLED,
-            &serde_json::json!(flag),
-        );
+    let result = conn.transaction::<_, diesel::result::Error, _>(|db| {
+        for (key, value) in [
+            (KEY_ABOUT, body.about.map(|s| serde_json::json!(sanitise(&s)))),
+            (KEY_RESPONSE, body.response.map(|s| serde_json::json!(sanitise(&s)))),
+            (KEY_ENABLED, body.enabled.map(serde_json::Value::Bool)),
+            ("persona_name", body.name.map(|s| serde_json::json!(sanitise(&s)))),
+            ("persona_icon", body.icon.map(serde_json::Value::String)),
+            ("persona_photo", body.photo.map(serde_json::Value::String)),
+        ] {
+            if let Some(value) = value { try_write_pref(db, user_id, key, &value)?; }
+        }
+        Ok(())
+    });
+    if result.is_err() {
+        return (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({"error":"could not save preferences"})));
     }
     (
         StatusCode::OK,
         Json(serde_json::json!({"ok": true})),
     )
+}
+
+fn valid_photo(value: &str) -> bool {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    if value.is_empty() { return true; }
+    if value.len() > 256 * 1024 { return false; }
+    let Some((mime, encoded)) = value.split_once(",") else { return false; };
+    let Ok(bytes) = STANDARD.decode(encoded) else { return false; };
+    match mime {
+        "data:image/png;base64" => bytes.starts_with(b"\x89PNG\r\n\x1a\n"),
+        "data:image/jpeg;base64" => bytes.starts_with(&[0xff, 0xd8, 0xff]),
+        "data:image/webp;base64" => bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP"),
+        _ => false,
+    }
 }
 
 /// Reads the user's custom instructions from `user_preferences` and returns
