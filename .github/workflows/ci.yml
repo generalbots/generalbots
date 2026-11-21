@@ -1636,9 +1636,13 @@ jobs:
       - name: Run ${{ matrix.target }} for 90 s
         run: |
           set -euo pipefail
+          # taiki-e/install-action ships a musl-linked cargo-fuzz, whose
+          # default target is x86_64-unknown-linux-musl. ASan is incompatible
+          # with statically linked libc there and musl std is not installed by
+          # dtolnay/rust-toolchain. Pin the host GNU target explicitly.
           # `--rss_limit_mb` turns an allocation blow-up into a finding instead
           # of an OOM kill; `-max_total_time` keeps the job inside its budget.
-          cargo fuzz run "${{ matrix.target }}" -- \
+          cargo fuzz run --target x86_64-unknown-linux-gnu "${{ matrix.target }}" -- \
             -max_total_time=90 -rss_limit_mb=4096 -print_final_stats=1
       - name: Upload any crash artifact
         if: always()
@@ -1663,16 +1667,36 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Collect the last 20 runs
+      - name: Collect the last 20 completed main-branch runs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/flakes
-          gh run list --workflow ci.yml --limit 20 --json databaseId \
-            --jq '.[].databaseId' | while read -r id; do
-            gh run view "$id" --log > "/tmp/flakes/$id.log" || echo "::warning::no log for $id"
+          tmpdir=$(mktemp -d)
+          # `gh run view --log` downloads every job's log and GitHub refuses the
+          # request on 69-job nightly runs ("too many API requests"). Read the
+          # job/step conclusions from the Actions API instead: one request per
+          # run, no log archives. Exclude cancelled runs: cancelling marks
+          # in-flight steps as failures and manufactures fake flakes. This run
+          # is still in progress so it is filtered out automatically.
+          gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&per_page=100" \
+            --jq '[.workflow_runs[]
+                   | select(.status == "completed"
+                            and (.conclusion == "success" or .conclusion == "failure"))
+                   | .id][0:20] | .[]' | while read -r id; do
+            gh api "repos/$REPO/actions/runs/$id/jobs?per_page=100" \
+              --jq '{id: .jobs[0].run_id,
+                     jobs: [.jobs[] | {name,
+                       steps: [.steps[] | {name, conclusion}]}]}' \
+              > "$tmpdir/$id.json"
           done
-          find /tmp/flakes -maxdepth 1 -type f -name '*.log' | wc -l
-      - name: Detect flaky tests and enforce the policy
-        run: python3 scripts/flake_report.py --logs /tmp/flakes --window 20
+          count=$(find "$tmpdir" -type f -name '*.json' | wc -l)
+          echo "collected $count completed main-branch runs"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no completed main-branch runs to analyze"
+            exit 1
+          fi
+          jq -s '{workflow_runs: .}' "$tmpdir"/*.json > /tmp/flakes_runs.json
+      - name: Detect flaky steps and enforce the policy
+        run: python3 scripts/flake_report.py --runs /tmp/flakes_runs.json --window 20
