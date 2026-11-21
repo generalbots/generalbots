@@ -192,7 +192,7 @@
         A.wsSessionId = A.currentSessionId || A.sessionId || "";
         return (
             host + "/ws" +
-            "?token=" + encodeURIComponent(token) +
+            "?access_token=" + encodeURIComponent(token) +
             "&session_id=" + encodeURIComponent(A.currentSessionId || A.sessionId || "") +
             "&user_id=" + encodeURIComponent(A.userId || "") +
             "&bot_name=" + encodeURIComponent(A.botName)
@@ -200,6 +200,7 @@
     }
 
     A.connectWs = function () {
+        if (!A._authReady) { return; }
         if (A.ws && A.ws.readyState <= 1) { return; }
         try { A.ws = new WebSocket(wsUrl()); }
         catch (e) { scheduleReconnect(); return; }
@@ -317,7 +318,18 @@
         }
 
         if (data.type === "connected") {
-            if (data.user_id) { A.userId = data.user_id; }
+            if (data.user_id) {
+                if (A._authReady && A.userId && data.user_id !== A.userId) {
+                    console.warn("[assistant] connected frame user_id mismatch: keeping authenticated id");
+                    if (!A._wsIdMismatchRetried) {
+                        A._wsIdMismatchRetried = true;
+                        A.reconnectWs();
+                    }
+                } else {
+                    A.userId = data.user_id;
+                    A._wsIdMismatchRetried = false;
+                }
+            }
             adoptSession(data.session_id);
             return;
         }
