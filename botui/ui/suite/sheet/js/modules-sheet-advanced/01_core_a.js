@@ -204,9 +204,15 @@
 
   function cellFromEvent(e) {
     if (!grid || !grid.bodyInner) return null;
+    // #2419 — touch events carry coordinates on touches/changedTouches, not
+    // directly on the event. Normalise so the same hit-test serves mouse,
+    // pointer and touch drags.
+    let p = e;
+    if (e.changedTouches && e.changedTouches.length) p = e.changedTouches[0];
+    else if (e.touches && e.touches.length) p = e.touches[0];
     const rect = grid.bodyInner.getBoundingClientRect();
-    const xAbs = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const xAbs = p.clientX - rect.left;
+    const y = p.clientY - rect.top;
     // Column hit-test via binary search over the virtualized grid (#786):
     // colXOf(col) is a monotonically non-decreasing prefix.
     let lo = 0;
@@ -252,6 +258,15 @@
       fillHandle.style.cssText = "position:absolute;width:9px;height:9px;background:#3b82f6;border:1px solid #fff;cursor:crosshair;z-index:14;display:none;";
       grid.bodyInner.appendChild(fillHandle);
       fillHandle.addEventListener("mousedown", onFillStart);
+      // #2419 — touch contacts fire pointerdown but not mousedown, so a
+      // touch-only user could never start a fill drag (mousedown was the
+      // only listener). Accept pointer events for non-mouse pointers; the
+      // mouse path stays on mousedown to avoid double-starting a drag.
+      fillHandle.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse") return;
+        onFillStart(e);
+      });
+      fillHandle.addEventListener("touchstart", onFillStart);
     }
   }
 
@@ -305,11 +320,18 @@
   }
 
   function onFillStart(e) {
+    if (fillDragging) return;
     e.preventDefault();
     e.stopPropagation();
     fillDragging = true;
     document.addEventListener("mousemove", onFillDrag, true);
     document.addEventListener("mouseup", onFillEnd, true);
+    // #2419 — pointer events carry clientX/clientY just like mouse events;
+    // listen for touch/pen drags too (onFillDrag/onFillEnd use cellFromEvent).
+    document.addEventListener("pointermove", onFillDrag, true);
+    document.addEventListener("pointerup", onFillEnd, true);
+    document.addEventListener("touchmove", onFillDrag, true);
+    document.addEventListener("touchend", onFillEnd, true);
   }
 
   function onFillDrag(e) {
@@ -333,9 +355,16 @@
   }
 
   function onFillEnd(e) {
+    // Both mouseup and pointerup can fire for one mouse gesture; only the
+    // first one may apply the fill.
+    if (!fillDragging) return;
     fillDragging = false;
     document.removeEventListener("mousemove", onFillDrag, true);
     document.removeEventListener("mouseup", onFillEnd, true);
+    document.removeEventListener("pointermove", onFillDrag, true);
+    document.removeEventListener("pointerup", onFillEnd, true);
+    document.removeEventListener("touchmove", onFillDrag, true);
+    document.removeEventListener("touchend", onFillEnd, true);
     const preview = document.getElementById("ss-fill-preview");
     if (preview) preview.style.display = "none";
     const pt = cellFromEvent(e);
