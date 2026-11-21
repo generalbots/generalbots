@@ -17,9 +17,11 @@ name = "botapp"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-# Core from botlib
-botlib = { workspace = true, features = ["http-client"] }
-botvideo = { workspace = true }
+# Core helpers from botlib. The `database` default feature pulls diesel +
+# pq-sys, which links the host libpq: that is an x86_64 ELF on the Android/iOS
+# cross-link and makes lld reject `--fix-cortex-a53-843419`. botapp is a UI
+# shell and never uses a DB pool, so keep the native database stack out.
+botlib = { workspace = true, default-features = false, features = ["http-client", "i18n"] }
 
 
 # ─── TAURI 2.12 (Desktop/Mobile) ───
@@ -47,6 +49,12 @@ tar = { workspace = true }
 zstd = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
+
+# Desktop-only: botvideo's SafeCommand is used by the system tray. It pulls
+# diesel + pq-sys, so exclude it from mobile cross-links (Android/iOS have no
+# host libpq). The desktop module itself is gated off on `feature = "mobile"`.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+botvideo = { workspace = true }
 
 # Unix process control
 [target.'cfg(unix)'.dependencies]
