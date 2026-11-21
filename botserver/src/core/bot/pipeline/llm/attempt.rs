@@ -44,6 +44,8 @@ pub(super) struct Attempt<'a> {
     pub style_css: &'a str,
     pub budget: &'a mut RunBudget,
     pub attempt: usize,
+    pub engine_type: Option<&'a str>,
+    pub engine_provider: Option<&'a str>,
 }
 
 /// Aborts a spawned task when dropped, ensuring the LLM HTTP request and the
@@ -75,6 +77,8 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         style_css,
         budget,
         attempt,
+        engine_type,
+        engine_provider,
     } = request;
 
     let mut full_response = String::new();
@@ -151,6 +155,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &kept, 2);
                 let _ = sm.record_message_model(session_id, model);
+                if let (Some(et), Some(ep)) = (engine_type, engine_provider) {
+                    let _ = sm.record_message_engine(session_id, et, ep);
+                }
             }
             let cancelled = botlib::models::BotResponse::new(
                 bot_uuid_s,

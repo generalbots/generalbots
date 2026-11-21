@@ -249,9 +249,20 @@
         });
     }
 
-    /* /api/user/usage/summary: { days, models:{name:{tokens,messages,cost}},
-       per_day, totals:{tokens,messages,cost}, pricing_available }. Dollars
-       on top when the server priced the model, tokens below. */
+    /* /api/user/usage/summary: { days, models:{…}, per_day, totals:{…},
+       pricing_available, engines:[{engine,tokens,messages,cost,providers:[…]}] }.
+       When engines is present and non-empty, group by engine type then provider. */
+    var ENGINE_NAMES = {
+        "pt-BR": { subscription: "Agente por assinatura", api_key: "Chave própria", local: "Este computador", free: "Gratuito", unknown: "Sem registro" },
+        en: { subscription: "Subscription agent", api_key: "Own key", local: "This computer", free: "Free", unknown: "Not recorded" }
+    };
+    function engineName(key) { var m = (A.locale || "").startsWith("pt") ? ENGINE_NAMES["pt-BR"] : ENGINE_NAMES.en; return m[key] || key; }
+    function providerName(p, engine) {
+        if (p.label) { return p.label; }
+        if (engine === "local") { return tr("Este computador", "This computer"); }
+        return p.provider || tr("Desconhecido", "Unknown");
+    }
+
     function renderReport(report, data) {
         var fmt = new Intl.NumberFormat(A.locale || undefined);
         var money = new Intl.NumberFormat(A.locale || undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
@@ -263,18 +274,44 @@
                     : fmt.format(item.messages || 0) + tr(" mensagens", " messages")));
             return meta;
         }
-        function line(name, item, total) {
-            var row = node("div", "gb-quota-row" + (total ? " gb-quota-total" : ""));
+        function line(name, item, cls) {
+            var row = node("div", "gb-quota-row" + (cls ? " " + cls : ""));
             row.append(node("span", "gb-quota-gutter"), node("span", "gb-quota-name", name), metrics(item));
             return row;
         }
-        var entries = Object.entries(data.models || {}).sort(function (a, b) { return (b[1].tokens || 0) - (a[1].tokens || 0); });
-        var rows = entries.map(function (entry) {
-            var name = entry[0] === "unknown" ? tr("Sem modelo registrado", "No model recorded") : A.shortModelName(entry[0]);
-            return line(name, entry[1]);
-        });
+
+        var engines = Array.isArray(data.engines) && data.engines.length ? data.engines : null;
+        var rows = [];
+
+        if (engines) {
+            engines.forEach(function (eng) {
+                var heading = node("div", "gb-quota-group-head");
+                heading.append(node("span", "gb-quota-gutter"), node("strong", "gb-quota-group-title", engineName(eng.engine)), metrics(eng));
+                rows.push(heading);
+                (eng.providers || []).forEach(function (prov) {
+                    var singleModel = (prov.models || []).length === 1;
+                    var provLabel = providerName(prov, eng.engine);
+                    if (singleModel) {
+                        provLabel += " · " + A.shortModelName(prov.models[0].model);
+                    }
+                    rows.push(line(provLabel, prov, "gb-quota-provider"));
+                    if (!singleModel) {
+                        (prov.models || []).forEach(function (mdl) {
+                            rows.push(line(A.shortModelName(mdl.model), mdl, "gb-quota-model-row"));
+                        });
+                    }
+                });
+            });
+        } else {
+            var entries = Object.entries(data.models || {}).sort(function (a, b) { return (b[1].tokens || 0) - (a[1].tokens || 0); });
+            entries.forEach(function (entry) {
+                var name = entry[0] === "unknown" ? tr("Sem modelo registrado", "No model recorded") : A.shortModelName(entry[0]);
+                rows.push(line(name, entry[1]));
+            });
+        }
+
         if (!rows.length) { rows.push(node("p", "gb-quota-note", tr("Nenhum uso nos últimos 30 dias.", "No usage in the last 30 days."))); }
-        rows.push(line(tr("Total", "Total"), data.totals || {}, true));
+        rows.push(line(tr("Total", "Total"), data.totals || {}, "gb-quota-total"));
         if (!data.pricing_available) {
             rows.push(node("p", "gb-quota-note", tr("Sem preços publicados para estes modelos: o uso aparece em tokens.", "No published prices for these models: usage shows in tokens.")));
         }

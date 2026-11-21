@@ -123,6 +123,11 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
             .record_message_model(session_id, model)
             .map_err(|e| e.to_string())
     }
+    fn record_message_engine(&mut self, session_id: uuid::Uuid, engine: &str, provider: &str) -> Result<(), String> {
+        self.0
+            .record_message_engine(session_id, engine, provider)
+            .map_err(|e| e.to_string())
+    }
     fn get_conversation_history(
         &mut self,
         session_id: uuid::Uuid,

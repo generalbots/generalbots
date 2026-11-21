@@ -191,6 +191,17 @@
 .gb-quota-seen { font: 600 10.5px var(--id-font-mono, monospace); color: var(--id-muted); }
 .gb-quota-total { background: var(--id-paper); }
 .gb-quota-total .gb-quota-name { font-weight: 600; }
+.gb-quota-group-head {
+    display: flex; align-items: stretch; gap: 0; min-height: 36px;
+    border-bottom: 1px solid var(--id-line); background: var(--id-paper);
+    font-size: var(--id-text-sm);
+}
+.gb-quota-group-head .gb-quota-gutter { border-right: 1px solid var(--id-line); }
+.gb-quota-group-title { flex: 1; min-width: 0; align-self: center; padding: 6px 10px 6px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--id-ink); font-weight: 600; font-size: var(--id-text-sm); }
+.gb-quota-provider .gb-quota-name { padding-left: 24px; }
+.gb-quota-model-row { font-size: 12px; min-height: 36px; }
+.gb-quota-model-row .gb-quota-name { padding-left: 36px; color: var(--id-muted); font-size: 12px; }
+.gb-quota-model-row .gb-quota-metrics { font-size: 11px; }
 .gb-quota-foot {
     flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px;
     border: 0; border-top: 1px solid var(--id-line); background: var(--id-surface-solid);

@@ -49,7 +49,7 @@ fn api_error(status: StatusCode, code: &str) -> (StatusCode, Json<Value>) {
 /// edition does not compile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ModelMode {
+pub(crate) enum ModelMode {
     Local,
     OwnKey,
     Free,
@@ -66,7 +66,7 @@ impl ModelMode {
 }
 
 /// Infer the current mode from the stored endpoint URL.
-fn infer_mode(url: &str, model: &str) -> ModelMode {
+pub(crate) fn infer_mode(url: &str, model: &str) -> ModelMode {
     if url.trim().is_empty() && model.trim().is_empty() {
         return ModelMode::Free;
     }
@@ -87,7 +87,7 @@ fn is_loopback(url: &str) -> bool {
 /// The keyless free-tier endpoint shipped in the wizard defaults.
 const FREE_ENDPOINT: &str = "https://api.kilo.ai/api/gateway/chat/completions";
 const FREE_MODEL: &str = "dots-studio/dots-3-note-preview:free";
-const FREE_PROVIDER: &str = "kilo";
+pub(crate) const FREE_PROVIDER: &str = "kilo";
 
 fn is_free_endpoint(url: &str) -> bool {
     url.trim()

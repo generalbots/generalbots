@@ -79,6 +79,21 @@ async fn stream_llm_response_inner(
         return Ok(());
     }
 
+    // Classify the engine type once; recorded alongside the model on each
+    // assistant row for per-engine usage grouping.  Effective URL/model follow
+    // the same resolution as resolve_bot_llm_provider (Vault, then LLM_URL /
+    // LLM_MODEL env overrides).
+    let (engine_type, engine_provider) = {
+        let cfg = botcore::config::ConfigManager::new(state.conn.clone());
+        let bp = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
+        let mut eu = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
+        let mut em = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+        if let Ok(v) = std::env::var("LLM_URL") { if !v.is_empty() { eu = v; } }
+        if let Ok(v) = std::env::var("LLM_MODEL") { if !v.is_empty() { em = v; } }
+        let cls = botsettings::usage_engine::classify_preference(model_preference, &bp, &eu, &em);
+        (cls.as_ref().map(|(e, _)| *e), cls.map(|(_, p)| p))
+    };
+
     let env_key = std::env::var("LLM_KEY").unwrap_or_default();
     let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
     match bot_llm_provider.or_else(|| {
@@ -141,6 +156,8 @@ async fn stream_llm_response_inner(
                     style_css: &style_css,
                     budget: &mut budget,
                     attempt,
+                    engine_type,
+                    engine_provider: engine_provider.as_deref(),
                 })
                 .await;
                 let (full_response, mut content_buffer, reasoning_accumulated) = match outcome {
@@ -188,6 +205,9 @@ async fn stream_llm_response_inner(
                         // handle_api_call (marker, composed answer, ...); do
                         // not store the raw __api_call__ envelope here.
                         let _ = sm.record_message_model(session_id, llm_model);
+                        if let (Some(et), Some(ref ep)) = (engine_type, &engine_provider) {
+                            let _ = sm.record_message_engine(session_id, et, ep);
+                        }
                     }
                     break;
                 }
@@ -256,6 +276,9 @@ async fn stream_llm_response_inner(
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
                         let _ = sm.record_message_model(session_id, llm_model);
+                        if let (Some(et), Some(ref ep)) = (engine_type, &engine_provider) {
+                            let _ = sm.record_message_engine(session_id, et, ep);
+                        }
                     }
                     return Ok(());
                 }
@@ -382,6 +405,9 @@ async fn stream_llm_response_inner(
                     let mut sm = state.session_manager.lock().await;
                     let _ = sm.save_message(session_id, user_id, 2, &store_content, 2);
                     let _ = sm.record_message_model(session_id, llm_model);
+                    if let (Some(et), Some(ref ep)) = (engine_type, &engine_provider) {
+                        let _ = sm.record_message_engine(session_id, et, ep);
+                    }
                 }
                 #[cfg(feature = "memory-os")]
                 crate::core::bot::memory_hook::extract_from_turn(

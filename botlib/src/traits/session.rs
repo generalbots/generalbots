@@ -88,6 +88,17 @@ pub trait SessionManagerService: Send + Debug {
         Ok(())
     }
 
+    /// Records the engine type and provider on the latest assistant message
+    /// for per-engine usage grouping.
+    fn record_message_engine(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _engine: &str,
+        _provider: &str,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+
     fn get_conversation_history(
         &mut self,
         session_id: uuid::Uuid,
