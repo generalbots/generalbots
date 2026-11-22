@@ -126,7 +126,7 @@ window.GBAssistantLocales["en"] = {
     "assistant.agent-label":    "Agent",
     "assistant.agent-on-tip":   "Agent on: the assistant can run commands on this computer",
     "assistant.agent-off-tip":  "Agent off: the assistant answers with text only",
-    "assistant.agent-unavailable": "Agent mode is not yet set up on this computer. Contact support to enable it.",
+    "assistant.agent-unavailable": "Agent mode is not available on this computer. See what is needed in Settings › Model › Subscription agent.",
     "assistant.cancel":        "Cancel",
     "assistant.confirm-continue": "Continue",
     "drive.back":              "Back",
@@ -210,5 +210,7 @@ window.GBAssistantLocales["en"] = {
     "assistant.you": "You",
     "drive.used": "used",
     "drive.folders": "Folders",
-    "drive.usage-hint": "Space taken by your files in Drive"
+    "drive.usage-hint": "Space taken by your files in Drive",
+    "assistant.agent-locked-tip": "The selected agent runs in the Virtual Machine; choose another model to turn it off",
+    "assistant.agent-backend-off": "Subscription agents unavailable on this computer"
 };

@@ -126,7 +126,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.agent-label":    "Agente",
     "assistant.agent-on-tip":   "Agente ativado: o assistente pode executar comandos no computador",
     "assistant.agent-off-tip":  "Agente desativado: o assistente responde apenas com texto",
-    "assistant.agent-unavailable": "O modo agente ainda não está configurado neste computador. Entre em contato com o suporte para ativá-lo.",
+    "assistant.agent-unavailable": "O modo agente não está disponível neste computador. Veja o que é necessário em Configurações › Modelo › Agente por assinatura.",
     "assistant.cancel":        "Cancelar",
     "assistant.confirm-continue": "Continuar",
     "drive.back":              "Voltar",
@@ -210,5 +210,7 @@ window.GBAssistantLocales["pt-BR"] = {
     "assistant.you": "Você",
     "drive.used": "usados",
     "drive.folders": "Pastas",
-    "drive.usage-hint": "Espaço ocupado pelos seus arquivos no Drive"
+    "drive.usage-hint": "Espaço ocupado pelos seus arquivos no Drive",
+    "assistant.agent-locked-tip": "O agente selecionado roda na Máquina Virtual; escolha outro modelo para desligar",
+    "assistant.agent-backend-off": "Agentes por assinatura indisponíveis neste computador"
 };
