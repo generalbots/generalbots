@@ -169,6 +169,9 @@ pub(super) const KEYS: &[&str] = &[
     // #2500 — sandbox probe
     "os-sandbox-probe",
     "os-sandbox-result",
+    // #2502 — screen capture guard
+    "os-capture-active",
+    "os-capture-share",
     "action-save",
     "action-cancel",
     "action-delete",

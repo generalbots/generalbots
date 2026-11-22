@@ -168,3 +168,24 @@ a native helper:
 | Fn + Media keys | standard MPRIS; no suite shortcut |
 
 No shortcut opens a terminal or bypasses the lock screen.
+
+### Session bus surface (#2502)
+
+The kiosk's session bus is not a general power or networking API. Polkit
+(`/etc/polkit-1/rules.d/50-general-bots-kiosk.rules`) denies login1 power and
+NetworkManager system-modify actions to the `gbdesk` user; the only power path
+is the audited, admin+loopback `/api/system/power` endpoint and its fixed
+root helper. The allow-list of session-bus interfaces the shell may use is the
+deny-list's complement in that rule file plus the portal interfaces used by
+the file picker.
+
+Screencast/screenshot capture requires an explicit "Share screen" gesture:
+`screen-capture-guard.js` wraps `getDisplayMedia` and rejects with
+`NotAllowedError` unless the user has just activated the action; the tray
+shows a red capture indicator for the duration of the stream.
+
+Known limitation: the WebView shares the kiosk user's session bus, so a page
+that already has code execution in the shell is inside the same trust domain.
+The appliance does not claim otherwise; the WebKit web process is sandboxed
+(#2500) and the session-bus restrictions above are defense in depth, not a
+per-page sandbox.

@@ -16,3 +16,5 @@ power-menu-confirm-shutdown = ¿Apagar este equipo?
 power-menu-done = Solicitud aceptada. El equipo se está apagando.
 power-menu-failed = La acción de energía falló.
 power-menu-hold = Mantén para confirmar
+os-capture-active = Screen capture in progress
+os-capture-share = Share screen
