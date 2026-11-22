@@ -43,6 +43,30 @@ fn unscanned_policy() -> upload_policy::HostileFilePolicy {
     }
 }
 
+/// Attacker-controlled markers that must never echo back in a 400 body: part
+/// names, URLs, filesystem paths, entity text and the gate's Rust debug types.
+/// The shared `rejection_json` only interpolates fixed reason/kind strings, so
+/// none of these may appear in the serialized response.
+fn leaks_internals(body: &serde_json::Value, secrets: &[&str]) -> bool {
+    let rendered = body.to_string();
+    rendered.contains("ArchiveUnsafe")
+        || rendered.contains("RelationshipTargetUnsafe")
+        || rendered.contains("UploadError")
+        || secrets.iter().any(|secret| rendered.contains(secret))
+}
+
+/// The sanitized 400 asserted by `is_sanitized_rejection`, plus an explicit
+/// check that the payload's own internals were not leaked to the client.
+fn is_sanitized_rejection_without_leaking(
+    result: Result<(), (StatusCode, Json<serde_json::Value>)>,
+    secrets: &[&str],
+) -> bool {
+    let leaked = match &result {
+        Err((_, Json(body))) => leaks_internals(body, secrets),
+        Ok(()) => false,
+    };
+    is_sanitized_rejection(result, "error-file-archive-unsafe") && !leaked
+}
 
 #[test]
 fn a_compression_ratio_bomb_is_refused_before_conversion() {
@@ -213,4 +237,108 @@ fn a_clean_document_package_reaches_the_converter() {
         &upload_policy::HostileFilePolicy::default(),
     );
     assert!(result.is_ok());
+}
+
+#[test]
+fn an_extreme_compression_ratio_bomb_is_refused_without_leaking_internals() {
+    // 1 MiB of one repeated byte deflates to a few KiB: the uncompressed cap
+    // still passes, but the ratio is an order of magnitude over the ceiling.
+    let bytes = zip_with(&[("word/document.xml", vec![b'A'; 1024 * 1024])]);
+    let result = audit_hostile_upload(
+        &bytes,
+        "ratio-bomb.docx",
+        &axum::http::HeaderMap::new(),
+        "test",
+        &unscanned_policy(),
+    );
+    assert!(
+        is_sanitized_rejection_without_leaking(
+            result,
+            &["word/document.xml", "ratio-bomb.docx", "AAAAAAAA"]
+        ),
+        "the ratio gate must return a localized 400 with no archive internals"
+    );
+}
+
+#[test]
+fn an_oversized_xml_entity_expansion_is_refused_without_leaking_internals() {
+    // Three oversized entity payloads: a billion-laughs DOCTYPE and an XXE
+    // file read (both caught by the archive pass), plus a body of custom
+    // entity references past the streaming cap with no DOCTYPE at all (caught
+    // only by the second pass at this boundary).
+    let cases: &[(&str, Vec<u8>)] = &[
+        (
+            "billion-laughs",
+            b"<!DOCTYPE lolz [<!ENTITY lol \"lololololol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;\"><!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;\">]><d>&lol3;</d>".to_vec(),
+        ),
+        (
+            "xxe-file-read",
+            b"<!DOCTYPE d [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><d>&xxe;</d>".to_vec(),
+        ),
+        (
+            "oversized-entity-refs",
+            format!("<d>{}</d>", "&x;".repeat(8192)).into_bytes(),
+        ),
+    ];
+    for (label, xml) in cases {
+        let bytes = zip_with(&[("word/document.xml", xml.clone())]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "entity-bomb.docx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &unscanned_policy(),
+        );
+        assert!(
+            is_sanitized_rejection_without_leaking(
+                result,
+                &["word/document.xml", "/etc/passwd", "lololololol", "&x;"]
+            ),
+            "{label}: oversized entity expansion must be a sanitized 400"
+        );
+    }
+}
+
+#[test]
+fn an_ssrf_relationship_target_is_refused_without_leaking_internals() {
+    // External relationships are the exfiltration surface: loopback admin
+    // endpoints, cloud metadata, file reads, protocol-relative URLs and an
+    // XML-entity-obfuscated slash must all fail closed without echoing the
+    // target back to the client.
+    let cases: &[(&str, &str)] = &[
+        ("loopback", r"http://127.0.0.1:8080/admin"),
+        (
+            "cloud-metadata",
+            r"http://169.254.169.254/latest/meta-data/",
+        ),
+        ("file-scheme", r"file:///etc/passwd"),
+        ("protocol-relative", r"//169.254.169.254/latest/meta-data/"),
+        ("entity-obfuscated", r"http:/&#47;127.0.0.1:8080/admin"),
+    ];
+    for (label, target) in cases {
+        let rels = format!(
+            "<Relationships><Relationship Target=\"{target}\" TargetMode=\"External\"/></Relationships>"
+        );
+        let bytes = zip_with(&[("word/_rels/document.xml.rels", rels.into_bytes())]);
+        let result = audit_hostile_upload(
+            &bytes,
+            "ssrf.docx",
+            &axum::http::HeaderMap::new(),
+            "test",
+            &unscanned_policy(),
+        );
+        assert!(
+            is_sanitized_rejection_without_leaking(
+                result,
+                &[
+                    "127.0.0.1",
+                    "169.254.169.254",
+                    "/etc/passwd",
+                    "word/_rels/document.xml.rels",
+                    target,
+                ]
+            ),
+            "{label}: relationship target {target} must be a sanitized 400"
+        );
+    }
 }
