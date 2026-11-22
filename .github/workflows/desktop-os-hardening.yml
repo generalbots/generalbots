@@ -124,3 +124,19 @@ jobs:
               sys.exit(1)
           print(f'OK: {score} <= {maxs}')
           " "$score" "$GB_SHELL_SECURITY_MAX_SCORE"
+
+  # #2477 — the appliance must not publish the suite ports on a LAN interface
+  # unless the operator explicitly opted in. The script runs inside the OS
+  # image at smoke-test time; here we assert it ships and is executable.
+  bind-policy-smoke:
+    name: Bind-policy smoke script (#2477)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bind policy script is present and executable
+        run: |
+          test -x desktop/os/check-bind-policy.sh
+          sh -n desktop/os/check-bind-policy.sh
+          grep -q 'gb_lan_allowed' desktop/os/mkosi.finalize.chroot
+          grep -q '127, 0, 0, 1' botserver/src/main_module/listen_impl.rs
+          echo 'bind-policy smoke wiring OK'

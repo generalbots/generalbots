@@ -125,3 +125,29 @@ shell. Power actions that can interrupt the session route through the lock
 screen and the authenticated `/api/system/power` endpoint; they never bypass
 the lock. The escape hatch at boot is deliberately absent — recovery is by
 reprovisioning (see the appliance diagnostics documentation).
+
+### Firewall UAT (#2477)
+
+The image ships a default-deny nftables input chain. The whole provisioned
+stack (8080, 3000, 4000, 5000) binds to loopback in shell mode; the only way
+to open it is the **Allow other devices on my network** switch in
+Settings → Network, which adds the source to `gb_lan_allowed` for 15 minutes
+and then closes it automatically. `desktop/os/check-bind-policy.sh` asserts
+the bind half of this contract at smoke-test time.
+
+To verify the host half from a second machine on the same network:
+
+```sh
+# Default state — the ports must be closed or filtered.
+nmap -Pn -p 8080 <laptop-hostname>    # expect: closed|filtered
+
+# Turn on Settings -> Network -> "Allow other devices on my network" on the
+# laptop, then immediately repeat from the second machine:
+nmap -Pn -p 8080 <laptop-hostname>    # expect: open
+
+# After 15 minutes the switch turns itself off; the port is closed again.
+```
+
+Never hardcode addresses in documentation or scripts — resolve the laptop by
+hostname. A failed "closed" assertion means the bind policy or nftables rule
+regressed and must be fixed before release.
