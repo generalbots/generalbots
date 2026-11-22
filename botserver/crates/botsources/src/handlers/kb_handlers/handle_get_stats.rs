@@ -1,8 +1,17 @@
 use super::*;
 
-pub async fn handle_get_stats(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn handle_get_stats(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let bot_id = resolve_bot_id(&conn);
+    // #1387 — tenant-scoped stats; no global-bot fallback.
+    let Some(bot_id) = resolve_bot_id_for_branch(&conn, &headers) else {
+        return Json(serde_json::json!({
+            "total_sources": 0, "total_chunks": 0, "indexed_sources": 0,
+            "pending_sources": 0, "failed_sources": 0
+        }));
+    };
 
     let stats = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {

@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn handle_query_knowledge_base(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<KbQueryRequest>,
 ) -> impl IntoResponse {
     let start_time = std::time::Instant::now();
@@ -20,7 +21,17 @@ pub async fn handle_query_knowledge_base(
     let top_k = payload.top_k.unwrap_or(5).min(20);
     let min_score = payload.min_score.unwrap_or(0.0);
     let collection = payload.collection.clone();
-    let bot_id = resolve_bot_id(&conn);
+    // #1387 — tenant-scoped: fail closed when the caller's branch cannot be
+    // resolved. Never fall back to a global bot (would leak other tenants' KB).
+    let Some(bot_id) = resolve_bot_id_for_branch(&conn, &headers) else {
+        log::warn!("kb query denied: unresolved caller branch");
+        return Json(QueryResponse {
+            results: Vec::new(),
+            query: payload.query,
+            total_results: 0,
+            processing_time_ms: 0,
+        });
+    };
 
     let results = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
