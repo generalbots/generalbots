@@ -212,3 +212,7 @@ crm-campaigns-empty-action = 创建营销活动
 crm-audit-empty = 暂无审计记录
 crm-audit-unavailable = 审计不可用（{ $status }）
 crm-campaign-metrics-sent = 已发送 { $sent } · 已送达 { $delivered } · 已打开 { $opened } · 已点击 { $clicked }
+crm-revenue-detail = Replies: { $reply } · Unsubscribes: { $unsubscribe } · Bounces: { $bounce } · Complaints: { $complaint } · Skips: { $skip }
+crm-revenue-influenced = Influenced deals: { $deals } · won: { $won }
+crm-revenue-unattributed = Unattributed touches: { $count }
+crm-revenue-unavailable = Revenue attribution is unavailable.

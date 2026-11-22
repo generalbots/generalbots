@@ -217,3 +217,7 @@ crm-campaigns-empty-action = Criar uma campanha
 crm-audit-empty = Ainda não há registros de auditoria
 crm-audit-unavailable = Auditoria indisponível ({ $status })
 crm-campaign-metrics-sent = Enviados { $sent } · entregues { $delivered } · abertos { $opened } · clicados { $clicked }
+crm-revenue-detail = Replies: { $reply } · Unsubscribes: { $unsubscribe } · Bounces: { $bounce } · Complaints: { $complaint } · Skips: { $skip }
+crm-revenue-influenced = Influenced deals: { $deals } · won: { $won }
+crm-revenue-unattributed = Unattributed touches: { $count }
+crm-revenue-unavailable = Revenue attribution is unavailable.

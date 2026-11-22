@@ -212,3 +212,7 @@ crm-campaigns-empty-action = キャンペーンを作成
 crm-audit-empty = 監査エントリはまだありません
 crm-audit-unavailable = 監査を利用できません ({ $status })
 crm-campaign-metrics-sent = 送信 { $sent } · 配信 { $delivered } · 開封 { $opened } · クリック { $clicked }
+crm-revenue-detail = Replies: { $reply } · Unsubscribes: { $unsubscribe } · Bounces: { $bounce } · Complaints: { $complaint } · Skips: { $skip }
+crm-revenue-influenced = Influenced deals: { $deals } · won: { $won }
+crm-revenue-unattributed = Unattributed touches: { $count }
+crm-revenue-unavailable = Revenue attribution is unavailable.

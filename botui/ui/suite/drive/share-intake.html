@@ -15,25 +15,29 @@
   <script src="/suite/js/i18n.js"></script>
   <script src="/suite/js/i18n-elements.js"></script>
   <style>
-    :root { color-scheme: light dark; }
-    body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); background: var(--bg, #0b1220); color: var(--text, #e5e7eb); }
+    /* #2568 — standalone share target: use the shared identity surface
+       tokens (identity/tokens.css) instead of bespoke dark-palette literals.
+       Class names, ids and data-i18n keys are unchanged. */
+    :root { color-scheme: light; }
+    body { margin: 0; font-family: var(--id-font-sans); background: var(--id-paper); color: var(--id-ink); }
     .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 40px; }
     h1 { font-size: 1.4rem; margin: 0 0 8px; }
-    .muted { color: var(--text-muted, #94a3b8); margin: 0 0 16px; }
-    .card { background: var(--surface, #111827); border: 1px solid var(--border, #334155); border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .muted { color: var(--id-muted); margin: 0 0 16px; }
+    .card { background: var(--id-surface-solid); border: 1px solid var(--id-line); border-radius: var(--id-radius-card); padding: 16px; margin: 12px 0; box-shadow: var(--id-shadow-card); }
     .file-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-    .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border, #334155); border-radius: 8px; }
+    .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--id-line); border-radius: var(--id-radius-control); }
     .file-name { font-weight: 600; word-break: break-word; }
-    .file-meta { color: var(--text-muted, #94a3b8); font-size: 0.9rem; white-space: nowrap; }
+    .file-meta { color: var(--id-muted); font-size: 0.9rem; white-space: nowrap; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-    button, .btn { appearance: none; border: 1px solid var(--border, #334155); background: var(--surface-2, #1f2937); color: inherit; padding: 10px 14px; border-radius: 8px; cursor: pointer; font: inherit; min-height: 44px; }
-    .primary { background: var(--accent, #2563eb); border-color: transparent; color: #fff; }
+    button, .btn { appearance: none; border: 1px solid var(--id-line); background: var(--id-fill); color: var(--id-ink); padding: 10px 14px; border-radius: var(--id-radius-control); cursor: pointer; font: inherit; min-height: 44px; }
+    .primary { background: var(--id-accent); border-color: var(--id-accent); color: var(--id-on-accent); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:focus-visible, .btn:focus-visible { outline: none; box-shadow: var(--id-focus); }
     .status { margin-top: 12px; min-height: 1.5em; }
-    .ok { color: #22c55e; }
-    .err { color: #f87171; }
-    .progress { font-size: 0.95rem; color: var(--text-muted, #94a3b8); }
-    a { color: var(--accent, #60a5fa); }
+    .ok { color: var(--id-success-text); }
+    .err { color: var(--id-danger-text); }
+    .progress { font-size: 0.95rem; color: var(--id-muted); }
+    a { color: var(--id-accent-text); }
   </style>
 </head>
 <body>
