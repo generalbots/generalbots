@@ -5,7 +5,7 @@
   "local": true,
   "windows": ["main"],
   "remote": {
-    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+    "urls": ["tauri://localhost", "https://tauri.localhost"]
   },
   "permissions": [
     "core:window:allow-start-dragging",
