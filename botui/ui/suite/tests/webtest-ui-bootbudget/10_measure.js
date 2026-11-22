@@ -35,8 +35,8 @@ test("[BASELINE-OBSERVE] desktop.html: 97 script tags, 96 src, 96 blocking, 1 in
   equal(d.deferAsync, 0, "deferAsync");
 });
 
-test("[BASELINE-OBSERVE] desktop.html: 37 stylesheet links", function () {
-  equal(measure(DESKTOP).stylesheet, 37, "stylesheet");
+test("[BASELINE-OBSERVE] desktop.html: 38 stylesheet links", function () {
+  equal(measure(DESKTOP).stylesheet, 38, "stylesheet");
 });
 
 test("[BASELINE-OBSERVE] partials/chat.html: 56 script tags, 55 src, 42 blocking, 1 inline, 13 defer/async", function () {
@@ -62,9 +62,9 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1127 scripts, 1070 src, 1057 blocking, 56 inline, 379 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1126 scripts, 1070 src, 1057 blocking, 56 inline, 379 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1127, "scripts");
+  equal(t.scripts, 1126, "scripts");
   equal(t.scriptSrc, 1070, "scriptSrc");
   equal(t.blockingScriptSrc, 1057, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
