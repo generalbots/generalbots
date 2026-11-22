@@ -31,7 +31,7 @@ var EXPECTED = {
   roleAlert: 107,
   roleLog: 12,
   roleStatusAlertFiles: 238,
-  dataI18nAttrs: 5642,
+  dataI18nAttrs: 5640,
   htmlWithI18n: 201,
   gbTCalls: 257, // +10: #2511 localized the translate modal's 10 raw labels via gbT
   jsWithGbt: 94,

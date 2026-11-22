@@ -9,7 +9,11 @@
  */
 (function (window, document) {
   function t(key, fallback) {
-    return typeof window.gbT === "function" ? window.gbT(key, fallback) : fallback;
+    if (typeof window.gbT !== "function") return fallback;
+    var value = window.gbT(key, fallback);
+    // A registered key whose catalogue value has not reached this build is
+    // rendered as "[key]" — never show that placeholder on a kiosk screen.
+    return value && value.charAt(0) === "[" ? fallback : value;
   }
   var ID = "gb-restarting-screen";
   var node = null;
@@ -23,8 +27,8 @@
       node.innerHTML =
         '<div class="gb-restarting-card">' +
         '<div class="gb-restarting-logo" aria-hidden="true">GB</div>' +
-        '<div class="gb-restarting-title" data-i18n="shell-restarting-title"></div>' +
-        '<div class="gb-restarting-detail" data-i18n="shell-restarting-hint"></div>' +
+        '<div class="gb-restarting-title"></div>' +
+        '<div class="gb-restarting-detail"></div>' +
         "</div>";
       document.body.appendChild(node);
     }
