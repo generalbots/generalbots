@@ -1,6 +1,6 @@
 use super::{
     auth_api_auth::authenticate_with_extracted_data,
-    auth_api_utils::ExtractedAuthData,
+    auth_api_utils::{authorization_scheme, ExtractedAuthData},
     config::AuthConfig,
     error::AuthError,
     types::{AuthenticatedUser, Permission, PublicPathAllowed, Role},
@@ -94,19 +94,15 @@ pub async fn auth_middleware_with_providers(
         }
     }
 
-    let auth_header = request
+    // Only presence and scheme are logged: no part of the credential itself.
+    match request
         .headers()
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-
-    info!(
-        "Authorization header: {:?}",
-        auth_header.as_ref().map(|h| {
-            // The header is caller-supplied: never slice it mid-character.
-            botlib::text::truncate_with_suffix(h, 30, "...")
-        })
-    );
+    {
+        Some(h) => info!("Authorization header: present, scheme {}", authorization_scheme(h)),
+        None => info!("Authorization header: absent"),
+    }
 
     let extracted = ExtractedAuthData::from_request(&request, &state.config);
     let user =

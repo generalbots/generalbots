@@ -129,3 +129,39 @@ pub fn extract_session_from_cookies(
             })
         })
 }
+
+/// The scheme of an `Authorization` header value, safe to log.
+///
+/// Only the leading word is returned, and only when it looks like a scheme
+/// name (ASCII letters, followed by a space). A bare token, or anything else,
+/// yields `"unrecognized"`, so no part of a credential ever reaches a log.
+pub fn authorization_scheme(header_value: &str) -> &str {
+    match header_value.split_once(' ') {
+        Some((scheme, _))
+            if !scheme.is_empty()
+                && scheme.len() <= 16
+                && scheme.bytes().all(|b| b.is_ascii_alphabetic()) =>
+        {
+            scheme
+        }
+        _ => "unrecognized",
+    }
+}
+
+#[cfg(test)]
+mod authorization_scheme_tests {
+    use super::authorization_scheme;
+
+    #[test]
+    fn known_schemes_are_reported() {
+        assert_eq!(authorization_scheme("Bearer gb_2145f351-862f"), "Bearer");
+        assert_eq!(authorization_scheme("Basic dXNlcjpwYXNz"), "Basic");
+    }
+
+    #[test]
+    fn a_bare_or_odd_value_reveals_nothing() {
+        assert_eq!(authorization_scheme("gb_2145f351-862f-414e"), "unrecognized");
+        assert_eq!(authorization_scheme("gb_2145f351 rest"), "unrecognized");
+        assert_eq!(authorization_scheme(""), "unrecognized");
+    }
+}
