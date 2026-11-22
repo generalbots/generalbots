@@ -2,6 +2,11 @@
 use crate::core::bot::api_catalog::ApiEndpoint;
 
 pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
+    // #2548 — honest revenue-attribution bridge (handlers in revenue/, mounted in routes.rs).
+    ApiEndpoint { method: "GET", path: "/api/crm/revenue/attribution", summary: "registered in crates/botcontacts/src/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/crm/revenue/contacts/:id/bridge", summary: "registered in crates/botcontacts/src/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/crm/revenue/contacts/:id/timeline", summary: "registered in crates/botcontacts/src/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/ui/crm/revenue/attribution", summary: "registered in crates/botcontacts/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/editor/undo", summary: "registered in crates/boteditor/src/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/email/accounts", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/email/accounts/:account_id", summary: "registered in crates/botemail/src/routes.rs" },

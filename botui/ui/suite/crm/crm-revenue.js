@@ -12,6 +12,39 @@
         return typeof window.gbT === 'function' ? window.gbT(key, fallback, params) : fallback;
     }
 
+    /* #2548 — the API reports machine-readable `data_quality.notes`. Map each
+       code to an authored English fallback; each needs a catalog key in every
+       locale (reported to the driver, locales are out of scope here). */
+    var NOTE_TEXT = {
+        unattributed_touches: {
+            key: 'crm-revenue-note-unattributed',
+            fallback: 'Unattributed recipients: { $count } were not matched to a CRM contact and are counted separately.'
+        },
+        unknown_event_types: {
+            key: 'crm-revenue-note-unknown',
+            fallback: 'Unknown event types: { $count } touches were not recognized.'
+        },
+        incomplete_deal_money: {
+            key: 'crm-revenue-note-incomplete-money',
+            fallback: 'Incomplete deal money: { $count } won deal(s) lack a value or currency.'
+        },
+        no_deal_cohort: {
+            key: 'crm-revenue-note-no-cohort',
+            fallback: 'No deal cohort in scope: a conversion rate cannot be computed.'
+        },
+        roi_not_reconciled: {
+            key: 'crm-revenue-note-roi',
+            fallback: 'ROI is not available: no reconciled budget with a matching currency exists.'
+        }
+    };
+
+    function noteParams(note, quality) {
+        if (note === 'unattributed_touches') return { count: quality.unattributed_recipients };
+        if (note === 'unknown_event_types') return { count: quality.unknown_event_types };
+        if (note === 'incomplete_deal_money') return { count: quality.deals_without_money };
+        return {};
+    }
+
     function appendLine(text) {
         var node = document.createElement('p');
         node.className = 'crm-revenue-detail';
@@ -49,6 +82,14 @@
         if (report.conversion_rate === null || report.revenue_influenced === null || report.roi === null) {
             appendLine(localized('crm-revenue-unavailable',
                 'Not available: a metric has no complete denominator or currency'));
+        }
+        var quality = report.data_quality;
+        if (quality && Array.isArray(quality.notes)) {
+            quality.notes.forEach(function (note) {
+                var text = NOTE_TEXT[note];
+                if (!text) return;
+                appendLine(localized(text.key, text.fallback, noteParams(note, quality)));
+            });
         }
     }
 

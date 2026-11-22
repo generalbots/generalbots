@@ -194,6 +194,12 @@ pub(super) const KEYS: &[&str] = &[
     "weba-error",
     // #2324 — high-contrast theme
     "theme-high-contrast",
+    // #2548 — revenue data-quality notes
+    "crm-revenue-note-unattributed",
+    "crm-revenue-note-unknown",
+    "crm-revenue-note-incomplete-money",
+    "crm-revenue-note-no-cohort",
+    "crm-revenue-note-roi",
     // #2522/#2548 — import notices and CRM revenue
     "file-macros-removed",
     "error-file-password-protected",

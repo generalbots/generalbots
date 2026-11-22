@@ -1127,6 +1127,109 @@ Triggers an immediate sync for the specified account.
 
 ---
 
+## Revenue attribution (#2548)
+
+The revenue-attribution bridge joins persisted campaign evidence to CRM
+contacts, segments and deals. It is implemented in
+`botserver/crates/botcontacts/src/revenue/` and mounted from
+`botserver/crates/botcontacts/src/routes.rs`. All four routes are read-only and
+branch-scoped: the caller's branch is resolved from the bearer token, and a
+record from another branch is never returned. All metrics are derived from
+rows that already exist; no new table is required.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/crm/revenue/attribution` | Aggregate, reproducible attribution report (JSON) |
+| GET | `/api/crm/revenue/contacts/:id/bridge` | One contact with every touch, segment, suppression and deal, each carrying its source table |
+| GET | `/api/crm/revenue/contacts/:id/timeline` | The same contact's touches, sorted by `occurred_at` |
+| GET | `/api/ui/crm/revenue/attribution` | Server-rendered HTML fragment for the CRM revenue card (HTMX) |
+
+The first three routes return JSON; the fourth returns an HTML fragment whose
+`#crm-revenue-json` element carries the same typed report for a no-JS fallback
+and for the enhancing script in `botui/ui/suite/crm/crm-revenue.js`. An unknown
+contact id answers 404, and database details are never returned to the client.
+
+### Aggregate report query parameters
+
+`GET /api/crm/revenue/attribution` accepts optional filters. Omitting both
+yields the whole branch.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `campaign_id` | UUID | No | Restrict evidence to one campaign |
+| `segment_id` | UUID | No | Restrict evidence to one segment |
+
+### Honest-number semantics
+
+The report deliberately does not invent a number when the underlying rows
+cannot support one. A `null` means "no denominator", never "zero".
+
+| Field | Type | When it is `null` |
+|---|---|---|
+| `conversion_rate` | number or `null` | No deal is in scope (`no_deal_cohort`). Otherwise it is won / influenced deals in scope × 100 |
+| `revenue_influenced` | `{ amount, currency }` or `null` | No won deal, any won deal missing a value/currency, or more than one currency (`incomplete_deal_money`) |
+| `roi` | number or `null` | Always `null`. No reconciled budget with a matching currency exists, so dividing revenue by a budget would fabricate an ROI (`roi_not_reconciled`) |
+
+`EventCounts` are **distinct recipients per event kind**, not raw event rows:
+one contact that opens three times counts as one open. A touch whose e-mail
+never matched a `crm_contacts` row in the branch lands in the **unattributed
+bucket** (`unattributed_recipients`). It is reported separately and is never
+merged with an attributed recipient, so the two counts are reproducible from
+the source rows. Unknown raw event strings are kept as `unknown` rather than
+folded into a known bucket.
+
+### Data-quality notes
+
+`data_quality.notes` is a machine-readable list of reasons a metric is `null`
+or only partially attributable. Each note is a snake_case code; no translated
+prose is stored in the API.
+
+| Note code | Meaning |
+|---|---|
+| `unattributed_touches` | At least one recipient could not be matched to a CRM contact |
+| `unknown_event_types` | At least one raw event type was not recognized |
+| `incomplete_deal_money` | At least one won deal lacks a value or a currency |
+| `no_deal_cohort` | No deal is in scope, so `conversion_rate` is `null` |
+| `roi_not_reconciled` | Always present; no budget with a matching currency was reconciled |
+
+`data_quality` also carries the counts behind those notes:
+`unattributed_recipients`, `unknown_event_types` and `deals_without_money`.
+
+**Example response** — two won deals share a currency, so revenue is reported,
+but some recipients are unattributed and ROI stays `null`:
+
+```json
+{
+  "branch_id": "00000000-0000-0000-0000-000000000000",
+  "campaign_id": null,
+  "segment_id": null,
+  "contacts_scanned": 120,
+  "recipients_scanned": 300,
+  "touches": {
+    "send": 300, "delivery": 280, "open": 95, "click": 31,
+    "reply": 12, "unsubscribe": 4, "bounce": 6, "complaint": 1,
+    "skip": 2, "unknown": 0
+  },
+  "attributed_recipients": 210,
+  "unattributed_recipients": 40,
+  "suppressions": 11,
+  "segments_seen": 3,
+  "deals_influenced": 8,
+  "won_deals_influenced": 2,
+  "revenue_influenced": { "amount": 45000.0, "currency": "BRL" },
+  "conversion_rate": 25.0,
+  "roi": null,
+  "data_quality": {
+    "unattributed_recipients": 40,
+    "unknown_event_types": 0,
+    "deals_without_money": 0,
+    "notes": ["unattributed_touches", "roi_not_reconciled"]
+  }
+}
+```
+
+---
+
 ## See Also
 
 - [Contacts API](users-api.md) — user management and authentication
