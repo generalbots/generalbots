@@ -76,6 +76,7 @@
       "/suite/js/restarting-screen.js?v=1",
       "/suite/js/os-recovery.js?v=4",
       "/suite/js/network-security.js?v=2",
+      "/suite/js/a11y-controls.js?v=2",
       "/suite/js/spotlight.js?v=1"
     ],
     chat: [

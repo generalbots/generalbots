@@ -16,9 +16,9 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 var EXPECTED = {
-  filesScanned: 1532,
+  filesScanned: 1533,
   htmlFiles: 212,
-  jsFiles: 1320,
+  jsFiles: 1321,
   vendorFiles: 290,
   topSegments: 92,
   ariaLiveMentions: 677,
@@ -31,14 +31,14 @@ var EXPECTED = {
   roleAlert: 106,
   roleLog: 12,
   roleStatusAlertFiles: 238,
-  dataI18nAttrs: 5657,
+  dataI18nAttrs: 5669,
   htmlWithI18n: 201,
   gbTCalls: 257, // +10: #2511 localized the translate modal's 10 raw labels via gbT
   jsWithGbt: 94,
-  dynamicWrites: 4171,
+  dynamicWrites: 4172,
   writesInRegionFiles: 1198,
-  writesOutsideRegionFiles: 2973,
-  filesWithWritesNoRegion: 587,
+  writesOutsideRegionFiles: 2974,
+  filesWithWritesNoRegion: 588,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
