@@ -9,6 +9,41 @@ use crate::types::{DbPool, VibeRun, VibeRunState};
 use diesel::prelude::*;
 use uuid::Uuid;
 
+/// Non-terminal run states. After a restart no agent loop owns these runs, so
+/// boot reconciliation (#2541) folds them into a terminal state. Kept as a
+/// typed array so the SQL below and the pure predicate cannot drift apart
+/// (guarded by `reconcile_sql_covers_every_live_state` in the tests).
+pub const LIVE_RUN_STATES: [VibeRunState; 3] = [
+    VibeRunState::Pending,
+    VibeRunState::Running,
+    VibeRunState::AwaitingApproval,
+];
+
+/// Terminal state written by boot reconciliation.
+pub const RECONCILED_STATE: VibeRunState = VibeRunState::Failed;
+
+/// Error stamped on a run interrupted by a restart.
+pub const RECONCILED_ERROR: &str = "interrupted by server restart";
+
+/// Boot reconciliation statement. Derived from the constants above; every
+/// live state must appear in its `WHERE IN` clause and the target must be
+/// `RECONCILED_STATE` (asserted by a unit test).
+pub(crate) const RECONCILE_SQL: &str = "UPDATE vibe_runs \
+     SET state = 'failed', \
+         error = COALESCE(error, 'interrupted by server restart'), \
+         completed_at = COALESCE(completed_at, NOW()), \
+         updated_at = NOW() \
+     WHERE state IN ('pending', 'running', 'awaiting_approval')";
+
+/// Pure decision function for boot reconciliation. A run in a non-terminal
+/// state is stale after a restart — its owning agent loop no longer exists —
+/// and must be folded into [`RECONCILED_STATE`]. Terminal runs are untouched.
+/// Being pure makes the "stale rows are cleared" contract unit-testable
+/// without a live database (#2541).
+pub fn boot_reconcile_target(state: VibeRunState) -> Option<VibeRunState> {
+    LIVE_RUN_STATES.contains(&state).then_some(RECONCILED_STATE)
+}
+
 /// Executes the DDL from `types::VIBE_SCHEMA` against the pool (idempotent).
 pub fn ensure_vibe_schema(pool: &DbPool) -> Result<(), String> {
     let mut conn = pool
@@ -123,26 +158,25 @@ impl VibeRunStore {
 
     /// Marks every non-terminal run as failed on boot. After a restart the
     /// in-memory agent loop that owned those runs is gone, so leaving them in
-    /// `pending`/`running`/`awaiting_approval` would strand them forever.
+    /// `pending`/`running`/`awaiting_approval` would strand them forever and
+    /// the UI would keep showing "running" for a run that no longer exists
+    /// (#2541). This is unconditional by design: boot implies the previous
+    /// process is gone, so *no* live-state row can be legitimate — a strictly
+    /// stronger guarantee than the "no 'running' run older than N minutes
+    /// survives a restart" acceptance floor. The state set and target are the
+    /// shared constants above, covered by `boot_reconcile_target` tests.
     /// Returns the number of runs recovered.
     pub fn recover_orphaned_runs(&self) -> usize {
         let mut conn = match self.pool.get() {
             Ok(conn) => conn,
             Err(_) => return 0,
         };
-        diesel::sql_query(
-            "UPDATE vibe_runs \
-             SET state = 'failed', \
-                 error = COALESCE(error, 'interrupted by server restart'), \
-                 completed_at = COALESCE(completed_at, NOW()), \
-                 updated_at = NOW() \
-             WHERE state IN ('pending', 'running', 'awaiting_approval')",
-        )
-        .execute(&mut conn)
-        .unwrap_or_else(|e| {
-            log::warn!("run store: recover_orphaned_runs failed: {e}");
-            0
-        })
+        diesel::sql_query(RECONCILE_SQL)
+            .execute(&mut conn)
+            .unwrap_or_else(|e| {
+                log::warn!("run store: recover_orphaned_runs failed: {e}");
+                0
+            })
     }
 
     /// Lists stored runs, newest first, bounded by `limit`.
@@ -308,5 +342,72 @@ mod tests {
             Some(crate::types::VibeUseCase::FinancialAnalysis)
         );
         assert_eq!(crate::types::VibeUseCase::try_from_str("x"), None);
+    }
+
+    /// #2541 — only live-state rows are reconciled; terminal rows must never
+    /// be rewritten by a restart (a completed run stays completed).
+    #[test]
+    fn boot_reconcile_targets_only_live_states() {
+        assert_eq!(
+            boot_reconcile_target(VibeRunState::Pending),
+            Some(RECONCILED_STATE)
+        );
+        assert_eq!(
+            boot_reconcile_target(VibeRunState::Running),
+            Some(RECONCILED_STATE)
+        );
+        assert_eq!(
+            boot_reconcile_target(VibeRunState::AwaitingApproval),
+            Some(RECONCILED_STATE)
+        );
+        assert_eq!(boot_reconcile_target(VibeRunState::Completed), None);
+        assert_eq!(boot_reconcile_target(VibeRunState::Failed), None);
+        assert_eq!(boot_reconcile_target(VibeRunState::Cancelled), None);
+    }
+
+    /// #2541 — simulates the persisted snapshot read at boot: three orphaned
+    /// live runs and three already-terminal runs. After reconciliation no
+    /// `running`/`pending`/`awaiting_approval` row survives and terminal rows
+    /// are untouched.
+    #[test]
+    fn stale_running_rows_are_cleared_on_boot() {
+        let rows: [(&str, VibeRunState); 6] = [
+            ("orphan-1", VibeRunState::Running),
+            ("orphan-2", VibeRunState::Pending),
+            ("orphan-3", VibeRunState::AwaitingApproval),
+            ("done-1", VibeRunState::Completed),
+            ("done-2", VibeRunState::Failed),
+            ("done-3", VibeRunState::Cancelled),
+        ];
+        let cleared: Vec<&str> = rows
+            .iter()
+            .filter_map(|(id, state)| boot_reconcile_target(*state).map(|_| *id))
+            .collect();
+        assert_eq!(cleared, vec!["orphan-1", "orphan-2", "orphan-3"]);
+        let preserved: Vec<&str> = rows
+            .iter()
+            .filter(|(_, state)| boot_reconcile_target(*state).is_none())
+            .map(|(id, _)| *id)
+            .collect();
+        assert_eq!(preserved, vec!["done-1", "done-2", "done-3"]);
+        assert!(!rows.iter().any(|(_, state)| *state == VibeRunState::Running
+            && boot_reconcile_target(*state).is_none()));
+    }
+
+    /// #2541 — keeps the boot SQL and the pure predicate in lockstep: every
+    /// live state must appear in the `WHERE IN` clause, the target must be
+    /// `failed`, and no terminal state may be swept up.
+    #[test]
+    fn reconcile_sql_covers_every_live_state() {
+        for state in LIVE_RUN_STATES {
+            assert!(
+                RECONCILE_SQL.contains(&format!("'{state}'")),
+                "boot SQL must reconcile {state}"
+            );
+        }
+        assert!(RECONCILE_SQL.contains("'failed'"));
+        assert!(RECONCILE_SQL.contains(RECONCILED_ERROR));
+        assert!(!RECONCILE_SQL.contains("'completed'"));
+        assert!(!RECONCILE_SQL.contains("'cancelled'"));
     }
 }

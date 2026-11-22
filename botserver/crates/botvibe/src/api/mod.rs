@@ -42,4 +42,6 @@ pub use run::{PipelineResponse};
 pub(crate) use run::{MAX_INTENT_CHARS, MAX_TIMEOUT_SECONDS, UnpublishSiteRequest, bot_accessible_to_user, get_pipeline, get_run_events, list_runs, resolve_effective_bot_id, resolve_project, truncate_chars};
 pub use tools::{CreateRunRequest, GetRunResponse, ListToolsResponse, VibeApiDeps, VibeSecurityDeps, router};
 pub(crate) use tools::{MAX_TOOL_CALLS, VibeApiInner, is_modifying_intent, run_to_response};
+#[cfg(test)]
+pub(crate) use tools::rebuild_run_map;
 pub(crate) use tool_capabilities::{execute_run, list_capabilities_for_use_case, list_tools_for_use_case};
