@@ -8,7 +8,7 @@
 use super::graphics_support_status;
 
 /// Read a string field, returning a sentinel so an absent field fails loudly.
-fn field_str(status: &serde_json::Value, key: &str) -> &str {
+fn field_str<'a>(status: &'a serde_json::Value, key: &str) -> &'a str {
     match status.get(key).and_then(serde_json::Value::as_str) {
         Some(value) => value,
         None => "<missing>",
