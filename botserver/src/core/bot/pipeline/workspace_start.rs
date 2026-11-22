@@ -139,7 +139,7 @@ fn is_workspace_provider(provider: &str) -> bool {
 pub(super) async fn before_subscription_turn(
     identity: &SessionIdentity<'_>,
     model_preference: &str,
-) -> Result<(), String> {
+) -> Result<(), super::llm::refusal::RefusalError> {
     if identity.user_id.is_nil()
         || !super::agent_turn::is_enabled(identity.session_id)
         || crate::core::bot::agent_vm_hook::service().is_none()
@@ -150,11 +150,12 @@ pub(super) async fn before_subscription_turn(
     let user_id = identity.user_id;
     let locale = botcore::i18n::locale_for_user_pool(&identity.state.conn, user_id);
     if botagent::vm::start_in_progress(&user_id) && timed_out_recently(user_id) {
-        return Err(botcore::i18n::t(&locale, "error-workspace-start-timeout"));
+        return Err(workspace_refusal(identity, model_preference,
+            botcore::i18n::t(&locale, "error-workspace-start-timeout")));
     }
     let mut task = spawn_start(identity.session_id, user_id, identity.bot_uuid);
     if let Some(result) = wait_for(&mut task, QUIET_START).await {
-        return quiet_outcome(identity, result, &locale);
+        return quiet_outcome(identity, model_preference, result, &locale);
     }
     let progress = WorkspaceProgress::new(identity);
     if let Some(progress) = progress.as_ref() {
@@ -178,17 +179,45 @@ pub(super) async fn before_subscription_turn(
     }
     match message {
         None => Ok(()),
-        Some(text) => Err(text),
+        Some(text) => Err(workspace_refusal(identity, model_preference, text)),
     }
 }
 
 fn quiet_outcome(
     identity: &SessionIdentity<'_>,
+    model_preference: &str,
     result: Result<AgentSessionRow, WorkspaceError>,
     locale: &botcore::i18n::Locale,
-) -> Result<(), String> {
+) -> Result<(), super::llm::refusal::RefusalError> {
     note_timeout(identity.user_id, false);
-    result.map(|_| ()).map_err(|error| user_message(&error, locale))
+    result.map(|_| ()).map_err(|error| {
+        workspace_refusal(identity, model_preference, user_message(&error, locale))
+    })
+}
+
+/// Builds an `agent_workspace_failed` refusal from the model preference.
+fn workspace_refusal(
+    identity: &SessionIdentity<'_>,
+    model_preference: &str,
+    message: String,
+) -> super::llm::refusal::RefusalError {
+    use super::llm::refusal::{self, RefusalError};
+    use crate::core::ai_accounts as acc;
+    let agent = acc::models::parse_choice(model_preference.trim())
+        .map(|(a, _)| a.to_string())
+        .unwrap_or_else(|| {
+            botcore::config::ConfigManager::new(identity.state.conn.clone())
+                .get_config(&identity.bot_uuid, "llm-provider", Some(""))
+                .unwrap_or_default()
+        });
+    let label = acc::provider_label(&agent);
+    botlog::safe_warn!(
+        "Subscription turn refused: code=agent_workspace_failed agent=[{agent}] user={}, session={}",
+        identity.user_id, identity.session_id
+    );
+    RefusalError::new(refusal::AGENT_WORKSPACE_FAILED, message)
+        .param("agent", agent)
+        .param("label", label)
 }
 
 /// The timeout already carries the user's message; any other failure keeps

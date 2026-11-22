@@ -128,6 +128,7 @@ fn label_for(phase: &str, step: &str) -> &'static str {
         (PHASE_INFRA, "queued") => "Workspace queued",
         (PHASE_INFRA, "image_pull") => "Pulling the workspace image",
         (PHASE_INFRA, "container_start") => "Starting the workspace",
+        (PHASE_INFRA, "local_engine_start") => "Starting the language model",
         (PHASE_INFRA, "bootstrap") => "Preparing the workspace",
         (PHASE_TOOL, "package_install") => "Installing packages",
         (PHASE_TOOL, "execute") => "Running the program",
