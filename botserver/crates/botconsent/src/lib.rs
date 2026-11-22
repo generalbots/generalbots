@@ -18,9 +18,9 @@ pub mod store;
 pub use botlib::db_pool::DbPool;
 
 pub use enforce::{
-    authorize, authorize_with_context, resolve, take_approved_match, take_pending_approved,
-    ConsentContext,
-    ConsentDecision, ConsentService, PendingRequest, ResolvedOutcome,
+    authorize, authorize_with_context, raise_blocking, resolve, take_approved_match,
+    take_pending_approved, turn_superseded, withdraw, withdraw_thread, ConsentContext,
+    ConsentDecision, ConsentService, PendingRequest, ResolvedOutcome, Resolver,
 };
 pub use models::{AppPermissionRow, ConsentScope, Decision, GrantBody, ResolveBody};
 

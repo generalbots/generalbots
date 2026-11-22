@@ -40,6 +40,15 @@ pub(super) fn begin_capture(session_id: uuid::Uuid) {
     }
 }
 
+/// What native tools sent to chat so far in this tool round, left in place.
+pub(super) fn peek_capture(session_id: uuid::Uuid) -> String {
+    capture()
+        .lock()
+        .ok()
+        .and_then(|map| map.get(&session_id).cloned())
+        .unwrap_or_default()
+}
+
 pub(super) fn take_capture(session_id: uuid::Uuid) -> String {
     capture()
         .lock()
@@ -60,7 +69,12 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
         }
         if name == "terminal_run" {
             #[cfg(feature = "agent-vm")]
-            terminal::run_terminal_run(identity, args).await;
+            if let Some(ticket) = super::vm_consent::tools::gate_terminal(identity, args).await {
+                let receipt = ticket.receipt();
+                let mark = super::vm_consent::tools::capture_mark(identity);
+                let exit_code = terminal::run_terminal_run(identity, args, ticket).await;
+                super::vm_consent::tools::report_captured(identity, &receipt, mark, Vec::new(), exit_code).await;
+            }
             #[cfg(not(feature = "agent-vm"))]
             send(
                 identity,
@@ -77,6 +91,10 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
             "Workspace execution is not available in this build.",
         )
         .await;
+        return true;
+    }
+    #[cfg(all(feature = "agent-vm", feature = "drive"))]
+    if super::vm_consent::tools::run_drive_tool(identity, name, args).await {
         return true;
     }
     #[cfg(all(feature = "agent-vm", feature = "drive"))]

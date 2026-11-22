@@ -265,6 +265,7 @@ fn decode_percent(input: &str) -> String {
 fn parse_urlencoded(body: &str) -> Result<ResolveBody, String> {
     let mut request_id: Option<String> = None;
     let mut decision_raw: Option<String> = None;
+    let mut thread_id: Option<String> = None;
     for pair in body.split('&') {
         let (k, v) = match pair.split_once('=') {
             Some(kv) => kv,
@@ -273,6 +274,7 @@ fn parse_urlencoded(body: &str) -> Result<ResolveBody, String> {
         match k {
             "request_id" => request_id = Some(decode_percent(v)),
             "decision" => decision_raw = Some(decode_percent(v)),
+            "thread_id" => thread_id = Some(decode_percent(v)).filter(|t| !t.is_empty()),
             _ => {}
         }
     }
@@ -280,7 +282,7 @@ fn parse_urlencoded(body: &str) -> Result<ResolveBody, String> {
     let decision_raw = decision_raw.ok_or("decision required")?;
     let decision: Decision =
         serde_json::from_value(serde_json::Value::String(decision_raw)).map_err(|e| format!("{e}"))?;
-    Ok(ResolveBody { request_id, decision })
+    Ok(ResolveBody { request_id, decision, thread_id })
 }
 
 /// `POST /api/consent/resolve` — HTMX callers receive the summary card; plain
@@ -294,8 +296,25 @@ pub async fn resolve_consent(
     let parsed = parse_resolve_body(&headers, &body)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid body: {e}")))?;
 
-    let outcome = match enforce::resolve(&service, &parsed.request_id, parsed.decision, user_id).await {
+    let caller = enforce::Resolver { user_id, thread_id: parsed.thread_id.as_deref() };
+    let outcome = match enforce::resolve(&service, &parsed.request_id, parsed.decision, caller).await {
         Ok(o) => o,
+        Err(e) if e.contains(enforce::NOT_OWNER) => {
+            // The request stays pending for its owner; nothing is revealed
+            // about it to this caller.
+            tracing::warn!("consent resolve refused (forbidden)");
+            if is_hx_request(&headers) {
+                return Ok((StatusCode::FORBIDDEN, Html(cards::summary_card_html("forbidden"))).into_response());
+            }
+            return Ok((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "forbidden",
+                    "message": "This permission request belongs to someone else",
+                })),
+            )
+                .into_response());
+        }
         Err(e) => {
             // #2561 — return a machine-readable code so the UI can show a
             // specific message and unlock the composer.

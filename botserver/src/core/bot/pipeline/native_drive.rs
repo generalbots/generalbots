@@ -26,10 +26,6 @@ const TEXT_EXTENSIONS: &[&str] = &[
 
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
     match name {
-        "drive_fetch" => {
-            run_drive_fetch(identity, args).await;
-            true
-        }
         "drive_save" => {
             run_drive_save(identity, args).await;
             true
@@ -157,7 +153,13 @@ fn matches_drive_query(item: &crate::core::bot::drive_bridge::DriveListItem, que
         .all(|token| hay.contains(token))
 }
 
-async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
+/// Copies a Drive file into the conversation folder; the gate decided first
+/// (`vm_consent::tools::run_drive_tool`).
+pub(crate) async fn run_drive_fetch(
+    identity: &SessionIdentity<'_>,
+    args: &str,
+    ticket: crate::core::bot::pipeline::vm_consent::VmConsent,
+) {
     let parsed = parse(args);
     let reference = parsed
         .get("path")
@@ -224,7 +226,7 @@ async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
         .map(sanitize_name)
         .unwrap_or_else(|| sanitize_name(&relative));
     let target = format!("data/{name}");
-    let written = agent_vm_hook::write_session_file(user_id, session_id, &target, &bytes).await;
+    let written = agent_vm_hook::write_session_file(ticket, user_id, session_id, &target, &bytes).await;
     let message = match written {
         Ok(size) => {
             let listing = agent_vm_hook::list_session_folder(user_id, session_id, "data")
@@ -516,7 +518,8 @@ pub async fn fetch_referenced(
             continue;
         }
         let local = format!("data/{}", sanitize_name(&name));
-        if agent_vm_hook::write_session_file(user_id, session_id, &local, &bytes)
+        let ticket = crate::core::bot::pipeline::vm_consent::VmConsent::for_person_request(session_id, &local);
+        if agent_vm_hook::write_session_file(ticket, user_id, session_id, &local, &bytes)
             .await
             .is_ok()
         {

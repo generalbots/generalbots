@@ -9,14 +9,22 @@
 //! crate-visible item at its historical `enforce::` path.
 
 mod authorize;
+mod blocking;
 mod resolve;
 mod service;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_blocking;
+#[cfg(test)]
+mod tests_owner;
 
 pub use authorize::{authorize, authorize_with_context};
-pub use resolve::{resolve, take_approved_match, take_pending_approved};
+pub use blocking::{
+    audit_view, is_blocking, raise_blocking, turn_superseded, withdraw, withdraw_thread, AUDIT_KEY,
+};
+pub use resolve::{resolve, take_approved_match, take_pending_approved, Resolver, NOT_OWNER};
 pub use service::{
     ConsentContext, ConsentDecision, ConsentService, PendingMap, PendingRequest, ResolvedOutcome,
     PENDING_TTL_SECS,

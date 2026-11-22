@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::models::{ConsentScope, Decision};
 use crate::store;
 
+use super::blocking::{audit_view, check_offer, is_blocking, wake};
 use super::service::{sweep_maps, ttl, ConsentService, PendingMap, PendingRequest, ResolvedOutcome};
 
 /// Pure map-level transition shared by [`resolve`] and unit tests.
@@ -17,6 +18,9 @@ pub(crate) fn resolve_in_memory(
     decision: Decision,
     now: Instant,
 ) -> Result<ResolvedOutcome, String> {
+    if let Some((req, _)) = pending.get(request_id) {
+        check_offer(req, decision)?;
+    }
     let (req, born) = pending
         .remove(request_id)
         .ok_or_else(|| format!("unknown consent request '{request_id}'"))?;
@@ -25,8 +29,20 @@ pub(crate) fn resolve_in_memory(
     }
     match decision {
         Decision::AllowOnce => {
-            approved_once.insert(request_id.to_string(), (req.clone(), now));
+            // A blocking request is answered through its waiter; parking it
+            // would let another call of the same class spend this approval.
+            if !is_blocking(&req) {
+                approved_once.insert(request_id.to_string(), (req.clone(), now));
+            }
             Ok(ResolvedOutcome::ConsumeOnce(req))
+        }
+        Decision::AllowConversation => {
+            Ok(ResolvedOutcome::PersistGrant(req, ConsentScope::Conversation))
+        }
+        Decision::AllowAll => {
+            let mut all = req;
+            all.action_class = crate::models::VM_ALL_CLASS.to_string();
+            Ok(ResolvedOutcome::PersistGrant(all, ConsentScope::Conversation))
         }
         Decision::AllowRun => Ok(ResolvedOutcome::PersistGrant(req, ConsentScope::Run)),
         Decision::AllowWorkspace => {
@@ -37,29 +53,59 @@ pub(crate) fn resolve_in_memory(
     }
 }
 
-/// Applies the user decision to one pending request. The caller must own the
-/// request; ownership is verified before any transition.
+/// Marker in the error of a decision refused because the caller does not own
+/// the request; the HTTP route answers 403 for it.
+pub const NOT_OWNER: &str = "not yours to answer";
+
+/// Who answers a card: the signed-in person and, when the interface sends
+/// it, the conversation the card is shown in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Resolver<'a> {
+    pub user_id: Uuid,
+    pub thread_id: Option<&'a str>,
+}
+
+/// Only the person a request belongs to may answer it, and a decision that
+/// stores a conversation grant ("this conversation", "allow all") only from
+/// the conversation that asked, when the caller names one. A refused caller
+/// changes nothing: the request stays pending for its owner.
+pub(crate) fn check_owner(
+    req: &PendingRequest,
+    decision: Decision,
+    caller: Resolver<'_>,
+) -> Result<(), String> {
+    if req.user_id != caller.user_id {
+        return Err(format!("consent request '{}' is {NOT_OWNER}", req.request_id));
+    }
+    let conversation_scoped = matches!(decision, Decision::AllowConversation | Decision::AllowAll);
+    if let (true, Some(asked_in), Some(answered_in)) =
+        (conversation_scoped, req.thread_id.as_deref(), caller.thread_id)
+    {
+        if asked_in != answered_in {
+            return Err(format!(
+                "consent request '{}' is {NOT_OWNER} from another conversation",
+                req.request_id
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Applies the person's decision to one pending request. Ownership is
+/// checked first ([`check_owner`]); a refusal leaves the request pending.
 pub async fn resolve(
     state: &Arc<ConsentService>,
     request_id: &str,
     decision: Decision,
-    user_id: Uuid,
+    caller: Resolver<'_>,
 ) -> Result<ResolvedOutcome, String> {
+    let user_id = caller.user_id;
     let outcome = {
         let mut pend = state.pending.lock().await;
-        // The chat gate keys the request by the session user, while the HTTP
-        // route resolves the caller from the JWT / login session; the two
-        // derivations can differ for the same person, which made every click
-        // answer "unknown consent request" (#2203). The request id is the
-        // unguessable capability and is only delivered to that conversation,
-        // so a mismatch is recorded and the decision still applies.
         if let Some((req, _)) = pend.get(request_id) {
-            if req.user_id != user_id {
-                tracing::warn!(
-                    "consent: resolving request {request_id} for a different user id ({} vs {}); accepting by request-id capability",
-                    user_id,
-                    req.user_id
-                );
+            if let Err(refused) = check_owner(req, decision, caller) {
+                tracing::warn!("consent: refused a decision on request {request_id}: not the owner");
+                return Err(refused);
             }
         }
         let mut appr = state.approved_once.lock().await;
@@ -77,8 +123,10 @@ pub async fn resolve(
                     "thread_id": req.thread_id,
                     "run_id": req.run_id,
                 });
+                // The grant belongs to the person whose agent asked: the gate
+                // looks it up under that id.
                 let spec = store::GrantSpec {
-                    user_id,
+                    user_id: req.user_id,
                     app_id: &req.app_id,
                     action_class: &req.action_class,
                     scope: &scope_json,
@@ -87,7 +135,7 @@ pub async fn resolve(
                 };
                 match store::grant(&mut conn, spec) {
                     Ok(row) => store::audit(
-                        &mut conn, Some(row.id), Some(user_id), &req.detail,
+                        &mut conn, Some(row.id), Some(req.user_id), &audit_view(&req.detail),
                         store::OUTCOME_GRANTED, Some(user_id),
                     ),
                     Err(e) => tracing::error!("consent resolve grant failed: {e}"),
@@ -108,6 +156,7 @@ pub async fn resolve(
         tracing::error!("consent resolve persistence: pool unavailable");
     }
 
+    wake(state, request_id, decision).await;
     Ok(outcome)
 }
 

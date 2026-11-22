@@ -71,10 +71,60 @@ pub const AGENT_WORKSPACE_FAILED: &str = "agent_workspace_failed";
 pub const ACCOUNT_MODEL_OFF: &str = "account_model_off";
 pub const FREE_MODEL_UNAVAILABLE: &str = "free_model_unavailable";
 pub const AGENT_LIMIT_REACHED: &str = "agent_limit_reached";
+/// The installed agent CLI acted without asking in the approval self-check;
+/// its chat turns are refused (params `agent`, `label`, `version`).
+pub const AGENT_UNSAFE_VERSION: &str = "agent_unsafe_version";
+
+// ── Refusals raised inside a provider turn ──────────────────────────────
+
+const CODED_PREFIX: &str = "agent_refusal:";
+/// The codes and params a provider turn may raise through its error string.
+const CODED: [&str; 2] = [AGENT_NOT_LINKED, AGENT_UNSAFE_VERSION];
+const CODED_PARAMS: [&str; 3] = ["agent", "label", "version"];
+
+/// The error string a provider returns so the attempt loop ends the turn
+/// with this refusal instead of classifying it as a model failure.
+#[cfg(any(feature = "agent-vm", test))]
+pub(crate) fn coded(code: &'static str, message: &str, params: &[(&'static str, &str)]) -> String {
+    let params: serde_json::Map<String, serde_json::Value> = params
+        .iter()
+        .map(|(key, value)| ((*key).to_string(), serde_json::Value::String((*value).to_string())))
+        .collect();
+    let body = serde_json::json!({ "code": code, "message": message, "params": params });
+    format!("{CODED_PREFIX}{body}")
+}
+
+/// The refusal a provider raised with [`coded`]; `None` for any other error
+/// and for codes outside [`CODED`].
+pub(crate) fn from_coded(error: &str) -> Option<RefusalError> {
+    let at = error.find(CODED_PREFIX)?;
+    let value: serde_json::Value = serde_json::from_str(error[at + CODED_PREFIX.len()..].trim()).ok()?;
+    let code = value.get("code").and_then(serde_json::Value::as_str)?;
+    let code = CODED.iter().copied().find(|known| *known == code)?;
+    let message = value.get("message").and_then(serde_json::Value::as_str).unwrap_or_default();
+    let mut refusal = RefusalError::new(code, message);
+    for key in CODED_PARAMS {
+        if let Some(param) = value.get("params").and_then(|p| p.get(key)).and_then(serde_json::Value::as_str) {
+            refusal = refusal.param(key, param);
+        }
+    }
+    Some(refusal)
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_coded_refusal_survives_the_error_string() {
+        let error = coded(AGENT_UNSAFE_VERSION, "blocked", &[("agent", "codex-cli"), ("version", "0.172.0")]);
+        let refusal = from_coded(&format!("LLM error: {error}")).expect("decoded");
+        assert_eq!(refusal.code, Some(AGENT_UNSAFE_VERSION));
+        assert_eq!(refusal.params["version"], "0.172.0");
+        assert_eq!(refusal.message, "blocked");
+        assert!(from_coded("agent_refusal:{\"code\":\"other\"}").is_none());
+        assert!(from_coded("plain failure").is_none());
+    }
 
     #[test]
     fn classified_refusal_carries_code_and_params() {

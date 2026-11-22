@@ -15,7 +15,33 @@ use crate::schema::{app_permissions, consent_audit};
 /// Every action class an application command can belong to.
 pub const ACTION_CLASSES: &[&str] = &[
     "read", "create", "update", "delete", "payment", "share", "publish",
+    "vm_command", "vm_file_read", "vm_file_write", "vm_file_delete", "vm_network", "vm_browser",
+    "vm_all", "vm_drive_save", "vm_external_save",
 ];
+
+/// Agent actions inside the person's virtual machine. `vm_all` is the
+/// "allow everything" grant of one agent in one conversation; it covers these
+/// classes only.
+pub const VM_IN_CLASSES: &[&str] = &[
+    "vm_command", "vm_file_read", "vm_file_write", "vm_file_delete", "vm_network", "vm_browser",
+];
+
+/// Agent actions that send data from the virtual machine to somewhere else
+/// (the person's Drive, an external cloud drive). Never covered by `vm_all`.
+pub const VM_OUT_CLASSES: &[&str] = &["vm_drive_save", "vm_external_save"];
+
+/// Class of the conversation-wide "allow everything" grant.
+pub const VM_ALL_CLASS: &str = "vm_all";
+
+#[must_use]
+pub fn is_vm_class(class: &str) -> bool {
+    class == VM_ALL_CLASS || VM_IN_CLASSES.contains(&class) || VM_OUT_CLASSES.contains(&class)
+}
+
+#[must_use]
+pub fn is_outside_vm_class(class: &str) -> bool {
+    VM_OUT_CLASSES.contains(&class)
+}
 
 /// Classes that always re-prompt when the current grant cycle expires,
 /// regardless of a stored "always" decision.
@@ -45,15 +71,18 @@ pub fn is_destructive_class(class: &str) -> bool {
 #[must_use]
 pub fn risk_tier(class: &str) -> &'static str {
     match class {
-        "read" => "low",
+        "read" | "vm_file_read" => "low",
         "create" | "update" | "share" => "medium",
         "delete" | "payment" | "publish" => "high",
+        "vm_command" | "vm_file_write" | "vm_network" | "vm_browser" => "medium",
+        "vm_file_delete" | "vm_drive_save" | "vm_external_save" | "vm_all" => "high",
         _ => "unknown",
     }
 }
 
 /// Lifetime of a grant. `Run` is scoped to one run id, `Workspace` to one
-/// hour, `Always` until the sensitive-class cycle cap.
+/// hour, `Always` until the sensitive-class cycle cap, `Conversation` to one
+/// thread (the thread id is required) for at most a day.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConsentScope {
@@ -61,6 +90,7 @@ pub enum ConsentScope {
     Run,
     Workspace,
     Always,
+    Conversation,
 }
 
 impl ConsentScope {
@@ -71,6 +101,7 @@ impl ConsentScope {
             Self::Run => "run",
             Self::Workspace => "workspace",
             Self::Always => "always",
+            Self::Conversation => "conversation",
         }
     }
 
@@ -82,6 +113,7 @@ impl ConsentScope {
             Self::Run => Some(6 * 60 * 60),
             Self::Workspace => Some(60 * 60),
             Self::Always => None,
+            Self::Conversation => Some(24 * 60 * 60),
         }
     }
 }
@@ -137,6 +169,12 @@ pub enum Decision {
     AllowWorkspace,
     #[serde(rename = "always")]
     Always,
+    /// This kind of action, for this agent, in this conversation.
+    #[serde(rename = "allow_conversation")]
+    AllowConversation,
+    /// Every in-VM action of this agent in this conversation (`vm_all`).
+    #[serde(rename = "allow_all")]
+    AllowAll,
     #[serde(rename = "deny")]
     Deny,
 }
@@ -146,6 +184,10 @@ pub enum Decision {
 pub struct ResolveBody {
     pub request_id: String,
     pub decision: Decision,
+    /// The conversation the card is answered in; when present, a
+    /// conversation-scoped decision must come from the conversation that asked.
+    #[serde(default)]
+    pub thread_id: Option<String>,
 }
 
 #[cfg(test)]
@@ -178,5 +220,25 @@ mod tests {
         assert!(!is_reprompt_class("read"));
         assert!(is_known_action_class("publish"));
         assert!(!is_known_action_class("sudo"));
+    }
+
+    #[test]
+    fn vm_classes_are_known_and_split_by_boundary() {
+        for class in VM_IN_CLASSES.iter().chain(VM_OUT_CLASSES) {
+            assert!(is_known_action_class(class), "{class}");
+            assert!(is_vm_class(class), "{class}");
+            assert!(!is_destructive_class(class), "{class}");
+        }
+        assert!(is_outside_vm_class("vm_drive_save"));
+        assert!(!is_outside_vm_class("vm_command"));
+        assert!(VM_IN_CLASSES.contains(&"vm_file_read"), "vm_all covers file reads");
+        assert!(!is_outside_vm_class("vm_file_read"));
+        assert_eq!(risk_tier("vm_file_read"), "low");
+        assert!(!is_vm_class("delete"));
+        assert_eq!(
+            serde_json::from_str::<Decision>("\"allow_all\"").expect("parse allow_all"),
+            Decision::AllowAll
+        );
+        assert_eq!(ConsentScope::Conversation.as_str(), "conversation");
     }
 }

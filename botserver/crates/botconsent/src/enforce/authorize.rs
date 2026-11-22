@@ -127,7 +127,7 @@ fn audit_request(
         "thread_id": context.thread_id,
         "run_id": context.run_id,
         "workspace_id": context.workspace_id,
-        "detail": detail,
+        "detail": super::blocking::audit_view(detail),
     })
 }
 

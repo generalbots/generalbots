@@ -41,8 +41,11 @@ pub mod tool_exec;
 pub mod tool_paths;
 pub mod turn_context;
 pub mod turn_hooks;
+pub mod turn_progress;
 pub mod turn_watch;
 pub mod types;
+#[cfg(feature = "agent-vm")]
+pub mod vm_consent;
 pub mod vibe_route;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_context;

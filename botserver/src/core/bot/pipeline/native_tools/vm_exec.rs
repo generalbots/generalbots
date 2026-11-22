@@ -92,6 +92,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .get("background")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    let action = super::super::vm_consent::tools::program_action(language, code, &packages, background, false);
+    let Some(ticket) = super::super::vm_consent::tools::gate_or_explain(identity, &action).await else {
+        return;
+    };
+    let receipt = ticket.receipt();
 
     if background {
         // #1580: a long job must outlive the tab. Run it in its own task and
@@ -101,7 +106,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         let language = language.to_string();
         tokio::spawn(async move {
             let result = crate::core::bot::agent_vm_hook::exec_with_wake_result(
-                user_id, session_id, bot_uuid, &language, &code, timeout_ms, &packages,
+                ticket, user_id, session_id, bot_uuid, &language, &code, timeout_ms, &packages,
             )
             .await;
             let message = match result {
@@ -122,6 +127,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         });
         let started = "Started in the background. The result will be saved to this conversation.";
         send(identity, started).await;
+        let outcome = super::super::vm_consent::VmOutcome { ok: true, output: started.to_string(), ..Default::default() };
+        super::super::vm_consent::report(identity, &receipt, &outcome).await;
         super::persist(&state, session_id, user_id, started).await;
         return;
     }
@@ -200,9 +207,10 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     // rows while it runs. A run without markers behaves like before.
     let (trace_tx, mut trace_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut trace_rows: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut exit_code: Option<i32> = None;
     let streamed = async {
         let exec = crate::core::bot::agent_vm_hook::exec_with_wake_events(
-            user_id, session_id, bot_uuid, language, code, timeout_ms, &packages, trace_tx,
+            ticket, user_id, session_id, bot_uuid, language, code, timeout_ms, &packages, trace_tx,
         );
         tokio::pin!(exec);
         let mut channel_open = true;
@@ -211,6 +219,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 tokio::select! {
                     event = trace_rx.recv() => match event {
                         Some(event) => {
+                            note_exit_code(&mut exit_code, &event);
                             trace_event(progress.as_ref(), &mut trace_rows, event).await;
                         }
                         None => channel_open = false,
@@ -225,6 +234,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let outcome = tokio::time::timeout(budget, streamed).await;
     // Frames that arrived just before the timeout must still reach the card.
     while let Ok(event) = trace_rx.try_recv() {
+        note_exit_code(&mut exit_code, &event);
         trace_event(progress.as_ref(), &mut trace_rows, event).await;
     }
     let result = match outcome {
@@ -312,6 +322,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             .and_then(|outcome| outcome.as_ref().map(|r| r.0))
     );
 
+    super::super::vm_consent::tools::report_run(identity, &receipt, &result, exit_code).await;
     match result {
         Err((status, reason)) => {
             botlog::safe_warn!(
@@ -356,8 +367,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                     }
                 };
                 if let Some(fixed) = fixed {
-                    let retry = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
-                        user_id, session_id, language, &fixed, timeout_ms, &packages,
+                    let retry = super::super::vm_consent::tools::run_repaired(
+                        identity, language, &fixed, timeout_ms, &packages,
                     )
                     .await;
                     if let Some((true, fixed_out, _)) = retry {
@@ -415,3 +426,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     }
 }
 
+/// Keeps the exit code of the run's `Finished` event for its step row.
+fn note_exit_code(slot: &mut Option<i32>, event: &botagent::stream::ExecEvent) {
+    if let botagent::stream::ExecEvent::Finished { exit_code, .. } = event {
+        *slot = *exit_code;
+    }
+}

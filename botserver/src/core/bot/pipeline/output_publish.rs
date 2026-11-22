@@ -305,12 +305,8 @@ impl ArtifactPublisher for DrivePublisher {
 
 /// Publishes `output/` for the turn. Never returns an error: a Drive outage
 /// leaves the artifacts in the VM and they are retried on the next turn.
-pub async fn publish_turn_output(
-    state: &Arc<AppState>,
-    bot_uuid: Uuid,
-    user_id: Uuid,
-    session_id: Uuid,
-) -> PublishReport {
+pub async fn publish_turn_output(identity: &SessionIdentity<'_>) -> PublishReport {
+    let SessionIdentity { state, bot_uuid, user_id, session_id, .. } = *identity;
     let listing: Vec<OutputFile> =
         match agent_vm_hook::list_session_folder_meta(user_id, session_id, "output").await {
             Some(files) => files
@@ -328,6 +324,11 @@ pub async fn publish_turn_output(
     if selected.is_empty() {
         return PublishReport::default();
     }
+    // Copying to Drive leaves the VM: it waits for the person's decision.
+    let names: Vec<String> = selected.iter().map(|file| file.name.clone()).collect();
+    let Some(receipt) = super::vm_consent::tools::allow_turn_publish(identity, names.clone()).await else {
+        return PublishReport::default();
+    };
     let folder = drive_bridge::conversation_title(state, session_id).await;
     let publisher = DrivePublisher {
         state: state.clone(),
@@ -340,6 +341,8 @@ pub async fn publish_turn_output(
     // Store even when every upload failed: successful and identical files
     // advanced, failed ones kept their old stamp and stay candidates.
     store(session_id, seen);
+    let outcome = super::vm_consent::VmOutcome { ok: !published.is_empty(), files: names, ..Default::default() };
+    super::vm_consent::report(identity, &receipt, &outcome).await;
     PublishReport { folder, published }
 }
 
@@ -399,14 +402,13 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     let SessionIdentity {
         state,
         sink,
-        bot_uuid,
         session_id,
         user_id,
         ..
     } = *identity;
     let report = match tokio::time::timeout(
-        PUBLISH_TIMEOUT,
-        publish_turn_output(state, bot_uuid, user_id, session_id),
+        PUBLISH_TIMEOUT + super::vm_consent::DECISION_WAIT,
+        publish_turn_output(identity),
     )
     .await
     {
