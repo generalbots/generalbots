@@ -1,7 +1,7 @@
 # General Bots — login strings (#2090)
 
 login-document-title = 登录 — General Bots
-login-preview-banner = ⚡ <strong>General Bots 6</strong> 目前处于<strong>预览</strong>阶段 — 功能正在快速演进。投入生产前请<a href="/terms">查看条款</a>。
+login-preview-banner = ⚡ <strong>General Bots 6</strong> 目前处于<strong>预览</strong>阶段 — 功能正在快速演进。投入生产前请<a href="https://generalbots.org/terms/" target="_blank" rel="noopener noreferrer">查看条款</a>。
 login-theme-toggle = 切换主题
 login-welcome-title = 欢迎回来
 login-welcome-subtitle = 登录您的管理账户

@@ -1,7 +1,7 @@
 # General Bots — login strings (#2090)
 
 login-document-title = Connexion — General Bots
-login-preview-banner = ⚡ <strong>General Bots 6</strong> est actuellement en <strong>aperçu</strong> — les fonctionnalités évoluent rapidement. <a href="/terms">Consultez les conditions</a> avant toute utilisation en production.
+login-preview-banner = ⚡ <strong>General Bots 6</strong> est actuellement en <strong>aperçu</strong> — les fonctionnalités évoluent rapidement. <a href="https://generalbots.org/terms/" target="_blank" rel="noopener noreferrer">Consultez les conditions</a> avant toute utilisation en production.
 login-theme-toggle = Changer de thème
 login-welcome-title = Bon retour
 login-welcome-subtitle = Connectez-vous à votre compte de gestion

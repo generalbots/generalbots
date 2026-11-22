@@ -1,7 +1,7 @@
 # General Bots — login strings (#2090)
 
 login-document-title = サインイン — General Bots
-login-preview-banner = ⚡ <strong>General Bots 6</strong> は現在<strong>プレビュー</strong>版です — 機能は急速に進化しています。本番利用の前に<a href="/terms">利用規約</a>をご確認ください。
+login-preview-banner = ⚡ <strong>General Bots 6</strong> は現在<strong>プレビュー</strong>版です — 機能は急速に進化しています。本番利用の前に<a href="https://generalbots.org/terms/" target="_blank" rel="noopener noreferrer">利用規約</a>をご確認ください。
 login-theme-toggle = テーマを切り替える
 login-welcome-title = おかえりなさい
 login-welcome-subtitle = 管理アカウントにサインインしてください

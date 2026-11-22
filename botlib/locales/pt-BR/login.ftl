@@ -1,7 +1,7 @@
 # General Bots — textos de login (#2090)
 
 login-document-title = Entrar — General Bots
-login-preview-banner = ⚡ <strong>General Bots 6</strong> está em <strong>Prévia</strong> — os recursos evoluem rapidamente. <a href="/terms">Leia os termos</a> antes de usar em produção.
+login-preview-banner = ⚡ <strong>General Bots 6</strong> está em <strong>Prévia</strong> — os recursos evoluem rapidamente. <a href="https://generalbots.org/terms/" target="_blank" rel="noopener noreferrer">Leia os termos</a> antes de usar em produção.
 login-theme-toggle = Alternar tema
 login-welcome-title = Bem-vindo de volta
 login-welcome-subtitle = Entre na sua conta de gestão
