@@ -150,10 +150,7 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     // ── Browser redirects authenticated by a signed state ───────────────────
     routes.webhook(Method::GET, "/api/email/oauth/callback");
     routes.webhook(Method::GET, "/api/integrations/oauth/:provider/callback");
-    routes.webhook(
-        Method::GET,
-        "/api/bots/:bot_id/integrations/oauth/:provider/callback",
-    );
+    routes.webhook(Method::GET, "/api/bots/:bot_id/integrations/oauth/:provider/callback");
     routes.webhook(Method::GET, "/api/external-drives/callback");
     routes.webhook(Method::GET, "/auth/callback");
 
@@ -307,19 +304,13 @@ mod tests {
         // The products namespace is authenticated in full (#2128); the public
         // storefront reads `/api/catalog/products`.
         assert!(!is_public(Method::GET, "/api/products/items"));
-        assert!(!is_public(
-            Method::GET,
-            "/api/products/items/00000000-0000-0000-0000-000000000000"
-        ));
+        assert!(!is_public(Method::GET, "/api/products/items/00000000-0000-0000-0000-000000000000"));
         assert!(!is_public(Method::GET, "/api/sheet/list"));
         assert!(!is_public(Method::GET, "/api/ui/sheet/fragments/sheet-list"));
         assert!(!is_public(Method::GET, "/api/cloud/auth/anything"));
         assert!(!is_public(Method::GET, "/api/bots/foo/config"));
         // A server-rendered route under the `/suite` asset tree stays private.
-        assert!(!is_public(
-            Method::GET,
-            "/suite/sheet/fragments/sheet-list"
-        ));
+        assert!(!is_public(Method::GET, "/suite/sheet/fragments/sheet-list"));
         assert!(!is_public(Method::GET, "/suite/dashboards"));
     }
 
@@ -330,8 +321,7 @@ mod tests {
         assert!(!is_public(Method::DELETE, "/api/products/items/:id"));
         assert!(!is_public(Method::POST, "/api/products/items/x/stock"));
         assert!(!is_public(Method::PUT, "/api/products/items/x/stock"));
-        // Every other products write stays authenticated too (#2128): the
-        // legacy `/api/products/items` prefix entry opened the whole namespace.
+        // Every other products write stays authenticated too (#2128).
         assert!(!is_public(Method::POST, "/api/products/services"));
         assert!(!is_public(Method::PUT, "/api/products/services/x"));
         assert!(!is_public(Method::DELETE, "/api/products/services/x"));
@@ -369,20 +359,31 @@ mod tests {
         assert!(is_public(Method::GET, "/suite/desktop.html"));
         assert!(is_public(Method::GET, "/suite/sheet/sheet.js"));
         assert!(is_public(Method::GET, "/themes/dark.css"));
-        // #2503 — event sockets reach their handler token check; the JSON API does not.
-        assert!(is_public(Method::GET, "/ws/events/stream"));
+    }
+
+    #[test]
+    fn event_sockets_are_capabilities_and_replay_is_not_anonymous() {
+        // #2503 — the socket handlers verify their own tokens, so they are
+        // capabilities; the replay API has no such gate. Other chat sockets stay public.
+        for path in ["/ws/events", "/ws/events/stream"] {
+            assert!(is_public(Method::GET, path), "{path}");
+            assert!(platform_public_routes().into_iter().any(|r| {
+                r.access == PublicAccess::Capability && r.matches(&Method::GET, path)
+            }), "{path}");
+        }
         assert!(!is_public(Method::POST, "/api/events/replay"));
+        assert!(is_public(Method::GET, "/ws/acme"));
+        assert!(is_public(Method::GET, "/ws/task-progress/42"));
+        assert!(!is_public(Method::GET, "/ws/logs"));
     }
 
     #[test]
     fn email_tracking_routes_are_anonymous_only_in_their_declared_shapes() {
-        // A mail client cannot send a bearer token, so the pixel and the click
-        // redirect stay anonymous (#2139) — but only in the declared shapes.
+        // Pixel and click redirect stay anonymous (#2139), only in declared shapes.
         assert!(is_public(Method::GET, "/api/marketing/track/open/abc"));
         let click = "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11";
         assert!(is_public(Method::GET, click));
-        // The legacy path shape must still reach the handler so it can answer
-        // an explicit 400 instead of redirecting.
+        // The legacy shape still reaches the handler for an explicit 400.
         assert!(is_public(
             Method::GET,
             "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11/https://evil.example"
@@ -412,9 +413,8 @@ mod tests {
 
     #[test]
     fn the_integrations_catalog_requires_authentication() {
-        // #2351 — the catalog exposes auth profiles, OAuth flow metadata,
-        // credential-field schemas (including secret semantics), setup steps
-        // and roadmap status, so it must never be reachable anonymously.
+        // #2351 — the catalog exposes auth profiles and credential schemas,
+        // so it must never be reachable anonymously.
         assert!(!is_public(Method::GET, "/api/apps/integrations/catalog"));
         assert!(!is_public(Method::GET, "/api/apps/integrations/catalog/github"));
         assert!(!is_public(Method::POST, "/api/apps/integrations/catalog"));
@@ -436,10 +436,8 @@ mod tests {
 
     #[test]
     fn every_declaration_is_valid() {
-        // `platform_public_routes` drops invalid declarations; a short list
-        // means a declaration was silently refused.
-        let routes = platform_public_routes();
-        let count = routes.len();
+        // A short list means a declaration was silently refused.
+        let count = platform_public_routes().len();
         assert!(count > 40, "declarations were refused: {count}");
         for route in &routes {
             assert!(route.pattern.starts_with('/'));
