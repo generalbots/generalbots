@@ -205,7 +205,6 @@ window.GBAssistantLocales["en"] = {
     "shell.conversations": "Conversations",
     "shell.machine": "Virtual machine",
     "shell.close": "Close",
-    "shell.workspace": "Your virtual machine",
     "shell.activity": "Activity",
     "assistant.you": "You",
     "drive.used": "used",

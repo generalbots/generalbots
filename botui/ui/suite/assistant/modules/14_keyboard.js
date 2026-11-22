@@ -117,7 +117,7 @@
         /* Esc — layered close:
            1. Close the topmost open window, menu, panel or drawer
            2. Stop generation (if streaming)
-           3. Close Drive / Settings view */
+           3. Close Drive / Settings / Machine view */
         if (e.key === "Escape") {
             if (e.defaultPrevented || closeTopLayer(e)) { return; }
             /* Then stopping generation */
@@ -128,8 +128,8 @@
             }
             /* Attachment panel (13_attachpanel.js manages its own Esc
                handler; we do not duplicate it here.) */
-            /* Drive or Settings: return to chat */
-            if (A.currentView === "drive" || A.currentView === "settings") {
+            /* Drive, Settings or Machine: return to chat */
+            if (A.currentView === "drive" || A.currentView === "settings" || A.currentView === "machine") {
                 e.preventDefault();
                 A.switchView("chat");
                 return;

@@ -16,11 +16,14 @@
         pt: {
             loading: "Verificando…", running: "Ligada", stopped: "Desligada", provisioning: "Preparando",
             error: "Atenção", full: "Disco cheio", unavailable: "Indisponível", restoring: "Restaurando", starting: "Iniciando",
-            machine: "Máquina Virtual", failed: "Falha na operação", kicker: "// MÁQUINA VIRTUAL DE AGENTES",
+            machine: "Máquina Virtual", failed: "Falha na operação",
             title: "Um computador só seu, onde os agentes trabalham.",
             lead: "Os agentes por assinatura e o modo Agente rodam aqui: executam comandos, instalam ferramentas e geram arquivos, separados do seu Windows.",
-            sections: "Seções", secA: "Sua máquina virtual", secB: "Uso agora", secC: "Ajustes", secD: "Restauração",
+            secA: "Sua máquina virtual", secB: "Uso agora", secC: "Ajustes", secD: "Restauração",
             secE: "O que vive nela", secF: "Atividade", secG: "Cuidado",
+            headB: "O que a máquina usa agora.", headC: "Limites de processador, memória e disco.",
+            headD: "Pontos para voltar atrás.", headE: "A imagem e os agentes conectados.",
+            headF: "O que aconteceu nesta sessão.", headG: "Espaço em disco e limpeza.",
             isolated: "Isolada dentro deste computador. Ela não vê seus arquivos do Windows. O que acontece lá fica lá.",
             subRunning: "Pronta para os agentes", subStopped: "Desligada. Liga sozinha quando um agente precisar dela, ou pelo botão.",
             subProvisioning: "Preparando o espaço dos agentes. Isso leva alguns minutos na primeira vez.",
@@ -48,11 +51,14 @@
         en: {
             loading: "Checking…", running: "Running", stopped: "Off", provisioning: "Preparing",
             error: "Needs attention", full: "Disk full", unavailable: "Unavailable", restoring: "Restoring", starting: "Starting",
-            machine: "Virtual machine", failed: "Operation failed", kicker: "// AGENT VIRTUAL MACHINE",
+            machine: "Virtual machine", failed: "Operation failed",
             title: "A computer of your own, where agents work.",
             lead: "Subscription agents and Agent mode run here: they run commands, install tools and create files, apart from your Windows.",
-            sections: "Sections", secA: "Your virtual machine", secB: "Usage now", secC: "Settings", secD: "Recovery",
+            secA: "Your virtual machine", secB: "Usage now", secC: "Settings", secD: "Recovery",
             secE: "What lives here", secF: "Activity", secG: "Maintenance",
+            headB: "What the machine is using now.", headC: "Processor, memory and disk limits.",
+            headD: "Points to go back to.", headE: "The image and the connected agents.",
+            headF: "What happened in this session.", headG: "Disk space and clean-up.",
             isolated: "Isolated inside this computer. It cannot see your Windows files. What happens there stays there.",
             subRunning: "Ready for your agents", subStopped: "Off. It starts when an agent needs it, or with the button.",
             subProvisioning: "Preparing the agent workspace. The first time takes a few minutes.",
@@ -233,16 +239,19 @@
         M.busy = false; await A.refreshMachineStatus(true, true);
     };
 
-    /* Every 5 s while the page is open and the window visible; 30 s after
-       a failure. A machine that is off is not polled until it starts. */
+    /* Every 5 s while the page shows a live section (16b_machine_view.js)
+       and the window is visible; 30 s after a failure. A machine that is
+       off is not polled until it starts. */
     function tick() {
         if (M.busy || !(M.model.row || M.model.status === "starting")) return POLL_MS;
         return A.refreshMachineStatus(true).then(function (ok) { return ok ? POLL_MS : POLL_BACKOFF; });
     }
+    M.wake = function () { if (poll) poll.wake(); };
     A.renderMachine = function () {
+        if (M.drawNav) M.drawNav();
         if (M.draw) M.draw();
         if (!poll) poll = A.poller(tick, {every: POLL_MS, backoff: POLL_BACKOFF,
-            when: function () { return A.currentView === "machine"; }});
+            when: function () { return A.currentView === "machine" && (!M.current || !!M.current().live); }});
         A.refreshMachineStatus(true);
         poll.start(POLL_MS);
     };

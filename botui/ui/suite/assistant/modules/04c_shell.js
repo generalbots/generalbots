@@ -11,12 +11,12 @@
         var active;
         if (screen === "settings") active = id("gbSettingsNav").querySelector(".active, [aria-current=page]");
         if (screen === "drive") active = id("gbDriveNav").querySelector(".active");
+        if (screen === "machine") active = id("gbMachineNav").querySelector("[aria-current=page]");
         var current = active ? active.textContent.trim() : section;
         if (screen === "chat") {
             var conversation = A.sessions.find(function (s) { return s.id === A.currentSessionId; });
             current = (conversation && conversation.title) || A.t("assistant.new-chat");
         }
-        if (screen === "machine") current = A.t("shell.workspace");
         id("gbCrumbSection").textContent = section;
         id("gbCrumbCurrent").textContent = current;
     };
