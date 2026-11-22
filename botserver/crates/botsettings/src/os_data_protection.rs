@@ -10,8 +10,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json,
-    Router,
+    Json, Router,
 };
 use botcore::shared::state::AppState;
 use botsecurity::auth::AuthenticatedUser;
@@ -82,8 +81,28 @@ fn gate(
     Ok(user)
 }
 
-fn bad_request(error: &str) -> (StatusCode, Json<Value>) {
-    (StatusCode::BAD_REQUEST, Json(json!({ "error": error })))
+/// Pure, AppState-free HTTP response decision (#2470): a status code and a
+/// JSON body. Shared by the handlers and the offline tests so the exact status
+/// semantics have a single source of truth. No host state, no I/O, no secrets.
+#[derive(Debug, Clone, PartialEq)]
+struct ResponseSpec {
+    status: StatusCode,
+    body: Value,
+}
+
+impl ResponseSpec {
+    fn new(status: StatusCode, body: Value) -> Self {
+        Self { status, body }
+    }
+
+    fn into_api_result(self) -> ApiResult {
+        Ok(respond(self.status, self.body))
+    }
+}
+
+/// Generic 400 with a stable, machine-readable error code.
+fn bad_request(code: &str) -> ResponseSpec {
+    ResponseSpec::new(StatusCode::BAD_REQUEST, json!({ "error": code }))
 }
 
 fn respond(status: StatusCode, value: Value) -> Response {
@@ -232,6 +251,58 @@ fn reset_confirmed(confirmation: Option<&str>) -> bool {
     confirmation == Some(RESET_CONFIRMATION_TOKEN)
 }
 
+/// Pure export decision (#2470): accepted scope -> 200 descriptor manifest,
+/// otherwise 400 with a generic code. No AppState, no I/O, no secrets.
+fn export_response(accepted: bool) -> ResponseSpec {
+    if accepted {
+        ResponseSpec::new(StatusCode::OK, archive_manifest())
+    } else {
+        bad_request("unsupported_export_scope")
+    }
+}
+
+/// Pure snapshot decision (#2470): an invalid reason -> 400; a valid reason
+/// with a prepared backend -> 202 staged descriptor; a valid reason with no
+/// backend -> 503 with a generic code. No AppState, no I/O, no secrets.
+fn snapshot_response(valid: bool, descriptor: Option<Value>) -> ResponseSpec {
+    if !valid {
+        return bad_request("invalid_reason");
+    }
+    match descriptor {
+        Some(value) => ResponseSpec::new(StatusCode::ACCEPTED, value),
+        None => ResponseSpec::new(StatusCode::SERVICE_UNAVAILABLE, snapshot_unavailable_body()),
+    }
+}
+
+fn snapshot_unavailable_body() -> Value {
+    json!({
+        "error": "os_backend_unavailable",
+        "status": "not_implemented",
+        "message": "No snapshot backend is available: Drive is not configured and no btrfs backend ships in this build. Nothing was created or deleted.",
+        "contract": SNAPSHOT_CONTRACT_PATH,
+        "adapters": ["btrfs", "drive-archive"]
+    })
+}
+
+/// Pure reset decision (#2470): exact token -> 501 (no backend), otherwise
+/// 400 with a generic code. The token is never echoed in the response.
+fn reset_response(confirmed: bool) -> ResponseSpec {
+    if confirmed {
+        ResponseSpec::new(StatusCode::NOT_IMPLEMENTED, reset_absent_body())
+    } else {
+        bad_request("confirmation_mismatch")
+    }
+}
+
+fn reset_absent_body() -> Value {
+    json!({
+        "error": "reset_backend_absent",
+        "status": "not_implemented",
+        "message": "Factory reset is disabled: no wipe-and-wizard backend ships in this build. Nothing was erased.",
+        "contract": RESET_CONTRACT_PATH
+    })
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ExportRequest {
     pub scope: String,
@@ -269,11 +340,7 @@ async fn export_archive(
         accepted,
         EXPORT_DETAILS[usize::from(accepted)],
     );
-    if accepted {
-        Ok(respond(StatusCode::OK, archive_manifest()))
-    } else {
-        Err(bad_request("unsupported_export_scope"))
-    }
+    export_response(accepted).into_api_result()
 }
 
 async fn create_snapshot(
@@ -310,22 +377,7 @@ async fn create_snapshot(
         staged,
         details,
     );
-    if !valid {
-        return Err(bad_request("invalid_reason"));
-    }
-    match descriptor {
-        Some(value) => Ok(respond(StatusCode::ACCEPTED, value)),
-        None => Err((
-            StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({
-                "error": "os_backend_unavailable",
-                "status": "not_implemented",
-                "message": "No snapshot backend is available: Drive is not configured and no btrfs backend ships in this build. Nothing was created or deleted.",
-                "contract": SNAPSHOT_CONTRACT_PATH,
-                "adapters": ["btrfs", "drive-archive"]
-            })),
-        )),
-    }
+    snapshot_response(valid, descriptor).into_api_result()
 }
 
 async fn reset_device(
@@ -345,20 +397,13 @@ async fn reset_device(
         false,
         RESET_DETAILS[usize::from(confirmed)],
     );
-    if !confirmed {
-        return Err(bad_request("confirmation_mismatch"));
-    }
-    Ok(respond(
-        StatusCode::NOT_IMPLEMENTED,
-        json!({
-            "error": "reset_backend_absent",
-            "status": "not_implemented",
-            "message": "Factory reset is disabled: no wipe-and-wizard backend ships in this build. Nothing was erased.",
-            "contract": RESET_CONTRACT_PATH
-        }),
-    ))
+    reset_response(confirmed).into_api_result()
 }
 
 #[cfg(test)]
 #[path = "os_data/protection_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "os_data/handler_tests.rs"]
+mod handler_tests;
