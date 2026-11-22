@@ -14,6 +14,9 @@ pub(super) enum AttemptOutcome {
     Stopped,
     /// The per-run cap was hit and reported; the run ends.
     Capped,
+    /// The turn is refused for a reason only the person can clear (a spent
+    /// subscription plan); it is never retried.
+    Refused(super::refusal::RefusalError),
     /// The LLM provider returned an error (classified for the client).
     Failed {
         code: super::error_classify::LlmErrorCode,
@@ -134,7 +137,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
         }
         let _ = sink.send_raw_json(&init_msg).await;
     } else {
-        log::warn!("LLM retry attempt {}/{}", attempt, super::LLM_RETRY_MAX);
+        log::warn!("LLM attempt {}/{} (retry)", attempt + 1, super::LLM_RETRY_MAX + 1);
     }
 
     // #1700 — first content chunk latency for this attempt.
@@ -175,6 +178,9 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                     Some(chunk) => {
                         // #2562 — detect error sentinel from the LLM task.
                         if let Some(err_msg) = super::error_classify::parse_sentinel(&chunk) {
+                            if let Some(refusal) = super::agent_limit::refusal_for(err_msg) {
+                                return AttemptOutcome::Refused(refusal);
+                            }
                             let code = super::error_classify::classify(err_msg);
                             return AttemptOutcome::Failed {
                                 code,

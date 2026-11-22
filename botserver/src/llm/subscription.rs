@@ -12,6 +12,8 @@ use tokio::sync::mpsc;
 
 use botagent::AgentService;
 
+mod plan_limit;
+
 /// Runs prompts through the `claude` CLI inside the user's agent VM (#1652).
 pub struct ClaudeCodeProvider {
     service: Arc<AgentService>,
@@ -110,9 +112,8 @@ impl botlib::traits::LLMProvider for ClaudeCodeProvider {
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let prompt = flatten_prompt(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
-        botagent::claude::run_prompt(&self.service, &self.vm_name, &prompt, selected)
-            .await
-            .map_err(|(_, error)| boxed(error))
+        let result = botagent::claude::run_prompt(&self.service, &self.vm_name, &prompt, selected).await;
+        plan_limit::settle(result, &self.service, &self.vm_name, crate::core::ai_accounts::CLAUDE_CODE).await
     }
 
     async fn generate_stream(
@@ -141,9 +142,8 @@ impl botlib::traits::LLMProvider for CodexCliProvider {
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let prompt = flatten_prompt(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
-        botagent::codex::run_prompt(&self.service, &self.vm_name, &prompt, selected)
-            .await
-            .map_err(|(_, error)| boxed(error))
+        let result = botagent::codex::run_prompt(&self.service, &self.vm_name, &prompt, selected).await;
+        plan_limit::settle(result, &self.service, &self.vm_name, crate::core::ai_accounts::CODEX_CLI).await
     }
 
     async fn generate_stream(
@@ -172,9 +172,8 @@ impl botlib::traits::LLMProvider for AntigravityProvider {
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let prompt = flatten_prompt(prompt, config);
         let selected = if model.trim().is_empty() { self.model.as_str() } else { model };
-        botagent::antigravity::run_prompt(&self.service, &self.vm_name, &prompt, selected)
-            .await
-            .map_err(|(_, error)| boxed(error))
+        let result = botagent::antigravity::run_prompt(&self.service, &self.vm_name, &prompt, selected).await;
+        plan_limit::settle(result, &self.service, &self.vm_name, crate::core::ai_accounts::ANTIGRAVITY).await
     }
 
     async fn generate_stream(

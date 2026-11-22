@@ -156,9 +156,9 @@ async fn stream_llm_response_inner(
                 .await;
                 let (full_response, mut content_buffer, reasoning_accumulated) = match outcome {
                     AttemptOutcome::Stopped | AttemptOutcome::Capped => return Ok(()),
+                    AttemptOutcome::Refused(refusal) => return super::stream_errors::refuse(sink, identity, &refusal).await,
                     AttemptOutcome::Failed { code, detail } => {
-                        log::warn!("LLM attempt {}/{} failed: {code:?} — {detail}",
-                            attempt + 1, LLM_RETRY_MAX);
+                        log::warn!("LLM attempt {}/{} failed: {code:?} — {detail}", attempt + 1, LLM_RETRY_MAX + 1);
                         // ModelUnreachable: inline recovery before normal retry.
                         #[cfg(feature = "gbgov")]
                         if matches!(code, super::error_classify::LlmErrorCode::ModelUnreachable)
@@ -283,7 +283,7 @@ async fn stream_llm_response_inner(
                         log::warn!(
                             "LLM empty response on attempt {}/{}, retrying in {}s",
                             attempt + 1,
-                            LLM_RETRY_MAX,
+                            LLM_RETRY_MAX + 1,
                             LLM_RETRY_DELAY
                         );
                         tokio::time::sleep(Duration::from_secs(LLM_RETRY_DELAY)).await;

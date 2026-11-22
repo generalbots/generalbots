@@ -70,6 +70,7 @@ pub const AGENT_MODEL_UNAVAILABLE: &str = "agent_model_unavailable";
 pub const AGENT_WORKSPACE_FAILED: &str = "agent_workspace_failed";
 pub const ACCOUNT_MODEL_OFF: &str = "account_model_off";
 pub const FREE_MODEL_UNAVAILABLE: &str = "free_model_unavailable";
+pub const AGENT_LIMIT_REACHED: &str = "agent_limit_reached";
 
 #[cfg(test)]
 mod tests {

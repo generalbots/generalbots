@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 
-use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn};
+use crate::cli_turn::{cli_model, failure_reason, plan_limit, run_turn, spent_answer};
 use crate::AgentService;
 
 use super::internal;
@@ -52,6 +52,9 @@ pub async fn run_prompt(
     let answer = stdout.trim().to_string();
     if answer.is_empty() {
         return Err(internal("Claude Code returned an empty response".to_string()));
+    }
+    if let Some(limit) = spent_answer(&answer) {
+        return Err(limit);
     }
     Ok(answer)
 }

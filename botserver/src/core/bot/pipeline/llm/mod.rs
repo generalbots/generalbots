@@ -7,12 +7,13 @@ use uuid::Uuid;
 
 use super::sink::ChannelSink;
 
+pub(crate) mod agent_limit;
 mod attempt;
 pub(crate) mod error_classify;
 mod markdown;
 pub(crate) mod message_meta;
 mod stream;
-mod stream_errors;
+pub(crate) mod stream_errors;
 pub(crate) mod refusal;
 mod stream_tools;
 mod svg_contract;

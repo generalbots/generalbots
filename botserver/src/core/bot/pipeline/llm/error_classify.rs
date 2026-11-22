@@ -55,6 +55,12 @@ impl LlmErrorCode {
 pub fn classify(error: &str) -> LlmErrorCode {
     let lower = error.to_lowercase();
 
+    // A spent subscription plan (`agent_limit`): a path that cannot show its
+    // card still reports it as a rate limit, never as a model error.
+    if lower.contains("agent_limit_reached:") {
+        return LlmErrorCode::ModelRateLimited;
+    }
+
     // The request itself is too long: sending it again cannot succeed.
     if lower.contains("exceeds the available context size")
         || lower.contains("context_length_exceeded")

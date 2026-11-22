@@ -116,20 +116,31 @@ fn turn_host_timeout() -> std::time::Duration {
     std::time::Duration::from_secs(TURN_TIMEOUT_SECS + 60)
 }
 
-/// The provider's own "usage limit" line when the subscription's allowance
-/// is spent, so the turn reports a rate limit instead of a generic failure
-/// and is not retried.
+/// A limit the CLI reported. A spent plan carries
+/// [`crate::plan_limit::MARKER`] so the chat ends the turn with its own card
+/// instead of retrying; a short-lived rate limit stays an ordinary 429.
 pub fn plan_limit(stdout: &str, stderr: &str) -> Option<(StatusCode, String)> {
+    if let Some(line) = crate::plan_limit::spent_line(stdout, stderr) {
+        tracing::warn!("subscription plan limit: {line}");
+        return Some((StatusCode::TOO_MANY_REQUESTS, format!("{} {line}", crate::plan_limit::MARKER)));
+    }
     let line = stderr
         .lines()
         .chain(stdout.lines())
         .map(|l| l.trim().trim_start_matches("ERROR:").trim())
         .find(|l| {
             let lower = l.to_ascii_lowercase();
-            lower.contains("usage limit") || lower.contains("quota exceeded") || lower.contains("rate limit")
+            lower.contains("rate limit") || lower.contains("too many requests")
         })?;
-    tracing::warn!("subscription plan limit: {line}");
+    tracing::warn!("subscription rate limit: {line}");
     Some((StatusCode::TOO_MANY_REQUESTS, format!("429 rate limit: {line}")))
+}
+
+/// A clean exit whose whole answer is the CLI's spent-plan line.
+pub fn spent_answer(answer: &str) -> Option<(StatusCode, String)> {
+    let line = crate::plan_limit::spent_answer(answer)?;
+    tracing::warn!("subscription plan limit: {line}");
+    Some((StatusCode::TOO_MANY_REQUESTS, format!("{} {line}", crate::plan_limit::MARKER)))
 }
 
 /// The reason to log when a turn fails: stderr when there is any, else stdout.
@@ -178,12 +189,28 @@ mod tests {
     }
 
     #[test]
-    fn a_spent_plan_is_reported_as_a_rate_limit() {
+    fn a_spent_plan_carries_the_marker() {
         let out = "OpenAI Codex v0.170.0
 ERROR: You've hit your usage limit. Try again at Nov 22nd.";
         let (code, msg) = super::plan_limit(out, "").unwrap_or((StatusCode::OK, String::new()));
         assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
-        assert!(msg.contains("rate limit") && msg.contains("Try again at Nov 22nd"));
+        assert_eq!(msg, "subscription plan limit: You've hit your usage limit. Try again at Nov 22nd.");
         assert!(super::plan_limit("all fine", "").is_none());
+    }
+
+    #[test]
+    fn a_short_lived_rate_limit_stays_a_plain_429() {
+        let err = "API Error: 429 rate limit exceeded, retry in 20s";
+        let (code, msg) = super::plan_limit("", err).unwrap_or((StatusCode::OK, String::new()));
+        assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
+        assert!(msg.starts_with("429 rate limit: "));
+    }
+
+    #[test]
+    fn a_clean_exit_with_only_the_limit_line_is_a_spent_plan() {
+        let answer = "Claude AI usage limit reached|1795400000";
+        let msg = super::spent_answer(answer).map(|(_, m)| m).unwrap_or_default();
+        assert_eq!(msg, "subscription plan limit: Claude AI usage limit reached|1795400000");
+        assert!(super::spent_answer("Here is your summary.").is_none());
     }
 }

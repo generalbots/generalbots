@@ -8,12 +8,81 @@
  */
 (function () {
     var A = window.GBAssistant;
-    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
     function pt() { return !!(A.locale && A.locale.startsWith("pt")); }
 
     function tpl(s, params) {
         if (!params) { return s; }
         return s.replace(/\{(\w+)\}/g, function (m, k) { return params[k] !== undefined ? params[k] : m; });
+    }
+
+    /* ---- A spent subscription plan (agent_limit_reached) ---- */
+
+    /* When the plan comes back, in the person's own clock and language:
+       "às 19:15", "amanhã às 19:15", "na quinta-feira às 19:15". "" when
+       the server did not know it. */
+    function whenBack(iso) {
+        var at = iso ? new Date(iso) : null;
+        if (!at || isNaN(at.getTime()) || at.getTime() <= Date.now()) { return ""; }
+        var loc = pt() ? "pt-BR" : "en-US";
+        var time = at.toLocaleTimeString(loc, { hour: pt() ? "2-digit" : "numeric", minute: "2-digit" });
+        var now = new Date();
+        var days = Math.round((new Date(at.getFullYear(), at.getMonth(), at.getDate()) -
+            new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+        if (days === 0) { return (pt() ? "às " : "at ") + time; }
+        if (days === 1) { return (pt() ? "amanhã às " : "tomorrow at ") + time; }
+        if (days < 7) {
+            var day = at.toLocaleDateString(loc, { weekday: "long" });
+            if (!pt()) { return "on " + day + " at " + time; }
+            return (/^(sábado|domingo)/.test(day) ? "no " : "na ") + day + " às " + time;
+        }
+        var date = at.toLocaleDateString(loc, { day: "numeric", month: "long" });
+        return (pt() ? "em " : "on ") + date + (pt() ? " às " : " at ") + time;
+    }
+    A.engineLimitWhen = whenBack;
+
+    function block(tag, text) {
+        var el = document.createElement(tag);
+        el.style.display = "block";
+        if (text) { el.textContent = text; }
+        return el;
+    }
+
+    /* The agent's own words; only https addresses become links, opened in
+       the person's browser like every other external link of the shell. */
+    function linkify(el, text) {
+        var re = /https:\/\/[^\s<>"'()\[\]{}]+/g, last = 0, m;
+        while ((m = re.exec(text))) {
+            var url = m[0].replace(/[.,;:!?]+$/, "");
+            if (m.index > last) { el.appendChild(document.createTextNode(text.slice(last, m.index))); }
+            var a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = url;
+            el.appendChild(a);
+            last = m.index + url.length;
+        }
+        if (last < text.length) { el.appendChild(document.createTextNode(text.slice(last))); }
+    }
+
+    function agentLimitBody(span, p) {
+        var when = whenBack(p.reset);
+        var vars = { label: p.label || "", when: when };
+        if (!p.message) {
+            span.textContent = tpl(pt()
+                ? "Você atingiu o limite de uso do seu plano no {label}. " + (when ? "Ele volta {when}." : "Ele volta mais tarde; veja em Limites.") + " Enquanto isso, escolha outro modelo."
+                : "You have reached your plan's usage limit on {label}. " + (when ? "It comes back {when}." : "It comes back later; see Limits.") + " Meanwhile, choose another model.", vars);
+            return;
+        }
+        span.appendChild(block("strong", tpl(pt() ? "Limite do plano atingido no {label}" : "{label} plan limit reached", vars)));
+        var body = block("span");
+        linkify(body, String(p.message));
+        span.appendChild(body);
+        if (when) {
+            var note = block("span", tpl(pt() ? "Volta {when} no seu horário." : "Back {when}, your time.", vars));
+            note.style.opacity = "0.75";
+            span.appendChild(note);
+        }
     }
 
     /* ---- Error definitions ---- */
@@ -52,6 +121,10 @@
             pt: "O modelo gratuito está indisponível no momento. Tente de novo mais tarde ou escolha outro motor em Configurações › Modelo.",
             en: "The free model is unavailable right now. Try again later or choose another engine in Settings › Model.",
             action: "settings_model"
+        },
+        agent_limit_reached: {
+            build: agentLimitBody,
+            actions: ["pick_model", "limits_view"], noRetry: true, limits: true
         }
     };
 
@@ -61,8 +134,20 @@
         settings_model:   ["Abrir Configurações", "Open Settings"],
         agent_on:         ["Ligar Agente", "Turn Agent on"],
         model_menu:       ["Abrir menu de modelos", "Open model menu"],
-        machine_view:     ["Ver Máquina Virtual", "View Virtual Machine"]
+        machine_view:     ["Ver Máquina Virtual", "View Virtual Machine"],
+        pick_model:       ["Escolher outro modelo", "Choose another model"],
+        limits_view:      ["Ver limites", "See limits"]
     };
+
+    /* The first matching control that is on screen (the composer's, not a
+       hidden copy on another view). */
+    function visible(selector) {
+        var all = document.querySelectorAll(selector);
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].offsetParent !== null) { return all[i]; }
+        }
+        return all[0] || null;
+    }
 
     function doAction(action) {
         if (action === "settings_acp") {
@@ -81,9 +166,23 @@
             if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
         } else if (action === "settings_model") {
             if (typeof A.openSettings === "function") { A.openSettings("model"); }
-        } else if (action === "model_menu") {
-            var picker = document.querySelector(".gb-model-btn");
-            if (picker) { picker.click(); }
+        } else if (action === "model_menu" || action === "pick_model") {
+            /* After this click has finished bubbling: the menu closes on any
+               click outside it, and this one started on the card. */
+            setTimeout(function () {
+                var picker = visible(".gb-model-btn");
+                if (picker) { picker.click(); }
+            }, 0);
+        } else if (action === "limits_view") {
+            var drawer = document.getElementById("gbQuotaDrawer");
+            var trigger = visible(".gb-usage-trigger");
+            if (trigger && (!drawer || drawer.hidden)) { trigger.click(); return; }
+            if (trigger) { return; }
+            if (typeof A.switchView === "function") { A.switchView("settings"); }
+            setTimeout(function () {
+                var tab = document.querySelector('.gb-set-tab[data-section="limits"]');
+                if (tab) { tab.click(); }
+            }, 80);
         } else if (action === "machine_view") {
             if (typeof A.switchView === "function") { A.switchView("machine"); }
         }
@@ -116,7 +215,6 @@
         A.hideThinking();
         if (typeof A._finalizeStreaming === "function") { A._finalizeStreaming(); }
 
-        var msg = tpl(pt() ? def.pt : def.en, params || {});
         var msgs = document.getElementById("gbMessages");
         var el = document.createElement("div");
         el.className = "gb-msg-assistant gb-msg-error";
@@ -125,45 +223,49 @@
         card.className = "gb-error-card gb-engine-error-card";
         card.setAttribute("role", "alert");
         card.innerHTML =
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-            '<span>' + esc(msg) + '</span>';
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        var textEl = document.createElement("span");
+        if (def.build) { def.build(textEl, params || {}); } else { textEl.textContent = tpl(pt() ? def.pt : def.en, params || {}); }
+        card.appendChild(textEl);
         el.appendChild(card);
 
         var bar = document.createElement("div");
         bar.className = "gb-error-actions";
 
-        /* Retry */
-        var retryBtn = document.createElement("button");
-        retryBtn.className = "gb-btn-retry";
-        retryBtn.textContent = A.t("assistant.retry", "Tentar novamente");
-        retryBtn.addEventListener("click", function () {
-            var all = msgs.querySelectorAll(".gb-msg-user");
-            var last = all.length ? all[all.length - 1] : null;
-            if (!last) { return; }
-            var text = (last.dataset.originalContent || "").trim();
-            if (!text) { return; }
-            el.remove();
-            A.lastCompletedContent = "";
-            A.lastCompletedTime = 0;
-            A.showThinking();
-            if (!A.sendMessage(text)) {
-                A.hideThinking();
-                if (typeof A.renderErrorCode === "function") { A.renderErrorCode("model_unreachable"); }
-            }
-        });
-        bar.appendChild(retryBtn);
+        /* Retry (not offered when only the person can clear the cause) */
+        if (!def.noRetry) {
+            var retryBtn = document.createElement("button");
+            retryBtn.className = "gb-btn-retry";
+            retryBtn.textContent = A.t("assistant.retry", "Tentar novamente");
+            retryBtn.addEventListener("click", function () {
+                var all = msgs.querySelectorAll(".gb-msg-user");
+                var last = all.length ? all[all.length - 1] : null;
+                if (!last) { return; }
+                var text = (last.dataset.originalContent || "").trim();
+                if (!text) { return; }
+                el.remove();
+                A.lastCompletedContent = "";
+                A.lastCompletedTime = 0;
+                A.showThinking();
+                if (!A.sendMessage(text)) {
+                    A.hideThinking();
+                    if (typeof A.renderErrorCode === "function") { A.renderErrorCode("model_unreachable"); }
+                }
+            });
+            bar.appendChild(retryBtn);
+        }
 
-        /* Action button */
-        if (def.action) {
-            var actionLabel = ACTION_LABELS[def.action];
+        /* Action buttons */
+        (def.actions || (def.action ? [def.action] : [])).forEach(function (action) {
+            var actionLabel = ACTION_LABELS[action];
             var actionBtn = document.createElement("button");
             actionBtn.className = "gb-btn-settings";
             actionBtn.textContent = actionLabel ? (pt() ? actionLabel[0] : actionLabel[1]) : "";
             actionBtn.addEventListener("click", function () {
-                doAction(def.action);
+                doAction(action);
             });
             bar.appendChild(actionBtn);
-        }
+        });
         el.appendChild(bar);
 
         msgs.appendChild(el);
@@ -173,6 +275,12 @@
         if (def.refresh && typeof A.loadModels === "function") {
             A.loadModels().then(function () {
                 if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
+            });
+        }
+        /* A spent plan: show the exhausted window in the engine panel. */
+        if (def.limits && typeof A.llmLimits === "function") {
+            A.llmLimits(true).then(function () {
+                if (typeof A.syncEngineUsage === "function") { A.syncEngineUsage(); }
             });
         }
         return true;

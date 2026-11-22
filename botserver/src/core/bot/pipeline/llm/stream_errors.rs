@@ -10,7 +10,7 @@ use super::error_classify::LlmErrorCode;
 ///
 /// The frame carries stable error codes so the client renders the right card
 /// with retry and settings buttons.
-pub(super) async fn send_classified_error(
+pub(crate) async fn send_classified_error(
     sink: &dyn ChannelSink,
     identity: &SessionIdentity<'_>,
     code: LlmErrorCode,
@@ -127,6 +127,16 @@ pub(super) async fn send_refusal_error(
             log::error!("refusal response not delivered: {error}");
         }
     }
+}
+
+/// Sends the refusal and ends the turn (no retry follows a refusal).
+pub(super) async fn refuse(
+    sink: &dyn ChannelSink,
+    identity: &SessionIdentity<'_>,
+    refusal: &super::refusal::RefusalError,
+) -> super::super::types::PipelineResult<()> {
+    send_refusal_error(sink, identity, refusal).await;
+    Ok(())
 }
 
 /// Sends an empty-response error frame after all retries are exhausted.
