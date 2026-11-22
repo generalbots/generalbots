@@ -96,7 +96,7 @@ loc = 238
 [apps."crm"]
 routes = 54
 js_modules = 7
-loc = 3559
+loc = 3646
 
 [apps."database"]
 routes = 11
@@ -115,8 +115,8 @@ loc = 28073
 
 [apps."docs"]
 routes = 0
-js_modules = 106
-loc = 19228
+js_modules = 107
+loc = 19510
 
 [apps."drive"]
 routes = 26
