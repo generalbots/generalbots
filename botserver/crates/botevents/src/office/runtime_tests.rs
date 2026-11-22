@@ -243,11 +243,13 @@ fn native_stream_is_push_only_and_private() {
     );
     let before = runtime.stream().since(0);
 
+    // Use a type the seeded webhook subscription does not filter for, so this
+    // publish exercises the native path with zero HTTP fan-out.
     let event = DomainEvent::new(
         "evt-stream-test",
-        OfficeEventType::SheetsExported,
+        OfficeEventType::DocExported,
         "ws-1",
-        "sheet-1",
+        "doc-1",
         "usr-1",
     )
     .with_content(EventContent::new(
@@ -268,10 +270,10 @@ fn native_stream_is_push_only_and_private() {
 
     let fresh = runtime.stream().since(cursor);
     assert_eq!(fresh.len(), 1);
-    assert_eq!(fresh[0].event_type, "sheets.exported");
+    assert_eq!(fresh[0].event_type, "doc.exported");
     assert_eq!(fresh[0].event_id, "evt-stream-test");
     assert_eq!(
-        fresh[0].payload["doc_id"], "sheet-1",
+        fresh[0].payload["doc_id"], "doc-1",
         "public IDs remain available"
     );
     assert!(
