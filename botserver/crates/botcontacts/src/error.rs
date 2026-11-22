@@ -4,6 +4,9 @@ use axum::response::IntoResponse;
 #[derive(Debug, Clone)]
 pub enum ContactsError {
     DatabaseConnection,
+    /// A scoped read failed; the database error is logged but never returned
+    /// verbatim to an HTTP client (AGENTS.md error-sanitization rule).
+    QueryFailed,
     NotFound,
     CreateFailed,
     UpdateFailed,
@@ -17,6 +20,7 @@ impl std::fmt::Display for ContactsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::DatabaseConnection => write!(f, "Database connection failed"),
+            Self::QueryFailed => write!(f, "Revenue attribution query failed"),
             Self::NotFound => write!(f, "Contact not found"),
             Self::CreateFailed => write!(f, "Failed to create contact"),
             Self::UpdateFailed => write!(f, "Failed to update contact"),
@@ -35,6 +39,7 @@ impl IntoResponse for ContactsError {
         let status = match self {
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::InvalidInput(_) => StatusCode::BAD_REQUEST,
+            Self::QueryFailed => StatusCode::INTERNAL_SERVER_ERROR,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()

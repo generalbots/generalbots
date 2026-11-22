@@ -34,6 +34,10 @@ pub fn configure_crm_api_routes() -> Router<Arc<CrateState>> {
             .post(crate::stages::create_stage))
         .route("/api/crm/pipeline/stages/:id", put(crate::stages::update_stage).delete(crate::stages::delete_stage))
         .route("/api/crm/stats", get(handlers::crm::get_crm_stats))
+        // #2548 — auditable revenue attribution / contact-segment bridge.
+        .route("/api/crm/revenue/attribution", get(crate::revenue::api::attribution))
+        .route("/api/crm/revenue/contacts/:id/bridge", get(crate::revenue::api::contact_bridge))
+        .route("/api/crm/revenue/contacts/:id/timeline", get(crate::revenue::api::contact_timeline))
         .route("/api/crm/search", get(ui::crm_ui::handle_crm_search))
         .route("/api/crm/count", get(ui::crm_ui::handle_crm_count))
         .route("/api/crm/pipeline", get(ui::crm_ui::handle_crm_pipeline))
@@ -60,6 +64,7 @@ pub fn configure_crm_ui_routes() -> Router<Arc<CrateState>> {
         .route("/api/ui/crm/stats/forecast", get(ui::crm_ui::handle_crm_stats_forecast))
         .route("/api/ui/crm/stats/funnel", get(ui::crm_ui::handle_crm_stats_funnel))
         .route("/api/ui/crm/campaigns", get(ui::crm_ui::handle_crm_campaigns))
+        .route("/api/ui/crm/revenue/attribution", get(crate::revenue::fragment::attribution_fragment))
 }
 
 #[cfg(feature = "calendar")]

@@ -108,6 +108,8 @@ pub mod ui;
 pub mod routes;
 pub mod sales_funnel;
 pub mod forecast;
+/// #2548 — typed revenue attribution / contact-segment bridge.
+pub mod revenue;
 pub mod email_integration;
 /// #2540 — retired `/api/sales/*` surface: route tombstones returning 410.
 pub mod routes_sales;

@@ -1,0 +1,17 @@
+/* #2548 — honest revenue attribution summary inside the CRM Campaigns view. */
+.crm-revenue-report {
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gb-border, var(--palette-d0d7de));
+    border-radius: 6px;
+}
+.crm-revenue-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.crm-revenue-detail {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
