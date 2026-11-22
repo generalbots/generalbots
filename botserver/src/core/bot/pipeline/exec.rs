@@ -667,7 +667,8 @@ pub async fn process_message_internal(
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 
     let turn_timeout_secs = super::enriched_llm::turn_timeout_secs();
-    if tokio::time::timeout(
+    if super::turn_progress::until_quiet(
+        &session_id.to_string(),
         std::time::Duration::from_secs(turn_timeout_secs),
         super::enriched_llm::build_and_stream(
             identity,
@@ -681,10 +682,10 @@ pub async fn process_message_internal(
         ),
     )
     .await
-    .is_err()
+    .is_none()
     {
-        botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
-        return Err(super::types::PipelineError::LLM(format!("Turn timed out after {turn_timeout_secs}s")));
+        botlog::safe_warn!("turn made no progress for {turn_timeout_secs}s for session {session_id}");
+        return Err(super::types::PipelineError::LLM(format!("Turn made no progress for {turn_timeout_secs}s")));
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no

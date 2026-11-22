@@ -11,7 +11,8 @@ use super::types::{PipelineResult, SessionIdentity};
 
 /// The persisted conversation shows the user's own words; the agent-only
 /// `[User attached a file stored at inbox/…]` block must stay in the prompt
-/// Turn budget for one LLM call.
+/// Quiet-time budget for one LLM call (`turn_progress`): the call ends after
+/// this long without progress, not after this long in total.
 ///
 /// A CPU-only provider must prefill the whole prompt before the first token,
 /// so the ceiling is configurable: `LLM_TURN_TIMEOUT_SECS` (default 300).
@@ -223,14 +224,15 @@ pub(super) async fn build_and_stream(
     // operator give a slow local model a realistic window without loosening the
     // default for hosted providers.
     let turn_timeout_secs = turn_timeout_secs();
-    let timed_out = tokio::time::timeout(
+    let timed_out = super::turn_progress::until_quiet(
+        &session_id.to_string(),
         std::time::Duration::from_secs(turn_timeout_secs),
         super::llm::stream_llm_response(identity, rx, &messages_val, &user_query, model_preference),
     )
     .await
-    .is_err();
+    .is_none();
     if timed_out {
-        botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
+        botlog::safe_warn!("stream_llm_response made no progress for {turn_timeout_secs}s for session {session_id}");
         super::event_sink::step_finished(
             identity.sink,
             &run,

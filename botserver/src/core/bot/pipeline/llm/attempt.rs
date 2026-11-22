@@ -176,9 +176,12 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
             chunk = retry_rx.recv() => {
                 match chunk {
                     Some(chunk) => {
+                        crate::core::bot::pipeline::turn_progress::touch(session_id_s);
                         // #2562 — detect error sentinel from the LLM task.
                         if let Some(err_msg) = super::error_classify::parse_sentinel(&chunk) {
-                            if let Some(refusal) = super::agent_limit::refusal_for(err_msg) {
+                            if let Some(refusal) = super::agent_limit::refusal_for(err_msg)
+                                .or_else(|| super::refusal::from_coded(err_msg))
+                            {
                                 return AttemptOutcome::Refused(refusal);
                             }
                             let code = super::error_classify::classify(err_msg);
