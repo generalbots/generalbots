@@ -2,8 +2,25 @@ name: Mobile artifacts (manual)
 
 # #2586 Phase A — on-demand mobile builds only. This workflow is never run by
 # push, tag or the release publish gate; a human dispatches it with an explicit
-# HTTPS botserver origin. No signing secret, keystore or certificate is stored
-# here: Android uses the Gradle debug keystore, iOS uses ad-hoc signing.
+# HTTPS botserver origin. Android uses the Gradle debug keystore. iOS uses
+# ad-hoc/debugging signing, which still requires an Apple Development Team ID.
+#
+# Where to get the "Apple key" (a 10-character TEAM ID, not a password):
+#   * Free personal team (enough for an ad-hoc/debug IPA): on a Mac open
+#     Xcode -> Settings -> Accounts -> your Apple ID -> Team ID. Sign in with
+#     the same Apple ID on the runner's xcodebuild; Xcode creates the free
+#     provisioning profile automatically. No paid account or .p12 needed.
+#   * Paid team: Apple Developer -> Membership -> Team ID (also shown in
+#     App Store Connect -> Users and Access).
+#   * A distribution certificate is only needed for App Store/ad-hoc release
+#     export. Set APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD
+#     and APPLE_SIGNING_IDENTITY as repo secrets if that is ever required.
+#
+# Supply the Team ID either as the `apple_team_id` dispatch input (masked in
+# logs) or, preferably, as a repo secret named APPLE_DEVELOPMENT_TEAM (the
+# legacy name) or APPLE_TEAM_ID. Resolution order:
+#   secrets.APPLE_DEVELOPMENT_TEAM > secrets.APPLE_TEAM_ID > inputs.apple_team_id
+# Never commit a real Team ID to this file.
 
 on:
   workflow_dispatch:
@@ -26,6 +43,11 @@ on:
         required: true
         type: string
         default: manual
+      apple_team_id:
+        description: "Apple Development Team ID for the ad-hoc IPA (or set the APPLE_TEAM_ID / APPLE_DEVELOPMENT_TEAM repo secret). Masked in logs."
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -45,6 +67,7 @@ jobs:
           BOTSERVER_URL: ${{ inputs.botserver_url }}
           ARTIFACT_TAG: ${{ inputs.tag }}
           PLATFORM: ${{ inputs.platform }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM || secrets.APPLE_TEAM_ID || inputs.apple_team_id }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -84,6 +107,21 @@ jobs:
           if os.environ["PLATFORM"] not in {"android", "ios", "both"}:
               print("::error::platform must be android, ios or both")
               sys.exit(1)
+          team = os.environ.get("APPLE_TEAM_ID", "").strip()
+          if team:
+              print("::add-mask::" + team)
+          if os.environ["PLATFORM"] in {"ios", "both"}:
+              if not team:
+                  print("::error::iOS needs an Apple Development Team ID. Set the "
+                        "APPLE_TEAM_ID (or APPLE_DEVELOPMENT_TEAM) repo secret, or pass "
+                        "apple_team_id at dispatch. Xcode -> Settings -> Accounts -> "
+                        "Team ID (free personal team works for ad-hoc debugging).")
+                  sys.exit(1)
+              if not re.fullmatch(r"[A-Z0-9]{10}", team):
+                  print("::error::Apple Team ID must be the 10-character identifier "
+                        "shown in Xcode / Apple Developer (letters and digits only)")
+                  sys.exit(1)
+              print("apple team: resolved and masked (10 characters)")
           print("inputs valid; botserver origin = https://<host> (hostname redacted)")
           PY
 
@@ -195,6 +233,12 @@ jobs:
     env:
       BOTSERVER_URL: ${{ inputs.botserver_url }}
       ARTIFACT_TAG: ${{ inputs.tag }}
+      # Resolution order documented at the top of this file. Never echo these.
+      APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_DEVELOPMENT_TEAM || secrets.APPLE_TEAM_ID || inputs.apple_team_id }}
+      # Distribution secrets are optional; ad-hoc/debug builds do not need them.
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Print redacted botserver origin
@@ -242,16 +286,26 @@ jobs:
           csp = csp.replace(marker, f"{marker}{origin} ", 1)
           out = os.path.join(os.environ["RUNNER_TEMP"], "tauri.mobile.json")
           with open(out, "w", encoding="utf-8") as handle:
-              json.dump({"app": {"security": {"csp": csp}}}, handle)
-          print(f"mobile Tauri config override written to {out}")
+              team = os.environ.get("APPLE_DEVELOPMENT_TEAM", "").strip()
+              if not team:
+                  raise SystemExit("APPLE_DEVELOPMENT_TEAM is empty: set the APPLE_TEAM_ID secret or pass apple_team_id")
+              print("::add-mask::" + team)
+              # tauri-cli reads app.apple.developmentTeam from the merged config;
+              # the env var alone is not enough for iOS init.
+              json.dump({"app": {
+                  "security": {"csp": csp},
+                  "apple": {"developmentTeam": team}
+              }}, handle)
+          print("mobile Tauri config override written with a masked Apple team")
           PY
       - name: Build ad-hoc IPA
         working-directory: botapp
         env:
           GB_MOBILE_SERVER_URL: ${{ inputs.botserver_url }}
-          # Ad-hoc signing: no paid team, no App Store Connect, no certificate.
+          # Ad-hoc/debugging export: Xcode creates a free provisioning profile
+          # from APPLE_DEVELOPMENT_TEAM resolved at job level; no paid account
+          # or .p12 is needed unless APPLE_CERTIFICATE is configured above.
           CODE_SIGN_IDENTITY: "-"
-          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_DEVELOPMENT_TEAM }}
         run: |
           set -euo pipefail
           cargo tauri ios init --ci -c tauri.mobile.conf.json
