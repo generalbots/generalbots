@@ -7,6 +7,11 @@ packages that let WebKitGTK/media use hardware acceleration on supported
 laptops. This is a *manifest* check only: it never boots an image, probes a
 GPU, or runs a benchmark.
 
+Only ``Packages=`` blocks of a mkosi config are parsed. A missing block, a
+malformed line, an unreadable/non-text file or a missing required package all
+fail closed (non-zero exit), so a broken manifest can never be mistaken for a
+good one.
+
 QEMU / software fallback (documented, not a defect):
     A virtual machine or a host without a usable DRM driver falls back to
     Mesa's llvmpipe software rasterizer. The support bundle then reports
@@ -22,12 +27,14 @@ Usage:
     python3 scripts/check_graphics_support.py --explain
 
 Exit codes: 0 = manifest satisfies the graphics package set (or self-test
-passed), 1 = missing packages, 2 = usage or unreadable manifest.
+passed), 1 = manifest fails the gate (missing package or malformed content),
+2 = usage or unreadable manifest.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -45,6 +52,10 @@ REQUIRED: dict[str, tuple[str, ...]] = {
 }
 ANY_OF = {"vaapi-vendor"}
 
+# Debian binary-package names: lowercase letters/digits, then letters, digits,
+# '+', '-' or '.'. Anything else inside a Packages= block is malformed input.
+PACKAGE_RE = re.compile(r"^[a-z0-9][a-z0-9+.-]*$")
+
 EXPLAIN = """QEMU / software fallback (#2481)
 Mesa's llvmpipe (also softpipe/swrast) is the expected rasterizer in a VM or
 on a host without a DRM driver. A diagnostics bundle from such a host reports
@@ -54,32 +65,63 @@ H.264 CPU threshold and idle battery drain require a real laptop and are not
 asserted by this manifest gate."""
 
 
-def parse_packages(text: str) -> set[str]:
-    """Collect package names from mkosi ``Packages=`` blocks only."""
+def parse_packages(text: str) -> tuple[set[str], list[str]]:
+    """Collect package names from mkosi ``Packages=`` blocks only.
+
+    Returns ``(packages, problems)``. ``problems`` is empty for a well-formed
+    manifest that contains at least one ``Packages=`` block; any structural
+    problem (non-text input, a malformed line, an invalid package token or a
+    missing ``Packages=`` block) is recorded so callers fail closed.
+    """
+    if not isinstance(text, str):
+        return set(), ["manifest content is not text"]
+
     packages: set[str] = set()
+    problems: list[str] = []
     in_packages = False
+    found_block = False
+
     for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        if line.startswith("["):
+        if stripped.startswith("["):
+            # A new section always terminates a continued Packages= block.
             in_packages = False
             continue
-        if line.startswith("Packages="):
-            in_packages = True
-            inline = line.split("=", 1)[1].split("#", 1)[0].strip()
-            packages.update(inline.split())
+        if raw[:1].isspace():
+            # Indented continuation of the previous key's value.
+            if in_packages:
+                token = stripped.split("#", 1)[0].strip().rstrip("\\").strip()
+                for word in token.split():
+                    _add_package(word, packages, problems)
             continue
-        if in_packages:
-            # A new key at column zero closes the continued Packages= block;
-            # continuation lines are indented in mkosi.conf.
-            if not raw[:1].isspace() and "=" in line:
-                in_packages = False
-                continue
-            token = line.split("#", 1)[0].strip()
-            if token:
-                packages.update(token.split())
-    return packages
+        # A column-zero line must be a "Key=value" pair.
+        if "=" not in stripped:
+            problems.append(f"unexpected line: {stripped!r}")
+            in_packages = False
+            continue
+        key, _, value = stripped.partition("=")
+        if key.strip() == "Packages":
+            in_packages = True
+            found_block = True
+            inline = value.split("#", 1)[0].strip().rstrip("\\").strip()
+            for word in inline.split():
+                _add_package(word, packages, problems)
+        else:
+            in_packages = False
+
+    if not found_block:
+        problems.append("no Packages= block found")
+    return packages, problems
+
+
+def _add_package(word: str, packages: set[str], problems: list[str]) -> None:
+    """Add one validated package token, recording malformed ones."""
+    if PACKAGE_RE.match(word):
+        packages.add(word)
+    else:
+        problems.append(f"invalid package token: {word!r}")
 
 
 def missing_packages(packages: set[str]) -> list[str]:
@@ -97,20 +139,25 @@ def missing_packages(packages: set[str]) -> list[str]:
     return missing
 
 
+def evaluate(text: str) -> tuple[set[str], list[str]]:
+    """Parse a manifest and return ``(packages, problems)``, failing closed."""
+    packages, problems = parse_packages(text)
+    problems.extend(f"MISSING {reason}" for reason in missing_packages(packages))
+    return packages, problems
+
+
 def check(path: Path) -> int:
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         print(f"graphics gate: cannot read {path}: {exc}", file=sys.stderr)
         return 2
-    packages = parse_packages(text)
-    missing = missing_packages(packages)
-    if missing:
-        for reason in missing:
-            print(f"  MISSING {reason}", file=sys.stderr)
+    packages, problems = evaluate(text)
+    if problems:
+        for problem in problems:
+            print(f"  {problem}", file=sys.stderr)
         print(
-            f"graphics gate: FAIL — {len(missing)} required package(s) "
-            f"missing from {path}",
+            f"graphics gate: FAIL — {len(problems)} issue(s) in {path}",
             file=sys.stderr,
         )
         print(EXPLAIN, file=sys.stderr)
@@ -139,37 +186,87 @@ Packages=
     glmark2-es2-wayland
 Repositories=main
 """
-    cases = [
-        ("full manifest", full, []),
+    # (name, manifest text, expected to pass, substring expected in problems)
+    cases: list[tuple[str, object, bool, str | None]] = [
+        ("good manifest", full, True, None),
         (
-            "missing firmware",
+            "missing package (firmware)",
             full.replace("    firmware-amd-graphics\n", ""),
-            ["firmware: firmware-amd-graphics"],
+            False,
+            "firmware: firmware-amd-graphics",
         ),
         (
-            "missing VA-API driver",
+            "missing package (VA-API runtime)",
             full.replace("    mesa-va-drivers\n", ""),
-            ["vaapi-runtime: mesa-va-drivers"],
+            False,
+            "vaapi-runtime: mesa-va-drivers",
         ),
         (
             "alternative vendor driver",
             full.replace("    i965-va-driver\n", "    intel-media-va-driver\n"),
-            [],
+            True,
+            None,
+        ),
+        (
+            "missing Packages= section",
+            "[Content]\nRepositories=main\n",
+            False,
+            "no Packages= block found",
+        ),
+        (
+            "malformed input (non-text)",
+            b"[Content]\nPackages=libgl1-mesa-dri\n",
+            False,
+            "manifest content is not text",
+        ),
+        (
+            "malformed input (stray line)",
+            full.replace("Repositories=main", "this is not a key"),
+            False,
+            "unexpected line",
+        ),
+        (
+            "malformed input (invalid token)",
+            full.replace("    libgbm1", "    BAD TOKEN!"),
+            False,
+            "invalid package token",
+        ),
+        (
+            "backslash continuation",
+            full.replace(
+                "    libgl1-mesa-dri\n    libegl-mesa0",
+                "    libgl1-mesa-dri \\\n    libegl-mesa0",
+            ),
+            True,
+            None,
         ),
     ]
+
     failures = 0
-    for name, text, expected in cases:
-        got = missing_packages(parse_packages(text))
-        if got != expected:
+    for name, text, expect_ok, must_mention in cases:
+        _, problems = evaluate(text)  # type: ignore[arg-type]
+        passed = not problems
+        if passed != expect_ok:
             print(
-                f"self-test FAIL {name}: expected {expected}, got {got}",
+                f"self-test FAIL {name}: expected pass={expect_ok}, "
+                f"got pass={passed} (problems={problems})",
                 file=sys.stderr,
             )
             failures += 1
-    parsed = parse_packages(full)
+            continue
+        if must_mention and not any(must_mention in p for p in problems):
+            print(
+                f"self-test FAIL {name}: expected problem containing "
+                f"{must_mention!r}, got {problems}",
+                file=sys.stderr,
+            )
+            failures += 1
+
+    parsed, _ = parse_packages(full)
     if "Repositories" in parsed or "main" in parsed:
         print("self-test FAIL: non-package key leaked into the package set", file=sys.stderr)
         failures += 1
+
     if failures:
         return 1
     print(f"graphics gate: self-test passed ({len(cases) + 1} cases)")
