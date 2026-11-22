@@ -104,7 +104,8 @@ mod tests {
 
     #[test]
     fn repairs_tags_that_lost_their_closing_bracket() {
-        let xml = r#"<mergeCells count="2"><mergeCell ref="D6:E6"/<mergeCell ref="B6:C6"/</mergeCells>"#;
+        let xml =
+            r#"<mergeCells count="2"><mergeCell ref="D6:E6"/<mergeCell ref="B6:C6"/</mergeCells>"#;
         let patched = expand_merge_cells(&repair_missing_tag_end(xml));
         assert_eq!(
             patched,

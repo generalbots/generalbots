@@ -34,7 +34,10 @@ pub async fn handle_array_formula(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -63,7 +66,7 @@ pub async fn handle_array_formula(
             let key = format!("{row},{col}");
             let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
                 value: None,
-                    typed: None,
+                typed: None,
                 formula: None,
                 style: None,
                 format: None,
@@ -114,7 +117,10 @@ pub async fn handle_delete_array_formula(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -171,7 +177,10 @@ pub async fn handle_create_named_range(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     let named_range = NamedRange {
         id: Uuid::new_v4().to_string(),
@@ -223,7 +232,10 @@ pub async fn handle_update_named_range(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if let Some(named_ranges) = &mut sheet.named_ranges {
         for range in named_ranges.iter_mut() {
@@ -285,7 +297,10 @@ pub async fn handle_delete_named_range(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     let target_id = if req.range_id.is_empty() {
         req.name.as_deref().and_then(|name| {

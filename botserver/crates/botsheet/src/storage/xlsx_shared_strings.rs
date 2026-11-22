@@ -105,11 +105,7 @@ fn bump_int_attr(xml: &str, attr: &str, value: usize) -> String {
     if re.is_match(xml) {
         re.replace(xml, format!(r#"{attr}="{value}""#)).to_string()
     } else {
-        xml.replacen(
-            "<sst",
-            &format!(r#"<sst {attr}="{value}""#),
-            1,
-        )
+        xml.replacen("<sst", &format!(r#"<sst {attr}="{value}""#), 1)
     }
 }
 

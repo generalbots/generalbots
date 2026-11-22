@@ -2,7 +2,7 @@
 
 use std::io::Cursor;
 
-use calamine::{Data, Ods, Reader, Xls, Xlsb, Xlsx, open_workbook_from_rs};
+use calamine::{open_workbook_from_rs, Data, Ods, Reader, Xls, Xlsb, Xlsx};
 
 const MAX_ROWS: usize = 200;
 const MAX_COLUMNS: usize = 40;

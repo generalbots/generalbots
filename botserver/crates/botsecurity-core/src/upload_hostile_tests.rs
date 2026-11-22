@@ -11,14 +11,9 @@ fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
         writer
             .start_file(*name, options)
             .expect("test zip entry must start");
-        writer
-            .write_all(body)
-            .expect("test zip entry must write");
+        writer.write_all(body).expect("test zip entry must write");
     }
-    writer
-        .finish()
-        .expect("test zip must finish")
-        .into_inner()
+    writer.finish().expect("test zip must finish").into_inner()
 }
 
 fn docx() -> Vec<u8> {
@@ -162,7 +157,8 @@ fn internal_relationship_targets_are_rejected() {
     }
 
     validate_relationship_target("https://example.com/document").expect("public https is allowed");
-    validate_relationship_target("../media/image1.png").expect("relative package paths are allowed");
+    validate_relationship_target("../media/image1.png")
+        .expect("relative package paths are allowed");
 }
 
 #[test]
@@ -175,7 +171,10 @@ fn a_relationship_part_with_a_loopback_target_is_refused() {
 
     let error = inspect_hostile_upload(&bytes).expect_err("a loopback target must be refused");
 
-    assert!(matches!(error, UploadError::RelationshipTargetUnsafe { .. }));
+    assert!(matches!(
+        error,
+        UploadError::RelationshipTargetUnsafe { .. }
+    ));
 }
 
 #[test]

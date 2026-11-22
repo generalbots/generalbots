@@ -17,7 +17,7 @@
 //! 2. The policy header plus `attachment`/`octet-stream` — the document never
 //!    renders on the suite origin at all.
 
-use axum::http::{HeaderMap, HeaderValue, header};
+use axum::http::{header, HeaderMap, HeaderValue};
 
 use crate::storage_core::escape_html;
 
@@ -197,13 +197,11 @@ mod tests {
                 .and_then(|v| v.to_str().ok()),
             Some("application/octet-stream")
         );
-        assert!(
-            headers
-                .get(header::CONTENT_DISPOSITION)
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or_default()
-                .starts_with("attachment;")
-        );
+        assert!(headers
+            .get(header::CONTENT_DISPOSITION)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default()
+            .starts_with("attachment;"));
     }
 
     #[test]

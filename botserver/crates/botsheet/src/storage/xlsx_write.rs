@@ -61,8 +61,7 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
             } else if let Some(ref value) = cell_data.value {
                 if let Ok(num) = value.parse::<f64>() {
                     cell.set_value_number(num);
-                } else if value.eq_ignore_ascii_case("true")
-                    || value.eq_ignore_ascii_case("false")
+                } else if value.eq_ignore_ascii_case("true") || value.eq_ignore_ascii_case("false")
                 {
                     cell.set_value_bool(value.eq_ignore_ascii_case("true"));
                 } else {
@@ -107,7 +106,10 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
                 let end_col = get_col_letter(merge.end_col + 1);
                 let range = format!(
                     "{}{}:{}{}",
-                    start_col, merge.start_row + 1, end_col, merge.end_row + 1
+                    start_col,
+                    merge.start_row + 1,
+                    end_col,
+                    merge.end_row + 1
                 );
                 let _ = umya_sheet.add_merge_cells(&range);
             }
@@ -231,21 +233,26 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
     let fill = style.fill();
     let alignment = style.alignment();
 
-    let font_weight = font
-        .as_ref()
-        .and_then(|f| if f.bold() { Some("bold".to_string()) } else { None });
-    let font_style = font
-        .as_ref()
-        .and_then(|f| if f.italic() { Some("italic".to_string()) } else { None });
+    let font_weight = font.as_ref().and_then(|f| {
+        if f.bold() {
+            Some("bold".to_string())
+        } else {
+            None
+        }
+    });
+    let font_style = font.as_ref().and_then(|f| {
+        if f.italic() {
+            Some("italic".to_string())
+        } else {
+            None
+        }
+    });
 
     let underline_str = font
         .as_ref()
         .map(|f| f.underline().to_string())
         .unwrap_or_default();
-    let has_strikethrough = font
-        .as_ref()
-        .map(|f| f.strikethrough())
-        .unwrap_or(false);
+    let has_strikethrough = font.as_ref().map(|f| f.strikethrough()).unwrap_or(false);
     let text_decoration = {
         let mut dec = Vec::new();
         if underline_str != "none" && !underline_str.is_empty() {
@@ -294,31 +301,29 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
         })
         .filter(|c| c != "#FFFFFF");
 
-    let text_align = alignment
-        .and_then(|a| {
-            use umya_spreadsheet::structs::HorizontalAlignmentValues;
-            match a.horizontal() {
-                HorizontalAlignmentValues::Left => Some("left".to_string()),
-                HorizontalAlignmentValues::Center => Some("center".to_string()),
-                HorizontalAlignmentValues::Right => Some("right".to_string()),
-                _ => None,
-            }
-        });
-
-    let vertical_align = alignment
-        .and_then(|a| {
-            use umya_spreadsheet::structs::VerticalAlignmentValues;
-            match a.vertical() {
-                VerticalAlignmentValues::Top => Some("top".to_string()),
-                VerticalAlignmentValues::Center => Some("middle".to_string()),
-                VerticalAlignmentValues::Bottom => Some("bottom".to_string()),
-                _ => None,
-            }
-        });
-
-    let border = style.borders().and_then(|b| {
-        extract_border([b.top(), b.left(), b.bottom(), b.right()])
+    let text_align = alignment.and_then(|a| {
+        use umya_spreadsheet::structs::HorizontalAlignmentValues;
+        match a.horizontal() {
+            HorizontalAlignmentValues::Left => Some("left".to_string()),
+            HorizontalAlignmentValues::Center => Some("center".to_string()),
+            HorizontalAlignmentValues::Right => Some("right".to_string()),
+            _ => None,
+        }
     });
+
+    let vertical_align = alignment.and_then(|a| {
+        use umya_spreadsheet::structs::VerticalAlignmentValues;
+        match a.vertical() {
+            VerticalAlignmentValues::Top => Some("top".to_string()),
+            VerticalAlignmentValues::Center => Some("middle".to_string()),
+            VerticalAlignmentValues::Bottom => Some("bottom".to_string()),
+            _ => None,
+        }
+    });
+
+    let border = style
+        .borders()
+        .and_then(|b| extract_border([b.top(), b.left(), b.bottom(), b.right()]));
 
     if font_weight.is_some()
         || font_style.is_some()
@@ -395,9 +400,6 @@ pub fn get_col_letter(col: u32) -> String {
 /// preserve-and-passthrough (#788). The real implementation lives in
 /// [`crate::storage::xlsx_passthrough`], which copies every unmodelled part
 /// (charts, drawings, pivot tables, VML, macros) byte-for-byte.
-pub fn merge_into_original(
-    original_bytes: &[u8],
-    sheet: &Spreadsheet,
-) -> Result<Vec<u8>, String> {
+pub fn merge_into_original(original_bytes: &[u8], sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
     crate::storage::xlsx_passthrough::merge_into_original(original_bytes, sheet)
 }

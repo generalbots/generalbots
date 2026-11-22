@@ -46,13 +46,11 @@ fn adopting_a_legacy_object_lands_in_the_install_namespace() {
 fn adoption_never_escapes_the_legacy_prefix() {
     let owner = "9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c";
     assert!(adopt_destination(owner, "users/default-user/other/doc-1.html").is_none());
-    assert!(
-        adopt_destination(
-            owner,
-            "users/22222222-2222-2222-2222-222222222222/docs/a.html"
-        )
-        .is_none()
-    );
+    assert!(adopt_destination(
+        owner,
+        "users/22222222-2222-2222-2222-222222222222/docs/a.html"
+    )
+    .is_none());
     assert!(adopt_destination(owner, "users/default-user/docs/").is_none());
     assert!(adopt_destination(owner, "users/default-user/docs").is_none());
 }

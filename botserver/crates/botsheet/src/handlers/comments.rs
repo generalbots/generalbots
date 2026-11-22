@@ -5,7 +5,11 @@ use crate::types::{
     DeleteCommentRequest, ListCommentsRequest, ListCommentsResponse, ReplyCommentRequest,
     ResolveCommentRequest, SaveResponse,
 };
-use axum::{extract::{Extension, State}, http::StatusCode, Json};
+use axum::{
+    extract::{Extension, State},
+    http::StatusCode,
+    Json,
+};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -29,7 +33,10 @@ pub async fn handle_add_comment(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -59,7 +66,7 @@ pub async fn handle_add_comment(
 
     let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
         value: None,
-            typed: None,
+        typed: None,
         formula: None,
         style: None,
         format: None,
@@ -105,7 +112,10 @@ pub async fn handle_reply_comment(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -168,7 +178,10 @@ pub async fn handle_resolve_comment(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -224,7 +237,10 @@ pub async fn handle_delete_comment(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((

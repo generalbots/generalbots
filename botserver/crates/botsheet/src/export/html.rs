@@ -5,14 +5,17 @@ use botsheet_core::types::Spreadsheet;
 use super::util::column_to_letter;
 
 pub fn export_to_html(sheet: &Spreadsheet) -> String {
-    let mut html = String::from(r#"<!DOCTYPE html>
+    let mut html = String::from(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>"#);
+<title>"#,
+    );
     html.push_str(&html_escape(&sheet.name));
-    html.push_str(r#"</title>
+    html.push_str(
+        r#"</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 table { border-collapse: collapse; width: 100%; }
@@ -23,7 +26,8 @@ tr:hover { background-color: #f1f1f1; }
 </style>
 </head>
 <body>
-"#);
+"#,
+    );
 
     for ws in &sheet.worksheets {
         html.push_str(&format!("<h2>{}</h2>\n", html_escape(&ws.name)));

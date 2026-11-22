@@ -6,7 +6,7 @@
 
 use std::io::{Cursor, Read, Write};
 
-use crate::storage_core::{ParagraphData, parse_html_to_paragraphs};
+use crate::storage_core::{parse_html_to_paragraphs, ParagraphData};
 
 const ODT_MIMETYPE: &str = "application/vnd.oasis.opendocument.text";
 

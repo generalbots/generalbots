@@ -35,12 +35,18 @@ fn portrait_and_landscape_swap_the_page_box() {
     let mut portrait = PdfWriter::new(options(false, 1.0));
     portrait.add_blank_page("S");
     let portrait_pdf = String::from_utf8_lossy(&portrait.finish()).to_string();
-    assert!(portrait_pdf.contains("/MediaBox [0 0 595 842]"), "{portrait_pdf}");
+    assert!(
+        portrait_pdf.contains("/MediaBox [0 0 595 842]"),
+        "{portrait_pdf}"
+    );
 
     let mut landscape = PdfWriter::new(options(true, 1.0));
     landscape.add_blank_page("S");
     let landscape_pdf = String::from_utf8_lossy(&landscape.finish()).to_string();
-    assert!(landscape_pdf.contains("/MediaBox [0 0 842 595]"), "{landscape_pdf}");
+    assert!(
+        landscape_pdf.contains("/MediaBox [0 0 842 595]"),
+        "{landscape_pdf}"
+    );
 }
 
 #[test]
@@ -62,9 +68,18 @@ fn scale_changes_grid_metrics_but_not_the_page() {
 
 #[test]
 fn out_of_range_and_non_finite_scales_fall_back() {
-    assert_eq!(PdfWriter::new(options(false, 0.1)).row_height, ROW_HEIGHT * 0.5);
-    assert_eq!(PdfWriter::new(options(false, 9.0)).row_height, ROW_HEIGHT * 2.0);
-    assert_eq!(PdfWriter::new(options(false, f32::NAN)).row_height, ROW_HEIGHT);
+    assert_eq!(
+        PdfWriter::new(options(false, 0.1)).row_height,
+        ROW_HEIGHT * 0.5
+    );
+    assert_eq!(
+        PdfWriter::new(options(false, 9.0)).row_height,
+        ROW_HEIGHT * 2.0
+    );
+    assert_eq!(
+        PdfWriter::new(options(false, f32::NAN)).row_height,
+        ROW_HEIGHT
+    );
     assert_eq!(
         PdfWriter::new(options(false, f32::INFINITY)).row_height,
         ROW_HEIGHT
@@ -99,7 +114,9 @@ fn blank_rows_are_skipped_so_sparse_sheets_stay_compact() {
 #[test]
 fn a_worksheet_without_data_emits_no_page() {
     let mut writer = PdfWriter::new(options(false, 1.0));
-    writer.add_worksheet("Empty", &HashMap::new()).expect("layout");
+    writer
+        .add_worksheet("Empty", &HashMap::new())
+        .expect("layout");
     assert_eq!(writer.page_count(), 0);
     let pdf = String::from_utf8_lossy(&writer.finish()).to_string();
     assert!(pdf.contains("/Count 0"), "{pdf}");
@@ -154,8 +171,14 @@ fn page_content_is_a_declared_stream() {
     writer.add_blank_page("Sheet1");
     let pdf = String::from_utf8_lossy(&writer.finish()).to_string();
 
-    assert!(pdf.contains("/Length "), "content stream needs a /Length: {pdf}");
-    assert!(pdf.contains("stream\n"), "content stream needs the stream keyword");
+    assert!(
+        pdf.contains("/Length "),
+        "content stream needs a /Length: {pdf}"
+    );
+    assert!(
+        pdf.contains("stream\n"),
+        "content stream needs the stream keyword"
+    );
     assert!(pdf.contains("endstream"), "content stream needs endstream");
     let content_start = pdf.find("stream\nBT").expect("content stream body");
     let content_end = pdf.find("\nendstream").expect("endstream marker");

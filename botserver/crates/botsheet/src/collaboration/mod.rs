@@ -1,6 +1,6 @@
 mod websocket;
 
-pub use websocket::{handle_sheet_websocket, handle_sheet_connection};
+pub use websocket::{handle_sheet_connection, handle_sheet_websocket};
 
 use crate::types::CollabMessage;
 use axum::{extract::Path, response::IntoResponse, Json};
@@ -159,9 +159,7 @@ pub fn ensure_sweep_started() {
     });
 }
 
-pub async fn handle_get_collaborators(
-    Path(sheet_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_collaborators(Path(sheet_id): Path<String>) -> impl IntoResponse {
     let presence = get_presence().read().await;
     let users: Vec<&UserPresence> = presence
         .get(&sheet_id)
@@ -174,17 +172,13 @@ pub async fn handle_get_collaborators(
     }))
 }
 
-pub async fn handle_get_presence(
-    Path(sheet_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_presence(Path(sheet_id): Path<String>) -> impl IntoResponse {
     let presence = get_presence().read().await;
     let users = presence.get(&sheet_id).cloned().unwrap_or_default();
     Json(serde_json::json!({ "users": users }))
 }
 
-pub async fn handle_get_typing(
-    Path(sheet_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_typing(Path(sheet_id): Path<String>) -> impl IntoResponse {
     let typing = get_typing().read().await;
     let indicators = typing.get(&sheet_id).cloned().unwrap_or_default();
 
@@ -197,17 +191,13 @@ pub async fn handle_get_typing(
     Json(serde_json::json!({ "typing": active }))
 }
 
-pub async fn handle_get_selections(
-    Path(sheet_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_selections(Path(sheet_id): Path<String>) -> impl IntoResponse {
     let selections = get_selections().read().await;
     let sels = selections.get(&sheet_id).cloned().unwrap_or_default();
     Json(serde_json::json!({ "selections": sels }))
 }
 
-pub async fn handle_get_mentions(
-    Path(user_id): Path<String>,
-) -> impl IntoResponse {
+pub async fn handle_get_mentions(Path(user_id): Path<String>) -> impl IntoResponse {
     let mentions = get_mentions().read().await;
     let user_mentions = mentions.get(&user_id).cloned().unwrap_or_default();
     Json(serde_json::json!({ "mentions": user_mentions }))

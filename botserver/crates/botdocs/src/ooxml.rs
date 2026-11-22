@@ -111,7 +111,7 @@ pub fn update_docx_text(
     new_paragraphs: &[String],
 ) -> Result<Vec<u8>, String> {
     use std::io::{Read, Write};
-    use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
+    use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
     let reader = Cursor::new(original_bytes);
     let mut archive =

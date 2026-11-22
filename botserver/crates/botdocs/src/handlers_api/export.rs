@@ -3,17 +3,17 @@ use crate::export_isolation::{html_export_headers, render_html_export, text_expo
 use crate::re_cache::cached_re;
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
-use crate::storage_core::{ParagraphData, parse_html_to_paragraphs, strip_html};
+use crate::storage_core::{parse_html_to_paragraphs, strip_html, ParagraphData};
 use crate::storage_docx_source::DocxFidelity;
 use crate::types::ExportQuery;
 use crate::utils::html_to_markdown;
 use crate::utils_ooxml::html_to_odt_zip;
 use crate::utils_pdf::html_to_pdf;
 use axum::{
-    Json,
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
+    Json,
 };
 use docx_rs::{AlignmentType, Docx, Paragraph, Run, RunFonts, Table, TableCell, TableRow};
 use std::sync::Arc;

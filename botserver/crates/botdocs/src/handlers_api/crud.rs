@@ -9,9 +9,9 @@ use crate::types::{
     SearchQuery,
 };
 use axum::{
-    Json,
     extract::{Path, Query, State},
     http::StatusCode,
+    Json,
 };
 use std::sync::Arc;
 use uuid::Uuid;

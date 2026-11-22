@@ -27,20 +27,21 @@ fn rewrite_formula_bodies(xml: &[u8], renames: &[(String, String)]) -> String {
         return String::from_utf8_lossy(xml).to_string();
     };
     let text = String::from_utf8_lossy(xml);
-    f_re
-        .replace_all(&text, |caps: &regex::Captures| {
-            format!(
-                "{}{}{}",
-                &caps[1],
-                rewrite_refs(&caps[2], renames),
-                &caps[3]
-            )
-        })
-        .to_string()
+    f_re.replace_all(&text, |caps: &regex::Captures| {
+        format!(
+            "{}{}{}",
+            &caps[1],
+            rewrite_refs(&caps[2], renames),
+            &caps[3]
+        )
+    })
+    .to_string()
 }
 
 fn rewrite_defined_name_bodies(xml: &[u8], renames: &[(String, String)]) -> String {
-    let Some(dn_re) = crate::re_cache::cached_re!(r"(?s)(<definedName\b[^>]*>)(.*?)(</definedName>)") else {
+    let Some(dn_re) =
+        crate::re_cache::cached_re!(r"(?s)(<definedName\b[^>]*>)(.*?)(</definedName>)")
+    else {
         return String::from_utf8_lossy(xml).to_string();
     };
     let text = String::from_utf8_lossy(xml);

@@ -150,9 +150,13 @@ fn preserve_only_bindings(
             (o.rid.is_empty() || rid_to_target.contains_key(&o.rid)) && o.name == ws.name
         });
         match hit {
-            Some((i, o)) => {
-                bindings.push(bind_reused(o, rid_to_target, &ws.name, ws.sheet_state.as_deref(), i))
-            }
+            Some((i, o)) => bindings.push(bind_reused(
+                o,
+                rid_to_target,
+                &ws.name,
+                ws.sheet_state.as_deref(),
+                i,
+            )),
             None => bindings.push(SheetBinding::skip(&ws.name)),
         }
     }
@@ -166,10 +170,14 @@ fn preserve_only_bindings(
 // === Parsing ===
 
 fn parse_sheets(workbook_xml: &str) -> Result<Vec<OrigSheet>, String> {
-    let sheet_re = crate::re_cache::cached_re!(r#"<sheet\b[^>]*/?>"#).ok_or_else(|| "sheet regex".to_string())?;
-    let name_re = crate::re_cache::cached_re!(r#"name="([^"]*)""#).ok_or_else(|| "name regex".to_string())?;
-    let sid_re = crate::re_cache::cached_re!(r#"sheetId="([^"]*)""#).ok_or_else(|| "sid regex".to_string())?;
-    let rid_re = crate::re_cache::cached_re!(r#"r:id="([^"]*)""#).ok_or_else(|| "rid regex".to_string())?;
+    let sheet_re = crate::re_cache::cached_re!(r#"<sheet\b[^>]*/?>"#)
+        .ok_or_else(|| "sheet regex".to_string())?;
+    let name_re =
+        crate::re_cache::cached_re!(r#"name="([^"]*)""#).ok_or_else(|| "name regex".to_string())?;
+    let sid_re = crate::re_cache::cached_re!(r#"sheetId="([^"]*)""#)
+        .ok_or_else(|| "sid regex".to_string())?;
+    let rid_re =
+        crate::re_cache::cached_re!(r#"r:id="([^"]*)""#).ok_or_else(|| "rid regex".to_string())?;
 
     Ok(sheet_re
         .find_iter(workbook_xml)
@@ -314,5 +322,7 @@ fn entry_text(entries: &[(String, Vec<u8>)], name: &str) -> Result<String, Strin
 }
 
 pub(crate) fn first_capture(re: &regex::Regex, s: &str) -> Option<String> {
-    re.captures(s).and_then(|c| c.get(1)).map(|m| m.as_str().to_string())
+    re.captures(s)
+        .and_then(|c| c.get(1))
+        .map(|m| m.as_str().to_string())
 }

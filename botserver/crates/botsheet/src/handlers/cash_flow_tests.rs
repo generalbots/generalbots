@@ -4,8 +4,7 @@ use super::*;
 use botsheet_core::engine::CellValue;
 
 fn cell(sheet: &Spreadsheet, row: u32, col: u32) -> &CellData {
-    sheet
-        .worksheets[0]
+    sheet.worksheets[0]
         .data
         .get(&format!("{row},{col}"))
         .expect("cash-flow cell exists")
@@ -34,16 +33,22 @@ fn default_request() -> CashFlowRequest {
 
 #[test]
 fn default_forecast_has_twelve_month_columns_and_a_balance_row() {
-    let sheet = build_cash_flow_sheet("owner-1", &default_request()).expect("default request builds");
+    let sheet =
+        build_cash_flow_sheet("owner-1", &default_request()).expect("default request builds");
 
     assert_eq!(sheet.name, "Cash-Flow Forecast");
     for (offset, month) in MONTH_LABELS.iter().enumerate() {
         assert_eq!(
-            cell(&sheet, 1, FIRST_DATA_COL + offset as u32).value.as_deref(),
+            cell(&sheet, 1, FIRST_DATA_COL + offset as u32)
+                .value
+                .as_deref(),
             Some(*month)
         );
     }
-    assert!(!has_cell(&sheet, 1, 13), "no column after the twelfth month");
+    assert!(
+        !has_cell(&sheet, 1, 13),
+        "no column after the twelfth month"
+    );
     assert_eq!(
         cell(&sheet, CLOSING_ROW, 0).value.as_deref(),
         Some("Closing Balance")
@@ -62,7 +67,8 @@ fn default_forecast_has_twelve_month_columns_and_a_balance_row() {
 
 #[test]
 fn forecast_carries_opposing_red_and_green_rules() {
-    let sheet = build_cash_flow_sheet("owner-1", &default_request()).expect("default request builds");
+    let sheet =
+        build_cash_flow_sheet("owner-1", &default_request()).expect("default request builds");
 
     let rules = sheet.worksheets[0]
         .conditional_formats
@@ -86,7 +92,10 @@ fn forecast_carries_opposing_red_and_green_rules() {
         assert_eq!(rule.end_col, 12);
     }
     // Number formats are a second, independent negative-red signal.
-    assert_eq!(cell(&sheet, NET_ROW, 1).format.as_deref(), Some(NUMBER_FORMAT));
+    assert_eq!(
+        cell(&sheet, NET_ROW, 1).format.as_deref(),
+        Some(NUMBER_FORMAT)
+    );
     assert!(sheet.worksheets[0].data.values().any(|value| {
         value
             .typed
@@ -119,7 +128,10 @@ fn editing_an_inflow_recalculates_the_balance_row() {
 
     let after_net = cell(&sheet, NET_ROW, 1).value.clone();
     let after_closing = cell(&sheet, CLOSING_ROW, 1).value.clone();
-    assert_ne!(before_net, after_net, "net cash flow follows the edited inflow");
+    assert_ne!(
+        before_net, after_net,
+        "net cash flow follows the edited inflow"
+    );
     assert_ne!(
         before_closing, after_closing,
         "closing balance follows the edited inflow"
@@ -129,15 +141,18 @@ fn editing_an_inflow_recalculates_the_balance_row() {
 
 #[test]
 fn custom_months_colors_and_flows_are_honored() {
-    let sheet = build_cash_flow_sheet("owner-1", &CashFlowRequest {
-        title: Some("  My forecast  ".to_string()),
-        months: Some(vec!["Q1".to_string(), "Q2".to_string()]),
-        opening_balance: Some(-200.0),
-        inflows: Some(vec![100.0, 400.0]),
-        outflows: Some(vec![300.0, 100.0]),
-        negative_color: Some("#FF0000".to_string()),
-        positive_color: Some("#00FF00".to_string()),
-    })
+    let sheet = build_cash_flow_sheet(
+        "owner-1",
+        &CashFlowRequest {
+            title: Some("  My forecast  ".to_string()),
+            months: Some(vec!["Q1".to_string(), "Q2".to_string()]),
+            opening_balance: Some(-200.0),
+            inflows: Some(vec![100.0, 400.0]),
+            outflows: Some(vec![300.0, 100.0]),
+            negative_color: Some("#FF0000".to_string()),
+            positive_color: Some("#00FF00".to_string()),
+        },
+    )
     .expect("custom request builds");
 
     assert_eq!(sheet.name, "My forecast");
@@ -155,14 +170,17 @@ fn custom_months_colors_and_flows_are_honored() {
 #[test]
 fn too_many_months_are_rejected() {
     let months = (1..=13).map(|index| format!("M{index}")).collect();
-    assert!(build_cash_flow_sheet("owner-1", &CashFlowRequest {
-        title: None,
-        months: Some(months),
-        opening_balance: None,
-        inflows: None,
-        outflows: None,
-        negative_color: None,
-        positive_color: None,
-    })
+    assert!(build_cash_flow_sheet(
+        "owner-1",
+        &CashFlowRequest {
+            title: None,
+            months: Some(months),
+            opening_balance: None,
+            inflows: None,
+            outflows: None,
+            negative_color: None,
+            positive_color: None,
+        }
+    )
     .is_err());
 }

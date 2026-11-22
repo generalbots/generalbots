@@ -3,7 +3,6 @@
 //! Split out of `chart_read.rs` to keep that file inside the project size
 //! limit; the parser itself stays beside its callers.
 
-
 use super::*;
 
 /// Builds a workbook carrying a bar chart, the same way a spreadsheet tool
@@ -43,11 +42,8 @@ fn workbook_with_chart() -> Vec<u8> {
 fn extracts_chart_from_workbook_package() {
     let bytes = workbook_with_chart();
 
-    let workbook = umya_spreadsheet::reader::xlsx::read_reader(
-        std::io::Cursor::new(&bytes),
-        true,
-    )
-    .expect("parse");
+    let workbook = umya_spreadsheet::reader::xlsx::read_reader(std::io::Cursor::new(&bytes), true)
+        .expect("parse");
     let mut worksheets = Vec::new();
     for sheet in workbook.sheet_collection() {
         let mut data = HashMap::new();

@@ -1,15 +1,15 @@
 //! Chart create/delete mutations.
 
-use crate::auth::{SheetUser, resolve_user_id};
+use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
     ChartConfig, ChartDataset, ChartOptions, ChartPosition, ChartRequest, DeleteChartRequest,
     MoveChartRequest, SaveResponse, UpdateChartRequest,
 };
 use axum::{
-    Json,
     extract::{Extension, State},
     http::StatusCode,
+    Json,
 };
 use chrono::Utc;
 use std::sync::Arc;

@@ -21,8 +21,9 @@ use axum::http::StatusCode;
 use axum::Json;
 
 use crate::auth::SheetUser;
-use crate::handlers::crud::{handle_delete_sheet, handle_list_sheets, handle_new_sheet,
-    handle_save_sheet};
+use crate::handlers::crud::{
+    handle_delete_sheet, handle_list_sheets, handle_new_sheet, handle_save_sheet,
+};
 use crate::state::{DriveOps, SheetState};
 use botsheet_core::sessions::SessionStore;
 use botsheet_core::types::{LoadQuery, SaveRequest};
@@ -122,7 +123,10 @@ async fn anonymous_list_is_unauthorized() {
         .await
         .expect_err("anonymous listing must be refused");
     assert_eq!(error.0, StatusCode::UNAUTHORIZED);
-    assert!(drive.keys().is_empty(), "a refused request must not read or write");
+    assert!(
+        drive.keys().is_empty(),
+        "a refused request must not read or write"
+    );
 }
 
 #[tokio::test]
@@ -210,7 +214,10 @@ async fn two_users_cannot_see_each_others_sheets() {
         }),
     )
     .await;
-    assert!(bob_delete.is_ok(), "delete is scoped to bob's own namespace");
+    assert!(
+        bob_delete.is_ok(),
+        "delete is scoped to bob's own namespace"
+    );
 
     let alice_after = handle_list_sheets(State(state), Some(Extension(alice())))
         .await

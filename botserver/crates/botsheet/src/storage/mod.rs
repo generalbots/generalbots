@@ -29,8 +29,8 @@ pub mod xlsx_write_charts;
 pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;
 pub use xlsx_source::{
-    plan_for, produce_xlsx, retains_snapshot, save_back_message, save_back_target, RegenerateReason,
-    SaveBackTarget, XlsxPlan,
+    plan_for, produce_xlsx, retains_snapshot, save_back_message, save_back_target,
+    RegenerateReason, SaveBackTarget, XlsxPlan,
 };
 pub use xlsx_write::{
     apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter, merge_into_original,
@@ -101,7 +101,11 @@ pub async fn update_xlsx_cell(
     let cell = sheet.cell_mut((col + 1, row + 1));
 
     if let Some(f) = formula {
-        let formula_str = if let Some(stripped) = f.strip_prefix('=') { stripped } else { f };
+        let formula_str = if let Some(stripped) = f.strip_prefix('=') {
+            stripped
+        } else {
+            f
+        };
         cell.set_formula(formula_str);
     } else if let Some(v) = value {
         if let Ok(num) = v.parse::<f64>() {

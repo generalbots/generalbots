@@ -23,9 +23,9 @@
 
 use crate::state::DocState;
 use crate::storage::load_document_from_drive;
-use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
+use axum::Json;
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text, Timestamptz};
 use serde::Serialize;

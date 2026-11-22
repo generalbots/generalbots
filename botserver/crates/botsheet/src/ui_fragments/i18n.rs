@@ -409,8 +409,14 @@ mod tests {
 
     #[test]
     fn placeholder_substitution() {
-        assert_eq!(tf(Lang::En, "metadata.sheets_count", &[("n", "3")]), "3 sheet(s)");
-        assert_eq!(tf(Lang::Pt, "tabs.confirm_delete", &[("name", "Sheet1")]), "Excluir Sheet1?");
+        assert_eq!(
+            tf(Lang::En, "metadata.sheets_count", &[("n", "3")]),
+            "3 sheet(s)"
+        );
+        assert_eq!(
+            tf(Lang::Pt, "tabs.confirm_delete", &[("name", "Sheet1")]),
+            "Excluir Sheet1?"
+        );
     }
 
     #[test]

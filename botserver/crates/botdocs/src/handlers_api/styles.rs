@@ -6,9 +6,9 @@ use crate::types::{
     UpdateStyleRequest,
 };
 use axum::{
-    Json,
     extract::{Query, State},
     http::StatusCode,
+    Json,
 };
 use chrono::Utc;
 use std::collections::HashMap;

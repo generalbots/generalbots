@@ -1,8 +1,10 @@
-use super::{empty_fragment, html_escape, render_metadata_card, render_spreadsheet_summary, Lang, t, tf};
-use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
+use super::{
+    empty_fragment, html_escape, render_metadata_card, render_spreadsheet_summary, t, tf, Lang,
+};
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
 use botsheet_core::types::{Spreadsheet, SpreadsheetMetadata, Worksheet};
+use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 
 pub async fn handle_sheet_list_sidebar(
     headers: HeaderMap,
@@ -130,7 +132,8 @@ pub fn render_worksheet_grid_preview(ws: &Worksheet, idx: usize, lang: Lang) -> 
         html_escape(&ws.name),
         tf(lang, "preview.cells", &[("n", &ws.data.len().to_string())])
     );
-    let entries: Vec<(&String, &botsheet_core::types::CellData)> = ws.data.iter().take(64).collect();
+    let entries: Vec<(&String, &botsheet_core::types::CellData)> =
+        ws.data.iter().take(64).collect();
     for (k, v) in entries {
         let display = v.value.as_deref().or(v.formula.as_deref()).unwrap_or("");
         let is_formula = v.formula.is_some();

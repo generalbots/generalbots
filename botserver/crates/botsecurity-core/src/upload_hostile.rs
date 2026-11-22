@@ -8,22 +8,30 @@
 //!   the four independent zip-bomb signals;
 //! * encrypted entries (a password-protected part cannot be inspected);
 //! * nested zip containers (a second bomb stage);
-//! * macro-bearing parts — **refused**, never stripped, because rewriting a
-//!   signed OOXML package silently invalidates it;
+//! * macro-bearing parts — **refused** by the default gate; import boundaries
+//!   that own their stored copy may strip them first through
+//!   [`macro_strip`] and report the removal to the caller;
 //! * relationship targets — absolute URLs are re-checked with the same SSRF
 //!   policy used for outbound fetches, so `file://` and loopback/link-local
 //!   targets are rejected;
 //! * a malware-scan hook whose default decision is `NotConfigured`, never a
 //!   fabricated `Clean`.
 //!
-//! Nothing here writes to disk or extracts data: entry bodies are only read in
-//! bounded slices (4 bytes for the nested-container magic, 1 MiB for `.rels`).
+//! Entry bodies are read only in bounded slices (4 bytes for nested-container
+//! magic, 1 MiB for relationships and XML headers). The only disk writes are
+//! the quarantine payload and scan record in [`malware`], on a scanner's
+//! positive decision.
 
 use std::io::{Cursor, Read};
 use std::sync::OnceLock;
 
 use crate::upload_error::UploadError;
 use crate::validation::validate_url_ssrf_strict;
+
+pub mod corpus;
+pub mod macro_strip;
+pub mod malware;
+pub mod password;
 
 /// Compressed payload cap for the standalone gate (matches the largest
 /// `UploadClass` budget; handlers may tighten it through their own limits).
@@ -98,7 +106,7 @@ pub fn set_malware_scanner(scanner: Box<MalwareScanner>) -> bool {
 /// Runs the configured scanner, or reports `NotConfigured` when none exists.
 pub fn scan_for_malware(data: &[u8], filename: &str) -> MalwareScanDecision {
     match MALWARE_SCANNER.get() {
-        Some(scanner) => scanner(data, filename),
+        Some(scanner) => malware::scan_with(scanner.as_ref(), data, filename),
         None => MalwareScanDecision::NotConfigured,
     }
 }
@@ -141,6 +149,18 @@ pub fn inspect_hostile_upload_with(
     filename: &str,
     policy: &HostileFilePolicy,
 ) -> Result<HostileFileReport, UploadError> {
+    inspect_hostile_upload_with_scanner(data, filename, policy, None)
+}
+
+/// As [`inspect_hostile_upload_with`], with an explicit scanner. Passing
+/// `None` uses the process-wide hook; the corpus and import tests pass their
+/// own so global registration cannot make them order-dependent.
+pub fn inspect_hostile_upload_with_scanner(
+    data: &[u8],
+    filename: &str,
+    policy: &HostileFilePolicy,
+    scanner: Option<&MalwareScanner>,
+) -> Result<HostileFileReport, UploadError> {
     if data.is_empty() {
         return Err(UploadError::Empty);
     }
@@ -150,11 +170,17 @@ pub fn inspect_hostile_upload_with(
         });
     }
 
-    let mut archive = zip::ZipArchive::new(Cursor::new(data)).map_err(|_| {
-        UploadError::ArchiveUnsafe {
-            reason: "invalid zip container",
+    let mut archive = match zip::ZipArchive::new(Cursor::new(data)) {
+        Ok(archive) => archive,
+        Err(_) => {
+            if password::is_password_protected_container(data, filename) {
+                return Err(UploadError::ArchiveEncrypted);
+            }
+            return Err(UploadError::ArchiveUnsafe {
+                reason: "invalid zip container",
+            });
         }
-    })?;
+    };
     if archive.len() > policy.max_entries {
         return Err(UploadError::ArchiveUnsafe {
             reason: "too many entries",
@@ -166,8 +192,11 @@ pub fn inspect_hostile_upload_with(
     let mut uncompressed = 0u64;
     let mut compressed = 0u64;
     for index in 0..archive.len() {
+        // Metadata-only entry: `by_index` can fail while constructing a reader
+        // for an encrypted part, which must be reported as *encrypted*, not as
+        // a generic unreadable entry.
         let entry = archive
-            .by_index(index)
+            .by_index_data(index)
             .map_err(|_| UploadError::ArchiveUnsafe {
                 reason: "unreadable entry",
             })?;
@@ -180,7 +209,7 @@ pub fn inspect_hostile_upload_with(
         if entry.encrypted() {
             return Err(UploadError::ArchiveEncrypted);
         }
-        if is_macro_part(&name) {
+        if macro_strip::is_executable_part(&name) {
             return Err(UploadError::ArchiveMacro { part: name });
         }
         if entry.enclosed_name().is_none() {
@@ -225,14 +254,28 @@ pub fn inspect_hostile_upload_with(
         if is_container_part(&name) && starts_with_zip_magic(&mut entry) {
             return Err(UploadError::ArchiveNested { part: name });
         }
-        if name.ends_with(".rels") {
+        if name.ends_with(".rels") || name.ends_with(".xml") {
             let mut body = Vec::new();
-            let _ = entry.take(MAX_RELATIONSHIPS_BYTES).read_to_end(&mut body);
-            scan_relationship_xml(&body)?;
+            if entry
+                .take(MAX_RELATIONSHIPS_BYTES)
+                .read_to_end(&mut body)
+                .is_err()
+            {
+                return Err(UploadError::ArchiveUnsafe {
+                    reason: "xml part read failed",
+                });
+            }
+            scan_xml_header(&body)?;
+            if name.ends_with(".rels") {
+                scan_relationship_xml(&body)?;
+            }
         }
     }
 
-    let malware_scan = scan_for_malware(data, filename);
+    let malware_scan = match scanner {
+        Some(scanner) => malware::scan_with(scanner, data, filename),
+        None => scan_for_malware(data, filename),
+    };
     malware_decision(&malware_scan, policy.require_malware_scanner)?;
 
     Ok(HostileFileReport {
@@ -260,19 +303,25 @@ pub fn validate_relationship_target(target: &str) -> Result<(), UploadError> {
     Ok(())
 }
 
+/// A DOCTYPE is the only place an internal/external entity can be declared.
+/// The first 1 MiB is enough to see a prolog; deeper XML limits are enforced
+/// by the streaming scanners at the import boundary.
+fn scan_xml_header(body: &[u8]) -> Result<(), UploadError> {
+    let upper = body.to_ascii_uppercase();
+    if upper.windows(b"<!DOCTYPE".len()).any(|w| w == b"<!DOCTYPE") {
+        return Err(UploadError::ArchiveUnsafe {
+            reason: "xml doctype",
+        });
+    }
+    Ok(())
+}
+
 fn scan_relationship_xml(body: &[u8]) -> Result<(), UploadError> {
     let text = String::from_utf8_lossy(body);
     for target in attribute_values(&text, "Target") {
         validate_relationship_target(&unescape_xml(&target))?;
     }
     Ok(())
-}
-
-fn is_macro_part(name: &str) -> bool {
-    let path = name.trim_start_matches("./").to_ascii_lowercase();
-    let base = path.rsplit('/').next().unwrap_or(path.as_str());
-    base == "vbaproject.bin"
-        || ((path.starts_with("word/") || path.starts_with("ppt/")) && base.ends_with(".bin"))
 }
 
 fn is_container_part(name: &str) -> bool {
@@ -329,7 +378,9 @@ fn attribute_values(text: &str, attribute: &str) -> Vec<String> {
                     while cursor < bytes.len() && bytes[cursor] != quote {
                         cursor += 1;
                     }
-                    if let Ok(value) = std::str::from_utf8(&bytes[value_start..cursor.min(bytes.len())]) {
+                    if let Ok(value) =
+                        std::str::from_utf8(&bytes[value_start..cursor.min(bytes.len())])
+                    {
                         if !value.is_empty() {
                             values.push(value.to_string());
                         }

@@ -6,7 +6,7 @@ pub use crate::storage_core::{
 };
 pub use crate::storage_docx::{convert_docx_to_html, convert_html_to_docx};
 pub use crate::storage_docx_source::{
-    DocxFidelity, docx_bytes_with_fidelity, persist_original_docx,
+    docx_bytes_with_fidelity, persist_original_docx, DocxFidelity,
 };
 pub use crate::storage_drive::{
     delete_document_from_drive, list_documents_from_drive, load_document_from_drive, save_document,

@@ -2,6 +2,9 @@ pub mod auth;
 pub mod collaboration;
 pub mod export_isolation;
 pub mod handlers_api;
+#[cfg(test)]
+#[path = "hostile_corpus_tests.rs"]
+mod hostile_corpus_tests;
 pub mod import_pdf;
 mod import_security;
 pub mod legacy;
@@ -30,7 +33,7 @@ pub mod utils_pdf;
 
 mod re_cache;
 
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use botsecurity_core::upload_policy;
 use state::DocState;
 use std::sync::Arc;
@@ -66,8 +69,18 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         )
         .route("/api/docs/search", get(handle_search_documents))
         .route("/api/docs/load", get(handle_get_document))
-        .route("/api/docs/save", axum::routing::post(handle_docs_save).layer(upload_policy::body_limit(upload_policy::UploadClass::DocumentImport)))
-        .route("/api/docs/autosave", axum::routing::post(handle_autosave).layer(upload_policy::body_limit(upload_policy::UploadClass::DocumentImport)))
+        .route(
+            "/api/docs/save",
+            axum::routing::post(handle_docs_save).layer(upload_policy::body_limit(
+                upload_policy::UploadClass::DocumentImport,
+            )),
+        )
+        .route(
+            "/api/docs/autosave",
+            axum::routing::post(handle_autosave).layer(upload_policy::body_limit(
+                upload_policy::UploadClass::DocumentImport,
+            )),
+        )
         .route(
             "/api/docs/history",
             axum::routing::post(handlers_api::history::handle_history),

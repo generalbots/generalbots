@@ -10,6 +10,9 @@ pub struct PdfOptions {
 
 impl Default for PdfOptions {
     fn default() -> Self {
-        Self { landscape: false, scale: 1.0 }
+        Self {
+            landscape: false,
+            scale: 1.0,
+        }
     }
 }

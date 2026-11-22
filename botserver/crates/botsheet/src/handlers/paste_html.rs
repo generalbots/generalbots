@@ -71,8 +71,14 @@ pub fn parse_html_table(html: &str) -> Vec<Vec<HtmlCell>> {
             let cell = HtmlCell {
                 value: content,
                 style: attrs.get("style").cloned(),
-                colspan: attrs.get("colspan").and_then(|v| v.parse().ok()).unwrap_or(1),
-                rowspan: attrs.get("rowspan").and_then(|v| v.parse().ok()).unwrap_or(1),
+                colspan: attrs
+                    .get("colspan")
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(1),
+                rowspan: attrs
+                    .get("rowspan")
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(1),
             };
 
             while occupied.iter().any(|(c, _)| *c == col) {
@@ -217,7 +223,8 @@ mod tests {
 
     #[test]
     fn handles_colspan() {
-        let html = "<table><tr><td colspan=\"2\">wide</td></tr><tr><td>a</td><td>b</td></tr></table>";
+        let html =
+            "<table><tr><td colspan=\"2\">wide</td></tr><tr><td>a</td><td>b</td></tr></table>";
         let grid = parse_html_table(html);
         assert_eq!(grid[0].len(), 2);
         assert_eq!(grid[0][0].value, "wide");

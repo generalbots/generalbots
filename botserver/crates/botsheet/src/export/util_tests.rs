@@ -43,6 +43,9 @@ fn untyped_cells_parse_their_display_value() {
 
 #[test]
 fn a_cell_without_a_display_value_has_no_number() {
-    let empty = CellData { value: None, ..cell("") };
+    let empty = CellData {
+        value: None,
+        ..cell("")
+    };
     assert_eq!(cell_number(&empty), None);
 }

@@ -1,21 +1,19 @@
-use super::{html_escape, Lang, t, tf};
-use botuifragments::ui_fragments::form_field;
+use super::{html_escape, t, tf, Lang};
 use axum::extract::Query;
-use axum::Json;
 use axum::http::HeaderMap;
 use axum::response::Html;
+use axum::Json;
+use botuifragments::ui_fragments::form_field;
 use std::collections::HashMap;
-
 
 /// htmx posts these modal forms as JSON (`hx-ext="json-enc"`), while the
 /// handlers were reading a URL-encoded `Form` — every field (including the
 /// sheet id) was dropped. Normalize both shapes into the string map below.
-fn merge_json_body(
-    params: &mut HashMap<String, String>,
-    body: Option<Json<serde_json::Value>>,
-) {
+fn merge_json_body(params: &mut HashMap<String, String>, body: Option<Json<serde_json::Value>>) {
     let Some(Json(value)) = body else { return };
-    let Some(object) = value.as_object() else { return };
+    let Some(object) = value.as_object() else {
+        return;
+    };
     for (key, item) in object {
         if let Some(text) = item.as_str() {
             params.insert(key.clone(), text.to_string());
@@ -34,7 +32,10 @@ pub async fn handle_share_form(
     let mut params = query;
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
-    let action = params.get("action").cloned().unwrap_or_else(|| "share".to_string());
+    let action = params
+        .get("action")
+        .cloned()
+        .unwrap_or_else(|| "share".to_string());
     if action == "delete_named" {
         let name = params.get("name").cloned().unwrap_or_default();
         let escaped_name = html_escape(&name);

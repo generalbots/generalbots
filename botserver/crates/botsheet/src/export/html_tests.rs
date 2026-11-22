@@ -15,7 +15,10 @@ fn document_scaffold_wraps_the_tables() {
 
 #[test]
 fn markup_in_values_and_names_is_escaped() {
-    let book = sheet("<b>&Co</b>", vec![ws("<i>S</i>", &[(0, 0, "<script>alert('x')</script>")])]);
+    let book = sheet(
+        "<b>&Co</b>",
+        vec![ws("<i>S</i>", &[(0, 0, "<script>alert('x')</script>")])],
+    );
     let html = export_to_html(&book);
     assert!(html.contains("&lt;b&gt;&amp;Co&lt;/b&gt;"));
     assert!(html.contains("&lt;i&gt;S&lt;/i&gt;"));

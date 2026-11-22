@@ -7,7 +7,7 @@ use crate::export::{
 };
 use crate::state::{save_sheet_to_drive, SheetState};
 use crate::storage::import::import_spreadsheet_bytes;
-use crate::types::{ExportRequest, Spreadsheet};
+use crate::types::ExportRequest;
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
@@ -15,8 +15,11 @@ use axum::{
     Json,
 };
 use base64::Engine;
+use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use std::sync::Arc;
+
+use super::import_hardening::audit_hostile_upload;
 
 /// One content-type header for the download arms; the xlsx arm adds its
 /// fidelity marker on top. Returning a uniform `HeaderMap` keeps every arm of
@@ -29,77 +32,6 @@ fn content_headers(content_type: &'static str) -> axum::http::HeaderMap {
         axum::http::HeaderValue::from_static(content_type),
     );
     headers
-}
-
-/// #2522 — run the hostile-file gate explicitly at this import boundary and
-/// audit its report before `import_spreadsheet_bytes` parses the payload.
-///
-/// `upload_policy::validate_upload` already applies the gate centrally to zip
-/// containers; this second inspection is defence in depth and yields the
-/// report so every accepted import records its entry count, compression ratio
-/// and malware decision. Rejections use the shared localized, sanitized
-/// response; archive internals stay server-side.
-fn audit_hostile_upload(
-    bytes: &[u8],
-    filename: &str,
-    headers: &axum::http::HeaderMap,
-    context: &str,
-    policy: &upload_policy::HostileFilePolicy,
-) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
-    // Mirror `validate_upload`: only zip packages have OOXML/ODF parts. CSV,
-    // TSV and legacy XLS must not be parsed as a zip and refused.
-    let is_package = filename
-        .rsplit('.')
-        .next()
-        .and_then(upload_policy::mime_for_extension)
-        .is_some_and(upload_policy::is_zip_container);
-    if !is_package {
-        return Ok(());
-    }
-
-    let report =
-        upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(|error| {
-            log::warn!(
-                "{context}: hostile-file gate refused upload: {}",
-                error.log_detail()
-            );
-            upload_policy::rejection_json(&error, headers)
-        })?;
-
-    if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
-        log::warn!(
-            "{context}: no malware scanner configured — scan result is NotConfigured, not clean"
-        );
-    }
-    log::info!(
-        "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
-        report.entry_count,
-        report.compressed_bytes,
-        report.uncompressed_bytes,
-        report.compression_ratio,
-        report.malware_scan,
-    );
-
-    // #2522 — second, streaming pass: XML entity limits and relationship/SSRF
-    // re-check at the import boundary, before any spreadsheet parser runs.
-    #[cfg(feature = "xlsx")]
-    {
-        let xml = crate::import_security::inspect_office_package(bytes).map_err(|error| {
-            log::warn!(
-                "{context}: hostile-file gate refused XML payload: {}",
-                error.log_detail()
-            );
-            upload_policy::rejection_json(&error, headers)
-        })?;
-        log::info!(
-            "{context}: XML safety: parts={}, relationships={}, entity_declarations={}, custom_entity_refs={}",
-            xml.parts_checked,
-            xml.relationship_targets,
-            xml.entity_declarations,
-            xml.custom_entity_refs,
-        );
-    }
-    Ok(())
 }
 
 pub async fn handle_export_sheet(
@@ -277,7 +209,7 @@ pub async fn handle_import_sheet(
     user: Option<Extension<SheetUser>>,
     headers: axum::http::HeaderMap,
     req: axum::extract::Request,
-) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
     // #2132 — refuse an oversized body before it is buffered.
@@ -385,12 +317,41 @@ pub async fn handle_import_sheet(
         (bytes, filename, content_type)
     };
 
+    // #2522 — strip executable parts before the shared gate so a
+    // macro-enabled workbook imports with macros removed. A machine-readable
+    // notice is returned to the caller; the original bytes stay untouched.
+    let stripped = match macro_strip::strip_executable_parts(&bytes) {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!(
+                "botsheet::import: macro stripping failed: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
+    };
+    let mut notices = Vec::new();
+    let effective: &[u8] = match &stripped {
+        Some(result) => {
+            log::warn!(
+                "botsheet::import: removed {} executable part(s) before conversion",
+                result.removed_count
+            );
+            notices.push(crate::import_notice::macro_notice(
+                result.removed_parts.clone(),
+                result.removed_count,
+            ));
+            &result.bytes
+        }
+        None => &bytes,
+    };
+
     // #2132 — the extension, the declared type and the magic bytes must agree.
     let upload = match upload_policy::validate_upload(
         UploadClass::SpreadsheetImport,
         &filename,
         &content_type,
-        &bytes,
+        effective,
     ) {
         Ok(upload) => upload,
         Err(error) => {
@@ -398,6 +359,9 @@ pub async fn handle_import_sheet(
                 "botsheet::import: upload policy refused: {}",
                 error.log_detail()
             );
+            if password_guard::is_encrypted_rejection(&error) {
+                return Err(password_guard::actionable_rejection(&error, &headers));
+            }
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
@@ -405,19 +369,20 @@ pub async fn handle_import_sheet(
     // #2522 — inspect and audit before the parser runs. The helper skips
     // CSV/TSV and legacy XLS, which are not packages.
     audit_hostile_upload(
-        &bytes,
+        effective,
         &upload.filename,
         &headers,
         "botsheet::import",
         &upload_policy::HostileFilePolicy::default(),
     )?;
 
-    let mut sheet = import_spreadsheet_bytes(&bytes, &upload.filename, &user_id).map_err(|e| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": e })),
-        )
-    })?;
+    let mut sheet =
+        import_spreadsheet_bytes(effective, &upload.filename, &user_id).map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
+        })?;
 
     sheet.owner_id = user_id.clone();
 
@@ -430,7 +395,7 @@ pub async fn handle_import_sheet(
         ));
     }
 
-    Ok(Json(sheet))
+    crate::import_notice::with_notices(sheet, notices)
 }
 
 #[cfg(test)]

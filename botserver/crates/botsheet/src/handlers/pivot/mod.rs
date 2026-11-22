@@ -32,12 +32,7 @@ pub async fn handle_pivot(
         .sessions
         .get_or_load(&state, &user_id, req.sheet_id.trim())
         .await
-        .map_err(|e| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "error": e })),
-            )
-        })?;
+        .map_err(|e| (StatusCode::NOT_FOUND, Json(json!({ "error": e }))))?;
     let sheet = session.sheet.read().await.clone();
 
     let worksheet = match sheet.worksheets.first() {

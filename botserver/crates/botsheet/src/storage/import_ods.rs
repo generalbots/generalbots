@@ -11,8 +11,7 @@ pub fn parse_ods_to_worksheets(bytes: &[u8]) -> Result<Vec<crate::types::Workshe
     use zip::ZipArchive;
 
     let cursor = Cursor::new(bytes);
-    let mut zip = ZipArchive::new(cursor)
-        .map_err(|e| format!("Failed to open ODS zip: {e}"))?;
+    let mut zip = ZipArchive::new(cursor).map_err(|e| format!("Failed to open ODS zip: {e}"))?;
 
     let mut content_xml = zip
         .by_name("content.xml")
@@ -43,95 +42,91 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    "table:table" => {
-                        in_table = true;
-                        current_row = 0;
-                        data = HashMap::new();
-                        for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == "table:name" {
-                                sheet_name = attr.value.to_string();
-                            }
-                        }
-                        if sheet_name.is_empty() {
-                            sheet_name = "Sheet1".to_string();
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                "table:table" => {
+                    in_table = true;
+                    current_row = 0;
+                    data = HashMap::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == "table:name" {
+                            sheet_name = attr.value.to_string();
                         }
                     }
-                    "table:table-row" if in_table => {
-                        current_col = 0;
+                    if sheet_name.is_empty() {
+                        sheet_name = "Sheet1".to_string();
                     }
-                    "table:table-cell" if in_table => {
-                        cell_value.clear();
-                    }
-                    "text:p" => {
-                        in_text_p = true;
-                    }
-                    _ => {}
                 }
-            }
-            Ok(Event::End(ref e)) => {
-                match e.name().as_ref() {
-                    "table:table" if in_table => {
-                        in_table = false;
-                        worksheets.push(crate::types::Worksheet {
-                            name: sheet_name.clone(),
-                            data: data.clone(),
-                            column_widths: None,
-                            row_heights: None,
-                            frozen_rows: None,
-                            frozen_cols: None,
-                            merged_cells: None,
-                            filters: None,
-                            hidden_rows: None,
-                            validations: None,
-                            conditional_formats: None,
-                            charts: None,
-                            comments: None,
-                            protection: None,
-                            array_formulas: None,
-                            tables: None,
-                            hidden_columns: None,
-                            sheet_state: None,
-                            hyperlinks: None,
-                            print_setup: None,
-                            autofilter: None,
-                            row_page_breaks: None,
-                            column_page_breaks: None,
-                            images: None,
-                            print_areas: None,
-                            rich_text: None,
-                        });
-                    }
-                    "table:table-row" if in_table => {
-                        current_row += 1;
-                    }
-                    "table:table-cell" if in_table => {
-                        if !cell_value.is_empty() {
-                            let key = format!("{current_row},{current_col}");
-                            data.insert(
-                                key,
-                                crate::types::CellData {
-                                    value: Some(cell_value.clone()),
-                                    typed: None,
-                                    formula: None,
-                                    style: None,
-                                    format: None,
-                                    note: None,
-                                    locked: None,
-                                    has_comment: None,
-                                    array_formula_id: None,
-                                },
-                            );
-                        }
-                        current_col += 1;
-                    }
-                    "text:p" => {
-                        in_text_p = false;
-                    }
-                    _ => {}
+                "table:table-row" if in_table => {
+                    current_col = 0;
                 }
-            }
+                "table:table-cell" if in_table => {
+                    cell_value.clear();
+                }
+                "text:p" => {
+                    in_text_p = true;
+                }
+                _ => {}
+            },
+            Ok(Event::End(ref e)) => match e.name().as_ref() {
+                "table:table" if in_table => {
+                    in_table = false;
+                    worksheets.push(crate::types::Worksheet {
+                        name: sheet_name.clone(),
+                        data: data.clone(),
+                        column_widths: None,
+                        row_heights: None,
+                        frozen_rows: None,
+                        frozen_cols: None,
+                        merged_cells: None,
+                        filters: None,
+                        hidden_rows: None,
+                        validations: None,
+                        conditional_formats: None,
+                        charts: None,
+                        comments: None,
+                        protection: None,
+                        array_formulas: None,
+                        tables: None,
+                        hidden_columns: None,
+                        sheet_state: None,
+                        hyperlinks: None,
+                        print_setup: None,
+                        autofilter: None,
+                        row_page_breaks: None,
+                        column_page_breaks: None,
+                        images: None,
+                        print_areas: None,
+                        rich_text: None,
+                    });
+                }
+                "table:table-row" if in_table => {
+                    current_row += 1;
+                }
+                "table:table-cell" if in_table => {
+                    if !cell_value.is_empty() {
+                        let key = format!("{current_row},{current_col}");
+                        data.insert(
+                            key,
+                            crate::types::CellData {
+                                value: Some(cell_value.clone()),
+                                typed: None,
+                                formula: None,
+                                style: None,
+                                format: None,
+                                note: None,
+                                locked: None,
+                                has_comment: None,
+                                array_formula_id: None,
+                            },
+                        );
+                    }
+                    current_col += 1;
+                }
+                "text:p" => {
+                    in_text_p = false;
+                }
+                _ => {}
+            },
             Ok(Event::Text(ref e)) => {
                 if in_text_p {
                     cell_value.push_str(&e.xml10_content());

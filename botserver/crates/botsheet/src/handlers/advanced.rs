@@ -51,7 +51,10 @@ pub async fn handle_protect_sheet(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -67,7 +70,13 @@ pub async fn handle_protect_sheet(
 
     sheet.worksheets[req.worksheet_index].protection = Some(protection);
     sheet.updated_at = Utc::now();
-    state.sessions.record(&session, &state, &user_id, "sheet_mutation", serde_json::json!({ "sheet_id": req.sheet_id }));
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -95,7 +104,10 @@ pub async fn handle_unprotect_sheet(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -134,7 +146,13 @@ pub async fn handle_unprotect_sheet(
 
     worksheet.protection = None;
     sheet.updated_at = Utc::now();
-    state.sessions.record(&session, &state, &user_id, "sheet_mutation", serde_json::json!({ "sheet_id": req.sheet_id }));
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -162,7 +180,10 @@ pub async fn handle_lock_cells(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -178,7 +199,7 @@ pub async fn handle_lock_cells(
             let key = format!("{row},{col}");
             let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
                 value: None,
-                    typed: None,
+                typed: None,
                 formula: None,
                 style: None,
                 format: None,
@@ -233,7 +254,10 @@ pub async fn handle_add_external_link(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     let link = ExternalLink {
         id: Uuid::new_v4().to_string(),
@@ -283,7 +307,10 @@ pub async fn handle_refresh_external_link(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if let Some(links) = &mut sheet.external_links {
         for link in links.iter_mut() {
@@ -329,7 +356,10 @@ pub async fn handle_remove_external_link(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if let Some(links) = &mut sheet.external_links {
         links.retain(|link| link.id != req.link_id);

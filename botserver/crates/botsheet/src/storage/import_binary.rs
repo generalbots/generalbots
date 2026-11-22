@@ -19,12 +19,12 @@ pub fn parse_binary_to_worksheets(
     let cursor = Cursor::new(bytes);
 
     if format == "xls" {
-        let mut wb: Xls<_> = open_workbook_from_rs(cursor)
-            .map_err(|e| format!("Failed to read .xls: {e}"))?;
+        let mut wb: Xls<_> =
+            open_workbook_from_rs(cursor).map_err(|e| format!("Failed to read .xls: {e}"))?;
         push_sheets(&mut worksheets, &mut wb);
     } else {
-        let mut wb: Xlsb<_> = open_workbook_from_rs(cursor)
-            .map_err(|e| format!("Failed to read .xlsb: {e}"))?;
+        let mut wb: Xlsb<_> =
+            open_workbook_from_rs(cursor).map_err(|e| format!("Failed to read .xlsb: {e}"))?;
         push_sheets(&mut worksheets, &mut wb);
     }
 
@@ -67,7 +67,9 @@ where
                 if formula.is_empty() {
                     continue;
                 }
-                let entry = data.entry(format!("{row},{col}")).or_insert_with(empty_cell);
+                let entry = data
+                    .entry(format!("{row},{col}"))
+                    .or_insert_with(empty_cell);
                 entry.formula = Some(format!("={formula}"));
             }
         }
@@ -125,13 +127,14 @@ fn calamine_cell(cell: &calamine::Data) -> (Option<String>, Option<CellValue>) {
         Data::Float(f) => (Some(f.to_string()), Some(CellValue::Number(*f))),
         Data::String(s) => (Some(s.clone()), Some(CellValue::Text(s.clone()))),
         Data::Bool(b) => (
-            Some(if *b { "TRUE".to_string() } else { "FALSE".to_string() }),
+            Some(if *b {
+                "TRUE".to_string()
+            } else {
+                "FALSE".to_string()
+            }),
             Some(CellValue::Bool(*b)),
         ),
-        Data::DateTime(dt) => (
-            Some(dt.to_string()),
-            Some(CellValue::Number(dt.as_f64())),
-        ),
+        Data::DateTime(dt) => (Some(dt.to_string()), Some(CellValue::Number(dt.as_f64()))),
         Data::DateTimeIso(s) | Data::DurationIso(s) => {
             (Some(s.clone()), Some(CellValue::Text(s.clone())))
         }

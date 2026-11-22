@@ -1,14 +1,14 @@
 //! HTTP surface for pair-of-LLM document review (issue #1458).
 
-use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::review::{
-    MergedFinding, Review, ReviewError, ReviewOutcome, ReviewerRole, build_prompt,
-    build_rewrite_prompt, merge_reviews, parse_review,
+    build_prompt, build_rewrite_prompt, merge_reviews, parse_review, MergedFinding, Review,
+    ReviewError, ReviewOutcome, ReviewerRole,
 };
 use crate::state::DocState;
 

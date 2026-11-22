@@ -27,7 +27,11 @@ fn separators_quotes_and_newlines_are_escaped() {
     ];
     for (input, expected) in cases {
         let book = sheet("Book", vec![ws("S", &[(0, 0, input)])]);
-        assert_eq!(export_to_csv(&book), format!("{expected}\n"), "input {input:?}");
+        assert_eq!(
+            export_to_csv(&book),
+            format!("{expected}\n"),
+            "input {input:?}"
+        );
     }
 }
 
@@ -35,7 +39,10 @@ fn separators_quotes_and_newlines_are_escaped() {
 fn only_the_first_worksheet_is_exported() {
     let book = sheet(
         "Book",
-        vec![ws("First", &[(0, 0, "one")]), ws("Second", &[(0, 0, "two")])],
+        vec![
+            ws("First", &[(0, 0, "one")]),
+            ws("Second", &[(0, 0, "two")]),
+        ],
     );
     assert_eq!(export_to_csv(&book), "one\n");
 }
@@ -43,7 +50,9 @@ fn only_the_first_worksheet_is_exported() {
 #[test]
 fn keys_that_are_not_row_col_pairs_are_ignored_for_sizing() {
     let mut worksheet = ws("S", &[(0, 0, "kept")]);
-    worksheet.data.insert("not-a-key".to_string(), super::support_tests::cell("x"));
+    worksheet
+        .data
+        .insert("not-a-key".to_string(), super::support_tests::cell("x"));
     let book = sheet("Book", vec![worksheet]);
     assert_eq!(export_to_csv(&book), "kept\n");
 }

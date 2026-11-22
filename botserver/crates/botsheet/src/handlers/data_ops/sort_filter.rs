@@ -1,14 +1,14 @@
 //! Sort and filter mutations.
 
-use crate::auth::{SheetUser, resolve_user_id};
+use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
     CellData, ClearFilterRequest, FilterConfig, FilterRequest, SaveResponse, SortRequest,
 };
 use axum::{
-    Json,
     extract::{Extension, State},
     http::StatusCode,
+    Json,
 };
 use botsheet_core::engine::value::CellValue;
 use chrono::Utc;
@@ -90,7 +90,11 @@ pub async fn handle_sort_range(
             }
         };
 
-        if req.ascending { cmp } else { cmp.reverse() }
+        if req.ascending {
+            cmp
+        } else {
+            cmp.reverse()
+        }
     });
 
     for (row_offset, row_data) in rows.iter().enumerate() {

@@ -55,7 +55,7 @@ pub(crate) fn inspect_office_package(bytes: &[u8]) -> Result<XmlSafetyReport, Up
             .name()
             .map_err(|_| unsafe_reason("unsafe part name"))?
             .to_ascii_lowercase();
-        if is_executable_part(&name) {
+        if botsecurity_core::upload_hostile::macro_strip::is_executable_part(&name) {
             return Err(UploadError::ArchiveMacro { part: name });
         }
         if !(name.ends_with(".xml") || name.ends_with(".rels")) {
@@ -172,16 +172,6 @@ impl XmlScanner {
         }
         Ok(())
     }
-}
-
-/// XLM macro sheets, ActiveX controls and embedded OLE binaries are
-/// executable content. The central gate recognises `vbaProject.bin` but not
-/// these parts, so they are refused here before a parser can reach them.
-fn is_executable_part(name: &str) -> bool {
-    name.contains("/macrosheets/")
-        || name.contains("/activex/")
-        || name.ends_with("vbaproject.bin")
-        || (name.contains("/embeddings/") && name.ends_with(".bin"))
 }
 
 fn is_builtin_entity(name: &[u8]) -> bool {

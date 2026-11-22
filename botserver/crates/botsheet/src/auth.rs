@@ -86,7 +86,10 @@ mod tests {
             error.1 .0.get("code").and_then(|v| v.as_str()),
             Some("sheet_unauthenticated")
         );
-        assert_eq!(resolve_user_name(None).expect_err("no name").0, StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            resolve_user_name(None).expect_err("no name").0,
+            StatusCode::UNAUTHORIZED
+        );
     }
 
     #[test]

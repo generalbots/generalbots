@@ -36,7 +36,10 @@ pub async fn handle_merge_cells(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -101,7 +104,10 @@ pub async fn handle_unmerge_cells(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -165,7 +171,10 @@ pub async fn handle_freeze_panes(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -242,7 +251,9 @@ pub async fn handle_get_range(
                 // raw typed value stays available for arithmetic (#785).
                 if let (Some(typed), Some(code)) = (c.typed.as_ref(), c.format.as_deref()) {
                     c.value = Some(botsheet_core::engine::formats::display_cell_locale(
-                        typed, Some(code), locale,
+                        typed,
+                        Some(code),
+                        locale,
                     ));
                 }
                 cells.insert(key, c);

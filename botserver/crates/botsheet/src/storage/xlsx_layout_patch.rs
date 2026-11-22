@@ -88,9 +88,7 @@ fn patch_rows(xml: &str, ws: &Worksheet) -> String {
 fn patch_row(xml: &str, row: u32, height: Option<u32>, hidden: bool) -> String {
     // Model rows are 0-based; OOXML `<row r>` is 1-based.
     let row1 = row + 1;
-    let pattern = format!(
-        r#"<row\b[^>]*\br="{row1}"[^>]*>|<row\b[^>]*\br="{row1}"[^>]*/>"#
-    );
+    let pattern = format!(r#"<row\b[^>]*\br="{row1}"[^>]*>|<row\b[^>]*\br="{row1}"[^>]*/>"#);
     let Some(re) = crate::re_cache::dynamic(&pattern) else {
         return xml.to_string();
     };
@@ -280,14 +278,8 @@ mod tests {
         };
         let xml = "<worksheet><sheetData></sheetData></worksheet>";
         let out = patch_merges(xml, &ws);
-        assert!(
-            out.contains(r#"<mergeCell ref="B6:C6"/>"#),
-            "got: {out}"
-        );
-        assert!(
-            out.contains(r#"<mergeCell ref="D6:E6"/>"#),
-            "got: {out}"
-        );
+        assert!(out.contains(r#"<mergeCell ref="B6:C6"/>"#), "got: {out}");
+        assert!(out.contains(r#"<mergeCell ref="D6:E6"/>"#), "got: {out}");
         assert!(!out.contains("/<"), "tag lost its `>`: {out}");
         assert_eq!(out.matches("<mergeCells").count(), 1, "got: {out}");
         assert_eq!(out.matches("</mergeCells>").count(), 1, "got: {out}");

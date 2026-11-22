@@ -19,6 +19,7 @@
 use std::io::{Cursor, Read};
 
 use botsecurity_core::upload_policy::{self, UploadError};
+use serde::Serialize;
 
 const SCAN_CHUNK: usize = 8 * 1024;
 const WINDOW_LEN: usize = 9; // len("<!DOCTYPE")
@@ -55,7 +56,7 @@ pub(crate) fn inspect_office_package(bytes: &[u8]) -> Result<XmlSafetyReport, Up
             .name()
             .map_err(|_| unsafe_reason("unsafe part name"))?
             .to_ascii_lowercase();
-        if is_executable_part(&name) {
+        if botsecurity_core::upload_hostile::macro_strip::is_executable_part(&name) {
             return Err(UploadError::ArchiveMacro { part: name });
         }
         if !(name.ends_with(".xml") || name.ends_with(".rels")) {
@@ -174,16 +175,6 @@ impl XmlScanner {
     }
 }
 
-/// XLM macro sheets, ActiveX controls and embedded OLE binaries are
-/// executable content. The central gate recognises `vbaProject.bin` but not
-/// these parts, so they are refused here before a parser can reach them.
-fn is_executable_part(name: &str) -> bool {
-    name.contains("/macrosheets/")
-        || name.contains("/activex/")
-        || name.ends_with("vbaproject.bin")
-        || (name.contains("/embeddings/") && name.ends_with(".bin"))
-}
-
 fn is_builtin_entity(name: &[u8]) -> bool {
     matches!(name, b"amp" | b"lt" | b"gt" | b"quot" | b"apos") || name.first() == Some(&b'#')
 }
@@ -237,6 +228,58 @@ fn unescape_xml(value: &str) -> String {
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&#47;", "/")
+}
+
+/// #2522 — machine-readable notice returned after a macro-bearing import.
+/// `message_key` is a catalogue key, never a hardcoded UI string; the driver
+/// adds `file-macros-removed = Macros were removed before import ({ $count }
+/// executable part(s)).` to every locale and binds this field in the UI.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub(crate) struct SecurityNotice {
+    pub code: &'static str,
+    pub message_key: &'static str,
+    pub count: usize,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub parts: Vec<String>,
+}
+
+pub(crate) fn macro_notice(parts: Vec<String>, count: usize) -> SecurityNotice {
+    SecurityNotice {
+        code: "file-macros-removed",
+        message_key: "file-macros-removed",
+        count,
+        parts,
+    }
+}
+
+/// Attaches notices to an existing JSON shape without changing the model:
+/// every `Document` field is preserved and the notice list is omitted when
+/// nothing was sanitized.
+pub(crate) fn with_notices<T: serde::Serialize>(
+    document: T,
+    notices: Vec<SecurityNotice>,
+) -> Result<axum::Json<serde_json::Value>, (axum::http::StatusCode, axum::Json<serde_json::Value>)>
+{
+    let mut value = serde_json::to_value(document).map_err(|error| {
+        log::error!("docs import: response serialization failed: {error}");
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            axum::Json(serde_json::json!({ "error": "Response serialization failed" })),
+        )
+    })?;
+    if !notices.is_empty() {
+        let encoded = serde_json::to_value(notices).map_err(|error| {
+            log::error!("docs import: notice serialization failed: {error}");
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                axum::Json(serde_json::json!({ "error": "Response serialization failed" })),
+            )
+        })?;
+        if let Some(map) = value.as_object_mut() {
+            map.insert("security_notices".to_string(), encoded);
+        }
+    }
+    Ok(axum::Json(value))
 }
 
 #[cfg(test)]

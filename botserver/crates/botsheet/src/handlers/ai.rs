@@ -51,7 +51,8 @@ pub struct BatchItemResult {
     pub error: Option<String>,
 }
 
-static AI_CACHE: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static AI_CACHE: LazyLock<Mutex<HashMap<String, String>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 static LLM_SEMAPHORE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(MAX_CONCURRENT_LLM));
 
@@ -103,7 +104,11 @@ pub async fn handle_sheet_ai(
 ) -> impl IntoResponse {
     let command = req.command.to_lowercase();
     let response = ai_reply_for(&command);
-    Json(SheetAiResponse { response: response.to_string(), action: None, data: None })
+    Json(SheetAiResponse {
+        response: response.to_string(),
+        action: None,
+        data: None,
+    })
 }
 
 pub async fn handle_evaluate_ai_prompt(
@@ -114,20 +119,32 @@ pub async fn handle_evaluate_ai_prompt(
     {
         let cache = AI_CACHE.lock().await;
         if let Some(cached) = cache.get(&cache_key) {
-            return Ok(Json(EvaluateAiPromptResponse { result: cached.clone(), cached: true }));
+            return Ok(Json(EvaluateAiPromptResponse {
+                result: cached.clone(),
+                cached: true,
+            }));
         }
     }
     let _permit = LLM_SEMAPHORE.acquire().await.map_err(|e| {
-        (StatusCode::TOO_MANY_REQUESTS, format!("Rate limited: {}", e))
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            format!("Rate limited: {}", e),
+        )
     })?;
     let result = call_llm(&req.prompt).await.map_err(|e| {
-        (StatusCode::SERVICE_UNAVAILABLE, format!("LLM call failed: {}", e))
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("LLM call failed: {}", e),
+        )
     })?;
     {
         let mut cache = AI_CACHE.lock().await;
         cache.insert(cache_key, result.clone());
     }
-    Ok(Json(EvaluateAiPromptResponse { result, cached: false }))
+    Ok(Json(EvaluateAiPromptResponse {
+        result,
+        cached: false,
+    }))
 }
 
 pub async fn handle_batch_evaluate_ai(
@@ -137,7 +154,11 @@ pub async fn handle_batch_evaluate_ai(
     if req.prompts.len() > MAX_BATCH_SIZE {
         return Err((
             StatusCode::BAD_REQUEST,
-            format!("Batch size {} exceeds maximum of {}", req.prompts.len(), MAX_BATCH_SIZE),
+            format!(
+                "Batch size {} exceeds maximum of {}",
+                req.prompts.len(),
+                MAX_BATCH_SIZE
+            ),
         ));
     }
     let mut results = Vec::with_capacity(req.prompts.len().min(MAX_BATCH_SIZE));
@@ -151,7 +172,12 @@ pub async fn handle_batch_evaluate_ai(
             cache.get(&cache_key).cloned()
         };
         if let Some(cached) = cached_result {
-            results.push(BatchItemResult { index, result: cached, cached: true, error: None });
+            results.push(BatchItemResult {
+                index,
+                result: cached,
+                cached: true,
+                error: None,
+            });
             cached_count += 1;
             continue;
         }
@@ -173,7 +199,12 @@ pub async fn handle_batch_evaluate_ai(
                     let mut cache = AI_CACHE.lock().await;
                     cache.insert(cache_key, value.clone());
                 }
-                results.push(BatchItemResult { index, result: value, cached: false, error: None });
+                results.push(BatchItemResult {
+                    index,
+                    result: value,
+                    cached: false,
+                    error: None,
+                });
                 fresh_count += 1;
             }
             Err(e) => {
@@ -186,7 +217,11 @@ pub async fn handle_batch_evaluate_ai(
             }
         }
     }
-    Ok(Json(BatchEvaluateResponse { results, cached_count, fresh_count }))
+    Ok(Json(BatchEvaluateResponse {
+        results,
+        cached_count,
+        fresh_count,
+    }))
 }
 
 async fn call_llm(prompt: &str) -> Result<String, String> {
@@ -217,7 +252,10 @@ async fn perform_llm_request(prompt: &str) -> Result<String, String> {
         .send()
         .await
         .map_err(|e| format!("HTTP request failed: {}", e))?;
-    let text = resp.text().await.map_err(|e| format!("Failed to read response: {}", e))?;
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
     Ok(text)
 }
 

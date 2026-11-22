@@ -3,12 +3,13 @@ use crate::state::DocState;
 use crate::storage::convert_docx_to_html;
 use crate::storage::{create_new_document, load_document_from_drive, save_document};
 use crate::types::{
-    CompareDocumentsRequest, CompareDocumentsResponse, ComparisonSummary, Document,
-    DocumentComparison, DocumentDiff,
+    CompareDocumentsRequest, CompareDocumentsResponse, ComparisonSummary, DocumentComparison,
+    DocumentDiff,
 };
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
 use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
+use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
@@ -46,7 +47,11 @@ fn audit_hostile_upload(
                 "{context}: hostile-file gate refused upload: {}",
                 error.log_detail()
             );
-            upload_policy::rejection_json(&error, headers)
+            if password_guard::is_encrypted_rejection(&error) {
+                password_guard::actionable_rejection(&error, headers)
+            } else {
+                upload_policy::rejection_json(&error, headers)
+            }
         })?;
 
     if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
@@ -89,7 +94,7 @@ pub async fn handle_import_document(
     user: DocUser,
     headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
-) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     // #2132 — refuse an oversized body before it is buffered.
     if let Err(error) = upload_policy::check_declared_length(UploadClass::DocumentImport, &headers)
     {
@@ -122,12 +127,41 @@ pub async fn handle_import_document(
         )
     })?;
 
+    // #2522 — strip executable parts *before* the shared gate so a
+    // macro-enabled document imports with the macros removed. The original
+    // bytes are never modified, and the notice is returned to the caller.
+    let stripped = match macro_strip::strip_executable_parts(&bytes) {
+        Ok(result) => result,
+        Err(error) => {
+            log::warn!(
+                "botdocs::import: macro stripping failed: {}",
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
+    };
+    let mut notices = Vec::new();
+    let effective: &[u8] = match &stripped {
+        Some(result) => {
+            log::warn!(
+                "botdocs::import: removed {} executable part(s) before conversion",
+                result.removed_count
+            );
+            notices.push(crate::import_security::macro_notice(
+                result.removed_parts.clone(),
+                result.removed_count,
+            ));
+            &result.bytes
+        }
+        None => &bytes,
+    };
+
     // #2132 — the extension, the declared type and the magic bytes must agree.
     let upload = match upload_policy::validate_upload(
         UploadClass::DocumentImport,
         &filename,
         &content_type,
-        &bytes,
+        effective,
     ) {
         Ok(upload) => upload,
         Err(error) => {
@@ -135,6 +169,9 @@ pub async fn handle_import_document(
                 "botdocs::import: upload policy refused: {}",
                 error.log_detail()
             );
+            if password_guard::is_encrypted_rejection(&error) {
+                return Err(password_guard::actionable_rejection(&error, &headers));
+            }
             return Err(upload_policy::rejection_json(&error, &headers));
         }
     };
@@ -143,36 +180,36 @@ pub async fn handle_import_document(
     // #2522 — inspect and audit before any format-specific parser runs. The
     // helper skips plain formats (PDF/RTF/MD/HTML/TXT) on its own.
     audit_hostile_upload(
-        &bytes,
+        effective,
         &filename,
         &headers,
         "botdocs::import",
         &upload_policy::HostileFilePolicy::default(),
     )?;
 
-    let format = detect_import_format(&filename, &bytes);
+    let format = detect_import_format(&filename, effective);
     let content = match format.as_str() {
         // #2254 — a PDF is read back into editable paragraphs instead of being
         // rejected as an unsupported format.
-        "pdf" => crate::import_pdf::pdf_to_editor_html(&bytes).map_err(|e| {
+        "pdf" => crate::import_pdf::pdf_to_editor_html(effective).map_err(|e| {
             (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": e })),
             )
         })?,
-        "docx" => convert_docx_to_html(&bytes).map_err(|e| {
+        "docx" => convert_docx_to_html(effective).map_err(|e| {
             (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": e })),
             )
         })?,
-        "odt" => odt_zip_to_html(&bytes).map_err(|e| {
+        "odt" => odt_zip_to_html(effective).map_err(|e| {
             (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": e })),
             )
         })?,
-        "rtf" => rtf_to_html(&String::from_utf8_lossy(&bytes)),
+        "rtf" => rtf_to_html(&String::from_utf8_lossy(effective)),
         "html" => String::from_utf8_lossy(&bytes).to_string(),
         "markdown" => markdown_to_html(&String::from_utf8_lossy(&bytes)),
         "txt" => {
@@ -215,15 +252,20 @@ pub async fn handle_import_document(
     // edits; the original bytes are what a save patches, so theme, styles,
     // headers/footers, tables and images survive.
     if format == "docx" {
-        if let Err(e) =
-            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes, &doc.content)
-                .await
+        if let Err(e) = crate::storage::persist_original_docx(
+            &state,
+            &user_id,
+            &doc.id,
+            effective,
+            &doc.content,
+        )
+        .await
         {
             log::warn!("docs import: could not store the original DOCX: {e}");
         }
     }
 
-    Ok(Json(doc))
+    crate::import_security::with_notices(doc, notices)
 }
 
 pub(crate) fn detect_import_format(filename: &str, bytes: &[u8]) -> String {

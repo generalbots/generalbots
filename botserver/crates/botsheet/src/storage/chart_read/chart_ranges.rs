@@ -56,7 +56,10 @@ pub(crate) fn resolve_single_cell(
 ) -> Option<String> {
     let (ws_idx, r0, _c0, _r1, _c1) = resolve_ref(range, default_ws, worksheets)?;
     let key = format!("{r0},{_c0}");
-    worksheets[ws_idx].data.get(&key).and_then(|c| c.value.clone())
+    worksheets[ws_idx]
+        .data
+        .get(&key)
+        .and_then(|c| c.value.clone())
 }
 
 fn resolve_ref(

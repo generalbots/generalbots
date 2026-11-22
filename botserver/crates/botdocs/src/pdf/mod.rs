@@ -15,8 +15,8 @@ pub mod blocks;
 pub mod layout;
 pub mod writer;
 
-pub use blocks::{Block, BlockKind, InlineRun, parse_blocks};
-pub use layout::{Line, Page, PageFrame, Segment, layout_pages, layout_pages_with_hf};
+pub use blocks::{parse_blocks, Block, BlockKind, InlineRun};
+pub use layout::{layout_pages, layout_pages_with_hf, Line, Page, PageFrame, Segment};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HeaderFooter {

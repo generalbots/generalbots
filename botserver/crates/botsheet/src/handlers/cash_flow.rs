@@ -6,18 +6,18 @@
 //! server keeps presentation attached to the sheet instead of depending on a
 //! chat model composing a dozen separate per-cell formatting calls.
 
-use crate::auth::{SheetError, SheetUser, resolve_user_id};
+use crate::auth::{resolve_user_id, SheetError, SheetUser};
 use crate::handlers::cell_ops::MAX_RECALC_CELLS;
 use crate::handlers::create::cell_from_text;
 use crate::handlers::data_ops::apply_conditional_request;
-use crate::state::{SheetState, save_sheet_to_drive};
+use crate::state::{save_sheet_to_drive, SheetState};
 use crate::types::{CellData, CellStyle, ConditionalFormatRequest, Spreadsheet, Worksheet};
 use axum::{
-    Json,
     extract::{Extension, State},
     http::StatusCode,
+    Json,
 };
-use botsheet_core::dependency_graph::{DepGraph, key_from_string};
+use botsheet_core::dependency_graph::{key_from_string, DepGraph};
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
@@ -202,10 +202,14 @@ pub fn build_cash_flow_sheet(owner_id: &str, req: &CashFlowRequest) -> Result<Sp
     let header = header_style();
     let label = label_style();
     let title_cell = styled_cell(&sheet.name, &sheet.worksheets, Some(&title), None);
-    sheet.worksheets[0].data.insert("0,0".to_string(), title_cell);
+    sheet.worksheets[0]
+        .data
+        .insert("0,0".to_string(), title_cell);
 
     let month_cell = styled_cell("Month", &sheet.worksheets, Some(&header), None);
-    sheet.worksheets[0].data.insert("1,0".to_string(), month_cell);
+    sheet.worksheets[0]
+        .data
+        .insert("1,0".to_string(), month_cell);
     for (offset, month) in months.iter().enumerate() {
         let col = FIRST_DATA_COL + offset as u32;
         let cell = styled_cell(month, &sheet.worksheets, Some(&header), None);
@@ -233,8 +237,16 @@ pub fn build_cash_flow_sheet(owner_id: &str, req: &CashFlowRequest) -> Result<Sp
         } else {
             format!("={}{}", column_letter(col - 1), CLOSING_ROW + 1)
         };
-        let inflow = inflows.get(offset).copied().filter(|v| v.is_finite()).unwrap_or(0.0);
-        let outflow = outflows.get(offset).copied().filter(|v| v.is_finite()).unwrap_or(0.0);
+        let inflow = inflows
+            .get(offset)
+            .copied()
+            .filter(|v| v.is_finite())
+            .unwrap_or(0.0);
+        let outflow = outflows
+            .get(offset)
+            .copied()
+            .filter(|v| v.is_finite())
+            .unwrap_or(0.0);
         let rows = [
             (OPENING_ROW, opening),
             (INFLOW_ROW, number_text(inflow)),
@@ -250,7 +262,9 @@ pub fn build_cash_flow_sheet(owner_id: &str, req: &CashFlowRequest) -> Result<Sp
         ];
         for (row, text) in rows {
             let cell = styled_cell(&text, &sheet.worksheets, None, Some(NUMBER_FORMAT));
-            sheet.worksheets[0].data.insert(format!("{row},{col}"), cell);
+            sheet.worksheets[0]
+                .data
+                .insert(format!("{row},{col}"), cell);
         }
     }
 
@@ -276,25 +290,23 @@ pub async fn handle_create_cash_flow(
     Json(req): Json<CashFlowRequest>,
 ) -> Result<Json<Spreadsheet>, SheetError> {
     let user_id = resolve_user_id(user.as_deref())?;
-    let sheet = build_cash_flow_sheet(&user_id, &req).map_err(|message| {
-        (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": message })),
-        )
-    })?;
+    let sheet = build_cash_flow_sheet(&user_id, &req)
+        .map_err(|message| (StatusCode::BAD_REQUEST, Json(json!({ "error": message }))))?;
     let sheet_id = sheet.id.clone();
-    save_sheet_to_drive(&state, &user_id, &sheet).await.map_err(|error| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(
-                    &error,
-                    "botsheet::handlers::cash_flow",
-                    None,
-                )
-            })),
-        )
-    })?;
+    save_sheet_to_drive(&state, &user_id, &sheet)
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(
+                        &error,
+                        "botsheet::handlers::cash_flow",
+                        None,
+                    )
+                })),
+            )
+        })?;
     log::info!("Created cash-flow forecast sheet {sheet_id}");
     Ok(Json(sheet))
 }

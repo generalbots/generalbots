@@ -25,9 +25,18 @@ fn number_rules_check_parseability_and_bounds() {
     assert!(!validate_value("abc", &unbounded).valid);
 
     let bounded = rule("number", Some("10"), Some("20"));
-    let cases = [("10", true), ("20", true), ("9.99", false), ("20.01", false)];
+    let cases = [
+        ("10", true),
+        ("20", true),
+        ("9.99", false),
+        ("20.01", false),
+    ];
     for (value, expected) in cases {
-        assert_eq!(validate_value(value, &bounded).valid, expected, "value {value}");
+        assert_eq!(
+            validate_value(value, &bounded).valid,
+            expected,
+            "value {value}"
+        );
     }
 
     // A non-numeric bound is ignored rather than rejecting everything.
@@ -48,7 +57,10 @@ fn integer_rules_reject_decimals_and_text() {
 #[test]
 fn list_rules_compare_exactly_against_the_allowed_values() {
     let mut list = rule("list", None, None);
-    assert!(validate_value("anything", &list).valid, "no list means no restriction");
+    assert!(
+        validate_value("anything", &list).valid,
+        "no list means no restriction"
+    );
 
     list.allowed_values = Some(vec!["red".to_string(), "green".to_string()]);
     assert!(validate_value("red", &list).valid);

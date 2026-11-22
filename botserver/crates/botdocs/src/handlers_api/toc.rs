@@ -3,7 +3,7 @@ use crate::state::DocState;
 use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{GenerateTocRequest, TableOfContents, TocEntry, TocResponse, UpdateTocRequest};
 use crate::utils::strip_html;
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{extract::State, http::StatusCode, Json};
 use chrono::Utc;
 use std::sync::Arc;
 

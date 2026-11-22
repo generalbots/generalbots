@@ -5,7 +5,7 @@
 //! positioned independently, which keeps indentation and per-line font sizes
 //! faithful to the block layout.
 
-use super::layout::{Line, MARGIN, PAGE_HEIGHT, PAGE_WIDTH, Page};
+use super::layout::{Line, Page, MARGIN, PAGE_HEIGHT, PAGE_WIDTH};
 
 /// Font resource name per emphasis combination.
 fn font_resource(mono: bool, bold: bool, italic: bool) -> &'static str {

@@ -20,19 +20,13 @@ use super::xlsx_shared_strings::{rewrite_shared_strings, SharedStrings};
 /// workbook sheet list (rename/add/delete) are rewritten; every other zip entry
 /// is copied verbatim. This is what makes a pivot table (or chart, or image)
 /// Sheet cannot render survive being edited around.
-pub fn merge_into_original(
-    original_bytes: &[u8],
-    sheet: &Spreadsheet,
-) -> Result<Vec<u8>, String> {
+pub fn merge_into_original(original_bytes: &[u8], sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
     // #2043 — only an OOXML workbook can be patched here. `.ods` and legacy
     // `.xls` are kept as a source snapshot but are not this format: patching
     // them would write xlsx parts into a different package, so the caller must
     // regenerate instead.
     let mut entries = read_zip_entries(original_bytes)?;
-    if entries
-        .iter()
-        .all(|(name, _)| name != "xl/workbook.xml")
-    {
+    if entries.iter().all(|(name, _)| name != "xl/workbook.xml") {
         return Err("source package is not an xlsx workbook".to_string());
     }
 
@@ -172,8 +166,12 @@ fn parse_cell_key(key: &str) -> Result<(u32, u32), String> {
     if parts.len() != 2 {
         return Err(format!("bad cell key {key}"));
     }
-    let row = parts[0].parse::<u32>().map_err(|_| format!("bad row in {key}"))?;
-    let col = parts[1].parse::<u32>().map_err(|_| format!("bad col in {key}"))?;
+    let row = parts[0]
+        .parse::<u32>()
+        .map_err(|_| format!("bad row in {key}"))?;
+    let col = parts[1]
+        .parse::<u32>()
+        .map_err(|_| format!("bad col in {key}"))?;
     Ok((row, col))
 }
 
@@ -215,7 +213,10 @@ fn build_cell_xml(
                 format!(r#"<c r="{reference}"{style} t="b"><v>{v}</v></c>"#)
             }
             CellValue::Text(s) => text_cell(reference, s, &style, shared),
-            CellValue::Error(e) => format!(r#"<c r="{reference}"{style} t="e"><v>{}</v></c>"#, xml_escape(e)),
+            CellValue::Error(e) => format!(
+                r#"<c r="{reference}"{style} t="e"><v>{}</v></c>"#,
+                xml_escape(e)
+            ),
             CellValue::Empty => format!(r#"<c r="{reference}"{style}/>"#),
         };
     }
@@ -225,7 +226,11 @@ fn build_cell_xml(
             return format!(r#"<c r="{reference}"{style}><v>{n}</v></c>"#);
         }
         if value.eq_ignore_ascii_case("true") || value.eq_ignore_ascii_case("false") {
-            let v = if value.eq_ignore_ascii_case("true") { "1" } else { "0" };
+            let v = if value.eq_ignore_ascii_case("true") {
+                "1"
+            } else {
+                "0"
+            };
             return format!(r#"<c r="{reference}"{style} t="b"><v>{v}</v></c>"#);
         }
         return text_cell(reference, value, &style, shared);
@@ -237,12 +242,7 @@ fn build_cell_xml(
 /// Writes a text cell using the Excel-native shared-string form (`t="s"`),
 /// reusing an existing entry or appending a new one. Falls back to an inline
 /// string when the package has no shared-string table.
-fn text_cell(
-    reference: &str,
-    text: &str,
-    style: &str,
-    shared: &mut SharedStrings,
-) -> String {
+fn text_cell(reference: &str, text: &str, style: &str, shared: &mut SharedStrings) -> String {
     let escaped = xml_escape(text);
     match shared.lookup_or_append(&escaped) {
         Some(idx) => format!(r#"<c r="{reference}"{style} t="s"><v>{idx}</v></c>"#),
@@ -306,14 +306,18 @@ fn replace_or_insert_cell(
     shared: &mut SharedStrings,
 ) -> Result<String, String> {
     let esc = regex::escape(reference);
-    let pattern = format!(
-        r#"(?s)<c\b[^>]*\br="{esc}"[^>]*?/>|<c\b[^>]*\br="{esc}"[^>]*>.*?</c>"#
-    );
+    let pattern = format!(r#"(?s)<c\b[^>]*\br="{esc}"[^>]*?/>|<c\b[^>]*\br="{esc}"[^>]*>.*?</c>"#);
     let re = crate::re_cache::dynamic(&pattern).ok_or_else(|| "cell regex".to_string())?;
 
     if let Some(m) = re.find(xml) {
         let style_attr = extract_style_attr(m.as_str());
-        let replacement = build_cell_xml(reference, cell, style_attr.as_deref(), shared, Some(m.as_str()));
+        let replacement = build_cell_xml(
+            reference,
+            cell,
+            style_attr.as_deref(),
+            shared,
+            Some(m.as_str()),
+        );
         let mut out = String::with_capacity(xml.len() + replacement.len());
         out.push_str(&xml[..m.start()]);
         out.push_str(&replacement);
@@ -353,4 +357,3 @@ fn replace_or_insert_cell(
 
     Err("worksheet XML has no sheetData".to_string())
 }
-

@@ -1477,6 +1477,15 @@ jobs:
       # from the nightly run is added to the seed slices in this file.
       - name: Property fallback for the fuzz targets (#2119)
         run: cargo test -p bottest --test fuzz_regressions
+      # #2522 — the hostile-file corpus is built in memory and every case must
+      # be refused by the shared gate; the Docs/Sheets boundaries must also
+      # reject the same malicious payloads (macro packages are stripped with a
+      # notice instead of admitted untouched). No case may reach a parser.
+      - name: Malicious-file corpus fails closed (#2522)
+        run: |
+          set -euo pipefail
+          cargo test -p botdocs --lib hostile_
+          cargo test -p botsheet --lib hostile_
       - name: In-process SLO budgets (#2115)
         # The budgets live in ops/slo.yaml (profile `hotpath`); the Rust test
         # fails fast with the measured number and emits target/slo/hotpath.json,

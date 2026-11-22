@@ -11,7 +11,11 @@ use crate::types::{ChartConfig, ChartPosition, Worksheet};
 /// A regenerated package used to carry the numbers only, so a sheet that had a
 /// chart opened in Excel without it (#2150 SHEET-01 step 6). umya writes the
 /// chart XML and its drawing anchor, which is what makes the chart survive.
-pub(super) fn attach_chart(worksheet: &Worksheet, umya_sheet: &mut umya_spreadsheet::Worksheet, config: &ChartConfig) {
+pub(super) fn attach_chart(
+    worksheet: &Worksheet,
+    umya_sheet: &mut umya_spreadsheet::Worksheet,
+    config: &ChartConfig,
+) {
     let Some(series) = absolute_range(&config.data_range) else {
         log::warn!(
             "chart {} has an invalid data range '{}'; it is skipped on export",
@@ -106,4 +110,3 @@ fn series_title(worksheet: &Worksheet, data_range: &str) -> Option<String> {
     }
     Some(trimmed.to_string())
 }
-

@@ -1,10 +1,9 @@
 use super::{
-    ensure_sweep_started, get_collab_channels, get_presence, get_random_color, get_selections,
-    get_typing, get_mentions, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
+    ensure_sweep_started, get_collab_channels, get_mentions, get_presence, get_random_color,
+    get_selections, get_typing, MentionNotification, SelectionInfo, TypingIndicator, UserPresence,
 };
 use crate::state::SheetState;
 use crate::types::CollabMessage;
-use std::sync::Arc;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -15,6 +14,7 @@ use axum::{
 use botsheet_core::formulas::cell_to_a1;
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
+use std::sync::Arc;
 
 use tokio::sync::broadcast;
 
@@ -105,7 +105,7 @@ pub async fn handle_sheet_connection(
     let user_name_clone = user_name.clone();
     let user_color_clone = user_color.clone();
     let state_clone = Arc::clone(&state);
-    
+
     let receive_task = tokio::spawn(async move {
         while let Some(msg) = receiver.next().await {
             match msg {
@@ -135,11 +135,9 @@ pub async fn handle_sheet_connection(
                                 }
                             }
                             "typing_start" => {
-                                if let (Some(row), Some(col), Some(ws_idx)) = (
-                                    collab_msg.row,
-                                    collab_msg.col,
-                                    collab_msg.worksheet_index,
-                                ) {
+                                if let (Some(row), Some(col), Some(ws_idx)) =
+                                    (collab_msg.row, collab_msg.col, collab_msg.worksheet_index)
+                                {
                                     let mut typing = get_typing().write().await;
                                     let indicators =
                                         typing.entry(sheet_id_clone.clone()).or_default();
@@ -199,15 +197,9 @@ pub async fn handle_sheet_connection(
                                         serde_json::from_str::<serde_json::Value>(value)
                                     {
                                         if let (Some(to_user), Some(message), Some(cell)) = (
-                                            mention_data
-                                                .get("to_user_id")
-                                                .and_then(|v| v.as_str()),
-                                            mention_data
-                                                .get("message")
-                                                .and_then(|v| v.as_str()),
-                                            mention_data
-                                                .get("cell")
-                                                .and_then(|v| v.as_str()),
+                                            mention_data.get("to_user_id").and_then(|v| v.as_str()),
+                                            mention_data.get("message").and_then(|v| v.as_str()),
+                                            mention_data.get("cell").and_then(|v| v.as_str()),
                                         ) {
                                             let mut mentions = get_mentions().write().await;
                                             let user_mentions =
@@ -273,9 +265,8 @@ pub async fn handle_sheet_connection(
                                                 array_formula_id: None,
                                             });
                                         entry.value = Some(content.clone());
-                                        entry.typed = Some(
-                                            botsheet_core::engine::CellValue::parse(content),
-                                        );
+                                        entry.typed =
+                                            Some(botsheet_core::engine::CellValue::parse(content));
                                         sheet.updated_at = Utc::now();
                                     }
                                     // Recalculate dependents through the cached dependency graph
@@ -295,11 +286,8 @@ pub async fn handle_sheet_connection(
                                         let mut sheet = session.sheet.blocking_write();
                                         let worksheet = &mut sheet.worksheets[index];
                                         graphs[index].on_edit(worksheet, &[changed]);
-                                        graphs[index].recalc_cascade_typed(
-                                            worksheet,
-                                            changed,
-                                            1000,
-                                        );
+                                        graphs[index]
+                                            .recalc_cascade_typed(worksheet, changed, 1000);
                                     }
                                     let seq = state_clone.sessions.record(
                                         &session,

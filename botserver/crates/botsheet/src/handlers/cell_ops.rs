@@ -3,7 +3,10 @@ use crate::collaboration::broadcast_sheet_change;
 use crate::formulas::{evaluate_formula, evaluate_formula_in};
 use crate::state::SheetState;
 use crate::storage::import::create_new_spreadsheet;
-use crate::types::{CellData, CellUpdateRequest, FormatRequest, FormulaRequest, FormulaResult, SaveResponse, Worksheet};
+use crate::types::{
+    CellData, CellUpdateRequest, FormatRequest, FormulaRequest, FormulaResult, SaveResponse,
+    Worksheet,
+};
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
@@ -63,7 +66,11 @@ pub async fn handle_update_cell(
         ));
     }
 
-    let session = match state.sessions.get_or_load(&state, &user_id, &req.sheet_id).await {
+    let session = match state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+    {
         Ok(s) => s,
         Err(_) => {
             // First edit on a brand-new sheet id: materialize a fresh document
@@ -77,15 +84,23 @@ pub async fn handle_update_cell(
             if let Err(e) = crate::state::save_sheet_to_drive(&state, &user_id, &fresh).await {
                 return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::cell_ops", None)})),
+                    Json(
+                        serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::cell_ops", None)}),
+                    ),
                 ));
             }
-            match state.sessions.get_or_load(&state, &user_id, &req.sheet_id).await {
+            match state
+                .sessions
+                .get_or_load(&state, &user_id, &req.sheet_id)
+                .await
+            {
                 Ok(s) => s,
                 Err(e) => {
                     return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::cell_ops", None)})),
+                        Json(
+                            serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::cell_ops", None)}),
+                        ),
                     ))
                 }
             }
@@ -94,7 +109,10 @@ pub async fn handle_update_cell(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -125,7 +143,11 @@ pub async fn handle_update_cell(
             &sheet.worksheets,
             req.worksheet_index,
         );
-        (Some(result.display()), Some(req.value.clone()), Some(result))
+        (
+            Some(result.display()),
+            Some(req.value.clone()),
+            Some(result),
+        )
     } else {
         let typed = botsheet_core::engine::CellValue::parse(&req.value);
         (Some(req.value.clone()), None, Some(typed))
@@ -221,7 +243,10 @@ pub async fn handle_format_cells(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -300,7 +325,11 @@ pub async fn handle_evaluate_formula(
 ) -> Result<Json<FormulaResult>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
-    let sheet = match state.sessions.get_or_load(&state, &user_id, &req.sheet_id).await {
+    let sheet = match state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+    {
         Ok(s) => {
             let sheet = s.sheet.read().await;
             sheet.clone()

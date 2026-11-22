@@ -1,35 +1,38 @@
+pub mod i18n;
+pub mod modals;
 pub mod panels;
 pub mod sidebars;
 pub mod toolbar;
-pub mod modals;
-pub mod i18n;
 
-pub use i18n::{Lang, t, tf};
+pub use i18n::{t, tf, Lang};
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use botsheet_core::types::{Spreadsheet, SpreadsheetMetadata};
 use serde::Deserialize;
 use std::sync::Arc;
 
+use modals::{
+    handle_advanced_ranges_panel, handle_ai_panel, handle_chart_modal,
+    handle_conditional_format_modal, handle_custom_format_modal, handle_data_validation_modal,
+    handle_find_replace_modal, handle_insert_image_modal, handle_print_preview_modal,
+    handle_share_modal,
+};
 use panels::{
-    handle_named_ranges_panel, handle_charts_panel, handle_validations_panel,
-    handle_conditional_formats_panel, handle_external_links_panel, handle_comments_panel,
-    handle_protection_panel, handle_array_formulas_panel,
+    handle_array_formulas_panel, handle_charts_panel, handle_comments_panel,
+    handle_conditional_formats_panel, handle_external_links_panel, handle_named_ranges_panel,
+    handle_protection_panel, handle_validations_panel,
 };
 use sidebars::{
-    handle_sheet_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
+    handle_recent_sidebar, handle_search_sidebar, handle_sheet_list_sidebar,
     handle_worksheet_tabs_sidebar,
 };
 use toolbar::{
-    handle_share_form, handle_find_replace_form, handle_conditional_format_form,
-    handle_data_validation_form, handle_custom_format_form, handle_insert_image_form,
-    handle_print_preview_form, handle_chart_form,
-};
-use modals::{
-    handle_share_modal, handle_chart_modal, handle_find_replace_modal,
-    handle_conditional_format_modal, handle_data_validation_modal,
-    handle_custom_format_modal, handle_insert_image_modal, handle_print_preview_modal,
-    handle_ai_panel, handle_advanced_ranges_panel,
+    handle_chart_form, handle_conditional_format_form, handle_custom_format_form,
+    handle_data_validation_form, handle_find_replace_form, handle_insert_image_form,
+    handle_print_preview_form, handle_share_form,
 };
 
 pub use botuifragments::ui_fragments::htmx_escape as html_escape;
@@ -51,11 +54,7 @@ pub fn fmt_pct(v: f64) -> String {
 }
 
 pub fn err_fragment(lang: Lang, msg: &str) -> String {
-    botuifragments::ui_fragments::error_box(
-        "fragment-error",
-        &t(lang, "common.error_label"),
-        msg,
-    )
+    botuifragments::ui_fragments::error_box("fragment-error", &t(lang, "common.error_label"), msg)
 }
 
 pub fn empty_fragment(msg: &str) -> String {
@@ -69,40 +68,123 @@ pub struct SheetIdQuery {
 
 pub fn configure() -> Router<Arc<crate::state::SheetState>> {
     Router::new()
-        .route("/suite/sheet/fragments/sheet-list", get(handle_sheet_list_sidebar))
+        .route(
+            "/suite/sheet/fragments/sheet-list",
+            get(handle_sheet_list_sidebar),
+        )
         .route("/suite/sheet/fragments/search", get(handle_search_sidebar))
         .route("/suite/sheet/fragments/recent", get(handle_recent_sidebar))
-        .route("/suite/sheet/fragments/tabs", post(handle_worksheet_tabs_sidebar))
-        .route("/suite/sheet/fragments/named-ranges", post(handle_named_ranges_panel))
+        .route(
+            "/suite/sheet/fragments/tabs",
+            post(handle_worksheet_tabs_sidebar),
+        )
+        .route(
+            "/suite/sheet/fragments/named-ranges",
+            post(handle_named_ranges_panel),
+        )
         .route("/suite/sheet/fragments/charts", post(handle_charts_panel))
-        .route("/suite/sheet/fragments/validations", post(handle_validations_panel))
-        .route("/suite/sheet/fragments/conditional-formats", post(handle_conditional_formats_panel))
-        .route("/suite/sheet/fragments/external-links", post(handle_external_links_panel))
-        .route("/suite/sheet/fragments/comments", post(handle_comments_panel))
-        .route("/suite/sheet/fragments/protection", post(handle_protection_panel))
-        .route("/suite/sheet/fragments/array-formulas", post(handle_array_formulas_panel))
-        .route("/suite/sheet/fragments/advanced-ranges", post(handle_advanced_ranges_panel))
-        .route("/suite/sheet/forms/share", get(handle_share_form).post(handle_share_form))
-        .route("/suite/sheet/forms/find-replace", get(handle_find_replace_form).post(handle_find_replace_form))
-        .route("/suite/sheet/forms/conditional-format", get(handle_conditional_format_form).post(handle_conditional_format_form))
-        .route("/suite/sheet/forms/data-validation", get(handle_data_validation_form).post(handle_data_validation_form))
-        .route("/suite/sheet/forms/custom-format", get(handle_custom_format_form).post(handle_custom_format_form))
-        .route("/suite/sheet/forms/insert-image", get(handle_insert_image_form).post(handle_insert_image_form))
-        .route("/suite/sheet/forms/print-preview", get(handle_print_preview_form).post(handle_print_preview_form))
-        .route("/suite/sheet/forms/chart", get(handle_chart_form).post(handle_chart_form))
-        .route("/suite/sheet/modals/share", get(handle_share_modal).post(handle_share_modal))
-        .route("/suite/sheet/modals/chart", get(handle_chart_modal).post(handle_chart_modal))
-        .route("/suite/sheet/modals/find-replace", get(handle_find_replace_modal).post(handle_find_replace_modal))
-        .route("/suite/sheet/modals/conditional-format", get(handle_conditional_format_modal).post(handle_conditional_format_modal))
-        .route("/suite/sheet/modals/data-validation", get(handle_data_validation_modal).post(handle_data_validation_modal))
-        .route("/suite/sheet/modals/custom-format", get(handle_custom_format_modal).post(handle_custom_format_modal))
-        .route("/suite/sheet/modals/insert-image", get(handle_insert_image_modal).post(handle_insert_image_modal))
-        .route("/suite/sheet/modals/print-preview", get(handle_print_preview_modal).post(handle_print_preview_modal))
-        .route("/suite/sheet/modals/ai", get(handle_ai_panel).post(handle_ai_panel))
+        .route(
+            "/suite/sheet/fragments/validations",
+            post(handle_validations_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/conditional-formats",
+            post(handle_conditional_formats_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/external-links",
+            post(handle_external_links_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/comments",
+            post(handle_comments_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/protection",
+            post(handle_protection_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/array-formulas",
+            post(handle_array_formulas_panel),
+        )
+        .route(
+            "/suite/sheet/fragments/advanced-ranges",
+            post(handle_advanced_ranges_panel),
+        )
+        .route(
+            "/suite/sheet/forms/share",
+            get(handle_share_form).post(handle_share_form),
+        )
+        .route(
+            "/suite/sheet/forms/find-replace",
+            get(handle_find_replace_form).post(handle_find_replace_form),
+        )
+        .route(
+            "/suite/sheet/forms/conditional-format",
+            get(handle_conditional_format_form).post(handle_conditional_format_form),
+        )
+        .route(
+            "/suite/sheet/forms/data-validation",
+            get(handle_data_validation_form).post(handle_data_validation_form),
+        )
+        .route(
+            "/suite/sheet/forms/custom-format",
+            get(handle_custom_format_form).post(handle_custom_format_form),
+        )
+        .route(
+            "/suite/sheet/forms/insert-image",
+            get(handle_insert_image_form).post(handle_insert_image_form),
+        )
+        .route(
+            "/suite/sheet/forms/print-preview",
+            get(handle_print_preview_form).post(handle_print_preview_form),
+        )
+        .route(
+            "/suite/sheet/forms/chart",
+            get(handle_chart_form).post(handle_chart_form),
+        )
+        .route(
+            "/suite/sheet/modals/share",
+            get(handle_share_modal).post(handle_share_modal),
+        )
+        .route(
+            "/suite/sheet/modals/chart",
+            get(handle_chart_modal).post(handle_chart_modal),
+        )
+        .route(
+            "/suite/sheet/modals/find-replace",
+            get(handle_find_replace_modal).post(handle_find_replace_modal),
+        )
+        .route(
+            "/suite/sheet/modals/conditional-format",
+            get(handle_conditional_format_modal).post(handle_conditional_format_modal),
+        )
+        .route(
+            "/suite/sheet/modals/data-validation",
+            get(handle_data_validation_modal).post(handle_data_validation_modal),
+        )
+        .route(
+            "/suite/sheet/modals/custom-format",
+            get(handle_custom_format_modal).post(handle_custom_format_modal),
+        )
+        .route(
+            "/suite/sheet/modals/insert-image",
+            get(handle_insert_image_modal).post(handle_insert_image_modal),
+        )
+        .route(
+            "/suite/sheet/modals/print-preview",
+            get(handle_print_preview_modal).post(handle_print_preview_modal),
+        )
+        .route(
+            "/suite/sheet/modals/ai",
+            get(handle_ai_panel).post(handle_ai_panel),
+        )
         .route("/suite/sheet/health", get(health))
 }
 
-async fn health() -> &'static str { "ok" }
+async fn health() -> &'static str {
+    "ok"
+}
 
 pub fn render_metadata_card(m: &SpreadsheetMetadata, lang: Lang) -> String {
     format!(
@@ -112,8 +194,16 @@ pub fn render_metadata_card(m: &SpreadsheetMetadata, lang: Lang) -> String {
 </div>"##,
         id = html_escape(&m.id),
         name = html_escape(&m.name),
-        count = tf(lang, "metadata.sheets_count", &[("n", &m.worksheet_count.to_string())]),
-        updated = tf(lang, "metadata.updated", &[("date", &m.updated_at.format("%d/%m/%Y %H:%M").to_string())])
+        count = tf(
+            lang,
+            "metadata.sheets_count",
+            &[("n", &m.worksheet_count.to_string())]
+        ),
+        updated = tf(
+            lang,
+            "metadata.updated",
+            &[("date", &m.updated_at.format("%d/%m/%Y %H:%M").to_string())]
+        )
     )
 }
 

@@ -1,7 +1,7 @@
 //! XLSX export (rust_xlsxwriter).
 
 use botsheet_core::engine::to_xlsx_formula;
-use botsheet_core::types::{CellStyle, Spreadsheet, workbook_settings};
+use botsheet_core::types::{workbook_settings, CellStyle, Spreadsheet};
 
 use super::util::cell_number;
 

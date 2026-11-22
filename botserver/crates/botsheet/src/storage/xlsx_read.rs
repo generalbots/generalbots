@@ -162,8 +162,12 @@ fn parse_a1_address(address: &str) -> Option<(u32, u32, u32, u32)> {
     }
     let first = parts[0];
     let last = parts.get(1).copied().unwrap_or(parts[0]);
-    if !first.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
-        || !last.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+    if !first
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
+        || !last
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.')
     {
         return None;
     }

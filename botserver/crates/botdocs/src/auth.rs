@@ -27,10 +27,10 @@
 //! here: collaborators are recorded inside the document, not by widening the
 //! path.
 
-use axum::Json;
 use axum::extract::FromRequestParts;
 use axum::http::{Extensions, StatusCode};
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 
 use crate::legacy::is_legacy_owner;
 use crate::storage_core::{get_user_docs_path, sanitize_owner};

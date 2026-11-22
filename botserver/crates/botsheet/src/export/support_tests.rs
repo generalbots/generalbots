@@ -32,16 +32,17 @@ pub(super) fn ws(name: &str, cells: &[(u32, u32, &str)]) -> Worksheet {
     let mut worksheet = Worksheet::default();
     worksheet.name = name.to_string();
     for (row, col, value) in cells {
-        worksheet
-            .data
-            .insert(format!("{row},{col}"), cell(value));
+        worksheet.data.insert(format!("{row},{col}"), cell(value));
     }
     worksheet
 }
 
 /// A workbook named `name` holding `worksheets`.
 pub(super) fn sheet(name: &str, worksheets: Vec<Worksheet>) -> Spreadsheet {
-    let stamp = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).single().expect("fixed timestamp");
+    let stamp = Utc
+        .with_ymd_and_hms(2026, 1, 2, 3, 4, 5)
+        .single()
+        .expect("fixed timestamp");
     Spreadsheet {
         id: "sheet-1".to_string(),
         name: name.to_string(),

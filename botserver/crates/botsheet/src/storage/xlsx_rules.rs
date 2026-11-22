@@ -136,8 +136,20 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         .filter(|c| c != "#000000");
     let font_family = font.map(|f| f.name().to_string());
     let font_size = font.map(|f| f.size().round() as u32);
-    let font_weight = font.and_then(|f| if f.bold() { Some("bold".to_string()) } else { None });
-    let font_style = font.and_then(|f| if f.italic() { Some("italic".to_string()) } else { None });
+    let font_weight = font.and_then(|f| {
+        if f.bold() {
+            Some("bold".to_string())
+        } else {
+            None
+        }
+    });
+    let font_style = font.and_then(|f| {
+        if f.italic() {
+            Some("italic".to_string())
+        } else {
+            None
+        }
+    });
     let text_decoration = font.and_then(|f| {
         let mut dec = Vec::new();
         let underline = f.underline();

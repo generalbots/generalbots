@@ -1,5 +1,5 @@
-use botsheet_core::engine::value::CellValue;
 use botsheet_core::engine::from_xlsx_formula;
+use botsheet_core::engine::value::CellValue;
 use std::collections::HashMap;
 
 pub fn parse_xlsx_to_worksheets(
@@ -115,7 +115,9 @@ pub fn parse_xlsx_to_worksheets(
                     filters: None,
                     hidden_rows: layout.hidden_rows,
                     validations: super::super::xlsx_rules::extract_validations(sheet),
-                    conditional_formats: super::super::xlsx_rules::extract_conditional_formats(sheet),
+                    conditional_formats: super::super::xlsx_rules::extract_conditional_formats(
+                        sheet,
+                    ),
                     charts: None,
                     comments: None,
                     protection: None,
@@ -145,7 +147,8 @@ pub fn parse_xlsx_to_worksheets(
                 }
 
                 #[cfg(feature = "xlsx")]
-                if let Ok(format_map) = super::super::format_codes::extract_cell_format_codes(bytes) {
+                if let Ok(format_map) = super::super::format_codes::extract_cell_format_codes(bytes)
+                {
                     super::super::format_codes::apply_format_codes(&mut worksheets, &format_map);
                 }
 

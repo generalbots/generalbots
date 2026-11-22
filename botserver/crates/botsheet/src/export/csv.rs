@@ -25,12 +25,12 @@ pub fn export_to_csv(sheet: &Spreadsheet) -> String {
                     .get(&key)
                     .and_then(|c| c.value.clone())
                     .unwrap_or_default();
-                let escaped =
-                    if value.contains(',') || value.contains('"') || value.contains('\n') {
-                        format!("\"{}\"", value.replace('"', "\"\""))
-                    } else {
-                        value
-                    };
+                let escaped = if value.contains(',') || value.contains('"') || value.contains('\n')
+                {
+                    format!("\"{}\"", value.replace('"', "\"\""))
+                } else {
+                    value
+                };
                 row_values.push(escaped);
             }
             csv.push_str(&row_values.join(","));

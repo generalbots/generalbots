@@ -27,23 +27,23 @@ use super::validate_url_ssrf::is_blocked_ip;
 /// exactly what SSRF is used to hit. The list is intentionally short and
 /// documented; everything else (including 80/443/8080/8443) stays reachable.
 pub const BLOCKED_PORTS: &[u16] = &[
-    22,     // ssh
-    2375,   // docker daemon (plain)
-    2376,   // docker daemon (tls)
-    2377,   // docker swarm
-    4243,   // docker legacy
-    5432,   // postgres
-    6379,   // redis / valkey
-    6443,   // kubernetes api
-    8200,   // vault
-    8500,   // consul
-    9000,   // minio api (also php-fpm)
-    9001,   // minio console
-    9100,   // node exporter
-    10250,  // kubelet
-    10255,  // kubelet (read-only)
-    11211,  // memcached
-    27017,  // mongodb
+    22,    // ssh
+    2375,  // docker daemon (plain)
+    2376,  // docker daemon (tls)
+    2377,  // docker swarm
+    4243,  // docker legacy
+    5432,  // postgres
+    6379,  // redis / valkey
+    6443,  // kubernetes api
+    8200,  // vault
+    8500,  // consul
+    9000,  // minio api (also php-fpm)
+    9001,  // minio console
+    9100,  // node exporter
+    10250, // kubelet
+    10255, // kubelet (read-only)
+    11211, // memcached
+    27017, // mongodb
 ];
 
 /// Hostnames that resolve to the local node or to a cloud metadata service.
@@ -214,10 +214,7 @@ fn looks_like_obfuscated_ipv4(host: &str) -> bool {
         return false;
     }
     if let Some(rest) = host.strip_prefix("0x").or_else(|| host.strip_prefix("0X")) {
-        return !rest.is_empty()
-            && rest
-                .chars()
-                .all(|c| c.is_ascii_hexdigit() || c == '.');
+        return !rest.is_empty() && rest.chars().all(|c| c.is_ascii_hexdigit() || c == '.');
     }
     host.chars().all(|c| c.is_ascii_digit() || c == '.')
         && host.chars().any(|c| c.is_ascii_digit())
@@ -227,9 +224,27 @@ fn looks_like_obfuscated_ipv4(host: &str) -> bool {
 /// Full synchronous policy check. Returns the parsed URL so callers do not
 /// re-parse (and re-interpret) the input.
 pub fn validate_url_ssrf_strict(raw: &str) -> Result<Url, SsrfError> {
-    let url = Url::parse(raw).map_err(|e| {
-        SsrfError::new(SsrfErrorKind::MissingHost, format!("unparsable URL: {e}"))
-    })?;
+    // `Url::parse` silently percent-encodes whitespace in the path, so two
+    // different spellings can reach the same host. Control characters are
+    // equally ambiguous in logs and header values. Reject both before parsing
+    // (#2522 corpus: `https://example.com/a b` must fail closed).
+    if raw.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err(SsrfError::new(
+            SsrfErrorKind::MissingHost,
+            "URL contains whitespace or control characters",
+        ));
+    }
+    // A very long URL is a memory/parsing-amplification vector and can hide an
+    // allowlisted prefix followed by attacker-controlled bytes (#2522 corpus).
+    const MAX_URL_LEN: usize = 2048;
+    if raw.len() > MAX_URL_LEN {
+        return Err(SsrfError::new(
+            SsrfErrorKind::TooLarge,
+            "URL exceeds the maximum length",
+        ));
+    }
+    let url = Url::parse(raw)
+        .map_err(|e| SsrfError::new(SsrfErrorKind::MissingHost, format!("unparsable URL: {e}")))?;
 
     match url.scheme() {
         "http" | "https" => {}
@@ -248,9 +263,9 @@ pub fn validate_url_ssrf_strict(raw: &str) -> Result<Url, SsrfError> {
         ));
     }
 
-    let host = url.host_str().ok_or_else(|| {
-        SsrfError::new(SsrfErrorKind::MissingHost, "URL has no host component")
-    })?;
+    let host = url
+        .host_str()
+        .ok_or_else(|| SsrfError::new(SsrfErrorKind::MissingHost, "URL has no host component"))?;
     let host = normalise_host(host);
 
     if host.is_empty() {

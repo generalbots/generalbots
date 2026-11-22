@@ -20,7 +20,9 @@ use self::chart_ranges::{resolve_range_labels, resolve_range_values, resolve_sin
 
 // The chart API resolves a freshly created chart's range with the same
 // reader the imported charts use, so the panel never shows an empty series.
-pub(crate) use self::chart_ranges::{resolve_range_labels as resolve_chart_labels, resolve_range_values as resolve_chart_values};
+pub(crate) use self::chart_ranges::{
+    resolve_range_labels as resolve_chart_labels, resolve_range_values as resolve_chart_values,
+};
 
 const PALETTE: [&str; 8] = [
     "#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#06b6d4", "#f97316", "#ec4899",
@@ -103,8 +105,7 @@ fn to_chart_config(
     let mut datasets = Vec::new();
     for (i, series) in parsed.series.iter().enumerate() {
         let label = if series.name.contains('!') {
-            resolve_single_cell(&series.name, ws_index, worksheets)
-                .unwrap_or_default()
+            resolve_single_cell(&series.name, ws_index, worksheets).unwrap_or_default()
         } else {
             series.name.clone()
         };
@@ -126,8 +127,16 @@ fn to_chart_config(
         id: Uuid::new_v4().to_string(),
         chart_type: parsed.chart_type.clone(),
         title: parsed.title.clone(),
-        data_range: parsed.series.first().map(|s| s.val_ref.clone()).unwrap_or_default(),
-        label_range: parsed.series.first().map(|s| s.cat_ref.clone()).unwrap_or_default(),
+        data_range: parsed
+            .series
+            .first()
+            .map(|s| s.val_ref.clone())
+            .unwrap_or_default(),
+        label_range: parsed
+            .series
+            .first()
+            .map(|s| s.cat_ref.clone())
+            .unwrap_or_default(),
         position,
         options: ChartOptions {
             show_legend: parsed.legend_pos.is_some(),
@@ -329,43 +338,41 @@ fn parse_drawing(xml: &[u8], rels: &HashMap<String, String>) -> Vec<(String, Cha
                     }
                 }
             }
-            Ok(Event::End(ref e)) => {
-                match local_name(e.name().as_ref()) {
-                    b"from" => section = None,
-                    b"to" => section = None,
-                    b"col" | b"row" => in_coord = false,
-                    b"twoCellAnchor" | b"oneCellAnchor" => {
-                        if let Some(a) = anchor.take() {
-                            if let Some(chart_target) = a.rid.as_ref().and_then(|r| rels.get(r)) {
-                                if let Some(path) = normalize_path("xl/drawings", chart_target) {
-                                    let width = match a.to_col {
-                                        Some(to_col) if to_col > a.from_col => {
-                                            (to_col - a.from_col) * CELL_WIDTH_PX
-                                        }
-                                        _ => DEFAULT_WIDTH,
-                                    };
-                                    let height = match a.to_row {
-                                        Some(to_row) if to_row > a.from_row => {
-                                            (to_row - a.from_row) * CELL_HEIGHT_PX
-                                        }
-                                        _ => DEFAULT_HEIGHT,
-                                    };
-                                    out.push((
-                                        path,
-                                        ChartPosition {
-                                            row: a.from_row,
-                                            col: a.from_col,
-                                            width: width.max(120),
-                                            height: height.max(90),
-                                        },
-                                    ));
-                                }
+            Ok(Event::End(ref e)) => match local_name(e.name().as_ref()) {
+                b"from" => section = None,
+                b"to" => section = None,
+                b"col" | b"row" => in_coord = false,
+                b"twoCellAnchor" | b"oneCellAnchor" => {
+                    if let Some(a) = anchor.take() {
+                        if let Some(chart_target) = a.rid.as_ref().and_then(|r| rels.get(r)) {
+                            if let Some(path) = normalize_path("xl/drawings", chart_target) {
+                                let width = match a.to_col {
+                                    Some(to_col) if to_col > a.from_col => {
+                                        (to_col - a.from_col) * CELL_WIDTH_PX
+                                    }
+                                    _ => DEFAULT_WIDTH,
+                                };
+                                let height = match a.to_row {
+                                    Some(to_row) if to_row > a.from_row => {
+                                        (to_row - a.from_row) * CELL_HEIGHT_PX
+                                    }
+                                    _ => DEFAULT_HEIGHT,
+                                };
+                                out.push((
+                                    path,
+                                    ChartPosition {
+                                        row: a.from_row,
+                                        col: a.from_col,
+                                        width: width.max(120),
+                                        height: height.max(90),
+                                    },
+                                ));
                             }
                         }
                     }
-                    _ => {}
                 }
-            }
+                _ => {}
+            },
             Ok(Event::Eof) | Err(_) => break,
             _ => {}
         }

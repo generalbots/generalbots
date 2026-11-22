@@ -1,7 +1,7 @@
 use crate::types::{
     AiRequest, AiResponse, DocsAiRequest, DocsAiResponse, SpellcheckCorrection, SpellcheckResponse,
 };
-use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::sync::Arc;
 
 use crate::state::DocState;
@@ -250,7 +250,8 @@ pub async fn handle_ai_simplify(
     Json(req): Json<AiRequest>,
 ) -> Result<Json<AiResponse>, (StatusCode, Json<serde_json::Value>)> {
     let text = text_or_selected(&req);
-    let system = "You are a plain-language editor. Rewrite the given text more simply and concisely, \
+    let system =
+        "You are a plain-language editor. Rewrite the given text more simply and concisely, \
         using everyday words. Return ONLY a JSON object with key \"response\".";
     let user = format!("Simplify this text:\n\n{}", text);
     Ok(Json(ai_action(&req, system, &user).await))
@@ -277,7 +278,8 @@ pub async fn handle_ai_custom(
     Json(req): Json<AiRequest>,
 ) -> Result<Json<AiResponse>, (StatusCode, Json<serde_json::Value>)> {
     let text = text_or_selected(&req);
-    let system = "You are an AI writing assistant. Apply the user's requested transformation to the \
+    let system =
+        "You are an AI writing assistant. Apply the user's requested transformation to the \
         given text. Return ONLY a JSON object with key \"response\" containing the resulting text.";
     let user = format!("Request: {}\n\nText:\n{}", req.prompt, text);
     Ok(Json(ai_action(&req, system, &user).await))

@@ -1,5 +1,5 @@
 use super::html_escape;
-use axum::{Json, response::Html};
+use axum::{response::Html, Json};
 use botuifragments::ui_fragments::{form_field, modal_body, modal_shell, modal_shell_width};
 
 pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {

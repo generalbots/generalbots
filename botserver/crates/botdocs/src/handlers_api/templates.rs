@@ -1,9 +1,9 @@
 use crate::types::TemplateResponse;
-use axum::{Json, http::StatusCode};
+use axum::{http::StatusCode, Json};
 use uuid::Uuid;
 
-pub async fn handle_template_blank()
--> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn handle_template_blank(
+) -> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(TemplateResponse {
         id: Uuid::new_v4().to_string(),
         title: "Untitled Document".to_string(),
@@ -11,8 +11,8 @@ pub async fn handle_template_blank()
     }))
 }
 
-pub async fn handle_template_meeting()
--> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn handle_template_meeting(
+) -> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
     let content = r#"<h1>Meeting Notes</h1>
 <p><strong>Date:</strong> [Date]</p>
 <p><strong>Attendees:</strong> [Names]</p>
@@ -41,8 +41,8 @@ pub async fn handle_template_meeting()
     }))
 }
 
-pub async fn handle_template_report()
--> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn handle_template_report(
+) -> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
     let content = r#"<h1>Report Title</h1>
 <p><em>Author: [Your Name]</em></p>
 <p><em>Date: [Date]</em></p>
@@ -71,8 +71,8 @@ pub async fn handle_template_report()
     }))
 }
 
-pub async fn handle_template_letter()
--> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn handle_template_letter(
+) -> Result<Json<TemplateResponse>, (StatusCode, Json<serde_json::Value>)> {
     let content = r#"<p>[Your Name]<br>
 [Your Address]<br>
 [City, State ZIP]<br>

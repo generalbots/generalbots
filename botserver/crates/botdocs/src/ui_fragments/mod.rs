@@ -4,8 +4,8 @@ pub mod sidebars;
 pub mod toolbar;
 
 use axum::{
-    Router,
     routing::{get, post},
+    Router,
 };
 
 use modals::{

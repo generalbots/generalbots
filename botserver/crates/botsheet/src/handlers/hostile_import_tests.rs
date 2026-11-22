@@ -2,6 +2,7 @@
 //! Kept in its own file so the handler stays under the 450-line cap.
 
 use super::*;
+use botsecurity_core::upload_hostile::macro_strip;
 use std::io::{Cursor, Write};
 
 fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
@@ -100,4 +101,75 @@ fn a_clean_workbook_package_reaches_the_parser() {
         &upload_policy::HostileFilePolicy::default(),
     );
     assert!(result.is_ok());
+}
+
+#[test]
+fn a_macro_workbook_is_stripped_and_noticed_before_conversion() {
+    let bytes = zip_with(&[
+        (
+            "xl/worksheets/sheet1.xml",
+            b"<worksheet><sheetData/></worksheet>".to_vec(),
+        ),
+        ("xl/macrosheets/sheet1.xml", b"<macrosheet/>".to_vec()),
+    ]);
+    let stripped = macro_strip::strip_executable_parts(&bytes)
+        .expect("macro package must be sanitizable")
+        .expect("a macro part must be found");
+    let upload = upload_policy::validate_upload(
+        UploadClass::SpreadsheetImport,
+        "macro.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        &stripped.bytes,
+    )
+    .expect("sanitized workbook must pass the shared gate");
+    let result = audit_hostile_upload(
+        &stripped.bytes,
+        &upload.filename,
+        &axum::http::HeaderMap::new(),
+        "test",
+        &upload_policy::HostileFilePolicy::default(),
+    );
+    assert!(result.is_ok(), "no executable parts may remain");
+    let notice =
+        crate::import_notice::macro_notice(stripped.removed_parts.clone(), stripped.removed_count);
+    assert_eq!(notice.code, "file-macros-removed");
+    assert_eq!(notice.count, 1);
+    assert!(notice
+        .parts
+        .iter()
+        .any(|part| part == "xl/macrosheets/sheet1.xml"));
+}
+
+#[test]
+fn a_password_protected_workbook_gets_an_actionable_refusal() {
+    let mut bytes = zip_with(&[(
+        "xl/worksheets/sheet1.xml",
+        b"<worksheet><sheetData/></worksheet>".to_vec(),
+    )]);
+    bytes[6] |= 0x01;
+    if let Some(position) = bytes
+        .windows(4)
+        .position(|window| window == &[0x50, 0x4b, 0x01, 0x02][..])
+    {
+        bytes[position + 8] |= 0x01;
+    }
+    let result = audit_hostile_upload(
+        &bytes,
+        "protected.xlsx",
+        &axum::http::HeaderMap::new(),
+        "test",
+        &upload_policy::HostileFilePolicy::default(),
+    );
+    match result {
+        Err((status, Json(body))) => {
+            assert_eq!(status, StatusCode::BAD_REQUEST);
+            assert_eq!(body["action"], "remove-password");
+            let message = body["message"].as_str().unwrap_or_default();
+            assert!(
+                message.contains("remove the password"),
+                "actionable message: {message}"
+            );
+        }
+        Ok(()) => assert!(false, "an encrypted package must be refused"),
+    }
 }

@@ -4,7 +4,11 @@ use crate::types::{
     AddNoteRequest, CellData, DataValidationRequest, SaveResponse, ValidateCellRequest,
     ValidationResult, ValidationRule,
 };
-use axum::{extract::{Extension, State}, http::StatusCode, Json};
+use axum::{
+    extract::{Extension, State},
+    http::StatusCode,
+    Json,
+};
 use chrono::Utc;
 use std::sync::Arc;
 
@@ -27,7 +31,10 @@ pub async fn handle_data_validation(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -172,8 +179,7 @@ fn validate_value(value: &str, rule: &ValidationRule) -> ValidationResult {
                     .value2
                     .as_ref()
                     .and_then(|v| chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok());
-                min.map_or(true, |limit| date >= limit)
-                    && max.map_or(true, |limit| date <= limit)
+                min.map_or(true, |limit| date >= limit) && max.map_or(true, |limit| date <= limit)
             })
             .unwrap_or(false),
         "text_length" => {
@@ -225,7 +231,10 @@ pub async fn handle_add_note(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if req.worksheet_index >= sheet.worksheets.len() {
         return Err((
@@ -239,7 +248,7 @@ pub async fn handle_add_note(
 
     let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
         value: None,
-            typed: None,
+        typed: None,
         formula: None,
         style: None,
         format: None,

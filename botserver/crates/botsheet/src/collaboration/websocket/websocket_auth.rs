@@ -25,7 +25,10 @@ pub struct WsAuthQuery {
 /// subject, so a collaborator never gets to choose their own label.
 pub fn extract_user_from_token(token: &str) -> Result<(String, String), JwtVerifyError> {
     let verified = verify_saas_jwt(token)?;
-    let name = verified.email.clone().unwrap_or_else(|| verified.sub.clone());
+    let name = verified
+        .email
+        .clone()
+        .unwrap_or_else(|| verified.sub.clone());
     Ok((verified.sub, name))
 }
 

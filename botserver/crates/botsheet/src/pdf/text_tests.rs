@@ -47,5 +47,8 @@ fn keys_parse_only_when_both_parts_are_numbers() {
 
 #[test]
 fn text_commands_position_and_escape_the_run() {
-    assert_eq!(text_cmd(48.0, 780.5, "a(b)"), "1 0 0 1 48.0 780.5 Tm (a\\(b\\)) Tj\n");
+    assert_eq!(
+        text_cmd(48.0, 780.5, "a(b)"),
+        "1 0 0 1 48.0 780.5 Tm (a\\(b\\)) Tj\n"
+    );
 }

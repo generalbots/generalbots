@@ -126,8 +126,7 @@ pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStruc
 pub fn extract_images(sheet: &umya_spreadsheet::Worksheet) -> Option<Vec<SheetImage>> {
     let mut images = Vec::new();
     for image in sheet.image_collection() {
-        let anchored = image.two_cell_anchor().is_some()
-            || image.one_cell_anchor().is_some();
+        let anchored = image.two_cell_anchor().is_some() || image.one_cell_anchor().is_some();
         if !anchored {
             continue;
         }
@@ -152,9 +151,7 @@ pub fn extract_images(sheet: &umya_spreadsheet::Worksheet) -> Option<Vec<SheetIm
 /// Reads the `_xlnm.Print_Titles` defined names (E11), keyed by the 0-based
 /// worksheet index. The address is normalised from `'Sheet1'!$1:$3,'Sheet1'!$A:$B`
 /// to `rows = "1:3"`, `columns = "A:B"`.
-pub fn extract_print_titles(
-    workbook: &umya_spreadsheet::Workbook,
-) -> HashMap<usize, PrintTitles> {
+pub fn extract_print_titles(workbook: &umya_spreadsheet::Workbook) -> HashMap<usize, PrintTitles> {
     let mut map: HashMap<usize, PrintTitles> = HashMap::new();
     for name in workbook.defined_names() {
         if name.name() != "_xlnm.Print_Titles" {
@@ -181,9 +178,7 @@ pub fn extract_print_titles(
 /// Reads the `_xlnm.Print_Area` defined names (E11), keyed by the 0-based
 /// worksheet index. The address is normalised from `Sheet1!$A$1:$D$10` to the
 /// bare A1 range `A1:D10`; comma-separated multi-areas are split.
-pub fn extract_print_areas(
-    workbook: &umya_spreadsheet::Workbook,
-) -> HashMap<usize, Vec<String>> {
+pub fn extract_print_areas(workbook: &umya_spreadsheet::Workbook) -> HashMap<usize, Vec<String>> {
     let mut map: HashMap<usize, Vec<String>> = HashMap::new();
     for name in workbook.defined_names() {
         if name.name() != "_xlnm.Print_Area" {
@@ -315,12 +310,8 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
 
     let view = sheet.sheets_views().sheet_view_list().first();
     let pane = view.and_then(|v| v.pane());
-    let frozen_rows = pane
-        .map(|p| p.vertical_split() as u32)
-        .filter(|&v| v > 0);
-    let frozen_cols = pane
-        .map(|p| p.horizontal_split() as u32)
-        .filter(|&v| v > 0);
+    let frozen_rows = pane.map(|p| p.vertical_split() as u32).filter(|&v| v > 0);
+    let frozen_cols = pane.map(|p| p.horizontal_split() as u32).filter(|&v| v > 0);
 
     ExtractedLayout {
         column_widths: if column_widths.is_empty() {

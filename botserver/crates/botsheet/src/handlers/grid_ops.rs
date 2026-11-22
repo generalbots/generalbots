@@ -2,9 +2,7 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::handlers::cell_ops::MAX_RECALC_CELLS;
 use crate::handlers::paste_html::{parse_html_table, style_for};
 use crate::state::SheetState;
-use crate::types::{
-    CellData, PasteRequest, ResizeRequest, SaveResponse, TableRequest,
-};
+use crate::types::{CellData, PasteRequest, ResizeRequest, SaveResponse, TableRequest};
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
@@ -16,11 +14,17 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 fn sheet_error(e: String) -> (StatusCode, Json<serde_json::Value>) {
-    (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e })))
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({ "error": e })),
+    )
 }
 
 fn bad_request(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
-    (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": msg })))
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({ "error": msg })),
+    )
 }
 
 /// Sets a row height or column width on a worksheet (#786). Both may be sent
@@ -40,7 +44,10 @@ pub async fn handle_resize(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -129,7 +136,10 @@ pub async fn handle_paste(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -298,7 +308,10 @@ pub async fn handle_table_create(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {
@@ -391,7 +404,10 @@ pub async fn handle_table_delete(
 
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
 
     if req.worksheet_index >= sheet.worksheets.len() {

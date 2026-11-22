@@ -7,10 +7,10 @@
 //! compared in constant time, `exp`/`nbf` enforced. A refusal carries a stable
 //! machine-readable code so the client sees why the upgrade was rejected.
 
-use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use botsecurity_core::verified_jwt::{JwtVerifyError, verify_saas_jwt};
+use axum::Json;
+use botsecurity_core::verified_jwt::{verify_saas_jwt, JwtVerifyError};
 
 /// Resolves `(user_id, display_name)` from a **verified** document token.
 ///

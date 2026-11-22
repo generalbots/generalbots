@@ -5,14 +5,16 @@ use botsheet_core::types::Spreadsheet;
 use super::util::cell_number;
 
 fn build_ods_content(sheet: &Spreadsheet) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
 xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
 xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
 office:version="1.2">
 <office:body>
 <office:spreadsheet>
-"#);
+"#,
+    );
 
     for ws in &sheet.worksheets {
         xml.push_str(&format!("<table:table table:name=\"{}\">\n", ws.name));
@@ -86,19 +88,22 @@ pub fn export_to_ods(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
     let mut cursor = std::io::Cursor::new(Vec::new());
     {
         let mut zip = zip::ZipWriter::new(&mut cursor);
-        let stored = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Stored);
-        let deflated = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
-        zip.start_file("mimetype", stored).map_err(|e| e.to_string())?;
+        let stored =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let deflated =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file("mimetype", stored)
+            .map_err(|e| e.to_string())?;
         zip.write_all(b"application/vnd.oasis.opendocument.spreadsheet")
             .map_err(|e| e.to_string())?;
         zip.start_file("content.xml", deflated)
             .map_err(|e| e.to_string())?;
-        zip.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        zip.write_all(content.as_bytes())
+            .map_err(|e| e.to_string())?;
         zip.start_file("META-INF/manifest.xml", deflated)
             .map_err(|e| e.to_string())?;
-        zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;
+        zip.write_all(manifest.as_bytes())
+            .map_err(|e| e.to_string())?;
         zip.finish().map_err(|e| e.to_string())?;
     }
     Ok(cursor.into_inner())

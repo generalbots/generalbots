@@ -219,7 +219,8 @@ impl PdfWriter {
     pub(super) fn finish(self) -> Vec<u8> {
         let mut out: Vec<u8> = Vec::with_capacity(4096);
         out.extend_from_slice(b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-        let mut offsets: Vec<usize> = Vec::with_capacity(self.objects.len() + HEADER_OBJECTS as usize);
+        let mut offsets: Vec<usize> =
+            Vec::with_capacity(self.objects.len() + HEADER_OBJECTS as usize);
 
         let mut emit = |out: &mut Vec<u8>, body: &[u8]| -> u32 {
             let obj_num = (offsets.len() + 1) as u32;
@@ -231,11 +232,7 @@ impl PdfWriter {
         };
 
         emit(&mut out, b"<< /Type /Catalog /Pages 2 0 R >>");
-        let pages_kids: Vec<String> = self
-            .page_refs
-            .iter()
-            .map(|p| format!("{p} 0 R"))
-            .collect();
+        let pages_kids: Vec<String> = self.page_refs.iter().map(|p| format!("{p} 0 R")).collect();
         let pages_body = format!(
             "<< /Type /Pages /Kids [{}] /Count {} >>",
             pages_kids.join(" "),

@@ -1,10 +1,16 @@
 use crate::auth::{resolve_user_id, SheetUser};
-use crate::state::{delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive,
-    persist_sheet_to_drive, save_sheet_to_drive, SheetState};
-use crate::storage::import::{create_new_spreadsheet, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
+use crate::state::{
+    delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive, persist_sheet_to_drive,
+    save_sheet_to_drive, SheetState,
+};
+use crate::storage::import::{
+    create_new_spreadsheet, parse_csv_to_worksheets, parse_xlsx_to_worksheets,
+};
 use crate::storage::retains_snapshot;
-use crate::types::{LoadFromDriveRequest, LoadQuery, SaveRequest, SaveResponse, SearchQuery,
-    ShareRequest, Spreadsheet, SpreadsheetMetadata};
+use crate::types::{
+    LoadFromDriveRequest, LoadQuery, SaveRequest, SaveResponse, SearchQuery, ShareRequest,
+    Spreadsheet, SpreadsheetMetadata,
+};
 use crate::ui_fragments::Lang;
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -48,7 +54,9 @@ pub async fn handle_search_sheets(
 ) -> Result<Json<Vec<SpreadsheetMetadata>>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
 
-    let sheets = list_sheets_from_drive(&state, &user_id).await.unwrap_or_default();
+    let sheets = list_sheets_from_drive(&state, &user_id)
+        .await
+        .unwrap_or_default();
 
     let filtered = if let Some(q) = query.q {
         let q_lower = q.to_lowercase();
@@ -90,7 +98,10 @@ pub async fn handle_load_sheet(
         })?;
 
     let mut sheet = session.sheet.read().await.clone();
-    botsheet_core::engine::formats::apply_formats_to_sheet_locale(&mut sheet, Lang::from_headers(&headers).number_locale());
+    botsheet_core::engine::formats::apply_formats_to_sheet_locale(
+        &mut sheet,
+        Lang::from_headers(&headers).number_locale(),
+    );
     Ok(Json(sheet))
 }
 
@@ -107,19 +118,32 @@ pub async fn handle_load_from_drive(
         )
     })?;
 
-    let bytes = drive.get_object(&req.bucket, &req.path).await.map_err(|e| {
-        // The drive error names the bucket and object path — log it and answer
-        // with the lookup result only.
-        log::warn!("sheet load: drive read of {}/{} failed: {}", req.bucket, req.path, e);
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "File not found" })),
-        )
-    })?;
+    let bytes = drive
+        .get_object(&req.bucket, &req.path)
+        .await
+        .map_err(|e| {
+            // The drive error names the bucket and object path — log it and answer
+            // with the lookup result only.
+            log::warn!(
+                "sheet load: drive read of {}/{} failed: {}",
+                req.bucket,
+                req.path,
+                e
+            );
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "File not found" })),
+            )
+        })?;
 
     let mut ext = req.path.rsplit('.').next().unwrap_or("").to_lowercase();
     // Detect actual format from magic bytes for misnamed files
-    if bytes.len() >= 4 && &bytes[..4] == b"PK\x03\x04" && ext != "ods" && ext != "xlsx" && ext != "xls" {
+    if bytes.len() >= 4
+        && &bytes[..4] == b"PK\x03\x04"
+        && ext != "ods"
+        && ext != "xlsx"
+        && ext != "xls"
+    {
         ext = "xlsx".to_string();
     }
     let file_name = req.path.rsplit('/').next().unwrap_or("Spreadsheet");
@@ -141,14 +165,13 @@ pub async fn handle_load_from_drive(
                 )
             })?
         }
-        "xlsx" | "xls" | "ods" | "xlsb" | "xlsm" => {
-            parse_xlsx_to_worksheets(&bytes, &ext).map_err(|e| {
+        "xlsx" | "xls" | "ods" | "xlsb" | "xlsm" => parse_xlsx_to_worksheets(&bytes, &ext)
+            .map_err(|e| {
                 (
                     StatusCode::BAD_REQUEST,
                     Json(serde_json::json!({ "error": e })),
                 )
-            })?
-        }
+            })?,
         _ => {
             return Err((
                 StatusCode::BAD_REQUEST,

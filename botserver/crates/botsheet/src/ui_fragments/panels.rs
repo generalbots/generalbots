@@ -1,9 +1,12 @@
-use super::{empty_fragment, html_escape, Lang, t, tf};
-use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
+use super::{empty_fragment, html_escape, t, tf, Lang};
 use axum::extract::{Extension, State};
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
-use botsheet_core::types::{ArrayFormula, CellComment, ConditionalFormatRule, ChartConfig, ExternalLink, NamedRange, Spreadsheet, ValidationRule};
+use botsheet_core::types::{
+    ArrayFormula, CellComment, ChartConfig, ConditionalFormatRule, ExternalLink, NamedRange,
+    Spreadsheet, ValidationRule,
+};
+use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use std::sync::Arc;
 
 pub async fn handle_named_ranges_panel(
@@ -19,7 +22,10 @@ pub async fn handle_named_ranges_panel(
     // The panel refresh posts only {id} (a browser fetch), not a whole
     // Spreadsheet; binding Json<Spreadsheet> answered 422 and the panel was
     // never refreshed after create/delete.
-    let id = payload.get("id").and_then(|value| value.as_str()).unwrap_or("");
+    let id = payload
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
     if id.is_empty() {
         return Ok(Html(super::err_fragment(lang, "id ausente")));
     }
@@ -105,7 +111,14 @@ fn render_named_range(r: &NamedRange, lang: Lang, sheet_id: &str) -> String {
         sheet_id = html_escape(sheet_id),
         ws = html_escape(&ws_label),
         range_ref = html_escape(&ref_str),
-        comment_html = if comment.is_empty() { String::new() } else { format!(r##"<div style="font-size:11px;color:#64748b;margin-top:2px;font-style:italic;">{}</div>"##, html_escape(comment)) }
+        comment_html = if comment.is_empty() {
+            String::new()
+        } else {
+            format!(
+                r##"<div style="font-size:11px;color:#64748b;margin-top:2px;font-style:italic;">{}</div>"##,
+                html_escape(comment)
+            )
+        }
     )
 }
 
@@ -128,10 +141,16 @@ pub async fn handle_charts_panel(
     // Keep the real worksheet index together with the chart: the previous
     // `i * 1000 + j` flattening lost it, so a delete could not address the
     // worksheet that owns the chart.
-    let chart_data: Vec<(usize, &ChartConfig)> = sheet.worksheets.iter()
+    let chart_data: Vec<(usize, &ChartConfig)> = sheet
+        .worksheets
+        .iter()
         .enumerate()
         .flat_map(|(i, w)| {
-            w.charts.as_ref().into_iter().flatten().map(move |ch| (i, ch))
+            w.charts
+                .as_ref()
+                .into_iter()
+                .flatten()
+                .map(move |ch| (i, ch))
         })
         .collect();
     let charts_total = chart_data.len();
@@ -177,7 +196,9 @@ pub async fn handle_validations_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let validations: Vec<(&str, &ValidationRule)> = sheet.worksheets.iter()
+    let validations: Vec<(&str, &ValidationRule)> = sheet
+        .worksheets
+        .iter()
         .flat_map(|w| w.validations.as_ref().into_iter().flatten())
         .map(|(k, v)| (k.as_str(), v))
         .collect();
@@ -208,7 +229,9 @@ pub async fn handle_conditional_formats_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let rules: Vec<&ConditionalFormatRule> = sheet.worksheets.iter()
+    let rules: Vec<&ConditionalFormatRule> = sheet
+        .worksheets
+        .iter()
         .filter_map(|w| w.conditional_formats.as_ref())
         .flatten()
         .collect();
@@ -217,8 +240,18 @@ pub async fn handle_conditional_formats_panel(
     }
     let mut body = String::new();
     for r in rules {
-        let preview = r.style.background.clone().unwrap_or_else(|| "#3b82f6".to_string());
-        let range = format!("{}{}:{}{}", col_name(r.start_col), r.start_row + 1, col_name(r.end_col), r.end_row + 1);
+        let preview = r
+            .style
+            .background
+            .clone()
+            .unwrap_or_else(|| "#3b82f6".to_string());
+        let range = format!(
+            "{}{}:{}{}",
+            col_name(r.start_col),
+            r.start_row + 1,
+            col_name(r.end_col),
+            r.end_row + 1
+        );
         body.push_str(&format!(
             r##"<div class="ss-cf-item" style="padding:8px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:8px;">
 <div style="width:24px;height:24px;background:{preview};border-radius:4px;border:1px solid #334155;"></div>
@@ -232,7 +265,12 @@ pub async fn handle_conditional_formats_panel(
             range = html_escape(&range)
         ));
     }
-    Html(panel_shell("ss", "cf-panel", &t(lang, "panel.cf.title"), &body))
+    Html(panel_shell(
+        "ss",
+        "cf-panel",
+        &t(lang, "panel.cf.title"),
+        &body,
+    ))
 }
 
 pub async fn handle_external_links_panel(
@@ -240,7 +278,12 @@ pub async fn handle_external_links_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let links: Vec<&ExternalLink> = sheet.external_links.as_deref().unwrap_or(&[]).iter().collect();
+    let links: Vec<&ExternalLink> = sheet
+        .external_links
+        .as_deref()
+        .unwrap_or(&[])
+        .iter()
+        .collect();
     if links.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.links.empty")));
     }
@@ -255,7 +298,10 @@ pub async fn handle_external_links_panel(
             info = tf(
                 lang,
                 "panel.links.info",
-                &[("t", &html_escape(&l.link_type)), ("s", &html_escape(&l.status))]
+                &[
+                    ("t", &html_escape(&l.link_type)),
+                    ("s", &html_escape(&l.status))
+                ]
             )
         ));
     }
@@ -272,7 +318,9 @@ pub async fn handle_comments_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let comments: Vec<(&str, &CellComment)> = sheet.worksheets.iter()
+    let comments: Vec<(&str, &CellComment)> = sheet
+        .worksheets
+        .iter()
         .flat_map(|w| w.comments.as_ref().into_iter().flatten())
         .map(|(k, v)| (k.as_str(), v))
         .collect();
@@ -323,9 +371,15 @@ pub async fn handle_protection_panel(
     for (i, w) in sheet.worksheets.iter().enumerate() {
         let is_protected = w.protection.as_ref().is_some_and(|p| p.protected);
         let status = if is_protected {
-            format!(r##"<span style="color:#10b981;">{}</span>"##, t(lang, "panel.protection.protected"))
+            format!(
+                r##"<span style="color:#10b981;">{}</span>"##,
+                t(lang, "panel.protection.protected")
+            )
         } else {
-            format!(r##"<span style="color:#94a3b8;">{}</span>"##, t(lang, "panel.protection.unprotected"))
+            format!(
+                r##"<span style="color:#94a3b8;">{}</span>"##,
+                t(lang, "panel.protection.unprotected")
+            )
         };
         let locked = match &w.protection {
             Some(p) => {
@@ -394,7 +448,9 @@ pub async fn handle_array_formulas_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let formulas: Vec<&ArrayFormula> = sheet.worksheets.iter()
+    let formulas: Vec<&ArrayFormula> = sheet
+        .worksheets
+        .iter()
         .filter_map(|w| w.array_formulas.as_ref())
         .flatten()
         .collect();

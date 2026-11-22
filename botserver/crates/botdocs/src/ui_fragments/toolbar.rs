@@ -1,5 +1,5 @@
 use super::html_escape;
-use axum::{Json, response::Html};
+use axum::{response::Html, Json};
 use botuifragments::ui_fragments::form_field;
 
 pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<String> {

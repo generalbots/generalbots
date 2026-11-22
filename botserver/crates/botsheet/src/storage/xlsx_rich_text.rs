@@ -80,7 +80,9 @@ fn parse_shared_strings(xml: &[u8]) -> Vec<Option<Vec<RichTextRun>>> {
                 name => run_prop(name, e, in_r, &mut current),
             },
             // `<b/>`, `<i/>`, `<color/>` etc. are self-closing (Empty) events.
-            Ok(Event::Empty(ref e)) => run_prop(local_name(e.name().as_ref()), e, in_r, &mut current),
+            Ok(Event::Empty(ref e)) => {
+                run_prop(local_name(e.name().as_ref()), e, in_r, &mut current)
+            }
             Ok(Event::Text(ref t)) => {
                 if in_t {
                     text_buf.push_str(&t.xml10_content());

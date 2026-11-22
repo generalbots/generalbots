@@ -42,7 +42,9 @@ fn builtin_format_codes() -> HashMap<u32, String> {
 /// "A" → 0, "Z" → 25, "AA" → 26, "AZ" → 51, "BA" → 52
 fn col_to_index(col: &str) -> u32 {
     col.chars()
-        .fold(0u32, |acc, c| acc * 26 + (c.to_ascii_uppercase() as u32 - b'A' as u32 + 1))
+        .fold(0u32, |acc, c| {
+            acc * 26 + (c.to_ascii_uppercase() as u32 - b'A' as u32 + 1)
+        })
         .saturating_sub(1)
 }
 
@@ -50,14 +52,19 @@ fn col_to_index(col: &str) -> u32 {
 ///
 /// Returns a map: `sheet_index -> HashMap<"row,col" -> format_code_string>`.
 /// Only cells with a non-General, non-empty format code are included.
-pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<String, String>>, String> {
+pub fn extract_cell_format_codes(
+    bytes: &[u8],
+) -> Result<HashMap<u32, HashMap<String, String>>, String> {
     let cursor = std::io::Cursor::new(bytes);
-    let mut archive = zip::ZipArchive::new(cursor)
-        .map_err(|e| format!("Failed to open xlsx ZIP: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(cursor).map_err(|e| format!("Failed to open xlsx ZIP: {e}"))?;
 
     let mut styles_content = String::new();
     match archive.by_name("xl/styles.xml") {
-        Ok(mut f) => { f.read_to_string(&mut styles_content).map_err(|e| format!("Failed to read styles.xml: {e}"))?; }
+        Ok(mut f) => {
+            f.read_to_string(&mut styles_content)
+                .map_err(|e| format!("Failed to read styles.xml: {e}"))?;
+        }
         Err(_) => return Ok(HashMap::new()),
     }
 
@@ -97,12 +104,14 @@ pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<St
             while let Some(xf_start) = xfs_section[pos..].find("<xf") {
                 let tag_begin = pos + xf_start;
                 let tail = &xfs_section[tag_begin..];
-                let tag_len = tail.find("/>").or_else(|| tail.find('>'))
-                    .map(|e| e + 2).unwrap_or(0);
+                let tag_len = tail
+                    .find("/>")
+                    .or_else(|| tail.find('>'))
+                    .map(|e| e + 2)
+                    .unwrap_or(0);
                 let tag = &tail[..tag_len.min(tail.len())];
 
-                let fmt_id = re_nfid.captures(tag)
-                    .and_then(|c| c[1].parse::<u32>().ok());
+                let fmt_id = re_nfid.captures(tag).and_then(|c| c[1].parse::<u32>().ok());
 
                 xf_to_fmtid.push(fmt_id);
 
@@ -140,14 +149,17 @@ pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<St
     let re_cell = crate::re_cache::cached_re!(r#"<c\s+[^>]*r="([A-Z]+)(\d+)"[^>]*>"#)
         .ok_or_else(|| "Regex error".to_string())?;
     // The s attribute may be at any position within the <c> tag
-    let re_s_attr = crate::re_cache::cached_re!(r#"s="(\d+)""#)
-        .ok_or_else(|| "Regex error".to_string())?;
+    let re_s_attr =
+        crate::re_cache::cached_re!(r#"s="(\d+)""#).ok_or_else(|| "Regex error".to_string())?;
 
     for (_sheet_num, sheet_path) in &sheet_files {
         let _ = _sheet_num;
         let mut sheet_xml = String::new();
         match archive.by_name(sheet_path) {
-            Ok(mut f) => { f.read_to_string(&mut sheet_xml).map_err(|e| format!("Failed to read {sheet_path}: {e}"))?; }
+            Ok(mut f) => {
+                f.read_to_string(&mut sheet_xml)
+                    .map_err(|e| format!("Failed to read {sheet_path}: {e}"))?;
+            }
             Err(_) => continue,
         }
 
@@ -160,7 +172,8 @@ pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<St
 
             // Extract s attribute from the full <c...> match
             let full_tag = cap.get(0).map(|m| m.as_str()).unwrap_or("");
-            let xf_idx: Option<usize> = re_s_attr.captures(full_tag)
+            let xf_idx: Option<usize> = re_s_attr
+                .captures(full_tag)
                 .and_then(|c| c[1].parse::<usize>().ok());
 
             if let Some(xfi) = xf_idx {

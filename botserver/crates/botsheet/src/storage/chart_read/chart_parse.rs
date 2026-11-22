@@ -124,10 +124,24 @@ pub(crate) fn parse_chart(xml: &[u8]) -> ParsedChart {
                     }),
                     _ => {}
                 }
-                if !plot_area_seen && matches!(name, b"barChart" | b"lineChart" | b"pieChart"
-                    | b"scatterChart" | b"doughnutChart" | b"areaChart" | b"radarChart"
-                    | b"bar3DChart" | b"line3DChart" | b"pie3DChart" | b"colChart"
-                    | b"col3DChart" | b"area3DChart" | b"doughnut3DChart")
+                if !plot_area_seen
+                    && matches!(
+                        name,
+                        b"barChart"
+                            | b"lineChart"
+                            | b"pieChart"
+                            | b"scatterChart"
+                            | b"doughnutChart"
+                            | b"areaChart"
+                            | b"radarChart"
+                            | b"bar3DChart"
+                            | b"line3DChart"
+                            | b"pie3DChart"
+                            | b"colChart"
+                            | b"col3DChart"
+                            | b"area3DChart"
+                            | b"doughnut3DChart"
+                    )
                 {
                     // Chart type element appears inside plotArea; remember the
                     // first one encountered. The plotArea_started flag is set

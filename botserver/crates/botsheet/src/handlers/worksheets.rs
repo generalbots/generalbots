@@ -11,8 +11,8 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::Spreadsheet;
 use crate::types::Worksheet;
+use crate::ui_fragments::i18n::{t, tf, Lang};
 use crate::ui_fragments::sidebars::render_worksheet_grid_preview;
-use crate::ui_fragments::i18n::{Lang, t, tf};
 use chrono::Utc;
 
 #[derive(Debug, Deserialize)]
@@ -44,7 +44,10 @@ pub async fn add_worksheet(
         })?;
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     let next_num = sheet.worksheets.len() + 1;
     let name = req
@@ -80,7 +83,13 @@ pub async fn add_worksheet(
     };
     sheet.worksheets.push(ws);
     sheet.updated_at = Utc::now();
-    state.sessions.record(&session, &state, &user_id, "worksheet_add", serde_json::json!({}));
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "worksheet_add",
+        serde_json::json!({}),
+    );
     Ok(Html(render_tabs(&sheet, lang)))
 }
 
@@ -104,14 +113,23 @@ pub async fn delete_worksheet(
         })?;
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     let idx = req.index.unwrap_or(0);
     if idx < sheet.worksheets.len() && sheet.worksheets.len() > 1 {
         sheet.worksheets.remove(idx);
     }
     sheet.updated_at = Utc::now();
-    state.sessions.record(&session, &state, &user_id, "worksheet_delete", serde_json::json!({ "index": idx }));
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "worksheet_delete",
+        serde_json::json!({ "index": idx }),
+    );
     let new_idx = idx.min(sheet.worksheets.len().saturating_sub(1));
     Ok(Html(render_grid_for(&sheet, new_idx, lang)))
 }
@@ -135,7 +153,10 @@ pub async fn switch_worksheet(
             )
         })?;
     let sheet = session.sheet.read().await;
-    let idx = req.index.unwrap_or(0).min(sheet.worksheets.len().saturating_sub(1));
+    let idx = req
+        .index
+        .unwrap_or(0)
+        .min(sheet.worksheets.len().saturating_sub(1));
     Ok(Html(render_grid_for(&sheet, idx, lang)))
 }
 
@@ -157,7 +178,10 @@ pub async fn rename_worksheet(
         })?;
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        ));
     }
     if let (Some(idx), Some(name)) = (req.index, req.name.as_ref()) {
         if idx < sheet.worksheets.len() {
@@ -165,7 +189,13 @@ pub async fn rename_worksheet(
         }
     }
     sheet.updated_at = Utc::now();
-    state.sessions.record(&session, &state, &user_id, "worksheet_rename", serde_json::json!({ "name": req.name }));
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "worksheet_rename",
+        serde_json::json!({ "name": req.name }),
+    );
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
