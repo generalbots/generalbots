@@ -78,6 +78,11 @@
     this.scrollTop = this.scrollArea.scrollTop;
     this.scrollLeft = this.scrollArea.scrollLeft;
     this.headerRow.style.transform = "translateX(" + (-this.scrollLeft) + "px)";
+    // #2461 — row numbers live in the scrolling body, so offset them by the
+    // horizontal scroll to keep a frozen left column without a second layer.
+    (this.headerColPool || []).forEach(function (node) {
+      if (node && node.style.display !== "none") node.style.left = this.scrollLeft + "px";
+    }, this);
     // Virtualized headers: the visible column window changes with the
     // horizontal position, so the header row must re-render on every scroll.
     this.renderHeaders();
@@ -208,7 +213,7 @@
       const node = this.getOrCreateHeaderColNode(headerUsed++);
       node.textContent = r + 1;
       node.style.display = "block";
-      node.style.left = "0px";
+      node.style.left = (this.scrollLeft || 0) + "px";
       node.style.top = rTop(r) + "px";
       node.style.height = rH(r) + "px";
       node.style.lineHeight = rH(r) + "px";
