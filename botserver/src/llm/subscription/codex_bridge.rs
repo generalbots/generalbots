@@ -177,7 +177,7 @@ impl Approvals for Gate<'_> {
     }
 
     async fn finished(&self, receipt: VmReceipt, outcome: ActionOutcome) {
-        let outcome = VmOutcome { ok: outcome.ok, exit_code: outcome.exit_code, output: outcome.output, files: outcome.files };
+        let outcome = VmOutcome { ok: outcome.ok, exit_code: outcome.exit_code, output: outcome.output, files: outcome.files, reason: None };
         vm_consent::report(&self.turn.identity(), &receipt, &outcome).await;
     }
 

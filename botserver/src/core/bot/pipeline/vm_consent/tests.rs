@@ -164,3 +164,20 @@ fn a_step_keeps_the_first_three_output_lines() {
     let lines = super::steps::first_lines("a\n\nb\nc\nd\n", 3);
     assert_eq!(lines, vec!["a", "b", "c"]);
 }
+
+#[test]
+fn a_workspace_failure_reaches_the_step_as_a_code_not_as_text() {
+    let budget = super::VmOutcome::from_run(None, Some("the run budget elapsed during 'execute' before the workspace answered"));
+    assert_eq!(budget.reason, Some(super::reason::BUDGET_EXCEEDED));
+    assert!(!budget.ok && budget.output.is_empty());
+
+    let down = super::VmOutcome::from_run(None, Some("the agent workspace subsystem is unavailable"));
+    assert_eq!(down.reason, Some(super::reason::WORKSPACE_UNAVAILABLE));
+    assert!(down.output.is_empty());
+    assert_eq!(super::VmOutcome::from_run(None, None).reason, Some(super::reason::WORKSPACE_UNAVAILABLE));
+
+    let ran = (true, "hello\n".to_string(), String::new());
+    let done = super::VmOutcome::from_run(Some(&ran), None);
+    assert_eq!(done.reason, None);
+    assert_eq!(done.output, "hello\n");
+}

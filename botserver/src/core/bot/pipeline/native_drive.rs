@@ -16,6 +16,10 @@ use uuid::Uuid;
 
 use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
+use super::vm_consent::reason;
+mod outcome;
+pub(crate) use outcome::DriveOutcome;
+use outcome::refuse;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 const TEXT_EXTENSIONS: &[&str] = &[
@@ -159,7 +163,7 @@ pub(crate) async fn run_drive_fetch(
     identity: &SessionIdentity<'_>,
     args: &str,
     ticket: crate::core::bot::pipeline::vm_consent::VmConsent,
-) {
+) -> DriveOutcome {
     let parsed = parse(args);
     let reference = parsed
         .get("path")
@@ -176,49 +180,30 @@ pub(crate) async fn run_drive_fetch(
         ..
     } = *identity;
     if reference.is_empty() {
-        send(identity, "Tell me which Drive file to fetch (`path`).").await;
-        return;
+        return refuse(identity, "Tell me which Drive file to fetch (`path`).", reason::NOT_FOUND).await;
     }
     if !identity.agent_vm_enabled {
-        send(identity, "Agent/VM is disabled for this conversation").await;
-        return;
+        return refuse(identity, "Agent/VM is disabled for this conversation", reason::VM_OFF).await;
     }
     agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid).await;
 
     let scope = match drive_bridge::scope(state, &bot_uuid, user_id) {
         Some(scope) => scope,
         None => {
-            send(identity, "Drive is not available for this workspace.").await;
-            return;
+            return refuse(identity, "Drive is not available for this workspace.", reason::DRIVE_UNAVAILABLE).await;
         }
     };
     let found = drive_bridge::find_object(state, &scope, &reference).await;
     let Some((key, relative)) = found else {
-        send(
-            identity,
-            &format!("I could not find `{reference}` in your Drive."),
-        )
-        .await;
-        return;
+        return refuse(identity, &format!("I could not find `{reference}` in your Drive."), reason::NOT_FOUND).await;
     };
     let Some(bytes) = drive_bridge::read_object(state, &scope, &key).await else {
-        send(
-            identity,
-            &format!("Could not download `{relative}` from Drive."),
-        )
-        .await;
-        return;
+        return refuse(identity, &format!("Could not download `{relative}` from Drive."), reason::FETCH_FAILED).await;
     };
     if bytes.len() as u64 > drive_bridge::MAX_FETCH_BYTES {
-        send(
-            identity,
-            &format!(
-                "`{relative}` is {} and exceeds the 100 MB transfer limit.",
-                human_size(bytes.len() as u64)
-            ),
-        )
-        .await;
-        return;
+        let size = human_size(bytes.len() as u64);
+        let text = format!("`{relative}` is {size} and exceeds the 100 MB transfer limit.");
+        return refuse(identity, &text, reason::TOO_LARGE).await;
     }
     let name = parsed
         .get("as")
@@ -227,6 +212,10 @@ pub(crate) async fn run_drive_fetch(
         .unwrap_or_else(|| sanitize_name(&relative));
     let target = format!("data/{name}");
     let written = agent_vm_hook::write_session_file(ticket, user_id, session_id, &target, &bytes).await;
+    let outcome = match &written {
+        Ok(_) => DriveOutcome::done(vec![target.clone()]),
+        Err(_) => DriveOutcome::refused(reason::FETCH_FAILED),
+    };
     let message = match written {
         Ok(size) => {
             let listing = agent_vm_hook::list_session_folder(user_id, session_id, "data")
@@ -246,6 +235,7 @@ pub(crate) async fn run_drive_fetch(
     };
     send(identity, &message).await;
     persist(state, session_id, user_id, &message).await;
+    outcome
 }
 
 const DRIVE_LIST_DEFAULT_LIMIT: usize = 20;
@@ -345,7 +335,7 @@ async fn run_drive_list(identity: &SessionIdentity<'_>, args: &str) {
     persist(state, session_id, user_id, &message).await;
 }
 
-async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
+pub(crate) async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) -> DriveOutcome {
     let parsed = parse(args);
     let SessionIdentity {
         state,
@@ -356,8 +346,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
     } = *identity;
     // #2239 — workspace output access must be refused when Agent/VM is off.
     if !identity.agent_vm_enabled {
-        send(identity, "Agent/VM is disabled for this conversation").await;
-        return;
+        return refuse(identity, "Agent/VM is disabled for this conversation", reason::VM_OFF).await;
     }
     let requested: Vec<String> = parsed
         .get("files")
@@ -380,20 +369,14 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
         .await
         .unwrap_or_default();
     if files.is_empty() {
-        send(
-            identity,
-            "There are no generated files in `output/` to save.",
-        )
-        .await;
-        return;
+        return refuse(identity, "There are no generated files in `output/` to save.", reason::NOTHING_TO_SAVE).await;
     }
     let selected: Vec<(String, u64)> = files
         .into_iter()
         .filter(|(name, _)| requested.is_empty() || requested.contains(name))
         .collect();
     if selected.is_empty() {
-        send(identity, "None of the named files exist in `output/`.").await;
-        return;
+        return refuse(identity, "None of the named files exist in `output/`.", reason::NOTHING_TO_SAVE).await;
     }
     let folder = if folder.is_empty() {
         drive_bridge::conversation_title(state, session_id).await
@@ -402,6 +385,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
     };
 
     let mut saved = Vec::new();
+    let mut stored = Vec::new();
     let mut failed = Vec::new();
     let mut total: u64 = 0;
     for (name, _) in &selected {
@@ -417,6 +401,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
                     Some(path) => {
                         let (bucket, key) = split_bucket_path(&path);
                         saved.push(drive_link(name, bucket, key));
+                        stored.push(format!("output/{name}"));
                     }
                     None => failed.push(name.to_string()),
                 }
@@ -442,6 +427,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
     }
     send(identity, &message).await;
     persist(state, session_id, user_id, &message).await;
+    DriveOutcome::from_save(stored, failed.len())
 }
 
 /// File names a user typed that are plausible Drive references.

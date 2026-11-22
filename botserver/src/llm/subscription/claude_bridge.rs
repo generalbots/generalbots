@@ -203,6 +203,7 @@ impl BridgeGate for Gate<'_> {
             exit_code: outcome.exit_code,
             output: outcome.output.clone(),
             files: if outcome.ok { files } else { Vec::new() },
+            reason: None,
         };
         vm_consent::report(&self.turn.identity(), &receipt, &outcome).await;
     }

@@ -118,6 +118,8 @@ pub struct VmOutcome {
     pub output: String,
     /// Files the action wrote or sent.
     pub files: Vec<String>,
+    /// Why it ended this way, a [`super::reason`] code the shell translates.
+    pub reason: Option<&'static str>,
 }
 
 impl VmOutcome {
@@ -131,12 +133,18 @@ impl VmOutcome {
                 exit_code: ok.then_some(0),
                 output: if stdout.trim().is_empty() { stderr.clone() } else { stdout.clone() },
                 files: Vec::new(),
+                reason: None,
             },
+            // The failure text is English and for the model; the step gets a
+            // code. `vm_exec` words a spent budget "run budget elapsed".
             None => Self {
                 ok: false,
-                exit_code: None,
-                output: failure.unwrap_or("The workspace was not available.").to_string(),
-                files: Vec::new(),
+                reason: Some(if failure.is_some_and(|text| text.contains("run budget elapsed")) {
+                    super::reason::BUDGET_EXCEEDED
+                } else {
+                    super::reason::WORKSPACE_UNAVAILABLE
+                }),
+                ..Self::default()
             },
         }
     }
@@ -176,6 +184,7 @@ pub async fn report(identity: &SessionIdentity<'_>, receipt: &VmReceipt, outcome
         "allowed_by": receipt.source.as_str(),
         "output": first_lines(&outcome.output, 3),
         "files": outcome.files.iter().take(8).collect::<Vec<_>>(),
+        "reason": outcome.reason,
         "elapsed_ms": receipt.elapsed_ms(),
     });
     let status = if outcome.ok { "ok" } else { "error" };

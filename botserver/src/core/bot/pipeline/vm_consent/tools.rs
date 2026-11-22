@@ -153,7 +153,8 @@ pub fn capture_mark(identity: &SessionIdentity<'_>) -> usize {
 }
 
 /// Closes a tool's step with the chat text the tool sent after `mark`, and
-/// the program's exit code when the tool knows it.
+/// the program's exit code. Without an exit code the command never ran to
+/// the end, so the step failed.
 pub async fn report_captured(
     identity: &SessionIdentity<'_>,
     receipt: &VmReceipt,
@@ -162,12 +163,8 @@ pub async fn report_captured(
     exit_code: Option<i32>,
 ) {
     let output = peek_capture(identity.session_id).get(mark..).unwrap_or("").to_string();
-    let lower = output.to_lowercase();
-    let ok = match exit_code {
-        Some(code) => code == 0,
-        None => !(lower.contains("could not") || lower.contains("failed") || lower.contains("não foi possível")),
-    };
-    let outcome = VmOutcome { ok, exit_code, output, files };
+    let ok = exit_code == Some(0);
+    let outcome = VmOutcome { ok, exit_code, output, files, reason: None };
     report(identity, receipt, &outcome).await;
 }
 
@@ -205,11 +202,10 @@ pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &s
         }
         if let Some(ticket) = gate_drive_fetch(identity, args).await {
             let receipt = ticket.receipt();
-            let mark = capture_mark(identity);
             let scope = ModelOnly::begin(identity.session_id);
-            crate::core::bot::pipeline::native_drive::run_drive_fetch(identity, args, ticket).await;
+            let fetched = crate::core::bot::pipeline::native_drive::run_drive_fetch(identity, args, ticket).await;
             drop(scope);
-            report_captured(identity, &receipt, mark, Vec::new(), None).await;
+            report(identity, &receipt, &fetched.into()).await;
         }
         return true;
     }
@@ -221,15 +217,15 @@ pub async fn run_drive_tool(identity: &SessionIdentity<'_>, name: &str, args: &s
     };
     if let Some(ticket) = gate_or_explain(identity, &action).await {
         let receipt = ticket.receipt();
-        let mark = capture_mark(identity);
         let scope = ModelOnly::begin(identity.session_id);
-        crate::core::bot::pipeline::native_drive::try_run(identity, name, args).await;
-        drop(scope);
-        let files = match &action.kind {
-            VmActionKind::DriveSave { files, .. } | VmActionKind::ExternalSave { files, .. } => files.clone(),
-            _ => Vec::new(),
+        // `outside_action` only knows `drive_save` and `save_to_external_drive`.
+        let saved = if name == "drive_save" {
+            crate::core::bot::pipeline::native_drive::run_drive_save(identity, args).await
+        } else {
+            crate::core::bot::pipeline::native_external_save::run(identity, args).await
         };
-        report_captured(identity, &receipt, mark, files, None).await;
+        drop(scope);
+        report(identity, &receipt, &saved.into()).await;
     }
     true
 }

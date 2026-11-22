@@ -106,14 +106,14 @@ impl PublishReport {
         self.published.is_empty()
     }
 
-    /// Chat message for the turn. Empty when nothing was published, so the
-    /// caller never sends an empty bubble.
+    /// Chat message the person reads (pt-BR). Empty when nothing was
+    /// published, so the caller never sends an empty bubble.
     pub fn message(&self) -> String {
         if self.published.is_empty() {
             return String::new();
         }
         let folder = self.folder.as_str();
-        let mut message = format!("**Files saved to your Drive** (`conversations/{folder}/`)\n");
+        let mut message = format!("**Arquivos salvos no seu Drive** (`conversations/{folder}/`)\n");
         for artifact in &self.published {
             let link = artifact.link.as_str();
             message.push_str(&format!("- {link}\n"));

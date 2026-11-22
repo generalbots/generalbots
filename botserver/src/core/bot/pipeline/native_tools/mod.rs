@@ -23,6 +23,8 @@ mod render;
 #[cfg(feature = "agent-vm")]
 mod terminal;
 #[cfg(feature = "agent-vm")]
+mod vm_background;
+#[cfg(feature = "agent-vm")]
 mod vm_budget;
 #[cfg(feature = "agent-vm")]
 mod vm_exec;

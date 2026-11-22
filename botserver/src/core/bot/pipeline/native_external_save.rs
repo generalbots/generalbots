@@ -8,8 +8,10 @@
 //! read-only. Uploads happen after the program already ran, so a save never
 //! competes with the execution budget (#2045).
 
+use super::native_drive::DriveOutcome;
 use super::native_tools::{persist, send};
 use super::types::SessionIdentity;
+use super::vm_consent::reason;
 use crate::core::bot::agent_vm_hook;
 use botdrive::external::upload::{self, UploadRequest};
 use botdrive::external::{db as external_db, engine, types::Provider};
@@ -54,9 +56,18 @@ fn mime_for(name: &str) -> &'static str {
     }
 }
 
+/// Tells the model why nothing was uploaded; the step shows `reason`.
+async fn refuse(identity: &SessionIdentity<'_>, text: &str, reason: Option<&'static str>) -> DriveOutcome {
+    send(identity, text).await;
+    persist(identity.state, identity.session_id, identity.user_id, text).await;
+    DriveOutcome { reason, ..DriveOutcome::default() }
+}
+
 /// Runs the tool. `provider` is `gdrive` or `onedrive`; `files` selects names
 /// from `output/` (all when omitted); `folder` is the destination folder.
-pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
+/// The text it writes is the result for the model; the returned outcome is
+/// what the step shows.
+pub async fn run(identity: &SessionIdentity<'_>, args: &str) -> DriveOutcome {
     let parsed = parse(args);
     let SessionIdentity {
         state,
@@ -67,7 +78,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
     // #2239 — reads artifacts from the conversation workspace (output/).
     if !identity.agent_vm_enabled {
         send(identity, "Agent/VM is disabled for this conversation").await;
-        return;
+        return DriveOutcome::refused(reason::VM_OFF);
     }
 
     let provider = match parsed
@@ -78,9 +89,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
         Some(provider) => provider,
         None => {
             let message = "Choose a save target: `provider` must be `gdrive` or `onedrive`.";
-            send(identity, message).await;
-            persist(state, session_id, user_id, message).await;
-            return;
+            return refuse(identity, message, None).await;
         }
     };
     let folder = parsed
@@ -113,17 +122,13 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
         } else {
             "None of the named files exist in `output/`.".to_string()
         };
-        send(identity, &message).await;
-        persist(state, session_id, user_id, &message).await;
-        return;
+        return refuse(identity, &message, Some(reason::NOTHING_TO_SAVE)).await;
     }
 
     let (branch_id, connection, granted) = {
         let Ok(mut conn) = external_db::conn(&state.conn) else {
             let message = "Could not reach the database to look up the drive connection.";
-            send(identity, message).await;
-            persist(state, session_id, user_id, message).await;
-            return;
+            return refuse(identity, message, Some(reason::DRIVE_UNAVAILABLE)).await;
         };
         let branch_id = match external_db::branch_for_user(&mut conn, user_id) {
             Ok(branch) => branch,
@@ -146,9 +151,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
             "{} is not connected for this workspace. Open Drive → External and connect it first.",
             provider.display_name()
         );
-        send(identity, &message).await;
-        persist(state, session_id, user_id, &message).await;
-        return;
+        return refuse(identity, &message, Some(reason::EXTERNAL_NOT_CONNECTED)).await;
     };
     if !upload::allows_write(provider, &granted) {
         let message = format!(
@@ -156,9 +159,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
              (reconnect the account) and ask again — nothing was uploaded.",
             provider.display_name()
         );
-        send(identity, &message).await;
-        persist(state, session_id, user_id, &message).await;
-        return;
+        return refuse(identity, &message, Some(reason::EXTERNAL_READ_ONLY)).await;
     }
 
     let http = match engine::http_client() {
@@ -166,9 +167,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
         Err(error) => {
             botlog::safe_warn!("external save: http client unavailable: {error}");
             let message = "The drive client is unavailable right now.";
-            send(identity, message).await;
-            persist(state, session_id, user_id, message).await;
-            return;
+            return refuse(identity, message, Some(reason::DRIVE_UNAVAILABLE)).await;
         }
     };
     let token = match engine::connection_access_token(&http, &state.conn, branch_id, &connection)
@@ -181,13 +180,12 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
                 "Could not authorise the {} upload; reconnect the account and try again.",
                 provider.display_name()
             );
-            send(identity, &message).await;
-            persist(state, session_id, user_id, &message).await;
-            return;
+            return refuse(identity, &message, Some(reason::EXTERNAL_NOT_CONNECTED)).await;
         }
     };
 
     let mut saved = Vec::new();
+    let mut saved_files = Vec::new();
     let mut failed = Vec::new();
     for (name, _) in &selected {
         let relative = format!("output/{name}");
@@ -247,6 +245,7 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
                     }
                 }
                 saved.push(link);
+                saved_files.push(relative);
             }
             Err(error) => failed.push(format!("{name} ({error})")),
         }
@@ -275,4 +274,5 @@ pub async fn run(identity: &SessionIdentity<'_>, args: &str) {
     }
     send(identity, &message).await;
     persist(state, session_id, user_id, &message).await;
+    DriveOutcome::from_save(saved_files, failed.len())
 }

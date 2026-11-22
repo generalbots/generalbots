@@ -110,5 +110,22 @@ pub(super) fn workspace_failure_message(reason: &str, timeout_ms: u64) -> String
     format!("The workspace could not run this program: {clipped}. Start a new message to retry.")
 }
 
+/// What the person reads in the conversation when a background job could not
+/// finish. The workspace's own reason is technical English: it is logged,
+/// never shown here.
+pub(super) fn background_failure_for_person(reason: &str, timeout_ms: u64) -> String {
+    if is_budget_exhausted(reason) {
+        let budget_secs = workspace_budget_ms(timeout_ms) / 1_000;
+        return format!(
+            "O trabalho em segundo plano passou do limite de {budget_secs} segundos e foi interrompido. Os arquivos que o programa já gravou continuam no espaço de trabalho."
+        );
+    }
+    "O espaço de trabalho não conseguiu terminar o trabalho em segundo plano. Envie uma nova mensagem para tentar de novo.".to_string()
+}
+
+/// The background job ended because the workspace went away.
+pub(super) const BACKGROUND_UNAVAILABLE_FOR_PERSON: &str =
+    "O espaço de trabalho ficou indisponível e o trabalho em segundo plano não terminou.";
+
 #[cfg(test)]
 mod workspace_failure_message_tests;

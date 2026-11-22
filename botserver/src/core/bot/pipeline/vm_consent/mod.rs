@@ -20,6 +20,7 @@ mod bridge;
 #[cfg(feature = "consent")]
 mod forget;
 mod gate;
+pub mod reason;
 mod steps;
 pub mod tools;
 #[cfg(feature = "consent")]

@@ -295,6 +295,9 @@ pub async fn ensure_agent_vm_result(
         );
         return Err(workspace_disabled_error());
     }
+    if rig_fake::enabled() {
+        return Ok(rig_fake::session_row(session_id, user_id, bot_uuid));
+    }
     let Some(service) = SERVICE.get() else {
         return Err((
             503,
