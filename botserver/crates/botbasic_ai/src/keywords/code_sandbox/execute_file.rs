@@ -76,7 +76,10 @@ impl CodeSandbox {
                 .and_then(|c| c.arg(&code_file));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Ok(cmd) => cmd
+                    .execute_async()
+                    .await
+                    .map_err(|e| std::io::Error::other(e.to_string())),
                 Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
@@ -145,7 +148,10 @@ impl CodeSandbox {
                 .and_then(|c| c.args(&args.iter().map(|s| s.as_str()).collect::<Vec<_>>()));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Ok(cmd) => cmd
+                    .execute_async()
+                    .await
+                    .map_err(|e| std::io::Error::other(e.to_string())),
                 Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
@@ -207,7 +213,10 @@ impl CodeSandbox {
                 .and_then(|c| c.working_dir(std::path::Path::new(&temp_dir)));
 
             match cmd_result {
-                Ok(cmd) => cmd.execute_async().await.map_err(|e| std::io::Error::other(e.to_string())),
+                Ok(cmd) => cmd
+                    .execute_async()
+                    .await
+                    .map_err(|e| std::io::Error::other(e.to_string())),
                 Err(e) => Err(std::io::Error::other(e.to_string())),
             }
         })
@@ -243,7 +252,11 @@ impl CodeSandbox {
         }
     }
 }
-pub fn register_sandbox_keywords(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+pub fn register_sandbox_keywords(
+    state: Arc<dyn BasicRuntime>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
     run_python_keyword(Arc::clone(&state), user.clone(), engine);
     run_javascript_keyword(Arc::clone(&state), user.clone(), engine);
     run_bash_keyword(Arc::clone(&state), user.clone(), engine);

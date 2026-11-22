@@ -151,7 +151,10 @@
                 var payload = data && data.data ? data.data : data;
                 var url = payload && payload.preview_url;
                 if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
-                    throw new Error("No live preview is available yet. Deploy the project first.");
+                    // #2541 — a restart/expiry is an honest status, not a
+                    // generic "no preview" (and not a silent 404).
+                    var stale = vibeStaleLabel(vibeStaleReason(payload || data));
+                    throw new Error(stale || "No live preview is available yet. Deploy the project first.");
                 }
                 return url;
             });

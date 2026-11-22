@@ -77,6 +77,52 @@
         return d.innerHTML;
     }
 
+    // #2541 — honest stale-state contract. Boot reconciliation in the backend
+    // folds a live Vibe run into `failed` and stamps this exact error. A silent
+    // "failed" chip is truthful about the state but hides WHY; these helpers
+    // translate the reason into existing catalogue keys (no new i18n keys).
+    var VIBE_RESTART_MARKER = "interrupted by server restart";
+
+    function vibeT(key, fallback) {
+        return window.gbT ? window.gbT(key, fallback) : fallback;
+    }
+
+    // Returns "interrupted_by_restart" | "expired" | null for a run/preview.
+    function vibeStaleReason(record) {
+        if (!record) return null;
+        var raw = String(record.error || record.status || record.reason || "");
+        if (raw.toLowerCase().indexOf(VIBE_RESTART_MARKER) !== -1) {
+            return "interrupted_by_restart";
+        }
+        if (/\bexpired\b/i.test(raw)) return "expired";
+        return null;
+    }
+
+    // Localized, human-readable version of a stale reason. Returns null when
+    // there is no special reason, so callers keep their normal rendering.
+    function vibeStaleLabel(reason) {
+        if (reason === "interrupted_by_restart") {
+            return vibeT("chat-status-stopped", "Stopped") + " \u2014 " +
+                vibeT("cli-restart-done", "BotServer restarted");
+        }
+        if (reason === "expired") {
+            return vibeT("monitoring-alerts-expired", "Expired");
+        }
+        return null;
+    }
+
+    // Short chip form for the run dock / status bar (the full reason lives in
+    // the outcome line, so a chip stays a single localized word).
+    function vibeStaleChip(reason) {
+        if (reason === "interrupted_by_restart") {
+            return vibeT("chat-status-stopped", "Stopped").toUpperCase();
+        }
+        if (reason === "expired") {
+            return vibeT("monitoring-alerts-expired", "Expired").toUpperCase();
+        }
+        return null;
+    }
+
     function money(cents) {
         return "$" + (cents / 100).toFixed(2);
     }

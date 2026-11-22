@@ -42,7 +42,15 @@
                 // but the list only refreshed on runFocus/start — so a run that
                 // just completed would stay as a stale "RUNNING 0 calls" entry.
                 loadRuns();
-                if (data.state === "completed") {
+                // #2541 — boot reconciliation stamps a live run as failed with
+                // "interrupted by server restart". Stop polling and say so in
+                // a localized way; never re-target a preview for a run whose
+                // agent loop no longer exists.
+                var staleReason = vibeStaleReason(data);
+                if (staleReason) {
+                    uiMsg("\u26A0 " + vibeStaleLabel(staleReason));
+                    stopPolling();
+                } else if (data.state === "completed") {
                     stopPolling();
                     // #run-done — a finished run must end with the result
                     // visible: (1) drop a clickable deeplink in the Runner

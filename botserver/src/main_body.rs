@@ -186,6 +186,8 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
     // before any request is served. Synchronous and best-effort: a pool error
     // is logged and boot continues.
     crate::core::bot::runs::observability::reconcile_on_boot(&app_state.conn);
+    // #2541 — sandbox previews from a previous process are never live.
+    crate::core::bot::sandbox::store::reconcile_previews();
 
     // #1665 — run event retention. Frames expire; the run summary in
     // `agent_runs` does not. Runs in the background so a slow delete never

@@ -85,8 +85,11 @@
                 return;
             }
             list.innerHTML = runs.map(function (r) {
+                // #2541 — reconciled runs carry a failed state but the real
+                // reason is the restart; show the honest, localized status.
+                var chip = vibeStaleChip(vibeStaleReason(r)) || r.state;
                 return '<div class="vibe-run-item" style="cursor:pointer" data-run="' + vibeRunEsc(r.run_id) + '">' +
-                    '<span class="vibe-chip ' + chipState(r.state) + '">' + vibeRunEsc(r.state) + "</span>" +
+                    '<span class="vibe-chip ' + chipState(r.state) + '">' + vibeRunEsc(chip) + "</span>" +
                     '<span class="meta" title="' + vibeRunEsc(r.intent) + '">' + vibeRunEsc(r.intent || "run") + "</span>" +
                     '<span class="meta" style="flex:0">' + (r.tool_call_count || 0) + " calls</span>" +
                     "</div>";

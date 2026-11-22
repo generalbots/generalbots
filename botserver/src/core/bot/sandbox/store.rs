@@ -7,6 +7,9 @@
 
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use botbasic_ai::keywords::code_sandbox::preview_store;
 
 use sha2::{Digest, Sha256};
 
@@ -19,6 +22,27 @@ use super::sign::signed_path;
 pub struct StoredResource {
     pub html: String,
     pub csp: UiCsp,
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+fn boot_id() -> u64 {
+    static BOOT: OnceLock<u64> = OnceLock::new();
+    *BOOT.get_or_init(now_ms)
+}
+
+/// #2541 — the reason code for a cached preview, if any. Never a silent miss:
+/// `expired` and `interrupted_by_restart` are reported to callers.
+#[must_use]
+pub fn preview_status(hash: &str) -> Option<String> {
+    preview_store::shared()
+        .status(hash, now_ms())
+        .map(|status| status.reason_code().to_string())
 }
 
 fn cache() -> &'static Mutex<HashMap<String, StoredResource>> {
@@ -64,6 +88,8 @@ pub async fn publish_resource(
             csp: csp.clone(),
         },
     );
+    // #2541 — TTL/capacity-bounded preview cache with boot reconciliation.
+    preview_store::shared().insert(hash.clone(), html, 3_600_000, now_ms());
 
     if let Some(drive) = state.drive.as_ref() {
         let key = format!("_sandbox/ui/{hash}.html");
@@ -137,6 +163,12 @@ pub async fn read_resource(state: &AppState, bucket: &str, hash: &str) -> Option
 /// bucket lifecycle). Used when a hash is revoked.
 pub fn forget(hash: &str) {
     lock_cache().remove(hash);
+    preview_store::shared().forget(hash);
+}
+
+/// #2541 — called at boot after the durable stores are available.
+pub fn reconcile_previews() {
+    preview_store::shared().reconcile_on_boot(boot_id(), now_ms());
 }
 
 #[cfg(test)]

@@ -1,6 +1,8 @@
 use super::*;
 
-pub(super) fn read_bot_config_from_vault(bot_id: &Uuid) -> Option<std::collections::HashMap<String, String>> {
+pub(super) fn read_bot_config_from_vault(
+    bot_id: &Uuid,
+) -> Option<std::collections::HashMap<String, String>> {
     use botcoresecrets::manager::SecretsManager;
     let sm = SecretsManager::get_clone().ok()?;
     if !sm.is_enabled() {

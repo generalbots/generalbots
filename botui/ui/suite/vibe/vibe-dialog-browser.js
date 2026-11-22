@@ -15,6 +15,18 @@
         }, fallback);
     }
 
+    // #2541 — reuse existing catalogue keys for a truthful preview status.
+    function staleStatusText(reason) {
+        var raw = String(reason || "");
+        if (raw.toLowerCase().indexOf("interrupted by server restart") !== -1) {
+            return t("chat-status-stopped", "Stopped") + " \u2014 " + t("cli-restart-done", "BotServer restarted");
+        }
+        if (/\bexpired\b/i.test(raw)) {
+            return t("monitoring-alerts-expired", "Expired");
+        }
+        return null;
+    }
+
     var D = window.VibeDialogs;
     var state = { sessionId: null, url: "", busy: false };
     var refreshTimer = null;
@@ -169,7 +181,11 @@
                 return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/preview?env=" + encodeURIComponent(env));
             }).then(function (data) {
                 if (typeof data === "string") return data;
-                if (data && data.success === false) throw new Error(data.error || t("vibe-browser-no-preview", "No preview is available"));
+                if (data && data.success === false) {
+                    var stale = staleStatusText(data.error);
+                    if (stale) throw new Error(stale);
+                    throw new Error(data.error || t("vibe-browser-no-preview", "No preview is available"));
+                }
                 var payload = data && data.data ? data.data : data;
                 var preview = payload && payload.preview_url;
                 if (!preview || !/^https?:\/\//i.test(preview)) {

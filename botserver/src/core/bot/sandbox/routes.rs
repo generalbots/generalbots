@@ -20,7 +20,7 @@ use botcore::shared::state::AppState;
 
 use super::csp::UiCsp;
 use super::sign::verify_resource;
-use super::store::read_resource;
+use super::store::{preview_status, read_resource};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -53,7 +53,15 @@ async fn serve_resource(
     let Some(resource) = read_resource(&state, &bucket, &hash).await else {
         return (StatusCode::NOT_FOUND, "resource not found").into_response();
     };
-    resource_response(&resource.html, &resource.csp)
+    let mut response = resource_response(&resource.html, &resource.csp);
+    if let Some(status) = preview_status(&hash) {
+        response.headers_mut().insert(
+            "x-gb-preview-status",
+            axum::http::HeaderValue::from_str(&status)
+                .unwrap_or_else(|_| axum::http::HeaderValue::from_static("unknown")),
+        );
+    }
+    response
 }
 
 fn resource_response(html: &str, csp: &UiCsp) -> Response {

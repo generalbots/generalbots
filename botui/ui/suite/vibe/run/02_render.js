@@ -5,14 +5,15 @@
     function syncRunDock() {
         var dock = q("vibeRunDockState");
         if (!dock || !state.run) return;
-        var label = {
+        var stale = vibeStaleChip(vibeStaleReason(state.run));
+        var label = stale || ({
             pending: "ACTIVE",
             running: "ACTIVE",
             awaiting_approval: "APPROVAL",
             completed: "COMPLETED",
             failed: "FAILED",
             cancelled: "CANCELLED",
-        }[String(state.run.state)] || "IDLE";
+        }[String(state.run.state)] || "IDLE");
         dock.textContent = label;
         dock.className = "vibe-chip " + chipState(state.run.state);
     }
@@ -25,9 +26,11 @@
         setText("vibeRunIntent", state.run.intent || "—");
         setText("vibeRunToolCalls", (state.run.tool_call_count || 0) + " tool calls");
         setText("vibeRunOutcome", "");
+        var staleReason = vibeStaleReason(state.run);
+        var staleChip = vibeStaleChip(staleReason);
         var stateEl = q("vibeRunState");
         if (stateEl) {
-            stateEl.textContent = state.run.state;
+            stateEl.textContent = staleChip || state.run.state;
             stateEl.className = "vibe-chip " + chipState(state.run.state);
         }
         // Terminal states freeze the phase and the run-dock ribbon so the
@@ -40,7 +43,7 @@
             // never keeps spinning on a stale RUNNING text.
             var outcomeIcon = state.run.state === "completed" ? "\u2705 "
                 : state.run.state === "failed" ? "\u274C " : "\u23F9 ";
-            updateRibbonStatus(outcomeIcon + String(state.run.state).toUpperCase(),
+            updateRibbonStatus(outcomeIcon + (staleChip || String(state.run.state).toUpperCase()),
                 state.run.state === "completed" ? "ok" : "error");
         } else {
             // #1309 — narrate run progress on the Vibe status bar (mirrors
@@ -60,7 +63,11 @@
         }
         var fill = q("vibeRunProgress");
         if (fill) fill.style.width = Math.max(2, Math.min(100, state.progress)) + "%";
-        if (state.run.error) {
+        if (staleReason) {
+            // #2541 — a restart/expiry is a truthful, localized status, not a
+            // raw backend error string painted into the run card.
+            setText("vibeRunOutcome", "\u26A0 " + vibeStaleLabel(staleReason));
+        } else if (state.run.error) {
             setText("vibeRunOutcome", "❌ " + state.run.error);
         } else if (state.run.state === "completed") {
             setText("vibeRunOutcome", "✅ completed");
