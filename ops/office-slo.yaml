@@ -127,6 +127,7 @@ cross_cutting:
 office_memory:
   issue: 2530
   status: declared-offline-gate
+  notes: "Runtime RSS numbers (peak/baseline/return) are not declared here; supply measured values via scripts/check_office_memory.py --snapshot before any PASS claim, otherwise the soak stays UNVERIFIED."
   cgroup_reference_mb: 4096
   corpus:
     generator: scripts/office_largefile_corpus.py
