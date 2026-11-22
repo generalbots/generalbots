@@ -96,153 +96,305 @@ mod tests {
     use super::*;
     use crate::kb::structured::chunk::AclMetadata;
     use crate::kb::structured::chunker::StructureAwareChunker;
+    use std::collections::BTreeSet;
 
     const TENANT_A: &str = "11111111-1111-1111-1111-111111111111";
     const TENANT_B: &str = "22222222-2222-2222-2222-222222222222";
 
-    fn chunks(text: &str, acl: &AclMetadata) -> Vec<StructuredChunk> {
-        StructureAwareChunker::default().chunk_document(
-            "contract",
-            TENANT_A,
-            "contract.docx",
-            "3",
-            text,
-            acl,
-        )
-    }
-
-    fn clause_text() -> String {
+    /// Body line that acts as a unique tenant marker in `content`.
+    fn clause_text(marker: &str) -> String {
         [
             "# Employment",
             "## Termination",
             "[[PAGE:12]]",
             "7.3 Termination Notice",
-            "The termination notice period is ninety days from the effective date.",
+            marker,
         ]
         .join("\n")
     }
 
-    #[test]
-    fn upsert_point_id_is_stable_across_reindex() {
-        let acl = AclMetadata::private(TENANT_A);
-        let first = chunks(&clause_text(), &acl);
-        let second = chunks(&clause_text(), &acl);
-        assert!(!first.is_empty());
-        if let (Some(original), Some(reindexed)) = (first.first(), second.first()) {
-            assert_eq!(original.to_upsert_point(4).id, reindexed.to_upsert_point(4).id);
-            assert_eq!(
-                original.to_upsert_point(4).payload["stable_id"],
-                serde_json::json!(original.id)
-            );
-        }
-
-        let edited = chunks("7.3 Notice\nThe notice period is thirty days.", &acl);
-        if let (Some(original), Some(changed)) = (first.first(), edited.first()) {
-            assert_ne!(original.to_upsert_point(4).id, changed.to_upsert_point(4).id);
-        }
+    fn chunks_for(
+        tenant: &str,
+        file: &str,
+        version: &str,
+        text: &str,
+        acl: &AclMetadata,
+    ) -> Vec<StructuredChunk> {
+        StructureAwareChunker::default()
+            .chunk_document("contract", tenant, file, version, text, acl)
     }
 
-    #[test]
-    fn upsert_point_payload_carries_all_acl_fields() {
-        let acl = AclMetadata::private(TENANT_A)
+    /// The clause-7.3 chunk is the stable fixture used by payload assertions.
+    fn clause_chunk(tenant: &str, file: &str, marker: &str, acl: &AclMetadata) -> StructuredChunk {
+        chunks_for(tenant, file, "3", &clause_text(marker), acl)
+            .into_iter()
+            .find(|chunk| chunk.source.locator == "7.3")
+            .expect("fixture must contain clause 7.3")
+    }
+
+    fn full_acl(tenant: &str) -> AclMetadata {
+        AclMetadata::private(tenant)
             .with_users(vec!["user-1".to_string()])
             .with_roles(vec!["legal".to_string()])
-            .with_groups(vec!["counsel".to_string()]);
-        let chunks = chunks(&clause_text(), &acl);
-        assert!(!chunks.is_empty());
-        if let Some(chunk) = chunks.first() {
-            let point = chunk.to_upsert_point(4);
-            assert_eq!(point.payload["tenant_id"], serde_json::json!(TENANT_A));
-            assert_eq!(point.payload["acl"]["tenant_id"], serde_json::json!(TENANT_A));
-            assert_eq!(point.payload["acl"]["is_public"], serde_json::json!(false));
-            assert_eq!(
-                point.payload["acl"]["allowed_users"],
-                serde_json::json!(["user-1"])
-            );
-            assert_eq!(
-                point.payload["acl"]["allowed_roles"],
-                serde_json::json!(["legal"])
-            );
-            assert_eq!(
-                point.payload["acl"]["allowed_groups"],
-                serde_json::json!(["counsel"])
-            );
-        }
+            .with_groups(vec!["counsel".to_string()])
     }
 
-    #[test]
-    fn upsert_point_preserves_citation_page_and_clause() {
-        let acl = AclMetadata::private(TENANT_A);
-        let chunks = chunks(&clause_text(), &acl);
-        assert!(chunks.iter().any(|chunk| chunk.source.locator == "7.3"));
-        if let Some(chunk) = chunks.iter().find(|chunk| chunk.source.locator == "7.3") {
-            let point = chunk.to_upsert_point(4);
-            assert_eq!(
-                point.payload["citation"]["source"]["kind"],
-                serde_json::json!("clause")
-            );
-            assert_eq!(
-                point.payload["citation"]["source"]["locator"],
-                serde_json::json!("7.3")
-            );
-            assert_eq!(
-                point.payload["citation"]["source"]["page"],
-                serde_json::json!(12)
-            );
-            assert_eq!(
-                point.payload["citation"]["file"],
-                serde_json::json!("contract.docx")
-            );
-            assert_eq!(point.payload["citation"]["version"], serde_json::json!("3"));
-        }
+    fn point_ids(chunks: &[StructuredChunk]) -> Vec<String> {
+        chunks
+            .iter()
+            .map(|chunk| chunk.to_upsert_point(4).id)
+            .collect()
     }
 
+    // Criterion: to_upsert_point payload carries the documented fields and the
+    // tenant, with no surprise fields that could smuggle data across tenants.
     #[test]
-    fn upsert_points_from_different_tenants_are_separated() {
-        let text = clause_text();
-        let first = chunks(&text, &AclMetadata::private(TENANT_A));
-        let second = StructureAwareChunker::default().chunk_document(
-            "contract",
-            TENANT_B,
+    fn upsert_payload_has_exactly_the_documented_fields() {
+        let acl = full_acl(TENANT_A);
+        let chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days notice", &acl);
+        let point = chunk.to_upsert_point(4);
+
+        let keys: BTreeSet<&str> = point.payload.keys().map(String::as_str).collect();
+        let expected: BTreeSet<&str> = [
+            "content",
+            "document_path",
+            "stable_id",
+            "tenant_id",
+            "citation",
+            "acl",
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(keys, expected);
+
+        assert_eq!(point.payload["content"], serde_json::json!(chunk.content));
+        assert_eq!(
+            point.payload["document_path"],
+            serde_json::json!("contract.docx")
+        );
+        assert_eq!(point.payload["stable_id"], serde_json::json!(chunk.id));
+        assert_eq!(point.payload["tenant_id"], serde_json::json!(TENANT_A));
+    }
+
+    // Criterion: to_upsert_point carries the FULL ACL, including public flag
+    // and every allow-list, and the tenant repeated inside the ACL.
+    #[test]
+    fn upsert_payload_carries_full_acl_including_public_flag() {
+        let private = full_acl(TENANT_A);
+        let chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days", &private);
+        let point = chunk.to_upsert_point(4);
+
+        assert_eq!(
+            point.payload["acl"],
+            serde_json::to_value(&private).expect("serialize private ACL")
+        );
+        assert_eq!(
+            point.payload["acl"]["tenant_id"],
+            serde_json::json!(TENANT_A)
+        );
+        assert_eq!(point.payload["acl"]["is_public"], serde_json::json!(false));
+        assert_eq!(
+            point.payload["acl"]["allowed_users"],
+            serde_json::json!(["user-1"])
+        );
+        assert_eq!(
+            point.payload["acl"]["allowed_roles"],
+            serde_json::json!(["legal"])
+        );
+        assert_eq!(
+            point.payload["acl"]["allowed_groups"],
+            serde_json::json!(["counsel"])
+        );
+
+        let public = AclMetadata::public(TENANT_A);
+        let public_chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days", &public);
+        let public_point = public_chunk.to_upsert_point(4);
+        assert_eq!(
+            public_point.payload["acl"],
+            serde_json::to_value(&public).expect("serialize public ACL")
+        );
+        assert_eq!(
+            public_point.payload["acl"]["is_public"],
+            serde_json::json!(true)
+        );
+    }
+
+    // Criterion: to_upsert_point carries the FULL citation (document id, file,
+    // version, logical address, page and heading path).
+    #[test]
+    fn upsert_payload_carries_full_citation() {
+        let acl = full_acl(TENANT_A);
+        let chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days", &acl);
+        let point = chunk.to_upsert_point(4);
+
+        assert_eq!(
+            point.payload["citation"],
+            serde_json::to_value(&chunk.citation()).expect("serialize citation")
+        );
+        assert_eq!(
+            point.payload["citation"]["document_id"],
+            serde_json::json!("contract")
+        );
+        assert_eq!(
+            point.payload["citation"]["file"],
+            serde_json::json!("contract.docx")
+        );
+        assert_eq!(point.payload["citation"]["version"], serde_json::json!("3"));
+        assert_eq!(
+            point.payload["citation"]["source"]["kind"],
+            serde_json::json!("clause")
+        );
+        assert_eq!(
+            point.payload["citation"]["source"]["locator"],
+            serde_json::json!("7.3")
+        );
+        assert_eq!(
+            point.payload["citation"]["source"]["page"],
+            serde_json::json!(12)
+        );
+        assert_eq!(
+            point.payload["citation"]["heading_path"],
+            serde_json::to_value(&chunk.heading_path).expect("serialize heading path")
+        );
+        assert!(chunk
+            .heading_path
+            .iter()
+            .any(|heading| heading == "Termination Notice"));
+    }
+
+    // Criterion: stable point id, partitioned by tenant/version/content.
+    #[test]
+    fn point_id_is_stable_and_partitioned_by_identity() {
+        let acl_a = full_acl(TENANT_A);
+        let text = clause_text("ninety days");
+        let first = chunks_for(TENANT_A, "contract.docx", "3", &text, &acl_a);
+        let reindexed = chunks_for(TENANT_A, "contract.docx", "3", &text, &acl_a);
+        assert!(!first.is_empty());
+        assert_eq!(point_ids(&first), point_ids(&reindexed));
+
+        let chunk = &first[0];
+        let point = chunk.to_upsert_point(4);
+        assert_eq!(point.id, chunk.point_id());
+        assert_eq!(point.id, chunk.id);
+        assert_eq!(point.payload["stable_id"], serde_json::json!(point.id));
+
+        let edited = chunks_for(
+            TENANT_A,
             "contract.docx",
             "3",
-            &text,
-            &AclMetadata::private(TENANT_B),
+            &clause_text("thirty days"),
+            &acl_a,
         );
-        assert!(!first.is_empty());
-        assert!(!second.is_empty());
-        if let (Some(a), Some(b)) = (first.first(), second.first()) {
-            let point_a = a.to_upsert_point(4);
-            let point_b = b.to_upsert_point(4);
-            assert_ne!(point_a.id, point_b.id);
-            assert_eq!(point_a.payload["tenant_id"], serde_json::json!(TENANT_A));
-            assert_eq!(point_b.payload["tenant_id"], serde_json::json!(TENANT_B));
-            assert_eq!(
-                point_a.payload["acl"]["tenant_id"],
-                serde_json::json!(TENANT_A)
-            );
-            assert_eq!(
-                point_b.payload["acl"]["tenant_id"],
-                serde_json::json!(TENANT_B)
-            );
+        let new_version = chunks_for(TENANT_A, "contract.docx", "4", &text, &acl_a);
+        let other_tenant = chunks_for(TENANT_B, "contract.docx", "3", &text, &full_acl(TENANT_B));
+        assert_ne!(point_ids(&first), point_ids(&edited));
+        assert_ne!(point_ids(&first), point_ids(&new_version));
+        assert_ne!(point_ids(&first), point_ids(&other_tenant));
+    }
+
+    // Criterion: VectorSlot starts pending on every projection, regardless of
+    // the requested dimension, and is a zero-filled placeholder.
+    #[test]
+    fn to_upsert_point_always_starts_with_a_pending_vector() {
+        let acl = full_acl(TENANT_A);
+        let chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days", &acl);
+        for dimension in [1, 4, DEFAULT_VECTOR_DIMENSION] {
+            let point = chunk.to_upsert_point(dimension);
+            assert_eq!(point.vector.dimension, dimension);
+            assert_eq!(point.vector.values.len(), dimension);
+            assert!(point.vector.values.iter().all(|value| *value == 0.0));
+            assert!(!point.vector.ready);
+            assert!(!point.vector.is_ready());
+            assert_eq!(point.vector, VectorSlot::pending(dimension));
         }
     }
 
+    // Criterion: pending -> filled transition replaces the slot in place while
+    // preserving identity fields of the UpsertPoint.
     #[test]
-    fn vector_slot_is_a_pending_placeholder_of_requested_dimension() {
-        let acl = AclMetadata::private(TENANT_A);
-        let chunks = chunks(&clause_text(), &acl);
-        assert!(!chunks.is_empty());
-        if let Some(chunk) = chunks.first() {
-            let point = chunk.to_upsert_point(8);
-            assert_eq!(point.vector.dimension, 8);
-            assert_eq!(point.vector.values.len(), 8);
-            assert!(point.vector.values.iter().all(|value| *value == 0.0));
-            assert!(!point.vector.is_ready());
+    fn vector_slot_transitions_from_pending_to_filled() {
+        let acl = full_acl(TENANT_A);
+        let chunk = clause_chunk(TENANT_A, "contract.docx", "ninety days", &acl);
+        let mut point = chunk.to_upsert_point(4);
+        let original_id = point.id.clone();
+        let original_payload = point.payload.clone();
+        assert!(!point.vector.is_ready());
 
-            let filled = VectorSlot::filled(vec![0.1_f32; 2]);
-            assert!(filled.is_ready());
-            assert_eq!(filled.dimension, 2);
+        let embedding = vec![0.25_f32; 4];
+        point.vector = VectorSlot::filled(embedding.clone());
+
+        assert!(point.vector.is_ready());
+        assert_eq!(point.vector.dimension, 4);
+        assert_eq!(point.vector.values, embedding);
+        assert_eq!(point.vector, VectorSlot::filled(embedding));
+        assert_ne!(point.vector, VectorSlot::pending(4));
+        assert_eq!(point.id, original_id);
+        assert_eq!(point.payload, original_payload);
+
+        let cloned = point.vector.clone();
+        assert_eq!(cloned, point.vector);
+
+        let empty_pending = VectorSlot::pending(0);
+        assert_eq!(empty_pending.dimension, 0);
+        assert!(empty_pending.values.is_empty());
+        assert!(!empty_pending.is_ready());
+        let empty_filled = VectorSlot::filled(Vec::new());
+        assert_eq!(empty_filled.dimension, 0);
+        assert!(empty_filled.values.is_empty());
+        assert!(empty_filled.is_ready());
+    }
+
+    // Criterion: no content or payload field leaks across tenant boundaries.
+    #[test]
+    fn upsert_payloads_do_not_leak_fields_across_tenants() {
+        let alpha_marker = "ALPHA_ONLY_CONFIDENTIAL";
+        let beta_marker = "BETA_ONLY_CONFIDENTIAL";
+        let acl_a = full_acl(TENANT_A);
+        let acl_b = full_acl(TENANT_B);
+        let alpha = chunks_for(
+            TENANT_A,
+            "alpha.docx",
+            "3",
+            &clause_text(alpha_marker),
+            &acl_a,
+        );
+        let beta = chunks_for(
+            TENANT_B,
+            "beta.docx",
+            "3",
+            &clause_text(beta_marker),
+            &acl_b,
+        );
+        assert!(!alpha.is_empty());
+        assert!(!beta.is_empty());
+
+        for (chunks, own, foreign, tenant, file) in [
+            (&alpha, alpha_marker, beta_marker, TENANT_A, "alpha.docx"),
+            (&beta, beta_marker, alpha_marker, TENANT_B, "beta.docx"),
+        ] {
+            for chunk in chunks {
+                let point = chunk.to_upsert_point(4);
+                let serialized = serde_json::to_string(&point.payload).expect("serialize payload");
+
+                assert!(serialized.contains(own));
+                assert!(
+                    !serialized.contains(foreign),
+                    "foreign tenant content leaked into payload: {serialized}"
+                );
+                assert_eq!(point.payload["content"], serde_json::json!(chunk.content));
+                assert_eq!(point.payload["tenant_id"], serde_json::json!(tenant));
+                assert_eq!(point.payload["acl"]["tenant_id"], serde_json::json!(tenant));
+                assert_eq!(point.payload["document_path"], serde_json::json!(file));
+                assert_eq!(point.payload["citation"]["file"], serde_json::json!(file));
+            }
         }
+
+        let point_a = alpha[0].to_upsert_point(4);
+        let point_b = beta[0].to_upsert_point(4);
+        assert_ne!(point_a.id, point_b.id);
+        assert_ne!(
+            point_a.payload["acl"], point_b.payload["acl"],
+            "ACLs of different tenants must never be equal"
+        );
     }
 }
