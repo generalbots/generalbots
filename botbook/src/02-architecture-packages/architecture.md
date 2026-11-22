@@ -138,10 +138,10 @@ contract of each. Paths are relative to the repository root.
 | Stale agent runs | `botserver/src/core/bot/runs/observability.rs:120` | `running`/`pending` rows older than the window | `GB_STALE_RUN_MINUTES` (15); eagerly at boot via `reconcile_on_boot` (`observability.rs:141`, called at `main_body.rs:188`) and lazily on the first run (`reconcile_once`) | Yes — updated in `agent_runs` | Reconcile to `interrupted` (#2541) |
 | Run thread bus | `botserver/src/core/bot/runs/bus.rs:276` | live subscribers and steering per thread | connection lifetime | No (volatile); clients resume from `run_events` via `botserver/src/core/bot/ws/session/resume.rs:22` | Volatile, rebuilt by resume |
 | Sandbox resource cache | `botserver/src/core/bot/sandbox/store.rs:48` | sha256 → generated HTML and CSP | signed URL clamped to one hour | Yes — Drive is the durable copy | Cache over Drive |
-| Sandbox preview store | `botserver/crates/botbasic_ai/src/keywords/code_sandbox/preview_store.rs:231` | hash → HTML plus boot generation for truthfulness | 1-hour TTL (3_600_000 ms at `sandbox/store.rs:92`; `DEFAULT_TTL_MS`), capacity 128 with oldest-entry eviction; generation bumped by `reconcile_on_boot` (`sandbox/store.rs:170`) | No — Drive holds the bytes; a prior-boot entry reports `interrupted_by_restart` | Volatile with reason codes `fresh`/`expired`/`interrupted_by_restart` from `/api/sandbox/status/:hash` (#2541) |
+| Sandbox preview store | `botserver/crates/botbasic_ai/src/keywords/code_sandbox/preview_store.rs:231` | hash → HTML plus boot generation for truthfulness | 1-hour TTL (`DEFAULT_TTL_MS` = 3_600_000 ms at `preview_store.rs:19`, passed at `sandbox/store.rs:92`), capacity 128 with oldest-entry eviction; generation bumped by `reconcile_on_boot` (`sandbox/store.rs:170`) | No — Drive holds the bytes; a prior-boot entry reports `interrupted_by_restart` | Volatile with reason codes `fresh`/`expired`/`interrupted_by_restart` from `/api/sandbox/status/:hash` (#2541) |
 | Computer-use actions | `botserver/src/core/computer_use/mod.rs:53` | pending action by id | `TTL_SECS`, pruned on read at `mod.rs:66` | No | Explicitly volatile with TTL |
 | Peer network table | `botserver/src/core/peer_network.rs:93` | node identity and registered peers | process lifetime; peers expire on `GB_PEER_HEARTBEAT_TTL_SECS` (90), mode persisted via `persist_mode` (`peer_network.rs:162`) | Partial (mode only) | Volatile with durable config |
-| Vibe active runs | `botserver/crates/botvibe/src/api/tools.rs:129` | run status by id | boot rebuild from `vibe_runs`, capped at `BOOT_RUN_REBUILD_LIMIT` (500) at `tools.rs:105`; live `pending`/`running`/`awaiting_approval` rows reconciled to `failed` at boot (`run_store.rs:169`) | Yes — `vibe_runs` | Rebuild on boot and reconcile orphans (#2541) |
+| Vibe active runs | `botserver/crates/botvibe/src/api/tools.rs:129` | run status by id | boot rebuild from `vibe_runs`, capped at `BOOT_RUN_REBUILD_LIMIT` (500) at `tools.rs:105`; live `pending`/`running`/`awaiting_approval` rows reconciled to `failed` at boot (`botserver/crates/botvibe/src/run_store.rs:169`) | Yes — `vibe_runs` | Rebuild on boot and reconcile orphans (#2541) |
 | Hotsite apps and pages | `botserver/crates/botweba/src/weba_state.rs:13` | apps, pages, published sites, form submissions | mirrored on every mutation to `WebaStore` | Yes — snapshot store | Rebuild on boot |
 | Chat-history unlock grants | `botserver/src/main_module/routes/chat_history_lock.rs:38` | unlock token → session and user | `UNLOCK_TTL_SECS` (300), idle-expiring | No | Explicitly volatile with TTL |
 | Subscription LLM tokens | `botserver/src/main_module/routes/subscription_llm.rs:33` | token → user, provider, model, session | 10 minutes, pruned on issue | No | Explicitly volatile with TTL |
@@ -154,6 +154,31 @@ contract of each. Paths are relative to the repository root.
 Only the durable rows are authoritative for state that outlives a process.
 A restart may drop any volatile entry in the table above; the disposition
 column names the source that rebuilds it or the window after which it expires.
+
+
+### Structure-Aware Knowledge Base — OFFLINE-ONLY
+
+`botserver/crates/botcore/src/kb/structured/` is a self-contained prototype for
+structure-aware indexing and permission-aware retrieval of Office documents
+(#2499). Its module header (`structured/mod.rs:1-9`) states it deliberately
+makes no Qdrant, HTTP, database or Drive calls so the semantics stay verifiable
+offline by inline unit tests. **OFFLINE-ONLY — no runtime wiring exists**: the
+module is only declared and re-exported (`botserver/crates/botcore/src/kb/mod.rs:5,14-17`);
+there is no Drive/`.gbkb` watcher, no Qdrant upsert and no auto-index caller,
+and it is not part of the live retrieval pipeline above.
+
+| Aspect | Source | What it provides | Status |
+|---|---|---|---|
+| In-memory index | `structured/index.rs:16` | `StructuredKbIndex` — tenant-keyed `HashMap`s of documents/chunks with `index_document`/`backfill`/`delete_document`/`archive_document` and a tenant-scoped `retrieve` | OFFLINE-ONLY |
+| Stable IDs | `structured/chunk.rs:11` | `stable_id` — deterministic 64-bit FNV-1a over explicit components; an unchanged reindex reuses the id while an edit changes it; tenant is part of the id so equal text in two tenants cannot collide | OFFLINE-ONLY |
+| ACL retrieval | `structured/chunk.rs:72`, `structured/index.rs:134` | `AclMetadata::allows` runs before scoring: tenant plus user/email/role/group checks; a denial drops the chunk entirely, never surfaced as a restricted result | OFFLINE-ONLY |
+| Upsert projection | `structured/upsert.rs:58,76,85` | `UpsertPoint`/`VectorSlot` — storage-agnostic stable point id, a pending embedding slot, and a payload carrying citation, ACL, tenant and text; no embedding or vector-store call here | OFFLINE-ONLY (projection only) |
+| Citations | `structured/citation.rs:6,28,92` | `Citation`/`SourceRef`/`SourceKind` — page/section/clause/slide/cell addressing; every retrieved chunk carries a citation (`structured/index.rs:171`) | OFFLINE-ONLY |
+
+A runtime indexer could later map `UpsertPoint` onto a concrete vector-store
+request and replace the pending `VectorSlot` with a real embedding
+(`structured/upsert.rs:4-9`); until that wiring exists, none of this is reachable
+from chat, Drive or Qdrant.
 
 
 ## Security Architecture
