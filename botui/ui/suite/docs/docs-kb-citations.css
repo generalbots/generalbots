@@ -1,0 +1,53 @@
+/* Citation chips for document-to-bot knowledge retrieval (#2499). */
+
+.docs-kb-citations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.docs-kb-citations-item {
+  margin: 0;
+}
+
+.docs-kb-citation {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.docs-kb-citation:hover,
+.docs-kb-citation:focus-visible {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.docs-kb-citation-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #93c5fd;
+  letter-spacing: 0.04em;
+}
+
+.docs-kb-citation-value {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.docs-kb-citations-empty {
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 6px 2px;
+}

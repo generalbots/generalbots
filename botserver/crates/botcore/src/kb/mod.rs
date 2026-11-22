@@ -2,6 +2,7 @@ pub mod document_processor;
 pub mod embedding_generator;
 pub mod kb_indexer;
 pub mod permissions;
+pub mod structured;
 pub mod web_crawler;
 pub mod website_crawler_service;
 
@@ -10,6 +11,11 @@ pub use embedding_generator::{
     EmailEmbeddingGenerator, EmbeddingConfig, EmbeddingGenerator, KbEmbeddingGenerator,
 };
 pub use kb_indexer::{CollectionInfo, IndexingResult, KbFolderMonitor, KbIndexer, QdrantConfig, SearchResult};
+pub use structured::{
+    retrieve_with_citations, AclMetadata, BackfillEntry, BackfillReport, Citation, DocumentRecord,
+    IndexDocument, IndexStatus, RetrievedChunk, SourceKind, SourceRef, StructuredChunk,
+    StructuredKbIndex, StructureAwareChunker,
+};
 pub use web_crawler::{WebCrawler, WebPage, WebsiteCrawlConfig};
 pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawlerService};
 
