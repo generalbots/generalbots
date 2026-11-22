@@ -66,22 +66,56 @@ function _t(key, fallback, params) {
   return window.gbT ? window.gbT(key, fallback, params) : fallback;
 }
 
+// #2595 — progress helpers. The spinner is a CSS ::before on the button, so
+// replacing the label via textContent never removes the animation. aria-busy
+// and the polite live region make the state visible to assistive technology.
+function showBusy(btn, label) {
+  if (!btn) return;
+  btn.classList.add('is-busy');
+  btn.setAttribute('aria-busy', 'true');
+  btn.textContent = label;
+}
+function clearBusy(btn, label) {
+  if (!btn) return;
+  btn.classList.remove('is-busy');
+  btn.removeAttribute('aria-busy');
+  if (label) btn.textContent = label;
+}
+function announce(liveEl, msg) {
+  if (liveEl) liveEl.textContent = msg || '';
+}
+function showFormError(errEl, liveEl, msg) {
+  if (errEl) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+  announce(liveEl, msg);
+}
+
 async function handleLogin(e) {
   e.preventDefault();
-  const btn   = document.getElementById('login-btn');
-  const errEl = document.getElementById('login-error');
+  const btn    = document.getElementById('login-btn');
+  const errEl  = document.getElementById('login-error');
+  const liveEl = document.getElementById('login-live');
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
+  const signingIn = _t('login-signing-in', 'Signing in…');
+  const progress  = _t('login-auth-progress', 'Signing in, please wait…');
+  const submitLabel = _t('login-submit', 'Sign In');
 
-  btn.textContent = _t('login-signing-in', 'Signing in…');
-  btn.disabled = true;
+  errEl.textContent = '';
   errEl.style.display = 'none';
+  announce(liveEl, progress);
+  btn.disabled = true;
+  showBusy(btn, signingIn);
 
+  var succeeded = false;
   try {
     // Cloud installs expose the management login under /api/cloud. The
     // desktop edition ships without the cloud router: when that endpoint is
     // absent (404) sign in through the directory route (/api/auth/login),
-    // which verifies the wizard's administrator credentials.
+    // which verifies the wizard's administrator credentials. The busy state
+    // above spans both attempts, including the 404 fallback hop.
     const attempt = (base) => fetch(base + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,14 +131,12 @@ async function handleLogin(e) {
     let data = {};
     try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || data.error || _t('login-error-failed', 'Login failed. Check your credentials.');
-      errEl.style.display = 'block';
+      showFormError(errEl, liveEl, data.detail || data.error || _t('login-error-failed', 'Login failed. Check your credentials.'));
       return;
     }
     const token = data.token || data.access_token;
     if (!token) {
-      errEl.textContent = _t('login-error-no-token', 'Login succeeded but no session token was returned.');
-      errEl.style.display = 'block';
+      showFormError(errEl, liveEl, _t('login-error-no-token', 'Login succeeded but no session token was returned.'));
       return;
     }
     // Persist session
@@ -114,13 +146,20 @@ async function handleLogin(e) {
     localStorage.setItem('management_name',  data.name  || '');
     notifyParentSuccess(token, data.email || email, data.name || '');
     var dest = resolveRedirect() || (CLOUD_CONFIG.baseUrl + '/dashboard');
+    succeeded = true;
+    announce(liveEl, progress);
     window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
-    errEl.textContent = _t('login-error-network', 'Network error: {error}', { error: err.message });
-    errEl.style.display = 'block';
+    showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
-    btn.textContent = _t('login-submit', 'Sign In');
+    // #2595 — always release the disabled state so the button can never get
+    // stuck. On success keep the spinner + status label until navigation
+    // begins; on failure stop the animation, restore the label and focus.
     btn.disabled = false;
+    if (!succeeded) {
+      clearBusy(btn, submitLabel);
+      btn.focus();
+    }
   }
 }
 
@@ -128,10 +167,21 @@ async function handleLogin(e) {
 async function doLogin(e) { return handleLogin(e); }
 
 // ── Signup ──
+// The submit label follows the selected plan (#2090); reuse it when restoring
+// the button after a failed request.
+function signupSubmitLabel() {
+  const checked = document.querySelector('input[name="plan"]:checked');
+  const plan = checked ? checked.value : 'free';
+  if (plan === 'shared') return _t('signup-submit-trial', 'Start 14-Day Trial');
+  if (plan === 'private-cloud') return _t('signup-submit-quote', 'Get a Quote');
+  return _t('signup-submit-free', 'Create Free Account');
+}
+
 async function handleSignup(e) {
   e.preventDefault();
-  const btn   = document.getElementById('signup-btn');
-  const errEl = document.getElementById('signup-error');
+  const btn    = document.getElementById('signup-btn');
+  const errEl  = document.getElementById('signup-error');
+  const liveEl = document.getElementById('signup-live');
   const name  = document.getElementById('signup-name').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
@@ -139,11 +189,16 @@ async function handleSignup(e) {
   const plan = document.querySelector('input[name="plan"]:checked')?.value || 'free';
   const templateSelect = document.getElementById('bot-template');
   const template = templateSelect ? templateSelect.value : '';
+  const creating = _t('signup-creating', 'Creating account…');
+  const progress = _t('signup-auth-progress', 'Creating your account, please wait…');
 
-  btn.textContent = _t('signup-creating', 'Creating account…');
-  btn.disabled = true;
+  errEl.textContent = '';
   errEl.style.display = 'none';
+  announce(liveEl, progress);
+  btn.disabled = true;
+  showBusy(btn, creating);
 
+  var succeeded = false;
   try {
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
@@ -157,8 +212,7 @@ async function handleSignup(e) {
     let data = {};
     try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || _t('signup-error-failed', 'Signup failed.');
-      errEl.style.display = 'block';
+      showFormError(errEl, liveEl, data.detail || _t('signup-error-failed', 'Signup failed.'));
       return;
     }
     // Handler returns: { status, account: { email, name }, org_id, branch_id, bot_id,
@@ -175,13 +229,17 @@ async function handleSignup(e) {
     notifyParentSuccess(token, emailOut, data.account?.name || name);
     // Private Server: redirect to Store VPS calculator instead of Dashboard
     var dest = resolveRedirect() || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
+    succeeded = true;
+    announce(liveEl, progress);
     window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(emailOut) + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
-    errEl.textContent = _t('login-error-network', 'Network error: {error}', { error: err.message });
-    errEl.style.display = 'block';
+    showFormError(errEl, liveEl, _t('login-error-network', 'Network error: {error}', { error: err.message }));
   } finally {
-    btn.textContent = _t('signup-submit', 'Create Account');
     btn.disabled = false;
+    if (!succeeded) {
+      clearBusy(btn, signupSubmitLabel());
+      btn.focus();
+    }
   }
 }
 
@@ -210,8 +268,8 @@ document.addEventListener('DOMContentLoaded', function() {
       el.classList.add('selected');
       var isPrivate = el.querySelector('input[name="plan"]')?.value === 'private-cloud';
       if (infoEl) infoEl.style.display = isPrivate ? 'block' : 'none';
-      // All plans use "Create Account" — private redirects to store after signup
-      if (btn) btn.textContent = _t('signup-submit', 'Create Account');
+      // Keep the label in sync with the selected plan (free/trial/quote).
+      if (btn && !btn.classList.contains('is-busy')) btn.textContent = signupSubmitLabel();
     });
   });
 });

@@ -59,6 +59,18 @@
     [data-theme="dark"] .btn{background:#0a0a0e;color:#fff}
     .btn:active{transform:scale(.98)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+    /* #2595 — progress spinner. A pseudo-element survives label textContent
+       swaps, so the animation stays visible for the whole request. */
+    .btn.is-busy::before{content:"";display:inline-block;width:13px;height:13px;
+      margin-right:8px;vertical-align:-2px;border-radius:50%;
+      border:2px solid rgba(255,255,255,.45);border-top-color:#fff;
+      animation:gb-spin .7s linear infinite}
+    @keyframes gb-spin{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion: reduce){.btn.is-busy::before{display:none}}
+
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
     .error-box{width:100%;display:none;background:rgba(217,48,62,.08);
       border:1px solid rgba(217,48,62,.25);border-radius:7px;
@@ -98,18 +110,57 @@
       color:#fff;transition:background .2s,transform .2s}
     .theme-btn:hover{transform:scale(1.1)}
     .theme-btn:active{transform:scale(.95)}
+    .theme-btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
   </style>
   <link rel="stylesheet" href="/suite/css/palette-tokens.css" />
 <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#84d669">
   <link rel="apple-touch-icon" href="/suite/assets/icons/apple-touch-icon.png">
+  <script>
+  /* #2594 — resolve the theme synchronously in <head>, before the body paints.
+   * A persisted login choice wins; otherwise the OS preference decides. The
+   * value is mirrored to `gb-theme` (the key the suite reads) so it carries
+   * into the app, and a suite-written `gb-theme` is honoured here when no
+   * explicit login choice exists yet. */
+  (function () {
+    var KEY = 'gb-login-theme', SUITE_KEY = 'gb-theme', root = document.documentElement;
+    function stored() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+    function suiteStored() {
+      try { var v = localStorage.getItem(SUITE_KEY); return (v === 'light' || v === 'dark') ? v : null; }
+      catch (e) { return null; }
+    }
+    function osDark() { return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
+    function resolve() {
+      var v = stored() || suiteStored();
+      return (v === 'dark' || v === 'light') ? v : (osDark() ? 'dark' : 'light');
+    }
+    function apply(theme, persist) {
+      if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+      else root.removeAttribute('data-theme');
+      if (persist) {
+        try { localStorage.setItem(KEY, theme); localStorage.setItem(SUITE_KEY, theme); }
+        catch (e) { /* storage unavailable */ }
+      }
+      var b = document.getElementById('theme-btn');
+      if (b) {
+        b.textContent = theme === 'dark' ? '🌙' : '☀️';
+        b.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      }
+    }
+    apply(resolve(), false);
+    window.toggleTheme = function () {
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
+    };
+    document.addEventListener('DOMContentLoaded', function () { apply(resolve(), false); });
+  })();
+  </script>
 </head>
 <body>
 
 <div class="gb-preview-banner" data-i18n-html="login-preview-banner">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="https://generalbots.org/terms/" target="_blank" rel="noopener noreferrer">Review terms</a> before production use.</div>
 
 <div class="bar"></div>
-<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" data-i18n-title="login-theme-toggle" aria-label="Toggle theme" data-i18n-aria-label="login-theme-toggle">☀️</button>
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" data-i18n-title="login-theme-toggle" aria-label="Toggle theme" data-i18n-aria-label="login-theme-toggle" aria-pressed="false">☀️</button>
 
 <main class="middle">
   <div class="card">
@@ -117,7 +168,8 @@
     <h1 data-i18n="signup-title">Create Account</h1>
     <p data-i18n="signup-subtitle">Start managing your General Bots Cloud</p>
 
-    <div id="signup-error" class="error-box"></div>
+    <div id="signup-error" class="error-box" role="status" aria-live="polite"></div>
+    <div id="signup-live" class="sr-only" role="status" aria-live="polite"></div>
 
     <form id="signup-form" onsubmit="return doSignup(event)" style="width:100%">
       <div class="form-row">
@@ -282,12 +334,6 @@ window.CLOUD_CONFIG = {
 <script src="/js/i18n-switcher.js"></script>
 <script src="/js/cloud-auth.js"></script>
 <script>
-(function(){var k='gb-login-theme',r=document.documentElement,b=document.getElementById('theme-btn');
-function apply(t){if(t==='dark'){r.setAttribute('data-theme','dark');b.textContent='🌙'}else{r.removeAttribute('data-theme');b.textContent='☀️'}
-localStorage.setItem(k,t)}
-var s=localStorage.getItem(k);if(s)apply(s);
-window.toggleTheme=function(){var n=r.getAttribute('data-theme')==='dark'?'light':'dark';apply(n)};})();
-
 (function(){
 var params=new URLSearchParams(window.location.search);
 var presetTemplate=params.get('template');
@@ -314,6 +360,8 @@ labels.forEach(function(l){
 // button carries no data-i18n so a language switch cannot reset it to the
 // free-plan wording.
 function applyPlanLabel(plan){
+  // #2595 — never overwrite the in-progress status label while a request runs.
+  if(btn && btn.classList.contains('is-busy'))return;
   var t=function(k,f){return window.gbT?gbT(k,f):f};
   if(plan==='shared'){btn.textContent=t('signup-submit-trial','Start 14-Day Trial')}
   else if(plan==='private-cloud'){btn.textContent=t('signup-submit-quote','Get a Quote')}
