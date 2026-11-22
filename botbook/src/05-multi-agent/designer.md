@@ -232,49 +232,57 @@ When Designer needs API keys or credentials:
 
 ---
 
-## Preview Before Changes
+## Chat Reachability and Current Parity
 
-Designer shows what will change before applying destructive operations.
+Designer-style editing is not a separate chat protocol. Editor operations are
+reached through the same declarative command surface as every other suite app:
+the model emits a `{"__api_call__": {...}}` block, discovers a command with
+`api.find`, and executes it with `api.exec` or a curated verb name
+(`botserver/src/core/bot/api_catalog/commands_list/mod.rs:53-62`). There is no
+dedicated BASIC keyword for undo, redo, confirm or track-changes: editor verbs
+live in the API command catalog, not in `botbasic_*`.
 
-<div class="wa-chat">
-  <div class="wa-message user">
-    <div class="wa-bubble">
-      <p>Remove the email field from the form</p>
-      <div class="wa-time">11:30</div>
-    </div>
-  </div>
-  <div class="wa-message bot">
-    <div class="wa-bubble">
-      <p>I will remove the email field from patients.html.</p>
-      <p><strong>Note:</strong> The field will remain in the database. Existing data will not be lost.</p>
-      <p>Confirm?</p>
-      <div class="wa-time">11:30</div>
-    </div>
-  </div>
-  <div class="wa-message user">
-    <div class="wa-bubble">
-      <p>Yes</p>
-      <div class="wa-time">11:30</div>
-    </div>
-  </div>
-  <div class="wa-message bot">
-    <div class="wa-bubble">
-      <p>Field removed from form.</p>
-      <div class="wa-time">11:30</div>
-    </div>
-  </div>
-</div>
+The curated catalog is a set of `AppCommand` entries
+(`botserver/src/apps/commands/app_command.rs:3-24`). Each entry carries an app
+id, name, label, summary, **named parameters with free-text descriptions**, a
+deep link and a single `admin_only` boolean. Verb-to-route bindings live in
+`botserver/src/apps/commands/verb_endpoints/table/office_endpoints.rs`;
+composite Docs and Sheet dispatchers live in
+`botserver/src/core/bot/api_catalog/docs_verbs.rs` and
+`botserver/src/core/bot/api_catalog/sheet_verbs.rs`.
 
----
+Chat-reachable editor verb families today, taken from those bindings and
+catalog entries:
 
-## Safety Features
+| App | Representative verbs |
+|-----|----------------------|
+| Docs | `docs.list`, `docs.create`, `docs.update`, `docs.get`, `docs.save`, `docs.delete`, `docs.search`, `docs.outline`, `docs.collaborators`, `docs.ai`, `docs.footnote.add`, `docs.comment.add`, `docs.track_changes.enable`, `docs.compare`, `docs.toc.generate` |
+| Sheet | `sheet.create`, `sheet.cells.set`, `sheet.get`, `sheet.import`, `sheet.export`, `sheet.chart.create`, `sheet.conditional_format.apply`, `sheet.pivot.create`, `sheet.delete` |
+| Slides | `slides.create`, `slides.get`, `slides.slide.add`, `slides.slide.delete`, `slides.slide.duplicate`, `slides.slide.notes`, `slides.element.add`, `slides.media.add`, `slides.element.delete`, `slides.theme.set`, `slides.export` |
+| Canvas | `canvas.list`, `canvas.get`, `canvas.create` |
 
-| Feature | Description |
-|---------|-------------|
-| Preview changes | Shows what will change before applying |
-| Confirm destructive actions | Asks before deleting |
-| Change history | All changes are logged |
-| Undo support | Can undo recent changes |
+`sheet.cells.set` additionally accepts `styles`, `formats`, `conditional` and
+`chart`/`charts` and applies them to the same sheet in one call
+(`sheet_verbs.rs:103-115` and `:203-246`).
+
+Full parity with typed operations, scopes, confirmation and undo is **not**
+claimed. Issue #2448 tracks the gap and its acceptance criteria were still
+unverified at the last triage. Concretely, the following are **not**
+implemented in the catalog today:
+
+| Requirement (#2448) | Current state in source |
+|---------------------|-------------------------|
+| Typed request/response JSON schema per verb | `AppCommand.params` is `&[(&str, &str)]` — names and free-text descriptions only (`app_command.rs:14-15`); there is no schema field. |
+| Scopes read/write/share/admin, resolved from role and enforced per verb | Only `admin_only: bool` (`app_command.rs:22-23`). The consent classifier derives read/delete/update from the verb suffix, not a per-verb scope (`consent_class.rs:6-13`). |
+| Preview-then-confirm with a diff summary for destructive verbs | The consent gate emits a permission card carrying `{command, params}` detail (`consent_gate.rs:134-154`); no diff summary is generated. |
+| One command undoes the last agent batch | `/api/editor/undo` exists (`endpoint_inventory_editor_email.rs:10`, `crates/boteditor/src/routes.rs:15`) but its stack is recreated on every request (`editor_registry()` in `crates/boteditor/src/handlers/mod.rs:70-72`), so it is not a persistent cross-request or agent-batch undo. |
+| Idempotency keys for batch plans | No idempotency field exists in the command catalog. |
+| Parity CI test (toolbar action mapped to a catalog verb) | No `data-verb` mapping test was found in the source tree. |
+
+A mutating command can still prompt for permission: the `__api_call__` handler
+runs a consent gate that classifies the action by verb suffix and returns a
+pending request or a denial (`api_call/handle.rs:130-184`). This is a permission
+prompt, not the preview-with-diff flow the parity epic requires.
 
 ---
 
@@ -302,38 +310,6 @@ Designer uses GB BASIC keywords to implement changes:
 | **Web** | SCRAPE, GET, POST, RSS |
 | **Memory** | SET BOT MEMORY, GET BOT MEMORY |
 | **Control** | IF/THEN/ELSE, FOR EACH/NEXT, WHILE/WEND |
-
----
-
-## Undoing Changes
-
-<div class="wa-chat">
-  <div class="wa-message user">
-    <div class="wa-bubble">
-      <p>Undo the last change</p>
-      <div class="wa-time">12:00</div>
-    </div>
-  </div>
-  <div class="wa-message bot">
-    <div class="wa-bubble">
-      <p>Last change: Removed email field from patients.html</p>
-      <p>Do you want to undo?</p>
-      <div class="wa-time">12:00</div>
-    </div>
-  </div>
-  <div class="wa-message user">
-    <div class="wa-bubble">
-      <p>Yes</p>
-      <div class="wa-time">12:00</div>
-    </div>
-  </div>
-  <div class="wa-message bot">
-    <div class="wa-bubble">
-      <p>Email field restored.</p>
-      <div class="wa-time">12:00</div>
-    </div>
-  </div>
-</div>
 
 ---
 

@@ -45,15 +45,22 @@ BANG = re.compile(r"!important\b")
 
 # Files where colour literals are the definition, not a component violation.
 TOKEN_PATH_PARTS = ("css/base/", "public/themes/")
-TOKEN_FILE_NAMES = {"identity-tokens.css", "config-colors.css", "palette-tokens.css", "palette-tokens-part2.css", "high-contrast.css"}
-BANG_ROOTS = (Path("botui/ui/suite/vibe"), Path("botui/ui/suite/settings"))
+# Exact suite-relative paths, not basenames: a component stylesheet that merely
+# shares a token filename must never inherit the exemption.
+TOKEN_FILE_PATHS = frozenset({
+    "css/identity-tokens.css",
+    "css/config-colors.css",
+    "css/palette-tokens.css",
+    "css/palette-tokens-part2.css",
+    "public/themes/high-contrast.css",
+})
 
 
 def is_token_file(rel: Path) -> bool:
     text = rel.as_posix()
     return (
         any(part in text for part in TOKEN_PATH_PARTS)
-        or rel.name in TOKEN_FILE_NAMES
+        or text in TOKEN_FILE_PATHS
         or any(part.startswith("theme-") for part in rel.parts)
     )
 
@@ -142,7 +149,7 @@ def write_budget(counts: dict[str, dict[str, int]]) -> int:
         "# CSS hygiene budget (#2323, #2324) — shrink-only.",
         "# Format: <rule>:<relative-path> <count>. Delete a line when its count hits zero.",
         "# raw-hex = 6-digit colour literal outside token-definition files.",
-        "# bang-important = !important in vibe/** and settings/** CSS.",
+        "# bang-important = !important in any component CSS (token files exempt).",
         "",
     ]
     for rule in ("raw-hex", "bang-important"):
@@ -159,7 +166,10 @@ def self_test() -> int:
     assert is_token_file(Path("css/base/01_root.css"))
     assert is_token_file(Path("public/themes/light.css"))
     assert is_token_file(Path("css/theme-sentient/01_theme.css"))
+    assert is_token_file(Path("css/palette-tokens-part2.css"))
     assert not is_token_file(Path("vibe/vibe-windows.css"))
+    assert not is_token_file(Path("vibe/palette-tokens-part2.css"))
+    assert not is_token_file(Path("chat/config-colors.css"))
     print("self-test: OK")
     return 0
 

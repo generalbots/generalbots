@@ -375,6 +375,35 @@ Merge multiple documents into one.
 - JSON
 - CSV (for tabular data)
 
+## Office interoperability and coexistence (status)
+
+General Bots converts Office/ODF formats locally and preserves original OOXML
+packages where it can. It is **not** an Office for the web or Google Workspace
+client. This section records what exists in the source today; the remaining
+items are open work tracked in issue #2463, not shipped features.
+
+| Capability | Status | Source evidence |
+|---|---|---|
+| DOCX / ODT import into the Docs model | Implemented (HTML intermediate) | `botserver/crates/botdocs/src/handlers_api/import.rs` maps `docx` to `convert_docx_to_html` and `odt` to `odt_zip_to_html`. |
+| DOCX / XLSX round-trip package preservation | Implemented | `botserver/crates/botdocs/src/storage_docx_source.rs` (`DocxFidelity::Preserved`, falls back to `Regenerated`) and the `x-gb-docx-fidelity` export header in `handlers_api/export.rs`; zip-level passthrough in `botserver/crates/botsheet/src/storage/xlsx_passthrough.rs` copies unmodelled parts byte-for-byte. |
+| ODF exports: ODT, ODS, ODP | Implemented as hand-built ODF 1.2 packages | `botserver/crates/botdocs/src/utils_ooxml.rs` (ODT), `botserver/crates/botsheet/src/export/ods.rs` (ODS), `botserver/crates/botslides/src/ui/odp.rs` (ODP). Each writes a ZIP with a stored `mimetype` and a manifest declaring version 1.2. There is no ODF 1.3 conformance claim and no LibreOffice round-trip validator in the repository. |
+| PDF export | Implemented, built-in Helvetica only | `botserver/crates/botdocs/src/pdf/writer.rs` states that only the built-in Helvetica family is used, so no font embedding is required. Routes are registered in `botserver/crates/botdocs/src/lib.rs`. |
+| Google Sheets clipboard paste | Implemented, clipboard HTML table only | `botserver/crates/botsheet/src/handlers/paste_html.rs` parses the HTML table flavour that Excel and Google Sheets place on the clipboard. This is not a Google Docs/Sheets/Slides API import connector. |
+| WOPI / Office for the web / Office Online | Not implemented | No `wopi` reference exists in `botserver/src`, `botserver/crates`, `botlib/src` or `botui/ui`. |
+| Google Workspace import/export connector with a conversion report | Not implemented | No Google API import handler and no conversion-report producer in the docs, sheet or slides crates. |
+| Font substitution, metric-compatible fallback, font embedding on export | Not implemented | No substitution code found; the PDF writer uses only built-in Helvetica and embeds no fonts. |
+| Embedded objects / OLE round-trip | Not implemented | No embedded-object handling found. `botserver/crates/botdocs/src/import_security.rs` explicitly never reads non-XML parts such as images and embedded fonts. |
+| PDF form fill and save | Not implemented | No form-fill code found. |
+| Cross-format compare built on the review engine | Not implemented | No such handler found; tracked in issue #2463. |
+
+Practical consequence: a DOCX or XLSX that is patched in place keeps its
+original package, and ODT/ODS/ODP output is produced locally. However, a file
+cannot be opened and saved in Office for the web through WOPI, a Google Docs
+file cannot be imported through a connector, a missing corporate font is not
+substituted with a metric-compatible fallback, and an embedded workbook inside
+a PPTX is not preserved as an object. Those are the coexistence gaps described
+in issue #2463.
+
 ## Processing Options
 
 ### OCR Options

@@ -421,3 +421,40 @@ so clear both sources where applicable.
 - **Misconfiguration at stage 0:** because stage 0 changes no behaviour,
   returning the mode to plaintext (or leaving it blank) restores the original
   loopback behaviour without any transport migration.
+
+## Enterprise sharing and access control (#2452)
+
+This build ships **resource-level sharing for collaboration documents**, not a
+general enterprise ACL/DRM stack. The authority is
+`botserver/src/main_module/routes/collab_routes/` and
+`botserver/crates/botdocs/src/shared_link.rs`.
+
+### What is implemented
+
+| Capability | Authority | Behaviour |
+|---|---|---|
+| Per-resource grants | `collab_routes/permissions.rs:12-111`, `resource_permissions` table | Owner (or admin) grants `viewer` / `commenter` / `editor` to a `user`, `group` or `domain` (`dto.rs:363-369`); the first sharer becomes owner; revoke and ownership transfer are owner-only. |
+| Effective-role resolution | `collab_routes/helpers.rs:129-195` | An explicit `user` grant is checked first (owner wins), then a `domain` grant matched against the user's email domain. `GET /api/collab/permissions/me` (`permissions.rs:219-241`) lets Docs/Slides force the editor into read-only mode for viewers. |
+| Share links | `collab_routes/permissions.rs:257-407`, `resource_links` table | The owner mints an unguessable token (two concatenated UUIDv4 values), with optional expiry (`expires_in_hours`), a role and a stored owner namespace; links can be listed and revoked. |
+| Read-only document link | `botdocs/src/shared_link.rs:97-142`, `botsecurity-auth/src/auth_api/public_routes.rs:130-134,420-425` | `GET /api/docs/shared/:token` resolves exactly one document and returns `read_only: true`; the token is not echoed and mutating methods on that path are not anonymous. |
+| Anonymous drive download links | `api_setup.rs:271-283`, `agent_drive.rs:286-309` | `/api/files/share-link` creates a token, `/api/files/public/:token` serves it without a session, and a revoke route removes it. |
+| Activity trail | `collab_routes/helpers.rs:70-98` (`collab_activity`) | Share, revoke, transfer, comment and version events are appended; a failed audit write is logged but never aborts the primary write. |
+
+Two limits are worth stating plainly. The RBAC crate's in-memory `ResourceAcl`
+(`botsecurity-auth/src/rbac_middleware/types.rs:232-337`, managed in
+`manager.rs:140-219`) supports owner, per-user, per-group and public grants, but
+no production caller invokes `check_resource_access` or `set_resource_acl` — only
+unit tests do — so it does **not** enforce live requests. Its
+`RbacService::check_permission` implementation is a stub returning
+`!default_deny` without consulting any ACL (`manager.rs:345-354`). Likewise,
+`effective_role` resolves only `user` and `domain` grants (`helpers.rs:147-192`),
+so a `group` grant accepted by `valid_grantee_type` is not honoured by that
+lookup.
+
+### What is not implemented
+
+| Capability | Status |
+|---|---|
+| External guest identities / invitations | No `guest` principal exists: grantee types are limited to `user`, `group` and `domain` (`dto.rs:367-369`). Token links permit anonymous *viewing*, but they are bearer capabilities, not guest accounts with an identity. |
+| Watermark / DRM | No document watermark, copy/print restriction or DRM enforcement. The only `brand_watermark` field is a cosmetic option on the generated image-card `CARD` keyword (`botserver/src/basic/keywords/card.rs:155-166`). |
+| Full access audit | `collab_activity` records sharing and editing actions, and a generic `access_logs` table is used by cleanup and SOC 2 evidence queries, but a share-link read (`handle_shared_document`) writes no per-read record. There is no complete "who read what" audit for shared resources. |

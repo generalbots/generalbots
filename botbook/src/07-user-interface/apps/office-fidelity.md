@@ -35,6 +35,33 @@ reported with a message naming the limitation instead of being dropped:
 Chat and agent edits go through the same import → patch → save pipeline, so a
 bot editing a document cannot produce a fresh file behind your back either.
 
+## Fidelity harness and QA lab (issue #2457)
+
+Issue #2457 proposes a full fidelity lab: a licensed, de-identified corpus of
+100+ files per format tagged by feature, a round-trip harness that scores every
+feature structurally and visually, a harness-generated coverage matrix and a
+PR/nightly dashboard with a diff gallery, a 24-hour importer fuzz run and a
+four-browser smoke matrix. **That lab does not exist yet.** This page states the
+contract and points at the small regressions that pin it; it reports no
+measured fidelity score, and no PASS is claimed for the items marked
+"Not implemented".
+
+| #2457 capability | Status today | Evidence |
+|---|---|---|
+| Reproducible bug template attaching a minimal corpus file and the failing OOXML part | Present | `.github/ISSUE_TEMPLATE/office-fidelity.md` — asks for format/feature tags, a minimal de-identified file with its origin and licence, repro steps and the failing part; it cites #2457 |
+| Round-trip regression: import → edit → save → per-part byte comparison | Present, narrow | `bottest/tests/office_fidelity.rs` with DOCX, PPTX and XLSX submodules. The DOCX/PPTX cases use the attached fixtures; the XLSX case builds a synthetic package carrying parts the model cannot re-emit. Each asserts an untouched save is byte-identical, one edit changes exactly one part, and an unpatchable source reports `regenerated`. Fixtures live in `bottest/tests/fixtures/office-fidelity/` (`Alex_Rivera_Resume_Futuristic.docx`, `Rice_and_Beans_Nutrition.pptx`; the directory also holds `Painel_Financeiro_Completo.xlsx`, which this test does not reference) |
+| Fuzz targets that exercise the importers | Present, narrow | Detached `fuzz/` cargo-fuzz package with four targets (`jwt_claims`, `webhook_body`, `basic_compile`, `office_import`) and seeds in `fuzz/corpus/office_import/` (`sheet.csv`, `zip-magic.xlsx`); stable fallback `bottest/tests/fuzz_regressions.rs` runs 256 seeded mutations with six tiny office seeds. The office surface asserts only that a byte sequence imports or returns `Err` — a "never panics" fail-closed rule, not a fidelity score |
+| Licensed/de-identified corpus of 100+ files per format, tagged by feature | Not implemented | — |
+| Structural plus visual (rasterised page diff) round-trip scoring with a per-feature score | Not implemented | — |
+| Feature-coverage matrix generated from the harness ("supported / degraded / dropped") | Not implemented — the four rules above are hand-written, not harness output | — |
+| Fidelity dashboard on every PR and nightly with thresholds and a diff gallery | Not implemented | — |
+| 24-hour importer fuzz run with zero crashes, OOMs or timeouts and resource caps | Not implemented — the deep run is a nightly job with no 24-hour target | `fuzz/Cargo.toml` |
+| Cross-browser smoke matrix (Chrome, Firefox, Edge, Safari) for open/edit/save/export | Not implemented | — |
+
+The fixtures and fuzz seeds above are small regression artifacts, not the
+100+ file corpus #2457 asks for; there is currently no number that says how
+faithful a save is, and no gate that stops a fidelity regression in CI.
+
 ## See Also
 
 - [Docs](./docs.md) — documents (in test)
