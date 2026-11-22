@@ -4,6 +4,8 @@ pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/login", post(login))
         .route("/logout", post(logout))
+        // Signed-in password change; any authenticated session (RBAC `/api/auth/**` POST).
+        .route("/password", post(change_password))
         .route("/me", get(get_current_user))
         .route("/refresh", post(refresh_token))
         .route("/2fa/verify", post(verify_2fa))

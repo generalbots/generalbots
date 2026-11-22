@@ -376,3 +376,25 @@ async fn ai_accounts_put_allowed_for_authenticated_user() {
         "PUT /api/ai-accounts/claude-code/models must be allowed"
     );
 }
+
+#[tokio::test]
+async fn test_password_change_needs_a_signed_in_session() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes).await;
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "admin@localhost".to_string());
+    assert!(
+        manager
+            .check_route_access("/api/auth/password", "POST", &user)
+            .await
+            .is_allowed(),
+        "POST /api/auth/password should be allowed for a signed-in user"
+    );
+    assert!(
+        !manager
+            .check_route_access("/api/auth/password", "POST", &AuthenticatedUser::anonymous())
+            .await
+            .is_allowed(),
+        "POST /api/auth/password must refuse anonymous callers"
+    );
+}

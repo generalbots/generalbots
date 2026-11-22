@@ -17,6 +17,8 @@ mod health;
 mod init;
 pub mod init_tasks;
 pub mod listen_impl;
+#[cfg(feature = "directory")]
+pub mod local_recovery;
 pub mod llm_setup;
 pub mod media_capabilities;
 pub mod migrations;

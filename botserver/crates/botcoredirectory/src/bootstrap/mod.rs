@@ -65,6 +65,8 @@ mod tests {
 
 mod bootstrap_state_path;
 mod create_default_organization;
+mod initial_password;
 
 pub use bootstrap_state_path::*;
 pub use create_default_organization::*;
+pub use initial_password::*;

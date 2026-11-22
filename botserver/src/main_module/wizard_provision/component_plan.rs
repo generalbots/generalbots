@@ -94,7 +94,7 @@ pub(super) fn component_plan() -> Vec<Component> {
     // x86_64 have published boxes; Linux arm64 and Windows arm64 get an
     // explicit reason instead of a download that cannot succeed.
     let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
-    if with_botmodels.trim() != "0" {
+    if wants_media_service(&with_botmodels, cfg!(feature = "gbgov")) {
         plan.push(Component {
             id: "botmodels",
             label: "AI media service",
@@ -108,4 +108,24 @@ pub(super) fn component_plan() -> Vec<Component> {
         });
     }
     plan
+}
+
+/// Whether setup installs the AI media service. The government desktop edition
+/// reads text in images through Windows and has no other use for it, so it
+/// never downloads the box; elsewhere `GB_WIZARD_WITH_BOTMODELS=0` opts out.
+fn wants_media_service(opt_out: &str, edition_without_media: bool) -> bool {
+    !edition_without_media && opt_out.trim() != "0"
+}
+
+#[cfg(test)]
+mod media_service_tests {
+    use super::wants_media_service;
+
+    #[test]
+    fn the_media_service_is_skipped_in_the_edition_without_it() {
+        assert!(wants_media_service("", false));
+        assert!(!wants_media_service("0", false));
+        assert!(!wants_media_service("", true));
+        assert!(!wants_media_service("1", true));
+    }
 }

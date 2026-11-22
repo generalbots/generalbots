@@ -222,6 +222,8 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
     {
         // Wire the DB pool so suite sessions persist across restarts.
         botcoredirectory::auth_routes::set_session_pool(app_state.conn.clone());
+        // Desktop edition: password recovery from this computer (loopback only).
+        crate::main_module::local_recovery::spawn(app_state.clone());
         // #1364 — teach /api/auth/me about cloud management JWTs so signed-in
         // cloud users are not reported anonymous by the suite sidebar.
         botcoredirectory::auth_routes::set_external_token_verifier(
