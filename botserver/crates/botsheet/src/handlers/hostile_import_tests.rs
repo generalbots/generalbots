@@ -22,16 +22,21 @@ fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
     }
 }
 
-fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) -> bool {
-    let result = audit_hostile_upload(bytes, name, &axum::http::HeaderMap::new(), "test", policy);
-    match result {
-        Err((status, Json(body))) => {
-            status == StatusCode::BAD_REQUEST
-                && body["code"] == "error-file-archive-unsafe"
-                && body.get("sheet1.xml").is_none()
-        }
-        Ok(()) => false,
+fn rejection_body(
+    bytes: &[u8],
+    name: &str,
+    policy: &upload_policy::HostileFilePolicy,
+) -> Option<serde_json::Value> {
+    match audit_hostile_upload(bytes, name, &axum::http::HeaderMap::new(), "test", policy) {
+        Err((StatusCode::BAD_REQUEST, Json(body))) => Some(body),
+        _ => None,
     }
+}
+
+fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) -> bool {
+    rejection_body(bytes, name, policy).is_some_and(|body| {
+        body["code"] == "error-file-archive-unsafe" && body.get("sheet1.xml").is_none()
+    })
 }
 
 fn unscanned_policy() -> upload_policy::HostileFilePolicy {
@@ -41,6 +46,35 @@ fn unscanned_policy() -> upload_policy::HostileFilePolicy {
     }
 }
 
+/// Attacker-controlled markers that must never echo back in a 400 body: part
+/// names, upload names, URLs, filesystem paths, entity text and the gate's
+/// Rust debug types. The shared `rejection_json` only interpolates fixed
+/// reason/kind strings, so none of these may appear in the serialized response.
+fn leaks_internals(body: &serde_json::Value, secrets: &[&str]) -> bool {
+    let rendered = body.to_string();
+    rendered.contains("ArchiveUnsafe")
+        || rendered.contains("RelationshipTargetUnsafe")
+        || rendered.contains("UploadError")
+        || secrets.iter().any(|secret| rendered.contains(secret))
+}
+
+/// The sanitized 400 asserted by `rejects`, plus an explicit check that the
+/// payload's own internals were not leaked back to the client.
+fn sanitized_rejection_without_leaking(
+    bytes: &[u8],
+    name: &str,
+    policy: &upload_policy::HostileFilePolicy,
+    secrets: &[&str],
+) -> bool {
+    match rejection_body(bytes, name, policy) {
+        Some(body) => {
+            !leaks_internals(&body, secrets)
+                && body["code"] == "error-file-archive-unsafe"
+                && body.get("sheet1.xml").is_none()
+        }
+        None => false,
+    }
+}
 
 #[test]
 fn a_compression_ratio_bomb_is_refused_before_conversion() {
@@ -180,5 +214,99 @@ fn a_password_protected_workbook_gets_an_actionable_refusal() {
             );
         }
         Ok(()) => assert!(false, "an encrypted package must be refused"),
+    }
+}
+
+#[test]
+fn an_extreme_compression_ratio_bomb_is_refused_without_leaking_internals() {
+    // 1 MiB of one repeated byte deflates to a few KiB: the uncompressed cap
+    // still passes, but the ratio is an order of magnitude over the ceiling.
+    let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b'A'; 1024 * 1024])]);
+    assert!(
+        sanitized_rejection_without_leaking(
+            &bytes,
+            "ratio-bomb.xlsx",
+            &unscanned_policy(),
+            &["xl/worksheets/sheet1.xml", "ratio-bomb.xlsx", "AAAAAAAA"],
+        ),
+        "the ratio gate must return a localized 400 with no archive internals"
+    );
+}
+
+#[test]
+fn an_oversized_xml_entity_expansion_is_refused_without_leaking_internals() {
+    // Three oversized entity payloads: a billion-laughs DOCTYPE and an XXE
+    // file read (both caught by the archive pass), plus a body of custom
+    // entity references past the streaming cap with no DOCTYPE at all (caught
+    // only by the second pass at this boundary).
+    let cases: &[(&str, Vec<u8>)] = &[
+        (
+            "billion-laughs",
+            b"<!DOCTYPE lolz [<!ENTITY lol \"lololololol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;\"><!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;\">]><worksheet>&lol3;</worksheet>".to_vec(),
+        ),
+        (
+            "xxe-file-read",
+            b"<!DOCTYPE w [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><worksheet>&xxe;</worksheet>".to_vec(),
+        ),
+        (
+            "oversized-entity-refs",
+            format!("<worksheet>{}</worksheet>", "&x;".repeat(8192)).into_bytes(),
+        ),
+    ];
+    for (label, xml) in cases {
+        let bytes = zip_with(&[("xl/worksheets/sheet1.xml", xml.clone())]);
+        assert!(
+            sanitized_rejection_without_leaking(
+                &bytes,
+                "entity-bomb.xlsx",
+                &unscanned_policy(),
+                &[
+                    "xl/worksheets/sheet1.xml",
+                    "/etc/passwd",
+                    "lololololol",
+                    "&x;"
+                ],
+            ),
+            "{label}: oversized entity expansion must be a sanitized 400"
+        );
+    }
+}
+
+#[test]
+fn an_ssrf_relationship_target_is_refused_without_leaking_internals() {
+    // External relationships are the exfiltration surface: loopback admin
+    // endpoints, cloud metadata, file reads, protocol-relative URLs and an
+    // XML-entity-obfuscated slash must all fail closed without echoing the
+    // target back to the client.
+    let cases: &[(&str, &str)] = &[
+        ("loopback", r"http://127.0.0.1:8080/admin"),
+        (
+            "cloud-metadata",
+            r"http://169.254.169.254/latest/meta-data/",
+        ),
+        ("file-scheme", r"file:///etc/passwd"),
+        ("protocol-relative", r"//169.254.169.254/latest/meta-data/"),
+        ("entity-obfuscated", r"http:/&#47;127.0.0.1:8080/admin"),
+    ];
+    for (label, target) in cases {
+        let rels = format!(
+            "<Relationships><Relationship Target=\"{target}\" TargetMode=\"External\"/></Relationships>"
+        );
+        let bytes = zip_with(&[("xl/_rels/workbook.xml.rels", rels.into_bytes())]);
+        assert!(
+            sanitized_rejection_without_leaking(
+                &bytes,
+                "ssrf.xlsx",
+                &unscanned_policy(),
+                &[
+                    "127.0.0.1",
+                    "169.254.169.254",
+                    "/etc/passwd",
+                    "xl/_rels/workbook.xml.rels",
+                    target,
+                ],
+            ),
+            "{label}: relationship target {target} must be a sanitized 400"
+        );
     }
 }
