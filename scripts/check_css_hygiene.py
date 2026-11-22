@@ -9,8 +9,8 @@ debt can only go down:
                 identity-tokens.css, config-colors.css and theme-* files) are
                 exempt: those files are where colours are *allowed* to live.
                 Everywhere else a colour must be var(--token).
-  bang-important `!important` declarations in the shell chrome (vibe/** and
-                settings/**). The cascade must be resolved through
+  bang-important `!important` declarations in component CSS (token
+                definition files exempt). The cascade must be resolved through
                 specificity, not brute force.
 
 The budget file `scripts/css_hygiene_budget.txt` records the count per file as
@@ -82,11 +82,9 @@ def scan() -> dict[str, dict[str, int]]:
             n = len(HEX6.findall(text))
             if n:
                 counts["raw-hex"][rel] = n
-        for bang_root in BANG_ROOTS:
-            try:
-                path.relative_to(bang_root)
-            except ValueError:
-                continue
+        # #2323 — the whole component surface is budgeted now, not only the
+        # vibe/settings hotspots. Token definition files remain exempt.
+        if not is_token_file(Path(rel).relative_to(SUITE)):
             n = len(BANG.findall(text))
             if n:
                 counts["bang-important"][rel] = n
