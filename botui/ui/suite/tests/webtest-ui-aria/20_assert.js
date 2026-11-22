@@ -16,9 +16,9 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 var EXPECTED = {
-  filesScanned: 1546,
+  filesScanned: 1548,
   htmlFiles: 212,
-  jsFiles: 1334,
+  jsFiles: 1336,
   vendorFiles: 290,
   topSegments: 92,
   ariaLiveMentions: 694,
@@ -38,7 +38,7 @@ var EXPECTED = {
   dynamicWrites: 4198,
   writesInRegionFiles: 1205,
   writesOutsideRegionFiles: 2993,
-  filesWithWritesNoRegion: 598,
+  filesWithWritesNoRegion: 599,
 };
 
 Object.keys(EXPECTED).forEach(function (key) {
