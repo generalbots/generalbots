@@ -290,3 +290,129 @@ audit log, including refused and unimplemented attempts. The same text is
 localized in `botlib/locales/*/settings-os-appliance.ftl` under the `os-data-*`
 keys, so all eight catalogs describe the deployed behavior instead of a future
 promise.
+
+## Runtime mTLS for inter-service traffic (#2590)
+
+In a containerized (Incus) install the backing services live in separate
+containers on a private bridge. On that hop, reachability plus a password or
+token is the only authentication, so a compromised container can impersonate
+another service. Mutual TLS closes that gap: both ends present a certificate
+issued by the install's internal CA and verify the peer against that CA.
+
+This is an **opt-in** for containerized installs. The authority for the
+configuration is `botserver/crates/botcoresecrets/src/mtls/` (`config.rs`,
+`runtime.rs`, `status.rs`); the data clients that consume it are
+`botserver/src/main_module/cache.rs` (cache),
+`botserver/crates/botcore/src/shared/utils/create_conn.rs` (Postgres and
+internal HTTP) and `botserver/crates/botintegrations/src/http.rs` (internal
+service HTTP). The resolved flag is reported as `mtls_enabled` in the security
+overview (`botserver/crates/botsettings/src/security_admin.rs`).
+
+### Enabling it: configuration keys and environment variables
+
+Configuration holds **paths and mode/stage selectors only — never certificate
+or key material**. A non-blank environment value wins over a non-blank Vault
+field; a blank value means "not set" and falls through to the next source. The
+configuration is resolved **once** at startup and cached, so changing the
+environment later cannot half-enable a transport — a restart is required.
+
+| Setting | Environment variable | Vault field (path `secret/gbo/system/security`) |
+|---|---|---|
+| Mode | `GB_MTLS_MODE` | `mtls_mode` |
+| Rollout stage | `GB_MTLS_STAGE` | `mtls_stage` |
+| Internal CA bundle (PEM) | `GB_MTLS_CA_CERT` | `mtls_ca_cert` |
+| Server certificate (PEM) | `GB_MTLS_SERVER_CERT` | `mtls_server_cert` |
+| Server private key (PEM) | `GB_MTLS_SERVER_KEY` | `mtls_server_key` |
+| Client certificate (PEM) | `GB_MTLS_CLIENT_CERT` | `mtls_client_cert` |
+| Client private key (PEM) | `GB_MTLS_CLIENT_KEY` | `mtls_client_key` |
+
+- **Mode** — `mtls` enables it (also accepted: `mutual`, `mutual_tls`,
+  `mutual-tls`, `required`, `secure`, `true`, `1`). Any other or blank value —
+  including a typo — leaves plaintext enabled, so a typo cannot silently turn
+  on a half-configured secure mode.
+- **Stage** — `cert-provisioning` (default, stage 0), `server-tls` (1),
+  `client-cert-verification` (2), `plaintext-disabled` (3). A transport change
+  requires the mode to be `mtls` **and** the stage to be at least `server-tls`;
+  at stage 0 nothing changes even with the mode set.
+
+### Plaintext is the default
+
+The default transport mode is `plaintext` and the default stage is
+`cert-provisioning`. The mode is never inferred from the presence of
+certificates. Single-host and `desktop-local` installs keep their loopback
+threat model and are explicitly **out of scope**: the opt-in is off for them
+unless an operator sets it, and their URLs and clients are byte-for-byte
+unchanged.
+
+### What each transport does when the opt-in is active
+
+- **PostgreSQL** — the connection URL gains `sslmode=verify-full` and
+  `sslrootcert=<CA path>`. At stage `client-cert-verification` or later it also
+  gains `sslcert=<client cert path>` and `sslkey=<client key path>`. If the
+  configuration cannot be resolved, the database connection is refused (a
+  fatal error) — a plaintext fallback would defeat the opt-in.
+- **Cache (Redis/Valkey)** — each candidate URL is rewritten from `redis://`
+  to `rediss://`; no plaintext fallback is kept. If the Redis TLS feature is
+  unavailable in the build, the connection fails and cache functions are
+  **disabled (fail closed)** rather than silently downgrading to plaintext. A
+  configuration resolution failure likewise disables the cache.
+- **Internal HTTP** — service base URLs are rewritten from `http://` to
+  `https://` (scheme only; host, port and path are preserved). The client
+  verifies the peer against the configured CA and presents this service's
+  client certificate and key. Current limit: if client-identity setup fails the
+  client degrades to CA-verification-only (with a warning); if configuration
+  resolution fails, the default stack CA is used. Neither case re-enables
+  plaintext transport.
+- **Diagnostics** — startup logs `configuration loaded: mode=… stage=…` with
+  the `[mtls]` prefix. Missing-setting diagnostics name the item only; the
+  helpers carry paths but never read or log certificate/key bytes.
+
+### Staged rollout
+
+| Stage | Name | Effect |
+|---|---|---|
+| 0 | `cert-provisioning` | CA and per-service certificates provisioned; no behaviour change. |
+| 1 | `server-tls` | Servers present certificates; clients verify server identity. |
+| 2 | `client-cert-verification` | Clients present certificates; servers verify them. |
+| 3 | `plaintext-disabled` | Plaintext listeners removed or firewalled after stage 2 is green. |
+
+Each stage is a prerequisite of the next; do not advance while the previous
+stage is not verified green.
+
+### Operator verification checklist
+
+1. Before enabling, confirm the security overview reports `mtls_enabled =
+   false` and the startup log shows `mode=plaintext` (the default).
+2. At stage 0, provision the internal CA and per-service certificates; confirm
+   no client URL or transport has changed.
+3. Set `GB_MTLS_MODE=mtls` and `GB_MTLS_STAGE=server-tls` (or their Vault
+   equivalents), then restart botserver and confirm the startup log shows
+   `mode=mtls stage=server-tls`.
+4. Verify the Postgres URL reports `sslmode=verify-full` with `sslrootcert`,
+   and that `sslcert`/`sslkey` are **not** yet present.
+5. Verify cache URLs are `rediss://` and internal service URLs are `https://`;
+   confirm there is no plaintext fallback (a TLS-less cache build disables the
+   cache rather than reconnecting over `redis://`).
+6. Advance to `client-cert-verification` and confirm the Postgres URL gains
+   `sslcert`/`sslkey`, servers accept the client certificate, and all clients
+   still connect.
+7. Only after stage 2 is green, advance to `plaintext-disabled` and confirm the
+   plaintext listeners are gone.
+8. Confirm diagnostic logs contain no certificate paths or key material.
+
+### Rollback path
+
+The configuration is resolved once at startup, so every change below requires
+a **botserver restart** to take effect. Environment variables override Vault,
+so clear both sources where applicable.
+
+- **Full rollback:** set `GB_MTLS_MODE=plaintext` (or clear/blank it) and set
+  the Vault field `mtls_mode` to `plaintext` or blank it, then restart.
+  Transports revert to their plaintext/loopback URLs and clients. Setting
+  `GB_MTLS_STAGE=cert-provisioning` as well returns to the no-op stage 0.
+- **Step back one stage:** lower `GB_MTLS_STAGE` to the previous stage and
+  restart. For example, return from `client-cert-verification` to `server-tls`
+  to stop presenting client certificates while keeping verified server TLS.
+- **Misconfiguration at stage 0:** because stage 0 changes no behaviour,
+  returning the mode to plaintext (or leaving it blank) restores the original
+  loopback behaviour without any transport migration.
