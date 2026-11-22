@@ -415,3 +415,11 @@ body.sidebar-hidden .chat-sidebar {
   color: var(--text-secondary);
   text-align: center;
 }
+
+/* #2504 — live media-capture indicator follows the hardware LED convention:
+   red while the microphone or camera is granted to a requesting origin. */
+.os-tray-btn#trayMedia.is-recording {
+  color: var(--error, currentColor);
+  background: color-mix(in srgb, var(--error, currentColor) 18%, transparent);
+  border-radius: 50%;
+}

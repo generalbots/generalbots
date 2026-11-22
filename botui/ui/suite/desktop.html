@@ -131,6 +131,10 @@
   <button class="tray-btn os-tray-btn" id="trayPower" type="button" data-os-indicator="power" data-settings-target="os-power" title="Power" data-i18n-title="taskbar-power" aria-label="Power" data-i18n-aria-label="taskbar-power-aria" aria-haspopup="dialog" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
   </button>
+  <!-- #2504 — media capture indicator, visible only while a grant is live. -->
+  <button class="tray-btn os-tray-btn" id="trayMedia" type="button" data-os-indicator="media" data-settings-target="privacy" title="Microphone / camera in use" aria-label="Microphone or camera in use" aria-live="polite" hidden>
+    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>
+  </button>
   <button class="tray-btn os-tray-overflow-btn" id="trayOsOverflow" type="button" title="More indicators" data-i18n-title="taskbar-os-overflow" aria-label="Show hidden indicators" data-i18n-aria-label="taskbar-os-overflow-aria" aria-haspopup="menu" aria-expanded="false" hidden>
     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
   </button>

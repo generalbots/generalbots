@@ -93,8 +93,6 @@ fn test_foreign_origins_are_denied() {
         "https://tauri.localhost.evil.example",
         "tauri://evil.example",
         "http://localhost:3001",
-        "file://",
-        "",
     ];
     for page in foreign {
         assert_eq!(
@@ -132,6 +130,10 @@ fn test_unparseable_page_uri_is_denied() {
         decide(Some("http://user:secret@localhost:3000/"), true, false, &[], true),
         MediaDecision::DenyUnparseable
     );
+    // file:// and an empty URI have no authority to compare against the
+    // allow-list, so they are unparseable rather than foreign (#2504).
+    assert_eq!(decide(Some("file://"), true, true, &[], true), MediaDecision::DenyUnparseable);
+    assert_eq!(decide(Some(""), true, true, &[], true), MediaDecision::DenyUnparseable);
 }
 
 #[test]

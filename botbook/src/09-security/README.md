@@ -91,3 +91,13 @@ These permissions are enforced during vector search, ensuring users only see con
 3. **Regular Audits**: Review permissions and access logs periodically
 4. **Secure KB by Default**: Set restrictive default permissions on sensitive folders
 5. **Enable Audit Logging**: Track all permission changes and access attempts
+## Media capture indicator (#2504)
+
+The desktop WebView grants microphone and camera access only to origins the
+shell owns; every other origin is denied and the denial is logged. Each grant
+publishes a `gb-media-grant` event carrying the origin and device kinds. The
+shell renders that event as a red tray dot (#2504): red means the microphone
+or camera is currently granted, matching the hardware-style LED convention
+users expect from a laptop — the dot is the software equivalent of the camera
+LED. The origin is included in the accessible label and in the server-side
+audit event; no credentials or internal addresses are logged.
