@@ -88,8 +88,13 @@ impl AclMetadata {
                 return true;
             }
         }
-        self.allowed_roles.iter().any(|role| user.roles.contains(role))
-            || self.allowed_groups.iter().any(|group| user.groups.contains(group))
+        self.allowed_roles
+            .iter()
+            .any(|role| user.roles.contains(role))
+            || self
+                .allowed_groups
+                .iter()
+                .any(|group| user.groups.contains(group))
     }
 
     fn tenant_of(user: &UserContext) -> String {
@@ -213,9 +218,10 @@ mod tests {
     fn private_acl_allows_matched_role_group_and_user() {
         let acl = AclMetadata::private(tenant().to_string())
             .with_users(vec![user().to_string()])
-            .with_roles(vec!["legal".to_string()]);
-        let allowed = UserContext::authenticated(user(), None, Some(tenant()));
-        assert!(acl.allows(&allowed));
+            .with_roles(vec!["legal".to_string()])
+            .with_groups(vec!["contracts".to_string()]);
+        let by_user = UserContext::authenticated(user(), None, Some(tenant()));
+        assert!(acl.allows(&by_user));
 
         let by_role = UserContext::authenticated(
             parse_uuid("44444444-4444-4444-4444-444444444444"),
@@ -224,10 +230,22 @@ mod tests {
         )
         .with_roles(vec!["legal".to_string()]);
         assert!(acl.allows(&by_role));
+
+        let by_group = UserContext::authenticated(
+            parse_uuid("55555555-5555-5555-5555-555555555555"),
+            None,
+            Some(tenant()),
+        )
+        .with_groups(vec!["contracts".to_string()]);
+        assert!(acl.allows(&by_group));
     }
 
     #[test]
     fn payload_carries_citation_and_acl_without_document_bytes() {
+        let acl = AclMetadata::private(tenant().to_string())
+            .with_users(vec![user().to_string()])
+            .with_roles(vec!["legal".to_string()])
+            .with_groups(vec!["contracts".to_string()]);
         let chunk = StructuredChunk {
             id: "abc".to_string(),
             document_id: "doc".to_string(),
@@ -237,13 +255,59 @@ mod tests {
             heading_path: vec!["Termination".to_string()],
             source: SourceRef::clause("7.3").with_page(12),
             content: "notice period".to_string(),
-            acl: AclMetadata::private(tenant().to_string()),
+            acl: acl.clone(),
         };
         let payload = chunk.to_payload();
+
         assert_eq!(payload["stable_id"], serde_json::json!("abc"));
-        assert_eq!(payload["citation"]["file"], serde_json::json!("contract.docx"));
-        assert_eq!(payload["acl"]["tenant_id"], serde_json::json!(tenant().to_string()));
+        assert_eq!(payload["document_path"], serde_json::json!("contract.docx"));
         assert_eq!(payload["content"], serde_json::json!("notice period"));
+        assert_eq!(
+            payload["tenant_id"],
+            serde_json::json!(tenant().to_string())
+        );
+
+        assert_eq!(payload["citation"]["document_id"], serde_json::json!("doc"));
+        assert_eq!(
+            payload["citation"]["file"],
+            serde_json::json!("contract.docx")
+        );
+        assert_eq!(payload["citation"]["version"], serde_json::json!("3"));
+        assert_eq!(
+            payload["citation"]["source"]["kind"],
+            serde_json::json!("clause")
+        );
+        assert_eq!(
+            payload["citation"]["source"]["locator"],
+            serde_json::json!("7.3")
+        );
+        assert_eq!(payload["citation"]["source"]["page"], serde_json::json!(12));
+        assert_eq!(
+            payload["citation"]["heading_path"],
+            serde_json::json!(["Termination"])
+        );
+
+        assert_eq!(
+            payload["acl"]["tenant_id"],
+            serde_json::json!(tenant().to_string())
+        );
+        assert_eq!(payload["acl"]["is_public"], serde_json::json!(false));
+        assert_eq!(
+            payload["acl"]["allowed_users"],
+            serde_json::json!([user().to_string()])
+        );
+        assert_eq!(
+            payload["acl"]["allowed_roles"],
+            serde_json::json!(["legal"])
+        );
+        assert_eq!(
+            payload["acl"]["allowed_groups"],
+            serde_json::json!(["contracts"])
+        );
+        assert_eq!(
+            payload["acl"],
+            serde_json::to_value(&acl).unwrap_or_default()
+        );
     }
 
     #[test]
@@ -252,5 +316,72 @@ mod tests {
         let acl = AclMetadata::public(tenant().to_string());
         let foreign = UserContext::authenticated(user(), None, Some(other));
         assert!(!acl.allows(&foreign));
+    }
+
+    #[test]
+    fn public_acl_allows_same_tenant_users_including_anonymous() {
+        let acl = AclMetadata::public(tenant().to_string());
+        let anonymous = UserContext {
+            organization_id: Some(tenant()),
+            ..UserContext::anonymous()
+        };
+        let stranger = UserContext::authenticated(user(), None, Some(tenant()));
+        assert!(acl.allows(&anonymous));
+        assert!(acl.allows(&stranger));
+    }
+
+    #[test]
+    fn tenant_check_precedes_public_and_membership() {
+        let other = parse_uuid("22222222-2222-2222-2222-222222222222");
+        let acl = AclMetadata::public(tenant().to_string())
+            .with_users(vec![user().to_string()])
+            .with_roles(vec!["legal".to_string()])
+            .with_groups(vec!["contracts".to_string()]);
+        let foreign_user = UserContext::authenticated(user(), None, Some(other))
+            .with_roles(vec!["legal".to_string()])
+            .with_groups(vec!["contracts".to_string()]);
+        let foreign_anonymous = UserContext {
+            organization_id: Some(other),
+            ..UserContext::anonymous()
+        };
+        assert!(!acl.allows(&foreign_user));
+        assert!(!acl.allows(&foreign_anonymous));
+    }
+
+    #[test]
+    fn user_membership_matches_id_or_email() {
+        let by_id = AclMetadata::private(tenant().to_string()).with_users(vec![user().to_string()]);
+        assert!(by_id.allows(&UserContext::authenticated(user(), None, Some(tenant()))));
+
+        let email = "legal@example.test".to_string();
+        let by_email = AclMetadata::private(tenant().to_string()).with_users(vec![email.clone()]);
+        let email_user = UserContext::authenticated(
+            parse_uuid("66666666-6666-6666-6666-666666666666"),
+            Some(email),
+            Some(tenant()),
+        );
+        assert!(by_email.allows(&email_user));
+    }
+
+    #[test]
+    fn private_acl_denies_stranger_with_unmatched_identity() {
+        let acl = AclMetadata::private(tenant().to_string())
+            .with_users(vec![user().to_string()])
+            .with_roles(vec!["legal".to_string()])
+            .with_groups(vec!["contracts".to_string()]);
+        let stranger = UserContext::authenticated(
+            parse_uuid("77777777-7777-7777-7777-777777777777"),
+            Some("stranger@example.test".to_string()),
+            Some(tenant()),
+        )
+        .with_roles(vec!["sales".to_string()])
+        .with_groups(vec!["guests".to_string()]);
+        assert!(!acl.allows(&stranger));
+
+        let anonymous = UserContext {
+            organization_id: Some(tenant()),
+            ..UserContext::anonymous()
+        };
+        assert!(!acl.allows(&anonymous));
     }
 }
