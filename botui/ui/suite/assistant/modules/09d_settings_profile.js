@@ -55,6 +55,82 @@
         return roles.some(function (r) { return /admin/i.test(r); }) ? tr("Administrador", "Administrator") : tr("Usuário", "User");
     }
 
+    /* Change password: the server checks the current one and writes the local
+       record and the directory together; other sessions are signed out. */
+    function passwordProblem(code) {
+        var messages = {
+            password_too_short: ["A nova senha precisa ter pelo menos 8 caracteres.", "The new password needs at least 8 characters."],
+            password_too_long: ["A nova senha pode ter no máximo 128 caracteres.", "The new password can have at most 128 characters."],
+            password_needs_lowercase: ["A nova senha precisa de uma letra minúscula.", "The new password needs a lowercase letter."],
+            password_needs_uppercase: ["A nova senha precisa de uma letra maiúscula.", "The new password needs an uppercase letter."],
+            password_needs_digit: ["A nova senha precisa de um número.", "The new password needs a number."],
+            password_needs_symbol: ["A nova senha precisa de um símbolo, como ! ou #.", "The new password needs a symbol, such as ! or #."],
+            password_unchanged: ["A nova senha precisa ser diferente da atual.", "The new password must be different from the current one."],
+            current_password_wrong: ["A senha atual não está correta.", "The current password is not correct."],
+            password_refused: ["O diretório recusou esta senha. Escolha outra.", "The directory refused this password. Choose a different one."],
+            directory_unavailable: ["O serviço de senhas não está disponível agora. Tente de novo em instantes.", "The password service is not available right now. Try again in a moment."],
+            password_not_saved: ["Não foi possível salvar a nova senha.", "The new password could not be saved."],
+            mismatch: ["A nova senha e a confirmação não são iguais.", "The new password and its confirmation are not the same."]
+        };
+        var pair = messages[code] || ["Não foi possível alterar a senha. Tente de novo.", "Could not change the password. Try again."];
+        return tr(pair[0], pair[1]);
+    }
+
+    function renderPasswordCard(panel) {
+        var field = function (id, label, autocomplete, last) {
+            return '<label class="gb-sp-k' + (last ? ' gb-sp-last' : '') + '" for="' + id + '">' + label + '</label><div class="gb-sp-v' +
+                (last ? ' gb-sp-last' : '') + '"><input class="gb-sp-input" id="' + id + '" type="password" autocomplete="' + autocomplete + '" maxlength="128"></div>';
+        };
+        panel.insertAdjacentHTML("beforeend", '<section class="gb-sp-card" id="gbPasswordCard"><div class="gb-sp-head"><strong>' +
+            tr("Alterar senha", "Change password") + '</strong></div><form class="gb-sp-grid" novalidate>' +
+            field("gbPwCurrent", tr("Senha atual", "Current password"), "current-password") +
+            field("gbPwNew", tr("Nova senha", "New password"), "new-password") +
+            field("gbPwConfirm", tr("Confirme a nova senha", "Confirm new password"), "new-password", true) +
+            '</form><p class="gb-sp-pw-hint" id="gbPwHint">' + tr("Pelo menos 8 caracteres, com letra maiúscula, letra minúscula, número e símbolo. As outras sessões serão encerradas.",
+                "At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol. Other sessions will be signed out.") +
+            '</p><p class="gb-sp-error" role="alert" hidden></p><p class="gb-sp-pw-ok" role="status" hidden></p>' +
+            '<div class="gb-sp-foot"><label class="gb-sp-pw-reveal"><input type="checkbox" id="gbPwReveal"> ' + tr("Mostrar senhas", "Show passwords") +
+            '</label><button type="button" class="gb-sp-btn gb-sp-btn-pri" id="gbPwSave">' + tr("Alterar senha", "Change password") + '</button></div></section>');
+        var card = panel.querySelector("#gbPasswordCard");
+        var inputs = card.querySelectorAll("input[type=password]");
+        var current = card.querySelector("#gbPwCurrent");
+        var fresh = card.querySelector("#gbPwNew");
+        var confirm = card.querySelector("#gbPwConfirm");
+        var error = card.querySelector(".gb-sp-error");
+        var ok = card.querySelector(".gb-sp-pw-ok");
+        var button = card.querySelector("#gbPwSave");
+        fresh.setAttribute("aria-describedby", "gbPwHint");
+        function say(target, text) { error.hidden = ok.hidden = true; if (text) { target.textContent = text; target.hidden = false; } }
+        card.querySelector("#gbPwReveal").onchange = function (event) {
+            inputs.forEach(function (input) { input.type = event.target.checked ? "text" : "password"; });
+        };
+        async function submit() {
+            say(error, "");
+            if (!current.value) { say(error, passwordProblem("current_password_wrong")); current.focus(); return; }
+            if (fresh.value !== confirm.value) { say(error, passwordProblem("mismatch")); confirm.focus(); return; }
+            button.disabled = true;
+            try {
+                var response = await A.apiFetch("/api/auth/password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ current_password: current.value, new_password: fresh.value })
+                });
+                var data = await response.json().catch(function () { return {}; });
+                if (!response.ok || !data.success) { throw new Error(data.code || ""); }
+                current.value = fresh.value = confirm.value = "";
+                say(ok, tr("Senha alterada. Use a nova senha na próxima vez que entrar.", "Password changed. Use the new password next time you sign in."));
+            } catch (problem) {
+                say(error, passwordProblem(problem.message));
+            } finally {
+                button.disabled = false;
+            }
+        }
+        button.onclick = submit;
+        card.querySelector("form").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") { event.preventDefault(); submit(); }
+        });
+    }
+
     A.renderAccount = async function (panel) {
         if (!A.accountProfile) { await A.loadChatProfile(); }
         if (!panel.isConnected) { return; }
@@ -125,6 +201,7 @@
         swatches.forEach(function (swatch) {
             swatch.onclick = function () { color = swatch.dataset.color; preview(); save(); };
         });
+        renderPasswordCard(panel);
     };
 
     var releases = "https://github.com/generalbots/generalbots/releases";

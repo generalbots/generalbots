@@ -173,6 +173,45 @@ body[data-pending] .gb-login-wordmark, body[data-pending] .gb-titlebar-wordmark 
     cursor: pointer;
 }
 
+/* == Forgot password (desktop app only) ============================== */
+#login-form[hidden], .gb-login-recovery[hidden] { display: none; }
+.gb-login-forgot {
+    display: block;
+    margin: var(--id-space-4, 16px) auto 0;
+    padding: 4px 6px;
+    border: 0;
+    background: none;
+    color: var(--id-accent-text, var(--id-accent, #F28C28));
+    font: inherit;
+    font-size: var(--id-text-sm, 12px);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.gb-login-forgot:focus-visible {
+    outline: none;
+    border-radius: 4px;
+    box-shadow: 0 0 0 3px var(--id-accent-glow, rgba(242,140,40,.26));
+}
+.gb-login-recovery-title {
+    margin: 0 0 var(--id-space-2, 8px);
+    font-weight: 600;
+    color: var(--id-ink, #111827);
+}
+.gb-login-note {
+    margin: 0 0 var(--id-space-4, 16px);
+    font-size: var(--id-text-sm, 12px);
+    line-height: 1.5;
+    color: var(--id-muted, #5F6673);
+}
+.gb-login-reveal {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 var(--id-space-3, 12px);
+    font-size: var(--id-text-sm, 12px);
+    color: var(--id-text, #4B5563);
+}
+
 /* == Responsive: small window ======================================= */
 @media (max-width: 480px) {
     .gb-login-card {
