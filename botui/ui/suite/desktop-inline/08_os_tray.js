@@ -38,7 +38,7 @@
     var declared = String(cfg.edition || "").toLowerCase();
     if (declared === "cloud" || declared === "desktop" || declared === "os") return declared;
     if (cfg.shell_mode === true || cfg.no_security === true) return "os";
-    if (window.__TAURI__ || window.__TAURI_INTERNALS__) return "desktop";
+    if (window.GBTAURI || window.__TAURI_INTERNALS__) return "desktop";
     return "cloud";
   }
 

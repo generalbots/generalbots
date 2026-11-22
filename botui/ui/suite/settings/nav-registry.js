@@ -78,7 +78,7 @@
     if (config().shell_mode === true || config().no_security === true) {
       return "os";
     }
-    if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
+    if (window.GBTAURI || window.__TAURI_INTERNALS__) {
       return "desktop";
     }
     return "cloud";

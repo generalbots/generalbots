@@ -16,9 +16,9 @@ var h = require("./00_harness");
 var metrics = require("./10_scan").metrics;
 
 var EXPECTED = {
-  filesScanned: 1548,
+  filesScanned: 1549,
   htmlFiles: 212,
-  jsFiles: 1336,
+  jsFiles: 1337,
   vendorFiles: 290,
   topSegments: 92,
   ariaLiveMentions: 694,

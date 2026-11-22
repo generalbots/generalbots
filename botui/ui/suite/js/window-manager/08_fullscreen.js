@@ -39,7 +39,7 @@
 
   // Tauri desktop edition only. The web build has no window to drive.
   function desktopWindow() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.window && typeof tauri.window.getCurrentWindow === "function") {
       return tauri.window.getCurrentWindow();
     }

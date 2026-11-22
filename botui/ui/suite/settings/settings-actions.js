@@ -327,7 +327,7 @@
         // When disabling, clear the badge immediately via Tauri if available.
         if (!checkbox.checked) {
             try {
-                var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+                var tauri = window.GBTAURI || window.__TAURI_INTERNALS__;
                 if (tauri && tauri.invoke) {
                     tauri.invoke('set_badge_count', { count: 0 }).catch(function (err) {
                         /* Best-effort native badge update in the desktop shell. */
@@ -349,7 +349,7 @@
     window.gbSetBadgeCount = function (count) {
         if (!window.gbBadgeCountEnabled()) return;
         try {
-            var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+            var tauri = window.GBTAURI || window.__TAURI_INTERNALS__;
             if (tauri && tauri.invoke) {
                 tauri.invoke('set_badge_count', { count: count || 0 }).catch(function (err) {
                     /* Best-effort native badge update in the desktop shell. */

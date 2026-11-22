@@ -6,6 +6,7 @@
         <title>Entrar — General Bots</title>
         <link rel="stylesheet" href="/suite/identity/fonts.css" />
         <link rel="stylesheet" href="/suite/identity/tokens.css" />
+<script src="/suite/js/tauri-api.js?v=1"></script>
         <script src="/suite/identity/theme.js"></script>
         <script src="/suite/identity/textsize.js"></script>
         <link rel="stylesheet" href="/suite/assistant/titlebar.css" />
@@ -63,7 +64,7 @@
         <script src="/suite/login-page.js"></script>
         <script>
             /* Signal the Tauri splash to close. */
-            if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+            if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
                 try {
                     history.replaceState(null, "", location.pathname + location.search + "#gb-boot-ready");
                 } catch (e) { /* history unavailable */ }

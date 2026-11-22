@@ -413,7 +413,7 @@
     if (event && event.key === STATE_KEY && event.newValue === "locked" && !isLocked()) lock("cross-tab");
   }
   function listenTauri() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (!tauri || !tauri.event || typeof tauri.event.listen !== "function") return;
     ["gb-lock", "gb-lock-screen", "gb-suspend", "gb-resume", "gb-lid-open",
       "gb-session-switch", "org.freedesktop.login1.Lock"].forEach(function (name) {

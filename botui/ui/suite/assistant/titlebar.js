@@ -6,7 +6,7 @@
  *
  * Contract with the Tauri shell:
  *   - Drag region: elements with data-tauri-drag-region (buttons must NOT have it)
- *   - Window calls: window.__TAURI__.window.getCurrentWindow().minimize() etc.
+ *   - Window calls: window.GBTAURI.window.getCurrentWindow().minimize() etc.
  *   - When __TAURI__ / __TAURI_INTERNALS__ is absent: no window buttons rendered.
  *
  * Test flag: ?titlebar=1 forces the window buttons visible (for headless tests
@@ -15,7 +15,7 @@
 (function () {
     "use strict";
 
-    var IS_TAURI = !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+    var IS_TAURI = !!(window.GBTAURI || window.__TAURI_INTERNALS__);
     var FORCE = false;
     try {
         FORCE = new URLSearchParams(window.location.search).get("titlebar") === "1";
@@ -112,7 +112,7 @@
     function doAction(action, btn) {
         if (!IS_TAURI) { return; }
         try {
-            var win = window.__TAURI__.window.getCurrentWindow();
+            var win = window.GBTAURI.window.getCurrentWindow();
             if (action === "minimize") { win.minimize(); }
             else if (action === "maximize") { win.toggleMaximize(); }
             else if (action === "close") { win.close(); }
@@ -127,7 +127,7 @@
 
         function update() {
             try {
-                window.__TAURI__.window.getCurrentWindow().isMaximized().then(function (m) {
+                window.GBTAURI.window.getCurrentWindow().isMaximized().then(function (m) {
                     maxBtn.innerHTML = m ? restoreIcon : maxIcon;
                     maxBtn.title = m ? t.restore : t.max;
                     maxBtn.setAttribute("aria-label", m ? t.restore : t.max);

@@ -28,7 +28,7 @@
     // tests and in non-Tauri builds where the permission plugin is absent.
     document.addEventListener("gb-media-grant", function (e) { showMediaGrant(e); });
     try {
-      var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+      var tauri = window.GBTAURI || window.__TAURI_INTERNALS__;
       var listen = tauri && tauri.event && tauri.event.listen;
       if (typeof listen === "function") {
         listen("gb-media-grant", function (e) { showMediaGrant(e && e.payload); });

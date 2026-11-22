@@ -15,7 +15,7 @@
   var STARTUP_DELAY = 2500;
 
   function isDesktop() {
-    return !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+    return !!(window.GBTAURI || window.__TAURI_INTERNALS__);
   }
 
   function storageGet(key) {

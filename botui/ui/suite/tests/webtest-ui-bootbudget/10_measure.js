@@ -26,11 +26,11 @@ test("[BASELINE-OBSERVE] 212 shipped suite HTML files scanned, tests/ excluded",
     "tests/ leaked into the scan set");
 });
 
-test("[BASELINE-OBSERVE] desktop.html: 100 script tags, 99 src, 99 blocking, 1 inline, 0 defer/async", function () {
+test("[BASELINE-OBSERVE] desktop.html: 101 script tags, 100 src, 100 blocking, 1 inline, 0 defer/async", function () {
   var d = measure(DESKTOP);
-  equal(d.scripts, 100, "scripts");
-  equal(d.scriptSrc, 99, "scriptSrc");
-  equal(d.blockingScriptSrc, 99, "blockingScriptSrc");
+  equal(d.scripts, 101, "scripts");
+  equal(d.scriptSrc, 100, "scriptSrc");
+  equal(d.blockingScriptSrc, 100, "blockingScriptSrc");
   equal(d.inlineScript, 1, "inlineScript");
   equal(d.deferAsync, 0, "deferAsync");
 });
@@ -62,11 +62,11 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1142 scripts, 1086 src, 1073 blocking, 56 inline, 382 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1146 scripts, 1090 src, 1077 blocking, 56 inline, 382 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1142, "scripts");
-  equal(t.scriptSrc, 1086, "scriptSrc");
-  equal(t.blockingScriptSrc, 1073, "blockingScriptSrc");
+  equal(t.scripts, 1146, "scripts");
+  equal(t.scriptSrc, 1090, "scriptSrc");
+  equal(t.blockingScriptSrc, 1077, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
   equal(t.stylesheet, 382, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
@@ -85,14 +85,14 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 99/41 and 42/22", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 100/41 and 42/22", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
     "desktop counts unexpectedly match the 2025 issue snapshot exactly");
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
-  assert(d.blockingScriptSrc === 99 && d.stylesheet === 41 &&
+  assert(d.blockingScriptSrc === 100 && d.stylesheet === 41 &&
          c.blockingScriptSrc === 42 && c.stylesheet === 22,
     "current measured counts changed — update this observation deliberately");
 });

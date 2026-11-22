@@ -19,7 +19,7 @@ function currentEdition(config) {
   }
   var declared = declaredEdition(config);
   if (declared) { return declared; }
-  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return "desktop"; }
+  if (window.GBTAURI || window.__TAURI_INTERNALS__) { return "desktop"; }
   if (config && (config.shell_mode === true || config.no_security === true)) { return "os"; }
   return "cloud";
 }
@@ -27,7 +27,7 @@ function currentEdition(config) {
 function isDesktopEdition(config) {
   var declared = declaredEdition(config);
   if (declared) { return declared !== "cloud"; }
-  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return true; }
+  if (window.GBTAURI || window.__TAURI_INTERNALS__) { return true; }
   if (!config) { return false; }
   if (config.desktop === true || config.desktop_local === true || config.is_desktop === true) { return true; }
   // Desktop-local product config ships with no_security; treat as desktop edition.
@@ -54,7 +54,7 @@ function isShellMode(config) {
   if (window.__GB_SHELL_MODE__ === true || window.__GB_SHELL_MODE__ === "true") {
     return true;
   }
-  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return true; }
+  if (window.GBTAURI || window.__TAURI_INTERNALS__) { return true; }
   if (!config) { return false; }
   return config.shell_mode === true ||
     config.desktop === true ||
@@ -230,7 +230,7 @@ function initEditionVisibility() {
       return true;
     }
     // Desktop shell may be detectable before productConfig loads.
-    if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
+    if (window.GBTAURI || window.__TAURI_INTERNALS__) {
       resolvedDesktop = true;
       applyDesktopEditionVisibility();
     }

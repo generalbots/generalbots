@@ -10,7 +10,7 @@
        stamped a few seconds after load as well, so a boot that stops early
        never leaves the splash in front of the window. */
     function signalBootReady() {
-        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+        if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
             try { window.history.replaceState(null, "", "#gb-boot-ready"); }
             catch (e) { /* history unavailable */ }
         }
@@ -93,7 +93,7 @@
         if (inputEmpty) { inputEmpty.focus(); }
 
         /* 16. Tauri boot-ready signal */
-        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+        if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
             try { window.history.replaceState(null, "", "#gb-boot-ready"); }
             catch (e) { /* */ }
         }
