@@ -159,6 +159,8 @@
     .sheet-toolbar-row-main { flex-wrap: nowrap; }
     .toolbar-left, .toolbar-right { flex: 0 0 auto; }
     .sheet-name-input { max-width: 120px; }
+    /* #2515: app-only compaction — hide the primary button's text label on a
+       phone; shared .btn-primary still supplies layout and the themed palette. */
     .btn-primary span { display: none; }
     .formula-input, .cell-address { font-size: var(--text-md); }
 }
@@ -271,6 +273,8 @@
         gap: 6px;
     }
 
+    /* #2515: app-only compact toolbar padding at <=480px; not a primitive
+       redefinition — the shared .btn-primary pattern supplies everything else. */
     .btn-primary {
         padding: 8px 12px;
     }

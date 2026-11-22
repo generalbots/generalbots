@@ -167,26 +167,10 @@
 }
 
 /* Buttons */
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--accent, var(--palette-d4f505));
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover, var(--palette-c4e505));
-    transform: translateY(-1px);
-}
-
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local redefinition duplicated those properties and pinned the
+   old accent palette, so it and its hover were removed. */
 .action-btn {
     padding: 6px 12px;
     background: transparent;

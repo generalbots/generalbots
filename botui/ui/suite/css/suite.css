@@ -66,24 +66,10 @@
     color: var(--sentient-text-primary, var(--text));
 }
 
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    background: var(--sentient-primary, var(--primary));
-    color: #fff;
-    border: none;
-    border-radius: var(--sentient-radius-sm, 4px);
-    cursor: pointer;
-    font-size: var(--text-xs);
-    font-weight: 500;
-    transition: background 0.15s ease;
-}
-
-.btn-primary:hover {
-    background: var(--sentient-primary-hover, var(--primary-hover));
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former global --sentient-* redefinition duplicated those properties and
+   pinned the old accent, so it was removed to let the themed pattern apply. */
 
 .docs-main {
     display: flex;

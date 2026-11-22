@@ -167,6 +167,9 @@ tr:hover td { background: var(--bg-tertiary); }
   align-items: center;
   gap: 6px;
 }
+/* #2568: app-specific palette override of the shared .btn-primary — the
+   fraud app uses its own --accent token; only colours are overridden here
+   (the shared pattern supplies base layout). Hover is app-specific too. */
 .btn-primary {
   background: var(--accent);
   color: #fff;

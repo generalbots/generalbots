@@ -167,14 +167,7 @@
             border: none;
         }
 
-        .btn-primary {
-            background: var(--accent-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
+        /* .btn-primary uses the shared pattern from components.css + assistant-skin.css. */
 
         .btn-secondary {
             background: var(--bg-tertiary);

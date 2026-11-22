@@ -124,6 +124,9 @@
     gap: 0.375rem;
 }
 
+/* Scoped layout tweaks only — base .form-input / .btn-primary styling comes from
+   the shared primitives (components/02_form_actions.css, components/01_button.css).
+   These stay because they size the dependency form inside its two-column grid. */
 .dep-add .form-input {
     padding: 0.375rem 0.5rem;
     font-size: 0.8125rem;
@@ -191,28 +194,11 @@
     color: var(--text-primary);
 }
 
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--accent-color);
-    color: hsl(var(--accent-foreground));
-    border: none;
-    border-radius: var(--radius-sm, 6px);
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+/* .btn-primary (incl. :hover/:disabled states) now comes from the shared primitives:
+   components/01_button.css (layout/states) + assistant-skin.css .window-body
+   .btn-primary (identity palette). The former app-local redefinition pinned the
+   same --accent aliases, so it was removed to let the themed pattern apply.
+   Only the .dep-add scoped grid tweaks above remain. */
 
 @media (prefers-reduced-motion: reduce) {
     *,

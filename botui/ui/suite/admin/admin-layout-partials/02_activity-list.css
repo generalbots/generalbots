@@ -203,17 +203,7 @@
     border-radius: 0 0 16px 16px;
 }
 
-.btn-primary {
-    padding: 10px 20px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
+/* .btn-primary uses the shared pattern from components.css + assistant-skin.css. */
 
 /* #1679 — run quality dashboard. */
 .gb-admin-metric-grid {

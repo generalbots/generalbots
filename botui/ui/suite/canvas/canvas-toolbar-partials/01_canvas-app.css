@@ -211,22 +211,10 @@
         background: var(--bg-hover);
     }
 
-    .btn-primary {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.5rem 0.75rem;
-        background: var(--accent-color);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        cursor: pointer;
-    }
-
-    .btn-primary:hover {
-        background: var(--accent-hover);
-    }
+    /* .btn-primary now comes from the shared primitives: components/01_button.css
+       (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+       The former app-local --accent-color redefinition duplicated those properties,
+       so it was removed to let the themed pattern apply. */
 
     .btn-sm {
         padding: 0.375rem 0.75rem;

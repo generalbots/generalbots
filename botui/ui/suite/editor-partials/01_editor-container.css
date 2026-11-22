@@ -92,6 +92,9 @@ body:has(.editor-container) {
     background: var(--border-color);
 }
 
+/* #2568: app-specific palette override of the shared .btn-primary — the
+   editor scopes its own --accent-color token; only colour is overridden here
+   (the shared pattern supplies base layout). Hover is editor-specific. */
 .btn-primary {
     background: var(--accent-color);
     color: white;

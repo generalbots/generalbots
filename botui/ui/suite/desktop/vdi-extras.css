@@ -20,6 +20,10 @@
     font-size: var(--text-2xs);
 }
 
+/* #2568: app-specific palette override of the shared .btn-primary
+   (css/components/01_button.css). VDI supplies its own --vdi-primary colours;
+   only colour is overridden — base layout comes from the shared pattern.
+   Hover is kept because it is VDI-specific too. */
 .btn-primary {
     background: var(--vdi-primary);
     color: white;

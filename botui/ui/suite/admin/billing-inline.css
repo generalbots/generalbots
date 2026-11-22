@@ -285,23 +285,7 @@
     color: var(--danger-color);
 }
 
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover);
-}
+/* .btn-primary uses the shared pattern from components.css + assistant-skin.css. */
 
 .btn-secondary {
     display: inline-flex;

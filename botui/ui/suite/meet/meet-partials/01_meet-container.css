@@ -45,7 +45,10 @@
     gap: 0.75rem;
 }
 
-.btn-primary, .btn-secondary {
+/* .btn-primary uses the shared pattern in css/components/01_button.css;
+   the bespoke duplicate (and its hover) was removed. The local
+   .btn-secondary variant is kept as the only app-specific definition. */
+.btn-secondary {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -55,19 +58,6 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    border: none;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--primary-hover);
-}
-
-.btn-secondary {
     background: var(--surface-hover);
     color: var(--text);
     border: 1px solid var(--border);

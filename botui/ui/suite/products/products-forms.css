@@ -220,25 +220,10 @@
     color: var(--accent, var(--palette-d4f505));
 }
 
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--accent, var(--palette-d4f505));
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover, var(--palette-c4e505));
-    transform: translateY(-1px);
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --accent/--palette-d4f505 redefinition duplicated those
+   properties and pinned the old lime palette, so it was removed. */
 
 /* Modal */
 .products-modal {
@@ -348,7 +333,10 @@
     color: var(--text-secondary, #888);
 }
 
-.form-input,
+/* .form-input and its :focus state now come from the shared primitives in
+   components/02_form_actions.css + assistant-skin.css. The old app-local
+   --palette-d4f505 redefinition duplicated those properties, so only the
+   sibling .form-select/.form-textarea rules remain here. */
 .form-select,
 .form-textarea {
     padding: 10px 12px;
@@ -360,7 +348,6 @@
     transition: border-color 0.15s ease;
 }
 
-.form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
     outline: none;

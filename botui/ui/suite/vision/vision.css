@@ -178,12 +178,10 @@ body {
   color: var(--text-primary);
 }
 .btn:hover { background: var(--border-color); }
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.btn-primary:hover { background: var(--accent-hover); }
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former --accent redefinition duplicated those properties and pinned the old
+   palette, so it and its old-palette hover were removed to let the themed pattern apply. */
 .btn-sm { padding: 4px 10px; font-size: var(--text-2xs); }
 .loading {
   display: flex;

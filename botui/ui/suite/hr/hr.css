@@ -141,18 +141,7 @@ font-weight: 600;
 .badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
 .badge-info { background: rgba(59,130,246,0.15); color: var(--info); }
 .badge-neutral { background: rgba(107,114,128,0.15); color: var(--text-secondary); }
-.btn-primary {
-background: var(--accent);
-color: #fff;
-border: none;
-padding: 8px 16px;
-border-radius: var(--radius);
-font-size: var(--text-sm);
-font-weight: 500;
-cursor: pointer;
-transition: background 0.2s;
-}
-.btn-primary:hover { background: var(--accent-hover); }
+/* .btn-primary + hover come from the shared pattern in css/components/01_button.css. */
 .btn-secondary {
 background: var(--bg-primary);
 color: var(--text-primary);

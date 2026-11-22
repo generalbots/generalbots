@@ -235,25 +235,10 @@
 
 /* Context Menu imported from context-menu.css */
 
-/* Button styles for editor */
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--primary, var(--palette-3b82f6));
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.btn-primary:hover {
-    background: var(--primary-hover, var(--palette-2563eb));
-}
+/* #2568: .btn-primary base styling now comes from the shared
+   /suite/css/components.css (css/components/01_button.css), loaded globally by
+   desktop.html. This Drive-local duplicate was never loaded and is removed so
+   the shared pattern applies. */
 
 .btn-secondary {
     display: inline-flex;

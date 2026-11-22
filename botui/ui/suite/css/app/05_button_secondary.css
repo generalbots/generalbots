@@ -3,20 +3,11 @@
     border-color: var(--accent-color);
 }
 
-.card {
-    background: hsl(var(--card));
-    color: hsl(var(--card-foreground));
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-fast);
-}
-
-.card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--accent-color);
-}
+/* .card now comes from the shared primitive: components/02_form_actions.css
+   (background/border/radius) and the shell's card content rules (card-header,
+   card-body, card-footer carry their own padding). The former global redefinition
+   duplicated those base properties and double-padded .card-body, so it was removed
+   to let the shared pattern apply. */
 
 /* ============================================ */
 /* RESPONSIVE DESIGN                            */

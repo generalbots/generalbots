@@ -74,8 +74,7 @@
 .spinner{width:20px;height:20px;border:2px solid var(--border,var(--palette-2a2a2a));border-top-color:var(--accent,var(--palette-d4f505));border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-row{display:flex;align-items:center;justify-content:center;padding:40px;gap:8px;color:var(--text-secondary,#888);font-size:var(--text-xs)}
-.btn-primary{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent,var(--palette-d4f505));color:var(--bg);border:none;border-radius:6px;font-size:var(--text-xs);font-weight:600;cursor:pointer;transition:all .15s ease}
-.btn-primary:hover{filter:brightness(1.1)}
+/* .btn-primary + hover come from the shared pattern in css/components/01_button.css. */
 @media(max-width:768px){.handoff-header{flex-direction:column;gap:16px;align-items:stretch}.handoff-summary{flex-wrap:wrap}.analytics-cards{grid-template-columns:1fr}.channels-grid{grid-template-columns:1fr}.csat-grid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

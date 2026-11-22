@@ -104,20 +104,7 @@
             color: var(--text-primary);
         }
 
-        .form-input {
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 0.875rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px var(--accent-bg);
-        }
+        /* .form-input uses the shared pattern from components.css + assistant-skin.css. */
 
         .form-select {
             padding: 10px 12px;

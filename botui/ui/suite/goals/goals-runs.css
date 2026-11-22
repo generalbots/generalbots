@@ -16,23 +16,8 @@
     color: var(--text-primary);
 }
 
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover);
-}
+/* .btn-primary comes from the shared pattern in css/components/01_button.css
+   (loaded globally by desktop.html); the bespoke duplicate was removed. */
 
 .loading-placeholder {
     color: var(--text-muted);

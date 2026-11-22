@@ -11,8 +11,10 @@
 .banking-search svg{color:var(--text-secondary,#888);flex-shrink:0}
 .banking-search input{flex:1;background:transparent;border:none;color:var(--text,var(--palette-f8fafc));font-size:var(--text-xs);outline:none}
 .banking-search input::placeholder{color:var(--text-secondary,#888)}
-.btn-primary{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--accent,var(--palette-d4f505));color:var(--bg);border:none;border-radius:6px;font-size:var(--text-xs);font-weight:600;cursor:pointer;transition:all .15s ease}
-.btn-primary:hover{filter:brightness(1.1)}
+/* Primary button now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --accent/--palette-d4f505 redefinition duplicated those
+   properties and pinned the old palette, so it was removed. */
 .btn-secondary{padding:8px 16px;background:transparent;color:var(--text-secondary,#888);border:1px solid var(--border,var(--palette-2a2a2a));border-radius:6px;font-size:var(--text-xs);font-weight:500;cursor:pointer;transition:all .15s ease}
 .btn-secondary:hover{background:var(--surface-hover,rgba(255,255,255,.05));color:var(--text,var(--palette-f8fafc))}
 .btn-accent{background:var(--accent);color:var(--bg);border:1px solid var(--accent);font-weight:600;padding:8px 16px;border-radius:6px;font-size:var(--text-xs);cursor:pointer;transition:all .15s ease}

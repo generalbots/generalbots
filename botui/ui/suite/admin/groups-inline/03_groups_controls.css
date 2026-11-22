@@ -13,23 +13,7 @@
     color: var(--text);
 }
 
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    opacity: 0.9;
-}
+/* .btn-primary uses the shared pattern from components.css + assistant-skin.css. */
 
 .btn-secondary {
     padding: 10px 20px;

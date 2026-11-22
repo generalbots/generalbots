@@ -59,21 +59,10 @@
         background: var(--accent);
     }
 
-    .btn-primary {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        background: var(--primary);
-        color: var(--primary-foreground);
-        font-size: var(--text-sm);
-        font-weight: 500;
-        cursor: pointer;
-        transition: opacity 0.15s;
-    }
-
-    .btn-primary:hover {
-        opacity: 0.9;
-    }
+    /* .btn-primary now comes from the shared primitives: components/01_button.css
+       (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+       The former app-local --primary redefinition duplicated those properties, so
+       it was removed to let the themed pattern apply. */
 
     /* Event Popup */
     .event-popup {

@@ -80,15 +80,10 @@
     transition: all 0.2s;
 }
 
-.btn-primary {
-    background: var(--accent-color);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local background/color + hover redefinition pinned the same
+   --accent aliases, so it was removed to let the themed pattern apply. */
 
 .btn-secondary {
     background: var(--bg-secondary);

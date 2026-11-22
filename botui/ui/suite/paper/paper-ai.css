@@ -128,22 +128,10 @@
         margin-bottom: 8px;
     }
 
-    .btn-primary {
-        width: 100%;
-        padding: 10px 16px;
-        border: none;
-        border-radius: 6px;
-        background: var(--primary);
-        color: var(--primary-foreground);
-        font-size: var(--text-sm);
-        font-weight: 500;
-        cursor: pointer;
-        transition: opacity 0.15s;
-    }
-
-    .btn-primary:hover {
-        opacity: 0.9;
-    }
+    /* .btn-primary now comes from the shared primitives: components/01_button.css
+       (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+       The former app-local rule duplicated those properties with the same --primary
+       tokens, so it was removed to let the themed pattern apply. */
 
     .ai-response {
         border-top: 1px solid var(--border);

@@ -71,24 +71,10 @@
     border-top: 1px solid var(--paper-border);
 }
 
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--paper-primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background: var(--paper-primary-dark);
-}
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former app-local --paper-primary redefinition duplicated those properties and
+   pinned the old indigo palette, so it was removed to let the themed pattern apply. */
 
 .btn-secondary {
     padding: 10px 20px;

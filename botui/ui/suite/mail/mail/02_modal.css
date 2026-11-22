@@ -219,6 +219,8 @@ dialog.modal::backdrop {
     position: relative;
 }
 
+/* Mail-specific: square the Send button's right corners where the
+   schedule dropdown attaches. Base .btn-primary styling is shared. */
 .send-group .btn-primary:first-child {
     border-radius: 6px 0 0 6px;
 }
@@ -268,23 +270,9 @@ dialog.modal::backdrop {
     margin: 0.5rem 0;
 }
 
-.btn-primary {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background: var(--primary-hover);
-}
+/* .btn-primary (Send) + hover come from the shared pattern in
+   css/components/01_button.css; only the send-group corner shaping above
+   remains as the mail-specific override. */
 
 .btn-secondary {
     padding: 0.625rem 1rem;

@@ -306,6 +306,10 @@
     font-size: 0.8rem;
 }
 
+/* #2568: app-specific palette override of the shared .btn-primary
+   (css/components/01_button.css, loaded globally by desktop.html). VDI/the
+   browser shell use their own --primary-color token; only the colour is
+   overridden here — layout, sizing and cursor come from the shared pattern. */
 .btn-primary {
     background: var(--primary-color, var(--palette-0066cc));
     color: #fff;

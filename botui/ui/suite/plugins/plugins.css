@@ -18,8 +18,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; }
 .header h1 { font-size: var(--text-2xl); font-weight: 600; color: var(--pm-text); }
 .btn { padding: 10px 20px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: var(--text-sm); font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: var(--pm-surface-2); color: var(--pm-text); }
-.btn-primary { background: var(--pm-primary); color: #fff; }
-.btn-primary:hover { background: var(--pm-primary-hover); }
+/* .btn-primary now comes from the shared primitives: components/01_button.css
+   (layout/states) + assistant-skin.css .window-body .btn-primary (identity palette).
+   The former --pm-primary background/color + hover redefinition pinned the same
+   identity aliases, so it was removed to let the themed pattern apply. */
 .btn-outline { background: transparent; border-color: var(--pm-primary); color: var(--pm-primary); }
 .btn-outline:hover { background: color-mix(in srgb, var(--pm-primary) 15%, transparent); }
 .btn-danger { background: var(--pm-danger); color: #fff; }
