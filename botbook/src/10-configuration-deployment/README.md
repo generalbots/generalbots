@@ -111,7 +111,7 @@ components are provisioned. The registry is assembled in
 `botserver/crates/botcorepkg/src/installer/manager_construction.rs`
 (`PackageManager::all_components`); each entry is defined under
 `botserver/crates/botcorepkg/src/installer_regs/`. Naming and platform details
-for four components changed together and now read as follows:
+for the components touched by this cleanup now read as follows:
 
 | Component | Current behavior | Source |
 |---|---|---|
