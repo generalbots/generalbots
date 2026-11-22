@@ -28,10 +28,28 @@
   cursor: pointer;
 }
 
-.docs-kb-citation:hover,
+.docs-kb-citation:hover {
+  border-color: var(--palette-3b82f6);
+}
+
+/* Keyboard focus gets a visible ring, not just a border tint (#2499). */
 .docs-kb-citation:focus-visible {
   border-color: var(--palette-3b82f6);
-  outline: none;
+  outline: 2px solid var(--palette-3b82f6);
+  outline-offset: 2px;
+}
+
+/* Transient highlight applied to the cited page/section/clause on open. */
+.docs-kb-citation-flash {
+  outline: 2px solid var(--palette-3b82f6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.docs-kb-citation-status {
+  color: var(--palette-93c5fd);
+  font-size: 12px;
+  padding: 6px 2px;
 }
 
 .docs-kb-citation-tag {

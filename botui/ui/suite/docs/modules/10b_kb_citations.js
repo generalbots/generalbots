@@ -38,15 +38,43 @@
     return label("docs-eq-reference", "Reference") + " " + locator;
   }
 
+  function sourcePage(source) {
+    if (!source) return 0;
+    var raw = source.page != null ? source.page : source.locator;
+    var page = parseInt(raw, 10);
+    return isFinite(page) && page > 0 ? page : 0;
+  }
+
+  function clauseText(citation) {
+    var source = citation.source || {};
+    // A page-kind locator already is the page number; the page label below
+    // renders it, so it must not be repeated as the clause (#2499).
+    if (source.kind !== "page" && source.locator != null && String(source.locator) !== "") {
+      return String(source.locator);
+    }
+    var path = citation.heading_path;
+    return path && path.length ? String(path[path.length - 1]) : "";
+  }
+
+  // Chip text: file · version · clause, pN — every word from an existing key.
   function citationLabel(citation) {
     if (!citation) return "";
-    var parts = [citation.file || "", locationLabel(citation.source)];
+    var parts = [];
+    if (citation.file) parts.push(String(citation.file));
     if (citation.version !== undefined && citation.version !== null && citation.version !== "") {
       parts.push(label("label-version", "Version") + ": " + citation.version);
     }
-    var heading = citation.heading_path && citation.heading_path.length
-      ? citation.heading_path[citation.heading_path.length - 1] : "";
-    if (heading) parts.push(String(heading));
+    var clause = clauseText(citation);
+    var page = sourcePage(citation.source);
+    if (clause) parts.push(clause);
+    if (page) {
+      var pageLabel = withParam(label("docs-nav-page", "Page {$n}"), "n", page);
+      if (clause) {
+        parts[parts.length - 1] = parts[parts.length - 1] + ", " + pageLabel;
+      } else {
+        parts.push(pageLabel);
+      }
+    }
     return parts.filter(Boolean).join(" · ");
   }
 
@@ -114,6 +142,7 @@
   window.DocsKbCitations = {
     label: citationLabel,
     locationLabel: locationLabel,
+    sourcePage: sourcePage,
     render: renderCitations,
     renderChip: renderChip,
     mount: mount,
