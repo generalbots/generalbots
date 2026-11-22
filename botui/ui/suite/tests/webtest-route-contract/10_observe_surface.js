@@ -39,7 +39,7 @@ test("[BASELINE-OBSERVE] 4,428 router Rust files, 2,389 .route( and 9 .nest( cal
     nestCalls += count(text, /\.nest\(/g);
     if (text.indexOf(".route(") >= 0) routeFiles++;
   });
-  equal(files.length, 4486, "shipped router .rs file count");
+  equal(files.length, 4497, "shipped router .rs file count");
   equal(routeCalls, 2431, "raw .route( call count");
   equal(nestCalls, 9, "raw .nest( call count");
   equal(routeFiles, 220, "files containing .route(");
@@ -71,8 +71,8 @@ test("[BASELINE-OBSERVE] 16 inventory files advertise 1,338 unique ApiEndpoint e
   var unique = {};
   keys.forEach(function (key) { unique[key] = true; });
   equal(files.length, 16, "inventory source file count");
-  equal(entries.length, 1338, "ApiEndpoint literal count");
-  equal(Object.keys(unique).length, 1338, "unique catalog method+path count");
+  equal(entries.length, 1342, "ApiEndpoint literal count");
+  equal(Object.keys(unique).length, 1342, "unique catalog method+path count");
   observe("inventory files / catalog endpoints / unique entries",
     files.length + " / " + entries.length + " / " + Object.keys(unique).length);
 });

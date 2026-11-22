@@ -129,6 +129,61 @@ the request reaches that check; the JSON API above is never anonymous.
 The `sheet.exported` wire name is accepted as a singular alias for the
 taxonomy's `sheets.exported` event (`commerce.rs:23-31`).
 
+### Operator UAT checklist (#2503)
+
+Use a local dev server and a **dev-only** token held in a shell variable.
+`DEV_BEARER_TOKEN` below is a placeholder — supply your own dev credential in
+the shell; never paste a production token into a terminal, shell history or
+this book.
+
+```bash
+BASE="http://localhost:8080"   # dev API port
+# DEV_BEARER_TOKEN is set in the dev shell, e.g. export DEV_BEARER_TOKEN='...'
+```
+
+1. **Dead letters (list).** `GET /api/events/dead-letters` → `200`, JSON array.
+   Each entry has `idempotency_key` but **no** `body`, `payload` or `content`
+   (privacy-safe summary). No/invalid token → `401`.
+   ```bash
+   curl -sS "$BASE/api/events/dead-letters" \
+     -H "Authorization: Bearer ${DEV_BEARER_TOKEN}"
+   ```
+
+2. **Replay (exactly once).** Take an `idempotency_key` from step 1 and POST it.
+   First call → `200`, `deduped:false`; identical repeat → `200`, `deduped:true`
+   with the same `delivered_at`. An unknown key → `404`.
+   ```bash
+   curl -sS "$BASE/api/events/replay" \
+     -H "Authorization: Bearer ${DEV_BEARER_TOKEN}" \
+     -H 'Content-Type: application/json' \
+     -d '{"idempotency_key":"<KEY_FROM_STEP_1>"}'
+   ```
+
+3. **Publish (metadata only).** `POST /api/events/publish` → `200` receipt with
+   `event_id` and `dead_lettered`; unknown/invalid `event_type` → `400`. Clients
+   never send content or an event id.
+   ```bash
+   curl -sS "$BASE/api/events/publish" \
+     -H "Authorization: Bearer ${DEV_BEARER_TOKEN}" \
+     -H 'Content-Type: application/json' \
+     -d '{"event_type":"sheets.exported","doc_id":"doc-uat","workspace_id":"ws-uat","actor_id":"usr-uat"}'
+   ```
+
+4. **WebSocket push.** A WebSocket client cannot set an Authorization header,
+   so pass the token as `?access_token=`. No token →
+   `401 authentication_required`. With Python's `websocket-client`:
+   ```python
+   import os, websocket
+   token = os.environ["DEV_BEARER_TOKEN"]
+   ws = websocket.create_connection(
+       f"ws://localhost:8080/ws/events?access_token={token}&types=sheets.exported"
+   )
+   print(ws.recv())  # native JSON envelope after a matching publish
+   ws.close()
+   ```
+   Repeat the publish from step 3 while the socket is open to observe a pushed
+   envelope; `?types=` filters the stream to the named event types.
+
 ## Quick example
 
 ```bash
