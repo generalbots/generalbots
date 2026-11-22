@@ -6,11 +6,28 @@
 //! same payload an SDK would send. Spans are also appended to `agent_spans`,
 //! the existing usage table, so the admin view can aggregate them without a
 //! parallel store.
+//!
+//! # Persistence and retention contract (issue #2541)
+//!
+//! - `agent_runs` holds the durable run summary (opened by [`begin_run_row`],
+//!   closed by [`finish_run_row`]); `agent_spans` holds finished spans written
+//!   by [`finish_run`]. Both survive a restart.
+//! - Ordered run frames live in `run_events` with a documented retention
+//!   window (`GB_RUN_EVENTS_RETENTION_DAYS`, default 30 days) reclaimed by the
+//!   retention task in `main_body.rs`.
+//! - The [`traces`] map is the in-memory buffer of *in-flight* spans only. It
+//!   is flushed on [`finish_run`] and is intentionally volatile: a restart
+//!   loses the buffer but not the durable rows.
+//! - A run left `running` by a restart is reconciled to `interrupted` lazily
+//!   on the next run start by [`reconcile_once`], within
+//!   `GB_STALE_RUN_MINUTES` (default 15). No daemon loop is started.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 use diesel::prelude::*;
+use diesel::PgConnection;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -86,6 +103,84 @@ fn unix_nanos() -> u128 {
         .unwrap_or(0)
 }
 
+/// Maximum age, in minutes, of a `running`/`pending` row that may survive.
+const DEFAULT_STALE_RUN_MINUTES: i64 = 15;
+/// Lazily reconcile at most once per process per this interval.
+const RECONCILE_INTERVAL_SECS: u64 = 15 * 60;
+
+fn stale_minutes() -> i64 {
+    std::env::var("GB_STALE_RUN_MINUTES")
+        .ok()
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(DEFAULT_STALE_RUN_MINUTES)
+}
+
+/// Marks `running`/`pending` runs older than `max_age_minutes` as interrupted
+/// and stamps `finished_at`, so the admin view never reports a phantom run.
+pub fn reconcile_stale_runs(
+    conn: &mut PgConnection,
+    max_age_minutes: i64,
+) -> Result<usize, String> {
+    let minutes = max_age_minutes.max(1);
+    diesel::sql_query(
+        "UPDATE agent_runs SET status = 'interrupted', finished_at = NOW() \
+         WHERE status IN ('running', 'pending') \
+           AND started_at < NOW() - ($1 || ' minutes')::interval",
+    )
+    .bind::<diesel::sql_types::BigInt, _>(minutes)
+    .execute(conn)
+    .map_err(|error| format!("agent_runs stale reconciliation failed: {error}"))
+}
+
+/// Throttled reconciliation triggered by the first run after boot. Using a
+/// timestamp marker instead of a daemon loop keeps the shutdown path trivial.
+/// #2541 — eager boot reconciliation. Unlike the throttled
+/// [`reconcile_once`] used by lazy run starts, this always runs exactly once
+/// during bootstrap so a stale `running` row cannot survive a restart until
+/// the next user action.
+pub fn reconcile_on_boot(pool: &botlib::db_pool::DbPool) {
+    let Ok(mut conn) = pool.get() else {
+        log::error!("run reconciliation at boot: database pool unavailable");
+        return;
+    };
+    match reconcile_stale_runs(&mut conn, stale_minutes()) {
+        Ok(0) => {}
+        Ok(count) => log::info!("run reconciliation at boot interrupted {count} stale rows"),
+        Err(error) => log::warn!("run reconciliation at boot failed: {error}"),
+    }
+}
+
+fn reconcile_once(pool: &botlib::db_pool::DbPool) {
+    static LAST_RECONCILE: OnceLock<AtomicU64> = OnceLock::new();
+    let marker = LAST_RECONCILE.get_or_init(|| AtomicU64::new(0));
+    let now_secs = unix_nanos() / 1_000_000_000;
+    let now = u64::try_from(now_secs).unwrap_or(0);
+    let previous = marker.load(Ordering::Relaxed);
+    if now.saturating_sub(previous) < RECONCILE_INTERVAL_SECS {
+        return;
+    }
+    if marker
+        .compare_exchange(previous, now, Ordering::Relaxed, Ordering::Relaxed)
+        .is_err()
+    {
+        return;
+    }
+    let mut conn = match pool.get() {
+        Ok(conn) => conn,
+        Err(error) => {
+            log::warn!("run reconciliation: pool error: {error}");
+            return;
+        }
+    };
+    match reconcile_stale_runs(&mut conn, stale_minutes()) {
+        Ok(removed) if removed > 0 => {
+            log::info!("run reconciliation: interrupted {removed} stale agent_runs");
+        }
+        Ok(_) => {}
+        Err(error) => log::warn!("run reconciliation failed: {error}"),
+    }
+}
+
 /// Creates the `agent_runs` row for a chat turn. `agent_spans.run_id` has a
 /// foreign key to this table, so without the row every span insert failed
 /// silently and the observability/cost surfaces stayed empty (#1679).
@@ -95,6 +190,7 @@ pub fn begin_run_row(
     bot_id: Option<Uuid>,
     agent: &str,
 ) {
+    reconcile_once(pool);
     let (Ok(run_uuid), Some(bot_id)) = (Uuid::parse_str(run_id), bot_id) else {
         return;
     };

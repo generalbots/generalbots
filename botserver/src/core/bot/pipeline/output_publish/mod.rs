@@ -21,15 +21,19 @@
 //!   and returns an empty report; the turn has already answered the user, and
 //!   the next turn retries because the ledger entry was not advanced.
 //!
-//! The ledger lives in process memory. After a restart (or eviction) the next
-//! turn republishes once; `drive_bridge::save_object` uses a deterministic key,
-//! so that is an overwrite of the same object, never a duplicate.
+//! The ledger's fast path lives in process memory; committed entries are
+//! mirrored into Redis with a bounded TTL (see [`ledger`]). After a restart the
+//! durable copy is loaded, so files are not republished. When the cache is
+//! unavailable the in-memory fallback republishes once;
+//! `drive_bridge::save_object` uses a deterministic key, so that is an overwrite
+//! of the same object, never a duplicate.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use async_trait::async_trait;
 use botcore::shared::state::AppState;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::doc_delta;
@@ -48,7 +52,7 @@ pub const MAX_PUBLISH_TURN_BYTES: u64 = 50 * 1024 * 1024;
 const MAX_LEDGER_SESSIONS: usize = 512;
 
 /// What the ledger remembers about a published artifact.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublishedFile {
     pub size: u64,
     pub modified: u64,
@@ -285,6 +289,9 @@ pub async fn publish_candidates(
 
 mod drive;
 pub use drive::{publish_and_attach, publish_turn_output};
+
+mod ledger;
+pub use ledger::{load_durable, save_durable, DEFAULT_LEDGER_TTL_DAYS};
 
 #[cfg(test)]
 #[path = "../output_publish_tests.rs"]

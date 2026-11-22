@@ -48,7 +48,7 @@ pub async fn publish_turn_output(
                 .collect(),
             None => return PublishReport::default(),
         };
-    let mut seen = snapshot(session_id);
+    let mut seen = load_durable(state, session_id).await;
     let selected = candidates(&listing, &seen);
     if selected.is_empty() {
         return PublishReport::default();
@@ -63,8 +63,9 @@ pub async fn publish_turn_output(
     };
     let published = publish_candidates(session_id, selected, &mut seen, &publisher).await;
     // Store even when every upload failed: successful and identical files
-    // advanced, failed ones kept their old stamp and stay candidates.
-    store(session_id, seen);
+    // advanced, failed ones kept their old stamp and stay candidates. The
+    // mirrored copy survives a restart; the in-memory copy is the fallback.
+    save_durable(state, session_id, &seen).await;
     PublishReport { folder, published }
 }
 

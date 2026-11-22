@@ -123,6 +123,38 @@ The cache layer provides fast access to frequently needed data. It stores sessio
 The vector database uses Qdrant to store document embeddings for semantic search. It maintains the semantic search index, stores knowledge base vectors, and performs similarity matching for relevant content retrieval.
 
 
+### Process State and Restart Contract
+
+A global map that holds user-visible state is either a cache over a durable
+source or a documented volatile value. The table inventories the process maps
+that carry state a user can observe, with the lifetime and persistence
+contract of each. Paths are relative to the repository root.
+
+| State | Location | What it holds | TTL / bound | Persisted? | Disposition |
+|---|---|---|---|---|---|
+| Published-file ledger | `botserver/src/core/bot/pipeline/output_publish/mod.rs:140`, `botserver/src/core/bot/pipeline/output_publish/ledger.rs:19` | session → file → (size, mtime, content digest) | memory: 512 sessions; Redis `output_publish:{session}`, `GB_PUBLISH_LEDGER_TTL_DAYS` (30 days) | Yes — Redis mirror, memory fallback | Persist (#2541) |
+| Run trace buffer | `botserver/src/core/bot/runs/observability.rs:65` | in-flight spans per chat run | until `finish_run`; bounded by run duration | No (volatile); finished spans in `agent_spans`, summary in `agent_runs` | Volatile buffer flushed on finish |
+| Run event frames | `botserver/src/core/bot/runs/store.rs:38` | ordered `run_events` frames per thread | `GB_RUN_EVENTS_RETENTION_DAYS` (30 days), reclaimed by the task at `botserver/src/main_body.rs:188` | Yes — PostgreSQL | Durable with documented retention |
+| Stale agent runs | `botserver/src/core/bot/runs/observability.rs:120` | `running`/`pending` rows older than the window | `GB_STALE_RUN_MINUTES` (15), reconciled on the first run after boot | Yes — updated in `agent_runs` | Reconcile to `interrupted` (#2541) |
+| Run thread bus | `botserver/src/core/bot/runs/bus.rs:276` | live subscribers and steering per thread | connection lifetime | No (volatile); clients resume from `run_events` via `botserver/src/core/bot/ws/session/resume.rs:22` | Volatile, rebuilt by resume |
+| Sandbox resource cache | `botserver/src/core/bot/sandbox/store.rs:24` | sha256 → generated HTML and CSP | signed URL clamped to one hour | Yes — Drive is the durable copy | Cache over Drive |
+| Computer-use actions | `botserver/src/core/computer_use/mod.rs:53` | pending action by id | `TTL_SECS`, pruned on read at `mod.rs:66` | No | Explicitly volatile with TTL |
+| Peer network table | `botserver/src/core/peer_network.rs:93` | node identity and registered peers | process lifetime; mode persisted to file at `peer_network.rs:85` | Partial (mode only) | Volatile with durable config |
+| Vibe active runs | `botserver/crates/botvibe/src/api/tools.rs:129` | run status by id | boot rebuild from `vibe_runs`, capped at `BOOT_RUN_REBUILD_LIMIT` (500) at `tools.rs:105` | Yes — `vibe_runs` | Rebuild on boot (#2541) |
+| Hotsite apps and pages | `botserver/crates/botweba/src/weba_state.rs:13` | apps, pages, published sites, form submissions | mirrored on every mutation to `WebaStore` | Yes — snapshot store | Rebuild on boot |
+| Chat-history unlock grants | `botserver/src/main_module/routes/chat_history_lock.rs:38` | unlock token → session and user | `UNLOCK_TTL_SECS` (300), idle-expiring | No | Explicitly volatile with TTL |
+| Subscription LLM tokens | `botserver/src/main_module/routes/subscription_llm.rs:33` | token → user, provider, model, session | 10 minutes, pruned on issue | No | Explicitly volatile with TTL |
+| Declined connector hints | `botserver/src/core/bot/pipeline/connector_hints.rs:89` | user → declined provider | process lifetime | No | Explicitly volatile |
+| Agent turn flag | `botserver/src/core/bot/pipeline/agent_turn.rs:15` | session → agent-enabled for one turn | single turn, cleared by caller | No | Explicitly volatile |
+| Workspace step timers | `botserver/src/core/bot/pipeline/workspace_progress.rs:31` | step key → start instant | one turn | No | Explicitly volatile |
+| Native tool capture | `botserver/src/core/bot/pipeline/native_tools/mod.rs:31` | session → last tool message | one turn, removed on `take_capture` | No | Explicitly volatile |
+| Soon feature flags | `botserver/src/soon_features.rs` | former "coming soon" toggles | — | — | Deleted: no consumer, reset on restart (#2541) |
+
+Only the durable rows are authoritative for state that outlives a process.
+A restart may drop any volatile entry in the table above; the disposition
+column names the source that rebuilds it or the window after which it expires.
+
+
 ## Security Architecture
 
 ### Authentication Flow
