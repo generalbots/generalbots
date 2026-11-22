@@ -220,8 +220,9 @@ Since #2522 the shared `HostileFilePolicy::default()` sets
 the typed `MalwareScannerMissing` error when no scanner has been installed,
 instead of being accepted unscanned. This applies both to the central
 `validate_upload` gate and to the explicit import-boundary audits in Docs,
-Sheets and Slides. Slides additionally owns its own boundary switch,
-`GB_ALLOW_UNSCANNED_SLIDES_IMPORT`, which still governs that app's override.
+Sheets and Slides. Every zip import boundary, including Slides, now reads the
+single shared `GB_ALLOW_UNSCANNED_IMPORT` switch below; Slides' former own
+switch is a deprecated alias kept for one release.
 
 ### Opt-out and rollback path
 
@@ -239,6 +240,15 @@ is read by `HostileFilePolicy::default()` through
 as `NotConfigured` — the opt-out lowers the *requirement*, it does not claim a
 clean scan. To roll back the change, remove the variable and restart botserver;
 imports then fail closed again.
+
+Slides reads this same shared switch, so `GB_ALLOW_UNSCANNED_IMPORT=1` governs
+its override too. For one release the old Slides-only variable
+`GB_ALLOW_UNSCANNED_SLIDES_IMPORT` is still accepted as a deprecated alias: it
+is honored only when the shared variable is unset, logs a warning when present,
+and is removed in the next release. When both are set the shared switch wins.
+Deployments should migrate to the shared name now. Both variables use the same
+grammar and keep the decision honest (`NotConfigured`, never a fabricated
+`Clean`).
 
 The switch is an environment variable so it can be injected by the deployment,
 including from Vault-backed configuration. A caller that reads the same flag

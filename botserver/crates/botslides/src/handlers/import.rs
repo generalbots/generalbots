@@ -6,16 +6,20 @@ use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
 use axum::{extract::State, http::StatusCode, Json};
-use botsecurity_core::upload_hostile::{macro_strip, password as password_guard};
+use botsecurity_core::upload_hostile::{
+    macro_strip, malware_scanner_required_from, password as password_guard,
+    UNCHECKED_IMPORT_OPT_OUT_ENV,
+};
 use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// #2522 — opt-out for the fail-closed malware requirement. Only an explicit
-/// `1`/`true` disables it; the scan decision is still logged as `NotConfigured`
-/// and never reported as clean.
-const UNCHECKED_IMPORT_OPT_OUT: &str = "GB_ALLOW_UNSCANNED_SLIDES_IMPORT";
+/// #2522 — deprecated Slides-only alias for the fail-closed opt-out, kept for
+/// one release. `UNCHECKED_IMPORT_OPT_OUT_ENV` is now the single shared switch;
+/// this alias is honored only when the shared variable is unset and emits a
+/// warning. The scan decision stays `NotConfigured`, never a fabricated `Clean`.
+const DEPRECATED_SLIDES_OPT_OUT: &str = "GB_ALLOW_UNSCANNED_SLIDES_IMPORT";
 
 fn policy_for_opt_out(opted_out: bool) -> upload_policy::HostileFilePolicy {
     upload_policy::HostileFilePolicy {
@@ -24,13 +28,35 @@ fn policy_for_opt_out(opted_out: bool) -> upload_policy::HostileFilePolicy {
     }
 }
 
+/// #2522 — resolve the opt-out from the shared switch, falling back to the
+/// deprecated Slides-only alias only when the shared variable is unset. Both
+/// use the shared grammar (`1`/`true`/`yes`/`on`, trimmed, case-insensitive) via
+/// `malware_scanner_required_from`, so Slides matches every other zip-based
+/// import boundary. `true` means the import is opted out of the requirement.
+fn is_import_opted_out(shared: Option<&str>, deprecated: Option<&str>) -> bool {
+    match shared {
+        Some(_) => !malware_scanner_required_from(shared),
+        None => !malware_scanner_required_from(deprecated),
+    }
+}
+
 /// #2522 — presentations fail closed: without a registered malware scanner the
 /// import is refused. A deployment that deliberately accepts unscanned decks
-/// can set `GB_ALLOW_UNSCANNED_SLIDES_IMPORT=1`; this is the documented opt-out
-/// and the only path that lowers the requirement.
+/// sets the shared `GB_ALLOW_UNSCANNED_IMPORT=1`; the former Slides-only
+/// `GB_ALLOW_UNSCANNED_SLIDES_IMPORT` is accepted for one release with a
+/// warning. The scan decision is still recorded as `NotConfigured`.
 pub(crate) fn slides_hostile_policy() -> upload_policy::HostileFilePolicy {
-    let opted_out = std::env::var(UNCHECKED_IMPORT_OPT_OUT)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"));
+    if std::env::var(DEPRECATED_SLIDES_OPT_OUT).is_ok() {
+        log::warn!(
+            "botslides::import: {DEPRECATED_SLIDES_OPT_OUT} is deprecated; use {UNCHECKED_IMPORT_OPT_OUT_ENV} instead (the alias is removed in the next release)"
+        );
+    }
+    // Both temporary `Option<String>` values live until the end of this call,
+    // so the borrowed `&str`s are valid for the duration of the resolver.
+    let opted_out = is_import_opted_out(
+        std::env::var(UNCHECKED_IMPORT_OPT_OUT_ENV).ok().as_deref(),
+        std::env::var(DEPRECATED_SLIDES_OPT_OUT).ok().as_deref(),
+    );
     policy_for_opt_out(opted_out)
 }
 
@@ -338,3 +364,28 @@ pub async fn handle_import_presentation<D: DriveOps>(
 #[cfg(test)]
 #[path = "import_tests.rs"]
 mod hostile_import_tests;
+
+#[cfg(test)]
+mod opt_out_resolution_tests {
+    use super::is_import_opted_out;
+
+    #[test]
+    fn the_shared_switch_drives_the_opt_out() {
+        assert!(is_import_opted_out(Some("1"), None));
+        assert!(is_import_opted_out(Some(" yes "), None));
+        assert!(is_import_opted_out(Some("On"), None));
+    }
+
+    #[test]
+    fn unrecognised_or_unset_shared_values_fail_closed() {
+        assert!(!is_import_opted_out(None, None));
+        assert!(!is_import_opted_out(Some("0"), None));
+        assert!(!is_import_opted_out(Some("off"), None));
+    }
+
+    #[test]
+    fn the_deprecated_alias_is_honoured_only_without_the_shared_switch() {
+        assert!(is_import_opted_out(None, Some("true")));
+        assert!(!is_import_opted_out(Some("0"), Some("1")));
+    }
+}
