@@ -72,6 +72,7 @@
 
     /* ---- Render / update ---- */
     A.renderModelPickers = function () {
+        closeModelMenu();
         if (A.loadLinkedAgents && !A._agentsAsked) {
             A._agentsAsked = true;
             A.loadLinkedAgents().then(function () { A.renderModelPickers(); });
@@ -377,11 +378,13 @@
 
     function closeModelMenu() {
         if (!activeModelMenu) { return; }
-        activeModelMenu.previousElementSibling.setAttribute("aria-expanded", "false");
-        activeModelMenu.remove();
+        var menu = activeModelMenu;
+        var anchor = menu.previousElementSibling;
         activeModelMenu = null;
         document.removeEventListener("click", closeModelMenuOutside);
         document.removeEventListener("keydown", closeModelMenuOnEscape);
+        if (anchor) { anchor.setAttribute("aria-expanded", "false"); }
+        if (menu.parentNode) { menu.remove(); }
     }
 
     function closeModelMenuOutside(event) {
@@ -393,12 +396,13 @@
         var anchor = activeModelMenu.previousElementSibling;
         event.stopPropagation();
         closeModelMenu();
-        anchor.focus();
+        if (anchor) { anchor.focus(); }
     }
 
     function selectModel(model) {
-        var anchor = activeModelMenu ? activeModelMenu.previousElementSibling : visible(".gb-model-btn");
+        var anchor = activeModelMenu ? activeModelMenu.previousElementSibling : null;
         closeModelMenu();
+        if (!anchor) { anchor = visible(".gb-model-btn"); }
         if (!A.externalTarget || !A.confirmExternal) { applyModel(model); return; }
         A.externalTarget(model).then(function (target) {
             A.confirmExternal(target, anchor, function () { applyModel(model); });
