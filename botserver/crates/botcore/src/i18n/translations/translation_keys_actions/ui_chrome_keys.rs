@@ -166,6 +166,9 @@ pub(super) const KEYS: &[&str] = &[
     // #2449 — session status
     "os-session-title",
     "os-session-report",
+    // #2500 — sandbox probe
+    "os-sandbox-probe",
+    "os-sandbox-result",
     "action-save",
     "action-cancel",
     "action-delete",

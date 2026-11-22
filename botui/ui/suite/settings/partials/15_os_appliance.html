@@ -195,6 +195,8 @@
     <div class="setting-row">
       <button type="button" id="osDownloadDiagnostics" class="btn" onclick="window.GBDiagnostics && GBDiagnostics.download()" data-i18n="os-diagnostics-download">Download diagnostics bundle</button>
     </div>
+    <div class="setting-row"><button type="button" onclick="window.GBSandboxProbe && GBSandboxProbe.run()" data-i18n="os-sandbox-probe">Check web process sandbox</button></div>
+    <p id="osSandboxProbeResult" role="status" aria-live="polite"></p>
     <div class="setting-row">
       <label for="osRemoteSupport" data-i18n="os-remote-support">Remote support (time-boxed)</label>
       <select id="osRemoteSupport" aria-label="Remote support" onchange="window.GBDiagnostics && GBDiagnostics.setRemoteSupport(this.value)">

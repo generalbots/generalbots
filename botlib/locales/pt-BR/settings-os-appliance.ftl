@@ -176,3 +176,5 @@ os-session-title = User session
 os-session-report = User manager: {manager}
 XDG_RUNTIME_DIR: {runtime}
 {services}
+os-sandbox-probe = Check web process sandbox
+os-sandbox-result = Web process sandboxed: {state}
