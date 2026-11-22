@@ -191,7 +191,18 @@
   // translation never leaks an identifier into the interface.
   function tOr(key, fallback, params) {
     const value = t(key, params);
-    return value === key ? fallback : value;
+    if (value !== key) return value;
+    // Catalogue miss (e.g. backend down before i18n loads): t() returns the
+    // bare key, so substitute params into the authored fallback ourselves —
+    // otherwise literal {param} tokens leak into the DOM (#2503,#2548).
+    let out = String(fallback);
+    if (params && typeof params === "object") {
+      Object.keys(params).forEach((param) => {
+        out = out.replace(new RegExp(`\\{\\s*\\$?${param}\\s*\\}`, "g"), params[param]);
+        out = out.replace(new RegExp(`\\{\\s*${param}\\s*\\}`, "g"), params[param]);
+      });
+    }
+    return out;
   }
 
 
