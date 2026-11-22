@@ -239,5 +239,16 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/projects/**", "PUT", ""),
         RoutePermission::new("/api/projects/**", "DELETE", ""),
 
+        // Office event stream (#2503). The JSON surface (DLQ summary, replay
+        // and metadata-only publish) is mounted behind require_auth in
+        // feature_merge_platform/commerce.rs. Without catalogue rows the
+        // default-deny gate rejected every call with "No matching route
+        // permission found" before the handler ran. The /ws/events sockets are
+        // deliberately absent here: they are declared as handler-token
+        // capabilities in auth_api/public_routes.rs and are already admitted
+        // anonymously by routes_public.rs's /ws/** entry.
+        RoutePermission::new("/api/events/**", "GET", ""),
+        RoutePermission::new("/api/events/**", "POST", ""),
+
     ]
 }

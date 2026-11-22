@@ -170,15 +170,16 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.webhook(Method::POST, "/api/peer/heartbeat");
     routes.webhook(Method::POST, "/api/peer/payloads");
 
-    // ── Chat and progress WebSockets ────────────────────────────────────────
-    // A browser WebSocket cannot set an Authorization header; the handlers
-    // resolve the optional `?token=` and the bot's public flag themselves.
-    // Only these four exact sockets are admitted — `/ws/logs`, `/ws/sheet/:id`,
-    // `/ws/docs/:id`, `/ws/plan/:id` stay authenticated (see the deny list).
+    // ── Chat, progress and event-stream WebSockets ──────────────────────────
+    // A browser socket cannot set an Authorization header; the handlers resolve
+    // `?token=` (chat) or `?access_token=`/cookie (#2503 events) themselves.
+    // Only these exact sockets are admitted; `/ws/logs` and `/ws/:id/*` stay private.
     routes.read("/ws");
     routes.read("/ws/:bot_name");
     routes.read("/ws/task-progress");
     routes.read("/ws/task-progress/:task_id");
+    routes.capability("/ws/events");
+    routes.capability("/ws/events/stream");
 
     // ── Static asset trees (the one legitimate prefix) ──────────────────────
     // Only file-like paths (a dotted final segment) match, so a server route
@@ -368,6 +369,9 @@ mod tests {
         assert!(is_public(Method::GET, "/suite/desktop.html"));
         assert!(is_public(Method::GET, "/suite/sheet/sheet.js"));
         assert!(is_public(Method::GET, "/themes/dark.css"));
+        // #2503 — event sockets reach their handler token check; the JSON API does not.
+        assert!(is_public(Method::GET, "/ws/events/stream"));
+        assert!(!is_public(Method::POST, "/api/events/replay"));
     }
 
     #[test]
