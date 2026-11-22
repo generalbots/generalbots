@@ -64,7 +64,7 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
 
 test("[BASELINE-OBSERVE] suite totals: 1127 scripts, 1070 src, 1057 blocking, 56 inline, 379 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1126, "scripts");
+  equal(t.scripts, 1127, "scripts");
   equal(t.scriptSrc, 1070, "scriptSrc");
   equal(t.blockingScriptSrc, 1057, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
@@ -92,7 +92,7 @@ test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted f
     "desktop counts unexpectedly match the 2025 issue snapshot exactly");
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
-  assert(d.blockingScriptSrc === 96 && d.stylesheet === 37 &&
+  assert(d.blockingScriptSrc === 96 && d.stylesheet === 38 &&
          c.blockingScriptSrc === 42 && c.stylesheet === 22,
     "current measured counts changed — update this observation deliberately");
 });
