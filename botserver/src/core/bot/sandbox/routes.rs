@@ -231,6 +231,9 @@ mod tests {
 
     use super::{app_origin, preview_status_header, sandbox_origin, status_body, valid_hash};
 
+    /// 64 hex digits — the shape every real resource id has.
+    const HASH: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
     #[test]
     fn desktop_defaults_to_loopback_sandbox_origin() {
         if cfg!(feature = "desktop-local") {
@@ -250,20 +253,82 @@ mod tests {
         assert!(!valid_hash(&"a".repeat(65)));
     }
 
+    /// #2541 — every canonical reason code is reported truthfully, including
+    /// the `unknown` fallback for an entry no longer in the cache.
     #[test]
-    fn status_body_exposes_the_reason_code_to_the_ui() {
-        let expired = status_body(Some("expired"), "abc");
-        assert_eq!(expired["status"].as_str(), Some("expired"));
-        assert_eq!(expired["reason"].as_str(), Some("expired"));
-        assert_eq!(expired["live"].as_bool(), Some(false));
-        assert_eq!(expired["hash"].as_str(), Some("abc"));
+    fn status_body_reports_all_canonical_reason_codes() {
+        for (reason, code, live) in [
+            (Some("fresh"), "fresh", true),
+            (Some("expired"), "expired", false),
+            (
+                Some("interrupted_by_restart"),
+                "interrupted_by_restart",
+                false,
+            ),
+            (None, "unknown", false),
+        ] {
+            let body = status_body(reason, HASH);
+            assert_eq!(body["hash"].as_str(), Some(HASH), "hash for {code}");
+            assert_eq!(body["status"].as_str(), Some(code), "status for {code}");
+            assert_eq!(body["reason"].as_str(), Some(code), "reason for {code}");
+            assert_eq!(body["live"].as_bool(), Some(live), "live for {code}");
+        }
+    }
 
-        let fresh = status_body(Some("fresh"), "abc");
-        assert_eq!(fresh["live"].as_bool(), Some(true));
+    /// #2541 — the status endpoint is a status contract, not a document
+    /// endpoint: exactly four keys, so no HTML/content field can leak.
+    #[test]
+    fn status_body_has_exactly_the_contract_keys() {
+        let body = status_body(Some("fresh"), HASH);
+        let keys = body.as_object().map(|object| {
+            let mut keys: Vec<&str> = object.keys().map(String::as_str).collect();
+            keys.sort_unstable();
+            keys
+        });
+        assert_eq!(
+            keys,
+            Some(vec!["hash", "live", "reason", "status"]),
+            "status body must not carry any field beyond the four contract keys"
+        );
+        assert_eq!(body.as_object().map(|object| object.len()), Some(4));
+    }
 
-        let restarted = status_body(Some("interrupted_by_restart"), "abc");
-        assert_eq!(restarted["reason"].as_str(), Some("interrupted_by_restart"));
-        assert_eq!(restarted["live"].as_bool(), Some(false));
+    /// #2541 — no preview HTML/document content ever reaches the status body.
+    #[test]
+    fn status_body_never_carries_document_content() {
+        let serialized = status_body(Some("fresh"), HASH).to_string();
+        let lowered = serialized.to_ascii_lowercase();
+        for marker in [
+            "<html", "<script", "doctype", "content", "document", "secret",
+        ] {
+            assert!(
+                !lowered.contains(marker),
+                "status body leaked document marker {marker}: {serialized}"
+            );
+        }
+    }
+
+    /// #2541 — the header carries the same four codes as the JSON body.
+    #[test]
+    fn preview_status_header_emits_canonical_codes() {
+        for code in ["fresh", "expired", "interrupted_by_restart", "unknown"] {
+            assert_eq!(
+                preview_status_header(code),
+                HeaderValue::from_static(code),
+                "header must carry the exact reason code {code}"
+            );
+        }
+    }
+
+    /// #2541 — a malformed or injected status cannot smuggle document content
+    /// into the header; it degrades to `unknown` instead.
+    #[test]
+    fn preview_status_header_falls_back_for_injected_content() {
+        let injected = "fresh\r\nX-Document: <html>secret</html>";
+        assert_eq!(
+            preview_status_header(injected),
+            HeaderValue::from_static("unknown")
+        );
     }
 
     #[test]
@@ -272,9 +337,7 @@ mod tests {
         assert_eq!(body["status"].as_str(), Some("unknown"));
         assert_eq!(body["reason"].as_str(), Some("unknown"));
         assert_eq!(body["live"].as_bool(), Some(false));
-        assert_eq!(
-            preview_status_header("interrupted_by_restart"),
-            HeaderValue::from_static("interrupted_by_restart")
-        );
+        // An explicit `unknown` reason is indistinguishable from a missing one.
+        assert_eq!(status_body(Some("unknown"), "abc"), body);
     }
 }
