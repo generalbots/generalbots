@@ -215,11 +215,11 @@
   // downloads through the native Save dialog; the web build keeps the plain
   // anchor fallback.
   function isDesktop() {
-    return !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+    return !!(window.GBTAURI || window.__TAURI_INTERNALS__);
   }
 
   function tauriInvoke(command, args) {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.core && typeof tauri.core.invoke === "function") {
       return tauri.core.invoke(command, args);
     }

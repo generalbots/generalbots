@@ -121,7 +121,7 @@
 
   document.addEventListener("gb:shell-recovery", function () { recovery(); });
   function initTauri() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.event && typeof tauri.event.listen === "function") {
       tauri.event.listen("gb-shell-recovery", function () { recovery(); });
     }

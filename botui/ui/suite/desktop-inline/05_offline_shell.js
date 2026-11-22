@@ -4,7 +4,7 @@
             // (the splash) with the cached desktop. Remove one left behind by
             // an earlier version instead.
             if ("serviceWorker" in navigator) {
-                if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+                if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
                     navigator.serviceWorker.getRegistrations().then(function (registrations) {
                         registrations.forEach(function (registration) { registration.unregister(); });
                     }).catch(function (err) {

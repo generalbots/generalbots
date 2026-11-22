@@ -30,7 +30,7 @@ const PowerMenu = (() => {
    *  Emitting a named event is a no-op when no native listener is attached. */
   function emitShell(name) {
     try {
-      var tauri = window.__TAURI__;
+      var tauri = window.GBTAURI;
       if (!tauri || !tauri.event || typeof tauri.event.emit !== "function") return;
       var result = tauri.event.emit(name, {});
       if (result && typeof result.catch === "function") {
@@ -254,7 +254,7 @@ const PowerMenu = (() => {
   function init() {
     if (initialized || typeof window === "undefined") return;
     initialized = true;
-    const tauri = window.__TAURI__;
+    const tauri = window.GBTAURI;
     if (tauri && tauri.event && typeof tauri.event.listen === "function") {
       tauri.event.listen("gb-power-menu", function () { open(); });
     }

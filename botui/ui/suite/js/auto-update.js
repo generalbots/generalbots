@@ -43,11 +43,11 @@
   var lastInfo = null;
 
   function isDesktop() {
-    return !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+    return !!(window.GBTAURI || window.__TAURI_INTERNALS__);
   }
 
   function invoke(command, args) {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.core && typeof tauri.core.invoke === "function") {
       return tauri.core.invoke(command, args);
     }
@@ -339,7 +339,7 @@
   }
 
   function readAppVersion() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (!tauri || !tauri.app || typeof tauri.app.getVersion !== "function") return;
     tauri.app
       .getVersion()

@@ -9,7 +9,7 @@
   }
 
   function invoke(kind, enabled) {
-    var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+    var tauri = window.GBTAURI || window.__TAURI_INTERNALS__;
     var invokeFn = tauri && (tauri.invoke || (tauri.core && tauri.core.invoke));
     if (typeof invokeFn === "function") {
       return invokeFn("set_media_permission", { kind: kind, enabled: enabled });

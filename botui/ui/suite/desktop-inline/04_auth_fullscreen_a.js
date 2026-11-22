@@ -265,7 +265,7 @@
                         // IPC exists for the suite origin) so it closes only
                         // once nothing is left to load, then drop the in-page
                         // boot splash too.
-                        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+                        if (window.__TAURI_INTERNALS__ || window.GBTAURI) {
                             try {
                                 window.history.replaceState(null, "", "#gb-boot-ready");
                             } catch (hashError) { /* keep the current URL */ }

@@ -10,7 +10,7 @@
 
 (function () {
   function tauriMediaCapabilities() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.core && typeof tauri.core.invoke === "function") {
       return tauri.core.invoke("wizard_media_capabilities");
     }
@@ -124,7 +124,7 @@
     var group = ensureMediaFeatures();
     if (!group) return;
     var task;
-    if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
+    if (window.GBTAURI || window.__TAURI_INTERNALS__) {
       task = tauriMediaCapabilities()
         .then(function (payload) {
           if (!payload) return null;

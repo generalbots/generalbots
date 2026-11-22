@@ -51,7 +51,7 @@
   });
 
   function init() {
-    var tauri = window.__TAURI__;
+    var tauri = window.GBTAURI;
     if (tauri && tauri.event && typeof tauri.event.listen === "function") {
       tauri.event.listen("gb-restarting", function (payload) {
         show(payload && payload.message);
