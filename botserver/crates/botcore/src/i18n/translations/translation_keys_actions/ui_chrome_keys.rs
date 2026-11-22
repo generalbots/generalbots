@@ -194,6 +194,27 @@ pub(super) const KEYS: &[&str] = &[
     "weba-error",
     // #2324 — high-contrast theme
     "theme-high-contrast",
+    // #2522/#2548 — import notices and CRM revenue
+    "file-macros-removed",
+    "error-file-password-protected",
+    "crm-revenue-detail",
+    "crm-revenue-influenced",
+    "crm-revenue-unattributed",
+    "crm-revenue-unavailable",
+    // #2470 — data protection status
+    "os-data-protection-title",
+    "os-data-protection-hint",
+    "os-data-encryption",
+    "os-data-backup",
+    "os-data-export-status",
+    "os-data-reset-status",
+    "os-data-not-implemented",
+    "os-data-retention",
+    "os-data-honesty",
+    "os-data-export",
+    "os-data-export-title",
+    "os-data-reset",
+    "os-data-reset-title",
     // #2501 — approvals workflow
     "approvals-title",
     "approvals-subtitle",

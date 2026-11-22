@@ -8,6 +8,7 @@ pub mod admin_types;
 pub mod analytics;
 pub mod basic_events;
 pub mod enums;
+pub mod memory_admission;
 pub mod memory_monitor;
 pub mod models;
 pub mod schema;

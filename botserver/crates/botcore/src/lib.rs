@@ -30,6 +30,10 @@ pub mod export;
 pub use shared::state::AppState;
 pub use shared::utils::DbPool;
 pub use shared::enums::*;
+pub use shared::memory_admission::{
+    AdmissionError, AdmissionPermit, AdmissionSnapshot, CgroupMemory, CgroupSource, ClassPolicy,
+    MemoryAdmission, MemoryPolicy, WorkClass,
+};
 pub use shared::memory_monitor::*;
 pub use shared::models::*;
 pub use config::ConfigManager;
