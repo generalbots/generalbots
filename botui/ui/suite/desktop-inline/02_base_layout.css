@@ -28,7 +28,7 @@
             }
 
             /* ── Fullscreen Mode ── */
-            body.fullscreen .chat-sidebar { display: none !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .chat-sidebar { display: none !important; }
 
             /* Anonymous visitors on PUBLIC bots: sidebar stays visible (Sign in,
                theme, new chat), only management sections are hidden. The
@@ -43,33 +43,33 @@
             .chat-sidebar.anon-limited .chat-sidebar-section-label { display: none !important; }
             .chat-sidebar.anon-limited #chatConversations { display: none !important; }
             .chat-sidebar.anon-limited #sidebarUser { display: flex !important; }
-            body.fullscreen .toolbar-v15 { display: none !important; }
-            body.fullscreen .workspace-v15 { height: 100vh !important; height: 100dvh !important; }
-            body.fullscreen .main-wrapper { height: 100vh !important; height: 100dvh !important; }
-            body.fullscreen .window-titlebar { display: none !important; }
-            body.fullscreen .window-element-glass,
-            body.fullscreen .window-element {
+            html:not([data-shell-mode="compact"]) body.fullscreen .toolbar-v15 { display: none !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .workspace-v15 { height: 100vh !important; height: 100dvh !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .main-wrapper { height: 100vh !important; height: 100dvh !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .window-titlebar { display: none !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .window-element-glass,
+            html:not([data-shell-mode="compact"]) body.fullscreen .window-element {
                 border: none !important; border-radius: 0 !important;
                 box-shadow: none !important;
                 top: 0 !important; left: 0 !important;
                 width: 100% !important; height: 100% !important;
             }
-            body.fullscreen .window-element-glass > div:first-child,
-            body.fullscreen .window-element > div:first-child { display: none !important; }
+            html:not([data-shell-mode="compact"]) body.fullscreen .window-element-glass > div:first-child,
+            html:not([data-shell-mode="compact"]) body.fullscreen .window-element > div:first-child { display: none !important; }
 
             /* ── Public Bot Mode ── */
-            body.public-mode .chat-sidebar { /* sidebar always visible */ }
-            body.public-mode .workspace-v15 { height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; }
-            body.public-mode .window-element-glass,
-            body.public-mode .window-element {
+            html:not([data-shell-mode="compact"]) body.public-mode .chat-sidebar { /* sidebar always visible */ }
+            html:not([data-shell-mode="compact"]) body.public-mode .workspace-v15 { height: calc(100vh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; height: calc(100dvh - var(--gb-chrome-bottom, var(--taskbar-h, 30px)) - env(safe-area-inset-bottom, 0px)) !important; }
+            html:not([data-shell-mode="compact"]) body.public-mode .window-element-glass,
+            html:not([data-shell-mode="compact"]) body.public-mode .window-element {
                 border: none !important; border-radius: 0 !important;
                 box-shadow: none !important;
                 top: 0 !important; left: 0 !important;
                 width: 100% !important; height: 100% !important;
             }
-            body.public-mode .window-titlebar { }
-            body.public-mode .window-element-glass > div:first-child,
-            body.public-mode .window-element > div:first-child { display: none !important; }
+            html:not([data-shell-mode="compact"]) body.public-mode .window-titlebar { }
+            html:not([data-shell-mode="compact"]) body.public-mode .window-element-glass > div:first-child,
+            html:not([data-shell-mode="compact"]) body.public-mode .window-element > div:first-child { display: none !important; }
 
             .public-signup-cta {
                 display: flex; align-items: center; justify-content: space-between;

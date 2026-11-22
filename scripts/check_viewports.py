@@ -218,7 +218,7 @@ class TabSession:
         except ImportError as error:
             raise RuntimeError("websocket-client is required for CDP runs") from error
         try:
-            self._ws = websocket.create_connection(ws_url, timeout=20, suppress_origin=True)
+            self._ws = websocket.create_connection(ws_url, timeout=60, suppress_origin=True)
         except Exception as error:
             raise RuntimeError(f"CDP websocket connect failed: {error}") from error
         self._next_id = 0
