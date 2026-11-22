@@ -35,8 +35,8 @@ test("[BASELINE-OBSERVE] desktop.html: 98 script tags, 97 src, 97 blocking, 1 in
   equal(d.deferAsync, 0, "deferAsync");
 });
 
-test("[BASELINE-OBSERVE] desktop.html: 40 stylesheet links", function () {
-  equal(measure(DESKTOP).stylesheet, 40, "stylesheet");
+test("[BASELINE-OBSERVE] desktop.html: 41 stylesheet links", function () {
+  equal(measure(DESKTOP).stylesheet, 41, "stylesheet");
 });
 
 test("[BASELINE-OBSERVE] partials/chat.html: 56 script tags, 55 src, 42 blocking, 1 inline, 13 defer/async", function () {
@@ -62,13 +62,13 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1128 scripts, 1072 src, 1059 blocking, 56 inline, 381 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1128 scripts, 1072 src, 1059 blocking, 56 inline, 382 stylesheets, 13 defer/async", function () {
   var t = all().total;
   equal(t.scripts, 1128, "scripts");
   equal(t.scriptSrc, 1072, "scriptSrc");
   equal(t.blockingScriptSrc, 1059, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
-  equal(t.stylesheet, 381, "stylesheet");
+  equal(t.stylesheet, 382, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
 });
 
@@ -85,14 +85,14 @@ test("[BASELINE-OBSERVE] entry-page graph is a subset of the suite-wide graph", 
     "script tag decomposition is inconsistent");
 });
 
-test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 97/40 and 42/22", function () {
+test("[BASELINE-OBSERVE] issue-era figures (86/32 desktop, 81/19 chat) drifted from today's 97/41 and 42/22", function () {
   var d = measure(DESKTOP);
   var c = measure(CHAT);
   assert(d.blockingScriptSrc !== 86 || d.stylesheet !== 32,
     "desktop counts unexpectedly match the 2025 issue snapshot exactly");
   assert(c.blockingScriptSrc !== 81 || c.stylesheet !== 19,
     "chat counts unexpectedly match the 2025 issue snapshot exactly");
-  assert(d.blockingScriptSrc === 97 && d.stylesheet === 40 &&
+  assert(d.blockingScriptSrc === 97 && d.stylesheet === 41 &&
          c.blockingScriptSrc === 42 && c.stylesheet === 22,
     "current measured counts changed — update this observation deliberately");
 });

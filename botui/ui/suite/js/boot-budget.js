@@ -74,6 +74,7 @@
       "/suite/js/power-menu.js?v=3",
       // #2450 — branded restart/recovery surface for kiosk webview restarts.
       "/suite/js/restarting-screen.js?v=1",
+      "/suite/js/os-recovery.js?v=4",
       "/suite/js/spotlight.js?v=1"
     ],
     chat: [

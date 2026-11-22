@@ -29,6 +29,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/storage", get(storage))
         .route("/api/os/users", get(users))
         .route("/api/os/diagnostics", get(diagnostics))
+        .route("/api/os/diagnostics/bundle", get(diagnostics_bundle))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -156,6 +157,67 @@ async fn diagnostics(
     })))
 }
 
+/// Redact common secret shapes before a diagnostics bundle leaves the host.
+/// Deliberately conservative: it is better to over-redact than to leak.
+fn redact(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut skip = false;
+    let lower = text.to_ascii_lowercase();
+    for (i, ch) in text.char_indices() {
+        if !skip {
+            let tail = &lower[i..];
+            if tail.starts_with("token") || tail.starts_with("password") ||
+               tail.starts_with("secret") || tail.starts_with("api_key") ||
+               tail.starts_with("apikey") || tail.starts_with("authorization") {
+                skip = true;
+                out.push_str("[REDACTED]");
+                continue;
+            }
+        }
+        if ch == '\n' { skip = false; }
+        if skip { continue; }
+        out.push(ch);
+    }
+    // Bearer tokens and JWTs anywhere in the text.
+    let mut result = out;
+    for marker in ["Bearer ", "gb_", "eyJ"] {
+        if let Some(pos) = result.find(marker) {
+            let end = result[pos..].find(char::is_whitespace)
+                .map(|n| pos + n).unwrap_or(result.len());
+            result.replace_range(pos..end, "[REDACTED]");
+        }
+    }
+    result
+}
+
+/// #2468 — one-click, downloadable diagnostics bundle with secrets redacted.
+async fn diagnostics_bundle(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let log = read_log_tail();
+    let bundle = json!({
+        "generated_at": chrono::Utc::now().to_rfc3339(),
+        "os": redact(&format!("{} · {} · {}", read_hostname(), read_os(), read_kernel())),
+        "hostname": redact(&read_hostname()),
+        "kernel": redact(&read_kernel()),
+        "uptime_seconds": read_uptime(),
+        "disks": read_disks(),
+        "botserver_log_tail": redact(&log),
+        "note": "Secrets (tokens, passwords, keys, bearer headers) are redacted."
+    });
+    Ok(Json(bundle))
+}
+
+fn read_log_tail() -> String {
+    let path = std::path::Path::new("/opt/gbo/logs/stdout.log");
+    match std::fs::read_to_string(path) {
+        Ok(text) => text.lines().rev().take(200).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n"),
+        Err(_) => "No host log available in this build.".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -202,5 +264,17 @@ mod tests {
             let mut config = botcore::product::PRODUCT_CONFIG.write().unwrap();
             config.shell_mode = false;
         }
+    }
+
+    #[test]
+    fn redaction_removes_tokens_and_passwords() {
+        let sample = "api_key=supersecret\npassword = hunter2\nAuthorization: Bearer gb_abc_123\nbearer eyJhbGciOiJIUzI1NiJ9.payload\nnormal line stays\n";
+        let redacted = redact(sample);
+        assert!(!redacted.contains("supersecret"), "api_key leaked: {redacted}");
+        assert!(!redacted.contains("hunter2"), "password leaked: {redacted}");
+        assert!(!redacted.contains("gb_abc_123"), "bearer token leaked: {redacted}");
+        assert!(!redacted.contains("eyJhbGciOiJIUzI1NiJ9"), "JWT leaked: {redacted}");
+        assert!(redacted.contains("normal line stays"), "ordinary text was removed");
+        assert!(redacted.matches("[REDACTED]").count() >= 4, "expected redaction markers");
     }
 }

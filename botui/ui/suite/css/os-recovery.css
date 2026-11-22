@@ -1,0 +1,53 @@
+/* #2468 — branded recovery surface + remote-support indicator. */
+
+#gb-recovery-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-blocker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text);
+}
+#gb-recovery-screen[hidden] { display: none; }
+.gb-recovery-card { text-align: center; max-width: min(540px, 90vw); padding: 32px; }
+.gb-recovery-logo {
+  width: 72px; height: 72px; margin: 0 auto 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 18px; background: var(--accent); color: var(--surface);
+  font-size: 26px; font-weight: 800;
+}
+.gb-recovery-card h1 { font-size: 26px; margin: 0 0 12px; }
+.gb-recovery-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.gb-recovery-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.gb-recovery-btn {
+  min-height: 44px; padding: 0 16px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface-hover); color: var(--text);
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+
+#osRemoteSupportIndicator {
+  display: inline-block;
+  min-height: 24px;
+  padding: 4px 10px;
+  margin-left: 10px;
+  border-radius: 999px;
+  background: var(--error, var(--accent));
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+#osRemoteSupportIndicator[hidden] { display: none; }
+
+body.gb-remote-support-active .taskbar-tray::after {
+  content: "";
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--error, var(--accent));
+  z-index: var(--z-blocker);
+}

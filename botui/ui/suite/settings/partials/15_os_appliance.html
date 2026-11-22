@@ -102,5 +102,17 @@
     <div class="card-header"><h2 data-i18n="os-diagnostics-status">Diagnostics status</h2></div>
     <p class="os-hint" data-i18n="os-diagnostics-readonly">Diagnostic collection is read-only and depends on the OS diagnostics backend.</p>
     <div id="os-diagnostics-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row">
+      <button type="button" id="osDownloadDiagnostics" class="btn" onclick="window.GBDiagnostics && GBDiagnostics.download()" data-i18n="os-diagnostics-download">Download diagnostics bundle</button>
+    </div>
+    <div class="setting-row">
+      <label for="osRemoteSupport" data-i18n="os-remote-support">Remote support (time-boxed)</label>
+      <select id="osRemoteSupport" aria-label="Remote support" onchange="window.GBDiagnostics && GBDiagnostics.setRemoteSupport(this.value)">
+        <option value="off" data-i18n="os-remote-support-off">Off</option>
+        <option value="15" data-i18n="os-remote-support-15">15 minutes</option>
+        <option value="30" data-i18n="os-remote-support-30">30 minutes</option>
+      </select>
+      <span id="osRemoteSupportIndicator" role="status" aria-live="polite" hidden></span>
+    </div>
   </div>
 </section>
