@@ -170,6 +170,7 @@ mod tests {
     #[test]
     fn plaintext_config_leaves_all_urls_untouched() {
         let plain = config("plaintext", "plaintext-disabled");
+        assert!(!requires_tls(&plain));
         let url = "postgres://user:pass@host:5432/db";
         assert_eq!(secure_database_url(url, &plain), url);
         assert_eq!(
@@ -181,12 +182,23 @@ mod tests {
             "http://service:8080"
         );
         assert!(ClientTlsPaths::from_config(&plain).is_none());
+        let default = MtlsConfig::default();
+        assert!(!requires_tls(&default));
+        assert_eq!(secure_database_url(url, &default), url);
+        assert_eq!(
+            secure_http_url("http://service:8080", &default),
+            "http://service:8080"
+        );
     }
 
     #[test]
     fn server_tls_forces_verified_database_url_without_client_cert() {
         let secure = config("mtls", "server-tls");
         let url = secure_database_url("postgres://user:pass@host:5432/db", &secure);
+        assert_eq!(
+            url, "postgres://user:pass@host:5432/db?sslmode=verify-full&sslrootcert=/vault/ca.pem",
+            "credentials preserved, sslmode=verify-full and sslrootcert appended"
+        );
         assert!(url.contains("sslmode=verify-full"));
         assert!(url.contains("sslrootcert=/vault/ca.pem"));
         assert!(!url.contains("sslcert="));
@@ -219,9 +231,14 @@ mod tests {
     #[test]
     fn cache_and_http_urls_upgrade_scheme_only() {
         let secure = config("mtls", "server-tls");
+        assert!(requires_tls(&secure));
         assert_eq!(
             secure_cache_url("redis://:secret@cache:6379/2", &secure),
             "rediss://:secret@cache:6379/2"
+        );
+        assert_eq!(
+            secure_cache_url("redis://appuser:apppass@cache:6379/2", &secure),
+            "rediss://appuser:apppass@cache:6379/2"
         );
         assert_eq!(
             secure_http_url("http://service.internal:8080/api", &secure),
@@ -244,6 +261,50 @@ mod tests {
             TransportMode::MutualTls
         );
         assert!(!requires_tls(&config("mtls", "cert-provisioning")));
+        assert!(!requires_tls(&config("plaintext", "plaintext-disabled")));
+        assert!(requires_tls(&config("mtls", "server-tls")));
+        assert!(requires_tls(&config("mtls", "client-cert-verification")));
+        assert!(requires_tls(&config("mtls", "plaintext-disabled")));
+        assert!(ClientTlsPaths::from_config(&config("mtls", "cert-provisioning")).is_none());
+    }
+
+    #[test]
+    fn validation_errors_never_leak_certificate_paths_or_bytes() {
+        let sentinel = "/tmp/gb-mtls-SECRET-MARKER/ca.pem";
+        let secret_bytes = "-----BEGIN CERTIFICATE-----\nSECRET\n-----END CERTIFICATE-----";
+
+        let mut missing = BTreeMap::new();
+        missing.insert("mtls_mode".to_string(), "mtls".to_string());
+        missing.insert("mtls_stage".to_string(), "server-tls".to_string());
+        let message = match MtlsConfig::from_sources(&missing, &BTreeMap::new()).validate() {
+            Ok(()) => "unexpectedly valid".to_string(),
+            Err(error) => error.to_string(),
+        };
+        assert!(message.contains("ca_cert"), "{message}");
+        assert!(message.contains("server_cert"), "{message}");
+        assert!(!message.contains('/'), "{message}");
+        assert!(!message.contains(secret_bytes), "{message}");
+
+        let mut bad_file = BTreeMap::new();
+        bad_file.insert("mtls_mode".to_string(), "mtls".to_string());
+        bad_file.insert("mtls_stage".to_string(), "server-tls".to_string());
+        bad_file.insert("mtls_ca_cert".to_string(), sentinel.to_string());
+        bad_file.insert(
+            "mtls_server_cert".to_string(),
+            "/definitely/not/a/generalbots/server.pem".to_string(),
+        );
+        bad_file.insert(
+            "mtls_server_key".to_string(),
+            "/definitely/not/a/generalbots/server.key".to_string(),
+        );
+        let message = match MtlsConfig::from_sources(&bad_file, &BTreeMap::new()).validate() {
+            Ok(()) => "unexpectedly valid".to_string(),
+            Err(error) => error.to_string(),
+        };
+        assert!(message.starts_with("mTLS "), "{message}");
+        assert!(!message.contains(sentinel), "{message}");
+        assert!(!message.contains("SECRET-MARKER"), "{message}");
+        assert!(!message.contains(secret_bytes), "{message}");
     }
 
     #[test]
