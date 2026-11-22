@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn over_upload_cap_maps_to_413() {
-        let big_gate = make_gate(4096);
+        let gate = make_gate(4096);
         let result = gate.try_admit(WorkClass::DocsImport, 26 * MIB);
         assert!(result.is_err(), "26 MiB must exceed the 25 MiB Docs cap");
         if let Err(error) = result {
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn busy_class_maps_to_429_with_retry_hint() {
-        let big_gate = make_gate(4096);
+        let gate = make_gate(4096);
         let first = gate.try_admit(WorkClass::OfficeExport, MIB);
         assert!(first.is_ok());
         if let Ok(permit) = first {
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn snapshot_exposes_ceiling_and_queue_state() {
-        let big_gate = make_gate(4096);
+        let gate = make_gate(4096);
         let snapshot = gate.snapshot();
         assert_eq!(snapshot.cgroup_limit_bytes, 4096 * MIB);
         assert_eq!(snapshot.request_budget_bytes, 1536 * MIB);
@@ -124,14 +124,14 @@ mod tests {
 
     #[tokio::test]
     async fn async_admission_maps_errors_and_holds_a_permit() {
-        let big_gate = make_gate(4096);
-        let admitted = admit_on(&big_gate, WorkClass::DocsImport, 4 * MIB, Some("tenant-1")).await;
+        let gate = make_gate(4096);
+        let admitted = admit_on(&gate, WorkClass::DocsImport, 4 * MIB, Some("tenant-1")).await;
         assert!(admitted.is_ok());
         if let Ok(permit) = admitted {
             assert_eq!(permit.class(), WorkClass::DocsImport);
             assert_eq!(gate.snapshot().active[0], 1);
         }
-        let refused = admit_on(&big_gate, WorkClass::DocsImport, 26 * MIB, Some("tenant-1")).await;
+        let refused = admit_on(&gate, WorkClass::DocsImport, 26 * MIB, Some("tenant-1")).await;
         assert!(refused.is_err());
         if let Err(rejection) = refused {
             assert_eq!(rejection.0, StatusCode::PAYLOAD_TOO_LARGE);
@@ -191,12 +191,12 @@ mod tests {
         const SECRET_BODY: &str = "employee salaries are confidential";
         const SECRET_TENANT: &str = "tenant-acme-corp-007";
 
-        let big_gate = make_gate(4096);
-        let small_gate = make_gate(1024);
+        let gate = make_gate(4096);
+        let small = make_gate(1024);
 
-        let too_large = admit_on(&big_gate, WorkClass::DocsImport, 26 * MIB, Some(SECRET_TENANT)).await;
+        let too_large = admit_on(&gate, WorkClass::DocsImport, 26 * MIB, Some(SECRET_TENANT)).await;
         let out_of_budget = admit_on(
-            &small_gate,
+            &small,
             WorkClass::SheetsImport,
             25 * MIB,
             Some(SECRET_TENANT),

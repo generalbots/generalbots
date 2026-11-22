@@ -297,20 +297,22 @@ mod tests {
 
     #[test]
     fn a_new_route_under_an_allowlisted_prefix_is_not_anonymous() {
-        // The old prefix model made every one of these anonymous.
         assert!(!is_public(Method::GET, "/api/auth/directory-config"));
         assert!(!is_public(Method::GET, "/api/auth/me/extra"));
         assert!(!is_public(Method::GET, "/api/products/items/x/stock"));
-        // The products namespace is authenticated in full (#2128); the public
-        // storefront reads `/api/catalog/products`.
         assert!(!is_public(Method::GET, "/api/products/items"));
-        assert!(!is_public(Method::GET, "/api/products/items/00000000-0000-0000-0000-000000000000"));
+        assert!(!is_public(
+            Method::GET,
+            "/api/products/items/00000000-0000-0000-0000-000000000000"
+        ));
         assert!(!is_public(Method::GET, "/api/sheet/list"));
         assert!(!is_public(Method::GET, "/api/ui/sheet/fragments/sheet-list"));
         assert!(!is_public(Method::GET, "/api/cloud/auth/anything"));
         assert!(!is_public(Method::GET, "/api/bots/foo/config"));
-        // A server-rendered route under the `/suite` asset tree stays private.
-        assert!(!is_public(Method::GET, "/suite/sheet/fragments/sheet-list"));
+        assert!(!is_public(
+            Method::GET,
+            "/suite/sheet/fragments/sheet-list"
+        ));
         assert!(!is_public(Method::GET, "/suite/dashboards"));
     }
 
@@ -321,7 +323,7 @@ mod tests {
         assert!(!is_public(Method::DELETE, "/api/products/items/:id"));
         assert!(!is_public(Method::POST, "/api/products/items/x/stock"));
         assert!(!is_public(Method::PUT, "/api/products/items/x/stock"));
-        // Every other products write stays authenticated too (#2128).
+        // #2128 — every products write stays authenticated.
         assert!(!is_public(Method::POST, "/api/products/services"));
         assert!(!is_public(Method::PUT, "/api/products/services/x"));
         assert!(!is_public(Method::DELETE, "/api/products/services/x"));
@@ -341,35 +343,37 @@ mod tests {
         assert!(is_public(Method::GET, "/health"));
         assert!(is_public(Method::GET, "/api/health"));
         assert!(is_public(Method::GET, "/api/product"));
-        // Login/signup are explicit credential entry points.
         assert!(is_public(Method::POST, "/api/auth/login"));
         assert!(is_public(Method::POST, "/api/auth/refresh"));
         assert!(is_public(Method::POST, "/api/auth/bootstrap"));
         assert!(is_public(Method::POST, "/api/cloud/auth/login"));
         assert!(is_public(Method::POST, "/api/cloud/auth/signup"));
-        // Provider webhooks remain reachable so the signature check can run.
         assert!(is_public(Method::POST, "/api/whatsapp/webhook"));
         assert!(is_public(Method::GET, "/api/whatsapp/webhook"));
         assert!(is_public(Method::POST, "/api/msteams/messages"));
         assert!(is_public(Method::POST, "/webhook/telegram/acme"));
-        // Public catalog reads remain public; the products API does not.
         assert!(is_public(Method::GET, "/api/catalog/products"));
-        assert!(!is_public(Method::GET, "/api/products/items"));
-        // Static UI files are public; server fragments are not.
         assert!(is_public(Method::GET, "/suite/desktop.html"));
         assert!(is_public(Method::GET, "/suite/sheet/sheet.js"));
         assert!(is_public(Method::GET, "/themes/dark.css"));
+        assert!(is_public(Method::HEAD, "/health"));
+        assert!(is_public(Method::HEAD, "/suite/desktop.html"));
     }
 
     #[test]
     fn event_sockets_are_capabilities_and_replay_is_not_anonymous() {
-        // #2503 — the socket handlers verify their own tokens, so they are
-        // capabilities; the replay API has no such gate. Other chat sockets stay public.
+        // #2503 — the socket handlers verify their own tokens, so the routes
+        // are capabilities; the replay API has no such gate. Other chat sockets
+        // stay public while the monitoring stream stays authenticated.
+        let declarations = platform_public_routes();
         for path in ["/ws/events", "/ws/events/stream"] {
             assert!(is_public(Method::GET, path), "{path}");
-            assert!(platform_public_routes().into_iter().any(|r| {
-                r.access == PublicAccess::Capability && r.matches(&Method::GET, path)
-            }), "{path}");
+            assert!(
+                declarations.iter().any(|r| {
+                    r.access == PublicAccess::Capability && r.matches(&Method::GET, path)
+                }),
+                "{path}"
+            );
         }
         assert!(!is_public(Method::POST, "/api/events/replay"));
         assert!(is_public(Method::GET, "/ws/acme"));
@@ -379,7 +383,7 @@ mod tests {
 
     #[test]
     fn email_tracking_routes_are_anonymous_only_in_their_declared_shapes() {
-        // Pixel and click redirect stay anonymous (#2139), only in declared shapes.
+        // #2139 — a mail client cannot send a bearer token; only declared shapes.
         assert!(is_public(Method::GET, "/api/marketing/track/open/abc"));
         let click = "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11";
         assert!(is_public(Method::GET, click));
@@ -388,18 +392,11 @@ mod tests {
             Method::GET,
             "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11/https://evil.example"
         ));
-        // Nothing else under the prefix is public, and no write is.
         assert!(!is_public(Method::GET, "/api/marketing/track/open"));
         assert!(!is_public(Method::GET, "/api/marketing/track/click"));
         assert!(!is_public(Method::GET, "/api/marketing/track/open/abc/extra"));
         assert!(!is_public(Method::GET, "/api/marketing/campaigns"));
         assert!(!is_public(Method::POST, click));
-    }
-
-    #[test]
-    fn a_head_request_follows_its_get_declaration() {
-        assert!(is_public(Method::HEAD, "/health"));
-        assert!(is_public(Method::HEAD, "/suite/desktop.html"));
     }
 
     #[test]
@@ -413,8 +410,7 @@ mod tests {
 
     #[test]
     fn the_integrations_catalog_requires_authentication() {
-        // #2351 — the catalog exposes auth profiles and credential schemas,
-        // so it must never be reachable anonymously.
+        // #2351 — the catalog exposes auth profiles and credential schemas.
         assert!(!is_public(Method::GET, "/api/apps/integrations/catalog"));
         assert!(!is_public(Method::GET, "/api/apps/integrations/catalog/github"));
         assert!(!is_public(Method::POST, "/api/apps/integrations/catalog"));
@@ -422,10 +418,8 @@ mod tests {
 
     #[test]
     fn a_docs_share_link_is_a_read_only_capability() {
-        // #2253 — an anonymous reader opens the document through its token.
         assert!(is_public(Method::GET, "/api/docs/shared/abcd"));
         assert!(!is_public(Method::GET, "/api/docs/shared/abcd/extra"));
-        // The link grants a view only: every write path stays authenticated.
         assert!(!is_public(Method::POST, "/api/docs/shared/abcd"));
         assert!(!is_public(Method::PUT, "/api/docs/shared/abcd"));
         assert!(!is_public(Method::DELETE, "/api/docs/shared/abcd"));
@@ -437,8 +431,8 @@ mod tests {
     #[test]
     fn every_declaration_is_valid() {
         // A short list means a declaration was silently refused.
-        let count = platform_public_routes().len();
-        assert!(count > 40, "declarations were refused: {count}");
+        let routes = platform_public_routes();
+        assert!(routes.len() > 40, "declarations were refused");
         for route in &routes {
             assert!(route.pattern.starts_with('/'));
             assert!(route.access.allows_method(&route.method));
