@@ -21,5 +21,17 @@ var shell = path.join(root, "botui", "ui", "suite", "js", "sidebar-apps.js");
 var start = path.join(root, "botui", "ui", "suite", "js", "window-manager", "05_start_menu.js");
 check("sidebar renders unavailable reason", fs.readFileSync(shell, "utf8").indexOf("unavailable_reason") >= 0);
 check("start menu renders unavailable reason", fs.readFileSync(start, "utf8").indexOf("unavailable_reason") >= 0);
+// Audit every app in .product.desktop-local apps= against the registry.
+var product = fs.readFileSync(path.join(root, "botserver", ".product.desktop-local"), "utf8");
+var appsLine = (product.match(/^apps=([^\n]*)/m) || [])[1] || "";
+var apps = appsLine.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+var registrySrc = fs.readdirSync(path.join(root, "botserver", "src", "apps", "registry"))
+  .filter(function (f) { return /^entries.*\.rs$/.test(f); })
+  .map(function (f) { return fs.readFileSync(path.join(root, "botserver", "src", "apps", "registry", f), "utf8"); })
+  .join("\n");
+check("desktop-local apps= is non-empty", apps.length > 0);
+apps.forEach(function (id) {
+  check("app " + id + " has a registry URL", registrySrc.indexOf('"' + id + '"') >= 0 || registrySrc.indexOf("id: \"" + id + "\"") >= 0);
+});
 console.log("TOTAL: " + (pass+fail) + " | PASS: " + pass + " | FAIL: " + fail);
 process.exitCode = fail === 0 ? 0 : 1;
