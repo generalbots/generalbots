@@ -142,6 +142,113 @@ To keep metrics from a stack that used the old `influxdb` directories:
 3. Start `timeseries_db`, confirm its `/health` check passes, then start
    `observability`, which depends on it.
 
+## Install acceptance harness
+
+The component install UAT is a fragmented shell harness. `scripts/uat_install.sh`
+is a dispatcher: each `step` runs one small script from `desktop/os/tests/`,
+prints the state it observed, records one result line and stops. `plan` prints
+the recommended one-command-at-a-time order without running anything; `report`
+aggregates the results into a verdict.
+
+This is a **live** harness and the evidence source for the full-install,
+service-health, login and regression items of #2582. It never reports PASS from
+an offline or development session: every live step first requires
+`UAT_TARGET_HOST=1`, an `incus` CLI and a `botserver` binary under test,
+otherwise it records `UNVERIFIED` and exits 3. Containers are handled only by
+`incus`.
+
+### Preconditions
+
+| Requirement | How to supply it |
+|---|---|
+| Explicit target-host opt-in | `UAT_TARGET_HOST=1` |
+| Container layer | `incus` on `PATH`, already initialized on the host |
+| Binary under test | `UAT_BOTSERVER=/path/to/botserver`, or `botserver` on `PATH` |
+| Login credentials | `UAT_LOGIN_USER` and `UAT_LOGIN_PASSWORD` in the operator's environment; never stored in the harness or its results |
+| Source checkout for step 22 | `UAT_SOURCE_ROOT`, defaulting to the repository containing the harness |
+| Evidence directory | `UAT_RESULTS_DIR`, default `/tmp/opencode/uat-install` (created mode `0700`); use a fresh directory per target host |
+| Clean stage host | No pre-existing `<tenant>-<component>` Incus containers; `UAT_TENANT` defaults to `default` |
+
+The plan installs `vault` and `tables` before their dependents and
+`timeseries_db` before `observability`. `botserver install` also resolves
+missing dependencies itself (`botcore/src/package_manager/facade/install.rs`,
+`install`). `table_editor`, `webmail` and `news` are out of scope and are never
+installed; step 24 asserts that `table_editor` has no registry entry and no
+container.
+
+### Running one action at a time
+
+```bash
+scripts/uat_install.sh plan                       # print order, no side effects
+scripts/uat_install.sh preflight                  # target-host preconditions
+scripts/uat_install.sh step 01                    # live component registry
+scripts/uat_install.sh step 02 vault              # install ONE component
+scripts/uat_install.sh step 03 vault              # status of ONE component
+scripts/uat_install.sh step 04 vault 8200         # HTTP or TCP health probe
+scripts/uat_install.sh step 05                    # start all installed components
+scripts/uat_install.sh step 10                    # login page GET
+scripts/uat_install.sh step 11                    # authenticated login POST
+scripts/uat_install.sh step 20                    # remote_desktop regression
+scripts/uat_install.sh step 21                    # timeseries path regression
+scripts/uat_install.sh step 22                    # Incus-only host regression
+scripts/uat_install.sh step 23                    # devtools absence
+scripts/uat_install.sh step 24                    # table_editor absence
+scripts/uat_install.sh report                     # aggregate recorded evidence
+```
+
+Steps use loopback URLs (`http://localhost`) and never hardcode an address or a
+credential. Step 11 reads `UAT_LOGIN_USER`/`UAT_LOGIN_PASSWORD` from the
+environment, posts them on stdin and records only the HTTP status and the
+`success` flag — no token is printed or written to a result file.
+
+### Health probes used by the plan
+
+| Component | Probe | Registry source |
+|---|---|---|
+| `vault` | TCP 8200 | `installer_regs/register_secrets.rs` |
+| `tables` | TCP 5432 | `installer_regs/register_drive.rs` |
+| `cache` | TCP 6379 | `installer_regs/register_drive.rs` |
+| `drive` | TCP 9100 | `installer_regs/register_drive.rs` |
+| `llm` | TCP 8081 | `installer_regs/register_drive.rs` |
+| `email` | TCP 8025 | `installer_regs/register_drive.rs` |
+| `proxy` | TCP 80 | `installer_regs/register_drive.rs` |
+| `directory` | TCP 8300 | `installer_regs/register_directory.rs` |
+| `alm` | TCP 4747 | `installer_regs/register_directory.rs` |
+| `alm-ci`, `host` | status only (no listening port) | `installer_regs/register_directory.rs`, `register_observability.rs` |
+| `dns` | TCP 53 | `installer_regs/register_directory.rs` |
+| `meet` | TCP 7880 | `installer_regs/register_directory.rs` |
+| `vector_db` | TCP 6334 | `installer_regs/register_databases.rs` |
+| `timeseries_db` | HTTP `8086/health` | `installer_regs/register_databases.rs` |
+| `botmodels` | TCP 8085 | `installer_regs/register_botmodels.rs` |
+| `observability` | HTTP `8686/health` | `installer_regs/register_observability.rs` |
+| `remote_desktop` | TCP 3389 | `installer_regs/register_workspace.rs` |
+
+All registry paths are under `botserver/crates/botcorepkg/src/`. The probe
+numbers come from each registration's `ports` field and `check_cmd`.
+
+### Verdict and exit codes
+
+| Exit | Verdict | Meaning |
+|---|---|---|
+| 0 | `PASS` | Every required step has a live PASS row: install, status and health for all components, login, start and all five regressions |
+| 1 | `FAIL` | At least one live step recorded a failed assertion |
+| 3 | `UNVERIFIED` | Offline/dev session, missing precondition or missing evidence for at least one required step |
+| 2 | usage error | Unknown step or missing argument |
+
+A `FAIL` takes precedence over missing evidence. A static source inspection is
+not a substitute for a live step: step 22 combines its source assertion with a
+live Incus check and cannot pass offline.
+
+### Live-evidence requirements
+
+These items are established only by running the steps on the target host; a
+source-only review produces no evidence for them: per-component install,
+start and health; login page and authenticated API access; `remote_desktop`
+registered and running with no `remote_terminal` key; generic
+`timeseries` paths with no `influxdb` directories in the installed container;
+Incus-only host preparation; and the absence of `devtools` and `table_editor`
+from the live CLI and container lists.
+
 ## See Also
 
 - [config.csv Format](./config-csv.md) - Complete reference
