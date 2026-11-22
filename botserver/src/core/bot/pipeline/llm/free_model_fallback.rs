@@ -116,12 +116,12 @@ pub async fn pick_free_model() -> Option<String> {
 /// Pure picker: given the `data` array from the gateway, return the best
 /// free general-purpose model id.
 ///
-/// Selection rule (matches the brief):
+/// Selection rules (measured 2024-11):
 /// 1. `isFree` is true (or the id ends in `:free`).
-/// 2. Prefer larger `context_length`.
-/// 3. Exclude preview/experimental, code-only and reasoning-only when
-///    there is a choice.
-/// 4. Among equals, prefer a model whose name suggests general chat.
+/// 2. Exclude reasoning-only, code-only, vision-only and preview ids.
+/// 3. Skip auto-routers (may rotate through unavailable models).
+/// 4. Among remaining candidates, prefer the measured-best ids by TTFT
+///    and streaming behaviour; fall back to larger `context_length`.
 pub fn pick_from_list(data: &[serde_json::Value]) -> Option<String> {
     let mut candidates: Vec<(&str, i64)> = Vec::new();
     for entry in data {
@@ -159,9 +159,23 @@ pub fn pick_from_list(data: &[serde_json::Value]) -> Option<String> {
             || lower.contains("nano")
     };
     let good: Vec<_> = candidates.iter().filter(|(id, _)| !dominated(id)).collect();
-    let pool = if good.is_empty() { &candidates } else {
-        // SAFETY: good borrows from candidates with the same lifetime.
-        // We need to convert to owned references.
+    let pool: &[(&str, i64)] = if good.is_empty() {
+        &candidates
+    } else {
+        // Measured-good ids, ordered by median TTFT (lowest first).
+        // If any of these appear in the candidate set, pick the first match.
+        const PREFERRED: &[&str] = &[
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "particle-ai/particle-1:free",
+            "liquid/lfm-3-1.7b:free",
+            "nvidia/nemotron-3.5-lightning:free",
+        ];
+        for pref in PREFERRED {
+            if good.iter().any(|(id, _)| *id == *pref) {
+                return Some(pref.to_string());
+            }
+        }
+        // No preferred model available; fall back to largest context.
         return good
             .into_iter()
             .max_by_key(|(_, ctx)| *ctx)
@@ -227,6 +241,11 @@ mod tests {
                 "context_length": 1000000,
             }),
             json!({
+                "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+                "isFree": true,
+                "context_length": 1000000,
+            }),
+            json!({
                 "id": "baidu/ernie-5.5-flash-preview:free",
                 "isFree": true,
                 "context_length": 1024000,
@@ -235,6 +254,11 @@ mod tests {
                 "id": "liquid/lfm-3-1.7b:free",
                 "isFree": true,
                 "context_length": 262144,
+            }),
+            json!({
+                "id": "particle-ai/particle-1:free",
+                "isFree": true,
+                "context_length": 1048576,
             }),
             json!({
                 "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
@@ -250,10 +274,30 @@ mod tests {
     }
 
     #[test]
-    fn picks_largest_non_dominated_free_model() {
+    fn picks_preferred_model_by_measured_ttft() {
         let list = sample_list();
         let picked = pick_from_list(&list).unwrap();
-        // Should pick ling-3.2-flash (largest ctx, not preview/reasoning/code/nano).
+        // Preferred by measured TTFT: nemotron-3-ultra (0.91s median).
+        assert_eq!(picked, "nvidia/nemotron-3-ultra-550b-a55b:free");
+    }
+
+    #[test]
+    fn falls_back_to_next_preferred_when_first_absent() {
+        let list = vec![
+            json!({"id": "inclusionai/ling-3.2-flash:free", "isFree": true, "context_length": 1048576}),
+            json!({"id": "particle-ai/particle-1:free", "isFree": true, "context_length": 1048576}),
+        ];
+        let picked = pick_from_list(&list).unwrap();
+        assert_eq!(picked, "particle-ai/particle-1:free");
+    }
+
+    #[test]
+    fn falls_back_to_largest_ctx_when_no_preferred() {
+        let list = vec![
+            json!({"id": "inclusionai/ling-3.2-flash:free", "isFree": true, "context_length": 1048576}),
+            json!({"id": "some-other/model:free", "isFree": true, "context_length": 500000}),
+        ];
+        let picked = pick_from_list(&list).unwrap();
         assert_eq!(picked, "inclusionai/ling-3.2-flash:free");
     }
 

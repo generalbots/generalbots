@@ -73,7 +73,7 @@ fn is_loopback(url: &str) -> bool {
 
 /// The keyless free-tier endpoint shipped in the wizard defaults.
 pub const FREE_ENDPOINT: &str = "https://api.kilo.ai/api/gateway/chat/completions";
-pub const FREE_MODEL: &str = "inclusionai/ling-3.2-flash:free";
+pub const FREE_MODEL: &str = "nvidia/nemotron-3-ultra-550b-a55b:free";
 pub const FREE_PROVIDER: &str = "kilo";
 
 pub fn is_free_endpoint(url: &str) -> bool {

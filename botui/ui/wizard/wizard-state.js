@@ -60,7 +60,7 @@
   // free endpoint verified to follow the native vm_exec JSON protocol and to
   // return well-formed tool calls (OVH answers in prose, LLM7 requires a key).
   // The model id must match FREE_MODEL in botserver/crates/botsettings.
-  var FREE_MODEL_ID = "inclusionai/ling-3.2-flash:free";
+  var FREE_MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b:free";
   var FREE_PROVIDERS = [
     {
       id: "kilo",
