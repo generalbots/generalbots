@@ -580,6 +580,9 @@ jobs:
       # #2310 — one corrupt localStorage key used to throw inside the desktop
       # boot chain and leave the user with no way to clear it. Every JSON read
       # must go through gbStoreGet(), which self-heals and logs the dropped key.
+      - name: Tauri IPC hygiene guard (#2497)
+        run: python3 scripts/check-tauri-ipc-hygiene.py
+
       - name: LocalStorage read guard (#2310)
         run: |
           set -euo pipefail
