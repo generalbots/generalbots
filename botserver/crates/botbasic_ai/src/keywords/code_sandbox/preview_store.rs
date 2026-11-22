@@ -132,14 +132,16 @@ impl PreviewStore {
     pub fn insert(&self, hash: &str, html: &str, ttl_ms: u64, now_ms: u64) {
         let mut inner = self.lock();
         inner.sequence = inner.sequence.wrapping_add(1);
+        let seq = inner.sequence;
+        let boot_id = inner.boot_id;
         let entry = PreviewEntry {
             html: html.to_string(),
             created_at_ms: now_ms,
             ttl_ms,
-            boot_id: inner.boot_id,
+            boot_id,
         };
         let was_present = inner.entries.insert(hash.to_string(), entry).is_some();
-        inner.order.insert(hash.to_string(), inner.sequence);
+        inner.order.insert(hash.to_string(), seq);
         if was_present {
             return;
         }
