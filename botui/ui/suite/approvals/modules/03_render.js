@@ -115,11 +115,25 @@
       '</div>';
   }
 
+  function renderDelegate(record) {
+    var form = document.getElementById("apprDelegateForm");
+    if (!form) return;
+    var immutable = record && (record.status === "published" || record.status === "invalidated");
+    var disabled = !record || immutable;
+    form.querySelectorAll("input, button").forEach(function (el) { el.disabled = disabled; });
+    var status = document.getElementById("apprDelegateStatus");
+    if (status) {
+      status.textContent = "";
+      status.className = "gb-appr-status";
+    }
+  }
+
   function renderAll() {
     renderList(A.state.records);
     renderDetail(A.state.record);
     renderTrail(A.state.record);
     renderActions(A.state.record);
+    renderDelegate(A.state.record);
   }
 
   A.render = {

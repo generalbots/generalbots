@@ -89,3 +89,8 @@
 }
 .gb-appr-mono { font-family: ui-monospace, monospace; font-size: 10px; opacity: 0.8; }
 .gb-appr-actions-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gb-appr-delegate {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, var(--palette-334155));
+}

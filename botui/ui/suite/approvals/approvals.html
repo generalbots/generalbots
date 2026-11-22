@@ -51,6 +51,14 @@
       <h3 data-i18n="approvals-section-trail"></h3>
       <div id="apprTrail"></div>
       <div id="apprActions"></div>
+      <form id="apprDelegateForm" class="gb-appr-delegate" autocomplete="off">
+        <label for="apprDelegateTo" data-i18n="approvals-field-owner"></label>
+        <input id="apprDelegateTo" type="text" required />
+        <label for="apprDelegateReason" data-i18n="approvals-field-reason"></label>
+        <input id="apprDelegateReason" type="text" />
+        <button type="submit" class="gb-appr-btn" id="apprDelegateSubmit" data-i18n="approvals-action-create"></button>
+        <div id="apprDelegateStatus" class="gb-appr-status" role="status" aria-live="polite" aria-atomic="true"></div>
+      </form>
     </section>
   </div>
 </div>

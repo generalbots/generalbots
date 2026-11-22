@@ -181,6 +181,41 @@
     });
   }
 
+  function delegate(event) {
+    event.preventDefault();
+    var record = A.state.record;
+    var status = document.getElementById("apprDelegateStatus");
+    function result(message, isError) {
+      if (!status) return;
+      status.textContent = message;
+      status.className = "gb-appr-status" + (isError ? " gb-appr-error" : "");
+    }
+    if (!record) return Promise.resolve(null);
+    var to = value("apprDelegateTo");
+    if (!to) {
+      result(t("approvals-error-required"), true);
+      return Promise.resolve(null);
+    }
+    var from = value("apprActor") || record.owner || "";
+    var reason = value("apprDelegateReason");
+    return api.delegate(record.id, { from: from, to: to, reason: reason })
+      .then(function (payload) {
+        var updated = payload && payload.approval;
+        if (updated) A.state.record = updated;
+        var delegations = updated && updated.delegations;
+        var last = delegations && delegations.length ? delegations[delegations.length - 1] : null;
+        var message = last
+          ? t("approvals-field-owner") + ": " + last.to + " · " + A.statusLabel(updated.status)
+          : A.statusLabel(updated ? updated.status : record.status);
+        result(message, false);
+        return payload;
+      })
+      .catch(function (err) {
+        result(err.message, true);
+        return null;
+      });
+  }
+
   function onClick(event) {
     var target = event.target.closest ? event.target.closest("[data-action]") : null;
     if (!target) return;
@@ -202,6 +237,8 @@
     document.addEventListener("click", onClick);
     var form = document.getElementById("apprForm");
     if (form) form.addEventListener("submit", create);
+    var delegateForm = document.getElementById("apprDelegateForm");
+    if (delegateForm) delegateForm.addEventListener("submit", delegate);
     var refreshBtn = document.getElementById("apprRefresh");
     if (refreshBtn) refreshBtn.addEventListener("click", refresh);
     var sweepBtn = document.getElementById("apprSlaSweep");
