@@ -136,7 +136,9 @@
         }
     };
 
-    /* Turned on from the model menu when a subscription agent is picked. */
+    /* Called from the refusal card's "Ligar Agente" action so the
+       person can turn the agent on without reaching the toggle.
+       Writes the value to storage and syncs the UI. */
     A.setAgentEnabled = function (value) {
         writeStored(!!value);
         A.syncAgentToggle();

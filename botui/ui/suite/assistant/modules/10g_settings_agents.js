@@ -320,7 +320,7 @@ function bindRow(el, a) {
     use.addEventListener("click", function () {
       A.selectedModel = "sub:" + a.id;
       try { localStorage.setItem("gb-model-preference", A.selectedModel); } catch (e) { /* private window */ }
-      if (typeof A.setAgentEnabled === "function") { A.setAgentEnabled(true); }
+      if (typeof A.syncAgentToggle === "function") { A.syncAgentToggle(); }
       if (typeof A.renderModelPickers === "function") { A.renderModelPickers(); }
       if (typeof A.renderStatus === "function") { A.renderStatus(); }
       if (typeof A.switchView === "function") { A.switchView("chat"); }
