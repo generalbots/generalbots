@@ -89,7 +89,7 @@ fn a_plain_link_gains_the_created_record_id() {
     let link = build_deep_link(&verb, &Map::new(), &result)
         .expect("template resolves")
         .expect("template exists");
-    assert_eq!(link, "app://docs?file=doc-7");
+    assert_eq!(link, "app://docs?id=doc-7");
 }
 
 /// Without a record the bare app view stays the bare app view.
@@ -140,7 +140,7 @@ fn the_result_carries_the_resolved_navigation() {
     let result = serde_json::json!({ "id": "doc-9", "title": "Contrato" });
     let with_link = with_navigation("docs.create", &Map::new(), result);
     assert_eq!(with_link["id"], "doc-9");
-    assert_eq!(with_link["deep_link"], "app://docs?file=doc-9");
+    assert_eq!(with_link["deep_link"], "app://docs?id=doc-9");
     assert_eq!(with_link["navigate"], true);
 
     let without_link = with_navigation(

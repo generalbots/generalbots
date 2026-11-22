@@ -10,7 +10,7 @@ The production-readiness program ([#2121](https://github.com/generalbots/general
 | **FAIL** | the check ran and failed — a regression; CI fails |
 | **SKIP** | the gate does not exist yet — the row names the issue and what must land |
 
-Current run: **17 PASS · 0 FAIL · 0 SKIP** of 17 checks.
+Current run: **15 PASS · 2 FAIL · 0 SKIP** of 17 checks.
 
 ## Workstreams
 
@@ -25,7 +25,7 @@ Current run: **17 PASS · 0 FAIL · 0 SKIP** of 17 checks.
 | [#2117](https://github.com/generalbots/generalbots/issues/2117) | data(integrity): migrations, restore, tenancy | `data-restore` | **PASS** |
 | [#2118](https://github.com/generalbots/generalbots/issues/2118) | release(auto-bump): one version | `release-version` | **PASS** |
 | [#2119](https://github.com/generalbots/generalbots/issues/2119) | test(quality): ratchet, contracts, fuzzing | `test-guards`, `app-contracts`, `coverage-ratchet`, `flake-policy` | **PASS** |
-| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **PASS** |
+| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **FAIL** |
 
 ## Checks
 
@@ -43,9 +43,9 @@ Current run: **17 PASS · 0 FAIL · 0 SKIP** of 17 checks.
 | `app-contracts` | Every registry app declares its classification, smoke and API surface | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | every registry app classified, smoked and documented |
 | `flake-policy` | Flaky tests are registered, owned and inside the quarantine SLA | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | no flake outside its SLA |
 | `coverage-ratchet` | Coverage ratchet against a committed baseline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | baseline committed; the ratchet self-test fails on a decrease |
-| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **PASS** | every app classified, owned and within the complexity budget |
+| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **FAIL** | `python3 scripts/app_complexity_budget.py` exited 1: app complexity budget exceeded: |
 | `security-scan` | Supply-chain and secret scans are wired in CI | [#2121](https://github.com/generalbots/generalbots/issues/2121) | **PASS** | security.yml wires 6 scans (gitleaks not installed here) |
-| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **PASS** | adequacy_guard: OK — 17 rules at or below baseline |
+| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **FAIL** | `python3 scripts/adequacy_guard.py --baseline issues/adequacy/baseline.json` exited 1: adequacy_guard: FAIL — 3 issue(s) against issues/adequacy/baseline.json |
 | `i18n-lint` | Fluent catalogs and the keys the UI asks for are consistent | [#2090](https://github.com/generalbots/generalbots/issues/2090) | **PASS** | no new catalog violation |
 | `workflow-pinning` | Every `uses:` is a commit SHA and no workflow trusts a fork | [#1726](https://github.com/generalbots/generalbots/issues/1726) | **PASS** | every `uses:` is a commit SHA; no workflow trusts a fork |
 
