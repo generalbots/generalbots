@@ -62,11 +62,11 @@ test("[BASELINE-OBSERVE] chat/projector.html: 2 script tags, 2 blocking, 2 style
   equal(p.stylesheet, 2, "stylesheet");
 });
 
-test("[BASELINE-OBSERVE] suite totals: 1125 scripts, 1069 src, 1056 blocking, 56 inline, 378 stylesheets, 13 defer/async", function () {
+test("[BASELINE-OBSERVE] suite totals: 1127 scripts, 1070 src, 1056 blocking, 56 inline, 378 stylesheets, 13 defer/async", function () {
   var t = all().total;
-  equal(t.scripts, 1125, "scripts");
-  equal(t.scriptSrc, 1069, "scriptSrc");
-  equal(t.blockingScriptSrc, 1056, "blockingScriptSrc");
+  equal(t.scripts, 1126, "scripts");
+  equal(t.scriptSrc, 1070, "scriptSrc");
+  equal(t.blockingScriptSrc, 1057, "blockingScriptSrc");
   equal(t.inlineScript, 56, "inlineScript");
   equal(t.stylesheet, 378, "stylesheet");
   equal(t.deferAsync, 13, "deferAsync");
