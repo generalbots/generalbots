@@ -106,7 +106,11 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     let result = builder
         .build()
-        .map(|_| ())
+        .map(|win| {
+            if crate::desktop::splash::is_test_rig() {
+                crate::desktop::splash::park_offscreen(&win);
+            }
+        })
         .map_err(|e| format!("could not open the setup window: {e}"));
     if result.is_ok() {
         crate::desktop::splash::hide(app);
