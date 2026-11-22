@@ -48,6 +48,14 @@
     <div class="card-header"><h2 data-i18n="os-display-status">Display status</h2></div>
     <p class="os-hint" data-i18n="os-display-readonly">Display controls are read-only until the OS display backend is connected.</p>
     <div id="os-display-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row"><label for="osBrightness" data-i18n="os-display-brightness">Brightness</label><input type="range" id="osBrightness" min="1" max="100" value="80" onchange="window.GBDisplayControls && GBDisplayControls.set('brightness', this.value)" /><output id="osBrightnessValue">80%</output></div>
+    <div class="setting-row"><label for="osResolution" data-i18n="os-display-resolution">Resolution</label><select id="osResolution" onchange="window.GBDisplayControls && GBDisplayControls.set('resolution', this.value)"><option value="auto">Automatic</option><option value="1920x1080">1920 × 1080</option><option value="1280x720">1280 × 720</option></select></div>
+    <div class="setting-row"><label for="osScale" data-i18n="os-display-scale">Scale</label><select id="osScale" onchange="window.GBDisplayControls && GBDisplayControls.set('scale', this.value)"><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select></div>
+    <div class="setting-row"><label for="osRotation" data-i18n="os-display-rotation">Rotation</label><select id="osRotation" onchange="window.GBDisplayControls && GBDisplayControls.set('rotation', this.value)"><option value="normal">Normal</option><option value="left">Left</option><option value="right">Right</option><option value="inverted">Inverted</option></select></div>
+    <div class="setting-row"><label for="osDisplayMode" data-i18n="os-display-mode">External display</label><select id="osDisplayMode" onchange="window.GBDisplayControls && GBDisplayControls.set('layout', this.value)"><option value="single">Single</option><option value="extend">Extend</option><option value="mirror">Mirror</option></select></div>
+    <div class="setting-row"><label for="osNightLight" data-i18n="os-display-night-light">Night light</label><input type="checkbox" id="osNightLight" onchange="window.GBDisplayControls && GBDisplayControls.set('night_light', this.checked ? 'on' : 'off')" /></div>
+    <div class="setting-row"><label for="osAutoRotate" data-i18n="os-display-auto-rotate">Auto-rotate</label><input type="checkbox" id="osAutoRotate" onchange="window.GBDisplayControls && GBDisplayControls.set('auto_rotate', this.checked ? 'on' : 'off')" /></div>
+    <p id="osDisplayHotplug" role="status" aria-live="polite"></p>
   </div>
 </section>
 

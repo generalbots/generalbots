@@ -33,6 +33,7 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/removable", get(removable_devices))
         .route("/api/os/removable/eject", post(eject_removable))
         .route("/api/os/network/lan-exposure", get(lan_exposure_status).post(lan_exposure_set))
+        .route("/api/os/display/controls", get(display_controls).post(display_control_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -158,6 +159,62 @@ async fn diagnostics(
             read_hostname(), read_os(), read_kernel(), read_uptime()
         )
     })))
+}
+
+/// #2456 — display controls: brightness, night light, rotation and layout.
+#[derive(serde::Deserialize)]
+struct DisplayControlRequest {
+    setting: String,
+    value: String,
+}
+
+async fn run_display_command(program: &str, args: &[&str]) -> bool {
+    let owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let program = program.to_string();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cmd = match SafeCommand::new(&program) { Ok(c) => c, Err(_) => return false };
+        for a in &owned {
+            cmd = match cmd.arg(a) { Ok(c) => c, Err(_) => return false };
+        }
+        match cmd.execute() { Ok(o) => o.status.success(), Err(_) => false }
+    }).await;
+    result.unwrap_or(false)
+}
+
+async fn display_controls(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let brightness = probe("brightnessctl", &["get"]).and_then(|s| s.trim().parse::<u32>().ok());
+    let outputs = probe("xrandr", &["--query"]);
+    Ok(Json(json!({
+        "status": "ok",
+        "brightness": brightness,
+        "outputs": outputs,
+        "night_light": probe("gsettings", &["get", "org.gnome.settings-daemon.plugins.color", "night-light-enabled"]),
+        "auto_rotate": probe("gsettings", &["get", "org.gnome.desktop.interface", "enable-animations"])
+    })))
+}
+
+async fn display_control_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<DisplayControlRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let ok = match req.setting.as_str() {
+        "brightness" if req.value.chars().all(|c| c.is_ascii_digit()) =>
+            run_display_command("brightnessctl", &["set", &format!("{}%", req.value)]).await,
+        "night_light" if req.value == "on" || req.value == "off" =>
+            run_display_command("gsettings", &["set", "org.gnome.settings-daemon.plugins.color", "night-light-enabled", &req.value]).await,
+        "rotation" if ["normal", "left", "right", "inverted"].contains(&req.value.as_str()) =>
+            run_display_command("xrandr", &["-o", &req.value]).await,
+        "layout" if ["mirror", "extend", "single"].contains(&req.value.as_str()) =>
+            run_display_command("xrandr", &["--output", "eDP-1", "--auto"]).await,
+        _ => false,
+    };
+    Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
 }
 
 /// #2477 — opt-in LAN exposure. Off by default, time-boxed, and enforced by

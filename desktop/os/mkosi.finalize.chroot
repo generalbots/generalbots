@@ -430,3 +430,10 @@ automount=true
 UDISKSCONF
 install -d -m 0755 /media/gbdesk
 chmod 0755 /media/gbdesk
+
+# 11. #2456 — display auto-rotate via iio-sensor-proxy (only acts when a
+#     sensor is present). The suite toggle drives the same gsettings key.
+# iio-sensor-proxy exposes accelerometer data to the shell; rotation itself is
+# applied by the compositor when a sensor exists. The suite toggle persists the
+# user preference in gb-display-settings and the compositor reads the sensor.
+systemctl enable iio-sensor-proxy.service || true
