@@ -4,6 +4,8 @@ pub mod auth;
 pub mod collaboration;
 pub mod export;
 pub mod handlers;
+#[cfg(feature = "xlsx")]
+mod import_security;
 pub mod pdf;
 pub mod routes;
 pub mod state {

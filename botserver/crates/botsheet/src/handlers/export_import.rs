@@ -1,6 +1,5 @@
 //! Export and import handlers (split from [`super::crud`]).
 
-use base64::Engine;
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::export::{
     export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
@@ -15,6 +14,7 @@ use axum::{
     response::Html,
     Json,
 };
+use base64::Engine;
 use botsecurity_core::upload_policy::{self, UploadClass};
 use std::sync::Arc;
 
@@ -57,15 +57,19 @@ fn audit_hostile_upload(
         return Ok(());
     }
 
-    let report = upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(
-        |error| {
-            log::warn!("{context}: hostile-file gate refused upload: {}", error.log_detail());
+    let report =
+        upload_policy::inspect_hostile_upload_with(bytes, filename, policy).map_err(|error| {
+            log::warn!(
+                "{context}: hostile-file gate refused upload: {}",
+                error.log_detail()
+            );
             upload_policy::rejection_json(&error, headers)
-        },
-    )?;
+        })?;
 
     if report.malware_scan == upload_policy::MalwareScanDecision::NotConfigured {
-        log::warn!("{context}: no malware scanner configured — scan result is NotConfigured, not clean");
+        log::warn!(
+            "{context}: no malware scanner configured — scan result is NotConfigured, not clean"
+        );
     }
     log::info!(
         "{context}: hostile-file gate: entries={}, compressed={}, uncompressed={}, ratio={}, malware={:?}",
@@ -75,6 +79,26 @@ fn audit_hostile_upload(
         report.compression_ratio,
         report.malware_scan,
     );
+
+    // #2522 — second, streaming pass: XML entity limits and relationship/SSRF
+    // re-check at the import boundary, before any spreadsheet parser runs.
+    #[cfg(feature = "xlsx")]
+    {
+        let xml = crate::import_security::inspect_office_package(bytes).map_err(|error| {
+            log::warn!(
+                "{context}: hostile-file gate refused XML payload: {}",
+                error.log_detail()
+            );
+            upload_policy::rejection_json(&error, headers)
+        })?;
+        log::info!(
+            "{context}: XML safety: parts={}, relationships={}, entity_declarations={}, custom_entity_refs={}",
+            xml.parts_checked,
+            xml.relationship_targets,
+            xml.entity_declarations,
+            xml.custom_entity_refs,
+        );
+    }
     Ok(())
 }
 
@@ -270,20 +294,31 @@ pub async fn handle_import_sheet(
         .unwrap_or(false);
 
     let (bytes, filename, content_type) = if is_json {
-        let body = axum::body::to_bytes(req.into_body(), upload_policy::max_bytes(UploadClass::SpreadsheetImport))
-            .await
-            .map_err(|_| {
-                (
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({ "error": "Invalid JSON body" })),
-                )
-            })?;
-        let payload: ImportPathRequest = serde_json::from_slice(&body).unwrap_or_default();
-        let path = payload
-            .path
-            .or(payload.file)
-            .or(payload.file_path)
-            .unwrap_or_default();
+        let body = axum::body::to_bytes(
+            req.into_body(),
+            upload_policy::max_bytes(UploadClass::SpreadsheetImport),
+        )
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Invalid JSON body" })),
+            )
+        })?;
+        let payload: ImportPathRequest = match serde_json::from_slice(&body) {
+            Ok(payload) => payload,
+            Err(error) => {
+                log::warn!("botsheet::import: invalid JSON import request: {error}");
+                ImportPathRequest::default()
+            }
+        };
+        let path = match payload.path.or(payload.file).or(payload.file_path) {
+            Some(path) => path,
+            None => {
+                log::warn!("botsheet::import: JSON import request has no path field");
+                String::new()
+            }
+        };
         let path = path.trim().trim_start_matches('/').to_string();
         if path.is_empty() {
             return Err((
@@ -329,7 +364,12 @@ pub async fn handle_import_sheet(
         while let Ok(Some(field)) = multipart.next_field().await {
             if field.name() == Some("file") {
                 filename = field.file_name().unwrap_or("import.xlsx").to_string();
-                content_type = field.content_type().map(str::to_string).unwrap_or_default();
+                match field.content_type() {
+                    Some(declared) => content_type = declared.to_string(),
+                    None => log::warn!(
+                        "botsheet::import: multipart file has no content type; relying on magic bytes"
+                    ),
+                }
                 if let Ok(bytes) = field.bytes().await {
                     file_bytes = Some(bytes.to_vec());
                 }
@@ -384,7 +424,9 @@ pub async fn handle_import_sheet(
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
+            Json(
+                serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)}),
+            ),
         ));
     }
 
@@ -393,57 +435,5 @@ pub async fn handle_import_sheet(
 
 #[cfg(test)]
 #[cfg(feature = "xlsx")]
-mod hostile_import_tests {
-    use super::*;
-    use std::io::{Cursor, Write};
-
-    fn zip_with(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
-        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
-        for (name, body) in entries {
-            let options =
-                zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
-            assert!(writer.start_file(*name, options).is_ok(), "test entry");
-            assert!(writer.write_all(body).is_ok(), "test body");
-        }
-        let finished = writer.finish();
-        assert!(finished.is_ok(), "test zip");
-        finished.map(|writer| writer.into_inner()).unwrap_or_default()
-    }
-
-    fn rejects(bytes: &[u8], name: &str, policy: &upload_policy::HostileFilePolicy) -> bool {
-        let result = audit_hostile_upload(bytes, name, &axum::http::HeaderMap::new(), "test", policy);
-        match result {
-            Err((status, Json(body))) => {
-                status == StatusCode::BAD_REQUEST
-                    && body["code"] == "error-file-archive-unsafe"
-                    && body.get("sheet1.xml").is_none()
-            }
-            Ok(()) => false,
-        }
-    }
-
-    #[test]
-    fn a_compression_ratio_bomb_is_refused_before_conversion() {
-        let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b' '; 512 * 1024])]);
-        assert!(rejects(&bytes, "bomb.xlsx", &upload_policy::HostileFilePolicy::default()));
-    }
-
-    #[test]
-    fn an_oversized_uncompressed_entry_is_refused_before_conversion() {
-        let bytes = zip_with(&[("xl/worksheets/sheet1.xml", vec![b'x'; 8192])]);
-        let policy = upload_policy::HostileFilePolicy {
-            max_uncompressed_bytes: 1024,
-            ..upload_policy::HostileFilePolicy::default()
-        };
-        assert!(rejects(&bytes, "bomb.xlsx", &policy));
-    }
-
-    #[test]
-    fn a_macro_part_is_refused_before_conversion() {
-        let bytes = zip_with(&[
-            ("xl/workbook.xml", b"<workbook/>".to_vec()),
-            ("xl/vbaProject.bin", vec![0x01, 0x02, 0x03]),
-        ]);
-        assert!(rejects(&bytes, "macro.xlsx", &upload_policy::HostileFilePolicy::default()));
-    }
-}
+#[path = "hostile_import_tests.rs"]
+mod hostile_import_tests;
