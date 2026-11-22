@@ -191,7 +191,16 @@ window.GBSidebarApps = window.GBSidebarApps || {};
           ? "gb-side-app-tile gb-side-app-tile-preview"
           : "gb-side-app-tile";
         tile.setAttribute("data-app-id", app.id);
-        tile.setAttribute("title", app.preview ? tr("sidebar-app-preview-title", "{app} (preview)", { app: app.title }) : app.title);
+        // #2479 — an app whose provision component is absent on this image
+        // is shown with an honest "needs" explanation, never as a dead pane.
+        var unavailable = !!app.unavailable_reason;
+        if (unavailable) {
+          tile.classList.add("gb-side-app-tile-unavailable");
+          tile.setAttribute("aria-disabled", "true");
+          tile.setAttribute("title", app.unavailable_reason);
+        } else {
+          tile.setAttribute("title", app.preview ? tr("sidebar-app-preview-title", "{app} (preview)", { app: app.title }) : app.title);
+        }
         if (app.preview) tile.setAttribute("data-preview", "1");
         tile.innerHTML =
           '<span class="gb-side-app-icon" style="color:' +
@@ -201,7 +210,9 @@ window.GBSidebarApps = window.GBSidebarApps || {};
           "</span>" +
           '<span class="gb-side-app-label"></span>' +
           '<button type="button" class="gb-side-app-hide">×</button>';
-        tile.querySelector(".gb-side-app-label").textContent = app.title;
+        tile.querySelector(".gb-side-app-label").textContent = unavailable
+          ? app.title + " — " + app.unavailable_reason
+          : app.title;
 
         // Per-app OFF: the tile disappears from the rail only. The app stays in
         // APPS_REGISTRY, so the palette and deep links still open it.
@@ -215,6 +226,7 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         });
 
         tile.addEventListener("click", function () {
+          if (unavailable) return;
           if (window.openDeepLink) window.openDeepLink(app.id, {});
         });
         // Right-click is the second, keyboard-free route to the same action.

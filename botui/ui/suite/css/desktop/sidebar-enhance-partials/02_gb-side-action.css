@@ -407,3 +407,15 @@
 .chat-sidebar {
   position: relative;
 }
+
+/* #2479 — apps whose provision component is absent on this image stay
+   visible with an honest reason, but cannot be launched into a dead pane. */
+.gb-side-app-tile-unavailable {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.gb-side-app-tile-unavailable .gb-side-app-label {
+  font-size: var(--text-2xs, 0.75rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

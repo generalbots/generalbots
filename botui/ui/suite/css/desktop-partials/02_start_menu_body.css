@@ -404,3 +404,14 @@ body.sidebar-hidden .chat-sidebar {
     scroll-behavior: auto !important;
   }
 }
+
+/* #2479 — unavailable app: show the missing component instead of launching. */
+.start-menu-app.is-unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.start-menu-app-reason {
+  font-size: var(--text-2xs, 0.75rem);
+  color: var(--text-secondary);
+  text-align: center;
+}

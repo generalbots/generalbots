@@ -201,6 +201,16 @@
   _appTileHTML(app) {
     const iconColor = app.color || "#88ccff";
     const label = window.gbAppTitle ? window.gbAppTitle(app) : app.title;
+    // #2479 — surface provision requirements instead of launching a pane
+    // that can never load a component on this image.
+    if (app.unavailable_reason) {
+      const reason = String(app.unavailable_reason).replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      return `<div class="start-menu-app is-unavailable" data-app-id="${app.id}" aria-disabled="true" title="${reason}">
+        <div class="start-menu-app-icon" style="background:${iconColor}22;color:${iconColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg></div>
+        <div class="start-menu-app-label">${label}</div>
+        <div class="start-menu-app-reason">${reason}</div>
+      </div>`;
+    }
     return `<div class="start-menu-app" data-app-id="${app.id}" onclick="window.WindowManager.launchFromMenu('${app.id}', '${label.replace(/'/g, "\\'")}', '${app.hxGet}')">
       <div class="start-menu-app-icon" style="background:${iconColor}22;color:${iconColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg></div>
       <div class="start-menu-app-label">${label}</div>

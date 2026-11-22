@@ -118,3 +118,14 @@ scope root itself is refused. An injected script can therefore no longer wipe
 - The Vault token and unseal keys still live in the stack directory owned by
   `gbdesk`; separating the sidecar into a system account is the next step.
 - There is no password check on the lock overlay yet.
+
+## Vibe on the appliance (#2479)
+
+The General Bots OS appliance does not provision Incus, so Vibe's VM-backed
+project kinds cannot run there. The app remains available for its non-VM
+surfaces, and apps whose required component is absent from the image (for
+example Mail without Stalwart and Meet without LiveKit) are shown in the
+launcher with an explicit "Needs …" explanation instead of opening a pane
+that can never load data. This is a product decision for the laptop image,
+not a missing backend: the registry declares each app requirement and the
+shell publishes `unavailable_reason` from `/api/apps/catalog`.
