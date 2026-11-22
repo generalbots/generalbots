@@ -104,6 +104,43 @@ theme-title,Company Assistant
 3. **Simple Values**: All values are strings, parsed as needed
 4. **No Magic**: What you see is what you get
 
+## Installer-Managed Components (Local / Stage)
+
+For a local or stage install, the package manager is the authority on which
+components are provisioned. The registry is assembled in
+`botserver/crates/botcorepkg/src/installer/manager_construction.rs`
+(`PackageManager::all_components`); each entry is defined under
+`botserver/crates/botcorepkg/src/installer_regs/`. Naming and platform details
+for four components changed together and now read as follows:
+
+| Component | Current behavior | Source |
+|---|---|---|
+| `timeseries_db` | Runs the upstream `influxd` binary but stores everything under generic `timeseries` directories: `{{DATA_PATH}}/timeseries` (containing `engine/` and `influxd.bolt`) and `{{CONF_PATH}}/timeseries`. The `INFLUXD_ENGINE_PATH` and `INFLUXD_BOLT_PATH` variables point at those paths. The HTTP API listens on 8086 and RPC on 8083. | `installer_regs/register_databases.rs::register_timeseries_db` |
+| `observability` | Depends on `timeseries_db`, runs `vector` with `{{CONF_PATH}}/monitoring/vector.toml` and checks its `/health` endpoint on 8686. | `installer_regs/register_observability.rs::register_observability` |
+| `host` | Host preparation uses Incus only (the sole supported container layer): `incus admin init`, `incus storage`, `incus profile device`, and a proxy that connects `unix:/var/lib/incus/unix.socket` to `unix:/tmp/incus.sock` inside containers. It shells out to no legacy container daemon and mounts only the Incus socket. | `installer_regs/register_observability.rs::register_host` |
+| `remote_desktop` | The former `remote_terminal` key was renamed to `remote_desktop`. It installs Xvfb, XRDP and XFCE and serves an RDP desktop session on 3389. The registry contains only the new key; there is no compatibility alias. | `installer_regs/register_workspace.rs::register_remote_desktop` |
+
+`devtools` was a no-op placeholder and is no longer registered, so it does not
+appear in `botserver install` or component listings.
+
+### Existing `timeseries_db` data
+
+The directory rename changed only the parent folder name — the `engine/` and
+`influxd.bolt` file names are unchanged. For stage and local installs the
+supported path is a clean install: the component's pre-install commands create
+a fresh `timeseries` directory.
+
+To keep metrics from a stack that used the old `influxdb` directories:
+
+1. Stop `timeseries_db` before moving any files.
+2. Rename `{{DATA_PATH}}/influxdb` to `{{DATA_PATH}}/timeseries` and
+   `{{CONF_PATH}}/influxdb` to `{{CONF_PATH}}/timeseries` (on Windows, rename the
+   matching `...\influxdb` directories). Do not copy the old tree next to a
+   newly created `timeseries` tree: `influxd` is pointed only at the
+   `timeseries` paths.
+3. Start `timeseries_db`, confirm its `/health` check passes, then start
+   `observability`, which depends on it.
+
 ## See Also
 
 - [config.csv Format](./config-csv.md) - Complete reference
