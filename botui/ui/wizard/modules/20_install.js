@@ -224,7 +224,7 @@
     } else if (event.state === "failed") {
       node.className = "install-step-item done";
       icon.textContent = "✗";
-      icon.style.color = "#b3352a";
+      icon.style.color = "var(--id-danger-text)";
       if (dur) { dur.textContent = ""; }
     }
     updateInstallProgress();

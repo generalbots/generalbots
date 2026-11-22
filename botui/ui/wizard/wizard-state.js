@@ -81,12 +81,14 @@
   // The free tier ships a single keyless provider. Kilo's gateway is the only
   // free endpoint verified to follow the native vm_exec JSON protocol and to
   // return well-formed tool calls (OVH answers in prose, LLM7 requires a key).
+  // The model id must match FREE_MODEL in botserver/crates/botsettings.
+  var FREE_MODEL_ID = "inclusionai/ling-3.2-flash:free";
   var FREE_PROVIDERS = [
     {
       id: "kilo",
       name: "Kilo Code",
       endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
-      model: "dots-studio/dots-3-note-preview:free",
+      model: FREE_MODEL_ID,
       needsKey: false
     }
   ];
@@ -109,7 +111,7 @@
       // Default to the keyless free tier (Kilo). It needs no download, answers
       // immediately, and keeps the first install small; the bundled local model
       // stays available as an explicit choice.
-      model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
+      model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: FREE_MODEL_ID, api_key: "", tested: false },
       workspace: { path: "", size: "standard" },
       services: {},
       network: { mode: "p2p" },

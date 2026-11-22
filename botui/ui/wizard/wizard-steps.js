@@ -12,6 +12,9 @@
       .replace(/"/g, "&quot;");
   };
 
+  var MI = { local: "M3 4h18v12H3zM8 20h8M12 16v4", free: "M13 2 3 14h9l-1 8 10-12h-9z", "own-key": "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01" };
+  function svgIcon(id) { var d = MI[id] || MI.free; return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+
   function statusBadge(text, kind) {
     return '<span class="badge ' + (kind || "") + '">' + esc(text) + "</span>";
   }
@@ -107,7 +110,7 @@
       var selected = draft.model.mode === option.id;
       var logo = option.logo
         ? '<img class="model-logo" src="' + esc(option.logo) + '" alt="" aria-hidden="true" />'
-        : '<span class="model-logo model-logo-text" aria-hidden="true">' + esc(option.id === "local" ? "⌂" : (option.id === "free" ? "☁" : "⚿")) + "</span>";
+        : '<span class="model-logo model-logo-text" aria-hidden="true">' + svgIcon(option.id) + "</span>";
       var badge = option.badgeKey
         ? '<span class="model-badge">' + esc(t(option.badgeKey)) + "</span>"
         : "";
@@ -397,18 +400,9 @@
     }
   }
 
+  var HEADINGS = [null, "heading.welcome", "heading.model", "heading.workspace", "heading.services", "heading.privacy", "heading.network", "heading.install", "heading.finish"];
   function heading(step) {
-    switch (step) {
-      case 1: return t("heading.welcome");
-      case 2: return t("heading.model");
-      case 3: return t("heading.workspace");
-      case 4: return t("heading.services");
-      case 5: return t("heading.privacy");
-      case 6: return t("heading.network");
-      case 7: return t("heading.install");
-      case 8: return t("heading.finish");
-      default: return t("wizard.title");
-    }
+    return t(HEADINGS[step] || "wizard.title");
   }
 
   function validate(step, draft) {

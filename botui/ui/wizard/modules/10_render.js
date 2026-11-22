@@ -33,7 +33,7 @@
     el.next.disabled = !canAdvance();
     el.progress.style.width = Math.round((state.step / state.totalSteps) * 100) + "%";
     el.footLabel.textContent = t("wizard.foot-step", { current: state.step, total: state.totalSteps });
-    el.counter.textContent = t("wizard.step-counter", { current: state.step, total: state.totalSteps });
+    el.counter.innerHTML = '<span class="wiz-sl">//</span>' + esc(t("wizard.step-counter", { current: state.step, total: state.totalSteps }));
   }
 
   function canAdvance() {

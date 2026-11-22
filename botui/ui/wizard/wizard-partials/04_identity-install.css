@@ -5,44 +5,6 @@
  * both filling the pane height. Host readiness collapses when ready.
  */
 
-/* == Install header =================================================== */
-
-.install-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--id-space-3);
-  margin-bottom: var(--id-space-1);
-}
-.install-kicker {
-  color: var(--id-accent-text);
-  font-size: var(--id-text-sm);
-  font-weight: 600;
-}
-.install-percent {
-  color: var(--id-ink);
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.install-bar {
-  height: 4px;
-  border-radius: var(--id-radius-pill);
-  background: var(--id-gray-200);
-  margin-bottom: var(--id-space-3);
-}
-.install-bar-fill {
-  background: var(--id-accent);
-  border-radius: var(--id-radius-pill);
-  transition: width 0.3s var(--id-ease);
-}
-.install-status {
-  font-size: var(--id-text-sm);
-  color: var(--id-muted);
-  margin: 0;
-}
-
 /* == Host readiness (collapsible) ===================================== */
 
 .install-host-details {
@@ -64,12 +26,15 @@
   margin-right: 6px;
   transition: transform var(--id-dur-fast);
 }
+@media (prefers-reduced-motion: reduce) {
+  .install-host-summary::before { transition: none; }
+}
 .install-host-details[open] > .install-host-summary::before {
   transform: rotate(90deg);
 }
 .install-host-body {
   padding: var(--id-space-3) var(--id-space-4);
-  border: 1px solid var(--id-line);
+  border: var(--id-stroke) solid var(--id-line);
   border-radius: var(--id-radius-control);
   background: var(--id-surface);
   box-shadow: var(--id-shadow-card);
@@ -97,7 +62,7 @@
   min-height: 0;
 }
 
-/* == Log panel (light, paper-toned) =================================== */
+/* == Log panel ========================================================= */
 
 .install-col-output .log-header {
   display: flex;
@@ -115,18 +80,6 @@
   color: var(--id-muted);
   font-variant-numeric: tabular-nums;
 }
-pre.log {
-  border-radius: var(--id-radius-sm);
-  background: var(--id-paper);
-  border: 1px solid var(--id-line);
-  color: var(--id-text);
-  font-size: 12px;
-  font-family: 'Consolas', 'SF Mono', 'Monaco', monospace;
-  line-height: 1.5;
-  padding: var(--id-space-3);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
 .install-col-output pre.log {
   flex: 1;
   min-height: 80px;
@@ -137,11 +90,6 @@ pre.log {
 
 /* == Step list (calm, reference style) ================================ */
 
-.component-board {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
 .install-step-item {
   display: flex;
   align-items: center;
@@ -224,17 +172,6 @@ pre.log {
   color: var(--id-muted);
 }
 .install-toggle-details:hover { color: var(--id-ink); }
-
-/* == Legacy component styles (kept for compatibility) ================= */
-.component {
-  border-radius: var(--id-radius-control);
-  border-color: var(--id-line);
-  background: var(--id-surface);
-  box-shadow: var(--id-shadow-card);
-}
-.dot { background: var(--id-gray-300); }
-.dot.run { background: var(--id-accent); }
-.dot.ok { background: #22a559; }
 
 /* == Responsive ======================================================= */
 
