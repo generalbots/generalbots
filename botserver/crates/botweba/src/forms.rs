@@ -117,16 +117,16 @@ impl RateLimiter {
 }
 
 fn default_bot(conn: &mut diesel::PgConnection) -> Uuid {
-    let _ = conn;
+    drop(conn);
     Uuid::nil()
 }
 
 fn contact_change(conn: &mut diesel::PgConnection, id: Uuid, action: &str, user: Uuid) {
-    let _ = (conn, id, action, user);
+    drop((conn, id, action, user));
 }
 
 fn deal_stage_change(conn: &mut diesel::PgConnection, id: Uuid, old: &str, next: &str, user: Uuid) {
-    let _ = (conn, id, old, next, user);
+    drop((conn, id, old, next, user));
 }
 
 fn field(fields: &HashMap<String, String>, name: &str) -> Option<String> {
