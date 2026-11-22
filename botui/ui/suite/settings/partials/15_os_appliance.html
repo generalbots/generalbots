@@ -35,7 +35,24 @@
         <option value="shutdown" data-i18n="os-power-critical-shutdown">Shut down</option>
       </select>
     </div>
+    <div class="setting-row"><label for="osPowerProfile" data-i18n="os-power-profile">Power profile</label><select id="osPowerProfile" onchange="window.GBPowerFirmware && GBPowerFirmware.setProfile(this.value)"><option value="power-saver">Power saver</option><option value="balanced">Balanced</option><option value="performance">Performance</option></select></div>
     <div id="os-power-status-body" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+  </div>
+</section>
+
+<section id="os-firmware-section" class="settings-section" data-shell-only="true" data-os-appliance="true" hidden>
+  <div class="section-header">
+    <h1 data-i18n="os-firmware-title">Firmware</h1>
+    <p class="subtitle" data-i18n="os-firmware-subtitle">Device firmware updates via fwupd</p>
+  </div>
+  <div class="setting-card">
+    <div class="card-header"><h2 data-i18n="os-firmware-devices">Devices</h2></div>
+    <div id="osFirmwareDevices" class="os-appliance-body" role="status" aria-live="polite" data-i18n="os-backend-pending">Waiting for OS backend…</div>
+    <div class="setting-row">
+      <button type="button" onclick="window.GBPowerFirmware && GBPowerFirmware.firmware('check')" data-i18n="os-firmware-check">Check for updates</button>
+      <button type="button" onclick="window.GBPowerFirmware && GBPowerFirmware.firmware('install')" data-i18n="os-firmware-install">Install updates</button>
+    </div>
+    <p id="osFirmwareRestart" role="status" aria-live="polite" hidden data-i18n="os-firmware-restart">Restart to finish installing firmware.</p>
   </div>
 </section>
 

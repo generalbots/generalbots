@@ -19,6 +19,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::os::{authorize, deny};
 use crate::os_data::{read_disks, read_hostname, read_kernel, read_os, read_uptime};
+use crate::os_power_data::read_power_status;
 
 pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -35,6 +36,8 @@ pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
         .route("/api/os/network/lan-exposure", get(lan_exposure_status).post(lan_exposure_set))
         .route("/api/os/display/controls", get(display_controls).post(display_control_set))
         .route("/api/os/time", get(os_time_status).post(os_time_set))
+        .route("/api/os/firmware", get(os_firmware_status).post(os_firmware_action))
+        .route("/api/os/power-profile", get(os_power_profile).post(os_power_profile_set))
 }
 
 fn probe(program: &str, args: &[&str]) -> Option<String> {
@@ -376,6 +379,10 @@ async fn diagnostics_bundle(
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_else(|| json!({ "blockdevices": [] })),
         // #2481 — GPU/VA-API strings for support reports (no hardware probe here).
+        // #2464 — thermal + battery telemetry for support reports.
+        "thermal": probe("sensors", &[]).map(|s| redact(&s.lines().take(20).collect::<Vec<_>>().join("\n"))),
+        "battery": json!(read_power_status()),
+        "power_profile": probe("powerprofilesctl", &["get"]),
         "graphics": json!({
             "gpu": probe("lspci", &["-nn"]).map(|s| redact(&s.lines()
                 .filter(|l| l.contains("VGA") || l.contains("Display") || l.contains("3D"))
@@ -499,4 +506,66 @@ async fn os_time_set(
         _ => false,
     };
     Ok(Json(json!({ "ok": ok, "setting": req.setting, "value": req.value })))
+}
+
+/// #2464 — firmware device list and update actions via fwupd.
+async fn os_firmware_status(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let devices = probe("fwupdmgr", &["get-devices", "--no-progress"])
+        .unwrap_or_else(|| "fwupdmgr unavailable in this build".to_string());
+    Ok(Json(json!({ "status": "ok", "devices": redact(&devices) })))
+}
+
+#[derive(serde::Deserialize)]
+struct FirmwareActionRequest { action: String, device: Option<String> }
+
+async fn os_firmware_action(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<FirmwareActionRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let args: Vec<&str> = match req.action.as_str() {
+        "check" => vec!["refresh", "--no-progress"],
+        "install" => vec!["update", "--no-progress", "-y"],
+        _ => return Ok(Json(json!({ "ok": false, "error": "unknown_action" }))),
+    };
+    let owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cmd = match SafeCommand::new("fwupdmgr") { Ok(c) => c, Err(_) => return false };
+        for a in &owned { cmd = match cmd.arg(a) { Ok(c) => c, Err(_) => return false }; }
+        match cmd.execute() { Ok(o) => o.status.success(), Err(_) => false }
+    }).await;
+    Ok(Json(json!({ "ok": result.unwrap_or(false), "action": req.action,
+        "restart_required": req.action == "install" })))
+}
+
+/// #2464 — power profile via power-profiles-daemon.
+#[derive(serde::Deserialize)]
+struct PowerProfileRequest { profile: String }
+
+async fn os_power_profile(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+) -> ApiResult {
+    gated(user, headers)?;
+    let profile = probe("powerprofilesctl", &["get"]);
+    Ok(Json(json!({ "status": "ok", "profile": profile })))
+}
+
+async fn os_power_profile_set(
+    user: Option<Extension<AuthenticatedUser>>,
+    headers: HeaderMap,
+    axum::Json(req): axum::Json<PowerProfileRequest>,
+) -> ApiResult {
+    gated(user, headers)?;
+    let p = req.profile.clone();
+    if !["performance", "balanced", "power-saver"].contains(&p.as_str()) {
+        return Ok(Json(json!({ "ok": false, "error": "unknown_profile" })));
+    }
+    let ok = run_display_command("powerprofilesctl", &["set", &p]).await;
+    Ok(Json(json!({ "ok": ok, "profile": p })))
 }
