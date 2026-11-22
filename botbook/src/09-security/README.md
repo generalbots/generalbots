@@ -238,8 +238,9 @@ an unset variable or any other value keeps the fail-closed default. The switch
 is read by `HostileFilePolicy::default()` through
 `botsecurity_core::upload_hostile::opt_out`. The scan decision is still recorded
 as `NotConfigured` — the opt-out lowers the *requirement*, it does not claim a
-clean scan. To roll back the change, remove the variable and restart botserver;
-imports then fail closed again.
+clean scan. To roll back the change, unset every opt-out variable you set and
+restart botserver; imports then fail closed again. The deprecated Slides alias
+below counts too — clearing only the shared switch leaves Slides opted out.
 
 Slides reads this same shared switch, so `GB_ALLOW_UNSCANNED_IMPORT=1` governs
 its override too. For one release the old Slides-only variable
@@ -248,7 +249,10 @@ is honored only when the shared variable is unset, logs a warning when present,
 and is removed in the next release. When both are set the shared switch wins.
 Deployments should migrate to the shared name now. Both variables use the same
 grammar and keep the decision honest (`NotConfigured`, never a fabricated
-`Clean`).
+`Clean`). Because the alias is consulted only when the shared variable is unset,
+restoring fail-closed at the Slides boundary requires clearing **both** variables
+before the botserver restart; removing only `GB_ALLOW_UNSCANNED_IMPORT` hands
+control back to the alias.
 
 The switch is an environment variable so it can be injected by the deployment,
 including from Vault-backed configuration. A caller that reads the same flag
