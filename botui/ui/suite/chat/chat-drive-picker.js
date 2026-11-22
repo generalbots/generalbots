@@ -194,7 +194,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
         input.files = transfer.files;
         input.dispatchEvent(new Event("change", { bubbles: true }));
         close();
-        if (typeof notify === "function") notify("Attached from Drive: " + item.name, "success");
+        if (typeof notify === "function") notify(gbT("chat-notify-attached-from-drive", "Attached from Drive: ") + item.name, "success");
       })
       .catch(function (error) {
         setStatus("Could not attach: " + (error && error.message ? error.message : error));
