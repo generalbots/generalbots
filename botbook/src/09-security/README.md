@@ -189,3 +189,19 @@ that already has code execution in the shell is inside the same trust domain.
 The appliance does not claim otherwise; the WebKit web process is sandboxed
 (#2500) and the session-bus restrictions above are defense in depth, not a
 per-page sandbox.
+
+### HTTP error envelope (#2414)
+
+New handlers return `botsecurity_core::api_error::ApiError`, which implements
+`IntoResponse` and always produces the same JSON shape:
+
+```json
+{"error":"internal_error","message":"Sanitized, user-safe text","code":"stable_code","request_id":"abc123"}
+```
+
+The original driver/IO error is passed to the shared sanitizer and stays in the
+server log; `message`, `code` and `request_id` are the only fields clients
+should read. Handlers still returning `(StatusCode, String)` are legacy; their
+count is ratcheted down by `scripts/check_raw_error_strings.py`, a blocking CI
+guard. This envelope is the contract referenced by the API command catalog for
+LLM-driven calls.
