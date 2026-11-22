@@ -115,6 +115,16 @@ pub async fn resolve_agent_enabled(
         .unwrap_or(DEFAULT_AGENT_ENABLED)
 }
 
+/// Does the model-preference string name a subscription provider?
+///
+/// Pure parsing check with no platform dependency — used by the tests and
+/// by [`subscription_implies_agent`].
+#[cfg(feature = "agent-vm")]
+fn is_subscription_choice(model_preference: &str) -> bool {
+    use crate::core::ai_accounts::models::parse_choice;
+    parse_choice(model_preference).is_some()
+}
+
 /// When the turn's `model_preference` explicitly names a subscription
 /// provider (`sub:claude-code`, …), the agent is implicitly ON for this
 /// turn even when the per-conversation switch is off — the person
@@ -125,8 +135,7 @@ pub async fn resolve_agent_enabled(
 /// 2. The backend is available on this platform.
 #[cfg(feature = "agent-vm")]
 pub fn subscription_implies_agent(model_preference: &str) -> bool {
-    use crate::core::ai_accounts::models::parse_choice;
-    if parse_choice(model_preference).is_none() {
+    if !is_subscription_choice(model_preference) {
         return false;
     }
     #[cfg(windows)]
@@ -149,21 +158,21 @@ mod tests {
 
     #[cfg(feature = "agent-vm")]
     mod subscription_override {
-        use super::super::subscription_implies_agent;
+        use super::super::is_subscription_choice;
 
         #[test]
-        fn explicit_sub_choice_overrides_payload_false() {
-            assert!(subscription_implies_agent("sub:claude-code"));
-            assert!(subscription_implies_agent("sub:codex-cli/gpt-6.2-sol"));
-            assert!(subscription_implies_agent("sub:antigravity"));
+        fn explicit_sub_choice_is_recognised() {
+            assert!(is_subscription_choice("sub:claude-code"));
+            assert!(is_subscription_choice("sub:codex-cli/gpt-6.2-sol"));
+            assert!(is_subscription_choice("sub:antigravity"));
         }
 
         #[test]
-        fn non_subscription_preference_does_not_override() {
-            assert!(!subscription_implies_agent("auto"));
-            assert!(!subscription_implies_agent("fast"));
-            assert!(!subscription_implies_agent("acct:openai/gpt-4o"));
-            assert!(!subscription_implies_agent(""));
+        fn non_subscription_preference_is_not_a_choice() {
+            assert!(!is_subscription_choice("auto"));
+            assert!(!is_subscription_choice("fast"));
+            assert!(!is_subscription_choice("acct:openai/gpt-4o"));
+            assert!(!is_subscription_choice(""));
         }
     }
 }
