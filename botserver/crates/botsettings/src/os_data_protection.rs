@@ -1,9 +1,9 @@
 //! Honest data-protection surface for the OS Settings panel (#2470). Status is
 //! static: no host probing and no claim of LUKS, TPM, scheduled snapshots or
 //! factory reset. `export` returns an archive manifest descriptor, `snapshots`
-//! stages a job through the documented btrfs/Drive adapter contract and fails
-//! closed (503) with no backend, `reset` requires an exact typed token yet
-//! still returns 501. All actions are gated and audited.
+//! stages a bounded, non-destructive Drive archive descriptor when Drive is
+//! configured (otherwise it fails closed with 503), and `reset` requires an
+//! exact typed token yet still returns 501. All actions are gated and audited.
 
 use axum::{
     extract::{Extension, State},
@@ -22,6 +22,17 @@ use std::sync::Arc;
 
 use crate::audit_log::{record_audit_event, AuditEvent};
 use crate::os::{authorize, deny};
+
+// Bounded, non-destructive Drive descriptor adapter. Included here (via
+// `#[path]`) so it reuses this module's descriptor helpers without widening
+// their visibility, and so no sibling module has to be touched.
+#[path = "os_data/snapshot.rs"]
+mod drive_snapshot;
+
+// Static status payload, split out to keep this module under the size cap.
+#[path = "os_data/status.rs"]
+mod status;
+pub(crate) use status::status_payload;
 
 /// Single-copy user data tree on the OS image. Descriptors only: this module
 /// never reads from or writes to it.
@@ -106,18 +117,43 @@ pub struct SnapshotReceipt {
 }
 
 /// OS-image snapshot contract. `btrfs` stages a read-only subvolume of
-/// `DATA_ROOT`; `drive-archive` uploads a consistent `tar.zst` to Drive.
-/// `prepare` is idempotent per reason, never deletes the source and returns
-/// `None` when unprovisioned, so the endpoint fails closed.
+/// `DATA_ROOT`; `drive-archive` describes a consistent `tar.zst` in Drive.
+/// `prepare` returns `None` when a backend is unprovisioned, so the endpoint
+/// fails closed. Backends never read, write or delete source data.
 pub trait SnapshotBackend {
     fn id(&self) -> &'static str;
     fn medium(&self) -> &'static str;
     fn prepare(&self, reason: &str) -> Option<SnapshotReceipt>;
+
+    /// Bounded, non-destructive archive manifest + retention descriptor. The
+    /// default keeps only a digest of the caller-supplied reason, never the
+    /// raw text. A backend may add bounded fields (e.g. a logical object key).
+    fn manifest(&self, reason: &str) -> Value {
+        let reason_digest = hex::encode(Sha256::digest(reason.as_bytes()));
+        json!({
+            "manifest_id": manifest_id(),
+            "reason_digest": reason_digest,
+            "status": "descriptor_only",
+            "scope": ARCHIVE_SCOPE_FULL,
+            "format": ARCHIVE_FORMAT,
+            "source_root": DATA_ROOT,
+            "retention": retention_payload(),
+            "destructive": false,
+            "archive_created": false,
+            "bytes_copied": 0
+        })
+    }
 }
 
-/// Backends registered by the OS image. Empty here: this build registers none.
-pub fn registered_snapshot_backends() -> &'static [&'static dyn SnapshotBackend] {
-    &[]
+/// Backends available for this request. The Drive descriptor adapter is
+/// registered only when Drive is configured (`AppState.drive` is `Some`);
+/// otherwise the slice is empty and the snapshot endpoint fails closed (503).
+pub fn registered_snapshot_backends(drive_available: bool) -> Vec<&'static dyn SnapshotBackend> {
+    if drive_available {
+        vec![drive_snapshot::backend()]
+    } else {
+        Vec::new()
+    }
 }
 
 fn retention_payload() -> Value {
@@ -144,8 +180,9 @@ fn snapshot_descriptor(backends: &[&dyn SnapshotBackend], reason: &str) -> Optio
                 "location": receipt.location,
                 "source_root": DATA_ROOT,
                 "retention": retention_payload(),
+                "manifest": backend.manifest(reason),
                 "destructive": false,
-                "message": format!("Snapshot job {job} staged on {} ({medium}); no snapshot was created by this build.", backend.id()),
+                "message": format!("Snapshot job {job} staged on {} ({medium}); no archive was created and no data left the device.", backend.id()),
                 "note": "Adapter contract only. Restore and pruning are separate typed-confirmation actions supplied by the OS image."
             }));
         }
@@ -207,67 +244,6 @@ pub struct ResetRequest {
     pub confirmation: Option<String>,
 }
 
-/// Static status payload: no host probing, so the answer cannot drift from
-/// what this build actually ships.
-fn status_payload() -> Value {
-    json!({
-        "status": "not_implemented",
-        "shell_mode_only": true,
-        "data_root": DATA_ROOT,
-        "encryption": {
-            "implemented": false,
-            "luks_mapping": false,
-            "tpm_sealed": false,
-            "recovery_key_export": false,
-            "note": "No LUKS mapping, no systemd-cryptenroll provisioning and no TPM sealing are implemented in this image. User data at rest is not encrypted by General Bots."
-        },
-        "backup": {
-            "implemented": false,
-            "enabled": false,
-            "root": DATA_ROOT,
-            "schedule": "none",
-            "last_snapshot": null,
-            "restore_available": false,
-            "retention_policy": retention_payload(),
-            "contract": {
-                "status": "adapter_contract_only",
-                "method": "POST",
-                "path": SNAPSHOT_CONTRACT_PATH,
-                "request": { "reason": "string" },
-                "adapters": ["btrfs", "drive-archive"],
-                "result": "503 when no OS backend is registered; 202 with a staged job descriptor otherwise",
-                "medium": "btrfs snapshot or Drive archive of the data root"
-            }
-        },
-        "export": {
-            "implemented": false,
-            "enabled": false,
-            "descriptor_available": true,
-            "contract": {
-                "status": "descriptor_only",
-                "method": "POST",
-                "path": EXPORT_CONTRACT_PATH,
-                "request": { "scope": ARCHIVE_SCOPE_FULL },
-                "result": "200 with a deterministic archive manifest; no archive is created and no data leaves the device",
-                "includes": ARCHIVE_INCLUDES,
-                "excludes": ARCHIVE_EXCLUDES
-            }
-        },
-        "reset": {
-            "implemented": false,
-            "enabled": false,
-            "confirmation_token": RESET_CONFIRMATION_TOKEN,
-            "contract": {
-                "status": "disabled",
-                "method": "POST",
-                "path": RESET_CONTRACT_PATH,
-                "request": { "confirmation": "exact typed confirmation token required" },
-                "result": "400 without the typed token; 501 with it. No wipe backend ships in this build."
-            }
-        }
-    })
-}
-
 async fn data_protection_status(
     user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
@@ -308,7 +284,12 @@ async fn create_snapshot(
     let actor = gate(user, headers)?;
     let valid = valid_reason(&request.reason);
     let descriptor = if valid {
-        snapshot_descriptor(registered_snapshot_backends(), &request.reason)
+        // Drive configured => the descriptor adapter is registered; otherwise
+        // no backend is available and the request fails closed below.
+        snapshot_descriptor(
+            &registered_snapshot_backends(state.drive.is_some()),
+            &request.reason,
+        )
     } else {
         None
     };
@@ -338,7 +319,7 @@ async fn create_snapshot(
             Json(json!({
                 "error": "os_backend_unavailable",
                 "status": "not_implemented",
-                "message": "No btrfs or Drive snapshot backend is registered in this build. No snapshot was created.",
+                "message": "No snapshot backend is available: Drive is not configured and no btrfs backend ships in this build. Nothing was created or deleted.",
                 "contract": SNAPSHOT_CONTRACT_PATH,
                 "adapters": ["btrfs", "drive-archive"]
             })),
@@ -378,72 +359,5 @@ async fn reset_device(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    struct B(bool);
-    impl SnapshotBackend for B {
-        fn id(&self) -> &'static str {
-            "btrfs"
-        }
-        fn medium(&self) -> &'static str {
-            "local-subvolume"
-        }
-        fn prepare(&self, _r: &str) -> Option<SnapshotReceipt> {
-            if !self.0 {
-                return None;
-            }
-            Some(SnapshotReceipt {
-                job_id: "j".into(),
-                location: DATA_ROOT.into(),
-            })
-        }
-    }
-    #[test]
-    fn status_is_honest_and_publishes_contracts() {
-        let p = status_payload();
-        assert_eq!(p["status"], "not_implemented");
-        assert_eq!(p["encryption"]["implemented"], false);
-        assert_eq!(p["backup"]["implemented"], false);
-        assert_eq!(p["export"]["enabled"], false);
-        assert_eq!(p["export"]["descriptor_available"], true);
-        assert_eq!(p["reset"]["enabled"], false);
-        assert_eq!(p["reset"]["confirmation_token"], RESET_CONFIRMATION_TOKEN);
-        assert_eq!(p["backup"]["contract"]["path"], SNAPSHOT_CONTRACT_PATH);
-        assert_eq!(p["export"]["contract"]["path"], EXPORT_CONTRACT_PATH);
-        assert_eq!(p["reset"]["contract"]["path"], RESET_CONTRACT_PATH);
-        let r = retention_payload();
-        assert_eq!(r["daily_keep"], RETENTION_DAILY_KEEP);
-        let t = p.to_string().to_ascii_lowercase();
-        assert!(!t.contains("tpm 2.0 sealing of the root volume is performed"));
-        assert!(!t.contains("enabled\":true"));
-    }
-    #[test]
-    fn manifest_is_deterministic_and_non_destructive() {
-        let m = archive_manifest();
-        assert_eq!(m["manifest_id"], archive_manifest()["manifest_id"]);
-        assert_eq!(m["manifest_id"].as_str().map(str::len), Some(64));
-        assert_eq!(m["status"], "descriptor_only");
-        assert_eq!(m["archive_created"], false);
-        assert_eq!(m["destructive"], false);
-        assert_eq!(m["excludes"].as_array().map(Vec::len), Some(3));
-    }
-    #[test]
-    fn snapshot_fails_closed_and_reports_a_prepared_backend() {
-        assert!(registered_snapshot_backends().is_empty());
-        assert!(snapshot_descriptor(registered_snapshot_backends(), "r").is_none());
-        assert!(snapshot_descriptor(&[&B(false)], "r").is_none());
-        let d = snapshot_descriptor(&[&B(true)], "r");
-        assert!(d.is_some());
-        if let Some(d) = d {
-            assert_eq!(d["status"], "staged");
-        }
-    }
-    #[test]
-    fn inputs_are_validated() {
-        assert!(valid_reason("nightly backup"));
-        assert!(!valid_reason("   "));
-        assert!(!valid_reason(&"x".repeat(MAX_REASON_BYTES + 1)));
-        assert!(reset_confirmed(Some(RESET_CONFIRMATION_TOKEN)));
-        assert!(!reset_confirmed(None));
-    }
-}
+#[path = "os_data/protection_tests.rs"]
+mod tests;
