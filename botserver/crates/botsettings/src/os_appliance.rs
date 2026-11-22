@@ -21,6 +21,13 @@ use crate::os::{authorize, deny};
 use crate::os_data::{read_disks, read_hostname, read_kernel, read_os, read_uptime};
 use crate::os_power_data::read_power_status;
 
+// #2481 — this module already exceeds the 450-line limit, so the strengthened
+// tests for the pure `graphics_support_status()` classifier live in their own
+// file. As a child module they still reach the private function via `super::`.
+#[cfg(test)]
+#[path = "os_appliance_tests.rs"]
+mod os_appliance_tests;
+
 pub(crate) fn configure_appliance_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/os/network", get(network))
